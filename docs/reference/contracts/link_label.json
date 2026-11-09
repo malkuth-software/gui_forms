@@ -20,14 +20,6 @@
       "reviewed": false,
       "summary": "Constructs an ordinary ButtonBase command using link presentation."
     },
-    "gui_forms::LinkLabel::visited|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether the link has completed activation."
-    },
-    "gui_forms::LinkLabel::set_visited|void (bool)": {
-      "reviewed": false,
-      "summary": "Commits visited state and invalidates paint and semantics."
-    },
     "gui_forms::LinkLabel::on_paint|void (Painter &, Rect)": {
       "reviewed": false,
       "summary": "Records resolved link text color, underline geometry, and focus cue without a button frame."

@@ -9,6 +9,7 @@
 #include "../../src/core/theme_language/compiler/theme_compiler.hpp"
 #include "../support/rgba_order.hpp"
 #include "../support/theme_definition_heap.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/gui_forms.hpp"
 
 #include <array>
@@ -74,6 +75,8 @@ const std::array<std::string_view, 1> resources{{"icon.check"}};
 struct Options final {
     const PrimitiveRegistry* registry{};
     EngineVersion requires_engine{current_engine_version};
+    // The effects an `effect` may name; null checks the name's form only.
+    const EffectRegistry* effects{};
 };
 
 struct Compilation final {
@@ -95,7 +98,8 @@ Compilation compile(std::string_view text, Options options = Options{}) {
                             .vocabulary = SelectorVocabulary{},
                             .published_values = published,
                             .resources = resources,
-                            .requires_engine = options.requires_engine};
+                            .requires_engine = options.requires_engine,
+                            .effects = options.effects};
     input.vocabulary.controls = controls;
     ThemeCompiler compiler{};
     ThemeDiagnosticList diagnostics{};
@@ -169,7 +173,7 @@ PropertyTransition still(std::string_view property, double target) {
 ThemeRule face_rule(std::string label, std::string stable_id) {
     ThemeRule rule{};
     rule.label = std::move(label);
-    rule.level = CascadeLevel::stable_id_rule;
+    rule.level = CascadeLevel::theme_sheet;
     rule.selector.stable_id = std::move(stable_id);
     rule.selector.part = "face";
     return rule;
@@ -459,7 +463,7 @@ void test_properties() {
     if (listed.sheet.rules.size() == 3U) {
         const ThemeRule& first = listed.sheet.rules[0];
         const ThemeRule& third = listed.sheet.rules[2];
-        require(first.selector.classes == std::vector<std::string>{"a"} && first.level == CascadeLevel::class_rule &&
+        require(first.selector.classes == std::vector<std::string>{"a"} && first.level == CascadeLevel::theme_sheet &&
                     !first.specificity && first.label == ".a, .b:is(.c, .d)",
                 "each expanded selector is one rule with the rule's label");
         require(third.selector.classes == (std::vector<std::string>{"b", "d"}) && !third.specificity &&
@@ -473,7 +477,7 @@ void test_properties() {
         const ThemeRule& own = given.sheet.rules[0];
         const ThemeRule& lifted = given.sheet.rules[1];
         require(!own.specificity && lifted.specificity && (*lifted.specificity).ids == 1U &&
-                    lifted.level == CascadeLevel::stable_id_rule,
+                    lifted.level == CascadeLevel::theme_sheet,
                 "an :is() gives its most specific argument's, given only where the selector's own differs");
     }
 }
@@ -550,6 +554,70 @@ void test_refusals() {
     require(!named.diagnostics.empty() && named.diagnostics.back().rule == "#a" &&
                 named.diagnostics.back().property == "amplitude",
             "a value's error names its rule and property");
+}
+
+// -- effect names against the registry (EP-3) -----------------------------------------
+
+// Given a registry, a theme naming an effect it does not hold is refused at
+// the name (E417), the diagnostic naming the rule and property; a name it
+// holds, `none` and `initial` compile. Without one, only the name's form is
+// checked.
+void test_effect_registry() {
+    Options checked{};
+    checked.effects = &built_in_effect_registry();
+
+    constexpr std::string_view unknown = "#a { opacity: 1; effect: wobble-band }";
+    const Compilation refused = compile(unknown, checked);
+    const bool one = refused.outcome == CompileOutcome::refused && refused.diagnostics.size() == 1U &&
+                     refused.diagnostics.front().code == DiagnosticCode::effect_unknown;
+    if (!one) print_diagnostics(refused);
+    require(one, "an effect the registry does not hold refuses the theme with E417");
+    if (one) {
+        const ThemeDiagnostic& diagnostic = refused.diagnostics.front();
+        require(diagnostic.position.line.value == 1U &&
+                    diagnostic.position.column.value == column_of(unknown, "wobble-band"),
+                "E417 is at the effect's name");
+        require(diagnostic.rule == "#a" && diagnostic.property == "effect" && diagnostic.detail == "wobble-band",
+                "E417 names the rule, the property and the name as written");
+    }
+
+    // The second of two rules, on its own line: the position is the name's.
+    constexpr std::string_view second = "#a { effect: progress-pulse }\n#b { effect: progress-sparkle }";
+    const Compilation placed = compile(second, checked);
+    const bool at_second = placed.outcome == CompileOutcome::refused && placed.diagnostics.size() == 1U &&
+                           placed.diagnostics.front().code == DiagnosticCode::effect_unknown &&
+                           placed.diagnostics.front().position.line.value == 2U &&
+                           placed.diagnostics.front().position.column.value == 14U &&
+                           placed.diagnostics.front().rule == "#b";
+    if (!at_second) print_diagnostics(placed);
+    require(at_second, "E417 is at the unknown name's line and column, in its rule");
+
+    const Compilation known = compile("#a { effect: progress-pulse }", checked);
+    if (known.outcome != CompileOutcome::compiled) print_diagnostics(known);
+    require(known.outcome == CompileOutcome::compiled && known.diagnostics.empty(),
+            "an effect the registry holds compiles");
+    const Compilation none = compile("#a { effect: none } #b { effect: initial }", checked);
+    if (none.outcome != CompileOutcome::compiled) print_diagnostics(none);
+    require(none.outcome == CompileOutcome::compiled, "none and initial need no registered effect");
+
+    // The registry given is the one checked: an empty one holds nothing.
+    const EffectRegistry empty{};
+    Options bare{};
+    bare.effects = &empty;
+    const Compilation stock = compile("#a { effect: progress-pulse }", bare);
+    require(stock.outcome == CompileOutcome::refused && !stock.diagnostics.empty() &&
+                stock.diagnostics.back().code == DiagnosticCode::effect_unknown,
+            "a stock effect is unknown to a registry that does not hold it");
+
+    // A malformed name is still the form's refusal, not E417.
+    const Compilation malformed = compile("#a { effect: wobble_band }", checked);
+    require(malformed.outcome == CompileOutcome::refused && !malformed.diagnostics.empty() &&
+                malformed.diagnostics.back().code == DiagnosticCode::keyword_unknown,
+            "a name of the wrong form is keyword_unknown before the registry is read");
+
+    const Compilation unchecked = compile(unknown);
+    if (unchecked.outcome != CompileOutcome::compiled) print_diagnostics(unchecked);
+    require(unchecked.outcome == CompileOutcome::compiled, "without a registry, a well-formed name compiles");
 }
 
 // -- warnings ----------------------------------------------------------------------
@@ -695,8 +763,9 @@ struct CodeLabel final {
 };
 
 void test_codes() {
-    const std::array<CodeLabel, 19> codes{{
+    const std::array<CodeLabel, 20> codes{{
         {DiagnosticCode::variable_cannot_vary, "E416"},
+        {DiagnosticCode::effect_unknown, "E417"},
         {DiagnosticCode::too_many_variable_combinations, "E508"},
         {DiagnosticCode::too_many_scoped_variables, "E515"},
         {DiagnosticCode::manifest_invalid, "E601"},
@@ -729,6 +798,7 @@ int main() {
     test_gate();
     test_properties();
     test_refusals();
+    test_effect_registry();
     test_warnings();
     test_lowered_size();
     if (failures != 0) {

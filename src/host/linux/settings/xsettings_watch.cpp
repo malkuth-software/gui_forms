@@ -73,6 +73,8 @@ void XSettingsWatch::acquire_manager() {
 void XSettingsWatch::read_settings() {
   double_click_milliseconds_ = default_double_click_milliseconds;
   double_click_origin_ = SettingOrigin::default_value;
+  double_click_distance_ = default_double_click_distance;
+  pointer_settings_ = PointerSettings{};
   if (owner_ == None)
     return;
   Atom type = None;
@@ -89,21 +91,37 @@ void XSettingsWatch::read_settings() {
   }
   const bool usable = status == Success && data != nullptr && type == settings_ &&
                       format == 8 && after == 0UL;
-  XSettingsInteger found{};
+  XSettingsInteger interval{};
+  XSettingsInteger distance{};
+  XSettingsInteger drag{};
   if (usable) {
     const std::span<const std::uint8_t> bytes(reinterpret_cast<const std::uint8_t *>(data),
                                               static_cast<std::size_t>(items));
-    found = find_xsettings_integer(bytes, "Net/DoubleClickTime");
+    interval = find_xsettings_integer(bytes, "Net/DoubleClickTime");
+    distance = find_xsettings_integer(bytes, "Net/DoubleClickDistance");
+    drag = find_xsettings_integer(bytes, "Net/DndDragThreshold");
   }
   if (data != nullptr)
     XFree(data);
-  const bool in_range =
-      found.lookup == XSettingsLookup::found && found.value > 0 &&
-      static_cast<std::uint32_t>(found.value) <= maximum_double_click_milliseconds;
-  if (!in_range)
-    return;
-  double_click_milliseconds_ = static_cast<std::uint32_t>(found.value);
-  double_click_origin_ = SettingOrigin::host;
+  const bool interval_usable =
+      interval.lookup == XSettingsLookup::found && interval.value > 0 &&
+      static_cast<std::uint32_t>(interval.value) <= maximum_double_click_milliseconds;
+  if (interval_usable) {
+    double_click_milliseconds_ = static_cast<std::uint32_t>(interval.value);
+    double_click_origin_ = SettingOrigin::host;
+  }
+  const bool distance_usable = distance.lookup == XSettingsLookup::found && distance.value >= 0 &&
+                               static_cast<double>(distance.value) <= maximum_pointer_distance;
+  if (distance_usable)
+    double_click_distance_ = static_cast<double>(distance.value);
+  // A threshold of n pixels is the rectangle reaching n each way.
+  const bool drag_usable = drag.lookup == XSettingsLookup::found && drag.value >= 0 &&
+                           2.0 * static_cast<double>(drag.value) <= maximum_pointer_distance;
+  if (drag_usable) {
+    pointer_settings_.drag_width = 2.0 * static_cast<double>(drag.value);
+    pointer_settings_.drag_height = pointer_settings_.drag_width;
+    pointer_settings_.drag_origin = SettingOrigin::host;
+  }
 }
 
 } // namespace gui_forms::host::linux_detail

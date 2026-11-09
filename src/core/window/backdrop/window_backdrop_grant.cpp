@@ -34,7 +34,9 @@ void SurfaceRoot::set_compositor_state(const CompositorState& state, bool host_p
     require_root_thread("compositor state");
     const CompositorState previous = compositor_state_;
     compositor_state_ = state;
-    PresentationSettings settings = presentation_settings_;
+    // The host's report changes the window's own settings, not its
+    // overrides.
+    PresentationSettings settings = presentation_base_;
     if (host_preferences) {
         if (state.high_contrast != previous.high_contrast) settings.high_contrast = state.high_contrast;
         if (state.reduced_transparency != previous.reduced_transparency) {
@@ -47,12 +49,12 @@ void SurfaceRoot::set_compositor_state(const CompositorState& state, bool host_p
         (*resources_).note_system_colour_hints(state.system_colours);
         if ((*resources_).automatic_colour_scheme()) settings.colour_scheme = host_colour_scheme_;
     }
-    if (settings == presentation_settings_) {
+    if (settings == presentation_base_) {
         refresh_backdrop();
         return;
     }
     // Resolves the grant again after presentation_changed is raised.
-    set_presentation_settings(settings);
+    set_host_presentation(settings);
 }
 
 WindowBackdropGrant SurfaceRoot::request_backdrop(const WindowBackdropRequest& request) {

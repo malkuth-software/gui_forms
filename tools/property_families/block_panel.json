@@ -1,0 +1,90 @@
+{
+  "family": "BlockPanel",
+  "step": "M-S5",
+  "declaring": "BlockPanel",
+  "header": "include/gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp",
+  "source": "src/controls/scrollable_control/container_control/block_panel/block_panel.cpp",
+  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/block_panel/block_panel_capabilities/block_panel_capabilities.hpp",
+  "base": "Control",
+  "includes": [
+    "gui_forms/controls/scrollable_control/container_control/container_control.hpp",
+    "gui_forms/layout/block_flow_solver/block_flow_solver.hpp",
+    "gui_forms/layout/style/layout_style.hpp"
+  ],
+  "properties": [
+    {
+      "name": "text_align",
+      "capability": "BlockPanelTextAlign",
+      "value": "TextAlignment",
+      "initial": "TextAlignment::start",
+      "comment": "The line boxes' inline alignment; start by default. justify is not admitted (std::invalid_argument).",
+      "getter": "text_align",
+      "setter": "set_text_align",
+      "clear": null,
+      "field": "text_align_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "invalidation::bounds",
+      "prepare": [
+        "if (incoming > TextAlignment::center) throw std::invalid_argument(\"BlockPanel text-align is unknown\");"
+      ],
+      "sample": "TextAlignment::center"
+    },
+    {
+      "name": "line_strut",
+      "capability": "BlockPanelLineStrut",
+      "value": "std::optional<LineStrut>",
+      "initial": null,
+      "comment": "The strut every line box starts with (CSS 2.1 section 10.8.1), used as given; empty takes the font's line-height: normal line box at the effective text scale (used_line_strut). Its values must be finite and nonnegative (std::invalid_argument).",
+      "getter": "line_strut",
+      "setter": "set_line_strut",
+      "clear": "clear_line_strut",
+      "field": "line_strut_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "invalidation::bounds",
+      "prepare": [
+        "if (incoming && !admitted_strut(*incoming)) {",
+        "    throw std::invalid_argument(\"BlockPanel line strut values must be finite and nonnegative\");",
+        "}"
+      ],
+      "sample": "LineStrut{4.0, 2.0, 1.0}"
+    },
+    {
+      "name": "font",
+      "capability": "BlockPanelFont",
+      "value": "std::optional<FontSpec>",
+      "initial": null,
+      "comment": "The panel's own font for the strut; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).",
+      "getter": null,
+      "setter": "set_font",
+      "clear": "clear_font",
+      "field": "font_override_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare validates a present font and records set_font_from_code; written invalidates bounds only while no strut is set, since the strut is what the font feeds; font() became resolved_font()"
+      ],
+      "sample": "FontSpec{FontRole::content, 14.0, 400, false}"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "BlockPanel",
+    "include": "gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp"
+  },
+  "extra_entries": [
+    "{\"style\", &describe_block_panel_style,\n         &read_member_entry<BlockPanel, decltype(&BlockPanel::style_property), &BlockPanel::style_property>,\n         &write_member_entry<BlockPanel, decltype(&BlockPanel::set_style_property), &BlockPanel::set_style_property>,\n         nullptr, nullptr, nullptr,\n         nullptr}"
+  ]
+}

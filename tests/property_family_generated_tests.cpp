@@ -3,13 +3,95 @@
 // stores (read back), an equal write raises nothing, and a changed write
 // raises the change event once (property-capabilities study, section 15.2).
 #include "gui_forms/gui_forms.hpp"
+#include "gui_forms/controls/backstage_view/backstage_view.hpp"
+#include "gui_forms/controls/badge/badge.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
+#include "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp"
+#include "gui_forms/controls/button_base/check_box/check_box.hpp"
+#include "gui_forms/controls/button_base/link_label/link_label.hpp"
+#include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
+#include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
+#include "gui_forms/controls/collections/choice_group.hpp"
+#include "gui_forms/controls/collections/expandable_sections.hpp"
+#include "gui_forms/controls/container/master_detail_view/master_detail_view.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/docking/dock_navigator/dock_navigator.hpp"
+#include "gui_forms/controls/docking/dock_site/dock_site.hpp"
+#include "gui_forms/controls/drawing_surface/drawing_surface.hpp"
+#include "gui_forms/controls/easing_preview/easing_preview.hpp"
+#include "gui_forms/controls/empty_state/empty_state.hpp"
+#include "gui_forms/controls/info_banner/info_banner.hpp"
+#include "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp"
+#include "gui_forms/controls/label/label.hpp"
+#include "gui_forms/controls/menu_strip/menu_strip.hpp"
+#include "gui_forms/controls/metrics_view/metrics_view.hpp"
+#include "gui_forms/controls/pages/navigation_pane/navigation_pane.hpp"
+#include "gui_forms/controls/pages/page_strip/page_strip.hpp"
+#include "gui_forms/controls/pages/page_view/page_view.hpp"
+#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
+#include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
+#include "gui_forms/controls/panel/card/card.hpp"
+#include "gui_forms/controls/panel/card/review_card/review_card.hpp"
+#include "gui_forms/controls/panel/color_value_editor/color_value_editor.hpp"
+#include "gui_forms/controls/panel/combo_box/combo_box.hpp"
+#include "gui_forms/controls/panel/correspondence_view/correspondence_view.hpp"
+#include "gui_forms/controls/panel/date_time_picker/date_time_picker.hpp"
+#include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
+#include "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp"
+#include "gui_forms/controls/panel/font_dialog/font_dialog.hpp"
+#include "gui_forms/controls/panel/group_box/group_box.hpp"
+#include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
+#include "gui_forms/controls/panel/instrument_rack/instrument_rack.hpp"
+#include "gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp"
+#include "gui_forms/controls/panel/list_box/list_box.hpp"
+#include "gui_forms/controls/panel/list_view/list_view.hpp"
+#include "gui_forms/controls/panel/masked_text_box/masked_text_box.hpp"
+#include "gui_forms/controls/panel/material_panel/material_panel.hpp"
 #include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
+#include "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
+#include "gui_forms/controls/panel/object_view/object_view.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel/picture_box/picture_box.hpp"
+#include "gui_forms/controls/panel/property_grid/property_grid.hpp"
+#include "gui_forms/controls/panel/property_list/property_list.hpp"
+#include "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp"
+#include "gui_forms/controls/panel/scaled_panel/scaled_panel.hpp"
+#include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
+#include "gui_forms/controls/panel/tree_view/tree_view.hpp"
+#include "gui_forms/controls/progress_ring/progress_ring.hpp"
+#include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
+#include "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
+#include "gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp"
+#include "gui_forms/controls/range_control/track_bar/track_bar.hpp"
+#include "gui_forms/controls/raster_canvas/raster_canvas.hpp"
+#include "gui_forms/controls/ribbon/ribbon.hpp"
+#include "gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp"
+#include "gui_forms/controls/ribbon_font_control/ribbon_font_control.hpp"
+#include "gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
+#include "gui_forms/controls/search_field/search_field.hpp"
+#include "gui_forms/controls/spinner/spinner.hpp"
+#include "gui_forms/controls/splitter/splitter.hpp"
+#include "gui_forms/controls/text_block/text_block.hpp"
+#include "gui_forms/controls/tool_strip/tool_strip.hpp"
+#include "gui_forms/controls/tool_strip_container/tool_strip_container.hpp"
+#include "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
+#include "gui_forms/controls/typography_specimen/typography_specimen.hpp"
+#include "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -36,6 +118,162 @@ struct RaiseCounter final {
         ++(*count);
     }
 };
+
+void test_anchored_overlay_layer_properties() {
+    const std::shared_ptr<Panel> anchor = make_control<Panel>(StableId("generated.anchoredoverlaylayer.anchor"));
+    std::shared_ptr<AnchoredOverlayLayer> control = make_control<AnchoredOverlayLayer>(StableId("generated.anchoredoverlaylayer"), anchor);
+    {
+        const AnchoredOverlayPlacement sample = AnchoredOverlayPlacement{Size{120.0, 80.0}, OverlayHorizontalAlignment::center, OverlayVerticalPreference::above, 2.0, 4.0, false};
+        (*control).placement = sample;
+        expect((*control).placement.read() == sample, "AnchoredOverlayLayer.placement: a write stores");
+    }
+    {
+        const bool sample = !(*control).dismiss_on_click_away.read();
+        (*control).dismiss_on_click_away = sample;
+        expect((*control).dismiss_on_click_away.read() == sample, "AnchoredOverlayLayer.dismiss_on_click_away: a write stores");
+    }
+    {
+        const bool sample = !(*control).dismiss_on_escape.read();
+        (*control).dismiss_on_escape = sample;
+        expect((*control).dismiss_on_escape.read() == sample, "AnchoredOverlayLayer.dismiss_on_escape: a write stores");
+    }
+}
+
+void test_backstage_view_properties() {
+    std::shared_ptr<BackstageView> control = make_control<BackstageView>(StableId("generated.backstageview"));
+    {
+        const double sample = 200.0;
+        (*control).column_width = sample;
+        expect((*control).column_width.read() == sample, "BackstageView.column_width: a write stores");
+    }
+}
+
+void test_badge_properties() {
+    std::shared_ptr<Badge> control = make_control<Badge>(StableId("generated.badge"));
+    {
+        const std::uint32_t sample = std::uint32_t{7U};
+        (*control).count = sample;
+        expect((*control).count.read() == sample, "Badge.count: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("count");
+        expect(by_name && *by_name == PropertyValueTraits<std::uint32_t>::to_binding(sample),
+               "Badge.count: the table reads the cell");
+    }
+    {
+        const std::uint32_t sample = std::uint32_t{9U};
+        (*control).maximum = sample;
+        expect((*control).maximum.read() == sample, "Badge.maximum: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("maximum");
+        expect(by_name && *by_name == PropertyValueTraits<std::uint32_t>::to_binding(sample),
+               "Badge.maximum: the table reads the cell");
+    }
+    {
+        const BadgeMode sample = BadgeMode::dot;
+        (*control).mode = sample;
+        expect((*control).mode.read() == sample, "Badge.mode: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("mode");
+        expect(by_name && *by_name == PropertyValueTraits<BadgeMode>::to_binding(sample),
+               "Badge.mode: the table reads the cell");
+    }
+    {
+        const bool sample = !(*control).show_zero.read();
+        (*control).show_zero = sample;
+        expect((*control).show_zero.read() == sample, "Badge.show_zero: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("show_zero");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Badge.show_zero: the table reads the cell");
+    }
+}
+
+void test_block_panel_properties() {
+    std::shared_ptr<BlockPanel> control = make_control<BlockPanel>(StableId("generated.blockpanel"));
+    {
+        const TextAlignment sample = TextAlignment::center;
+        (*control).text_align = sample;
+        expect((*control).text_align.read() == sample, "BlockPanel.text_align: a write stores");
+    }
+    {
+        const std::optional<LineStrut> sample = LineStrut{4.0, 2.0, 1.0};
+        (*control).line_strut = sample;
+        expect((*control).line_strut.read() == sample, "BlockPanel.line_strut: a write stores");
+    }
+    {
+        const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "BlockPanel.font: a write stores");
+    }
+    expect((*control).property_descriptor("style").has_value(), "BlockPanel.style: the table holds the hand entry");
+}
+
+void test_breadcrumb_trail_properties() {
+    std::shared_ptr<BreadcrumbTrail> control = make_control<BreadcrumbTrail>(StableId("generated.breadcrumbtrail"));
+    {
+        const FontSpec sample = FontSpec{FontRole::control, 12.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "BreadcrumbTrail.font: a write stores");
+    }
+    {
+        const BreadcrumbAppearance sample = BreadcrumbAppearance::raised;
+        (*control).appearance = sample;
+        expect((*control).appearance.read() == sample, "BreadcrumbTrail.appearance: a write stores");
+    }
+    {
+        const bool sample = !(*control).editing.read();
+        (*control).editing = sample;
+        expect((*control).editing.read() == sample, "BreadcrumbTrail.editing: a write stores");
+    }
+    {
+        const bool sample = !(*control).tab_completion_available.read();
+        (*control).tab_completion_available = sample;
+        expect((*control).tab_completion_available.read() == sample, "BreadcrumbTrail.tab_completion_available: a write stores");
+    }
+}
+
+void test_button_properties() {
+    std::shared_ptr<Button> control = make_control<Button>(StableId("generated.button"));
+    {
+        const ButtonVisualStyle sample = ButtonVisualStyle::flat;
+        (*control).visual_style = sample;
+        expect((*control).visual_style.read() == sample, "Button.visual_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("visual_style");
+        expect(by_name && *by_name == PropertyValueTraits<ButtonVisualStyle>::to_binding(sample),
+               "Button.visual_style: the table reads the cell");
+    }
+    {
+        const double sample = 2.0;
+        (*control).flat_border_width = sample;
+        expect((*control).flat_border_width.read() == sample, "Button.flat_border_width: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("flat_border_width");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "Button.flat_border_width: the table reads the cell");
+    }
+    {
+        const bool sample = true;
+        (*control).default_button = sample;
+        expect((*control).default_button.read() == sample, "Button.default_button: a write stores");
+    }
+    {
+        const DialogResult sample = DialogResult::ok;
+        int raises = 0;
+        const SubscriptionToken token = (*control).dialog_result_changed().subscribe(RaiseCounter{&raises});
+        (*control).dialog_result = sample;
+        expect((*control).dialog_result.read() == sample, "Button.dialog_result: a write stores");
+        expect(raises == 1, "Button.dialog_result: a changed write raises once");
+        (*control).dialog_result = sample;
+        expect(raises == 1, "Button.dialog_result: an equal write raises nothing");
+        static_cast<void>(token);
+    }
+    {
+        const bool sample = true;
+        int raises = 0;
+        const SubscriptionToken token = (*control).selected_changed().subscribe(RaiseCounter{&raises});
+        (*control).selected = sample;
+        expect((*control).selected.read() == sample, "Button.selected: a write stores");
+        expect(raises == 1, "Button.selected: a changed write raises once");
+        (*control).selected = sample;
+        expect(raises == 1, "Button.selected: an equal write raises nothing");
+        static_cast<void>(token);
+    }
+}
 
 void test_button_base_properties() {
     std::shared_ptr<Button> control = make_control<Button>(StableId("generated.buttonbase"));
@@ -112,6 +350,195 @@ void test_button_base_properties() {
         (*control).expanded_state = sample;
         expect(raises == 1, "ButtonBase.expanded_state: an equal write raises nothing");
         static_cast<void>(token);
+    }
+}
+
+void test_card_properties() {
+    std::shared_ptr<Card> control = make_control<Card>(StableId("generated.card"));
+    {
+        const bool sample = !(*control).interactive.read();
+        (*control).interactive = sample;
+        expect((*control).interactive.read() == sample, "Card.interactive: a write stores");
+    }
+    {
+        const bool sample = true;
+        int raises = 0;
+        const SubscriptionToken token = (*control).selected_changed().subscribe(RaiseCounter{&raises});
+        (*control).selected = sample;
+        expect((*control).selected.read() == sample, "Card.selected: a write stores");
+        expect(raises == 1, "Card.selected: a changed write raises once");
+        (*control).selected = sample;
+        expect(raises == 1, "Card.selected: an equal write raises nothing");
+        static_cast<void>(token);
+    }
+    {
+        const CardSelectionBehavior sample = CardSelectionBehavior::toggle_on_activation;
+        (*control).selection_behavior = sample;
+        expect((*control).selection_behavior.read() == sample, "Card.selection_behavior: a write stores");
+    }
+}
+
+void test_check_box_properties() {
+    std::shared_ptr<CheckBox> control = make_control<CheckBox>(StableId("generated.checkbox"));
+    {
+        const bool sample = true;
+        (*control).three_state = sample;
+        expect((*control).three_state.read() == sample, "CheckBox.three_state: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("three_state");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "CheckBox.three_state: the table reads the cell");
+    }
+    {
+        const bool sample = !(*control).auto_check.read();
+        (*control).auto_check = sample;
+        expect((*control).auto_check.read() == sample, "CheckBox.auto_check: a write stores");
+    }
+    // appearance: no sample for CheckBoxAppearance; give the property a "sample".
+    {
+        const ChoiceIndicatorStyle sample = ChoiceIndicatorStyle::modern;
+        (*control).indicator_style = sample;
+        expect((*control).indicator_style.read() == sample, "CheckBox.indicator_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("indicator_style");
+        expect(by_name && *by_name == PropertyValueTraits<ChoiceIndicatorStyle>::to_binding(sample),
+               "CheckBox.indicator_style: the table reads the cell");
+    }
+}
+
+void test_checked_list_box_properties() {
+    std::shared_ptr<CheckedListBox> control = make_control<CheckedListBox>(StableId("generated.checkedlistbox"));
+    {
+        const bool sample = !(*control).check_on_click.read();
+        (*control).check_on_click = sample;
+        expect((*control).check_on_click.read() == sample, "CheckedListBox.check_on_click: a write stores");
+    }
+    {
+        const double sample = 18.0;
+        (*control).indicator_size = sample;
+        expect((*control).indicator_size.read() == sample, "CheckedListBox.indicator_size: a write stores");
+    }
+}
+
+void test_choice_group_properties() {
+    std::shared_ptr<ChoiceGroup> control = make_control<ChoiceGroup>(StableId("generated.choicegroup"));
+    {
+        const ChoiceGroupPresentation sample = ChoiceGroupPresentation::segmented;
+        (*control).presentation = sample;
+        expect((*control).presentation.read() == sample, "ChoiceGroup.presentation: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("presentation");
+        expect(by_name && *by_name == PropertyValueTraits<ChoiceGroupPresentation>::to_binding(sample),
+               "ChoiceGroup.presentation: the table reads the cell");
+    }
+    // selected_index: no sample for int; give the property a "sample".
+}
+
+void test_color_value_editor_properties() {
+    std::shared_ptr<ColorValueEditor> control = make_control<ColorValueEditor>(StableId("generated.colorvalueeditor"));
+    {
+        const double sample = 40.0;
+        (*control).swatch_width = sample;
+        expect((*control).swatch_width.read() == sample, "ColorValueEditor.swatch_width: a write stores");
+    }
+}
+
+void test_combo_box_properties() {
+    std::shared_ptr<ComboBox> control = make_control<ComboBox>(StableId("generated.combobox"));
+    {
+        const std::string sample = std::string{"Choose"};
+        (*control).placeholder_text = sample;
+        expect((*control).placeholder_text.read() == sample, "ComboBox.placeholder_text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("placeholder_text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "ComboBox.placeholder_text: the table reads the cell");
+    }
+    {
+        const std::size_t sample = 4U;
+        (*control).maximum_drop_down_items = sample;
+        expect((*control).maximum_drop_down_items.read() == sample, "ComboBox.maximum_drop_down_items: a write stores");
+    }
+    {
+        const double sample = 240.0;
+        (*control).drop_down_width = sample;
+        expect((*control).drop_down_width.read() == sample, "ComboBox.drop_down_width: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "ComboBox.font: a write stores");
+    }
+    {
+        const ComboBoxStyle sample = ComboBoxStyle::drop_down;
+        (*control).drop_down_style = sample;
+        expect((*control).drop_down_style.read() == sample, "ComboBox.drop_down_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("drop_down_style");
+        expect(by_name && *by_name == PropertyValueTraits<ComboBoxStyle>::to_binding(sample),
+               "ComboBox.drop_down_style: the table reads the cell");
+    }
+    {
+        const ComboBoxFilter sample = ComboBoxFilter::prefix;
+        (*control).drop_down_filter = sample;
+        expect((*control).drop_down_filter.read() == sample, "ComboBox.drop_down_filter: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("drop_down_filter");
+        expect(by_name && *by_name == PropertyValueTraits<ComboBoxFilter>::to_binding(sample),
+               "ComboBox.drop_down_filter: the table reads the cell");
+    }
+    {
+        const AutoCompleteMode sample = AutoCompleteMode::append;
+        (*control).auto_complete_mode = sample;
+        expect((*control).auto_complete_mode.read() == sample, "ComboBox.auto_complete_mode: a write stores");
+    }
+    {
+        const AutoCompleteSource sample = AutoCompleteSource::list_items;
+        (*control).auto_complete_source = sample;
+        expect((*control).auto_complete_source.read() == sample, "ComboBox.auto_complete_source: a write stores");
+    }
+    // auto_complete_custom_source: no sample for std::shared_ptr<AutoCompleteStringCollection>; give the property a "sample".
+    expect((*control).property_descriptor("items").has_value(), "ComboBox.items: the table holds the hand entry");
+    expect((*control).property_descriptor("selected_index").has_value(), "ComboBox.selected_index: the table holds the hand entry");
+}
+
+void test_command_overflow_panel_properties() {
+    std::shared_ptr<CommandOverflowPanel> control = make_control<CommandOverflowPanel>(StableId("generated.commandoverflowpanel"));
+    {
+        const double sample = 6.0;
+        (*control).group_gap = sample;
+        expect((*control).group_gap.read() == sample, "CommandOverflowPanel.group_gap: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("group_gap");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "CommandOverflowPanel.group_gap: the table reads the cell");
+    }
+}
+
+void test_container_control_properties() {
+    std::shared_ptr<ContainerControl> control = make_control<ContainerControl>(StableId("generated.containercontrol"));
+    {
+        const AutoValidate sample = AutoValidate::disable;
+        int raises = 0;
+        const SubscriptionToken token = (*control).auto_validate_changed().subscribe(RaiseCounter{&raises});
+        (*control).auto_validate = sample;
+        expect((*control).auto_validate.read() == sample, "ContainerControl.auto_validate: a write stores");
+        expect(raises == 1, "ContainerControl.auto_validate: a changed write raises once");
+        (*control).auto_validate = sample;
+        expect(raises == 1, "ContainerControl.auto_validate: an equal write raises nothing");
+        static_cast<void>(token);
+    }
+}
+
+void test_correspondence_view_properties() {
+    std::shared_ptr<CorrespondenceView> control = make_control<CorrespondenceView>(StableId("generated.correspondenceview"));
+    {
+        const double sample = 6.0;
+        (*control).status_rail_width = sample;
+        expect((*control).status_rail_width.read() == sample, "CorrespondenceView.status_rail_width: a write stores");
+    }
+    {
+        const std::chrono::milliseconds sample = std::chrono::milliseconds(250);
+        (*control).hover_intent_delay = sample;
+        expect((*control).hover_intent_delay.read() == sample, "CorrespondenceView.hover_intent_delay: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 13.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "CorrespondenceView.font: a write stores");
     }
 }
 
@@ -299,6 +726,666 @@ void test_data_grid_view_properties() {
     }
 }
 
+void test_date_time_picker_properties() {
+    std::shared_ptr<DateTimePicker> control = make_control<DateTimePicker>(StableId("generated.datetimepicker"));
+    {
+        const DateTimeValue sample = DateTimeValue{2001, 2U, 3U};
+        int raises = 0;
+        const SubscriptionToken token = (*control).value_changed().subscribe(RaiseCounter{&raises});
+        (*control).value = sample;
+        expect((*control).value.read() == sample, "DateTimePicker.value: a write stores");
+        expect(raises == 1, "DateTimePicker.value: a changed write raises once");
+        (*control).value = sample;
+        expect(raises == 1, "DateTimePicker.value: an equal write raises nothing");
+        static_cast<void>(token);
+    }
+    {
+        const DateTimeValue sample = DateTimeValue{1990, 1U, 1U};
+        (*control).minimum = sample;
+        expect((*control).minimum.read() == sample, "DateTimePicker.minimum: a write stores");
+    }
+    {
+        const DateTimeValue sample = DateTimeValue{2030, 12U, 31U};
+        (*control).maximum = sample;
+        expect((*control).maximum.read() == sample, "DateTimePicker.maximum: a write stores");
+    }
+    {
+        const DateTimePickerFormat sample = DateTimePickerFormat::short_date;
+        (*control).format = sample;
+        expect((*control).format.read() == sample, "DateTimePicker.format: a write stores");
+    }
+    {
+        const std::string sample = std::string{"yyyy-MM-dd"};
+        (*control).custom_format = sample;
+        expect((*control).custom_format.read() == sample, "DateTimePicker.custom_format: a write stores");
+    }
+    // format_provider: no sample for DateTimeFormatProvider; give the property a "sample".
+    {
+        const bool sample = !(*control).show_check_box.read();
+        (*control).show_check_box = sample;
+        expect((*control).show_check_box.read() == sample, "DateTimePicker.show_check_box: a write stores");
+    }
+    {
+        const bool sample = !(*control).checked.read();
+        int raises = 0;
+        const SubscriptionToken token = (*control).checked_changed().subscribe(RaiseCounter{&raises});
+        (*control).checked = sample;
+        expect((*control).checked.read() == sample, "DateTimePicker.checked: a write stores");
+        expect(raises == 1, "DateTimePicker.checked: a changed write raises once");
+        (*control).checked = sample;
+        expect(raises == 1, "DateTimePicker.checked: an equal write raises nothing");
+        static_cast<void>(token);
+    }
+    {
+        const bool sample = !(*control).show_up_down.read();
+        (*control).show_up_down = sample;
+        expect((*control).show_up_down.read() == sample, "DateTimePicker.show_up_down: a write stores");
+    }
+    {
+        const DateTimeDropDownAlignment sample = DateTimeDropDownAlignment::right;
+        (*control).drop_down_alignment = sample;
+        expect((*control).drop_down_alignment.read() == sample, "DateTimePicker.drop_down_alignment: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "DateTimePicker.font: a write stores");
+    }
+}
+
+void test_dock_navigator_properties() {
+    std::shared_ptr<DockNavigator> control = make_control<DockNavigator>(StableId("generated.docknavigator"));
+    {
+        const Modifier sample = Modifier::alt;
+        (*control).release_modifier = sample;
+        expect((*control).release_modifier.read() == sample, "DockNavigator.release_modifier: a write stores");
+    }
+}
+
+void test_dock_site_properties() {
+    DockWorkspace workspace("generated.dock-workspace");
+    std::shared_ptr<DockSite> control = make_control<DockSite>(StableId("generated.docksite"), workspace);
+    {
+        const double sample = 16.0;
+        (*control).keyboard_increment = sample;
+        expect((*control).keyboard_increment.read() == sample, "DockSite.keyboard_increment: a write stores");
+    }
+    {
+        const double sample = 8.0;
+        (*control).drag_threshold = sample;
+        expect((*control).drag_threshold.read() == sample, "DockSite.drag_threshold: a write stores");
+    }
+}
+
+void test_domain_up_down_properties() {
+    std::shared_ptr<DomainUpDown> control = make_control<DomainUpDown>(StableId("generated.domainupdown"));
+    {
+        const bool sample = !(*control).wrap.read();
+        (*control).wrap = sample;
+        expect((*control).wrap.read() == sample, "DomainUpDown.wrap: a write stores");
+    }
+    {
+        const bool sample = !(*control).read_only.read();
+        (*control).read_only = sample;
+        expect((*control).read_only.read() == sample, "DomainUpDown.read_only: a write stores");
+    }
+    {
+        const bool sample = !(*control).sorted.read();
+        (*control).sorted = sample;
+        expect((*control).sorted.read() == sample, "DomainUpDown.sorted: a write stores");
+    }
+    {
+        const double sample = 24.0;
+        (*control).button_width = sample;
+        expect((*control).button_width.read() == sample, "DomainUpDown.button_width: a write stores");
+    }
+    expect((*control).property_descriptor("items").has_value(), "DomainUpDown.items: the table holds the hand entry");
+}
+
+void test_drawing_surface_properties() {
+    std::shared_ptr<DrawingSurface> control = make_control<DrawingSurface>(StableId("generated.drawingsurface"));
+    {
+        const bool sample = !(*control).hit_test_visible.read();
+        (*control).hit_test_visible = sample;
+        expect((*control).hit_test_visible.read() == sample, "DrawingSurface.hit_test_visible: a write stores");
+    }
+    {
+        const SemanticRole sample = SemanticRole::group;
+        (*control).semantic_role = sample;
+        expect((*control).semantic_role.read() == sample, "DrawingSurface.semantic_role: a write stores");
+    }
+    {
+        const Color sample = Color::rgba(250, 240, 200);
+        (*control).background = sample;
+        expect((*control).background.read() == sample, "DrawingSurface.background: a write stores");
+    }
+}
+
+void test_drop_down_button_properties() {
+    std::shared_ptr<DropDownButton> control = make_control<DropDownButton>(StableId("generated.dropdownbutton"));
+    {
+        const DropDownButtonMode sample = DropDownButtonMode::split;
+        (*control).drop_down_mode = sample;
+        expect((*control).drop_down_mode.read() == sample, "DropDownButton.drop_down_mode: a write stores");
+    }
+}
+
+void test_easing_preview_properties() {
+    std::shared_ptr<EasingPreview> control = make_control<EasingPreview>(StableId("generated.easingpreview"));
+    {
+        const std::string sample = std::string("Easing");
+        (*control).title = sample;
+        expect((*control).title.read() == sample, "EasingPreview.title: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("title");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "EasingPreview.title: the table reads the cell");
+    }
+    {
+        const double sample = 20.0;
+        (*control).marker_size = sample;
+        expect((*control).marker_size.read() == sample, "EasingPreview.marker_size: a write stores");
+    }
+}
+
+void test_empty_state_properties() {
+    std::shared_ptr<EmptyState> control = make_control<EmptyState>(StableId("generated.emptystate"));
+    {
+        const ImageId sample = ImageId{3U};
+        (*control).image = sample;
+        expect((*control).image.read() == sample, "EmptyState.image: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("image");
+        expect(by_name && *by_name == PropertyValueTraits<ImageId>::to_binding(sample),
+               "EmptyState.image: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Sample"};
+        (*control).title = sample;
+        expect((*control).title.read() == sample, "EmptyState.title: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("title");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "EmptyState.title: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Sample"};
+        (*control).description = sample;
+        expect((*control).description.read() == sample, "EmptyState.description: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("description");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "EmptyState.description: the table reads the cell");
+    }
+}
+
+void test_expandable_sections_properties() {
+    std::shared_ptr<ExpandableSections> control = make_control<ExpandableSections>(StableId("generated.expandablesections"));
+    {
+        const bool sample = !(*control).single_open.read();
+        (*control).single_open = sample;
+        expect((*control).single_open.read() == sample, "ExpandableSections.single_open: a write stores");
+    }
+}
+
+void test_flags_value_editor_properties() {
+    std::shared_ptr<FlagsValueEditor> control = make_control<FlagsValueEditor>(StableId("generated.flagsvalueeditor"));
+    {
+        const double sample = 300.0;
+        (*control).overlay_width = sample;
+        expect((*control).overlay_width.read() == sample, "FlagsValueEditor.overlay_width: a write stores");
+    }
+    expect((*control).property_descriptor("enumeration_name").has_value(), "FlagsValueEditor.enumeration_name: the table holds the hand entry");
+    expect((*control).property_descriptor("flag_names").has_value(), "FlagsValueEditor.flag_names: the table holds the hand entry");
+    expect((*control).property_descriptor("none_name").has_value(), "FlagsValueEditor.none_name: the table holds the hand entry");
+    expect((*control).property_descriptor("checked_flags").has_value(), "FlagsValueEditor.checked_flags: the table holds the hand entry");
+}
+
+void test_flex_panel_properties() {
+    std::shared_ptr<FlexPanel> control = make_control<FlexPanel>(StableId("generated.flexpanel"));
+    {
+        const FlexDirection sample = FlexDirection::column;
+        (*control).flex_direction = sample;
+        expect((*control).flex_direction.read() == sample, "FlexPanel.flex_direction: a write stores");
+    }
+    {
+        const FlexWrap sample = FlexWrap::wrap;
+        (*control).flex_wrap = sample;
+        expect((*control).flex_wrap.read() == sample, "FlexPanel.flex_wrap: a write stores");
+    }
+    {
+        const LayoutAlignment sample = LayoutAlignment::center;
+        (*control).justify_content = sample;
+        expect((*control).justify_content.read() == sample, "FlexPanel.justify_content: a write stores");
+    }
+    {
+        const LayoutAlignment sample = LayoutAlignment::center;
+        (*control).align_content = sample;
+        expect((*control).align_content.read() == sample, "FlexPanel.align_content: a write stores");
+    }
+    {
+        const LayoutAlignment sample = LayoutAlignment::center;
+        (*control).align_items = sample;
+        expect((*control).align_items.read() == sample, "FlexPanel.align_items: a write stores");
+    }
+    {
+        const LengthPercentage sample = LengthPercentage{LogicalLength{4.0}, 0.0};
+        (*control).row_gap = sample;
+        expect((*control).row_gap.read() == sample, "FlexPanel.row_gap: a write stores");
+    }
+    {
+        const LengthPercentage sample = LengthPercentage{LogicalLength{4.0}, 0.0};
+        (*control).column_gap = sample;
+        expect((*control).column_gap.read() == sample, "FlexPanel.column_gap: a write stores");
+    }
+    expect((*control).property_descriptor("style").has_value(), "FlexPanel.style: the table holds the hand entry");
+}
+
+void test_flow_layout_panel_compat_properties() {
+    std::shared_ptr<FlowLayoutPanelCompat> control = make_control<FlowLayoutPanelCompat>(StableId("generated.flowlayoutpanelcompat"));
+    {
+        const FlowDirection sample = FlowDirection::top_down;
+        (*control).flow_direction = sample;
+        expect((*control).flow_direction.read() == sample, "FlowLayoutPanelCompat.flow_direction: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("flow_direction");
+        expect(by_name && *by_name == PropertyValueTraits<FlowDirection>::to_binding(sample),
+               "FlowLayoutPanelCompat.flow_direction: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).wrap_contents = sample;
+        expect((*control).wrap_contents.read() == sample, "FlowLayoutPanelCompat.wrap_contents: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("wrap_contents");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "FlowLayoutPanelCompat.wrap_contents: the table reads the cell");
+    }
+    {
+        const Size sample = Size{4.0, 6.0};
+        (*control).item_spacing = sample;
+        expect((*control).item_spacing.read() == sample, "FlowLayoutPanelCompat.item_spacing: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("item_spacing");
+        expect(by_name && *by_name == PropertyValueTraits<Size>::to_binding(sample),
+               "FlowLayoutPanelCompat.item_spacing: the table reads the cell");
+    }
+    {
+        const FlowMainAlignment sample = FlowMainAlignment::center;
+        (*control).main_alignment = sample;
+        expect((*control).main_alignment.read() == sample, "FlowLayoutPanelCompat.main_alignment: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("main_alignment");
+        expect(by_name && *by_name == PropertyValueTraits<FlowMainAlignment>::to_binding(sample),
+               "FlowLayoutPanelCompat.main_alignment: the table reads the cell");
+    }
+    {
+        const FlowCrossAlignment sample = FlowCrossAlignment::stretch;
+        (*control).cross_alignment = sample;
+        expect((*control).cross_alignment.read() == sample, "FlowLayoutPanelCompat.cross_alignment: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("cross_alignment");
+        expect(by_name && *by_name == PropertyValueTraits<FlowCrossAlignment>::to_binding(sample),
+               "FlowLayoutPanelCompat.cross_alignment: the table reads the cell");
+    }
+}
+
+void test_font_dialog_properties() {
+    std::shared_ptr<FontDialog> control = make_control<FontDialog>(StableId("generated.fontdialog"));
+    {
+        const bool sample = !(*control).show_apply.read();
+        (*control).show_apply = sample;
+        expect((*control).show_apply.read() == sample, "FontDialog.show_apply: a write stores");
+    }
+    {
+        const std::string sample = std::string{"Sample"};
+        (*control).preview_text = sample;
+        expect((*control).preview_text.read() == sample, "FontDialog.preview_text: a write stores");
+    }
+}
+
+void test_grid_panel_properties() {
+    std::shared_ptr<GridPanel> control = make_control<GridPanel>(StableId("generated.gridpanel"));
+    {
+        const LayoutAlignment sample = LayoutAlignment::center;
+        (*control).justify_content = sample;
+        expect((*control).justify_content.read() == sample, "GridPanel.justify_content: a write stores");
+    }
+    {
+        const LayoutAlignment sample = LayoutAlignment::center;
+        (*control).align_content = sample;
+        expect((*control).align_content.read() == sample, "GridPanel.align_content: a write stores");
+    }
+    {
+        const LayoutAlignment sample = LayoutAlignment::center;
+        (*control).justify_items = sample;
+        expect((*control).justify_items.read() == sample, "GridPanel.justify_items: a write stores");
+    }
+    {
+        const LayoutAlignment sample = LayoutAlignment::center;
+        (*control).align_items = sample;
+        expect((*control).align_items.read() == sample, "GridPanel.align_items: a write stores");
+    }
+    {
+        const LengthPercentage sample = LengthPercentage{LogicalLength{4.0}, 0.0};
+        (*control).row_gap = sample;
+        expect((*control).row_gap.read() == sample, "GridPanel.row_gap: a write stores");
+    }
+    {
+        const LengthPercentage sample = LengthPercentage{LogicalLength{4.0}, 0.0};
+        (*control).column_gap = sample;
+        expect((*control).column_gap.read() == sample, "GridPanel.column_gap: a write stores");
+    }
+    expect((*control).property_descriptor("style").has_value(), "GridPanel.style: the table holds the hand entry");
+}
+
+void test_group_box_properties() {
+    std::shared_ptr<GroupBox> control = make_control<GroupBox>(StableId("generated.groupbox"));
+    {
+        const std::string sample = std::string{"&Options"};
+        int raises = 0;
+        const SubscriptionToken token = (*control).text_changed().subscribe(RaiseCounter{&raises});
+        (*control).text = sample;
+        expect((*control).text.read() == sample, "GroupBox.text: a write stores");
+        expect(raises == 1, "GroupBox.text: a changed write raises once");
+        (*control).text = sample;
+        expect(raises == 1, "GroupBox.text: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "GroupBox.text: the table reads the cell");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::control, 14.0, 700, false, 0.24};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "GroupBox.font: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("font");
+        expect(by_name && *by_name == PropertyValueTraits<FontSpec>::to_binding(sample),
+               "GroupBox.font: the table reads the cell");
+    }
+    {
+        const bool sample = !(*control).use_mnemonic.read();
+        (*control).use_mnemonic = sample;
+        expect((*control).use_mnemonic.read() == sample, "GroupBox.use_mnemonic: a write stores");
+    }
+}
+
+void test_info_banner_properties() {
+    std::shared_ptr<InfoBanner> control = make_control<InfoBanner>(StableId("generated.infobanner"));
+    {
+        const NoticeSeverity sample = NoticeSeverity::warning;
+        (*control).severity = sample;
+        expect((*control).severity.read() == sample, "InfoBanner.severity: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("severity");
+        expect(by_name && *by_name == PropertyValueTraits<NoticeSeverity>::to_binding(sample),
+               "InfoBanner.severity: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Sample"};
+        (*control).title = sample;
+        expect((*control).title.read() == sample, "InfoBanner.title: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("title");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "InfoBanner.title: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Sample"};
+        (*control).message = sample;
+        expect((*control).message.read() == sample, "InfoBanner.message: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("message");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "InfoBanner.message: the table reads the cell");
+    }
+    {
+        const bool sample = !(*control).closable.read();
+        (*control).closable = sample;
+        expect((*control).closable.read() == sample, "InfoBanner.closable: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("closable");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "InfoBanner.closable: the table reads the cell");
+    }
+}
+
+void test_instrument_rack_properties() {
+    std::shared_ptr<InstrumentRack> control = make_control<InstrumentRack>(StableId("generated.instrumentrack"));
+}
+
+void test_label_properties() {
+    std::shared_ptr<Label> control = make_control<Label>(StableId("generated.label"));
+    {
+        const std::string sample = std::string{"Name"};
+        int raises = 0;
+        const SubscriptionToken token = (*control).text_changed().subscribe(RaiseCounter{&raises});
+        (*control).text = sample;
+        expect((*control).text.read() == sample, "Label.text: a write stores");
+        expect(raises == 1, "Label.text: a changed write raises once");
+        (*control).text = sample;
+        expect(raises == 1, "Label.text: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "Label.text: the table reads the cell");
+    }
+    {
+        const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "Label.font: a write stores");
+        expect((*control).property_value("font").has_value(), "Label.font: the table reads it");
+    }
+    {
+        const HorizontalAlignment sample = HorizontalAlignment::center;
+        (*control).alignment = sample;
+        expect((*control).alignment.read() == sample, "Label.alignment: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("alignment");
+        expect(by_name && *by_name == PropertyValueTraits<HorizontalAlignment>::to_binding(sample),
+               "Label.alignment: the table reads the cell");
+    }
+    {
+        const VerticalAlignment sample = VerticalAlignment::far;
+        (*control).vertical_alignment = sample;
+        expect((*control).vertical_alignment.read() == sample, "Label.vertical_alignment: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("vertical_alignment");
+        expect(by_name && *by_name == PropertyValueTraits<VerticalAlignment>::to_binding(sample),
+               "Label.vertical_alignment: the table reads the cell");
+    }
+    {
+        const TextWrapping sample = TextWrapping::word;
+        (*control).text_wrapping = sample;
+        expect((*control).text_wrapping.read() == sample, "Label.text_wrapping: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("text_wrapping");
+        expect(by_name && *by_name == PropertyValueTraits<TextWrapping>::to_binding(sample),
+               "Label.text_wrapping: the table reads the cell");
+    }
+    {
+        const std::uint32_t sample = std::uint32_t{3U};
+        (*control).maximum_lines = sample;
+        expect((*control).maximum_lines.read() == sample, "Label.maximum_lines: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("maximum_lines");
+        expect(by_name && *by_name == PropertyValueTraits<std::uint32_t>::to_binding(sample),
+               "Label.maximum_lines: the table reads the cell");
+    }
+    {
+        const TextStyleRole sample = TextStyleRole::heading;
+        (*control).text_style_role = sample;
+        expect((*control).text_style_role.read() == sample, "Label.text_style_role: a write stores");
+    }
+    {
+        const double sample = 1.5;
+        (*control).line_spacing = sample;
+        expect((*control).line_spacing.read() == sample, "Label.line_spacing: a write stores");
+    }
+    {
+        const TextCaseTransform sample = TextCaseTransform::uppercase_ascii;
+        (*control).text_case_transform = sample;
+        expect((*control).text_case_transform.read() == sample, "Label.text_case_transform: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).use_mnemonic = sample;
+        expect((*control).use_mnemonic.read() == sample, "Label.use_mnemonic: a write stores");
+    }
+}
+
+void test_link_label_properties() {
+    std::shared_ptr<LinkLabel> control = make_control<LinkLabel>(StableId("generated.linklabel"));
+    {
+        const bool sample = !(*control).visited.read();
+        (*control).visited = sample;
+        expect((*control).visited.read() == sample, "LinkLabel.visited: a write stores");
+    }
+}
+
+void test_list_box_properties() {
+    std::shared_ptr<ListBox> control = make_control<ListBox>(StableId("generated.listbox"));
+    {
+        const ListSelectionMode sample = ListSelectionMode::multiple_extended;
+        (*control).selection_mode = sample;
+        expect((*control).selection_mode.read() == sample, "ListBox.selection_mode: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("selection_mode");
+        expect(by_name && *by_name == PropertyValueTraits<ListSelectionMode>::to_binding(sample),
+               "ListBox.selection_mode: the table reads the cell");
+    }
+    {
+        const double sample = 30.0;
+        (*control).item_height = sample;
+        expect((*control).item_height.read() == sample, "ListBox.item_height: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "ListBox.font: a write stores");
+    }
+    expect((*control).property_descriptor("items").has_value(), "ListBox.items: the table holds the hand entry");
+}
+
+void test_list_view_properties() {
+    std::shared_ptr<ListView> control = make_control<ListView>(StableId("generated.listview"));
+    {
+        const ListViewView sample = ListViewView::tile;
+        (*control).view = sample;
+        expect((*control).view.read() == sample, "ListView.view: a write stores");
+    }
+    {
+        const bool sample = !(*control).check_boxes.read();
+        (*control).check_boxes = sample;
+        expect((*control).check_boxes.read() == sample, "ListView.check_boxes: a write stores");
+    }
+    {
+        const bool sample = !(*control).multi_select.read();
+        (*control).multi_select = sample;
+        expect((*control).multi_select.read() == sample, "ListView.multi_select: a write stores");
+    }
+    {
+        const bool sample = !(*control).full_row_select.read();
+        (*control).full_row_select = sample;
+        expect((*control).full_row_select.read() == sample, "ListView.full_row_select: a write stores");
+    }
+    // small_image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
+    // large_image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 12.0, 700, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "ListView.font: a write stores");
+    }
+    {
+        const Size sample = Size{120.0, 48.0};
+        (*control).tile_size = sample;
+        expect((*control).tile_size.read() == sample, "ListView.tile_size: a write stores");
+    }
+    {
+        const ItemDrawMode sample = ItemDrawMode::owner_draw;
+        (*control).draw_mode = sample;
+        expect((*control).draw_mode.read() == sample, "ListView.draw_mode: a write stores");
+    }
+    {
+        const bool sample = !(*control).show_groups.read();
+        (*control).show_groups = sample;
+        expect((*control).show_groups.read() == sample, "ListView.show_groups: a write stores");
+    }
+    {
+        const std::string sample = std::string{"Other"};
+        (*control).default_group_header = sample;
+        expect((*control).default_group_header.read() == sample, "ListView.default_group_header: a write stores");
+    }
+    {
+        const bool sample = !(*control).label_edit.read();
+        (*control).label_edit = sample;
+        expect((*control).label_edit.read() == sample, "ListView.label_edit: a write stores");
+    }
+}
+
+void test_masked_text_box_properties() {
+    std::shared_ptr<MaskedTextBox> control = make_control<MaskedTextBox>(StableId("generated.maskedtextbox"));
+    {
+        const MaskTextFormat sample = MaskTextFormat::exclude_prompt_and_literals;
+        (*control).text_mask_format = sample;
+        expect((*control).text_mask_format.read() == sample, "MaskedTextBox.text_mask_format: a write stores");
+    }
+    {
+        const bool sample = !(*control).reject_input_on_first_failure.read();
+        (*control).reject_input_on_first_failure = sample;
+        expect((*control).reject_input_on_first_failure.read() == sample, "MaskedTextBox.reject_input_on_first_failure: a write stores");
+    }
+    {
+        const bool sample = !(*control).overwrite_mode.read();
+        (*control).overwrite_mode = sample;
+        expect((*control).overwrite_mode.read() == sample, "MaskedTextBox.overwrite_mode: a write stores");
+    }
+    {
+        const bool sample = !(*control).read_only.read();
+        (*control).read_only = sample;
+        expect((*control).read_only.read() == sample, "MaskedTextBox.read_only: a write stores");
+    }
+}
+
+void test_master_detail_view_properties() {
+    std::shared_ptr<MasterDetailView> control = make_control<MasterDetailView>(StableId("generated.masterdetailview"));
+    {
+        const MasterDetailDisplayMode sample = MasterDetailDisplayMode::detail_only;
+        (*control).display_mode = sample;
+        expect((*control).display_mode.read() == sample, "MasterDetailView.display_mode: a write stores");
+    }
+    {
+        const bool sample = !(*control).compact_detail_visible.read();
+        (*control).compact_detail_visible = sample;
+        expect((*control).compact_detail_visible.read() == sample, "MasterDetailView.compact_detail_visible: a write stores");
+    }
+}
+
+void test_material_panel_properties() {
+    std::shared_ptr<MaterialPanel> control = make_control<MaterialPanel>(StableId("generated.materialpanel"));
+    // material: no sample for SurfaceMaterial; give the property a "sample".
+}
+
+void test_menu_strip_properties() {
+    std::shared_ptr<MenuStrip> control = make_control<MenuStrip>(StableId("generated.menustrip"));
+    {
+        const bool sample = !(*control).use_mnemonic.read();
+        (*control).use_mnemonic = sample;
+        expect((*control).use_mnemonic.read() == sample, "MenuStrip.use_mnemonic: a write stores");
+    }
+    {
+        const double sample = 16.0;
+        (*control).item_padding = sample;
+        expect((*control).item_padding.read() == sample, "MenuStrip.item_padding: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::control, 12.0, 700, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "MenuStrip.font: a write stores");
+    }
+    {
+        const bool sample = !(*control).allow_merge.read();
+        (*control).allow_merge = sample;
+        expect((*control).allow_merge.read() == sample, "MenuStrip.allow_merge: a write stores");
+    }
+}
+
+void test_metrics_view_properties() {
+    std::shared_ptr<MetricsView> control = make_control<MetricsView>(StableId("generated.metricsview"));
+    {
+        const std::string sample = std::string("Frame budget");
+        (*control).title = sample;
+        expect((*control).title.read() == sample, "MetricsView.title: a write stores");
+    }
+    {
+        const double sample = 8.0;
+        (*control).accent_width = sample;
+        expect((*control).accent_width.read() == sample, "MetricsView.accent_width: a write stores");
+    }
+}
+
 void test_month_calendar_properties() {
     std::shared_ptr<MonthCalendar> control = make_control<MonthCalendar>(StableId("generated.monthcalendar"));
     {
@@ -344,6 +1431,174 @@ void test_month_calendar_properties() {
     }
 }
 
+void test_navigation_pane_properties() {
+    std::shared_ptr<NavigationPane> control = make_control<NavigationPane>(StableId("generated.navigationpane"));
+    {
+        const double sample = 300.0;
+        (*control).expanded_width = sample;
+        expect((*control).expanded_width.read() == sample, "NavigationPane.expanded_width: a write stores");
+    }
+    // image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
+    {
+        const bool sample = false;
+        (*control).focus_region = sample;
+        expect((*control).focus_region.read() == sample, "NavigationPane.focus_region: a write stores");
+    }
+}
+
+void test_numeric_up_down_properties() {
+    std::shared_ptr<NumericUpDown> control = make_control<NumericUpDown>(StableId("generated.numericupdown"));
+    {
+        const double sample = 25.0;
+        int raises = 0;
+        const SubscriptionToken token = (*control).value_changed().subscribe(RaiseCounter{&raises});
+        (*control).value = sample;
+        expect((*control).value.read() == sample, "NumericUpDown.value: a write stores");
+        expect(raises == 1, "NumericUpDown.value: a changed write raises once");
+        (*control).value = sample;
+        expect(raises == 1, "NumericUpDown.value: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("value");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "NumericUpDown.value: the table reads the cell");
+    }
+    {
+        const double sample = -10.0;
+        (*control).minimum = sample;
+        expect((*control).minimum.read() == sample, "NumericUpDown.minimum: a write stores");
+    }
+    {
+        const double sample = 50.0;
+        (*control).maximum = sample;
+        expect((*control).maximum.read() == sample, "NumericUpDown.maximum: a write stores");
+    }
+    {
+        const double sample = 0.5;
+        (*control).increment = sample;
+        expect((*control).increment.read() == sample, "NumericUpDown.increment: a write stores");
+    }
+    {
+        const std::uint8_t sample = std::uint8_t{2};
+        (*control).decimal_places = sample;
+        expect((*control).decimal_places.read() == sample, "NumericUpDown.decimal_places: a write stores");
+    }
+    {
+        const bool sample = !(*control).hexadecimal.read();
+        (*control).hexadecimal = sample;
+        expect((*control).hexadecimal.read() == sample, "NumericUpDown.hexadecimal: a write stores");
+    }
+    {
+        const double sample = 24.0;
+        (*control).button_width = sample;
+        expect((*control).button_width.read() == sample, "NumericUpDown.button_width: a write stores");
+    }
+}
+
+void test_object_view_properties() {
+    std::shared_ptr<ObjectView> control = make_control<ObjectView>(StableId("generated.objectview"));
+    {
+        const ObjectSelectionMode sample = ObjectSelectionMode::single;
+        (*control).selection_mode = sample;
+        expect((*control).selection_mode.read() == sample, "ObjectView.selection_mode: a write stores");
+    }
+    {
+        const Size sample = Size{120.0, 100.0};
+        (*control).icon_cell_size = sample;
+        expect((*control).icon_cell_size.read() == sample, "ObjectView.icon_cell_size: a write stores");
+    }
+    {
+        const double sample = 32.0;
+        (*control).details_row_height = sample;
+        expect((*control).details_row_height.read() == sample, "ObjectView.details_row_height: a write stores");
+    }
+    {
+        const bool sample = !(*control).show_secondary_text.read();
+        (*control).show_secondary_text = sample;
+        expect((*control).show_secondary_text.read() == sample, "ObjectView.show_secondary_text: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 13.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "ObjectView.font: a write stores");
+    }
+    // image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
+}
+
+void test_page_strip_properties() {
+    PageSet pages{};
+    std::shared_ptr<PageStrip> control = make_control<PageStrip>(StableId("generated.pagestrip"), pages);
+    {
+        const PageStripPlacement sample = PageStripPlacement::left;
+        (*control).placement = sample;
+        expect((*control).placement.read() == sample, "PageStrip.placement: a write stores");
+    }
+    {
+        const PageItemSizing sample = PageItemSizing::fixed;
+        (*control).item_sizing = sample;
+        expect((*control).item_sizing.read() == sample, "PageStrip.item_sizing: a write stores");
+    }
+    {
+        const PageItemWidths sample = PageItemWidths{60.0, 200.0, 100.0};
+        (*control).item_widths = sample;
+        expect((*control).item_widths.read() == sample, "PageStrip.item_widths: a write stores");
+    }
+    {
+        const PageStripActivation sample = PageStripActivation::manual;
+        (*control).activation = sample;
+        expect((*control).activation.read() == sample, "PageStrip.activation: a write stores");
+    }
+    {
+        const PageStripOverflow sample = PageStripOverflow::shrink_then_list;
+        (*control).overflow = sample;
+        expect((*control).overflow.read() == sample, "PageStrip.overflow: a write stores");
+    }
+    {
+        const PageCloseButtons sample = PageCloseButtons::all;
+        (*control).close_buttons = sample;
+        expect((*control).close_buttons.read() == sample, "PageStrip.close_buttons: a write stores");
+    }
+    {
+        const bool sample = !(*control).mnemonics_enabled.read();
+        (*control).mnemonics_enabled = sample;
+        expect((*control).mnemonics_enabled.read() == sample, "PageStrip.mnemonics_enabled: a write stores");
+    }
+    {
+        const bool sample = !(*control).reorder_enabled.read();
+        (*control).reorder_enabled = sample;
+        expect((*control).reorder_enabled.read() == sample, "PageStrip.reorder_enabled: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::control, 12.0, 700, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "PageStrip.font: a write stores");
+    }
+    // image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
+    {
+        const ItemDrawMode sample = ItemDrawMode::owner_draw;
+        (*control).draw_mode = sample;
+        expect((*control).draw_mode.read() == sample, "PageStrip.draw_mode: a write stores");
+    }
+}
+
+void test_page_view_properties() {
+    std::shared_ptr<PageView> control = make_control<PageView>(StableId("generated.pageview"));
+    {
+        const PageViewClosePolicy sample = PageViewClosePolicy::request_only;
+        (*control).close_policy = sample;
+        expect((*control).close_policy.read() == sample, "PageView.close_policy: a write stores");
+    }
+    {
+        const PageViewCtrlTab sample = PageViewCtrlTab::pass;
+        (*control).ctrl_tab = sample;
+        expect((*control).ctrl_tab.read() == sample, "PageView.ctrl_tab: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).focus_region = sample;
+        expect((*control).focus_region.read() == sample, "PageView.focus_region: a write stores");
+    }
+}
+
 void test_panel_properties() {
     std::shared_ptr<Panel> control = make_control<Panel>(StableId("generated.panel"));
     {
@@ -359,6 +1614,391 @@ void test_panel_properties() {
         (*control).visual_role = sample;
         expect((*control).visual_role.read() == sample, "Panel.visual_role: a write stores");
     }
+}
+
+void test_picture_box_properties() {
+    std::shared_ptr<PictureBox> control = make_control<PictureBox>(StableId("generated.picturebox"));
+    {
+        const ImageId sample = ImageId{3U};
+        int raises = 0;
+        const SubscriptionToken token = (*control).image_changed().subscribe(RaiseCounter{&raises});
+        (*control).image = sample;
+        expect((*control).image.read() == sample, "PictureBox.image: a write stores");
+        expect(raises == 1, "PictureBox.image: a changed write raises once");
+        (*control).image = sample;
+        expect(raises == 1, "PictureBox.image: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("image");
+        expect(by_name && *by_name == PropertyValueTraits<ImageId>::to_binding(sample),
+               "PictureBox.image: the table reads the cell");
+    }
+    {
+        const PictureBoxSizeMode sample = PictureBoxSizeMode::zoom;
+        (*control).size_mode = sample;
+        expect((*control).size_mode.read() == sample, "PictureBox.size_mode: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("size_mode");
+        expect(by_name && *by_name == PropertyValueTraits<PictureBoxSizeMode>::to_binding(sample),
+               "PictureBox.size_mode: the table reads the cell");
+    }
+    {
+        const double sample = 0.5;
+        (*control).image_opacity = sample;
+        expect((*control).image_opacity.read() == sample, "PictureBox.image_opacity: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("image_opacity");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "PictureBox.image_opacity: the table reads the cell");
+    }
+}
+
+void test_progress_bar_properties() {
+    std::shared_ptr<ProgressBar> control = make_control<ProgressBar>(StableId("generated.progressbar"));
+    {
+        const ProgressBarVisualStyle sample = ProgressBarVisualStyle::marquee;
+        (*control).visual_style = sample;
+        expect((*control).visual_style.read() == sample, "ProgressBar.visual_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("visual_style");
+        expect(by_name && *by_name == PropertyValueTraits<ProgressBarVisualStyle>::to_binding(sample),
+               "ProgressBar.visual_style: the table reads the cell");
+    }
+    {
+        const ProgressBarOverlayStyle sample = ProgressBarOverlayStyle::moving_stripes;
+        (*control).overlay_style = sample;
+        expect((*control).overlay_style.read() == sample, "ProgressBar.overlay_style: a write stores");
+    }
+    {
+        const double sample = 9.0;
+        (*control).stripe_width = sample;
+        expect((*control).stripe_width.read() == sample, "ProgressBar.stripe_width: a write stores");
+    }
+    {
+        const ProgressBarAnimationAppearance sample = ProgressBarAnimationAppearance{.pulse_extent = 0.5};
+        (*control).animation_appearance = sample;
+        expect((*control).animation_appearance.read() == sample, "ProgressBar.animation_appearance: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).animation_enabled = sample;
+        expect((*control).animation_enabled.read() == sample, "ProgressBar.animation_enabled: a write stores");
+    }
+    {
+        const FrameInterval sample = std::chrono::milliseconds(2000);
+        (*control).animation_period = sample;
+        expect((*control).animation_period.read() == sample, "ProgressBar.animation_period: a write stores");
+    }
+    {
+        const std::string sample = std::string("progress_stripes");
+        (*control).effect = sample;
+        expect((*control).effect.read() == sample, "ProgressBar.effect: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("effect");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "ProgressBar.effect: the table reads the cell");
+    }
+    {
+        const std::optional<std::uint64_t> sample = std::uint64_t{7U};
+        (*control).effect_seed = sample;
+        expect((*control).effect_seed.read() == sample, "ProgressBar.effect_seed: a write stores");
+        expect((*control).property_value("effect_seed").has_value(), "ProgressBar.effect_seed: the table reads it");
+    }
+    {
+        const EffectInputKind sample = EffectInputKind::pointer;
+        (*control).effect_input = sample;
+        expect((*control).effect_input.read() == sample, "ProgressBar.effect_input: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("effect_input");
+        expect(by_name && *by_name == PropertyValueTraits<EffectInputKind>::to_binding(sample),
+               "ProgressBar.effect_input: the table reads the cell");
+    }
+}
+
+void test_progress_ring_properties() {
+    std::shared_ptr<ProgressRing> control = make_control<ProgressRing>(StableId("generated.progressring"));
+    {
+        const double sample = 25.0;
+        (*control).value = sample;
+        expect((*control).value.read() == sample, "ProgressRing.value: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("value");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "ProgressRing.value: the table reads the cell");
+    }
+    {
+        const double sample = 50.0;
+        (*control).maximum = sample;
+        expect((*control).maximum.read() == sample, "ProgressRing.maximum: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("maximum");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "ProgressRing.maximum: the table reads the cell");
+    }
+    {
+        const bool sample = true;
+        (*control).indeterminate = sample;
+        expect((*control).indeterminate.read() == sample, "ProgressRing.indeterminate: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("indeterminate");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ProgressRing.indeterminate: the table reads the cell");
+    }
+}
+
+void test_property_grid_properties() {
+    std::shared_ptr<PropertyGrid> control = make_control<PropertyGrid>(StableId("generated.propertygrid"));
+}
+
+void test_property_list_properties() {
+    std::shared_ptr<PropertyList> control = make_control<PropertyList>(StableId("generated.propertylist"));
+}
+
+void test_quick_access_toolbar_properties() {
+    std::shared_ptr<QuickAccessToolbar> control = make_control<QuickAccessToolbar>(StableId("generated.quickaccesstoolbar"));
+    {
+        const QuickAccessToolbarPlacement sample = QuickAccessToolbarPlacement::below_ribbon;
+        (*control).placement = sample;
+        expect((*control).placement.read() == sample, "QuickAccessToolbar.placement: a write stores");
+    }
+}
+
+void test_radio_button_properties() {
+    std::shared_ptr<RadioButton> control = make_control<RadioButton>(StableId("generated.radiobutton"));
+    {
+        const std::string sample = std::string{"left"};
+        (*control).group_name = sample;
+        expect((*control).group_name.read() == sample, "RadioButton.group_name: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("group_name");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "RadioButton.group_name: the table reads the cell");
+    }
+    {
+        const bool sample = !(*control).auto_check.read();
+        (*control).auto_check = sample;
+        expect((*control).auto_check.read() == sample, "RadioButton.auto_check: a write stores");
+    }
+    {
+        const ChoiceIndicatorStyle sample = ChoiceIndicatorStyle::modern;
+        (*control).indicator_style = sample;
+        expect((*control).indicator_style.read() == sample, "RadioButton.indicator_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("indicator_style");
+        expect(by_name && *by_name == PropertyValueTraits<ChoiceIndicatorStyle>::to_binding(sample),
+               "RadioButton.indicator_style: the table reads the cell");
+    }
+}
+
+void test_range_control_properties() {
+    std::shared_ptr<TrackBar> control = make_control<TrackBar>(StableId("generated.rangecontrol"));
+    {
+        const double sample = 2.0;
+        (*control).small_change = sample;
+        expect((*control).small_change.read() == sample, "RangeControl.small_change: a write stores");
+    }
+    {
+        const double sample = 20.0;
+        (*control).large_change = sample;
+        expect((*control).large_change.read() == sample, "RangeControl.large_change: a write stores");
+    }
+    {
+        const Orientation sample = Orientation::vertical;
+        (*control).orientation = sample;
+        expect((*control).orientation.read() == sample, "RangeControl.orientation: a write stores");
+    }
+}
+
+void test_raster_canvas_properties() {
+    std::shared_ptr<RasterCanvas> control = make_control<RasterCanvas>(StableId("generated.rastercanvas"));
+    {
+        const ImageSampling sample = ImageSampling::linear;
+        (*control).sampling = sample;
+        expect((*control).sampling.read() == sample, "RasterCanvas.sampling: a write stores");
+    }
+    {
+        const bool sample = !(*control).transparency_grid.read();
+        (*control).transparency_grid = sample;
+        expect((*control).transparency_grid.read() == sample, "RasterCanvas.transparency_grid: a write stores");
+    }
+    {
+        const Color sample = Color::rgba(40, 44, 52);
+        (*control).canvas_background = sample;
+        expect((*control).canvas_background.read() == sample, "RasterCanvas.canvas_background: a write stores");
+    }
+    {
+        const double sample = 8.0;
+        (*control).transparency_cell_size = sample;
+        expect((*control).transparency_cell_size.read() == sample, "RasterCanvas.transparency_cell_size: a write stores");
+    }
+}
+
+void test_responsive_track_panel_properties() {
+    std::shared_ptr<ResponsiveTrackPanel> control = make_control<ResponsiveTrackPanel>(StableId("generated.responsivetrackpanel"));
+    {
+        const ResponsiveTrackOrientation sample = ResponsiveTrackOrientation::vertical;
+        (*control).orientation = sample;
+        expect((*control).orientation.read() == sample, "ResponsiveTrackPanel.orientation: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("orientation");
+        expect(by_name && *by_name == PropertyValueTraits<ResponsiveTrackOrientation>::to_binding(sample),
+               "ResponsiveTrackPanel.orientation: the table reads the cell");
+    }
+    {
+        const double sample = 8.0;
+        (*control).track_gap = sample;
+        expect((*control).track_gap.read() == sample, "ResponsiveTrackPanel.track_gap: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("track_gap");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "ResponsiveTrackPanel.track_gap: the table reads the cell");
+    }
+    expect((*control).property_descriptor("track_specs").has_value(), "ResponsiveTrackPanel.track_specs: the table holds the hand entry");
+}
+
+void test_review_card_properties() {
+    std::shared_ptr<ReviewCard> control = make_control<ReviewCard>(StableId("generated.reviewcard"));
+    // record: no sample for ReviewRecord; give the property a "sample".
+}
+
+void test_ribbon_properties() {
+    std::shared_ptr<Ribbon> control = make_control<Ribbon>(StableId("generated.ribbon"));
+    {
+        const std::uint32_t sample = 3U;
+        (*control).application_modes = sample;
+        expect((*control).application_modes.read() == sample, "Ribbon.application_modes: a write stores");
+    }
+    {
+        const double sample = 120.0;
+        (*control).document_minimum_height = sample;
+        expect((*control).document_minimum_height.read() == sample, "Ribbon.document_minimum_height: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).minimized = sample;
+        expect((*control).minimized.read() == sample, "Ribbon.minimized: a write stores");
+    }
+    {
+        const std::string sample = std::string{"&Home"};
+        (*control).application_text = sample;
+        expect((*control).application_text.read() == sample, "Ribbon.application_text: a write stores");
+    }
+    {
+        const std::string sample = std::string{"Recent files"};
+        (*control).recent_caption = sample;
+        expect((*control).recent_caption.read() == sample, "Ribbon.recent_caption: a write stores");
+    }
+    // backstage: no sample for std::shared_ptr<BackstageView>; give the property a "sample".
+    {
+        const bool sample = false;
+        (*control).focus_region = sample;
+        expect((*control).focus_region.read() == sample, "Ribbon.focus_region: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::control, 12.0, 700, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "Ribbon.font: a write stores");
+    }
+}
+
+void test_ribbon_color_picker_properties() {
+    std::shared_ptr<RibbonColorPicker> control = make_control<RibbonColorPicker>(StableId("generated.ribboncolorpicker"));
+    // command: no sample for std::shared_ptr<ColorCommand>; give the property a "sample".
+    {
+        const ImageId sample = ImageId{7U};
+        (*control).image = sample;
+        expect((*control).image.read() == sample, "RibbonColorPicker.image: a write stores");
+    }
+    {
+        const std::string sample = std::string{"&Highlight"};
+        (*control).text = sample;
+        expect((*control).text.read() == sample, "RibbonColorPicker.text: a write stores");
+    }
+}
+
+void test_ribbon_font_control_properties() {
+    std::shared_ptr<RibbonFontControl> control = make_control<RibbonFontControl>(StableId("generated.ribbonfontcontrol"));
+    // command: no sample for std::shared_ptr<FontCommand>; give the property a "sample".
+}
+
+void test_ribbon_gallery_properties() {
+    std::shared_ptr<RibbonGallery> control = make_control<RibbonGallery>(StableId("generated.ribbongallery"));
+    // command: no sample for std::shared_ptr<GalleryCommand>; give the property a "sample".
+    {
+        const Size sample = Size{48.0, 40.0};
+        (*control).item_size = sample;
+        expect((*control).item_size.read() == sample, "RibbonGallery.item_size: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).show_labels = sample;
+        expect((*control).show_labels.read() == sample, "RibbonGallery.show_labels: a write stores");
+    }
+    {
+        const std::size_t sample = std::size_t{2U};
+        (*control).visible_rows = sample;
+        expect((*control).visible_rows.read() == sample, "RibbonGallery.visible_rows: a write stores");
+    }
+}
+
+void test_rich_text_box_properties() {
+    std::shared_ptr<RichTextBox> control = make_control<RichTextBox>(StableId("generated.richtextbox"));
+    {
+        const bool sample = !(*control).word_wrap.read();
+        (*control).word_wrap = sample;
+        expect((*control).word_wrap.read() == sample, "RichTextBox.word_wrap: a write stores");
+    }
+    {
+        const bool sample = !(*control).accepts_tab.read();
+        (*control).accepts_tab = sample;
+        expect((*control).accepts_tab.read() == sample, "RichTextBox.accepts_tab: a write stores");
+    }
+    {
+        const bool sample = !(*control).control_bar_visible.read();
+        (*control).control_bar_visible = sample;
+        expect((*control).control_bar_visible.read() == sample, "RichTextBox.control_bar_visible: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "RichTextBox.font: a write stores");
+    }
+}
+
+void test_scaled_group_box_properties() {
+    std::shared_ptr<ScaledGroupBox> control = make_control<ScaledGroupBox>(StableId("generated.scaledgroupbox"));
+    {
+        const Size sample = Size{640.0, 480.0};
+        (*control).design_size = sample;
+        expect((*control).design_size.read() == sample, "ScaledGroupBox.design_size: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("design_size");
+        expect(by_name && *by_name == PropertyValueTraits<Size>::to_binding(sample),
+               "ScaledGroupBox.design_size: the table reads the cell");
+    }
+}
+
+void test_scaled_panel_properties() {
+    std::shared_ptr<ScaledPanel> control = make_control<ScaledPanel>(StableId("generated.scaledpanel"));
+    {
+        const Size sample = Size{640.0, 480.0};
+        (*control).design_size = sample;
+        expect((*control).design_size.read() == sample, "ScaledPanel.design_size: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("design_size");
+        expect(by_name && *by_name == PropertyValueTraits<Size>::to_binding(sample),
+               "ScaledPanel.design_size: the table reads the cell");
+    }
+}
+
+void test_scroll_bar_properties() {
+    std::shared_ptr<ScrollBar> control = make_control<ScrollBar>(StableId("generated.scrollbar"));
+    {
+        const double sample = 20.0;
+        (*control).button_extent = sample;
+        expect((*control).button_extent.read() == sample, "ScrollBar.button_extent: a write stores");
+    }
+    {
+        const double sample = 24.0;
+        (*control).minimum_thumb_extent = sample;
+        expect((*control).minimum_thumb_extent.read() == sample, "ScrollBar.minimum_thumb_extent: a write stores");
+    }
+    {
+        const FrameInterval sample = std::chrono::milliseconds(500);
+        (*control).initial_repeat_delay = sample;
+        expect((*control).initial_repeat_delay.read() == sample, "ScrollBar.initial_repeat_delay: a write stores");
+    }
+    {
+        const FrameInterval sample = std::chrono::milliseconds(100);
+        (*control).repeat_interval = sample;
+        expect((*control).repeat_interval.read() == sample, "ScrollBar.repeat_interval: a write stores");
+    }
+    expect((*control).property_descriptor("large_change").has_value(), "ScrollBar.large_change: the table holds the hand entry");
 }
 
 void test_scrollable_control_properties() {
@@ -389,6 +2029,349 @@ void test_scrollable_control_properties() {
     }
 }
 
+void test_search_field_properties() {
+    std::shared_ptr<SearchField> control = make_control<SearchField>(StableId("generated.searchfield"));
+    {
+        const std::chrono::milliseconds sample = std::chrono::milliseconds(150);
+        (*control).search_delay = sample;
+        expect((*control).search_delay.read() == sample, "SearchField.search_delay: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).busy = sample;
+        expect((*control).busy.read() == sample, "SearchField.busy: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("busy");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "SearchField.busy: the table reads the cell");
+    }
+}
+
+void test_spinner_properties() {
+    std::shared_ptr<Spinner> control = make_control<Spinner>(StableId("generated.spinner"));
+    {
+        const bool sample = false;
+        (*control).active = sample;
+        expect((*control).active.read() == sample, "Spinner.active: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("active");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Spinner.active: the table reads the cell");
+    }
+}
+
+void test_split_container_properties() {
+    std::shared_ptr<SplitContainer> control = make_control<SplitContainer>(StableId("generated.splitcontainer"));
+    {
+        const Orientation sample = Orientation::horizontal;
+        (*control).orientation = sample;
+        expect((*control).orientation.read() == sample, "SplitContainer.orientation: a write stores");
+    }
+    {
+        const SplitSeamGeometry sample = SplitSeamGeometry{6.0, SplitSeamThicknessPolicy::logical, 2.0, 2.0, 10.0};
+        (*control).splitter_geometry = sample;
+        expect((*control).splitter_geometry.read() == sample, "SplitContainer.splitter_geometry: a write stores");
+    }
+    {
+        const double sample = 40.0;
+        (*control).first_minimum = sample;
+        expect((*control).first_minimum.read() == sample, "SplitContainer.first_minimum: a write stores");
+    }
+    {
+        const double sample = 40.0;
+        (*control).second_minimum = sample;
+        expect((*control).second_minimum.read() == sample, "SplitContainer.second_minimum: a write stores");
+    }
+    {
+        const std::optional<double> sample = std::optional<double>{400.0};
+        (*control).first_maximum = sample;
+        expect((*control).first_maximum.read() == sample, "SplitContainer.first_maximum: a write stores");
+    }
+    {
+        const std::optional<double> sample = std::optional<double>{400.0};
+        (*control).second_maximum = sample;
+        expect((*control).second_maximum.read() == sample, "SplitContainer.second_maximum: a write stores");
+    }
+    {
+        const bool sample = !(*control).splitter_fixed.read();
+        (*control).splitter_fixed = sample;
+        expect((*control).splitter_fixed.read() == sample, "SplitContainer.splitter_fixed: a write stores");
+    }
+    {
+        const SplitFixedPanel sample = SplitFixedPanel::second;
+        (*control).fixed_panel = sample;
+        expect((*control).fixed_panel.read() == sample, "SplitContainer.fixed_panel: a write stores");
+    }
+    {
+        const SplitFixedPanel sample = SplitFixedPanel::first;
+        (*control).collapse_panel = sample;
+        expect((*control).collapse_panel.read() == sample, "SplitContainer.collapse_panel: a write stores");
+    }
+    {
+        const double sample = 300.0;
+        (*control).automatic_collapse_threshold = sample;
+        expect((*control).automatic_collapse_threshold.read() == sample, "SplitContainer.automatic_collapse_threshold: a write stores");
+    }
+    {
+        const double sample = 8.0;
+        (*control).keyboard_increment = sample;
+        expect((*control).keyboard_increment.read() == sample, "SplitContainer.keyboard_increment: a write stores");
+    }
+}
+
+void test_splitter_properties() {
+    std::shared_ptr<Splitter> control = make_control<Splitter>(StableId("generated.splitter"));
+    {
+        const double sample = 80.0;
+        (*control).min_size = sample;
+        expect((*control).min_size.read() == sample, "Splitter.min_size: a write stores");
+    }
+    {
+        const double sample = 120.0;
+        (*control).min_extra = sample;
+        expect((*control).min_extra.read() == sample, "Splitter.min_extra: a write stores");
+    }
+}
+
+void test_splitter_panel_properties() {
+    std::shared_ptr<SplitterPanel> control = make_control<SplitterPanel>(StableId("generated.splitterpanel"));
+    {
+        const Color sample = Color::rgba(225, 235, 243);
+        (*control).background = sample;
+        expect((*control).background.read() == sample, "SplitterPanel.background: a write stores");
+    }
+}
+
+void test_sweep_scope_properties() {
+    std::shared_ptr<SweepScope> control = make_control<SweepScope>(StableId("generated.sweepscope"));
+    {
+        const std::string sample = std::string("GAIN");
+        (*control).caption = sample;
+        expect((*control).caption.read() == sample, "SweepScope.caption: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("caption");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "SweepScope.caption: the table reads the cell");
+    }
+    {
+        const FrameInterval sample = std::chrono::seconds(2);
+        (*control).sweep_period = sample;
+        expect((*control).sweep_period.read() == sample, "SweepScope.sweep_period: a write stores");
+        expect((*control).property_value("sweep_period").has_value(), "SweepScope.sweep_period: the table reads it");
+    }
+}
+
+void test_tab_control_properties() {
+    std::shared_ptr<TabControl> control = make_control<TabControl>(StableId("generated.tabcontrol"));
+    {
+        const TabAlignment sample = TabAlignment::left;
+        (*control).alignment = sample;
+        expect((*control).alignment.read() == sample, "TabControl.alignment: a write stores");
+    }
+    {
+        const TabAppearance sample = TabAppearance::buttons;
+        (*control).appearance = sample;
+        expect((*control).appearance.read() == sample, "TabControl.appearance: a write stores");
+    }
+    {
+        const TabSizeMode sample = TabSizeMode::fixed;
+        (*control).size_mode = sample;
+        expect((*control).size_mode.read() == sample, "TabControl.size_mode: a write stores");
+    }
+    {
+        const Size sample = Size{96.0, 28.0};
+        (*control).item_size = sample;
+        expect((*control).item_size.read() == sample, "TabControl.item_size: a write stores");
+    }
+    // image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
+}
+
+void test_tab_page_properties() {
+    std::shared_ptr<TabPage> control = make_control<TabPage>(StableId("generated.tabpage"));
+    {
+        const std::string sample = std::string{"Options"};
+        (*control).text = sample;
+        expect((*control).text.read() == sample, "TabPage.text: a write stores");
+    }
+}
+
+void test_table_layout_panel_compat_properties() {
+    std::shared_ptr<TableLayoutPanelCompat> control = make_control<TableLayoutPanelCompat>(StableId("generated.tablelayoutpanelcompat"));
+    {
+        const TableLayoutGrowStyle sample = TableLayoutGrowStyle::add_columns;
+        (*control).grow_style = sample;
+        expect((*control).grow_style.read() == sample, "TableLayoutPanelCompat.grow_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("grow_style");
+        expect(by_name && *by_name == PropertyValueTraits<TableLayoutGrowStyle>::to_binding(sample),
+               "TableLayoutPanelCompat.grow_style: the table reads the cell");
+    }
+    {
+        const TableCellBorderStyle sample = TableCellBorderStyle::single;
+        (*control).cell_border_style = sample;
+        expect((*control).cell_border_style.read() == sample, "TableLayoutPanelCompat.cell_border_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("cell_border_style");
+        expect(by_name && *by_name == PropertyValueTraits<TableCellBorderStyle>::to_binding(sample),
+               "TableLayoutPanelCompat.cell_border_style: the table reads the cell");
+    }
+    {
+        const Size sample = Size{2.0, 3.0};
+        (*control).track_spacing = sample;
+        expect((*control).track_spacing.read() == sample, "TableLayoutPanelCompat.track_spacing: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("track_spacing");
+        expect(by_name && *by_name == PropertyValueTraits<Size>::to_binding(sample),
+               "TableLayoutPanelCompat.track_spacing: the table reads the cell");
+    }
+    expect((*control).property_descriptor("column_count").has_value(), "TableLayoutPanelCompat.column_count: the table holds the hand entry");
+    expect((*control).property_descriptor("row_count").has_value(), "TableLayoutPanelCompat.row_count: the table holds the hand entry");
+    expect((*control).property_descriptor("column_styles").has_value(), "TableLayoutPanelCompat.column_styles: the table holds the hand entry");
+    expect((*control).property_descriptor("row_styles").has_value(), "TableLayoutPanelCompat.row_styles: the table holds the hand entry");
+}
+
+void test_text_block_properties() {
+    std::shared_ptr<TextBlock> control = make_control<TextBlock>(StableId("generated.textblock"));
+    {
+        const std::string sample = std::string{"Name"};
+        int raises = 0;
+        const SubscriptionToken token = (*control).text_changed().subscribe(RaiseCounter{&raises});
+        (*control).text = sample;
+        expect((*control).text.read() == sample, "TextBlock.text: a write stores");
+        expect(raises == 1, "TextBlock.text: a changed write raises once");
+        (*control).text = sample;
+        expect(raises == 1, "TextBlock.text: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "TextBlock.text: the table reads the cell");
+    }
+    {
+        const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "TextBlock.font: a write stores");
+        expect((*control).property_value("font").has_value(), "TextBlock.font: the table reads it");
+    }
+    {
+        const TextAlignment sample = TextAlignment::center;
+        (*control).text_align = sample;
+        expect((*control).text_align.read() == sample, "TextBlock.text_align: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("text_align");
+        expect(by_name && *by_name == PropertyValueTraits<TextAlignment>::to_binding(sample),
+               "TextBlock.text_align: the table reads the cell");
+    }
+    {
+        const std::optional<double> sample = 18.0;
+        (*control).line_height = sample;
+        expect((*control).line_height.read() == sample, "TextBlock.line_height: a write stores");
+        expect((*control).property_value("line_height").has_value(), "TextBlock.line_height: the table reads it");
+    }
+}
+
+void test_text_box_properties() {
+    std::shared_ptr<TextBox> control = make_control<TextBox>(StableId("generated.textbox"));
+    {
+        const std::string sample = std::string{"Search"};
+        (*control).placeholder_text = sample;
+        expect((*control).placeholder_text.read() == sample, "TextBox.placeholder_text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("placeholder_text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "TextBox.placeholder_text: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).multiline = sample;
+        expect((*control).multiline.read() == sample, "TextBox.multiline: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("multiline");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "TextBox.multiline: the table reads the cell");
+    }
+    {
+        const bool sample = !(*control).word_wrap.read();
+        (*control).word_wrap = sample;
+        expect((*control).word_wrap.read() == sample, "TextBox.word_wrap: a write stores");
+    }
+    {
+        const std::string sample = std::string{"\r\n"};
+        (*control).newline_sequence = sample;
+        expect((*control).newline_sequence.read() == sample, "TextBox.newline_sequence: a write stores");
+    }
+    {
+        const bool sample = !(*control).accepts_tab.read();
+        (*control).accepts_tab = sample;
+        expect((*control).accepts_tab.read() == sample, "TextBox.accepts_tab: a write stores");
+    }
+    {
+        const bool sample = !(*control).accepts_enter.read();
+        (*control).accepts_enter = sample;
+        expect((*control).accepts_enter.read() == sample, "TextBox.accepts_enter: a write stores");
+    }
+    {
+        const bool sample = !(*control).accepts_escape.read();
+        (*control).accepts_escape = sample;
+        expect((*control).accepts_escape.read() == sample, "TextBox.accepts_escape: a write stores");
+    }
+    {
+        const char32_t sample = U'*';
+        (*control).password_character = sample;
+        expect((*control).password_character.read() == sample, "TextBox.password_character: a write stores");
+    }
+    {
+        const bool sample = !(*control).use_system_password_character.read();
+        (*control).use_system_password_character = sample;
+        expect((*control).use_system_password_character.read() == sample, "TextBox.use_system_password_character: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "TextBox.font: a write stores");
+    }
+    {
+        const AutoCompleteMode sample = AutoCompleteMode::suggest;
+        (*control).auto_complete_mode = sample;
+        expect((*control).auto_complete_mode.read() == sample, "TextBox.auto_complete_mode: a write stores");
+    }
+    {
+        const AutoCompleteSource sample = AutoCompleteSource::custom_source;
+        (*control).auto_complete_source = sample;
+        expect((*control).auto_complete_source.read() == sample, "TextBox.auto_complete_source: a write stores");
+    }
+    // auto_complete_custom_source: no sample for std::shared_ptr<AutoCompleteStringCollection>; give the property a "sample".
+    {
+        const bool sample = !(*control).auto_complete_case_sensitive.read();
+        (*control).auto_complete_case_sensitive = sample;
+        expect((*control).auto_complete_case_sensitive.read() == sample, "TextBox.auto_complete_case_sensitive: a write stores");
+    }
+}
+
+void test_toggle_switch_properties() {
+    std::shared_ptr<ToggleSwitch> control = make_control<ToggleSwitch>(StableId("generated.toggleswitch"));
+    {
+        const bool sample = true;
+        int raises = 0;
+        const SubscriptionToken token = (*control).checked_changed().subscribe(RaiseCounter{&raises});
+        (*control).checked = sample;
+        expect((*control).checked.read() == sample, "ToggleSwitch.checked: a write stores");
+        expect(raises == 1, "ToggleSwitch.checked: a changed write raises once");
+        (*control).checked = sample;
+        expect(raises == 1, "ToggleSwitch.checked: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("checked");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ToggleSwitch.checked: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"On"};
+        (*control).on_text = sample;
+        expect((*control).on_text.read() == sample, "ToggleSwitch.on_text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("on_text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "ToggleSwitch.on_text: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Off"};
+        (*control).off_text = sample;
+        expect((*control).off_text.read() == sample, "ToggleSwitch.off_text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("off_text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "ToggleSwitch.off_text: the table reads the cell");
+    }
+}
+
 void test_token_box_properties() {
     std::shared_ptr<TokenBox> control = make_control<TokenBox>(StableId("generated.tokenbox"));
     {
@@ -400,6 +2383,103 @@ void test_token_box_properties() {
         const FontSpec sample = FontSpec{FontRole::content, 14.0, 700, false};
         (*control).font = sample;
         expect((*control).font.read() == sample, "TokenBox.font: a write stores");
+    }
+}
+
+void test_tool_strip_properties() {
+    std::shared_ptr<ToolStrip> control = make_control<ToolStrip>(StableId("generated.toolstrip"));
+    {
+        const bool sample = !(*control).grip_visible.read();
+        (*control).grip_visible = sample;
+        expect((*control).grip_visible.read() == sample, "ToolStrip.grip_visible: a write stores");
+    }
+    {
+        const bool sample = !(*control).allow_merge.read();
+        (*control).allow_merge = sample;
+        expect((*control).allow_merge.read() == sample, "ToolStrip.allow_merge: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::control, 12.0, 700, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "ToolStrip.font: a write stores");
+    }
+    {
+        const Orientation sample = Orientation::vertical;
+        (*control).orientation = sample;
+        expect((*control).orientation.read() == sample, "ToolStrip.orientation: a write stores");
+    }
+    {
+        const bool sample = !(*control).sizing_grip_visible.read();
+        (*control).sizing_grip_visible = sample;
+        expect((*control).sizing_grip_visible.read() == sample, "ToolStrip.sizing_grip_visible: a write stores");
+    }
+    {
+        const double sample = 24.0;
+        (*control).end_reserve = sample;
+        expect((*control).end_reserve.read() == sample, "ToolStrip.end_reserve: a write stores");
+    }
+}
+
+void test_tool_strip_container_properties() {
+    std::shared_ptr<ToolStripContainer> control = make_control<ToolStripContainer>(StableId("generated.toolstripcontainer"));
+    {
+        const bool sample = !(*control).top_panel_visible.read();
+        (*control).top_panel_visible = sample;
+        expect((*control).top_panel_visible.read() == sample, "ToolStripContainer.top_panel_visible: a write stores");
+    }
+    {
+        const bool sample = !(*control).bottom_panel_visible.read();
+        (*control).bottom_panel_visible = sample;
+        expect((*control).bottom_panel_visible.read() == sample, "ToolStripContainer.bottom_panel_visible: a write stores");
+    }
+    {
+        const bool sample = !(*control).left_panel_visible.read();
+        (*control).left_panel_visible = sample;
+        expect((*control).left_panel_visible.read() == sample, "ToolStripContainer.left_panel_visible: a write stores");
+    }
+    {
+        const bool sample = !(*control).right_panel_visible.read();
+        (*control).right_panel_visible = sample;
+        expect((*control).right_panel_visible.read() == sample, "ToolStripContainer.right_panel_visible: a write stores");
+    }
+    {
+        const double sample = 8.0;
+        (*control).drag_threshold = sample;
+        expect((*control).drag_threshold.read() == sample, "ToolStripContainer.drag_threshold: a write stores");
+    }
+}
+
+void test_tool_strip_panel_properties() {
+    std::shared_ptr<ToolStripPanel> control = make_control<ToolStripPanel>(StableId("generated.toolstrippanel"));
+    {
+        const ToolStripPanelEdge sample = ToolStripPanelEdge::left;
+        (*control).edge = sample;
+        expect((*control).edge.read() == sample, "ToolStripPanel.edge: a write stores");
+    }
+}
+
+void test_track_bar_properties() {
+    std::shared_ptr<TrackBar> control = make_control<TrackBar>(StableId("generated.trackbar"));
+    {
+        const double sample = 5.0;
+        (*control).tick_frequency = sample;
+        expect((*control).tick_frequency.read() == sample, "TrackBar.tick_frequency: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("tick_frequency");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "TrackBar.tick_frequency: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).show_ticks = sample;
+        expect((*control).show_ticks.read() == sample, "TrackBar.show_ticks: a write stores");
+    }
+    {
+        const TrackBarVisualStyle sample = TrackBarVisualStyle::filled;
+        (*control).visual_style = sample;
+        expect((*control).visual_style.read() == sample, "TrackBar.visual_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("visual_style");
+        expect(by_name && *by_name == PropertyValueTraits<TrackBarVisualStyle>::to_binding(sample),
+               "TrackBar.visual_style: the table reads the cell");
     }
 }
 
@@ -418,16 +2498,191 @@ void test_tree_list_view_properties() {
     }
 }
 
+void test_tree_view_properties() {
+    std::shared_ptr<TreeView> control = make_control<TreeView>(StableId("generated.treeview"));
+    {
+        const double sample = 30.0;
+        (*control).item_height = sample;
+        expect((*control).item_height.read() == sample, "TreeView.item_height: a write stores");
+    }
+    {
+        const double sample = 24.0;
+        (*control).indentation = sample;
+        expect((*control).indentation.read() == sample, "TreeView.indentation: a write stores");
+    }
+    {
+        const bool sample = !(*control).show_expanders.read();
+        (*control).show_expanders = sample;
+        expect((*control).show_expanders.read() == sample, "TreeView.show_expanders: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "TreeView.font: a write stores");
+    }
+    // image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
+}
+
+void test_typography_specimen_properties() {
+    std::shared_ptr<TypographySpecimen> control = make_control<TypographySpecimen>(StableId("generated.typographyspecimen"));
+    {
+        const std::string sample = std::string{"Name"};
+        (*control).text = sample;
+        expect((*control).text.read() == sample, "TypographySpecimen.text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "TypographySpecimen.text: the table reads the cell");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "TypographySpecimen.font: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("font");
+        expect(by_name && *by_name == PropertyValueTraits<FontSpec>::to_binding(sample),
+               "TypographySpecimen.font: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Body"};
+        (*control).caption = sample;
+        expect((*control).caption.read() == sample, "TypographySpecimen.caption: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("caption");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "TypographySpecimen.caption: the table reads the cell");
+    }
+    {
+        const bool sample = !(*control).diagnostics_visible.read();
+        (*control).diagnostics_visible = sample;
+        expect((*control).diagnostics_visible.read() == sample, "TypographySpecimen.diagnostics_visible: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).wrap_text = sample;
+        expect((*control).wrap_text.read() == sample, "TypographySpecimen.wrap_text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("wrap_text");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "TypographySpecimen.wrap_text: the table reads the cell");
+    }
+}
+
+void test_visual_inspector_overlay_properties() {
+    std::shared_ptr<VisualInspectorOverlay> control = make_control<VisualInspectorOverlay>(StableId("generated.visualinspectoroverlay"));
+    {
+        const std::string sample = std::string("target");
+        (*control).target_stable_id = sample;
+        expect((*control).target_stable_id.read() == sample, "VisualInspectorOverlay.target_stable_id: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("target_stable_id");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "VisualInspectorOverlay.target_stable_id: the table reads the cell");
+    }
+}
+
+void test_visual_inspector_view_properties() {
+    std::shared_ptr<VisualInspectorView> control = make_control<VisualInspectorView>(StableId("generated.visualinspectorview"));
+    {
+        const std::string sample = std::string("target");
+        (*control).target_stable_id = sample;
+        expect((*control).target_stable_id.read() == sample, "VisualInspectorView.target_stable_id: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("target_stable_id");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "VisualInspectorView.target_stable_id: the table reads the cell");
+    }
+}
+
 } // namespace
 
 int main() {
+    test_anchored_overlay_layer_properties();
+    test_backstage_view_properties();
+    test_badge_properties();
+    test_block_panel_properties();
+    test_breadcrumb_trail_properties();
+    test_button_properties();
     test_button_base_properties();
+    test_card_properties();
+    test_check_box_properties();
+    test_checked_list_box_properties();
+    test_choice_group_properties();
+    test_color_value_editor_properties();
+    test_combo_box_properties();
+    test_command_overflow_panel_properties();
+    test_container_control_properties();
+    test_correspondence_view_properties();
     test_data_grid_view_properties();
+    test_date_time_picker_properties();
+    test_dock_navigator_properties();
+    test_dock_site_properties();
+    test_domain_up_down_properties();
+    test_drawing_surface_properties();
+    test_drop_down_button_properties();
+    test_easing_preview_properties();
+    test_empty_state_properties();
+    test_expandable_sections_properties();
+    test_flags_value_editor_properties();
+    test_flex_panel_properties();
+    test_flow_layout_panel_compat_properties();
+    test_font_dialog_properties();
+    test_grid_panel_properties();
+    test_group_box_properties();
+    test_info_banner_properties();
+    test_instrument_rack_properties();
+    test_label_properties();
+    test_link_label_properties();
+    test_list_box_properties();
+    test_list_view_properties();
+    test_masked_text_box_properties();
+    test_master_detail_view_properties();
+    test_material_panel_properties();
+    test_menu_strip_properties();
+    test_metrics_view_properties();
     test_month_calendar_properties();
+    test_navigation_pane_properties();
+    test_numeric_up_down_properties();
+    test_object_view_properties();
+    test_page_strip_properties();
+    test_page_view_properties();
     test_panel_properties();
+    test_picture_box_properties();
+    test_progress_bar_properties();
+    test_progress_ring_properties();
+    test_property_grid_properties();
+    test_property_list_properties();
+    test_quick_access_toolbar_properties();
+    test_radio_button_properties();
+    test_range_control_properties();
+    test_raster_canvas_properties();
+    test_responsive_track_panel_properties();
+    test_review_card_properties();
+    test_ribbon_properties();
+    test_ribbon_color_picker_properties();
+    test_ribbon_font_control_properties();
+    test_ribbon_gallery_properties();
+    test_rich_text_box_properties();
+    test_scaled_group_box_properties();
+    test_scaled_panel_properties();
+    test_scroll_bar_properties();
     test_scrollable_control_properties();
+    test_search_field_properties();
+    test_spinner_properties();
+    test_split_container_properties();
+    test_splitter_properties();
+    test_splitter_panel_properties();
+    test_sweep_scope_properties();
+    test_tab_control_properties();
+    test_tab_page_properties();
+    test_table_layout_panel_compat_properties();
+    test_text_block_properties();
+    test_text_box_properties();
+    test_toggle_switch_properties();
     test_token_box_properties();
+    test_tool_strip_properties();
+    test_tool_strip_container_properties();
+    test_tool_strip_panel_properties();
+    test_track_bar_properties();
     test_tree_list_view_properties();
+    test_tree_view_properties();
+    test_typography_specimen_properties();
+    test_visual_inspector_overlay_properties();
+    test_visual_inspector_view_properties();
     std::cout << "generated property tests passed\n";
     return EXIT_SUCCESS;
 }

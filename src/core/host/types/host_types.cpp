@@ -27,6 +27,9 @@ struct HostEventNameVisitor final {
     const char* operator()(const HostShutdownEvent&) const noexcept { return "shutdown"; }
     const char* operator()(const HostCompositorEvent&) const noexcept { return "compositor"; }
     const char* operator()(const HostInputSettingsEvent&) const noexcept { return "input_settings"; }
+    const char* operator()(const HostContextRequestEvent&) const noexcept { return "context_request"; }
+    const char* operator()(const HostHoverEvent&) const noexcept { return "hover"; }
+    const char* operator()(const HostWindowStateEvent&) const noexcept { return "window_state"; }
 };
 
 struct HostDialogKindVisitor final {

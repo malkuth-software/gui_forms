@@ -14,7 +14,7 @@ reference* marks a payload the handler receives by mutable reference.
 
 Every control also has these properties: `accessible_description`, `accessible_name`, `align_self`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `back_color`, `bounds`, `causes_validation`, `classes`, `cursor`, `dock`, `enabled`, `fore_color`, `hit_test_transparent`, `justify_self`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
 
-Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `focus_observed`, `arranged_bounds_changed`, `help_requested`.
+Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `mouse_down`, `mouse_up`, `mouse_move`, `mouse_wheel`, `mouse_enter`, `mouse_hover`, `mouse_leave`, `mouse_capture_changed`, `click`, `mouse_click`, `double_click`, `mouse_double_click`, `context_menu_requested`, `focus_observed`, `arranged_bounds_changed`, `help_requested`.
 
 ## Vocabulary
 
@@ -26,25 +26,25 @@ States: `normal`, `hot`, `pressed`, `captured`, `focused`, `focus_visible`, `pre
 
 Admitted custom states: `modified`, `pinned`.
 
-Marks: `check`, `indeterminate`, `radio_dot`, `toggle_knob`, `arrow_up`, `arrow_down`, `arrow_left`, `arrow_right`, `chevron_down`, `chevron_right`, `close`, `grip_dots`, `dialog_launcher`, `more`, `overflow`, `customize`, `pin`, `dock_shape`, `underline`, `pencil`, `asterisk`, `error`.
+Marks: `check`, `indeterminate`, `radio_dot`, `toggle_knob`, `arrow_up`, `arrow_down`, `arrow_left`, `arrow_right`, `chevron_down`, `chevron_right`, `close`, `grip_dots`, `dialog_launcher`, `more`, `overflow`, `customize`, `pin`, `dock_shape`, `underline`, `pencil`, `asterisk`, `error`, `search`, `information`, `warning`, `success`.
 
 Engine inputs: `pointer_x`, `pointer_y`, `time_in_state`, `display_scale`, `text_scale`.
 
 Values: `accent_index`, `text_orientation`, `dock_region`, `content_color`, `authored_color`, `text_tone`, `pointed_face`.
 
-Recipe families: `window`, `panel`, `card`, `button`, `accent_button`, `command_button`, `choice`, `editor`, `menu_item`, `selection`, `progress`, `tool_tip`, `link`, `visited_link`.
+Recipe families: `window`, `panel`, `card`, `button`, `accent_button`, `command_button`, `choice`, `editor`, `menu_item`, `selection`, `progress`, `tool_tip`, `link`, `visited_link`, `notice`, `badge`.
 
-Semantic roles: `generic`, `group`, `static_text`, `button`, `check_box`, `radio_button`, `link`, `text_box`, `list`, `list_item`, `check_list_item`, `combo_box`, `slider`, `scroll_bar`, `progress_bar`, `image`, `tab_group`, `tab`, `split_pane`, `numeric_field`, `tool_tip`, `date_picker`, `calendar`, `date_cell`, `property_grid`, `property_group`, `property_row`, `menu_bar`, `menu_bar_item`, `menu`, `menu_item`, `separator`, `toolbar`, `radio_group`, `split_button`, `menu_button`, `pane`, `tab_panel`, `tree`, `tree_item`, `table`, `row`, `cell`, `column_header`, `row_header`, `tree_grid`, `dialog`, `status_bar`, `live_region`, `meter`.
+Semantic roles: `generic`, `group`, `static_text`, `button`, `check_box`, `radio_button`, `link`, `text_box`, `list`, `list_item`, `check_list_item`, `combo_box`, `slider`, `scroll_bar`, `progress_bar`, `image`, `tab_group`, `tab`, `split_pane`, `numeric_field`, `tool_tip`, `date_picker`, `calendar`, `date_cell`, `property_grid`, `property_group`, `property_row`, `menu_bar`, `menu_bar_item`, `menu`, `menu_item`, `separator`, `toolbar`, `radio_group`, `split_button`, `menu_button`, `pane`, `tab_panel`, `tree`, `tree_item`, `table`, `row`, `cell`, `column_header`, `row_header`, `tree_grid`, `dialog`, `status_bar`, `live_region`, `meter`, `toggle_switch`, `search_box`.
 
 Semantic actions: `focus`, `press`, `select`, `increment`, `decrement`, `expand`, `collapse`, `show_menu`, `set_value`, `close`.
 
 Semantic states: `enabled`, `visible`, `focusable`, `focused`, `selected`, `checked`, `mixed`, `read_only`, `expanded`, `busy`, `protected_content`, `invalid`, `checkable`, `multiselectable`.
 
-Semantic node fields: `position_in_set`, `set_size`, `has_popup`, `controlled_panel`, `orientation`, `level`, `modal`, `row_index`, `column_index`, `row_count`, `column_count`, `access_key`, `small_step`, `large_step`, `text_selection`, `multiline`, `tool_tip`.
+Semantic node fields: `position_in_set`, `set_size`, `has_popup`, `controlled_panel`, `orientation`, `level`, `modal`, `row_index`, `column_index`, `row_count`, `column_count`, `access_key`, `small_step`, `large_step`, `text_selection`, `multiline`, `tool_tip`, `announces_on_appearance`.
 
 ## Engine
 
-Theme engine 0.3 (T2): the primitives a theme's rules may select, the atoms each declares against, and its cost. Cascade levels, lowest first: `built_in`, `user_theme`, `theme_sheet`, `class_rule`, `stable_id_rule`, `inline_style`, `important_user_theme`, `important_theme_sheet`, `forced_high_contrast`, `important_inline_style`.
+Theme engine 0.3 (T2): the primitives a theme's rules may select, the atoms each declares against, and its cost. Cascade levels, lowest first: `built_in`, `base_sheet`, `user_theme`, `theme_sheet`, `class_rule`, `stable_id_rule`, `inline_style`, `important_base_sheet`, `important_user_theme`, `important_theme_sheet`, `forced_high_contrast`, `important_inline_style`.
 
 | Primitive | Since | Paints | Reads | Cost per device pixel | Parameters |
 |---|---|---|---|---|---|
@@ -160,14 +160,14 @@ Properties beyond every control's: `content_padding` (insets), `font` (font), `i
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -188,14 +188,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -249,20 +249,42 @@ Properties beyond every control's: none.
 | `token_removed` | `Token` |
 | `selected_token_changed` | `std::optional<TokenId>` |
 
+## `search_field` (SearchField, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `well` | well |  |  |
+| `icon` | glyph |  |  |
+| `content` | content | `text_box` |  |
+| `actuator` | glyph |  | hot, pressed |
+| `activity` | activity |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`, `pending`.
+
+Properties beyond every control's: `busy` (boolean), `placeholder_text` (text), `text` (text).
+
+| Interaction | Payload |
+|---|---|
+| `text_changed` | `std::string` |
+| `search_requested` | `std::string` |
+| `cleared` | none |
+
 ## `masked_text_box` (MaskedTextBox, control)
 
 | Part | Role | Reuses | Own states |
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -288,14 +310,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -358,20 +380,90 @@ Properties beyond every control's: `font` (font), `line_height` (number), `text`
 |---|---|
 | `text_changed` | `std::string` |
 
+## `badge` (Badge, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `chip` | chip |  |  |
+| `label` | label |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`. Application-defined: `dot`.
+
+Properties beyond every control's: `count` (unsigned_integer), `maximum` (unsigned_integer), `mode` (enumeration), `show_zero` (boolean).
+
+Interactions beyond every control's: none.
+
+## `info_banner` (InfoBanner, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `face` | face |  |  |
+| `keyline` | keyline |  |  |
+| `icon` | glyph |  |  |
+| `caption` | caption |  |  |
+| `label` | label |  |  |
+| `actuator` | glyph |  | hot, pressed |
+| `content` | content |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`. Application-defined: `information`, `warning`, `success`, `error`.
+
+Properties beyond every control's: `closable` (boolean), `message` (text), `severity` (enumeration), `title` (text).
+
+| Interaction | Payload |
+|---|---|
+| `closed` | none |
+
+## `empty_state` (EmptyState, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `icon` | icon |  |  |
+| `caption` | caption |  |  |
+| `label` | label |  |  |
+| `content` | content |  |  |
+
+States: `normal`, `enabled`, `disabled`.
+
+Properties beyond every control's: `description` (text), `image` (image), `title` (text).
+
+Interactions beyond every control's: none.
+
+## `toast` (Toast, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `face` | face |  |  |
+| `icon` | glyph |  |  |
+| `label` | label |  |  |
+| `actuator` | actuator | `button` |  |
+| `close` | glyph |  | hot, pressed |
+
+States: `normal`, `enabled`, `disabled`. Application-defined: `information`, `warning`, `success`, `error`.
+
+Properties beyond every control's: none.
+
+| Interaction | Payload |
+|---|---|
+| `action_invoked` | none |
+
 ## `picture_box` (PictureBox, control)
 
 | Part | Role | Reuses | Own states |
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -406,6 +498,34 @@ Properties beyond every control's: `effect` (text), `effect_input` (enumeration)
 | `value_changed` | `double` |
 | `scroll` | `RangeScrollEvent` |
 
+## `progress_ring` (ProgressRing, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `track` | track |  |  |
+| `fill` | fill |  |  |
+| `activity` | activity |  |  |
+
+States: `normal`, `indeterminate`, `enabled`, `disabled`, `reduced_motion`.
+
+Properties beyond every control's: `indeterminate` (boolean), `maximum` (number), `value` (number).
+
+Interactions beyond every control's: none.
+
+## `spinner` (Spinner, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `activity` | activity |  |  |
+
+States: `normal`, `enabled`, `disabled`, `reduced_motion`.
+
+Properties beyond every control's: `active` (boolean).
+
+Interactions beyond every control's: none.
+
 ## `sweep_scope` (SweepScope, control)
 
 | Part | Role | Reuses | Own states |
@@ -433,14 +553,14 @@ Properties beyond every control's: `caption` (text), `maximum` (number), `minimu
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -463,14 +583,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -504,14 +624,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -549,14 +669,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -585,14 +705,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -628,14 +748,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -819,14 +939,14 @@ Properties beyond every control's: none.
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -973,22 +1093,24 @@ Properties beyond every control's: none.
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
 | `edge` | edge |  |  |
+| `track` | track |  |  |
+| `selection` | selection |  |  |
 
-States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
+States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`. Application-defined: `segmented`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `presentation` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1002,14 +1124,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -1086,6 +1208,28 @@ Properties beyond every control's: `checked` (boolean), `content_padding` (inset
 | `text_changed` | `std::string` |
 | `checked_changed` | `bool` |
 
+## `toggle_switch` (ToggleSwitch, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `track` | track |  |  |
+| `thumb` | indicator |  |  |
+| `label` | label |  |  |
+| `state` | label |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `hot`, `pressed`, `checked`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
+
+Properties beyond every control's: `checked` (boolean), `content_padding` (insets), `font` (font), `image` (image), `off_text` (text), `on_text` (text), `text` (text), `text_alignment` (enumeration).
+
+| Interaction | Payload |
+|---|---|
+| `expanded_changed` | `std::optional<bool>` |
+| `clicked` | `ButtonBase`, by reference |
+| `text_changed` | `std::string` |
+| `checked_changed` | `bool` |
+
 ## `range_control` (RangeControl, control)
 
 | Part | Role | Reuses | Own states |
@@ -1130,14 +1274,14 @@ Properties beyond every control's: `maximum` (number), `minimum` (number), `tick
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -1163,14 +1307,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -1196,14 +1340,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `swatch` | chip |  |  |
@@ -1225,14 +1369,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -1258,14 +1402,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -1288,14 +1432,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -1335,14 +1479,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -1367,14 +1511,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -1462,14 +1606,14 @@ Properties beyond every control's: none.
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -1489,14 +1633,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -1510,6 +1654,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
+| `text_changed` | `std::string` |
 
 ## `scaled_group_box` (ScaledGroupBox, control)
 
@@ -1517,14 +1662,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -1538,6 +1683,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
+| `text_changed` | `std::string` |
 
 ## `material_panel` (MaterialPanel, control)
 
@@ -1545,14 +1691,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -1573,14 +1719,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -1602,14 +1748,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -1630,14 +1776,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 
@@ -1656,14 +1802,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 
@@ -1683,14 +1829,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -1938,14 +2084,14 @@ Properties beyond every control's: none.
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -1965,20 +2111,20 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `style` (text).
+Properties beyond every control's: `style` (text).
 
 Properties it provides to its children: `item_style` (text).
 
@@ -1993,20 +2139,20 @@ Properties it provides to its children: `item_style` (text).
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `style` (text).
+Properties beyond every control's: `style` (text).
 
 Properties it provides to its children: `area` (text), `cell` (point), `item_style` (text).
 
@@ -2021,20 +2167,20 @@ Properties it provides to its children: `area` (text), `cell` (point), `item_sty
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `style` (text).
+Properties beyond every control's: `style` (text).
 
 Properties it provides to its children: `item_style` (text).
 
@@ -2049,20 +2195,20 @@ Properties it provides to its children: `item_style` (text).
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `cross_alignment` (enumeration), `flow_direction` (enumeration), `item_spacing` (size), `main_alignment` (enumeration), `wrap_contents` (boolean).
+Properties beyond every control's: `cross_alignment` (enumeration), `flow_direction` (enumeration), `item_spacing` (size), `main_alignment` (enumeration), `wrap_contents` (boolean).
 
 Properties it provides to its children: `flow_break` (boolean).
 
@@ -2077,21 +2223,21 @@ Properties it provides to its children: `flow_break` (boolean).
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `cell_grid` | divider |  |  |
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `cell_border_style` (enumeration), `column_count` (unsigned_integer), `column_styles` (collection), `grow_style` (enumeration), `row_count` (unsigned_integer), `row_styles` (collection), `track_spacing` (size).
+Properties beyond every control's: `cell_border_style` (enumeration), `column_count` (unsigned_integer), `column_styles` (collection), `grow_style` (enumeration), `row_count` (unsigned_integer), `row_styles` (collection), `track_spacing` (size).
 
 Properties it provides to its children: `cell` (point), `column_span` (unsigned_integer), `row_span` (unsigned_integer).
 
@@ -2106,20 +2252,20 @@ Properties it provides to its children: `cell` (point), `column_span` (unsigned_
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `orientation` (enumeration), `track_gap` (number), `track_specs` (collection).
+Properties beyond every control's: `orientation` (enumeration), `track_gap` (number), `track_specs` (collection).
 
 Properties it provides to its children: `child_track` (unsigned_integer).
 
@@ -2134,14 +2280,14 @@ Properties it provides to its children: `child_track` (unsigned_integer).
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -2161,14 +2307,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `seam` | seam |  | hot, pressed, captured |
@@ -2190,14 +2336,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -2233,20 +2379,20 @@ Properties beyond every control's: none.
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `group_gap` (number).
+Properties beyond every control's: `group_gap` (number).
 
 Properties it provides to its children: `group_spec` (text).
 
@@ -2261,14 +2407,14 @@ Properties it provides to its children: `group_spec` (text).
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 
@@ -2288,14 +2434,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 
@@ -2312,10 +2458,10 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Part | Role | Reuses | Own states |
 |---|---|---|---|
 | `region` | region |  |  |
-| `decrement_arrow` | actuator | `button` | pressed |
-| `increment_arrow` | actuator | `button` | pressed |
-| `track` | track |  | pressed |
-| `thumb` | thumb |  | pressed, captured |
+| `decrement_arrow` | actuator | `button` | hot, pressed |
+| `increment_arrow` | actuator | `button` | hot, pressed |
+| `track` | track |  | hot, pressed |
+| `thumb` | thumb |  | hot, pressed, captured |
 | `focus` | focus |  |  |
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
@@ -2333,10 +2479,10 @@ Properties beyond every control's: `large_change` (number), `maximum` (number), 
 | Part | Role | Reuses | Own states |
 |---|---|---|---|
 | `region` | region |  |  |
-| `decrement_arrow` | actuator | `button` | pressed |
-| `increment_arrow` | actuator | `button` | pressed |
-| `track` | track |  | pressed |
-| `thumb` | thumb |  | pressed, captured |
+| `decrement_arrow` | actuator | `button` | hot, pressed |
+| `increment_arrow` | actuator | `button` | hot, pressed |
+| `track` | track |  | hot, pressed |
+| `thumb` | thumb |  | hot, pressed, captured |
 | `focus` | focus |  |  |
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
@@ -2354,10 +2500,10 @@ Properties beyond every control's: `large_change` (number), `maximum` (number), 
 | Part | Role | Reuses | Own states |
 |---|---|---|---|
 | `region` | region |  |  |
-| `decrement_arrow` | actuator | `button` | pressed |
-| `increment_arrow` | actuator | `button` | pressed |
-| `track` | track |  | pressed |
-| `thumb` | thumb |  | pressed, captured |
+| `decrement_arrow` | actuator | `button` | hot, pressed |
+| `increment_arrow` | actuator | `button` | hot, pressed |
+| `track` | track |  | hot, pressed |
+| `thumb` | thumb |  | hot, pressed, captured |
 | `focus` | focus |  |  |
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
@@ -2837,14 +2983,14 @@ Properties beyond every control's: none.
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -2865,14 +3011,14 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|---|---|
 | `region` | region |  |  |
 | `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` |  |
-| `horizontal_track` | track |  |  |
-| `horizontal_thumb` | thumb |  | pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` |  |
-| `vertical_decrement_arrow` | actuator | `button` |  |
-| `vertical_track` | track |  |  |
-| `vertical_thumb` | thumb |  | pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
 | `face` | face |  |  |
@@ -3006,7 +3152,10 @@ States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
 Properties beyond every control's: none.
 
-Interactions beyond every control's: none.
+| Interaction | Payload |
+|---|---|
+| `stopped` | `SubSurfaceStopped` |
+| `pairing_missed` | `std::uint64_t` |
 
 ## `easing_preview` (EasingPreview, control)
 

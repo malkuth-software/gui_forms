@@ -1,7 +1,7 @@
 # Retained tree
 
 GUI.Forms is a retained toolkit. You construct controls once, arrange them in
-a tree under a `Window`, and then change them by calling setters. The toolkit
+a tree under a `Window`, and then change them by writing their properties. The toolkit
 keeps the tree, its state and its last painted output between frames; nothing
 is rebuilt per frame and there is no immediate-mode API. This page describes
 the objects that make up that tree and who owns what.
@@ -89,12 +89,12 @@ so composed controls can tell first presentation from re-attachment.
 
 ## State is retained, events report change
 
-A setter stores the new value, marks the dirtiness that value implies and
-emits a change event. Setting an equal value does nothing. State events
+A property write stores the new value, marks the dirtiness that value
+implies and emits a change event. Setting an equal value does nothing. State events
 describe every actual change, whether the user or your code caused it; input
 events (`clicked`, `scroll`, `item_activated`) describe input actions only and
-are never synthesized by setters. That split lets you bind a `Value<T>` to two
-controls without a "quiet" flag: each control's setter fires its state event,
+are never synthesized by writes. That split lets you bind a `Value<T>` to two
+controls without a "quiet" flag: each control's write fires its state event,
 the model deduplicates equal writes, and no input event is invented.
 
 Application-owned storage lives on the control too. `Tag` holds any

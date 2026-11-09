@@ -16,7 +16,7 @@ Properties
 ----------
 title : default empty
     The dialog's title; empty gives the host's own. Windows Forms' dialog
-    has none; the hosts that title their dialog use it. `set_title` throws
+    has none; the hosts that title their dialog use it. A write throws
     `std::invalid_argument` for text that is not valid UTF-8, holds NUL or
     is longer than `HostServices::maximum_dialog_text_bytes`, and keeps the
     old title.
@@ -64,10 +64,10 @@ A dialog for choosing an accent color, shown over a window:
    std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
    gf::Window window(root, {320.0, 200.0});
    gf::ColorDialog dialog;
-   dialog.set_color(gf::Color::rgba(0x27U, 0x74U, 0xB8U));
+   dialog.color = gf::Color::rgba(0x27U, 0x74U, 0xB8U);
    const gf::DialogResult result = dialog.show_dialog(window);
    if (result == gf::DialogResult::ok) {
-       const gf::Color accent = dialog.color();
+       const gf::Color accent = dialog.color.read();
        static_cast<void>(accent);
    } else if (result == gf::DialogResult::none) {
        // Without a host, dialog.status().error is gf::HostServiceError::unsupported.

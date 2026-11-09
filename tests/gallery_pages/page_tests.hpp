@@ -12,6 +12,7 @@ void test_page_contract_and_rendering();
 void test_gallery_semantic_surface();
 void test_anatomy_coverage();
 void test_schema_export();
+void test_every_page_scrolls_to_its_end();
 void test_display_commands_unchanged();
 
 void test_ranges_and_progress(gui_forms::Window& window);
@@ -43,8 +44,12 @@ void test_anchored_overlays(gui_forms::Window& window);
 void test_live_surfaces(gui_forms::Window& window);
 void test_typography_and_inspection(gui_forms::Window& window);
 void test_semantic_feedback(gui_forms::Window& window);
+void test_notices_and_badges(gui_forms::Window& window);
 void test_retained_layout_panels(gui_forms::Window& window);
 void test_css_layout_panels(gui_forms::Window& window);
 void test_control_spectrum(gui_forms::Window& window);
+void test_input_and_rules(gui_forms::Window& window);
+void test_theme_settings(gui_forms::Window& window);
+void test_spinners_and_rings(gui_forms::Window& window);
 
 } // namespace gallery_pages_tests

@@ -175,12 +175,12 @@ void customize_menu() {
     KeyEvent end{KeyAction::down, PhysicalKey::end};
     static_cast<void>(window.dispatch_key(end));
     static_cast<void>(window.dispatch_key(enter));
-    require((*toolbar).placement() == QuickAccessToolbarPlacement::below_ribbon && placements.size() == 1U &&
+    require((*toolbar).placement.read() == QuickAccessToolbarPlacement::below_ribbon && placements.size() == 1U &&
                 placements[0] == QuickAccessToolbarPlacement::below_ribbon,
             "the placement row moves the toolbar below the ribbon and reports it");
     require((*(*toolbar).customize_menu_items()[5].command).state().text == "Show Above the Ribbon",
             "the placement row then offers the other placement");
-    (*toolbar).set_placement(QuickAccessToolbarPlacement::below_ribbon);
+    (*toolbar).placement = QuickAccessToolbarPlacement::below_ribbon;
     require(placements.size() == 1U, "setting the same placement reports nothing");
 
     // The application shows a command: it joins the toolbar's end.

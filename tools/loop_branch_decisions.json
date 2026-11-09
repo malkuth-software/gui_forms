@@ -74,7 +74,7 @@
     {
       "path": "src/controls/collections/expandable_sections.cpp",
       "function": "gui_forms::on_toggled",
-      "condition": "expanded && single_open_",
+      "condition": "expanded && single_open.read()",
       "decision": "keep",
       "reason": "runs once, for the toggled section, then the other sections close"
     },
@@ -179,21 +179,21 @@
     {
       "path": "src/controls/menu/menu_strip/menu_strip.cpp",
       "function": "gui_forms::item_bounds",
-      "condition": "use_mnemonic_",
+      "condition": "use_mnemonic.read()",
       "decision": "keep",
       "reason": "a loop over a control's few items; one select per item, and a split would duplicate the body"
     },
     {
       "path": "src/controls/menu/menu_strip/menu_strip.cpp",
       "function": "gui_forms::on_paint",
-      "condition": "use_mnemonic_",
+      "condition": "use_mnemonic.read()",
       "decision": "keep",
       "reason": "a loop over a control's few items; one select per item, and a split would duplicate the body"
     },
     {
       "path": "src/controls/menu/menu_strip/menu_strip.cpp",
       "function": "gui_forms::semantic_virtual_children",
-      "condition": "use_mnemonic_",
+      "condition": "use_mnemonic.read()",
       "decision": "keep",
       "reason": "a loop over a control's few items; one select per item, and a split would duplicate the body"
     },
@@ -305,14 +305,14 @@
     {
       "path": "src/controls/panel/list_view/list_view.cpp",
       "function": "gui_forms::semantic_virtual_children",
-      "condition": "check_boxes_",
+      "condition": "check_boxes.read()",
       "decision": "keep",
       "reason": "publishes one semantic node per item; the flag decides one field of each node"
     },
     {
       "path": "src/controls/panel/list_view/list_view.cpp",
       "function": "gui_forms::semantic_virtual_children",
-      "condition": "view_ == ListViewView::details",
+      "condition": "view.read() == ListViewView::details",
       "decision": "keep",
       "reason": "publishes one semantic node per item; the flag decides one field of each node"
     },

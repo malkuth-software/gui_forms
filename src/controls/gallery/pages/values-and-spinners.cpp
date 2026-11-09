@@ -62,20 +62,20 @@ private:
     void build_numerics() {
         NumericUpDown& integer = *numerics_[0];
         integer.set_range(0.0, 100.0);
-        integer.set_value(42.0);
+        integer.value = 42.0;
         NumericUpDown& decimal = *numerics_[1];
         decimal.set_range(0.0, 10.0);
-        decimal.set_increment(0.25);
-        decimal.set_decimal_places(2U);
-        decimal.set_value(3.75);
+        decimal.increment = 0.25;
+        decimal.decimal_places = 2U;
+        decimal.value = 3.75;
         NumericUpDown& signed_range = *numerics_[2];
         signed_range.set_range(-120.0, 120.0);
-        signed_range.set_increment(5.0);
-        signed_range.set_value(-15.0);
+        signed_range.increment = 5.0;
+        signed_range.value = -15.0;
         NumericUpDown& hexadecimal = *numerics_[3];
         hexadecimal.set_range(0.0, 255.0);
-        hexadecimal.set_hexadecimal(true);
-        hexadecimal.set_value(175.0);
+        hexadecimal.hexadecimal = true;
+        hexadecimal.value = 175.0;
         for (std::size_t index = 0; index < numerics_.size(); ++index) {
             on((*numerics_[index]).value_changed(), *this, &ValuesPage::numeric_changed,
                static_cast<int>(index));
@@ -84,8 +84,8 @@ private:
 
     // The DomainUpDown below the numeric rows: demodulation modes, wrapping.
     void build_domain() {
-        (*domain_).set_wrap(true);
-        (*domain_).set_selected_index(1U);
+        (*domain_).wrap = true;
+        (*domain_).selected_index = 1U;
         on((*domain_).selected_index_changed(), *this, &ValuesPage::domain_changed);
     }
 
@@ -111,7 +111,7 @@ private:
             {.id = command_add_item, .label = "Add CW",
              .accessible_name = "Add CW item", .command = &add_item_}});
         for (int index = 0; index < 4; ++index) {
-            (*commands_).item(index).set_visual_style(ButtonVisualStyle::command);
+            (*commands_).item(index).visual_style = ButtonVisualStyle::command;
         }
     }
 
@@ -130,20 +130,20 @@ private:
     void inspect_numeric() {
         (*inspector_).set_selected_object(numerics_[1]);
         static_cast<void>((*inspector_).set_property_expanded("bounds", true));
-        (*status_).set_text("PropertyGrid · retained NumericUpDown factory and typed commit");
+        (*status_).text = "PropertyGrid · retained NumericUpDown factory and typed commit";
     }
 
     void inspect_items() {
         (*inspector_).set_selected_object(items_target_);
         static_cast<void>((*inspector_).set_property_expanded("items", true));
         focus_editor("Items[0]");
-        (*status_).set_text("PropertyGrid · ComboBox.Items immutable collection expanded");
+        (*status_).text = "PropertyGrid · ComboBox.Items immutable collection expanded";
     }
 
     void inspect_style() {
         (*inspector_).set_selected_object(status_);
         static_cast<void>((*inspector_).set_property_expanded("fore-color", true));
-        (*status_).set_text("PropertyGrid · flags overlay and canonical color editor services");
+        (*status_).text = "PropertyGrid · flags overlay and canonical color editor services";
     }
 
     void add_item() {
@@ -152,12 +152,12 @@ private:
         }
         static_cast<void>((*inspector_).set_property_expanded("items", true));
         const bool added = (*inspector_).insert_collection_item(
-            "items", (*items_target_).items().size(), BindingValue{std::string("CW")});
+            "items", (*items_target_).items.read().size(), BindingValue{std::string("CW")});
         if (added) {
-            focus_editor("Items[" + std::to_string((*items_target_).items().size() - 1U) + "]");
+            focus_editor("Items[" + std::to_string((*items_target_).items.read().size() - 1U) + "]");
         }
-        (*status_).set_text(added ? "PropertyGrid · inserted CW through ComboBox.Items setter"
-                                  : "PropertyGrid · Items insertion rejected truthfully");
+        (*status_).text = added ? "PropertyGrid · inserted CW through ComboBox.Items setter"
+                                  : "PropertyGrid · Items insertion rejected truthfully";
     }
 
     void focus_editor(const std::string& property_path) {
@@ -167,20 +167,20 @@ private:
     }
 
     void numeric_changed(const int index, const double value) {
-        (*status_).set_text("Numeric " + std::to_string(index + 1) + " committed " +
+        (*status_).text = "Numeric " + std::to_string(index + 1) + " committed " +
                             std::to_string(value) +
-                            " · event emitted after value and editor synchronization");
+                            " · event emitted after value and editor synchronization";
     }
 
     void domain_changed(const std::optional<std::size_t> index) {
-        (*status_).set_text(index ? "Domain selected " + (*domain_).items()[*index]
-                                  : std::string("Domain text matches no item"));
+        (*status_).text = index ? "Domain selected " + (*domain_).items[*index]
+                                  : std::string("Domain text matches no item");
     }
 
     void property_changed(const PropertyGridValueChange& change) {
-        (*status_).set_text("PropertyGrid committed " + change.property_name + " · origin " +
+        (*status_).text = "PropertyGrid committed " + change.property_name + " · origin " +
                             std::string(property_value_origin_name(change.origin)) +
-                            (change.reset ? " · reset" : ""));
+                            (change.reset ? " · reset" : "");
     }
 
     Command inspect_numeric_{};

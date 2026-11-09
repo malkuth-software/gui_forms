@@ -9,7 +9,7 @@ advertised protocol surface; some native integrations are not advertised yet.
 
 ## The host protocol
 
-`HostCapabilities` carries `protocol_version` (currently 10; one row per version in
+`HostCapabilities` carries `protocol_version` (currently 12; one row per version in
 `host_protocol_revisions`), a `platform`
 string, a bit set of `HostCapability` flags and the host's keyboard-command
 defaults (`key_map`, below). `Application::capabilities()`
@@ -49,6 +49,9 @@ whole record for logs.
 | `window_backdrops` | a system material behind a transparent window | yes | yes (Windows 11 22H2 and later) | no |
 | `compositor_notifications` | compositor and preference changes reported at run time | yes | yes | yes |
 | `presentation_preferences` | the host's high contrast and reduced transparency fed to each window; its light or dark preference and accent and highlight colours reported (Windows only so far) | yes | yes | no |
+| `transient_surfaces` | tooltips and the splashscreen in Splash windows, menus, drop-downs and pickers in Popup windows, each the host's own window beside its owner; translucent with the library's shadow and fade (C: `GF_HOST_CAPABILITY_TRANSIENT_SURFACES`, kinds in `gf_host_capabilities.transient_surfaces`) | yes | yes | yes (opaque, with no shadow or fade, without a compositing manager: `opaque_transient_surfaces`, `GF_TRANSIENT_SURFACE_OPAQUE`) |
+| `window_corners` | the window's corners shaped on request and reported (`Window::set_corner_preference`), which the window outer band follows; the host squares a maximized, snapped or full-screen window's (C: `GF_HOST_CAPABILITY_WINDOW_CORNERS`, shapes in `gf_host_capabilities.window_corner_shapes`) | no (square) | yes (Windows 11; square before) | no (square) |
+| `window_state_reports` | the native window's state reported (`HostWindowStateEvent`): full screen, which hides a band declared `WindowBandFullScreen::hides`, and the maximize, snap and restore changes that can reshape its corners (C: `GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS`) | yes | yes (full screen: a captionless window covering its monitor) | yes (`_NET_WM_STATE_FULLSCREEN`, or the host's own fallback) |
 
 The table reflects the bits each adapter currently advertises; read
 `Application::capabilities()` rather than this page in code.
@@ -131,8 +134,8 @@ window opaque (`host_unsupported`). The measurements behind this are in
 [`planning/stages/T5-compositor/MEASUREMENTS.md`](https://github.com/malkuth-software/notes/blob/gui_forms/planning/stages/T5-compositor/MEASUREMENTS.md).
 
 **Owned and popup windows.** What a host can grant a window owned by
-another (a floating panel, and in time a native popup, menu or tooltip)
-is reported in that window's own `CompositorState`, as for any window:
+another (a floating panel or a native popup) is reported in that window's
+own `CompositorState`, as for any window:
 
 | Owned or popup window | macOS | Windows | X11 |
 |---|---|---|---|
@@ -140,9 +143,10 @@ is reported in that window's own `CompositorState`, as for any window:
 | system material (blur) | `NSVisualEffectView` in the owned window or panel | DWM system backdrop on the owned window (Windows 11 22H2 and later) | none; any blur is the compositing manager's own |
 | saturation of the material | no | no | no |
 
-Menus, drop-downs and tooltips drawn inside their owner's surface are
-overlays, the window's own pixels, and paint with the theme's materials
-([Transparency, glass and reflections](transparency.md), "Window
+Menus, drop-downs and tooltips are painted by their owner with the theme's
+materials, whether they are composited into it as overlays or shown in Popup
+and Splash windows ([Overlays, Popups and Splash](overlays-popups-and-splash);
+[Transparency, glass and reflections](transparency.md), "Window
 backdrops").
 
 The headless reference host simulates these capabilities
@@ -169,7 +173,42 @@ application's own presentation settings stay as they are.
 | Linux X11 | the XSETTINGS manager's `Net/DoubleClickTime` | on the manager's property change, a new manager, or the manager's exit; without a manager, the 400 ms default, reported as a default |
 | Headless | a fixed test value, 500 ms (`host::headless_double_click_milliseconds`) | never |
 
-The X11 host also counts its own clicks with this interval.
+The record also carries `pointer` (`PointerSettings`, protocol version 11):
+the drag size a control compares a press's movement against before it starts
+drag-and-drop, and the hover time and rectangle for `MouseHover`, each with
+its origin. `native_hover` says the host reports hover itself
+(`HostHoverEvent`), which turns the window's own hover timer off.
+
+| Host | Drag size | Hover |
+|---|---|---|
+| Windows | `SM_CXDRAG`, `SM_CYDRAG` | `WM_MOUSEHOVER` (`TrackMouseEvent`), with `SPI_GETMOUSEHOVERTIME` and the hover rectangle reported |
+| macOS | none offered: the 4 by 4 default | the window's timer, 400 ms default |
+| Linux X11 | `Net/DndDragThreshold` (a rectangle twice the threshold) | the window's timer, 400 ms default |
+| Headless | the defaults | the window's timer |
+
+## Mouse events and context requests
+
+The core counts no clicks: every pointer press carries the host's click
+count. Windows reports it from `WM_*BUTTONDBLCLK` (`CS_DBLCLKS`), macOS
+from `NSEvent.clickCount`, and the X11 host computes it from each press's
+time and position against `Net/DoubleClickTime` and `Net/DoubleClickDistance`
+(2 pixels when the desktop offers none). Controls raise the WinForms event
+set (`MouseDown`, `Click`, `MouseClick`, `DoubleClick`, `MouseDoubleClick`,
+`MouseUp`, `MouseEnter`, `MouseHover`, `MouseLeave`, `MouseMove`,
+`MouseWheel`, `MouseCaptureChanged`, `ContextMenuRequested`) in WinForms'
+order, under `ControlStyles::standard_click` and `standard_double_click`; a
+button raises no double-click.
+
+A context request comes from the host only (`HostContextRequestEvent`, with a
+pointer or keyboard origin); the core has no key route of its own. The
+events' order and use are in [Mouse events and context requests](mouse-events.md).
+
+| Host | Pointer | Keyboard |
+|---|---|---|
+| Windows | `WM_CONTEXTMENU` after the right button's release | `WM_CONTEXTMENU` (Shift+F10, the Menu key) |
+| macOS | `menuForEvent:` (right press, Control-click) | the accessibility show-menu action only (VoiceOver VO+Shift+M) |
+| Linux X11 | the right button's press, emulated by the host | the Menu key or Shift+F10, emulated by the host when no control handled the key |
+| Headless | `SurfaceRoot::dispatch_context_request` | the same |
 
 ## Keyboard-command defaults
 
@@ -177,7 +216,7 @@ Some keys differ by platform convention: closing a document is Ctrl+F4 on
 Windows and X11 desktops and Cmd+W on macOS. The core names such keys as
 keyboard commands (`KeyCommand`: `close_document`, `next_tab`,
 `previous_tab`, `move_tab_later`, `move_tab_earlier`, `cycle_forward`,
-`cycle_backward`, `context_menu`, and docking's `next_document`,
+`cycle_backward`, and docking's `next_document`,
 `previous_document`, `next_tool_panel`, `previous_tool_panel`,
 `position_menu`, `return_to_document`, `hide_tool_panel`,
 `maximize_document_area`, `move_panel`), and each host reports the keys its convention
@@ -196,18 +235,13 @@ attaches.
 | `next_tab`, `previous_tab` | Ctrl+PageDown, Ctrl+PageUp | the same |
 | `move_tab_later`, `move_tab_earlier` | Ctrl+Shift+PageDown, Ctrl+Shift+PageUp | the same |
 | `cycle_forward`, `cycle_backward` | Ctrl+Tab, Ctrl+Shift+Tab | the same |
-| `context_menu` | Shift+F10, or the context-menu key | the same |
 | docking's commands | Ctrl+F6, Ctrl+Shift+F6, Alt+F7, Alt+Shift+F7, Alt+Hyphen, Escape, Shift+Escape, Ctrl+Shift+F12, Ctrl+Alt+Shift+M (move) | the same |
 
-The context-menu key is `PhysicalKey::context_menu` (HID "Keyboard
-Application"): `VK_APPS` on Windows and the `Menu` keysym on X11. Apple
-keyboards have no such key; the macOS host maps the virtual key code a PC
-keyboard's key reports (0x6E), which has not been tested on a Mac.
-`PageStrip` and `PageView` use the tab commands, close and the context
-menu; `TabControl` uses the tab and cycle commands and leaves close and the
-context menu to the controls around it; `DockSite` uses docking's
-commands, the cycle commands (its navigator) and the context menu (a
-panel's position menu).
+`PageStrip` and `PageView` use the tab commands and close, and answer a
+keyboard context request with the tab menu; `TabControl` uses the tab and
+cycle commands and leaves close to the controls around it; `DockSite` uses
+docking's commands, the cycle commands (its navigator), and answers a
+keyboard context request with a panel's position menu.
 
 ## The three native hosts and the headless one
 
@@ -306,7 +340,7 @@ of the renderer-neutral core; a boundary test enforces that.
 
 ## Multiple windows
 
-`Application::run(std::vector<ApplicationWindow>)` presents up to 64 windows
+`application.run(std::vector<ApplicationWindow>)` presents up to 64 windows
 in one host run, each with its own `Window` model, stable ID, options and an
 optional owner ID for tool windows. The `ready` callback hands you an
 `ApplicationWindowHandle`, a weak, thread-affine handle for `show`, `hide`,
@@ -355,9 +389,12 @@ Each `Window` has an image registry and a theme. Windows constructed with
 the same `ApplicationResources` (stage DK decision 8) share both: an
 `ImageId` or an `ImageList` from one is valid in the others, setting the
 theme on one sets it on all, and a control subtree moved from one window to
-another keeps its images. Build a window opened during the run from the main
-window's resources, `Window(root, size, main_window.resources())`. A window
-constructed without resources makes its own, so a single-window program, or
+another keeps its images. Every top-level window made while an
+`Application` is current joins it and shares its resources, so a generated
+window class constructed with the application
+(`SettingsWindow(application, model)`), or on its thread while it is
+current, shares the main window's images and theme. A window
+constructed with no current application makes its own, so a test, or
 windows meant to stay separate, behave as before (a `Button` still refuses
 an `ImageList` from a window that does not share its registry). The shared
 registry lives until its last window, or other holder, releases it.

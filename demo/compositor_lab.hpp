@@ -71,14 +71,11 @@ struct RecordWhenReady final {
 
     void operator()(std::function<void()> wake, std::function<void()> request_close,
                     std::function<HostDialogResult(const HostDialogRequest&)> show_dialog,
-                    std::function<HostServiceStatus(const HostTooltipRequest&)> show_tooltip,
-                    std::function<void()> hide_tooltip,
                     std::function<HostClipboardTextResult()> read_clipboard_text,
                     std::function<HostServiceStatus(std::string_view)> write_clipboard_text) const {
         if (window != nullptr) record_grant_in_force(*window);
         if (previous) {
             previous(std::move(wake), std::move(request_close), std::move(show_dialog),
-                     std::move(show_tooltip), std::move(hide_tooltip),
                      std::move(read_clipboard_text), std::move(write_clipboard_text));
         }
     }

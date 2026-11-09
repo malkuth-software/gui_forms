@@ -7,7 +7,7 @@ gui_forms::DockWorkspace
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: DockWorkspace final : public Component
+.. cpp:class:: DockWorkspace final : public Component, public DockWorkspaceCapabilities<DockWorkspace>
 
    ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace.hpp>``
 
@@ -31,6 +31,16 @@ gui_forms::DockWorkspace
 
    :Properties:
 
+      **close_prompt** : ``DockClosePrompt``, default ``DockClosePrompt::each``
+         How the program is asked before documents close at the user's request
+         (owner decision DK-31): one ``document_closing`` event per document, in
+         order, or (``combined``) one event for all of them.
+
+      **flyout_opening** : ``DockFlyoutOpening``, default ``DockFlyoutOpening::hover_or_click``
+         What opens an auto-hidden panel's flyout from its side tab (owner
+         decision DK-27, E1-1): resting the pointer on the tab or clicking it, or
+         (``click``) only clicking it.
+
       **stable_id** : ``std::string``, read-only
 
       **layout** : ``DockLayout``, read-only
@@ -49,11 +59,6 @@ gui_forms::DockWorkspace
       **pending_close** : ``std::span<const DockPanelId>``, default empty, read-only
          The documents the waiting prompt asked about; valid until the next
          request, answer or layout change.
-
-      **close_prompt** : ``DockClosePrompt``, default ``DockClosePrompt::each``
-         How the program is asked before documents close at the user's request
-         (owner decision DK-31): one ``document_closing`` event per document, in
-         order, or (``combined``) one event for all of them.
 
       **save_layout** : ``DockLayoutWriteResult``, read-only
          The layout as XML (``DockLayout::write_xml``), on the program's request;
@@ -94,11 +99,6 @@ gui_forms::DockWorkspace
       **tree_generation** : ``std::uint64_t``, default ``0``, read-only
          The generation of the last layout change that touched a site's tree; a
          change that only moved floating windows does not count.
-
-      **flyout_opening** : ``DockFlyoutOpening``, default ``DockFlyoutOpening::hover_or_click``
-         What opens an auto-hidden panel's flyout from its side tab (owner
-         decision DK-27, E1-1): resting the pointer on the tab or clicking it, or
-         (``click``) only clicking it.
 
       **site** : ``DockSite*``, default none, read-only
          The :cpp:class:`DockSite <gui_forms::DockSite>` showing the main site, or none.
@@ -300,6 +300,18 @@ gui_forms::DockWorkspace
 
    .. rubric:: Properties
 
+   .. cpp:member:: DockClosePrompt close_prompt
+
+      How the program is asked before documents close at the user's request
+      (owner decision DK-31): one ``document_closing`` event per document, in
+      order, or (``combined``) one event for all of them.
+
+   .. cpp:member:: DockFlyoutOpening flyout_opening
+
+      What opens an auto-hidden panel's flyout from its side tab (owner
+      decision DK-27, E1-1): resting the pointer on the tab or clicking it, or
+      (``click``) only clicking it.
+
    .. cpp:function:: const std::string& stable_id() const noexcept
 
    .. cpp:function:: const DockLayout& layout() const noexcept
@@ -322,16 +334,6 @@ gui_forms::DockWorkspace
 
       The documents the waiting prompt asked about; valid until the next
       request, answer or layout change.
-
-   .. cpp:function:: DockClosePrompt close_prompt() const noexcept
-
-      How the program is asked before documents close at the user's request
-      (owner decision DK-31): one ``document_closing`` event per document, in
-      order, or (``combined``) one event for all of them.
-
-   .. cpp:function:: void set_close_prompt(DockClosePrompt prompt) noexcept
-
-      Sets :cpp:func:`close_prompt <gui_forms::DockWorkspace::close_prompt>`; see the property's description above.
 
    .. cpp:function:: DockLayoutWriteResult save_layout() const
 
@@ -387,16 +389,6 @@ gui_forms::DockWorkspace
 
       The generation of the last layout change that touched a site's tree; a
       change that only moved floating windows does not count.
-
-   .. cpp:function:: DockFlyoutOpening flyout_opening() const noexcept
-
-      What opens an auto-hidden panel's flyout from its side tab (owner
-      decision DK-27, E1-1): resting the pointer on the tab or clicking it, or
-      (``click``) only clicking it.
-
-   .. cpp:function:: void set_flyout_opening(DockFlyoutOpening opening) noexcept
-
-      Sets :cpp:func:`flyout_opening <gui_forms::DockWorkspace::flyout_opening>`; see the property's description above.
 
    .. cpp:function:: DockSite* site() const noexcept
 

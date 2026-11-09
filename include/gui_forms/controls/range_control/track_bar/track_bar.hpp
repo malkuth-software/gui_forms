@@ -1,6 +1,8 @@
 #pragma once
 
 #include "gui_forms/controls/range_control/range_control.hpp"
+#include "gui_forms/controls/range_control/track_bar/track_bar_values/track_bar_values.hpp"
+#include "gui_forms/controls/range_control/track_bar/track_bar_capabilities/track_bar_capabilities.hpp"
 
 #include <cstdint>
 #include <span>
@@ -8,24 +10,9 @@
 
 namespace gui_forms {
 
-enum class TrackBarVisualStyle : std::uint8_t {
-    classic,
-    filled,
-    compact,
-};
-
-class TrackBar : public RangeControl {
+class TrackBar : public RangeControl, public TrackBarCapabilities<TrackBar> {
 public:
     explicit TrackBar(StableId stable_id);
-
-    [[nodiscard]] double tick_frequency() const noexcept { return tick_frequency_; }
-    void set_tick_frequency(double frequency);
-    [[nodiscard]] bool show_ticks() const noexcept { return show_ticks_; }
-    void set_show_ticks(bool show);
-    [[nodiscard]] TrackBarVisualStyle visual_style() const noexcept {
-        return visual_style_;
-    }
-    void set_visual_style(TrackBarVisualStyle style);
 
     // Public part geometry in local coordinates (stage T1). The value maps
     // linearly across value_span_bounds(): minimum at its left (horizontal)
@@ -78,11 +65,27 @@ private:
     [[nodiscard]] bool ticks_drawn() const noexcept;
     [[nodiscard]] double value_from_window_point(Point point) const noexcept;
 
-    double tick_frequency_{10.0};
-    bool show_ticks_{true};
-    TrackBarVisualStyle visual_style_{TrackBarVisualStyle::classic};
     bool tracking_{};
     bool focused_{};
+    // property_codemod begin TrackBar (tools/property_families/track_bar.json; generated, do not edit)
+public:
+    // TrackBar's property table: RangeControl's entries, then its own.
+    static constexpr std::size_t track_bar_property_count = RangeControl::range_control_property_count + 2U;
+    [[nodiscard]] static const std::array<PropertyEntry, track_bar_property_count>& track_bar_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct TrackBarTickFrequencyCapability<TrackBar>;
+    friend struct TrackBarShowTicksCapability<TrackBar>;
+    friend struct TrackBarVisualStyleChoiceCapability<TrackBar>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(tick_frequency)& cell, double& incoming);
+    void written(const decltype(tick_frequency)& cell);
+    void prepare_write(const decltype(show_ticks)& cell, bool& incoming);
+    void written(const decltype(show_ticks)& cell);
+    void prepare_write(const decltype(visual_style)& cell, TrackBarVisualStyle& incoming);
+    void written(const decltype(visual_style)& cell);
+    // property_codemod end TrackBar
 };
 
 } // namespace gui_forms

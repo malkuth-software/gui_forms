@@ -1,6 +1,7 @@
 #include "gui_forms/controls/panel/material_panel/material_panel.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <stdexcept>
@@ -14,30 +15,19 @@ MaterialPanel::MaterialPanel(StableId stable_id)
     set_background(Color::rgba(0, 0, 0, 0));
 }
 
-void MaterialPanel::set_material(SurfaceMaterial material) {
-    if (!valid_surface_material(material)) {
-        throw std::invalid_argument("material recipe is invalid or unbounded");
-    }
-    validate_window_images(material);
-    if (material_ == material) return;
-    material_ = std::move(material);
-    invalidate(invalidation::paint_only);
-    publish_change(material_changed_, material_);
-}
-
 void MaterialPanel::on_attached_to_window() {
     Panel::on_attached_to_window();
-    validate_window_images(material_);
+    validate_window_images(material.read());
 }
 
 void MaterialPanel::validate_window_images(
-    const SurfaceMaterial& material) const {
+    const SurfaceMaterial& recipe) const {
     if (window() == nullptr) return;
     // The fills, then an image mask (E9.6).
     std::vector<const MaterialFillLayer*> layers{};
-    layers.reserve(material.fills.size() + 1U);
-    for (const MaterialFillLayer& fill : material.fills) layers.push_back(&fill);
-    if (material.mask) layers.push_back(&*material.mask);
+    layers.reserve(recipe.fills.size() + 1U);
+    for (const MaterialFillLayer& fill : recipe.fills) layers.push_back(&fill);
+    if (recipe.mask) layers.push_back(&*recipe.mask);
     for (const MaterialFillLayer* layer : layers) {
         const MaterialFillLayer& fill = *layer;
         if (fill.kind != MaterialFillKind::image) continue;
@@ -58,13 +48,12 @@ void MaterialPanel::on_paint(Painter& painter, Rect) {
     const Rect bounds{0.0, 0.0, arranged.width, arranged.height};
     if (bounds.empty()) return;
 
-    paint_surface_material(painter, bounds, material_);
+    paint_surface_material(painter, bounds, material.read());
 }
 
 Insets MaterialPanel::visual_outsets() const noexcept {
-    return surface_material_visual_outsets(material_);
+    return surface_material_visual_outsets(material.read());
 }
-
 
 namespace {
 
@@ -103,5 +92,20 @@ void MaterialPanel::append_interactions(std::vector<InteractionDeclaration>& int
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), material_panel_interactions.begin(), material_panel_interactions.end());
 }
+
+// property_codemod begin MaterialPanel (tools/property_families/material_panel.json; generated, do not edit)
+
+void MaterialPanel::prepare_write(const decltype(material)&, SurfaceMaterial& incoming) {
+    require_mutable();
+    if (!valid_surface_material(incoming)) throw std::invalid_argument("material recipe is invalid or unbounded");
+    validate_window_images(incoming);
+}
+
+void MaterialPanel::written(const decltype(material)&) {
+    invalidate(invalidation::paint_only);
+    publish_change(material_changed_, material.read());
+}
+
+// property_codemod end MaterialPanel
 
 } // namespace gui_forms

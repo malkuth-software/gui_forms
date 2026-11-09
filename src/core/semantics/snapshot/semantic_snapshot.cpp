@@ -94,6 +94,7 @@ void append_node(std::ostringstream& stream, const SemanticNode& node) {
     stream << ",\"multiline\":" << (node.multiline ? "true" : "false");
     stream << ",\"tool_tip\":";
     append_json_string(stream, node.tool_tip);
+    stream << ",\"announces_on_appearance\":" << (node.announces_on_appearance ? "true" : "false");
     stream << ",\"bounds\":[" << node.bounds.x << ',' << node.bounds.y << ','
            << node.bounds.width << ',' << node.bounds.height << "],\"states\":"
            << static_cast<std::uint32_t>(node.states) << ",\"actions\":[";
@@ -163,6 +164,8 @@ const char* semantic_role_name(SemanticRole role) noexcept {
     case SemanticRole::status_bar: return "status_bar";
     case SemanticRole::live_region: return "live_region";
     case SemanticRole::meter: return "meter";
+    case SemanticRole::toggle_switch: return "toggle_switch";
+    case SemanticRole::search_box: return "search_box";
     case SemanticRole::count: return "generic";
     }
     return "generic";
@@ -291,12 +294,14 @@ const char* semantic_state_name(SemanticState state) noexcept {
 
 namespace {
 // The admitted node fields beyond the basic ones every node has: RB-22,
-// DK-40, the stage A vocabulary (12.13) and the plain tooltip (owner,
-// 2026-10-28), in that order.
+// DK-40, the stage A vocabulary (12.13), the plain tooltip (owner,
+// 2026-10-28) and the announcement on appearance (owner, 2026-11-08), in
+// that order.
 constexpr const char* semantic_field_table[] = {
     "position_in_set", "set_size", "has_popup", "controlled_panel", "orientation",
     "level", "modal", "row_index", "column_index", "row_count", "column_count", "access_key",
     "small_step", "large_step", "text_selection", "multiline", "tool_tip",
+    "announces_on_appearance",
 };
 } // namespace
 

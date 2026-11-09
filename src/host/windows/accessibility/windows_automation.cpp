@@ -102,7 +102,7 @@ bool range_value_pattern(const SemanticNode& node) noexcept {
 bool value_pattern(const SemanticNode& node) noexcept {
     if (node.numeric_value.has_value()) return false;
     const bool value = semantic_has_action(node, SemanticAction::set_value) ||
-                       node.role == SemanticRole::text_box;
+                       semantic_role_fallback(node.role) == SemanticRole::text_box;
     return value;
 }
 
@@ -230,6 +230,10 @@ CONTROLTYPEID control_type(SemanticRole role) noexcept {
     case SemanticRole::live_region: return UIA_GroupControlTypeId;
     // UIA has no meter control type; a meter reads as a progress bar.
     case SemanticRole::meter: return UIA_ProgressBarControlTypeId;
+    // A switch is a button with the Toggle pattern (checkable_role), as
+    // WinUI's ToggleSwitch is; a search box is an edit that names itself.
+    case SemanticRole::toggle_switch: return UIA_ButtonControlTypeId;
+    case SemanticRole::search_box: return UIA_EditControlTypeId;
     case SemanticRole::count: return UIA_GroupControlTypeId;
     }
     return UIA_GroupControlTypeId;
@@ -593,6 +597,10 @@ HRESULT UiaElement::property_value(const SemanticNode& client, const SemanticLoc
     case UIA_ControlTypePropertyId:
         set_int(out, control_type(node.role));
         return S_OK;
+    case UIA_LocalizedControlTypePropertyId:
+        // Empty leaves UI Automation the control type's own name.
+        if (node.role == SemanticRole::search_box) return set_text(out, "search box");
+        return S_OK;
     case UIA_NamePropertyId: return set_text(out, node.name);
     case UIA_AutomationIdPropertyId: return set_text(out, node.stable_id);
     case UIA_HelpTextPropertyId: return set_text(out, node.description);
@@ -743,11 +751,20 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_BoundingRectangle(UiaRect* out) {
     SemanticLocation self;
     const HRESULT status = resolve(client, self);
     if (FAILED(status)) return status;
-    // A fragment root hosted in a window answers an empty rectangle; UI
-    // Automation takes the window's.
-    if (self.parent == nullptr) return S_OK;
     const Rect bounds = (*self.node).bounds;
     const double scale = (*source_).scale;
+    // A fragment root hosted in a window answers an empty rectangle, and UI
+    // Automation takes the window's, while it covers the whole client
+    // area. With a declared outer band it covers the content rectangle
+    // only (the band hits nothing), and answers that.
+    if (self.parent == nullptr) {
+        RECT client_area{};
+        GetClientRect((*source_).hwnd, &client_area);
+        const bool whole_client = bounds.x <= 0.0 && bounds.y <= 0.0 &&
+                                  std::round(bounds.width * scale) >= static_cast<double>(client_area.right) &&
+                                  std::round(bounds.height * scale) >= static_cast<double>(client_area.bottom);
+        if (whole_client) return S_OK;
+    }
     // A node with no area answers the empty rectangle, as UI Automation
     // reports one to its clients.
     const double width = std::round(bounds.width * scale);
@@ -1320,6 +1337,15 @@ void collect_published(const SemanticLocation& at, std::vector<PublishedNode>& n
 
 // Raises one property-changed event for `id` when `before` and `after`
 // differ. `before` and `after` are VARIANTs the call clears.
+// Raises the live-region event on the node `id`, whose name a reader then
+// speaks at the polite LiveSetting the node publishes.
+void raise_live_region_changed(const std::shared_ptr<SemanticSource>& source, SemanticElementId id) noexcept {
+    IRawElementProviderSimple* element = make_automation_element(source, id);
+    if (element == nullptr) return;
+    UiaRaiseAutomationEvent(element, UIA_LiveRegionChangedEventId);
+    (*element).Release();
+}
+
 void raise_property_change(const std::shared_ptr<SemanticSource>& source, SemanticElementId id,
                            PROPERTYID property, VARIANT& before, VARIANT& after) noexcept {
     IRawElementProviderSimple* element = make_automation_element(source, id);
@@ -1386,16 +1412,10 @@ void raise_node_changes(const std::shared_ptr<SemanticSource>& source, SemanticE
             VariantClear(&old_value);
             VariantClear(&new_value);
         }
-        // A live region's name is its latest announcement (DK-51): a
-        // reader speaks it on the live-region event.
-        if (after.role == SemanticRole::live_region && !after.name.empty()) {
-            IRawElementProviderSimple* element = make_automation_element(source, id);
-            if (element != nullptr) {
-                UiaRaiseAutomationEvent(element, UIA_LiveRegionChangedEventId);
-                (*element).Release();
-            }
-        }
     }
+    // A live region's name is its latest announcement (DK-51): a reader
+    // speaks it on the live-region event.
+    if (semantic_announcement_due(&before, after)) raise_live_region_changed(source, id);
     const bool enabled_before = has_semantic_state(before.states, SemanticState::enabled);
     const bool enabled_after = has_semantic_state(after.states, SemanticState::enabled);
     if (enabled_before != enabled_after) {
@@ -1448,6 +1468,11 @@ void raise_automation_events(const std::shared_ptr<SemanticSource>& source,
             const bool both = found != before.end() && (*found).id == entry.id;
             if (both && entry.id != SemanticElementId{}) {
                 raise_node_changes(source, entry.id, *(*found).node, *entry.node);
+            }
+            // A new node that announces on appearance (a toast) is spoken
+            // as it appears.
+            if (!both && entry.id != SemanticElementId{} && semantic_announcement_due(nullptr, *entry.node)) {
+                raise_live_region_changed(source, entry.id);
             }
             const bool focused = has_semantic_state((*entry.node).states, SemanticState::focused);
             if (focused && (!had_focus || focus_before != entry.id)) {

@@ -1,7 +1,9 @@
 #pragma once
 
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/panel/text_items_capability/text_items_capability.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -23,45 +25,25 @@ namespace gui_forms {
 // read-only field takes no text: a typed character selects the next item
 // that starts with it (ignoring ASCII case, wrapping past the end), and
 // otherwise the value changes only by stepping or set_selected_index.
-class DomainUpDown final : public Panel {
+class DomainUpDown final : public Panel,
+                           public TextItemsCapability<DomainUpDown>,
+                           public DomainUpDownCapabilities<DomainUpDown> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit DomainUpDown(StableId stable_id);
     ~DomainUpDown() override;
     void initialize_control_tree();
 
-    // The items in display order: kept sorted (ASCII case folded, then byte
-    // order) while sorted() is true, in insertion order otherwise.
-    [[nodiscard]] std::span<const std::string> items() const noexcept { return items_; }
-    // Replaces the items. The text is kept and the selection re-matched to it.
-    void set_items(GUI_FORMS_LOCALIZABLE(items) std::vector<std::string> items);
-    void add_item(GUI_FORMS_LOCALIZABLE(items) std::string item);
-    // Throws std::out_of_range for an index past the end. Removing the
-    // selected item clears the selection and keeps the text.
-    void remove_item_at(std::size_t index);
-    void clear_items();
-
-    // The selected item, or none when the text equals no item.
-    [[nodiscard]] std::optional<std::size_t> selected_index() const noexcept {
-        return selected_index_;
-    }
-    // Selects an item and shows its text, or clears the selection and keeps
-    // the text. Throws std::out_of_range for an index past the end.
-    void set_selected_index(std::optional<std::size_t> index);
-    [[nodiscard]] std::string_view text() const noexcept;
-    // Sets the field's text and re-matches the selection to it. Allowed on a
-    // read-only field: read-only stops typing, not the program.
-    void set_text(std::string text);
-
-    // Stepping past either end continues at the other while wrap is on.
-    [[nodiscard]] bool wrap() const noexcept { return wrap_; }
-    void set_wrap(bool wrap);
-    [[nodiscard]] bool read_only() const noexcept { return read_only_; }
-    void set_read_only(bool read_only);
-    [[nodiscard]] bool sorted() const noexcept { return sorted_; }
-    void set_sorted(bool sorted);
-    [[nodiscard]] double button_width() const noexcept { return button_width_; }
-    void set_button_width(double width);
+    // The items in display order (`items`, TextItemsCapability, edited in
+    // place): while sorted is true, every edit is followed by sorting
+    // (ASCII case folded, then byte order), as Windows Forms' sorted
+    // DomainUpDown, so an inserted item need not stay at its position.
+    // After each edit the text is kept and the selection re-matched to it:
+    // erasing the selected item clears the selection unless another item
+    // equals the text.
+    // The TextItemsCapability hooks.
+    void prepare_edit(const decltype(items)& cell, const CollectionEdit& edit, std::span<std::string> incoming);
+    void written(const decltype(items)& cell, const CollectionEdit& edit);
 
     // The previous item (up) or the next (down). With no selection, up
     // selects the last item and down the first. No effect without items.
@@ -75,6 +57,9 @@ public:
     }
 
     void arrange(Rect final_bounds) override;
+    // The scroll bars, then the spin column's halves as this control's
+    // arrow and glyph parts.
+    void on_paint_overlay(Painter& painter, Rect local_damage) override;
     void on_key_preview(KeyEvent& event) override;
     void on_pointer_preview(PointerEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
@@ -137,20 +122,49 @@ private:
     void select(std::optional<std::size_t> index, bool show_text);
     void match_text();
     void sort_items();
-    [[nodiscard]] std::optional<std::size_t> matching_index(std::string_view text) const;
+    [[nodiscard]] std::optional<std::size_t> matching_index(std::string_view candidate) const;
 
     std::shared_ptr<TextBox> editor_;
     Control::Ptr spinner_;
     SubscriptionToken editor_change_;
     SubscriptionToken spinner_step_;
-    std::vector<std::string> items_;
     std::optional<std::size_t> selected_index_{};
-    double button_width_{18.0};
-    bool wrap_{};
-    bool read_only_{};
-    bool sorted_{};
     bool synchronizing_{};
     Event<std::optional<std::size_t>> selected_index_changed_;
+    // property_codemod begin DomainUpDown (tools/property_families/domain_up_down.json; generated, do not edit)
+public:
+    // DomainUpDown's property table: Panel's entries, then its own.
+    static constexpr std::size_t domain_up_down_property_count = Panel::panel_property_count + 1U;
+    [[nodiscard]] static const std::array<PropertyEntry, domain_up_down_property_count>& domain_up_down_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_text_changed();
+
+private:
+    friend struct DomainUpDownSelectedIndexCapability<DomainUpDown>;
+    friend struct DomainUpDownTextCapability<DomainUpDown>;
+    friend struct DomainUpDownWrapCapability<DomainUpDown>;
+    friend struct DomainUpDownReadOnlyCapability<DomainUpDown>;
+    friend struct DomainUpDownSortedCapability<DomainUpDown>;
+    friend struct DomainUpDownButtonWidthCapability<DomainUpDown>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(selected_index)& cell, std::optional<std::size_t> incoming);
+    [[nodiscard]] std::optional<std::size_t> read_view(const decltype(selected_index)& cell) const;
+    void write_view(const decltype(text)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(text)& cell) const;
+    void prepare_write(const decltype(wrap)& cell, bool& incoming);
+    void written(const decltype(wrap)& cell);
+    void prepare_write(const decltype(read_only)& cell, bool& incoming);
+    void written(const decltype(read_only)& cell);
+    void prepare_write(const decltype(sorted)& cell, bool& incoming);
+    void written(const decltype(sorted)& cell);
+    void prepare_write(const decltype(button_width)& cell, double& incoming);
+    void written(const decltype(button_width)& cell);
+    // property_codemod end DomainUpDown
 };
 
 } // namespace gui_forms

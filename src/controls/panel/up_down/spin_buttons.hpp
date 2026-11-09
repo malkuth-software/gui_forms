@@ -4,13 +4,16 @@
 #include "gui_forms/control.hpp"
 
 #include <cstdint>
+#include <string_view>
 
 namespace gui_forms {
 
 // The spin column of an up-down control (NumericUpDown, DomainUpDown): an
-// upper and a lower actuator, each with an arrow glyph. Paint and the owning
-// control's published anatomy both take their rectangles from spin_halves and
-// spin_glyph, so they describe the same parts.
+// upper and a lower actuator, each with an arrow glyph. The column takes the
+// pointer; its owner paints the halves as its own parts (paint_spin_parts).
+// Paint and the owning control's published anatomy both take their
+// rectangles from spin_halves and spin_glyph, so they describe the same
+// parts.
 struct SpinHalves final {
     Rect upper{};
     Rect lower{};
@@ -42,6 +45,22 @@ struct SpinPartGeometry final {
 // (its rectangle in the owning control) and the halves' current states.
 [[nodiscard]] SpinPartGeometry spin_part_geometry(const SpinButtons& spin);
 
+// The names under which an up-down control publishes its spin parts
+// (NumericUpDown: increment_arrow, ...; DomainUpDown: up_arrow, ...).
+struct SpinPartNames final {
+    std::string_view upper_arrow{};
+    std::string_view lower_arrow{};
+    std::string_view upper_glyph{};
+    std::string_view lower_glyph{};
+};
+
+// Paints `spin`'s halves as `owner`'s parts named `names`, in `owner`'s
+// coordinates (its on_paint_overlay painter): each half's actuator, then its
+// arrow glyph, in the half's states. The owner paints them, not the column,
+// so that a theme's rules for the owner's parts
+// (`numeric-up-down::part(increment-arrow)`) select them.
+void paint_spin_parts(Painter& painter, const Control& owner, const SpinButtons& spin, const SpinPartNames& names);
+
 class SpinButtons final : public Control {
 public:
     explicit SpinButtons(StableId stable_id);
@@ -55,7 +74,6 @@ public:
 
 private:
     [[nodiscard]] SpinHalf half_at(Point window_position) const;
-    void paint_half(Painter& painter, Rect half, SpinHalf which, PartMark arrow) const;
     void show(SpinHalf hot, SpinHalf pressed);
 
     Event<int> stepped_;

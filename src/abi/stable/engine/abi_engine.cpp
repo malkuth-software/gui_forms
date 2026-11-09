@@ -31,6 +31,18 @@ const std::shared_ptr<ApplicationResources>& EngineState::shared_resources() {
     return resources_;
 }
 
+void EngineState::adopt_application(std::unique_ptr<Application> made) {
+    resources_ = (*made).resources();
+    application_ = std::move(made);
+    registry().hold_binding();
+}
+
+void EngineState::release_application() {
+    std::shared_ptr<ApplicationResources> fresh = std::make_shared<ApplicationResources>();
+    application_.reset();
+    resources_ = std::move(fresh);
+}
+
 std::span<const ControlAnatomy> EngineState::controls() {
     if (!controls_built_) {
         const Schema& built = schema();

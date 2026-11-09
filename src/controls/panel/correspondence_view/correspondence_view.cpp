@@ -6,6 +6,7 @@
 #include "../panel_anatomy.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <vector>
 #include <string>
@@ -37,9 +38,12 @@ struct CorrespondenceView::HoverIntentCallback final {
 CorrespondenceView::CorrespondenceView(StableId stable_id)
     : Panel(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
-    set_background(style().paper);
+    // A field's ground: the theme's editor role, resolved per colour scheme
+    // (no colour written here, which would fix the light paper in every
+    // scheme).
+    visual_role = ControlVisualRole::editor;
     border_style = BorderStyle::sunken;
-    set_focusable(true);
+    focusable = true;
 }
 
 std::optional<std::size_t> CorrespondenceView::item_index(
@@ -120,13 +124,17 @@ void CorrespondenceView::retain_identity(std::string& id) const {
     if (!id.empty() && !item_index(id)) id.clear();
 }
 
-void CorrespondenceView::set_selected_id(std::string_view stable_id) {
+std::string CorrespondenceView::read_view(const decltype(selected_id)&) const {
+    return selected_id_;
+}
+
+void CorrespondenceView::write_view(const decltype(selected_id)&, std::string incoming) {
     require_mutable();
-    if (!stable_id.empty() && !item_index(stable_id)) {
+    if (!incoming.empty() && !item_index(incoming)) {
         throw std::out_of_range(
             "CorrespondenceView selection ID is not in the model");
     }
-    const std::string next(stable_id);
+    const std::string next = std::move(incoming);
     if (selected_id_ == next) return;
     CorrespondenceSelectionChange change{selected_id_, next};
     selected_id_ = next;
@@ -151,15 +159,19 @@ void CorrespondenceView::emit_expansion_delta(
         std::string(stable_id), after, stable_id == pinned_id_, reason});
 }
 
-void CorrespondenceView::set_pinned_id(std::string_view stable_id) {
+std::string CorrespondenceView::read_view(const decltype(pinned_id)&) const {
+    return pinned_id_;
+}
+
+void CorrespondenceView::write_view(const decltype(pinned_id)&, std::string incoming) {
     require_mutable();
-    const std::optional<std::size_t> next_index = stable_id.empty() ? std::optional<std::size_t>{}
-                                               : item_index(stable_id);
-    if (!stable_id.empty() && !next_index) {
+    const std::optional<std::size_t> next_index = incoming.empty() ? std::optional<std::size_t>{}
+                                               : item_index(incoming);
+    if (!incoming.empty() && !next_index) {
         throw std::out_of_range(
             "CorrespondenceView pinned ID is not in the model");
     }
-    const std::string next(stable_id);
+    const std::string next = std::move(incoming);
     if (pinned_id_ == next) return;
     const std::string previous = pinned_id_;
     const bool previous_before = !previous.empty() && expanded(previous);
@@ -190,68 +202,56 @@ void CorrespondenceView::set_pinned_id(std::string_view stable_id) {
     }
 }
 
-void CorrespondenceView::set_compact_height(double height) {
+double CorrespondenceView::read_view(const decltype(compact_height)&) const {
+    return compact_height_;
+}
+
+void CorrespondenceView::write_view(const decltype(compact_height)&, double incoming) {
     require_mutable();
-    if (!std::isfinite(height) || height < 24.0 || height > 192.0 ||
-        height >= expanded_height_) {
+    if (!std::isfinite(incoming) || incoming < 24.0 || incoming > 192.0 ||
+        incoming >= expanded_height_) {
         throw std::invalid_argument(
             "CorrespondenceView compact height must be finite, bounded, and below expanded height");
     }
-    if (compact_height_ == height) return;
+    if (compact_height_ == incoming) return;
     const ScrollAnchor anchor = capture_anchor(first_visible_index());
-    compact_height_ = height;
+    compact_height_ = incoming;
     restore_anchor(anchor);
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
 }
 
-void CorrespondenceView::set_expanded_height(double height) {
+double CorrespondenceView::read_view(const decltype(expanded_height)&) const {
+    return expanded_height_;
+}
+
+void CorrespondenceView::write_view(const decltype(expanded_height)&, double incoming) {
     require_mutable();
-    if (!std::isfinite(height) || height <= compact_height_ || height > 512.0) {
+    if (!std::isfinite(incoming) || incoming <= compact_height_ || incoming > 512.0) {
         throw std::invalid_argument(
             "CorrespondenceView expanded height must be finite, bounded, and above compact height");
     }
-    if (expanded_height_ == height) return;
+    if (expanded_height_ == incoming) return;
     const ScrollAnchor anchor = capture_anchor(first_visible_index());
-    expanded_height_ = height;
+    expanded_height_ = incoming;
     restore_anchor(anchor);
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
 }
 
-void CorrespondenceView::set_status_rail_width(double width) {
+void CorrespondenceView::prepare_write(const decltype(hover_intent_delay)&,
+                                       std::chrono::milliseconds& incoming) {
     require_mutable();
-    if (!std::isfinite(width) || width < 1.0 || width > 12.0) {
-        throw std::invalid_argument(
-            "CorrespondenceView status rail width must be finite and between 1 and 12");
-    }
-    if (status_rail_width_ == width) return;
-    status_rail_width_ = width;
-    invalidate(Dirty::paint);
-}
-
-void CorrespondenceView::set_hover_intent_delay(
-    std::chrono::milliseconds delay) {
-    require_mutable();
-    if (delay < std::chrono::milliseconds(1) ||
-        delay > std::chrono::seconds(5)) {
+    if (incoming < std::chrono::milliseconds(1) ||
+        incoming > std::chrono::seconds(5)) {
         throw std::invalid_argument(
             "CorrespondenceView hover intent must be between 1 ms and 5 s");
     }
-    if (hover_intent_delay_ == delay) return;
-    hover_intent_delay_ = delay;
-    if (const std::optional<std::size_t> index = item_index(hovered_id_)) schedule_hover_intent(*index);
 }
 
-void CorrespondenceView::set_font(FontSpec font) {
-    require_mutable();
-    if (!valid_font_spec(font)) {
-        throw std::invalid_argument("CorrespondenceView font is invalid");
-    }
-    set_font_from_code(true);
-    if (font_ == font) return;
-    font_ = font;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+// A pending hover restarts with the new delay.
+void CorrespondenceView::written(const decltype(hover_intent_delay)&) {
+    if (const std::optional<std::size_t> index = item_index(hovered_id_)) schedule_hover_intent(*index);
 }
 
 std::vector<std::size_t> CorrespondenceView::expanded_indices() const {
@@ -329,13 +329,17 @@ void CorrespondenceView::clamp_scroll_offset() noexcept {
     scroll_offset_ = std::clamp(scroll_offset_, 0.0, maximum_scroll_offset());
 }
 
-void CorrespondenceView::set_scroll_offset(double offset) {
+double CorrespondenceView::read_view(const decltype(scroll_offset)&) const {
+    return scroll_offset_;
+}
+
+void CorrespondenceView::write_view(const decltype(scroll_offset)&, double incoming) {
     require_mutable();
-    if (!std::isfinite(offset) || offset < 0.0) {
+    if (!std::isfinite(incoming) || incoming < 0.0) {
         throw std::invalid_argument(
             "CorrespondenceView scroll offset must be finite and nonnegative");
     }
-    const double next = std::clamp(offset, 0.0, maximum_scroll_offset());
+    const double next = std::clamp(incoming, 0.0, maximum_scroll_offset());
     if (scroll_offset_ == next) return;
     scroll_offset_ = next;
     clear_hover_intent(true);
@@ -465,7 +469,7 @@ void CorrespondenceView::schedule_hover_intent(std::size_t index) {
     std::weak_ptr<CorrespondenceView> weak = self;
     hover_timer_ = (*window()).schedule_ui_timer(
         *this, std::chrono::hours(24),
-        FrameClock::now() + hover_intent_delay_,
+        FrameClock::now() + hover_intent_delay.read(),
         HoverIntentCallback{weak, intended});
 }
 
@@ -577,20 +581,20 @@ void CorrespondenceView::paint_glyph(Painter& painter, Rect b,
 
 CorrespondenceView::CorrespondenceCardFonts CorrespondenceView::card_fonts() const {
     CorrespondenceCardFonts fonts;
-    const FontSpec title = text_font(font_);
+    const FontSpec title = text_font(font.read());
     fonts.title = {title.role, title.size, 700, title.italic, title.letter_spacing};
-    fonts.secondary = effective_font({font_.role, std::max(8.0, font_.size - 2.0), 400, false});
-    fonts.metric = effective_font({FontRole::content, std::max(12.0, font_.size + 5.0), 700, false});
-    fonts.evidence = effective_font({FontRole::content, std::max(8.0, font_.size - 1.5), 400, false});
-    fonts.evidence_bold = effective_font({FontRole::content, std::max(8.0, font_.size - 1.5), 700, false});
+    fonts.secondary = effective_font({font.read().role, std::max(8.0, font.read().size - 2.0), 400, false});
+    fonts.metric = effective_font({FontRole::content, std::max(12.0, font.read().size + 5.0), 700, false});
+    fonts.evidence = effective_font({FontRole::content, std::max(8.0, font.read().size - 1.5), 400, false});
+    fonts.evidence_bold = effective_font({FontRole::content, std::max(8.0, font.read().size - 1.5), 700, false});
     return fonts;
 }
 
-double CorrespondenceView::measured_text_width(std::string_view text, FontSpec font) const {
+double CorrespondenceView::measured_text_width(std::string_view text, FontSpec text_face) const {
     if (text.empty()) return 0.0;
     const ResolvedTextLayout measured = window() != nullptr
-        ? (*window()).resolve_text_layout_utf8(text, font)
-        : estimate_text_layout_utf8(text, font);
+        ? (*window()).resolve_text_layout_utf8(text, text_face)
+        : estimate_text_layout_utf8(text, text_face);
     return measured.logical_size.width;
 }
 
@@ -608,7 +612,7 @@ CorrespondenceView::CorrespondenceCardLayout CorrespondenceView::card_layout(std
     constexpr double gap = 8.0;
     CorrespondenceCardLayout layout;
     layout.card = {row.x, row.y, row.width, visible_height};
-    layout.status_rail = {row.x + 1.0, row.y + 1.0, status_rail_width_, std::max(0.0, visible_height - 2.0)};
+    layout.status_rail = {row.x + 1.0, row.y + 1.0, status_rail_width.read(), std::max(0.0, visible_height - 2.0)};
     layout.glyph = {row.x + 10.0, row.y + 7.0, 30.0, 30.0};
 
     const double metric_width = measured_text_width(item.metric, fonts.metric);
@@ -885,9 +889,9 @@ void CorrespondenceView::on_pointer(PointerEvent& event) {
     }
     if (event.action == PointerAction::wheel && event.wheel_delta.y != 0.0) {
         const double direction = event.wheel_delta.y > 0.0 ? -1.0 : 1.0;
-        set_scroll_offset(std::clamp(
+        scroll_offset = std::clamp(
             scroll_offset_ + direction * scaled_compact_height() * 2.0,
-            0.0, maximum_scroll_offset()));
+            0.0, maximum_scroll_offset());
         event.handled = true;
         return;
     }
@@ -901,7 +905,7 @@ void CorrespondenceView::on_pointer(PointerEvent& event) {
             static_cast<void>((*window()).request_focus(shared_from_this()));
         }
         if (pressed_index_) {
-            set_selected_id(items_[*pressed_index_].stable_id);
+            selected_id = items_[*pressed_index_].stable_id;
             focus_index(*pressed_index_,
                         CorrespondenceExpansionReason::keyboard_focus);
         }
@@ -913,24 +917,49 @@ void CorrespondenceView::on_pointer(PointerEvent& event) {
         const std::optional<std::size_t> released = index_at(event.position);
         if (released && pressed_index_ == released) {
             const CorrespondenceItem& item = items_[*released];
-            if (pressed_button_ == PointerButton::secondary) {
-                context_requested_.emit({item.stable_id, event.position});
-            } else if (pressed_click_count_ >= 2U) {
+            // The secondary release asks for no menu itself: the host's
+            // context request does (on_context_menu_requested).
+            if (pressed_button_ == PointerButton::primary && pressed_click_count_ >= 2U) {
                 emit_item_activated(item.stable_id);
-            } else {
-                set_pinned_id(item.stable_id == pinned_id_ ? std::string_view{}
-                                                           : item.stable_id);
+            } else if (pressed_button_ == PointerButton::primary) {
+                pinned_id = item.stable_id == pinned_id_ ? std::string{} : item.stable_id;
             }
         } else if (!released && !pressed_index_) {
-            set_selected_id({});
-            if (pressed_button_ == PointerButton::secondary && is_alive()) {
-                context_requested_.emit({{}, event.position});
-            }
+            selected_id = std::string{};
         }
         pressed_index_.reset();
         pressed_button_ = PointerButton::none;
         event.handled = true;
     }
+}
+
+// A context request comes from the host (Windows' WM_CONTEXTMENU, macOS's
+// menuForEvent: and show-menu action, the Linux desktop's convention). A
+// pointer request selects the item under the pointer (a macOS Control-click
+// delivers no press) and asks for its menu; over no item it clears the
+// selection and asks with no target. A keyboard request asks for the
+// focused item's menu, as the semantic Show Menu action does.
+void CorrespondenceView::on_context_menu_requested(ContextMenuRequest& request) {
+    if (request.origin == ContextRequestOrigin::keyboard) {
+        // A copy: the action may replace the focused identity.
+        const std::string focused = focused_id_;
+        if (focused.empty()) return;
+        request.handled = on_semantic_child_action(focused, SemanticAction::show_menu, {});
+        return;
+    }
+    request.handled = true;
+    const std::optional<std::size_t> index = index_at(request.window_position);
+    if (!index) {
+        selected_id = std::string{};
+        if (is_alive()) context_requested_.emit({{}, request.window_position});
+        return;
+    }
+    // A copy: the selection handler may replace the items.
+    const std::string target = items_[*index].stable_id;
+    selected_id = target;
+    const std::optional<std::size_t> selected = item_index(target);
+    if (selected) focus_index(*selected, CorrespondenceExpansionReason::keyboard_focus);
+    if (is_alive()) context_requested_.emit({target, request.window_position});
 }
 
 void CorrespondenceView::on_key(KeyEvent& event) {
@@ -944,8 +973,7 @@ void CorrespondenceView::on_key(KeyEvent& event) {
         return;
     }
     if (event.physical_key == PhysicalKey::space) {
-        set_pinned_id(items_[index].stable_id == pinned_id_
-            ? std::string_view{} : std::string_view(items_[index].stable_id));
+        pinned_id = items_[index].stable_id == pinned_id_ ? std::string{} : items_[index].stable_id;
         event.handled = true;
         return;
     }
@@ -971,7 +999,7 @@ void CorrespondenceView::on_key(KeyEvent& event) {
         return;
     }
     focus_index(index, CorrespondenceExpansionReason::keyboard_focus);
-    set_selected_id(items_[index].stable_id);
+    selected_id = items_[index].stable_id;
     event.handled = true;
 }
 
@@ -1122,7 +1150,7 @@ bool CorrespondenceView::on_semantic_child_action(
         }
         focus_index(*activate_index,
                     CorrespondenceExpansionReason::keyboard_focus);
-        set_selected_id(item_id);
+        selected_id = std::string(item_id);
         // A selection handler may have replaced the items: look the item up
         // again rather than reading items_ at the old index.
         const std::optional<std::size_t> activated = item_index(item_id);
@@ -1142,23 +1170,23 @@ bool CorrespondenceView::on_semantic_child_action(
     focus_index(*index, CorrespondenceExpansionReason::keyboard_focus);
     // Focus needs nothing more; every other action was refused above.
     if (action == SemanticAction::select) {
-        set_selected_id(stable_id);
+        selected_id = std::string(stable_id);
     } else if (action == SemanticAction::press) {
-        set_selected_id(stable_id);
+        selected_id = std::string(stable_id);
         // As above: the selection handler may have replaced the items.
         const std::optional<std::size_t> activated = item_index(stable_id);
         if (activated) emit_item_activated(items_[*activated].stable_id);
     } else if (action == SemanticAction::show_menu) {
-        set_selected_id(stable_id);
+        selected_id = std::string(stable_id);
         const Rect local = item_bounds(*index);
         const Rect absolute = absolute_bounds();
         context_requested_.emit({std::string(stable_id),
             {absolute.x + local.x + local.width * .5,
              absolute.y + local.y + std::min(local.height, viewport_height()) * .5}});
     } else if (action == SemanticAction::expand) {
-        set_pinned_id(stable_id);
+        pinned_id = std::string(stable_id);
     } else if (action == SemanticAction::collapse) {
-        if (pinned_id_ == stable_id) set_pinned_id({});
+        if (pinned_id_ == stable_id) pinned_id = std::string{};
         if (hover_expanded_id_ == stable_id) clear_hover_intent(true);
     }
     return true;
@@ -1169,8 +1197,6 @@ void CorrespondenceView::on_detached_from_window() noexcept {
     pending_hover_id_.clear();
     Panel::on_detached_from_window();
 }
-
-
 
 namespace {
 
@@ -1350,5 +1376,33 @@ void CorrespondenceView::append_interactions(std::vector<InteractionDeclaration>
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), correspondence_view_interactions.begin(), correspondence_view_interactions.end());
 }
+
+// property_codemod begin CorrespondenceView (tools/property_families/correspondence_view.json; generated, do not edit)
+
+void CorrespondenceView::prepare_write(const decltype(status_rail_width)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 1.0 || incoming > 12.0) {
+        throw std::invalid_argument("CorrespondenceView status rail width must be finite and between 1 and 12");
+    }
+}
+
+void CorrespondenceView::written(const decltype(status_rail_width)&) {
+    invalidate(Dirty::paint);
+}
+
+void CorrespondenceView::prepare_write(const decltype(font)&, FontSpec& incoming) {
+    require_mutable();
+    if (!valid_font_spec(incoming)) throw std::invalid_argument("CorrespondenceView font is invalid");
+    set_font_from_code(true);
+}
+
+void CorrespondenceView::written(const decltype(font)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_font_changed();
+}
+
+void CorrespondenceView::on_font_changed() {}
+
+// property_codemod end CorrespondenceView
 
 } // namespace gui_forms

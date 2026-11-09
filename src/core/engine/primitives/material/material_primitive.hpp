@@ -13,7 +13,7 @@ namespace gui_forms::engine_primitives {
 // for one of its recipe roles. Its `recipe` choice names the role
 // (ControlVisualRole, in enum order: window, panel, card, button,
 // accent_button, command_button, choice, editor, menu_item, selection,
-// progress, tool_tip, link, visited_link), or `family`, the part's own
+// progress, tool_tip, link, visited_link, notice, badge), or `family`, the part's own
 // family's and the default; the engine resolves that role's recipe for the
 // part's state and lends the recipe's material in the target. The kernel
 // draws the material's layers in the order paint_surface_material does:

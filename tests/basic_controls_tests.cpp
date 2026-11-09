@@ -1,4 +1,6 @@
 #include "gui_forms/basic_controls.hpp"
+#include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
+#include "gui_forms/controls/panel/scaled_panel/scaled_panel.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "gui_forms/diagnostic_controls.hpp"
@@ -15,6 +17,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <span>
@@ -140,7 +143,7 @@ public:
 class FocusSink final : public Control {
 public:
     explicit FocusSink(StableId stable_id) : Control(std::move(stable_id)) {
-        set_focusable(true);
+        focusable = true;
     }
 };
 
@@ -170,7 +173,7 @@ public:
         : button_(std::move(button)) {}
 
     void operator()(ButtonBase&) const {
-        (*button_).set_dialog_result(DialogResult::no);
+        (*button_).dialog_result = DialogResult::no;
     }
 
 private:
@@ -224,10 +227,61 @@ private:
     Rect& damage_;
 };
 
+// A GroupBox subclass using the protected hook of the text capability
+// (P-8): on_text_changed counts each changed write after the touch.
+class CountingGroupBox final : public GroupBox {
+public:
+    using GroupBox::GroupBox;
+    int text_changes{};
+
+protected:
+    void on_text_changed() override {
+        GroupBox::on_text_changed();
+        ++text_changes;
+    }
+};
+
+// The Windows Forms MyButton pattern (P-8): a subclass overrides
+// on_text_changed (OnTextChanged), sees the stored text, and calls the base,
+// which raises text_changed. `raised_before_base` and `raised_after_base`
+// hold the subscriber's count on either side of the base call.
+class MyButton final : public Button {
+public:
+    MyButton(StableId stable_id, std::string text, const std::vector<std::string>& raised)
+        : Button(std::move(stable_id), std::move(text)), raised_(raised) {}
+    std::vector<std::string> seen_text;
+    std::vector<std::size_t> raised_before_base;
+    std::vector<std::size_t> raised_after_base;
+
+protected:
+    void on_text_changed() override {
+        seen_text.push_back(text.read());
+        raised_before_base.push_back(raised_.size());
+        Button::on_text_changed();
+        raised_after_base.push_back(raised_.size());
+    }
+
+private:
+    const std::vector<std::string>& raised_;
+};
+
+// on_size_mode_changed counts each changed SizeMode write after the touch.
+class CountingPictureBox final : public PictureBox {
+public:
+    using PictureBox::PictureBox;
+    int size_mode_changes{};
+
+protected:
+    void on_size_mode_changed() override {
+        PictureBox::on_size_mode_changed();
+        ++size_mode_changes;
+    }
+};
+
 void attempt_label_mutation(const std::shared_ptr<Label>& label,
                             bool& rejected) noexcept {
     try {
-        (*label).set_text("After");
+        (*label).text = "After";
     } catch (const std::logic_error&) {
         rejected = true;
     }
@@ -259,21 +313,21 @@ void test_public_controls_render_with_role_policy() {
     (*group).set_requested_bounds({10.0, 10.0, 340.0, 160.0});
     // The caption is the group's `text` property (Windows Forms' GroupBox.Text).
     (*group).set_property_value("text", BindingValue{std::string("Shared controls")});
-    require((*group).text() == "Shared controls", "GroupBox text is a property");
+    require((*group).text.read() == "Shared controls", "GroupBox text is a property");
     require(std::get<std::string>(*(*group).property_value("text")) == "Shared controls",
             "GroupBox text reads back as a property");
-    (*group).set_text("Reusable controls");
+    (*group).text = "Reusable controls";
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("controls.label"), "Field content");
     (*label).set_requested_bounds({12.0, 24.0, 140.0, 24.0});
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("controls.button"), "Apply");
     (*button).set_requested_bounds({12.0, 54.0, 90.0, 28.0});
-    (*button).set_default_button(true);
+    (*button).default_button = true;
     std::shared_ptr<gui_forms::CheckBox> check = make_control<CheckBox>(StableId("controls.check"), "Checked option");
     (*check).set_requested_bounds({12.0, 88.0, 150.0, 24.0});
-    (*check).set_checked(true);
+    (*check).checked = true;
     std::shared_ptr<gui_forms::RadioButton> radio = make_control<RadioButton>(StableId("controls.radio"), "Radio option");
     (*radio).set_requested_bounds({170.0, 88.0, 150.0, 24.0});
-    (*radio).set_checked(true);
+    (*radio).checked = true;
     (*group).add_child(label);
     (*group).add_child(button);
     (*group).add_child(check);
@@ -659,9 +713,9 @@ void test_mnemonics_and_dialog_buttons_are_retained_commands() {
 
     window.set_accept_button(accept);
     window.set_cancel_button(cancel);
-    require((*accept).default_button() && window.accept_button() == accept &&
+    require((*accept).default_button.read() && window.accept_button() == accept &&
                 window.cancel_button() == cancel &&
-                (*cancel).dialog_result() == DialogResult::cancel,
+                (*cancel).dialog_result.read() == DialogResult::cancel,
             "assigning a Window accept button must retain the target and publish its default cue");
     RecordingPainter mnemonic_painter{};
     (*run).on_paint(mnemonic_painter, (*run).client_rectangle());
@@ -698,7 +752,7 @@ void test_mnemonics_and_dialog_buttons_are_retained_commands() {
 
     SubscriptionToken rejecting =
         (*field).validating().subscribe(CancelValidation());
-    (*accept).set_dialog_result(DialogResult::yes);
+    (*accept).dialog_result = DialogResult::yes;
     std::string dialog_trace{};
     SubscriptionToken accept_order = (*accept).clicked().subscribe(
         callbacks::AppendLiteral<ButtonBase&>(dialog_trace, "click\n"));
@@ -742,7 +796,7 @@ void test_mnemonics_and_dialog_buttons_are_retained_commands() {
 
     bool invalid_result_rejected{};
     try {
-        (*accept).set_dialog_result(static_cast<DialogResult>(8));
+        (*accept).dialog_result = static_cast<DialogResult>(8);
     } catch (const std::invalid_argument&) {
         invalid_result_rejected = true;
     }
@@ -773,14 +827,14 @@ void test_mnemonics_and_dialog_buttons_are_retained_commands() {
     (*replacement).set_requested_bounds({4.0, 68.0, 70.0, 10.0});
     (*root).add_child(replacement);
     window.set_accept_button(replacement);
-    require(!(*accept).default_button() && (*replacement).default_button(),
+    require(!(*accept).default_button.read() && (*replacement).default_button.read(),
             "moving the accept role must revoke the old default cue exactly once");
     (*replacement).dispose();
     require(!window.accept_button(),
             "disposing a dialog target must synchronously clear its retained Window role");
 
     window.set_dialog_result(DialogResult::none);
-    (*accept).set_dialog_result(DialogResult::yes);
+    (*accept).dialog_result = DialogResult::yes;
     SubscriptionToken replace_result_during_click =
         (*accept).clicked().subscribe(ReplaceButtonDialogResult(accept));
     const bool operation_check_44 = (*accept).perform_click();
@@ -813,19 +867,19 @@ void test_checkbox_state_and_click_order() {
         callbacks::AppendLiteral<ButtonBase&>(order, "click\n"));
 
     click(window, check);
-    require((*check).checked() &&
+    require((*check).checked.read() &&
                 order == "state:checked\nchecked:true\nclick\n",
             "CheckBox must mutate, publish state, publish checked, then click");
 
-    (*check).set_three_state(true);
+    (*check).three_state = true;
     order.clear();
     (*check).on_activate();
-    require((*check).check_state() == CheckState::indeterminate &&
+    require((*check).check_state.read() == CheckState::indeterminate &&
                 order == "state:other\nchecked:false\nclick\n",
             "three-state CheckBox must deterministically advance to indeterminate");
     order.clear();
     (*check).on_activate();
-    require((*check).check_state() == CheckState::unchecked &&
+    require((*check).check_state.read() == CheckState::unchecked &&
                 order == "state:other\nclick\n",
             "indeterminate CheckBox must return to unchecked without duplicate bool change");
 }
@@ -839,14 +893,14 @@ void test_radio_group_scope_and_order() {
     (*first).set_requested_bounds({10.0, 24.0, 100.0, 24.0});
     (*second).set_requested_bounds({120.0, 24.0, 100.0, 24.0});
     (*independent).set_requested_bounds({230.0, 24.0, 120.0, 24.0});
-    (*first).set_group_name("mode");
-    (*second).set_group_name("mode");
-    (*independent).set_group_name("independent");
+    (*first).group_name = "mode";
+    (*second).group_name = "mode";
+    (*independent).group_name = "independent";
     (*group).add_child(first);
     (*group).add_child(second);
     (*group).add_child(independent);
-    (*first).set_checked(true);
-    (*independent).set_checked(true);
+    (*first).checked = true;
+    (*independent).checked = true;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(group, Size{360.0, 70.0});
     Window& window = *held_window;
 
@@ -858,7 +912,7 @@ void test_radio_group_scope_and_order() {
     SubscriptionToken second_clicked = (*second).clicked().subscribe(
         callbacks::AppendLiteral<ButtonBase&>(order, "second:click\n"));
     click(window, second);
-    require(!(*first).checked() && (*second).checked() && (*independent).checked() &&
+    require(!(*first).checked.read() && (*second).checked.read() && (*independent).checked.read() &&
                 order == "first:off\nsecond:on\nsecond:click\n",
             "RadioButton must uncheck its group peer before checking/clicking itself");
 }
@@ -882,7 +936,7 @@ void test_link_families() {
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(link, Size{120.0, 24.0});
     const BasicControlStyle defaults{};
     require(painted_link_color(*link) == defaults.link, "an unvisited link must keep the default link colour");
-    (*link).set_visited(true);
+    (*link).visited = true;
     require(painted_link_color(*link) == defaults.visited_link,
             "a visited link must keep the default visited colour");
     (*link).enabled = false;
@@ -907,7 +961,7 @@ void test_link_families() {
         themed_visited;
     (*link).set_theme_override(Theme::create(definition));
     require(painted_link_color(*link) == themed_visited, "a visited link must take the visited_link family's text");
-    (*link).set_visited(false);
+    (*link).visited = false;
     require(painted_link_color(*link) == themed_link, "an unvisited link must take the link family's text");
 
     BasicControlStyle compatibility;
@@ -926,7 +980,7 @@ void test_link_and_callback_disposal() {
     SubscriptionToken link_click = (*link).clicked().subscribe(
         callbacks::IncrementCounter<std::uint64_t, ButtonBase&>(clicks));
     click(link_window, link);
-    require((*link).visited() && clicks == 1,
+    require((*link).visited.read() && clicks == 1,
             "LinkLabel must mark visited before publishing activation");
 
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("dispose.root"));
@@ -956,7 +1010,7 @@ void test_wrong_thread_property_mutation_is_rejected() {
     std::thread worker(attempt_label_mutation, std::cref(label),
                        std::ref(rejected));
     worker.join();
-    require(rejected && (*label).text() == "Before",
+    require(rejected && (*label).text.read() == "Before",
             "reusable control properties must retain core UI-thread enforcement");
 }
 
@@ -970,7 +1024,7 @@ void test_fixed_label_text_is_paint_only() {
     window.paint(painter, {0.0, 0.0, 120.0, 24.0});
     window.reset_activity_metrics();
 
-    (*label).set_text("999 kB/s");
+    (*label).text = "999 kB/s";
     const DamageRegion damage = window.take_damage();
     require(!damage.empty(), "fixed label text must request repaint");
     window.paint(painter, damage.bounds());
@@ -982,7 +1036,7 @@ void test_fixed_label_text_is_paint_only() {
     (*label).auto_size = true;
     window.perform_layout();
     window.reset_activity_metrics();
-    (*label).set_text("content-sized telemetry");
+    (*label).text = "content-sized telemetry";
     const DamageRegion auto_damage = window.take_damage();
     require(!auto_damage.empty(), "auto-sized label text must request repaint");
     window.paint(painter, auto_damage.bounds());
@@ -1010,8 +1064,8 @@ void test_fixed_label_measurement_does_not_resolve_unused_text() {
     const std::shared_ptr<Label> label = make_control<Label>(
         StableId("label.fixed-measurement"), source);
     (*label).set_requested_bounds({0.0, 0.0, 190.0, 108.0});
-    (*label).set_text_wrapping(TextWrapping::word);
-    (*label).set_maximum_lines(7U);
+    (*label).text_wrapping = TextWrapping::word;
+    (*label).maximum_lines = 7U;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(label, Size{190.0, 108.0});
     Window& window = *held_window;
     window.set_text_metrics_provider(&provider);
@@ -1033,7 +1087,7 @@ void test_fixed_label_measurement_does_not_resolve_unused_text() {
     require(scaled == complete && provider.calls == 0U,
             "explicit label dimensions remain authoritative with AutoSize and text scaling");
 
-    (*label).set_text("one two three four");
+    (*label).text = "one two three four";
     (*label).set_requested_bounds({0.0, 0.0, 80.0, 0.0});
     provider.calls = 0U;
     const Size content_height = (*label).measure({300.0, 200.0});
@@ -1050,9 +1104,9 @@ void test_label_multiline_wrapping_and_alignment() {
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("label.multiline"),
                                      "Retained labels wrap words\nand preserve breaks");
     (*label).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
-    (*label).set_text_wrapping(TextWrapping::word);
-    (*label).set_vertical_alignment(VerticalAlignment::near);
-    (*label).set_alignment(HorizontalAlignment::far);
+    (*label).text_wrapping = TextWrapping::word;
+    (*label).vertical_alignment = VerticalAlignment::near;
+    (*label).alignment = HorizontalAlignment::far;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(label, Size{120.0, 80.0});
     Window& window = *held_window;
     RecordingPainter painter{};
@@ -1066,24 +1120,24 @@ void test_label_multiline_wrapping_and_alignment() {
 
     bool rejected = false;
     try {
-        (*label).set_line_spacing(0.1);
+        (*label).line_spacing = 0.1;
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*label).line_spacing() == 1.25,
+    require(rejected && (*label).line_spacing.read() == 1.25,
             "Label must reject invalid line spacing without mutation");
 
-    (*label).set_text("画布工具可以使用键盘调整坐标并绘制连续线条");
+    (*label).text = "画布工具可以使用键盘调整坐标并绘制连续线条";
     RecordingPainter cjk{};
     window.paint(cjk, {0.0, 0.0, 120.0, 80.0});
     require(cjk.texts.size() > 1, "unspaced CJK paragraphs wrap instead of overflowing");
     std::string joined{};
     for (const std::string& line : cjk.texts) { joined += line; }
-    require(joined == (*label).text(), "CJK wrapping preserves every UTF-8 character");
+    require(joined == (*label).text.read(), "CJK wrapping preserves every UTF-8 character");
 
-    (*label).set_text("Visual source");
-    (*label).set_text_wrapping(TextWrapping::no_wrap);
-    (*label).set_text_case_transform(TextCaseTransform::uppercase_ascii);
+    (*label).text = "Visual source";
+    (*label).text_wrapping = TextWrapping::no_wrap;
+    (*label).text_case_transform = TextCaseTransform::uppercase_ascii;
     RecordingPainter transformed_painter{};
     window.paint(transformed_painter, {0.0, 0.0, 120.0, 80.0});
     require(transformed_painter.texts.size() == 1U &&
@@ -1222,9 +1276,9 @@ void test_label_line_limit_bounds_hidden_wrapping_work() {
     for (std::size_t index = 0U; index < 4096U; ++index) source.append("one two three x ");
     const std::shared_ptr<Label> label = make_control<Label>(StableId("label.preview-cost"), source);
     (*label).set_requested_bounds({0.0, 0.0, 190.0, 108.0});
-    (*label).set_font({FontRole::content, 13.0, 400, false});
-    (*label).set_text_wrapping(TextWrapping::word);
-    (*label).set_maximum_lines(7U);
+    (*label).font = FontSpec{FontRole::content, 13.0, 400, false};
+    (*label).text_wrapping = TextWrapping::word;
+    (*label).maximum_lines = 7U;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(label, Size{190.0, 108.0});
     Window& window = *held_window;
     window.perform_layout();
@@ -1316,11 +1370,11 @@ void test_owner_decoration_is_retained_and_owner_relative() {
 void test_basic_control_layout_customization_is_bounded_and_atomic() {
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("label.maximum-lines"),
                                      "one two three four five six seven eight");
-    (*label).set_text_wrapping(TextWrapping::word);
+    (*label).text_wrapping = TextWrapping::word;
     const Size unrestricted = (*label).measure({72.0, 200.0});
-    (*label).set_maximum_lines(2U);
+    (*label).maximum_lines = 2U;
     const Size limited = (*label).measure({72.0, 200.0});
-    require((*label).maximum_lines() == 2U && limited.height < unrestricted.height,
+    require((*label).maximum_lines.read() == 2U && limited.height < unrestricted.height,
             "Label MaximumLines must bound content-sized desired height");
     (*label).set_requested_bounds({0.0, 0.0, 72.0, 80.0});
     const std::unique_ptr<Window> held_label_window = std::make_unique<Window>(label, Size{72.0, 80.0});
@@ -1332,19 +1386,19 @@ void test_basic_control_layout_customization_is_bounded_and_atomic() {
 
     bool rejected_lines{};
     try {
-        (*label).set_maximum_lines(4097U);
+        (*label).maximum_lines = 4097U;
     } catch (const std::out_of_range&) {
         rejected_lines = true;
     }
     bool rejected_alignment{};
     try {
-        (*label).set_alignment(static_cast<HorizontalAlignment>(255));
+        (*label).alignment = static_cast<HorizontalAlignment>(255);
     } catch (const std::invalid_argument&) {
         rejected_alignment = true;
     }
     require(rejected_lines && rejected_alignment &&
-                (*label).maximum_lines() == 2U &&
-                (*label).alignment() == HorizontalAlignment::near,
+                (*label).maximum_lines.read() == 2U &&
+                (*label).alignment.read() == HorizontalAlignment::near,
             "Label bounded and enum properties must reject invalid values atomically");
 
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("button.content-padding"), "Run");
@@ -1389,30 +1443,30 @@ void test_label_inherits_theme_typography_until_explicitly_overridden() {
         themed_text;
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("label.theme"), "Heading");
     (*label).set_theme_override(Theme::create(definition));
-    (*label).set_text_style_role(TextStyleRole::heading);
-    require(!(*label).has_font_override() &&
-                (*label).font() == FontSpec{FontRole::control, 17.0, 650, false,
+    (*label).text_style_role = TextStyleRole::heading;
+    require(!(*label).font.read().has_value() &&
+                (*label).resolved_font() == FontSpec{FontRole::control, 17.0, 650, false,
                                           0.31} &&
-                !(*label).has_foreground_override() &&
+                !(*label).fore_color.read().has_value() &&
                 (*label).foreground() == themed_text,
             "Label must resolve typography and text color from inherited theme roles");
 
     const FontSpec explicit_font{FontRole::content, 11.0, 500, true};
-    (*label).set_font(explicit_font);
-    (*label).set_text_style_role(TextStyleRole::title);
-    require((*label).has_font_override() && (*label).font() == explicit_font,
+    (*label).font = explicit_font;
+    (*label).text_style_role = TextStyleRole::title;
+    require((*label).font.read().has_value() && (*label).resolved_font() == explicit_font,
             "explicit Label font must remain authoritative across role changes");
-    (*label).clear_font();
-    require(!(*label).has_font_override() &&
-                (*label).font() == FontSpec{FontRole::control, 23.0, 700, false,
+    (*label).font = std::nullopt;
+    require(!(*label).font.read().has_value() &&
+                (*label).resolved_font() == FontSpec{FontRole::control, 23.0, 700, false,
                                           0.19},
             "clearing Label font must restore inherited role typography");
 
     constexpr Color explicit_text = Color::rgba(91, 37, 19);
-    (*label).set_foreground(explicit_text);
+    (*label).fore_color = explicit_text;
     require((*label).foreground() == explicit_text,
             "explicit Label foreground must override theme text");
-    (*label).clear_foreground();
+    (*label).fore_color = std::nullopt;
     require((*label).foreground() == themed_text,
             "clearing Label foreground must restore inherited theme text");
 }
@@ -1432,7 +1486,7 @@ void test_picture_box_modes_registry_and_semantics() {
     std::uint64_t changes{};
     SubscriptionToken changed = (*picture).image_changed().subscribe(
         callbacks::IncrementCounter<std::uint64_t, ImageId>(changes));
-    (*picture).set_image(loaded.image);
+    (*picture).image = loaded.image;
     window.perform_layout();
     require(changes == 1U && (*picture).has_valid_image() &&
                 (*picture).image_size() == Size{4.0, 2.0},
@@ -1445,7 +1499,7 @@ void test_picture_box_modes_registry_and_semantics() {
         {PictureBoxSizeMode::zoom, {1.0, 25.5, 98.0, 49.0}},
     }};
     for (const std::pair<PictureBoxSizeMode, Rect>& mode_and_bounds : modes) {
-        (*picture).set_size_mode(mode_and_bounds.first);
+        (*picture).size_mode = mode_and_bounds.first;
         require((*picture).image_bounds() == mode_and_bounds.second,
                 "PictureBox sizing mode must compute deterministic image geometry");
         RecordingPainter painter{};
@@ -1456,11 +1510,11 @@ void test_picture_box_modes_registry_and_semantics() {
                 "PictureBox must submit the resolved image and destination to Painter");
     }
 
-    (*picture).set_size_mode(PictureBoxSizeMode::auto_size);
+    (*picture).size_mode = PictureBoxSizeMode::auto_size;
     require((*picture).measure({1000.0, 1000.0}) == Size{6.0, 4.0} &&
                 (*picture).image_bounds() == Rect{1.0, 1.0, 4.0, 2.0},
             "PictureBox AutoSize must measure to intrinsic pixels plus its border");
-    (*picture).set_image_opacity(0.42);
+    (*picture).image_opacity = 0.42;
     RecordingPainter opacity_painter{};
     window.paint(opacity_painter, {0.0, 0.0, 100.0, 100.0});
     require(opacity_painter.image_opacities.size() == 1U &&
@@ -1476,11 +1530,11 @@ void test_picture_box_modes_registry_and_semantics() {
 
     bool rejected{};
     try {
-        (*picture).set_image_opacity(1.1);
+        (*picture).image_opacity = 1.1;
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*picture).image_opacity() == 0.42,
+    require(rejected && (*picture).image_opacity.read() == 0.42,
             "PictureBox must reject invalid opacity without mutation");
     require(window.remove_image(loaded.image) && !(*picture).has_valid_image(),
             "PictureBox must reject a removed generational image ID safely");
@@ -1510,10 +1564,10 @@ void test_public_drawing_metrics_and_control_tag() {
         std::shared_ptr<gui_forms::Panel> tagged = make_control<Panel>(StableId("controls.tagged"));
         std::shared_ptr<int> anchor = std::make_shared<int>(42);
         released_anchor = anchor;
-        (*tagged).set_tag(anchor);
+        (*tagged).tag = anchor;
         anchor.reset();
-        const std::shared_ptr<int>* retained =
-            std::any_cast<std::shared_ptr<int>>(&(*tagged).tag());
+        const std::any held = (*tagged).tag.read();
+        const std::shared_ptr<int>* retained = std::any_cast<std::shared_ptr<int>>(&held);
         require(retained != nullptr && **retained == 42,
                 "Control Tag must retain exact type-erased application metadata");
         (*tagged).dispose();
@@ -1526,7 +1580,7 @@ void test_public_drawing_metrics_and_control_tag() {
         StableId("controls.diagnostics.drawing"));
     (*drawing).set_requested_bounds({0.0, 0.0, 120.0, 60.0});
     (*drawing).accessible_name = "Public owner drawing";
-    (*drawing).set_background(Color::rgba(8, 9, 10));
+    (*drawing).background = Color::rgba(8, 9, 10);
     std::uint64_t callback_count = 0U;
     Rect callback_bounds{};
     Rect callback_damage{};
@@ -1534,7 +1588,7 @@ void test_public_drawing_metrics_and_control_tag() {
         RecordDrawingPaint(callback_count, callback_bounds, callback_damage));
     std::shared_ptr<gui_forms::MetricsView> metrics = make_control<MetricsView>(
         StableId("controls.diagnostics.metrics"), "Runtime proof");
-    (*metrics).set_accent_width(9.0);
+    (*metrics).accent_width = 9.0;
     (*metrics).set_requested_bounds({0.0, 60.0, 240.0, 90.0});
     (*root).add_child(drawing);
     (*root).add_child(metrics);
@@ -1548,9 +1602,9 @@ void test_public_drawing_metrics_and_control_tag() {
                 !callback_damage.empty() &&
                 painter.fills + painter.gradients >= 4U,
             "DrawingSurface must invoke public owner paint with retained bounds and damage");
-    require(!(*drawing).hit_test_visible() &&
+    require(!(*drawing).hit_test_visible.read() &&
                 !(*drawing).hit_test_local({10.0, 10.0}) &&
-                (*drawing).background() == Color::rgba(8, 9, 10) &&
+                (*drawing).background.read() == Color::rgba(8, 9, 10) &&
                 (*drawing).semantic_descriptor().role == SemanticRole::image &&
                 (*drawing).semantic_descriptor().exposed,
             "DrawingSurface must default to input-transparent image semantics");
@@ -1558,7 +1612,7 @@ void test_public_drawing_metrics_and_control_tag() {
     require(metrics_semantics.role == SemanticRole::group &&
                 metrics_semantics.name == "Runtime proof" &&
                 metrics_semantics.value.find("controls") != std::string::npos &&
-                (*metrics).accent_width() == 9.0,
+                (*metrics).accent_width.read() == 9.0,
             "MetricsView must expose the structured runtime snapshot semantically");
 
     // The accessible value is the painted text, and a paint that changes it
@@ -1609,12 +1663,12 @@ void test_button_disclosure_semantics() {
 
 void test_button_selected_state() {
     std::shared_ptr<Button> button = make_control<Button>(StableId("button.selected"), "Selected tab");
-    require(!(*button).selected() &&
+    require(!(*button).selected.read() &&
                 !has_semantic_state((*button).semantic_descriptor().states,
                                     SemanticState::selected),
             "ordinary Button must begin without selected state");
-    (*button).set_selected(true);
-    require((*button).selected() &&
+    (*button).selected = true;
+    require((*button).selected.read() &&
                 has_semantic_state((*button).semantic_descriptor().states,
                                    SemanticState::selected),
             "retained Button selected state must publish through semantics");
@@ -1737,11 +1791,11 @@ void test_drop_down_button_routes_pointer_keyboard_and_semantics() {
 
     bool width_rejected{};
     try {
-        (*split).set_drop_down_width(8.0);
+        (*split).drop_down_width = 8.0;
     } catch (const std::invalid_argument&) {
         width_rejected = true;
     }
-    require(width_rejected && (*split).drop_down_width() == 16.0,
+    require(width_rejected && (*split).drop_down_width.read() == 16.0,
             "drop-down width must reject invalid geometry without mutation");
 }
 
@@ -1750,7 +1804,7 @@ void test_bottom_disclosure_and_multiline_button_content() {
     (*button).text = "Clipboard image";
     (*button).font = {FontRole::control,24,400,false};
     const Size right_size = (*button).measure({500, 500});
-    (*button).set_drop_down_edge(DropDownButtonEdge::bottom);
+    (*button).drop_down_edge = DropDownButtonEdge::bottom;
     const Size bottom_size = (*button).measure({500, 500});
     require(bottom_size.width == right_size.width - 16 && bottom_size.height == right_size.height + 16,
         "bottom disclosure must move its content reservation to the vertical axis");
@@ -1877,11 +1931,187 @@ void test_image_list_state_density_ownership_and_button_layout() {
             "ImageList disposal must synchronously release every owned Window image");
 }
 
+// Whether set_image_index throws std::out_of_range.
+bool image_index_refused(ButtonBase& button, int index) {
+    try {
+        button.set_image_index(index);
+    } catch (const std::out_of_range&) {
+        return true;
+    }
+    return false;
+}
+
+// set_image_index: the index reads back and selects the ImageList entry
+// painted; it replaces a key (and a key replaces it); -1 shows no image;
+// an index below -1 or past the list is refused, keeping the old one.
+void test_button_image_index() {
+    std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("button.image-index"), "Index");
+    (*button).set_requested_bounds({0.0, 0.0, 150.0, 36.0});
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(button, Size{150.0, 36.0});
+    Window& window = *held_window;
+    std::shared_ptr<gui_forms::ImageList> images = std::make_shared<ImageList>(window, Size{16.0, 16.0});
+    // Two one-pixel images of different colours, so they are distinct
+    // resources whatever the window shares.
+    const std::array<std::byte, 4U> red_pixel{std::byte{0}, std::byte{0}, std::byte{255}, std::byte{255}};
+    const std::array<std::byte, 4U> blue_pixel{std::byte{255}, std::byte{0}, std::byte{0}, std::byte{255}};
+    const ImageId first = window.load_bgra32_premultiplied(1U, 1U, 4U, red_pixel).image;
+    const ImageId second = window.load_bgra32_premultiplied(1U, 1U, 4U, blue_pixel).image;
+    static_cast<void>((*images).add_image("first", first));
+    static_cast<void>((*images).add_image("second", second));
+    require(first.value != 0U && second.value != 0U && !(first == second) && (*images).count() == 2U,
+            "the fixture list holds two distinct images");
+    (*button).set_image_list(images);
+    (*button).set_image_key("first");
+    (*button).set_image_index(1);
+    window.perform_layout();
+    require((*button).image_index() == 1 && (*button).image_key().empty(),
+            "an index reads back and clears the key");
+    RecordingPainter indexed{};
+    (*button).on_paint(indexed, {0.0, 0.0, 150.0, 36.0});
+    require(indexed.images.size() == 1U && indexed.images.front() == second,
+            "the button paints the entry at its index");
+
+    require(image_index_refused(*button, -2) && image_index_refused(*button, 2) && (*button).image_index() == 1,
+            "an index below -1 or past the list is refused, keeping the old index");
+
+    (*button).set_image_key("first");
+    require((*button).image_index() == -1 && (*button).image_key() == "first", "a key replaces the index");
+    (*button).set_image_index(-1);
+    window.perform_layout();
+    RecordingPainter cleared{};
+    (*button).on_paint(cleared, {0.0, 0.0, 150.0, 36.0});
+    require((*button).image_index() == -1 && (*button).image_key().empty() && cleared.images.empty(),
+            "index -1 shows no image and clears the key");
+
+    // Without a list any nonnegative index is held for the list to come;
+    // assigning a list too short for it is refused.
+    (*button).set_image_list(nullptr);
+    (*button).set_image_index(5);
+    require((*button).image_index() == 5, "an index is held while no list is assigned");
+    bool short_list_refused = false;
+    try {
+        (*button).set_image_list(images);
+    } catch (const std::out_of_range&) {
+        short_list_refused = true;
+    }
+    require(short_list_refused && (*button).image_list() == nullptr,
+            "a list shorter than the held index is refused");
+}
+
 } // namespace
+
+void test_group_box_capability_hooks() {
+    std::shared_ptr<CountingGroupBox> group = make_control<CountingGroupBox>(StableId("hooks.group"), "Mode");
+    require((*group).text.read() == "Mode" && (*group).text_changes == 0,
+            "construction stores the caption through GroupBox's own hooks");
+    std::vector<std::string> captions;
+    const SubscriptionToken caption_token = (*group).text_changed().subscribe(
+        callbacks::PushBack<std::vector<std::string>, const std::string&>(captions));
+    (*group).text = "Options";
+    require((*group).text.read() == "Options" && (*group).text_changes == 1 && captions.size() == 1U &&
+                captions[0] == "Options",
+            "on_text_changed runs once per changed caption and its base raises text_changed");
+    (*group).text = "Options";
+    require((*group).text_changes == 1 && captions.size() == 1U,
+            "an equal caption changes nothing and raises nothing");
+    (*group).set_property_value("text", BindingValue{std::string("Table")});
+    require((*group).text.read() == "Table" && (*group).text_changes == 2 && captions.size() == 2U,
+            "a table write runs the same hooks");
+    const std::optional<PropertyDescriptor> text_descriptor = (*group).property_descriptor("text");
+    require(text_descriptor && (*text_descriptor).change_notifications,
+            "GroupBox text reports change notifications (TextChanged)");
+    static_cast<void>(caption_token);
+
+    (*group).use_mnemonic = false;
+    require(!(*group).use_mnemonic.read() && (*group).semantic_descriptor().access_key.empty(),
+            "without use_mnemonic the caption names no access key");
+    const FontSpec initial_font{FontRole::control, 12.0, 600, false, 0.24};
+    bool refused = false;
+    try {
+        (*group).font = FontSpec{FontRole::control, 0.0, 600, false};
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*group).font.read() == initial_font, "an invalid caption font is refused");
+
+    std::shared_ptr<ScaledGroupBox> scaled =
+        make_control<ScaledGroupBox>(StableId("hooks.scaled"), "Pad", Size{200.0, 100.0});
+    require((*scaled).design_size.read() == Size{200.0, 100.0}, "the constructor's design size is stored");
+    refused = false;
+    try {
+        (*scaled).design_size = Size{-1.0, 100.0};
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*scaled).design_size.read() == Size{200.0, 100.0}, "a negative design size is refused");
+    bool constructor_refused = false;
+    try {
+        static_cast<void>(make_control<ScaledPanel>(StableId("hooks.panel"), Size{0.0, 1.0}));
+    } catch (const std::invalid_argument&) {
+        constructor_refused = true;
+    }
+    require(constructor_refused, "a constructor's empty design size is refused");
+}
+
+void test_picture_box_property_capabilities() {
+    std::shared_ptr<CountingPictureBox> picture = make_control<CountingPictureBox>(StableId("hooks.picture"));
+    std::uint64_t changes{};
+    const SubscriptionToken changed = (*picture).image_changed().subscribe(
+        callbacks::IncrementCounter<std::uint64_t, ImageId>(changes));
+    require(!(*picture).should_serialize_property("image"), "an empty image is not serialized");
+    (*picture).image = ImageId{3U};
+    require(changes == 1U && (*picture).image.read() == ImageId{3U} && (*picture).should_serialize_property("image"),
+            "an image write raises image_changed and is serialized");
+    (*picture).image = ImageId{3U};
+    require(changes == 1U, "writing the current image raises nothing");
+    require((*picture).reset_property("image") && (*picture).image.read() == ImageId{} && changes == 2U &&
+                !(*picture).should_serialize_property("image"),
+            "the table reset clears the image through clear_image");
+    (*picture).set_property_value("image", BindingValue{ImageId{5U}});
+    require((*picture).image.read() == ImageId{5U} && changes == 3U, "a table image write runs the same hooks");
+
+    (*picture).size_mode = PictureBoxSizeMode::zoom;
+    require((*picture).size_mode.read() == PictureBoxSizeMode::zoom && (*picture).size_mode_changes == 1,
+            "a size mode write runs on_size_mode_changed");
+    (*picture).size_mode = PictureBoxSizeMode::zoom;
+    require((*picture).size_mode_changes == 1, "writing the current size mode runs nothing");
+
+    (*picture).image_opacity = 0.5;
+    bool refused = false;
+    try {
+        (*picture).image_opacity = 1.5;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*picture).image_opacity.read() == 0.5, "an opacity above one is refused");
+    static_cast<void>(changed);
+}
+
+void test_button_text_changed_override() {
+    std::vector<std::string> raised;
+    std::shared_ptr<MyButton> button = make_control<MyButton>(StableId("hooks.my-button"), "Run", raised);
+    const SubscriptionToken token = (*button).text_changed().subscribe(
+        callbacks::PushBack<std::vector<std::string>, const std::string&>(raised));
+    (*button).text = "Stop";
+    require((*button).seen_text.size() == 1U && (*button).seen_text[0] == "Stop",
+            "on_text_changed runs once, after the store");
+    require((*button).raised_before_base[0] == 0U && (*button).raised_after_base[0] == 1U &&
+                raised.size() == 1U && raised[0] == "Stop",
+            "the base on_text_changed raises text_changed with the stored text");
+    (*button).text = "Stop";
+    require((*button).seen_text.size() == 1U && raised.size() == 1U,
+            "an equal write calls no hook and raises nothing");
+    (*button).set_property_value("text", BindingValue{std::string("Pause")});
+    require((*button).seen_text.size() == 2U && (*button).seen_text[1] == "Pause" && raised.size() == 2U,
+            "a table write reaches the same override");
+    static_cast<void>(token);
+}
 
 int main() {
     try {
         test_public_controls_render_with_role_policy();
+        test_group_box_capability_hooks();
+        test_button_text_changed_override();
         test_button_pointer_and_keyboard_activation();
         test_button_focus_cue_tracks_input_modality();
         test_button_authored_state_recipes_are_owned_and_retained();
@@ -1904,11 +2134,13 @@ int main() {
         test_basic_control_layout_customization_is_bounded_and_atomic();
         test_label_inherits_theme_typography_until_explicitly_overridden();
         test_picture_box_modes_registry_and_semantics();
+        test_picture_box_property_capabilities();
         test_public_drawing_metrics_and_control_tag();
         test_button_disclosure_semantics();
         test_button_selected_state();
         test_drop_down_button_routes_pointer_keyboard_and_semantics();
         test_image_list_state_density_ownership_and_button_layout();
+        test_button_image_index();
         test_bottom_disclosure_and_multiline_button_content();
         std::cout << "gui_forms_basic_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;

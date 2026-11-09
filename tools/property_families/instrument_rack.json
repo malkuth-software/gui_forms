@@ -1,0 +1,111 @@
+{
+  "family": "InstrumentRack",
+  "step": "B6",
+  "declaring": "InstrumentRack",
+  "header": "include/gui_forms/controls/panel/instrument_rack/instrument_rack.hpp",
+  "source": "src/controls/panel/instrument_rack/instrument_rack.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/instrument_rack/instrument_rack_capabilities/instrument_rack_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [],
+  "properties": [
+    {
+      "name": "module_width",
+      "capability": "InstrumentRackModuleWidth",
+      "value": "double",
+      "initial": null,
+      "comment": "The preferred module width before text scaling; finite and positive (std::invalid_argument otherwise). A view onto the rack's layout state; a change re-lays out the modules.",
+      "getter": "module_width",
+      "setter": "set_module_width",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the rack's Impl; write_view keeps the refusal and re-lays out the modules"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "module_height",
+      "capability": "InstrumentRackModuleHeight",
+      "value": "double",
+      "initial": null,
+      "comment": "The module height before text scaling; finite and positive (std::invalid_argument otherwise). A view onto the rack's layout state; a change re-lays out the modules.",
+      "getter": "module_height",
+      "setter": "set_module_height",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the rack's Impl; write_view keeps the refusal and re-lays out the modules"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "rack_gap",
+      "capability": "InstrumentRackRackGap",
+      "value": "double",
+      "initial": null,
+      "comment": "The gap between modules before text scaling; finite and nonnegative (std::invalid_argument otherwise). A view onto the rack's layout state; a change re-lays out the modules.",
+      "getter": "rack_gap",
+      "setter": "set_rack_gap",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the rack's Impl; write_view keeps the refusal and re-lays out the modules"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "scroll_offset",
+      "capability": "InstrumentRackScrollOffset",
+      "value": "double",
+      "initial": null,
+      "comment": "The vertical scroll position, clamped to the content; a view, since revealing a module moves it. A non-finite offset throws std::invalid_argument.",
+      "getter": "scroll_offset",
+      "setter": "set_scroll_offset",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the rack's Impl, which reveal moves directly; write_view clamps and re-arranges the modules"
+      ],
+      "effects": null,
+      "storage": "view"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "modules",
+      "reason": "the model is replaced whole and validated as a set; collections stay methods"
+    },
+    {
+      "name": "action_content",
+      "reason": "structural slot with a minimum width (G10)"
+    }
+  ],
+  "test": {
+    "type": "InstrumentRack",
+    "include": "gui_forms/controls/panel/instrument_rack/instrument_rack.hpp"
+  }
+}

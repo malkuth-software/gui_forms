@@ -7,7 +7,7 @@ gui_forms::ChoiceGroup
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ChoiceGroup final : public Panel
+.. cpp:class:: ChoiceGroup final : public Panel, public ChoiceGroupCapabilities<ChoiceGroup>
 
    ``#include <gui_forms/controls/collections/choice_group.hpp>``
 
@@ -35,6 +35,22 @@ gui_forms::ChoiceGroup
 
    :Properties:
 
+      **presentation** : ``ChoiceGroupPresentation``, default ``ChoiceGroupPresentation::buttons``
+         How the choices are drawn. ``buttons`` is a row of separate buttons,
+         the chosen one drawn selected. ``segmented`` is a segmented control:
+         one track (part ``track``), the items as segments inside a 2-unit
+         inset, and a selection indicator (part ``selection``) behind the
+         chosen segment; the group then carries the custom state ``segmented``.
+         Selection, keyboard and semantics are the same in both. The indicator
+         is a keyed part, so the theme's engine may move it between segments,
+         and does not when motion is reduced.
+
+      **selected_index** : ``int``, default ``-1``
+         The index of the selected item, or -1 when nothing is selected. A value
+         below -1 or past the last item throws ``std::out_of_range``. While the
+         group is bound, the bound value's own validators are consulted too, and
+         an exception from them leaves both unchanged.
+
       **items** : ``std::span<const ChoiceItem>``
          The choices, in display order. Empty by default. Item IDs must be
          unique and every text valid UTF-8, or :cpp:func:`set_items <gui_forms::ChoiceGroup::set_items>` throws
@@ -47,19 +63,17 @@ gui_forms::ChoiceGroup
          otherwise becomes -1. Calling :cpp:func:`set_items <gui_forms::ChoiceGroup::set_items>` while a :cpp:func:`set_items <gui_forms::ChoiceGroup::set_items>` call is
          notifying throws ``std::logic_error``.
 
-      **selected_index** : ``int``, default ``-1``
-         The index of the selected item, or -1 when nothing is selected. A value
-         below -1 or past the last item throws ``std::out_of_range``. While the
-         group is bound, the bound value's own validators are consulted too, and
-         an exception from them leaves both unchanged.
+      **parts** : ``Parts``, read-only
+         The published part geometry: Panel's parts, then ``track`` and
+         ``selection``, which are absent in the buttons presentation (and the
+         selection while nothing is chosen).
 
    :Events:
 
       **changed** : ``Event<int>``
-         Raised after :cpp:func:`selected_index <gui_forms::ChoiceGroup::selected_index>` changes, by input, by the setter, by the
+         Raised after :cpp:member:`selected_index <gui_forms::ChoiceGroup::selected_index>` changes, by input, by the setter, by the
          bound :cpp:class:`Value <gui_forms::Value>`, or by :cpp:func:`set_items <gui_forms::ChoiceGroup::set_items>` clearing an index that no longer
-         exists. It carries the new index. It is the :cpp:func:`changed <gui_forms::ChoiceGroup::changed>` event of
-         :cpp:func:`selection <gui_forms::ChoiceGroup::selection>`.
+         exists. It carries the new index.
 
       **activated** : ``Event<int>``
          Raised when the user chooses an item: by a click, Space or Enter on it,
@@ -70,9 +84,9 @@ gui_forms::ChoiceGroup
 
    :Inherited:
 
-      From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`, :cpp:func:`parts <gui_forms::Panel::parts>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
+      From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -83,15 +97,15 @@ gui_forms::ChoiceGroup
       :widths: 35 65
 
       * - :cpp:func:`bind <gui_forms::ChoiceGroup::bind>`
-        - Keeps :cpp:func:`selected_index <gui_forms::ChoiceGroup::selected_index>` and an application ``Value<int>`` in step.
+        - Keeps :cpp:member:`selected_index <gui_forms::ChoiceGroup::selected_index>` and an application ``Value<int>`` in step.
       * - :cpp:func:`unbind <gui_forms::ChoiceGroup::unbind>`
         - Ends the binding.
-      * - :cpp:func:`selection <gui_forms::ChoiceGroup::selection>`
-        - The group's own ``Value<int>``, which holds :cpp:func:`selected_index <gui_forms::ChoiceGroup::selected_index>`.
       * - :cpp:func:`item <gui_forms::ChoiceGroup::item>`
         - The :cpp:class:`Button <gui_forms::Button>` of the item at an index, for visual recipes, typography and content layout.
       * - :cpp:func:`part <gui_forms::ChoiceGroup::part>`
         - ``part("item", index)`` returns the same control as :cpp:func:`item <gui_forms::ChoiceGroup::item>`; any other part name returns a null pointer.
+      * - :cpp:func:`choice_group_property_entries <gui_forms::ChoiceGroup::choice_group_property_entries>`
+        -  
 
    .. seealso::
 
@@ -165,7 +179,7 @@ gui_forms::ChoiceGroup
 
       void example() {
           ModeSwitch view;
-          (*view.modes).set_selected_index(1);     // shown is 1, choices is 0
+          (*view.modes).selected_index = 1;     // shown is 1, choices is 0
           (*view.modes).item(0).perform_click();   // shown is 0, choices is 1
       }
 
@@ -176,6 +190,24 @@ gui_forms::ChoiceGroup
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: ChoiceGroupPresentation presentation
+
+      How the choices are drawn. ``buttons`` is a row of separate buttons,
+      the chosen one drawn selected. ``segmented`` is a segmented control:
+      one track (part ``track``), the items as segments inside a 2-unit
+      inset, and a selection indicator (part ``selection``) behind the
+      chosen segment; the group then carries the custom state ``segmented``.
+      Selection, keyboard and semantics are the same in both. The indicator
+      is a keyed part, so the theme's engine may move it between segments,
+      and does not when motion is reduced.
+
+   .. cpp:member:: int selected_index
+
+      The index of the selected item, or -1 when nothing is selected. A value
+      below -1 or past the last item throws ``std::out_of_range``. While the
+      group is bound, the bound value's own validators are consulted too, and
+      an exception from them leaves both unchanged.
 
    .. cpp:function:: std::span<const ChoiceItem> items() const noexcept
 
@@ -194,26 +226,20 @@ gui_forms::ChoiceGroup
 
       Sets :cpp:func:`items <gui_forms::ChoiceGroup::items>`; see the property's description above.
 
-   .. cpp:function:: int selected_index() const noexcept
+   .. cpp:function:: Parts parts() const
 
-      The index of the selected item, or -1 when nothing is selected. A value
-      below -1 or past the last item throws ``std::out_of_range``. While the
-      group is bound, the bound value's own validators are consulted too, and
-      an exception from them leaves both unchanged.
-
-   .. cpp:function:: void set_selected_index(int index)
-
-      Sets :cpp:func:`selected_index <gui_forms::ChoiceGroup::selected_index>`; see the property's description above.
+      The published part geometry: Panel's parts, then ``track`` and
+      ``selection``, which are absent in the buttons presentation (and the
+      selection while nothing is chosen).
 
 
    .. rubric:: Events
 
    .. cpp:function:: Event<int>& changed() noexcept
 
-      Raised after :cpp:func:`selected_index <gui_forms::ChoiceGroup::selected_index>` changes, by input, by the setter, by the
+      Raised after :cpp:member:`selected_index <gui_forms::ChoiceGroup::selected_index>` changes, by input, by the setter, by the
       bound :cpp:class:`Value <gui_forms::Value>`, or by :cpp:func:`set_items <gui_forms::ChoiceGroup::set_items>` clearing an index that no longer
-      exists. It carries the new index. It is the :cpp:func:`changed <gui_forms::ChoiceGroup::changed>` event of
-      :cpp:func:`selection <gui_forms::ChoiceGroup::selection>`.
+      exists. It carries the new index.
 
    .. cpp:function:: Event<int>& activated() noexcept
 
@@ -228,7 +254,7 @@ gui_forms::ChoiceGroup
 
    .. cpp:function:: void bind(Value<int>& selection)
 
-      Keeps :cpp:func:`selected_index <gui_forms::ChoiceGroup::selected_index>` and an application ``Value<int>`` in step. The
+      Keeps :cpp:member:`selected_index <gui_forms::ChoiceGroup::selected_index>` and an application ``Value<int>`` in step. The
       value wins when the binding starts, so it must already be -1 or a valid
       index for the current items, or ``std::out_of_range`` is thrown. After
       that the user's choice updates the value, a change to the value updates
@@ -240,10 +266,6 @@ gui_forms::ChoiceGroup
    .. cpp:function:: void unbind() noexcept
 
       Ends the binding. The group keeps its current selection.
-
-   .. cpp:function:: Value<int>& selection() noexcept
-
-      The group's own ``Value<int>``, which holds :cpp:func:`selected_index <gui_forms::ChoiceGroup::selected_index>`.
 
    .. cpp:function:: Button& item(int index) const
 
@@ -257,6 +279,8 @@ gui_forms::ChoiceGroup
       ``part("item", index)`` returns the same control as :cpp:func:`item <gui_forms::ChoiceGroup::item>`; any other
       part name returns a null pointer.
 
+   .. cpp:function:: static const std::array<PropertyEntry, choice_group_property_count>& choice_group_property_entries() noexcept
+
 
    .. rubric:: Extension points
 
@@ -264,6 +288,8 @@ gui_forms::ChoiceGroup
 
       Gives each item button an equal share of the width, in one row at the
       full height.
+
+   .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
    .. cpp:function:: void on_key(KeyEvent& event) override
 
@@ -279,6 +305,18 @@ gui_forms::ChoiceGroup
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
+   .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*
+
+   .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
+
+      *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t choice_group_property_count
+
+      ChoiceGroup's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.

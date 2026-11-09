@@ -632,6 +632,44 @@ void families() {
     }
 }
 
+// The W-4 vocabulary (T4's answer to D8): the notice and badge families
+// and the search and severity marks are registered, a badge greys only when
+// disabled, and each new mark draws in the part's box in glyph ink.
+void w4_vocabulary(Control& control) {
+    require(control_visual_role_name(ControlVisualRole::notice) == "notice" &&
+                control_visual_role_name(ControlVisualRole::badge) == "badge",
+            "the W-4 families are registered as notice and badge");
+    require(part_mark_name(PartMark::search) == "search" && part_mark_name(PartMark::information) == "information" &&
+                part_mark_name(PartMark::warning) == "warning" && part_mark_name(PartMark::success) == "success",
+            "the W-4 marks are registered by name");
+    const std::shared_ptr<const Theme> theme = default_theme();
+    ControlVisualContext resting{};
+    ControlVisualContext lit{};
+    lit.surface = ControlSurfaceState::hot;
+    ControlVisualContext greyed{};
+    greyed.surface = ControlSurfaceState::disabled;
+    const ControlVisualRecipe& badge = (*theme).resolve(ControlVisualRole::badge, resting);
+    require((*theme).resolve(ControlVisualRole::badge, lit) == badge, "a badge has no hot look");
+    require(!((*theme).resolve(ControlVisualRole::badge, greyed) == badge), "a disabled badge greys");
+    const PartMark marks[] = {PartMark::search, PartMark::information, PartMark::warning, PartMark::success};
+    for (const PartMark mark : marks) {
+        RecordingPainter painter;
+        PartPaint part{};
+        part.role = PartRole::glyph;
+        part.mark = mark;
+        part.bounds = Rect{4.0, 6.0, 16.0, 16.0};
+        paint_part(painter, control, part);
+        require(!painter.operations.empty(), "a W-4 mark draws");
+        for (const Operation& operation : painter.operations) {
+            if (operation.kind == "save" || operation.kind == "restore" || operation.kind == "clip") continue;
+            require(operation.bounds.x >= 4.0 && operation.bounds.y >= 6.0 &&
+                        operation.bounds.x + operation.bounds.width <= 20.0 &&
+                        operation.bounds.y + operation.bounds.height <= 22.0,
+                    "a W-4 mark stays in its box");
+        }
+    }
+}
+
 } // namespace
 
 // A dotted focus ring (design language: the default theme's ring) is square
@@ -725,6 +763,7 @@ int main() {
     authored_colors(*control);
     control_colors();
     families();
+    w4_vocabulary(*control);
     pointed_faces(*control);
     std::cout << "by-role paint path: silent roles, surfaces, cues, marks, text, states, overlay shadow, "
                  "content colours, authored colours, control colours, families and pointed faces passed\n";

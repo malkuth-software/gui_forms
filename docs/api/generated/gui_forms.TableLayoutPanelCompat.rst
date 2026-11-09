@@ -7,7 +7,7 @@ gui_forms::TableLayoutPanelCompat
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: TableLayoutPanelCompat final : public ContainerControl, public TableCellCapability<TableLayoutPanelCompat>, public TableColumnSpanCapability<TableLayoutPanelCompat>, public TableRowSpanCapability<TableLayoutPanelCompat>
+.. cpp:class:: TableLayoutPanelCompat final : public ContainerControl, public TableCellCapability<TableLayoutPanelCompat>, public TableColumnSpanCapability<TableLayoutPanelCompat>, public TableRowSpanCapability<TableLayoutPanelCompat>, public TableLayoutPanelCompatCapabilities<TableLayoutPanelCompat>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
 
@@ -64,9 +64,23 @@ gui_forms::TableLayoutPanelCompat
          How many rows the child's cell spans, with the same rules as
          :cpp:member:`column_span <gui_forms::TableLayoutPanelCompat::column_span>`.
 
-      **spans** : ``std::span<const GridSpan>``, read-only
-         The anonymous spans, in the order they were made, each anchored at a
-         placed child's cell.
+      **grow_style** : ``TableLayoutGrowStyle``, default ``TableLayoutGrowStyle::add_rows``
+         What happens when a child does not fit the authored grid.
+         :cpp:enumerator:`TableLayoutGrowStyle::add_rows <gui_forms::TableLayoutGrowStyle::add_rows>` and :cpp:enumerator:`TableLayoutGrowStyle::add_columns <gui_forms::TableLayoutGrowStyle::add_columns>`
+         add tracks for the current layout, up to 64 per axis;
+         :cpp:enumerator:`TableLayoutGrowStyle::fixed_size <gui_forms::TableLayoutGrowStyle::fixed_size>` leaves the child out. The added
+         tracks use the ``auto_size`` style and do not change :cpp:member:`column_count <gui_forms::TableLayoutPanelCompat::column_count>` or
+         :cpp:member:`row_count <gui_forms::TableLayoutPanelCompat::row_count>`.
+
+      **cell_border_style** : ``TableCellBorderStyle``, default ``TableCellBorderStyle::none``
+         Lines drawn around and between the cells: none, a single line, or a
+         two-tone inset or outset line. Grid lines sit in the middle of the
+         :cpp:member:`track_spacing <gui_forms::TableLayoutPanelCompat::track_spacing>` gaps. Changing it does not affect layout.
+
+      **track_spacing** : ``Size``, default ``{0.0, 0.0}``
+         Space left between neighbouring columns (``width``) and rows (``height``),
+         but not outside the outer tracks. Each value must be finite and between
+         0 and 256.
 
       **column_count** : ``std::size_t``, default ``1``
          The number of authored column tracks, from 1 through 64. Out-of-range
@@ -76,25 +90,11 @@ gui_forms::TableLayoutPanelCompat
 
       **row_count** : ``std::size_t``, default ``1``
          The number of authored row tracks, from 1 through 64, with the same rules
-         as :cpp:func:`column_count <gui_forms::TableLayoutPanelCompat::column_count>`.
+         as :cpp:member:`column_count <gui_forms::TableLayoutPanelCompat::column_count>`.
 
-      **grow_style** : ``TableLayoutGrowStyle``, default ``TableLayoutGrowStyle::add_rows``
-         What happens when a child does not fit the authored grid.
-         :cpp:enumerator:`TableLayoutGrowStyle::add_rows <gui_forms::TableLayoutGrowStyle::add_rows>` and :cpp:enumerator:`TableLayoutGrowStyle::add_columns <gui_forms::TableLayoutGrowStyle::add_columns>`
-         add tracks for the current layout, up to 64 per axis;
-         :cpp:enumerator:`TableLayoutGrowStyle::fixed_size <gui_forms::TableLayoutGrowStyle::fixed_size>` leaves the child out. The added
-         tracks use the ``auto_size`` style and do not change :cpp:func:`column_count <gui_forms::TableLayoutPanelCompat::column_count>` or
-         :cpp:func:`row_count <gui_forms::TableLayoutPanelCompat::row_count>`.
-
-      **cell_border_style** : ``TableCellBorderStyle``, default ``TableCellBorderStyle::none``
-         Lines drawn around and between the cells: none, a single line, or a
-         two-tone inset or outset line. Grid lines sit in the middle of the
-         :cpp:func:`track_spacing <gui_forms::TableLayoutPanelCompat::track_spacing>` gaps. Changing it does not affect layout.
-
-      **track_spacing** : ``Size``, default ``{0.0, 0.0}``
-         Space left between neighbouring columns (``width``) and rows (``height``),
-         but not outside the outer tracks. Each value must be finite and between
-         0 and 256.
+      **spans** : ``std::span<const GridSpan>``, read-only
+         The anonymous spans, in the order they were made, each anchored at a
+         placed child's cell.
 
       **column_styles** : ``std::span<const TableLayoutStyle>``
          The size mode and size of each authored column, one per column. Set one
@@ -124,9 +124,9 @@ gui_forms::TableLayoutPanelCompat
 
    :Inherited:
 
-      From :cpp:class:`ContainerControl <gui_forms::ContainerControl>`: properties :cpp:func:`active_control <gui_forms::ContainerControl::active_control>`, :cpp:func:`auto_validate <gui_forms::ContainerControl::auto_validate>`, :cpp:func:`effective_auto_validate <gui_forms::ContainerControl::effective_auto_validate>`; events :cpp:func:`auto_validate_changed <gui_forms::ContainerControl::auto_validate_changed>`; methods :cpp:func:`clear_active_control <gui_forms::ContainerControl::clear_active_control>`, :cpp:func:`contains_descendant <gui_forms::ContainerControl::contains_descendant>`, :cpp:func:`request_active_control <gui_forms::ContainerControl::request_active_control>`, :cpp:func:`validate <gui_forms::ContainerControl::validate>`, :cpp:func:`validate_children <gui_forms::ContainerControl::validate_children>`.
+      From :cpp:class:`ContainerControl <gui_forms::ContainerControl>`: properties :cpp:member:`auto_validate <gui_forms::ContainerControl::auto_validate>`, :cpp:func:`active_control <gui_forms::ContainerControl::active_control>`, :cpp:func:`effective_auto_validate <gui_forms::ContainerControl::effective_auto_validate>`; events :cpp:func:`auto_validate_changed <gui_forms::ContainerControl::auto_validate_changed>`; methods :cpp:func:`clear_active_control <gui_forms::ContainerControl::clear_active_control>`, :cpp:func:`contains_descendant <gui_forms::ContainerControl::contains_descendant>`, :cpp:func:`request_active_control <gui_forms::ContainerControl::request_active_control>`, :cpp:func:`validate <gui_forms::ContainerControl::validate>`, :cpp:func:`validate_children <gui_forms::ContainerControl::validate_children>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -146,6 +146,8 @@ gui_forms::TableLayoutPanelCompat
         - Whether ``child`` has an explicit cell.
       * - :cpp:func:`control_from_position <gui_forms::TableLayoutPanelCompat::control_from_position>`
         - The visible child whose cell or span covers the given column and row, or null.
+      * - :cpp:func:`table_layout_panel_compat_property_entries <gui_forms::TableLayoutPanelCompat::table_layout_panel_compat_property_entries>`
+        -  
       * - :cpp:func:`set_column_style <gui_forms::TableLayoutPanelCompat::set_column_style>`
         - ``set_column_style(column, style)`` sets how one column is sized.
       * - :cpp:func:`set_row_style <gui_forms::TableLayoutPanelCompat::set_row_style>`
@@ -166,9 +168,9 @@ gui_forms::TableLayoutPanelCompat
 
    Each layout places children in two passes. First, children with an explicit
    cell take it, in child order; a child whose cells are already taken, or lie
-   outside a grid that :cpp:func:`grow_style <gui_forms::TableLayoutPanelCompat::grow_style>` cannot extend, is left out. Then the other
+   outside a grid that :cpp:member:`grow_style <gui_forms::TableLayoutPanelCompat::grow_style>` cannot extend, is left out. Then the other
    children fill the first free cell, scanning row by row (an automatic child
-   takes one cell: a span needs an explicit cell); when none is free, the table adds a row or a column as :cpp:func:`grow_style <gui_forms::TableLayoutPanelCompat::grow_style>`
+   takes one cell: a span needs an explicit cell); when none is free, the table adds a row or a column as :cpp:member:`grow_style <gui_forms::TableLayoutPanelCompat::grow_style>`
    allows. A child that is left out gets an empty slot at the top-left corner
    and :cpp:func:`layout_overflowed <gui_forms::TableLayoutPanelCompat::layout_overflowed>` becomes true. Hidden children take no cell, and the
    added tracks disappear again when they are no longer needed.
@@ -201,11 +203,11 @@ gui_forms::TableLayoutPanelCompat
 
       std::shared_ptr<gf::TableLayoutPanelCompat> form =
           gf::make_control<gf::TableLayoutPanelCompat>(gf::StableId("form"));
-      (*form).set_column_count(2U);
-      (*form).set_row_count(2U);
+      (*form).column_count = 2U;
+      (*form).row_count = 2U;
       (*form).set_column_style(0U, {gf::TableSizeMode::auto_size, 0.0});
       (*form).set_column_style(1U, {gf::TableSizeMode::percent, 1.0});
-      (*form).set_track_spacing({8.0, 4.0});
+      (*form).track_spacing = {8.0, 4.0};
 
       std::shared_ptr<gf::Label> name_label =
           gf::make_control<gf::Label>(gf::StableId("form.name.label"), "Name:");
@@ -236,9 +238,9 @@ gui_forms::TableLayoutPanelCompat
 
       std::shared_ptr<gf::TableLayoutPanelCompat> grid =
           gf::make_control<gf::TableLayoutPanelCompat>(gf::StableId("grid"));
-      (*grid).set_column_count(2U);
-      (*grid).set_row_count(2U);
-      (*grid).set_grow_style(gf::TableLayoutGrowStyle::fixed_size);
+      (*grid).column_count = 2U;
+      (*grid).row_count = 2U;
+      (*grid).grow_style = gf::TableLayoutGrowStyle::fixed_size;
 
       std::shared_ptr<gf::Label> heading =
           gf::make_control<gf::Label>(gf::StableId("grid.heading"), "Totals");
@@ -298,63 +300,43 @@ gui_forms::TableLayoutPanelCompat
       How many rows the child's cell spans, with the same rules as
       :cpp:member:`column_span <gui_forms::TableLayoutPanelCompat::column_span>`.
 
-   .. cpp:function:: std::span<const GridSpan> spans() const& noexcept
+   .. cpp:member:: TableLayoutGrowStyle grow_style
 
-      The anonymous spans, in the order they were made, each anchored at a
-      placed child's cell.
+      What happens when a child does not fit the authored grid.
+      :cpp:enumerator:`TableLayoutGrowStyle::add_rows <gui_forms::TableLayoutGrowStyle::add_rows>` and :cpp:enumerator:`TableLayoutGrowStyle::add_columns <gui_forms::TableLayoutGrowStyle::add_columns>`
+      add tracks for the current layout, up to 64 per axis;
+      :cpp:enumerator:`TableLayoutGrowStyle::fixed_size <gui_forms::TableLayoutGrowStyle::fixed_size>` leaves the child out. The added
+      tracks use the ``auto_size`` style and do not change :cpp:member:`column_count <gui_forms::TableLayoutPanelCompat::column_count>` or
+      :cpp:member:`row_count <gui_forms::TableLayoutPanelCompat::row_count>`.
 
-   .. cpp:function:: std::size_t column_count() const noexcept
+   .. cpp:member:: TableCellBorderStyle cell_border_style
+
+      Lines drawn around and between the cells: none, a single line, or a
+      two-tone inset or outset line. Grid lines sit in the middle of the
+      :cpp:member:`track_spacing <gui_forms::TableLayoutPanelCompat::track_spacing>` gaps. Changing it does not affect layout.
+
+   .. cpp:member:: Size track_spacing
+
+      Space left between neighbouring columns (``width``) and rows (``height``),
+      but not outside the outer tracks. Each value must be finite and between
+      0 and 256.
+
+   .. cpp:member:: std::size_t column_count
 
       The number of authored column tracks, from 1 through 64. Out-of-range
       values throw ``std::out_of_range``. Growing the count adds columns with the
       default :cpp:enumerator:`TableSizeMode::auto_size <gui_forms::TableSizeMode::auto_size>` style; shrinking it drops the styles
       of the removed columns.
 
-   .. cpp:function:: void set_column_count(std::size_t count)
-
-      Sets :cpp:func:`column_count <gui_forms::TableLayoutPanelCompat::column_count>`; see the property's description above.
-
-   .. cpp:function:: std::size_t row_count() const noexcept
+   .. cpp:member:: std::size_t row_count
 
       The number of authored row tracks, from 1 through 64, with the same rules
-      as :cpp:func:`column_count <gui_forms::TableLayoutPanelCompat::column_count>`.
+      as :cpp:member:`column_count <gui_forms::TableLayoutPanelCompat::column_count>`.
 
-   .. cpp:function:: void set_row_count(std::size_t count)
+   .. cpp:function:: std::span<const GridSpan> spans() const& noexcept
 
-      Sets :cpp:func:`row_count <gui_forms::TableLayoutPanelCompat::row_count>`; see the property's description above.
-
-   .. cpp:function:: TableLayoutGrowStyle grow_style() const noexcept
-
-      What happens when a child does not fit the authored grid.
-      :cpp:enumerator:`TableLayoutGrowStyle::add_rows <gui_forms::TableLayoutGrowStyle::add_rows>` and :cpp:enumerator:`TableLayoutGrowStyle::add_columns <gui_forms::TableLayoutGrowStyle::add_columns>`
-      add tracks for the current layout, up to 64 per axis;
-      :cpp:enumerator:`TableLayoutGrowStyle::fixed_size <gui_forms::TableLayoutGrowStyle::fixed_size>` leaves the child out. The added
-      tracks use the ``auto_size`` style and do not change :cpp:func:`column_count <gui_forms::TableLayoutPanelCompat::column_count>` or
-      :cpp:func:`row_count <gui_forms::TableLayoutPanelCompat::row_count>`.
-
-   .. cpp:function:: void set_grow_style(TableLayoutGrowStyle style)
-
-      Sets :cpp:func:`grow_style <gui_forms::TableLayoutPanelCompat::grow_style>`; see the property's description above.
-
-   .. cpp:function:: TableCellBorderStyle cell_border_style() const noexcept
-
-      Lines drawn around and between the cells: none, a single line, or a
-      two-tone inset or outset line. Grid lines sit in the middle of the
-      :cpp:func:`track_spacing <gui_forms::TableLayoutPanelCompat::track_spacing>` gaps. Changing it does not affect layout.
-
-   .. cpp:function:: void set_cell_border_style(TableCellBorderStyle style)
-
-      Sets :cpp:func:`cell_border_style <gui_forms::TableLayoutPanelCompat::cell_border_style>`; see the property's description above.
-
-   .. cpp:function:: Size track_spacing() const noexcept
-
-      Space left between neighbouring columns (``width``) and rows (``height``),
-      but not outside the outer tracks. Each value must be finite and between
-      0 and 256.
-
-   .. cpp:function:: void set_track_spacing(Size spacing)
-
-      Sets :cpp:func:`track_spacing <gui_forms::TableLayoutPanelCompat::track_spacing>`; see the property's description above.
+      The anonymous spans, in the order they were made, each anchored at a
+      placed child's cell.
 
    .. cpp:function:: std::span<const TableLayoutStyle> column_styles() const noexcept
 
@@ -422,6 +404,8 @@ gui_forms::TableLayoutPanelCompat
       The visible child whose cell or span covers the given column and row, or
       null. Reading it brings the layout up to date first.
 
+   .. cpp:function:: static const std::array<PropertyEntry, table_layout_panel_compat_property_count>& table_layout_panel_compat_property_entries() noexcept
+
    .. cpp:function:: void set_column_style(std::size_t column, TableLayoutStyle style)
 
       ``set_column_style(column, style)`` sets how one column is sized.
@@ -434,7 +418,7 @@ gui_forms::TableLayoutPanelCompat
       columns, so sizes of 1 and 2 split that width one third to two thirds; its
       content does not widen it. The size must be finite and nonnegative, and
       positive for ``percent``, or ``std::invalid_argument`` is thrown; a column
-      index at or beyond :cpp:func:`column_count <gui_forms::TableLayoutPanelCompat::column_count>` throws ``std::out_of_range``.
+      index at or beyond :cpp:member:`column_count <gui_forms::TableLayoutPanelCompat::column_count>` throws ``std::out_of_range``.
 
    .. cpp:function:: void set_row_style(std::size_t row, TableLayoutStyle style)
 
@@ -463,6 +447,12 @@ gui_forms::TableLayoutPanelCompat
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
    .. cpp:member:: constexpr std::size_t table_child_property_count
 
       The child properties it provides, the cell first (a span needs it). Default: ``3U``.
+
+   .. cpp:member:: constexpr std::size_t table_layout_panel_compat_property_count
+
+      TableLayoutPanelCompat's property table: Control's entries, then its own. Default: ``Control::control_property_count + 7U``.

@@ -226,7 +226,7 @@ RichTextFormat RichTextBox::selection_format() const {
     RichTextFormat format{};
     const TextSelection selection = (*editing_).selection();
     const TextStore& store = (*editing_).store();
-    const std::string_view text = store.utf8();
+    const std::string_view source = store.utf8();
     if (selection.empty()) {
         if (selection.caret.value() > 0U) {
             const Utf8Offset before = store.previous_grapheme_boundary(selection.caret);
@@ -269,7 +269,7 @@ RichTextFormat RichTextBox::selection_format() const {
     bool same_level = true;
     for (std::size_t line = lines.first; line <= lines.last; ++line) {
         const Utf8Range range = store.line_content_range(LineIndex(line));
-        const std::string_view content = text.substr(range.start.value(), range.end.value() - range.start.value());
+        const std::string_view content = source.substr(range.start.value(), range.end.value() - range.start.value());
         const LinePrefix prefix = parse_prefix(content);
         const bool blank = prefix.body == content.size() && prefix.kind == ListMarkerKind::none &&
                            prefix.heading_level == 0U;
@@ -327,19 +327,19 @@ struct OffsetCarrier final {
 
 bool RichTextBox::apply_changes(const std::vector<SourceChange>& changes, std::optional<TextSelection> selection) {
     require_mutable();
-    if (changes.empty() || read_only()) return false;
-    const std::string_view text = (*editing_).text();
+    if (changes.empty() || read_only.read()) return false;
+    const std::string_view source = (*editing_).text();
     const std::size_t region_start = changes.front().start;
     const std::size_t region_end = changes.back().end;
     std::string replacement{};
     std::size_t cursor = region_start;
     for (const SourceChange& change : changes) {
-        replacement.append(text.substr(cursor, change.start - cursor));
+        replacement.append(source.substr(cursor, change.start - cursor));
         replacement.append(change.text);
         cursor = change.end;
     }
-    replacement.append(text.substr(cursor, region_end - cursor));
-    if (replacement == text.substr(region_start, region_end - region_start)) return false;
+    replacement.append(source.substr(cursor, region_end - cursor));
+    if (replacement == source.substr(region_start, region_end - region_start)) return false;
     TextSelection next{};
     if (selection) {
         next = *selection;
@@ -371,18 +371,18 @@ bool RichTextBox::apply_changes(const std::vector<SourceChange>& changes, std::o
 
 bool RichTextBox::toggle_wrap(std::span<const std::string_view> delimiters) {
     require_mutable();
-    if (read_only()) return false;
+    if (read_only.read()) return false;
     const TextSelection selection = (*editing_).selection();
     const TextStore& store = (*editing_).store();
-    const std::string_view text = store.utf8();
+    const std::string_view source = store.utf8();
     const std::string_view written = delimiters.front();
     std::vector<SourceChange> changes{};
     if (selection.empty()) {
         const std::size_t caret = selection.caret.value();
         for (const std::string_view delimiter : delimiters) {
             const std::size_t length = delimiter.size();
-            const bool open = caret >= length && text.substr(caret - length, length) == delimiter;
-            const bool close = text.substr(caret, length) == delimiter;
+            const bool open = caret >= length && source.substr(caret - length, length) == delimiter;
+            const bool close = source.substr(caret, length) == delimiter;
             if (open && close) {
                 changes.push_back({.start = caret - length, .end = caret, .text = {}});
                 changes.push_back({.start = caret, .end = caret + length, .text = {}});
@@ -406,25 +406,25 @@ bool RichTextBox::toggle_wrap(std::span<const std::string_view> delimiters) {
         const Utf8Range range = store.line_content_range(LineIndex(line));
         const std::size_t line_start = range.start.value();
         const std::size_t line_end = range.end.value();
-        const LinePrefix prefix = parse_prefix(text.substr(line_start, line_end - line_start));
+        const LinePrefix prefix = parse_prefix(source.substr(line_start, line_end - line_start));
         std::size_t start = std::max(selection.start().value(), line_start + prefix.body);
         std::size_t end = std::min(selection.end().value(), line_end);
-        while (start < end && is_blank(text[start])) ++start;
-        while (end > start && is_blank(text[end - 1U])) --end;
+        while (start < end && is_blank(source[start])) ++start;
+        while (end > start && is_blank(source[end - 1U])) --end;
         if (start >= end) continue;
         WrappedRange wrapped{.start = start, .end = end};
         for (std::size_t index = 0U; index < delimiters.size(); ++index) {
             const std::string_view delimiter = delimiters[index];
             const char character = delimiter.front();
-            const std::size_t outside_before = run_before(text, start, line_start, character);
-            const std::size_t outside_after = run_after(text, end, line_end, character);
+            const std::size_t outside_before = run_before(source, start, line_start, character);
+            const std::size_t outside_after = run_after(source, end, line_end, character);
             if (run_matches(delimiter, outside_before) && run_matches(delimiter, outside_after)) {
                 wrapped.wrapping = Wrapping::outside;
                 wrapped.delimiter = index;
                 break;
             }
-            const std::size_t inside_start = run_after(text, start, end, character);
-            const std::size_t inside_end = run_before(text, end, start, character);
+            const std::size_t inside_start = run_after(source, start, end, character);
+            const std::size_t inside_end = run_before(source, end, start, character);
             const bool room = end - start > 2U * delimiter.size();
             if (room && run_matches(delimiter, inside_start) && run_matches(delimiter, inside_end)) {
                 wrapped.wrapping = Wrapping::inside;
@@ -476,7 +476,7 @@ bool RichTextBox::toggle_code() {
 
 bool RichTextBox::insert_link() {
     require_mutable();
-    if (read_only()) return false;
+    if (read_only.read()) return false;
     const TextSelection selection = (*editing_).selection();
     std::vector<SourceChange> changes{};
     if (selection.empty()) {
@@ -501,9 +501,9 @@ bool RichTextBox::insert_link() {
 bool RichTextBox::set_heading_level(std::size_t level) {
     require_mutable();
     if (level > 6U) throw std::invalid_argument("RichTextBox heading level must be 0 to 6");
-    if (read_only()) return false;
+    if (read_only.read()) return false;
     const TextStore& store = (*editing_).store();
-    const std::string_view text = store.utf8();
+    const std::string_view source = store.utf8();
     const LineSpan lines = touched_lines();
     std::string marker{};
     if (level > 0U) {
@@ -514,7 +514,7 @@ bool RichTextBox::set_heading_level(std::size_t level) {
     for (std::size_t line = lines.first; line <= lines.last; ++line) {
         const Utf8Range range = store.line_content_range(LineIndex(line));
         const std::size_t line_start = range.start.value();
-        const std::string_view content = text.substr(line_start, range.end.value() - line_start);
+        const std::string_view content = source.substr(line_start, range.end.value() - line_start);
         const LinePrefix prefix = parse_prefix(content);
         const bool blank = prefix.body == content.size();
         if (blank && lines.first != lines.last) continue;
@@ -527,7 +527,7 @@ bool RichTextBox::set_heading_level(std::size_t level) {
 
 bool RichTextBox::toggle_list(bool numbered) {
     require_mutable();
-    if (read_only()) return false;
+    if (read_only.read()) return false;
     const TextStore& store = (*editing_).store();
     const std::string_view text = store.utf8();
     const LineSpan lines = touched_lines();
@@ -577,7 +577,7 @@ bool RichTextBox::toggle_numbered_list() {
 
 bool RichTextBox::continue_list() {
     const TextSelection selection = (*editing_).selection();
-    if (!selection.empty() || read_only()) return false;
+    if (!selection.empty() || read_only.read()) return false;
     const TextStore& store = (*editing_).store();
     const std::string_view text = store.utf8();
     const std::size_t line = line_of(selection.caret);

@@ -471,7 +471,7 @@ void refusals() {
 void gallery_columns() {
     FixedMetrics metrics;
     std::shared_ptr<RibbonGallery> gallery = make_control<RibbonGallery>(StableId("styles"));
-    (*gallery).set_item_size({40.0, 20.0});
+    (*gallery).item_size = Size{40.0, 20.0};
     (*gallery).set_column_range(3U, 6U);
     std::vector<RibbonGalleryItem> items;
     for (int index = 0; index < 12; ++index) {
@@ -503,7 +503,7 @@ void gallery_columns() {
     for (const RibbonLadderEntry& entry : ladder) {
         resize(fixture, {entry.width, 300.0});
         if (entry.groups[0].size == RibbonGroupSize::collapsed) continue;
-        require((*gallery).columns() == entry.groups[0].gallery_columns,
+        require((*gallery).columns.read() == entry.groups[0].gallery_columns,
                 "the ribbon sets the gallery's columns to its ladder entry's");
         const Ribbon::CommandItem* placed = nullptr;
         const std::vector<Ribbon::CommandItem> commands = ribbon.realized_commands();
@@ -826,7 +826,7 @@ void hide_rule() {
         require(ribbon.measure({900.0, probe.height}).height == (probe.hidden ? 24.0 : 112.0),
                 "a hidden plane gives its height to the document area");
     }
-    ribbon.set_document_minimum_height(100.0);
+    ribbon.document_minimum_height = 100.0;
     const Probe declared[] = {{212.0, false}, {211.0, true}, {219.0, true}, {219.5, true},
                               {220.0, false}, {212.0, false}, {150.0, true}, {400.0, false}};
     for (const Probe& probe : declared) {
@@ -838,11 +838,11 @@ void hide_rule() {
     require(!ribbon.plane_hidden() && ribbon.scrolling(), "the width never hides the plane");
     bool threw = false;
     try {
-        ribbon.set_document_minimum_height(-1.0);
+        ribbon.document_minimum_height = -1.0;
     } catch (const std::invalid_argument&) {
         threw = true;
     }
-    require(threw && ribbon.document_minimum_height() == 100.0, "a negative minimum is refused");
+    require(threw && ribbon.document_minimum_height.read() == 100.0, "a negative minimum is refused");
 
     // At text scale 1.5 the ribbon is 168 units tall, and the threshold moves.
     FixedMetrics larger_metrics;

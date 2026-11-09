@@ -30,12 +30,12 @@ void test_typography_and_inspection(gui_forms::Window& window) {
     require(heading && wrapped && inspector && overlay && overlay_box && overlay_toggle &&
                 readout,
             "typography page must retain its specimens, inspector, overlay and policy");
-    require((*heading).text() == "CONTROL FACE · GALLERY HEADING" &&
-                (*heading).font().weight == 700 && (*heading).diagnostics_visible() &&
-                (*wrapped).wrap_text(),
+    require((*heading).text.read() == "CONTROL FACE · GALLERY HEADING" &&
+                (*heading).font.read().weight == 700 && (*heading).diagnostics_visible.read() &&
+                (*wrapped).wrap_text.read(),
             "specimens must carry their authored runs, fonts and wrapping");
-    require((*inspector).target_stable_id() == "gallery.typography.specimen.0" &&
-                (*overlay).target_stable_id() == "gallery.typography.specimen.0" &&
+    require((*inspector).target_stable_id.read() == "gallery.typography.specimen.0" &&
+                (*overlay).target_stable_id.read() == "gallery.typography.specimen.0" &&
                 !(*overlay).visible.read(),
             "the inspector and overlay must start on the heading specimen, overlay hidden");
     const std::string semantics = window.semantic_snapshot().to_json();
@@ -49,37 +49,37 @@ void test_typography_and_inspection(gui_forms::Window& window) {
     require((*overlay_box).command_connected() && (*overlay_toggle).command_connected(),
             "overlay controls must bind the page's checkable Command");
     click(window, overlay_box);
-    require((*overlay).visible.read() && (*overlay_box).checked(),
+    require((*overlay).visible.read() && (*overlay_box).checked.read(),
             "checking the overlay box must show the overlay through the Command");
     click(window, overlay_toggle);
-    require(!(*overlay).visible.read() && !(*overlay_box).checked(),
+    require(!(*overlay).visible.read() && !(*overlay_box).checked.read(),
             "the shared Command must project the button's flip back to the check box");
     click(window, overlay_toggle);
-    require((*overlay).visible.read() && (*overlay_box).checked(),
+    require((*overlay).visible.read() && (*overlay_box).checked.read(),
             "a second flip must show the overlay and re-check the box");
 
     // The ChoiceGroup binds the target Value; selecting an item retargets
     // both the view and the overlay.
     click(window, window.find("gallery.typography.target.item.2"));
-    require((*inspector).target_stable_id() == "gallery.typography.specimen.2" &&
-                (*overlay).target_stable_id() == "gallery.typography.specimen.2" &&
-                (*readout).text().find("gallery.typography.specimen.2") != std::string::npos,
+    require((*inspector).target_stable_id.read() == "gallery.typography.specimen.2" &&
+                (*overlay).target_stable_id.read() == "gallery.typography.specimen.2" &&
+                (*readout).text.read().find("gallery.typography.specimen.2") != std::string::npos,
             "choosing a target must retarget the inspector view and overlay");
     const std::shared_ptr<gui_forms::ChoiceGroup> target =
         std::dynamic_pointer_cast<ChoiceGroup>(window.find("gallery.typography.target"));
-    require(target && (*target).selected_index() == 2,
+    require(target && (*target).selected_index.read() == 2,
             "the ChoiceGroup must report the bound selection");
 
     // Bound Values: the diagnostics check box and the size TrackBar change
     // specimen state through state events, with no input event required.
     click(window, window.find("gallery.typography.diagnostics"));
-    require(!(*heading).diagnostics_visible() && !(*wrapped).diagnostics_visible(),
+    require(!(*heading).diagnostics_visible.read() && !(*wrapped).diagnostics_visible.read(),
             "the diagnostics Value must hide every specimen's adornments");
     const std::shared_ptr<gui_forms::TrackBar> size =
         std::dynamic_pointer_cast<TrackBar>(window.find("gallery.typography.size"));
-    require(size && (*size).value() == 14.0, "the size TrackBar must start at the Value");
-    (*size).set_value(22.0);
-    require((*wrapped).font().size == 22.0,
+    require(size && (*size).value.read() == 14.0, "the size TrackBar must start at the Value");
+    (*size).value = 22.0;
+    require((*wrapped).font.read().size == 22.0,
             "a size state change must rewrite the wrapped specimen's FontSpec");
 }
 

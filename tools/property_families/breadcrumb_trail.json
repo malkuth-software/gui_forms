@@ -1,0 +1,131 @@
+{
+  "family": "BreadcrumbTrail",
+  "step": "B6",
+  "declaring": "BreadcrumbTrail",
+  "header": "include/gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp",
+  "source": "src/controls/panel/breadcrumb_trail/breadcrumb_trail.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp",
+  "base": "Panel",
+  "shared": [
+    "FontCapability"
+  ],
+  "includes": [
+    "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_values/breadcrumb_trail_values.hpp",
+    "gui_forms/types.hpp"
+  ],
+  "properties": [
+    {
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::control, 10.5, 400, false",
+      "comment": "The segments' and the path editor's font (Font). Throws std::invalid_argument for an invalid FontSpec; any write marks the font as set from code. A change re-lays out the segments and passes the font to the editor.",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": null,
+      "field": "font_",
+      "event": null,
+      "on_changed": true,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "shared FontCapability<BreadcrumbTrail>; prepare validates and marks the font as code's; written gives the editor the font and re-lays out"
+      ],
+      "effects": null,
+      "sample": "FontSpec{FontRole::control, 12.0, 400, false}"
+    },
+    {
+      "name": "appearance",
+      "capability": "BreadcrumbTrailAppearance",
+      "value": "BreadcrumbAppearance",
+      "initial": "BreadcrumbAppearance::plain",
+      "comment": "Whether the segments are drawn plain or as raised arrows. An undeclared value throws std::invalid_argument; a change re-lays out the segments.",
+      "getter": "appearance",
+      "setter": "set_appearance",
+      "clear": null,
+      "field": "appearance_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare validates; written re-lays out and keeps the active segment"
+      ],
+      "effects": null,
+      "sample": "BreadcrumbAppearance::raised"
+    },
+    {
+      "name": "active_id",
+      "capability": "BreadcrumbTrailActiveId",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The stable ID of the keyboard-active segment, the overflow or the edit button, or empty; a view, since keyboard, pointer and semantic actions move it. An ID not in the model throws std::out_of_range.",
+      "getter": "active_id",
+      "setter": "set_active_id",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto active_id_, which navigation moves directly; write_view validates and keeps the active segment visible"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "editing",
+      "capability": "BreadcrumbTrailEditing",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the exact-path editor replaces the segments. Ending an edit withdraws tab completion. begin_edit fills the editor and turns it on.",
+      "getter": "editing",
+      "setter": "set_editing",
+      "clear": null,
+      "field": "editing_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written shows or hides the editor and withdraws tab completion when editing ends"
+      ],
+      "effects": null
+    },
+    {
+      "name": "tab_completion_available",
+      "capability": "BreadcrumbTrailTabCompletionAvailable",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether Tab in the path editor requests completion (edit_completion_requested). It holds only while editing; a write outside an edit stores false.",
+      "getter": "tab_completion_available",
+      "setter": "set_tab_completion_available",
+      "clear": null,
+      "field": "tab_completion_available_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare coerces the value to false outside an edit"
+      ],
+      "effects": null
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "segments",
+      "reason": "the model is replaced whole and validated as a set; stays a method beside its hidden_segment_ids projection"
+    }
+  ],
+  "test": {
+    "type": "BreadcrumbTrail",
+    "include": "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
+  }
+}

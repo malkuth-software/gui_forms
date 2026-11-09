@@ -6,8 +6,8 @@ name: Code integrity
 # are listed apart; the Skia paths reviews.json excludes are not read. The full
 # report is kept as an artifact.
 #
-# A text scan of include/, src/ and stx_skia/ on one Linux host: no build is
-# needed. stx_skia/ is read as review candidates like the rest (owner, E1).
+# A text scan of include/ and src/ on one Linux host: no build is needed.
+# stx_skia/ moved to the stx repository on 2026-11-08 and is scanned there.
 on:
   pull_request:
   merge_group:
@@ -29,8 +29,8 @@ jobs:
           python-version: '3.12'
       - name: Test the checker
         run: python3 -B -m unittest discover -s code_integrity_checker -p test_check.py
-      - name: Check include, src and stx_skia
-        run: python3 -B code_integrity_checker/check.py include src stx_skia --gate --json build/code-integrity.json
+      - name: Check include and src
+        run: python3 -B code_integrity_checker/check.py include src --gate --json build/code-integrity.json
       - name: Keep the report
         if: always()
         uses: actions/upload-artifact@v4

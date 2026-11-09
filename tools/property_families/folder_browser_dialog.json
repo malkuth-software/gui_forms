@@ -1,0 +1,88 @@
+{
+  "family": "FolderBrowserDialog",
+  "step": "B9",
+  "declaring": "FolderBrowserDialog",
+  "header": "include/gui_forms/components/folder_browser_dialog/folder_browser_dialog.hpp",
+  "source": "src/controls/folder_browser_dialog/folder_browser_dialog.cpp",
+  "capabilities_header": "include/gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp",
+  "shared": [],
+  "includes": [],
+  "mutation_check": null,
+  "properties": [
+    {
+      "name": "description",
+      "capability": "FolderBrowserDialogDescription",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The text the dialog shows the user: above the tree on Windows, as the title elsewhere. Empty gives the host's own. Valid UTF-8 without NUL (std::invalid_argument).",
+      "getter": "description",
+      "setter": "set_description",
+      "clear": null,
+      "field": "description_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "require_dialog_text(incoming, \"FolderBrowserDialog description must be valid UTF-8 without NUL\");"
+      ],
+      "sample": "std::string{\"Sample\"}"
+    },
+    {
+      "name": "initial_directory",
+      "capability": "FolderBrowserDialogInitialDirectory",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The folder the dialog starts in when no folder is selected; empty lets the host choose. Valid UTF-8 without NUL (std::invalid_argument).",
+      "getter": "initial_directory",
+      "setter": "set_initial_directory",
+      "clear": null,
+      "field": "initial_directory_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "require_dialog_text(incoming, \"FolderBrowserDialog initial directory must be valid UTF-8 without NUL\");"
+      ],
+      "sample": "std::string{\"Sample\"}"
+    },
+    {
+      "name": "selected_path",
+      "capability": "FolderBrowserDialogSelectedPath",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The chosen folder, or empty. A folder set here before the dialog is shown is the one it starts in; an accepted show_dialog moves it. Valid UTF-8 without NUL (std::invalid_argument).",
+      "getter": "selected_path",
+      "setter": "set_selected_path",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto selected_path_, which show_dialog moves; write_view validates"
+      ],
+      "effects": null,
+      "storage": "view"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "status",
+      "reason": "the host's answer to the last show_dialog; read-only"
+    },
+    {
+      "name": "reset",
+      "reason": "restores every setting; a method writing each cell"
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 #include "gui_forms/controls/button_base/button/button.hpp"
-#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -27,76 +27,13 @@ std::shared_ptr<const PropertyEnumDescriptor> visual_style_enum() {
 } // namespace
 
 Button::Button(StableId stable_id, std::string text)
-    : ButtonBase(std::move(stable_id), std::move(text)) {
-    PropertyDescriptor visual_style;
-    visual_style.name = "visual_style";
-    visual_style.kind = BindingValueKind::enumeration;
-    visual_style.category = "Appearance";
-    visual_style.description = "Standard, flat, accent or command button.";
-    visual_style.default_value = BindingValue{PropertyEnumValue{"button_visual_style", "standard", 0}};
-    visual_style.invalidation_effects = Dirty::paint | Dirty::semantics;
-    visual_style.bindable = false;
-    visual_style.enumeration = visual_style_enum();
-    define_bindable_property({
-        std::move(visual_style),
-        detail::EnumerationPropertyGetter<Button, ButtonVisualStyle>(*this, &Button::visual_style,
-                                                                     visual_style_enum()),
-        detail::EnumerationPropertySetter<Button, ButtonVisualStyle>(*this, &Button::set_visual_style),
-        {}, {}, {}});
+    : ButtonBase(std::move(stable_id), std::move(text)) {}
 
-    PropertyDescriptor flat_border_width;
-    flat_border_width.name = "flat_border_width";
-    flat_border_width.kind = BindingValueKind::number;
-    flat_border_width.category = "Appearance";
-    flat_border_width.description = "Border width in logical pixels of a flat button.";
-    flat_border_width.default_value = BindingValue{1.0};
-    flat_border_width.invalidation_effects = Dirty::paint;
-    flat_border_width.bindable = false;
-    define_bindable_property({
-        std::move(flat_border_width),
-        detail::BindingNoexceptMethodGetter<Button, double>(*this, &Button::flat_border_width),
-        detail::ConvertedPropertySetter<Button, double>(*this, &Button::set_flat_border_width,
-                                                        BindingValueKind::number,
-                                                        "Button.FlatBorderWidth requires a number"),
-        {}, {}, {}});
-}
-
-void Button::set_default_button(bool is_default) {
-    require_mutable();
-    if (default_button_ == is_default) {
-        return;
-    }
-    default_button_ = is_default;
-    invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void Button::notify_default(bool value) { set_default_button(value); }
-
-void Button::set_dialog_result(DialogResult result) {
-    require_mutable();
-    switch (result) {
-    case DialogResult::none:
-    case DialogResult::ok:
-    case DialogResult::cancel:
-    case DialogResult::abort:
-    case DialogResult::retry:
-    case DialogResult::ignore:
-    case DialogResult::yes:
-    case DialogResult::no:
-    case DialogResult::try_again:
-    case DialogResult::continue_: break;
-    default:
-        throw std::invalid_argument("Button DialogResult is not a defined value");
-    }
-    if (dialog_result_ == result) return;
-    dialog_result_ = result;
-    invalidate(Dirty::semantics);
-    publish_change(dialog_result_changed_, dialog_result_);
-}
+void Button::notify_default(bool value) { default_button = value; }
 
 void Button::assign_cancel_dialog_result() {
-    if (dialog_result_ == DialogResult::none) {
-        set_dialog_result(DialogResult::cancel);
+    if (dialog_result.read() == DialogResult::none) {
+        dialog_result = DialogResult::cancel;
     }
 }
 
@@ -106,37 +43,10 @@ void Button::on_activate() {
     ButtonBase::on_activate();
     // Read the value after Click: a handler may deliberately replace or clear
     // DialogResult before the Form/Window observes it.
-    if (dialog_result_ != DialogResult::none && is_alive() &&
+    if (dialog_result.read() != DialogResult::none && is_alive() &&
         attached_window() == owner && owner != nullptr) {
-        (*owner).set_dialog_result(dialog_result_);
+        (*owner).set_dialog_result(dialog_result.read());
     }
-}
-
-void Button::set_visual_style(ButtonVisualStyle style) {
-    require_mutable();
-    if (visual_style_ == style) {
-        return;
-    }
-    visual_style_ = style;
-    invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void Button::set_selected(bool selected) {
-    require_mutable();
-    if (selected_ == selected) return;
-    selected_ = selected;
-    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
-    publish_change(selected_changed_, selected);
-}
-
-void Button::set_flat_border_width(double width) {
-    require_mutable();
-    if (!std::isfinite(width) || width < 0.0) {
-        throw std::invalid_argument("button flat border width must be finite and nonnegative");
-    }
-    if (flat_border_width_ == width) return;
-    flat_border_width_ = width;
-    invalidate(Dirty::paint | Dirty::semantics);
 }
 
 namespace {
@@ -202,8 +112,8 @@ const ControlAnatomy& Button::anatomy() const noexcept {
 
 Button::Parts Button::button_parts() const {
     // Paint passes the selection to the image lookup only on the themed path.
-    const bool layout_selected = selected_;
-    const bool command_alignment = visual_style_ == ButtonVisualStyle::command;
+    const bool layout_selected = selected.read();
+    const bool command_alignment = visual_style.read() == ButtonVisualStyle::command;
     const ButtonBase::Parts base = push_button_parts(layout_selected, command_alignment);
     Parts record;
     record.region = base.region;
@@ -222,10 +132,10 @@ void Button::publish_part_geometry(std::span<PartGeometry> geometry) const {
 
 AnatomyStateSet Button::anatomy_states() const {
     AnatomyStateSet states = button_anatomy_states();
-    if (default_button_) {
+    if (default_button.read()) {
         states.insert(AnatomyState::preselect);
     }
-    if (selected_) {
+    if (selected.read()) {
         states.insert(AnatomyState::selected);
     }
     return states;
@@ -246,7 +156,7 @@ Button::States Button::states() const {
 
 void Button::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
-    const ControlVisualRole role = button_visual_role(visual_style_);
+    const ControlVisualRole role = button_visual_role(visual_style.read());
     // An overridden accent button keeps its accent face and paper text while
     // enabled; disabled, it takes the override's face and disabled text, as
     // the theme's disabled accent plate does (sweep defect D11: a disabled
@@ -255,28 +165,28 @@ void Button::on_paint(Painter& painter, Rect) {
     std::optional<AuthoredButtonColours> authored{};
     if (has_style_override()) {
         const BasicControlStyle& colours = style();
-        const bool accent = visual_style_ == ButtonVisualStyle::accent && effectively_enabled();
-        const bool flat = visual_style_ == ButtonVisualStyle::flat;
+        const bool accent = visual_style.read() == ButtonVisualStyle::accent && effectively_enabled();
+        const bool flat = visual_style.read() == ButtonVisualStyle::flat;
         const Color face = accent ? colours.accent : flat ? colours.face_light : colours.face;
         const Color text = accent ? colours.paper : colours.text;
         authored = AuthoredButtonColours{face, text};
     }
-    paint_themed_button(painter, bounds, role, default_button_,
-                        visual_style_ == ButtonVisualStyle::command,
-                        selected_, authored);
+    paint_themed_button(painter, bounds, role, default_button.read(),
+                        visual_style.read() == ButtonVisualStyle::command,
+                        selected.read(), authored);
 }
 
 SemanticDescriptor Button::semantic_descriptor() const {
     SemanticDescriptor descriptor = ButtonBase::semantic_descriptor();
-    if (selected_) descriptor.states |= SemanticState::selected;
+    if (selected.read()) descriptor.states |= SemanticState::selected;
     return descriptor;
 }
 
 Insets Button::visual_outsets() const noexcept {
-    const ControlVisualRole role = button_visual_role(visual_style_);
+    const ControlVisualRole role = button_visual_role(visual_style.read());
     const ControlVisualContext context = visual_context(
-        hovered_visual(), pressed_visual(), selected_, focus_cue_visible(),
-        default_button_);
+        hovered_visual(), pressed_visual(), selected.read(), focus_cue_visible(),
+        default_button.read());
     return resolved_visual_outsets(role, context);
 }
 
@@ -294,5 +204,152 @@ void Button::append_interactions(std::vector<InteractionDeclaration>& interactio
     ButtonBase::append_interactions(interactions);
     interactions.insert(interactions.end(), button_interactions.begin(), button_interactions.end());
 }
+
+// property_codemod begin Button (tools/property_families/button.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor button_visual_style_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "visual_style";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "Standard, flat, accent or command button.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"button_visual_style", "standard", 0}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = visual_style_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_button_visual_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        button_visual_style_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor button_flat_border_width_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "flat_border_width";
+    descriptor.kind = BindingValueKind::number;
+    descriptor.category = "Appearance";
+    descriptor.description = "Border width in logical pixels of a flat button.";
+    descriptor.default_value = BindingValue{1.0};
+    descriptor.invalidation_effects = Dirty::paint;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_button_flat_border_width() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        button_flat_border_width_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<ButtonVisualStyle>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, visual_style_enum()};
+}
+
+BindingValue PropertyValueTraits<ButtonVisualStyle>::to_binding(ButtonVisualStyle value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = visual_style_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+ButtonVisualStyle PropertyValueTraits<ButtonVisualStyle>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<ButtonVisualStyle>(choice.value);
+}
+
+const std::array<PropertyEntry, Button::button_property_count>& Button::button_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 2U> own{{
+        {"visual_style", &describe_button_visual_style,
+         &read_cell_entry<Button, decltype(&Button::visual_style), &Button::visual_style>,
+         &write_cell_entry<Button, decltype(&Button::visual_style), &Button::visual_style>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"flat_border_width", &describe_button_flat_border_width,
+         &read_cell_entry<Button, decltype(&Button::flat_border_width), &Button::flat_border_width>,
+         &write_cell_entry<Button, decltype(&Button::flat_border_width), &Button::flat_border_width>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "Button's property table names a property twice");
+    static const std::array<PropertyEntry, button_property_count> entries =
+        join_property_tables(ButtonBase::button_base_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> Button::property_table() const noexcept {
+    const std::array<PropertyEntry, button_property_count>& entries = button_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void Button::prepare_write(const decltype(visual_style)&, ButtonVisualStyle&) {
+    require_mutable();
+}
+
+void Button::written(const decltype(visual_style)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void Button::prepare_write(const decltype(flat_border_width)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 0.0) throw std::invalid_argument("button flat border width must be finite and nonnegative");
+}
+
+void Button::written(const decltype(flat_border_width)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void Button::prepare_write(const decltype(default_button)&, bool&) {
+    require_mutable();
+}
+
+void Button::written(const decltype(default_button)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void Button::prepare_write(const decltype(dialog_result)&, DialogResult& incoming) {
+    require_mutable();
+    switch (incoming) {
+    case DialogResult::none:
+    case DialogResult::ok:
+    case DialogResult::cancel:
+    case DialogResult::abort:
+    case DialogResult::retry:
+    case DialogResult::ignore:
+    case DialogResult::yes:
+    case DialogResult::no:
+    case DialogResult::try_again:
+    case DialogResult::continue_: break;
+    default:
+        throw std::invalid_argument("Button DialogResult is not a defined value");
+    }
+}
+
+void Button::written(const decltype(dialog_result)&) {
+    invalidate(Dirty::semantics);
+    publish_change(dialog_result_changed_, dialog_result.read());
+}
+
+void Button::prepare_write(const decltype(selected)&, bool&) {
+    require_mutable();
+}
+
+void Button::written(const decltype(selected)&) {
+    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
+    publish_change(selected_changed_, selected.read());
+}
+
+// property_codemod end Button
 
 } // namespace gui_forms

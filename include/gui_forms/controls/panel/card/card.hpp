@@ -1,6 +1,8 @@
 #pragma once
 
+#include "gui_forms/controls/panel/card/card_values/card_values.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp"
 
 #include <cstdint>
 #include <span>
@@ -8,34 +10,10 @@
 
 namespace gui_forms {
 
-struct CardLayout final {
-    Insets padding{12.0, 10.0, 12.0, 10.0};
-    double section_gap{8.0};
-    double header_extent{30.0};
-    double footer_extent{30.0};
-
-    friend constexpr bool operator==(const CardLayout& left,
-                                     const CardLayout& right) noexcept {
-        return left.padding == right.padding &&
-               left.section_gap == right.section_gap &&
-               left.header_extent == right.header_extent &&
-               left.footer_extent == right.footer_extent;
-    }
-};
-
-// Controls whether activation is purely notificational or also updates the
-// retained selection state before Card::activated is published. The default
-// preserves the original manual-selection behavior.
-enum class CardSelectionBehavior : std::uint8_t {
-    manual,
-    select_on_activation,
-    toggle_on_activation,
-};
-
 // General retained header/body/footer composition. Card owns each installed
 // section as an ordinary visual child and returns the detached predecessor on
 // replacement; it never hides demo-only layout or renderer code.
-class Card : public Panel {
+class Card : public Panel, public CardCapabilities<Card> {
 public:
     explicit Card(StableId stable_id);
 
@@ -46,21 +24,11 @@ public:
     [[nodiscard]] Control::Ptr set_body(Control::Ptr control);
     [[nodiscard]] Control::Ptr set_footer(Control::Ptr control);
 
-    [[nodiscard]] const CardLayout& card_layout() const noexcept { return layout_; }
     [[nodiscard]] bool uses_theme_layout() const noexcept {
         return uses_theme_layout_;
     }
     [[nodiscard]] CardLayout effective_card_layout() const noexcept;
-    void set_card_layout(CardLayout layout);
     void reset_card_layout_to_theme();
-    [[nodiscard]] bool interactive() const noexcept { return interactive_; }
-    void set_interactive(bool interactive);
-    [[nodiscard]] bool selected() const noexcept { return selected_; }
-    void set_selected(bool selected);
-    [[nodiscard]] CardSelectionBehavior selection_behavior() const noexcept {
-        return selection_behavior_;
-    }
-    void set_selection_behavior(CardSelectionBehavior behavior);
     [[nodiscard]] bool hovered_visual() const noexcept { return hovered_; }
     [[nodiscard]] bool pressed_visual() const noexcept { return pressed_; }
     [[nodiscard]] bool focused_visual() const noexcept { return focused_; }
@@ -111,14 +79,27 @@ private:
     CardLayout layout_;
     Event<Card&> activated_;
     Event<bool> selected_changed_;
-    CardSelectionBehavior selection_behavior_{CardSelectionBehavior::manual};
     std::uint32_t keyboard_key_{};
-    bool interactive_{};
-    bool selected_{};
     bool hovered_{};
     bool pressed_{};
     bool focused_{};
     bool uses_theme_layout_{true};
+    // property_codemod begin Card (tools/property_families/card.json; generated, do not edit)
+private:
+    friend struct CardCardLayoutCapability<Card>;
+    friend struct CardInteractiveCapability<Card>;
+    friend struct CardSelectedCapability<Card>;
+    friend struct CardSelectionBehaviorPropertyCapability<Card>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(card_layout)& cell, CardLayout incoming);
+    [[nodiscard]] CardLayout read_view(const decltype(card_layout)& cell) const;
+    void prepare_write(const decltype(interactive)& cell, bool& incoming);
+    void written(const decltype(interactive)& cell);
+    void prepare_write(const decltype(selected)& cell, bool& incoming);
+    void written(const decltype(selected)& cell);
+    void prepare_write(const decltype(selection_behavior)& cell, CardSelectionBehavior& incoming);
+    void written(const decltype(selection_behavior)& cell);
+    // property_codemod end Card
 };
 
 } // namespace gui_forms

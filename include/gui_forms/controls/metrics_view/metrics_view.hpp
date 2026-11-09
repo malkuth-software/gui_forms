@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/basic_controls.hpp"
+#include "gui_forms/controls/metrics_view/metrics_view_capabilities/metrics_view_capabilities.hpp"
 
 #include <span>
 #include <string>
@@ -8,19 +9,15 @@
 namespace gui_forms {
 
 // Renderer-neutral view over the structured Window metrics snapshot.
-class MetricsView final : public Control {
+class MetricsView final : public Control, public MetricsViewCapabilities<MetricsView> {
 public:
     explicit MetricsView(StableId stable_id,
-                         std::string title = "Runtime metrics");
+                         std::string initial_title = "Runtime metrics");
 
-    [[nodiscard]] const std::string& title() const noexcept { return title_; }
-    void set_title(std::string title);
     [[nodiscard]] const BasicControlStyle& style() const noexcept {
         return style_;
     }
     void set_style(BasicControlStyle style);
-    [[nodiscard]] double accent_width() const noexcept { return accent_width_; }
-    void set_accent_width(double width);
 
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] bool hit_test_local(Point local_point) const override;
@@ -48,7 +45,6 @@ protected:
 
 private:
     [[nodiscard]] std::string metrics_text() const;
-    std::string title_;
     // The counters as the card last painted them, and its accessible value.
     // Hosts keep a published tree until the window's semantic generation
     // changes, so a value read live at each query (it changes with every
@@ -57,7 +53,16 @@ private:
     // the first paint it is empty.
     std::string painted_metrics_;
     BasicControlStyle style_;
-    double accent_width_{5.0};
+    // property_codemod begin MetricsView (tools/property_families/metrics_view.json; generated, do not edit)
+private:
+    friend struct MetricsViewTitleCapability<MetricsView>;
+    friend struct MetricsViewAccentWidthCapability<MetricsView>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(title)& cell, std::string& incoming);
+    void written(const decltype(title)& cell);
+    void prepare_write(const decltype(accent_width)& cell, double& incoming);
+    void written(const decltype(accent_width)& cell);
+    // property_codemod end MetricsView
 };
 
 } // namespace gui_forms

@@ -157,7 +157,7 @@ void empty_entry_passes_enter_on() {
     std::shared_ptr<Button> accept = make_control<Button>(StableId("tokens.dialog.accept"), "OK");
     (*box).set_requested_bounds({10.0, 10.0, 300.0, 60.0});
     (*accept).set_requested_bounds({10.0, 90.0, 80.0, 28.0});
-    (*accept).set_dialog_result(DialogResult::ok);
+    (*accept).dialog_result = DialogResult::ok;
     (*root).add_child(box);
     (*root).add_child(accept);
     Window window(root, {400.0, 160.0});
@@ -173,7 +173,7 @@ void empty_entry_passes_enter_on() {
     require(type(window, "   ") && press(window, PhysicalKey::enter) && clicks == 2U && (*box).tokens().empty(),
             "an entry of only spaces passes Enter on too");
     window.set_dialog_result(DialogResult::none);
-    (*(*box).editor()).set_text("");
+    (*(*box).editor()).text = "";
     require(type(window, "tag") && press(window, PhysicalKey::enter) && clicks == 2U &&
                 (*box).tokens().size() == 1U && window.dialog_result() == DialogResult::none,
             "with an entry, Enter makes a token and the dialog stays");
@@ -188,19 +188,19 @@ void entries_become_tokens() {
     std::vector<std::string> trace;
     SubscriptionToken added = box.token_added().subscribe(TraceAdded{&trace});
     require(type(window, "alpha") && press(window, PhysicalKey::enter) && texts_are(box, {"alpha"}) &&
-                editor.text().empty() && trace.size() == 1U,
+                editor.text.read().empty() && trace.size() == 1U,
             "Enter turns the typed entry into a token and empties the editor");
     require(!press(window, PhysicalKey::enter) && box.tokens().size() == 1U,
             "Enter on an empty entry adds nothing and is not taken (W decision 6)");
-    require(type(window, "beta,gam") && texts_are(box, {"alpha", "beta"}) && editor.text() == "gam",
+    require(type(window, "beta,gam") && texts_are(box, {"alpha", "beta"}) && editor.text.read() == "gam",
             "a delimiter ends an entry; the text after it stays in the editor");
-    require(type(window, "ma;") && texts_are(box, {"alpha", "beta", "gamma"}) && editor.text().empty(),
+    require(type(window, "ma;") && texts_are(box, {"alpha", "beta", "gamma"}) && editor.text.read().empty(),
             "each delimiter takes what was typed before it");
     require(type(window, " delta , ,epsilon;zeta") &&
-                texts_are(box, {"alpha", "beta", "gamma", "delta", "epsilon"}) && editor.text() == "zeta",
+                texts_are(box, {"alpha", "beta", "gamma", "delta", "epsilon"}) && editor.text.read() == "zeta",
             "text with several delimiters makes several tokens, skipping empty pieces");
     box.delimiters = "";
-    require(type(window, ",") && editor.text() == "zeta," && box.tokens().size() == 5U,
+    require(type(window, ",") && editor.text.read() == "zeta," && box.tokens().size() == 5U,
             "with no delimiters only Enter ends an entry");
 }
 
@@ -240,9 +240,9 @@ void keyboard_over_tokens() {
     require(press(window, PhysicalKey::left) && press(window, PhysicalKey::delete_forward) &&
                 texts_are(box, {"alpha"}),
             "Delete removes the selected token");
-    require(press(window, PhysicalKey::left) && type(window, "x") && !box.selected_token() && editor.text() == "x",
+    require(press(window, PhysicalKey::left) && type(window, "x") && !box.selected_token() && editor.text.read() == "x",
             "typing returns to the editor");
-    require(press(window, PhysicalKey::backspace) && editor.text().empty() && box.tokens().size() == 1U &&
+    require(press(window, PhysicalKey::backspace) && editor.text.read().empty() && box.tokens().size() == 1U &&
                 !box.selected_token(),
             "Backspace with text before the caret edits the text");
     require(press(window, PhysicalKey::left) && box.selected_token() && window.request_focus(fixture.other) &&
@@ -353,7 +353,7 @@ void auto_complete_makes_tokens() {
     box.auto_complete_source = AutoCompleteSource::custom_source;
     box.auto_complete_mode = AutoCompleteMode::suggest;
     require(box.auto_complete_mode.read() == AutoCompleteMode::suggest &&
-                (*box.editor()).auto_complete_mode() == AutoCompleteMode::suggest,
+                (*box.editor()).auto_complete_mode.read() == AutoCompleteMode::suggest,
             "the settings are the editor's");
     require(type(window, "d") && (*box.editor()).auto_complete_open(), "typing suggests");
     window.perform_layout();
@@ -361,10 +361,10 @@ void auto_complete_makes_tokens() {
     require(list.width == 360.0, "the suggestions span the whole box");
     require(press(window, PhysicalKey::down) && press(window, PhysicalKey::down) &&
                 press(window, PhysicalKey::enter) && texts_are(box, {"Derby"}) &&
-                (*box.editor()).text().empty() && !(*box.editor()).auto_complete_open(),
+                (*box.editor()).text.read().empty() && !(*box.editor()).auto_complete_open(),
             "accepting a suggestion makes it a token");
     box.auto_complete_mode = AutoCompleteMode::append;
-    require(type(window, "do") && (*box.editor()).text() == "dover" && press(window, PhysicalKey::tab) &&
+    require(type(window, "do") && (*box.editor()).text.read() == "dover" && press(window, PhysicalKey::tab) &&
                 texts_are(box, {"Derby", "dover"}) && window.focused_control() == box.editor(),
             "Tab takes an appended completion as a token");
 }

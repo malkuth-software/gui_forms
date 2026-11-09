@@ -82,9 +82,9 @@ private:
     }
 
     void build_editors() {
-        (*color_).set_value(fixture_tint);
+        (*color_).value = fixture_tint;
         (*preview_).set_background(fixture_tint);
-        (*flags_).set_overlay_width(236.0);
+        (*flags_).overlay_width = 236.0;
     }
 
     void build_binding() {
@@ -100,7 +100,7 @@ private:
     }
 
     void build_properties() {
-        (*properties_).set_label_width(96.0);
+        (*properties_).label_width = 96.0;
         (*properties_).set_groups({
             {"gallery.value-editors.properties.identity", "IDENTITY", {
                 {std::string(name_row), "Name", std::string(fixture_name),
@@ -126,7 +126,7 @@ private:
     }
 
     void build_rack() {
-        (*rack_).set_module_width(640.0);
+        (*rack_).module_width = 640.0;
         (*rack_).set_modules({{
             std::string(module_id), "Lamp profile",
             {{"name", "Name", std::string(fixture_name), InstrumentFieldEditor::text, {}, {},
@@ -140,7 +140,7 @@ private:
         reset_.set_description("Restore the fixture values in every view");
         std::shared_ptr<Button> reset = make_control<Button>(
             StableId("gallery.value-editors.reset"), "Reset record");
-        (*reset).set_visual_style(ButtonVisualStyle::command);
+        (*reset).visual_style = ButtonVisualStyle::command;
         (*reset).bind(reset_);
         (*rack_).set_action_content(reset, 170.0);
     }
@@ -154,24 +154,24 @@ private:
         static_cast<void>((*rack_).set_field_value(module_id, "tint", text));
         static_cast<void>((*rack_).set_field_validation(module_id, "tint", {}));
         (*preview_).set_background(value);
-        (*editor_status_).set_text("Tint committed " + text + " · projected to list, rack and preview");
+        (*editor_status_).text = "Tint committed " + text + " · projected to list, rack and preview";
     }
 
     void color_failed(const PropertyEditorInputError& error) {
-        (*editor_status_).set_text("Tint rejected \"" + error.attempted_value + "\" · " +
-                                   error.message);
+        (*editor_status_).text = "Tint rejected \"" + error.attempted_value + "\" · " +
+                                   error.message;
     }
 
     void flags_changed(const PropertyEnumValue& value) {
         edges_ = value;
         static_cast<void>((*properties_).set_value(edges_row, value.name));
-        (*editor_status_).set_text("Edges committed " + value.name + " (" +
-                                   std::to_string(value.value) + ") · projected to the list");
+        (*editor_status_).text = "Edges committed " + value.name + " (" +
+                                   std::to_string(value.value) + ") · projected to the list";
     }
 
     void flags_drop_down(const bool expanded) {
         if (expanded) {
-            (*editor_status_).set_text("Edges list open · Space toggles a bit · Esc closes");
+            (*editor_status_).text = "Edges list open · Space toggles a bit · Esc closes";
         }
     }
 
@@ -211,7 +211,7 @@ private:
             if (parsed) {
                 // A programmatic set_value publishes no value_changed (only a
                 // user commit does), so the owner projects the colour itself.
-                (*color_).set_value(*parsed);
+                (*color_).value = *parsed;
                 color_changed(*parsed);
             } else {
                 static_cast<void>((*rack_).set_field_validation(
@@ -237,18 +237,18 @@ private:
         static_cast<void>((*properties_).set_reset_enabled(name_row, false));
         static_cast<void>((*rack_).set_field_value(module_id, "name", name_));
         static_cast<void>((*rack_).set_field_value(module_id, "channel", channel_));
-        (*color_).set_value(fixture_tint);
+        (*color_).value = fixture_tint;
         color_changed(fixture_tint);
-        (*flags_).set_value(PropertyEnumValue{"Edges", "Top, Left", 3});
-        flags_changed((*flags_).value());
+        (*flags_).value = PropertyEnumValue{"Edges", "Top, Left", 3};
+        flags_changed((*flags_).value.read());
         enabled_.set(true);
-        (*editor_status_).set_text("Record reset · programmatic setters emitted no user commits");
+        (*editor_status_).text = "Record reset · programmatic setters emitted no user commits";
     }
 
     void register_source() {
         Window* window = (*properties_).attached_window();
         if (window == nullptr) {
-            (*binding_status_).set_text("BindingContext needs the attached Window");
+            (*binding_status_).text = "BindingContext needs the attached Window";
             return;
         }
         if (!binding_context_) {
@@ -288,7 +288,7 @@ private:
             text += " · current " + snapshot.current_stable_id + " · position " +
                     std::to_string(snapshot.position);
         }
-        (*binding_status_).set_text(text + trace_);
+        (*binding_status_).text = text + trace_;
     }
 
     std::string name_{fixture_name};

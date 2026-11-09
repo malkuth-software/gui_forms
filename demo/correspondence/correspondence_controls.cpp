@@ -49,11 +49,11 @@ constexpr double search_width = 220.0;
                                                 const FontSpec font, const Color color,
                                                 const double height) {
     std::shared_ptr<Label> label = make_control<Label>(StableId(std::string(id)));
-    (*label).set_font(font);
-    (*label).set_foreground(color);
+    (*label).font = font;
+    (*label).fore_color = color;
     (*label).dock = DockStyle::top;
     (*label).set_requested_bounds({0.0, 0.0, 0.0, height});
-    (*label).set_use_mnemonic(false);
+    (*label).use_mnemonic = false;
     return label;
 }
 
@@ -141,11 +141,11 @@ void CorrespondenceShell::initialize_control_tree() {
     build_menu();
     build_command_row();
     status_ = make_control<Label>(StableId(std::string(ids::status)));
-    (*status_).set_font(status_font);
-    (*status_).set_foreground(muted);
+    (*status_).font = status_font;
+    (*status_).fore_color = muted;
     (*status_).dock = DockStyle::bottom;
     (*status_).set_requested_bounds({0.0, 0.0, 0.0, status_height});
-    (*status_).set_use_mnemonic(false);
+    (*status_).use_mnemonic = false;
     (*status_).accessible_name = "Status";
     add_child(status_);
     build_panes();
@@ -196,7 +196,7 @@ void CorrespondenceShell::build_commands() {
 
 void CorrespondenceShell::build_menu() {
     menu_ = make_control<MenuStrip>(StableId(std::string(ids::menu)));
-    (*menu_).set_font(chrome_font);
+    (*menu_).font = chrome_font;
     (*menu_).dock = DockStyle::top;
     std::vector<MenuItemSpec> view_items;
     for (std::size_t index = 0; index < all_folders.size(); ++index) {
@@ -246,8 +246,8 @@ void CorrespondenceShell::build_command_row() {
 
     // The search field docks right before the bar fills the remainder.
     search_ = make_control<TextBox>(StableId(std::string(ids::search)));
-    (*search_).set_placeholder_text("Search this folder");
-    (*search_).set_font(detail_font);
+    (*search_).placeholder_text = "Search this folder";
+    (*search_).font = detail_font;
     (*search_).set_style(correspondence_style());
     (*search_).dock = DockStyle::right;
     (*search_).set_requested_bounds({0.0, 0.0, search_width, 0.0});
@@ -286,26 +286,26 @@ void CorrespondenceShell::build_command_row() {
         Button& button = (*bar_).item(index);
         button.set_style(correspondence_style());
         button.font = chrome_font;
-        button.set_visual_style(ButtonVisualStyle::command);
+        button.visual_style = ButtonVisualStyle::command;
     }
 }
 
 void CorrespondenceShell::build_panes() {
     split_ = make_control<SplitContainer>(StableId(std::string(ids::split)));
-    (*split_).set_orientation(Orientation::vertical);
-    (*split_).set_splitter_distance(200.0);
-    (*split_).set_first_minimum(140.0);
-    (*split_).set_second_minimum(320.0);
+    (*split_).orientation = Orientation::vertical;
+    (*split_).splitter_distance = 200.0;
+    (*split_).first_minimum = 140.0;
+    (*split_).second_minimum = 320.0;
     (*split_).dock = DockStyle::fill;
     add_child(split_);
-    (*(*split_).first_panel()).set_background(navigation);
-    (*(*split_).second_panel()).set_background(canvas);
+    (*(*split_).first_panel()).background = navigation;
+    (*(*split_).second_panel()).background = canvas;
 
     folders_ = make_control<TreeView>(StableId(std::string(ids::folders)));
-    (*folders_).set_show_expanders(false);
-    (*folders_).set_item_height(28.0);
-    (*folders_).set_indentation(8.0);
-    (*folders_).set_font(folder_font);
+    (*folders_).show_expanders = false;
+    (*folders_).item_height = 28.0;
+    (*folders_).indentation = 8.0;
+    (*folders_).font = folder_font;
     (*folders_).set_background(navigation);
     (*folders_).set_style(correspondence_style());
     (*folders_).dock = DockStyle::fill;
@@ -314,21 +314,21 @@ void CorrespondenceShell::build_panes() {
     on((*folders_).selection_changed(), *this, &CorrespondenceShell::on_folder_selected);
 
     content_split_ = make_control<SplitContainer>(StableId(std::string(ids::content_split)));
-    (*content_split_).set_orientation(Orientation::horizontal);
-    (*content_split_).set_splitter_distance(290.0);
+    (*content_split_).orientation = Orientation::horizontal;
+    (*content_split_).splitter_distance = 290.0;
     // At the 600x420 minimum the list yields to the reading pane: its header
     // block takes about 90 logical pixels, so 180 keeps the body readable.
-    (*content_split_).set_first_minimum(100.0);
-    (*content_split_).set_second_minimum(180.0);
+    (*content_split_).first_minimum = 100.0;
+    (*content_split_).second_minimum = 180.0;
     (*content_split_).dock = DockStyle::fill;
     (*(*split_).second_panel()).add_child(content_split_);
-    (*(*content_split_).first_panel()).set_background(paper);
-    (*(*content_split_).second_panel()).set_background(paper);
+    (*(*content_split_).first_panel()).background = paper;
+    (*(*content_split_).second_panel()).background = paper;
 
     messages_ = make_control<CorrespondenceView>(StableId(std::string(ids::messages)));
-    (*messages_).set_font(list_font);
-    (*messages_).set_compact_height(48.0);
-    (*messages_).set_expanded_height(132.0);
+    (*messages_).font = list_font;
+    (*messages_).compact_height = 48.0;
+    (*messages_).expanded_height = 132.0;
     (*messages_).set_style(correspondence_style());
     (*messages_).dock = DockStyle::fill;
     (*messages_).accessible_name = "Messages";
@@ -356,10 +356,10 @@ void CorrespondenceShell::build_panes() {
     (*reading_).add_child(reading_date_);
 
     reading_body_ = make_control<TextBox>(StableId(std::string(ids::reading_body)));
-    (*reading_body_).set_multiline(true);
-    (*reading_body_).set_word_wrap(true);
-    (*reading_body_).set_read_only(true);
-    (*reading_body_).set_font(body_font);
+    (*reading_body_).multiline = true;
+    (*reading_body_).word_wrap = true;
+    (*reading_body_).read_only = true;
+    (*reading_body_).font = body_font;
     (*reading_body_).set_style(correspondence_style());
     (*reading_body_).border_style = BorderStyle::none;
     (*reading_body_).dock = DockStyle::fill;
@@ -394,7 +394,7 @@ void CorrespondenceShell::project_folders() {
         items.push_back(std::move(item));
     }
     (*folders_).set_items(std::move(items));
-    (*folders_).set_selected_id(folder_id(model_.selected_folder()));
+    (*folders_).selected_id = folder_id(model_.selected_folder());
 }
 
 void CorrespondenceShell::project_messages() {
@@ -423,34 +423,33 @@ void CorrespondenceShell::project_messages() {
     }
     (*messages_).set_items(std::move(items));
     const std::optional<std::uint32_t> selected = model_.selected_message();
-    (*messages_).set_selected_id(selected ? message_id(*selected) : std::string());
+    (*messages_).selected_id = selected ? message_id(*selected) : std::string();
 }
 
 void CorrespondenceShell::project_reading_pane() {
     const std::optional<std::uint32_t> selected = model_.selected_message();
     const Message* message = selected ? model_.find(*selected) : nullptr;
     if (message == nullptr) {
-        (*reading_subject_).set_text("No message selected");
-        (*reading_correspondent_).set_text("");
-        (*reading_date_).set_text(std::string(folder_name(model_.selected_folder())) +
-                                  " · " + plural(model_.visible_messages().size(), "message"));
-        (*reading_body_).set_text(
-            "Select a message in the list to read it here.\n\n"
+        (*reading_subject_).text = "No message selected";
+        (*reading_correspondent_).text = "";
+        (*reading_date_).text = std::string(folder_name(model_.selected_folder())) +
+                                  " · " + plural(model_.visible_messages().size(), "message");
+        (*reading_body_).text = "Select a message in the list to read it here.\n\n"
             "Every folder and message is a deterministic in-memory fixture: nothing is "
-            "sent, received, or written to disk.");
+            "sent, received, or written to disk.";
         return;
     }
-    (*reading_subject_).set_text((*message).subject);
+    (*reading_subject_).text = (*message).subject;
     const std::string party = (*message).correspondent.empty()
         ? std::string("(no recipient)")
         : (*message).address.empty()
             ? (*message).correspondent
             : (*message).correspondent + " <" + (*message).address + ">";
-    (*reading_correspondent_).set_text(((*message).outgoing ? "To: " : "From: ") + party);
+    (*reading_correspondent_).text = ((*message).outgoing ? "To: " : "From: ") + party;
     std::string date_line = (*message).date + " · " + std::string(folder_name((*message).folder));
     if ((*message).flagged) date_line += " · Flagged";
-    (*reading_date_).set_text(date_line);
-    (*reading_body_).set_text((*message).body);
+    (*reading_date_).text = date_line;
+    (*reading_body_).text = (*message).body;
 }
 
 void CorrespondenceShell::project_status() {
@@ -463,7 +462,7 @@ void CorrespondenceShell::project_status() {
         text += " · " + plural(model_.visible_messages().size(), "match") + " for \"" +
                 model_.search() + "\"";
     }
-    (*status_).set_text(std::move(text));
+    (*status_).text = std::move(text);
 }
 
 void CorrespondenceShell::project_commands() {
@@ -489,7 +488,7 @@ void CorrespondenceShell::attach_tooltips() {
     Window* window = attached_window();
     if (window == nullptr || tooltips_) return;
     tooltips_ = std::make_shared<ToolTip>(*window);
-    (*tooltips_).set_initial_delay(std::chrono::milliseconds(400));
+    (*tooltips_).initial_delay = std::chrono::milliseconds(400);
     for (int index = 0; index < static_cast<int>((*bar_).items().size()); ++index) {
         const CommandItem& item = (*bar_).items()[static_cast<std::size_t>(index)];
         std::string text = item.label;
@@ -533,7 +532,7 @@ void CorrespondenceShell::show_about() {
         if (result.status.accepted()) return;
     }
     // Headless or dialog-less hosts still surface the text in the status line.
-    (*status_).set_text(text);
+    (*status_).text = text;
 }
 
 void CorrespondenceShell::on_folder_selected(const TreeSelectionChange& change) {

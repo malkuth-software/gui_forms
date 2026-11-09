@@ -136,7 +136,7 @@ int main() {
                 (*window).find("custom-chrome.click-readout"));
         require(pointer_down.accepted() && pointer_up.accepted() &&
                     click_readout &&
-                    (*click_readout).text() ==
+                    (*click_readout).text.read() ==
                         "Interactive exclusion received 1 click",
                 "interactive title descendant must receive ordinary pointer dispatch");
 

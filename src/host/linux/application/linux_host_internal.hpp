@@ -33,6 +33,17 @@ public:
   HostWindowAdmission open(LinuxApplicationWindow entry, bool runtime);
   // Reports the window's current frame (ConfigureNotify, first map).
   void report_native_frame(NativeWindow &window);
+  // Popup and Splash windows (owner, 2026-11-08: SPLASH_STUDY D5 (b)):
+  // override-redirect windows, opened whenever the run has a display. While
+  // a compositing manager owns _NET_WM_CM_S<n> and the server has a 32-bit
+  // ARGB visual they take that visual and are translucent; without one they
+  // stay real windows on the default visual, opaque, and
+  // transient_windows_translucent() reports false so the core draws no
+  // shadow or fade (owner, 2026-11-08: Q-S2 (b)). They never fall back to
+  // overlays.
+  [[nodiscard]] bool supports_popup_windows() const noexcept override;
+  [[nodiscard]] bool supports_splash_windows() const noexcept override;
+  [[nodiscard]] bool transient_windows_translucent() const noexcept override;
 
 protected:
   HostWindowFrameResult frame_impl(HostWindowId window) override;
@@ -42,6 +53,7 @@ protected:
   HostServiceStatus bring_to_front_impl(HostWindowId window) override;
   HostServiceStatus destroy_window_impl(HostWindowId window) override;
   HostMonitorResult query_monitors_impl() override;
+  void query_monitors_into_impl(HostMonitorResult &result) override;
   HostServiceStatus show_impl(HostWindowId window) override;
   HostServiceStatus hide_impl(HostWindowId window) override;
 
@@ -148,6 +160,8 @@ public:
   NativeWindow(Runtime &runtime, LinuxApplicationWindow entry);
   ~NativeWindow();
   void attach();
+  // Types and shapes a popup or Splash window before it is first mapped.
+  void mark_transient(const HostPopupPlacement &popup);
   void ready();
   void event(XEvent &event);
   void update();
@@ -177,6 +191,11 @@ public:
   // reading that differs from the window's last report only by its
   // generation is not sent.
   void report_compositor_state();
+  // Reports the window's full-screen state (HostWindowStateEvent; owner,
+  // 2026-11-08: the window outer band) after attach, on each _NET_WM_STATE
+  // change, and when the host's own override-redirect fallback toggles. A
+  // refused report is tried again on the next change.
+  void report_window_state();
   HostDialogResult dialog(const HostDialogRequest &request);
   // The window's frame in desktop units (pixels): the client area at its
   // root position, and the outer frame from _NET_FRAME_EXTENTS when the
@@ -229,6 +248,9 @@ public:
   bool frame_capture_saved{};
   bool cursor_set{};
   bool fallback_fullscreen{};
+  // The full-screen state the session last accepted (report_window_state).
+  bool window_state_reported{};
+  bool reported_full_screen{};
   Rect restored_frame;
   std::array<bool, 256> pressed_keys{};
   CursorKind current_cursor{CursorKind::arrow};
@@ -239,10 +261,8 @@ public:
   DamageRegion damage;
   SubscriptionToken closing_token;
   std::uint64_t sequence{};
-  Time last_click{};
-  Point last_click_position{};
-  unsigned last_click_button{};
-  unsigned click_count{};
+  // The last press, for the computed click count (linux_input_rules.hpp).
+  LinuxClickHistory click_history{};
   std::vector<char> presentation;
   // Per tick, reused across ticks. Each surface's frame is taken once
   // (`live_frames`, holding its read lease until the tick is composed), with
@@ -298,6 +318,8 @@ public:
   // The interval click counting uses: the reported one, or the default
   // before the watch exists.
   [[nodiscard]] std::uint32_t double_click_milliseconds() const noexcept;
+  // The desktop's double-click distance (XSettingsWatch), or the default.
+  [[nodiscard]] double double_click_distance() const noexcept;
   void dispatch(XEvent &event);
   Atom atom(const char *name) const;
   Display *display{};

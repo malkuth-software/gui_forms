@@ -78,12 +78,12 @@ void TokenBox::initialize_control_tree() {
     const std::string prefix(stable_id().value());
     editor_ = make_control<TextBox>(StableId(prefix + ".editor"));
     (*editor_).border_style = BorderStyle::none;
-    (*editor_).set_font(font.read());
+    (*editor_).font = font.read();
     (*editor_).set_auto_complete_anchor(shared_from_this());
     // Enter turns the typed text into a token (editor_committed); with
     // nothing typed it goes on to the window's accept button (W decision 6),
     // so the editor accepts Enter only while it holds an entry.
-    (*editor_).set_accepts_enter(false);
+    (*editor_).accepts_enter = false;
     add_child(editor_);
     editor_commit_ = (*editor_).committed().subscribe(*this,
         Delegate<const std::string&>::bind<TokenBox, &TokenBox::editor_committed>(*this));
@@ -174,39 +174,40 @@ void TokenBox::prepare_write(const decltype(font)&, FontSpec& incoming) {
 }
 
 void TokenBox::written(const decltype(font)&) {
-    if (editor_) (*editor_).set_font(font.read());
+    if (editor_) (*editor_).font = font.read();
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    on_font_changed();
 }
 
 // The auto-complete views: the inner editor owns the settings (see TextBox).
 void TokenBox::write_view(const decltype(auto_complete_mode)&, AutoCompleteMode incoming) {
     require_mutable();
-    (*editor_).set_auto_complete_mode(incoming);
+    (*editor_).auto_complete_mode = incoming;
 }
 
 AutoCompleteMode TokenBox::read_view(const decltype(auto_complete_mode)&) const {
-    const AutoCompleteMode mode = (*editor_).auto_complete_mode();
+    const AutoCompleteMode mode = (*editor_).auto_complete_mode.read();
     return mode;
 }
 
 void TokenBox::write_view(const decltype(auto_complete_source)&, AutoCompleteSource incoming) {
     require_mutable();
-    (*editor_).set_auto_complete_source(incoming);
+    (*editor_).auto_complete_source = incoming;
 }
 
 AutoCompleteSource TokenBox::read_view(const decltype(auto_complete_source)&) const {
-    const AutoCompleteSource source = (*editor_).auto_complete_source();
+    const AutoCompleteSource source = (*editor_).auto_complete_source.read();
     return source;
 }
 
 void TokenBox::write_view(const decltype(auto_complete_custom_source)&,
                           std::shared_ptr<AutoCompleteStringCollection> incoming) {
     require_mutable();
-    (*editor_).set_auto_complete_custom_source(std::move(incoming));
+    (*editor_).auto_complete_custom_source = std::move(incoming);
 }
 
 std::shared_ptr<AutoCompleteStringCollection> TokenBox::read_view(const decltype(auto_complete_custom_source)&) const {
-    std::shared_ptr<AutoCompleteStringCollection> source = (*editor_).auto_complete_custom_source();
+    std::shared_ptr<AutoCompleteStringCollection> source = (*editor_).auto_complete_custom_source.read();
     return source;
 }
 
@@ -217,7 +218,7 @@ void TokenBox::accept_entry(std::string_view entry) {
     if (kept.empty() || !validate_utf8(kept).valid()) return;
     const std::string text(kept);
     synchronizing_ = true;
-    (*editor_).set_text(std::string{});
+    (*editor_).text = std::string{};
     synchronizing_ = false;
     static_cast<void>(add_token(text));
 }
@@ -235,7 +236,7 @@ void TokenBox::split_delimited(const std::string& text) {
     }
     std::string rest(text, start, std::string::npos);
     synchronizing_ = true;
-    (*editor_).set_text(std::move(rest));
+    (*editor_).text = std::move(rest);
     synchronizing_ = false;
     for (const std::string& piece : pieces) {
         const std::string_view kept = trimmed(piece);
@@ -256,7 +257,7 @@ void TokenBox::editor_completion_accepted(const std::string& text) {
 void TokenBox::editor_text_changed(const std::string& text) {
     // An entry of only spaces would make no token: Enter passes on then too.
     const bool entry = !trimmed(text).empty();
-    if ((*editor_).accepts_enter() != entry) (*editor_).set_accepts_enter(entry);
+    if ((*editor_).accepts_enter.read() != entry) (*editor_).accepts_enter = entry;
     if (synchronizing_) return;
     // Typing goes back to the editor from a selected token.
     if (selected_) {
@@ -779,8 +780,9 @@ void TokenBox::prepare_write(const decltype(delimiters)&, std::string& incoming)
     }
 }
 
-void TokenBox::written(const decltype(delimiters)&) {
-}
+void TokenBox::written(const decltype(delimiters)&) {}
+
+void TokenBox::on_font_changed() {}
 
 // property_codemod end TokenBox
 

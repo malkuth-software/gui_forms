@@ -123,6 +123,7 @@ protected:
     HostServiceStatus bring_to_front_impl(gui_forms::HostWindowId window) override;
     HostServiceStatus destroy_window_impl(gui_forms::HostWindowId window) override;
     HostMonitorResult query_monitors_impl() override;
+    void query_monitors_into_impl(HostMonitorResult& result) override;
     HostServiceStatus show_impl(gui_forms::HostWindowId window) override;
     HostServiceStatus hide_impl(gui_forms::HostWindowId window) override;
 
@@ -131,6 +132,9 @@ public:
     // borderless, non-activating panels (GUIFormsPopupPanel); their alpha
     // is the transparent backdrop the popup model requests.
     [[nodiscard]] bool supports_popup_windows() const noexcept override { return true; }
+    // Splash windows (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S) are
+    // the same panels, ignoring the mouse and never key, at their own level.
+    [[nodiscard]] bool supports_splash_windows() const noexcept override { return true; }
 
 private:
     // Releases a window whose initialization failed, before it was shown.
@@ -191,6 +195,7 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
     description.stable_id = entry.stable_id;
     description.owner = owner_id;
     description.kind = kind;
+    if (popup.has_value()) description.transient = (*popup).kind;
     outcome.admission = admit(description);
     if (!outcome.admission.status.accepted()) {
         outcome.failure_code = 2;
@@ -219,13 +224,25 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
         // activating the application, kept above its owner as a child
         // window; only a focus-taking popup becomes key. Its shadow is
         // drawn by the program in its own pixels, not by AppKit.
-        const BOOL takesFocus = (*popup).focus == gui_forms::HostPopupFocus::takes_focus ? YES : NO;
+        const bool splash = gui_forms::host_transient_is_splash((*popup).kind);
+        const BOOL takesFocus =
+            !splash && (*popup).focus == gui_forms::HostPopupFocus::takes_focus ? YES : NO;
         GUIFormsPopupPanel* popupPanel = [[GUIFormsPopupPanel alloc] initWithContentRect:frame
                                                                               takesFocus:takesFocus];
         [popupPanel setHidesOnDeactivate:NO];
         [popupPanel setFloatingPanel:NO];
         [popupPanel setBecomesKeyOnlyIfNeeded:YES];
         [popupPanel setHasShadow:NO];
+        if (splash) {
+            // A Splash takes no input (owner, 2026-11-08): clicks pass to the
+            // windows beneath it. A tooltip stands above the program's
+            // popups and menus, as the host tooltip did; a splashscreen
+            // floats above the program's windows.
+            [popupPanel setIgnoresMouseEvents:YES];
+            const NSWindowLevel level = (*popup).kind == gui_forms::HostTransientKind::tool_tip
+                ? NSStatusWindowLevel : NSFloatingWindowLevel;
+            [popupPanel setLevel:level];
+        }
         nativeWindow = popupPanel;
     } else if (panel) {
         nativeWindow = [[NSPanel alloc] initWithContentRect:frame styleMask:style
@@ -328,6 +345,8 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
                                      NSMaxY(work) - placed.size.height);
         [nativeWindow setFrame:placed display:NO];
     }
+    // A Splash is never a drop target: it takes no input.
+    if (popup.has_value() && gui_forms::host_transient_is_splash((*popup).kind)) [view unregisterDraggedTypes];
 
     if ([view initializeHost] == NO) {
         abandon_open(id, nativeWindow, ownerWindow, view);
@@ -340,7 +359,6 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
         const std::function<void()> dispatchPending = entry.options.dispatch_pending;
         entry.options.host_ready(DispatchAndCollectWake(view, dispatchPending),
                                  RequestNativeClose(nativeWindow), ShowNativeDialog(view),
-                                 ShowNativeTooltip(view), HideNativeTooltip(view),
                                  ReadNativeClipboard(view), WriteNativeClipboard(view));
     }
     if (entry.options.full_screen_ready) {
@@ -552,25 +570,36 @@ HostServiceStatus MacApplicationRun::hide_impl(gui_forms::HostWindowId window) {
 
 HostMonitorResult MacApplicationRun::query_monitors_impl() {
     HostMonitorResult result;
+    query_monitors_into_impl(result);
+    return result;
+}
+
+// Writes the screens into `result`'s records in place: a repeated query on
+// an unchanged set of screens allocates nothing (a warm Splash or Popup
+// placement queries on every show).
+void MacApplicationRun::query_monitors_into_impl(HostMonitorResult& result) {
+    result.status = {};
     const double top = desktop_top();
     NSArray<NSScreen*>* screens = [NSScreen screens];
     NSScreen* primaryScreen = screens.firstObject;
-    std::size_t index = 0U;
+    std::size_t count = 0U;
     for (NSScreen* screen in screens) {
+        if (count == result.monitors.size()) result.monitors.emplace_back();
+        HostMonitor& monitor = result.monitors[count];
         NSNumber* number = screen.deviceDescription[@"NSScreenNumber"];
-        std::string identifier = "appkit.screen." + std::to_string(index);
-        if (number != nil) identifier = "appkit.display." + std::to_string(number.unsignedIntValue);
-        HostMonitor monitor;
-        monitor.id = std::move(identifier);
+        char identifier[48]{};
+        const int length = number != nil
+            ? std::snprintf(identifier, sizeof(identifier), "appkit.display.%u", number.unsignedIntValue)
+            : std::snprintf(identifier, sizeof(identifier), "appkit.screen.%zu", count);
+        monitor.id.assign(identifier, length > 0 ? static_cast<std::size_t>(length) : 0U);
         monitor.frame = desktop_rect(screen.frame, top);
         monitor.work_area = desktop_rect(screen.visibleFrame, top);
         monitor.scale = screen.backingScaleFactor;
         monitor.primary = screen == primaryScreen;
-        result.monitors.push_back(std::move(monitor));
-        ++index;
+        ++count;
     }
+    result.monitors.resize(count);
     if (result.monitors.empty()) result.status.error = HostServiceError::backend_failure;
-    return result;
 }
 
 void mac_run_report_frame(MacApplicationRun* run, gui_forms::HostWindowId window) {

@@ -27,6 +27,16 @@ struct AnchoredOverlayPlacement final {
     double gap{};
     double viewport_margin{4.0};
     bool allow_vertical_flip{true};
+
+    friend bool operator==(const AnchoredOverlayPlacement& left,
+                           const AnchoredOverlayPlacement& right) noexcept {
+        return left.preferred_size == right.preferred_size &&
+               left.horizontal_alignment == right.horizontal_alignment &&
+               left.vertical_preference == right.vertical_preference &&
+               left.gap == right.gap &&
+               left.viewport_margin == right.viewport_margin &&
+               left.allow_vertical_flip == right.allow_vertical_flip;
+    }
 };
 
 struct AnchoredOverlayPlacementResult final {

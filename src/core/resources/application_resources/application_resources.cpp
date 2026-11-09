@@ -223,6 +223,20 @@ ThemeCompileResult ApplicationResources::compile_theme_package(const ThemePackag
     return result;
 }
 
+ThemeCompileResult ApplicationResources::compile_theme_packages(std::span<const ThemePackage> packages,
+                                                               const ThemeLibrary& library,
+                                                               const ThemeCompileOptions& options) {
+    require_access("theme package compilation");
+    if (options.system_colours == SystemColourHints{} && system_colour_hints_ != SystemColourHints{}) {
+        ThemeCompileOptions hinted = options;
+        hinted.system_colours = system_colour_hints_;
+        ThemeCompileResult result = gui_forms::compile_theme_packages(packages, library, images_, hinted);
+        return result;
+    }
+    ThemeCompileResult result = gui_forms::compile_theme_packages(packages, library, images_, options);
+    return result;
+}
+
 const CompiledThemeRules* ApplicationResources::user_theme_rules() const noexcept {
     if (user_theme_ == nullptr || user_theme_policy_ != UserThemePolicy::layered) return nullptr;
     return &(*user_theme_).engine().rules();

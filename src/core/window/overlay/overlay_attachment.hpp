@@ -12,8 +12,10 @@ namespace gui_forms::detail {
 // attachment; the owner keeps a weak revocable reference to it.
 class OverlayAttachment final : public Revocable {
 public:
-    OverlayAttachment(SurfaceRoot& window, Control::Ptr owner, Control::Ptr overlay)
-        : window_(&window), owner_(std::move(owner)), overlay_(std::move(overlay)) {}
+    // `passive`: opened without requiring an enabled owner (a tooltip shown
+    // for a disabled control, a toast); disabling the owner keeps it open.
+    OverlayAttachment(SurfaceRoot& window, Control::Ptr owner, Control::Ptr overlay, bool passive)
+        : window_(&window), owner_(std::move(owner)), overlay_(std::move(overlay)), passive_(passive) {}
 
     void disconnect() noexcept override {
         if (connected_ && window_ != nullptr) {
@@ -23,6 +25,7 @@ public:
     [[nodiscard]] bool connected() const noexcept override { return connected_; }
     [[nodiscard]] Control::Ptr owner() const noexcept { return owner_.lock(); }
     [[nodiscard]] Control::Ptr overlay() const noexcept { return overlay_; }
+    [[nodiscard]] bool passive() const noexcept { return passive_; }
     [[nodiscard]] Event<>& closed() noexcept { return closed_; }
     void revoke(bool publish_closed = true) noexcept {
         connected_ = false;
@@ -40,6 +43,7 @@ private:
     // detach, so the root leaves the window before it can be destroyed.
     Control::Ptr overlay_;
     bool connected_{true};
+    bool passive_{};
     Event<> closed_;
 };
 

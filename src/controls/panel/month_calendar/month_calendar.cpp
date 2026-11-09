@@ -96,7 +96,7 @@ void erase_day(std::vector<DateTimeValue>& dates, DateTimeValue date) {
 } // namespace
 
 MonthCalendar::MonthCalendar(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(true);
+    focusable = true;
     cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
     system_today_ = system_date();
@@ -1222,8 +1222,7 @@ void MonthCalendar::prepare_write(const decltype(scroll_change)&, std::uint32_t&
     if (incoming > 20000U) throw std::out_of_range("MonthCalendar scroll change is at most 20000 months");
 }
 
-void MonthCalendar::written(const decltype(scroll_change)&) {
-}
+void MonthCalendar::written(const decltype(scroll_change)&) {}
 
 void MonthCalendar::prepare_write(const decltype(format_provider)&, DateTimeFormatProvider& incoming) {
     require_mutable();
@@ -1238,7 +1237,6 @@ void MonthCalendar::prepare_write(const decltype(font)&, FontSpec& incoming) {
     require_mutable();
     if (!valid_font_spec(incoming)) throw std::invalid_argument("MonthCalendar font specification is invalid");
     set_font_from_code(true);
-    coerce_font(incoming);
 }
 
 void MonthCalendar::written(const decltype(font)&) {
@@ -1247,8 +1245,6 @@ void MonthCalendar::written(const decltype(font)&) {
 }
 
 void MonthCalendar::on_font_changed() {}
-
-void MonthCalendar::coerce_font(FontSpec&) {}
 
 // property_codemod end MonthCalendar
 

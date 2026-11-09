@@ -59,6 +59,7 @@ bool face_fill(VisualPaintOperation operation) noexcept {
     case VisualPaintOperation::fill_rect:
     case VisualPaintOperation::fill_linear_gradient:
     case VisualPaintOperation::fill_linear_gradient_spread:
+    case VisualPaintOperation::draw_part_raster:
         return true;
     default:
         // Every other operation (state, strokes, text, images, groups) is
@@ -76,6 +77,16 @@ const VisualPaintOperationSnapshot* first_fill(
         }
     }
     return nullptr;
+}
+
+// The logical width of a face: a baked material's part raster records the
+// face's box in `second` (its rectangle carries the effect outset); a layer
+// fill's rectangle is the face.
+double face_width(const VisualPaintOperationSnapshot& operation) noexcept {
+    if (operation.operation == VisualPaintOperation::draw_part_raster) {
+        return operation.second.x;
+    }
+    return operation.rect.width;
 }
 
 void test_named_specimens_and_atomic_rejection() {
@@ -100,7 +111,7 @@ void test_named_specimens_and_atomic_rejection() {
     std::shared_ptr<SplitContainer> disabled = find_split(*window, "seam-proximity.disabled");
     std::shared_ptr<SplitContainer> collapsed = find_split(*window, "seam-proximity.collapsed");
     require(vertical && physical && horizontal && disabled && collapsed &&
-                (*horizontal).orientation() == Orientation::horizontal &&
+                (*horizontal).orientation.read() == Orientation::horizontal &&
                 (*disabled).splitter_seam_snapshot().state ==
                     SplitSeamState::disabled &&
                 (*collapsed).splitter_seam_snapshot().state ==
@@ -121,7 +132,7 @@ void test_trace_scale_state_input_and_inspection() {
     const VisualPaintOperationSnapshot* fill = grip ? first_fill(*grip) : nullptr;
     // Bounded: the band's face (1; no edge below 2 px), the tab's clip, face, gradient,
     // restore and edge (5), and its arrow mark's four rows (4).
-    require(grip && fill && near((*fill).rect.width, 1.0) &&
+    require(grip && fill && near(face_width(*fill), 1.0) &&
                 (*grip).display_chunk_current &&
                 (*grip).total_display_operations <= 11U,
             "one-times inspector trace must expose one logical hairline fill in a bounded current chunk");
@@ -136,7 +147,7 @@ void test_trace_scale_state_input_and_inspection() {
     grip = snapshot.find("seam-proximity.hairline.splitter");
     fill = grip ? first_fill(*grip) : nullptr;
     const SplitSeamSnapshot physical = (*hairline).splitter_seam_snapshot();
-    require(grip && fill && near((*fill).rect.width, 0.5) &&
+    require(grip && fill && near(face_width(*fill), 0.5) &&
                 near(physical.visible_device_pixels, 1.0) &&
                 physical.hit_bounds.width >=
                     physical.geometry.minimum_hit_target,
@@ -166,7 +177,7 @@ void test_trace_scale_state_input_and_inspection() {
     PointerEvent down = near_pointer;
     down.action = PointerAction::down;
     down.button = PointerButton::primary;
-    const double start = (*hairline).splitter_distance();
+    const double start = (*hairline).splitter_distance.read();
     require((*window).dispatch_pointer(down) &&
                 (*window).captured_control() == (*hairline).splitter_control() &&
                 (*hairline).splitter_seam_snapshot().state ==
@@ -179,15 +190,15 @@ void test_trace_scale_state_input_and_inspection() {
     static_cast<void>((*window).dispatch_pointer(move));
     require((*window).dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
                 !(*window).captured_control() &&
-                near((*hairline).splitter_distance(), start),
+                near((*hairline).splitter_distance.read(), start),
             "Escape must cancel and restore a live laboratory drag");
 
     require((*window).perform_semantic_action(
                 "seam-proximity.hairline", SemanticAction::increment) &&
-                (*hairline).splitter_distance() > start &&
+                (*hairline).splitter_distance.read() > start &&
                 (*window).perform_semantic_action(
                     "seam-proximity.hairline", SemanticAction::set_value,
-                    "180") && near((*hairline).splitter_distance(), 180.0),
+                    "180") && near((*hairline).splitter_distance.read(), 180.0),
             "lab seam must publish adjustable semantic value actions");
     require((*window).perform_semantic_action(
                 "seam-proximity.text-scale", SemanticAction::press) &&

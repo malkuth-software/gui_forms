@@ -38,8 +38,8 @@ void test_docking_workspace(gui_forms::Window& window) {
     // Kept: Close All asks and the documents stay.
     click(window, keep);
     click(window, window.find("gallery.docking.close-all"));
-    require((*keep).checked() && placed(*site, "form.cs") && placed(*site, "readme.md") &&
-                (*closing).text().find("kept") != std::string::npos,
+    require((*keep).checked.read() && placed(*site, "form.cs") && placed(*site, "readme.md") &&
+                (*closing).text.read().find("kept") != std::string::npos,
             "with Keep checked, Close All asks about the first document and closes nothing");
 
     // Saved, closed, restored.
@@ -52,7 +52,7 @@ void test_docking_workspace(gui_forms::Window& window) {
     click(window, window.find("gallery.docking.restore"));
     window.perform_layout();
     require(placed(*site, "form.cs") && placed(*site, "readme.md") &&
-                (*closing).text().find("Layout restored") != std::string::npos,
+                (*closing).text.read().find("Layout restored") != std::string::npos,
             "Restore brings the saved layout back");
 
     // A named layout, saved with the name field's text and applied from the
@@ -66,7 +66,7 @@ void test_docking_workspace(gui_forms::Window& window) {
     (*named).select_index(0U);
     click(window, window.find("gallery.docking.apply-named"));
     window.perform_layout();
-    require(placed(*site, "program.cs") && (*closing).text().find("Layout restored") != std::string::npos,
+    require(placed(*site, "program.cs") && (*closing).text.read().find("Layout restored") != std::string::npos,
             "applying the named layout brings the documents back");
 }
 

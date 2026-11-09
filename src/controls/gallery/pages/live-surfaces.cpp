@@ -1,5 +1,7 @@
 #include "pages.hpp"
 
+#include "live-surfaces_form.hpp"
+
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 
@@ -40,7 +42,8 @@ public:
     }
 };
 
-// Owns the live-surfaces page: one LiveSurface, the page Timer whose tick
+// Owns the live-surfaces page that demo/pages/live-surfaces.form describes:
+// one LiveSurface, the page Timer whose tick
 // writes a frame through a write lease on the UI thread, the Commands its
 // producer buttons bind, and the interval Value its TrackBar binds. Each tick
 // repaints one column band and publishes exactly that damage, so a presenter
@@ -50,11 +53,13 @@ public:
     explicit LiveSurfacesPage(const std::shared_ptr<Surface>& body);
 
 private:
+    // The document binds the Commands and the interval Value (FD-6).
+    template <typename> friend class gui_forms::gallery::pages::LiveSurfacesDocument;
+
     static constexpr std::uint32_t band_count = 8U;
 
-    void build_presenter(const std::shared_ptr<Surface>& body);
-    void build_producer(const std::shared_ptr<Surface>& body);
-    void build_sub_surface(const std::shared_ptr<Surface>& body);
+    void build_presenter();
+    void build_producer();
     [[nodiscard]] LiveSurfaceDescription description() const noexcept;
     [[nodiscard]] bool ensure_timer();
     void on_start();
@@ -69,16 +74,19 @@ private:
     void refresh_status(std::string_view event, Rect damage);
 
     std::shared_ptr<LiveSurface> surface_;
-    std::shared_ptr<DrawingSurface> view_;
-    std::shared_ptr<Label> status_;
-    std::shared_ptr<Label> telemetry_;
-    std::shared_ptr<Button> reconfigure_button_;
     std::unique_ptr<Timer> timer_;
     Command start_{};
     Command stop_{};
     Command publish_once_{};
     Command reconfigure_{};
     Value<double> interval_{120.0};
+    // Declared after the Commands and the Value its controls bind, so it is
+    // released first.
+    LiveSurfacesDocument<LiveSurfacesPage> document_{};
+    std::shared_ptr<DrawingSurface> view_;
+    std::shared_ptr<Label> status_;
+    std::shared_ptr<Label> telemetry_;
+    std::shared_ptr<Button> reconfigure_button_;
     std::uint64_t frames_{};
     bool large_{};
     bool needs_full_frame_{true};
@@ -88,14 +96,16 @@ LiveSurfacesPage::LiveSurfacesPage(const std::shared_ptr<Surface>& body) {
     // description() reads large_, so the surface is created after every member
     // has its initializer, not in the initializer list ahead of them.
     surface_ = LiveSurface::create(description());
-    (*body).add_at(label("gallery.live-surfaces.heading", "LIVE SURFACES", 22.0, 700,
-                         shell_blue_dark), {24.0, 18.0, 620.0, 34.0});
-    (*body).add_at(label("gallery.live-surfaces.lead",
-                         "A producer publishes complete frame candidates through a write lease; the presenter acquires only the newest immutable one and copies only its damage.",
-                         12.0, 400, muted), {26.0, 52.0, 920.0, 24.0});
-    build_presenter(body);
-    build_producer(body);
-    build_sub_surface(body);
+    // The Commands carry their text before the document binds them.
+    build_producer();
+    document_.initialize_component(*this);
+    mount_form_children(*document_.gallery_live_surfaces_document, *body);
+    (*document_.gallery_live_surfaces_presenter).set_style(page_style());
+    (*document_.gallery_live_surfaces_producer).set_style(page_style());
+    (*document_.gallery_live_surfaces_sub_surface).set_style(page_style());
+    build_presenter();
+    reconfigure_button_ = document_.gallery_live_surfaces_reconfigure;
+    (*document_.gallery_live_surfaces_sub_surface_host).set_content(std::make_unique<SubSurfaceSample>(), true);
     on(start_.invoked(), *this, &LiveSurfacesPage::on_start);
     on(stop_.invoked(), *this, &LiveSurfacesPage::on_stop);
     on(publish_once_.invoked(), *this, &LiveSurfacesPage::on_publish_once);
@@ -114,41 +124,17 @@ LiveSurfaceDescription LiveSurfacesPage::description() const noexcept {
     return result;
 }
 
-void LiveSurfacesPage::build_presenter(const std::shared_ptr<Surface>& body) {
-    std::shared_ptr<LayoutGroup> presenter = group(
-        "gallery.live-surfaces.presenter",
-        "LiveSurface · newest-frame presentation through Painter::draw_live_surface",
-        {930.0, 336.0});
-    (*body).add_at(presenter, {24.0, 92.0, 930.0, 336.0});
-    view_ = make_control<DrawingSurface>(StableId("gallery.live-surfaces.view"));
-    (*view_).accessible_name = "Live surface presentation";
-    (*view_).accessible_description = "Latest published frame of the page-owned LiveSurface";
+// The presenter replays the newest published frame of the page's surface.
+void LiveSurfacesPage::build_presenter() {
+    view_ = document_.gallery_live_surfaces_view;
     (*view_).set_paint_callback(LiveSurfacePaint(surface_));
-    (*presenter).add_at(view_, {22.0, 40.0, 480.0, 270.0});
-
-    status_ = label("gallery.live-surfaces.status", "", 12.0, 700, green);
-    (*status_).set_text_wrapping(TextWrapping::word);
-    (*status_).set_vertical_alignment(VerticalAlignment::near);
-    (*presenter).add_at(status_, {524.0, 40.0, 384.0, 60.0});
-    telemetry_ = label("gallery.live-surfaces.telemetry", "", 11.0, 400, ink);
-    (*telemetry_).set_text_wrapping(TextWrapping::word);
-    (*telemetry_).set_vertical_alignment(VerticalAlignment::near);
-    (*presenter).add_at(telemetry_, {524.0, 108.0, 384.0, 130.0});
-    std::shared_ptr<Label> note = label(
-        "gallery.live-surfaces.note",
-        "Publishing never blocks: when every buffer is held by readers the producer drops that frame and the counter records it. Reconfigure starts a new epoch; the previous frame stays presentable, scaled, until the first new publication.",
-        10.0, 400, muted);
-    (*note).set_text_wrapping(TextWrapping::word);
-    (*note).set_vertical_alignment(VerticalAlignment::near);
-    (*presenter).add_at(note, {524.0, 244.0, 384.0, 80.0});
+    status_ = document_.gallery_live_surfaces_status;
+    telemetry_ = document_.gallery_live_surfaces_telemetry;
 }
 
-void LiveSurfacesPage::build_producer(const std::shared_ptr<Surface>& body) {
-    std::shared_ptr<LayoutGroup> producer = group(
-        "gallery.live-surfaces.producer",
-        "Producer · UI-thread Timer ticks write one band per frame", {930.0, 170.0});
-    (*body).add_at(producer, {24.0, 450.0, 930.0, 170.0});
-
+// The page's Commands, which the document's producer buttons bind (the
+// track bar binds the interval Value there too).
+void LiveSurfacesPage::build_producer() {
     start_.set_text("Start producer");
     start_.set_description("Start the page Timer; each tick publishes one band");
     stop_.set_text("Stop producer");
@@ -157,70 +143,13 @@ void LiveSurfacesPage::build_producer(const std::shared_ptr<Surface>& body) {
     publish_once_.set_description("Write and publish a single frame now");
     reconfigure_.set_text("Reconfigure 240×150");
     reconfigure_.set_description("Replace the buffer pool at another size");
-
-    std::shared_ptr<Button> start =
-        make_control<Button>(StableId("gallery.live-surfaces.start"), "Start producer");
-    (*start).set_visual_style(ButtonVisualStyle::accent);
-    (*start).bind(start_);
-    std::shared_ptr<Button> stop =
-        make_control<Button>(StableId("gallery.live-surfaces.stop"), "Stop producer");
-    (*stop).bind(stop_);
-    std::shared_ptr<Button> publish = make_control<Button>(
-        StableId("gallery.live-surfaces.publish"), "Publish one frame");
-    (*publish).set_visual_style(ButtonVisualStyle::command);
-    (*publish).bind(publish_once_);
-    reconfigure_button_ = make_control<Button>(
-        StableId("gallery.live-surfaces.reconfigure"), "Reconfigure 240×150");
-    (*reconfigure_button_).set_visual_style(ButtonVisualStyle::command);
-    (*reconfigure_button_).bind(reconfigure_);
-    (*producer).add_at(start, {22.0, 42.0, 150.0, 36.0});
-    (*producer).add_at(stop, {184.0, 42.0, 150.0, 36.0});
-    (*producer).add_at(publish, {346.0, 42.0, 160.0, 36.0});
-    (*producer).add_at(reconfigure_button_, {518.0, 42.0, 180.0, 36.0});
-
-    (*producer).add_at(label("gallery.live-surfaces.interval.label",
-                             "Tick interval · 60–500 ms", 10.0, 700, shell_blue_dark),
-                       {22.0, 92.0, 220.0, 20.0});
-    std::shared_ptr<TrackBar> interval =
-        make_control<TrackBar>(StableId("gallery.live-surfaces.interval"));
-    (*interval).set_range(60.0, 500.0);
-    (*interval).set_tick_frequency(4U);
-    (*interval).accessible_name = "Producer tick interval in milliseconds";
-    (*interval).bind(interval_);
-    (*producer).add_at(interval, {22.0, 112.0, 320.0, 44.0});
-    std::shared_ptr<Label> policy = label(
-        "gallery.live-surfaces.policy",
-        "The write lease preserves the previous publication, so a tick repaints one band and publishes only that rectangle. Hidden pages suspend the producer: the next tick on an invisible presenter stops the Timer.",
-        10.0, 400, muted);
-    (*policy).set_text_wrapping(TextWrapping::word);
-    (*policy).set_vertical_alignment(VerticalAlignment::near);
-    (*producer).add_at(policy, {366.0, 92.0, 540.0, 66.0});
-}
-
-void LiveSurfacesPage::build_sub_surface(const std::shared_ptr<Surface>& body) {
-    std::shared_ptr<LayoutGroup> threaded = group(
-        "gallery.live-surfaces.sub-surface",
-        "SubSurfaceHost · a retained tree on its own thread, composed as a live surface", {930.0, 130.0});
-    (*body).add_at(threaded, {24.0, 642.0, 930.0, 130.0});
-    std::shared_ptr<SubSurfaceHost> host =
-        make_control<SubSurfaceHost>(StableId("gallery.live-surfaces.sub-surface.host"));
-    (*host).accessible_name = "Threaded sub-surface";
-    (*host).set_content(std::make_unique<SubSurfaceSample>(), true);
-    (*threaded).add_at(host, {22.0, 40.0, 340.0, 82.0});
-    std::shared_ptr<Label> note = label(
-        "gallery.live-surfaces.sub-surface.note",
-        "The host starts the sub-surface's thread when it is first shown and stops it when it leaves the window. Pointer, keys and focus are forwarded to it; its frames never mark the window's tree.",
-        10.0, 400, muted);
-    (*note).set_text_wrapping(TextWrapping::word);
-    (*note).set_vertical_alignment(VerticalAlignment::near);
-    (*threaded).add_at(note, {384.0, 40.0, 524.0, 80.0});
 }
 
 bool LiveSurfacesPage::ensure_timer() {
     if (timer_) return true;
     Window* const window = (*view_).attached_window();
     if (window == nullptr) {
-        (*status_).set_text("Producer needs an attached Window");
+        (*status_).text = "Producer needs an attached Window";
         return false;
     }
     timer_ = std::make_unique<Timer>(
@@ -233,14 +162,14 @@ bool LiveSurfacesPage::ensure_timer() {
 void LiveSurfacesPage::on_start() {
     if (!surface_ || !ensure_timer()) return;
     (*timer_).start();
-    (*status_).set_text("Producer running · " +
+    (*status_).text = "Producer running · " +
                         std::to_string((*timer_).interval().count()) +
-                        " ms deadline on the UI queue");
+                        " ms deadline on the UI queue";
 }
 
 void LiveSurfacesPage::on_stop() {
     if (timer_) (*timer_).stop();
-    (*status_).set_text("Producer stopped · zero idle wakeups");
+    (*status_).text = "Producer stopped · zero idle wakeups";
 }
 
 void LiveSurfacesPage::on_publish_once() {
@@ -254,7 +183,7 @@ void LiveSurfacesPage::on_reconfigure() {
     const bool reconfigured = (*surface_).reconfigure(description());
     if (!reconfigured) {
         large_ = !large_;
-        (*status_).set_text("Reconfigure refused · a write lease is active");
+        (*status_).text = "Reconfigure refused · a write lease is active";
         return;
     }
     needs_full_frame_ = true;
@@ -274,7 +203,7 @@ void LiveSurfacesPage::on_interval_changed(const double milliseconds) {
 void LiveSurfacesPage::on_tick() {
     if (!(*view_).effectively_visible()) {
         (*timer_).stop();
-        (*status_).set_text("Producer suspended · page hidden · zero wakeups");
+        (*status_).text = "Producer suspended · page hidden · zero wakeups";
         return;
     }
     publish_frame();
@@ -343,7 +272,7 @@ void LiveSurfacesPage::publish_frame() {
 
 void LiveSurfacesPage::refresh_status(const std::string_view event, const Rect damage) {
     if (!surface_) {
-        (*status_).set_text("LiveSurface::create refused the description");
+        (*status_).text = "LiveSurface::create refused the description";
         return;
     }
     const LiveSurfaceSnapshot snapshot = (*surface_).snapshot();
@@ -353,8 +282,8 @@ void LiveSurfacesPage::refresh_status(const std::string_view event, const Rect d
               std::to_string(static_cast<int>(damage.y)) + " " +
               std::to_string(static_cast<int>(damage.width)) + "×" +
               std::to_string(static_cast<int>(damage.height));
-    (*status_).set_text(std::string(event) + " · damage " + damage_text);
-    (*telemetry_).set_text(
+    (*status_).text = std::string(event) + " · damage " + damage_text;
+    (*telemetry_).text =
         std::to_string(snapshot.description.width) + "×" +
         std::to_string(snapshot.description.height) + " BGRA · " + std::to_string(snapshot.description.buffer_count) + " buffers" +
         "\nepoch " + std::to_string(snapshot.epoch) +
@@ -363,7 +292,7 @@ void LiveSurfacesPage::refresh_status(const std::string_view event, const Rect d
         "\ndropped acquires " + std::to_string(snapshot.dropped_acquires) +
         " · read acquires " + std::to_string(snapshot.read_acquires) +
         " · last read generation " + std::to_string(snapshot.last_read_generation) +
-        (snapshot.carries_previous_frame ? "\ncarrying the previous epoch's frame" : ""));
+        (snapshot.carries_previous_frame ? "\ncarrying the previous epoch's frame" : "");
 }
 
 void add_live_surfaces(const std::shared_ptr<Surface>& page,

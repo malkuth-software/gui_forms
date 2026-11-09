@@ -48,10 +48,15 @@ struct BasicControlStyle final {
 // design language 12.9) is the face and edge of plain and enhanced
 // tooltips, beside `card` and `menu_item`. `link` and `visited_link` (owner
 // decision W-Q5) are a hyperlink's text, chosen by the link's visited flag;
-// hover keeps the normal link colour, and a link draws no plate.
+// hover keeps the normal link colour, and a link draws no plate. `notice`
+// (T4, W-4) is the face of an InfoBanner or a Toast; its severity is the
+// control's own custom state, exactly one of information, warning, success
+// and error, and its keyline takes the severity's colour. `badge` (T4, W-4)
+// is a Badge's count or dot chip, which has normal and disabled looks only.
 enum class ControlVisualRole : std::uint8_t {
     window, panel, card, button, accent_button, command_button, choice,
-    editor, menu_item, selection, progress, tool_tip, link, visited_link, count,
+    editor, menu_item, selection, progress, tool_tip, link, visited_link,
+    notice, badge, count,
 };
 enum class ControlSurfaceState : std::uint8_t {
     normal, hot, pressed, pending, invalid, disabled, deactivated, count,
@@ -216,7 +221,8 @@ struct ControlRoleRecipes final {
         high_contrast_selected;
     // The dark variant's records (stage T4 phase 5): derived from the
     // ordinary and selected ones when the theme asks for a derived dark
-    // variant (ThemeDefinition::dark_variant), otherwise copies of them.
+    // variant (ThemeDefinition::dark_variant), kept as written when it
+    // asks for an authored one, otherwise copies of them.
     // Theme::create fills them; authored values are replaced.
     std::array<ControlVisualRecipe, control_surface_state_count> dark;
     std::array<ControlVisualRecipe, control_surface_state_count> dark_selected;
@@ -347,6 +353,10 @@ struct ThemeGeometryTokens final {
     double navigation_minimum{120.0};
     double content_minimum{240.0};
     double compact_breakpoint{720.0};
+    // Whether scroll bars draw their arrow buttons: false gives the track
+    // the whole bar, as a macOS scroller (ScrollBar and the scroll bars of a
+    // ScrollableControl; their button extent then reads as zero).
+    bool scroll_arrows{true};
     friend constexpr bool operator==(const ThemeGeometryTokens& left,
                                      const ThemeGeometryTokens& right) noexcept {
         return left.compact_control_height == right.compact_control_height &&
@@ -358,7 +368,8 @@ struct ThemeGeometryTokens final {
                left.navigation_extent == right.navigation_extent &&
                left.navigation_minimum == right.navigation_minimum &&
                left.content_minimum == right.content_minimum &&
-               left.compact_breakpoint == right.compact_breakpoint;
+               left.compact_breakpoint == right.compact_breakpoint &&
+               left.scroll_arrows == right.scroll_arrows;
     }
 };
 struct ThemeTypographyTokens final {
@@ -476,9 +487,11 @@ struct ThemeWindowBackdrop final {
 };
 
 // Whether a theme has a dark variant (stage T4 phase 5): none (a dark
-// colour scheme resolves the ordinary records) or derived from the
-// ordinary records by the dark colour rule (derive_dark_recipes).
-enum class ThemeDarkVariant : std::uint8_t { none, derived };
+// colour scheme resolves the ordinary records), derived from the
+// ordinary records by the dark colour rule (derive_dark_recipes), or
+// authored: the definition's own dark and dark_selected records stand
+// (a familiar theme's dark floor sheet, T4 phase 7).
+enum class ThemeDarkVariant : std::uint8_t { none, derived, authored };
 
 // A theme's whole authored description. Its role recipes are held out of
 // line (ControlRoleTable), so the definition itself is a small value, but

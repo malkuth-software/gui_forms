@@ -1,0 +1,9 @@
+/* A panel holding a button; mouse_events.cpp listens to both. */
+form example.window {
+  text: "Mouse events";
+  client-size: 240 120;
+
+  panel example.surface {
+    button example.ok { text: "OK"; bounds: 10 10 100 30; }
+  }
+}

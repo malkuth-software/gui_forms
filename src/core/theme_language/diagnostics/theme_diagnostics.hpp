@@ -102,6 +102,10 @@ enum class DiagnosticCode : std::uint16_t {
     // A var() of a custom property defined in more than one place, read
     // where it cannot vary (P12): in `@keyframes` or in the palette.
     variable_cannot_vary = 416,
+    // An `effect` naming an effect the effect registry the compilation was
+    // given does not hold (EP-3); without a registry, only the name's form
+    // is checked.
+    effect_unknown = 417,
     // E5xx limits (T3 decision E2).
     sheet_too_large = 501,
     too_many_rules = 502,
@@ -172,18 +176,17 @@ enum class DiagnosticCode : std::uint16_t {
     form_type_unknown = 802,
     // A stable ID written on two objects of one document.
     form_identity_repeated = 803,
-    // A property, or an `on-` handler's interaction, that the object's type
-    // does not list.
+    // A property that the object's type does not list.
     form_property_unknown = 804,
     // A property the object's type does not let a document set.
     form_property_read_only = 805,
-    // A property or handler written twice in one object's block.
+    // A property written twice in one object's block.
     form_member_repeated = 806,
     // A value that is not one of the forms the property's kind admits, or
     // that the property refuses.
     form_value_invalid = 807,
-    // A handler reference that is not one C++ identifier.
-    form_handler_invalid = 808,
+    // 808 is retired: it refused a malformed `on-` handler reference, and
+    // handler references are no longer admitted (E816).
     // An object inside an object whose type holds no children.
     form_children_not_admitted = 809,
     // A style block in an object's block: a form is ontological, and its
@@ -194,9 +197,10 @@ enum class DiagnosticCode : std::uint16_t {
     // A value, a child or an object the run-time types refuse while a form
     // loads (FD3): the detail is the refusal. Nothing loaded is kept.
     form_load_refused = 811,
-    // An object, value or handler the C++ generator cannot spell (FD5): a
+    // An object, value or binding the C++ generator cannot spell (FD5): a
     // type without a C++ name, a stable ID that is no member name or that
-    // spells another's, a reserved handler name. Nothing is generated.
+    // spells another's, a binding source with a reserved spelling. Nothing
+    // is generated.
     form_generation_refused = 812,
     // A presentation property (a font or a colour) written in a
     // form document: a form is ontological, and its objects' look belongs
@@ -213,6 +217,22 @@ enum class DiagnosticCode : std::uint16_t {
     // A string escape the form language does not admit (form_model.hpp,
     // Strings): the detail is the escape as written.
     form_escape_invalid = 815,
+    // An `on-<interaction>:` handler reference (owner ruling FD-6 R6,
+    // 2026-11-07): a form never names program code; behaviour is attached
+    // from program logic. The detail says so.
+    form_handler_removed = 816,
+    // A binding written wrong (form_model.hpp, Bindings): `bind(` without
+    // its source identifier, a field that is not a string, a token after
+    // the closing parenthesis, or a property that is not bindable.
+    form_binding_invalid = 817,
+    // A binding option the language does not know, written twice, or not
+    // admitted where it is written (`update` on a value source or a non-text
+    // property, `update` with `one_way`); the detail names it.
+    form_binding_option_invalid = 818,
+    // A binding the loader cannot make from the sources it was given: no
+    // source of that name, a source of another kind than the property's, or
+    // a field source refusing the binding. Nothing loaded is kept.
+    form_binding_source_refused = 819,
     // E999 is temporary: a form a later phase gives its meaning, refused
     // until then so that no interim meaning ships (PLAN.md P4: a custom
     // property with several definitions, until P12; P5: `!important`, the
@@ -249,6 +269,10 @@ enum class DiagnosticCode : std::uint16_t {
     // selector (owner decision 2026-11-04): a backdrop belongs to a surface
     // only. The declaration is dropped.
     backdrop_not_on_window = 1110,
+    // A `band-*` declaration in a rule whose selector is not a window
+    // selector (owner, 2026-11-08): the outer band belongs to a top-level
+    // window only. The declaration is dropped.
+    band_not_on_window = 1111,
     // W3xx versions (R2-07): the sheet declares a newer engine than the
     // running one, reported once; and, in such a sheet, a keyword the
     // running engine lacks, whose declaration is dropped.

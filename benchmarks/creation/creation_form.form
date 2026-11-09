@@ -1,0 +1,36 @@
+/* The creation-cost gate's form window (APP_WINDOW_RULES_DESIGN K.2): a
+   settings dialog of 22 controls with handlers on its buttons, the shape of
+   an ordinary application window. Change it only with a re-recorded
+   baseline (creation_baseline.txt). */
+form creation.settings {
+  text: "Settings";
+  client-size: 520 360;
+  accept-button: "creation.ok";
+  cancel-button: "creation.cancel";
+
+  user-control creation.root {
+    padding: 8 8;
+    group-box creation.general {
+      text: "General";
+      label creation.general.name-label { text: "Name"; }
+      text-box creation.general.name { tab-index: 0; }
+      label creation.general.folder-label { text: "Folder"; }
+      text-box creation.general.folder { tab-index: 1; }
+      check-box creation.general.auto-save { text: "Save automatically"; checked: true; tab-index: 2; }
+      check-box creation.general.backups { text: "Keep backups"; tab-index: 3; }
+    }
+    group-box creation.view {
+      text: "View";
+      label creation.view.density-label { text: "Density"; }
+      combo-box creation.view.density { items: "Compact" "Comfortable" "Spacious"; tab-index: 4; }
+      label creation.view.band-label { text: "Band"; }
+      domain-up-down creation.view.band { items: "HF" "VHF" "UHF"; tab-index: 5; }
+      list-box creation.view.modes { items: "AM" "FM" "Wide FM" "USB" "LSB"; tab-index: 6; }
+    }
+    button creation.apply { text: "Apply"; tab-index: 7; }
+    button creation.reset { text: "Reset"; tab-index: 8; }
+    button creation.help { text: "Help"; tab-index: 9; }
+    button creation.ok { text: "OK"; tab-index: 10; }
+    button creation.cancel { text: "Cancel"; tab-index: 11; }
+  }
+}

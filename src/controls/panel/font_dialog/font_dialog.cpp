@@ -8,6 +8,7 @@
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -87,7 +88,7 @@ std::span<const BundledFontFace> bundled_font_faces() noexcept {
 
 FontDialog::FontDialog(StableId stable_id) : Panel(std::move(stable_id)) {
     border_style = BorderStyle::none;
-    set_focusable(false);
+    focusable = false;
 }
 
 FontDialog::~FontDialog() {
@@ -115,13 +116,13 @@ void FontDialog::initialize_control_tree() {
     for (const BundledFontFace& face : bundled_faces) {
         faces.push_back(std::string(face.family) + " (" + std::string(face.use) + ")");
     }
-    (*face_list_).set_items(std::move(faces));
-    (*size_box_).set_decimal_places(1U);
-    (*size_box_).set_increment(1.0);
+    (*face_list_).items = std::move(faces);
+    (*size_box_).decimal_places = 1U;
+    (*size_box_).increment = 1.0;
     (*size_box_).set_range(minimum_size_, maximum_size_);
-    (*ok_button_).set_default_button(true);
-    (*ok_button_).set_dialog_result(DialogResult::ok);
-    (*cancel_button_).set_dialog_result(DialogResult::cancel);
+    (*ok_button_).default_button = true;
+    (*ok_button_).dialog_result = DialogResult::ok;
+    (*cancel_button_).dialog_result = DialogResult::cancel;
     add_child(face_caption_);
     add_child(style_caption_);
     add_child(size_caption_);
@@ -157,13 +158,13 @@ std::size_t FontDialog::face_index(FontRole role) const noexcept {
 
 // `font` as the bundled faces can show it: weight 400 or 700 (the nearer),
 // italic only where the face has italics, size within the range.
-FontSpec FontDialog::normalized(FontSpec font) const noexcept {
-    FontSpec result = font;
-    const BundledFontFace& face = bundled_faces[face_index(font.role)];
+FontSpec FontDialog::normalized(FontSpec requested) const noexcept {
+    FontSpec result = requested;
+    const BundledFontFace& face = bundled_faces[face_index(requested.role)];
     result.role = face.role;
-    result.weight = static_cast<std::uint16_t>(font.weight >= 550U ? 700U : 400U);
-    result.italic = font.italic && face.italic;
-    result.size = std::clamp(font.size, minimum_size_, maximum_size_);
+    result.weight = static_cast<std::uint16_t>(requested.weight >= 550U ? 700U : 400U);
+    result.italic = requested.italic && face.italic;
+    result.size = std::clamp(requested.size, minimum_size_, maximum_size_);
     return result;
 }
 
@@ -180,7 +181,7 @@ void FontDialog::fill_styles() {
     for (const FontStyle style : styles_) {
         names.push_back(std::string(style_name(style)));
     }
-    (*style_list_).set_items(std::move(names));
+    (*style_list_).items = std::move(names);
 }
 
 void FontDialog::show_selection() {
@@ -194,7 +195,7 @@ void FontDialog::show_selection() {
     for (std::size_t index = 0U; index < styles_.size(); ++index) {
         if (styles_[index] == style) (*style_list_).select_index(index);
     }
-    (*size_box_).set_value(selection_.size);
+    (*size_box_).value = selection_.size;
     synchronizing_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
 }
@@ -224,12 +225,17 @@ void FontDialog::on_size_changed(double size) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void FontDialog::set_font(FontSpec font) {
+FontSpec FontDialog::read_view(const decltype(font)&) const {
+    return font_;
+}
+
+// Resets the selection to the written font even when it is unchanged.
+void FontDialog::write_view(const decltype(font)&, FontSpec incoming) {
     require_mutable();
-    if (!valid_font_spec(font)) throw std::invalid_argument("FontDialog font specification is invalid");
+    if (!valid_font_spec(incoming)) throw std::invalid_argument("FontDialog font specification is invalid");
     set_font_from_code(true);
-    font_ = font;
-    selection_ = normalized(font);
+    font_ = incoming;
+    selection_ = normalized(incoming);
     show_selection();
 }
 
@@ -245,19 +251,13 @@ void FontDialog::set_size_range(double minimum, double maximum) {
     show_selection();
 }
 
-void FontDialog::set_show_apply(bool show) {
+void FontDialog::prepare_write(const decltype(show_apply)&, bool&) {
     require_mutable();
-    if (show_apply_ == show) return;
-    show_apply_ = show;
-    if (apply_button_) (*apply_button_).visible = show_apply_;
-    invalidate(Dirty::arrange | Dirty::paint | Dirty::semantics);
 }
 
-void FontDialog::set_preview_text(std::string text) {
-    require_mutable();
-    if (!validate_utf8(text).valid()) throw std::invalid_argument("FontDialog preview text must be valid UTF-8");
-    preview_text_ = std::move(text);
-    invalidate(Dirty::paint | Dirty::semantics);
+void FontDialog::written(const decltype(show_apply)&) {
+    if (apply_button_) (*apply_button_).visible = show_apply.read();
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::semantics);
 }
 
 // -- buttons ---------------------------------------------------------------------
@@ -420,7 +420,7 @@ void FontDialog::arrange(Rect final_bounds) {
     set_child_layout(size_box_, {size_left, list_top, size_width, size_height});
     // The buttons sit at the bottom right: Apply last, when shown.
     double right = final_bounds.width - dialog_margin;
-    if (show_apply_) {
+    if (show_apply.read()) {
         set_child_layout(apply_button_, {right - button_width, button_top, button_width, button_height});
         right -= button_width + button_gap;
     }
@@ -467,7 +467,7 @@ void FontDialog::on_paint(Painter& painter, Rect) {
     part.bounds = parts.preview_text.bounds;
     part.font = effective_font(selection_);
     part.alignment = PartTextAlignment::center;
-    part.text = preview_text_;
+    part.text = preview_text.read();
     paint_part(painter, *this, part);
 }
 
@@ -560,5 +560,18 @@ void FontDialog::append_interactions(std::vector<InteractionDeclaration>& intera
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), font_dialog_interactions.begin(), font_dialog_interactions.end());
 }
+
+// property_codemod begin FontDialog (tools/property_families/font_dialog.json; generated, do not edit)
+
+void FontDialog::prepare_write(const decltype(preview_text)&, std::string& incoming) {
+    require_mutable();
+    if (!validate_utf8(incoming).valid()) throw std::invalid_argument("FontDialog preview text must be valid UTF-8");
+}
+
+void FontDialog::written(const decltype(preview_text)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+// property_codemod end FontDialog
 
 } // namespace gui_forms

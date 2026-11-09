@@ -155,12 +155,26 @@ bool valid_drag_event(const DragEvent& event) noexcept {
 // second attach, after close authorization only the close, shutdown or a
 // passive deactivation or occlusion, once closed only shutdown, and nothing
 // after shutdown.
+// Whether a context-request or hover report names a finite position and a
+// known origin; every other payload passes.
+bool valid_pointer_report(const HostEventPayload& payload) noexcept {
+    if (const HostContextRequestEvent* request = std::get_if<HostContextRequestEvent>(&payload)) {
+        const bool origin = (*request).origin == ContextRequestOrigin::pointer ||
+                            (*request).origin == ContextRequestOrigin::keyboard;
+        return origin && std::isfinite((*request).position.x) && std::isfinite((*request).position.y);
+    }
+    if (const HostHoverEvent* hover = std::get_if<HostHoverEvent>(&payload)) {
+        return std::isfinite((*hover).position.x) && std::isfinite((*hover).position.y);
+    }
+    return true;
+}
+
 bool valid_input_settings(const HostInputSettingsEvent& input) noexcept {
     const bool interval = input.double_click_milliseconds != 0U &&
                           input.double_click_milliseconds <= maximum_double_click_milliseconds;
     const bool origin = input.double_click_origin == SettingOrigin::default_value ||
                         input.double_click_origin == SettingOrigin::host;
-    return interval && origin;
+    return interval && origin && valid_pointer_settings(input.pointer);
 }
 
 HostDispatchError lifecycle_refusal(HostLifecyclePhase phase, bool attach, bool shutdown,
@@ -198,6 +212,9 @@ HostSession::HostSession(Window& window,
         }
         window.invalidate_cursor_interaction(CursorError::stale_window);
         window.host_services_ = services_;
+        // The window's corners as the host makes them, which its band
+        // follows (owner, 2026-11-08).
+        window.apply_corner_preference();
         capture_observation_ = window.pointer_capture_changed().subscribe(
             Delegate<const PointerCaptureChange&>::bind<
                 HostSession, &HostSession::observe_pointer_capture>(*this));
@@ -333,10 +350,20 @@ void HostSession::DispatchVisitor::operator()(
     } else if constexpr (std::is_same_v<Payload, HostInputSettingsEvent>) {
         // Only the reported fields change; the application's own settings
         // stay as they are.
-        PresentationSettings settings = (*(*session).window_).presentation_settings();
+        PresentationSettings settings = (*(*session).window_).presentation_base();
         settings.double_click_milliseconds = payload.double_click_milliseconds;
         settings.double_click_origin = payload.double_click_origin;
-        (*(*session).window_).set_presentation_settings(settings);
+        settings.pointer = payload.pointer;
+        (*(*session).window_).set_host_presentation(settings);
+    } else if constexpr (std::is_same_v<Payload, HostContextRequestEvent>) {
+        (*result).handled = (*(*session).window_).dispatch_context_request(payload.origin, payload.position);
+    } else if constexpr (std::is_same_v<Payload, HostHoverEvent>) {
+        (*(*session).window_).dispatch_host_hover(payload.position);
+    } else if constexpr (std::is_same_v<Payload, HostWindowStateEvent>) {
+        // Full screen first: a band that hides there gives up its
+        // reservation before the corners' strips are damaged.
+        (*(*session).window_).report_full_screen(payload.full_screen);
+        (*(*session).window_).apply_corner_preference();
     }
 }
 
@@ -412,6 +439,12 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
         observed_.emit(event, result);
         return result;
     }
+    if (!valid_pointer_report(event.payload)) {
+        result.error = HostDispatchError::invalid_payload;
+        ++snapshot_.events_rejected;
+        observed_.emit(event, result);
+        return result;
+    }
     if (const HostInputSettingsEvent* input = std::get_if<HostInputSettingsEvent>(&event.payload);
         input != nullptr && !valid_input_settings(*input)) {
         result.error = HostDispatchError::invalid_payload;
@@ -426,7 +459,9 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
         (std::holds_alternative<PointerEvent>(event.payload) ||
          std::holds_alternative<KeyEvent>(event.payload) ||
          std::holds_alternative<TextInputEvent>(event.payload) ||
-         std::holds_alternative<DragEvent>(event.payload));
+         std::holds_alternative<DragEvent>(event.payload) ||
+         std::holds_alternative<HostContextRequestEvent>(event.payload) ||
+         std::holds_alternative<HostHoverEvent>(event.payload));
     if (modal_input) {
         ++snapshot_.modal_input_suppressions;
         observed_.emit(event, result);

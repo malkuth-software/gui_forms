@@ -59,36 +59,36 @@ private:
     }
 
     void on_search_overlay(const bool open) {
-        (*status_).set_text(open ? "Stations matching \"" + std::string((*search_).text()) + "\": " +
+        (*status_).text = open ? "Stations matching \"" + std::string((*search_).text.read()) + "\": " +
                                        std::to_string((*search_).drop_down_items().size())
-                                 : "Station search closed · the editor kept the focus");
+                                 : "Station search closed · the editor kept the focus";
     }
 
     void on_location_selected(const ListSelectionChange& change) {
-        (*status_).set_text(change.current.empty()
+        (*status_).text = change.current.empty()
             ? std::string("Locations: no selection")
             : "Location " + std::to_string(change.current.front() + 1U) +
-                  " selected · selection_changed is the state event");
+                  " selected · selection_changed is the state event";
     }
 
     void on_location_activated(const std::size_t index) {
-        (*status_).set_text("Location " + std::to_string(index + 1U) +
-                            " activated · item_activated reports input only");
+        (*status_).text = "Location " + std::to_string(index + 1U) +
+                            " activated · item_activated reports input only";
     }
 
     void on_features_selected(const ListSelectionChange& change) {
-        (*status_).set_text(std::to_string(change.current.size()) +
-                            " features selected · Shift and Ctrl extend the range");
+        (*status_).text = std::to_string(change.current.size()) +
+                            " features selected · Shift and Ctrl extend the range";
     }
 
     void on_profile_committed() {
-        (*status_).set_text("Profile committed: " + std::string((*profile_).selected_text()) +
-                            " · overlay detached · focus restored");
+        (*status_).text = "Profile committed: " + std::string((*profile_).selected_text()) +
+                            " · overlay detached · focus restored";
     }
 
     void on_density_overlay(const bool open) {
-        (*status_).set_text(open ? "Density overlay: OPEN · contained ListBox focus scope"
-                                 : "Density overlay: CLOSED · owner focus restored");
+        (*status_).text = open ? "Density overlay: OPEN · contained ListBox focus scope"
+                                 : "Density overlay: CLOSED · owner focus restored";
     }
 
     // Owns the document's controls; the shell's page body holds them too once

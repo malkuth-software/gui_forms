@@ -59,6 +59,7 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::keyframes_undefined:
     case DiagnosticCode::colour_role_undefined:
     case DiagnosticCode::variable_cannot_vary:
+    case DiagnosticCode::effect_unknown:
     case DiagnosticCode::resource_unknown:
     case DiagnosticCode::sheet_too_large:
     case DiagnosticCode::too_many_rules:
@@ -90,7 +91,6 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::form_property_read_only:
     case DiagnosticCode::form_member_repeated:
     case DiagnosticCode::form_value_invalid:
-    case DiagnosticCode::form_handler_invalid:
     case DiagnosticCode::form_children_not_admitted:
     case DiagnosticCode::form_style_block:
     case DiagnosticCode::form_load_refused:
@@ -98,6 +98,10 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::form_presentation_property:
     case DiagnosticCode::form_span_conflict:
     case DiagnosticCode::form_escape_invalid:
+    case DiagnosticCode::form_handler_removed:
+    case DiagnosticCode::form_binding_invalid:
+    case DiagnosticCode::form_binding_option_invalid:
+    case DiagnosticCode::form_binding_source_refused:
     case DiagnosticCode::not_yet_built:
         return DiagnosticSeverity::error;
     case DiagnosticCode::unknown_property:
@@ -110,6 +114,7 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::primitive_over_budget:
     case DiagnosticCode::primitive_cost_unbounded:
     case DiagnosticCode::backdrop_not_on_window:
+    case DiagnosticCode::band_not_on_window:
     case DiagnosticCode::needs_newer_engine:
     case DiagnosticCode::keyword_from_newer_engine:
     case DiagnosticCode::literal_colour_unremappable:
@@ -162,6 +167,7 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::keyframes_undefined: return "keyframes_undefined";
     case DiagnosticCode::colour_role_undefined: return "colour_role_undefined";
     case DiagnosticCode::variable_cannot_vary: return "variable_cannot_vary";
+    case DiagnosticCode::effect_unknown: return "effect_unknown";
     case DiagnosticCode::resource_unknown: return "resource_unknown";
     case DiagnosticCode::sheet_too_large: return "sheet_too_large";
     case DiagnosticCode::too_many_rules: return "too_many_rules";
@@ -193,7 +199,6 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::form_property_read_only: return "form_property_read_only";
     case DiagnosticCode::form_member_repeated: return "form_member_repeated";
     case DiagnosticCode::form_value_invalid: return "form_value_invalid";
-    case DiagnosticCode::form_handler_invalid: return "form_handler_invalid";
     case DiagnosticCode::form_children_not_admitted: return "form_children_not_admitted";
     case DiagnosticCode::form_style_block: return "form_style_block";
     case DiagnosticCode::form_load_refused: return "form_load_refused";
@@ -201,6 +206,10 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::form_presentation_property: return "form_presentation_property";
     case DiagnosticCode::form_span_conflict: return "form_span_conflict";
     case DiagnosticCode::form_escape_invalid: return "form_escape_invalid";
+    case DiagnosticCode::form_handler_removed: return "form_handler_removed";
+    case DiagnosticCode::form_binding_invalid: return "form_binding_invalid";
+    case DiagnosticCode::form_binding_option_invalid: return "form_binding_option_invalid";
+    case DiagnosticCode::form_binding_source_refused: return "form_binding_source_refused";
     case DiagnosticCode::not_yet_built: return "not_yet_built";
     case DiagnosticCode::unknown_property: return "unknown_property";
     case DiagnosticCode::unknown_primitive: return "unknown_primitive";
@@ -212,6 +221,7 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::primitive_over_budget: return "primitive_over_budget";
     case DiagnosticCode::primitive_cost_unbounded: return "primitive_cost_unbounded";
     case DiagnosticCode::backdrop_not_on_window: return "backdrop_not_on_window";
+    case DiagnosticCode::band_not_on_window: return "band_not_on_window";
     case DiagnosticCode::needs_newer_engine: return "needs_newer_engine";
     case DiagnosticCode::keyword_from_newer_engine: return "keyword_from_newer_engine";
     case DiagnosticCode::literal_colour_unremappable: return "literal_colour_unremappable";

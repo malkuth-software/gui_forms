@@ -9,7 +9,7 @@ It checks application-owned straight RGBA pixels (including hidden transparent
 color), display premultiplication, a one-pixel edit's viewport damage, pointer
 capture and release outside the canvas, zoom/pan coordinates, application-owned
 undo, and controller subscription disposal. The native option additionally
-creates and automatically closes a native window with `Application::run`
+creates and automatically closes a native window with `application.run` (an `Application` made by `Application::create`)
 through the installed shared Application target, bundling the installed fonts
 and notices. It runs on the selected macOS or Windows host.
 

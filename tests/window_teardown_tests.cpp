@@ -44,7 +44,7 @@ struct Recheck final {
 // window whenever it loses capture or focus.
 class Poster final : public Control {
 public:
-    explicit Poster(StableId stable_id) : Control(std::move(stable_id)) { set_focusable(true); }
+    explicit Poster(StableId stable_id) : Control(std::move(stable_id)) { focusable = true; }
 
     void on_pointer(PointerEvent& event) override {
         if (event.action != PointerAction::down) return;

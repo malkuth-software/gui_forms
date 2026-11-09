@@ -66,16 +66,56 @@ Related types
      -  
    * - :cpp:class:`BreadcrumbTrail::Parts <gui_forms::BreadcrumbTrail::Parts>`
      - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`BreadcrumbTrailActiveIdCapability <gui_forms::BreadcrumbTrailActiveIdCapability>`
+     - The stable ID of the keyboard-active segment, the overflow or the edit button, or empty; a view, since keyboard, pointer and semantic actions move it.
+   * - :cpp:class:`BreadcrumbTrailAppearanceCapability <gui_forms::BreadcrumbTrailAppearanceCapability>`
+     - Whether the segments are drawn plain or as raised arrows.
+   * - :cpp:class:`BreadcrumbTrailCapabilities <gui_forms::BreadcrumbTrailCapabilities>`
+     - Every BreadcrumbTrail capability, in the order the declaring class takes them.
+   * - :cpp:class:`BreadcrumbTrailEditingCapability <gui_forms::BreadcrumbTrailEditingCapability>`
+     - Whether the exact-path editor replaces the segments.
+   * - :cpp:class:`BreadcrumbTrailTabCompletionAvailableCapability <gui_forms::BreadcrumbTrailTabCompletionAvailableCapability>`
+     - Whether Tab in the path editor requests completion (edit_completion_requested).
    * - :cpp:class:`CheckedListBox::Item <gui_forms::CheckedListBox::Item>`
      -  
    * - :cpp:class:`CheckedListBox::ItemParts <gui_forms::CheckedListBox::ItemParts>`
      - Stage T1 item records: ListBox's row parts and states plus the check.
    * - :cpp:class:`CheckedListBox::ItemStates <gui_forms::CheckedListBox::ItemStates>`
      -  
+   * - :cpp:class:`CheckedListBoxCapabilities <gui_forms::CheckedListBoxCapabilities>`
+     - Every CheckedListBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`CheckedListBoxCheckOnClickCapability <gui_forms::CheckedListBoxCheckOnClickCapability>`
+     - Whether the first click on an unselected row also toggles its check (CheckOnClick); off by default, so the first click only selects.
+   * - :cpp:class:`CheckedListBoxIndicatorSizeCapability <gui_forms::CheckedListBoxIndicatorSizeCapability>`
+     - The check box's side in logical pixels, 8 to 32 (std::out_of_range otherwise); the row text starts after it.
    * - :cpp:class:`ComboBox::Parts <gui_forms::ComboBox::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`ComboBox::States <gui_forms::ComboBox::States>`
      -  
+   * - :cpp:class:`ComboBoxAutoCompleteCustomSourceCapability <gui_forms::ComboBoxAutoCompleteCustomSourceCapability>`
+     - The candidates for AutoCompleteSource::custom_source (AutoCompleteCustomSource).
+   * - :cpp:class:`ComboBoxAutoCompleteModeCapability <gui_forms::ComboBoxAutoCompleteModeCapability>`
+     - How the drop_down editor offers completions (AutoCompleteMode); a filtered list turns the editor's own completion off.
+   * - :cpp:class:`ComboBoxAutoCompleteSourceCapability <gui_forms::ComboBoxAutoCompleteSourceCapability>`
+     - Where the editor's completions come from (AutoCompleteSource); list_items offers the items.
+   * - :cpp:class:`ComboBoxCapabilities <gui_forms::ComboBoxCapabilities>`
+     - Every ComboBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`ComboBoxDropDownFilterCapability <gui_forms::ComboBoxDropDownFilterCapability>`
+     - Which items a drop_down field's list shows as the user types: every item, those starting with the text, or those containing it.
+   * - :cpp:class:`ComboBoxDropDownStyleCapability <gui_forms::ComboBoxDropDownStyleCapability>`
+     - Whether the field takes text (drop_down, a TextBox editor) or shows the selected item (drop_down_list, the default) (DropDownStyle).
+   * - :cpp:class:`ComboBoxDropDownWidthCapability <gui_forms::ComboBoxDropDownWidthCapability>`
+     - The open list's width (DropDownWidth); zero follows the field's width.
+   * - :cpp:class:`ComboBoxDroppedDownCapability <gui_forms::ComboBoxDroppedDownCapability>`
+     - Whether the list is open (DroppedDown); a view.
+   * - :cpp:class:`ComboBoxMaximumDropDownItemsCapability <gui_forms::ComboBoxMaximumDropDownItemsCapability>`
+     - The most rows the open list shows before it scrolls (MaxDropDownItems), 1 to 64 (std::invalid_argument otherwise).
+   * - :cpp:class:`ComboBoxPlaceholderTextCapability <gui_forms::ComboBoxPlaceholderTextCapability>`
+     - The hint the field shows while no item is selected and no text is typed; the editor shows it in the drop_down style.
+   * - :cpp:class:`ComboBoxSelectedIndexCapability <gui_forms::ComboBoxSelectedIndexCapability>`
+     - The selected item (SelectedIndex), or none; a view onto the selection.
+   * - :cpp:class:`ComboBoxTextCapability <gui_forms::ComboBoxTextCapability>`
+     - The field's text (Text): the editor's in the drop_down style, otherwise the selected item's; a view.
    * - :cpp:class:`CorrespondenceExpansionChange <gui_forms::CorrespondenceExpansionChange>`
      - CorrespondenceExpansionChange reports the exact hierarchical row and resulting expanded state.
    * - :cpp:class:`CorrespondenceItem <gui_forms::CorrespondenceItem>`
@@ -92,6 +132,22 @@ Related types
      -  
    * - :cpp:class:`CorrespondenceView::Parts <gui_forms::CorrespondenceView::Parts>`
      - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`CorrespondenceViewCapabilities <gui_forms::CorrespondenceViewCapabilities>`
+     - Every CorrespondenceView capability, in the order the declaring class takes them.
+   * - :cpp:class:`CorrespondenceViewCompactHeightCapability <gui_forms::CorrespondenceViewCompactHeightCapability>`
+     - The height of a collapsed row before text scaling, 24 to 192 and below expanded_height (std::invalid_argument otherwise); a view, so a change can keep the visible anchor row.
+   * - :cpp:class:`CorrespondenceViewExpandedHeightCapability <gui_forms::CorrespondenceViewExpandedHeightCapability>`
+     - The height of an expanded row before text scaling, above compact_height and at most 512 (std::invalid_argument otherwise); a view, so a change can keep the visible anchor row.
+   * - :cpp:class:`CorrespondenceViewHoverIntentDelayCapability <gui_forms::CorrespondenceViewHoverIntentDelayCapability>`
+     - How long the pointer must rest on a row before it expands, 1 ms to 5 s (std::invalid_argument otherwise).
+   * - :cpp:class:`CorrespondenceViewPinnedIdCapability <gui_forms::CorrespondenceViewPinnedIdCapability>`
+     - The pinned (persistently expanded) item's stable ID, or empty; a view, since replacing the items keeps or clears it.
+   * - :cpp:class:`CorrespondenceViewScrollOffsetCapability <gui_forms::CorrespondenceViewScrollOffsetCapability>`
+     - The vertical scroll position, clamped to the content; a view, since the view's own anchoring and reveal move it.
+   * - :cpp:class:`CorrespondenceViewSelectedIdCapability <gui_forms::CorrespondenceViewSelectedIdCapability>`
+     - The selected item's stable ID, or empty; a view, since replacing the items keeps or clears it.
+   * - :cpp:class:`CorrespondenceViewStatusRailWidthCapability <gui_forms::CorrespondenceViewStatusRailWidthCapability>`
+     - The width of each row's status rail, 1 to 12 (std::invalid_argument otherwise).
    * - :cpp:class:`DataGridView::Cell <gui_forms::DataGridView::Cell>`
      -  
    * - :cpp:class:`DataGridView::CellParts <gui_forms::DataGridView::CellParts>`
@@ -114,6 +170,8 @@ Related types
      -  
    * - :cpp:class:`DataGridView::States <gui_forms::DataGridView::States>`
      -  
+   * - :cpp:class:`DataGridViewAllowUserToAddRowsCapability <gui_forms::DataGridViewAllowUserToAddRowsCapability>`
+     - Whether unbound and bound grids show a new row after the last row (Windows Forms' new row); on by default.
    * - :cpp:class:`DataGridViewAllowUserToDeleteRowsCapability <gui_forms::DataGridViewAllowUserToDeleteRowsCapability>`
      - Whether the user may delete rows (AllowUserToDeleteRows).
    * - :cpp:class:`DataGridViewAllowUserToOrderColumnsCapability <gui_forms::DataGridViewAllowUserToOrderColumnsCapability>`
@@ -151,7 +209,7 @@ Related types
    * - :cpp:class:`DataGridViewCellsCell <gui_forms::DataGridViewCellsCell>`
      - One visible cell, resolved.
    * - :cpp:class:`DataGridViewCellsContent <gui_forms::DataGridViewCellsContent>`
-     - The cell region's content: builds a DataGridViewCells, under the grid's stable ID, on the sub-surface's thread and hands it each DataGridViewCellsUpdate.
+     - The cell region's content: builds a DataGridViewCells, under the grid's stable ID, on the sub-surface's thread and hands it each DataGridViewCellsUpdate, after its provider (when it has one) filled the provided cells' text.
    * - :cpp:class:`DataGridViewCellsLineRange <gui_forms::DataGridViewCellsLineRange>`
      - A range of DataGridViewCellsSnapshot::lines: ``count`` lines from ``first``.
    * - :cpp:class:`DataGridViewCellsLook <gui_forms::DataGridViewCellsLook>`
@@ -160,10 +218,16 @@ Related types
      - Whether the cells are painted on a threaded sub-surface (stage S7): the grid resolves each frame's visible cells into a snapshot and its cell region shows them, off the UI thread.
    * - :cpp:class:`DataGridViewCellsParts <gui_forms::DataGridViewCellsParts>`
      - The parts of one cell, placed in the region's coordinates; a part the cell's kind does not show is absent (PartGeometry::present).
+   * - :cpp:class:`DataGridViewCellsProvided <gui_forms::DataGridViewCellsProvided>`
+     - A cell whose text the region's own provider fills on the sub-surface's thread (DataGridViewCellsTextProvider; decision 3(a), the virtual-mode half): its row, an index of DataGridViewCellsSnapshot::provided_rows, and its column.
    * - :cpp:class:`DataGridViewCellsSnapshot <gui_forms::DataGridViewCellsSnapshot>`
      - What the cell region shows in one content epoch: complete, so a newer snapshot replaces an older one whole.
+   * - :cpp:class:`DataGridViewCellsTextProvider <gui_forms::DataGridViewCellsTextProvider>`
+     - The sub-surface half of virtual mode on a cell region (threaded sub-surfaces decision 3(a): a model the sub-surface's thread owns): the application's model of the rows' text, moved to the region's thread with its content (DataGridView::set_cells_text_provider) and called only there, once per snapshot that has provided cells.
    * - :cpp:class:`DataGridViewCellsTextRange <gui_forms::DataGridViewCellsTextRange>`
      - A byte range of DataGridViewCellsSnapshot::text: [begin_byte, end_byte).
+   * - :cpp:class:`DataGridViewCellsTextRequest <gui_forms::DataGridViewCellsTextRequest>`
+     - One cell a DataGridViewCellsTextProvider is asked for: its row's identity, borrowed from the snapshot (valid through the call), and its column.
    * - :cpp:class:`DataGridViewCellStyle <gui_forms::DataGridViewCellStyle>`
      - A cell style (Windows Forms' DataGridViewCellStyle).
    * - :cpp:class:`DataGridViewCellsUpdate <gui_forms::DataGridViewCellsUpdate>`
@@ -186,6 +250,8 @@ Related types
      - Whether the column header band is shown (ColumnHeadersVisible).
    * - :cpp:class:`DataGridViewDataErrorEvent <gui_forms::DataGridViewDataErrorEvent>`
      - Raised when a value does not reach its cell (Windows Forms' DataError).
+   * - :cpp:class:`DataGridViewDataSourceCapability <gui_forms::DataGridViewDataSourceCapability>`
+     - The BindingSource the grid's rows show (data_property_name names the fields); null returns to unbound rows.
    * - :cpp:class:`DataGridViewDefaultCellStyleCapability <gui_forms::DataGridViewDefaultCellStyleCapability>`
      - A level of the cell style inheritance (DefaultCellStyle).
    * - :cpp:class:`DataGridViewDisplayIndex <gui_forms::DataGridViewDisplayIndex>`
@@ -242,6 +308,8 @@ Related types
      - The sizes at which automatic row order switches between edit and window.
    * - :cpp:class:`DataGridViewRowPosition <gui_forms::DataGridViewRowPosition>`
      - A row's presentation position: its index in the grid's current row order, 0 at the top.
+   * - :cpp:class:`DataGridViewRowsCapability <gui_forms::DataGridViewRowsCapability>`
+     - A grid's unbound rows edited in place (in-place collections design, owner 2026-11-07; the DataGridView pilot): ``(*grid).rows.read()``, ``rows[i]``, ``rows = {...}``, ``rows.insert(i, row)``, ``rows.append(row)``, ``rows.append(rows)``, ``rows.erase(i, n)``, ``rows.replace(i, row)`` and ``rows.clear()``.
    * - :cpp:class:`DataGridViewRowsDefaultCellStyleCapability <gui_forms::DataGridViewRowsDefaultCellStyleCapability>`
      - A level of the cell style inheritance (RowsDefaultCellStyle).
    * - :cpp:class:`DataGridViewRowValuesEvent <gui_forms::DataGridViewRowValuesEvent>`
@@ -258,8 +326,12 @@ Related types
      - Whether row headers show their error glyphs (ShowRowErrors).
    * - :cpp:class:`DataGridViewSortCompareEvent <gui_forms::DataGridViewSortCompareEvent>`
      - Raised for each comparison while sort(column, direction) orders unbound rows, when it has a handler (Windows Forms' SortCompare).
+   * - :cpp:class:`DefaultGroupHeaderCapability <gui_forms::DefaultGroupHeaderCapability>`
+     - The default group's header; "Default" until set.
    * - :cpp:class:`ItemCheckEvent <gui_forms::ItemCheckEvent>`
      - ItemCheckEvent carries item index, current state, and mutable proposed state before a CheckedListBox commit.
+   * - :cpp:class:`LargeImageListCapability <gui_forms::LargeImageListCapability>`
+     - The images of the large-icon and tile views, looked up by each item's image_key; null for none.
    * - :cpp:class:`ListBox::Item <gui_forms::ListBox::Item>`
      -  
    * - :cpp:class:`ListBox::ItemParts <gui_forms::ListBox::ItemParts>`
@@ -268,6 +340,14 @@ Related types
      -  
    * - :cpp:class:`ListBox::Parts <gui_forms::ListBox::Parts>`
      - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`ListBoxCapabilities <gui_forms::ListBoxCapabilities>`
+     - Every ListBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`ListBoxItemHeightCapability <gui_forms::ListBoxItemHeightCapability>`
+     - The height of each row before text scaling (ItemHeight), 12 to 256 (std::invalid_argument otherwise).
+   * - :cpp:class:`ListBoxSelectionModeCapability <gui_forms::ListBoxSelectionModeCapability>`
+     - One selected item, or an extended selection with Shift and Ctrl (SelectionMode).
+   * - :cpp:class:`ListBoxTopIndexCapability <gui_forms::ListBoxTopIndexCapability>`
+     - The first visible row (TopIndex); a view onto the list's scroll position.
    * - :cpp:class:`ListSelectionChange <gui_forms::ListSelectionChange>`
      - ListSelectionChange reports previous/current indices plus the exact selected-index snapshot after one mutation.
    * - :cpp:class:`ListView::Column <gui_forms::ListView::Column>`
@@ -296,12 +376,20 @@ Related types
      - The "sub_item" item system: one visible details-view cell past the first column.
    * - :cpp:class:`ListView::SubItemStates <gui_forms::ListView::SubItemStates>`
      -  
+   * - :cpp:class:`ListViewCapabilities <gui_forms::ListViewCapabilities>`
+     - Every ListView capability, in the order the declaring class takes them.
+   * - :cpp:class:`ListViewCheckBoxesCapability <gui_forms::ListViewCheckBoxesCapability>`
+     - Whether each item shows a check box (Windows Forms' CheckBoxes); item_checked and set_item_checked read and write the state.
    * - :cpp:class:`ListViewColumn <gui_forms::ListViewColumn>`
      - One details-view column.
    * - :cpp:class:`ListViewColumnClick <gui_forms::ListViewColumnClick>`
      - A click on a column header.
    * - :cpp:class:`ListViewColumnWidthChange <gui_forms::ListViewColumnWidthChange>`
      - A column's new width in logical units, after a divider drag ends or set_column_width() changes it.
+   * - :cpp:class:`ListViewDrawModeCapability <gui_forms::ListViewDrawModeCapability>`
+     - Content-only owner drawing (owner decision W-Q6; Windows Forms' OwnerDraw with DrawItem and DrawSubItem).
+   * - :cpp:class:`ListViewFullRowSelectCapability <gui_forms::ListViewFullRowSelectCapability>`
+     - Whether the selection highlight spans the whole details row rather than the first column's text.
    * - :cpp:class:`ListViewGroup <gui_forms::ListViewGroup>`
      - One group of a ListView (Windows Forms' ListViewGroup): a header over its items.
    * - :cpp:class:`ListViewInsertionMark <gui_forms::ListViewInsertionMark>`
@@ -316,8 +404,14 @@ Related types
      - The items of a virtual ListView (Windows Forms' VirtualMode with RetrieveVirtualItem).
    * - :cpp:class:`ListViewLabelEdit <gui_forms::ListViewLabelEdit>`
      - One label edit (Windows Forms' LabelEditEventArgs).
+   * - :cpp:class:`ListViewLabelEditCapability <gui_forms::ListViewLabelEditCapability>`
+     - Label editing (Windows Forms' LabelEdit, ListViewItem.BeginEdit, BeforeLabelEdit and AfterLabelEdit).
+   * - :cpp:class:`ListViewMultiSelectCapability <gui_forms::ListViewMultiSelectCapability>`
+     - Whether several items can be selected (Windows Forms' MultiSelect).
    * - :cpp:class:`ListViewSelectionChange <gui_forms::ListViewSelectionChange>`
      - A change of the selected items, after it happened.
+   * - :cpp:class:`ListViewViewCapability <gui_forms::ListViewViewCapability>`
+     - How the items are arranged (see ListViewView).
    * - :cpp:class:`ObjectColumnId <gui_forms::ObjectColumnId>`
      -  
    * - :cpp:class:`ObjectContextRequest <gui_forms::ObjectContextRequest>`
@@ -346,8 +440,32 @@ Related types
      -  
    * - :cpp:class:`ObjectView::Parts <gui_forms::ObjectView::Parts>`
      - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`ObjectViewCapabilities <gui_forms::ObjectViewCapabilities>`
+     - Every ObjectView capability, in the order the declaring class takes them.
+   * - :cpp:class:`ObjectViewDetailsRowHeightCapability <gui_forms::ObjectViewDetailsRowHeightCapability>`
+     - The details mode's row height, 20 through 256 (std::invalid_argument otherwise).
+   * - :cpp:class:`ObjectViewDetailsSortCapability <gui_forms::ObjectViewDetailsSortCapability>`
+     - The accepted sort indicator: a sortable column and a direction, or an empty column for none; a view, since set_details_model carries or clears it.
+   * - :cpp:class:`ObjectViewIconCellSizeCapability <gui_forms::ObjectViewIconCellSizeCapability>`
+     - The icon mode's cell size, 86 by 78 through 512 by 512 (std::invalid_argument otherwise).
+   * - :cpp:class:`ObjectViewImageListCapability <gui_forms::ObjectViewImageListCapability>`
+     - The images that the items' image keys name; a list must be alive and belong to this view's Window (std::invalid_argument otherwise).
    * - :cpp:class:`ObjectViewItem <gui_forms::ObjectViewItem>`
      - ObjectViewItem owns stable identity, primary/secondary text, icon/status metadata, and optional command data for one flat object row.
+   * - :cpp:class:`ObjectViewSelectedIdCapability <gui_forms::ObjectViewSelectedIdCapability>`
+     - The primary selected item's stable ID, or empty; a view over the selection (G2).
+   * - :cpp:class:`ObjectViewSelectionModeCapability <gui_forms::ObjectViewSelectionModeCapability>`
+     - Whether one item or several may be selected.
+   * - :cpp:class:`ObjectViewShowSecondaryTextCapability <gui_forms::ObjectViewShowSecondaryTextCapability>`
+     - Whether icon cells show each item's secondary text under its name.
+   * - :cpp:class:`ObjectViewViewModeCapability <gui_forms::ObjectViewViewModeCapability>`
+     - Icons or details.
+   * - :cpp:class:`ShowGroupsCapability <gui_forms::ShowGroupsCapability>`
+     - Whether the items are shown in their groups (Windows Forms' ShowGroups; see groups).
+   * - :cpp:class:`SmallImageListCapability <gui_forms::SmallImageListCapability>`
+     - The images of the details, list and small-icon views, looked up by each item's image_key; null for none.
+   * - :cpp:class:`TileSizeCapability <gui_forms::TileSizeCapability>`
+     - The tile view's tile, in logical units at text scale 1 (Windows Forms' TileSize).
    * - :cpp:class:`TreeExpansionChange <gui_forms::TreeExpansionChange>`
      - TreeExpansionChange reports the exact node and resulting expanded state.
    * - :cpp:class:`TreeListActivation <gui_forms::TreeListActivation>`
@@ -404,14 +522,26 @@ Related types
      -  
    * - :cpp:class:`TreeView::Parts <gui_forms::TreeView::Parts>`
      - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`TreeViewCapabilities <gui_forms::TreeViewCapabilities>`
+     - Every TreeView capability, in the order the declaring class takes them.
+   * - :cpp:class:`TreeViewImageListCapability <gui_forms::TreeViewImageListCapability>`
+     - The images that the items' image keys name; a list must be alive and belong to this view's Window (std::invalid_argument otherwise).
+   * - :cpp:class:`TreeViewIndentationCapability <gui_forms::TreeViewIndentationCapability>`
+     - The width of one tree level in logical units, 8 to 96 (std::invalid_argument otherwise).
    * - :cpp:class:`TreeViewItem <gui_forms::TreeViewItem>`
      - TreeViewItem owns stable identity, text, icon/status metadata, expansion capability/state, and nested children for one tree node.
+   * - :cpp:class:`TreeViewItemHeightCapability <gui_forms::TreeViewItemHeightCapability>`
+     - The row height in logical units, 14 to 256 (std::invalid_argument otherwise).
+   * - :cpp:class:`TreeViewSelectedIdCapability <gui_forms::TreeViewSelectedIdCapability>`
+     - The selected item's stable ID, or empty; a view, since replacing the items keeps or clears it.
+   * - :cpp:class:`TreeViewShowExpandersCapability <gui_forms::TreeViewShowExpandersCapability>`
+     - Whether expandable items draw their expander glyph.
 
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: BreadcrumbSegment final
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp>``
+   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_values/breadcrumb_trail_values.hpp>``
 
    .. cpp:member:: std::string stable_id
 
@@ -479,6 +609,106 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> BreadcrumbTrailActiveIdCapability
+
+   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp>``
+
+   The stable ID of the keyboard-active segment, the overflow or the edit button, or empty; a view, since keyboard, pointer and semantic actions move it. An ID not in the model throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BreadcrumbTrailActiveIdCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const BreadcrumbTrailActiveIdCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, BreadcrumbTrailActiveIdCapability<Declaring>> active_id
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BreadcrumbTrailAppearanceCapability
+
+   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp>``
+
+   Whether the segments are drawn plain or as raised arrows. An undeclared value throws std::invalid_argument; a change re-lays out the segments.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BreadcrumbTrailAppearanceCapability& capability, BreadcrumbAppearance incoming)
+
+   .. cpp:member:: PropertyCell<BreadcrumbAppearance, BreadcrumbTrailAppearanceCapability<Declaring>> appearance
+
+      Default: ``{BreadcrumbAppearance::plain}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BreadcrumbTrailCapabilities : public FontCapability<Declaring>, public BreadcrumbTrailAppearanceCapability<Declaring>, public BreadcrumbTrailActiveIdCapability<Declaring>, public BreadcrumbTrailEditingCapability<Declaring>, public BreadcrumbTrailTabCompletionAvailableCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp>``
+
+   Every BreadcrumbTrail capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: BreadcrumbTrailCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: BreadcrumbAppearance appearance
+
+      Whether the segments are drawn plain or as raised arrows. An undeclared value throws std::invalid_argument; a change re-lays out the segments.
+
+   .. cpp:member:: std::string active_id
+
+      The stable ID of the keyboard-active segment, the overflow or the edit button, or empty; a view, since keyboard, pointer and semantic actions move it. An ID not in the model throws std::out_of_range.
+
+   .. cpp:member:: bool editing
+
+      Whether the exact-path editor replaces the segments. Ending an edit withdraws tab completion. begin_edit fills the editor and turns it on.
+
+   .. cpp:member:: bool tab_completion_available
+
+      Whether Tab in the path editor requests completion (edit_completion_requested). It holds only while editing; a write outside an edit stores false.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BreadcrumbTrailEditingCapability
+
+   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp>``
+
+   Whether the exact-path editor replaces the segments. Ending an edit withdraws tab completion. begin_edit fills the editor and turns it on.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BreadcrumbTrailEditingCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, BreadcrumbTrailEditingCapability<Declaring>> editing
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BreadcrumbTrailTabCompletionAvailableCapability
+
+   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp>``
+
+   Whether Tab in the path editor requests completion (edit_completion_requested). It holds only while editing; a write outside an edit stores false.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BreadcrumbTrailTabCompletionAvailableCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, BreadcrumbTrailTabCompletionAvailableCapability<Declaring>> tab_completion_available
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: CheckedListBox::Item final
 
    ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp>``
@@ -524,6 +754,57 @@ Related types
    .. cpp:member:: bool checked
 
    .. cpp:member:: bool indeterminate
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckedListBoxCapabilities : public CheckedListBoxCheckOnClickCapability<Declaring>, public CheckedListBoxIndicatorSizeCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box_capabilities/checked_list_box_capabilities.hpp>``
+
+   Every CheckedListBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool check_on_click
+
+      Whether the first click on an unselected row also toggles its check (CheckOnClick); off by default, so the first click only selects.
+
+   .. cpp:member:: double indicator_size
+
+      The check box's side in logical pixels, 8 to 32 (std::out_of_range otherwise); the row text starts after it.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckedListBoxCheckOnClickCapability
+
+   ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box_capabilities/checked_list_box_capabilities.hpp>``
+
+   Whether the first click on an unselected row also toggles its check (CheckOnClick); off by default, so the first click only selects.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckedListBoxCheckOnClickCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, CheckedListBoxCheckOnClickCapability<Declaring>> check_on_click
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckedListBoxIndicatorSizeCapability
+
+   ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box_capabilities/checked_list_box_capabilities.hpp>``
+
+   The check box's side in logical pixels, 8 to 32 (std::out_of_range otherwise); the row text starts after it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckedListBoxIndicatorSizeCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, CheckedListBoxIndicatorSizeCapability<Declaring>> indicator_size
+
+      Default: ``{14.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -574,6 +855,255 @@ Related types
    .. cpp:member:: bool open
 
    .. cpp:member:: bool closed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxAutoCompleteCustomSourceCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   The candidates for AutoCompleteSource::custom_source (AutoCompleteCustomSource). Never null: a new box owns an empty collection; null throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxAutoCompleteCustomSourceCapability& capability, std::shared_ptr<AutoCompleteStringCollection> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<AutoCompleteStringCollection>, ComboBoxAutoCompleteCustomSourceCapability<Declaring>> auto_complete_custom_source
+
+      Default: ``{std::make_shared<AutoCompleteStringCollection>()}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxAutoCompleteModeCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   How the drop_down editor offers completions (AutoCompleteMode); a filtered list turns the editor's own completion off.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxAutoCompleteModeCapability& capability, AutoCompleteMode incoming)
+
+   .. cpp:member:: PropertyCell<AutoCompleteMode, ComboBoxAutoCompleteModeCapability<Declaring>> auto_complete_mode
+
+      Default: ``{AutoCompleteMode::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxAutoCompleteSourceCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   Where the editor's completions come from (AutoCompleteSource); list_items offers the items.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxAutoCompleteSourceCapability& capability, AutoCompleteSource incoming)
+
+   .. cpp:member:: PropertyCell<AutoCompleteSource, ComboBoxAutoCompleteSourceCapability<Declaring>> auto_complete_source
+
+      Default: ``{AutoCompleteSource::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxCapabilities : public ComboBoxSelectedIndexCapability<Declaring>, public ComboBoxTextCapability<Declaring>, public ComboBoxPlaceholderTextCapability<Declaring>, public ComboBoxDroppedDownCapability<Declaring>, public ComboBoxMaximumDropDownItemsCapability<Declaring>, public ComboBoxDropDownWidthCapability<Declaring>, public FontCapability<Declaring>, public ComboBoxDropDownStyleCapability<Declaring>, public ComboBoxDropDownFilterCapability<Declaring>, public ComboBoxAutoCompleteModeCapability<Declaring>, public ComboBoxAutoCompleteSourceCapability<Declaring>, public ComboBoxAutoCompleteCustomSourceCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   Every ComboBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ComboBoxCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::optional<std::size_t> selected_index
+
+      The selected item (SelectedIndex), or none; a view onto the selection. A write shows the item in the editor, moves the open list's row and raises selected_index_changed, then (drop_down_list) text_changed. An index past the end throws std::out_of_range.
+
+   .. cpp:member:: std::string text
+
+      The field's text (Text): the editor's in the drop_down style, otherwise the selected item's; a view. A write sets the editor's text (the selection follows it), or in the drop_down_list style selects the item equal to it, or none. Invalid UTF-8 throws std::invalid_argument.
+
+   .. cpp:member:: std::string placeholder_text
+
+      The hint the field shows while no item is selected and no text is typed; the editor shows it in the drop_down style. Throws std::invalid_argument for invalid UTF-8.
+
+   .. cpp:member:: bool dropped_down
+
+      Whether the list is open (DroppedDown); a view. Writing true opens it on every item (when attached and not empty), false closes it; either raises drop_down_changed when the state changes.
+
+   .. cpp:member:: std::size_t maximum_drop_down_items
+
+      The most rows the open list shows before it scrolls (MaxDropDownItems), 1 to 64 (std::invalid_argument otherwise). An open list reopens at the new height.
+
+   .. cpp:member:: double drop_down_width
+
+      The open list's width (DropDownWidth); zero follows the field's width. 0 to 4096 (std::out_of_range otherwise).
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: ComboBoxStyle drop_down_style
+
+      Whether the field takes text (drop_down, a TextBox editor) or shows the selected item (drop_down_list, the default) (DropDownStyle). A change closes the list and creates or removes the editor.
+
+   .. cpp:member:: ComboBoxFilter drop_down_filter
+
+      Which items a drop_down field's list shows as the user types: every item, those starting with the text, or those containing it. A change closes the list.
+
+   .. cpp:member:: AutoCompleteMode auto_complete_mode
+
+      How the drop_down editor offers completions (AutoCompleteMode); a filtered list turns the editor's own completion off.
+
+   .. cpp:member:: AutoCompleteSource auto_complete_source
+
+      Where the editor's completions come from (AutoCompleteSource); list_items offers the items.
+
+   .. cpp:member:: std::shared_ptr<AutoCompleteStringCollection> auto_complete_custom_source
+
+      The candidates for AutoCompleteSource::custom_source (AutoCompleteCustomSource). Never null: a new box owns an empty collection; null throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxDropDownFilterCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   Which items a drop_down field's list shows as the user types: every item, those starting with the text, or those containing it. A change closes the list.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxDropDownFilterCapability& capability, ComboBoxFilter incoming)
+
+   .. cpp:member:: PropertyCell<ComboBoxFilter, ComboBoxDropDownFilterCapability<Declaring>> drop_down_filter
+
+      Default: ``{ComboBoxFilter::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxDropDownStyleCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   Whether the field takes text (drop_down, a TextBox editor) or shows the selected item (drop_down_list, the default) (DropDownStyle). A change closes the list and creates or removes the editor.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxDropDownStyleCapability& capability, ComboBoxStyle incoming)
+
+   .. cpp:member:: PropertyCell<ComboBoxStyle, ComboBoxDropDownStyleCapability<Declaring>> drop_down_style
+
+      Default: ``{ComboBoxStyle::drop_down_list}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxDropDownWidthCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   The open list's width (DropDownWidth); zero follows the field's width. 0 to 4096 (std::out_of_range otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxDropDownWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ComboBoxDropDownWidthCapability<Declaring>> drop_down_width
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxDroppedDownCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   Whether the list is open (DroppedDown); a view. Writing true opens it on every item (when attached and not empty), false closes it; either raises drop_down_changed when the state changes.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxDroppedDownCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const ComboBoxDroppedDownCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, ComboBoxDroppedDownCapability<Declaring>> dropped_down
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxMaximumDropDownItemsCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   The most rows the open list shows before it scrolls (MaxDropDownItems), 1 to 64 (std::invalid_argument otherwise). An open list reopens at the new height.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxMaximumDropDownItemsCapability& capability, std::size_t incoming)
+
+   .. cpp:member:: PropertyCell<std::size_t, ComboBoxMaximumDropDownItemsCapability<Declaring>> maximum_drop_down_items
+
+      Default: ``{8U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxPlaceholderTextCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   The hint the field shows while no item is selected and no text is typed; the editor shows it in the drop_down style. Throws std::invalid_argument for invalid UTF-8.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxPlaceholderTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, ComboBoxPlaceholderTextCapability<Declaring>> placeholder_text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxSelectedIndexCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   The selected item (SelectedIndex), or none; a view onto the selection. A write shows the item in the editor, moves the open list's row and raises selected_index_changed, then (drop_down_list) text_changed. An index past the end throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxSelectedIndexCapability& capability, std::optional<std::size_t> incoming)
+
+   .. cpp:function:: static std::optional<std::size_t> read(const ComboBoxSelectedIndexCapability& capability)
+
+   .. cpp:member:: PropertyView<std::optional<std::size_t>, ComboBoxSelectedIndexCapability<Declaring>> selected_index
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxTextCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   The field's text (Text): the editor's in the drop_down style, otherwise the selected item's; a view. A write sets the editor's text (the selection follows it), or in the drop_down_list style selects the item equal to it, or none. Invalid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxTextCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const ComboBoxTextCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, ComboBoxTextCapability<Declaring>> text
 
 .. cpp:namespace:: gui_forms
 
@@ -728,6 +1258,173 @@ Related types
    .. cpp:member:: PartGeometry face
 
    .. cpp:member:: PartGeometry edge
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CorrespondenceViewCapabilities : public CorrespondenceViewSelectedIdCapability<Declaring>, public CorrespondenceViewPinnedIdCapability<Declaring>, public CorrespondenceViewCompactHeightCapability<Declaring>, public CorrespondenceViewExpandedHeightCapability<Declaring>, public CorrespondenceViewStatusRailWidthCapability<Declaring>, public CorrespondenceViewHoverIntentDelayCapability<Declaring>, public FontCapability<Declaring>, public CorrespondenceViewScrollOffsetCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp>``
+
+   Every CorrespondenceView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: CorrespondenceViewCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string selected_id
+
+      The selected item's stable ID, or empty; a view, since replacing the items keeps or clears it. A change raises selection_changed; an ID not in the model throws std::out_of_range.
+
+   .. cpp:member:: std::string pinned_id
+
+      The pinned (persistently expanded) item's stable ID, or empty; a view, since replacing the items keeps or clears it. A change keeps the visible anchor row, raises pin_changed, then expansion_changed for each item whose expansion changed; an ID not in the model throws std::out_of_range.
+
+   .. cpp:member:: double compact_height
+
+      The height of a collapsed row before text scaling, 24 to 192 and below expanded_height (std::invalid_argument otherwise); a view, so a change can keep the visible anchor row.
+
+   .. cpp:member:: double expanded_height
+
+      The height of an expanded row before text scaling, above compact_height and at most 512 (std::invalid_argument otherwise); a view, so a change can keep the visible anchor row.
+
+   .. cpp:member:: double status_rail_width
+
+      The width of each row's status rail, 1 to 12 (std::invalid_argument otherwise).
+
+   .. cpp:member:: std::chrono::milliseconds hover_intent_delay
+
+      How long the pointer must rest on a row before it expands, 1 ms to 5 s (std::invalid_argument otherwise). A change restarts a pending hover.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: double scroll_offset
+
+      The vertical scroll position, clamped to the content; a view, since the view's own anchoring and reveal move it. A negative or non-finite offset throws std::invalid_argument; a change ends a pending hover.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CorrespondenceViewCompactHeightCapability
+
+   ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp>``
+
+   The height of a collapsed row before text scaling, 24 to 192 and below expanded_height (std::invalid_argument otherwise); a view, so a change can keep the visible anchor row.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CorrespondenceViewCompactHeightCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const CorrespondenceViewCompactHeightCapability& capability)
+
+   .. cpp:member:: PropertyView<double, CorrespondenceViewCompactHeightCapability<Declaring>> compact_height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CorrespondenceViewExpandedHeightCapability
+
+   ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp>``
+
+   The height of an expanded row before text scaling, above compact_height and at most 512 (std::invalid_argument otherwise); a view, so a change can keep the visible anchor row.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CorrespondenceViewExpandedHeightCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const CorrespondenceViewExpandedHeightCapability& capability)
+
+   .. cpp:member:: PropertyView<double, CorrespondenceViewExpandedHeightCapability<Declaring>> expanded_height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CorrespondenceViewHoverIntentDelayCapability
+
+   ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp>``
+
+   How long the pointer must rest on a row before it expands, 1 ms to 5 s (std::invalid_argument otherwise). A change restarts a pending hover.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CorrespondenceViewHoverIntentDelayCapability& capability, std::chrono::milliseconds incoming)
+
+   .. cpp:member:: PropertyCell<std::chrono::milliseconds, CorrespondenceViewHoverIntentDelayCapability<Declaring>> hover_intent_delay
+
+      Default: ``{std::chrono::milliseconds(180)}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CorrespondenceViewPinnedIdCapability
+
+   ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp>``
+
+   The pinned (persistently expanded) item's stable ID, or empty; a view, since replacing the items keeps or clears it. A change keeps the visible anchor row, raises pin_changed, then expansion_changed for each item whose expansion changed; an ID not in the model throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CorrespondenceViewPinnedIdCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const CorrespondenceViewPinnedIdCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, CorrespondenceViewPinnedIdCapability<Declaring>> pinned_id
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CorrespondenceViewScrollOffsetCapability
+
+   ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp>``
+
+   The vertical scroll position, clamped to the content; a view, since the view's own anchoring and reveal move it. A negative or non-finite offset throws std::invalid_argument; a change ends a pending hover.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CorrespondenceViewScrollOffsetCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const CorrespondenceViewScrollOffsetCapability& capability)
+
+   .. cpp:member:: PropertyView<double, CorrespondenceViewScrollOffsetCapability<Declaring>> scroll_offset
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CorrespondenceViewSelectedIdCapability
+
+   ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp>``
+
+   The selected item's stable ID, or empty; a view, since replacing the items keeps or clears it. A change raises selection_changed; an ID not in the model throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CorrespondenceViewSelectedIdCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const CorrespondenceViewSelectedIdCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, CorrespondenceViewSelectedIdCapability<Declaring>> selected_id
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CorrespondenceViewStatusRailWidthCapability
+
+   ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp>``
+
+   The width of each row's status rail, 1 to 12 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CorrespondenceViewStatusRailWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, CorrespondenceViewStatusRailWidthCapability<Declaring>> status_rail_width
+
+      Default: ``{4.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -981,6 +1678,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> DataGridViewAllowUserToAddRowsCapability
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+
+   Whether unbound and bound grids show a new row after the last row (Windows Forms' new row); on by default. Turning it off cancels an edit on the new row and moves a current cell on it to the last row. A view onto the grid's flag.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DataGridViewAllowUserToAddRowsCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const DataGridViewAllowUserToAddRowsCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, DataGridViewAllowUserToAddRowsCapability<Declaring>> allow_user_to_add_rows
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> DataGridViewAllowUserToDeleteRowsCapability
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
@@ -1130,7 +1844,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapability<Declaring>, public DataGridViewAutoSizeRowsModeCapability<Declaring>, public DataGridViewClipboardCopyModeCapability<Declaring>, public DataGridViewRowOrderPolicyCapability<Declaring>, public DataGridViewRowOrderThresholdsCapability<Declaring>, public DataGridViewAllowUserToDeleteRowsCapability<Declaring>, public DataGridViewShowCellErrorsCapability<Declaring>, public DataGridViewShowRowErrorsCapability<Declaring>, public DataGridViewShowEditingIconCapability<Declaring>, public DataGridViewDefaultCellStyleCapability<Declaring>, public DataGridViewRowsDefaultCellStyleCapability<Declaring>, public DataGridViewAlternatingRowsDefaultCellStyleCapability<Declaring>, public DataGridViewColumnHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewRowHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewEnableHeadersVisualStylesCapability<Declaring>, public DataGridViewGridColorCapability<Declaring>, public DataGridViewBackgroundColorCapability<Declaring>, public DataGridViewBorderStyleCapability<Declaring>, public DataGridViewCellBorderStyleCapability<Declaring>, public DataGridViewColumnHeadersBorderStyleCapability<Declaring>, public DataGridViewRowHeadersBorderStyleCapability<Declaring>, public DataGridViewDrawModeCapability<Declaring>, public DataGridViewColumnHeadersVisibleCapability<Declaring>, public DataGridViewRowHeadersVisibleCapability<Declaring>, public DataGridViewColumnHeadersHeightCapability<Declaring>, public DataGridViewRowHeadersWidthCapability<Declaring>, public DataGridViewRowHeightCapability<Declaring>, public FontCapability<Declaring>, public DataGridViewReadOnlyCapability<Declaring>, public DataGridViewAllowUserToResizeColumnsCapability<Declaring>, public DataGridViewAllowUserToResizeRowsCapability<Declaring>, public DataGridViewAllowUserToOrderColumnsCapability<Declaring>, public DataGridViewSelectionModeCapability<Declaring>, public DataGridViewMultiSelectCapability<Declaring>, public DataGridViewEditModeCapability<Declaring>, public DataGridViewCellsOnSubSurfaceCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapability<Declaring>, public DataGridViewAutoSizeRowsModeCapability<Declaring>, public DataGridViewClipboardCopyModeCapability<Declaring>, public DataGridViewRowOrderPolicyCapability<Declaring>, public DataGridViewRowOrderThresholdsCapability<Declaring>, public DataGridViewAllowUserToDeleteRowsCapability<Declaring>, public DataGridViewShowCellErrorsCapability<Declaring>, public DataGridViewShowRowErrorsCapability<Declaring>, public DataGridViewShowEditingIconCapability<Declaring>, public DataGridViewDefaultCellStyleCapability<Declaring>, public DataGridViewRowsDefaultCellStyleCapability<Declaring>, public DataGridViewAlternatingRowsDefaultCellStyleCapability<Declaring>, public DataGridViewColumnHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewRowHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewEnableHeadersVisualStylesCapability<Declaring>, public DataGridViewGridColorCapability<Declaring>, public DataGridViewBackgroundColorCapability<Declaring>, public DataGridViewBorderStyleCapability<Declaring>, public DataGridViewCellBorderStyleCapability<Declaring>, public DataGridViewColumnHeadersBorderStyleCapability<Declaring>, public DataGridViewRowHeadersBorderStyleCapability<Declaring>, public DataGridViewDrawModeCapability<Declaring>, public DataGridViewColumnHeadersVisibleCapability<Declaring>, public DataGridViewRowHeadersVisibleCapability<Declaring>, public DataGridViewColumnHeadersHeightCapability<Declaring>, public DataGridViewRowHeadersWidthCapability<Declaring>, public DataGridViewRowHeightCapability<Declaring>, public FontCapability<Declaring>, public DataGridViewReadOnlyCapability<Declaring>, public DataGridViewAllowUserToResizeColumnsCapability<Declaring>, public DataGridViewAllowUserToResizeRowsCapability<Declaring>, public DataGridViewAllowUserToOrderColumnsCapability<Declaring>, public DataGridViewSelectionModeCapability<Declaring>, public DataGridViewMultiSelectCapability<Declaring>, public DataGridViewEditModeCapability<Declaring>, public DataGridViewCellsOnSubSurfaceCapability<Declaring>, public DataGridViewAllowUserToAddRowsCapability<Declaring>, public DataGridViewDataSourceCapability<Declaring>
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
 
@@ -1287,6 +2001,14 @@ Related types
    .. cpp:member:: bool cells_on_sub_surface
 
       Whether the cells are painted on a threaded sub-surface (stage S7): the grid resolves each frame's visible cells into a snapshot and its cell region shows them, off the UI thread. Owner drawing keeps the cells on the UI thread.
+
+   .. cpp:member:: bool allow_user_to_add_rows
+
+      Whether unbound and bound grids show a new row after the last row (Windows Forms' new row); on by default. Turning it off cancels an edit on the new row and moves a current cell on it to the last row. A view onto the grid's flag.
+
+   .. cpp:member:: std::shared_ptr<BindingSource> data_source
+
+      The BindingSource the grid's rows show (data_property_name names the fields); null returns to unbound rows. Every write resets the rows and the row state, even an equal one. A view onto the grid's source.
 
 .. cpp:namespace:: gui_forms
 
@@ -1457,18 +2179,26 @@ Related types
 
    .. cpp:member:: Rect image_clip
 
+   .. cpp:member:: DataGridViewCellsProvided provided
+
+      Set for a cell whose text the region's provider fills.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: DataGridViewCellsContent final : public SubSurfaceContent
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
 
-   The cell region's content: builds a DataGridViewCells, under the grid's stable ID, on the sub-surface's thread and hands it each DataGridViewCellsUpdate. Other updates are ignored. A look whose classes or inline style the control refuses throws, and the sub-surface fails.
+   The cell region's content: builds a DataGridViewCells, under the grid's stable ID, on the sub-surface's thread and hands it each DataGridViewCellsUpdate, after its provider (when it has one) filled the provided cells' text. Other updates are ignored. A look whose classes or inline style the control refuses throws, and the sub-surface fails.
 
 
    .. rubric:: Construction
 
    .. cpp:function:: explicit DataGridViewCellsContent(StableId stable_id)
+
+   .. cpp:function:: DataGridViewCellsContent(StableId stable_id, std::unique_ptr<DataGridViewCellsTextProvider> provider)
+
+      With a text provider, owned from here on and moved with the content to the sub-surface's thread; null for none (provided cells then show no text).
 
 
    .. rubric:: Extension points
@@ -1568,6 +2298,20 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: DataGridViewCellsProvided final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+
+   A cell whose text the region's own provider fills on the sub-surface's thread (DataGridViewCellsTextProvider; decision 3(a), the virtual-mode half): its row, an index of DataGridViewCellsSnapshot::provided_rows, and its column. A provided cell arrives with an empty text range and no lines.
+
+   .. cpp:member:: bool provided
+
+   .. cpp:member:: std::size_t row
+
+   .. cpp:member:: std::size_t column
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: DataGridViewCellsSnapshot final
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
@@ -1592,6 +2336,25 @@ Related types
 
    .. cpp:member:: std::vector<DataGridViewCellsTextRange> lines
 
+   .. cpp:member:: std::vector<std::string> provided_rows
+
+      The row identities (DataGridViewRowId values) the provided cells name, one per visible row that has any; empty without a provider.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: DataGridViewCellsTextProvider
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+
+   The sub-surface half of virtual mode on a cell region (threaded sub-surfaces decision 3(a): a model the sub-surface's thread owns): the application's model of the rows' text, moved to the region's thread with its content (DataGridView::set_cells_text_provider) and called only there, once per snapshot that has provided cells. The UI thread then neither asks DataGridViewCellValueProvider::cell_value nor raises cell_formatting for those cells; it still does for the cells semantics, the editor and the application read through the grid. The provider is released on the region's thread when its sub-surface stops.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual void fill_cell_texts(std::span<const DataGridViewCellsTextRequest> requests, std::string& text, std::span<DataGridViewCellsTextRange> ranges) noexcept = 0
+
+      Appends each requested cell's shown text to ``text``, in request order, and stores its byte range of ``text`` in the same slot of ``ranges`` (as many as ``requests``; each starts empty). It may not throw. A range outside ``text`` makes the region refuse the snapshot (the previous one stays).
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: DataGridViewCellsTextRange final
@@ -1603,6 +2366,18 @@ Related types
    .. cpp:member:: std::size_t begin_byte
 
    .. cpp:member:: std::size_t end_byte
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewCellsTextRequest final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+
+   One cell a DataGridViewCellsTextProvider is asked for: its row's identity, borrowed from the snapshot (valid through the call), and its column.
+
+   .. cpp:member:: std::string_view row_id
+
+   .. cpp:member:: std::size_t column
 
 .. cpp:namespace:: gui_forms
 
@@ -1673,7 +2448,7 @@ Related types
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
 
-   The application side of virtual mode (Windows Forms' CellValueNeeded and CellValuePushed), on ObjectView's stable-ID model: the application owns the rows and their order and gives the order to the grid as row IDs (in full with set_virtual_rows and set_virtual_row_order, by change with insert_virtual_rows, remove_virtual_rows and move_virtual_row, or on demand through a DataGridViewRowWindowSource); the grid asks for values by ID. It asks for the cells it shows, the current cell, and cells semantics or the application read through the grid; it never asks for any other row. Calls arrive on the grid's UI thread, from paint, layout, input and the grid's own methods. The provider may not mutate the grid from inside a call.
+   The application side of virtual mode (Windows Forms' CellValueNeeded and CellValuePushed), on ObjectView's stable-ID model: the application owns the rows and their order and gives the order to the grid as row IDs (in full with set_virtual_rows and set_virtual_row_order, by change with insert_virtual_rows, remove_virtual_rows and move_virtual_row, or on demand through a DataGridViewRowWindowSource); the grid asks for values by ID. It asks for the cells it shows (except the text cells a cell region's DataGridViewCellsTextProvider fills on its own thread), the current cell, and cells semantics or the application read through the grid; it never asks for any other row. Calls arrive on the grid's UI thread, from paint, layout, input and the grid's own methods. The provider may not mutate the grid from inside a call.
 
 
    .. rubric:: Extension points
@@ -1869,6 +2644,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> DataGridViewDataSourceCapability
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+
+   The BindingSource the grid's rows show (data_property_name names the fields); null returns to unbound rows. Every write resets the rows and the row state, even an equal one. A view onto the grid's source.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DataGridViewDataSourceCapability& capability, std::shared_ptr<BindingSource> incoming)
+
+   .. cpp:function:: static std::shared_ptr<BindingSource> read(const DataGridViewDataSourceCapability& capability)
+
+   .. cpp:member:: PropertyView<std::shared_ptr<BindingSource>, DataGridViewDataSourceCapability<Declaring>> data_source
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> DataGridViewDefaultCellStyleCapability
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
@@ -1996,7 +2788,7 @@ Related types
 
 .. cpp:struct:: DataGridViewRow final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_rows/data_grid_view_rows.hpp>``
 
    One unbound row. ``stable_id`` is unique within the grid; an empty ID is replaced by a generated one ("row.1", "row.2", ...). ``cells`` holds one value per column in column order; a shorter list is padded with empty values.
 
@@ -2433,6 +3225,54 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> DataGridViewRowsCapability
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_rows/data_grid_view_rows.hpp>``
+
+   A grid's unbound rows edited in place (in-place collections design, owner 2026-11-07; the DataGridView pilot): ``(*grid).rows.read()``, ``rows[i]``, ``rows = {...}``, ``rows.insert(i, row)``, ``rows.append(row)``, ``rows.append(rows)``, ``rows.erase(i, n)``, ``rows.replace(i, row)`` and ``rows.clear()``. Positions are presentation positions of the unbound rows. A standard-layout struct whose only member is the cell, taken by the declaring class as a base. Each edit runs the declaring class's prepare_edit hook (it may refuse by throwing: nothing changes), the store, then its written hook. The declaring class takes the pending damage at its flush through take_dirty, and writes cell values and reorders through the owner operations.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void prepare_edit(DataGridViewRowsCapability& capability, const CollectionEdit& edit, std::span<DataGridViewRow> incoming)
+
+   .. cpp:function:: static void written(DataGridViewRowsCapability& capability, const CollectionEdit& edit)
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: static std::optional<std::size_t> take_dirty(DataGridViewRowsCapability& capability, std::vector<std::uint32_t>& replaced)
+
+      *Protected.*
+
+      CollectionDirty::take, for the declaring class's flush.
+
+   .. cpp:function:: static std::uint64_t rows_revision(const DataGridViewRowsCapability& capability) noexcept
+
+      *Protected.*
+
+      The owner operations (CollectionCell): in-place field writes, marked first, and the store of a reordering.
+
+   .. cpp:function:: static std::span<DataGridViewRow> row_elements(DataGridViewRowsCapability& capability) noexcept
+
+      *Protected.*
+
+   .. cpp:function:: static void mark_row_replaced(DataGridViewRowsCapability& capability, std::size_t index)
+
+      *Protected.*
+
+   .. cpp:function:: static void mark_all_rows(DataGridViewRowsCapability& capability) noexcept
+
+      *Protected.*
+
+   .. cpp:function:: static void store_rows(DataGridViewRowsCapability& capability, std::vector<DataGridViewRow> rows) noexcept
+
+      *Protected.*
+
+   .. cpp:member:: CollectionCell<DataGridViewRow, DataGridViewRowsCapability<Declaring>> rows
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> DataGridViewRowsDefaultCellStyleCapability
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
@@ -2579,6 +3419,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> DefaultGroupHeaderCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   The default group's header; "Default" until set. Throws std::invalid_argument for invalid UTF-8.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DefaultGroupHeaderCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, DefaultGroupHeaderCapability<Declaring>> default_group_header
+
+      Default: ``{"Default"}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ItemCheckEvent final
 
    ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp>``
@@ -2596,6 +3453,21 @@ Related types
       Default: ``{CheckState::unchecked}``.
 
    .. cpp:member:: bool cancel
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LargeImageListCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   The images of the large-icon and tile views, looked up by each item's image_key; null for none. Throws std::invalid_argument for a list that is disposed or bound to another window.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LargeImageListCapability& capability, std::shared_ptr<ImageList> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ImageList>, LargeImageListCapability<Declaring>> large_image_list
 
 .. cpp:namespace:: gui_forms
 
@@ -2652,6 +3524,89 @@ Related types
    .. cpp:member:: PartGeometry well
 
    .. cpp:member:: PartGeometry content
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListBoxCapabilities : public ListBoxSelectionModeCapability<Declaring>, public ListBoxTopIndexCapability<Declaring>, public ListBoxItemHeightCapability<Declaring>, public FontCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp>``
+
+   Every ListBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ListBoxCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ListSelectionMode selection_mode
+
+      One selected item, or an extended selection with Shift and Ctrl (SelectionMode). Switching to one keeps only the active (or first) selected item and raises selection_changed when that drops others.
+
+   .. cpp:member:: std::size_t top_index
+
+      The first visible row (TopIndex); a view onto the list's scroll position. Zero in an empty list; otherwise an index outside the items throws std::out_of_range. Item edits and making a row visible move it.
+
+   .. cpp:member:: double item_height
+
+      The height of each row before text scaling (ItemHeight), 12 to 256 (std::invalid_argument otherwise). coerce_item_height may rewrite a write after that check.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListBoxItemHeightCapability
+
+   ``#include <gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp>``
+
+   The height of each row before text scaling (ItemHeight), 12 to 256 (std::invalid_argument otherwise). coerce_item_height may rewrite a write after that check.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListBoxItemHeightCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ListBoxItemHeightCapability<Declaring>> item_height
+
+      Default: ``{26.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListBoxSelectionModeCapability
+
+   ``#include <gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp>``
+
+   One selected item, or an extended selection with Shift and Ctrl (SelectionMode). Switching to one keeps only the active (or first) selected item and raises selection_changed when that drops others.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListBoxSelectionModeCapability& capability, ListSelectionMode incoming)
+
+   .. cpp:member:: PropertyCell<ListSelectionMode, ListBoxSelectionModeCapability<Declaring>> selection_mode
+
+      Default: ``{ListSelectionMode::one}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListBoxTopIndexCapability
+
+   ``#include <gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp>``
+
+   The first visible row (TopIndex); a view onto the list's scroll position. Zero in an empty list; otherwise an index outside the items throws std::out_of_range. Item edits and making a row visible move it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListBoxTopIndexCapability& capability, std::size_t incoming)
+
+   .. cpp:function:: static std::size_t read(const ListBoxTopIndexCapability& capability)
+
+   .. cpp:member:: PropertyView<std::size_t, ListBoxTopIndexCapability<Declaring>> top_index
 
 .. cpp:namespace:: gui_forms
 
@@ -2879,6 +3834,85 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ListViewCapabilities : public ListViewViewCapability<Declaring>, public ListViewCheckBoxesCapability<Declaring>, public ListViewMultiSelectCapability<Declaring>, public ListViewFullRowSelectCapability<Declaring>, public SmallImageListCapability<Declaring>, public LargeImageListCapability<Declaring>, public FontCapability<Declaring>, public TileSizeCapability<Declaring>, public ListViewDrawModeCapability<Declaring>, public ShowGroupsCapability<Declaring>, public DefaultGroupHeaderCapability<Declaring>, public ListViewLabelEditCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   Every ListView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ListViewCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ListViewView view
+
+      How the items are arranged (see ListViewView). Changing it drops the hot item and column and any revealed cut-off text. Throws std::invalid_argument for an unknown view.
+
+   .. cpp:member:: bool check_boxes
+
+      Whether each item shows a check box (Windows Forms' CheckBoxes); item_checked and set_item_checked read and write the state.
+
+   .. cpp:member:: bool multi_select
+
+      Whether several items can be selected (Windows Forms' MultiSelect). Turning it off keeps only the focused item selected (or the first selected one) and raises selection_changed when that drops any.
+
+   .. cpp:member:: bool full_row_select
+
+      Whether the selection highlight spans the whole details row rather than the first column's text.
+
+   .. cpp:member:: std::shared_ptr<ImageList> small_image_list
+
+      The images of the details, list and small-icon views, looked up by each item's image_key; null for none. Throws std::invalid_argument for a list that is disposed or bound to another window.
+
+   .. cpp:member:: std::shared_ptr<ImageList> large_image_list
+
+      The images of the large-icon and tile views, looked up by each item's image_key; null for none. Throws std::invalid_argument for a list that is disposed or bound to another window.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: Size tile_size
+
+      The tile view's tile, in logical units at text scale 1 (Windows Forms' TileSize). The default, an empty size, sizes tiles from the large icon and three lines of text. Throws std::invalid_argument unless both sides are zero, or both are finite and between minimum_tile_side and maximum_tile_side.
+
+   .. cpp:member:: ItemDrawMode draw_mode
+
+      Content-only owner drawing (owner decision W-Q6; Windows Forms' OwnerDraw with DrawItem and DrawSubItem). In ItemDrawMode::owner_draw the view raises draw_item_content for each painted item's own content (column 0: its icon and text) and, in the details view, for each visible sub-item cell (its column), and in the tile view for each sub-item line shown (its column), in paint order; the item's plate, check box and focus cue stay painted by role, and a handler's draw_default adds the default content. Column headers are not owner-drawn. A handler that changes the view's items, order, columns or view, or disposes it, ends that paint at once; the view is painted again with the change. Throws std::invalid_argument for an unknown mode.
+
+   .. cpp:member:: bool show_groups
+
+      Whether the items are shown in their groups (Windows Forms' ShowGroups; see groups). On by default.
+
+   .. cpp:member:: std::string default_group_header
+
+      The default group's header; "Default" until set. Throws std::invalid_argument for invalid UTF-8.
+
+   .. cpp:member:: bool label_edit
+
+      Label editing (Windows Forms' LabelEdit, ListViewItem.BeginEdit, BeforeLabelEdit and AfterLabelEdit). While label_edit is on, F2 on the focused item, or begin_label_edit, places a TextBox (the ``label_editor`` part) over the item's text with its text selected. Enter, a press elsewhere in the view, or focus leaving the editor commits the edit; Escape and cancel_label_edit cancel it. Each ended edit raises after_label_edit once, after the editor has closed. A committed label after_label_edit does not cancel becomes an ordinary item's text; in a virtual view the application stores it while handling after_label_edit, and the view shows what the source then retrieves. Replacing or sorting the items, a new virtual source or refresh_virtual_items cancels the edit once the change is made, before any selection event; scrolling keeps it, the editor following its item. A slow second click on the focused item does not begin an edit yet: the host does not report its double-click interval. Turning label_edit off cancels an edit in progress.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListViewCheckBoxesCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   Whether each item shows a check box (Windows Forms' CheckBoxes); item_checked and set_item_checked read and write the state.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListViewCheckBoxesCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ListViewCheckBoxesCapability<Declaring>> check_boxes
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ListViewColumn final
 
    ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
@@ -2924,6 +3958,38 @@ Related types
    .. cpp:member:: std::size_t column
 
    .. cpp:member:: double width
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListViewDrawModeCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   Content-only owner drawing (owner decision W-Q6; Windows Forms' OwnerDraw with DrawItem and DrawSubItem). In ItemDrawMode::owner_draw the view raises draw_item_content for each painted item's own content (column 0: its icon and text) and, in the details view, for each visible sub-item cell (its column), and in the tile view for each sub-item line shown (its column), in paint order; the item's plate, check box and focus cue stay painted by role, and a handler's draw_default adds the default content. Column headers are not owner-drawn. A handler that changes the view's items, order, columns or view, or disposes it, ends that paint at once; the view is painted again with the change. Throws std::invalid_argument for an unknown mode.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListViewDrawModeCapability& capability, ItemDrawMode incoming)
+
+   .. cpp:member:: PropertyCell<ItemDrawMode, ListViewDrawModeCapability<Declaring>> draw_mode
+
+      Default: ``{ItemDrawMode::normal}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListViewFullRowSelectCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   Whether the selection highlight spans the whole details row rather than the first column's text.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListViewFullRowSelectCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ListViewFullRowSelectCapability<Declaring>> full_row_select
 
 .. cpp:namespace:: gui_forms
 
@@ -3044,6 +4110,38 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ListViewLabelEditCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   Label editing (Windows Forms' LabelEdit, ListViewItem.BeginEdit, BeforeLabelEdit and AfterLabelEdit). While label_edit is on, F2 on the focused item, or begin_label_edit, places a TextBox (the ``label_editor`` part) over the item's text with its text selected. Enter, a press elsewhere in the view, or focus leaving the editor commits the edit; Escape and cancel_label_edit cancel it. Each ended edit raises after_label_edit once, after the editor has closed. A committed label after_label_edit does not cancel becomes an ordinary item's text; in a virtual view the application stores it while handling after_label_edit, and the view shows what the source then retrieves. Replacing or sorting the items, a new virtual source or refresh_virtual_items cancels the edit once the change is made, before any selection event; scrolling keeps it, the editor following its item. A slow second click on the focused item does not begin an edit yet: the host does not report its double-click interval. Turning label_edit off cancels an edit in progress.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListViewLabelEditCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ListViewLabelEditCapability<Declaring>> label_edit
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListViewMultiSelectCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   Whether several items can be selected (Windows Forms' MultiSelect). Turning it off keeps only the focused item selected (or the first selected one) and raises selection_changed when that drops any.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListViewMultiSelectCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ListViewMultiSelectCapability<Declaring>> multi_select
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ListViewSelectionChange final
 
    ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
@@ -3058,9 +4156,26 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ListViewViewCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   How the items are arranged (see ListViewView). Changing it drops the hot item and column and any revealed cut-off text. Throws std::invalid_argument for an unknown view.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListViewViewCapability& capability, ListViewView incoming)
+
+   .. cpp:member:: PropertyCell<ListViewView, ListViewViewCapability<Declaring>> view
+
+      Default: ``{ListViewView::details}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ObjectColumnId final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp>``
 
    .. cpp:member:: std::string value
 
@@ -3136,7 +4251,7 @@ Related types
 
 .. cpp:struct:: ObjectDetailsSort final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp>``
 
    .. cpp:member:: ObjectColumnId column
 
@@ -3278,6 +4393,124 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ObjectViewCapabilities : public ObjectViewViewModeCapability<Declaring>, public ObjectViewSelectedIdCapability<Declaring>, public ObjectViewSelectionModeCapability<Declaring>, public ObjectViewIconCellSizeCapability<Declaring>, public ObjectViewDetailsRowHeightCapability<Declaring>, public ObjectViewShowSecondaryTextCapability<Declaring>, public FontCapability<Declaring>, public ObjectViewImageListCapability<Declaring>, public ObjectViewDetailsSortCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   Every ObjectView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ObjectViewCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ObjectViewMode view_mode
+
+      Icons or details. An undeclared mode throws std::invalid_argument; a change keeps the first visible item in view and ends a header interaction. A view, so the write can keep the first visible item.
+
+   .. cpp:member:: std::string selected_id
+
+      The primary selected item's stable ID, or empty; a view over the selection (G2). A write selects that item alone, or clears the selection, and raises selection_changed; an ID not in the model throws std::out_of_range. set_selected_ids sets several.
+
+   .. cpp:member:: ObjectSelectionMode selection_mode
+
+      Whether one item or several may be selected. Turning on single selection keeps only the primary item.
+
+   .. cpp:member:: Size icon_cell_size
+
+      The icon mode's cell size, 86 by 78 through 512 by 512 (std::invalid_argument otherwise).
+
+   .. cpp:member:: double details_row_height
+
+      The details mode's row height, 20 through 256 (std::invalid_argument otherwise).
+
+   .. cpp:member:: bool show_secondary_text
+
+      Whether icon cells show each item's secondary text under its name.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
+
+      The images that the items' image keys name; a list must be alive and belong to this view's Window (std::invalid_argument otherwise). A change follows the new list's changes.
+
+   .. cpp:member:: ObjectDetailsSort details_sort
+
+      The accepted sort indicator: a sortable column and a direction, or an empty column for none; a view, since set_details_model carries or clears it. Sorting the items is the application's work (sort_requested). An unknown or unsortable column or an undeclared direction throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ObjectViewDetailsRowHeightCapability
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   The details mode's row height, 20 through 256 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ObjectViewDetailsRowHeightCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ObjectViewDetailsRowHeightCapability<Declaring>> details_row_height
+
+      Default: ``{28.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ObjectViewDetailsSortCapability
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   The accepted sort indicator: a sortable column and a direction, or an empty column for none; a view, since set_details_model carries or clears it. Sorting the items is the application's work (sort_requested). An unknown or unsortable column or an undeclared direction throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ObjectViewDetailsSortCapability& capability, ObjectDetailsSort incoming)
+
+   .. cpp:function:: static ObjectDetailsSort read(const ObjectViewDetailsSortCapability& capability)
+
+   .. cpp:member:: PropertyView<ObjectDetailsSort, ObjectViewDetailsSortCapability<Declaring>> details_sort
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ObjectViewIconCellSizeCapability
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   The icon mode's cell size, 86 by 78 through 512 by 512 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ObjectViewIconCellSizeCapability& capability, Size incoming)
+
+   .. cpp:member:: PropertyCell<Size, ObjectViewIconCellSizeCapability<Declaring>> icon_cell_size
+
+      Default: ``{Size{112.0, 91.0}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ObjectViewImageListCapability
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   The images that the items' image keys name; a list must be alive and belong to this view's Window (std::invalid_argument otherwise). A change follows the new list's changes.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ObjectViewImageListCapability& capability, std::shared_ptr<ImageList> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ImageList>, ObjectViewImageListCapability<Declaring>> image_list
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ObjectViewItem final
 
    ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
@@ -3303,6 +4536,121 @@ Related types
    .. cpp:member:: std::string image_key
 
    .. cpp:member:: std::vector<ObjectDetailsCell> cells
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ObjectViewSelectedIdCapability
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   The primary selected item's stable ID, or empty; a view over the selection (G2). A write selects that item alone, or clears the selection, and raises selection_changed; an ID not in the model throws std::out_of_range. set_selected_ids sets several.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ObjectViewSelectedIdCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const ObjectViewSelectedIdCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, ObjectViewSelectedIdCapability<Declaring>> selected_id
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ObjectViewSelectionModeCapability
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   Whether one item or several may be selected. Turning on single selection keeps only the primary item.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ObjectViewSelectionModeCapability& capability, ObjectSelectionMode incoming)
+
+   .. cpp:member:: PropertyCell<ObjectSelectionMode, ObjectViewSelectionModeCapability<Declaring>> selection_mode
+
+      Default: ``{ObjectSelectionMode::multiple}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ObjectViewShowSecondaryTextCapability
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   Whether icon cells show each item's secondary text under its name.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ObjectViewShowSecondaryTextCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ObjectViewShowSecondaryTextCapability<Declaring>> show_secondary_text
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ObjectViewViewModeCapability
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   Icons or details. An undeclared mode throws std::invalid_argument; a change keeps the first visible item in view and ends a header interaction. A view, so the write can keep the first visible item.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ObjectViewViewModeCapability& capability, ObjectViewMode incoming)
+
+   .. cpp:function:: static ObjectViewMode read(const ObjectViewViewModeCapability& capability)
+
+   .. cpp:member:: PropertyView<ObjectViewMode, ObjectViewViewModeCapability<Declaring>> view_mode
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ShowGroupsCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   Whether the items are shown in their groups (Windows Forms' ShowGroups; see groups). On by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ShowGroupsCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ShowGroupsCapability<Declaring>> show_groups
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SmallImageListCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   The images of the details, list and small-icon views, looked up by each item's image_key; null for none. Throws std::invalid_argument for a list that is disposed or bound to another window.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SmallImageListCapability& capability, std::shared_ptr<ImageList> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ImageList>, SmallImageListCapability<Declaring>> small_image_list
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TileSizeCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   The tile view's tile, in logical units at text scale 1 (Windows Forms' TileSize). The default, an empty size, sizes tiles from the large icon and three lines of text. Throws std::invalid_argument unless both sides are zero, or both are finite and between minimum_tile_side and maximum_tile_side.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TileSizeCapability& capability, Size incoming)
+
+   .. cpp:member:: PropertyCell<Size, TileSizeCapability<Declaring>> tile_size
 
 .. cpp:namespace:: gui_forms
 
@@ -3763,6 +5111,78 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> TreeViewCapabilities : public TreeViewSelectedIdCapability<Declaring>, public TreeViewItemHeightCapability<Declaring>, public TreeViewIndentationCapability<Declaring>, public TreeViewShowExpandersCapability<Declaring>, public FontCapability<Declaring>, public TreeViewImageListCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+
+   Every TreeView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: TreeViewCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string selected_id
+
+      The selected item's stable ID, or empty; a view, since replacing the items keeps or clears it. A change makes the item active and raises selection_changed; an ID not in the model throws std::out_of_range.
+
+   .. cpp:member:: double item_height
+
+      The row height in logical units, 14 to 256 (std::invalid_argument otherwise).
+
+   .. cpp:member:: double indentation
+
+      The width of one tree level in logical units, 8 to 96 (std::invalid_argument otherwise).
+
+   .. cpp:member:: bool show_expanders
+
+      Whether expandable items draw their expander glyph.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
+
+      The images that the items' image keys name; a list must be alive and belong to this view's Window (std::invalid_argument otherwise). A change follows the new list's changes.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TreeViewImageListCapability
+
+   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+
+   The images that the items' image keys name; a list must be alive and belong to this view's Window (std::invalid_argument otherwise). A change follows the new list's changes.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TreeViewImageListCapability& capability, std::shared_ptr<ImageList> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ImageList>, TreeViewImageListCapability<Declaring>> image_list
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TreeViewIndentationCapability
+
+   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+
+   The width of one tree level in logical units, 8 to 96 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TreeViewIndentationCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, TreeViewIndentationCapability<Declaring>> indentation
+
+      Default: ``{18.0}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TreeViewItem final
 
    ``#include <gui_forms/controls/panel/tree_view/tree_view.hpp>``
@@ -3785,6 +5205,57 @@ Related types
 
    .. cpp:member:: std::string image_key
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TreeViewItemHeightCapability
+
+   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+
+   The row height in logical units, 14 to 256 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TreeViewItemHeightCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, TreeViewItemHeightCapability<Declaring>> item_height
+
+      Default: ``{24.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TreeViewSelectedIdCapability
+
+   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+
+   The selected item's stable ID, or empty; a view, since replacing the items keeps or clears it. A change makes the item active and raises selection_changed; an ID not in the model throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TreeViewSelectedIdCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const TreeViewSelectedIdCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, TreeViewSelectedIdCapability<Declaring>> selected_id
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TreeViewShowExpandersCapability
+
+   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+
+   Whether expandable items draw their expander glyph.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TreeViewShowExpandersCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TreeViewShowExpandersCapability<Declaring>> show_expanders
+
+      Default: ``{true}``.
+
 Enumerations
 ------------
 
@@ -3792,7 +5263,7 @@ Enumerations
 
 .. cpp:enum-class:: BreadcrumbAppearance
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp>``
+   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_values/breadcrumb_trail_values.hpp>``
 
    .. cpp:enumerator:: plain
 
@@ -3802,7 +5273,7 @@ Enumerations
 
 .. cpp:enum-class:: ComboBoxFilter
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box.hpp>``
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_values/combo_box_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -3814,7 +5285,7 @@ Enumerations
 
 .. cpp:enum-class:: ComboBoxStyle
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box.hpp>``
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_values/combo_box_values.hpp>``
 
    .. cpp:enumerator:: drop_down_list
 
@@ -4128,7 +5599,7 @@ Enumerations
 
 .. cpp:enum-class:: ListSelectionMode
 
-   ``#include <gui_forms/controls/panel/list_box/list_box.hpp>``
+   ``#include <gui_forms/controls/panel/list_box/list_box_values/list_box_values.hpp>``
 
    .. cpp:enumerator:: one
 
@@ -4162,7 +5633,7 @@ Enumerations
 
 .. cpp:enum-class:: ListViewView
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/panel/list_view/list_view_values/list_view_values.hpp>``
 
    .. cpp:enumerator:: details
 
@@ -4218,7 +5689,7 @@ Enumerations
 
 .. cpp:enum-class:: ObjectSelectionMode
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp>``
 
    .. cpp:enumerator:: single
 
@@ -4228,7 +5699,7 @@ Enumerations
 
 .. cpp:enum-class:: ObjectSortDirection
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp>``
 
    .. cpp:enumerator:: ascending
 
@@ -4238,7 +5709,7 @@ Enumerations
 
 .. cpp:enum-class:: ObjectViewMode
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp>``
 
    .. cpp:enumerator:: icons
 
@@ -4277,7 +5748,7 @@ Functions, constants and aliases
 
 .. cpp:function:: bool data_grid_view_cells_snapshot_valid(const DataGridViewCellsSnapshot& snapshot) noexcept
 
-   Whether every range of ``snapshot`` lies in its buffers: each cell's text in ``text``, each cell's lines in ``lines``, and each line in its cell's text. The sub-surface checks a snapshot whole before it takes it (house style 8: validate whole buffers up front).
+   Whether every range of ``snapshot`` lies in its buffers: each cell's text in ``text``, each cell's lines in ``lines``, each line in its cell's text, and each provided cell's row in ``provided_rows``, with no lines. The sub-surface checks a snapshot whole before it takes it (house style 8: validate whole buffers up front).
 
 .. cpp:function:: void paint_data_grid_view_cell(Painter& painter, const Control& owner, const DataGridViewCellsSnapshot& snapshot, const DataGridViewCellsCell& cell, Rect data)
 

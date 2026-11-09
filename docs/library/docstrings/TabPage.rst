@@ -10,8 +10,8 @@ Parameters
 stable_id
     Identity of the page, unique within its window. The page's tab is
     published to accessibility as ``<stable_id>.tab``.
-text
-    The caption on the page's tab.
+initial_text
+    The caption on the page's tab at construction.
 
 Properties
 ----------
@@ -67,4 +67,4 @@ A page whose content scrolls when the tab control is too small for it:
    (*fonts).add_child(sample);
    (*fonts).auto_scroll = true;   // scroll the page, not the tab control
    (*tabs).add_page(fonts);
-   (*fonts).set_text("Fonts and colours");   // the tab shows the new caption
+   (*fonts).text = "Fonts and colours";   // the tab shows the new caption

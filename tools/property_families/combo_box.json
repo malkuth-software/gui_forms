@@ -1,0 +1,344 @@
+{
+  "family": "ComboBox",
+  "step": "B5",
+  "declaring": "ComboBox",
+  "header": "include/gui_forms/controls/panel/combo_box/combo_box.hpp",
+  "source": "src/controls/panel/combo_box/combo_box.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp",
+  "base": "Panel",
+  "shared": [
+    "FontCapability"
+  ],
+  "includes": [
+    "gui_forms/controls/panel/combo_box/combo_box_values/combo_box_values.hpp",
+    "gui_forms/controls/panel/text_box/auto_complete/auto_complete.hpp",
+    "gui_forms/types.hpp"
+  ],
+  "properties": [
+    {
+      "name": "selected_index",
+      "capability": "ComboBoxSelectedIndex",
+      "value": "std::optional<std::size_t>",
+      "initial": null,
+      "comment": "The selected item (SelectedIndex), or none; a view onto the selection. A write shows the item in the editor, moves the open list's row and raises selected_index_changed, then (drop_down_list) text_changed. An index past the end throws std::out_of_range.",
+      "getter": "selected_index",
+      "setter": "set_selected_index",
+      "clear": null,
+      "field": null,
+      "event": "selected_index_changed_",
+      "on_changed": true,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto selected_index_; write_view keeps set_selected_index's order; the table entry stays a registration (-1 for none)"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "text",
+      "capability": "ComboBoxText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The field's text (Text): the editor's in the drop_down style, otherwise the selected item's; a view. A write sets the editor's text (the selection follows it), or in the drop_down_list style selects the item equal to it, or none. Invalid UTF-8 throws std::invalid_argument.",
+      "getter": "text",
+      "setter": "set_text",
+      "clear": null,
+      "field": null,
+      "event": "text_changed_",
+      "on_changed": true,
+      "localizable": null,
+      "table": {
+        "binding_direction": "two_way",
+        "kind": "text",
+        "category": "Appearance",
+        "description": "Text of the field: the editor's in the drop_down style, otherwise the selected item's.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "a view onto the editor's text or the selected item; write_view keeps set_text's refusal and event order"
+      ],
+      "storage": "view",
+      "thunks": {
+        "reset": "reset_text_property",
+        "should_serialize": "should_serialize_text_property"
+      }
+    },
+    {
+      "name": "placeholder_text",
+      "capability": "ComboBoxPlaceholderText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The hint the field shows while no item is selected and no text is typed; the editor shows it in the drop_down style. Throws std::invalid_argument for invalid UTF-8.",
+      "getter": "placeholder_text",
+      "setter": "set_placeholder_text",
+      "clear": null,
+      "field": "placeholder_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "placeholder",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The hint the field shows while no item is selected and no text is typed.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written passes the hint to the editor"
+      ],
+      "sample": "std::string{\"Choose\"}"
+    },
+    {
+      "name": "dropped_down",
+      "capability": "ComboBoxDroppedDown",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the list is open (DroppedDown); a view. Writing true opens it on every item (when attached and not empty), false closes it; either raises drop_down_changed when the state changes.",
+      "getter": "dropped_down",
+      "setter": "set_dropped_down",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto dropped_down_; write_view opens or closes the list"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "maximum_drop_down_items",
+      "capability": "ComboBoxMaximumDropDownItems",
+      "value": "std::size_t",
+      "initial": "8U",
+      "comment": "The most rows the open list shows before it scrolls (MaxDropDownItems), 1 to 64 (std::invalid_argument otherwise). An open list reopens at the new height.",
+      "getter": "maximum_drop_down_items",
+      "setter": "set_maximum_drop_down_items",
+      "clear": null,
+      "field": "maximum_drop_down_items_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written reopens an open list"
+      ],
+      "effects": null,
+      "sample": "4U"
+    },
+    {
+      "name": "drop_down_width",
+      "capability": "ComboBoxDropDownWidth",
+      "value": "double",
+      "initial": "0.0",
+      "comment": "The open list's width (DropDownWidth); zero follows the field's width. 0 to 4096 (std::out_of_range otherwise).",
+      "getter": "drop_down_width",
+      "setter": "set_drop_down_width",
+      "clear": null,
+      "field": "drop_down_width_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 4096.0) {",
+        "    throw std::out_of_range(\"ComboBox drop-down width must be finite and between 0 and 4096\");",
+        "}"
+      ],
+      "sample": "240.0"
+    },
+    {
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::content, 12.0, 400, false",
+      "comment": "The field's and the list's font (Font). Throws std::invalid_argument for an invalid FontSpec; any write marks the font as set from code.",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": null,
+      "field": "font_",
+      "event": null,
+      "on_changed": true,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "shared FontCapability<ComboBox>; written passes the font to the editor and the open list"
+      ],
+      "effects": null,
+      "sample": "FontSpec{FontRole::content, 14.0, 400, false}"
+    },
+    {
+      "name": "drop_down_style",
+      "capability": "ComboBoxDropDownStyle",
+      "value": "ComboBoxStyle",
+      "initial": "ComboBoxStyle::drop_down_list",
+      "comment": "Whether the field takes text (drop_down, a TextBox editor) or shows the selected item (drop_down_list, the default) (DropDownStyle). A change closes the list and creates or removes the editor.",
+      "getter": "drop_down_style",
+      "setter": "set_drop_down_style",
+      "clear": null,
+      "field": "drop_down_style_",
+      "event": null,
+      "on_changed": true,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "Whether the field takes text (drop_down) or shows the selected item (drop_down_list).",
+        "default": "BindingValue{PropertyEnumValue{\"combo_box_style\", \"drop_down_list\", 0}}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "combo_box_style_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written closes the list and creates or removes the editor"
+      ],
+      "sample": "ComboBoxStyle::drop_down"
+    },
+    {
+      "name": "drop_down_filter",
+      "capability": "ComboBoxDropDownFilter",
+      "value": "ComboBoxFilter",
+      "initial": "ComboBoxFilter::none",
+      "comment": "Which items a drop_down field's list shows as the user types: every item, those starting with the text, or those containing it. A change closes the list.",
+      "getter": "drop_down_filter",
+      "setter": "set_drop_down_filter",
+      "clear": null,
+      "field": "drop_down_filter_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Behavior",
+        "description": "Which items a drop_down field's list shows as the user types.",
+        "default": "BindingValue{PropertyEnumValue{\"combo_box_filter\", \"none\", 0}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "combo_box_filter_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written closes the list and reconfigures the editor's auto-complete"
+      ],
+      "sample": "ComboBoxFilter::prefix"
+    },
+    {
+      "name": "auto_complete_mode",
+      "capability": "ComboBoxAutoCompleteMode",
+      "value": "AutoCompleteMode",
+      "initial": "AutoCompleteMode::none",
+      "comment": "How the drop_down editor offers completions (AutoCompleteMode); a filtered list turns the editor's own completion off.",
+      "getter": "auto_complete_mode",
+      "setter": "set_auto_complete_mode",
+      "clear": null,
+      "field": "auto_complete_mode_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written reconfigures the editor's auto-complete"
+      ],
+      "effects": null,
+      "sample": "AutoCompleteMode::append"
+    },
+    {
+      "name": "auto_complete_source",
+      "capability": "ComboBoxAutoCompleteSource",
+      "value": "AutoCompleteSource",
+      "initial": "AutoCompleteSource::none",
+      "comment": "Where the editor's completions come from (AutoCompleteSource); list_items offers the items.",
+      "getter": "auto_complete_source",
+      "setter": "set_auto_complete_source",
+      "clear": null,
+      "field": "auto_complete_source_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written reconfigures the editor's auto-complete"
+      ],
+      "effects": null,
+      "sample": "AutoCompleteSource::list_items"
+    },
+    {
+      "name": "auto_complete_custom_source",
+      "capability": "ComboBoxAutoCompleteCustomSource",
+      "value": "std::shared_ptr<AutoCompleteStringCollection>",
+      "initial": "std::make_shared<AutoCompleteStringCollection>()",
+      "comment": "The candidates for AutoCompleteSource::custom_source (AutoCompleteCustomSource). Never null: a new box owns an empty collection; null throws std::invalid_argument.",
+      "getter": "auto_complete_custom_source",
+      "setter": "set_auto_complete_custom_source",
+      "clear": null,
+      "field": "auto_complete_custom_source_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare refuses null; written reconfigures the editor's auto-complete"
+      ],
+      "effects": null
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "items",
+      "reason": "a collection; stays methods (W owns collections)"
+    },
+    {
+      "name": "selected_text",
+      "reason": "derived from the selection; read-only"
+    }
+  ],
+  "test": {
+    "type": "ComboBox",
+    "include": "gui_forms/controls/panel/combo_box/combo_box.hpp"
+  },
+  "extra_entries": [
+    "{\"items\", &describe_combo_box_items,\n         &read_member_entry<ComboBox, decltype(&ComboBox::items_property_value), &ComboBox::items_property_value>,\n         &write_member_entry<ComboBox, decltype(&ComboBox::set_items_property), &ComboBox::set_items_property>,\n         &reset_member_entry<ComboBox, decltype(&ComboBox::reset_items_property), &ComboBox::reset_items_property>, &should_serialize_member_entry<ComboBox, decltype(&ComboBox::should_serialize_items_property), &ComboBox::should_serialize_items_property>, nullptr,\n         &connect_event_entry<ComboBox, decltype(&ComboBox::items_changed_), &ComboBox::items_changed_>}",
+    "{\"selected_index\", &describe_combo_box_selected_index,\n         &read_member_entry<ComboBox, decltype(&ComboBox::selected_index_property_value), &ComboBox::selected_index_property_value>,\n         &write_member_entry<ComboBox, decltype(&ComboBox::set_selected_index_property), &ComboBox::set_selected_index_property>,\n         nullptr, nullptr, nullptr,\n         &connect_event_entry<ComboBox, decltype(&ComboBox::selected_index_changed_), &ComboBox::selected_index_changed_>}"
+  ]
+}

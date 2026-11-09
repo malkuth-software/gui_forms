@@ -12,14 +12,15 @@ static const char* const refused_by_create[] = {
     "background_worker", "binding", "binding_context", "binding_source", "error_provider",
     "help_provider", "image_list", "notify_icon", "ribbon_tool_tip", "semantic_feedback",
     "timer", "tool_tip",
-    "live_surface",
+    "live_surface", "toast",
 };
 
 /* Of those, the ones neither slot makes: a binding (bindings.bind makes
- * one) and the service. */
+ * one), the service and a toast (it needs its content). */
 static const char* const made_by_neither[] = {
     "binding",
     "live_surface",
+    "toast",
 };
 
 /* Of those, the components bound to a window. */

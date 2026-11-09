@@ -7,7 +7,7 @@ gui_forms::ToolStripContainer
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ToolStripContainer final : public Control
+.. cpp:class:: ToolStripContainer final : public Control, public ToolStripContainerCapabilities<ToolStripContainer>
 
    ``#include <gui_forms/controls/tool_strip_container/tool_strip_container.hpp>``
 
@@ -43,6 +43,24 @@ gui_forms::ToolStripContainer
 
    :Properties:
 
+      **top_panel_visible** : ``bool``, default ``true``
+         Whether the top panel is shown. A hidden panel takes no room and hides
+         its strips. :cpp:member:`bottom_panel_visible <gui_forms::ToolStripContainer::bottom_panel_visible>`, :cpp:member:`left_panel_visible <gui_forms::ToolStripContainer::left_panel_visible>` and
+         :cpp:member:`right_panel_visible <gui_forms::ToolStripContainer::right_panel_visible>` do the same for the others.
+
+      **bottom_panel_visible** : ``bool``
+         Whether the bottom panel shows (Windows Forms' BottomToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+      **left_panel_visible** : ``bool``
+         Whether the left panel shows (Windows Forms' LeftToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+      **right_panel_visible** : ``bool``
+         Whether the right panel shows (Windows Forms' RightToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+      **drag_threshold** : ``double``, default ``4``
+         How far the pointer moves from a grip press before it drags. A host may
+         set 1 to 64; ``std::out_of_range`` otherwise.
+
       **top_panel** : ``std::shared_ptr<ToolStripPanel>``, read-only
          The top :cpp:class:`ToolStripPanel <gui_forms::ToolStripPanel>`. :cpp:func:`bottom_panel <gui_forms::ToolStripContainer::bottom_panel>`, :cpp:func:`left_panel <gui_forms::ToolStripContainer::left_panel>` and :cpp:func:`right_panel <gui_forms::ToolStripContainer::right_panel>`
          are the others.
@@ -55,17 +73,6 @@ gui_forms::ToolStripContainer
 
       **content_panel** : ``std::shared_ptr<Panel>``, read-only
          The :cpp:class:`Panel <gui_forms::Panel>` between the strip panels.
-
-      **top_panel_visible** : ``bool``, default ``true``
-         Whether the top panel is shown. A hidden panel takes no room and hides
-         its strips. :cpp:func:`bottom_panel_visible <gui_forms::ToolStripContainer::bottom_panel_visible>`, :cpp:func:`left_panel_visible <gui_forms::ToolStripContainer::left_panel_visible>` and
-         :cpp:func:`right_panel_visible <gui_forms::ToolStripContainer::right_panel_visible>` do the same for the others.
-
-      **bottom_panel_visible** : ``bool``
-
-      **left_panel_visible** : ``bool``
-
-      **right_panel_visible** : ``bool``
 
       **drag_phase** : ``ToolStripDragPhase``, read-only
          Where a strip drag stands: ``idle``, ``armed`` (pressed on a grip, not
@@ -86,10 +93,6 @@ gui_forms::ToolStripContainer
 
       **drag_suppressed** : ``bool``, read-only
          Whether Ctrl is suppressing the targets.
-
-      **drag_threshold** : ``double``, default ``4``
-         How far the pointer moves from a grip press before it drags. A host may
-         set 1 to 64; ``std::out_of_range`` otherwise.
 
       **keyboard_moving** : ``bool``, read-only
 
@@ -182,6 +185,29 @@ gui_forms::ToolStripContainer
 
    .. rubric:: Properties
 
+   .. cpp:member:: bool top_panel_visible
+
+      Whether the top panel is shown. A hidden panel takes no room and hides
+      its strips. :cpp:member:`bottom_panel_visible <gui_forms::ToolStripContainer::bottom_panel_visible>`, :cpp:member:`left_panel_visible <gui_forms::ToolStripContainer::left_panel_visible>` and
+      :cpp:member:`right_panel_visible <gui_forms::ToolStripContainer::right_panel_visible>` do the same for the others.
+
+   .. cpp:member:: bool bottom_panel_visible
+
+      Whether the bottom panel shows (Windows Forms' BottomToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+   .. cpp:member:: bool left_panel_visible
+
+      Whether the left panel shows (Windows Forms' LeftToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+   .. cpp:member:: bool right_panel_visible
+
+      Whether the right panel shows (Windows Forms' RightToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+   .. cpp:member:: double drag_threshold
+
+      How far the pointer moves from a grip press before it drags. A host may
+      set 1 to 64; ``std::out_of_range`` otherwise.
+
    .. cpp:function:: const std::shared_ptr<ToolStripPanel>& top_panel() const noexcept
 
       The top :cpp:class:`ToolStripPanel <gui_forms::ToolStripPanel>`. :cpp:func:`bottom_panel <gui_forms::ToolStripContainer::bottom_panel>`, :cpp:func:`left_panel <gui_forms::ToolStripContainer::left_panel>` and :cpp:func:`right_panel <gui_forms::ToolStripContainer::right_panel>`
@@ -196,28 +222,6 @@ gui_forms::ToolStripContainer
    .. cpp:function:: const std::shared_ptr<Panel>& content_panel() const noexcept
 
       The :cpp:class:`Panel <gui_forms::Panel>` between the strip panels.
-
-   .. cpp:function:: bool top_panel_visible() const noexcept
-
-      Whether the top panel is shown. A hidden panel takes no room and hides
-      its strips. :cpp:func:`bottom_panel_visible <gui_forms::ToolStripContainer::bottom_panel_visible>`, :cpp:func:`left_panel_visible <gui_forms::ToolStripContainer::left_panel_visible>` and
-      :cpp:func:`right_panel_visible <gui_forms::ToolStripContainer::right_panel_visible>` do the same for the others.
-
-   .. cpp:function:: void set_top_panel_visible(bool visible)
-
-      Sets :cpp:func:`top_panel_visible <gui_forms::ToolStripContainer::top_panel_visible>`; see the property's description above.
-
-   .. cpp:function:: bool bottom_panel_visible() const noexcept
-
-   .. cpp:function:: void set_bottom_panel_visible(bool visible)
-
-   .. cpp:function:: bool left_panel_visible() const noexcept
-
-   .. cpp:function:: void set_left_panel_visible(bool visible)
-
-   .. cpp:function:: bool right_panel_visible() const noexcept
-
-   .. cpp:function:: void set_right_panel_visible(bool visible)
 
    .. cpp:function:: ToolStripDragPhase drag_phase() const noexcept
 
@@ -243,15 +247,6 @@ gui_forms::ToolStripContainer
    .. cpp:function:: bool drag_suppressed() const noexcept
 
       Whether Ctrl is suppressing the targets.
-
-   .. cpp:function:: double drag_threshold() const noexcept
-
-      How far the pointer moves from a grip press before it drags. A host may
-      set 1 to 64; ``std::out_of_range`` otherwise.
-
-   .. cpp:function:: void set_drag_threshold(double threshold)
-
-      Sets :cpp:func:`drag_threshold <gui_forms::ToolStripContainer::drag_threshold>`; see the property's description above.
 
    .. cpp:function:: bool keyboard_moving() const noexcept
 

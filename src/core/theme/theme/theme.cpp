@@ -3,11 +3,15 @@
 #include "gui_forms/surface_material/presets/material_presets.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include "ancestor_facts.hpp"
+#include "floor_sheet.hpp"
 #include "forced_high_contrast.hpp"
+#include "material_layers.hpp"
 #include "theme_access.hpp"
 #include "../theme_compiler/theme_source_record.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <memory>
 #include <span>
@@ -137,7 +141,8 @@ bool valid_procedural_fill(const ProceduralFill& fill) noexcept {
     case ProceduralPattern::paper_fibre:
     case ProceduralPattern::pinstripe:
     case ProceduralPattern::brushed_metal:
-    case ProceduralPattern::fresco: {
+    case ProceduralPattern::fresco:
+    case ProceduralPattern::checker: {
         const bool valid = std::isfinite(fill.tile) && fill.tile >= minimum_procedural_tile &&
                            fill.tile <= maximum_procedural_tile && std::isfinite(fill.strength) &&
                            fill.strength >= 0.0 && fill.strength <= 1.0;
@@ -453,7 +458,26 @@ ControlVisualRecipe recipe(Color top, Color bottom, Color border, Color text,
 // slots are not reused (sanitizer builds), close to a Windows thread's 1 MB
 // stack.
 void fill_professional_role(ControlRoleRecipes& result, Color top, Color bottom,
-                            Color border, Color text, double radius = 3.0) {
+                            Color border, Color text, double radius = 3.0);
+
+// A badge (T4, W-4): an accent chip with white text in every state but
+// disabled, which greys it; a badge takes no input, so hot, pressed and the
+// validity states look as normal. Its corners are rounded to a pill by the
+// control (PartPaint::corner_radius).
+void fill_badge_role(ControlRoleRecipes& result) {
+    fill_professional_role(result, Color::rgba(38, 114, 185), Color::rgba(38, 114, 185),
+                           Color::rgba(38, 114, 185), Color::rgba(255, 255, 255), 0.0);
+    const ControlVisualRecipe resting = result.ordinary[static_cast<std::size_t>(ControlSurfaceState::normal)];
+    const ControlVisualRecipe greyed = result.ordinary[static_cast<std::size_t>(ControlSurfaceState::disabled)];
+    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
+        const bool disabled = index == static_cast<std::size_t>(ControlSurfaceState::disabled);
+        result.ordinary[index] = disabled ? greyed : resting;
+        result.selected[index] = result.ordinary[index];
+    }
+}
+
+void fill_professional_role(ControlRoleRecipes& result, Color top, Color bottom,
+                            Color border, Color text, double radius) {
     // Every record starts from its default; the high-contrast records stay
     // so (they are derived when the theme is made).
     result = ControlRoleRecipes{};
@@ -973,6 +997,23 @@ bool valid_fill_layer(const MaterialFillLayer& fill) noexcept {
 
 } // namespace
 
+namespace {
+
+// Whether every present single edge of `edges` has the same width.
+bool equal_edge_widths(const MaterialBorderEdges& edges) noexcept {
+    const std::array<const std::optional<MaterialBorder>*, 4> sides{&edges.top, &edges.right, &edges.bottom,
+                                                                     &edges.left};
+    std::optional<double> width{};
+    for (const std::optional<MaterialBorder>* side : sides) {
+        if (!*side) continue;
+        if (width && *width != (**side).width) return false;
+        width = (**side).width;
+    }
+    return true;
+}
+
+} // namespace
+
 bool valid_surface_material(const SurfaceMaterial& material) noexcept {
     if (material.fills.empty() ||
         material.fills.size() > SurfaceMaterial::maximum_fill_layers ||
@@ -987,10 +1028,13 @@ bool valid_surface_material(const SurfaceMaterial& material) noexcept {
         return false;
     }
     if (material.border && !material.border_edges.empty()) return false;
-    if (!material.border_edges.empty() && material.corner_radius != 0.0) {
+    // Rounded single edges draw as one ring split at the corners, so their
+    // widths are equal.
+    if (!material.border_edges.empty() && material.corner_radius != 0.0 &&
+        !equal_edge_widths(material.border_edges)) {
         return false;
     }
-    // Single edges are square-cornered, as with corner_radius.
+    // Per-corner radii take no single edges.
     if (material.corner_radii &&
         (!valid_corner_radii(*material.corner_radii) ||
          !material.border_edges.empty())) {
@@ -1040,8 +1084,6 @@ bool valid_surface_material(const SurfaceMaterial& material) noexcept {
 
 void paint_surface_material(Painter& painter, Rect bounds,
                             const SurfaceMaterial& material) {
-    // Material replay deliberately stays in authored order; recording painters
-    // retain these calls while terminal CPU painters realize the same sequence.
     if (bounds.empty() || !valid_surface_material(material)) return;
     // A finished material (E9.6) draws as the material it describes.
     if (material.finish > 0.0) {
@@ -1049,6 +1091,17 @@ void paint_surface_material(Painter& painter, Rect bounds,
         paint_surface_material(painter, bounds, finished);
         return;
     }
+    // The painter chooses how: a raster from the material kernel where it
+    // composites part rasters, else the layers below.
+    painter.draw_surface_material(bounds, material);
+}
+
+namespace detail {
+
+// The layers in the material kernel's order (material_primitive.hpp): outer
+// shadows and under glows, the fills clipped to the rounded box, inset
+// shadows, the border ring, its single edges, keylines and over glows.
+void paint_material_layers(Painter& painter, Rect bounds, const SurfaceMaterial& material) {
     for (const MaterialShadow& shadow : material.shadows) {
         if (!shadow.inset) {
             painter.draw_box_shadow(
@@ -1132,6 +1185,8 @@ void paint_surface_material(Painter& painter, Rect bounds,
         painter.restore();
     }
 }
+
+} // namespace detail
 
 Insets surface_material_visual_outsets(const SurfaceMaterial& material) noexcept {
     Insets result = box_shadow_visual_outsets(material.shadows);
@@ -1481,10 +1536,13 @@ std::unique_ptr<Theme> Theme::validated(const ThemeDefinition& definition) {
         role = derive_high_contrast_recipes(std::move(role), static_cast<ControlVisualRole>(index));
     }
     // The dark pass (T4 phase 5): derived when the definition asks for it,
-    // otherwise the ordinary records, so a dark window keeps its colours.
+    // kept when it authored them, otherwise the ordinary records, so a
+    // dark window keeps its colours.
     const bool derive_dark = definition.dark_variant == ThemeDarkVariant::derived;
+    const bool authored_dark = definition.dark_variant == ThemeDarkVariant::authored;
     for (std::size_t index = 0; index < (*theme).definition_.roles.size(); ++index) {
         ControlRoleRecipes& role = (*theme).definition_.roles[index];
+        if (authored_dark) continue;
         if (derive_dark) {
             role = derive_dark_recipes(std::move(role), static_cast<ControlVisualRole>(index));
         } else {
@@ -1494,6 +1552,37 @@ std::unique_ptr<Theme> Theme::validated(const ThemeDefinition& definition) {
     }
     return theme;
 }
+
+namespace detail {
+
+void fill_ancestor_facts(const Control& control, std::vector<AncestorFacts>& chain, AncestorBloom& bloom) {
+    chain.clear();
+    bloom = AncestorBloom{};
+    Control::Ptr parent = control.parent();
+    while (parent != nullptr && chain.size() < maximum_ancestor_depth) {
+        const Control& above = *parent;
+        AncestorFacts facts{};
+        facts.control_type = above.anatomy().control_id;
+        facts.stable_id = above.stable_id().value();
+        facts.classes = above.classes.read();
+        chain.push_back(facts);
+        bloom.add({}, facts.control_type);
+        if (!facts.stable_id.empty()) bloom.add("#", facts.stable_id);
+        for (const std::string& name : facts.classes) bloom.add(".", name);
+        parent = above.parent();
+    }
+}
+
+void attach_ancestor_facts(const Control& control, const CompiledThemeRules& rules,
+                           std::vector<AncestorFacts>& chain, CompiledThemeRules::PartFacts& facts) {
+    const bool user = facts.user_rules != nullptr && (*facts.user_rules).uses_ancestors();
+    const bool owned = facts.inline_rules != nullptr && (*facts.inline_rules).uses_ancestors();
+    if (!rules.uses_ancestors() && !user && !owned) return;
+    fill_ancestor_facts(control, chain, facts.ancestor_bloom);
+    facts.ancestors = chain;
+}
+
+} // namespace detail
 
 std::string_view control_visual_role_name(ControlVisualRole role) noexcept {
     switch (role) {
@@ -1511,6 +1600,8 @@ std::string_view control_visual_role_name(ControlVisualRole role) noexcept {
     case ControlVisualRole::tool_tip: return "tool_tip";
     case ControlVisualRole::link: return "link";
     case ControlVisualRole::visited_link: return "visited_link";
+    case ControlVisualRole::notice: return "notice";
+    case ControlVisualRole::badge: return "badge";
     case ControlVisualRole::count: return {};
     }
     return {};
@@ -1586,12 +1677,14 @@ Color inherited_text(const Control& control, Color fallback) {
         CompiledThemeRules::PartFacts facts{};
         facts.control_type = above.anatomy().control_id;
         facts.stable_id = above.stable_id().value();
-        facts.classes = above.classes();
+        facts.classes = above.classes.read();
         facts.inline_rules = above.inline_style_rules();
         facts.states = above.anatomy_states();
         const SurfaceRoot* const window = above.attached_surface_root();
         if (window != nullptr) facts.media = window_media_facts(*window);
         if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
+        std::vector<AncestorFacts> ancestors{};
+        detail::attach_ancestor_facts(above, above.effective_theme().engine().rules(), ancestors, facts);
         const CompiledThemeRules::RecipeResolution fields =
             above.effective_theme().engine().rules().resolve_recipe_fields(facts);
         const RecipeDeclaration* const text = fields.fields[static_cast<std::size_t>(RecipeField::text)];
@@ -1608,6 +1701,14 @@ Color inherited_text(const Control& control, Color fallback) {
 void apply_recipe_fields(const CompiledThemeRules::RecipeResolution& fields, ControlVisualRecipe& recipe) noexcept {
     const RecipeDeclaration* const text = set_recipe_field(fields, RecipeField::text);
     if (text != nullptr) recipe.text = (*text).colour;
+    const RecipeDeclaration* const muted = set_recipe_field(fields, RecipeField::muted_text);
+    if (muted != nullptr) recipe.muted_text = (*muted).colour;
+    const RecipeDeclaration* const glyph = set_recipe_field(fields, RecipeField::glyph);
+    if (glyph != nullptr) recipe.glyph = (*glyph).colour;
+    const RecipeDeclaration* const default_width = set_recipe_field(fields, RecipeField::default_outline_width);
+    if (default_width != nullptr) recipe.default_width = (*default_width).number;
+    const RecipeDeclaration* const default_colour = set_recipe_field(fields, RecipeField::default_outline_colour);
+    if (default_colour != nullptr) recipe.default_ring = (*default_colour).colour;
     const RecipeDeclaration* const style = set_recipe_field(fields, RecipeField::outline_style);
     const bool no_outline = style != nullptr && (*style).outline_style == RecipeOutlineStyle::none;
     if (style != nullptr) {
@@ -1652,11 +1753,76 @@ void apply_recipe_fields(const CompiledThemeRules::RecipeResolution& fields, Con
 
 } // namespace
 
+namespace detail {
+
+void fill_family_recipes(const CompiledThemeRules& rules, ControlVisualRole role, const ControlVisualRecipe& base,
+                         ControlRoleRecipes& recipes) {
+    recipes = ControlRoleRecipes{};
+    // A unit box: the sheet's geometry does not depend on it (header).
+    const Size unit_box{1.0, 1.0};
+    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
+        for (std::size_t chosen = 0U; chosen < 2U; ++chosen) {
+            ControlVisualContext context{};
+            context.surface = static_cast<ControlSurfaceState>(index);
+            context.selected = chosen == 1U;
+            CompiledThemeRules::PartFacts facts{};
+            facts.family = control_visual_role_name(role);
+            facts.states = visual_context_states(context);
+            const CompiledThemeRules::Resolution resolution = rules.resolve(facts);
+            const CompiledThemeRules::RecipeResolution fields = rules.resolve_recipe_fields(facts);
+            ControlVisualRecipe value = base;
+            assemble_material(base.material, resolution.materials, unit_box, value.material);
+            apply_recipe_fields(fields, value);
+            ControlVisualRecipe& target = context.selected ? recipes.selected[index] : recipes.ordinary[index];
+            target = std::move(value);
+        }
+    }
+}
+
+} // namespace detail
+
 ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole role,
                                      ControlVisualContext context) const {
     const AnatomyStateSet states = visual_context_states(context);
     ResolvedControlRecipe result = resolve(control, role, context, states);
     return result;
+}
+
+void Theme::provenance(const Control& control, ControlVisualRole role, ControlVisualContext context,
+                       CompiledThemeRules::PartProvenance& result) const {
+    const bool forced = context.high_contrast;
+    CompiledThemeRules::PartFacts facts{};
+    facts.control_type = control.anatomy().control_id;
+    facts.stable_id = control.stable_id().value();
+    facts.classes = control.classes.read();
+    facts.inline_rules = control.inline_style_rules();
+    facts.states = visual_context_states(context);
+    facts.forced_high_contrast = forced;
+    facts.family = control_visual_role_name(role);
+    const SurfaceRoot* const window = control.attached_surface_root();
+    if (window != nullptr) facts.media = window_media_facts(*window);
+    if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
+    std::vector<AncestorFacts> ancestors{};
+    detail::attach_ancestor_facts(control, engine_.rules(), ancestors, facts);
+    engine_.rules().resolve_provenance(facts, result);
+    result.parameters = {};
+    result.parameter_count = 0U;
+    if (!forced) return;
+    // The pass draws every field no important inline declaration sets, and
+    // its colours stand over every declaration's (resolve() above).
+    CompiledThemeRules::FieldProvenance pass{};
+    pass.level = CascadeLevel::forced_high_contrast;
+    pass.layer = ThemeLayer::forced_high_contrast;
+    const std::array<RecipeField, 6> pass_colours{RecipeField::text,        RecipeField::outline_colour,
+                                                  RecipeField::text_shadow, RecipeField::muted_text,
+                                                  RecipeField::glyph,       RecipeField::default_outline_colour};
+    for (const RecipeField field : pass_colours) result.recipe_fields[static_cast<std::size_t>(field)] = pass;
+    for (CompiledThemeRules::FieldProvenance& field : result.recipe_fields) {
+        if (!field.authored) field = pass;
+    }
+    for (CompiledThemeRules::FieldProvenance& field : result.materials) {
+        if (!field.authored) field = pass;
+    }
 }
 
 ResolvedFont Theme::resolve_font(const Control& control, FontSpec own) const noexcept {
@@ -1665,12 +1831,14 @@ ResolvedFont Theme::resolve_font(const Control& control, FontSpec own) const noe
     CompiledThemeRules::PartFacts facts{};
     facts.control_type = control.anatomy().control_id;
     facts.stable_id = control.stable_id().value();
-    facts.classes = control.classes();
+    facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
     facts.states = visual_context_states(ControlVisualContext{});
     const Window* const window = control.attached_window();
     if (window != nullptr) facts.media = window_media_facts(*window);
     if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
+    std::vector<AncestorFacts> ancestors{};
+    detail::attach_ancestor_facts(control, engine_.rules(), ancestors, facts);
     const CompiledThemeRules::RecipeResolution fields = engine_.rules().resolve_recipe_fields(facts);
     if (!fields.authored) return result;
     ResolvedFont themed = result;
@@ -1712,7 +1880,7 @@ std::optional<BackdropChain> Theme::window_backdrop_chain(const Window& window) 
     CompiledThemeRules::PartFacts facts{};
     facts.surface = SurfaceKind::window;
     facts.stable_id = (*root).stable_id().value();
-    facts.classes = (*root).classes();
+    facts.classes = (*root).classes.read();
     facts.media = window_media_facts(window);
     facts.user_rules = window.user_theme_rules();
     const BackdropDeclaration* const declared = engine_.rules().resolve_backdrop(facts);
@@ -1732,16 +1900,30 @@ std::optional<BackdropChain> Theme::window_backdrop_chain(const Window& window) 
     return chain;
 }
 
+BandDeclaration Theme::window_band(const Window& window) const noexcept {
+    const Control::Ptr root = window.root();
+    CompiledThemeRules::PartFacts facts{};
+    facts.surface = SurfaceKind::window;
+    facts.stable_id = (*root).stable_id().value();
+    facts.classes = (*root).classes.read();
+    facts.media = window_media_facts(window);
+    facts.user_rules = window.user_theme_rules();
+    const BandDeclaration declared = engine_.rules().resolve_band(facts);
+    return declared;
+}
+
 bool Theme::declares_clarity(const Control& control) const noexcept {
     CompiledThemeRules::PartFacts facts{};
     facts.control_type = control.anatomy().control_id;
     facts.stable_id = control.stable_id().value();
-    facts.classes = control.classes();
+    facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
     facts.states = visual_context_states(ControlVisualContext{});
     const Window* const window = control.attached_window();
     if (window != nullptr) facts.media = window_media_facts(*window);
     if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
+    std::vector<AncestorFacts> ancestors{};
+    detail::attach_ancestor_facts(control, engine_.rules(), ancestors, facts);
     const CompiledThemeRules::Resolution resolution = engine_.rules().resolve(facts);
     if (!resolution.materials_authored) return false;
     const MaterialDeclaration* const colour =
@@ -1759,6 +1941,19 @@ bool Theme::declares_clarity(const Control& control) const noexcept {
 
 ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole role, ControlVisualContext context,
                                      AnatomyStateSet states) const {
+    ResolvedControlRecipe result = resolve(control, role, context, states, std::string_view{});
+    return result;
+}
+
+ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole role, ControlVisualContext context,
+                                     AnatomyStateSet states, std::string_view part) const {
+    ResolvedControlRecipe result = resolve(control, role, context, states, part, std::string_view{});
+    return result;
+}
+
+ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole role, ControlVisualContext context,
+                                     AnatomyStateSet states, std::string_view part,
+                                     std::string_view control_type) const {
     const ControlVisualRecipe& floor = resolve(role, context);
     // Forced high contrast is the engine's own pass (E1): the built-in
     // recipe's high-contrast records draw the part, under the non-colour
@@ -1766,15 +1961,19 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     const bool forced = context.high_contrast;
     if (forced && control.inline_style_rules() == nullptr) return ResolvedControlRecipe(floor);
     CompiledThemeRules::PartFacts facts{};
-    facts.control_type = control.anatomy().control_id;
+    facts.control_type = control_type.empty() ? control.anatomy().control_id : control_type;
     facts.stable_id = control.stable_id().value();
-    facts.classes = control.classes();
+    facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
+    facts.part = part;
     facts.states = states;
     facts.forced_high_contrast = forced;
+    facts.family = control_visual_role_name(role);
     const SurfaceRoot* const window = control.attached_surface_root();
     if (window != nullptr) facts.media = window_media_facts(*window);
     if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
+    std::vector<AncestorFacts> ancestors{};
+    detail::attach_ancestor_facts(control, engine_.rules(), ancestors, facts);
     CompiledThemeRules::RecipeResolution fields = engine_.rules().resolve_recipe_fields(facts);
     if (forced) {
         // The pass's colours stand over every declaration's, and it draws
@@ -1782,6 +1981,9 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
         fields.fields[static_cast<std::size_t>(RecipeField::text)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::outline_colour)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::text_shadow)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::muted_text)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::glyph)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::default_outline_colour)] = nullptr;
         bool any = false;
         for (const RecipeDeclaration* field : fields.fields) any = any || field != nullptr;
         fields.authored = any;
@@ -1899,6 +2101,14 @@ ThemeDefinition windows_professional_theme_definition() {
                    result.compatibility.link, result.compatibility.disabled_text);
     fill_link_role(result.roles[static_cast<std::size_t>(ControlVisualRole::visited_link)],
                    result.compatibility.visited_link, result.compatibility.disabled_text);
+    // Notices (T4, W-4): a white plate with a quiet line; the severity
+    // keyline is the control's (InfoBanner, Toast). A notice takes no input
+    // of its own, so its hot and pressed recipes are never reached.
+    fill_professional_role(result.roles[static_cast<std::size_t>(ControlVisualRole::notice)],
+        Color::rgba(255, 255, 255),
+                          Color::rgba(250, 251, 252),
+                          Color::rgba(151, 166, 179), ink, 2.0);
+    fill_badge_role(result.roles[static_cast<std::size_t>(ControlVisualRole::badge)]);
     result.overlay_shadow = provisional_overlay_shadow();
     result.high_contrast_overlay_shadow.clear();
     return result;

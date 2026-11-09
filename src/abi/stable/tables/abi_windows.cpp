@@ -15,6 +15,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <stdexcept>
 #include <functional>
 #include <memory>
 #include <string>
@@ -144,6 +145,9 @@ gf_status application_status(const ApplicationResult& result) noexcept {
         return fail(GF_STATUS_INTERNAL, run_slot, "a host callback failed");
     case ApplicationError::after_shutdown:
         return fail(GF_STATUS_INVALID_STATE, run_slot, "the host has been shut down");
+    case ApplicationError::windows_alive:
+        // Application::close's result; a run never gives it.
+        return fail(GF_STATUS_INTERNAL, run_slot, "the run gave an application close result");
     }
     return fail(GF_STATUS_INTERNAL, run_slot, "the host returned an unknown result");
 }
@@ -235,7 +239,17 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
     }
     ApplicationResult result{};
     try {
-        result = Application::run(std::move(window), std::move(window_options));
+        // The program's current application runs the window; a C program
+        // that made none gets one for this run (its configuration through
+        // the ABI is a later step).
+        Application* application = Application::current();
+        ApplicationCreateResult made{};
+        if (application == nullptr) {
+            made = Application::create(ApplicationConfig{});
+            if (!made) throw std::logic_error("GUI.Forms: the run's application was refused");
+            application = made.application.get();
+        }
+        result = (*application).run(std::move(window), std::move(window_options));
     } catch (...) {
         engine().detach_window();
         registry().end_run();

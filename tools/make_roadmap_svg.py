@@ -40,32 +40,33 @@ STAGES = [
         "Articulated controls: named parts, one schema",
         "Owned compression and image codecs",
     ]),
-    ("0.3", "Themeable", "stage", [
-        "Theme engine (done)",
-        "CSS-syntax themes",
-        "Default theme, light and dark",
-        "Windows-familiar themes",
+    ("0.3", "Themeable", "shipped", [
+        "Theme engine and theme language",
+        "GUI.Forms theme, light and dark",
+        "Familiar themes",
         "Compositor cooperation",
     ]),
-    ("0.4", "Flexible", "stage", [
+    ("0.4", "Flexible", "shipped", [
         "Flex and grid layout",
         "Form documents that round-trip hand edits",
         "Damage-preserving painting",
         "More Windows Forms controls",
     ]),
-    ("0.5", "ABI candidate", "stage", [
-        "Installed, versioned C ABI",
-        "Error model and breaking-change audit",
-        "Two independent consumers",
+    ("0.5", "ABI seal", "stage", [
+        "C ABI 1.1, audited",
+        "Properties as capabilities",
+        "Application, windows and rules",
+        "Form and theme languages",
+        "Smooth scrolling",
     ]),
-    ("0.6", "Bindings", "stage", [
-        "C# bindings with a Windows Forms shape",
-        "The rest of the .NET 8+ Windows Forms controls",
+    ("1.0", "Backend", "stage", [
+        "Final controls",
+        "C# bindings",
     ]),
-    ("0.7", "Designers", "stage", [
-        "Interface builder",
-        "HTML import and layout designer",
-        "Theme designer",
+    ("Tools", "Designers", "after", [
+        "Conversion program",
+        "Visual editor and interface builder",
+        "Visual Studio integration",
     ]),
     ("1.0", "Stable", "stable", [
         "Same traces on every host",

@@ -246,6 +246,8 @@ void SurfaceRoot::set_occluded(bool occluded, FrameTime transition_time) {
         resume_engine_ambient();
         if (paint_pending()) request_paint_wake();
     }
+    // A flashing band rests lit while hidden and flashes again after.
+    refresh_band();
 }
 
 } // namespace gui_forms

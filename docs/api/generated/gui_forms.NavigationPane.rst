@@ -7,7 +7,7 @@ gui_forms::NavigationPane
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: NavigationPane : public Control
+.. cpp:class:: NavigationPane : public Control, public NavigationPaneCapabilities<NavigationPane>
 
    ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane.hpp>``
 
@@ -35,11 +35,6 @@ gui_forms::NavigationPane
 
    :Properties:
 
-      **pages** : ``PageSet``, read-only
-         The pane's set (no pinning; after the selected page leaves, the next page
-         is selected, else the previous): add, remove, rename, move and select
-         pages through it. A page's ``image_key`` names an image in :cpp:func:`image_list <gui_forms::NavigationPane::image_list>`.
-
       **collapsed** : ``bool``, default ``false``
          Whether the pane is the narrow bar. Collapsing closes the configure menu;
          expanding closes the overlay.
@@ -47,14 +42,6 @@ gui_forms::NavigationPane
       **button_count** : ``std::size_t``, default ``4``
          The number of large buttons the user chose. A count above
          ``PageSetLimits::maximum_capacity`` throws ``std::out_of_range``.
-
-      **visible_button_count** : ``std::size_t``, read-only
-         The large buttons shown after layout: :cpp:func:`button_count <gui_forms::NavigationPane::button_count>`, limited by the
-         pages not hidden and by the pane's height. Zero while collapsed.
-
-      **hidden_pages** : ``std::vector<PageId>``, read-only
-         The pages the user hid from the buttons and icons, in page order.
-         :cpp:func:`set_page_hidden <gui_forms::NavigationPane::set_page_hidden>` hides or shows one and :cpp:func:`page_hidden <gui_forms::NavigationPane::page_hidden>` asks.
 
       **expanded_width** : ``double``, default ``220``
          The width the pane asks for while expanded, and the overlay's width, from
@@ -68,6 +55,19 @@ gui_forms::NavigationPane
       **focus_region** : ``bool``, default ``true``
          Whether the pane registers itself as an F6 region of its window while
          attached. A pane nested in another region is not registered.
+
+      **pages** : ``PageSet``, read-only
+         The pane's set (no pinning; after the selected page leaves, the next page
+         is selected, else the previous): add, remove, rename, move and select
+         pages through it. A page's ``image_key`` names an image in :cpp:member:`image_list <gui_forms::NavigationPane::image_list>`.
+
+      **visible_button_count** : ``std::size_t``, read-only
+         The large buttons shown after layout: :cpp:member:`button_count <gui_forms::NavigationPane::button_count>`, limited by the
+         pages not hidden and by the pane's height. Zero while collapsed.
+
+      **hidden_pages** : ``std::vector<PageId>``, read-only
+         The pages the user hid from the buttons and icons, in page order.
+         :cpp:func:`set_page_hidden <gui_forms::NavigationPane::set_page_hidden>` hides or shows one and :cpp:func:`page_hidden <gui_forms::NavigationPane::page_hidden>` asks.
 
       **overlay_open** : ``bool``, read-only
          Whether the collapsed pane's overlay is open.
@@ -158,7 +158,7 @@ gui_forms::NavigationPane
    again. Hidden pages appear nowhere else.
 
    The overlay is a window overlay beside the bar (on its right, unless only the
-   left has room), as tall as the pane and :cpp:func:`expanded_width <gui_forms::NavigationPane::expanded_width>` wide, holding the
+   left has room), as tall as the pane and :cpp:member:`expanded_width <gui_forms::NavigationPane::expanded_width>` wide, holding the
    content panel while it is open. Focus moves to its first Tab stop and comes
    back when it closes; the bar stays usable meanwhile. A press anywhere
    outside the pane and the overlay closes it and then goes on to the control
@@ -232,67 +232,47 @@ gui_forms::NavigationPane
 
    .. rubric:: Properties
 
-   .. cpp:function:: const PageSet& pages() const noexcept
-
-      The pane's set (no pinning; after the selected page leaves, the next page
-      is selected, else the previous): add, remove, rename, move and select
-      pages through it. A page's ``image_key`` names an image in :cpp:func:`image_list <gui_forms::NavigationPane::image_list>`.
-
-   .. cpp:function:: bool collapsed() const noexcept
+   .. cpp:member:: bool collapsed
 
       Whether the pane is the narrow bar. Collapsing closes the configure menu;
       expanding closes the overlay.
 
-   .. cpp:function:: void set_collapsed(bool collapsed)
-
-      Sets :cpp:func:`collapsed <gui_forms::NavigationPane::collapsed>`; see the property's description above.
-
-   .. cpp:function:: std::size_t button_count() const noexcept
+   .. cpp:member:: std::size_t button_count
 
       The number of large buttons the user chose. A count above
       ``PageSetLimits::maximum_capacity`` throws ``std::out_of_range``.
 
-   .. cpp:function:: void set_button_count(std::size_t count)
+   .. cpp:member:: double expanded_width
 
-      Sets :cpp:func:`button_count <gui_forms::NavigationPane::button_count>`; see the property's description above.
+      The width the pane asks for while expanded, and the overlay's width, from
+      80 to 1024; a width outside that range throws ``std::out_of_range``.
+
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
+
+      The images the pages' ``image_key`` values name, drawn at the list's
+      image size (at most 32). A disposed list, or one bound to another
+      window, throws ``std::invalid_argument``.
+
+   .. cpp:member:: bool focus_region
+
+      Whether the pane registers itself as an F6 region of its window while
+      attached. A pane nested in another region is not registered.
+
+   .. cpp:function:: const PageSet& pages() const noexcept
+
+      The pane's set (no pinning; after the selected page leaves, the next page
+      is selected, else the previous): add, remove, rename, move and select
+      pages through it. A page's ``image_key`` names an image in :cpp:member:`image_list <gui_forms::NavigationPane::image_list>`.
 
    .. cpp:function:: std::size_t visible_button_count() const
 
-      The large buttons shown after layout: :cpp:func:`button_count <gui_forms::NavigationPane::button_count>`, limited by the
+      The large buttons shown after layout: :cpp:member:`button_count <gui_forms::NavigationPane::button_count>`, limited by the
       pages not hidden and by the pane's height. Zero while collapsed.
 
    .. cpp:function:: std::vector<PageId> hidden_pages() const
 
       The pages the user hid from the buttons and icons, in page order.
       :cpp:func:`set_page_hidden <gui_forms::NavigationPane::set_page_hidden>` hides or shows one and :cpp:func:`page_hidden <gui_forms::NavigationPane::page_hidden>` asks.
-
-   .. cpp:function:: double expanded_width() const noexcept
-
-      The width the pane asks for while expanded, and the overlay's width, from
-      80 to 1024; a width outside that range throws ``std::out_of_range``.
-
-   .. cpp:function:: void set_expanded_width(double width)
-
-      Sets :cpp:func:`expanded_width <gui_forms::NavigationPane::expanded_width>`; see the property's description above.
-
-   .. cpp:function:: const std::shared_ptr<ImageList>& image_list() const noexcept
-
-      The images the pages' ``image_key`` values name, drawn at the list's
-      image size (at most 32). A disposed list, or one bound to another
-      window, throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_image_list(std::shared_ptr<ImageList> image_list)
-
-      Sets :cpp:func:`image_list <gui_forms::NavigationPane::image_list>`; see the property's description above.
-
-   .. cpp:function:: bool focus_region() const noexcept
-
-      Whether the pane registers itself as an F6 region of its window while
-      attached. A pane nested in another region is not registered.
-
-   .. cpp:function:: void set_focus_region(bool region)
-
-      Sets :cpp:func:`focus_region <gui_forms::NavigationPane::focus_region>`; see the property's description above.
 
    .. cpp:function:: bool overlay_open() const noexcept
 
@@ -342,7 +322,7 @@ gui_forms::NavigationPane
 
       The pane's set (no pinning; after the selected page leaves, the next page
       is selected, else the previous): add, remove, rename, move and select
-      pages through it. A page's ``image_key`` names an image in :cpp:func:`image_list <gui_forms::NavigationPane::image_list>`.
+      pages through it. A page's ``image_key`` names an image in :cpp:member:`image_list <gui_forms::NavigationPane::image_list>`.
 
    .. cpp:function:: bool show_more_buttons()
 

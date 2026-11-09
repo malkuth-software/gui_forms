@@ -3,6 +3,7 @@
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -43,7 +44,7 @@ struct TreeExpansionChange final {
 // A retained, flat-model tree. Only visible rows are painted and published as
 // semantic children; item identity and expansion state remain stable while
 // descendants are unrealized.
-class TreeView final : public Panel {
+class TreeView final : public Panel, public TreeViewCapabilities<TreeView> {
 public:
     explicit TreeView(StableId stable_id);
     ~TreeView() override;
@@ -52,29 +53,13 @@ public:
         return items_;
     }
     void set_items(std::vector<TreeViewItem> items);
-    [[nodiscard]] std::string_view selected_id() const noexcept {
-        return selected_id_;
-    }
-    void set_selected_id(std::string_view stable_id);
     [[nodiscard]] std::string_view active_id() const noexcept {
         return active_id_;
     }
     [[nodiscard]] bool expanded(std::string_view stable_id) const;
     void set_expanded(std::string_view stable_id, bool expanded);
-    [[nodiscard]] double item_height() const noexcept { return item_height_; }
-    void set_item_height(double height);
-    [[nodiscard]] double indentation() const noexcept { return indentation_; }
-    void set_indentation(double indentation);
-    [[nodiscard]] bool show_expanders() const noexcept { return show_expanders_; }
-    void set_show_expanders(bool show);
     [[nodiscard]] std::size_t top_row() const noexcept { return top_row_; }
     void set_top_row(std::size_t row);
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
-    [[nodiscard]] std::shared_ptr<ImageList> image_list() const noexcept {
-        return image_list_;
-    }
-    void set_image_list(std::shared_ptr<ImageList> image_list);
 
     [[nodiscard]] Event<const TreeSelectionChange&>& selection_changed() noexcept {
         return selection_changed_;
@@ -172,19 +157,41 @@ private:
     std::uint32_t pressed_click_count_{1U};
     bool pressed_expander_{};
     std::size_t top_row_{};
-    double item_height_{24.0};
-    double indentation_{18.0};
-    bool show_expanders_{true};
-    FontSpec font_{FontRole::content, 12.0, 400, false};
     std::string type_prefix_;
     std::chrono::steady_clock::time_point last_type_time_{};
     bool focused_{};
-    std::shared_ptr<ImageList> image_list_;
     SubscriptionToken image_list_changed_;
     Event<const TreeSelectionChange&> selection_changed_;
     Event<const TreeExpansionChange&> expansion_changed_;
     Event<const std::string&> item_activated_;
-};
+    // property_codemod begin TreeView (tools/property_families/tree_view.json; generated, do not edit)
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_font_changed();
 
+private:
+    friend struct TreeViewSelectedIdCapability<TreeView>;
+    friend struct TreeViewItemHeightCapability<TreeView>;
+    friend struct TreeViewIndentationCapability<TreeView>;
+    friend struct TreeViewShowExpandersCapability<TreeView>;
+    friend struct FontCapability<TreeView>;
+    friend struct TreeViewImageListCapability<TreeView>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(selected_id)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(selected_id)& cell) const;
+    void prepare_write(const decltype(item_height)& cell, double& incoming);
+    void written(const decltype(item_height)& cell);
+    void prepare_write(const decltype(indentation)& cell, double& incoming);
+    void written(const decltype(indentation)& cell);
+    void prepare_write(const decltype(show_expanders)& cell, bool& incoming);
+    void written(const decltype(show_expanders)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    void prepare_write(const decltype(image_list)& cell, std::shared_ptr<ImageList>& incoming);
+    void written(const decltype(image_list)& cell);
+    // property_codemod end TreeView
+};
 
 } // namespace gui_forms

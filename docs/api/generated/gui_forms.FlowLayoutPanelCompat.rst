@@ -7,7 +7,7 @@ gui_forms::FlowLayoutPanelCompat
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: FlowLayoutPanelCompat final : public ContainerControl, public FlowBreakCapability<FlowLayoutPanelCompat>
+.. cpp:class:: FlowLayoutPanelCompat final : public ContainerControl, public FlowBreakCapability<FlowLayoutPanelCompat>, public FlowLayoutPanelCompatCapabilities<FlowLayoutPanelCompat>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.hpp>``
 
@@ -21,7 +21,7 @@ gui_forms::FlowLayoutPanelCompat
 
    The panel places its visible children in child order along a main axis:
    left to right, right to left, top down or bottom up. When a child does not
-   fit in the rest of the line, it starts a new line, unless :cpp:func:`wrap_contents <gui_forms::FlowLayoutPanelCompat::wrap_contents>` is
+   fit in the rest of the line, it starts a new line, unless :cpp:member:`wrap_contents <gui_forms::FlowLayoutPanelCompat::wrap_contents>` is
    off.
 
    In a right-to-left ``layout_direction`` the flow is laid out left to right and
@@ -77,9 +77,9 @@ gui_forms::FlowLayoutPanelCompat
 
    :Inherited:
 
-      From :cpp:class:`ContainerControl <gui_forms::ContainerControl>`: properties :cpp:func:`active_control <gui_forms::ContainerControl::active_control>`, :cpp:func:`auto_validate <gui_forms::ContainerControl::auto_validate>`, :cpp:func:`effective_auto_validate <gui_forms::ContainerControl::effective_auto_validate>`; events :cpp:func:`auto_validate_changed <gui_forms::ContainerControl::auto_validate_changed>`; methods :cpp:func:`clear_active_control <gui_forms::ContainerControl::clear_active_control>`, :cpp:func:`contains_descendant <gui_forms::ContainerControl::contains_descendant>`, :cpp:func:`request_active_control <gui_forms::ContainerControl::request_active_control>`, :cpp:func:`validate <gui_forms::ContainerControl::validate>`, :cpp:func:`validate_children <gui_forms::ContainerControl::validate_children>`.
+      From :cpp:class:`ContainerControl <gui_forms::ContainerControl>`: properties :cpp:member:`auto_validate <gui_forms::ContainerControl::auto_validate>`, :cpp:func:`active_control <gui_forms::ContainerControl::active_control>`, :cpp:func:`effective_auto_validate <gui_forms::ContainerControl::effective_auto_validate>`; events :cpp:func:`auto_validate_changed <gui_forms::ContainerControl::auto_validate_changed>`; methods :cpp:func:`clear_active_control <gui_forms::ContainerControl::clear_active_control>`, :cpp:func:`contains_descendant <gui_forms::ContainerControl::contains_descendant>`, :cpp:func:`request_active_control <gui_forms::ContainerControl::request_active_control>`, :cpp:func:`validate <gui_forms::ContainerControl::validate>`, :cpp:func:`validate_children <gui_forms::ContainerControl::validate_children>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`parts <gui_forms::ScrollableControl::parts>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`parts <gui_forms::ScrollableControl::parts>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -93,6 +93,8 @@ gui_forms::FlowLayoutPanelCompat
         -  
       * - :cpp:func:`flex_grow <gui_forms::FlowLayoutPanelCompat::flex_grow>`
         - The grow value of ``child``, or 0 for a control that is not a direct child.
+      * - :cpp:func:`flow_layout_panel_compat_property_entries <gui_forms::FlowLayoutPanelCompat::flow_layout_panel_compat_property_entries>`
+        -  
       * - :cpp:func:`set_flex_grow <gui_forms::FlowLayoutPanelCompat::set_flex_grow>`
         - Gives ``child`` a share of the free space on its line, in proportion to its grow value among the line's children.
 
@@ -139,7 +141,7 @@ gui_forms::FlowLayoutPanelCompat
 
       std::shared_ptr<gf::FlowLayoutPanelCompat> tools =
           gf::make_control<gf::FlowLayoutPanelCompat>(gf::StableId("tools"));
-      (*tools).set_item_spacing({7.0, 9.0});
+      (*tools).item_spacing = {7.0, 9.0};
       std::shared_ptr<gf::Button> cut =
           gf::make_control<gf::Button>(gf::StableId("tools.cut"), "Cut");
       std::shared_ptr<gf::Button> copy =
@@ -166,7 +168,7 @@ gui_forms::FlowLayoutPanelCompat
 
       std::shared_ptr<gf::FlowLayoutPanelCompat> row =
           gf::make_control<gf::FlowLayoutPanelCompat>(gf::StableId("row"));
-      (*row).set_wrap_contents(false);
+      (*row).wrap_contents = false;
       std::shared_ptr<gf::Button> fixed =
           gf::make_control<gf::Button>(gf::StableId("row.fixed"), "Fixed");
       std::shared_ptr<gf::Button> narrow =
@@ -207,58 +209,38 @@ gui_forms::FlowLayoutPanelCompat
       is refused with ``std::invalid_argument``; the value is dropped when the
       child leaves.
 
-   .. cpp:function:: FlowDirection flow_direction() const noexcept
+   .. cpp:member:: FlowDirection flow_direction
 
       The main axis and the end it starts from. :cpp:enumerator:`FlowDirection::right_to_left <gui_forms::FlowDirection::right_to_left>`
       and :cpp:enumerator:`FlowDirection::bottom_up <gui_forms::FlowDirection::bottom_up>` mirror the placement of each line without
       reordering the children.
 
-   .. cpp:function:: void set_flow_direction(FlowDirection direction)
-
-      Sets :cpp:func:`flow_direction <gui_forms::FlowLayoutPanelCompat::flow_direction>`; see the property's description above.
-
-   .. cpp:function:: bool wrap_contents() const noexcept
+   .. cpp:member:: bool wrap_contents
 
       Whether a child that would cross the end of the line starts a new line.
       When false, only flow breaks start new lines, and a line may extend past
       the panel.
 
-   .. cpp:function:: void set_wrap_contents(bool wrap)
-
-      Sets :cpp:func:`wrap_contents <gui_forms::FlowLayoutPanelCompat::wrap_contents>`; see the property's description above.
-
-   .. cpp:function:: Size item_spacing() const noexcept
+   .. cpp:member:: Size item_spacing
 
       Extra space added between neighbouring items and between lines, on top of
       the children's own margins. For a horizontal flow, ``width`` separates
       items and ``height`` separates lines; for a vertical flow the roles swap.
       Each value must be finite and between 0 and 256.
 
-   .. cpp:function:: void set_item_spacing(Size spacing)
-
-      Sets :cpp:func:`item_spacing <gui_forms::FlowLayoutPanelCompat::item_spacing>`; see the property's description above.
-
-   .. cpp:function:: FlowMainAlignment main_alignment() const noexcept
+   .. cpp:member:: FlowMainAlignment main_alignment
 
       How each line distributes its free space along the main axis: at the
       start, centered, at the end, or spread between, around or evenly among
       the items. A line that holds a child with a nonzero :cpp:func:`flex_grow <gui_forms::FlowLayoutPanelCompat::flex_grow>` has no
       free space left to distribute, so alignment does not move it.
 
-   .. cpp:function:: void set_main_alignment(FlowMainAlignment alignment)
-
-      Sets :cpp:func:`main_alignment <gui_forms::FlowLayoutPanelCompat::main_alignment>`; see the property's description above.
-
-   .. cpp:function:: FlowCrossAlignment cross_alignment() const noexcept
+   .. cpp:member:: FlowCrossAlignment cross_alignment
 
       How each child sits across the line: at the start, centered, at the end,
       or stretched to the line's thickness minus its margins. A line is as
       thick as its thickest child; when the panel holds a single line, the line
       fills the panel's client area inside its padding.
-
-   .. cpp:function:: void set_cross_alignment(FlowCrossAlignment alignment)
-
-      Sets :cpp:func:`cross_alignment <gui_forms::FlowLayoutPanelCompat::cross_alignment>`; see the property's description above.
 
 
    .. rubric:: Methods
@@ -268,6 +250,8 @@ gui_forms::FlowLayoutPanelCompat
    .. cpp:function:: double flex_grow(const Control& child) const
 
       The grow value of ``child``, or 0 for a control that is not a direct child.
+
+   .. cpp:function:: static const std::array<PropertyEntry, flow_layout_panel_compat_property_count>& flow_layout_panel_compat_property_entries() noexcept
 
    .. cpp:function:: void set_flex_grow(const Control& child, double grow)
 
@@ -293,6 +277,12 @@ gui_forms::FlowLayoutPanelCompat
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
    .. cpp:member:: constexpr std::size_t flow_child_property_count
 
       The child properties it provides: flow_break. Default: ``1U``.
+
+   .. cpp:member:: constexpr std::size_t flow_layout_panel_compat_property_count
+
+      FlowLayoutPanelCompat's property table: Control's entries, then its own. Default: ``Control::control_property_count + 5U``.

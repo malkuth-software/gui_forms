@@ -1,0 +1,320 @@
+{
+  "family": "Label",
+  "step": "M-S2",
+  "declaring": "Label",
+  "header": "include/gui_forms/controls/label/label.hpp",
+  "source": "src/controls/label/label.cpp",
+  "capabilities_header": "include/gui_forms/controls/label/label_capabilities/label_capabilities.hpp",
+  "base": "Control",
+  "shared": [
+    "TextCapability"
+  ],
+  "includes": [
+    "gui_forms/types.hpp",
+    "gui_forms/controls/label/label_values/label_values.hpp"
+  ],
+  "overrides": [
+    "{\"fore_color\", &describe_label_fore_color,\n         &read_member_entry<Label, decltype(&Label::fore_color_property_value), &Label::fore_color_property_value>,\n         &write_member_entry<Label, decltype(&Label::write_fore_color_property), &Label::write_fore_color_property>,\n         &reset_member_entry<Label, decltype(&Label::reset_fore_color_property), &Label::reset_fore_color_property>,\n         &should_serialize_member_entry<Label, decltype(&Label::fore_color_serialized), &Label::fore_color_serialized>,\n         &origin_member_entry<Label, decltype(&Label::fore_color_property_origin), &Label::fore_color_property_origin>,\n         nullptr}"
+  ],
+  "properties": [
+    {
+      "name": "text",
+      "capability": "Text",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The label's text (Text); an ampersand marks the access key while use_mnemonic is on. A change raises text_changed.",
+      "getter": "text",
+      "setter": "set_text",
+      "clear": null,
+      "field": "text_",
+      "event": "text_changed_",
+      "on_changed": true,
+      "localizable": "text",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "Text displayed by the label.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "invalidation::text_content",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written: measure and arrange only when the label sizes to its content (auto_size or no requested size), then on_text_changed"
+      ],
+      "sample": "std::string{\"Name\"}"
+    },
+    {
+      "name": "font",
+      "capability": "LabelFont",
+      "value": "std::optional<FontSpec>",
+      "initial": null,
+      "comment": "The label's own font; empty takes the theme typography of text_style_role (resolved_font). Must be a valid font specification (std::invalid_argument).",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": "clear_font",
+      "field": "font_override_",
+      "event": null,
+      "on_changed": true,
+      "localizable": null,
+      "table": {
+        "kind": "font",
+        "category": "Appearance",
+        "description": "Effective font; reset resumes inherited theme typography.",
+        "default": null,
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "thunks": {
+        "read": "font_property_value",
+        "reset": "reset_font",
+        "should_serialize": "font_serialized",
+        "origin": "font_property_origin"
+      },
+      "hand": [
+        "prepare validates a present font and records set_font_from_code; the table reads the resolved font"
+      ],
+      "sample": "FontSpec{FontRole::content, 14.0, 400, false}"
+    },
+    {
+      "name": "alignment",
+      "capability": "LabelAlignment",
+      "value": "HorizontalAlignment",
+      "initial": "HorizontalAlignment::near",
+      "comment": "Horizontal placement of the text: near, center or far.",
+      "getter": "alignment",
+      "setter": "set_alignment",
+      "clear": null,
+      "field": "alignment_",
+      "event": null,
+      "on_changed": true,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "Horizontal placement of the text: near, center or far.",
+        "default": "BindingValue{PropertyEnumValue{\"horizontal_alignment\", \"near\", 0}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "horizontal_alignment_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(HorizontalAlignment::far)) throw std::invalid_argument(\"Label horizontal alignment is invalid\");"
+      ],
+      "sample": "HorizontalAlignment::center"
+    },
+    {
+      "name": "vertical_alignment",
+      "capability": "LabelVerticalAlignment",
+      "value": "VerticalAlignment",
+      "initial": "VerticalAlignment::center",
+      "comment": "Vertical placement of the text: near, center or far.",
+      "getter": "vertical_alignment",
+      "setter": "set_vertical_alignment",
+      "clear": null,
+      "field": "vertical_alignment_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "Vertical placement of the text: near, center or far.",
+        "default": "BindingValue{PropertyEnumValue{\"vertical_alignment\", \"center\", 1}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "vertical_alignment_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(VerticalAlignment::far)) throw std::invalid_argument(\"Label vertical alignment is invalid\");"
+      ],
+      "sample": "VerticalAlignment::far"
+    },
+    {
+      "name": "text_wrapping",
+      "capability": "LabelTextWrapping",
+      "value": "TextWrapping",
+      "initial": "TextWrapping::no_wrap",
+      "comment": "Whether the text wraps at word boundaries: no_wrap or word.",
+      "getter": "text_wrapping",
+      "setter": "set_text_wrapping",
+      "clear": null,
+      "field": "text_wrapping_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Layout",
+        "description": "Whether the text wraps at word boundaries: no_wrap or word.",
+        "default": "BindingValue{PropertyEnumValue{\"text_wrapping\", \"no_wrap\", 0}}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "text_wrapping_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(TextWrapping::word)) throw std::invalid_argument(\"Label text wrapping mode is invalid\");"
+      ],
+      "sample": "TextWrapping::word"
+    },
+    {
+      "name": "maximum_lines",
+      "capability": "LabelMaximumLines",
+      "value": "std::uint32_t",
+      "initial": "0U",
+      "comment": "The most lines measured and painted; zero keeps every line. Semantics keep the complete text. At most 4096 (std::out_of_range).",
+      "getter": "maximum_lines",
+      "setter": "set_maximum_lines",
+      "clear": null,
+      "field": "maximum_lines_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "unsigned_integer",
+        "category": "Layout",
+        "description": "Maximum painted and measured line count; zero keeps every line.",
+        "default": "BindingValue{std::uint64_t{0}}",
+        "effects": "Dirty::measure | Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "if (incoming > 4096U) throw std::out_of_range(\"Label maximum lines must be zero or at most 4096\");"
+      ],
+      "sample": "std::uint32_t{3U}"
+    },
+    {
+      "name": "text_style_role",
+      "capability": "LabelTextStyleRole",
+      "value": "TextStyleRole",
+      "initial": "TextStyleRole::body",
+      "comment": "The theme typography role the label takes while it has no font of its own: body, control, caption, heading, title or monospace.",
+      "getter": "text_style_role",
+      "setter": "set_text_style_role",
+      "clear": null,
+      "field": "text_style_role_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+      "hand": [
+        "prepare validates the role; written measures and paints only while the label has no font of its own (semantics always)"
+      ],
+      "sample": "TextStyleRole::heading"
+    },
+    {
+      "name": "line_spacing",
+      "capability": "LabelLineSpacing",
+      "value": "double",
+      "initial": "1.25",
+      "comment": "The line height as a multiple of the font's; from 0.75 to 3.0 (std::invalid_argument).",
+      "getter": "line_spacing",
+      "setter": "set_line_spacing",
+      "clear": null,
+      "field": "line_spacing_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 0.75 || incoming > 3.0) throw std::invalid_argument(\"Label line spacing must be finite and between 0.75 and 3.0\");"
+      ],
+      "sample": "1.5"
+    },
+    {
+      "name": "text_case_transform",
+      "capability": "LabelTextCaseTransform",
+      "value": "TextCaseTransform",
+      "initial": "TextCaseTransform::none",
+      "comment": "How the shown text is cased: none, uppercase_ascii or lowercase_ascii; the text itself is unchanged.",
+      "getter": "text_case_transform",
+      "setter": "set_text_case_transform",
+      "clear": null,
+      "field": "text_case_transform_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(TextCaseTransform::lowercase_ascii)) throw std::invalid_argument(\"Label text case transform is invalid\");"
+      ],
+      "sample": "TextCaseTransform::uppercase_ascii"
+    },
+    {
+      "name": "use_mnemonic",
+      "capability": "LabelUseMnemonic",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether an ampersand in the text marks the access key (UseMnemonic).",
+      "getter": "use_mnemonic",
+      "setter": "set_use_mnemonic",
+      "clear": null,
+      "field": "use_mnemonic_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+      "sample": "false"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "foreground()",
+      "reason": "the resolved text colour: Control's fore_color when set, else the theme's"
+    },
+    {
+      "name": "resolved_font()",
+      "reason": "the resolved font: the label's own when set, else the theme typography of text_style_role"
+    }
+  ],
+  "test": {
+    "type": "Label",
+    "include": "gui_forms/controls/label/label.hpp"
+  }
+}

@@ -37,6 +37,22 @@ columns
     `minimum_width`; and only a combo box column may have `items`. Anything
     else throws `std::invalid_argument`. Replacing or removing columns ends
     any edit and clears the selection and current cell.
+rows
+    The unbound rows, edited in place. Read them with `rows.read()` or
+    `rows[i]`; write them with `rows = {...}` (every row, ending any edit
+    and clearing the selection), `rows.insert(i, row)`, `rows.append(row)`
+    or `rows.append(rows)`, `rows.erase(i, n)`, `rows.replace(i, row)` and
+    `rows.clear()`. An empty stable ID is replaced by a generated one
+    (``row.1``, ``row.2``, ...), and a replacement keeps the row's ID unless
+    it names another; a repeated ID, one that breaks the `StableId` segment
+    rule, invalid UTF-8 or more values than columns throws
+    `std::invalid_argument`, and a position past the unbound rows (the new
+    row included) `std::out_of_range`. Virtual and bound rows refuse every
+    edit with `std::logic_error`. The current cell and the selection stay
+    on their rows; an erased row leaves the selection, and when it held
+    the current cell, the row that takes its position, or the new last
+    row, becomes current. A refused edit changes nothing. An edit
+    repaints, at the next layout, only the rows shown that it reaches.
 row_source : default unbound
     Where the rows come from: `DataGridViewRowSource::unbound`,
     `virtual_rows` or `binding_source`.
@@ -45,10 +61,11 @@ row_count
     rows or cuts them from the end; virtual rows are counted by their order
     and bound rows by their source, so both refuse it with
     `std::logic_error`.
-data_source
-    The `BindingSource` whose records are the rows, or none.
-    `set_data_source` shows a source's records as rows, or returns to empty
-    unbound rows for none.
+data_source : default none
+    The `BindingSource` whose records are the rows, or none. Assigning a
+    source shows its records as rows; assigning none returns to empty
+    unbound rows. Every assignment resets the rows, even of the same
+    source.
 column_headers_visible : default ``true``
     Whether the column header row shows.
 row_headers_visible : default ``true``
@@ -247,22 +264,6 @@ set_column_sort_glyph
     Shows an ascending or descending sort glyph on a column header, or none.
 set_column_read_only
     Makes a column's cells read-only, ending an edit in that column.
-add_row
-    Appends an unbound row and returns its position. An empty stable ID is
-    replaced by a generated one (``row.1``, ``row.2``, ...); a repeated ID, one
-    that breaks the `StableId` segment rule, invalid UTF-8 or more values than
-    columns throws `std::invalid_argument`. Virtual and bound rows refuse it
-    with `std::logic_error`, as they do `insert_row`, `set_rows` and
-    `remove_row_at`.
-insert_row
-    Inserts an unbound row before a position. The current cell and the
-    selection stay on their rows.
-set_rows
-    Replaces the unbound rows, ending any edit and clearing the selection.
-remove_row_at
-    Removes an unbound row. A selected row leaves the selection; when it held
-    the current cell, the row that takes its position, or the new last row,
-    becomes current.
 clear_rows
     Removes every row of any source and returns to unbound rows.
 row_id
@@ -686,12 +687,12 @@ A grid of stations with a check box and a combo box column, sorted by name:
        {.name = "mode", .header_text = "Mode", .kind = gf::DataGridViewColumnKind::combo_box,
         .width = 90.0, .items = {"AM", "FM", "USB"}},
    });
-   (*grid).add_row({.stable_id = {"wqxr"}, .cells = {gf::BindingValue{std::string("WQXR")},
-                                                     gf::BindingValue{true},
-                                                     gf::BindingValue{std::string("FM")}}});
-   (*grid).add_row({.stable_id = {"bbc4"}, .cells = {gf::BindingValue{std::string("BBC Radio 4")},
-                                                     gf::BindingValue{false},
-                                                     gf::BindingValue{std::string("AM")}}});
+   (*grid).rows.append({.stable_id = {"wqxr"}, .cells = {gf::BindingValue{std::string("WQXR")},
+                                                          gf::BindingValue{true},
+                                                          gf::BindingValue{std::string("FM")}}});
+   (*grid).rows.append({.stable_id = {"bbc4"}, .cells = {gf::BindingValue{std::string("BBC Radio 4")},
+                                                          gf::BindingValue{false},
+                                                          gf::BindingValue{std::string("AM")}}});
    (*grid).sort(0U, gf::DataGridViewSortDirection::ascending);   // BBC Radio 4 first
    // row_position({"wqxr"}) is now position 1
 

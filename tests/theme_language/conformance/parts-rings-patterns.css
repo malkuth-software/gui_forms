@@ -1,0 +1,5 @@
+/* forms: property.keyline-rings property.pattern property.part-text-colours */
+button::part(face) { keylines: #ffffff #404040 #404040 #ffffff, #d4d0c8 #808080 #808080 #d4d0c8 }
+track-bar::part(track) { background: pattern(checker, #d4d0c8, #ffffff) }
+track-bar::part(thumb) { background-image: pattern(pinstripe, #ececf0, #d4d6de, 4px) }
+button::part(label) { color: #0046d5; muted-color: #0046d5; glyph-color: #4d6185 }

@@ -1,5 +1,6 @@
 #include "gui_forms/container_controls.hpp"
 #include "gui_forms/range_controls.hpp"
+#include "gui_forms/theme.hpp"
 #include "gui_forms/window.hpp"
 #include "support/named_callbacks.hpp"
 
@@ -78,7 +79,7 @@ public:
 
     void operator()() const {
         try {
-            progress_.set_value(50.0);
+            progress_.value = 50.0;
         } catch (const std::logic_error&) {
             rejected_ = true;
         }
@@ -120,7 +121,7 @@ void test_container_focus_identity() {
 void test_range_validation_and_event_order() {
     std::shared_ptr<gui_forms::TrackBar> slider = make_control<TrackBar>(StableId("range.slider"));
     (*slider).set_range(0.0, 100.0);
-    (*slider).set_value(50.0);
+    (*slider).value = 50.0;
     (*slider).set_requested_bounds({0.0, 0.0, 200.0, 28.0});
     Window window(slider, {200.0, 28.0});
     require(window.request_focus(slider), "range test slider must accept focus");
@@ -136,18 +137,18 @@ void test_range_validation_and_event_order() {
     KeyEvent right;
     right.action = KeyAction::down;
     right.physical_key = PhysicalKey::right;
-    require(window.dispatch_key(right) && (*slider).value() == 51.0 &&
+    require(window.dispatch_key(right) && (*slider).value.read() == 51.0 &&
                 order == "scroll\nvalue\n",
             "input range mutation must publish scroll before value_changed");
 
     order.clear();
-    (*slider).set_value(75.0);
+    (*slider).value = 75.0;
     require(order == "value\n",
             "programmatic range mutation must publish value without a scroll event");
 
     order.clear();
     (*slider).set_range(80.0, 120.0);
-    require((*slider).value() == 80.0 && order == "range\nvalue\n",
+    require((*slider).value.read() == 80.0 && order == "range\nvalue\n",
             "range boundary mutation must publish range then a clamped value");
 
     bool invalid_range = false;
@@ -159,12 +160,12 @@ void test_range_validation_and_event_order() {
         invalid_range = true;
     }
     try {
-        (*slider).set_value(200.0);
+        (*slider).value = 200.0;
     } catch (const std::out_of_range&) {
         invalid_value = true;
     }
     try {
-        (*slider).set_small_change(0.0);
+        (*slider).small_change = 0.0;
     } catch (const std::invalid_argument&) {
         invalid_change = true;
     }
@@ -175,7 +176,7 @@ void test_range_validation_and_event_order() {
 void test_pointer_capture_keyboard_and_disabled_state() {
     std::shared_ptr<gui_forms::TrackBar> slider = make_control<TrackBar>(StableId("capture.slider"));
     (*slider).set_requested_bounds({10.0, 10.0, 200.0, 28.0});
-    (*slider).set_value(25.0);
+    (*slider).value = 25.0;
     Window window(slider, {240.0, 60.0});
 
     PointerEvent down;
@@ -189,7 +190,7 @@ void test_pointer_capture_keyboard_and_disabled_state() {
     move.action = PointerAction::move;
     move.position = {500.0, 24.0};
     move.pointer_id = 7;
-    require(window.dispatch_pointer(move) && (*slider).value() == 100.0,
+    require(window.dispatch_pointer(move) && (*slider).value.read() == 100.0,
             "captured track drag must clamp outside movement to maximum");
     PointerEvent up = move;
     up.action = PointerAction::up;
@@ -200,16 +201,16 @@ void test_pointer_capture_keyboard_and_disabled_state() {
     KeyEvent home;
     home.action = KeyAction::down;
     home.physical_key = PhysicalKey::home;
-    require(window.dispatch_key(home) && (*slider).value() == 0.0,
+    require(window.dispatch_key(home) && (*slider).value.read() == 0.0,
             "Home must select the first range boundary");
     KeyEvent page_up = home;
     page_up.physical_key = PhysicalKey::page_up;
-    require(window.dispatch_key(page_up) && (*slider).value() == 10.0,
+    require(window.dispatch_key(page_up) && (*slider).value.read() == 10.0,
             "Page Up must apply the declared large change");
 
     (*slider).enabled = false;
-    const double disabled_value = (*slider).value();
-    require(!window.dispatch_key(page_up) && (*slider).value() == disabled_value,
+    const double disabled_value = (*slider).value.read();
+    require(!window.dispatch_key(page_up) && (*slider).value.read() == disabled_value,
             "disabled range controls must reject keyboard mutation");
 }
 
@@ -218,15 +219,15 @@ void test_progress_rendering_and_vertical_geometry() {
     (*panel).set_requested_bounds({0.0, 0.0, 240.0, 180.0});
     std::shared_ptr<gui_forms::ProgressBar> horizontal = make_control<ProgressBar>(StableId("range.progress.horizontal"));
     (*horizontal).set_requested_bounds({10.0, 10.0, 200.0, 20.0});
-    (*horizontal).set_value(50.0);
+    (*horizontal).value = 50.0;
     std::shared_ptr<gui_forms::ProgressBar> vertical = make_control<ProgressBar>(StableId("range.progress.vertical"));
-    (*vertical).set_orientation(Orientation::vertical);
+    (*vertical).orientation = Orientation::vertical;
     (*vertical).set_requested_bounds({10.0, 40.0, 20.0, 120.0});
-    (*vertical).set_value(75.0);
+    (*vertical).value = 75.0;
     std::shared_ptr<gui_forms::TrackBar> track = make_control<TrackBar>(StableId("range.track.vertical"));
-    (*track).set_orientation(Orientation::vertical);
+    (*track).orientation = Orientation::vertical;
     (*track).set_requested_bounds({50.0, 40.0, 28.0, 120.0});
-    (*track).set_value(75.0);
+    (*track).value = 75.0;
     (*panel).add_child(horizontal);
     (*panel).add_child(vertical);
     (*panel).add_child(track);
@@ -251,13 +252,13 @@ void test_scrollbar_geometry_capture_repeat_and_orientation() {
     (*horizontal).accessible_name = "Horizontal viewport";
     (*horizontal).set_requested_bounds({10.0, 10.0, 240.0, 18.0});
     (*horizontal).set_range(0.0, 100.0);
-    (*horizontal).set_small_change(2.0);
-    (*horizontal).set_large_change(20.0);
-    (*horizontal).set_value(50.0);
+    (*horizontal).small_change = 2.0;
+    (*horizontal).large_change = 20.0;
+    (*horizontal).value = 50.0;
     std::shared_ptr<gui_forms::VScrollBar> vertical = make_control<VScrollBar>(StableId("scroll.vertical"));
     (*vertical).set_requested_bounds({260.0, 10.0, 18.0, 180.0});
     (*vertical).set_range(0.0, 200.0);
-    (*vertical).set_value(40.0);
+    (*vertical).value = 40.0;
     (*root).add_child(horizontal);
     (*root).add_child(vertical);
     Window window(root, {300.0, 210.0});
@@ -279,13 +280,13 @@ void test_scrollbar_geometry_capture_repeat_and_orientation() {
                           absolute.y + decrement.y + decrement.height * 0.5};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary,
                                      decrement_point}) &&
-                (*horizontal).value() == 48.0 &&
+                (*horizontal).value.read() == 48.0 &&
                 window.captured_control() == horizontal &&
                 window.next_wake().has_value(),
             "scrollbar arrow press must step, capture, and schedule bounded repeat");
     const FrameTime repeat_deadline = *window.next_wake();
     static_cast<void>(window.poll_frame_schedule(repeat_deadline));
-    require((*horizontal).value() == 46.0 && actions.size() == 2U &&
+    require((*horizontal).value.read() == 46.0 && actions.size() == 2U &&
                 actions[0] == RangeAction::small_decrement &&
                 actions[1] == RangeAction::small_decrement,
             "scrollbar hold deadline must repeat the declared small action");
@@ -300,7 +301,7 @@ void test_scrollbar_geometry_capture_repeat_and_orientation() {
     Point page_point{absolute.x + page_x, absolute.y + track.height * 0.5};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary,
                                      page_point}) &&
-                (*horizontal).value() == 66.0,
+                (*horizontal).value.read() == 66.0,
             "scrollbar track press must apply the declared large increment");
     require(window.dispatch_pointer({PointerAction::up, PointerButton::primary,
                                      page_point}),
@@ -315,7 +316,7 @@ void test_scrollbar_geometry_capture_repeat_and_orientation() {
                                      drag_start}) &&
                 window.dispatch_pointer({PointerAction::move, PointerButton::none,
                                          drag_end}) &&
-                (*horizontal).value() > 95.0 &&
+                (*horizontal).value.read() > 95.0 &&
                 actions.back() == RangeAction::thumb_track &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary,
                                          drag_end}),
@@ -328,7 +329,7 @@ void test_scrollbar_geometry_capture_repeat_and_orientation() {
         vertical_absolute.y + vertical_increment.y + vertical_increment.height * 0.5};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary,
                                      vertical_increment_point}) &&
-                (*vertical).value() == 41.0 &&
+                (*vertical).value.read() == 41.0 &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary,
                                          vertical_increment_point}),
             "vertical scrollbar lower arrow must increment the same retained model");
@@ -358,11 +359,39 @@ void test_disposal_and_ui_thread_guard() {
     bool rejected = false;
     std::thread worker(SetProgressOffThread(*progress, rejected));
     worker.join();
-    require(rejected && (*progress).value() == 0.0,
+    require(rejected && (*progress).value.read() == 0.0,
             "range properties must preserve the core UI-thread guard");
 }
 
 } // namespace
+
+// A theme without scroll arrows (ThemeGeometryTokens::scroll_arrows, as
+// macos-style): the buttons are empty, the track takes the whole bar, a
+// press at the bar's end pages instead of stepping; the macos-style theme
+// says so.
+void test_scrollbar_without_arrows() {
+    require(!(*familiar_theme(FamiliarTheme::macos_style)).structure().geometry.scroll_arrows &&
+                (*familiar_theme(FamiliarTheme::classic)).structure().geometry.scroll_arrows,
+            "macos-style draws no scroll arrows, classic does");
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("arrowless.root"));
+    std::shared_ptr<gui_forms::HScrollBar> horizontal = make_control<HScrollBar>(StableId("arrowless.horizontal"));
+    (*horizontal).set_requested_bounds({10.0, 10.0, 240.0, 18.0});
+    (*horizontal).set_range(0.0, 100.0);
+    (*horizontal).large_change = 20.0;
+    (*root).add_child(horizontal);
+    Window window(root, {300.0, 60.0});
+    ThemeDefinition arrowless = gui_forms_theme_definition();
+    arrowless.structure.geometry.scroll_arrows = false;
+    window.set_theme(Theme::create(arrowless));
+    window.perform_layout();
+    const double bar_width = 240.0;
+    require((*horizontal).decrement_button_bounds().width == 0.0 &&
+                (*horizontal).increment_button_bounds().width == 0.0 &&
+                (*horizontal).track_bounds().x == 0.0 && (*horizontal).track_bounds().width == bar_width,
+            "without scroll arrows the track takes the whole bar");
+    require((*horizontal).part_at({1.0, 9.0}) != ScrollBarPart::decrement_button,
+            "without scroll arrows the bar's end is no arrow");
+}
 
 int main() {
     try {
@@ -371,6 +400,7 @@ int main() {
         test_pointer_capture_keyboard_and_disabled_state();
         test_progress_rendering_and_vertical_geometry();
         test_scrollbar_geometry_capture_repeat_and_orientation();
+        test_scrollbar_without_arrows();
         test_disposal_and_ui_thread_guard();
         std::cout << "gui_forms_range_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;

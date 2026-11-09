@@ -36,7 +36,7 @@ inline constexpr std::string_view body_id_prefix = "gallery.body.";
 
 // Form-document pages first (their content is declared in gallery.form), then the
 // pages migrated from the retired Complete Showcase in their former order.
-inline constexpr std::array<GalleryPageSpec, 31> gallery_pages {{
+inline constexpr std::array<GalleryPageSpec, 36> gallery_pages {{
     {"basics", "Basic controls",
      "Form-document group of public TextBox, Button, CheckBox, RadioButton, LinkLabel and Label instances plus a composed UserControl lifecycle card.",
      false, "Information display"},
@@ -131,6 +131,21 @@ inline constexpr std::array<GalleryPageSpec, 31> gallery_pages {{
     {"semantic-feedback", "Semantic feedback",
      "SemanticFeedback announcements and sound cues through the host.",
      false, "Components"},
+    {"notices-and-badges", "Notices and badges",
+     "InfoBanner severities, Badge counts and dots, and EmptyState.",
+     false, "Information display"},
+    {"input-and-rules", "Input and rules",
+     "The WinForms mouse events and context requests, logged live, a context menu with a submenu, and window rules.",
+     false, "Components"},
+    {"theme-settings", "Theme settings",
+     "The running Gallery's theme, colour scheme and high contrast, for every window, this window or one preview.",
+     false, "Components"},
+    {"spinners-and-rings", "Spinners and rings",
+     "Spinner at three sizes and ProgressRing determinate and indeterminate, on the motion clock and still under reduced motion.",
+     false, "Information display"},
+    {"controls-inspection", "Controls inspection",
+     "Every stock control at rest in a fixed labelled grid of states, drawn by the window's theme alone.",
+     true, "Diagnostics"},
 }};
 
 [[nodiscard]] constexpr const GalleryPageSpec* find_gallery_page(std::string_view id) noexcept

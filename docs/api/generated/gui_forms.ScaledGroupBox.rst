@@ -7,7 +7,7 @@ gui_forms::ScaledGroupBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ScaledGroupBox final : public GroupBox
+.. cpp:class:: ScaledGroupBox final : public GroupBox, public ScaledGroupBoxCapabilities<ScaledGroupBox>
 
    ``#include <gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp>``
 
@@ -29,10 +29,10 @@ gui_forms::ScaledGroupBox
       **stable_id** : ``StableId``
          Identity of the group box, unique within its window.
 
-      **text** : ``std::string``, default ``{}``
+      **initial_text** : ``std::string``, default ``{}``
          The caption, with ``&`` marking the mnemonic as in :cpp:class:`GroupBox <gui_forms::GroupBox>`.
 
-      **design_size** : ``Size``, default ``{1.0, 1.0}``
+      **initial_design_size** : ``Size``, default ``{1.0, 1.0}``
          The width and height of the design space. Both must be finite and
          positive, or the constructor throws ``std::invalid_argument``. The default
          unit square lets you give design bounds as fractions of the box.
@@ -46,11 +46,11 @@ gui_forms::ScaledGroupBox
 
    :Inherited:
 
-      From :cpp:class:`GroupBox <gui_forms::GroupBox>`: properties :cpp:func:`text <gui_forms::GroupBox::text>`, :cpp:func:`font <gui_forms::GroupBox::font>`, :cpp:func:`use_mnemonic <gui_forms::GroupBox::use_mnemonic>`, :cpp:func:`parts <gui_forms::GroupBox::parts>`.
+      From :cpp:class:`GroupBox <gui_forms::GroupBox>`: properties :cpp:member:`text <gui_forms::GroupBox::text>`, :cpp:member:`font <gui_forms::GroupBox::font>`, :cpp:member:`use_mnemonic <gui_forms::GroupBox::use_mnemonic>`, :cpp:func:`parts <gui_forms::GroupBox::parts>`; events :cpp:func:`text_changed <gui_forms::GroupBox::text_changed>`; methods :cpp:func:`group_box_property_entries <gui_forms::GroupBox::group_box_property_entries>`.
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -64,6 +64,8 @@ gui_forms::ScaledGroupBox
         - ``add_at(child, design_bounds)`` adds a child and gives it a slot in design coordinates.
       * - :cpp:func:`design_bounds <gui_forms::ScaledGroupBox::design_bounds>`
         - The child's slot in design coordinates, or empty if it has none.
+      * - :cpp:func:`scaled_group_box_property_entries <gui_forms::ScaledGroupBox::scaled_group_box_property_entries>`
+        -  
       * - :cpp:func:`set_design_bounds <gui_forms::ScaledGroupBox::set_design_bounds>`
         - Moves an existing child to a new slot.
 
@@ -113,20 +115,16 @@ gui_forms::ScaledGroupBox
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit ScaledGroupBox(StableId stable_id, std::string text = {}, Size design_size = {1.0, 1.0})
+   .. cpp:function:: explicit ScaledGroupBox(StableId stable_id, std::string initial_text = {}, Size initial_design_size = {1.0, 1.0})
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: Size design_size() const noexcept
+   .. cpp:member:: Size design_size
 
       The size of the design space that child slots are given in. Setting it
       relays out every child; a size that is not finite and positive throws
       ``std::invalid_argument``.
-
-   .. cpp:function:: void set_design_size(Size size)
-
-      Sets :cpp:func:`design_size <gui_forms::ScaledGroupBox::design_size>`; see the property's description above.
 
 
    .. rubric:: Methods
@@ -141,6 +139,8 @@ gui_forms::ScaledGroupBox
    .. cpp:function:: std::optional<Rect> design_bounds(const Control& child) const
 
       The child's slot in design coordinates, or empty if it has none.
+
+   .. cpp:function:: static const std::array<PropertyEntry, scaled_group_box_property_count>& scaled_group_box_property_entries() noexcept
 
    .. cpp:function:: void set_design_bounds(const Control& child, Rect design_bounds)
 
@@ -157,3 +157,9 @@ gui_forms::ScaledGroupBox
       child.
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t scaled_group_box_property_count
+
+      ScaledGroupBox's property table: GroupBox's entries, then its own. Default: ``GroupBox::group_box_property_count + 1U``.

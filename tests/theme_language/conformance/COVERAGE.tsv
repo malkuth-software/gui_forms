@@ -60,6 +60,7 @@ diagnostic.E411	diagnostic-E411
 diagnostic.E413	diagnostic-E413
 diagnostic.E415	diagnostic-E415
 diagnostic.E416	diagnostic-E416
+diagnostic.E417	diagnostic-E417
 diagnostic.E701	diagnostic-E701
 diagnostic.E999	diagnostic-E999
 diagnostic.W101	diagnostic-W101
@@ -70,6 +71,7 @@ diagnostic.W105	diagnostic-W105
 diagnostic.W106	diagnostic-W106
 diagnostic.W107	diagnostic-W107
 diagnostic.W110	diagnostic-W110
+diagnostic.W111	diagnostic-W111
 diagnostic.W201	diagnostic-W201
 diagnostic.W301	newer-engine
 diagnostic.W302	newer-engine
@@ -148,6 +150,7 @@ property.box-shadow-inset	shadows-opacity-filters
 property.clip-path	not-admitted
 property.color	transforms-text
 property.conic-gradient	fills
+property.default-outline	recipe-colours
 property.effect	effects
 property.effect-colours	effects
 property.effect-none	effects
@@ -161,15 +164,21 @@ property.font-style	fonts
 property.font-weight	fonts
 property.glow	finish-light-images-masks
 property.glow-placement	finish-light-images-masks
+property.glyph-color	recipe-colours
 property.isolation	shadows-opacity-filters
+property.keyline-rings	parts-rings-patterns
+property.keylines	recipe-colours
 property.layout	not-admitted
 property.letter-spacing	fonts
 property.linear-gradient	fills
 property.mask-image	finish-light-images-masks
 property.mix-blend-mode	shadows-opacity-filters
+property.muted-color	recipe-colours
 property.opacity	shadows-opacity-filters
 property.outline	borders
 property.outline-offset	borders
+property.part-text-colours	parts-rings-patterns
+property.pattern	parts-rings-patterns
 property.primitive	transforms-text
 property.procedural	fills
 property.radial-gradient	fills
@@ -186,10 +195,15 @@ property.transform	not-admitted
 property.translate	transforms-text
 selector.any	selectors-basic
 selector.any-implied	selectors-basic
+selector.child	selectors-functional
 selector.class	selectors-basic
 selector.custom-state	selectors-states
+selector.descendant	selectors-functional
+selector.family	selectors-functional
 selector.is	selectors-basic
 selector.list	selectors-basic
+selector.not	selectors-functional
+selector.not-family	selectors-functional
 selector.part	selectors-basic
 selector.part-state	selectors-states
 selector.role	selectors-basic
@@ -211,6 +225,7 @@ selector.surface	backdrop
 selector.surface-alone	surface-alone
 selector.type	selectors-basic
 selector.type-kebab	selectors-basic
+selector.where	selectors-functional
 source.bom	source-and-tokens
 source.cr	source-and-tokens
 source.crlf	source-and-tokens
@@ -273,7 +288,6 @@ code-elsewhere E804	form_model_tests (form documents only)
 code-elsewhere E805	form_model_tests (form documents only)
 code-elsewhere E806	form_model_tests (form documents only)
 code-elsewhere E807	form_model_tests (form documents only)
-code-elsewhere E808	form_model_tests (form documents only)
 code-elsewhere E809	form_model_tests (form documents only)
 code-elsewhere E810	form_model_tests (form documents only)
 code-elsewhere E811	form_loader_tests (form documents only)
@@ -281,3 +295,7 @@ code-elsewhere E812	form_generator_tests (form documents only)
 code-elsewhere E813	form_model_tests (form documents only)
 code-elsewhere E814	form_model_tests (form documents only)
 code-elsewhere E815	form_model_tests (form documents only)
+code-elsewhere E816	form_model_tests (form documents only)
+code-elsewhere E817	form_model_tests (form documents only)
+code-elsewhere E818	form_model_tests (form documents only)
+code-elsewhere E819	form_loader_tests (form documents only)

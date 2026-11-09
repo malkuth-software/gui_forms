@@ -32,8 +32,8 @@ void test_dates_and_calendar(gui_forms::Window& window) {
                 (*custom).formatted_value() == "2026-08-05 · 14:07" &&
                 (*provider).formatted_value() == "mercredi 5 août 2026",
             "date board must visibly distinguish all format and provider paths");
-    require((*optional).show_check_box() && !(*optional).checked() &&
-                (*spinner).show_up_down() && !(*disabled).enabled.read(),
+    require((*optional).show_check_box.read() && !(*optional).checked.read() &&
+                (*spinner).show_up_down.read() && !(*disabled).enabled.read(),
             "date board must retain nullable, spinner, and disabled states");
 
     const Rect optional_bounds = (*optional).absolute_bounds();
@@ -42,23 +42,23 @@ void test_dates_and_calendar(gui_forms::Window& window) {
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary,
                                      optional_check}) &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary,
-                                         optional_check}) && (*optional).checked(),
+                                         optional_check}) && (*optional).checked.read(),
             "optional date checkbox must toggle through its public hit region");
     require(window.perform_semantic_action(
                 "gallery.date.optional", SemanticAction::press) &&
-                !(*optional).checked() &&
+                !(*optional).checked.read() &&
                 window.perform_semantic_action(
                     "gallery.date.optional", SemanticAction::set_value,
-                    "2026-08-09") && (*optional).checked() &&
-                (*optional).value().day == 9U,
+                    "2026-08-09") && (*optional).checked.read() &&
+                (*optional).value.read().day == 9U,
             "optional date semantics must toggle and activate a supplied value");
     require(window.request_focus(spinner) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::up}) &&
-                (*spinner).value().day == 6U,
+                (*spinner).value.read().day == 6U,
             "date spinner must step its civil value through keyboard input");
 
     click(window, window.find("gallery.date.commands.item.3"));
-    require((*primary).dropped_down() && window.focus_scope_depth() == 1U &&
+    require((*primary).dropped_down.read() && window.focus_scope_depth() == 1U &&
                 window.find("gallery.date.primary.overlay.calendar") &&
                 window.semantic_snapshot().to_json().find(
                     "gallery.date.primary.overlay.calendar.day.2026-08-12") !=
@@ -66,8 +66,8 @@ void test_dates_and_calendar(gui_forms::Window& window) {
             "date board must open one retained semantic calendar focus scope");
     require(window.perform_semantic_action(
                 "gallery.date.primary.overlay.calendar.day.2026-08-12",
-                SemanticAction::press) && (*primary).value().day == 12U &&
-                !(*primary).dropped_down() && window.focus_scope_depth() == 0U,
+                SemanticAction::press) && (*primary).value.read().day == 12U &&
+                !(*primary).dropped_down.read() && window.focus_scope_depth() == 0U,
             "semantic date-cell commit must share pointer commit and restore focus");
 
     click(window, window.find("gallery.date.commands.item.3"));
@@ -77,28 +77,28 @@ void test_dates_and_calendar(gui_forms::Window& window) {
             "the open-calendar Command must disable its button while the calendar is open");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::left}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
-                (*primary).value().day == 12U && !(*primary).dropped_down() &&
+                (*primary).value.read().day == 12U && !(*primary).dropped_down.read() &&
                 (*commands).item(2).enabled.read(),
             "calendar Escape must discard overlay-local navigation without mutation");
 
     // The previous/next Commands follow the bounded range; their buttons
     // project that enabled state and clicking one moves the date once.
-    (*primary).set_value({2026, 8U, 31U});
+    (*primary).value = DateTimeValue{2026, 8U, 31U};
     require(!(*commands).item(1).enabled.read() && (*commands).item(0).enabled.read(),
             "the next-day Command must disable at the range maximum");
     click(window, window.find("gallery.date.commands.item.1"));
-    require((*primary).value().day == 30U && (*commands).item(1).enabled.read() &&
+    require((*primary).value.read().day == 30U && (*commands).item(1).enabled.read() &&
                 (*std::dynamic_pointer_cast<Label>(window.find("gallery.date.status")))
-                        .text().find("Committed") != std::string::npos,
+                        .text.read().find("Committed") != std::string::npos,
             "the previous-day Command must move the bounded date and re-enable next day");
-    (*primary).set_value({2026, 8U, 1U});
+    (*primary).value = DateTimeValue{2026, 8U, 1U};
     require(!(*commands).item(0).enabled.read() && (*commands).item(1).enabled.read(),
             "the previous-day Command must disable at the range minimum");
-    (*primary).set_value({2026, 8U, 12U});
+    (*primary).value = DateTimeValue{2026, 8U, 12U};
 
     click(window, window.find("gallery.date.commands.item.3"));
     (*window.find("gallery.surface.dates-and-calendar")).visible = false;
-    require(!(*primary).dropped_down() && window.focus_scope_depth() == 0U &&
+    require(!(*primary).dropped_down.read() && window.focus_scope_depth() == 0U &&
                 !window.find("gallery.date.primary.overlay.calendar"),
             "hiding a page must revoke its open calendar and contained focus");
     (*window.find("gallery.surface.dates-and-calendar")).visible = true;
@@ -112,7 +112,7 @@ void test_dates_and_calendar(gui_forms::Window& window) {
             "the month calendar specimen shows August and September");
     require(window.perform_semantic_action("gallery.date.month.calendar.day.2026-09-07", SemanticAction::select) &&
                 (*month).selection_start() == DateTimeValue{2026, 9U, 7U} &&
-                (*month_status).text() == "Selected 9/7",
+                (*month_status).text.read() == "Selected 9/7",
             "selecting a day reports to the page");
 }
 

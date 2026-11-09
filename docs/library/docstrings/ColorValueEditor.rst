@@ -13,14 +13,14 @@ stable_id
     Identity of the control, unique within its window. Logs, automation and
     semantic actions address the control by this ID. The text box is created
     as ``<stable_id>.text``.
-value
-    The starting colour. The default, `Color` with no arguments, is opaque
-    black.
+initial_value
+    The starting colour, which becomes `value`. The default, `Color` with no
+    arguments, is opaque black.
 
 Properties
 ----------
 value
-    The current colour. `set_value` shows the new colour in the swatch and
+    The current colour. A write shows the new colour in the swatch and
     the text box and clears an invalid state left by a rejected edit; it
     does not raise `value_changed`.
 editor
@@ -34,7 +34,7 @@ Events
 ------
 value_changed
     Raised when the user commits text that names a different colour. It
-    carries the new colour. It is not raised by `set_value`.
+    carries the new colour. It is not raised by a write to `value`.
 edit_failed
     Raised when the user commits text that is not a colour. It carries a
     `PropertyEditorInputError` with the text as typed and the message
@@ -64,7 +64,7 @@ TextBox : A field for free text.
 Notes
 -----
 `value_changed` is raised only when the user commits an edit, never when
-`set_value` changes the value. An application that changes the colour
+Writing `value` changes it. An application that changes the colour
 itself already knows the new colour; observe `value_changed` to learn what
 the user chose.
 
@@ -97,12 +97,12 @@ with the canonical text. `parse_value` returns no value for text such as
        gf::make_control<gf::ColorValueEditor>(gf::StableId("lamp.tint"));
    std::optional<gf::Color> parsed =
        gf::ColorValueEditor::parse_value(" #2a6fb4 ");   // opaque 42, 111, 180
-   if (parsed) (*tint).set_value(*parsed);              // no event is raised
+   if (parsed) (*tint).value = *parsed;              // no event is raised
    std::shared_ptr<gf::Label> caption = gf::make_control<gf::Label>(
        gf::StableId("lamp.caption"),
-       gf::ColorValueEditor::format_value((*tint).value()));   // "#2A6FB4FF"
+       gf::ColorValueEditor::format_value((*tint).value.read()));   // "#2A6FB4FF"
 
-React to colours the user commits. `set_value` does not raise
+React to colours the user commits. A write to `value` does not raise
 `value_changed`, so the handler sees only the user's choices:
 
 .. code-block:: cpp
@@ -126,7 +126,7 @@ React to colours the user commits. `set_value` does not raise
 
    void example() {
        Lamp lamp;
-       (*lamp.tint).set_value(gf::Color::rgba(16, 32, 48));   // chosen is unchanged
+       (*lamp.tint).value = gf::Color::rgba(16, 32, 48);   // chosen is unchanged
        (*lamp.tint).set_requested_bounds({0.0, 0.0, 200.0, 28.0});
        gf::Window window(lamp.tint, {200.0, 28.0});
        window.perform_layout();

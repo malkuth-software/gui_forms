@@ -511,6 +511,11 @@ struct GateReady final {
 } // namespace
 
 int main() {
+    // The program's application (APP_WINDOW_RULES_DESIGN A.2): windows made
+    // from here join it, and it runs them.
+    ApplicationCreateResult created = Application::create(ApplicationConfig{});
+    if (!created) return 1;
+    Application& application = *created.application;
     if (!CGPreflightScreenCaptureAccess()) {
         std::fprintf(stderr,
                      "macos compositor tests: Screen Recording is not granted to the process that started them (over "
@@ -534,7 +539,7 @@ int main() {
     options.initial_size = gui_forms::Size{window_width, window_height};
     options.non_opaque = true;
     options.ready = GateReady{};
-    const ApplicationResult result = Application::run(std::move(model), std::move(options));
+    const ApplicationResult result = application.run(std::move(model), std::move(options));
     active_gate = nullptr;
     if (gate.backdrop != nil) [gate.backdrop close];
     std::fflush(stdout);

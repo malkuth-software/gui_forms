@@ -164,16 +164,19 @@ include(CMakePackageConfigHelpers)
 # The stx libraries (malkuth-software/stx at stx.lock's commit): stx_zlib,
 # stx_png, stx_conv with its SIMD level (stx_auxlib::simd), the rich-text
 # library stx_rtf2md (notes:planning/stages/RT-rich-text/PLAN.md) and, for
-# audio builds, stx_vorbis, installed into a prefix and found by find_package.
+# audio builds, stx_vorbis, installed into a prefix and found by find_package;
+# and the stx source, from which this build adds stx_skia and the third-party
+# sources (GUI_FORMS_STX_THIRD_PARTY_DIR; owner, 2026-11-05: this repository
+# carries no third-party sources).
 include(cmake/Stx.cmake)
-# stx_skia/ is the CPU Skia derivative the Skia adapters draw with, built from source as part
-# of this tree; its headers are system headers here, as the imported Skia's were. Without the
+# stx_skia (the stx source's stx_skia/) is the CPU Skia derivative the Skia adapters draw with,
+# built from source as part of this build, with its flags; its headers are system headers here. Without the
 # adapters only its red/blue swap kernel, stx_skia::swizzle, is built: it links no Skia code,
 # and the core, the controls and the hosts swap RGBA and BGRA rows with it.
 if(NOT GUI_FORMS_ENABLE_SKIA)
     set(STX_SKIA_SWIZZLE_ONLY ON)
 endif()
-add_subdirectory(stx_skia SYSTEM)
+add_subdirectory("${GUI_FORMS_STX_SOURCE_DIR}/stx_skia" "${CMAKE_CURRENT_BINARY_DIR}/stx_skia" SYSTEM)
 
 if(GUI_FORMS_ENABLE_MACOS_HOST AND NOT APPLE)
     message(FATAL_ERROR "GUI_FORMS_ENABLE_MACOS_HOST requires Apple AppKit")
@@ -230,11 +233,16 @@ add_custom_command(
 add_library(gui_forms_core STATIC
     src/core/application/application.cpp
     src/core/application/native_popup.cpp
+    src/core/application/transient_window.cpp
+    src/core/application/splashscreen.cpp
     src/core/window/native_popup/native_popup_window.cpp
+    src/core/window/native_popup/popup_standby.cpp
+    src/core/window/native_popup/popup_lift.cpp
     src/core/application/window_frame_drag.cpp
     src/core/application/workspace_transaction.cpp
     src/core/animation/animation_timeline/animation_timeline.cpp
     src/core/animation/animation_timer/animation_timer.cpp
+    src/core/binding/collection_cell/collection_cell.cpp
     src/core/binding/property_type/property_type.cpp
     src/core/binding/value/binding_value.cpp
     src/core/binding/property_table/property_table.cpp
@@ -245,6 +253,8 @@ add_library(gui_forms_core STATIC
     src/core/binding/binding_source/binding_source.cpp
     src/core/binding/binding/binding.cpp
     src/core/binding/control_bindings_collection/control_bindings_collection.cpp
+    src/core/binding/property_link/property_link.cpp
+    src/core/binding/form_binding/form_binding.cpp
     src/core/binding/binding_context/binding_context.cpp
     src/core/types/damage_region/damage_region.cpp
     src/core/types/painter/painter.cpp
@@ -252,6 +262,7 @@ add_library(gui_forms_core STATIC
     src/core/theme/theme/theme.cpp
     src/core/theme/contrast/theme_contrast.cpp
     src/core/theme/dark_variant/dark_variant.cpp
+    src/core/theme/familiar_themes/familiar_themes.cpp
     src/core/theme/gui_forms_theme/gui_forms_theme.cpp
     src/core/theme/stock_anatomies/stock_anatomies.cpp
     src/core/theme/theme_compiler/theme_compiler.cpp
@@ -268,6 +279,7 @@ add_library(gui_forms_core STATIC
     src/core/engine/primitives/material/material_image.cpp
     src/core/engine/primitives/material/image_variant.cpp
     src/core/engine/primitives/material/material_primitive.cpp
+    src/core/engine/primitives/material/material_raster.cpp
     src/core/engine/primitives/material/overlay_shadow_primitive.cpp
     src/core/engine/primitives/procedural/procedural_pattern.cpp
     src/core/engine/primitives/light/sheen_primitive.cpp
@@ -275,11 +287,13 @@ add_library(gui_forms_core STATIC
     src/core/window/backplane/backplane_composite.cpp
     src/core/window/backdrop/window_backdrop_grant.cpp
     src/core/window/backdrop/backdrop_chain.cpp
+    src/core/window/band/window_band.cpp
     src/core/window/backplane/window_backplane.cpp
     src/core/engine/primitives/kernel/box_blur.cpp
     src/core/engine/primitives/kernel/pixel_kernel.cpp
     src/core/engine/part_shape/part_shape.cpp
     src/core/engine/part_table/engine_part_table.cpp
+    src/core/engine/part_table/slice_assembly.cpp
     src/core/engine/part_raster/part_raster.cpp
     src/core/engine/theme_engine/theme_engine.cpp
     src/core/engine/theme_rules/theme_rules.cpp
@@ -347,6 +361,7 @@ add_library(gui_forms_core STATIC
     src/core/theme_language/syntax_tree/theme_sheet_parser.cpp
     src/core/form_language/form_model/form_model.cpp
     src/core/form_language/form_loader/form_loader.cpp
+    src/core/form_language/form_loader/form_window_loader.cpp
     src/core/form_language/form_editor/form_editor.cpp
     src/core/form_language/form_generator/form_generator.cpp
     src/core/theme_language/selector/theme_selector.cpp
@@ -407,6 +422,7 @@ add_library(gui_forms_core STATIC
     src/core/surface_root/requests/surface_alerts.cpp
     src/core/window/alerts/window_alerts.cpp
     src/core/surface_root/control_table/control_table.cpp
+    src/core/surface_root/control_lookup/control_lookup.cpp
     src/core/window/lifecycle/window_lifecycle.cpp
     src/core/window/typography/window_typography.cpp
     src/core/window/update_scope/update_scope.cpp
@@ -417,14 +433,19 @@ add_library(gui_forms_core STATIC
     src/core/window/overlay/overlay_token.cpp
     src/core/window/tool_tips/tool_tip_bubble.cpp
     src/core/window/tool_tips/tool_tip_presenter.cpp
+    src/core/window/toasts/toast_presenter.cpp
+    src/core/window/toasts/window_toasts.cpp
     src/core/window/tool_tips/tool_tip_subjects.cpp
     src/core/window/tool_tips/window_tool_tips.cpp
+    src/core/window/interaction/interaction_state.cpp
+    src/core/window/interaction/window_interaction.cpp
     src/core/window/accelerator/accelerator_token.cpp
     src/core/control/dispatcher/control_dispatcher.cpp
     src/core/component/component/component.cpp
     src/core/component/component_container/component_container.cpp
     src/core/timer/timer/timer.cpp
     src/core/background_worker/background_worker.cpp
+    src/core/control/content_region/content_region.cpp
     src/core/control/control/control.cpp
     src/core/control/stable_id/stable_id.cpp
     src/core/control/static_tree/control_factory/control_factory.cpp
@@ -440,14 +461,15 @@ endif()
 target_link_libraries(gui_forms_core PRIVATE stx_conv::stx_conv)
 # rtf_conversion's reader and writer; no stx_rtf2md type is public.
 target_link_libraries(gui_forms_core PRIVATE stx_rtf2md::stx_rtf2md)
-# MD4C 0.6.0 (third_party/md4c, MIT; third_party/MD4C_INTAKE_2026-10-28.md), the
+# MD4C 0.6.0 (stx third_party/md4c, MIT; stx third_party/MD4C_INTAKE_2026-10-28.md), the
 # markdown framework's CommonMark parser. Its objects are part of Core, so no
 # target is added to the exports; its header stays private to markdown.cpp.
-add_library(gui_forms_md4c OBJECT third_party/md4c/md4c.c third_party/md4c/entity.c)
+add_library(gui_forms_md4c OBJECT "${GUI_FORMS_STX_THIRD_PARTY_DIR}/md4c/md4c.c"
+    "${GUI_FORMS_STX_THIRD_PARTY_DIR}/md4c/entity.c")
 set_target_properties(gui_forms_md4c PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_sources(gui_forms_core PRIVATE $<TARGET_OBJECTS:gui_forms_md4c>)
 set_source_files_properties(src/core/text/markdown/markdown.cpp PROPERTIES
-    INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/third_party/md4c)
+    INCLUDE_DIRECTORIES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/md4c")
 set_property(TARGET gui_forms_core PROPERTY INTERFACE_GUI_FORMS_CORE_LINKAGE static)
 set_property(TARGET gui_forms_core APPEND PROPERTY COMPATIBLE_INTERFACE_STRING GUI_FORMS_CORE_LINKAGE)
 # Compatibility properties alone do not traverse LINK_ONLY dependencies of
@@ -477,13 +499,13 @@ set_target_properties(gui_forms_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
     set(GUI_FORMS_HARFBUZZ_ROOT
-        "${CMAKE_CURRENT_SOURCE_DIR}/third_party/harfbuzz")
+        "${GUI_FORMS_STX_THIRD_PARTY_DIR}/harfbuzz")
     set(GUI_FORMS_FREETYPE_ROOT
-        "${CMAKE_CURRENT_SOURCE_DIR}/third_party/freetype")
+        "${GUI_FORMS_STX_THIRD_PARTY_DIR}/freetype")
     if(NOT EXISTS "${GUI_FORMS_HARFBUZZ_ROOT}/CMakeLists.txt" OR
        NOT EXISTS "${GUI_FORMS_FREETYPE_ROOT}/CMakeLists.txt")
         message(FATAL_ERROR
-            "Pinned text sources are absent. Run third_party/fetch_text_stack.sh")
+            "The stx source at ${GUI_FORMS_STX_SOURCE_DIR} has no third_party/harfbuzz or third_party/freetype")
     endif()
 
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
@@ -526,12 +548,12 @@ if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
                      EXCLUDE_FROM_ALL)
     unset(SKIP_INSTALL_ALL)
 
-    add_library(gui_forms_bidi STATIC third_party/sheenbidi/Source/SheenBidi.c)
-    target_include_directories(gui_forms_bidi PUBLIC third_party/sheenbidi/Headers)
+    add_library(gui_forms_bidi STATIC "${GUI_FORMS_STX_THIRD_PARTY_DIR}/sheenbidi/Source/SheenBidi.c")
+    target_include_directories(gui_forms_bidi PUBLIC "${GUI_FORMS_STX_THIRD_PARTY_DIR}/sheenbidi/Headers")
     target_compile_definitions(gui_forms_bidi PRIVATE SB_CONFIG_UNITY)
     set_target_properties(gui_forms_bidi PROPERTIES POSITION_INDEPENDENT_CODE ON)
     # UAX #14 line breaking (libunibreak 8.0), admitted to the text engine by
-    # the owner on 2026-10-26 (third_party/LIBUNIBREAK_INTAKE_2026-10-01.md).
+    # the owner on 2026-10-26 (stx third_party/LIBUNIBREAK_INTAKE_2026-10-01.md).
     include(cmake/LineBreak.cmake)
     add_library(gui_forms_text_engine STATIC
         src/render/text/harfbuzz/harfbuzz_font_engine.cpp
@@ -753,10 +775,18 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/picture_box/picture_box.cpp
     src/controls/label/label.cpp
     src/controls/text_block/text_block.cpp
+    src/controls/badge/badge.cpp
+    src/controls/info_banner/info_banner.cpp
+    src/controls/empty_state/empty_state.cpp
+    src/controls/spinner/spinner.cpp
+    src/controls/progress_ring/progress_ring.cpp
+    src/controls/progress_ring/ring_dots.cpp
+    src/controls/toast/toast.cpp
     src/controls/button_base/button_base.cpp
     src/controls/button_base/button/button.cpp
     src/controls/button_base/button/drop_down_button/drop_down_button.cpp
     src/controls/button_base/check_box/check_box.cpp
+    src/controls/button_base/toggle_switch/toggle_switch.cpp
     src/controls/button_base/radio_button/radio_button.cpp
     src/controls/button_base/link_label/link_label.cpp
     src/controls/raster_canvas/raster_canvas.cpp
@@ -775,6 +805,9 @@ add_library(gui_forms_controls STATIC
     src/controls/collections/command_bar.cpp
     src/controls/commands/command/command.cpp
     src/controls/commands/command_binding/command_binding.cpp
+    src/controls/rules/rule/rule.cpp
+    src/controls/rules/rule_set/rule_set.cpp
+    src/controls/rules/window_rules/window_rules.cpp
     src/controls/menu/context_menu/context_menu.cpp
     src/controls/menu/menu_strip/menu_strip.cpp
     src/controls/tool_strip/tool_strip.cpp
@@ -803,6 +836,7 @@ add_library(gui_forms_controls STATIC
     src/controls/docking/dock_site/dock_site_auto_hide.cpp
     src/controls/data_grid_view/data_grid_view.cpp
     src/controls/data_grid_view/data_grid_view_parts.cpp
+    src/controls/data_grid_view/data_grid_view_rows.cpp
     src/controls/data_grid_view/data_grid_view_row_heights.cpp
     src/controls/data_grid_view/data_grid_view_row_order.cpp
     src/controls/data_grid_view/data_grid_view_cells.cpp
@@ -874,6 +908,7 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/up_down/spin_buttons.cpp
     src/controls/panel/domain_up_down/domain_up_down.cpp
     src/controls/panel/token_box/token_box.cpp
+    src/controls/search_field/search_field.cpp
     src/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.cpp
     src/controls/panel/masked_text_box/masked_text_box.cpp
     src/controls/panel/numeric_up_down/numeric_up_down.cpp
@@ -1341,6 +1376,7 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         src/host/posix/fonts/sealed_pages_posix.cpp
         src/host/linux/application/x11_windowing.cpp
         src/host/linux/settings/xsettings_parse.cpp
+        src/host/linux/application/linux_input_rules.cpp
         src/host/linux/settings/xsettings_watch.cpp
         src/host/linux/accessibility/linux_accessibility.cpp
         src/host/linux/services/linux_services.cpp
@@ -1553,6 +1589,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     # All of them stay under the public-controls-only policy test below.
     set(gui_forms_gallery_page_sources
         src/controls/gallery/pages/control-spectrum.cpp
+        src/controls/gallery/pages/controls-inspection.cpp
         src/controls/gallery/pages/ranges-and-progress.cpp
         src/controls/gallery/pages/containers-and-focus.cpp
         src/controls/gallery/pages/animation-laboratory.cpp
@@ -1579,6 +1616,10 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/live-surfaces.cpp
         src/controls/gallery/pages/typography-and-inspection.cpp
         src/controls/gallery/pages/semantic-feedback.cpp
+        src/controls/gallery/pages/notices-and-badges.cpp
+        src/controls/gallery/pages/input-and-rules.cpp
+        src/controls/gallery/pages/theme-settings.cpp
+        src/controls/gallery/pages/spinners-and-rings.cpp
     )
     add_library(gui_forms_gallery_model STATIC
         src/controls/gallery_controls.cpp
@@ -1600,15 +1641,22 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     # GUIForms::Application and a headless test with GUIForms::Controls, so a
     # process holds one engine (the SDK's linking rule).
     target_link_libraries(gui_forms_gallery_model PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
-    # The Gallery's own controls (FD6.2): demo/gallery.form, compiled into
-    # gallery_form.hpp; gallery_context.hpp includes it, so its directory is
-    # public.
+    # The Gallery's window (stage B): demo/gallery.form, compiled into
+    # gallery_window.hpp, the GalleryWindow class bound to its GalleryModel
+    # (demo/gallery_model.hpp); gallery_context.hpp includes it, so its
+    # directory is public.
     if(NOT GUI_FORMS_BUILD_FORM_COMPILER)
-        message(FATAL_ERROR "The Gallery needs the form compiler: its own controls are "
+        message(FATAL_ERROR "The Gallery needs the form compiler: its window is "
                             "demo/gallery.form (set GUI_FORMS_BUILD_FORM_COMPILER=ON)")
     endif()
     gui_forms_add_form(gui_forms_gallery_model demo/gallery.form
-        CLASS GalleryDocument NAMESPACE gui_forms::gallery
+        CLASS GalleryWindow NAMESPACE gui_forms::gallery
+        OUTPUT gui_forms_forms/gallery_window.hpp
+        MODEL gui_forms::gallery::GalleryModel MODEL_HEADER gallery_model.hpp)
+    # The Gallery's own pages, apart from the window so each control is
+    # attached once (in its page body): a document class over the model.
+    gui_forms_add_form(gui_forms_gallery_model demo/gallery_form_pages.form
+        CLASS GalleryFormPagesDocument NAMESPACE gui_forms::gallery
         TYPES
             "gallery_lifecycle_card,gui_forms::gallery::LifecycleCard,user_control,gallery_parts.hpp"
             "gallery_collection,gui_forms::gallery::CollectionList,list_box,gallery_parts.hpp"
@@ -1646,6 +1694,14 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS HostServicesDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/semantic-feedback.form
         CLASS SemanticFeedbackDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/notices-and-badges.form
+        CLASS NoticesAndBadgesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/input-and-rules.form
+        CLASS InputAndRulesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/theme-settings.form
+        CLASS ThemeSettingsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/spinners-and-rings.form
+        CLASS SpinnersAndRingsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/control-spectrum.form
         CLASS ControlSpectrumDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/retained-layout-panels.form
@@ -1654,21 +1710,42 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS ResponsiveLayoutsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/css-layout-panels.form
         CLASS CssLayoutDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/dock-and-anchor.form
+        CLASS DockAnchorDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/docking-workspace.form
+        CLASS DockingWorkspaceDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/containers-and-focus.form
+        CLASS ContainersDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/tabs-and-pages.form
+        CLASS TabsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/anchored-overlays.form
+        CLASS AnchoredOverlaysDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/commands-and-menus.form
+        CLASS CommandsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/live-surfaces.form
+        CLASS LiveSurfacesDocument NAMESPACE gui_forms::gallery::pages)
     # The Gallery's project theme (owner rulings of 2026-11-04): the forms
     # name roles by class; the theme gives the roles their look.
     gui_forms_add_theme(gui_forms_gallery_model demo/themes/gallery
         FUNCTION gallery_theme_package NAMESPACE gui_forms::gallery
-        FORMS demo/gallery.form demo/pages/typography-and-inspection.form
+        FORMS demo/gallery.form demo/gallery_form_pages.form demo/pages/typography-and-inspection.form
             demo/pages/animation-laboratory.form demo/pages/collections-and-overlays.form
             demo/pages/images-and-drawing.form demo/pages/ranges-and-progress.form
             demo/pages/semantic-feedback.form demo/pages/control-spectrum.form
+            demo/pages/notices-and-badges.form
+            demo/pages/input-and-rules.form demo/pages/theme-settings.form
+            demo/pages/spinners-and-rings.form
             demo/pages/retained-layout-panels.form demo/pages/responsive-layouts.form
             demo/pages/css-layout-panels.form
             demo/pages/checked-collections.form demo/pages/choices-and-sections.form
             demo/pages/tree-and-object-views.form demo/pages/text-and-input.form
             demo/pages/states-and-diagnostics.form demo/pages/timing-and-tooltips.form
             demo/pages/dates-and-calendar.form demo/pages/values-and-spinners.form
-            demo/pages/value-editors.form demo/pages/dialogs-and-host-services.form)
+            demo/pages/value-editors.form demo/pages/dialogs-and-host-services.form
+            demo/pages/dock-and-anchor.form demo/pages/docking-workspace.form
+            demo/pages/containers-and-focus.form demo/pages/tabs-and-pages.form
+            demo/pages/anchored-overlays.form demo/pages/commands-and-menus.form
+            demo/pages/live-surfaces.form)
     target_include_directories(gui_forms_gallery_model PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/gui_forms_forms>)
     # The Gallery is compiled with the localizable-literal plugin: its own
@@ -2238,6 +2315,18 @@ endif()
 add_executable(gui_forms_shadow_frames_benchmark EXCLUDE_FROM_ALL benchmarks/shadow_frames_benchmark.cpp)
 target_link_libraries(gui_forms_shadow_frames_benchmark PRIVATE gui_forms_core)
 
+# APP_WINDOW_RULES_DESIGN K.2: the creation-cost gate (a bare window, a popup
+# and a generated form window; time and allocations against the committed
+# baseline benchmarks/creation/creation_baseline.txt). Built only when asked
+# for; run in Release on the M4.
+if(GUI_FORMS_BUILD_FORM_COMPILER)
+    add_executable(gui_forms_creation_benchmark EXCLUDE_FROM_ALL benchmarks/creation_benchmark.cpp)
+    target_link_libraries(gui_forms_creation_benchmark PRIVATE gui_forms_controls gui_forms_host_headless)
+    target_include_directories(gui_forms_creation_benchmark PRIVATE src/host/headless)
+    gui_forms_add_form(gui_forms_creation_benchmark benchmarks/creation/creation_form.form
+        CLASS CreationSettingsForm NAMESPACE form_generated)
+endif()
+
 # SK2: the time each host spends presenting a frame, which the native jobs
 # measure (.github/workflows/native-platform.yml). Built only when asked for.
 if(TARGET gui_forms_application)
@@ -2408,30 +2497,6 @@ if(GUI_FORMS_BUILD_TESTS)
             add_test(NAME gui_forms_windows_dib_lifecycle_tests
                      COMMAND gui_forms_windows_dib_lifecycle_tests)
             set_tests_properties(gui_forms_windows_dib_lifecycle_tests PROPERTIES TIMEOUT 30)
-            add_executable(gui_forms_windows_tooltip_tests
-                tests/windows_tooltip_tests.cpp
-                src/host/windows/application/windows_host.cpp
-                src/host/windows/fonts/sealed_pages_windows.cpp
-                src/host/windows/accessibility/windows_accessibility.cpp
-                src/host/windows/accessibility/windows_semantic_source.cpp
-                src/host/windows/accessibility/windows_automation.cpp
-                src/host/windows/accessibility/windows_text_automation.cpp
-                src/host/windows/services/windows_clipboard_image.cpp
-                src/host/windows/services/windows_notify_icons.cpp
-                src/host/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp
-                src/host/windows/raster/dib_frame_store.cpp
-                src/host/windows/compositor/windows_compositor.cpp)
-            target_include_directories(gui_forms_windows_tooltip_tests PRIVATE
-                include src/host/windows)
-            target_compile_definitions(gui_forms_windows_tooltip_tests PRIVATE
-                WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
-                GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB=1 GUI_FORMS_WINDOWS_TOOLTIP_TEST=1)
-            target_link_libraries(gui_forms_windows_tooltip_tests PRIVATE
-                gui_forms_core gui_forms_skia gui_forms_text_engine user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid
-                comdlg32 shell32)
-            add_test(NAME gui_forms_windows_tooltip_tests
-                     COMMAND gui_forms_windows_tooltip_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
-            set_tests_properties(gui_forms_windows_tooltip_tests PROPERTIES TIMEOUT 30)
             if(TARGET gui_forms_prepared_text_impl)
                 add_executable(gui_forms_windows_prepared_text_tests
                     tests/windows_prepared_text_tests.cpp
@@ -2555,13 +2620,46 @@ if(GUI_FORMS_BUILD_TESTS)
     endif()
     add_library(gui_forms_reference_examples OBJECT
         examples/reference/clipboard_image.cpp
-        examples/reference/owned_events.cpp
-        examples/reference/bound_values.cpp
-        examples/reference/shared_state.cpp
-        examples/reference/collection_state.cpp
-        examples/reference/collection_gallery.cpp
     )
     target_link_libraries(gui_forms_reference_examples PRIVATE gui_forms_core)
+    if(TARGET GUIForms::form_compiler)
+        # The windowed references: each window is a form document (forms/),
+        # generated at build time as examples/reference/CMakeLists.txt does.
+        set(reference_forms examples/reference)
+        add_library(gui_forms_reference_form_examples OBJECT
+            ${reference_forms}/owned_events.cpp
+            ${reference_forms}/bound_values.cpp
+            ${reference_forms}/shared_state.cpp
+            ${reference_forms}/collection_state.cpp
+            ${reference_forms}/multiline_scrollbars.cpp
+            ${reference_forms}/window_rules.cpp
+            ${reference_forms}/mouse_events.cpp
+            ${reference_forms}/collection_gallery.cpp)
+        target_link_libraries(gui_forms_reference_form_examples PRIVATE gui_forms_core)
+        target_include_directories(gui_forms_reference_form_examples PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/examples/reference)
+        gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/owned_events.form
+            CLASS ExampleWindow NAMESPACE reference DERIVED)
+        gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/bound_values.form
+            CLASS SettingsWindow NAMESPACE reference DERIVED)
+        gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/shared_state.form
+            CLASS SharedWindow NAMESPACE reference
+            MODEL reference::SharedModel MODEL_HEADER shared_state_model.hpp)
+        gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/collection_state.form
+            CLASS CollectionsWindow NAMESPACE reference DERIVED)
+        gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/multiline_scrollbars.form
+            CLASS ViewerWindow NAMESPACE reference DERIVED)
+        gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/window_rules.form
+            CLASS RulesWindow NAMESPACE reference DERIVED)
+        gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/mouse_events.form
+            CLASS MouseWindow NAMESPACE reference DERIVED)
+        gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/collection_gallery.form
+            CLASS GalleryWindow NAMESPACE reference
+            MODEL reference::GalleryModel MODEL_HEADER collection_gallery_model.hpp)
+        gui_forms_add_theme(gui_forms_reference_form_examples ${reference_forms}/themes/collection_gallery
+            FUNCTION collection_gallery_theme NAMESPACE reference
+            FORMS ${reference_forms}/forms/collection_gallery.form)
+    endif()
 
     find_package(Python3 COMPONENTS Interpreter QUIET)
     find_program(GUI_FORMS_REFERENCE_CLANG NAMES clang++)
@@ -2803,6 +2901,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_gui_forms_theme_tests tests/gui_forms_theme_tests.cpp)
     target_link_libraries(gui_forms_gui_forms_theme_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_gui_forms_theme_tests COMMAND gui_forms_gui_forms_theme_tests)
+    add_executable(gui_forms_familiar_themes_tests tests/familiar_themes_tests.cpp)
+    target_link_libraries(gui_forms_familiar_themes_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_familiar_themes_tests COMMAND gui_forms_familiar_themes_tests)
     add_executable(gui_forms_owner_draw_tests tests/owner_draw_tests.cpp)
     target_link_libraries(gui_forms_owner_draw_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_owner_draw_tests COMMAND gui_forms_owner_draw_tests)
@@ -3162,6 +3263,20 @@ if(GUI_FORMS_BUILD_TESTS)
                 CLASS NoteDialogForm NAMESPACE form_generated
                 TYPES "note_card,form_generated::NoteCard,user_control,generated/note_card.hpp")
             add_test(NAME gui_forms_form_application_type_tests COMMAND gui_forms_form_application_type_tests)
+            # Stage B: the classes deriving from the root's type.
+            add_executable(gui_forms_form_derived_class_tests tests/form_language/form_derived_class_tests.cpp)
+            target_link_libraries(gui_forms_form_derived_class_tests PRIVATE gui_forms_controls)
+            target_include_directories(gui_forms_form_derived_class_tests PRIVATE
+                ${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language)
+            gui_forms_add_form(gui_forms_form_derived_class_tests tests/form_language/generated/sample_dialog.form
+                CLASS SampleDialogWindow NAMESPACE form_generated OUTPUT gui_forms_forms/sample_dialog_window.hpp
+                MODEL form_generated::SampleModel MODEL_HEADER generated/sample_model.hpp)
+            gui_forms_add_form(gui_forms_form_derived_class_tests tests/form_language/generated/derived_panel.form
+                CLASS DerivedPanel NAMESPACE form_generated
+                MODEL form_generated::SampleModel MODEL_HEADER generated/sample_model.hpp)
+            gui_forms_add_form(gui_forms_form_derived_class_tests tests/form_language/generated/plain_panel.form
+                CLASS PlainPanel NAMESPACE form_generated DERIVED)
+            add_test(NAME gui_forms_form_derived_class_tests COMMAND gui_forms_form_derived_class_tests)
         endif()
     endif()
 
@@ -3388,6 +3503,10 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_instrument_controls_tests
              COMMAND gui_forms_instrument_controls_tests)
 
+    add_executable(gui_forms_collection_cell_tests tests/collection_cell_tests.cpp)
+    target_link_libraries(gui_forms_collection_cell_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_collection_cell_tests COMMAND gui_forms_collection_cell_tests)
+
     add_executable(gui_forms_checked_list_box_tests
         tests/checked_list_box_tests.cpp
     )
@@ -3430,6 +3549,21 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_domain_up_down_tests tests/domain_up_down_tests.cpp)
     target_link_libraries(gui_forms_domain_up_down_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_domain_up_down_tests COMMAND gui_forms_domain_up_down_tests)
+    add_executable(gui_forms_editor_composite_capabilities_tests tests/editor_composite_capabilities_tests.cpp)
+    target_link_libraries(gui_forms_editor_composite_capabilities_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_editor_composite_capabilities_tests COMMAND gui_forms_editor_composite_capabilities_tests)
+    add_executable(gui_forms_item_view_capabilities_tests tests/item_view_capabilities_tests.cpp)
+    target_link_libraries(gui_forms_item_view_capabilities_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_item_view_capabilities_tests COMMAND gui_forms_item_view_capabilities_tests)
+    add_executable(gui_forms_picker_capabilities_tests tests/picker_capabilities_tests.cpp)
+    target_link_libraries(gui_forms_picker_capabilities_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_picker_capabilities_tests COMMAND gui_forms_picker_capabilities_tests)
+    add_executable(gui_forms_component_capabilities_tests tests/component_capabilities_tests.cpp)
+    target_link_libraries(gui_forms_component_capabilities_tests PRIVATE gui_forms_controls gui_forms_host_headless)
+    add_test(NAME gui_forms_component_capabilities_tests COMMAND gui_forms_component_capabilities_tests)
+    add_executable(gui_forms_display_controls_tests tests/display_controls_tests.cpp)
+    target_link_libraries(gui_forms_display_controls_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_display_controls_tests COMMAND gui_forms_display_controls_tests)
     add_executable(gui_forms_auto_complete_tests tests/auto_complete_tests.cpp)
     target_link_libraries(gui_forms_auto_complete_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_auto_complete_tests COMMAND gui_forms_auto_complete_tests)
@@ -3470,6 +3604,15 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_page_view_tests tests/page_view_tests.cpp)
     target_link_libraries(gui_forms_page_view_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_page_view_tests COMMAND gui_forms_page_view_tests)
+    add_executable(gui_forms_application_instance_tests tests/application_instance_tests.cpp)
+    target_link_libraries(gui_forms_application_instance_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_application_instance_tests COMMAND gui_forms_application_instance_tests)
+    add_executable(gui_forms_mouse_events_tests tests/mouse_events_tests.cpp)
+    target_link_libraries(gui_forms_mouse_events_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_mouse_events_tests COMMAND gui_forms_mouse_events_tests)
+    add_executable(gui_forms_mouse_event_order_tests tests/mouse_event_order_tests.cpp)
+    target_link_libraries(gui_forms_mouse_event_order_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_mouse_event_order_tests COMMAND gui_forms_mouse_event_order_tests)
     add_executable(gui_forms_key_commands_tests tests/key_commands_tests.cpp)
     target_link_libraries(gui_forms_key_commands_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_key_commands_tests COMMAND gui_forms_key_commands_tests)
@@ -3478,6 +3621,12 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_xsettings_parse_tests
         tests/xsettings_parse_tests.cpp src/host/linux/settings/xsettings_parse.cpp)
     add_test(NAME gui_forms_xsettings_parse_tests COMMAND gui_forms_xsettings_parse_tests)
+    # The X11 host's computed click counts and context keys take plain
+    # values and no Xlib, so they are tested on every platform.
+    add_executable(gui_forms_linux_input_rules_tests
+        tests/linux_input_rules_tests.cpp src/host/linux/application/linux_input_rules.cpp)
+    target_include_directories(gui_forms_linux_input_rules_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    add_test(NAME gui_forms_linux_input_rules_tests COMMAND gui_forms_linux_input_rules_tests)
     add_executable(gui_forms_page_view_document_tests tests/page_view_document_tests.cpp)
     target_link_libraries(gui_forms_page_view_document_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_page_view_document_tests COMMAND gui_forms_page_view_document_tests)
@@ -3547,6 +3696,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_docking_vocabulary_tests tests/docking_vocabulary_tests.cpp)
     target_link_libraries(gui_forms_docking_vocabulary_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_docking_vocabulary_tests COMMAND gui_forms_docking_vocabulary_tests)
+    add_executable(gui_forms_rules_tests tests/rules_tests.cpp)
+    target_link_libraries(gui_forms_rules_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_rules_tests COMMAND gui_forms_rules_tests)
     add_executable(gui_forms_command_route_tests tests/command_route_tests.cpp)
     target_link_libraries(gui_forms_command_route_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_command_route_tests COMMAND gui_forms_command_route_tests)
@@ -3741,6 +3893,20 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_window_resize_measure_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_window_resize_measure_tests
              COMMAND gui_forms_window_resize_measure_tests)
+
+    add_executable(gui_forms_window_root_slot_tests
+        tests/window_root_slot_tests.cpp
+    )
+    target_link_libraries(gui_forms_window_root_slot_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_window_root_slot_tests
+             COMMAND gui_forms_window_root_slot_tests)
+
+    add_executable(gui_forms_window_band_tests
+        tests/window_band_tests.cpp
+    )
+    target_link_libraries(gui_forms_window_band_tests PRIVATE gui_forms_controls gui_forms_host_headless)
+    add_test(NAME gui_forms_window_band_tests
+             COMMAND gui_forms_window_band_tests)
 
     add_executable(gui_forms_layout_direction_tests
         tests/layout_direction_tests.cpp
@@ -3969,6 +4135,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_native_popup_tests tests/native_popup_tests.cpp)
     target_link_libraries(gui_forms_native_popup_tests PRIVATE gui_forms_host_headless gui_forms_controls)
     add_test(NAME gui_forms_native_popup_tests COMMAND gui_forms_native_popup_tests)
+    add_executable(gui_forms_splash_window_tests tests/splash_window_tests.cpp)
+    target_link_libraries(gui_forms_splash_window_tests PRIVATE gui_forms_host_headless gui_forms_controls)
+    add_test(NAME gui_forms_splash_window_tests COMMAND gui_forms_splash_window_tests)
     add_executable(gui_forms_shared_resources_tests tests/shared_resources_tests.cpp)
     target_link_libraries(gui_forms_shared_resources_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_shared_resources_tests COMMAND gui_forms_shared_resources_tests)
@@ -4071,6 +4240,7 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/main.cpp
             tests/gallery_pages/catalog_tests.cpp
             tests/gallery_pages/shell_tests.cpp
+            tests/gallery_pages/scroll_extent_tests.cpp
             tests/gallery_pages/display_trace_tests.cpp
             tests/gallery_pages/ranges-and-progress_tests.cpp
             tests/gallery_pages/containers-and-focus_tests.cpp
@@ -4099,6 +4269,10 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/live-surfaces_tests.cpp
             tests/gallery_pages/typography-and-inspection_tests.cpp
             tests/gallery_pages/semantic-feedback_tests.cpp
+            tests/gallery_pages/notices-and-badges_tests.cpp
+            tests/gallery_pages/input-and-rules_tests.cpp
+            tests/gallery_pages/theme-settings_tests.cpp
+            tests/gallery_pages/spinners-and-rings_tests.cpp
             tests/gallery_pages/anatomy_coverage_tests.cpp
             tests/gallery_pages/schema_export_tests.cpp
         )
@@ -4546,6 +4720,9 @@ if(GUI_FORMS_BUILD_TESTS)
         add_executable(gui_forms_part_composite_identity_tests tests/part_composite_identity_tests.cpp)
         target_link_libraries(gui_forms_part_composite_identity_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_part_composite_identity_tests COMMAND gui_forms_part_composite_identity_tests)
+        add_executable(gui_forms_surface_material_kernel_tests tests/surface_material_kernel_tests.cpp)
+        target_link_libraries(gui_forms_surface_material_kernel_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_surface_material_kernel_tests COMMAND gui_forms_surface_material_kernel_tests)
         if(TARGET gui_forms_text_engine)
             add_executable(gui_forms_text_identity_raster_tests tests/text_identity_raster_tests.cpp)
             target_link_libraries(gui_forms_text_identity_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
@@ -4900,6 +5077,15 @@ else()
     set(GUI_FORMS_INSTALLED_LIBRARY_RPATH "")
 endif()
 
+# An installed program finds the shared libraries it needs in the library
+# directory beside its own (bin/../lib): the form compiler links the
+# controls, core and libgui_forms_threading.
+if(TARGET gui_forms_form_compiler AND NOT GUI_FORMS_INSTALLED_LIBRARY_RPATH STREQUAL "")
+    file(RELATIVE_PATH GUI_FORMS_BIN_TO_LIB "/${CMAKE_INSTALL_BINDIR}" "/${CMAKE_INSTALL_LIBDIR}")
+    set_target_properties(gui_forms_form_compiler PROPERTIES
+        INSTALL_RPATH "${GUI_FORMS_INSTALLED_LIBRARY_RPATH}/${GUI_FORMS_BIN_TO_LIB}")
+endif()
+
 if(TARGET gui_forms_application)
     target_link_libraries(gui_forms_application PUBLIC GUIForms::Threading)
     # libgui_forms_threading, beside it, when a library loads it privately
@@ -4936,18 +5122,18 @@ install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms)
 # Every third-party component the SDK and the programs ship, with its licence
 # and the FreeType credit (THIRD_PARTY_NOTICES.md).
 install(FILES THIRD_PARTY_NOTICES.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms)
-install(FILES third_party/unicode/LICENSE.txt DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Unicode-LICENSE.txt)
+install(FILES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/unicode/LICENSE.txt" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Unicode-LICENSE.txt)
 if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
-    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/third_party/harfbuzz/COPYING" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME HarfBuzz-COPYING.txt)
-    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/third_party/freetype/docs/FTL.TXT" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME FreeType-FTL.txt)
+    install(FILES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/harfbuzz/COPYING" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME HarfBuzz-COPYING.txt)
+    install(FILES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/freetype/docs/FTL.TXT" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME FreeType-FTL.txt)
 endif()
 if(GUI_FORMS_ENABLE_SKIA)
-    install(FILES stx_skia/LICENSE-Skia DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Skia-LICENSE.txt)
-    install(FILES stx_skia/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_skia-LICENSE.txt)
+    install(FILES "${GUI_FORMS_STX_SOURCE_DIR}/stx_skia/LICENSE-Skia" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Skia-LICENSE.txt)
+    install(FILES "${GUI_FORMS_STX_SOURCE_DIR}/stx_skia/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_skia-LICENSE.txt)
 endif()
 
-install(FILES third_party/sheenbidi/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME SheenBidi-LICENSE.txt)
-install(FILES third_party/md4c/LICENSE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME MD4C-LICENSE.txt)
+install(FILES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/sheenbidi/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME SheenBidi-LICENSE.txt)
+install(FILES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/md4c/LICENSE.md" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME MD4C-LICENSE.txt)
 
 # Windows: the installed DLLs embed the LLVM runtimes, winpthreads and the
 # MinGW-w64 CRT (add_link_options(-static) above). Their licences come from
@@ -5184,7 +5370,7 @@ endif()
 # the Windows host with the tests that compile windows_host.cpp, the last six by including it textually.
 foreach(gui_forms_swizzle_target IN ITEMS gui_forms_core gui_forms_controls
         gui_drawing_c_api gui_forms_host_windows
-        gui_forms_windows_dib_lifecycle_tests gui_forms_windows_tooltip_tests
+        gui_forms_windows_dib_lifecycle_tests
         gui_forms_windows_prepared_text_tests gui_forms_windows_backplane_replay_tests
         gui_forms_windows_canvas_raster_tests gui_forms_windows_content_pixels_tests
         gui_forms_windows_control_snapshot_tests gui_forms_windows_damage_rectangles_tests
@@ -5246,8 +5432,7 @@ foreach(gui_forms_foreground_name IN ITEMS
         gui_forms_gallery_interaction_tests
         gui_forms_windows_accessibility_tests
         gui_forms_windows_dib_lifecycle_tests
-        gui_forms_windows_prepared_text_tests
-        gui_forms_windows_tooltip_tests)
+        gui_forms_windows_prepared_text_tests)
     if(TEST ${gui_forms_foreground_name})
         gui_forms_foreground_test(${gui_forms_foreground_name})
     endif()

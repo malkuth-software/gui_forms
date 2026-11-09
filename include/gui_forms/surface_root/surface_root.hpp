@@ -15,15 +15,18 @@
 #include "gui_forms/paint_framebuffer.hpp"
 #include "gui_forms/host/compositor/window_backdrop.hpp"
 #include "gui_forms/window/backdrop/backdrop_chain.hpp"
+#include "gui_forms/window/band/window_band.hpp"
 #include "gui_forms/host/cursor_interaction/cursor_interaction.hpp"
 #include "gui_forms/layout/diagnostics/layout_diagnostics.hpp"
 #include "gui_forms/resources.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/interaction/interaction_snapshot.hpp"
 #include "gui_forms/window/tool_tips/tool_tips.hpp"
 #include "gui_forms/surface_root/requests/surface_requests.hpp"
 #include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
 
+#include <atomic>
 #include <chrono>
 #include <array>
 #include <compare>
@@ -44,6 +47,10 @@
 
 namespace gui_forms {
 
+namespace abi::detail {
+class Registry;
+} // namespace abi::detail
+
 class UpdateScope;
 class Timer;
 class BackgroundWorker;
@@ -58,18 +65,37 @@ class BindingContext;
 class LiveSurface;
 class PaintFramebuffer;
 struct HelpRequestEvent;
+class RuleSet;
 namespace detail {
 struct LiveSurfaceIdleWake;
 class OverlayAttachment;
 class AcceleratorAttachment;
 class RecordingPainter;
 class ToolTipPresenter;
+class PopupStandby;
 class ToolTipRoute;
+class ToastPresenter;
 class SubSurfaceToolTipRequester;
 class AlertRoute;
 class WindowAlerts;
 class SubSurfaceAlertRequester;
 class MessageBoxHelpRoute;
+class InteractionState;
+struct InteractionHoverWake;
+struct BandFlashWake;
+
+// The WinForms mouse events raise_mouse_events offers the window's rules
+// before raising them (SurfaceRoot::offer_mouse_rules_). The rules library
+// maps them to its trigger kinds; events raised elsewhere as well (capture,
+// hover, the context menu) reach the rules through their subscriptions.
+enum class MouseRuleEvent : std::uint8_t {
+    mouse_down = 0,
+    mouse_up = 1,
+    click = 2,
+    mouse_click = 3,
+    double_click = 4,
+    mouse_double_click = 5,
+};
 
 } // namespace detail
 
@@ -287,6 +313,50 @@ struct DialogKeySnapshot final {
 
 // A control subtree's picture (Window::snapshot_control): the registered
 // image, the logical size it covers and its pixels per logical unit.
+// Why a lookup by stable ID found no control (stage B, B.3).
+enum class ControlLookupError : std::uint8_t {
+    none,
+    // The ID is empty: unnamed controls share it, so it names none.
+    empty_id,
+    // No control attached to the window has the ID.
+    not_found,
+};
+
+// What one window overrides of what it would otherwise read from its
+// owner (APP_WINDOW_RULES_DESIGN K.1): its application, or for a popup or
+// floating window the window that opened it, which shares its table. A
+// window with no override stores none: SurfaceRoot holds a null pointer
+// until the first, which allocates this record; clearing the last releases
+// it. A read is one branch: the field when set, else the owner's.
+struct WindowOverrides final {
+    // Presentation fields that win over the window's own settings.
+    PresentationOverrides presentation{};
+    // A theme for this window alone (immutable, shared by reference); null
+    // shows its resources' theme.
+    std::shared_ptr<const Theme> theme{};
+    // The window's own keyboard-command table, or one it was given to share
+    // (set_key_bindings); null reads the owner's.
+    std::shared_ptr<KeyBindings> key_bindings{};
+
+    // Whether nothing is overridden.
+    [[nodiscard]] bool empty() const noexcept {
+        const bool none = presentation.empty() && !theme && !key_bindings;
+        return none;
+    }
+};
+
+// What SurfaceRoot::control found: the one control with the ID, or why
+// there is none (then `control` is null).
+struct ControlLookup final {
+    ControlLookupError error{ControlLookupError::none};
+    Control::Ptr control{};
+
+    [[nodiscard]] explicit operator bool() const noexcept {
+        const bool found = error == ControlLookupError::none;
+        return found;
+    }
+};
+
 struct ControlSnapshot final {
     ImageId image{};
     Size logical_size{};
@@ -360,13 +430,60 @@ public:
     void reset_activity_metrics();
 
     [[nodiscard]] Control::Ptr root() const noexcept { return root_; }
+    // The control attached to the window with `stable_id` (stage B, B.3: a
+    // runtime-loaded form's controls, a rule's target), as find() gives it
+    // but with the reason when there is none. Stable IDs are unique within a
+    // window (attaching a repeated one is refused). Changes nothing.
+    [[nodiscard]] ControlLookup control(std::string_view stable_id) const;
     [[nodiscard]] Size client_size() const noexcept { return client_size_; }
+    // The root slot (stage B, B.2a): the client rectangle less the window's
+    // outer band (Window::declare_band) and, inside it, the chrome insets,
+    // in client coordinates. The layout pass measures the root at its size
+    // and arranges it there, and a resize marks what it reaches through it;
+    // damage and clipping stay in the whole client area. The inset band is
+    // the window's own (chrome hit-testing, frame drag): no control is
+    // there. Empty on an axis the band and insets cover.
+    [[nodiscard]] Rect root_slot() const noexcept;
+    // The content rectangle: the client rectangle less the reserved outer
+    // band (the whole client area when none is reserved), in client
+    // coordinates. Live surfaces are clipped to it; points outside it hit
+    // nothing.
+    [[nodiscard]] Rect content_rect() const noexcept;
+    [[nodiscard]] Insets chrome_insets() const noexcept { return chrome_insets_; }
+    // Sets the chrome insets: std::invalid_argument, changing nothing,
+    // unless each is finite and not negative; otherwise damages the client
+    // area and marks the root to be arranged again, and measured again on
+    // an axis whose slot extent changed. Root thread.
+    void set_chrome_insets(Insets insets);
     [[nodiscard]] double scale() const noexcept { return scale_; }
+    // The settings in force: the window's own (presentation_base) with its
+    // overrides applied.
     [[nodiscard]] const PresentationSettings& presentation_settings() const noexcept {
         return presentation_settings_;
     }
+    // Sets the window's own settings; its overrides still win. A joined
+    // window's own settings are its application's, and the application's
+    // changes (Application::set_presentation_settings) and the host's
+    // reports replace them. std::invalid_argument as
+    // validate_presentation_settings, changing nothing.
     void set_presentation_settings(PresentationSettings settings);
     void set_text_scale(double text_scale);
+    // The window's own settings, before its overrides.
+    [[nodiscard]] const PresentationSettings& presentation_base() const noexcept { return presentation_base_; }
+    // Overrides fields of the window's settings, copy on write (the
+    // presentation of WindowOverrides): a window without overrides stores
+    // none, and an empty record clears them. std::invalid_argument when the
+    // result is not valid (validate_presentation_settings), changing nothing.
+    void set_presentation_overrides(const PresentationOverrides& overrides);
+    // The window's presentation overrides, or null when it has none.
+    [[nodiscard]] const PresentationOverrides* presentation_overrides() const noexcept;
+    // Everything the window overrides, or null when it overrides nothing
+    // (no record is allocated until the first override).
+    [[nodiscard]] const WindowOverrides* overrides() const noexcept { return overrides_.get(); }
+    // Shows `theme` in this window alone, whatever its resources' theme
+    // (ApplicationResources::set_theme no longer reaches it); null returns
+    // to the resources' theme. Root thread.
+    void set_theme_override(std::shared_ptr<const Theme> theme);
     // The host installs its terminal text engine through this non-owning,
     // renderer-neutral seam. Replacing it invalidates measurement so controls
     // never retain geometry produced by a previous font/raster profile.
@@ -520,20 +637,35 @@ public:
     }
     // The keys of the named keyboard commands (owner decisions DK-30 and
     // DK-44): the window's KeyBindings, which an application shares among all
-    // its windows (Application gives every window it runs its one set, and a
-    // floating window takes its main window's). A window made alone has a
-    // set of its own. The first HostSession to attach seeds the set with the
-    // host's defaults (HostCapabilities::key_map); the PC convention holds
-    // until then. Controls ask through Control::effective_key_map.
-    [[nodiscard]] const KeyMap& key_map() const noexcept { return (*key_bindings_).map(); }
-    [[nodiscard]] const std::shared_ptr<KeyBindings>& key_bindings() const noexcept { return key_bindings_; }
-    // Shares `bindings` with this window. A null pointer throws
-    // std::invalid_argument and changes nothing.
+    // its windows (a joined window reads its application's set, and a
+    // floating or popup window shares its opener's). The first HostSession
+    // to attach seeds the set with the host's defaults
+    // (HostCapabilities::key_map); the PC convention holds until then.
+    // Controls ask through Control::effective_key_map.
+    //
+    // Lazily (APP_WINDOW_RULES_DESIGN K.1): a window makes no table of its
+    // own. It reads the table it was given (set_key_bindings), else its
+    // application's, else the PC convention; only a window-local rebinding
+    // makes a table of its own, copied from the one it read.
+    [[nodiscard]] const KeyMap& key_map() const noexcept;
+    // The table the window reads: the one it holds, else its application's;
+    // null while it reads the PC convention.
+    [[nodiscard]] const std::shared_ptr<KeyBindings>& key_bindings() const noexcept;
+    // The table the window reads, made now (one allocation) when it reads
+    // the PC convention, so that another window can share it. Root thread.
+    [[nodiscard]] std::shared_ptr<KeyBindings> share_key_bindings();
+    // Shares `bindings` with this window; sharing the table it already
+    // reads stores nothing. A null pointer throws std::invalid_argument and
+    // changes nothing.
     void set_key_bindings(std::shared_ptr<KeyBindings> bindings);
-    // KeyBindings::rebind and restore on the window's set, for every window
-    // sharing it. Throw std::invalid_argument as those do.
+    // KeyBindings::rebind and restore on the window's table: one it holds
+    // is changed for every window sharing it; one it only reads is copied
+    // first, so the change is this window's alone. Throw
+    // std::invalid_argument as those do, changing nothing.
     void rebind_key_command(KeyCommand command, KeyBinding binding);
     void restore_key_command(KeyCommand command);
+    // Drops the table the window holds, so it reads its owner's again.
+    void clear_key_bindings();
 
     [[nodiscard]] UpdateScope begin_update();
     void perform_layout();
@@ -566,6 +698,33 @@ public:
     [[nodiscard]] PaintLeaseSnapshot paint_lease_snapshot() const noexcept;
     [[nodiscard]] DamageRegion take_damage();
     [[nodiscard]] DamageRegion take_damage(PaintPlane plane);
+    // Scroll copies (ScrollCopy). A host that can move the pixels it holds
+    // turns them on; then a scroll that only translates a viewport's children
+    // by whole device pixels damages the band it exposed and records a copy
+    // instead of damaging the viewport. take_damage commits the layout that
+    // records them; take them after it and apply them, in order, before
+    // painting that damage: the damage already taken (and any the host
+    // still holds) is moved with each copy (damage_after_scroll_copy). A host
+    // that cannot apply a copy damages its clip instead. Off by default.
+    void set_scroll_copies_supported(bool supported) noexcept { scroll_copies_supported_ = supported; }
+    [[nodiscard]] bool scroll_copies_supported() const noexcept { return scroll_copies_supported_; }
+    // Appends the copies recorded since the last take to `copies`, in the
+    // order recorded, and forgets them.
+    void take_scroll_copies(std::vector<ScrollCopy>& copies);
+    // Called by `scroller`'s arrange, inside the layout pass, after it moved
+    // its scrolling children by `offset` (whole device pixels) and nothing
+    // else changed in its child viewport. Returns true when the copy is
+    // recorded: the damage already pending in the viewport is moved by
+    // `offset`, the exposed band is damaged, and the children's moves by
+    // exactly `offset` in this pass damage nothing; controls drawn over the
+    // viewport (later siblings, overlays) are damaged where they are and
+    // where the copy moved their pixels. False when the pixels beneath the
+    // viewport would not move with it (an earlier sibling or a backplane
+    // control crosses it, or an ancestor's paint depends on its size, below
+    // the first opaque fill covering it), the viewport or offset is not
+    // device-aligned, or copies are off; the caller then repaints its
+    // viewport.
+    [[nodiscard]] bool request_scroll_copy(Control& scroller, Point offset);
     [[nodiscard]] bool needs_frame() const noexcept;
     [[nodiscard]] std::optional<FrameTime> next_wake() const noexcept;
     [[nodiscard]] FrameRequestToken schedule_paint(const Control::Ptr& control,
@@ -636,6 +795,11 @@ public:
     [[nodiscard]] Event<const FocusedControlChange&>& focused_control_changed() noexcept {
         return focused_control_changed_;
     }
+    // The window's rules (gui_forms/rules.hpp; notes:planning
+    // APP_WINDOW_RULES_DESIGN Part C), made on first use; the window owns
+    // them and they end with it. Key rules see each key before the control
+    // route. Root thread only. Defined with the rules, in gui_forms_controls.
+    [[nodiscard]] RuleSet& rules();
     // Help asked of the window as a whole, as Windows Forms raises
     // HelpRequested on a message box's owner form: the Help button of a
     // message box the window owns, or F1 while it is open
@@ -743,8 +907,9 @@ public:
     // shows the plain tooltip text of its controls and of their authored
     // parts (see ToolTipSettings) in a retained, input-transparent overlay.
     // The window's switch, when set, decides whether its tooltips show;
-    // unset, the default, the program's switch decides
-    // (Application::tool_tips_shown). Turning tooltips off closes one that
+    // unset, the default, the switch of the application the window joined
+    // decides (Application::tool_tips_shown), and with none they show.
+    // Turning tooltips off closes one that
     // shows. UI thread.
     [[nodiscard]] std::optional<bool> tool_tips_shown_setting() const noexcept {
         return tool_tips_shown_;
@@ -854,6 +1019,8 @@ public:
     // the usual caller.
     CommandRouteResult route_command(const CommandInvocation& invocation);
     [[nodiscard]] Control::Ptr pressed_control() const noexcept { return pressed_.lock(); }
+    // The control the pointer is over (the hover registry), or null.
+    [[nodiscard]] Control::Ptr hovered_control() const noexcept { return hovered_.lock(); }
 
     // During an active paint lease these return true when the input was
     // retained for posted delivery and false only when the fixed queue bound
@@ -861,6 +1028,29 @@ public:
     // result.
     bool dispatch_pointer(PointerEvent event);
     bool dispatch_key(KeyEvent event);
+    // A context-menu request (owner's mouse-event rule): from the host's
+    // HostContextRequestEvent, or a test. A pointer request goes to the
+    // control under `position` (window coordinates; the captured control
+    // while one is), a keyboard request to the focused control. The window
+    // offers the request (ContextMenuRequest) to that control, then to each
+    // ancestor until one handles it: each control's on_context_menu_requested
+    // and then its ContextMenuRequested subscribers. Returns whether one
+    // handled it. The core has no keyboard route of its own: a host whose
+    // platform offers no keyboard request sends none.
+    bool dispatch_context_request(ContextRequestOrigin origin, Point position);
+    // The host's own hover report (HostHoverEvent, with native_hover in the
+    // window's PointerSettings): raises MouseHover on the hovered control,
+    // once per entry.
+    void dispatch_host_hover(Point position);
+    // The window's input state (APP_WINDOW_RULES_DESIGN C.2), copied: held
+    // keys, modifiers, pointer and buttons, the host's last click count, the
+    // focused, captured, pressed and hovered controls and the hover timing.
+    // The state is updated as each pointer or key event arrives, before any
+    // control sees it.
+    [[nodiscard]] InteractionSnapshot interaction_snapshot() const;
+    // Borrows `source` (it must outlive its installation) as the clock the
+    // input state reads; null restores the steady clock.
+    void set_input_time_source(const InputTimeSource* source) noexcept { input_time_source_ = source; }
     bool dispatch_text(TextInputEvent event);
     [[nodiscard]] DeferredInputSnapshot deferred_input_snapshot() const noexcept;
     [[nodiscard]] DragDispatchResult dispatch_drag(DragEvent event);
@@ -999,6 +1189,17 @@ private:
     friend class Window;
     friend class SubSurface;
     friend class SubSurfaceHost;
+    // Key and text forwarding to a warm Popup window (Window::
+    // forward_input_to_popup_window): while set, dispatch_key and
+    // dispatch_text offer each event to the model of slot
+    // key_forward_slot_ first, and route it here only when the Popup leaves
+    // it unhandled. The standby is the Window's own, alive as long as it.
+    detail::PopupStandby* key_forward_standby_{};
+    std::size_t key_forward_slot_{};
+    [[nodiscard]] bool forward_to_popup(const KeyEvent& event);
+    [[nodiscard]] bool forward_to_popup(const TextInputEvent& event);
+    // The C ABI's v0 show_tooltip, a program request like SubSurfaceHost's.
+    friend class abi::detail::Registry;
     friend class SurfaceRoot;
     friend class Control;
     // How the newest focus change came about, for a control that forwards
@@ -1020,6 +1221,8 @@ private:
     std::shared_ptr<detail::DispatcherState> dispatcher_state_;
     Metrics metrics_;
     friend class HostSession;
+    // Reaches joined windows through their lifetime records.
+    friend class Application;
     friend class MotionClock;
     // Called by the motion clock: its single frame request, first due at
     // `first_deadline` and then every motion_frame_interval. Each frame
@@ -1038,6 +1241,9 @@ private:
     // resuming when this window cancelled its requests meanwhile.
     friend class AnimationTimer;
     friend class detail::ToolTipPresenter;
+    // Uses request_tool_tip_wake for a toast's duration.
+    friend class detail::ToastPresenter;
+    friend class detail::PopupStandby;
     friend class detail::SubSurfaceToolTipRequester;
     friend class detail::WindowAlerts;
     friend class detail::SubSurfaceAlertRequester;
@@ -1091,10 +1297,38 @@ private:
     // then finish_unhandled_key. False, doing nothing, when `from` is no
     // longer eligible. Root thread only.
     bool resume_unhandled_key(const Control::Ptr& from, KeyEvent event);
-    // Called by the tooltip presenter: a one-shot wake at `deadline` on the
-    // UI thread, revoked by the token.
+    // Called by the tooltip and toast presenters: a one-shot wake at
+    // `deadline` on the UI thread, revoked by the token.
     [[nodiscard]] FrameRequestToken request_tool_tip_wake(
         FrameTime deadline, std::function<void(FrameTime)> callback);
+    // A one-shot wake at `deadline` on the UI thread, revoked by the token
+    // (the tooltip presenter's and the hover wake's common path).
+    [[nodiscard]] FrameRequestToken request_one_shot_wake(
+        FrameTime deadline, std::function<void(FrameTime)> callback);
+    // The input state, made on first use (a window that sees no input
+    // allocates none).
+    detail::InteractionState& interaction_state();
+    [[nodiscard]] FrameTime input_now() const noexcept;
+    // Arms or disconnects the hover wake to match the state; the host's own
+    // hover (PointerSettings::native_hover) keeps it off.
+    void sync_hover_wake();
+    void interaction_hover_due(FrameTime now);
+    // Raises MouseHover on `control` when it is still eligible.
+    void raise_mouse_hover(const Control::Ptr& control);
+    // dispatch_pointer's route of one event to its target: preview, target
+    // and bubble. Sets `pressed_for_release` to the control a release ends
+    // the press of (any button), and `target_out` to the event's target.
+    bool route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out);
+    // Raises the WinForms mouse events for one routed pointer event on its
+    // target (Control's mouse_down and the rest), in WinForms' order.
+    void raise_mouse_events(const PointerEvent& event, const Control::Ptr& target,
+                            const Control::Ptr& pressed_for_release);
+    // Offers one of those events on `control` to the window's rules before
+    // its subscribers (the owner's Q-C5: rules run before the control
+    // route). `arguments` is null for Click and DoubleClick. Returns whether
+    // a rule consumed it; false without rules.
+    bool offer_mouse_rules(detail::MouseRuleEvent event, Control& control, const MouseEventArgs* arguments);
+    friend struct detail::InteractionHoverWake;
     friend class BackgroundWorker;
     friend class ToolTip;
     friend class RibbonToolTip;
@@ -1115,6 +1349,14 @@ private:
     // `application` where it has the variant, else GUI.Forms' own theme,
     // noting theme_fallback_ (and the resources' warning) either way.
     [[nodiscard]] std::shared_ptr<const Theme> scheme_theme(const std::shared_ptr<const Theme>& application);
+    // Puts `settings`, valid, in force (presentation_settings_), with every
+    // consequence: remeasure, motion, backdrop, the scheme's theme and
+    // presentation_changed.
+    void apply_presentation(PresentationSettings settings);
+    // A host's report of the system's settings, as the window's own: for a
+    // window joined to an application, the application's, reaching every
+    // window joined to it (Application::set_presentation_settings).
+    void set_host_presentation(PresentationSettings settings);
     // Makes `shown` the window's theme: no cached raster stands, the
     // backdrop follows it, every control is remeasured, and theme_changed
     // is raised. Nothing where it is already shown.
@@ -1293,6 +1535,11 @@ private:
         bool focused{};
         void operator()() const;
     };
+    // After `control` was told it gained focus: each ancestor, innermost
+    // first, reveals the innermost control that holds the focus within its
+    // content (Control::reveal_focused_descendant). Stops at an ancestor
+    // that died or left this root during the walk.
+    void reveal_focused(const Control::Ptr& control);
     struct FocusScopePublication final {
         SurfaceRoot* root{};
         Control::Ptr owner;
@@ -1343,7 +1590,11 @@ private:
         FocusScopeId scope, FocusScopeCloseReason reason,
         const Control::Ptr& notification_owner);
     void revoke_focus_scopes_for_subtree(const Control::Ptr& control) noexcept;
-    void close_overlays_for_subtree(const Control::Ptr& control) noexcept;
+    // Whether closing a subtree's overlays keeps the passive ones (opened
+    // without an enabled owner): a disabled owner keeps them, a hidden or
+    // detached one does not.
+    enum class PassiveOverlays : std::uint8_t { close, keep };
+    void close_overlays_for_subtree(const Control::Ptr& control, PassiveOverlays passive) noexcept;
     void close_overlay(detail::OverlayAttachment& overlay) noexcept;
     void close_accelerator(detail::AcceleratorAttachment& accelerator) noexcept;
     [[nodiscard]] bool dispatch_accelerator(const KeyEvent& event,
@@ -1379,6 +1630,9 @@ private:
     // pointer left the window, or the control left the interaction.
     void forget_hover() noexcept;
     void on_eligibility_changed(const Control::Ptr& control);
+    // As on_eligibility_changed, for a control just disabled: its passive
+    // overlays stay open.
+    void on_enabled_withdrawn(const Control::Ptr& control);
     void on_hit_test_transparency_changed(const Control::Ptr& control);
     void publish_control_availability(Control& control);
     void register_subtree(const Control::Ptr& control);
@@ -1389,6 +1643,17 @@ private:
     void mark_dirty(Control& control, Dirty dirty);
     void mark_paint_dirty(Control& control, Rect local_damage);
     void mark_subtree_dirty(Control& control, Dirty dirty);
+    // A content region of `control` noted its first pending item since its
+    // last gather (Control::request_content_gather): the control is
+    // gathered after the next layout and a paint is requested. May throw
+    // (the pending list's growth) before anything changes.
+    void note_content_gather(Control& control);
+    // The region gathers (property-capabilities study, flush step 3): after
+    // layout, each live control noted since the last gather turns its
+    // regions' pending items into damage at their final geometry
+    // (Control::gather_content_regions); the damage is then settled. Not
+    // reentrant: a gather that notes again is gathered at the next flush.
+    void gather_content_regions();
     // Does the bookkeeping owed by the touches since the last settle (M0.2)
     // and clears their table bits: ancestors' subtree flags, layout
     // ancestors and suspended-layout notes, damage at the controls' bounds
@@ -1496,6 +1761,11 @@ private:
     // candidate, in a copy group when the window starts clear.
     void paint_backplane_rectangle(detail::RecordingPainter& candidate, Rect rectangle,
                                    const SurfaceMaterial& backplane, bool starts_clear);
+    // Draws the backplane material over the window: its kept kernel raster
+    // (baked again when the material, size or scale changed), else its
+    // layers (paint_surface_material).
+    void paint_backplane_material(detail::RecordingPainter& candidate, Rect window_bounds,
+                                  const SurfaceMaterial& backplane);
     // The last plane in which a control covers the whole of `rectangle`
     // (find_paint_cover, `path` its scratch), or paint_plane_count.
     [[nodiscard]] std::size_t covering_plane(Rect rectangle, bool explicit_request,
@@ -1608,8 +1878,52 @@ private:
 
     Control::Ptr root_;
     Size client_size_{};
+    // Zero unless the window's chrome takes a band of the client area
+    // (root_slot).
+    Insets chrome_insets_{};
+    // The window outer band (Window::declare_band; gui_forms/window/band/
+    // window_band.hpp). Only a Window declares one, so a sub-surface's
+    // stays undeclared and reserves nothing.
+    struct BandRecord final {
+        bool declared{};
+        WindowBandOptions options{};
+        WindowBandAppearance appearance{};
+        // The width reserved on every side (snapped, logical units): 0
+        // while undeclared or hidden in full screen. root_slot and
+        // content_rect read it; only refresh_band changes it.
+        double reserved{};
+        // The colours resolved by the last refresh, and the one the strips
+        // draw now.
+        Color rest{Color::rgba(0, 0, 0, 0)};
+        Color lit{Color::rgba(0, 0, 0, 0)};
+        Color drawn{Color::rgba(0, 0, 0, 0)};
+        // Whether a flash runs now (asked for and not stilled), and its
+        // phase: true while it shows the lit colour.
+        bool flashing{};
+        bool lit_phase{true};
+        std::uint64_t flash_changes{};
+        // The one-shot wake of the next phase change, armed only while a
+        // flash runs.
+        FrameRequestToken flash_wake{};
+        // Reported by the host (Window::report_full_screen).
+        bool full_screen{};
+        WindowCornerPreference corner_preference{WindowCornerPreference::system};
+        WindowCornerReport corners{};
+    };
+    BandRecord band_{};
     double scale_{1.0};
     PresentationSettings presentation_settings_{};
+    // The window's own settings (from its application, its host or the
+    // program) and its overrides, null until the first (copy on write).
+    PresentationSettings presentation_base_{};
+    // What the window overrides (K.1): null until the first override.
+    std::unique_ptr<WindowOverrides> overrides_{};
+    // The record, made on the first override.
+    WindowOverrides& edit_overrides();
+    // Releases the record once nothing is overridden.
+    void release_empty_overrides() noexcept;
+    // The theme the window follows: its override, else its resources'.
+    [[nodiscard]] std::shared_ptr<const Theme> followed_theme() const;
     TextMetricsProvider* text_metrics_provider_{};
     Painter* framebuffer_painter_{};
     // The backplane replay's framebuffer (C6), made from the framebuffer
@@ -1617,6 +1931,15 @@ private:
     // same; released when the painter changes.
     std::unique_ptr<PaintFramebuffer> backplane_framebuffer_{};
     double backplane_framebuffer_scale_{};
+    // The backplane material's kernel raster (one rasteriser, stage T4),
+    // kept from paint to paint: the window bakes it once for its material,
+    // client size and scale, and every painted rectangle composites it
+    // under its clip. Null until a backplane is baked, and while the
+    // material is drawn as layers (material_raster.hpp).
+    std::shared_ptr<const SurfaceMaterial> backplane_baked_material_{};
+    std::shared_ptr<const PartRaster> backplane_baked_raster_{};
+    Size backplane_baked_size_{};
+    double backplane_baked_outset_{};
     Event<const PresentationSettings&> presentation_changed_;
     std::shared_ptr<const Theme> theme_;
     // Set while theme_ is GUI.Forms' own in place of the application's.
@@ -1703,6 +2026,9 @@ private:
     std::unique_ptr<detail::ToolTipRoute> tool_tips_;
     ToolTipSettings tool_tip_settings_{};
     std::optional<bool> tool_tips_shown_{};
+    // The joined application's switch (Application::tool_tips_shown), shared
+    // so it outlives the application; null for a window that joined none.
+    std::shared_ptr<const std::atomic<bool>> application_tool_tips_shown_{};
     std::optional<ToolTipRequestRecord> tool_tip_request_{};
     std::uint64_t next_tool_tip_request_{1};
     // Where this root's alerts go (detail::AlertRoute): a window shows them,
@@ -1716,11 +2042,50 @@ private:
     // targets, in that order; observed, never owned.
     std::array<std::weak_ptr<CommandTarget>, 3> command_targets_{};
     Control::WeakPtr pressed_;
+    // The control the secondary and the middle button were last pressed
+    // over (index 0 and 1), for WinForms' Click on any button. These presses
+    // take no focus and no capture.
+    std::array<Control::WeakPtr, 2> pressed_other_{};
     Control::WeakPtr hovered_;
+    // The input state (detail::InteractionState), made by the first pointer
+    // or key event; the clock it reads, borrowed (null for the steady
+    // clock); and the wake for a pending hover.
+    std::unique_ptr<detail::InteractionState> interaction_{};
+    const InputTimeSource* input_time_source_{};
+    FrameRequestToken hover_wake_{};
+    // While dispatch_pointer releases the capture for a primary release,
+    // the control losing it, whose MouseCaptureChanged is raised after its
+    // MouseUp, as WinForms raises it.
+    bool defer_capture_changed_{};
+    Control::WeakPtr deferred_capture_changed_{};
     Control::WeakPtr drag_target_;
     std::uint64_t drag_session_id_{};
     DragEffect drag_last_accepted_effect_{DragEffect::none};
     std::array<DamageRegion, paint_plane_count> plane_damage_;
+    // Scroll copies recorded and not yet taken; the scroller whose copy this
+    // layout pass recorded, whose children's moves by `scroll_translation_`
+    // damage nothing, until its arrange descent ends.
+    bool scroll_copies_supported_{};
+    std::vector<ScrollCopy> scroll_copies_;
+    const Control* scroll_translating_{};
+    Point scroll_translation_{};
+    // Whether `control`'s current recorded paint draws nothing (a layer
+    // that only holds other controls). False when it has no current record.
+    [[nodiscard]] bool records_no_paint(const Control& control) const noexcept;
+    // Appends the visual bounds of `control` and the controls below it, in
+    // an overlay attachment, that draw into `clip`.
+    void collect_overlay_paint(const Control::Ptr& control, Rect clip, std::vector<Rect>& crossing) const;
+    // Whether `control`'s last recorded paint left an opaque solid fill
+    // over `clip` (window coordinates; DisplayChunk::opaque_cover).
+    [[nodiscard]] bool opaque_fill_covers(const Control& control, Rect clip) const;
+    // Whether a control outside `scroller`'s subtree paints into `clip` from
+    // the backplane where no opaque fill covers the clip beneath the
+    // scroller (`beneath_covered`). Appends the visual bounds of those that
+    // paint into it from the overlay plane to `crossing`.
+    [[nodiscard]] bool other_plane_crosses(const Control::Ptr& control, const Control& scroller,
+                                           Rect clip, bool beneath_covered, std::vector<Rect>& crossing) const;
+    // Scratch for request_scroll_copy's overlay crossings.
+    std::vector<Rect> scroll_overlay_crossings_;
     struct PaintControlCheckpoint final {
         Control::Ptr control;
         std::shared_ptr<const detail::DisplayChunk> chunk;
@@ -1768,6 +2133,14 @@ private:
         Rect local_damage{};
     };
     std::vector<PendingLocalDamage> pending_local_damage_;
+    // The controls whose content regions await a gather (note_content_gather),
+    // in note order; a control may appear more than once. gather_slots_ is
+    // the gather's swapped-in copy, so a gather that notes again appends to
+    // an empty list; both keep their storage across flushes.
+    std::vector<detail::ControlSlot> pending_content_gathers_;
+    std::vector<detail::ControlSlot> gather_slots_;
+    // gather_content_regions is running (its reentry guard).
+    bool gathering_regions_{};
     // settle_dirty is running (its reentry guard).
     bool settling_{};
     // Reports into the base's metrics, which outlive it.
@@ -1903,6 +2276,28 @@ private:
     // The theme's chain for this window (Theme::window_backdrop_chain), put
     // in force unless the application set its own.
     void lower_theme_backdrop_chain();
+    // Resolves the band against its declaration and appearance, the
+    // theme's `window` rule, the presentation (high contrast, motion), the
+    // scale and full screen. A changed reserved width lays the window out
+    // again (the whole client area is damaged and the root marked, as for
+    // set_chrome_insets); otherwise a changed drawn colour or corner
+    // damages the four strips only. Arms the flash wake while a flash runs
+    // and disconnects it otherwise. Root thread; does nothing on a root
+    // with no Window.
+    void refresh_band();
+    // Damages the four strips of a band `width` wide along the client
+    // area's edges, in the overlay plane (the band is drawn after it), and
+    // asks for a paint.
+    void damage_band_strips(double width);
+    // Whether `position` (client coordinates) lies in the reserved band.
+    [[nodiscard]] bool band_contains(Point position) const noexcept;
+    // Draws the band over every plane, clipped to each painted rectangle
+    // (paint_rectangles' last step).
+    void paint_band(detail::RecordingPainter& candidate, std::span<const Rect> painted);
+    // The flash wake: the phase changes, the strips are damaged, and the
+    // next wake is armed while the flash still runs.
+    void band_flash_due(FrameTime now);
+    friend struct detail::BandFlashWake;
     // Resolves the grant from the request, the compositor state, the
     // declaration and the presentation settings, applies a changed backdrop
     // through the host services, and raises backdrop_changed when it changed.
@@ -1921,9 +2316,26 @@ private:
     // chain with a blur asks for the main window's material, falling back to
     // transparent; otherwise the theme's request.
     [[nodiscard]] WindowBackdropRequest implied_backdrop_request() const;
-    // The keyboard commands' keys, shared with the application's other
-    // windows (see key_map); never null.
-    std::shared_ptr<KeyBindings> key_bindings_{std::make_shared<KeyBindings>()};
+    // The application's keyboard-command table, read while the window holds
+    // none of its own (key_map): taken by reference when the window joins
+    // (no allocation), and kept if the application goes first, as its
+    // resources are. Null for a window that joined none.
+    std::shared_ptr<KeyBindings> inherited_key_bindings_{};
+    // The table the window holds, else the application's it reads; made
+    // (one allocation) for a window with neither, which then holds it.
+    // Used to seed or share a table.
+    [[nodiscard]] KeyBindings& held_key_bindings();
+    // The window's rules (rules()), null until first used. Made by the
+    // rules library (gui_forms_controls), whose deleter the pointer carries,
+    // so the core never names RuleSet's members. offer_key_rules_ is the key
+    // route's entry into them, set with them: route_key calls it first, and
+    // a true result (a consuming rule) ends the key. offer_mouse_rules_ is
+    // raise_mouse_events' entry (offer_mouse_rules), with the same result.
+    // Both null without rules.
+    std::shared_ptr<RuleSet> rules_{};
+    bool (*offer_key_rules_)(RuleSet& rules, KeyEvent& event){};
+    bool (*offer_mouse_rules_)(RuleSet& rules, detail::MouseRuleEvent event, Control& control,
+                               const MouseEventArgs* arguments){};
 };
 
 } // namespace gui_forms

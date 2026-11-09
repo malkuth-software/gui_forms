@@ -21,7 +21,7 @@
 namespace gui_forms::drag_gesture {
 
 inline constexpr double default_threshold = 4.0;
-// A host may widen the threshold (DockSite::set_drag_threshold), within this.
+// A host may widen the threshold (a DockSite drag_threshold write), within this.
 inline constexpr double minimum_threshold = 1.0;
 inline constexpr double maximum_threshold = 64.0;
 // The miniature's longer side in logical units at text scale 1.

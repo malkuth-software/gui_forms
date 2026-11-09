@@ -36,7 +36,19 @@ public unsafe struct gf_error_detail
     public ulong message_size;
 }
 
-/// <summary>gf_runtime_table (table, 32 bytes).</summary>
+/// <summary>gf_splashscreen_options (extensible, 48 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_splashscreen_options
+{
+    public uint struct_size;
+    public uint show_progress;
+    public byte* artwork;
+    public ulong artwork_size;
+    public gf_utf8_view status;
+    public double progress;
+}
+
+/// <summary>gf_runtime_table (table, 64 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_runtime_table
 {
@@ -45,6 +57,10 @@ public unsafe struct gf_runtime_table
     public delegate* unmanaged[Cdecl]<gf_abi_version_info*, gf_status> version;
     public delegate* unmanaged[Cdecl]<gf_error_detail*, byte*, ulong, ulong*, gf_status> error_detail;
     public delegate* unmanaged[Cdecl]<gf_status> clear_error;
+    public delegate* unmanaged[Cdecl]<gf_splashscreen_options*, gf_splashscreen*, gf_status> splashscreen_show;
+    public delegate* unmanaged[Cdecl]<gf_splashscreen, gf_utf8_view, gf_status> splashscreen_set_status;
+    public delegate* unmanaged[Cdecl]<gf_splashscreen, uint, double, gf_status> splashscreen_set_progress;
+    public delegate* unmanaged[Cdecl]<gf_splashscreen, gf_status> splashscreen_close;
 }
 
 /// <summary>gf_logical_point (record, 16 bytes).</summary>
@@ -498,13 +514,17 @@ public unsafe struct gf_themes_table
     public delegate* unmanaged[Cdecl]<byte*, uint, uint, ulong, ulong*, gf_status> load_pixels;
 }
 
-/// <summary>gf_host_capabilities (extensible, 16 bytes).</summary>
+/// <summary>gf_host_capabilities (extensible, 32 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_host_capabilities
 {
     public uint struct_size;
     public uint protocol_version;
     public gf_host_capability available;
+    public gf_transient_surface_kind transient_surfaces;
+    public uint reserved;
+    public gf_window_corner_shape window_corner_shapes;
+    public uint window_band_maximum_width;
 }
 
 /// <summary>gf_file_filter (record, 32 bytes).</summary>
@@ -845,6 +865,81 @@ public unsafe struct gf_subsurfaces_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_subsurface_state*, gf_status> state;
     public delegate* unmanaged[Cdecl]<gf_object, ulong*, gf_status> content_epoch;
     public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> failure;
+}
+
+/// <summary>gf_application_config (extensible, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_application_config
+{
+    public uint struct_size;
+    public gf_theme_base theme_base;
+    public gf_theme_package* packages;
+    public ulong package_count;
+    public gf_presentation_source presentation_source;
+    public uint reserved;
+}
+
+/// <summary>gf_application_table (table, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_application_table
+{
+    public uint struct_size;
+    public uint abi_minor;
+    public delegate* unmanaged[Cdecl]<gf_application_config*, gf_theme_report*, gf_status> create;
+    public delegate* unmanaged[Cdecl]<ulong*, gf_status> close;
+    public delegate* unmanaged[Cdecl]<gf_application_state*, gf_status> state;
+}
+
+/// <summary>gf_rule_condition (extensible, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_rule_condition
+{
+    public uint struct_size;
+    public gf_rule_condition_kind kind;
+    public gf_object @object;
+    public uint physical_key;
+    public uint modifiers;
+    public uint negated;
+    public uint reserved;
+}
+
+/// <summary>gf_rule_action (extensible, 48 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_rule_action
+{
+    public uint struct_size;
+    public gf_rule_action_kind kind;
+    public gf_object target;
+    public gf_utf8_view property;
+    public gf_value* value;
+    public gf_callback* callback;
+}
+
+/// <summary>gf_rule (extensible, 72 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_rule
+{
+    public uint struct_size;
+    public gf_rule_flags flags;
+    public gf_rule_trigger_kind trigger;
+    public uint physical_key;
+    public gf_object source;
+    public gf_utf8_view interaction;
+    public ulong condition_count;
+    public gf_rule_condition* conditions;
+    public ulong action_count;
+    public gf_rule_action* actions;
+}
+
+/// <summary>gf_rules_table (table, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_rules_table
+{
+    public uint struct_size;
+    public uint abi_minor;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_rule*, gf_rule_token*, gf_status> add;
+    public delegate* unmanaged[Cdecl]<gf_rule_token, gf_status> remove;
+    public delegate* unmanaged[Cdecl]<gf_rule_token, gf_rule_state*, gf_status> state;
 }
 
 /// <summary>gf_windows_paint_endpoint_table (table, 104 bytes).</summary>

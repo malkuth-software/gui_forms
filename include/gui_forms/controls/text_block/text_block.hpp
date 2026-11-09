@@ -4,12 +4,14 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/layout/style/layout_style.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/controls/text_block/text_block_capabilities/text_block_capabilities.hpp"
 
 #include <cstddef>
 #include <optional>
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace gui_forms {
@@ -25,34 +27,17 @@ namespace gui_forms {
 // It publishes its first and last baselines to the layout containers. Use it
 // for text inside FlexPanel, GridPanel and BlockPanel; Label keeps Windows
 // Forms' label model (its inset and line spacing).
-class TextBlock final : public Control {
+class TextBlock final : public Control, public TextBlockCapabilities<TextBlock> {
 public:
-    explicit TextBlock(StableId stable_id, std::string text = {});
+    explicit TextBlock(StableId stable_id, std::string initial_text = {});
 
-    [[nodiscard]] const std::string& text() const noexcept { return text_; }
-    void set_text(GUI_FORMS_LOCALIZABLE(text) std::string text);
-    // The authored font, or the theme's field typography when none is set.
-    // Layout and paint use it at the effective text scale. set_font throws
-    // std::invalid_argument for an invalid FontSpec.
-    [[nodiscard]] FontSpec font() const noexcept;
-    [[nodiscard]] bool has_font_override() const noexcept { return font_override_.has_value(); }
-    void set_font(FontSpec font);
-    void clear_font();
+    // The font the block lays out and paints with: its own `font` when set,
+    // otherwise the theme's field typography. Layout and paint use it at the
+    // effective text scale.
+    [[nodiscard]] FontSpec resolved_font() const noexcept;
+    // The colour the text paints in: Control's `fore_color` when set,
+    // otherwise the theme's panel text colour.
     [[nodiscard]] Color foreground() const noexcept;
-    [[nodiscard]] bool has_foreground_override() const noexcept {
-        return foreground_override_.has_value();
-    }
-    void set_foreground(Color color);
-    void clear_foreground();
-    // CSS text-align. `start` and `end` follow the effective layout
-    // direction. Throws std::invalid_argument outside the enumeration.
-    [[nodiscard]] TextAlignment text_align() const noexcept { return text_align_; }
-    void set_text_align(TextAlignment alignment);
-    // CSS line-height as a length, in logical pixels at text scale 1; none
-    // is `normal`. Throws std::invalid_argument unless finite and positive.
-    [[nodiscard]] std::optional<double> line_height() const noexcept { return line_height_; }
-    void set_line_height(double line_height);
-    void clear_line_height();
     [[nodiscard]] Event<const std::string&>& text_changed() noexcept { return text_changed_; }
 
     [[nodiscard]] Size measure(Size available) override;
@@ -101,36 +86,71 @@ private:
         std::vector<TextLine> lines;
     };
 
+    // The font entry's operations: the read is the resolved font, a reset
+    // clears the block's own, and it serializes while the block has one.
+    [[nodiscard]] BindingValue font_property_value() const;
+    void reset_font();
+    [[nodiscard]] bool font_serialized() const;
     [[nodiscard]] PropertyValueOrigin font_property_origin() const noexcept;
-    [[nodiscard]] PropertyValueOrigin foreground_property_origin() const noexcept;
-    [[nodiscard]] BindingValue text_align_property_value() const;
-    void set_text_align_property_value(const BindingValue& value);
+    // The fore_color entry, which replaces Control's in TextBlock's table
+    // (the schema keeps TextBlock's: the resolved colour, neither bindable
+    // nor nullable). The write and reset go to Control's fore_color cell.
+    [[nodiscard]] BindingValue fore_color_property_value() const;
+    void write_fore_color_property(const BindingValue& value);
+    void reset_fore_color_property();
+    [[nodiscard]] bool fore_color_serialized() const;
+    [[nodiscard]] PropertyValueOrigin fore_color_property_origin() const noexcept;
+    // The line_height entry: zero reads and writes as `normal` (empty).
     [[nodiscard]] BindingValue line_height_property_value() const;
-    void set_line_height_property_value(const BindingValue& value);
-    // Fills workspace.collapsed and workspace.opportunities from text_.
+    void write_line_height_property(const BindingValue& value);
+    // Fills workspace.collapsed and workspace.opportunities from text.
     void prepare_text(Workspace& workspace) const;
     // Fills workspace.lines with the prepared text wrapped at
     // `content_width`.
-    void break_lines(double content_width, FontSpec font, Workspace& workspace) const;
-    [[nodiscard]] double run_width(std::string_view run, FontSpec font) const;
+    void break_lines(double content_width, FontSpec face, Workspace& workspace) const;
+    [[nodiscard]] double run_width(std::string_view run, FontSpec face) const;
     // The widest run between two break opportunities of the prepared text.
-    [[nodiscard]] double widest_unbreakable_run(const Workspace& workspace, FontSpec font) const;
-    // The line box every line shares (line_box_metrics in `font`).
-    [[nodiscard]] LineBoxMetrics line_metrics(FontSpec font) const;
+    [[nodiscard]] double widest_unbreakable_run(const Workspace& workspace, FontSpec face) const;
+    // The line box every line shares (line_box_metrics in `face`).
+    [[nodiscard]] LineBoxMetrics line_metrics(FontSpec face) const;
     // Prepares and wraps the text at `content_width` into `workspace` and
     // returns the lines' size: the widest line by the lines' total height.
     [[nodiscard]] Size content_size(double content_width, Workspace& workspace) const;
     [[nodiscard]] double line_x(const TextLine& line, double content_width) const noexcept;
 
-    std::string text_;
-    std::optional<FontSpec> font_override_;
-    std::optional<Color> foreground_override_;
-    TextAlignment text_align_{TextAlignment::start};
-    std::optional<double> line_height_;
     // Owned by this control and used on its UI thread only; measure, the
     // baselines and paint each refill it before reading it.
     Workspace workspace_{};
     Event<const std::string&> text_changed_;
+    // property_codemod begin TextBlock (tools/property_families/text_block.json; generated, do not edit)
+public:
+    // TextBlock's property table: Control's entries, then its own.
+    static constexpr std::size_t text_block_property_count = Control::control_property_count + 4U;
+    [[nodiscard]] static const std::array<PropertyEntry, text_block_property_count>& text_block_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_text_changed();
+    virtual void on_font_changed();
+
+private:
+    friend struct TextCapability<TextBlock>;
+    friend struct TextBlockFontCapability<TextBlock>;
+    friend struct TextBlockTextAlignCapability<TextBlock>;
+    friend struct TextBlockLineHeightCapability<TextBlock>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(text)& cell, std::string& incoming);
+    void written(const decltype(text)& cell);
+    void prepare_write(const decltype(font)& cell, std::optional<FontSpec>& incoming);
+    void written(const decltype(font)& cell);
+    void prepare_write(const decltype(text_align)& cell, TextAlignment& incoming);
+    void written(const decltype(text_align)& cell);
+    void prepare_write(const decltype(line_height)& cell, std::optional<double>& incoming);
+    void written(const decltype(line_height)& cell);
+    // property_codemod end TextBlock
 };
 
 } // namespace gui_forms

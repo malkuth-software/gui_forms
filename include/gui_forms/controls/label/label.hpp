@@ -1,8 +1,10 @@
 #pragma once
 
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/label/label_values/label_values.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/controls/label/label_capabilities/label_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -10,86 +12,21 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace gui_forms {
 
-enum class HorizontalAlignment : std::uint8_t {
-    near,
-    center,
-    far,
-};
-
-enum class VerticalAlignment : std::uint8_t {
-    near,
-    center,
-    far,
-};
-
-enum class TextWrapping : std::uint8_t {
-    no_wrap,
-    word,
-};
-
-enum class TextStyleRole : std::uint8_t {
-    body,
-    control,
-    caption,
-    heading,
-    title,
-    monospace,
-};
-
-enum class TextCaseTransform : std::uint8_t {
-    none,
-    uppercase_ascii,
-    lowercase_ascii,
-};
-
-class Label : public Control {
+class Label : public Control, public LabelCapabilities<Label> {
 public:
-    explicit Label(StableId stable_id, std::string text = {});
+    explicit Label(StableId stable_id, std::string initial_text = {});
 
-    [[nodiscard]] const std::string& text() const noexcept { return text_; }
-    virtual void set_text(GUI_FORMS_LOCALIZABLE(text) std::string text);
-    [[nodiscard]] FontSpec font() const noexcept;
-    [[nodiscard]] bool has_font_override() const noexcept {
-        return font_override_.has_value();
-    }
-    void set_font(FontSpec font);
-    void clear_font();
-    [[nodiscard]] TextStyleRole text_style_role() const noexcept {
-        return text_style_role_;
-    }
-    void set_text_style_role(TextStyleRole role);
+    // The font the label measures and paints with: its own `font` when set,
+    // otherwise the theme typography of `text_style_role`.
+    [[nodiscard]] FontSpec resolved_font() const noexcept;
+    // The colour the text paints in: Control's `fore_color` when set,
+    // otherwise the theme's text colour for a label.
     [[nodiscard]] Color foreground() const;
-    [[nodiscard]] bool has_foreground_override() const noexcept {
-        return foreground_override_.has_value();
-    }
-    void set_foreground(Color color);
-    void clear_foreground();
-    [[nodiscard]] HorizontalAlignment alignment() const noexcept { return alignment_; }
-    void set_alignment(HorizontalAlignment alignment);
-    [[nodiscard]] VerticalAlignment vertical_alignment() const noexcept {
-        return vertical_alignment_;
-    }
-    void set_vertical_alignment(VerticalAlignment alignment);
-    [[nodiscard]] TextWrapping text_wrapping() const noexcept { return text_wrapping_; }
-    void set_text_wrapping(TextWrapping wrapping);
-    [[nodiscard]] double line_spacing() const noexcept { return line_spacing_; }
-    void set_line_spacing(double spacing);
-    [[nodiscard]] TextCaseTransform text_case_transform() const noexcept {
-        return text_case_transform_;
-    }
-    void set_text_case_transform(TextCaseTransform transform);
-    // Zero keeps all produced lines. A positive value bounds both desired
-    // height and painting while semantics retain the complete authored text.
-    [[nodiscard]] std::size_t maximum_lines() const noexcept {
-        return maximum_lines_;
-    }
-    void set_maximum_lines(std::size_t maximum_lines);
-    [[nodiscard]] bool use_mnemonic() const noexcept { return use_mnemonic_; }
-    void set_use_mnemonic(bool value);
     [[nodiscard]] Event<const std::string&>& text_changed() noexcept {
         return text_changed_;
     }
@@ -128,10 +65,10 @@ protected:
     };
 
     [[nodiscard]] virtual std::string display_text() const;
-    void paint_label_text(Painter& painter, std::string_view text) const;
+    void paint_label_text(Painter& painter, std::string_view shown) const;
     // Measures with `painter` when one is given, otherwise with the window's
     // text metrics, which the host's raster painter provides.
-    [[nodiscard]] TextLayout layout_label_text(std::string_view text,
+    [[nodiscard]] TextLayout layout_label_text(std::string_view shown,
                                                Painter* painter) const;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
@@ -140,27 +77,74 @@ private:
     // inside the 4 px inset), clamped to `available`.
     [[nodiscard]] Size measure_wrapped_text(double content_width_limit,
                                             Size available) const;
-    [[nodiscard]] double widest_unbreakable_segment(std::string_view text,
-                                                    FontSpec font) const;
+    [[nodiscard]] double widest_unbreakable_segment(std::string_view shown,
+                                                    FontSpec face) const;
+    // The font entry's operations: the read is the resolved font, a reset
+    // clears the label's own, and it serializes while the label has one.
+    [[nodiscard]] BindingValue font_property_value() const;
+    void reset_font();
+    [[nodiscard]] bool font_serialized() const;
     [[nodiscard]] PropertyValueOrigin font_property_origin() const noexcept;
-    [[nodiscard]] PropertyValueOrigin foreground_property_origin() const noexcept;
-    [[nodiscard]] BindingValue maximum_lines_property_value() const;
-    void set_maximum_lines_property_value(const BindingValue& value);
+    // The fore_color entry, which replaces Control's in Label's table (the
+    // schema keeps Label's: the resolved colour, neither bindable nor
+    // nullable). The write and reset go to Control's fore_color cell.
+    [[nodiscard]] BindingValue fore_color_property_value() const;
+    void write_fore_color_property(const BindingValue& value);
+    void reset_fore_color_property();
+    [[nodiscard]] bool fore_color_serialized() const;
+    [[nodiscard]] PropertyValueOrigin fore_color_property_origin() const noexcept;
     [[nodiscard]] bool mnemonic_matches(
         char32_t character) const noexcept override;
     bool process_mnemonic_self(char32_t character) override;
-    std::string text_;
-    std::optional<FontSpec> font_override_;
-    std::optional<Color> foreground_override_;
-    TextStyleRole text_style_role_{TextStyleRole::body};
-    HorizontalAlignment alignment_{HorizontalAlignment::near};
-    VerticalAlignment vertical_alignment_{VerticalAlignment::center};
-    TextWrapping text_wrapping_{TextWrapping::no_wrap};
-    double line_spacing_{1.25};
-    TextCaseTransform text_case_transform_{TextCaseTransform::none};
-    std::size_t maximum_lines_{};
-    bool use_mnemonic_{true};
     Event<const std::string&> text_changed_;
+    // property_codemod begin Label (tools/property_families/label.json; generated, do not edit)
+public:
+    // Label's property table: Control's entries, then its own.
+    static constexpr std::size_t label_property_count = Control::control_property_count + 6U;
+    [[nodiscard]] static const std::array<PropertyEntry, label_property_count>& label_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_text_changed();
+    virtual void on_font_changed();
+    virtual void on_alignment_changed();
+
+private:
+    friend struct TextCapability<Label>;
+    friend struct LabelFontCapability<Label>;
+    friend struct LabelAlignmentCapability<Label>;
+    friend struct LabelVerticalAlignmentCapability<Label>;
+    friend struct LabelTextWrappingCapability<Label>;
+    friend struct LabelMaximumLinesCapability<Label>;
+    friend struct LabelTextStyleRoleCapability<Label>;
+    friend struct LabelLineSpacingCapability<Label>;
+    friend struct LabelTextCaseTransformCapability<Label>;
+    friend struct LabelUseMnemonicCapability<Label>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(text)& cell, std::string& incoming);
+    void written(const decltype(text)& cell);
+    void prepare_write(const decltype(font)& cell, std::optional<FontSpec>& incoming);
+    void written(const decltype(font)& cell);
+    void prepare_write(const decltype(alignment)& cell, HorizontalAlignment& incoming);
+    void written(const decltype(alignment)& cell);
+    void prepare_write(const decltype(vertical_alignment)& cell, VerticalAlignment& incoming);
+    void written(const decltype(vertical_alignment)& cell);
+    void prepare_write(const decltype(text_wrapping)& cell, TextWrapping& incoming);
+    void written(const decltype(text_wrapping)& cell);
+    void prepare_write(const decltype(maximum_lines)& cell, std::uint32_t& incoming);
+    void written(const decltype(maximum_lines)& cell);
+    void prepare_write(const decltype(text_style_role)& cell, TextStyleRole& incoming);
+    void written(const decltype(text_style_role)& cell);
+    void prepare_write(const decltype(line_spacing)& cell, double& incoming);
+    void written(const decltype(line_spacing)& cell);
+    void prepare_write(const decltype(text_case_transform)& cell, TextCaseTransform& incoming);
+    void written(const decltype(text_case_transform)& cell);
+    void prepare_write(const decltype(use_mnemonic)& cell, bool& incoming);
+    void written(const decltype(use_mnemonic)& cell);
+    // property_codemod end Label
 };
 
 } // namespace gui_forms

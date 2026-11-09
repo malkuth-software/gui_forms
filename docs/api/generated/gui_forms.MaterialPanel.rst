@@ -7,7 +7,7 @@ gui_forms::MaterialPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: MaterialPanel : public Panel
+.. cpp:class:: MaterialPanel : public Panel, public MaterialPanelCapabilities<MaterialPanel>
 
    ``#include <gui_forms/controls/panel/material_panel/material_panel.hpp>``
 
@@ -44,13 +44,13 @@ gui_forms::MaterialPanel
    :Events:
 
       **material_changed** : ``Event<const SurfaceMaterial&>``
-         Raised after :cpp:func:`material <gui_forms::MaterialPanel::material>` changes, with the new material.
+         Raised after :cpp:member:`material <gui_forms::MaterialPanel::material>` changes, with the new material.
 
    :Inherited:
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`, :cpp:func:`parts <gui_forms::Panel::parts>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -93,7 +93,7 @@ gui_forms::MaterialPanel
       std::shared_ptr<gf::MaterialPanel> hero =
           gf::make_control<gf::MaterialPanel>(gf::StableId("welcome.hero"));
       (*hero).set_requested_bounds({16.0, 16.0, 320.0, 120.0});
-      (*hero).set_material(banner);
+      (*hero).material = banner;
       std::shared_ptr<gf::Label> title =
           gf::make_control<gf::Label>(gf::StableId("welcome.hero.title"), "Welcome");
       (*title).set_requested_bounds({16.0, 16.0, 200.0, 28.0});
@@ -107,7 +107,7 @@ gui_forms::MaterialPanel
 
    .. rubric:: Properties
 
-   .. cpp:function:: const SurfaceMaterial& material() const noexcept
+   .. cpp:member:: SurfaceMaterial material
 
       The material painted over the whole panel. The default is a single
       opaque white fill. Setting a material that ``valid_surface_material``
@@ -119,23 +119,19 @@ gui_forms::MaterialPanel
       with that window, with its exact pixel size, or the setter throws
       ``std::invalid_argument``. Setting an equal material does nothing.
 
-   .. cpp:function:: void set_material(SurfaceMaterial material)
-
-      Sets :cpp:func:`material <gui_forms::MaterialPanel::material>`; see the property's description above.
-
 
    .. rubric:: Events
 
    .. cpp:function:: Event<const SurfaceMaterial&>& material_changed() noexcept
 
-      Raised after :cpp:func:`material <gui_forms::MaterialPanel::material>` changes, with the new material.
+      Raised after :cpp:member:`material <gui_forms::MaterialPanel::material>` changes, with the new material.
 
 
    .. rubric:: Extension points
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-      Paints :cpp:func:`material <gui_forms::MaterialPanel::material>` over the panel's arranged bounds. It ignores the
+      Paints :cpp:member:`material <gui_forms::MaterialPanel::material>` over the panel's arranged bounds. It ignores the
       inherited ``background``, ``border_style``, ``style`` and ``visual_role``.
 
    .. cpp:function:: Insets visual_outsets() const noexcept override

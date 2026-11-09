@@ -1,31 +1,21 @@
 #pragma once
 
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp"
 
 #include <span>
 #include <string>
+#include <utility>
 
 namespace gui_forms {
 
 // Renderer-neutral diagnostic control for typography review. It draws one
 // committed text run with its logical line box, resolved baseline, and exact
 // provider status. It is a review instrument, not a File Manager control.
-class TypographySpecimen final : public Control {
+class TypographySpecimen final : public Control, public TypographySpecimenCapabilities<TypographySpecimen> {
 public:
-    explicit TypographySpecimen(StableId stable_id, std::string text = {});
+    explicit TypographySpecimen(StableId stable_id, std::string initial_text = {});
 
-    [[nodiscard]] const std::string& text() const noexcept { return text_; }
-    void set_text(std::string text);
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
-    [[nodiscard]] const std::string& caption() const noexcept { return caption_; }
-    void set_caption(std::string caption);
-    [[nodiscard]] bool diagnostics_visible() const noexcept {
-        return diagnostics_visible_;
-    }
-    void set_diagnostics_visible(bool visible);
-    [[nodiscard]] bool wrap_text() const noexcept { return wrap_text_; }
-    void set_wrap_text(bool wrap);
     [[nodiscard]] ResolvedTextLayout resolved_layout() const;
 
     [[nodiscard]] Size measure(Size available) override;
@@ -54,11 +44,38 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
-    std::string text_;
-    std::string caption_;
-    FontSpec font_{FontRole::content, 12.0, 400, false};
-    bool diagnostics_visible_{true};
-    bool wrap_text_{};
+    // property_codemod begin TypographySpecimen (tools/property_families/typography_specimen.json; generated, do not edit)
+public:
+    // TypographySpecimen's property table: Control's entries, then its own.
+    static constexpr std::size_t typography_specimen_property_count = Control::control_property_count + 4U;
+    [[nodiscard]] static const std::array<PropertyEntry, typography_specimen_property_count>& typography_specimen_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_text_changed();
+    virtual void on_font_changed();
+
+private:
+    friend struct TextCapability<TypographySpecimen>;
+    friend struct TypographySpecimenFontCapability<TypographySpecimen>;
+    friend struct TypographySpecimenCaptionCapability<TypographySpecimen>;
+    friend struct TypographySpecimenDiagnosticsVisibleCapability<TypographySpecimen>;
+    friend struct TypographySpecimenWrapTextCapability<TypographySpecimen>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(text)& cell, std::string& incoming);
+    void written(const decltype(text)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    void prepare_write(const decltype(caption)& cell, std::string& incoming);
+    void written(const decltype(caption)& cell);
+    void prepare_write(const decltype(diagnostics_visible)& cell, bool& incoming);
+    void written(const decltype(diagnostics_visible)& cell);
+    void prepare_write(const decltype(wrap_text)& cell, bool& incoming);
+    void written(const decltype(wrap_text)& cell);
+    // property_codemod end TypographySpecimen
 };
 
 } // namespace gui_forms

@@ -85,6 +85,17 @@
       "doc": "api/generated/gui_forms.TokenBox.rst"
     },
     {
+      "id": "search_field",
+      "type": "SearchField",
+      "header": "gui_forms/controls/search_field/search_field.hpp",
+      "category": "Text editing",
+      "purpose": "Query field: a search mark, an inner TextBox, a clear mark and a busy strip; raises search_requested after typing pauses or on Enter; a search box to assistive technology.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "text-and-input",
+      "doc": "api/generated/gui_forms.SearchField.rst"
+    },
+    {
       "id": "masked_text_box",
       "type": "MaskedTextBox",
       "header": "gui_forms/controls/panel/masked_text_box/masked_text_box.hpp",
@@ -129,6 +140,50 @@
       "doc": "api/generated/gui_forms.TextBlock.rst"
     },
     {
+      "id": "badge",
+      "type": "Badge",
+      "header": "gui_forms/controls/badge/badge.hpp",
+      "category": "Information display",
+      "purpose": "Small count or dot: the count, or its maximum and + past it, in an accent pill; a zero count hides unless show_zero; dot mode marks something new without a number.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "notices-and-badges",
+      "doc": "api/generated/gui_forms.Badge.rst"
+    },
+    {
+      "id": "info_banner",
+      "type": "InfoBanner",
+      "header": "gui_forms/controls/info_banner/info_banner.hpp",
+      "category": "Information display",
+      "purpose": "Message strip across a form or page: a severity icon and keyline, a title and a message, an optional action and a close actuator; a live region to assistive technology.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "notices-and-badges",
+      "doc": "api/generated/gui_forms.InfoBanner.rst"
+    },
+    {
+      "id": "empty_state",
+      "type": "EmptyState",
+      "header": "gui_forms/controls/empty_state/empty_state.hpp",
+      "category": "Information display",
+      "purpose": "What a list, page or search shows when it has nothing: a picture, a title, a description and an optional action in a centred column; a group to assistive technology.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "notices-and-badges",
+      "doc": "api/generated/gui_forms.EmptyState.rst"
+    },
+    {
+      "id": "toast",
+      "type": "Toast",
+      "header": "gui_forms/controls/toast/toast.hpp",
+      "category": "Information display",
+      "purpose": "Brief notice above the bottom of a window: a severity mark, a message, an optional action and a close mark, shown by Window::show_toast for a while; a live region to assistive technology.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "notices-and-badges",
+      "doc": "api/generated/gui_forms.Toast.rst"
+    },
+    {
       "id": "picture_box",
       "type": "PictureBox",
       "header": "gui_forms/controls/panel/picture_box/picture_box.hpp",
@@ -149,6 +204,28 @@
       "status": "stable",
       "gallery_page": "ranges-and-progress",
       "doc": "api/generated/gui_forms.ProgressBar.rst"
+    },
+    {
+      "id": "progress_ring",
+      "type": "ProgressRing",
+      "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+      "category": "Information display",
+      "purpose": "Circular progress indicator of forty dots: lit in proportion to value over maximum, or a turning run while indeterminate, on the window's frame clock with reduced motion honoured.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "spinners-and-rings",
+      "doc": "api/generated/gui_forms.ProgressRing.rst"
+    },
+    {
+      "id": "spinner",
+      "type": "Spinner",
+      "header": "gui_forms/controls/spinner/spinner.hpp",
+      "category": "Information display",
+      "purpose": "Indeterminate busy indicator: a ring of twelve dots, three lit, turning while active on the window's frame clock; still under reduced motion; busy to assistive technology.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "spinners-and-rings",
+      "doc": "api/generated/gui_forms.Spinner.rst"
     },
     {
       "id": "sweep_scope",
@@ -314,6 +391,17 @@
       "status": "stable",
       "gallery_page": "control-spectrum",
       "doc": "api/generated/gui_forms.RadioButton.rst"
+    },
+    {
+      "id": "toggle_switch",
+      "type": "ToggleSwitch",
+      "header": "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp",
+      "category": "Value setting",
+      "purpose": "On/off switch for a setting that takes effect at once: a rounded track and thumb, a label and optional state text; a switch to assistive technology.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "choices-and-sections",
+      "doc": "api/generated/gui_forms.ToggleSwitch.rst"
     },
     {
       "id": "range_control",

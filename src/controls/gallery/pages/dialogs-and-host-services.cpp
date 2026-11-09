@@ -203,19 +203,19 @@ void HostServicesPage::build_task_dialog() {
 
 void HostServicesPage::on_show_exception_dialog() {
     if (!(*exception_dialog_).show(exception_dialog_button_)) return;
-    (*status_).set_text("ThreadExceptionDialog shown · Continue, Quit or Escape closes it");
+    (*status_).text = "ThreadExceptionDialog shown · Continue, Quit or Escape closes it";
 }
 
 void HostServicesPage::on_exception_dialog_closed(DialogResult result) {
     // The Gallery keeps running on Quit; an application would close itself.
     const char* const outcome = result == DialogResult::abort ? "Quit · the application would close itself"
                                                               : "Continue · the error is ignored";
-    (*status_).set_text(std::string("ThreadExceptionDialog closed with ") + outcome);
+    (*status_).text = std::string("ThreadExceptionDialog closed with ") + outcome;
 }
 
 void HostServicesPage::on_show_task_dialog() {
     if (!(*task_dialog_).show(task_dialog_button_)) return;
-    (*status_).set_text("TaskDialog shown · the window behind it takes no input until it closes");
+    (*status_).text = "TaskDialog shown · the window behind it takes no input until it closes";
 }
 
 // The toggle takes effect at each dialog's next show().
@@ -223,14 +223,14 @@ void HostServicesPage::on_native_dialogs_changed(bool native) {
     const DialogSurface surface = native ? DialogSurface::native_popup : DialogSurface::overlay;
     (*task_dialog_).set_surface(surface);
     if (font_dialog_) (*font_dialog_).set_surface(surface);
-    (*status_).set_text(native ? "Task and font dialogs open as native popup windows where the host has them"
-                               : "Task and font dialogs open as overlays in this window");
+    (*status_).text = native ? "Task and font dialogs open as native popup windows where the host has them"
+                               : "Task and font dialogs open as overlays in this window";
 }
 
 void HostServicesPage::on_task_dialog_closed(const TaskDialogResult& result) {
-    (*status_).set_text("TaskDialog closed with " + result.button_id + " · " +
+    (*status_).text = "TaskDialog closed with " + result.button_id + " · " +
                         (result.radio_button_id.empty() ? std::string("no choice") : result.radio_button_id) +
-                        (result.verification_checked ? " · open afterwards" : ""));
+                        (result.verification_checked ? " · open afterwards" : "");
 }
 
 // The FontDialog specimen, beside the service status: a button opens the
@@ -244,7 +244,7 @@ void HostServicesPage::build_font_dialog() {
                          shell_blue_dark);
     (*document_.gallery_host_services).add_at(font_sample_, {650.0, 142.0, 246.0, 56.0});
     font_dialog_ = make_control<FontDialog>(StableId("gallery.host.font.dialog"));
-    (*font_dialog_).set_font((*font_sample_).font());
+    (*font_dialog_).font = (*font_sample_).resolved_font();
     on(choose_font_.invoked(), *this, &HostServicesPage::on_choose_font);
     on((*font_dialog_).closed(), *this, &HostServicesPage::on_font_closed);
     on((*font_dialog_).apply(), *this, &HostServicesPage::on_font_applied);
@@ -255,11 +255,11 @@ void HostServicesPage::on_choose_font() {
 }
 
 void HostServicesPage::on_font_closed(const FontDialogResult& result) {
-    if (result.result == DialogResult::ok) (*font_sample_).set_font(result.font);
+    if (result.result == DialogResult::ok) (*font_sample_).font = result.font;
 }
 
 void HostServicesPage::on_font_applied(const FontSpec& font) {
-    (*font_sample_).set_font(font);
+    (*font_sample_).font = font;
 }
 
 namespace {
@@ -327,39 +327,40 @@ void HostServicesPage::on_toggle_notify_icon() {
     if (window == nullptr) return;
     if (!notify_icon_) {
         notify_icon_ = std::make_shared<NotifyIcon>(*window);
-        (*notify_icon_).set_icon({round_icon(16U), round_icon(32U), round_icon(48U)});
-        (*notify_icon_).set_text("GUI.Forms Gallery");
+        (*notify_icon_).icon = std::vector<HostImage>{round_icon(16U), round_icon(32U), round_icon(48U)};
+        (*notify_icon_).text = "GUI.Forms Gallery";
         std::shared_ptr<ContextMenu> menu = std::make_shared<ContextMenu>("gallery.host.notify-icon.menu");
         (*menu).set_items({MenuItemSpec("gallery.host.notify-icon.menu.hello", MenuItemKind::command,
                                         notify_menu_command_)});
-        (*notify_icon_).set_context_menu(menu);
+        (*notify_icon_).context_menu = menu;
         on((*notify_icon_).click(), *this, &HostServicesPage::on_notify_icon_click);
         on((*notify_icon_).menu_item_invoked(), *this, &HostServicesPage::on_notify_icon_menu);
     }
-    const bool show = !(*notify_icon_).visible();
-    const HostServiceStatus status = (*notify_icon_).set_visible(show);
+    const bool show = !(*notify_icon_).visible.read();
+    (*notify_icon_).visible = show;
+    const HostServiceStatus status = (*notify_icon_).status();
     notify_toggle_command_.set_text(show ? "Hide tray icon" : "Show tray icon");
     (*notify_toggle_button_).text = show ? "Hide tray icon" : "Show tray icon";
-    (*status_).set_text(std::string(show ? "Tray icon shown: " : "Tray icon hidden: ") + service_result(status));
+    (*status_).text = std::string(show ? "Tray icon shown: " : "Tray icon hidden: ") + service_result(status);
 }
 
 void HostServicesPage::on_notify() {
     if (!notify_icon_) {
-        (*status_).set_text("Show the tray icon first");
+        (*status_).text = "Show the tray icon first";
         return;
     }
     const HostServiceStatus status = (*notify_icon_).show_balloon_tip(
         "GUI.Forms", "Notification text from the Gallery", HostTrayNotificationIcon::information);
-    (*status_).set_text("Tray notification: " + service_result(status));
+    (*status_).text = "Tray notification: " + service_result(status);
 }
 
 void HostServicesPage::on_notify_icon_click(const NotifyIconClick& click) {
-    (*status_).set_text(click.button == PointerButton::primary ? "Tray icon clicked"
-                                                               : "Tray icon context gesture");
+    (*status_).text = click.button == PointerButton::primary ? "Tray icon clicked"
+                                                               : "Tray icon context gesture";
 }
 
 void HostServicesPage::on_notify_icon_menu(const MenuItemInvocation& invocation) {
-    (*status_).set_text("Tray menu chose " + invocation.item_id);
+    (*status_).text = "Tray menu chose " + invocation.item_id;
 }
 
 void HostServicesPage::build_messages() {
@@ -391,17 +392,17 @@ void HostServicesPage::build_paths() {
            static_cast<int>(index));
     }
     open_file_dialog_ = std::make_shared<OpenFileDialog>();
-    (*open_file_dialog_).set_filter("Text and logs|*.txt;*.log|PNG images|*.png");
+    (*open_file_dialog_).filter = "Text and logs|*.txt;*.log|PNG images|*.png";
     save_file_dialog_ = std::make_shared<SaveFileDialog>();
-    (*save_file_dialog_).set_title("Save GUI.Forms evidence");
-    (*save_file_dialog_).set_filter("Text evidence|*.txt");
-    (*save_file_dialog_).set_default_ext("txt");
-    (*save_file_dialog_).set_file_name("gui-forms-evidence");
+    (*save_file_dialog_).title = "Save GUI.Forms evidence";
+    (*save_file_dialog_).filter = "Text evidence|*.txt";
+    (*save_file_dialog_).default_ext = "txt";
+    (*save_file_dialog_).file_name = "gui-forms-evidence";
     color_dialog_ = std::make_shared<ColorDialog>();
-    (*color_dialog_).set_title("Choose an accent color");
-    (*color_dialog_).set_color(Color::rgba(0x27U, 0x74U, 0xB8U));
+    (*color_dialog_).title = "Choose an accent color";
+    (*color_dialog_).color = Color::rgba(0x27U, 0x74U, 0xB8U);
     folder_browser_dialog_ = std::make_shared<FolderBrowserDialog>();
-    (*folder_browser_dialog_).set_description("Choose an evidence directory");
+    (*folder_browser_dialog_).description = "Choose an evidence directory";
 }
 
 void HostServicesPage::build_services() {
@@ -431,7 +432,7 @@ void HostServicesPage::on_message_dialog(const int index, const CommandInvocatio
     const MessageCase& value = message_cases[static_cast<std::size_t>(index)];
     Window* const window = (*status_).attached_window();
     if (window == nullptr) {
-        (*status_).set_text("Host rejected request · unsupported");
+        (*status_).text = "Host rejected request · unsupported";
         return;
     }
     MessageBoxRequest request;
@@ -442,7 +443,7 @@ void HostServicesPage::on_message_dialog(const int index, const CommandInvocatio
     request.default_button = value.default_button;
     const MessageBoxResult result = show_message_box(*window, request);
     if (!result.shown()) {
-        (*status_).set_text(std::string("Host rejected request · ") + host_service_error_name(result.error()));
+        (*status_).text = std::string("Host rejected request · ") + host_service_error_name(result.error());
         return;
     }
     publish_accepted(std::string("MessageBox ") + std::string(message_result_name(result.result())));
@@ -464,15 +465,15 @@ void HostServicesPage::on_path_dialog(const int index,
 void HostServicesPage::show_open_file_dialog(const bool multiple) {
     Window* const window = (*status_).attached_window();
     if (window == nullptr) {
-        (*status_).set_text("Host rejected request · unsupported");
+        (*status_).text = "Host rejected request · unsupported";
         return;
     }
-    (*open_file_dialog_).set_title(multiple ? "Open fixture set" : "Open one fixture");
-    (*open_file_dialog_).set_multiselect(multiple);
+    (*open_file_dialog_).title = multiple ? "Open fixture set" : "Open one fixture";
+    (*open_file_dialog_).multiselect = multiple;
     const DialogResult result = (*open_file_dialog_).show_dialog(*window);
     if (result == DialogResult::none) {
-        (*status_).set_text(std::string("Host rejected request · ") +
-                            host_service_error_name((*open_file_dialog_).status().error));
+        (*status_).text = std::string("Host rejected request · ") +
+                            host_service_error_name((*open_file_dialog_).status().error);
         return;
     }
     if (result != DialogResult::ok) {
@@ -487,32 +488,32 @@ void HostServicesPage::show_open_file_dialog(const bool multiple) {
 void HostServicesPage::show_save_file_dialog() {
     Window* const window = (*status_).attached_window();
     if (window == nullptr) {
-        (*status_).set_text("Host rejected request · unsupported");
+        (*status_).text = "Host rejected request · unsupported";
         return;
     }
     const DialogResult result = (*save_file_dialog_).show_dialog(*window);
     if (result == DialogResult::none) {
-        (*status_).set_text(std::string("Host rejected request · ") +
-                            host_service_error_name((*save_file_dialog_).status().error));
+        (*status_).text = std::string("Host rejected request · ") +
+                            host_service_error_name((*save_file_dialog_).status().error);
         return;
     }
     if (result != DialogResult::ok) {
         publish_cancelled();
         return;
     }
-    publish_accepted("1 path · " + (*save_file_dialog_).file_name());
+    publish_accepted("1 path · " + (*save_file_dialog_).file_name.read());
 }
 
 void HostServicesPage::show_color_dialog() {
     Window* const window = (*status_).attached_window();
     if (window == nullptr) {
-        (*status_).set_text("Host rejected request · unsupported");
+        (*status_).text = "Host rejected request · unsupported";
         return;
     }
     const DialogResult result = (*color_dialog_).show_dialog(*window);
     if (result == DialogResult::none) {
-        (*status_).set_text(std::string("Host rejected request · ") +
-                            host_service_error_name((*color_dialog_).status().error));
+        (*status_).text = std::string("Host rejected request · ") +
+                            host_service_error_name((*color_dialog_).status().error);
         return;
     }
     if (result != DialogResult::ok) {
@@ -520,7 +521,7 @@ void HostServicesPage::show_color_dialog() {
         return;
     }
     // The colour as the host contract spells it, 0xRRGGBBAA.
-    const Color chosen = (*color_dialog_).color();
+    const Color chosen = (*color_dialog_).color.read();
     const std::uint32_t rgba = (static_cast<std::uint32_t>(chosen.red) << 24U) |
                                (static_cast<std::uint32_t>(chosen.green) << 16U) |
                                (static_cast<std::uint32_t>(chosen.blue) << 8U) |
@@ -533,27 +534,27 @@ void HostServicesPage::show_color_dialog() {
 void HostServicesPage::show_folder_browser_dialog() {
     Window* const window = (*status_).attached_window();
     if (window == nullptr) {
-        (*status_).set_text("Host rejected request · unsupported");
+        (*status_).text = "Host rejected request · unsupported";
         return;
     }
     const DialogResult result = (*folder_browser_dialog_).show_dialog(*window);
     if (result == DialogResult::none) {
-        (*status_).set_text(std::string("Host rejected request · ") +
-                            host_service_error_name((*folder_browser_dialog_).status().error));
+        (*status_).text = std::string("Host rejected request · ") +
+                            host_service_error_name((*folder_browser_dialog_).status().error);
         return;
     }
     if (result != DialogResult::ok) {
         publish_cancelled();
         return;
     }
-    publish_accepted("1 path · " + (*folder_browser_dialog_).selected_path());
+    publish_accepted("1 path · " + (*folder_browser_dialog_).selected_path.read());
 }
 
 void HostServicesPage::on_service(const int index) {
     HostServices* const host = services();
     if (host == nullptr) {
-        (*status_).set_text(
-            "Host service unavailable · portable control remains responsive");
+        (*status_).text =
+            "Host service unavailable · portable control remains responsive";
         return;
     }
     switch (index) {
@@ -583,8 +584,8 @@ void HostServicesPage::show_dialog(const CommandInvocation& invocation,
 
 void HostServicesPage::publish(const HostDialogResult& result) {
     if (!result.status.accepted()) {
-        (*status_).set_text(std::string("Host rejected request · ") +
-                            host_service_error_name(result.status.error));
+        (*status_).text = std::string("Host rejected request · ") +
+                            host_service_error_name(result.status.error);
         return;
     }
     if (const HostPathDialogResult* path =
@@ -612,34 +613,34 @@ void HostServicesPage::publish(const HostDialogResult& result) {
 
 void HostServicesPage::publish_accepted(std::string acceptance) {
     last_acceptance_ = std::move(acceptance);
-    (*status_).set_text("Accepted · " + last_acceptance_);
+    (*status_).text = "Accepted · " + last_acceptance_;
 }
 
 void HostServicesPage::publish_cancelled() {
-    (*status_).set_text("Cancelled · preserved: " + last_acceptance_);
+    (*status_).text = "Cancelled · preserved: " + last_acceptance_;
 }
 
 void HostServicesPage::write_clipboard(HostServices& host) {
-    const HostServiceStatus result = host.write_clipboard_text((*clipboard_).text());
-    (*status_).set_text(std::string("Clipboard write · ") +
-                        host_service_error_name(result.error));
+    const HostServiceStatus result = host.write_clipboard_text((*clipboard_).text.read());
+    (*status_).text = std::string("Clipboard write · ") +
+                        host_service_error_name(result.error);
 }
 
 void HostServicesPage::read_clipboard(HostServices& host) {
     const HostClipboardTextResult result = host.read_clipboard_text();
     if (result.status.accepted() && result.has_text) {
-        (*clipboard_).set_text(result.text_utf8);
+        (*clipboard_).text = result.text_utf8;
     }
-    (*status_).set_text(std::string("Clipboard read · ") +
+    (*status_).text = std::string("Clipboard read · ") +
                         host_service_error_name(result.status.error) +
-                        (result.has_text ? " · text restored" : " · empty"));
+                        (result.has_text ? " · text restored" : " · empty");
 }
 
 void HostServicesPage::inspect_monitors(HostServices& host) {
     const HostMonitorResult result = host.query_monitors();
     if (!result.status.accepted() || result.monitors.empty()) {
-        (*status_).set_text(std::string("Monitor query · ") +
-                            host_service_error_name(result.status.error));
+        (*status_).text = std::string("Monitor query · ") +
+                            host_service_error_name(result.status.error);
         return;
     }
     const HostMonitor* primary = &result.monitors.front();
@@ -649,9 +650,9 @@ void HostServicesPage::inspect_monitors(HostServices& host) {
             break;
         }
     }
-    (*status_).set_text("Monitors " + std::to_string(result.monitors.size()) +
+    (*status_).text = "Monitors " + std::to_string(result.monitors.size()) +
                         " · primary " + (*primary).id + " · scale " +
-                        std::to_string((*primary).scale));
+                        std::to_string((*primary).scale);
 }
 
 void HostServicesPage::play_sound(HostServices& host, const HostSoundCue cue) {
@@ -661,8 +662,8 @@ void HostServicesPage::play_sound(HostServices& host, const HostSoundCue cue) {
         std::chrono::duration_cast<std::chrono::nanoseconds>(now).count();
     const HostServiceStatus result =
         host.play_sound_cue({cue, 0.72, static_cast<std::uint64_t>(stamp)});
-    (*status_).set_text(std::string("Sound ") + host_sound_cue_name(cue) + " · " +
-                        host_service_error_name(result.error));
+    (*status_).text = std::string("Sound ") + host_sound_cue_name(cue) + " · " +
+                        host_service_error_name(result.error);
 }
 
 void add_dialogs_and_host_services(

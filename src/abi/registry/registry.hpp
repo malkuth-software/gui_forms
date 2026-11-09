@@ -3,6 +3,9 @@
 #include "../control_adapters/abi_control_adapters.hpp"
 #include "../error/abi_error.hpp"
 
+#include <chrono>
+#include <optional>
+
 namespace gui_forms::abi::detail {
 
 enum class SlotKind {
@@ -81,9 +84,6 @@ struct ControlRecord final {
     std::function<void()> host_close;
     std::function<gui_forms::HostDialogResult(
         const gui_forms::HostDialogRequest&)> host_dialog;
-    std::function<gui_forms::HostServiceStatus(
-        const gui_forms::HostTooltipRequest&)> host_tooltip_show;
-    std::function<void()> host_tooltip_hide;
     std::function<gui_forms::HostClipboardTextResult()> host_clipboard_read;
     std::function<gui_forms::HostServiceStatus(std::string_view)> host_clipboard_write;
     std::string last_dialog_path;
@@ -266,10 +266,10 @@ public:
                 (*button).text = value;
             } else if (const std::shared_ptr<gui_forms::Label> label =
                            std::dynamic_pointer_cast<gui_forms::Label>((*record).control)) {
-                (*label).set_text(value);
+                (*label).text = value;
             } else if (const std::shared_ptr<gui_forms::GroupBox> group =
                            std::dynamic_pointer_cast<gui_forms::GroupBox>((*record).control)) {
-                (*group).set_text(value);
+                (*group).text = value;
             } else if (const std::shared_ptr<gui_forms::abi::detail::FieldControl> field =
                            std::dynamic_pointer_cast<FieldControl>((*record).control)) {
                 (*field).set_text(value);
@@ -651,8 +651,8 @@ public:
             controls.push_back((*candidate).control);
         }
         const std::vector<Control::Ptr> previous = (*grid).selected_objects();
-        const std::shared_ptr<PropertyValueConverterRegistry> previous_converters = (*grid).converter_registry();
-        const std::shared_ptr<PropertyEditorRegistry> previous_editors = (*grid).editor_registry();
+        const std::shared_ptr<PropertyValueConverterRegistry> previous_converters = (*grid).converter_registry.read();
+        const std::shared_ptr<PropertyEditorRegistry> previous_editors = (*grid).editor_registry.read();
         std::shared_ptr<PropertyValueConverterRegistry> converters =
             gui_forms::PropertyValueConverterRegistry::create_default();
         std::shared_ptr<PropertyEditorRegistry> editors = gui_forms::PropertyEditorRegistry::create_default();
@@ -665,13 +665,13 @@ public:
             }
         }
         try {
-            (*grid).set_converter_registry(converters);
-            (*grid).set_editor_registry(editors);
+            (*grid).converter_registry = converters;
+            (*grid).editor_registry = editors;
             (*grid).set_selected_objects(std::move(controls));
         } catch (...) {
             try {
-                (*grid).set_converter_registry(previous_converters);
-                (*grid).set_editor_registry(previous_editors);
+                (*grid).converter_registry = previous_converters;
+                (*grid).editor_registry = previous_editors;
                 (*grid).set_selected_objects(previous);
             } catch (...) {
                 throw std::runtime_error(
@@ -844,9 +844,9 @@ public:
             return fail(GF_ERROR_WRONG_HANDLE_KIND,
                         "PropertyGrid sort requires a PropertyGrid handle");
         }
-        (*grid).set_property_sort(property_sort == 1U
+        (*grid).property_sort = property_sort == 1U
             ? gui_forms::PropertySort::alphabetical
-            : gui_forms::PropertySort::categorized);
+            : gui_forms::PropertySort::categorized;
         emit_changed(grid_handle, record);
         return GF_OK;
     }
@@ -868,7 +868,7 @@ public:
             return fail(GF_ERROR_WRONG_HANDLE_KIND,
                         "PropertyGrid sort requires a PropertyGrid handle");
         }
-        *property_sort = (*grid).property_sort() ==
+        *property_sort = (*grid).property_sort.read() ==
                 gui_forms::PropertySort::alphabetical
             ? 1U : 3U;
         return GF_OK;
@@ -1032,7 +1032,7 @@ public:
             (*field).set_colors(foreground, background);
         } else if (const std::shared_ptr<gui_forms::Label> label =
                        std::dynamic_pointer_cast<gui_forms::Label>((*record).control)) {
-            (*label).set_foreground(foreground);
+            (*label).fore_color = foreground;
         } else if (const std::shared_ptr<gui_forms::ButtonBase> button =
                        std::dynamic_pointer_cast<gui_forms::ButtonBase>((*record).control)) {
             BasicControlStyle style = (*button).style();
@@ -1070,8 +1070,8 @@ public:
             content_alignment / 3U);
         if (const std::shared_ptr<gui_forms::Label> label =
                 std::dynamic_pointer_cast<gui_forms::Label>((*record).control)) {
-            (*label).set_alignment(horizontal);
-            (*label).set_vertical_alignment(vertical);
+            (*label).alignment = horizontal;
+            (*label).vertical_alignment = vertical;
             return GF_OK;
         }
         if (const std::shared_ptr<gui_forms::ButtonBase> button =
@@ -1101,9 +1101,9 @@ public:
             return fail(GF_ERROR_WRONG_HANDLE_KIND,
                         "button appearance requires a retained push button");
         }
-        (*button).set_visual_style(
-            static_cast<gui_forms::ButtonVisualStyle>(visual_style));
-        (*button).set_flat_border_width(flat_border_width);
+        (*button).visual_style = 
+            static_cast<gui_forms::ButtonVisualStyle>(visual_style);
+        (*button).flat_border_width = flat_border_width;
         return GF_OK;
     }
 
@@ -1380,8 +1380,8 @@ public:
         }
         if (const std::shared_ptr<gui_forms::CheckBox> check_box =
                 std::dynamic_pointer_cast<gui_forms::CheckBox>((*record).control)) {
-            (*check_box).set_check_state(
-                static_cast<gui_forms::CheckState>(check_state));
+            (*check_box).check_state = 
+                static_cast<gui_forms::CheckState>(check_state);
             return GF_OK;
         }
         if (const std::shared_ptr<gui_forms::RadioButton> radio =
@@ -1391,8 +1391,8 @@ public:
                 return fail(GF_ERROR_INVALID_ARGUMENT,
                             "radio buttons do not support indeterminate state");
             }
-            (*radio).set_checked(
-                check_state == static_cast<std::uint32_t>(gui_forms::CheckState::checked));
+            (*radio).checked = 
+                check_state == static_cast<std::uint32_t>(gui_forms::CheckState::checked);
             return GF_OK;
         }
         return fail(GF_ERROR_WRONG_HANDLE_KIND,
@@ -1410,12 +1410,12 @@ public:
         }
         if (const std::shared_ptr<gui_forms::CheckBox> check_box =
                 std::dynamic_pointer_cast<gui_forms::CheckBox>((*record).control)) {
-            *check_state = static_cast<std::uint32_t>((*check_box).check_state());
+            *check_state = static_cast<std::uint32_t>((*check_box).check_state.read());
             return GF_OK;
         }
         if (const std::shared_ptr<gui_forms::RadioButton> radio =
                 std::dynamic_pointer_cast<gui_forms::RadioButton>((*record).control)) {
-            *check_state = (*radio).checked()
+            *check_state = (*radio).checked.read()
                 ? static_cast<std::uint32_t>(gui_forms::CheckState::checked)
                 : static_cast<std::uint32_t>(gui_forms::CheckState::unchecked);
             return GF_OK;
@@ -1454,8 +1454,8 @@ public:
             return fail(GF_ERROR_WRONG_HANDLE_KIND,
                         "range state requires a track bar or progress bar");
         }
-        *minimum = (*range).minimum();
-        *maximum = (*range).maximum();
+        *minimum = (*range).minimum.read();
+        *maximum = (*range).maximum.read();
         return GF_OK;
     }
 
@@ -1470,7 +1470,7 @@ public:
             return fail(GF_ERROR_WRONG_HANDLE_KIND,
                         "range value requires a track bar or progress bar");
         }
-        (*range).set_value(value);
+        (*range).value = value;
         return GF_OK;
     }
 
@@ -1489,7 +1489,7 @@ public:
             return fail(GF_ERROR_WRONG_HANDLE_KIND,
                         "range value requires a track bar or progress bar");
         }
-        *value = (*range).value();
+        *value = (*range).value.read();
         return GF_OK;
     }
 
@@ -1651,6 +1651,11 @@ public:
         return GF_OK;
     }
 
+    // The v0 tooltip entry points show and hide the owner window's own
+    // tooltip presenter (a Splash window where the host has them, else the
+    // overlay), as a program request for the owner control: the text below
+    // the point (x, y) of the owner's bounds, for `duration_milliseconds`
+    // (0: until hidden). An owner in no running window shows nothing.
     gf_result show_tooltip(gf_handle owner_handle, gf_string_view text,
                            double x, double y,
                            std::uint32_t duration_milliseconds) {
@@ -1663,35 +1668,9 @@ public:
             return fail(GF_ERROR_INVALID_ARGUMENT,
                         "tooltip text must be a bounded UTF-8 view without NUL");
         }
-        std::shared_ptr<ControlRecord> owner;
-        std::function<gui_forms::HostServiceStatus(
-            const gui_forms::HostTooltipRequest&)> provider;
-        gui_forms::Point anchor;
-        {
-            std::scoped_lock lock(mutex_);
-            if (const gf_result result = control_locked(owner_handle, owner);
-                result != GF_OK) return result;
-            if (const gf_result result = require_thread(*owner); result != GF_OK) {
-                return result;
-            }
-            const std::shared_ptr<ControlRecord> root = root_record_locked(owner);
-            if (!root) return fail(GF_ERROR_INVALID_ARGUMENT,
-                                   "tooltip owner has no retained root");
-            provider = (*root).host_tooltip_show;
-            const Rect bounds = (*(*owner).control).absolute_bounds();
-            anchor = {bounds.x + x, bounds.y + y};
-        }
-        if (!provider) return GF_OK;
-        const gui_forms::HostServiceStatus result = provider(
-            {std::move(text_value), anchor, duration_milliseconds});
-        return result.accepted() ? GF_OK :
-            fail(GF_ERROR_INTERNAL,
-                 std::string("tooltip host failed: ") +
-                 gui_forms::host_service_error_name(result.error));
-    }
-
-    gf_result hide_tooltip(gf_handle owner_handle) {
-        std::function<void()> hide;
+        Control::Ptr control;
+        Window* window{};
+        Rect anchor{};
         {
             std::scoped_lock lock(mutex_);
             std::shared_ptr<ControlRecord> owner;
@@ -1703,9 +1682,41 @@ public:
             const std::shared_ptr<ControlRecord> root = root_record_locked(owner);
             if (!root) return fail(GF_ERROR_INVALID_ARGUMENT,
                                    "tooltip owner has no retained root");
-            hide = (*root).host_tooltip_hide;
+            control = (*owner).control;
+            window = (*control).attached_window();
+            const Rect bounds = (*control).absolute_bounds();
+            anchor = Rect{bounds.x + x, bounds.y + y, 0.0, 0.0};
         }
-        if (hide) hide();
+        if (window == nullptr) return GF_OK;
+        std::optional<std::chrono::milliseconds> duration;
+        if (duration_milliseconds != 0U) duration = std::chrono::milliseconds(duration_milliseconds);
+        try {
+            (*window).show_requested_tool_tip(control, std::string(), std::move(text_value), anchor, duration);
+        } catch (const std::exception& error) {
+            return fail(GF_ERROR_INTERNAL, std::string("tooltip show failed: ") + error.what());
+        }
+        return GF_OK;
+    }
+
+    gf_result hide_tooltip(gf_handle owner_handle) {
+        Control::Ptr control;
+        Window* window{};
+        {
+            std::scoped_lock lock(mutex_);
+            std::shared_ptr<ControlRecord> owner;
+            if (const gf_result result = control_locked(owner_handle, owner);
+                result != GF_OK) return result;
+            if (const gf_result result = require_thread(*owner); result != GF_OK) {
+                return result;
+            }
+            const std::shared_ptr<ControlRecord> root = root_record_locked(owner);
+            if (!root) return fail(GF_ERROR_INVALID_ARGUMENT,
+                                   "tooltip owner has no retained root");
+            control = (*owner).control;
+            window = (*control).attached_window();
+        }
+        // Only the owner's own tooltip: another control's stays.
+        if (window != nullptr && (*window).tool_tip_target() == control) (*window).hide_tool_tip();
         return GF_OK;
     }
 
@@ -2575,15 +2586,11 @@ private:
             std::function<void()> close,
             std::function<gui_forms::HostDialogResult(
                 const gui_forms::HostDialogRequest&)> dialog,
-            std::function<gui_forms::HostServiceStatus(
-                const gui_forms::HostTooltipRequest&)> tooltip_show,
-            std::function<void()> tooltip_hide,
             std::function<gui_forms::HostClipboardTextResult()> clipboard_read,
             std::function<gui_forms::HostServiceStatus(
                 std::string_view)> clipboard_write) const {
             (*registry).publish_host(
                 record, std::move(wake), std::move(close), std::move(dialog),
-                std::move(tooltip_show), std::move(tooltip_hide),
                 std::move(clipboard_read), std::move(clipboard_write));
         }
     };
@@ -2883,9 +2890,6 @@ private:
                       std::function<void()> request_close,
                       std::function<gui_forms::HostDialogResult(
                           const gui_forms::HostDialogRequest&)> dialog = {},
-                      std::function<gui_forms::HostServiceStatus(
-                          const gui_forms::HostTooltipRequest&)> tooltip_show = {},
-                      std::function<void()> tooltip_hide = {},
                       std::function<gui_forms::HostClipboardTextResult()>
                           clipboard_read = {},
                       std::function<gui_forms::HostServiceStatus(std::string_view)>
@@ -2899,8 +2903,6 @@ private:
             (*root).host_wake = std::move(wake);
             (*root).host_close = std::move(request_close);
             (*root).host_dialog = std::move(dialog);
-            (*root).host_tooltip_show = std::move(tooltip_show);
-            (*root).host_tooltip_hide = std::move(tooltip_hide);
             (*root).host_clipboard_read = std::move(clipboard_read);
             (*root).host_clipboard_write = std::move(clipboard_write);
             (*root).host_phase = AbiHostPhase::ready;
@@ -2936,8 +2938,6 @@ private:
         (*root).host_wake = {};
         (*root).host_close = {};
         (*root).host_dialog = {};
-        (*root).host_tooltip_show = {};
-        (*root).host_tooltip_hide = {};
         (*root).host_clipboard_read = {};
         (*root).host_clipboard_write = {};
         (*root).dispatch_wake_pending = false;

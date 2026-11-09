@@ -184,9 +184,9 @@ void test_progress_animation_damages_what_moves() {
     std::shared_ptr<gui_forms::ProgressBar> progress =
         make_control<ProgressBar>(StableId("animation.damage.progress"));
     (*progress).set_requested_bounds({0.0, 0.0, 240.0, 20.0});
-    (*progress).set_value(50.0);
-    (*progress).set_visual_style(ProgressBarVisualStyle::marching_stripes);
-    (*progress).set_animation_period(1000ms);
+    (*progress).value = 50.0;
+    (*progress).visual_style = ProgressBarVisualStyle::marching_stripes;
+    (*progress).animation_period = 1000ms;
     (*root).add_child(progress);
     Window window(root, {240.0, 40.0});
     window.perform_layout();
@@ -367,8 +367,8 @@ void test_progress_animation_and_hidden_suspension() {
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("animation.root"));
     std::shared_ptr<gui_forms::ProgressBar> progress = make_control<ProgressBar>(StableId("animation.progress"));
     (*progress).set_requested_bounds({0.0, 0.0, 240.0, 20.0});
-    (*progress).set_visual_style(ProgressBarVisualStyle::marquee);
-    (*progress).set_animation_period(1000ms);
+    (*progress).visual_style = ProgressBarVisualStyle::marquee;
+    (*progress).animation_period = 1000ms;
     (*root).add_child(progress);
     Window window(root, {240.0, 20.0});
     require(window.next_wake().has_value(),
@@ -395,39 +395,39 @@ void test_progress_animation_and_hidden_suspension() {
     (*progress).on_paint(shown_painter, {0.0, 0.0, 240.0, 20.0});
     require(window.next_wake().has_value(),
             "a reshown progress bar must start its timer again when painted");
-    (*progress).set_visual_style(ProgressBarVisualStyle::continuous);
+    (*progress).visual_style = ProgressBarVisualStyle::continuous;
     require(!window.next_wake().has_value(),
             "static progress style must revoke its retained frame source");
 
-    (*progress).set_overlay_style(ProgressBarOverlayStyle::moving_stripes);
+    (*progress).overlay_style = ProgressBarOverlayStyle::moving_stripes;
     // The stripes are an effect program: the bar's paint enlists them on the
     // window's motion clock.
     StripePainter striped_painter;
     (*progress).on_paint(striped_painter, {0.0, 0.0, 240.0, 20.0});
     require(window.next_wake().has_value(),
             "moving stripes must animate a determinate progress style");
-    (*progress).set_animation_enabled(false);
+    (*progress).animation_enabled = false;
     require(!window.next_wake().has_value() && (*progress).animation_phase() == 0.0,
             "disabled stripe motion must paint statically without an idle wake");
-    (*progress).set_animation_enabled(true);
-    (*progress).set_animation_paused(true);
+    (*progress).animation_enabled = true;
+    (*progress).motion_policy = MotionPolicy{true, true, false};
     require(!window.next_wake().has_value(), "paused stripes must leave the motion clock");
-    (*progress).set_animation_paused(false);
+    (*progress).motion_policy = MotionPolicy{true, false, false};
     StripePainter resumed_painter;
     (*progress).on_paint(resumed_painter, {0.0, 0.0, 240.0, 20.0});
     require(window.next_wake().has_value(), "resumed stripes must enlist on the motion clock again when painted");
     // The stripes are an effect program on the window's motion clock
     // (effect_program_tests); the bar's own timer lease (ADR-016) now drives
     // the marquee alone, which the rest of this test follows.
-    (*progress).set_overlay_style(ProgressBarOverlayStyle::none);
-    (*progress).set_visual_style(ProgressBarVisualStyle::marquee);
+    (*progress).overlay_style = ProgressBarOverlayStyle::none;
+    (*progress).visual_style = ProgressBarVisualStyle::marquee;
     (*progress).advance_animation(FrameClock::now() + 325ms);
     const double retained_phase = (*progress).animation_phase();
-    (*progress).set_animation_paused(true);
+    (*progress).motion_policy = MotionPolicy{true, true, false};
     require(!window.next_wake().has_value() &&
                 close_to((*progress).animation_phase(), retained_phase),
             "paused progress motion must revoke its lease without destroying phase");
-    (*progress).set_animation_paused(false);
+    (*progress).motion_policy = MotionPolicy{true, false, false};
     require(window.next_wake().has_value() &&
                 close_to((*progress).animation_phase(), retained_phase),
             "resumed progress motion must retain phase before its next frame");
@@ -436,12 +436,12 @@ void test_progress_animation_and_hidden_suspension() {
             "the first resumed frame must advance from the retained phase");
     const double pre_reduced_phase = (*progress).animation_phase();
     const FrameTime before_reduced = FrameClock::now();
-    (*progress).set_reduced_motion(true);
+    (*progress).motion_policy = MotionPolicy{true, false, true};
     const FrameTime after_reduced = FrameClock::now();
-    (*progress).set_value(73.0);
+    (*progress).value = 73.0;
     require(window.next_wake().has_value() &&
                 close_to((*progress).animation_phase(), pre_reduced_phase) &&
-                close_to((*progress).value(), 73.0) &&
+                close_to((*progress).value.read(), 73.0) &&
                 has_semantic_state((*progress).semantic_descriptor().states,
                                    SemanticState::busy),
             "reduced motion must retain animation and state updates without resetting phase");
@@ -457,30 +457,30 @@ void test_progress_animation_and_hidden_suspension() {
     require(reduced_phase > pre_reduced_phase && reduced_step <= 0.35 * longest + 1e-9 &&
                 reduced_step >= 0.35 * shortest - 1e-9,
             "reduced progress motion must advance visibly at its calmer speed");
-    (*progress).set_reduced_motion(false);
+    (*progress).motion_policy = MotionPolicy{true, false, false};
     require(window.next_wake().has_value() &&
                 close_to((*progress).animation_phase(), reduced_phase),
             "leaving reduced motion must retain the reduced timeline position");
     const std::uint64_t requests_before_batch =
         window.metrics_snapshot().scheduled_frame_requests;
-    (*progress).set_motion_policy(true, true);
+    (*progress).motion_policy = MotionPolicy{true, true, true};
     require(!window.next_wake().has_value(),
             "batched pause plus reduced motion must quiesce without a transient lease");
-    (*progress).set_motion_policy(false, false);
+    (*progress).motion_policy = MotionPolicy{true, false, false};
     require(window.next_wake().has_value() &&
                 window.metrics_snapshot().scheduled_frame_requests ==
                     requests_before_batch + 1U,
             "batched live policy must publish exactly one replacement lease");
 
     const double phase_before_master_gate = (*progress).animation_phase();
-    (*progress).set_motion_policy(MotionPolicy{false, false, false});
+    (*progress).motion_policy = MotionPolicy{false, false, false};
     require(!window.next_wake().has_value() &&
-                (*progress).motion_policy() == MotionPolicy{false, false, false} &&
+                (*progress).motion_policy.read() == MotionPolicy{false, false, false} &&
                 close_to((*progress).animation_phase(), phase_before_master_gate) &&
                 !has_semantic_state((*progress).semantic_descriptor().states,
                                     SemanticState::busy),
             "a disabled application motion policy must revoke its lease without mutating phase");
-    (*progress).set_motion_policy(MotionPolicy{true, false, false});
+    (*progress).motion_policy = MotionPolicy{true, false, false};
     require(window.next_wake().has_value() &&
                 close_to((*progress).animation_phase(), phase_before_master_gate) &&
                 has_semantic_state((*progress).semantic_descriptor().states,
@@ -488,33 +488,33 @@ void test_progress_animation_and_hidden_suspension() {
             "re-enabling the application motion policy must resume from retained phase");
 
     for (std::size_t cycle = 0U; cycle < 16U; ++cycle) {
-        (*progress).set_motion_policy(MotionPolicy{true, true, true});
+        (*progress).motion_policy = MotionPolicy{true, true, true};
         const double compound_phase = (*progress).animation_phase();
-        require(!window.next_wake().has_value() && (*progress).animation_paused() &&
-                    (*progress).reduced_motion() &&
+        require(!window.next_wake().has_value() && (*progress).motion_policy.read().paused &&
+                    (*progress).motion_policy.read().reduced &&
                     !has_semantic_state((*progress).semantic_descriptor().states,
                                         SemanticState::busy),
                 "compound pause plus reduced motion must remain a single quiescent policy");
-        (*progress).set_motion_policy(MotionPolicy{true, false, true});
+        (*progress).motion_policy = MotionPolicy{true, false, true};
         require(window.next_wake().has_value() &&
                     close_to((*progress).animation_phase(), compound_phase) &&
                     has_semantic_state((*progress).semantic_descriptor().states,
                                        SemanticState::busy),
                 "resuming while reduced must arm one calm animation lease");
-        (*progress).set_motion_policy(MotionPolicy{true, true, false});
+        (*progress).motion_policy = MotionPolicy{true, true, false};
         require(!window.next_wake().has_value() &&
                     close_to((*progress).animation_phase(), compound_phase),
                 "leaving reduced motion while paused must retain the suspended phase");
-        (*progress).set_motion_policy(MotionPolicy{true, false, false});
+        (*progress).motion_policy = MotionPolicy{true, false, false};
         require(window.next_wake().has_value() &&
                     close_to((*progress).animation_phase(), compound_phase),
                 "full motion must restore its frame lease from the retained phase");
     }
     PresentationSettings calm = window.presentation_settings();
     calm.reduced_motion = true;
-    (*progress).set_motion_policy(MotionPolicy{true, false, false});
+    (*progress).motion_policy = MotionPolicy{true, false, false};
     window.set_presentation_settings(calm);
-    require(!(*progress).motion_policy().reduced &&
+    require(!(*progress).motion_policy.read().reduced &&
                 (*progress).effective_motion_policy().reduced &&
                 window.next_wake().has_value(),
             "window reduced-motion preference must calm progress without overwriting local policy or stopping it");
@@ -523,7 +523,7 @@ void test_progress_animation_and_hidden_suspension() {
     require(!(*progress).effective_motion_policy().reduced &&
                 window.next_wake().has_value(),
             "clearing the window preference must restore full motion in one transition");
-    (*progress).set_visual_style(ProgressBarVisualStyle::continuous);
+    (*progress).visual_style = ProgressBarVisualStyle::continuous;
     require(!window.next_wake().has_value(),
             "removing the last animated progress feature must revoke its frame source");
 }
@@ -531,9 +531,9 @@ void test_progress_animation_and_hidden_suspension() {
 void test_progress_stripes_are_clipped_and_configurable() {
     std::shared_ptr<gui_forms::ProgressBar> progress = make_control<ProgressBar>(StableId("animation.stripes"));
     (*progress).set_requested_bounds({0.0, 0.0, 200.0, 24.0});
-    (*progress).set_value(50.0);
-    (*progress).set_overlay_style(ProgressBarOverlayStyle::moving_stripes);
-    (*progress).set_stripe_width(6.0);
+    (*progress).value = 50.0;
+    (*progress).overlay_style = ProgressBarOverlayStyle::moving_stripes;
+    (*progress).stripe_width = 6.0;
     Window window(progress, {200.0, 24.0});
     window.perform_layout();
     StripePainter painter;
@@ -546,11 +546,11 @@ void test_progress_stripes_are_clipped_and_configurable() {
 
     bool narrow_rejected = false;
     try {
-        (*progress).set_stripe_width(1.0);
+        (*progress).stripe_width = 1.0;
     } catch (const std::invalid_argument&) {
         narrow_rejected = true;
     }
-    require(narrow_rejected && close_to((*progress).stripe_width(), 6.0),
+    require(narrow_rejected && close_to((*progress).stripe_width.read(), 6.0),
             "stripe geometry must reject unusable widths without mutation");
 }
 
@@ -618,21 +618,21 @@ void test_progress_animation_style_family() {
     std::shared_ptr<gui_forms::ProgressBar> progress = make_control<ProgressBar>(
         StableId("animation.progress-style-family"));
     (*progress).set_requested_bounds({0.0, 0.0, 240.0, 24.0});
-    (*progress).set_value(64.0);
-    (*progress).set_animation_period(1000ms);
+    (*progress).value = 64.0;
+    (*progress).animation_period = 1000ms;
     Window window(progress, {240.0, 24.0});
     window.perform_layout();
 
     ProgressBarAnimationAppearance appearance =
-        (*progress).animation_appearance();
+        (*progress).animation_appearance.read();
     appearance.pulse_extent = 0.4;
     appearance.laser_edge_extent = 13.0;
     appearance.laser_phase_pitch = 12.0;
-    (*progress).set_animation_appearance(appearance);
-    require((*progress).animation_appearance() == appearance,
+    (*progress).animation_appearance = appearance;
+    require((*progress).animation_appearance.read() == appearance,
             "progress animation appearance must replace atomically");
 
-    (*progress).set_visual_style(ProgressBarVisualStyle::luminance_pulse);
+    (*progress).visual_style = ProgressBarVisualStyle::luminance_pulse;
     const FrameTime origin = FrameClock::now();
     (*progress).advance_animation(origin);
     (*progress).advance_animation(origin + 250ms);
@@ -647,7 +647,7 @@ void test_progress_animation_style_family() {
                 pulse.last_linear.width >= 8.0,
             "luminance progress must own one clipped, forward-moving soft pulse");
 
-    (*progress).set_visual_style(ProgressBarVisualStyle::marching_stripes);
+    (*progress).visual_style = ProgressBarVisualStyle::marching_stripes;
     (*progress).advance_animation(origin + 500ms);
     ProgressEffectsPainter stripes;
     (*progress).on_paint(stripes, {0.0, 0.0, 240.0, 24.0});
@@ -657,7 +657,7 @@ void test_progress_animation_style_family() {
                           Rect{2.0, 2.0, 151.04, 20.0}) != stripes.clips.end(),
             "marching-stripe progress must remain clipped to determinate fill");
 
-    (*progress).set_visual_style(ProgressBarVisualStyle::laser_etch);
+    (*progress).visual_style = ProgressBarVisualStyle::laser_etch;
     (*progress).advance_animation(origin + 750ms);
     ProgressEffectsPainter laser;
     (*progress).on_paint(laser, {0.0, 0.0, 240.0, 24.0});
@@ -672,7 +672,7 @@ void test_progress_animation_style_family() {
                           Rect{2.0, 2.0, 151.04, 20.0}) != laser.clips.end(),
             "laser progress must combine a repeating phase with a compact white-hot corona and short sparks");
 
-    (*progress).set_reduced_motion(true);
+    (*progress).motion_policy = MotionPolicy{true, false, true};
     ProgressEffectsPainter reduced_laser;
     (*progress).on_paint(reduced_laser, {0.0, 0.0, 240.0, 24.0});
     require(reduced_laser.five_stop_spread_gradients == 1 &&
@@ -682,19 +682,19 @@ void test_progress_animation_style_family() {
             "reduced laser motion must preserve meaning with a calmer spark field");
 
     const ProgressBarAnimationAppearance retained =
-        (*progress).animation_appearance();
+        (*progress).animation_appearance.read();
     bool invalid_rejected = false;
     try {
         ProgressBarAnimationAppearance invalid = retained;
         invalid.laser_phase_pitch = 0.0;
-        (*progress).set_animation_appearance(invalid);
+        (*progress).animation_appearance = invalid;
     } catch (const std::invalid_argument&) {
         invalid_rejected = true;
     }
-    require(invalid_rejected && (*progress).animation_appearance() == retained,
+    require(invalid_rejected && (*progress).animation_appearance.read() == retained,
             "invalid progress effect geometry must not partially mutate appearance");
 
-    (*progress).set_visual_style(ProgressBarVisualStyle::continuous);
+    (*progress).visual_style = ProgressBarVisualStyle::continuous;
     require(!window.next_wake().has_value(),
             "returning to a static progress style must revoke the frame lease");
 }
@@ -704,14 +704,14 @@ void test_visual_style_round_trips() {
     std::shared_ptr<gui_forms::CheckBox> check = make_control<CheckBox>(StableId("animation.check"), "Check");
     std::shared_ptr<gui_forms::RadioButton> radio = make_control<RadioButton>(StableId("animation.radio"), "Radio");
     std::shared_ptr<gui_forms::TrackBar> slider = make_control<TrackBar>(StableId("animation.slider"));
-    (*button).set_visual_style(ButtonVisualStyle::accent);
-    (*check).set_indicator_style(ChoiceIndicatorStyle::toggle);
-    (*radio).set_indicator_style(ChoiceIndicatorStyle::modern);
-    (*slider).set_visual_style(TrackBarVisualStyle::filled);
-    require((*button).visual_style() == ButtonVisualStyle::accent &&
-                (*check).indicator_style() == ChoiceIndicatorStyle::toggle &&
-                (*radio).indicator_style() == ChoiceIndicatorStyle::modern &&
-                (*slider).visual_style() == TrackBarVisualStyle::filled,
+    (*button).visual_style = ButtonVisualStyle::accent;
+    (*check).indicator_style = ChoiceIndicatorStyle::toggle;
+    (*radio).indicator_style = ChoiceIndicatorStyle::modern;
+    (*slider).visual_style = TrackBarVisualStyle::filled;
+    require((*button).visual_style.read() == ButtonVisualStyle::accent &&
+                (*check).indicator_style.read() == ChoiceIndicatorStyle::toggle &&
+                (*radio).indicator_style.read() == ChoiceIndicatorStyle::modern &&
+                (*slider).visual_style.read() == TrackBarVisualStyle::filled,
             "public control visual variants must retain exact state");
 }
 
@@ -719,10 +719,10 @@ void test_public_easing_preview_owns_scheduler_policy_and_semantics() {
     std::shared_ptr<gui_forms::EasingPreview> preview = make_control<EasingPreview>(
         StableId("animation.public.preview"));
     (*preview).set_requested_bounds({0.0, 0.0, 500.0, 340.0});
-    (*preview).set_title("Public easing proof");
-    (*preview).set_marker_size(18.0);
+    (*preview).title = "Public easing proof";
+    (*preview).marker_size = 18.0;
     Window window(preview, {500.0, 340.0});
-    require((*preview).tracks().size() == 8U && (*preview).marker_size() == 18.0 &&
+    require((*preview).tracks().size() == 8U && (*preview).marker_size.read() == 18.0 &&
                 window.next_wake().has_value() &&
                 has_semantic_state((*preview).semantic_descriptor().states,
                                    SemanticState::busy),
@@ -732,13 +732,13 @@ void test_public_easing_preview_owns_scheduler_policy_and_semantics() {
     calm.reduced_motion = true;
     window.set_presentation_settings(calm);
     require((*preview).effective_motion_policy().reduced &&
-                !(*preview).motion_policy().reduced && window.next_wake().has_value(),
+                !(*preview).motion_policy.read().reduced && window.next_wake().has_value(),
             "window reduced-motion preference must calm EasingPreview without replacing its authored policy");
     calm.reduced_motion = false;
     window.set_presentation_settings(calm);
 
     const double before = (*preview).phase();
-    (*preview).set_motion_policy({true, false, true});
+    (*preview).motion_policy = {true, false, true};
     require(window.next_wake().has_value() && (*preview).phase() == before,
             "reduced EasingPreview motion must retain phase and remain scheduled");
     (*preview).advance_animation(FrameClock::now() + 300ms);
@@ -746,7 +746,7 @@ void test_public_easing_preview_owns_scheduler_policy_and_semantics() {
                 (*preview).semantic_descriptor().numeric_value.has_value(),
             "public EasingPreview frames must advance reusable timeline state");
 
-    (*preview).set_motion_policy({true, true, true});
+    (*preview).motion_policy = {true, true, true};
     require(!window.next_wake().has_value() &&
                 !has_semantic_state((*preview).semantic_descriptor().states,
                                     SemanticState::busy),

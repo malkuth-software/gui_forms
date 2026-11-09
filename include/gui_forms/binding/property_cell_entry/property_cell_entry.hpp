@@ -1,11 +1,15 @@
 #pragma once
 
+#include "gui_forms/binding/child_property_view/child_property_view.hpp"
 #include "gui_forms/binding/property_cell/property_cell.hpp"
 #include "gui_forms/binding/property_table/property_table.hpp"
 #include "gui_forms/component/component/component.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
 
 #include <functional>
+#include <optional>
+#include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 namespace gui_forms {
@@ -33,6 +37,46 @@ template <typename Value, typename Capability, typename Holder>
 struct CellMemberValue<PropertyView<Value, Capability> Holder::*> {
     using Type = Value;
 };
+
+// The value type of a cell, view or child view, named by its type (with
+// or without a reference: `decltype((*control).text)`).
+template <typename Member>
+struct AssignedMemberValue;
+
+template <typename Value, typename Capability>
+struct AssignedMemberValue<PropertyCell<Value, Capability>> {
+    using Type = Value;
+};
+
+template <typename Value, typename Capability>
+struct AssignedMemberValue<PropertyView<Value, Capability>> {
+    using Type = Value;
+};
+
+template <typename Value, typename Capability>
+struct AssignedMemberValue<ChildPropertyView<Value, Capability>> {
+    using Type = Value;
+};
+
+// `value` as the value of the cell, view or child view `Member` (its
+// declared type, as `decltype((*control).text)` spells it): converted to the
+// member's PropertyType with the property conversion rules, then through
+// PropertyValueTraits, as write_cell_entry converts a table write. Generated
+// forms assign a property with it (CLOSURE P-6), as in
+// `(*made.ok).text = gui_forms::assigned_property_value<decltype((*made.ok).text)>(gui_forms::BindingValue{std::string("OK")});`.
+//
+// Throws std::invalid_argument when `value` has no form of the member's
+// type, or what the traits throw for a value outside a narrower type.
+template <typename Member>
+[[nodiscard]] typename AssignedMemberValue<std::remove_cvref_t<Member>>::Type assigned_property_value(
+    const BindingValue& value) {
+    using Value = typename AssignedMemberValue<std::remove_cvref_t<Member>>::Type;
+    const PropertyType target = PropertyValueTraits<Value>::type();
+    const std::optional<BindingValue> converted = convert_to_property_type(value, target);
+    if (!converted) throw std::invalid_argument("GUI.Forms: the value has no form of the property's type");
+    Value typed = PropertyValueTraits<Value>::from_binding(*converted);
+    return typed;
+}
 
 // The current value in its BindingValue form.
 template <typename Declaring, typename MemberPointer, MemberPointer Member>
@@ -95,6 +139,15 @@ template <typename Declaring, typename MemberPointer, MemberPointer ShouldSerial
     const Declaring& declaring = static_cast<const Declaring&>(owner);
     const bool serialize = (declaring.*ShouldSerialize)();
     return serialize;
+}
+
+// A declaring-class member function as an entry's origin
+// (`PropertyValueOrigin f() const noexcept`).
+template <typename Declaring, typename MemberPointer, MemberPointer Origin>
+[[nodiscard]] PropertyValueOrigin origin_member_entry(const Component& owner) {
+    const Declaring& declaring = static_cast<const Declaring&>(owner);
+    const PropertyValueOrigin origin = (declaring.*Origin)();
+    return origin;
 }
 
 } // namespace gui_forms

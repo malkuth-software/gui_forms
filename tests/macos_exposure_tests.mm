@@ -170,8 +170,7 @@ void run_exposure_step(void* const context) {
 }
 void ready(const std::shared_ptr<State>& state, std::function<void()>, std::function<void()> close,
            std::function<gui_forms::HostDialogResult(const gui_forms::HostDialogRequest&)>,
-           std::function<gui_forms::HostServiceStatus(const gui_forms::HostTooltipRequest&)>,
-           std::function<void()>, std::function<gui_forms::HostClipboardTextResult()>,
+           std::function<gui_forms::HostClipboardTextResult()>,
            std::function<gui_forms::HostServiceStatus(std::string_view)>) {
     (*state).close = std::move(close);
     (*state).initial_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
@@ -186,8 +185,7 @@ int main() {
     options.initial_size = {320, 200};
     options.print_metrics_on_close = false;
     options.host_ready = std::bind(ready, state, std::placeholders::_1, std::placeholders::_2,
-        std::placeholders::_3, std::placeholders::_4, std::placeholders::_5,
-        std::placeholders::_6, std::placeholders::_7);
+        std::placeholders::_3, std::placeholders::_4, std::placeholders::_5);
     int result = gui_forms::host::run_macos(std::make_unique<gui_forms::Window>((*state).root,
         options.initial_size), std::move(options));
     if (result || !(*state).completed || !(*state).failure.empty()) {

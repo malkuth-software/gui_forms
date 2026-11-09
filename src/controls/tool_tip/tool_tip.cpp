@@ -2,6 +2,7 @@
 
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <stdexcept>
@@ -92,80 +93,90 @@ void ToolTip::clear() {
     }
 }
 
-std::chrono::milliseconds ToolTip::initial_delay() const {
-    return require_access("ToolTip settings read").tool_tip_settings().initial_delay;
+// The settings are the window's (ToolTipSettings), read and written field by
+// field; Window::set_tool_tip_settings refuses a negative delay and a width
+// outside 80 to 2048, changing nothing.
+std::chrono::milliseconds ToolTip::read_view(const decltype(initial_delay)&) const {
+    const std::chrono::milliseconds current = require_access("ToolTip settings read").tool_tip_settings().initial_delay;
+    return current;
 }
 
-void ToolTip::set_initial_delay(std::chrono::milliseconds delay) {
+void ToolTip::write_view(const decltype(initial_delay)&, std::chrono::milliseconds incoming) {
     Window& owner = require_access("ToolTip initial-delay mutation");
     ToolTipSettings settings = owner.tool_tip_settings();
-    settings.initial_delay = delay;
+    settings.initial_delay = incoming;
     owner.set_tool_tip_settings(settings);
 }
 
-std::chrono::milliseconds ToolTip::reshow_delay() const {
-    return require_access("ToolTip settings read").tool_tip_settings().reshow_delay;
+std::chrono::milliseconds ToolTip::read_view(const decltype(reshow_delay)&) const {
+    const std::chrono::milliseconds current = require_access("ToolTip settings read").tool_tip_settings().reshow_delay;
+    return current;
 }
 
-void ToolTip::set_reshow_delay(std::chrono::milliseconds delay) {
+void ToolTip::write_view(const decltype(reshow_delay)&, std::chrono::milliseconds incoming) {
     Window& owner = require_access("ToolTip reshow-delay mutation");
     ToolTipSettings settings = owner.tool_tip_settings();
-    settings.reshow_delay = delay;
+    settings.reshow_delay = incoming;
     owner.set_tool_tip_settings(settings);
 }
 
-std::chrono::milliseconds ToolTip::auto_pop_delay() const {
-    return require_access("ToolTip settings read").tool_tip_settings().auto_pop_delay;
+std::chrono::milliseconds ToolTip::read_view(const decltype(auto_pop_delay)&) const {
+    const std::chrono::milliseconds current = require_access("ToolTip settings read").tool_tip_settings().auto_pop_delay;
+    return current;
 }
 
-void ToolTip::set_auto_pop_delay(std::chrono::milliseconds delay) {
+void ToolTip::write_view(const decltype(auto_pop_delay)&, std::chrono::milliseconds incoming) {
     Window& owner = require_access("ToolTip auto-pop mutation");
     ToolTipSettings settings = owner.tool_tip_settings();
-    settings.auto_pop_delay = delay;
+    settings.auto_pop_delay = incoming;
     owner.set_tool_tip_settings(settings);
 }
 
-bool ToolTip::show_on_hover() const {
-    return require_access("ToolTip settings read").tool_tip_settings().show_on_hover;
+bool ToolTip::read_view(const decltype(show_on_hover)&) const {
+    const bool current = require_access("ToolTip settings read").tool_tip_settings().show_on_hover;
+    return current;
 }
 
-void ToolTip::set_show_on_hover(bool value) {
+void ToolTip::write_view(const decltype(show_on_hover)&, bool incoming) {
     Window& owner = require_access("ToolTip hover policy mutation");
     ToolTipSettings settings = owner.tool_tip_settings();
-    settings.show_on_hover = value;
+    settings.show_on_hover = incoming;
     owner.set_tool_tip_settings(settings);
 }
 
-bool ToolTip::show_on_focus() const {
-    return require_access("ToolTip settings read").tool_tip_settings().show_on_focus;
+bool ToolTip::read_view(const decltype(show_on_focus)&) const {
+    const bool current = require_access("ToolTip settings read").tool_tip_settings().show_on_focus;
+    return current;
 }
 
-void ToolTip::set_show_on_focus(bool value) {
+void ToolTip::write_view(const decltype(show_on_focus)&, bool incoming) {
     Window& owner = require_access("ToolTip focus policy mutation");
     ToolTipSettings settings = owner.tool_tip_settings();
-    settings.show_on_focus = value;
+    settings.show_on_focus = incoming;
     owner.set_tool_tip_settings(settings);
 }
 
-bool ToolTip::show_always() const {
-    return require_access("ToolTip settings read").tool_tip_settings().show_when_disabled;
+bool ToolTip::read_view(const decltype(show_always)&) const {
+    const bool current = require_access("ToolTip settings read").tool_tip_settings().show_when_disabled;
+    return current;
 }
 
-void ToolTip::set_show_always(bool value) {
+void ToolTip::write_view(const decltype(show_always)&, bool incoming) {
     Window& owner = require_access("ToolTip enabled-target policy mutation");
     ToolTipSettings settings = owner.tool_tip_settings();
-    settings.show_when_disabled = value;
+    settings.show_when_disabled = incoming;
     owner.set_tool_tip_settings(settings);
 }
 
-double ToolTip::maximum_width() const {
-    return require_access("ToolTip settings read").tool_tip_settings().maximum_width;
+double ToolTip::read_view(const decltype(maximum_width)&) const {
+    const double current = require_access("ToolTip settings read").tool_tip_settings().maximum_width;
+    return current;
 }
 
-void ToolTip::set_maximum_width(double width) {
+void ToolTip::write_view(const decltype(maximum_width)&, double incoming) {
     Window& owner = require_access("ToolTip maximum width change");
     ToolTipSettings settings = owner.tool_tip_settings();
-    settings.maximum_width = width;
+    settings.maximum_width = incoming;
     owner.set_tool_tip_settings(settings);
 }
 
@@ -251,5 +262,9 @@ void ToolTip::append_interactions(std::vector<InteractionDeclaration>& interacti
     Component::append_interactions(interactions);
     interactions.insert(interactions.end(), tool_tip_interactions.begin(), tool_tip_interactions.end());
 }
+
+// property_codemod begin ToolTip (tools/property_families/tool_tip.json; generated, do not edit)
+
+// property_codemod end ToolTip
 
 } // namespace gui_forms

@@ -7,7 +7,7 @@ gui_forms::ToolStripPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ToolStripPanel final : public Control
+.. cpp:class:: ToolStripPanel final : public Control, public ToolStripPanelCapabilities<ToolStripPanel>
 
    ``#include <gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp>``
 
@@ -29,13 +29,13 @@ gui_forms::ToolStripPanel
       **stable_id** : ``StableId``
          Identity of the panel, unique within its window.
 
-      **edge** : ``ToolStripPanelEdge``, default ``ToolStripPanelEdge::top``
-         The side the panel lines.
+      **initial_edge** : ``ToolStripPanelEdge``, default ``ToolStripPanelEdge::top``
+         The first :cpp:member:`edge <gui_forms::ToolStripPanel::edge>`.
 
    :Properties:
 
-      **edge** : ``ToolStripPanelEdge``
-         The side the panel lines. :cpp:func:`set_edge <gui_forms::ToolStripPanel::set_edge>` turns the joined strips to its
+      **edge** : ``ToolStripPanelEdge``, default ``ToolStripPanelEdge::top``
+         The side the panel lines. A write turns the joined strips to its
          orientation, and throws ``std::logic_error`` when a joined :cpp:class:`StatusStrip <gui_forms::StatusStrip>`
          would have to turn vertical.
 
@@ -101,20 +101,16 @@ gui_forms::ToolStripPanel
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit ToolStripPanel(StableId stable_id, ToolStripPanelEdge edge = ToolStripPanelEdge::top)
+   .. cpp:function:: explicit ToolStripPanel(StableId stable_id, ToolStripPanelEdge initial_edge = ToolStripPanelEdge::top)
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: ToolStripPanelEdge edge() const noexcept
+   .. cpp:member:: ToolStripPanelEdge edge
 
-      The side the panel lines. :cpp:func:`set_edge <gui_forms::ToolStripPanel::set_edge>` turns the joined strips to its
+      The side the panel lines. A write turns the joined strips to its
       orientation, and throws ``std::logic_error`` when a joined :cpp:class:`StatusStrip <gui_forms::StatusStrip>`
       would have to turn vertical.
-
-   .. cpp:function:: void set_edge(ToolStripPanelEdge edge)
-
-      Sets :cpp:func:`edge <gui_forms::ToolStripPanel::edge>`; see the property's description above.
 
    .. cpp:function:: std::vector<std::shared_ptr<ToolStrip>> strips() const
 

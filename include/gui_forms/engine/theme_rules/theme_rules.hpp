@@ -47,13 +47,25 @@ namespace gui_forms {
 // `!important` ones above the program's ordinary declarations and below
 // its `!important` ones. A user theme's rules are a set of their own
 // (CompiledThemeRules::compile_user, PartFacts::user_rules).
+//
+// The base levels (selector step 1, owner ruling of 2026-11-08) hold the
+// GUI.Forms base sheet when a program's packages are compiled onto it, as
+// CSS's user-agent origin: its ordinary declarations below every user and
+// program declaration whatever their specificity, and its `!important`
+// ones below the user theme's and the program's.
+//
+// `class_rule` and `stable_id_rule` are for rules written as data: the
+// theme language puts every sheet rule at `theme_sheet`, where its CSS
+// specificity alone orders it (selector step 1).
 enum class CascadeLevel : std::uint8_t {
     built_in,
+    base_sheet,
     user_theme,
     theme_sheet,
     class_rule,
     stable_id_rule,
     inline_style,
+    important_base_sheet,
     important_user_theme,
     important_theme_sheet,
     forced_high_contrast,
@@ -96,6 +108,76 @@ enum class ThemeRuleSet : std::uint8_t { program, user };
 // the surface's own pixels, styled by control rules, never a popup.
 enum class SurfaceKind : std::uint8_t { none, window, popup };
 
+// One argument of a selector's `:not()` (selector step 2): a compound of a
+// control type, a stable ID, classes, states and a family, each optional;
+// it excludes the parts it matches. It names no part, role or surface.
+struct RuleExclusion final {
+    std::string control_type{};
+    std::string stable_id{};
+    std::vector<std::string> classes{};
+    std::vector<AnatomyState> states{};
+    std::string family{};
+
+    friend bool operator==(const RuleExclusion& left, const RuleExclusion& right) noexcept {
+        return left.control_type == right.control_type && left.stable_id == right.stable_id &&
+               left.classes == right.classes && left.states == right.states && left.family == right.family;
+    }
+};
+
+// How a selector's ancestor compound relates to the compound on its right
+// (selector step 4): CSS's descendant combinator (whitespace) or child
+// combinator (`>`).
+enum class AncestorCombinator : std::uint8_t { descendant, child };
+
+// One ancestor compound of a selector (selector step 4): a control type, a
+// stable ID and classes, each optional, matched against an ancestor
+// control. `combinator` relates it to the compound on its right: the
+// subject's for the nearest, else the next nearer ancestor compound's.
+// Ancestor compounds name no state, family, part, role or surface, so a
+// rule's ancestors change only when an ancestor's type, ID or classes do,
+// or a control moves.
+struct RuleAncestor final {
+    std::string control_type{};
+    std::string stable_id{};
+    std::vector<std::string> classes{};
+    AncestorCombinator combinator{AncestorCombinator::descendant};
+
+    friend bool operator==(const RuleAncestor& left, const RuleAncestor& right) noexcept {
+        return left.control_type == right.control_type && left.stable_id == right.stable_id &&
+               left.classes == right.classes && left.combinator == right.combinator;
+    }
+};
+
+// At most this many ancestor compounds in one selector, and ancestors are
+// matched within this depth of the subject: a control nested deeper than
+// maximum_ancestor_depth below an ancestor is not matched against it.
+inline constexpr std::size_t maximum_rule_ancestors = 8U;
+inline constexpr std::size_t maximum_ancestor_depth = 256U;
+
+// One ancestor control as a selector's ancestor compounds read it:
+// borrowed from the control for the resolution.
+struct AncestorFacts final {
+    std::string_view control_type{};
+    std::string_view stable_id{};
+    std::span<const std::string> classes{};
+};
+
+// The keys an ancestor chain holds, hashed into 256 bits: a rule whose
+// ancestor keys are not all present cannot match, and is rejected without
+// walking the chain (CSS engines' ancestor Bloom filter).
+struct AncestorBloom final {
+    std::array<std::uint64_t, 4> bits{};
+
+    // Adds `key`, written as a selector writes it: `type`, `#id` or `.class`.
+    void add(std::string_view prefix, std::string_view key) noexcept;
+    [[nodiscard]] bool holds(const AncestorBloom& needed) const noexcept;
+};
+
+// `family`, when set, is a control visual family's registered name (the
+// theme's ControlVisualRole, such as `accent_button`): the selector matches
+// only parts resolved for that family (PartFacts::family). `excluded`
+// holds the arguments of its `:not()` selectors: it matches no part any of them
+// matches.
 struct RuleSelector final {
     std::string control_type{};
     std::string stable_id{};
@@ -104,34 +186,36 @@ struct RuleSelector final {
     std::optional<PartRole> role{};
     std::vector<AnatomyState> states{};
     SurfaceKind surface{SurfaceKind::none};
+    std::string family{};
+    std::vector<RuleExclusion> excluded{};
+    // The selector's ancestor compounds, nearest first (selector step 4).
+    std::vector<RuleAncestor> ancestors{};
 
     friend bool operator==(const RuleSelector& left, const RuleSelector& right) noexcept {
         return left.control_type == right.control_type && left.stable_id == right.stable_id &&
                left.classes == right.classes && left.part == right.part && left.role == right.role &&
-               left.states == right.states && left.surface == right.surface;
+               left.states == right.states && left.surface == right.surface && left.family == right.family &&
+               left.excluded == right.excluded && left.ancestors == right.ancestors;
     }
 };
 
-// A selector's specificity: the stable ID, the classes, the control type,
-// the part (its name or role, one each) and the states, compared in that
-// order (T2 plan, E4).
+// A selector's specificity, CSS's three columns compared in order: the
+// stable ID; the classes, the states and the family (pseudo-classes); the
+// control type or surface and the part (its name or role, one each, as
+// pseudo-elements). A `:not()` adds its most specific argument's, and each
+// ancestor compound its own.
 struct RuleSpecificity final {
     std::uint32_t ids{};
     std::uint32_t classes{};
     std::uint32_t types{};
-    std::uint32_t parts{};
-    std::uint32_t states{};
 
     friend constexpr bool operator==(RuleSpecificity left, RuleSpecificity right) noexcept {
-        return left.ids == right.ids && left.classes == right.classes && left.types == right.types &&
-               left.parts == right.parts && left.states == right.states;
+        return left.ids == right.ids && left.classes == right.classes && left.types == right.types;
     }
     friend constexpr bool operator<(RuleSpecificity left, RuleSpecificity right) noexcept {
         if (left.ids != right.ids) return left.ids < right.ids;
         if (left.classes != right.classes) return left.classes < right.classes;
-        if (left.types != right.types) return left.types < right.types;
-        if (left.parts != right.parts) return left.parts < right.parts;
-        return left.states < right.states;
+        return left.types < right.types;
     }
 };
 
@@ -318,6 +402,41 @@ struct BackdropDeclaration final {
 // Whether `backdrop` is a chain the engine admits: its length within
 // capacity, every amount finite and in its range, and at most one blur.
 [[nodiscard]] bool backdrop_declaration_valid(const BackdropDeclaration& backdrop) noexcept;
+
+// What a theme's band does while lit (`band-effect`): nothing more, or
+// flash (the window's flash limiter bounds it; gui_forms/window/band/
+// window_band.hpp).
+enum class BandEffect : std::uint8_t { none, flash };
+
+// A `window` rule's band (owner, 2026-11-08: the window outer band):
+// `band-width` (logical units, before device-pixel snapping),
+// `band-color` (the rest colour), `band-lit-color` and `band-effect`. Each
+// field is set only by its own declaration; the cascade takes each field
+// from the last matching rule that sets it.
+struct BandDeclaration final {
+    std::optional<double> width{};
+    std::optional<Color> rest_colour{};
+    std::optional<Color> lit_colour{};
+    std::optional<BandEffect> effect{};
+
+    [[nodiscard]] bool empty() const noexcept {
+        const bool none = !width && !rest_colour && !lit_colour && !effect;
+        return none;
+    }
+
+    friend bool operator==(const BandDeclaration& left, const BandDeclaration& right) noexcept {
+        return left.width == right.width && left.rest_colour == right.rest_colour &&
+               left.lit_colour == right.lit_colour && left.effect == right.effect;
+    }
+};
+
+// The widest `band-width` a theme may declare, in logical units (the same
+// as gui_forms::maximum_band_width, which a window checks).
+inline constexpr double maximum_theme_band_width = 32.0;
+
+// Whether `band` is one the engine admits: a width, if set, finite from 0
+// to maximum_theme_band_width; an effect, if set, in the enumeration.
+[[nodiscard]] bool band_declaration_valid(const BandDeclaration& band) noexcept;
 
 // Where a colour is drawn, as forced high contrast reads it: a fill (a
 // plate), an edge (a border, a keyline or a ring) or text; `none` for a
@@ -573,7 +692,7 @@ struct PropertyTransition final {
 // The ambient budget (design language §9.4, the accepted starting tokens):
 // at most 30 frames per second, over a region of at most 10 % of the window
 // on everyday surfaces. A surface the application marks ceremonial
-// (Control::set_ceremonial, GIVEN B3-1) lifts the area cap for the parts on
+// (Control::ceremonial, GIVEN B3-1) lifts the area cap for the parts on
 // it.
 inline constexpr double maximum_ambient_frames_per_second = 30.0;
 inline constexpr double maximum_ambient_window_fraction = 0.10;
@@ -881,8 +1000,11 @@ void assemble_material(const SurfaceMaterial& floor,
 
 // The fields of a control's own recipe (ControlVisualRecipe) beside its
 // material that a rule may set (T3 P6f; design language §2, §3 and §14).
-// They are the control's, not a part's: a rule naming a part or a role
-// sets none (RuleDiagnosticKind::recipe_field_on_part). They cascade as
+// They are the control's, not a part's: a rule naming a role sets none,
+// and a rule naming a part only the text colours (text, muted_text, glyph),
+// which the part's own resolution reads (Theme::resolve with its name);
+// any other is dropped (RuleDiagnosticKind::recipe_field_on_part). They
+// cascade as
 // the material fields do, each on its own, from every matching rule, over
 // the theme's built-in recipe for the control's role and state (the floor,
 // Theme::resolve); a field no rule sets keeps the floor's value.
@@ -909,6 +1031,15 @@ enum class RecipeField : std::uint8_t {
     font_weight,
     font_style,
     letter_spacing,
+    // The recipe's other text colours (T4 floor sheet, owner option 1):
+    // `muted-color`, its secondary text, and `glyph-color`, the colour of
+    // its glyphs (check marks, arrows), each drawn as text.
+    muted_text,
+    glyph,
+    // `default-outline: <width> <colour>`: the default button's second
+    // perimeter (ControlVisualRecipe::default_width and default_ring).
+    default_outline_width,
+    default_outline_colour,
     count,
 };
 
@@ -916,8 +1047,9 @@ inline constexpr std::size_t recipe_field_count = static_cast<std::size_t>(Recip
 
 // The field's snake_case name, as diagnostics name it; empty for `count`.
 [[nodiscard]] std::string_view recipe_field_name(RecipeField field) noexcept;
-// Where the field's colour is drawn (EC4): the text colour is text and the
-// outline colour an edge; every other field none.
+// Where the field's colour is drawn (EC4): the text, muted text and glyph
+// colours are text, and the outline and default outline colours edges;
+// every other field none.
 [[nodiscard]] ColourPosition recipe_field_colour_position(RecipeField field) noexcept;
 
 // How the focus ring is drawn (CSS `outline-style`): the theme's own ring
@@ -944,9 +1076,11 @@ inline constexpr double maximum_rule_font_weight = 900.0;
 // One recipe field's declared value. `initial` is CSS's `initial`: the
 // floor's value, and the declaration still wins over those beneath it; its
 // value members are not read. Otherwise, by field:
-// - text and outline_colour: `colour`;
+// - text, outline_colour, muted_text, glyph and default_outline_colour:
+//   `colour`;
 // - outline_style: `outline_style`;
-// - outline_width (0 to maximum_recipe_outline_width) and outline_offset
+// - outline_width and default_outline_width (0 to
+//   maximum_recipe_outline_width) and outline_offset
 //   (within ±maximum_recipe_outline_offset): `number`, in logical units;
 // - text_shadow: `shadowed`, false for none; its `shadow_offset`,
 //   `shadow_blur` (the shadows' blur-radius convention) and `colour`;
@@ -1070,6 +1204,51 @@ struct ScopedCondition final {
     }
 };
 
+// The layer of the cascade a rule was written in (T4 cascade spec, item
+// 5): the built-in recipe, a library pack (an imported package, or the
+// GUI.Forms base sheet under a program's packages), the project theme (a
+// program's own packages), a user theme, inline code, forced high contrast
+// (the engine's own pass, never a rule's) or the fallback theme (a dark
+// window showing GUI.Forms' own theme, W403).
+enum class ThemeLayer : std::uint8_t {
+    built_in,
+    library_pack,
+    project_theme,
+    user_theme,
+    inline_code,
+    forced_high_contrast,
+    fallback_theme,
+    count,
+};
+
+[[nodiscard]] std::string_view theme_layer_name(ThemeLayer layer) noexcept;
+
+// Where a rule was written (T4 cascade spec, item 5), for an editor's
+// queries; paint never reads it. `layer` as above; `pack` and `pack_hash`
+// name a library pack or a project package (its manifest's name and the
+// SHA-256 of its manifest, 64 lowercase hexadecimal digits), empty
+// elsewhere; `file`, `line` and `column` (from 1; 0 for none) place the
+// rule's first token in its own sheet, and `offset` is that token's byte
+// offset in the text compiled (a closure's combined sheets until the
+// package compiler places it); `setter` names the C++ setter of inline
+// code that is not a written style (empty otherwise).
+struct RuleProvenance final {
+    ThemeLayer layer{ThemeLayer::project_theme};
+    std::string pack{};
+    std::string pack_hash{};
+    std::string file{};
+    std::uint32_t line{};
+    std::uint32_t column{};
+    std::uint32_t offset{};
+    std::string setter{};
+
+    friend bool operator==(const RuleProvenance& left, const RuleProvenance& right) noexcept {
+        return left.layer == right.layer && left.pack == right.pack && left.pack_hash == right.pack_hash &&
+               left.file == right.file && left.line == right.line && left.column == right.column &&
+               left.offset == right.offset && left.setter == right.setter;
+    }
+};
+
 struct ThemeRule final {
     std::string label{};
     CascadeLevel level{CascadeLevel::theme_sheet};
@@ -1098,6 +1277,11 @@ struct ThemeRule final {
     std::uint32_t source_position{};
     // A surface rule's backdrop (`backdrop:`), or none.
     std::optional<BackdropDeclaration> backdrop{};
+    // A window rule's band (`band-*`), or none.
+    std::optional<BandDeclaration> band{};
+    // Where the rule was written. Not compared: two rules that cascade
+    // alike are equal wherever they were written.
+    RuleProvenance provenance{};
 
     friend bool operator==(const ThemeRule& left, const ThemeRule& right) noexcept {
         return left.label == right.label && left.level == right.level && left.selector == right.selector &&
@@ -1107,7 +1291,8 @@ struct ThemeRule final {
                left.recipe_fields == right.recipe_fields && left.media == right.media &&
                left.scoped_definitions == right.scoped_definitions &&
                left.scoped_conditions == right.scoped_conditions && left.reads == right.reads &&
-               left.source_position == right.source_position && left.backdrop == right.backdrop;
+               left.source_position == right.source_position && left.backdrop == right.backdrop &&
+               left.band == right.band;
     }
 };
 
@@ -1187,6 +1372,9 @@ enum class RuleDiagnosticKind : std::uint8_t {
     // one that is not a valid chain (backdrop_declaration_valid); the
     // backdrop is dropped.
     backdrop_invalid,
+    // A band (ThemeRule::band) on a rule that selects no window, or one
+    // band_declaration_valid refuses; the band is dropped.
+    band_invalid,
     // A transition (E7) is dropped: its property is neither opacity nor a
     // parameter of the rule's primitive; the parameter is not animated or
     // not a number; or it has no states or more than
@@ -1227,8 +1415,9 @@ enum class RuleDiagnosticKind : std::uint8_t {
     // A recipe field the recipe does not admit
     // (recipe_declaration_admitted), such as an outline 20 units wide.
     recipe_field_invalid,
-    // A recipe field in a rule whose selector names a part or a role: the
-    // recipe's fields are the control's, so the field is dropped.
+    // A recipe field in a rule whose selector names a role, or one other
+    // than the text colours in a rule naming a part: the recipe's fields
+    // are the control's, so the field is dropped.
     recipe_field_on_part,
     // The rule's media condition has a resolution bound that is not finite
     // or not above zero (media_condition_valid); the rule is dropped.
@@ -1320,6 +1509,11 @@ public:
     // How many of the rules are the engine's built-in rules.
     [[nodiscard]] std::size_t built_in_rule_count() const noexcept { return built_in_rules_; }
 
+    // Whether a rule has ancestor compounds (selector step 4): its facts
+    // need the control's ancestors, and a change to an ancestor's type, ID
+    // or classes, or a move, re-resolves the control's subtree.
+    [[nodiscard]] bool uses_ancestors() const noexcept { return uses_ancestors_; }
+
     [[nodiscard]] bool empty() const noexcept { return rules_.empty(); }
     [[nodiscard]] std::size_t rule_count() const noexcept { return rules_.size(); }
     // How many scoped custom property names the rules' conditions read
@@ -1369,6 +1563,15 @@ public:
         // The surface whose rules are resolved, or none for a control's
         // part: a rule matches only facts of its own surface kind.
         SurfaceKind surface{SurfaceKind::none};
+        // The control visual family the part is resolved for (RuleSelector::
+        // family), or empty where none is known: a `:family()` rule then
+        // does not match.
+        std::string_view family{};
+        // The part's control's ancestors, its parent first, and their keys
+        // (fill_ancestor_facts): read only by rules with ancestor compounds
+        // (uses_ancestors). Borrowed for the call.
+        std::span<const AncestorFacts> ancestors{};
+        AncestorBloom ancestor_bloom{};
     };
 
     // Why a part resolved as it did.
@@ -1484,12 +1687,53 @@ public:
     // rule sets a recipe field.
     [[nodiscard]] RecipeResolution resolve_recipe_fields(const PartFacts& facts) const noexcept;
 
+    // Where one resolved field came from (T4 cascade spec, item 5).
+    // `authored` is whether a rule set it; where none did, the built-in
+    // recipe's value stands, at `built_in` in the built-in layer. `source`
+    // and `selector` are the winning rule's provenance and selector, which
+    // belong to the compiled rules (this table, or the facts' inline style
+    // or user theme) and are null where no rule set the field; `origin` is
+    // a colour's (ColourOrigin, none for a value that is not a colour).
+    struct FieldProvenance final {
+        bool authored{};
+        CascadeLevel level{CascadeLevel::built_in};
+        ThemeLayer layer{ThemeLayer::built_in};
+        const RuleProvenance* source{};
+        const RuleSelector* selector{};
+        RuleSpecificity specificity{};
+        ColourOrigin origin{};
+    };
+
+    // The provenance of every field of the part `facts` name: its
+    // primitive parameters (by position; `parameter_count` are the chosen
+    // primitive's, none when no rule selects one), its material fields and
+    // its recipe fields (by their positions), as resolve(),
+    // resolve_recipe_fields() and the primitive's parameters resolve them.
+    struct PartProvenance final {
+        std::array<FieldProvenance, maximum_primitive_parameters> parameters{};
+        std::size_t parameter_count{};
+        std::array<FieldProvenance, material_field_count> materials{};
+        std::array<FieldProvenance, recipe_field_count> recipe_fields{};
+    };
+
+    // Fills `result` with the provenance of the part `facts` name, for an
+    // editor's query: linear in the number of rules, allocating nothing.
+    // Paint never calls it. The borrows in `result` stay valid while these
+    // rules and the facts' inline style and user theme live.
+    void resolve_provenance(const PartFacts& facts, PartProvenance& result) const noexcept;
+
     // The winning backdrop of the surface `facts` name (PartFacts::surface,
     // its root control's classes and ID): the last matching rule's, which
     // belongs to the compiled rules or to the user theme's, or null where no
     // matching rule declares one. `backdrop: none` wins as a chain of length
     // 0. Linear in the number of rules.
     [[nodiscard]] const BackdropDeclaration* resolve_backdrop(const PartFacts& facts) const noexcept;
+    // The band of the window `facts` name (PartFacts::surface window, its
+    // root control's classes and ID): each field from the last matching
+    // rule that sets it, among the compiled rules and the user theme's.
+    // Empty where none does, and for any surface but a window. Linear in
+    // the number of rules.
+    [[nodiscard]] BandDeclaration resolve_band(const PartFacts& facts) const noexcept;
 
     // The cascade for one part: the winning primitive declaration, then
     // each of that primitive's parameters from the winning declaration of
@@ -1549,6 +1793,8 @@ private:
         std::size_t order{};
         RuleSelector selector{};
         AnatomyStateSet states{};
+        // The keys the selector's ancestor compounds name (selector step 4).
+        AncestorBloom ancestor_keys{};
         // The primitive the rule selects, null when it selects built_in or
         // none; `selects` tells the two apart.
         bool selects{};
@@ -1570,6 +1816,8 @@ private:
         std::vector<RecipeDeclaration> recipe_fields{};
         // A surface rule's checked backdrop.
         std::optional<BackdropDeclaration> backdrop{};
+        // A window rule's checked band.
+        std::optional<BandDeclaration> band{};
         // Scoped custom properties (P12), by position in scoped_names_.
         std::vector<CompiledScoped> scoped_definitions{};
         std::vector<CompiledScoped> scoped_conditions{};
@@ -1577,6 +1825,9 @@ private:
         // ThemeRule::source_position.
         std::vector<std::uint32_t> reads{};
         std::uint32_t source_position{};
+        // ThemeRule::provenance, its layer the built-in one in the
+        // engine's own table.
+        RuleProvenance provenance{};
     };
 
     // Compiles `sheet`'s rules into `result` at their authored levels, or,
@@ -1586,6 +1837,9 @@ private:
     // Numbers every compiled machine (CompiledTransition::machine), in rule
     // order, once the rules are final.
     void number_machines() noexcept;
+    // One field's provenance from the rule whose declaration of it won,
+    // drawn in `origin` (FieldProvenance; the borrows are the rule's).
+    [[nodiscard]] static FieldProvenance field_provenance(const CompiledRule& rule, ColourOrigin origin) noexcept;
     // The winning rule's primitive and parameters into `result`.
     void resolve_primitive(const PartFacts& facts, const ScopedWinners& winners, const CompiledRule& chosen,
                            Resolution& result) const noexcept;
@@ -1643,8 +1897,17 @@ private:
     // an invalid chain, is dropped with a diagnostic.
     static void add_backdrop(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                              CompiledRule& compiled);
+    // A rule's band, checked; one on a rule that selects no window, or an
+    // invalid one, is dropped with a diagnostic.
+    static void add_band(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
+                         CompiledRule& compiled);
 
     [[nodiscard]] static bool matches(const CompiledRule& rule, const PartFacts& facts) noexcept;
+    // Whether one `:not()` argument matches the part: every field it names
+    // holds.
+    [[nodiscard]] static bool exclusion_matches(const RuleExclusion& exclusion, const PartFacts& facts) noexcept;
+    // Whether the selector's ancestor compounds match the part's ancestors.
+    [[nodiscard]] static bool ancestors_match(const CompiledRule& rule, const PartFacts& facts) noexcept;
     // These rules, a part's user theme's and its inline style's, merged in
     // ascending precedence.
     class RuleWalk;
@@ -1665,6 +1928,7 @@ private:
     bool inline_style_{};
     // Whether the rules are a user theme.
     bool user_theme_{};
+    bool uses_ancestors_{};
     // The scoped custom property names the rules' conditions read (P12),
     // at most maximum_scoped_custom_properties.
     std::vector<std::string> scoped_names_{};

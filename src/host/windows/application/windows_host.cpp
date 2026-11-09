@@ -19,6 +19,7 @@
 #endif
 // The window's painter (stage SK3): the private Skia CPU raster.
 #include "skia_raster.hpp"
+#include "../../../core/application/splashscreen_surface.hpp"
 
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/live_surface.hpp"
@@ -46,6 +47,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <cwchar>
 #include <exception>
 #include <filesystem>
 #include <fstream>
@@ -69,7 +71,6 @@ namespace gui_forms::host {
 namespace {
 
 constexpr wchar_t window_class_name[] = L"GUIForms.Window.v1";
-constexpr wchar_t tooltip_class_name[] = L"GUIForms.ToolTip.v1";
 constexpr UINT_PTR scheduler_timer = 1;
 constexpr UINT_PTR modal_live_surface_timer = 2;
 constexpr UINT live_surface_period_milliseconds = 16;
@@ -562,55 +563,6 @@ double native_monitor_scale(HMONITOR monitor) noexcept {
 }
 
 #include "../services/windows_host_services.hpp"
-
-// A tooltip's content is painted by the window's text engine (ADR-004) into
-// top-down BGRA pixels; the popup only presents them.
-struct TooltipPopup final {
-    HWND window{};
-    std::wstring text;
-    std::vector<std::uint32_t> pixels;
-    int width{};
-    int height{};
-};
-
-LRESULT CALLBACK tooltip_window_procedure(HWND window, UINT message,
-                                          WPARAM wparam, LPARAM lparam) {
-    TooltipPopup* state = reinterpret_cast<TooltipPopup*>(
-        GetWindowLongPtrW(window, GWLP_USERDATA));
-    if (message == WM_NCCREATE) {
-        const CREATESTRUCTW* create =
-            reinterpret_cast<const CREATESTRUCTW*>(lparam);
-        state = static_cast<TooltipPopup*>((*create).lpCreateParams);
-        SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(state));
-        (*state).window = window;
-    }
-    switch (message) {
-    case WM_ERASEBKGND: return 1;
-    case WM_TIMER: DestroyWindow(window); return 0;
-    case WM_PAINT: {
-        PAINTSTRUCT paint{};
-        HDC dc = BeginPaint(window, &paint);
-        if (state && !(*state).pixels.empty()) {
-            BITMAPINFO info{};
-            info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-            info.bmiHeader.biWidth = (*state).width;
-            info.bmiHeader.biHeight = -(*state).height;
-            info.bmiHeader.biPlanes = 1;
-            info.bmiHeader.biBitCount = 32;
-            info.bmiHeader.biCompression = BI_RGB;
-            SetDIBitsToDevice(dc, 0, 0, static_cast<DWORD>((*state).width), static_cast<DWORD>((*state).height),
-                              0, 0, 0, static_cast<UINT>((*state).height), (*state).pixels.data(), &info,
-                              DIB_RGB_COLORS);
-        }
-        EndPaint(window, &paint);
-        return 0;
-    }
-    case WM_NCDESTROY:
-        if (state) (*state).window = nullptr;
-        return 0;
-    default: return DefWindowProcW(window, message, wparam, lparam);
-    }
-}
 
 Modifier modifiers() noexcept {
     Modifier result = Modifier::none;
@@ -1224,9 +1176,6 @@ class WindowsHostState final {
 #if defined(GUI_FORMS_WINDOWS_PREPARED_TEXT_TEST)
     friend struct PreparedHostFixture;
 #endif
-#if defined(GUI_FORMS_WINDOWS_TOOLTIP_TEST)
-    friend struct TooltipHostFixture;
-#endif
 public:
     WindowsHostState(std::unique_ptr<Window> model, WindowsHostOptions options)
         : model_(std::move(model)), options_(std::move(options)),
@@ -1280,7 +1229,6 @@ public:
             CloseHandle(live_frame_clock_);
             live_frame_clock_ = nullptr;
         }
-        hide_tooltip();
         if (model_) {
             (*model_).set_paint_wake_handler({});
             (*model_).set_text_metrics_provider(nullptr);
@@ -1327,6 +1275,7 @@ public:
         native_phase_ = NativePhase::attached;
         report_compositor_state();
         report_input_settings();
+        report_window_state();
         accessibility_.attach(hwnd_, *model_, scale_);
         (*model_).set_dispatch_wake_handler(
             gui_forms::detail::BoundMemberFunction<
@@ -1348,13 +1297,6 @@ public:
                     HostDialogResult (HostServices::*)(
                         const HostDialogRequest&)>(
                             services_, &HostServices::show_dialog),
-                gui_forms::detail::BoundMemberFunction<
-                    HostServiceStatus (WindowsHostState::*)(
-                        const HostTooltipRequest&)>(
-                            *this, &WindowsHostState::show_tooltip),
-                gui_forms::detail::BoundMemberFunction<
-                    void (WindowsHostState::*)() noexcept>(
-                        *this, &WindowsHostState::hide_tooltip),
                 gui_forms::detail::BoundMemberFunction<
                     HostClipboardTextResult (HostServices::*)()>(
                         services_, &HostServices::read_clipboard_text),
@@ -1388,6 +1330,24 @@ public:
         return true;
     }
 
+    // Reports the native window's state (HostWindowStateEvent; owner,
+    // 2026-11-08: the window outer band) after attach and whenever it
+    // changes: WM_SIZE (maximize, restore, and a snap's resize),
+    // WM_EXITSIZEMOVE (a snap by dragging) and WM_STYLECHANGED (a caption
+    // removed for full screen). The session passes full screen to the band
+    // and asks DWM for the corners again, which the state may square. A
+    // report refused (before attach, after close) is tried again on the
+    // next change.
+    void report_window_state() {
+        const detail::WindowsWindowState state = detail::read_windows_window_state(hwnd_);
+        if (window_state_reported_ && state == reported_window_state_) return;
+        const HostDispatchResult reported = dispatch(HostWindowStateEvent{state.full_screen});
+        if (!reported.accepted()) return;
+        reported_window_state_ = state;
+        window_state_reported_ = true;
+        collect_damage();
+    }
+
     // Reports DWM's state to the window (stage T5, C2): after attach, and
     // whenever a message may have changed a setting it reads. A reading
     // that differs from the window's last report only by its generation is
@@ -1418,6 +1378,9 @@ public:
     // A passive native popup (HostPopupFocus::passive): a click does not
     // activate it. Set before the native window is created.
     void mark_passive_popup() noexcept { passive_popup_ = true; }
+    // A Splash takes no input: the pointer passes through it to the
+    // windows beneath (HTTRANSPARENT, SPLASH_STUDY D4 (a)).
+    void mark_splash() noexcept { splash_ = true; }
 
     // Application-scope windowing (windows_application_run.inc). Bound before
     // the native window is created; the run outlives this state.
@@ -1542,6 +1505,7 @@ public:
                 resize();
             }
             report_frame_to_run();
+            report_window_state();
             return 0;
         case WM_MOVE: report_frame_to_run(); return 0;
         case WM_DPICHANGED: dpi_changed(wparam, lparam); return 0;
@@ -1555,6 +1519,11 @@ public:
             }
             dispatch(HostActivationEvent{LOWORD(wparam) != WA_INACTIVE});
             collect_damage(); return 0;
+        case WM_NCHITTEST:
+            // A Splash is never hit: the message goes to the window beneath
+            // it on this thread (its owner, for a tooltip).
+            if (splash_) return HTTRANSPARENT;
+            break;
         case WM_MOUSEACTIVATE:
             if (trace_win32_input()) {
                 std::fprintf(stderr, "win32-input=mouse-activate|hit:%u|message:%u|active:%d|focus:%d\n",
@@ -1601,6 +1570,7 @@ public:
             break;
         case WM_MOUSELEAVE:
             services_.revoke_cursor_interaction();
+            hover_tracked_ = {};
             break;
         case WM_PAINT:
             // A render wake remains coalesced until the host actually begins
@@ -1633,8 +1603,14 @@ public:
             stop_modal_live_clock();
             in_size_move_ = false;
             apply_pending_resize();
+            report_window_state();
             mark_live_frame_due();
             return 0;
+        case WM_STYLECHANGED:
+            // A caption removed or restored can make the window full screen
+            // or leave it (read_windows_window_state).
+            report_window_state();
+            break;
         case modal_live_clock_message:
             // A late post after the loop ended is ignored: the outer loop
             // waits on the clock again.
@@ -1695,17 +1671,29 @@ public:
             SetFocus(hwnd_); pointer(message, PointerAction::down, wparam, lparam); return 0;
         case WM_LBUTTONDBLCLK: case WM_RBUTTONDBLCLK: case WM_MBUTTONDBLCLK:
             SetFocus(hwnd_); pointer(message, PointerAction::down, wparam, lparam); return 0;
-        case WM_LBUTTONUP: case WM_RBUTTONUP: case WM_MBUTTONUP:
+        case WM_LBUTTONUP: case WM_MBUTTONUP:
             pointer(message, PointerAction::up, wparam, lparam); return 0;
+        case WM_RBUTTONUP:
+            // DefWindowProc turns the right button's release into
+            // WM_CONTEXTMENU, Windows' own context request.
+            pointer(message, PointerAction::up, wparam, lparam);
+            return DefWindowProcW(hwnd_, message, wparam, lparam);
+        case WM_CONTEXTMENU: context_request(lparam); return 0;
+        case WM_MOUSEHOVER: hover(lparam); return 0;
         case WM_MOUSEWHEEL: wheel(wparam, lparam); return 0;
         case WM_SYSKEYDOWN:
             // Preserve the native close gesture. Swallowing all system keys
             // prevents DefWindowProc from producing the ordinary WM_CLOSE,
             // including its existing cancellation and owned-window policy.
             if (wparam == VK_F4 && (lparam & (1LL << 29)) != 0) break;
-            key(KeyAction::down, wparam, lparam); return 0;
-        case WM_KEYDOWN: key(KeyAction::down, wparam, lparam); return 0;
-        case WM_KEYUP: case WM_SYSKEYUP: key(KeyAction::up, wparam, lparam); return 0;
+            if (!key(KeyAction::down, wparam, lparam) && context_key(message, wparam)) break;
+            return 0;
+        case WM_KEYDOWN:
+            if (!key(KeyAction::down, wparam, lparam) && context_key(message, wparam)) break;
+            return 0;
+        case WM_KEYUP: case WM_SYSKEYUP:
+            if (!key(KeyAction::up, wparam, lparam) && context_key(message, wparam)) break;
+            return 0;
         case WM_CHAR: character(static_cast<wchar_t>(wparam)); return 0;
         case WM_GETOBJECT:
             if (static_cast<LONG>(lparam) == OBJID_CLIENT) { return accessibility_.object(wparam); }
@@ -1856,161 +1844,6 @@ private:
         return session_.dispatch(std::move(event));
     }
 
-    HostServiceStatus show_tooltip(const HostTooltipRequest& request) {
-        hide_tooltip();
-        if (request.text.empty()) return {};
-        tooltip_.text = wide_from_utf8(request.text);
-        if (tooltip_.text.empty()) return {HostServiceError::invalid_utf8};
-
-        WNDCLASSEXW native_class{};
-        native_class.cbSize = sizeof(native_class);
-        native_class.lpfnWndProc = tooltip_window_procedure;
-        native_class.hInstance = GetModuleHandleW(nullptr);
-        native_class.hCursor = load_system_cursor(IDC_ARROW);
-        native_class.lpszClassName = tooltip_class_name;
-        if (RegisterClassExW(&native_class) == 0 &&
-            GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
-            return {HostServiceError::backend_failure};
-        }
-
-        if (!paint_tooltip(request.text)) return {HostServiceError::backend_failure};
-        const int width = tooltip_.width;
-        const int height = tooltip_.height;
-
-        POINT anchor{static_cast<LONG>(std::lround(request.anchor.x * scale_)),
-                     static_cast<LONG>(std::lround(request.anchor.y * scale_))};
-        ClientToScreen(hwnd_, &anchor);
-        RECT work{};
-        MONITORINFO monitor{};
-        monitor.cbSize = sizeof(monitor);
-        if (GetMonitorInfoW(MonitorFromPoint(anchor, MONITOR_DEFAULTTONEAREST),
-                            &monitor)) {
-            work = monitor.rcWork;
-        } else {
-            SystemParametersInfoW(SPI_GETWORKAREA, 0, &work, 0);
-        }
-        const int x = std::clamp<int>(anchor.x, work.left,
-                                      std::max(work.left, work.right - width));
-        const int y = std::clamp<int>(anchor.y, work.top,
-                                      std::max(work.top, work.bottom - height));
-        tooltip_.window = CreateWindowExW(
-            WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE,
-            tooltip_class_name, tooltip_.text.c_str(), WS_POPUP,
-            x, y, width, height, hwnd_, nullptr, GetModuleHandleW(nullptr), &tooltip_);
-        if (tooltip_.window == nullptr) return {HostServiceError::backend_failure};
-        ShowWindow(tooltip_.window, SW_SHOWNOACTIVATE);
-        UpdateWindow(tooltip_.window);
-        if (request.duration_milliseconds != 0U) {
-            SetTimer(tooltip_.window, 1,
-                     std::max<UINT>(1U, request.duration_milliseconds), nullptr);
-        }
-        return {};
-    }
-
-    void hide_tooltip() noexcept {
-        if (tooltip_.window != nullptr && IsWindow(tooltip_.window)) {
-            DestroyWindow(tooltip_.window);
-        }
-        tooltip_.window = nullptr;
-        tooltip_.text.clear();
-        tooltip_.pixels.clear();
-    }
-
-    // The logical extent that the framebuffer rounds up to exactly pixels.
-    // pixels / scale can land a hair above the quotient (at 1.1, 71 / 1.1
-    // * 1.1 > 71), which would allocate an extra unpainted row or column.
-    static double logical_extent(const double pixels, const double scale) {
-        double logical = pixels / scale;
-        while (std::ceil(logical * scale) > pixels) logical = std::nextafter(logical, 0.0);
-        return logical;
-    }
-
-    // A logical rect that fill_rect maps to exactly the given device pixels.
-    // fill_rect covers every touched pixel, so edges at whole-pixel logical
-    // positions can spill a pixel either way; edges a quarter pixel inside
-    // the span cannot.
-    static Rect device_pixels(const double column, const double row, const double columns, const double rows,
-                              const double scale) {
-        return {(column + 0.25) / scale, (row + 0.25) / scale, (columns - 0.5) / scale, (rows - 0.5) / scale};
-    }
-
-    // Wraps the tooltip text at word boundaries to 360 logical pixels and
-    // paints it, with its face and border, through the window's painter.
-    bool paint_tooltip(const std::string_view utf8) {
-        if (!raster_.bundled_fonts_ready()) return false;
-        const FontSpec font{.role = FontRole::control, .size = 13.0};
-        constexpr double wrap_width = 360.0;
-        std::vector<std::string> lines;
-        std::size_t offset = 0;
-        for (;;) {
-            const std::size_t newline = utf8.find('\n', offset);
-            std::string_view paragraph = utf8.substr(offset, newline == std::string_view::npos ? std::string_view::npos
-                                                                                               : newline - offset);
-            if (!paragraph.empty() && paragraph.back() == '\r') paragraph.remove_suffix(1U);
-            std::string line;
-            std::size_t word_start = 0;
-            while (word_start <= paragraph.size()) {
-                std::size_t word_end = paragraph.find(' ', word_start);
-                if (word_end == std::string_view::npos) word_end = paragraph.size();
-                const std::string_view word = paragraph.substr(word_start, word_end - word_start);
-                std::string candidate = line;
-                if (!candidate.empty()) candidate += ' ';
-                candidate += word;
-                if (line.empty() || raster_.painter().measure_text_utf8(candidate, font).width <= wrap_width) {
-                    line = std::move(candidate);
-                } else {
-                    lines.push_back(std::move(line));
-                    line = std::string(word);
-                }
-                word_start = word_end + 1U;
-            }
-            lines.push_back(std::move(line));
-            if (newline == std::string_view::npos) break;
-            offset = newline + 1U;
-        }
-        double text_width = 0.0;
-        for (const std::string& line : lines) {
-            text_width = std::max(text_width, raster_.painter().measure_text_utf8(line, font).width);
-        }
-        const ResolvedTextLayout metrics = raster_.painter().resolve_text_layout_utf8("Ag", font);
-        const double line_height = metrics.ascent + metrics.descent + metrics.line_gap;
-        const Size requested{std::clamp(text_width + 16.0, 40.0, 376.0),
-                             std::max(24.0, line_height * static_cast<double>(lines.size()) + 10.0)};
-        // The popup presents every allocated device pixel. Align its logical
-        // extent before painting so fractional sizes cannot leave a clear
-        // final row/column or make the one-device-pixel border two pixels wide.
-        const double columns = std::ceil(requested.width * scale_);
-        const double rows = std::ceil(requested.height * scale_);
-        const Size logical{logical_extent(columns, scale_), logical_extent(rows, scale_)};
-        const std::unique_ptr<PaintFramebuffer> framebuffer = raster_.painter().create_framebuffer(logical, scale_);
-        if (!framebuffer) return false;
-        // The tooltip draws no images; its frame covers the whole popup.
-        const ImageRegistry no_images{};
-        if (!(*framebuffer).begin(no_images, {0.0, 0.0, logical.width, logical.height})) return false;
-        Painter& painter = (*framebuffer).painter();
-        const Color border = Color::rgba(105, 116, 128);
-        painter.fill_rect({0.0, 0.0, logical.width, logical.height}, Color::rgba(255, 255, 240));
-        painter.fill_rect(device_pixels(0.0, 0.0, columns, 1.0, scale_), border);
-        painter.fill_rect(device_pixels(0.0, rows - 1.0, columns, 1.0, scale_), border);
-        painter.fill_rect(device_pixels(0.0, 0.0, 1.0, rows, scale_), border);
-        painter.fill_rect(device_pixels(columns - 1.0, 0.0, 1.0, rows, scale_), border);
-        for (std::size_t index = 0; index < lines.size(); ++index) {
-            const Point baseline{8.0, 5.0 + metrics.ascent + line_height * static_cast<double>(index)};
-            painter.draw_text_utf8(baseline, lines[index], font, Color::rgba(31, 37, 44));
-        }
-        (*framebuffer).end();
-        tooltip_.width = static_cast<int>((*framebuffer).width());
-        tooltip_.height = static_cast<int>((*framebuffer).height());
-        const std::span<std::byte> bytes = (*framebuffer).pixels();
-        tooltip_.pixels.resize(static_cast<std::size_t>(tooltip_.width) * static_cast<std::size_t>(tooltip_.height));
-        for (int row = 0; row < tooltip_.height; ++row) {
-            std::memcpy(tooltip_.pixels.data() + static_cast<std::size_t>(row) * static_cast<std::size_t>(tooltip_.width),
-                        bytes.data() + static_cast<std::size_t>(row) * (*framebuffer).row_bytes(),
-                        static_cast<std::size_t>(tooltip_.width) * 4U);
-        }
-        return true;
-    }
-
     // The system's double-click interval (GetDoubleClickTime, which Windows
     // keeps between 1 and 5000 milliseconds), reported after attach and on
     // WM_SETTINGCHANGE whenever it differs from the last report.
@@ -2019,9 +1852,38 @@ private:
         std::uint32_t interval = static_cast<std::uint32_t>(read);
         if (interval == 0U) interval = 1U;
         if (interval > maximum_double_click_milliseconds) interval = maximum_double_click_milliseconds;
-        if (interval == reported_double_click_milliseconds_) return;
-        const HostDispatchResult reported = dispatch(HostInputSettingsEvent{interval, SettingOrigin::host});
-        if (reported.accepted()) reported_double_click_milliseconds_ = interval;
+        HostInputSettingsEvent input{interval, SettingOrigin::host, PointerSettings{}};
+        PointerSettings& pointer = input.pointer;
+        pointer.drag_width = clamp_pointer_distance(GetSystemMetrics(SM_CXDRAG) / scale_);
+        pointer.drag_height = clamp_pointer_distance(GetSystemMetrics(SM_CYDRAG) / scale_);
+        pointer.drag_origin = SettingOrigin::host;
+        UINT hover_time = 0U;
+        UINT hover_width = 0U;
+        UINT hover_height = 0U;
+        const bool hover_read = SystemParametersInfoW(SPI_GETMOUSEHOVERTIME, 0U, &hover_time, 0U) != FALSE &&
+                                SystemParametersInfoW(SPI_GETMOUSEHOVERWIDTH, 0U, &hover_width, 0U) != FALSE &&
+                                SystemParametersInfoW(SPI_GETMOUSEHOVERHEIGHT, 0U, &hover_height, 0U) != FALSE;
+        if (hover_read) {
+            std::uint32_t hover = static_cast<std::uint32_t>(hover_time);
+            if (hover == 0U) hover = 1U;
+            if (hover > maximum_hover_milliseconds) hover = maximum_hover_milliseconds;
+            pointer.hover_milliseconds = hover;
+            pointer.hover_width = clamp_pointer_distance(static_cast<double>(hover_width) / scale_);
+            pointer.hover_height = clamp_pointer_distance(static_cast<double>(hover_height) / scale_);
+            pointer.hover_origin = SettingOrigin::host;
+        }
+        pointer.native_hover = true;
+        const bool unchanged = reported_input_settings_ &&
+                               (*reported_input_settings_).double_click_milliseconds == input.double_click_milliseconds &&
+                               (*reported_input_settings_).pointer == input.pointer;
+        if (unchanged) return;
+        const HostDispatchResult reported = dispatch(input);
+        if (reported.accepted()) reported_input_settings_ = input;
+    }
+
+    static double clamp_pointer_distance(double distance) noexcept {
+        if (!(distance >= 0.0)) return 0.0;
+        return distance > maximum_pointer_distance ? maximum_pointer_distance : distance;
     }
 
     void resize() {
@@ -2736,6 +2598,7 @@ private:
         }
         dispatch(std::move(event));
         synchronize_capture();
+        if (action == PointerAction::move) track_hover();
         if (!update_cursor(client_point(lparam))) apply_system_cursor(CursorKind::arrow);
         collect_damage();
     }
@@ -2753,14 +2616,68 @@ private:
         collect_damage();
     }
 
-    void key(KeyAction action, WPARAM wparam, LPARAM lparam) {
+    // Whether DefWindowProc should see a key the window left unhandled, so
+    // that it raises WM_CONTEXTMENU as Windows does: Shift+F10 and the Menu
+    // key (VK_APPS). Every other key stays the window's alone.
+    static bool context_key(UINT message, WPARAM wparam) noexcept {
+        const bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+        const bool shift_f10 = wparam == VK_F10 && shift && (message == WM_SYSKEYDOWN || message == WM_KEYDOWN);
+        const bool menu_key = wparam == VK_APPS;
+        return shift_f10 || menu_key;
+    }
+
+    // WM_CONTEXTMENU: a pointer request at its screen position, or a
+    // keyboard one (Shift+F10, the Menu key), which Windows marks with the
+    // position (-1, -1).
+    void context_request(LPARAM lparam) {
+        HostContextRequestEvent request{};
+        const int x = GET_X_LPARAM(lparam);
+        const int y = GET_Y_LPARAM(lparam);
+        if (x == -1 && y == -1) {
+            request.origin = ContextRequestOrigin::keyboard;
+        } else {
+            POINT point{x, y};
+            ScreenToClient(hwnd_, &point);
+            request.origin = ContextRequestOrigin::pointer;
+            request.position = {point.x / scale_, point.y / scale_};
+        }
+        dispatch(request);
+        collect_damage();
+    }
+
+    // WM_MOUSEHOVER: Windows measured the rest (SPI_GETMOUSEHOVERTIME within
+    // the hover rectangle); the window raises MouseHover on the hovered
+    // control. Tracking ends with it and is armed again when the pointer
+    // reaches another control (track_hover).
+    void hover(LPARAM lparam) {
+        hover_tracked_ = {};
+        dispatch(HostHoverEvent{client_point(lparam)});
+        collect_damage();
+    }
+
+    // Arms TrackMouseEvent's hover report for the control under the pointer
+    // once per control: each control raises MouseHover once per entry.
+    void track_hover() {
+        const Control::Ptr hovered = (*model_).hovered_control();
+        const RuntimeId current = hovered ? (*hovered).runtime_id() : RuntimeId{};
+        if (current == hover_tracked_ || current == RuntimeId{}) return;
+        TRACKMOUSEEVENT track{};
+        track.cbSize = sizeof(track);
+        track.dwFlags = TME_HOVER | TME_LEAVE;
+        track.hwndTrack = hwnd_;
+        track.dwHoverTime = HOVER_DEFAULT;
+        if (TrackMouseEvent(&track) != FALSE) hover_tracked_ = current;
+    }
+
+    bool key(KeyAction action, WPARAM wparam, LPARAM lparam) {
         KeyEvent event;
         event.action = action;
         event.physical_key = detail::physical_key_from_virtual_key(wparam);
         event.modifiers = modifiers();
         event.repeat = action == KeyAction::down && (lparam & (1LL << 30)) != 0;
-        dispatch(std::move(event));
+        const HostDispatchResult result = dispatch(std::move(event));
         collect_damage();
+        return result.handled;
     }
 
     void character(wchar_t character) {
@@ -3165,7 +3082,10 @@ private:
     double scale_{1.0};
     std::uint64_t next_sequence_{1};
     // The double-click interval last reported; 0 before the first report.
-    std::uint32_t reported_double_click_milliseconds_{};
+    std::optional<HostInputSettingsEvent> reported_input_settings_{};
+    // The control TrackMouseEvent's hover report is armed for (zero for
+    // none): each control raises MouseHover once per entry.
+    RuntimeId hover_tracked_{};
     std::uint64_t native_callback_faults_{};
     wchar_t pending_high_surrogate_{};
     bool render_dispatch_pending_{};
@@ -3176,6 +3096,10 @@ private:
     PTP_WAIT modal_live_clock_{};
     // A WM_SIZE inside the size/move loop not yet laid out (WM_SIZE).
     bool resize_pending_{};
+    // The last native window state the session accepted
+    // (report_window_state); none before the first.
+    detail::WindowsWindowState reported_window_state_{};
+    bool window_state_reported_{};
     // Whether the next present copies the whole raster: set by every
     // resize, whose pixels Windows may have left out of step with the
     // raster; cleared when such a present succeeds (paint,
@@ -3212,13 +3136,14 @@ private:
     bool frame_capture_completed_{};
     bool frame_capture_saved_{};
     NativePhase native_phase_{NativePhase::creating};
-    TooltipPopup tooltip_;
     // The application run this window belongs to (observing; the run owns
     // this state) and the window's identity in it. Null for run_windows.
     WindowsApplicationRun* run_{};
     HostWindowId window_id_{};
     // mark_passive_popup: never activated by a click.
     bool passive_popup_{};
+    // mark_splash: transparent to the pointer.
+    bool splash_{};
     // The reason WM_DESTROY reports: user for every native close, application
     // when the run destroys the window (HostWindowing::destroy_window).
     HostCloseReason destroy_reason_{HostCloseReason::user};
@@ -3262,9 +3187,6 @@ LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM wparam, LPAR
 #if defined(GUI_FORMS_WINDOWS_PREPARED_TEXT_TEST)
 #include "windows_prepared_text_fixture.inc"
 #endif
-#if defined(GUI_FORMS_WINDOWS_TOOLTIP_TEST)
-#include "windows_tooltip_fixture.inc"
-#endif
 
 } // namespace
 
@@ -3275,11 +3197,6 @@ void run_windows_dib_lifecycle_fixture() {
 #endif
 #if defined(GUI_FORMS_WINDOWS_PREPARED_TEXT_TEST)
 void run_windows_prepared_text_fixture(const std::span<const std::byte> fonts) { PreparedHostFixture::run(fonts); }
-#endif
-#if defined(GUI_FORMS_WINDOWS_TOOLTIP_TEST)
-void run_windows_tooltip_fixture(const std::filesystem::path& fonts) {
-    TooltipHostFixture::run(fonts);
-}
 #endif
 
 // accessibility: MSAA and UI Automation publication of the semantic tree,
@@ -3314,7 +3231,10 @@ HostCapabilities windows_capabilities() {
                 HostCapability::transparent_windows |
                 HostCapability::window_backdrops |
                 HostCapability::compositor_notifications |
-                HostCapability::presentation_preferences,
+                HostCapability::presentation_preferences |
+                HostCapability::transient_surfaces |
+                HostCapability::window_corners |
+                HostCapability::window_state_reports,
             // Windows follows the PC keyboard convention (Ctrl+F4 closes a
             // document).
             pc_key_map()};
@@ -3652,5 +3572,7 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
     if (capture_failed) return 6;
     return static_cast<int>(message.wParam);
 }
+
+#include "windows_splashscreen.inc"
 
 } // namespace gui_forms::host

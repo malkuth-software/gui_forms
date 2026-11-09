@@ -36,7 +36,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 52> material_properties{{
+constexpr std::array<NamedMaterialProperty, 56> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -72,6 +72,7 @@ constexpr std::array<NamedMaterialProperty, 52> material_properties{{
     {.name = "border-width", .property = MaterialProperty::border_width},
     {.name = "box-shadow", .property = MaterialProperty::box_shadow},
     {.name = "color", .property = MaterialProperty::color},
+    {.name = "default-outline", .property = MaterialProperty::default_outline},
     {.name = "filter", .property = MaterialProperty::filter},
     {.name = "font-family", .property = MaterialProperty::font_family},
     {.name = "font-size", .property = MaterialProperty::font_size},
@@ -79,8 +80,11 @@ constexpr std::array<NamedMaterialProperty, 52> material_properties{{
     {.name = "font-weight", .property = MaterialProperty::font_weight},
     {.name = "glow", .property = MaterialProperty::glow},
     {.name = "glow-placement", .property = MaterialProperty::glow_placement},
+    {.name = "glyph-color", .property = MaterialProperty::glyph_color},
+    {.name = "keylines", .property = MaterialProperty::keylines},
     {.name = "letter-spacing", .property = MaterialProperty::letter_spacing},
     {.name = "mask-image", .property = MaterialProperty::mask_image},
+    {.name = "muted-color", .property = MaterialProperty::muted_color},
     {.name = "outline", .property = MaterialProperty::outline},
     {.name = "outline-color", .property = MaterialProperty::outline_color},
     {.name = "outline-offset", .property = MaterialProperty::outline_offset},
@@ -97,7 +101,7 @@ struct RecipeLonghand final {
     RecipeField field{RecipeField::text};
 };
 
-constexpr std::array<RecipeLonghand, 11> recipe_longhands{{
+constexpr std::array<RecipeLonghand, 13> recipe_longhands{{
     {.property = MaterialProperty::color, .field = RecipeField::text},
     {.property = MaterialProperty::outline_color, .field = RecipeField::outline_colour},
     {.property = MaterialProperty::outline_offset, .field = RecipeField::outline_offset},
@@ -109,6 +113,8 @@ constexpr std::array<RecipeLonghand, 11> recipe_longhands{{
     {.property = MaterialProperty::font_style, .field = RecipeField::font_style},
     {.property = MaterialProperty::font_weight, .field = RecipeField::font_weight},
     {.property = MaterialProperty::letter_spacing, .field = RecipeField::letter_spacing},
+    {.property = MaterialProperty::muted_color, .field = RecipeField::muted_text},
+    {.property = MaterialProperty::glyph_color, .field = RecipeField::glyph},
 }};
 
 // CSS blend modes the engine does not composite (CSS_COVERAGE section 7).
@@ -134,6 +140,25 @@ constexpr std::array<NamedGradient, 6> gradient_functions{{
     {.name = "repeating-radial-gradient", .kind = MaterialFillKind::radial_gradient, .repeating = true},
     {.name = "repeating-conic-gradient", .kind = MaterialFillKind::conic_gradient, .repeating = true},
 }};
+
+// The built-in procedural patterns `pattern()` names (ProceduralPattern);
+// the fresco, which reads more colours, is not among them.
+struct NamedPattern final {
+    std::string_view name{};
+    ProceduralPattern pattern{ProceduralPattern::felt};
+    double tile{64.0};
+};
+
+constexpr std::array<NamedPattern, 6> pattern_names{{
+    {.name = "checker", .pattern = ProceduralPattern::checker, .tile = 2.0},
+    {.name = "felt", .pattern = ProceduralPattern::felt, .tile = 64.0},
+    {.name = "wood-grain", .pattern = ProceduralPattern::wood_grain, .tile = 64.0},
+    {.name = "paper-fibre", .pattern = ProceduralPattern::paper_fibre, .tile = 64.0},
+    {.name = "pinstripe", .pattern = ProceduralPattern::pinstripe, .tile = 4.0},
+    {.name = "brushed-metal", .pattern = ProceduralPattern::brushed_metal, .tile = 64.0},
+}};
+
+constexpr std::string_view pattern_function_name = "pattern";
 
 [[nodiscard]] const NamedGradient* gradient_function(std::string_view name) noexcept {
     for (const NamedGradient& gradient : gradient_functions) {
@@ -275,6 +300,8 @@ struct WrittenLayer final {
     AuthoredGradient gradient{};
     MaterialFillLayer image{};
     bool imaged{};
+    // A pattern() layer (also `imaged`: fixed, in `image`).
+    bool patterned{};
 };
 
 // One layer of the `background` shorthand: its image, and the position,
@@ -331,6 +358,7 @@ private:
     bool read_radial_configuration(ComponentRange range, AuthoredGradient& gradient, bool& configured);
     bool read_conic_configuration(ComponentRange range, AuthoredGradient& gradient, bool& configured);
     bool read_gradient(std::size_t index, AuthoredGradient& gradient);
+    bool read_pattern(std::size_t index, MaterialFillLayer& layer);
     bool read_image(std::size_t index, WrittenLayer& layer);
     bool read_resource_image(std::size_t index, MaterialFillLayer& layer);
     bool push_fills(std::span<const WrittenLayer> written);
@@ -373,10 +401,13 @@ private:
     bool lower_glow_placements();
     bool lower_mask();
     bool lower_reflection();
+    bool lower_keylines();
     [[nodiscard]] bool outline_style_word(std::size_t index) const noexcept;
     bool read_outline_style(std::size_t index, RecipeOutlineStyle& style);
     bool read_outline_width(std::size_t index, double& width);
     bool lower_text_colour();
+    bool lower_recipe_colour(RecipeField field);
+    bool lower_default_outline();
     bool lower_outline();
     bool lower_outline_style();
     bool lower_outline_colour();
@@ -412,6 +443,7 @@ bool MaterialReader::drop_unknown_functions() {
     for (const ValueComponent& component : value_.components) {
         if (component.kind != ValueComponentKind::function) continue;
         if (gradient_function(component.text) != nullptr || filter_function(component.text) != nullptr) continue;
+        if (equals_ascii_folded(component.text, pattern_function_name)) continue;
         return fail(DiagnosticCode::unknown_function, component.token, clipped_theme_detail(component.text));
     }
     return true;
@@ -787,12 +819,63 @@ bool MaterialReader::read_gradient(std::size_t index, AuthoredGradient& gradient
     return true;
 }
 
+// `pattern(<name>, <ground>, <figure> [, <tile>])`: a built-in procedural
+// pattern (pattern_names) in two colours, its tile a length within
+// [minimum_procedural_tile, maximum_procedural_tile] (by default the
+// pattern's own: 2px for the checker, a 50% dither), at full strength and
+// seed 0. The engine generates it per display scale and draws the ground
+// until it is ready (E10).
+bool MaterialReader::read_pattern(std::size_t index, MaterialFillLayer& layer) {
+    const ValueComponent& function = value_.components[index];
+    std::vector<ComponentRange> arguments{};
+    split(ComponentRange{index + 1U, function.subtree_end}, arguments);
+    if (arguments.size() < 3U || arguments.size() > 4U) {
+        return fail(DiagnosticCode::value_syntax, function.token, "a pattern, two colours and an optional tile");
+    }
+    for (const ComponentRange& argument : arguments) {
+        if (count(argument) != 1U) return fail(DiagnosticCode::value_syntax, function.token, "one value per argument");
+    }
+    const NamedPattern* named = nullptr;
+    for (const NamedPattern& candidate : pattern_names) {
+        if (keyword(arguments[0].first, candidate.name)) named = &candidate;
+    }
+    if (named == nullptr) {
+        return fail(DiagnosticCode::value_wrong_kind, value_.components[arguments[0].first].token,
+                    "checker, felt, wood-grain, paper-fibre, pinstripe or brushed-metal");
+    }
+    ProceduralFill fill{};
+    fill.pattern = (*named).pattern;
+    fill.tile = (*named).tile;
+    fill.strength = 1.0;
+    if (!read_colour(arguments[1].first, fill.ground)) return false;
+    if (!read_colour(arguments[2].first, fill.figure)) return false;
+    fill.accent = fill.ground;
+    if (arguments.size() == 4U) {
+        BoxLength tile{};
+        if (!read_length(arguments[3].first, false, false, tile)) return false;
+        if (!(tile.units >= minimum_procedural_tile && tile.units <= maximum_procedural_tile)) {
+            return fail(DiagnosticCode::value_out_of_range, value_.components[arguments[3].first].token,
+                        "a tile from 2px to 256px");
+        }
+        fill.tile = tile.units;
+    }
+    layer = MaterialFillLayer::procedural_pattern(fill);
+    return true;
+}
+
 bool MaterialReader::read_image(std::size_t index, WrittenLayer& layer) {
     layer = WrittenLayer{};
     const ValueComponent& component = value_.components[index];
     const bool gradient_written =
         component.kind == ValueComponentKind::function && gradient_function(component.text) != nullptr;
     if (gradient_written) return read_gradient(index, layer.gradient);
+    const bool pattern_written =
+        component.kind == ValueComponentKind::function && equals_ascii_folded(component.text, pattern_function_name);
+    if (pattern_written) {
+        layer.imaged = true;
+        layer.patterned = true;
+        return read_pattern(index, layer.image);
+    }
     if (component.kind == ValueComponentKind::resource) {
         layer.imaged = true;
         return read_resource_image(index, layer.image);
@@ -1749,6 +1832,59 @@ bool MaterialReader::lower_glow_placements() {
     return true;
 }
 
+// `keylines`: `none`, or one or more rings separated by commas, each one to
+// four colours in CSS's box order (top, right, bottom, left; an omitted
+// side takes the opposite one's, the left the right's), each line one unit
+// wide. The first ring lies one unit inside the border, each later ring one
+// unit inside the ring before it (T4 floor sheet, owner option 1; several
+// rings for a bevel two lines deep inside a frame). A ring's lines are
+// drawn top, left, right, bottom, so the top and bottom lines lie over the
+// side lines' ends; at most SurfaceMaterial::maximum_keylines lines in all.
+bool MaterialReader::lower_keylines() {
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::keylines;
+    const ComponentRange whole{0U, value_.components.size()};
+    if (count(whole) == 1U && keyword(0U, "none")) {
+        lowering_.declarations.push_back(std::move(declaration));
+        return true;
+    }
+    std::vector<ComponentRange> rings{};
+    split(whole, rings);
+    constexpr std::size_t ring_lines = 4U;
+    if (rings.size() * ring_lines > SurfaceMaterial::maximum_keylines) {
+        return fail(DiagnosticCode::value_syntax, start_, "at most two rings of keylines");
+    }
+    const std::array<MaterialEdge, ring_lines> drawn_order{MaterialEdge::top, MaterialEdge::left, MaterialEdge::right,
+                                                           MaterialEdge::bottom};
+    const std::array<std::size_t, ring_lines> side_of_drawn{0U, 3U, 1U, 2U};
+    declaration.keylines.reserve(rings.size() * ring_lines);
+    for (std::size_t ring = 0U; ring < rings.size(); ++ring) {
+        const ComponentRange range = rings[ring];
+        const std::size_t written = count(range);
+        if (written == 0U || written > ring_lines) {
+            return fail(DiagnosticCode::value_syntax, start_, "one to four colours in each ring");
+        }
+        std::array<Color, ring_lines> sides{};
+        std::size_t index = range.first;
+        for (std::size_t side = 0U; side < written; ++side) {
+            if (!read_colour(index, sides[side])) return false;
+            index = next(index);
+        }
+        // CSS's box expansion: the top's for the bottom, the right's for
+        // the left.
+        if (written < 2U) sides[1] = sides[0];
+        if (written < 3U) sides[2] = sides[0];
+        if (written < 4U) sides[3] = sides[1];
+        const double inset = 1.0 + static_cast<double>(ring);
+        for (std::size_t line = 0U; line < ring_lines; ++line) {
+            const MaterialKeyline keyline{drawn_order[line], sides[side_of_drawn[line]], 1.0, inset};
+            declaration.keylines.push_back(keyline);
+        }
+    }
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
 // `mask-image`: none, one gradient or one image, whose alpha the engine
 // multiplies the finished part by; an image tiled at its own size (CSS's
 // initial mask size and repetition), a fixed gradient resolved now, the
@@ -2034,12 +2170,12 @@ bool MaterialReader::lower_background() {
             return fail(DiagnosticCode::value_form_not_admitted, value_.components[ranges[index].first].token,
                         "none among other layers");
         }
-        const bool gradient = written.size() > before && !written.back().imaged;
+        const bool gradient = written.size() > before && (!written.back().imaged || written.back().patterned);
         const bool placed = !(layer.position == MaterialImagePosition{}) || !(layer.size == MaterialImageSize{}) ||
                             layer.repeat != MaterialImageRepeat::repeat;
         if (gradient && placed) {
             return fail(DiagnosticCode::value_form_not_admitted, value_.components[ranges[index].first].token,
-                        "a gradient layer's position, size or repetition");
+                        "a gradient or pattern layer's position, size or repetition");
         }
         if (written.size() == before) continue;
         positions.image_positions.push_back(layer.position);
@@ -2115,6 +2251,45 @@ bool MaterialReader::lower_text_colour() {
     RecipeDeclaration declaration = recipe_declaration(RecipeField::text);
     if (!read_colour(0U, declaration.colour)) return false;
     lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `muted-color` and `glyph-color`: one colour, the recipe's muted text or
+// glyph colour (`field`).
+bool MaterialReader::lower_recipe_colour(RecipeField field) {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one colour");
+    }
+    RecipeDeclaration declaration = recipe_declaration(field);
+    if (!read_colour(0U, declaration.colour)) return false;
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `default-outline`: a width and a colour, each at most once and in any
+// order, the default button's second perimeter; one it omits takes its
+// `initial` (the floor's value).
+bool MaterialReader::lower_default_outline() {
+    RecipeDeclaration width = recipe_declaration(RecipeField::default_outline_width);
+    RecipeDeclaration colour = recipe_declaration(RecipeField::default_outline_colour);
+    bool sized = false;
+    bool coloured = false;
+    for (std::size_t index = 0U; index < value_.components.size(); index = next(index)) {
+        const ValueComponent& component = value_.components[index];
+        if (component.kind == ValueComponentKind::number || width_word(index)) {
+            if (sized) return fail(DiagnosticCode::value_syntax, component.token, "one width");
+            sized = true;
+            if (!read_outline_width(index, width.number)) return false;
+            continue;
+        }
+        if (coloured) return fail(DiagnosticCode::value_syntax, component.token, "one colour");
+        coloured = true;
+        if (!read_colour(index, colour.colour)) return false;
+    }
+    width.initial = !sized;
+    colour.initial = !coloured;
+    lowering_.recipe_fields.push_back(width);
+    lowering_.recipe_fields.push_back(colour);
     return true;
 }
 
@@ -2432,6 +2607,10 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::mask_image: static_cast<void>(lower_mask()); return;
     case MaterialProperty::reflection: static_cast<void>(lower_reflection()); return;
     case MaterialProperty::surface_finish: static_cast<void>(lower_finish()); return;
+    case MaterialProperty::keylines: static_cast<void>(lower_keylines()); return;
+    case MaterialProperty::muted_color: static_cast<void>(lower_recipe_colour(RecipeField::muted_text)); return;
+    case MaterialProperty::glyph_color: static_cast<void>(lower_recipe_colour(RecipeField::glyph)); return;
+    case MaterialProperty::default_outline: static_cast<void>(lower_default_outline()); return;
     case MaterialProperty::color: static_cast<void>(lower_text_colour()); return;
     case MaterialProperty::outline: static_cast<void>(lower_outline()); return;
     case MaterialProperty::outline_color: static_cast<void>(lower_outline_colour()); return;
@@ -2541,6 +2720,10 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::mask_image: fields.push_back(MaterialField::mask); return;
     case MaterialProperty::reflection: fields.push_back(MaterialField::reflection); return;
     case MaterialProperty::surface_finish: fields.push_back(MaterialField::finish); return;
+    case MaterialProperty::keylines: fields.push_back(MaterialField::keylines); return;
+    case MaterialProperty::muted_color:
+    case MaterialProperty::glyph_color:
+    case MaterialProperty::default_outline:
     case MaterialProperty::color:
     case MaterialProperty::outline:
     case MaterialProperty::outline_color:
@@ -2568,6 +2751,11 @@ RecipePropertyFields recipe_property_fields(MaterialProperty property) noexcept 
     if (property == MaterialProperty::outline) {
         result.fields = {RecipeField::outline_style, RecipeField::outline_colour, RecipeField::outline_width};
         result.count = 3U;
+        return result;
+    }
+    if (property == MaterialProperty::default_outline) {
+        result.fields = {RecipeField::default_outline_width, RecipeField::default_outline_colour};
+        result.count = 2U;
         return result;
     }
     for (const RecipeLonghand& longhand : recipe_longhands) {

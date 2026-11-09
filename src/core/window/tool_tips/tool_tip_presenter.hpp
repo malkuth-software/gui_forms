@@ -1,6 +1,8 @@
 #pragma once
 
+#include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/window.hpp"
+#include "tool_tip_bubble.hpp"
 #include "tool_tip_route.hpp"
 #include "tool_tip_subjects.hpp"
 
@@ -16,6 +18,7 @@ namespace gui_forms::detail {
 
 class ToolTipBubble;
 class ToolTipLayer;
+class TransientWindow;
 
 // A window's one tooltip presenter (owner, 2026-10-28). The window owns it
 // and feeds it pointer motion, presses, focus changes, handled keys and
@@ -113,6 +116,9 @@ private:
         // leaves the region too.
         std::weak_ptr<Control> hovered{};
     };
+    // A bubble shows either in the window's tooltip Splash window
+    // (`overlay` null: the presenter's kept bubble in transient_) or, where
+    // the run cannot open one, as an overlay in the window.
     struct Showing final {
         ToolTipOrigin origin{ToolTipOrigin::pointer};
         ToolTipSubject subject{};
@@ -134,6 +140,13 @@ private:
 
         void operator()() const;
     };
+    // The tooltip Splash window closed under the presenter (its owner
+    // closed, or the host destroyed it).
+    struct TransientClosed final {
+        ToolTipPresenter* presenter{};
+
+        void operator()() const;
+    };
 
     [[nodiscard]] bool hover_allowed() const noexcept;
     [[nodiscard]] bool focus_allowed() const noexcept;
@@ -142,6 +155,15 @@ private:
     void arm(FrameTime deadline);
     void woke(FrameTime now);
     void overlay_closed();
+    void transient_closed();
+    // The tooltip Splash window, opened on first use and kept (warm
+    // standby, APP_WINDOW_RULES_DESIGN Part S); null when the run cannot
+    // open one now, and for good after the host refused one.
+    [[nodiscard]] TransientWindow* splash_window();
+    // Shows `subject` in the Splash window with the kept bubble, its lines
+    // in `lines` (swapped into the bubble). False, changing nothing that
+    // shows, when there is no Splash window or the host refused.
+    [[nodiscard]] bool show_in_splash(Showing& showing, ToolTipLines& lines);
     // Opens the bubble for `subject`; leaves the presenter Idle when the
     // subject cannot show (detached, or disabled without show_when_disabled).
     // Returns the visibility event to raise, or none.
@@ -154,8 +176,11 @@ private:
     // handler of that event showed another tooltip, which then stands.
     void replace(ToolTipOrigin origin, ToolTipSubject subject,
                  std::optional<std::chrono::milliseconds> duration);
-    void position(Showing& showing);
-    void raise(const std::optional<ToolTipEvent>& change);
+    // Places the bubble that shows; false when the Splash window refused it.
+    bool position(Showing& showing);
+    // Raises `change` (none raises nothing) and keeps its storage as the
+    // spare the next open or close writes into.
+    void raise(std::optional<ToolTipEvent> change);
     // The pointer moved with nothing showing for it: wait, settle or idle.
     void pointer_wait(const Control::Ptr& hovered, FrameTime now);
 
@@ -170,6 +195,23 @@ private:
     ToolTipSubject keyboard_subject_{};
     std::uint64_t next_overlay_{1U};
     ToolTipCovers covers_{};
+    // The warm tooltip Splash window and the bubble kept for it, with the
+    // lines storage swapped in and out of the bubble on each show. Declared
+    // after what they borrow from (the window) and destroyed by shutdown().
+    std::unique_ptr<TransientWindow> transient_{};
+    SubscriptionToken transient_closed_{};
+    std::shared_ptr<ToolTipLayer> transient_layer_{};
+    std::shared_ptr<ToolTipBubble> transient_bubble_{};
+    ToolTipLines transient_lines_{};
+    // Storage recycled so a warm show allocates nothing on any standard
+    // library (libstdc++ keeps only 15 bytes inline): the last raised
+    // event, and the text of the last subject closed.
+    ToolTipEvent spare_event_{};
+    std::string spare_text_{};
+    // The monitor table's storage for Splash placement, reused by every show.
+    HostMonitorResult placement_monitors_{};
+    // The host refused a Splash window once; the overlay is used from then.
+    bool transient_refused_{};
 };
 
 } // namespace gui_forms::detail

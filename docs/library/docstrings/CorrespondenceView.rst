@@ -79,12 +79,12 @@ font : default ``FontSpec{FontRole::content, 11.0, 400, false}``
 Events
 ------
 selection_changed
-    Raised after `selected_id` changes, by input, by the setter, or by
+    Raised after `selected_id` changes, by input, by a write, or by
     `set_items` removing the selected record. It carries a
     `CorrespondenceSelectionChange` with the `previous_id` and the
     `current_id`.
 pin_changed
-    Raised after `pinned_id` changes, by input, by the setter, or by
+    Raised after `pinned_id` changes, by input, by a write, or by
     `set_items` removing the pinned record. It carries a
     `CorrespondencePinChange` with the `previous_id` and the `current_id`,
     and comes before the `expansion_changed` events the new pin causes.
@@ -103,8 +103,9 @@ item_activated
     of its ``.activate`` button. It carries the record ID. Enter and the
     ``.activate`` button do nothing for a disabled record.
 context_requested
-    Raised on the release of a secondary click on a record, on a secondary
-    click on the background, and on a semantic `show_menu`. It carries an
+    Raised on the host's context request (a pointer request names the
+    record under the pointer, a keyboard request the focused record) and on
+    a semantic `show_menu`. It carries an
     `ObjectContextRequest` with the record ID, empty for the background,
     and the position to open a menu at, in window coordinates despite its
     name `screen_position`. A background click clears the selection first.
@@ -153,7 +154,7 @@ collapses that hover expansion. A primary or secondary press on a row
 focuses the view, selects the row and gives it the focus. Releasing a
 single primary click on the same row toggles its pin; releasing a
 double-click raises `item_activated` instead, after the first click of the
-pair has toggled the pin. Releasing a secondary click raises
+pair has toggled the pin. The host's context request raises
 `context_requested`. A click on the background clears the selection.
 
 With focus, Up and Down move the focus and the selection to the previous or
@@ -195,7 +196,7 @@ Supply two records and pin one; the pinned record stays expanded:
    records[1].excerpt = "Payment for invoice 1042 is due on Friday.";
    records[1].emphasis_terms = {"invoice"};
    (*results).set_items(records);
-   (*results).set_pinned_id("mail.1042");
+   (*results).pinned_id = "mail.1042";
    // (*results).expanded("mail.1042") is now true
 
 Observe the pin and the expansion it causes. `pin_changed` comes first:
@@ -229,6 +230,6 @@ Observe the pin and the expansion it causes. `pin_changed` comes first:
        records[1].stable_id = "mail.2";
        records[1].title = "Invoice 1042";
        (*pane.results).set_items(records);
-       (*pane.results).set_pinned_id("mail.2");
+       (*pane.results).pinned_id = "mail.2";
        // pane.pinned is "mail.2", and then pane.expanded_by_pin is true
    }

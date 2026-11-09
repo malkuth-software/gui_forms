@@ -117,7 +117,7 @@ FontSpec carlito(double size) {
 
 std::shared_ptr<TextBlock> text_block(const std::string& id, const std::string& text) {
     std::shared_ptr<TextBlock> made = make_control<TextBlock>(StableId(id), text);
-    (*made).set_font(carlito(13.0));
+    (*made).font = carlito(13.0);
     (*made).margin = {0.0, 0.0, 0.0, 0.0};
     return made;
 }
@@ -148,13 +148,13 @@ void test_wrapping_and_line_height() {
     const Size exact = measured_at(*block, width_query(49.0));
     require_near(exact.height, 30.0, "a run exactly as wide as the line fits it");
 
-    (*block).set_text("aaaaa bb");
+    (*block).text = "aaaaa bb";
     const Size overflow = measured_at(*block, width_query(20.0));
     require_near(overflow.height, 30.0, "a word wider than the line overflows on a line of its own");
 
-    (*block).set_line_height(20.0);
+    (*block).line_height = 20.0;
     require_near(measured_at(*block, width_query(20.0)).height, 40.0, "a set line height is each line's height");
-    (*block).clear_line_height();
+    (*block).line_height = std::nullopt;
     require_near(measured_at(*block, width_query(20.0)).height, 30.0, "clearing it resumes normal");
 }
 
@@ -167,7 +167,7 @@ void test_white_space_collapses() {
     const Size measured = measured_at(*block, widest);
     require_near(measured.width, 49.0, "leading and trailing white space goes, a run becomes one space");
     require_near(measured.height, 15.0, "a line feed is white space, not a break");
-    (*block).set_text(" \t\n ");
+    (*block).text = " \t\n ";
     const Size empty = measured_at(*block, widest);
     require_near(empty.width, 0.0, "white space only has no width");
     require_near(empty.height, 0.0, "and no line box");
@@ -196,14 +196,14 @@ void test_intrinsic_sizes_and_padding() {
 void test_text_scale() {
     CarlitoProportions metrics{};
     std::shared_ptr<TextBlock> block = text_block("text.scale", "aaa bbb");
-    (*block).set_line_height(20.0);
+    (*block).line_height = 20.0;
     const std::unique_ptr<Window> held = std::make_unique<Window>(block, Size{800.0, 600.0});
     (*held).set_text_metrics_provider(&metrics);
     (*held).set_text_scale(1.5);
     const Size measured = measured_at(*block, LayoutConstraint{max_content_extent(), max_content_extent()});
     require_near(measured.width, 73.5, "the font scales: 10.5 px a byte");
     require_near(measured.height, 30.0, "a set line height scales with it");
-    (*block).clear_line_height();
+    (*block).line_height = std::nullopt;
     require_near(measured_at(*block, width_query(200.0)).height, 24.0, "19.5 px's line box is 19 + 5");
     require_near((*block).first_baseline(200.0).value(), 19.0, "its baseline is its rounded ascent");
 }
@@ -214,11 +214,11 @@ void test_half_leading() {
     std::shared_ptr<TextBlock> block = text_block("text.leading", "aaa");
     const std::unique_ptr<Window> held = std::make_unique<Window>(block, Size{800.0, 600.0});
     (*held).set_text_metrics_provider(&metrics);
-    (*block).set_line_height(20.0);
+    (*block).line_height = 20.0;
     require_near((*block).first_baseline(100.0).value(), 14.0, "5 px of leading puts 2 above");
-    (*block).set_line_height(21.0);
+    (*block).line_height = 21.0;
     require_near((*block).first_baseline(100.0).value(), 15.0, "6 px puts 3 above");
-    (*block).set_line_height(12.0);
+    (*block).line_height = 12.0;
     require_near((*block).first_baseline(100.0).value(), 10.0, "-3 px puts -2 above");
 }
 
@@ -254,11 +254,11 @@ void test_alignment_and_paint() {
     TextPainter mirrored{};
     (*block).on_paint(mirrored, Rect{0.0, 0.0, 51.0, 32.0});
     require_near(mirrored.origins[1].x, 1.0 + 50.0 - 14.0, "start is right in right to left");
-    (*block).set_text_align(TextAlignment::left);
+    (*block).text_align = TextAlignment::left;
     TextPainter left{};
     (*block).on_paint(left, Rect{0.0, 0.0, 51.0, 32.0});
     require_near(left.origins[1].x, 1.0, "left is physical");
-    (*block).set_text_align(TextAlignment::center);
+    (*block).text_align = TextAlignment::center;
     TextPainter centred{};
     (*block).on_paint(centred, Rect{0.0, 0.0, 51.0, 32.0});
     require_near(centred.origins[1].x, 1.0 + 18.0, "center splits the free space");
@@ -271,30 +271,30 @@ void test_properties_and_validation() {
     std::shared_ptr<TextBlock> block = make_control<TextBlock>(StableId("text.properties"), "Hello");
     bool refused = false;
     try {
-        (*block).set_line_height(0.0);
+        (*block).line_height = 0.0;
     } catch (const std::invalid_argument&) {
         refused = true;
     }
     require(refused, "a zero line height is refused");
     refused = false;
     try {
-        (*block).set_text_align(static_cast<TextAlignment>(9));
+        (*block).text_align = static_cast<TextAlignment>(9);
     } catch (const std::invalid_argument&) {
         refused = true;
     }
     require(refused, "an unknown alignment is refused");
-    require(!(*block).has_font_override(), "the font is the theme's until set");
+    require(!(*block).font.read().has_value(), "the font is the theme's until set");
     (*block).set_property_value("text_align", BindingValue{PropertyEnumValue{"text_alignment", "end", 1}});
-    require((*block).text_align() == TextAlignment::end, "the text_align property sets the alignment");
+    require((*block).text_align.read() == TextAlignment::end, "the text_align property sets the alignment");
     (*block).set_property_value("line_height", BindingValue{18.0});
-    require((*block).line_height() == std::optional<double>{18.0}, "the line_height property sets it");
+    require((*block).line_height.read() == std::optional<double>{18.0}, "the line_height property sets it");
     (*block).set_property_value("line_height", BindingValue{0.0});
-    require(!(*block).line_height().has_value(), "a zero line_height is normal");
+    require(!(*block).line_height.read().has_value(), "a zero line_height is normal");
     std::string changed;
     std::size_t changes = 0U;
     const SubscriptionToken token = (*block).text_changed().subscribe(TextChangedRecorder{changed, changes});
-    (*block).set_text("World");
-    (*block).set_text("World");
+    (*block).text = "World";
+    (*block).text = "World";
     require(changes == 1U && changed == "World", "text_changed fires once a change");
     const SemanticDescriptor semantics = (*block).semantic_descriptor();
     require(semantics.role == SemanticRole::static_text && semantics.name == "World",
@@ -306,10 +306,10 @@ void test_properties_and_validation() {
 void test_containers_align_by_baselines() {
     CarlitoProportions metrics{};
     std::shared_ptr<FlexPanel> row = make_control<FlexPanel>(StableId("text.flex"));
-    (*row).set_align_items(LayoutAlignment::baseline);
+    (*row).align_items = LayoutAlignment::baseline;
     std::shared_ptr<TextBlock> small = text_block("text.flex.small", "aaa");
     std::shared_ptr<TextBlock> large = text_block("text.flex.large", "bbb");
-    (*large).set_font(carlito(19.5));
+    (*large).font = carlito(19.5);
     (*row).add_child(small);
     (*row).add_child(large);
     const std::unique_ptr<Window> held = std::make_unique<Window>(row, Size{400.0, 300.0});
@@ -319,14 +319,14 @@ void test_containers_align_by_baselines() {
     require_near((*large).arranged_bounds().y, 0.0, "flex: the large block is at the line's top");
 
     std::shared_ptr<GridPanel> grid = make_control<GridPanel>(StableId("text.grid"));
-    (*grid).set_align_items(LayoutAlignment::baseline);
+    (*grid).align_items = LayoutAlignment::baseline;
     std::shared_ptr<TextBlock> left = text_block("text.grid.small", "aaa");
     std::shared_ptr<TextBlock> right = text_block("text.grid.large", "bbb");
-    (*right).set_font(carlito(19.5));
+    (*right).font = carlito(19.5);
     GridTrackList columns{};
     columns.tracks.push_back(GridTrackSize{});
     columns.tracks.push_back(GridTrackSize{});
-    (*grid).set_template_columns(columns);
+    (*grid).template_columns = columns;
     (*grid).add_child(left);
     (*grid).add_child(right);
     const std::unique_ptr<Window> grid_window = std::make_unique<Window>(grid, Size{400.0, 300.0});
@@ -341,7 +341,7 @@ void test_containers_align_by_baselines() {
 void test_block_panel_strut_and_inline_baseline() {
     CarlitoProportions metrics{};
     std::shared_ptr<BlockPanel> flow = make_control<BlockPanel>(StableId("text.block"));
-    (*flow).set_font(carlito(19.5));
+    (*flow).font = carlito(19.5);
     std::shared_ptr<TextBlock> words = text_block("text.block.words", "aaa bbb");
     (*flow).add_child(words);
     BlockFlowItemLayout inline_layout{};
@@ -356,11 +356,11 @@ void test_block_panel_strut_and_inline_baseline() {
     (*held).perform_layout();
     require_near((*words).arranged_bounds().y, 19.0 - 12.0, "the block's baseline is on the strut's");
     require_near((*words).arranged_bounds().height, 15.0, "the block keeps its own line box");
-    (*flow).set_line_strut(LineStrut{});
+    (*flow).line_strut = LineStrut{};
     (*held).perform_layout();
     require_near((*words).arranged_bounds().y, 0.0, "a zero strut leaves the line as tall as the item");
-    (*flow).clear_line_strut();
-    require(!(*flow).line_strut().has_value(), "clearing it resumes the font's");
+    (*flow).line_strut = std::nullopt;
+    require(!(*flow).line_strut.read().has_value(), "clearing it resumes the font's");
 }
 
 } // namespace

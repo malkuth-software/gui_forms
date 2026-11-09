@@ -5,6 +5,8 @@
 #include "gallery_pages.hpp"
 #include "gallery_theme_package.hpp"
 
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
+
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -184,14 +186,14 @@ void install_page_fixtures(Window& window) {
             if (const std::shared_ptr<gui_forms::PictureBox> picture = std::dynamic_pointer_cast<PictureBox>(
                     window.find("gallery.images.picture." +
                                  std::to_string(index)))) {
-                (*picture).set_image(loaded.image);
+                (*picture).image = loaded.image;
             }
         }
         for (std::size_t index = 0U; index < 3U; ++index) {
             if (const std::shared_ptr<gui_forms::PictureBox> picture = std::dynamic_pointer_cast<PictureBox>(
                     window.find("gallery.images.opacity." +
                                  std::to_string(index)))) {
-                (*picture).set_image(loaded.image);
+                (*picture).image = loaded.image;
             }
         }
         install_grid_previews(window, loaded.image);
@@ -225,7 +227,7 @@ void install_page_fixtures(Window& window) {
             std::shared_ptr<gui_forms::ImageList> document_icons =
                 std::make_shared<ImageList>(window, Size{16.0, 16.0});
             (*document_icons).add_image("folder", icon_normal.image);
-            (*(*documents).strip()).set_image_list(std::move(document_icons));
+            (*(*documents).strip()).image_list = std::move(document_icons);
         }
         // The primary TabControl's first and third tabs show this icon.
         if (const std::shared_ptr<gui_forms::TabControl> tabs = std::dynamic_pointer_cast<TabControl>(
@@ -233,7 +235,7 @@ void install_page_fixtures(Window& window) {
             std::shared_ptr<gui_forms::ImageList> tab_icons =
                 std::make_shared<ImageList>(window, Size{16.0, 16.0});
             (*tab_icons).add_image("folder", icon_normal.image);
-            (*tabs).set_image_list(std::move(tab_icons));
+            (*tabs).image_list = std::move(tab_icons);
         }
     }
     const std::vector<std::byte> patch_pixels = make_nine_patch_surface();
@@ -251,7 +253,7 @@ void install_page_fixtures(Window& window) {
                 {5.0, 5.0, 5.0, 5.0})};
             material.shadows = {{{0.0, 2.0}, 3.0, 0.0,
                                  Color::rgba(25, 40, 55, 70)}};
-            (*panel).set_material(std::move(material));
+            (*panel).material = std::move(material);
         }
     }
     const std::vector<std::byte> tile_pixels = make_tile_surface();
@@ -270,56 +272,85 @@ void install_page_fixtures(Window& window) {
                      static_cast<double>(test_tile_extent)},
                     1.0, 0.42)};
             material.border = MaterialBorder{Color::rgba(76, 105, 129), 1.0};
-            (*panel).set_material(std::move(material));
+            (*panel).material = std::move(material);
         }
     }
 }
 
-// Compiles the Gallery's project theme (demo/themes/gallery) into the
-// window's resources and selects it for every window sharing them. The
-// package is embedded and checked at build time, so a refusal or any
-// finding is a defect of the build: std::logic_error, naming the first.
+// A Gallery theme compile that refused or found anything is a defect of the
+// build: std::logic_error, naming the first finding.
+void require_clean_gallery_theme(bool succeeded, std::span<const ThemeCompileDiagnostic> findings) {
+    if (succeeded && findings.empty()) return;
+    std::string finding = "the Gallery theme package was not compiled cleanly";
+    if (!findings.empty()) {
+        const ThemeCompileDiagnostic& first = findings.front();
+        finding += ": " + first.code + " " + first.name + " in " + first.file;
+    }
+    throw std::logic_error(finding);
+}
+
+// Without an application (tests): compiles the Gallery's project theme
+// (demo/themes/gallery) into the window's resources and selects it for every
+// window sharing them.
 void select_gallery_theme(Window& window) {
     const std::shared_ptr<ApplicationResources> resources = window.resources();
     const ThemeLibrary library{};
     // The stock anatomies name the parts the sheet selects (::part(face)).
     ThemeCompileOptions options{};
     options.controls = stock_control_anatomies();
+    options.effects = &built_in_effect_registry();
     const ThemeCompileResult result =
         (*resources).compile_theme_package(gallery_theme_package(), library, options);
-    if (!result.succeeded() || !result.diagnostics().empty()) {
-        std::string finding = "the Gallery theme package was not compiled cleanly";
-        if (!result.diagnostics().empty()) {
-            const ThemeCompileDiagnostic& first = result.diagnostics().front();
-            finding += ": " + first.code + " " + first.name + " in " + first.file;
-        }
-        throw std::logic_error(finding);
-    }
+    require_clean_gallery_theme(result.succeeded(), result.diagnostics());
     (*resources).set_theme(result.theme());
 }
 
 }  // namespace
 
+std::unique_ptr<Application> create_gallery_application()
+{
+    ApplicationConfig config{};
+    config.theme.packages.push_back(gallery_theme_package());
+    config.theme.effects = &built_in_effect_registry();
+    ApplicationCreateResult created = Application::create(std::move(config));
+    if (created.error == ApplicationCreateError::already_exists) {
+        throw std::logic_error("the Gallery application: another application is current");
+    }
+    require_clean_gallery_theme(static_cast<bool>(created), created.findings);
+    std::unique_ptr<Application> application = std::move(created.application);
+    return application;
+}
+
 std::unique_ptr<Window> make_gallery()
 {
-    GalleryTree tree = build_gallery_tree();
-    GalleryShell shell = build_gallery_shell(tree);
-    std::unique_ptr<gui_forms::Window> window =
-        std::make_unique<Window>(std::move(shell.root), gallery_default_size);
-    select_gallery_theme(*window);
-    (*tree.context).window = window.get();
-    (*tree.context).synchronize("gallery.initial");
+    // The Gallery's context first: it holds the model the window's form
+    // binds. The shell's page context, in the window's root Tag, owns it.
+    std::shared_ptr<GalleryContext> context = std::make_shared<GalleryContext>();
+    // The Gallery's own pages, bound to the model, made before the window
+    // and outside it: the shell attaches each group once, in its page body.
+    (*context).pages.initialize_component((*context).model);
+    // The window is the form (demo/gallery.form): made from its generated
+    // class, it joins the current application and takes the theme the
+    // program set there (create_gallery_application, FD-5). With none
+    // (tests), it compiles the Gallery theme into its own resources.
+    std::unique_ptr<GalleryWindow> window = std::make_unique<GalleryWindow>((*context).model);
+    if ((*window).application() == nullptr) select_gallery_theme(*window);
+    (*context).attach(*window);
+    GalleryContext& gallery = *context;
+    build_gallery_shell(*window, std::move(context));
+    gallery.synchronize("gallery.initial");
     const ImageLoadResult status_badge =
         (*window).load_png(std::as_bytes(std::span{assets::validated_status_png}));
     if (!status_badge) {
         throw std::logic_error("compiled Gallery PNG failed core validation");
     }
-    (*(*tree.context).document.gallery_command_status_badge).set_image(status_badge.image);
+    (*(*window).gallery_command_status_badge).image = status_badge.image;
     (*window).perform_layout();
     initialize_gallery_runtime(*window);
     install_page_fixtures(*window);
     (*window).perform_layout();
-    return window;
+    std::unique_ptr<Window> made = std::move(window);
+    return made;
 }
 
 }  // namespace gui_forms::gallery

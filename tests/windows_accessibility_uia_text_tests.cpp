@@ -130,15 +130,15 @@ std::unique_ptr<Window> make_fixture(Fixture& fixture) {
     fixture.password = make_control<TextBox>(StableId("uiatext.password"));
     fixture.doomed = make_control<TextBox>(StableId("uiatext.doomed"));
     (*fixture.single).set_requested_bounds({10.0, 10.0, 260.0, 26.0});
-    (*fixture.single).set_text(std::string(single_text));
+    (*fixture.single).text = std::string(single_text);
     (*fixture.multi).set_requested_bounds({10.0, 50.0, 260.0, 80.0});
-    (*fixture.multi).set_multiline(true);
-    (*fixture.multi).set_text(std::string(multi_text));
+    (*fixture.multi).multiline = true;
+    (*fixture.multi).text = std::string(multi_text);
     (*fixture.password).set_requested_bounds({10.0, 140.0, 260.0, 26.0});
-    (*fixture.password).set_use_system_password_character(true);
-    (*fixture.password).set_text("secret");
+    (*fixture.password).use_system_password_character = true;
+    (*fixture.password).text = "secret";
     (*fixture.doomed).set_requested_bounds({10.0, 180.0, 260.0, 26.0});
-    (*fixture.doomed).set_text("Removed");
+    (*fixture.doomed).text = "Removed";
     (*fixture.root).add_child(fixture.single);
     (*fixture.root).add_child(fixture.multi);
     (*fixture.root).add_child(fixture.password);
@@ -160,8 +160,8 @@ struct ReadModel final {
     ModelState* state{};
     void operator()() const {
         (*state).single_selection = (*(*fixture).single).selection();
-        (*state).single_text = std::string((*(*fixture).single).text());
-        (*state).multi_text = std::string((*(*fixture).multi).text());
+        (*state).single_text = std::string((*(*fixture).single).text.read());
+        (*state).multi_text = std::string((*(*fixture).multi).text.read());
     }
 };
 
@@ -175,7 +175,7 @@ struct SelectSingle final {
 struct SetSingleText final {
     Fixture* fixture{};
     std::string text;
-    void operator()() const { (*(*fixture).single).set_text(text); }
+    void operator()() const { (*(*fixture).single).text = text; }
 };
 
 struct RemoveDoomed final {
@@ -624,8 +624,7 @@ struct HostReady final {
     std::thread* client{};
     void operator()(std::function<void()>, std::function<void()> request_close,
                     std::function<HostDialogResult(const HostDialogRequest&)>,
-                    std::function<HostServiceStatus(const HostTooltipRequest&)>,
-                    std::function<void()>, std::function<HostClipboardTextResult()>,
+                    std::function<HostClipboardTextResult()>,
                     std::function<HostServiceStatus(std::string_view)>) const {
         (*context).request_close = std::move(request_close);
         (*context).hwnd = test_support::own_gui_forms_window(fixture_title);

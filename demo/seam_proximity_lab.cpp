@@ -44,8 +44,8 @@ void add_at(const std::shared_ptr<Parent>& parent,
 std::shared_ptr<Label> make_label(std::string id, std::string text,
                                   FontSpec font, Color color = ink) {
     std::shared_ptr<Label> result = make_control<Label>(StableId(std::move(id)), std::move(text));
-    (*result).set_font(font);
-    (*result).set_foreground(color);
+    (*result).font = font;
+    (*result).fore_color = color;
     return result;
 }
 
@@ -67,16 +67,16 @@ std::shared_ptr<SplitContainer> make_split(
     double distance, SplitFixedPanel collapse_panel = SplitFixedPanel::none) {
     std::shared_ptr<SplitContainer> split =
         make_control<SplitContainer>(StableId(std::move(id)));
-    (*split).set_orientation(orientation);
-    (*split).set_splitter_geometry(geometry);
-    (*split).set_splitter_distance(distance);
-    (*split).set_first_minimum(54.0);
-    (*split).set_second_minimum(54.0);
-    (*split).set_keyboard_increment(4.0);
-    (*split).set_collapse_panel(collapse_panel);
+    (*split).orientation = orientation;
+    (*split).splitter_geometry = geometry;
+    (*split).splitter_distance = distance;
+    (*split).first_minimum = 54.0;
+    (*split).second_minimum = 54.0;
+    (*split).keyboard_increment = 4.0;
+    (*split).collapse_panel = collapse_panel;
     (*split).accessible_name = "Adjustable physical pane seam";
-    (*(*split).first_panel()).set_background(paper);
-    (*(*split).second_panel()).set_background(cool_well);
+    (*(*split).first_panel()).background = paper;
+    (*(*split).second_panel()).background = cool_well;
     return split;
 }
 
@@ -89,13 +89,13 @@ struct RefreshReadout final {
         const std::shared_ptr<Label> output = label.lock();
         if (!owner || !output) return;
         const SplitSeamSnapshot snapshot = (*owner).splitter_seam_snapshot();
-        (*output).set_text(
+        (*output).text =
             std::string(seam_state_name(snapshot.state)) + " · visible " +
             std::to_string(snapshot.visible_bounds.width) + "L / " +
             std::to_string(snapshot.visible_device_pixels) + "px · hit " +
             std::to_string(snapshot.orientation == Orientation::vertical
                                ? snapshot.hit_bounds.width
-                               : snapshot.hit_bounds.height) + "L");
+                               : snapshot.hit_bounds.height) + "L";
     }
 
     template <typename... Arguments>
@@ -110,11 +110,11 @@ struct SelectTarget final {
     void operator()(ButtonBase&) const {
         if (const std::shared_ptr<VisualInspectorView> target =
                 inspector.lock()) {
-            (*target).set_target_stable_id(stable_id);
+            (*target).target_stable_id = stable_id;
         }
         if (const std::shared_ptr<VisualInspectorOverlay> target =
                 overlay.lock()) {
-            (*target).set_target_stable_id(stable_id);
+            (*target).target_stable_id = stable_id;
         }
     }
 };
@@ -200,13 +200,13 @@ SplitSeamGeometry physical_hairline_geometry() {
 bool invalid_geometry_is_rejected() {
     std::shared_ptr<SplitContainer> split =
         make_control<SplitContainer>(StableId("seam.invalid.probe"));
-    const SplitSeamGeometry before = (*split).splitter_geometry();
+    const SplitSeamGeometry before = (*split).splitter_geometry.read();
     SplitSeamGeometry invalid = before;
     invalid.hit_after = SplitSeamGeometry::maximum_hit_extension + 1.0;
     try {
-        (*split).set_splitter_geometry(invalid);
+        (*split).splitter_geometry = invalid;
     } catch (const std::invalid_argument&) {
-        return (*split).splitter_geometry() == before;
+        return (*split).splitter_geometry.read() == before;
     }
     return false;
 }
@@ -363,7 +363,7 @@ std::unique_ptr<Window> make_seam_proximity_lab() {
         std::shared_ptr<Button> selector = make_control<Button>(
             StableId("seam-proximity.target." + std::to_string(index)),
             targets[index].first);
-        (*selector).set_visual_style(ButtonVisualStyle::command);
+        (*selector).visual_style = ButtonVisualStyle::command;
         add_at(root, selector,
                {20.0 + static_cast<double>(index) * 160.0, 626.0,
                 148.0, 30.0});

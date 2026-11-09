@@ -150,14 +150,14 @@ RibbonStateParseResult parse_ribbon_state(std::string_view text) {
 RibbonState capture_ribbon_state(const QuickAccessToolbar& toolbar, bool minimized) {
     RibbonState state{};
     state.quick_access_command_ids = toolbar.shown_command_ids();
-    state.quick_access_placement = toolbar.placement();
+    state.quick_access_placement = toolbar.placement.read();
     state.minimized = minimized;
     return state;
 }
 
 void apply_ribbon_state(QuickAccessToolbar& toolbar, const RibbonState& state) {
     toolbar.set_shown_command_ids(state.quick_access_command_ids);
-    toolbar.set_placement(state.quick_access_placement);
+    toolbar.placement = state.quick_access_placement;
 }
 
 } // namespace gui_forms

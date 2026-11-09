@@ -5,7 +5,9 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/image_list.hpp"
 #include "gui_forms/pages.hpp"
+#include "gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp"
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
+#include "gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -17,49 +19,6 @@
 #include <vector>
 
 namespace gui_forms {
-
-// The edge of its content a strip sits on. The tabs touch that edge. A side
-// strip (left or right) stacks its tabs from the top down and turns their
-// labels (PartPaint::orientation): on the left edge they read from bottom to
-// top (owner decision DK-42, interview PT8-1); on the right edge from top to
-// bottom. The interview decided only the left edge; top to bottom on the
-// right is Visual Studio's convention and keeps the glyph tops towards the
-// content on both sides.
-enum class PageStripPlacement : std::uint8_t { top, bottom, left, right };
-
-// How wide each tab is. `content`: its label (and icon) plus padding, within
-// the minimum and maximum. `fixed`: the fixed width, whatever the label.
-// `fill`: the strip's width shared equally, within the minimum and maximum.
-enum class PageItemSizing : std::uint8_t { content, fixed, fill };
-
-// Whether moving the keyboard between tabs selects (automatic, the default:
-// owner decision DK-37) or only moves the focus, Space or Enter then
-// selecting (manual, for pages whose content is slow to show).
-enum class PageStripActivation : std::uint8_t { automatic, manual };
-
-// What the strip does when its tabs do not fit (owner decisions DK-31 and
-// DK-37). `scroll`, the strip policy: scroll buttons and a list button at the
-// strip's end; the tabs keep their widths. `shrink_then_list`, the document
-// policy: ordinary tabs shrink towards the minimum width, the widest first;
-// when even that does not fit, the tabs from the end of the order that do
-// not fit are hidden behind a list button showing their count. Pinned tabs
-// never shrink and are never hidden under `shrink_then_list`.
-enum class PageStripOverflow : std::uint8_t { scroll, shrink_then_list };
-
-// Which closable tabs show their close button (owner decision DK-38). Space
-// for it is reserved on every closable tab whatever the rule, so a tab's
-// width does not change when the button appears. `none` reserves nothing.
-enum class PageCloseButtons : std::uint8_t { none, selected_and_hot, all };
-
-// Tab widths in logical units at text scale 1. 0 < minimum <= maximum <=
-// `maximum_width`, and 0 < fixed <= `maximum_width`.
-struct PageItemWidths final {
-    static constexpr double maximum_width = 1024.0;
-
-    double minimum{40.0};
-    double maximum{240.0};
-    double fixed{120.0};
-};
 
 // A tab was clicked, chosen with the keyboard, by its mnemonic, from the page
 // list or through accessibility, and its page is now selected (it may have
@@ -205,7 +164,7 @@ struct PageDoubleClick final {
 // pin glyph selects nothing; the request is raised on the release over the
 // same button. The strip handles the set's `pages_changed` and
 // `selected_page_changed` only to relayout and repaint.
-class PageStrip : public Control {
+class PageStrip : public Control, public PageStripCapabilities<PageStrip> {
 public:
     // Borrows `pages` (see the lifetime rule above).
     PageStrip(StableId stable_id, PageSet& pages);
@@ -217,49 +176,6 @@ public:
     // no tabs. Rebinding is not offered; a released strip stays empty.
     void release_page_set() noexcept;
 
-    [[nodiscard]] PageStripPlacement placement() const noexcept { return placement_; }
-    void set_placement(PageStripPlacement placement);
-    [[nodiscard]] PageItemSizing item_sizing() const noexcept { return item_sizing_; }
-    void set_item_sizing(PageItemSizing sizing);
-    [[nodiscard]] const PageItemWidths& item_widths() const noexcept { return item_widths_; }
-    // Throws std::invalid_argument for widths outside the bounds stated on
-    // PageItemWidths, leaving the old widths.
-    void set_item_widths(PageItemWidths widths);
-    [[nodiscard]] PageStripActivation activation() const noexcept { return activation_; }
-    void set_activation(PageStripActivation activation);
-    [[nodiscard]] PageStripOverflow overflow() const noexcept { return overflow_; }
-    void set_overflow(PageStripOverflow overflow);
-    [[nodiscard]] PageCloseButtons close_buttons() const noexcept { return close_buttons_; }
-    void set_close_buttons(PageCloseButtons buttons);
-    // Whether `&` in a title marks a mnemonic that selects the page (on for
-    // strips; the document preset turns it off, DK-38). When off, a title is
-    // shown as written.
-    [[nodiscard]] bool mnemonics_enabled() const noexcept { return mnemonics_enabled_; }
-    void set_mnemonics_enabled(bool enabled);
-    // Whether an unclaimed drag reorders tabs live (owner decision DK-39):
-    // off by default, the strip preset; PageView's document preset turns it
-    // on.
-    [[nodiscard]] bool reorder_enabled() const noexcept { return reorder_enabled_; }
-    void set_reorder_enabled(bool enabled);
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
-    // The images a page's `image_key` names. Throws std::invalid_argument for
-    // a disposed list or one belonging to another window.
-    [[nodiscard]] std::shared_ptr<ImageList> image_list() const noexcept { return image_list_; }
-    void set_image_list(std::shared_ptr<ImageList> image_list);
-
-    // Content-only owner drawing (owner decision W-Q6; TabControl's
-    // OwnerDrawFixed with DrawItem). In ItemDrawMode::owner_draw the strip
-    // raises draw_item_content for each painted tab's content (its icon and
-    // label; index is the tab's position, stable_id the page's ID); the
-    // tab's plate, close button, pin, modified mark and focus cue stay
-    // painted by role, and a handler's draw_default adds the default
-    // content. A tab with neither icon nor label raises nothing. A handler
-    // that changes the strip's pages, settings or scroll position, or
-    // disposes it, ends that paint at once; the strip is painted again with
-    // the change. Throws std::invalid_argument for an unknown mode.
-    [[nodiscard]] ItemDrawMode draw_mode() const noexcept { return draw_mode_; }
-    void set_draw_mode(ItemDrawMode mode);
     [[nodiscard]] Event<ItemContentPaint&>& draw_item_content() noexcept { return draw_item_content_; }
 
     // Scrolls so the page's tab is visible. False for a page not in the set.
@@ -347,6 +263,7 @@ public:
     void on_paint(Painter& painter, Rect local_damage) override;
     void on_pointer(PointerEvent& event) override;
     void on_key(KeyEvent& event) override;
+    void on_context_menu_requested(ContextMenuRequest& request) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
@@ -659,19 +576,8 @@ private:
     void on_image_list_changed(const ImageListChange& change);
 
     PageSet* pages_{};
-    ItemDrawMode draw_mode_{ItemDrawMode::normal};
     // The painted tab's page ID while owner-draw handlers run.
     std::string paint_stable_id_{};
-    PageStripPlacement placement_{PageStripPlacement::top};
-    PageItemSizing item_sizing_{PageItemSizing::content};
-    PageItemWidths item_widths_{};
-    PageStripActivation activation_{PageStripActivation::automatic};
-    PageStripOverflow overflow_{PageStripOverflow::scroll};
-    PageCloseButtons close_buttons_{PageCloseButtons::none};
-    bool mnemonics_enabled_{true};
-    bool reorder_enabled_{false};
-    FontSpec font_{FontRole::control, 10.5, 400, false, 0.12};
-    std::shared_ptr<ImageList> image_list_{};
 
     // The cached layout (see LayoutKey); paint and the published geometry
     // read it, so painting n tabs allocates nothing per tab.
@@ -691,8 +597,6 @@ private:
     Hit pressed_{};
     // The page a middle press went down on, for a close on its release.
     std::optional<PageId> middle_pressed_{};
-    // The page a secondary press went down on, for its context menu.
-    std::optional<PageId> secondary_pressed_{};
     DragState drag_{};
     std::optional<PagePosition> insertion_gap_{};
     bool focused_{};
@@ -718,6 +622,43 @@ private:
     Event<PageDragStart&> page_drag_started_{};
     Event<PageContextMenuRequest&> page_context_menu_requested_{};
     Event<const PageDoubleClick&> page_double_clicked_{};
+    // property_codemod begin PageStrip (tools/property_families/page_strip.json; generated, do not edit)
+private:
+    friend struct PageStripPlacementPropertyCapability<PageStrip>;
+    friend struct PageStripItemSizingCapability<PageStrip>;
+    friend struct PageStripItemWidthsCapability<PageStrip>;
+    friend struct PageStripActivationPropertyCapability<PageStrip>;
+    friend struct PageStripOverflowPropertyCapability<PageStrip>;
+    friend struct PageStripCloseButtonsCapability<PageStrip>;
+    friend struct PageStripMnemonicsEnabledCapability<PageStrip>;
+    friend struct PageStripReorderEnabledCapability<PageStrip>;
+    friend struct FontCapability<PageStrip>;
+    friend struct PageStripImageListCapability<PageStrip>;
+    friend struct PageStripDrawModeCapability<PageStrip>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(placement)& cell, PageStripPlacement& incoming);
+    void written(const decltype(placement)& cell);
+    void prepare_write(const decltype(item_sizing)& cell, PageItemSizing& incoming);
+    void written(const decltype(item_sizing)& cell);
+    void prepare_write(const decltype(item_widths)& cell, PageItemWidths& incoming);
+    void written(const decltype(item_widths)& cell);
+    void prepare_write(const decltype(activation)& cell, PageStripActivation& incoming);
+    void written(const decltype(activation)& cell);
+    void prepare_write(const decltype(overflow)& cell, PageStripOverflow& incoming);
+    void written(const decltype(overflow)& cell);
+    void prepare_write(const decltype(close_buttons)& cell, PageCloseButtons& incoming);
+    void written(const decltype(close_buttons)& cell);
+    void prepare_write(const decltype(mnemonics_enabled)& cell, bool& incoming);
+    void written(const decltype(mnemonics_enabled)& cell);
+    void prepare_write(const decltype(reorder_enabled)& cell, bool& incoming);
+    void written(const decltype(reorder_enabled)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    void prepare_write(const decltype(image_list)& cell, std::shared_ptr<ImageList>& incoming);
+    void written(const decltype(image_list)& cell);
+    void prepare_write(const decltype(draw_mode)& cell, ItemDrawMode& incoming);
+    void written(const decltype(draw_mode)& cell);
+    // property_codemod end PageStrip
 };
 
 } // namespace gui_forms

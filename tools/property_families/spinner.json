@@ -1,0 +1,50 @@
+{
+  "family": "Spinner",
+  "step": "W-4",
+  "declaring": "Spinner",
+  "header": "include/gui_forms/controls/spinner/spinner.hpp",
+  "source": "src/controls/spinner/spinner.cpp",
+  "capabilities_header": "include/gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [],
+  "not_properties": [],
+  "test": {
+    "type": "Spinner",
+    "include": "gui_forms/controls/spinner/spinner.hpp"
+  },
+  "properties": [
+    {
+      "name": "active",
+      "capability": "SpinnerActive",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the spinner shows and turns; an inactive spinner draws nothing and reports no busy state.",
+      "getter": "active",
+      "setter": "set_active",
+      "clear": null,
+      "field": "active_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether the spinner shows and turns.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [],
+      "sample": "false"
+    }
+  ]
+}

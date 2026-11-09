@@ -294,16 +294,16 @@ void test_ordered_outer_and_inset_keylines_are_bounded() {
 
     std::shared_ptr<MaterialPanel> panel =
         make_control<MaterialPanel>(StableId("material.keyline.atomic"));
-    (*panel).set_material(material);
+    (*panel).material = material;
     SurfaceMaterial over_budget = material;
     over_budget.keylines.resize(SurfaceMaterial::maximum_keylines + 1U);
     bool rejected = false;
     try {
-        (*panel).set_material(over_budget);
+        (*panel).material = over_budget;
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*panel).material() == material,
+    require(rejected && (*panel).material.read() == material,
             "over-budget keylines must reject atomically without replacing the retained material");
 
     const MaterialFillLayer fill =
@@ -327,19 +327,19 @@ void test_material_validation_is_atomic() {
     SubscriptionToken token = (*panel).material_changed().subscribe(
         test_support::IncrementCounter<unsigned,
                                        const SurfaceMaterial&>(changes));
-    (*panel).set_material(valid);
-    (*panel).set_material(valid);
+    (*panel).material = valid;
+    (*panel).material = valid;
     require(changes == 1U, "identical material assignment must be silent");
 
     SurfaceMaterial invalid = valid;
     invalid.fills[0].stops[1].offset = 0.0;
     bool rejected{};
     try {
-        (*panel).set_material(std::move(invalid));
+        (*panel).material = std::move(invalid);
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*panel).material() == valid && changes == 1U,
+    require(rejected && (*panel).material.read() == valid && changes == 1U,
             "invalid material must be rejected without partial mutation");
 
     invalid = valid;
@@ -347,18 +347,18 @@ void test_material_validation_is_atomic() {
         static_cast<GradientSpreadMode>(0xffU);
     rejected = false;
     try {
-        (*panel).set_material(std::move(invalid));
+        (*panel).material = std::move(invalid);
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*panel).material() == valid && changes == 1U,
+    require(rejected && (*panel).material.read() == valid && changes == 1U,
             "unknown gradient spread must be rejected atomically");
 }
 
 void test_retained_replay_preserves_material_operations() {
     std::shared_ptr<gui_forms::MaterialPanel> panel = make_control<MaterialPanel>(StableId("material.replay"));
     (*panel).set_requested_bounds({0.0, 0.0, 200.0, 100.0});
-    (*panel).set_material(specimen_material());
+    (*panel).material = specimen_material();
     Window window(panel, {200.0, 100.0});
     window.perform_layout();
     static_cast<void>(window.take_damage());
@@ -383,7 +383,7 @@ void test_retained_replay_preserves_material_operations() {
             "retained material must preserve its explicit gradient spread");
 
     const std::optional<DisplayChunkInfo> before = (*panel).display_chunk_info();
-    (*panel).set_material(SurfaceMaterial{});
+    (*panel).material = SurfaceMaterial{};
     const DamageRegion damage = window.take_damage();
     require(before && !damage.empty(),
             "material mutation must invalidate its retained display chunk");
@@ -402,7 +402,7 @@ void test_repeating_material_survives_record_and_replay() {
          {0.48, Color::rgba(20, 30, 40)},
          {0.52, Color::rgba(65, 80, 92)},
          {1.0, Color::rgba(65, 80, 92)}})};
-    (*panel).set_material(texture);
+    (*panel).material = texture;
     Window window(panel, {96.0, 48.0});
     window.perform_layout();
 
@@ -428,7 +428,7 @@ void test_image_materials_retain_crop_tile_and_nine_patch() {
     SurfaceMaterial material;
     material.fills = {MaterialFillLayer::nine_patch(
         patch.image, {12.0, 12.0}, {3.0, 3.0, 3.0, 3.0}, 1.5, 0.75)};
-    (*panel).set_material(material);
+    (*panel).material = material;
     window.perform_layout();
 
     RichPainter painter;
@@ -451,7 +451,7 @@ void test_image_materials_retain_crop_tile_and_nine_patch() {
     material.fills = {MaterialFillLayer::tiled_image(
         tile.image, {4.0, 4.0}, 1.0)};
     (*panel).set_requested_bounds({0.0, 0.0, 10.0, 6.0});
-    (*panel).set_material(material);
+    (*panel).material = material;
     window.resize({10.0, 6.0});
     window.perform_layout();
     painter.image_regions.clear();
@@ -471,7 +471,7 @@ void test_image_materials_retain_crop_tile_and_nine_patch() {
     SurfaceMaterial positioned = material;
     positioned.fills.front().image_anchor = Point{0.5, 1.0};
     positioned.fills.front().image_offset = Point{1.0, 0.0};
-    (*panel).set_material(positioned);
+    (*panel).material = positioned;
     window.perform_layout();
     painter.image_patterns.clear();
     const unsigned clips_before = painter.clips;
@@ -482,52 +482,52 @@ void test_image_materials_retain_crop_tile_and_nine_patch() {
             "a positioned tiling starts whole tiles back from its tile");
     require(painter.clips > clips_before && painter.last_clip == Rect{0.0, 0.0, 10.0, 6.0},
             "a positioned tiling is clipped to its box");
-    (*panel).set_material(material);
+    (*panel).material = material;
 
     // A finished material (E9.6) draws as the material it describes on the
     // built-in path too: its four stops, and its shine.
     SurfaceMaterial finished_face;
     finished_face.fills = {MaterialFillLayer::solid(Color::rgba(100, 140, 200))};
     finished_face.finish = 1.0;
-    (*panel).set_material(finished_face);
+    (*panel).material = finished_face;
     window.perform_layout();
     RichPainter finish_painter;
     window.paint(finish_painter, {0.0, 0.0, 10.0, 6.0});
     require(finish_painter.linear_fills + finish_painter.spread_linear_fills == 1U &&
                 finish_painter.last_stop_count == 4U,
             "a finished face draws its four-stop gradient");
-    (*panel).set_material(material);
+    (*panel).material = material;
 
     SurfaceMaterial invalid_position = material;
     invalid_position.fills.front().image_anchor = Point{1.5, 0.0};
     bool position_rejected{};
     try {
-        (*panel).set_material(std::move(invalid_position));
+        (*panel).material = std::move(invalid_position);
     } catch (const std::invalid_argument&) {
         position_rejected = true;
     }
-    require(position_rejected && (*panel).material() == material,
+    require(position_rejected && (*panel).material.read() == material,
             "an anchor outside [0, 1] is rejected atomically");
     invalid_position = material;
     invalid_position.fills.front().image_offset = Point{0.0, 5000.0};
     position_rejected = false;
     try {
-        (*panel).set_material(std::move(invalid_position));
+        (*panel).material = std::move(invalid_position);
     } catch (const std::invalid_argument&) {
         position_rejected = true;
     }
-    require(position_rejected && (*panel).material() == material,
+    require(position_rejected && (*panel).material.read() == material,
             "an offset past 4096 units is rejected atomically");
 
     SurfaceMaterial invalid = material;
     invalid.fills.front().image_slice = {3.0, 0.0, 3.0, 0.0};
     bool rejected{};
     try {
-        (*panel).set_material(std::move(invalid));
+        (*panel).material = std::move(invalid);
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*panel).material() == material,
+    require(rejected && (*panel).material.read() == material,
             "non-nine-patch slice metadata must be rejected atomically");
 
     invalid = material;
@@ -535,11 +535,11 @@ void test_image_materials_retain_crop_tile_and_nine_patch() {
         ImageId{UINT64_C(0xffffffffffffffff)}, {4.0, 4.0});
     rejected = false;
     try {
-        (*panel).set_material(std::move(invalid));
+        (*panel).material = std::move(invalid);
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*panel).material() == material,
+    require(rejected && (*panel).material.read() == material,
             "an attached MaterialPanel must reject missing or stale-size image IDs");
 }
 
@@ -574,7 +574,7 @@ void test_shadow_outsets_participate_in_damage() {
     SurfaceMaterial shadowed;
     shadowed.shadows = {{{4.0, 5.0}, 3.0, 1.0,
                          Color::rgba(0, 0, 0, 100)}};
-    (*panel).set_material(shadowed);
+    (*panel).material = shadowed;
     (*root).add_child(panel);
     Window window(root, {120.0, 100.0});
     window.perform_layout();
@@ -590,7 +590,7 @@ void test_shadow_outsets_participate_in_damage() {
                 painter.last_clip.width >= 60.0 &&
                 painter.last_clip.height >= 50.0,
             "retained replay must not clip a decoration to arranged bounds");
-    (*panel).set_material(SurfaceMaterial{});
+    (*panel).material = SurfaceMaterial{};
     const Rect damage = window.take_damage().bounds();
     require(damage.x <= 24.0 && damage.y <= 20.0 &&
                 damage.x + damage.width >= 84.0 &&
@@ -605,7 +605,7 @@ void test_inset_shadow_is_retained_inside_owner_geometry() {
     SurfaceMaterial material;
     material.shadows = {
         {{0.0, 1.0}, 0.0, 0.0, Color::rgba(255, 255, 255, 48), true}};
-    (*panel).set_material(material);
+    (*panel).material = material;
     Window window(panel, {120.0, 44.0});
     window.perform_layout();
     RichPainter painter;

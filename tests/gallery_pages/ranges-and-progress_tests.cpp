@@ -21,10 +21,10 @@ void test_ranges_and_progress(gui_forms::Window& window) {
         window.find("gallery.ranges.scope"));
     require(slider && progress && horizontal_scroll && vertical_scroll && shared && scope,
             "range proving controls must retain public slider, progress, and scrollbar types");
-    require((*slider).value() == 52.0 && (*progress).value() == 52.0 &&
-                (*horizontal_scroll).value() == 52.0 && (*vertical_scroll).value() == 52.0 &&
-                (*scope).value() == 52.0 &&
-                (*shared).text().find("level = 52") != std::string::npos,
+    require((*slider).value.read() == 52.0 && (*progress).value.read() == 52.0 &&
+                (*horizontal_scroll).value.read() == 52.0 && (*vertical_scroll).value.read() == 52.0 &&
+                (*scope).value.read() == 52.0 &&
+                (*shared).text.read().find("level = 52") != std::string::npos,
             "every range control must start from the one bound Value<double>");
     const Rect track = (*slider).absolute_bounds();
     const Point from{track.x + track.width * 0.2, track.y + track.height * 0.5};
@@ -32,11 +32,11 @@ void test_ranges_and_progress(gui_forms::Window& window) {
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, from}) &&
                 window.dispatch_pointer({PointerAction::move, PointerButton::none, to}) &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary, to}) &&
-                (*slider).value() > 75.0 && (*progress).value() == (*slider).value() &&
-                (*horizontal_scroll).value() == (*slider).value() &&
-                (*vertical_scroll).value() == (*slider).value(),
+                (*slider).value.read() > 75.0 && (*progress).value.read() == (*slider).value.read() &&
+                (*horizontal_scroll).value.read() == (*slider).value.read() &&
+                (*vertical_scroll).value.read() == (*slider).value.read(),
             "gallery TrackBar drag must move every control bound to the shared Value");
-    require((*shared).text().find("last input: Filled rail") != std::string::npos,
+    require((*shared).text.read().find("last input: Filled rail") != std::string::npos,
             "the input-only scroll event must name the control the user dragged");
     const Rect scroll_bounds = (*horizontal_scroll).absolute_bounds();
     const Rect scroll_thumb = (*horizontal_scroll).thumb_bounds();
@@ -51,18 +51,18 @@ void test_ranges_and_progress(gui_forms::Window& window) {
                                          scroll_to}) &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary,
                                          scroll_to}) &&
-                (*horizontal_scroll).value() > 95.0 &&
-                (*vertical_scroll).value() == (*horizontal_scroll).value() &&
-                (*slider).value() == (*horizontal_scroll).value(),
+                (*horizontal_scroll).value.read() > 95.0 &&
+                (*vertical_scroll).value.read() == (*horizontal_scroll).value.read() &&
+                (*slider).value.read() == (*horizontal_scroll).value.read(),
             "gallery ScrollBar drag must track continuously and move the bound slider");
-    require((*shared).text().find("horizontal ScrollBar") != std::string::npos,
+    require((*shared).text.read().find("horizontal ScrollBar") != std::string::npos,
             "the status must report the scrollbar as the last input source");
     // A programmatic state change reaches every bound control and the state
     // observer, but synthesizes no input event.
-    (*progress).set_value(40.0);
-    require((*slider).value() == 40.0 && (*vertical_scroll).value() == 40.0 && (*scope).value() == 40.0 &&
-                (*shared).text().find("level = 40") != std::string::npos &&
-                (*shared).text().find("horizontal ScrollBar") != std::string::npos,
+    (*progress).value = 40.0;
+    require((*slider).value.read() == 40.0 && (*vertical_scroll).value.read() == 40.0 && (*scope).value.read() == 40.0 &&
+                (*shared).text.read().find("level = 40") != std::string::npos &&
+                (*shared).text.read().find("horizontal ScrollBar") != std::string::npos,
             "a programmatic set_value must propagate through the Value without a new input report");
 
     // Reproduce the reported interaction family without depending on wall

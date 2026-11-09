@@ -377,13 +377,13 @@ void test_real_control_and_timer_signatures() {
     gf::on((*label).text_changed(), owner, &Recorder::text_changed);
     gf::on(timer.tick(), owner, &Recorder::tick);
     (*button).perform_click();
-    (*label).set_text("Changed");
+    (*label).text = "Changed";
     timer.tick().emit();
     require(total == 3 && !timer.enabled(),
             "control and timer handlers must wire without starting a timer");
     owner.dispose();
     (*button).perform_click();
-    (*label).set_text("Again");
+    (*label).text = "Again";
     timer.tick().emit();
     require(total == 3, "disposed owner must stop real control notifications");
 }
@@ -645,16 +645,6 @@ public:
     int invocations{};
 };
 
-class CountedTrackBar final : public gf::TrackBar {
-public:
-    explicit CountedTrackBar(gf::StableId id) : gf::TrackBar(std::move(id)) {}
-    void set_value(const double value) override {
-        ++writes;
-        gf::TrackBar::set_value(value);
-    }
-    int writes{};
-};
-
 class DestroyValue final : public gf::Component {
 public:
     explicit DestroyValue(std::unique_ptr<gf::Value<int>>& value) : value_(value) {}
@@ -665,21 +655,20 @@ private:
 
 void test_shared_scalar_state() {
     gf::Value<double> volume(15.0);
-    CountedTrackBar first(gf::StableId("first"));
-    CountedTrackBar second(gf::StableId("second"));
+    // The value is a property view, so each control's one write shows as
+    // one value_changed: observer.changes counts both.
+    gf::TrackBar first(gf::StableId("first"));
+    gf::TrackBar second(gf::StableId("second"));
     StateObserver observer{};
     first.bind(volume);
     second.bind(volume);
     gf::on(first.value_changed(), observer, &StateObserver::value);
     gf::on(second.value_changed(), observer, &StateObserver::value);
     gf::on(first.scroll(), observer, &StateObserver::scroll);
-    require(first.value() == 15.0 && second.value() == 15.0,
+    require(first.value.read() == 15.0 && second.value.read() == 15.0,
             "model must win at bind time");
-    first.writes = 0;
-    second.writes = 0;
-    first.set_value(20.0);
-    require(volume.get() == 20.0 && second.value() == 20.0 &&
-                first.writes == 1 && second.writes == 1 &&
+    first.value = 20.0;
+    require(volume.get() == 20.0 && second.value.read() == 20.0 &&
                 observer.changes == 2 && observer.inputs == 0,
             "programmatic writes synchronize once without user input or origin reentry");
     std::size_t allocations = 0U;
@@ -691,7 +680,7 @@ void test_shared_scalar_state() {
         }
         allocations = owned_event_allocation_probe::attempts;
     }
-    require(allocations == 0U && first.value() == 99.0 && second.value() == 99.0,
+    require(allocations == 0U && first.value.read() == 99.0 && second.value.read() == 99.0,
             "steady state scalar propagation must allocate nothing");
     const gf::SemanticDescriptor semantic = first.semantic_descriptor();
     require(semantic.numeric_value == 99.0,
@@ -699,17 +688,17 @@ void test_shared_scalar_state() {
     gf::KeyEvent input{.action = gf::KeyAction::down,
                       .physical_key = gf::PhysicalKey::left};
     first.on_key(input);
-    require(input.handled && observer.inputs == 1 && volume.get() == first.value(),
+    require(input.handled && observer.inputs == 1 && volume.get() == first.value.read(),
             "keyboard input must update the shared model and emit the input event");
-    second.set_maximum(50.0);
-    const double prior = first.value();
+    second.maximum = 50.0;
+    const double prior = first.value.read();
     bool rejected = false;
-    try { first.set_value(75.0); } catch (const std::out_of_range&) { rejected = true; }
-    require(rejected && first.value() == prior && volume.get() == prior,
+    try { first.value = 75.0; } catch (const std::out_of_range&) { rejected = true; }
+    require(rejected && first.value.read() == prior && volume.get() == prior,
             "another control constraint must reject before the originating control changes");
     volume.dispose();
-    first.set_value(30.0);
-    require(second.value() != 30.0, "disposed model must detach its bindings");
+    first.value = 30.0;
+    require(second.value.read() != 30.0, "disposed model must detach its bindings");
 }
 
 void test_model_and_control_lifetimes() {
@@ -718,7 +707,7 @@ void test_model_and_control_lifetimes() {
         gf::Value<double> value(17.0);
         control.bind(value);
     }
-    control.set_value(18.0);
+    control.value = 18.0;
     gf::Value<double> retained(12.0);
     {
         gf::TrackBar temporary(gf::StableId("temporary"));
@@ -745,9 +734,9 @@ void test_shared_commands() {
     gf::on(music.invoked(), observer, &StateObserver::command);
     first.bind(music);
     second.bind(music);
-    require(first.checked() && second.checked(), "command checked state wins on binding");
+    require(first.checked.read() && second.checked.read(), "command checked state wins on binding");
     first.perform_click();
-    require(!music.state().checked && !second.checked() && observer.invocations == 1,
+    require(!music.state().checked && !second.checked.read() && observer.invocations == 1,
             "one click invokes once and synchronizes every presentation");
     std::size_t allocations = 0U;
     {
@@ -863,7 +852,7 @@ void test_choice_group_state_and_rebuild() {
     gf::on((*group).changed(), observer, &CollectionObserver::choice);
     gf::Button* const first = &(*group).item(0);
     (*group).item(1).perform_click();
-    require(model.get() == 1 && (*group).selected_index() == 1 && observer.choices == 1,
+    require(model.get() == 1 && (*group).selected_index.read() == 1 && observer.choices == 1,
             "choice activation must synchronize the selection model once");
     require((*group).semantic_descriptor().role == gf::SemanticRole::radio_group &&
                 (*group).item(1).semantic_descriptor().role == gf::SemanticRole::radio_button &&
@@ -896,7 +885,7 @@ void test_expandable_sections_state() {
     const gf::Control::Ptr second = gf::make_control<gf::Control>(gf::StableId("second-body"));
     gf::Value<bool> first_open(true);
     gf::Value<bool> second_open(false);
-    (*sections).set_single_open(true);
+    (*sections).single_open = true;
     (*sections).set_items({{.id = 1, .label = "First", .content = first, .expanded = &first_open},
                           {.id = 2, .label = "Second", .content = second, .expanded = &second_open}});
     CollectionObserver observer{};
@@ -972,7 +961,7 @@ void test_nested_command_change_keeps_latest_state() {
     CheckDuringEnableChange observer(command);
     gf::on(button.enabled_changed(), observer, &CheckDuringEnableChange::change);
     command.set_enabled(false);
-    require(command.state().checked && button.checked() && !button.enabled.read(),
+    require(command.state().checked && button.checked.read() && !button.enabled.read(),
             "a nested command update must not be overwritten by an older projection");
 }
 
@@ -1038,7 +1027,7 @@ void test_choice_images_and_section_keyboard() {
     const gf::ImageLoadResult loaded = window.load_bgra32_premultiplied(1U, 1U, 4U, pixel);
     require(static_cast<bool>(loaded), "image fixture must load");
     (*choices).set_items({{.id = 1, .label = "Red", .image = loaded.image, .accessible_name = "Red tile"}});
-    require((*choices).item(0).image() == loaded.image &&
+    require((*choices).item(0).image.read() == loaded.image &&
                 (*choices).item(0).semantic_descriptor().name == "Red tile",
             "choice images and accessible names reach the retained item control");
     const std::shared_ptr<gf::ExpandableSections> sections = gf::make_control<gf::ExpandableSections>(gf::StableId("keyboard-sections"));

@@ -3,6 +3,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/display.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/surface_material/types/surface_material_types.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -78,6 +79,12 @@ struct DisplayCommand final {
     // its logical origin, `rect` its logical bounds at its own scale (for
     // inspection), and `scalar` its opacity.
     std::shared_ptr<const PartRaster> part_raster{};
+    // For a draw_part_raster baked from a material (RecordingPainter::
+    // draw_surface_material): that material, as painted, `second` the box's
+    // logical size (x the width, y the height) and `secondary_scalar` the
+    // raster's outset, the box lying that far inside `first`. Null
+    // otherwise.
+    std::shared_ptr<const SurfaceMaterial> surface_material{};
     std::shared_ptr<const PreparedTextStorage> prepared_text{};
     LayoutAuthority prepared_authority{};
 };

@@ -405,15 +405,6 @@ struct HostDialogResult final {
     HostDialogResultPayload payload;
 };
 
-// A tooltip request is expressed in root-client logical coordinates. Platform
-// adapters own screen conversion, work-area clamping, native window lifetime,
-// and non-activation; no platform handle enters the portable contract.
-struct HostTooltipRequest final {
-    std::string text;
-    Point anchor;
-    std::uint32_t duration_milliseconds{};
-};
-
 // Notification-area (system tray) icons. An icon is named by the identity
 // HostServices::add_tray_icon returns; no native handle enters the portable
 // contract. `images` holds the icon at one or more sizes (each at most 256
@@ -564,12 +555,53 @@ struct HostCompositorEvent final {
 // The platform's input settings that controls read (stage W, ListView label
 // editing): reported after attach and again whenever the system setting
 // changes. The session copies them into the window's PresentationSettings
-// (double_click_milliseconds and double_click_origin), leaving every other
-// field as it is. An interval of 0 or above
-// maximum_double_click_milliseconds is refused as invalid_payload.
+// (double_click_milliseconds, double_click_origin and pointer), leaving
+// every other field as it is. An interval of 0 or above
+// maximum_double_click_milliseconds, or pointer settings that are not
+// valid_pointer_settings, are refused as invalid_payload. A host reports
+// the pointer values its platform has with origin host and leaves the
+// others at their defaults (origin default_value).
 struct HostInputSettingsEvent final {
     std::uint32_t double_click_milliseconds{default_double_click_milliseconds};
     SettingOrigin double_click_origin{SettingOrigin::host};
+    PointerSettings pointer{};
+};
+
+// The platform asked for a context menu (owner's mouse-event rule): Windows
+// WM_CONTEXTMENU (after the right button's release, or Shift+F10 and the
+// Menu key), macOS menuForEvent: (the right button's press, or a
+// Control-click). The Linux host, whose platform has no such event,
+// emulates it: the right button's press, the Menu key and Shift+F10. A
+// pointer request carries the pointer's window position; a keyboard
+// request names none and goes to the focused control. The window raises
+// ContextMenuRequested from it (SurfaceRoot::dispatch_context_request).
+// A position that is not finite is refused as invalid_payload.
+struct HostContextRequestEvent final {
+    ContextRequestOrigin origin{ContextRequestOrigin::pointer};
+    Point position{};
+};
+
+// The pointer rested within the hover rectangle for the hover time, as the
+// platform measured it (Windows WM_MOUSEHOVER). Sent only by a host whose
+// input settings say native_hover; the window raises MouseHover on the
+// hovered control. A position that is not finite is refused as
+// invalid_payload.
+struct HostHoverEvent final {
+    Point position{};
+};
+
+// The native window's state changed (capability window_state_reports;
+// owner, 2026-11-08: the window outer band). Reported after attach and
+// whenever the window enters or leaves full screen, or is maximized,
+// snapped or restored, any of which the platform may answer by reshaping
+// its corners. full_screen: the window fills its monitor with no frame
+// (Windows: a captionless window covering its monitor; macOS:
+// the window style mask's full-screen bit; X11: _NET_WM_STATE_FULLSCREEN, or the
+// host's own override-redirect fallback). The session passes full_screen
+// to Window::report_full_screen and asks the host for the window's corners
+// again (HostServices::apply_window_corners), so the band follows both.
+struct HostWindowStateEvent final {
+    bool full_screen{};
 };
 
 using HostEventPayload = std::variant<
@@ -587,7 +619,10 @@ using HostEventPayload = std::variant<
     HostClosedEvent,
     HostShutdownEvent,
     HostCompositorEvent,
-    HostInputSettingsEvent>;
+    HostInputSettingsEvent,
+    HostContextRequestEvent,
+    HostHoverEvent,
+    HostWindowStateEvent>;
 
 struct HostEvent final {
     std::uint64_t sequence{};

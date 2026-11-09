@@ -1,0 +1,118 @@
+/* The Gallery's input-and-rules page: the WinForms mouse events and context
+   requests on one target, logged live as the window raises them, a context
+   menu with a submenu shown from ContextMenuRequested, and the page's window
+   rules (Part C) beside them. gui_forms_add_form() compiles this document
+   into input-and-rules_form.hpp at build time.
+
+   gallery.input-and-rules.document is a declared boundary only: the page
+   moves its children into the shell's page body (a 1000 x 660 design
+   surface), where each is placed by its bounds in design coordinates.
+   Behaviour stays in the page (src/controls/gallery/pages/
+   input-and-rules.cpp): the event subscriptions, the log, the context menu,
+   the rules and the Commands and Values the document binds (FD-6). */
+scaled-panel gallery.input-and-rules.document {
+  design-size: 1000 660;
+
+  label gallery.input-and-rules.heading {
+    text: "INPUT AND RULES";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.input-and-rules.lead {
+    text: "Every mouse event the window raises on the target, in order, and the rules that run before the target's subscribers.";
+    classes: "muted" "body";
+    text-wrapping: word;
+    vertical-alignment: near;
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.input.target-group {
+    text: "Mouse events · press, click, double-click, wheel, hover, right-click";
+    classes: "paper" "group-caption";
+    design-size: 450 300;
+    bounds: 24 92 450 300;
+    label gallery.input.target.caption {
+      text: "Each event the target raises is logged, in order.";
+      classes: "muted" "body";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 22 36 406 22;
+    }
+    panel gallery.input.target {
+      accessible-name: "Mouse event target";
+      border-style: raised;
+      bounds: 22 64 406 126;
+    }
+    button gallery.input.press {
+      text: "Click me";
+      visual-style: command;
+      bounds: 22 202 260 32;
+      command: bind(press_);
+    }
+    button gallery.input.clear {
+      text: "Clear the log";
+      visual-style: command;
+      bounds: 296 202 132 32;
+      command: bind(clear_);
+    }
+    check-box gallery.input.log-moves {
+      text: "Log MouseMove and MouseWheel too";
+      indicator-style: modern;
+      bounds: 22 248 300 26;
+      checked: bind(log_moves_);
+    }
+  }
+
+  scaled-group-box gallery.input.rules-group {
+    text: "Window rules · offered before the control route";
+    classes: "paper" "group-caption";
+    design-size: 450 230;
+    bounds: 24 410 450 230;
+    check-box gallery.input.rules.armed {
+      text: "Arm the page's three rules";
+      indicator-style: toggle;
+      bounds: 22 40 400 26;
+      checked: bind(rules_armed_);
+    }
+    check-box gallery.input.rules.consume {
+      text: "Consume a Shift+click on Click me";
+      indicator-style: modern;
+      bounds: 22 76 406 26;
+      checked: bind(consume_shift_clicks_);
+    }
+    check-box gallery.input.marked {
+      text: "Marked (H over the target toggles it)";
+      indicator-style: modern;
+      bounds: 22 112 406 26;
+      checked: bind(marked_);
+    }
+    label gallery.input.rules.statistics {
+      text: "Rules not armed";
+      classes: "muted" "body";
+      bounds: 22 152 406 22;
+    }
+    label gallery.input.rules.note {
+      text: "A third rule notes each MouseDoubleClick on the target before its subscribers see it.";
+      classes: "muted" "body";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 22 180 406 38;
+    }
+  }
+
+  scaled-group-box gallery.input.log-group {
+    text: "Event log · newest last";
+    classes: "paper" "group-caption";
+    design-size: 460 548;
+    bounds: 494 92 460 548;
+    list-box gallery.input.log {
+      accessible-name: "Mouse event log";
+      bounds: 16 36 428 464;
+    }
+    label gallery.input.log-count {
+      text: "No events yet";
+      classes: "muted" "body";
+      bounds: 16 510 428 22;
+    }
+  }
+}

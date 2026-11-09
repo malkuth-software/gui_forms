@@ -49,13 +49,23 @@ HostWindowAdmission X11Windowing::open(LinuxApplicationWindow entry,
     owner_id = *found;
     owner_xid = (*owner).xid;
   }
+  const std::optional<HostPopupPlacement> popup = entry.popup;
+  // An override-redirect window never receives the keyboard focus from a
+  // window manager, so a focus-taking popup is not offered: the core shows
+  // it as an overlay in its owner instead (NativePopupRefusal::host_refused).
+  if (popup.has_value() && (*popup).focus == HostPopupFocus::takes_focus) {
+    admission.status.error = HostServiceError::unsupported;
+    return admission;
+  }
   const HostWindowKind kind =
-      host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, false);
+      host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, popup.has_value());
   const bool floating = host_window_kind_traits(kind).floating;
   HostWindowDescription description;
   description.stable_id = entry.stable_id;
   description.owner = owner_id;
   description.kind = kind;
+  if (popup.has_value())
+    description.transient = (*popup).kind;
   admission = admit(description);
   if (!admission.status.accepted())
     return admission;
@@ -75,6 +85,12 @@ HostWindowAdmission X11Windowing::open(LinuxApplicationWindow entry,
     admission.window = {};
     return admission;
   }
+  // A popup is where the program put it, before it is first mapped.
+  if (popup.has_value()) {
+    const Rect content{(*popup).origin.x, (*popup).origin.y, (*window).size.width,
+                       (*window).size.height};
+    static_cast<void>((*window).request_frame(content));
+  }
   if (!runtime) {
     window_created(id, initially_visible);
     return admission;
@@ -83,6 +99,23 @@ HostWindowAdmission X11Windowing::open(LinuxApplicationWindow entry,
   report_native_frame(*window);
   window_created(id, initially_visible);
   return admission;
+}
+
+bool X11Windowing::supports_popup_windows() const noexcept {
+  const bool available = static_cast<bool>(runtime_.compositor);
+  return available;
+}
+
+bool X11Windowing::transient_windows_translucent() const noexcept {
+  if (!runtime_.compositor)
+    return false;
+  const bool alpha = (*runtime_.compositor).argb().found && (*runtime_.compositor).compositor_present();
+  return alpha;
+}
+
+bool X11Windowing::supports_splash_windows() const noexcept {
+  const bool splash = supports_popup_windows();
+  return splash;
 }
 
 HostServiceStatus X11Windowing::show_impl(HostWindowId window) {
@@ -296,6 +329,14 @@ HostServiceStatus X11Windowing::destroy_window_impl(HostWindowId window) {
 
 HostMonitorResult X11Windowing::query_monitors_impl() {
   HostMonitorResult result;
+  query_monitors_into_impl(result);
+  return result;
+}
+
+// One record, the default screen, written into `result` in place: a
+// repeated query allocates nothing.
+void X11Windowing::query_monitors_into_impl(HostMonitorResult &result) {
+  result.status = {};
   Display *display = runtime_.display;
   const int screen = DefaultScreen(display);
   const Rect frame{0.0, 0.0, static_cast<double>(DisplayWidth(display, screen)),
@@ -322,8 +363,13 @@ HostMonitorResult X11Windowing::query_monitors_impl() {
   }
   if (data != nullptr)
     XFree(data);
-  result.monitors.push_back({"x11-screen", frame, work_area, 1.0, true});
-  return result;
+  result.monitors.resize(1U);
+  HostMonitor &monitor = result.monitors.front();
+  monitor.id.assign("x11-screen");
+  monitor.frame = frame;
+  monitor.work_area = work_area;
+  monitor.scale = 1.0;
+  monitor.primary = true;
 }
 
 HostWindowAdmission RunOpen::operator()(LinuxApplicationWindow entry) const {

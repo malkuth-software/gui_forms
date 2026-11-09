@@ -97,37 +97,37 @@ const RecordingPainter::Line* sweep_line(const RecordingPainter& painter, Color 
 
 void properties() {
     std::shared_ptr<SweepScope> scope = make_control<SweepScope>(StableId("scope.properties"));
-    require((*scope).caption() == "LEVEL", "the caption defaults to LEVEL");
-    require((*scope).sweep_period() == std::chrono::microseconds(1'234'568), "the sweep crosses in about 1.23 s");
-    require(!(*scope).focusable(), "the scope takes no focus");
+    require((*scope).caption.read() == "LEVEL", "the caption defaults to LEVEL");
+    require((*scope).sweep_period.read() == std::chrono::microseconds(1'234'568), "the sweep crosses in about 1.23 s");
+    require(!(*scope).focusable.read(), "the scope takes no focus");
     (*scope).set_property_value("caption", BindingValue{std::string("GAIN")});
-    require((*scope).caption() == "GAIN", "the caption property sets the caption");
+    require((*scope).caption.read() == "GAIN", "the caption property sets the caption");
     (*scope).set_property_value("sweep_period", BindingValue{2.5});
-    require((*scope).sweep_period() == std::chrono::milliseconds(2500), "the sweep_period property is in seconds");
+    require((*scope).sweep_period.read() == std::chrono::milliseconds(2500), "the sweep_period property is in seconds");
     require(std::get<double>(*(*scope).property_value("sweep_period")) == 2.5, "and reads back in seconds");
     bool refused = false;
     try {
-        (*scope).set_sweep_period(std::chrono::milliseconds(99));
+        (*scope).sweep_period = std::chrono::milliseconds(99);
     } catch (const std::out_of_range&) {
         refused = true;
     }
     require(refused, "a period under 0.1 s is refused");
     refused = false;
     try {
-        (*scope).set_sweep_period(std::chrono::seconds(61));
+        (*scope).sweep_period = std::chrono::seconds(61);
     } catch (const std::out_of_range&) {
         refused = true;
     }
-    require(refused && (*scope).sweep_period() == std::chrono::milliseconds(2500),
+    require(refused && (*scope).sweep_period.read() == std::chrono::milliseconds(2500),
             "a period over 60 s is refused, leaving the period as it was");
-    (*scope).set_sweep_period(std::chrono::seconds(60));
-    require((*scope).sweep_period() == std::chrono::seconds(60), "60 s is admitted");
+    (*scope).sweep_period = std::chrono::seconds(60);
+    require((*scope).sweep_period.read() == std::chrono::seconds(60), "60 s is admitted");
 }
 
 void anatomy_and_semantics() {
     std::shared_ptr<SweepScope> scope = make_control<SweepScope>(StableId("scope.anatomy"));
     (*scope).set_requested_bounds({0.0, 0.0, 220.0, 120.0});
-    (*scope).set_value(42.0);
+    (*scope).value = 42.0;
     Window window(scope, {220.0, 120.0});
     window.perform_layout();
     const Rect plot = (*scope).plot_bounds();
@@ -206,7 +206,7 @@ void on_the_motion_clock() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("scope.root"));
     std::shared_ptr<SweepScope> scope = make_control<SweepScope>(StableId("scope.clocked"));
     (*scope).set_requested_bounds({0.0, 0.0, 220.0, 120.0});
-    (*scope).set_value(60.0);
+    (*scope).value = 60.0;
     (*root).add_child(scope);
     Window window(root, {240.0, 140.0});
     window.perform_layout();

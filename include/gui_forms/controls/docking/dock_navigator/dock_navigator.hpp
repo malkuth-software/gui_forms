@@ -3,6 +3,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
 #include "gui_forms/event.hpp"
+#include "gui_forms/controls/docking/dock_navigator/dock_navigator_capabilities/dock_navigator_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -48,7 +49,7 @@ struct DockNavigatorChoice final {
 //
 // Every part is painted through paint_part: rows in the menu_item family,
 // flat at rest with a plate when current or hot, on a panel face.
-class DockNavigator : public Control {
+class DockNavigator : public Control, public DockNavigatorCapabilities<DockNavigator> {
 public:
     explicit DockNavigator(StableId stable_id);
     ~DockNavigator() override;
@@ -74,13 +75,6 @@ public:
     // Moves to the other list, keeping the index where it exists there (else
     // its last row). False when the other list is empty.
     bool switch_list();
-
-    // The modifier whose release chooses the current row (Ctrl after
-    // Ctrl+Tab, Alt after Alt+F7), or none to choose only with Enter or a
-    // press. Only control, alt and meta are accepted; others throw
-    // std::invalid_argument.
-    [[nodiscard]] Modifier release_modifier() const noexcept { return release_modifier_; }
-    void set_release_modifier(Modifier modifier);
 
     // Raises `chosen` with the current row; false when there is none.
     bool choose();
@@ -175,9 +169,15 @@ private:
     DockNavigatorList list_{DockNavigatorList::documents};
     std::optional<std::size_t> current_{};
     std::optional<Row> hot_{};
-    Modifier release_modifier_{Modifier::none};
     Event<const DockNavigatorChoice&> chosen_{};
     Event<> cancelled_{};
+    // property_codemod begin DockNavigator (tools/property_families/dock_navigator.json; generated, do not edit)
+private:
+    friend struct DockNavigatorReleaseModifierCapability<DockNavigator>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(release_modifier)& cell, Modifier& incoming);
+    void written(const decltype(release_modifier)& cell);
+    // property_codemod end DockNavigator
 };
 
 } // namespace gui_forms

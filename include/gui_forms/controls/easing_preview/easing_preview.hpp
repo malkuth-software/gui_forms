@@ -3,8 +3,10 @@
 #include "gui_forms/animation/animation_timer/animation_timer.hpp"
 #include "gui_forms/animation.hpp"
 #include "gui_forms/basic_controls.hpp"
+#include "gui_forms/controls/easing_preview/easing_preview_capabilities/easing_preview_capabilities.hpp"
 
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <vector>
@@ -28,31 +30,22 @@ struct EasingPreviewTrack final {
 };
 
 // A retained animation/easing conformance surface.
-class EasingPreview final : public Control {
+class EasingPreview final : public Control, public EasingPreviewCapabilities<EasingPreview> {
 public:
     explicit EasingPreview(StableId stable_id);
 
-    [[nodiscard]] const std::string& title() const noexcept { return title_; }
-    void set_title(std::string title);
-    [[nodiscard]] const BasicControlStyle& style() const noexcept {
-        return style_;
-    }
+    // The colours set with set_style, else the theme's compatibility
+    // colours. Without set_style the preview paints from the theme's editor
+    // role in the window's colour scheme, not from these.
+    [[nodiscard]] const BasicControlStyle& style() const noexcept;
+    [[nodiscard]] bool has_style_override() const noexcept { return style_override_.has_value(); }
     void set_style(BasicControlStyle style);
-    [[nodiscard]] const AnimationSpec& specification() const noexcept {
-        return timeline_.specification();
-    }
-    void set_specification(AnimationSpec specification);
+    void clear_style();
     [[nodiscard]] const std::vector<EasingPreviewTrack>& tracks() const noexcept {
         return tracks_;
     }
     void set_tracks(std::vector<EasingPreviewTrack> tracks);
-    [[nodiscard]] MotionPolicy motion_policy() const noexcept {
-        return motion_policy_;
-    }
     [[nodiscard]] MotionPolicy effective_motion_policy() const noexcept;
-    void set_motion_policy(MotionPolicy policy);
-    [[nodiscard]] double marker_size() const noexcept { return marker_size_; }
-    void set_marker_size(double size);
     [[nodiscard]] double phase() const noexcept { return phase_; }
 
     // Samples the timeline at `now` into the phase; the frame timer calls it
@@ -112,12 +105,33 @@ private:
     SubscriptionToken presentation_subscription_;
     AnimationTimeline timeline_;
     std::vector<EasingPreviewTrack> tracks_;
-    std::string title_{"Animation timeline and easing"};
-    BasicControlStyle style_;
+    // The colours set_style gave; empty, the theme's roles paint it.
+    std::optional<BasicControlStyle> style_override_{};
     MotionPolicy motion_policy_{};
-    double marker_size_{14.0};
     double phase_{};
     bool timeline_started_{};
+    // property_codemod begin EasingPreview (tools/property_families/easing_preview.json; generated, do not edit)
+public:
+    // EasingPreview's property table: Control's entries, then its own.
+    static constexpr std::size_t easing_preview_property_count = Control::control_property_count + 1U;
+    [[nodiscard]] static const std::array<PropertyEntry, easing_preview_property_count>& easing_preview_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct EasingPreviewTitleCapability<EasingPreview>;
+    friend struct EasingPreviewSpecificationCapability<EasingPreview>;
+    friend struct EasingPreviewMotionPolicyCapability<EasingPreview>;
+    friend struct EasingPreviewMarkerSizeCapability<EasingPreview>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(title)& cell, std::string& incoming);
+    void written(const decltype(title)& cell);
+    void write_view(const decltype(specification)& cell, AnimationSpec incoming);
+    [[nodiscard]] AnimationSpec read_view(const decltype(specification)& cell) const;
+    void write_view(const decltype(motion_policy)& cell, MotionPolicy incoming);
+    [[nodiscard]] MotionPolicy read_view(const decltype(motion_policy)& cell) const;
+    void prepare_write(const decltype(marker_size)& cell, double& incoming);
+    void written(const decltype(marker_size)& cell);
+    // property_codemod end EasingPreview
 };
 
 } // namespace gui_forms

@@ -7,7 +7,7 @@ gui_forms::VisualInspectorOverlay
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: VisualInspectorOverlay final : public Control
+.. cpp:class:: VisualInspectorOverlay final : public Control, public VisualInspectorOverlayCapabilities<VisualInspectorOverlay>
 
    ``#include <gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp>``
 
@@ -29,7 +29,7 @@ gui_forms::VisualInspectorOverlay
       **stable_id** : ``StableId``
          Identity of the control, unique within its window.
 
-      **target_stable_id** : ``std::string``, default ``{}``
+      **initial_target** : ``std::string``, default ``{}``
          The stable ID of the control to outline, empty by default.
 
    :Properties:
@@ -61,6 +61,8 @@ gui_forms::VisualInspectorOverlay
         - ``start_polling(FrameInterval interval)`` polls the inspected target every ``interval`` on a paint-gated :cpp:class:`AnimationTimer <gui_forms::AnimationTimer>` while the overlay is shown, and repaints only when what it shows has changed, so a settled overlay costs one inspection snapshot a poll and no paint.
       * - :cpp:func:`stop_polling <gui_forms::VisualInspectorOverlay::stop_polling>`
         - Stops polling.
+      * - :cpp:func:`visual_inspector_overlay_property_entries <gui_forms::VisualInspectorOverlay::visual_inspector_overlay_property_entries>`
+        -  
 
    .. seealso::
 
@@ -107,20 +109,16 @@ gui_forms::VisualInspectorOverlay
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit VisualInspectorOverlay(StableId stable_id, std::string target_stable_id = {})
+   .. cpp:function:: explicit VisualInspectorOverlay(StableId stable_id, std::string initial_target = {})
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& target_stable_id() const noexcept
+   .. cpp:member:: std::string target_stable_id
 
       The stable ID of the outlined control. Nothing is drawn while it is
       empty, while no control in the window has it, or when it names the
       overlay itself.
-
-   .. cpp:function:: void set_target_stable_id(std::string stable_id)
-
-      Sets :cpp:func:`target_stable_id <gui_forms::VisualInspectorOverlay::target_stable_id>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 
@@ -151,6 +149,8 @@ gui_forms::VisualInspectorOverlay
 
       Stops polling.
 
+   .. cpp:function:: static const std::array<PropertyEntry, visual_inspector_overlay_property_count>& visual_inspector_overlay_property_entries() noexcept
+
 
    .. rubric:: Extension points
 
@@ -165,3 +165,9 @@ gui_forms::VisualInspectorOverlay
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t visual_inspector_overlay_property_count
+
+      VisualInspectorOverlay's property table: Control's entries, then its own. Default: ``Control::control_property_count + 1U``.

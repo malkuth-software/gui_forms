@@ -1,0 +1,123 @@
+/* The Gallery's notices-and-badges page (W-4): InfoBanner in its four
+   severities, Badge counts and dots beside captions, and an EmptyState.
+   gui_forms_add_form() compiles this document into
+   notices-and-badges_form.hpp at build time.
+
+   gallery.notices-and-badges.document is a declared boundary only: the
+   page moves its children into the shell's page body (a 1000 x 660 design
+   surface), where each is placed by its bounds in design coordinates.
+   Behaviour stays in the page (src/controls/gallery/pages/
+   notices-and-badges.cpp): the banners' and the empty state's action
+   buttons, the Commands that show a toast and closed banners again, and the page
+   style. */
+scaled-panel gallery.notices-and-badges.document {
+  design-size: 1000 660;
+
+  label gallery.notices-and-badges.heading {
+    text: "NOTICES AND BADGES";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.notices-and-badges.lead {
+    text: "Severity banners that announce themselves, counts and dots beside what they count, and what a view shows when it has nothing.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.notices.banners {
+    text: "InfoBanner · information, warning, success and error";
+    classes: "paper" "group-caption";
+    design-size: 930 310;
+    bounds: 24 92 930 310;
+    info-banner gallery.notices.information {
+      severity: information;
+      title: "Update available";
+      message: "Version 0.5 is ready to install when you next restart.";
+      bounds: 22 40 886 56;
+    }
+    info-banner gallery.notices.warning {
+      severity: warning;
+      title: "Offline";
+      message: "Changes will sync when the connection returns.";
+      bounds: 22 104 886 56;
+    }
+    info-banner gallery.notices.success {
+      severity: success;
+      title: "Saved";
+      message: "Your changes are saved.";
+      bounds: 22 168 700 56;
+    }
+    info-banner gallery.notices.error {
+      severity: error;
+      title: "Export failed";
+      message: "The destination folder is read-only. This banner cannot be closed.";
+      closable: false;
+      bounds: 22 232 700 56;
+    }
+    button gallery.notices.show-toast {
+      text: "Show a toast";
+      visual-style: command;
+      bounds: 738 180 170 32;
+    }
+    button gallery.notices.reopen {
+      text: "Show closed banners";
+      visual-style: command;
+      bounds: 738 244 170 32;
+    }
+  }
+
+  scaled-group-box gallery.notices.badges {
+    text: "Badge · counts, the maximum and dots";
+    classes: "paper" "group-caption";
+    design-size: 450 220;
+    bounds: 24 420 450 220;
+    label gallery.notices.inbox.caption {
+      text: "Inbox";
+      bounds: 22 44 130 22;
+    }
+    badge gallery.notices.inbox {
+      count: 3;
+      accessible-name: "3 unread messages";
+      bounds: 160 45 60 20;
+    }
+    label gallery.notices.updates.caption {
+      text: "Updates (maximum 99)";
+      bounds: 22 82 130 22;
+    }
+    badge gallery.notices.updates {
+      count: 120;
+      accessible-name: "120 updates";
+      bounds: 160 83 60 20;
+    }
+    label gallery.notices.drafts.caption {
+      text: "Drafts (zero shown)";
+      bounds: 22 120 130 22;
+    }
+    badge gallery.notices.drafts {
+      show-zero: true;
+      accessible-name: "No drafts";
+      bounds: 160 121 60 20;
+    }
+    label gallery.notices.activity.caption {
+      text: "Activity (dot)";
+      bounds: 22 158 130 22;
+    }
+    badge gallery.notices.activity {
+      mode: dot;
+      accessible-name: "New activity";
+      bounds: 160 165 60 8;
+    }
+  }
+
+  scaled-group-box gallery.notices.empty {
+    text: "EmptyState · nothing to show";
+    classes: "paper" "group-caption";
+    design-size: 460 220;
+    bounds: 494 420 460 220;
+    empty-state gallery.notices.empty.mail {
+      title: "No messages";
+      description: "Messages you receive appear here.";
+      bounds: 16 34 428 172;
+    }
+  }
+}

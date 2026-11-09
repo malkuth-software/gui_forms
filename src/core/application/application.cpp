@@ -1,9 +1,18 @@
 #include "application_state.hpp"
+#include "splashscreen_surface.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
+#include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
+
+#include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cstdio>
+#include <span>
+#include <stdexcept>
 #include <utility>
+#include <vector>
 
 namespace gui_forms {
 namespace {
@@ -36,6 +45,31 @@ std::shared_ptr<detail::ApplicationWindowState> ready_state(
     return state;
 }
 
+// One of a window state's operations, moved out of the state for its call
+// and moved back on every exit (an exception included) unless the state was
+// closed or given another operation meanwhile. While it is out, a nested
+// request for the same operation finds none and reports unsupported.
+class HeldOperation final {
+public:
+    HeldOperation(detail::ApplicationWindowState& state,
+                  std::function<void()> detail::ApplicationWindowState::* operation) noexcept
+        : state_(state), operation_(operation), action_(std::move(state.*operation)) {
+        state_.*operation_ = nullptr;
+    }
+    ~HeldOperation() {
+        if (!state_.closed && !(state_.*operation_)) state_.*operation_ = std::move(action_);
+    }
+    HeldOperation(const HeldOperation&) = delete;
+    HeldOperation& operator=(const HeldOperation&) = delete;
+
+    void invoke() const { action_(); }
+
+private:
+    detail::ApplicationWindowState& state_;
+    std::function<void()> detail::ApplicationWindowState::* operation_;
+    std::function<void()> action_;
+};
+
 HostServiceStatus request(const std::weak_ptr<detail::ApplicationWindowState>& weak,
                           std::function<void()> detail::ApplicationWindowState::* operation,
                           bool hiding) {
@@ -45,10 +79,12 @@ HostServiceStatus request(const std::weak_ptr<detail::ApplicationWindowState>& w
     if (hiding && !(*state).can_hide) return {HostServiceError::invalid_argument};
     if (!((*state).*operation)) return {HostServiceError::unsupported};
     try {
-        // A native request may synchronously close and clear its state. Keep
-        // the active callable alive until its invocation has returned.
-        const std::function<void()> action = (*state).*operation;
-        action();
+        // A native request may synchronously close and clear its state. The
+        // callable is moved out (never copied: a copy allocates) and kept
+        // alive until its invocation has returned, then put back unless the
+        // call closed the window or installed another.
+        HeldOperation held{*state, operation};
+        held.invoke();
     } catch (...) {
         return {HostServiceError::backend_failure};
     }
@@ -101,8 +137,11 @@ bool valid_window_entry(const ApplicationWindow& entry) {
         const double bound = HostWindowing::maximum_desktop_coordinate;
         const bool origin_valid = std::isfinite(origin.x) && std::isfinite(origin.y) &&
                                   std::abs(origin.x) <= bound && std::abs(origin.y) <= bound;
+        // A Splash takes no input, so it never takes focus.
+        const bool focus_valid = !host_transient_is_splash((*entry.popup).kind) ||
+                                 (*entry.popup).focus == HostPopupFocus::passive;
         const bool popup_valid = !entry.tool_window && entry.floating == HostWindowFloating::none &&
-                                 !entry.owner_id.empty() && origin_valid;
+                                 !entry.owner_id.empty() && origin_valid && focus_valid;
         return popup_valid;
     }
     // A floating window has an owner and is not a tool window in the host's
@@ -119,6 +158,9 @@ bool primary_window_entry(const ApplicationWindow& entry) noexcept {
 
 void attach_application_window(SurfaceRoot& model, const std::shared_ptr<ApplicationWindowState>& state) noexcept {
     model.application_window_ = state;
+    // The first window of the run is ready: a splashscreen shown before
+    // Application::create hands over to it (its later windows find none).
+    hand_over_splashscreen();
 }
 
 void revoke_window_state(ApplicationWindowState& state) noexcept {
@@ -233,23 +275,181 @@ HostServiceStatus ApplicationWindowHandle::toggle_full_screen() const {
     return result;
 }
 
-const std::shared_ptr<KeyBindings>& Application::key_bindings() {
-    static const std::shared_ptr<KeyBindings> shared = std::make_shared<KeyBindings>();
-    return shared;
+namespace {
+
+// The current application (Application::current): set by create, cleared
+// by close or destruction. Atomic so any thread may ask; the application
+// itself is used on its own thread only.
+std::atomic<Application*> current_application{nullptr};
+
+// The anatomies the application's theme compiles against: the stock ones,
+// then the application's own. Fills `storage` only when there are both.
+std::span<const ControlAnatomy> theme_anatomies(std::span<const ControlAnatomy> own,
+                                                std::vector<ControlAnatomy>& storage) {
+    const std::span<const ControlAnatomy> stock = stock_control_anatomies();
+    if (own.empty()) return stock;
+    storage.reserve(stock.size() + own.size());
+    storage.insert(storage.end(), stock.begin(), stock.end());
+    storage.insert(storage.end(), own.begin(), own.end());
+    const std::span<const ControlAnatomy> both(storage);
+    return both;
 }
 
-namespace {
-// The program's tooltip switch. Windows on any UI thread read it, so it is
-// atomic; it orders nothing else.
-std::atomic<bool> program_tool_tips_shown{true};
 } // namespace
 
-void Application::set_tool_tips_shown(bool shown) noexcept {
-    program_tool_tips_shown.store(shown, std::memory_order_relaxed);
+ApplicationCreateResult Application::create(ApplicationConfig config) {
+    ApplicationCreateResult result{};
+    if (current_application.load(std::memory_order_acquire) != nullptr) {
+        result.error = ApplicationCreateError::already_exists;
+        return result;
+    }
+    std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>(config.image_limits);
+    // The theme compiles here, once (APP_WINDOW_RULES_DESIGN K.1): the base,
+    // then the program's packages. The process default's base alone is
+    // already built (default_compiled_theme).
+    if (config.theme.packages.empty() && config.theme.base == default_theme_base) {
+        (*resources).set_theme(default_compiled_theme());
+    } else {
+        std::vector<ControlAnatomy> storage;
+        ThemeCompileOptions options{};
+        options.base = config.theme.base;
+        options.controls = theme_anatomies(config.theme.controls, storage);
+        options.effects = config.theme.effects;
+        const ThemeCompileResult compiled =
+            (*resources).compile_theme_packages(config.theme.packages, config.theme.library, options);
+        result.findings.assign(compiled.diagnostics().begin(), compiled.diagnostics().end());
+        if (!compiled.succeeded()) {
+            result.error = ApplicationCreateError::theme_refused;
+            return result;
+        }
+        (*resources).set_theme(compiled.theme());
+    }
+    const PresentationSettings presentation = config.presentation.value_or(PresentationSettings{});
+    std::unique_ptr<Application> application(new Application(std::move(resources), presentation));
+    Application* expected = nullptr;
+    if (!current_application.compare_exchange_strong(expected, application.get(), std::memory_order_acq_rel)) {
+        // Another create won since the check: this one was never current.
+        (*application).closed_ = true;
+        result.error = ApplicationCreateError::already_exists;
+        result.findings.clear();
+        return result;
+    }
+    result.application = std::move(application);
+    return result;
 }
 
-bool Application::tool_tips_shown() noexcept {
-    const bool shown = program_tool_tips_shown.load(std::memory_order_relaxed);
+Application* Application::current() noexcept {
+    Application* const application = current_application.load(std::memory_order_acquire);
+    return application;
+}
+
+Application::Application(std::shared_ptr<ApplicationResources> resources, PresentationSettings presentation)
+    : resources_(std::move(resources)),
+      presentation_(presentation),
+      key_bindings_(std::make_shared<KeyBindings>()),
+      tool_tips_shown_(std::make_shared<std::atomic<bool>>(true)) {}
+
+Application::~Application() {
+    if (window_count_ > 0U) {
+        std::fprintf(stderr,
+                     "GUI.Forms: the application was destroyed with %zu window(s) alive; they keep its theme "
+                     "and resources and read nothing more from it\n",
+                     window_count_);
+    }
+    // The windows forget the application: each keeps the resources and
+    // tooltip switch it shares.
+    Window* window = first_window_;
+    while (window != nullptr) {
+        Window* const next = (*window).next_in_application_;
+        (*window).application_ = nullptr;
+        (*window).previous_in_application_ = nullptr;
+        (*window).next_in_application_ = nullptr;
+        window = next;
+    }
+    if (!closed_) {
+        Application* expected = this;
+        static_cast<void>(current_application.compare_exchange_strong(expected, nullptr, std::memory_order_acq_rel));
+    }
+}
+
+ApplicationResult Application::close() {
+    if (closed_) return {};
+    if (window_count_ > 0U) return {ApplicationError::windows_alive};
+    closed_ = true;
+    Application* expected = this;
+    static_cast<void>(current_application.compare_exchange_strong(expected, nullptr, std::memory_order_acq_rel));
+    return {};
+}
+
+void Application::join(Window& window) noexcept {
+    window.application_ = this;
+    window.previous_in_application_ = last_window_;
+    window.next_in_application_ = nullptr;
+    if (last_window_ != nullptr) {
+        (*last_window_).next_in_application_ = &window;
+    } else {
+        first_window_ = &window;
+    }
+    last_window_ = &window;
+    ++window_count_;
+}
+
+void Application::leave(Window& window) noexcept {
+    Window* const previous = window.previous_in_application_;
+    Window* const next = window.next_in_application_;
+    if (previous != nullptr) {
+        (*previous).next_in_application_ = next;
+    } else {
+        first_window_ = next;
+    }
+    if (next != nullptr) {
+        (*next).previous_in_application_ = previous;
+    } else {
+        last_window_ = previous;
+    }
+    window.application_ = nullptr;
+    window.previous_in_application_ = nullptr;
+    window.next_in_application_ = nullptr;
+    --window_count_;
+}
+
+void Application::set_presentation_settings(PresentationSettings settings) {
+    validate_presentation_settings(settings);
+    if (presentation_ == settings) return;
+    presentation_ = settings;
+    // A window's handlers may destroy windows: each is reached through its
+    // lifetime record, taken before the first is told.
+    std::vector<std::shared_ptr<detail::WindowLifetime>> windows;
+    windows.reserve(window_count_);
+    for (Window* window = first_window_; window != nullptr; window = (*window).next_in_application_) {
+        windows.push_back((*window).lifetime_);
+    }
+    for (const std::shared_ptr<detail::WindowLifetime>& lifetime : windows) {
+        Window* const window = (*lifetime).window;
+        if (window == nullptr || (*window).application_ != this) continue;
+        (*window).set_presentation_settings(presentation_);
+    }
+}
+
+void Application::set_theme(std::shared_ptr<const Theme> theme) {
+    if (!theme) throw std::invalid_argument("GUI.Forms application theme may not be null");
+    // The shared resources first: their refusal changes nothing.
+    (*resources_).set_theme(theme);
+    std::vector<std::shared_ptr<ApplicationResources>> own;
+    for (Window* window = first_window_; window != nullptr; window = (*window).next_in_application_) {
+        const std::shared_ptr<ApplicationResources> resources = (*window).resources();
+        const bool listed = std::find(own.begin(), own.end(), resources) != own.end();
+        if (resources != resources_ && !listed) own.push_back(resources);
+    }
+    for (const std::shared_ptr<ApplicationResources>& resources : own) (*resources).set_theme(theme);
+}
+
+void Application::set_tool_tips_shown(bool shown) noexcept {
+    (*tool_tips_shown_).store(shown, std::memory_order_relaxed);
+}
+
+bool Application::tool_tips_shown() const noexcept {
+    const bool shown = (*tool_tips_shown_).load(std::memory_order_relaxed);
     return shown;
 }
 

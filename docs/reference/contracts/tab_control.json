@@ -40,46 +40,6 @@
       "reviewed": false,
       "summary": "Returns the live page at a validated retained index."
     },
-    "gui_forms::TabControl::selected_index|std::optional<std::size_t> () const": {
-      "reviewed": false,
-      "summary": "Returns the live selected page index or no value when the control is empty."
-    },
-    "gui_forms::TabControl::selected_tab|std::shared_ptr<TabPage> () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the selected live TabPage or null when none remains."
-    },
-    "gui_forms::TabControl::set_selected_index|void (std::size_t)": {
-      "reviewed": false,
-      "summary": "Validates index and changes selection through the focus-memory, visibility, event, and invalidation law."
-    },
-    "gui_forms::TabControl::set_selected_tab|void (const std::shared_ptr<TabPage> &)": {
-      "reviewed": false,
-      "summary": "Requires an owned live page and changes selection through the same authoritative path."
-    },
-    "gui_forms::TabControl::alignment|TabAlignment () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns top, bottom, left, or right header-strip placement."
-    },
-    "gui_forms::TabControl::set_alignment|void (TabAlignment)": {
-      "reviewed": false,
-      "summary": "Validates alignment vocabulary and invalidates geometry, rendering, hit testing, and semantics."
-    },
-    "gui_forms::TabControl::appearance|TabAppearance () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns normal tabs, buttons, or flat-buttons rendering policy."
-    },
-    "gui_forms::TabControl::set_appearance|void (TabAppearance)": {
-      "reviewed": false,
-      "summary": "Validates appearance vocabulary and invalidates style, paint, and semantics."
-    },
-    "gui_forms::TabControl::item_size|Size () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the logical header width and height applied to each tab."
-    },
-    "gui_forms::TabControl::set_item_size|void (Size)": {
-      "reviewed": false,
-      "summary": "Accepts finite bounded positive dimensions and invalidates measure/arrangement/paint/hit testing."
-    },
     "gui_forms::TabControl::style|const BasicControlStyle &() const noexcept": {
       "reviewed": false,
       "summary": "Returns the explicit BasicControlStyle used for header and frame painting."

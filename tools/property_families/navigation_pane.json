@@ -1,0 +1,138 @@
+{
+  "family": "NavigationPane",
+  "step": "M-S8",
+  "declaring": "NavigationPane",
+  "header": "include/gui_forms/controls/pages/navigation_pane/navigation_pane.hpp",
+  "source": "src/controls/pages/navigation_pane/navigation_pane.cpp",
+  "capabilities_header": "include/gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/image_list.hpp"
+  ],
+  "test": {
+    "type": "NavigationPane",
+    "include": "gui_forms/controls/pages/navigation_pane/navigation_pane.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "collapsed",
+      "capability": "NavigationPaneCollapsed",
+      "value": "bool",
+      "storage": "view",
+      "field": null,
+      "hooks": "hand",
+      "hand": [
+        "a view: restore_state and the collapse button write the field with the pane's other state"
+      ],
+      "effects": null,
+      "comment": "Whether the pane shows only its collapsed bar. Collapsing closes the configure menu; expanding closes the overlay.",
+      "getter": "collapsed",
+      "setter": "set_collapsed"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "button_count",
+      "capability": "NavigationPaneButtonCount",
+      "value": "std::size_t",
+      "storage": "view",
+      "field": null,
+      "hooks": "hand",
+      "hand": [
+        "a view: the grip, the keyboard steps and restore_state write the field directly"
+      ],
+      "effects": null,
+      "comment": "The number of large buttons the user chose; 4 by default. A count above PageSetLimits::maximum_capacity throws std::out_of_range.",
+      "getter": "button_count",
+      "setter": "set_button_count"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "expanded_width",
+      "capability": "NavigationPaneExpandedWidth",
+      "value": "double",
+      "initial": "220.0",
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < minimum_expanded_width || incoming > maximum_expanded_width) {",
+        "    throw std::out_of_range(\"NavigationPane expanded width must be from 80 to 1024\");",
+        "}"
+      ],
+      "comment": "The width the pane asks for while expanded, and the overlay's width; 220 by default. A width outside 80 to 1024 throws std::out_of_range.",
+      "sample": "300.0",
+      "getter": "expanded_width",
+      "setter": "set_expanded_width",
+      "field": "expanded_width_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "image_list",
+      "capability": "NavigationPaneImageList",
+      "value": "std::shared_ptr<ImageList>",
+      "hooks": "hand",
+      "hand": [
+        "written moves the change subscription to the new list and invalidates"
+      ],
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "comment": "Images for the pages' image_keys, or null. A disposed list or one bound to another window throws std::invalid_argument.",
+      "getter": "image_list",
+      "setter": "set_image_list",
+      "field": "image_list_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "focus_region",
+      "capability": "NavigationPaneFocusRegion",
+      "value": "bool",
+      "initial": "true",
+      "hooks": "hand",
+      "hand": [
+        "written registers or unregisters the pane as a focus region of its attached window"
+      ],
+      "effects": null,
+      "comment": "Whether the pane registers itself as an F6 region of its window while attached (owner decision RB-17); on by default.",
+      "sample": "false",
+      "getter": "focus_region",
+      "setter": "set_focus_region",
+      "field": "focus_region_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "page_hidden",
+      "reason": "per-item operation (section 4)"
+    },
+    {
+      "name": "overlay_open",
+      "reason": "run-time interaction state"
+    }
+  ]
+}

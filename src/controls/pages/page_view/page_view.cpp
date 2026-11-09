@@ -3,6 +3,7 @@
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -74,7 +75,7 @@ protected:
 
     void close_unhandled(PageCloseRequest& request) override {
         const std::shared_ptr<PageView> view = std::dynamic_pointer_cast<PageView>(parent());
-        if (!view || (*view).close_policy() != PageViewClosePolicy::remove_when_unhandled) return;
+        if (!view || (*view).close_policy.read() != PageViewClosePolicy::remove_when_unhandled) return;
         const PageEditStatus removed = (*view).pages().remove(request.page);
         request.handled = removed == PageEditStatus::applied;
     }
@@ -120,10 +121,10 @@ void PageView::initialize_control_tree() {
     const std::string prefix(stable_id().value());
     strip_ = make_control<PageViewStrip>(StableId(prefix + ".strip"), pages_);
     if (preset_ == PageViewPreset::document) {
-        (*strip_).set_close_buttons(PageCloseButtons::selected_and_hot);
-        (*strip_).set_overflow(PageStripOverflow::shrink_then_list);
-        (*strip_).set_mnemonics_enabled(false);
-        (*strip_).set_reorder_enabled(true);
+        (*strip_).close_buttons = PageCloseButtons::selected_and_hot;
+        (*strip_).overflow = PageStripOverflow::shrink_then_list;
+        (*strip_).mnemonics_enabled = false;
+        (*strip_).reorder_enabled = true;
     }
     add_child(strip_);
 }
@@ -182,26 +183,10 @@ std::size_t PageView::slot_index(const PageId& page) const {
 
 // -- settings ------------------------------------------------------------------
 
-void PageView::set_close_policy(PageViewClosePolicy policy) {
-    require_mutable();
-    if (policy != PageViewClosePolicy::remove_when_unhandled && policy != PageViewClosePolicy::request_only) {
-        throw std::invalid_argument("PageView close policy is invalid");
-    }
-    close_policy_ = policy;
-}
-
-void PageView::set_ctrl_tab(PageViewCtrlTab policy) {
-    require_mutable();
-    if (policy != PageViewCtrlTab::select_next && policy != PageViewCtrlTab::pass) {
-        throw std::invalid_argument("PageView Ctrl+Tab policy is invalid");
-    }
-    ctrl_tab_ = policy;
-}
-
 void PageView::on_attachment_committed() noexcept {
     Control::on_attachment_committed();
     Window* const host = attached_window();
-    if (!focus_region_ || host == nullptr) return;
+    if (!focus_region.read() || host == nullptr) return;
     // A view nested in another region, or already registered, stays out.
     try {
         static_cast<void>((*host).add_focus_region(shared_from_this()));
@@ -209,14 +194,16 @@ void PageView::on_attachment_committed() noexcept {
     }
 }
 
-void PageView::set_focus_region(bool region) {
+void PageView::prepare_write(const decltype(focus_region)&, bool&) {
     require_mutable();
-    if (focus_region_ == region) return;
-    focus_region_ = region;
+}
+
+// The attached window's focus regions follow the cell.
+void PageView::written(const decltype(focus_region)&) {
     Window* const host = attached_window();
     if (host == nullptr) return;
     const Control::Ptr self = shared_from_this();
-    if (region) {
+    if (focus_region.read()) {
         static_cast<void>((*host).add_focus_region(self));
         return;
     }
@@ -355,7 +342,7 @@ PageView::Areas PageView::areas_for(Size surface) const {
         return areas;
     }
     const Size wanted = (*strip_).measure(surface);
-    const PageStripPlacement placement = (*strip_).placement();
+    const PageStripPlacement placement = (*strip_).placement.read();
     if (placement == PageStripPlacement::left || placement == PageStripPlacement::right) {
         const double width = std::min(surface.width, wanted.width);
         const double remaining = std::max(0.0, surface.width - width);
@@ -436,9 +423,9 @@ void PageView::on_key_bubble(KeyEvent& event) {
         static_cast<void>((*strip_).select_relative(1, PageSelectionCause::keyboard));
     } else if (keys.matches(KeyCommand::previous_tab, event)) {
         static_cast<void>((*strip_).select_relative(-1, PageSelectionCause::keyboard));
-    } else if (ctrl_tab_ == PageViewCtrlTab::select_next && keys.matches(KeyCommand::cycle_forward, event)) {
+    } else if (ctrl_tab.read() == PageViewCtrlTab::select_next && keys.matches(KeyCommand::cycle_forward, event)) {
         static_cast<void>((*strip_).select_relative(1, PageSelectionCause::keyboard));
-    } else if (ctrl_tab_ == PageViewCtrlTab::select_next && keys.matches(KeyCommand::cycle_backward, event)) {
+    } else if (ctrl_tab.read() == PageViewCtrlTab::select_next && keys.matches(KeyCommand::cycle_backward, event)) {
         static_cast<void>((*strip_).select_relative(-1, PageSelectionCause::keyboard));
     } else {
         return;
@@ -521,5 +508,27 @@ void PageView::append_interactions(std::vector<InteractionDeclaration>& interact
     Control::append_interactions(interactions);
     interactions.insert(interactions.end(), page_view_interactions.begin(), page_view_interactions.end());
 }
+
+// property_codemod begin PageView (tools/property_families/page_view.json; generated, do not edit)
+
+void PageView::prepare_write(const decltype(close_policy)&, PageViewClosePolicy& incoming) {
+    require_mutable();
+    if (incoming != PageViewClosePolicy::remove_when_unhandled && incoming != PageViewClosePolicy::request_only) {
+        throw std::invalid_argument("PageView close policy is invalid");
+    }
+}
+
+void PageView::written(const decltype(close_policy)&) {}
+
+void PageView::prepare_write(const decltype(ctrl_tab)&, PageViewCtrlTab& incoming) {
+    require_mutable();
+    if (incoming != PageViewCtrlTab::select_next && incoming != PageViewCtrlTab::pass) {
+        throw std::invalid_argument("PageView Ctrl+Tab policy is invalid");
+    }
+}
+
+void PageView::written(const decltype(ctrl_tab)&) {}
+
+// property_codemod end PageView
 
 } // namespace gui_forms

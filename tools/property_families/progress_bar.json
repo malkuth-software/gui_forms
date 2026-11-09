@@ -1,0 +1,282 @@
+{
+  "family": "ProgressBar",
+  "step": "M-S4",
+  "declaring": "ProgressBar",
+  "header": "include/gui_forms/controls/range_control/progress_bar/progress_bar.hpp",
+  "source": "src/controls/range_control/progress_bar/progress_bar.cpp",
+  "capabilities_header": "include/gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp",
+  "base": "RangeControl",
+  "includes": [
+    "gui_forms/controls/range_control/range_control.hpp",
+    "gui_forms/controls/range_control/progress_bar/progress_bar_values/progress_bar_values.hpp",
+    "gui_forms/engine/effect/effect.hpp",
+    "gui_forms/animation.hpp"
+  ],
+  "properties": [
+    {
+      "name": "visual_style",
+      "capability": "ProgressBarVisualStyleChoice",
+      "value": "ProgressBarVisualStyle",
+      "initial": "ProgressBarVisualStyle::continuous",
+      "comment": "How the bar draws: blocks, continuous, marquee, pulse, marching stripes or laser etch. A change restarts the animation phase and reselects the effects.",
+      "getter": "visual_style",
+      "setter": "set_visual_style",
+      "clear": null,
+      "field": "visual_style_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "How the bar draws: blocks, continuous, marquee, pulse, marching stripes or laser etch.",
+        "default": "BindingValue{PropertyEnumValue{\"progress_bar_visual_style\", \"blocks\", 0}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "progress_bar_visual_style_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written: animation_phase_ = 0.0; sync_effects(FrameClock::now()); update_animation_registration(); invalidate(Dirty::paint | Dirty::semantics)"
+      ],
+      "sample": "ProgressBarVisualStyle::marquee"
+    },
+    {
+      "name": "overlay_style",
+      "capability": "ProgressBarOverlayStyleChoice",
+      "value": "ProgressBarOverlayStyle",
+      "initial": "ProgressBarOverlayStyle::none",
+      "comment": "The overlay drawn over the bar: none or moving stripes. A change restarts the animation phase and reselects the effects.",
+      "getter": "overlay_style",
+      "setter": "set_overlay_style",
+      "clear": null,
+      "field": "overlay_style_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written: animation_phase_ = 0.0; sync_effects(FrameClock::now()); update_animation_registration(); invalidate(Dirty::paint | Dirty::semantics)"
+      ],
+      "sample": "ProgressBarOverlayStyle::moving_stripes"
+    },
+    {
+      "name": "stripe_width",
+      "capability": "ProgressBarStripeWidth",
+      "value": "double",
+      "initial": "7.0",
+      "comment": "The stripes' width, 2 to 32 pixels (else std::invalid_argument).",
+      "getter": "stripe_width",
+      "setter": "set_stripe_width",
+      "clear": null,
+      "field": "stripe_width_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::paint",
+      "prepare": [
+        "require_finite(incoming, \"progress stripe width must be finite\");",
+        "if (incoming < 2.0 || incoming > 32.0) throw std::invalid_argument(\"progress stripe width must be between 2 and 32 pixels\");"
+      ],
+      "sample": "9.0"
+    },
+    {
+      "name": "animation_appearance",
+      "capability": "ProgressBarAppearance",
+      "value": "ProgressBarAnimationAppearance",
+      "initial": "ProgressBarAnimationAppearance{}",
+      "comment": "The animation's colours and extents; each extent finite and within its range, else std::invalid_argument.",
+      "getter": "animation_appearance",
+      "setter": "set_animation_appearance",
+      "clear": null,
+      "field": "animation_appearance_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::paint",
+      "prepare": [
+        "validate_animation_appearance(incoming);"
+      ],
+      "sample": "ProgressBarAnimationAppearance{.pulse_extent = 0.5}"
+    },
+    {
+      "name": "animation_enabled",
+      "capability": "ProgressBarAnimationEnabled",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the bar animates; turning it off resets the phase.",
+      "getter": "animation_enabled",
+      "setter": "set_animation_enabled",
+      "clear": null,
+      "field": "animation_enabled_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written: reset the phase when off, update_animation_registration, invalidate"
+      ],
+      "sample": "false"
+    },
+    {
+      "name": "animation_period",
+      "capability": "ProgressBarAnimationPeriod",
+      "value": "FrameInterval",
+      "initial": "std::chrono::milliseconds(1400)",
+      "comment": "The period of the indeterminate motion, at least 100 milliseconds (else std::invalid_argument).",
+      "getter": "animation_period",
+      "setter": "set_animation_period",
+      "clear": null,
+      "field": "animation_period_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written: restart the frame clock, invalidate"
+      ],
+      "sample": "std::chrono::milliseconds(2000)"
+    },
+    {
+      "name": "effect",
+      "capability": "ProgressBarEffect",
+      "value": "std::string",
+      "initial": "std::string{}",
+      "comment": "The registered effect program drawn over the bar, by name (effect programs, design note section 7); empty takes the visual style's own, or the theme's.",
+      "getter": "effect",
+      "setter": "set_effect",
+      "clear": null,
+      "field": "effect_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The registered effect program drawn over the bar; empty takes the visual style's own.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written: detach the effect, sync_effects, update_animation_registration, invalidate"
+      ],
+      "sample": "std::string(\"progress_stripes\")"
+    },
+    {
+      "name": "effect_seed",
+      "capability": "ProgressBarEffectSeed",
+      "value": "std::optional<std::uint64_t>",
+      "initial": "std::nullopt",
+      "comment": "The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce. A change restarts the effects.",
+      "getter": "effect_seed",
+      "setter": "set_effect_seed",
+      "clear": null,
+      "field": "effect_seed_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "unsigned_integer",
+        "category": "Appearance",
+        "description": "The effect's seed; null derives it from the stable ID and the effect's name.",
+        "default": null,
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": true,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "thunks": {
+        "read": "effect_seed_property_value",
+        "write": "write_effect_seed_property"
+      },
+      "hand": [
+        "written: detach both effects, sync_effects, invalidate"
+      ],
+      "sample": "std::uint64_t{7U}"
+    },
+    {
+      "name": "effect_input",
+      "capability": "ProgressBarEffectInput",
+      "value": "EffectInputKind",
+      "initial": "EffectInputKind::none",
+      "comment": "The input the bar grants its effect: none, the pointer, or the pointer and keys. The bar never takes focus, so a key grant delivers nothing.",
+      "getter": "effect_input",
+      "setter": "set_effect_input",
+      "clear": null,
+      "field": "effect_input_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Behavior",
+        "description": "The input the bar grants its effect: none, the pointer, or the pointer and keys.",
+        "default": "BindingValue{PropertyEnumValue{\"effect_input_kind\", \"none\", 0}}",
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "effect_input_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written: grant the effect instance the input, invalidate"
+      ],
+      "sample": "EffectInputKind::pointer"
+    },
+    {
+      "name": "motion_policy",
+      "capability": "ProgressBarMotionPolicy",
+      "value": "MotionPolicy",
+      "initial": null,
+      "comment": "Whether the bar's animation and effects move: disabled or paused stops them, keeping the phase; reduced swaps motion for a still form. A view onto the bar's policy; effective_motion_policy adds the window's reduced-motion setting.",
+      "getter": "motion_policy",
+      "setter": "set_motion_policy",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "MotionPolicy{true, true, false}",
+      "storage": "view",
+      "hand": [
+        "a view onto motion_policy_: write_view keeps set_motion_policy's timer registration and invalidation; set_animation_paused, set_reduced_motion and the two-flag overload were read-modify-write shorthands over it and are removed"
+      ]
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "ProgressBar",
+    "include": "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
+  }
+}

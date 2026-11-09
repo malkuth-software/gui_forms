@@ -9,7 +9,8 @@
 // first part, with no host, no client and no foreground, so it runs anywhere
 // and in parallel:
 // - registry coverage: every visual registry control publishes a node of
-//   its own on some Gallery page or in the off-tree fixture, except the
+//   its own on some Gallery page, with the notices page's toast shown, or
+//   in the off-tree fixture, except the
 //   presentational ones listed below, and that list names none that does;
 // - the identities a host names nodes by: no node below the window has
 //   runtime ID zero, and each (scope, node) pair is unique on a page;
@@ -87,6 +88,11 @@ constexpr std::array<std::string_view, 8> unexposed_entries{
     "scrollable_control", "anchored_overlay_layer", "visual_inspector_overlay",
     "range_control",
 };
+
+// The notices page with its toast shown (walk_toast): walked for coverage
+// and identities, but no action is chosen there, since a fresh window shows
+// no toast to act on.
+constexpr std::string_view toast_page = "notices-and-badges (toast shown)";
 
 // The most overlays an action's clean-up closes with Escape (a menu inside a
 // menu is two).
@@ -316,7 +322,7 @@ std::string node_control_type(const PageWalk& walk, const SemanticNode& node, st
 // Automation client's: focusable nodes only.
 void consider_candidate(PageWalk& walk, const SemanticNode& node, const std::string& type,
                         std::string_view scope_id, ClientRules rules) {
-    if (walk.page == host_services_page) return;
+    if (walk.page == host_services_page || walk.page == toast_page) return;
     if (!has_semantic_state(node.states, SemanticState::enabled)) return;
     const DefaultKind kind = expected_default(node);
     bool focus_only = kind == DefaultKind::none && has_semantic_state(node.states, SemanticState::focusable);
@@ -415,6 +421,49 @@ void walk_page(Window& window, Report& report, std::string_view page) {
                  "the controlled panel " + panel + " is a " + semantic_role_name((*found).second));
         }
     }
+    ++report.pages;
+}
+
+// The first node below `nodes` whose stable ID starts with `prefix`, or null.
+const SemanticNode* find_prefixed(const std::vector<SemanticNode>& nodes, std::string_view prefix) {
+    for (const SemanticNode& node : nodes) {
+        if (std::string_view(node.stable_id).substr(0, prefix.size()) == prefix) return &node;
+        const SemanticNode* below = find_prefixed(node.children, prefix);
+        if (below != nullptr) return below;
+    }
+    return nullptr;
+}
+const SemanticNode* find_prefixed(std::vector<SemanticNode>&& nodes, std::string_view prefix) = delete;
+
+// Shows the notices page's toast through its button's press action, as a
+// client would, and walks the tree while it shows: the toast publishes its
+// own node, a polite live region named by its message that the hosts speak
+// as it appears (semantic_announcement_due with no earlier node). The toast
+// is hidden again afterwards.
+void walk_toast(Window& window, Report& report) {
+    constexpr std::string_view page = "notices-and-badges";
+    if (!show_page(window, page)) throw std::runtime_error("a Gallery page cannot be selected: notices-and-badges");
+    window.perform_layout();
+    if (!window.perform_semantic_action("gallery.notices.show-toast", SemanticAction::press)) {
+        fail(report, toast_page, "gallery.notices.show-toast", "the toast button refused its press action");
+        return;
+    }
+    window.perform_layout();
+    const SemanticSnapshot snapshot = window.semantic_snapshot();
+    // The toast's overlay publishes it as a root of its own, so the roots
+    // are searched too, not only their children.
+    const SemanticNode* toast = find_prefixed(snapshot.roots, "gallery.notices.toast.");
+    if (toast == nullptr) {
+        fail(report, toast_page, "gallery.notices.toast", "the shown toast publishes no node");
+    } else if ((*toast).role != SemanticRole::live_region || (*toast).name != "Message archived." ||
+               !semantic_announcement_due(nullptr, *toast)) {
+        fail(report, toast_page, (*toast).stable_id,
+             "the toast is not a live region announcing its message as it appears");
+    }
+    PageWalk walk{window, report, toast_page, {}, {}, {}, {}};
+    collect_virtual_owners(window.root(), walk.owners);
+    for (const SemanticNode& root : snapshot.roots) walk_node(walk, root, nullptr, std::string_view());
+    window.hide_toast();
     ++report.pages;
 }
 
@@ -732,8 +781,8 @@ ActionResult perform_candidate(Window& window, const std::string& key, const Act
     // A colour picker's press commits its colour again through its command,
     // which changes no state when the colour is the same.
     const std::shared_ptr<RibbonColorPicker> picker = std::dynamic_pointer_cast<RibbonColorPicker>(control);
-    if (picker && (*picker).command()) {
-        const std::shared_ptr<Command>& command = (*(*picker).command()).command();
+    if (picker && (*picker).command.read()) {
+        const std::shared_ptr<Command>& command = (*(*picker).command.read()).command();
         invocation_subscription = (*command).invoked().subscribe(
             Delegate<const CommandInvocation&>::bind<InvocationCounter, &InvocationCounter::invoked>(invocations));
     }
@@ -830,6 +879,7 @@ int main() {
             for (const gallery::GalleryPageSpec& page : gallery::gallery_pages) {
                 walk_page(*gallery_window, report, page.id);
             }
+            walk_toast(*gallery_window, report);
         }
         {
             std::unique_ptr<Window> off_tree = make_off_tree_fixture();

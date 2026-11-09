@@ -29,7 +29,7 @@ markdown
     constructor does.
 text
     The plain text: the document's blocks with the markup removed, joined by
-    line feeds, as `markdown_plain_text` gives it. `set_text` replaces the
+    line feeds, as `markdown_plain_text` gives it. Assigning it replaces the
     document with markdown that reads back as the text: punctuation escaped
     and each line feed a hard line break. Leading white space on a line is
     kept as character references; trailing line feeds are dropped.
@@ -184,4 +184,4 @@ A note field that loads markdown, bolds its first word and saves RTF:
    (*note).toggle_bold();
    std::vector<std::byte> rtf;
    const gf::RtfConversionResult saved = (*note).rtf(rtf);
-   // (*note).markdown() starts "**Draft** notes"; (*note).text() starts "Draft notes"
+   // (*note).markdown() starts "**Draft** notes"; (*note).text.read() starts "Draft notes"

@@ -146,12 +146,12 @@ void test_refusals() {
         threw = true;
     }
     require(threw, "a strip cannot merge into itself");
-    (*strips.target).set_allow_merge(false);
+    (*strips.target).allow_merge = false;
     require(!merge_strips(*strips.source, *strips.target), "a target that does not allow merging refuses");
-    (*strips.target).set_allow_merge(true);
-    (*strips.source).set_allow_merge(false);
+    (*strips.target).allow_merge = true;
+    (*strips.source).allow_merge = false;
     require(!merge_strips(*strips.source, *strips.target), "a source that does not allow merging refuses");
-    (*strips.source).set_allow_merge(true);
+    (*strips.source).allow_merge = true;
     Strips colliding = make_strips({button("same.id", "A")}, {button("same.id", "B")});
     require(!merge_strips(*colliding.source, *colliding.target), "a repeated ID refuses the merge");
     require(ids((*colliding.source).items()) == "same.id" && ids((*colliding.target).items()) == "same.id",

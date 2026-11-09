@@ -109,7 +109,7 @@ void StatesPage::mount_document(const std::shared_ptr<Surface>& body) {
 // The retained-runtime card (a MetricsView): its title and colours.
 void StatesPage::build_diagnostics() {
     DiagnosticsCard& diagnostics = *document_.gallery_states_diagnostics;
-    diagnostics.set_title("RETAINED RUNTIME");
+    diagnostics.title = std::string("RETAINED RUNTIME");
     BasicControlStyle diagnostics_style = page_style();
     diagnostics_style.text = Color::rgba(28, 39, 50);
     diagnostics_style.face = Color::rgba(175, 203, 221);
@@ -121,13 +121,7 @@ void StatesPage::build_diagnostics() {
 // The panels' border styles are in the document; their alternating
 // backgrounds are the page's.
 void StatesPage::build_specimens() {
-    const std::array<std::shared_ptr<Panel>, 4> panels{
-        document_.gallery_states_border_0, document_.gallery_states_border_1,
-        document_.gallery_states_border_2, document_.gallery_states_border_3};
-    for (std::size_t index = 0; index < panels.size(); ++index) {
-        (*panels[index]).set_background(index % 2U == 0U ? paper : Color::rgba(230, 238, 245));
-    }
-    (*document_.gallery_states_visited).set_visited(true);
+    (*document_.gallery_states_visited).visited = true;
 }
 
 void StatesPage::build_dispatcher() {
@@ -163,24 +157,24 @@ void StatesPage::run_step(const DispatcherStep step) {
         return;
     case DispatcherStep::commit_turn_one:
         trace_.push_back('C');
-        (*status_).set_text("Turn 1 committed · order " + trace_ +
-                            " · nested D remains posted");
+        (*status_).text = "Turn 1 committed · order " + trace_ +
+                            " · nested D remains posted";
         return;
     case DispatcherStep::commit_turn_two: {
         trace_.push_back('D');
         const DispatcherSnapshot snapshot = dispatcher_snapshot();
-        (*status_).set_text("Turn 2 committed · order " + trace_ +
+        (*status_).text = "Turn 2 committed · order " + trace_ +
                             " · invoked " + std::to_string(snapshot.invoked) +
-                            " · faults " + std::to_string(snapshot.faulted));
+                            " · faults " + std::to_string(snapshot.faulted);
         return;
     }
     case DispatcherStep::cancelled_callback:
-        (*status_).set_text("ERROR · cancelled callback executed");
+        (*status_).text = "ERROR · cancelled callback executed";
         return;
     case DispatcherStep::worker_released: {
         const DispatcherSnapshot snapshot = dispatcher_snapshot();
-        (*status_).set_text("Worker released after UI callback · marshalled " +
-                            std::to_string(snapshot.marshalled_invocations));
+        (*status_).text = "Worker released after UI callback · marshalled " +
+                            std::to_string(snapshot.marshalled_invocations);
         invoke_.set_enabled(true);
         return;
     }
@@ -193,8 +187,8 @@ void StatesPage::on_post() {
     ++batch_;
     trace_.clear();
     operations_.clear();
-    (*status_).set_text("Click returned · batch " + std::to_string(batch_) +
-                        " is pending");
+    (*status_).text = "Click returned · batch " + std::to_string(batch_) +
+                        " is pending";
     operations_.push_back((*status_).begin_invoke(
         PostedStep(self_, DispatcherStep::append_a)));
     operations_.push_back((*status_).begin_invoke(
@@ -210,15 +204,15 @@ void StatesPage::on_cancel() {
     const std::uint64_t sequence = operation.sequence();
     const bool cancelled = operation.cancel();
     operations_.push_back(std::move(operation));
-    (*status_).set_text("Cancelled posted operation #" + std::to_string(sequence) +
-                        (cancelled ? " before dispatch" : " too late"));
+    (*status_).text = "Cancelled posted operation #" + std::to_string(sequence) +
+                        (cancelled ? " before dispatch" : " too late");
 }
 
 void StatesPage::on_invoke_from_worker() {
     // The Command's enabled state projects to its button while the worker
     // waits; the posted completion step re-enables it on the UI thread.
     invoke_.set_enabled(false);
-    (*status_).set_text("Worker blocked · no nested pump · waiting for UI turn");
+    (*status_).text = "Worker blocked · no nested pump · waiting for UI turn";
     if (worker_.joinable()) worker_.join();
     worker_ = std::thread(&StatesPage::worker_main, this);
 }

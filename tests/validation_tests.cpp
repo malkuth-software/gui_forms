@@ -174,14 +174,14 @@ void test_focus_validation_order_cancellation_and_policy() {
 
     require(fixture.window.request_focus(fixture.editor),
             "editor must regain focus for allow-focus policy coverage");
-    (*fixture.root).set_auto_validate(AutoValidate::enable_allow_focus_change);
+    (*fixture.root).auto_validate = AutoValidate::enable_allow_focus_change;
     std::shared_ptr<gui_forms::ContainerControl> nested = make_control<ContainerControl>(
         StableId("validation.nested.policy"));
     (*fixture.root).add_child(nested);
     require((*nested).effective_auto_validate() ==
                 AutoValidate::enable_allow_focus_change,
             "nested containers must inherit the nearest authored AutoValidate policy");
-    (*nested).set_auto_validate(AutoValidate::disable);
+    (*nested).auto_validate = AutoValidate::disable;
     require((*nested).effective_auto_validate() == AutoValidate::disable,
             "a nested authored AutoValidate policy must override its ancestor");
     require(fixture.window.request_focus(fixture.destination) &&
@@ -257,19 +257,19 @@ void test_on_validation_binding_and_error_provider_share_focus_transaction() {
     const std::shared_ptr<Binding> binding = (*fixture.editor).data_bindings().add(
         "Text", source, "Amount", options);
     ErrorProvider errors(fixture.window);
-    errors.set_blink_style(ErrorBlinkStyle::never_blink);
+    errors.blink_style = ErrorBlinkStyle::never_blink;
     errors.bind_to_data_and_errors(source);
     require(errors.error(*fixture.editor) ==
                 "Amount is outside the recommended range.",
             "current-record errors must project through bindings onto their retained targets");
-    errors.set_data_member("profile");
+    errors.data_member = "profile";
     require(errors.error(*fixture.editor) == "Profile amount requires review.",
             "ErrorProvider DataMember must select a scoped retained error path");
-    errors.set_data_member({});
+    errors.data_member = std::string{};
 
     require(fixture.window.request_focus(fixture.editor),
             "bound editor must focus");
-    (*fixture.editor).set_text("not-a-number");
+    (*fixture.editor).text = "not-a-number";
     require(!fixture.window.request_focus(fixture.destination) &&
                 fixture.window.focused_control() == fixture.editor &&
                 (*source).current_field("amount") ==
@@ -278,7 +278,7 @@ void test_on_validation_binding_and_error_provider_share_focus_transaction() {
                     std::string::npos,
             "failed OnValidation parsing must preserve source, retain focus, and surface the binding error");
 
-    (*fixture.editor).set_text("13.75");
+    (*fixture.editor).text = "13.75";
     require(fixture.window.request_focus(fixture.destination) &&
                 (*source).current_field("amount") ==
                     std::optional<BindingValue>{13.75} &&
@@ -288,7 +288,7 @@ void test_on_validation_binding_and_error_provider_share_focus_transaction() {
     require((*source).move_next() && errors.error(*fixture.editor).empty(),
             "currency movement must replace stale record validation adornments");
     (*source).dispose();
-    require(!errors.has_errors() && !errors.data_source(),
+    require(!errors.has_errors() && !errors.data_source.read(),
             "source disposal must synchronously revoke bound provider state");
     static_cast<void>(binding);
 }

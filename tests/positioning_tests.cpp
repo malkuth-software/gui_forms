@@ -416,9 +416,9 @@ void test_dependent_and_diagnostic_limits() {
     constexpr std::size_t count = maximum_containing_block_dependents + 1U;
     std::shared_ptr<BlockPanel> root = container<BlockPanel>("pos.many");
     std::shared_ptr<FlexPanel> ancestor = container<FlexPanel>("pos.many.ancestor");
-    (*ancestor).set_flex_wrap(FlexWrap::wrap);
+    (*ancestor).flex_wrap = FlexWrap::wrap;
     // Lines packed at the start, so the ancestor's resize moves no holder.
-    (*ancestor).set_align_content(LayoutAlignment::flex_start);
+    (*ancestor).align_content = LayoutAlignment::flex_start;
     (*root).add_child(ancestor);
     (*root).set_item_layout(*ancestor, ancestor_layout(500.0, true));
     std::vector<std::shared_ptr<FlexPanel>> holders;

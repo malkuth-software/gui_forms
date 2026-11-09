@@ -67,6 +67,10 @@ Types
 
       The program's own theme: theme() but while a user theme replaces it.
 
+   .. cpp:function:: std::shared_ptr<const Theme> program_theme_ptr() const noexcept
+
+      The program's theme shared, for other resources (a window of the same application with its own image quotas) to take the same theme.
+
    .. cpp:function:: bool automatic_colour_scheme() const noexcept
 
    .. cpp:function:: void set_automatic_colour_scheme(bool automatic)
@@ -121,6 +125,10 @@ Types
    .. cpp:function:: ThemeCompileResult compile_theme_package(const ThemePackage& package, const ThemeLibrary& library, const ThemeCompileOptions& options)
 
       Compiles a program theme package into these resources' registry (compile_theme_package against ``library``), so the theme's images are images of every window sharing these resources. Selects nothing (set_theme does); the theme's images live while it does, and a refusal leaves none. On the UI thread (std::logic_error elsewhere).
+
+   .. cpp:function:: ThemeCompileResult compile_theme_packages(std::span<const ThemePackage> packages, const ThemeLibrary& library, const ThemeCompileOptions& options)
+
+      As compile_theme_package, for an application's theme: the base, then ``packages`` in their order, as one cascade (compile_theme_packages). On the UI thread (std::logic_error elsewhere).
 
    .. cpp:function:: void register_icon(std::string_view identifier, ImageId image, IconOverride policy)
 

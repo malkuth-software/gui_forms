@@ -5,6 +5,7 @@
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp"
 
 #include <memory>
 #include <string>
@@ -24,24 +25,10 @@ class Window;
 // HostServices::maximum_dialog_text_bytes; anything else throws
 // std::invalid_argument and changes nothing. The dialog is used on the UI
 // thread of the window it is shown over.
-class ColorDialog final : public Component {
+class ColorDialog final : public Component, public ColorDialogCapabilities<ColorDialog> {
 public:
     ColorDialog();
     ~ColorDialog() override;
-
-    // The dialog's title; empty gives the host's own. Windows Forms' dialog
-    // has none; the hosts that title their dialog use it.
-    [[nodiscard]] const std::string& title() const noexcept { return title_; }
-    void set_title(GUI_FORMS_LOCALIZABLE(title) std::string title);
-    // The chosen color, and before the dialog is shown the one it starts
-    // with (Windows Forms' Color; opaque black by default).
-    [[nodiscard]] Color color() const noexcept { return color_; }
-    void set_color(Color color) noexcept { color_ = color; }
-    // Whether the user may choose a translucent color. Off by default, as in
-    // Windows Forms, where every chosen color is opaque: the dialog then
-    // takes the chosen color as opaque whatever the host returns.
-    [[nodiscard]] bool allow_alpha() const noexcept { return allow_alpha_; }
-    void set_allow_alpha(bool allow) noexcept { allow_alpha_ = allow; }
 
     // The host's answer to the last show_dialog.
     [[nodiscard]] HostServiceStatus status() const noexcept { return status_; }
@@ -62,12 +49,22 @@ private:
     // destroy the dialog: an expired observer means `this` is gone.
     struct Presence final {};
 
-    std::string title_{};
-    Color color_{Color::rgba(0U, 0U, 0U, 255U)};
-    bool allow_alpha_{};
     HostServiceStatus status_{};
     bool showing_{};
     std::shared_ptr<Presence> presence_{std::make_shared<Presence>()};
+    // property_codemod begin ColorDialog (tools/property_families/color_dialog.json; generated, do not edit)
+private:
+    friend struct ColorDialogTitleCapability<ColorDialog>;
+    friend struct ColorDialogColorCapability<ColorDialog>;
+    friend struct ColorDialogAllowAlphaCapability<ColorDialog>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(title)& cell, std::string& incoming);
+    void written(const decltype(title)& cell);
+    void prepare_write(const decltype(color)& cell, Color& incoming);
+    void written(const decltype(color)& cell);
+    void prepare_write(const decltype(allow_alpha)& cell, bool& incoming);
+    void written(const decltype(allow_alpha)& cell);
+    // property_codemod end ColorDialog
 };
 
 } // namespace gui_forms

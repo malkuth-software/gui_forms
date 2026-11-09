@@ -25,7 +25,12 @@ namespace gui_forms {
 // decision DK-51). meter (W-5; the 0.5 closure's ruling 2 admits the
 // instrument vocabulary only) is a read-only reading within a known range,
 // such as a level, a gauge or a scope: unlike progress_bar it measures, it
-// does not report a task's progress. `count` is not a role; it sizes tables
+// does not report a task's progress. toggle_switch (W-4; a ToggleSwitch,
+// on or off at once, named so because `switch` is a C++ keyword) and
+// search_box (W-4; a SearchField, a text box whose text is a query) are
+// specialisations: a host without a mapping of its own publishes them as
+// their fallbacks, check_box and text_box (semantic_role_fallback), and
+// both act as their fallbacks do. `count` is not a role; it sizes tables
 // over the roles.
 enum class SemanticRole : std::uint8_t {
     generic, group, static_text, button, check_box, radio_button, link,
@@ -35,11 +40,22 @@ enum class SemanticRole : std::uint8_t {
     property_group, property_row, menu_bar, menu_bar_item, menu, menu_item,
     separator, toolbar, radio_group, split_button, menu_button, pane,
     tab_panel, tree, tree_item, table, row, cell, column_header, row_header,
-    tree_grid, dialog, status_bar, live_region, meter,
+    tree_grid, dialog, status_bar, live_region, meter, toggle_switch, search_box,
     count,
 };
 
 inline constexpr std::size_t semantic_role_count = static_cast<std::size_t>(SemanticRole::count);
+
+// The role `role` specialises, which a host without a mapping for `role`
+// publishes, and whose behaviour (patterns, interfaces, checked value and
+// text) `role` shares: check_box for toggle_switch, text_box for
+// search_box. Every other role is its own fallback.
+[[nodiscard]] constexpr SemanticRole semantic_role_fallback(SemanticRole role) noexcept {
+    if (role == SemanticRole::toggle_switch) return SemanticRole::check_box;
+    if (role == SemanticRole::search_box) return SemanticRole::text_box;
+    // Every other role is its own fallback.
+    return role;
+}
 
 enum class SemanticState : std::uint32_t {
     none = 0,
@@ -214,6 +230,12 @@ enum class SemanticTextUnit : std::uint8_t {
 // - `text_selection` and `multiline`: a text node's selection and caret
 //   (absent for protected content) and whether its text runs over several
 //   lines.
+//
+// `announces_on_appearance` (owner ruling, 2026-11-08: a toast is a polite
+// live region): a live region whose name is spoken when its node first
+// appears, not only when its name changes later (semantic_announcement_due).
+// A live region present from the start (a dock site's announcements, a
+// banner) leaves it false, so a page that shows one announces nothing.
 struct SemanticDescriptor final {
     SemanticRole role{SemanticRole::generic};
     std::string name;
@@ -238,6 +260,7 @@ struct SemanticDescriptor final {
     std::optional<double> large_step;
     std::optional<SemanticTextSelection> text_selection;
     bool multiline{};
+    bool announces_on_appearance{};
     SemanticState states{SemanticState::none};
     std::vector<SemanticAction> actions;
     bool exposed{};
@@ -270,6 +293,7 @@ struct SemanticNode final {
     std::optional<double> large_step;
     std::optional<SemanticTextSelection> text_selection;
     bool multiline{};
+    bool announces_on_appearance{};
     // The thing's plain tooltip text (owner, 2026-10-28): a control's
     // Control::tool_tip_text, or an authored part's, such as a strip item's
     // or a tab header's. Data items never carry one. Empty for none.
@@ -310,6 +334,17 @@ void fill_semantic_text_boundaries(const SemanticTextLayout& layout, std::string
 [[nodiscard]] const char* semantic_state_name(SemanticState state) noexcept;
 // The node fields the vocabulary admits, by name, for the schema export.
 [[nodiscard]] std::span<const char* const> semantic_field_names() noexcept;
+
+// Whether a host asks assistive technology to speak `current`'s name now, at
+// polite priority (DK-51; the toast, owner ruling 2026-11-08). `current` is a
+// node the host is publishing and `previous` the same node (same control,
+// same virtual child) at the host's last publication, or null when the node
+// is new. Due when `current` is a live region with a non-empty name and
+// either `previous` had another name, or the node is new and announces on
+// appearance. Every host decides through this one rule: UI Automation raises
+// the live-region event, AppKit posts an announcement request, AT-SPI emits
+// object:announcement; the text spoken is `current.name`.
+[[nodiscard]] bool semantic_announcement_due(const SemanticNode* previous, const SemanticNode& current) noexcept;
 
 // The runtime ID of a virtual semantic child (a tab, an item, a caption
 // button: a SemanticNode with no control of its own), from its stable ID: a

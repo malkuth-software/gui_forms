@@ -14,14 +14,14 @@ Parameters
 stable_id
     Identity of the control, unique within its window. The editor is created
     as ``<stable_id>.editor``.
-mask : default empty
+initial_mask : default empty
     The mask, in the language of `MaskedTextProvider`. An empty mask takes
     any text, as a plain `TextBox`.
 
 Properties
 ----------
 mask
-    The mask. `set_mask` replaces it and places the assigned characters again
+    The mask. Assigning a new one replaces it and places the assigned characters again
     from the first position (without prompts or literals); when the new mask
     refuses them, the box starts empty. An invalid mask throws
     `std::invalid_argument`.
@@ -29,7 +29,7 @@ culture
     The symbols the mask's ``.``, ``,``, ``:``, ``/`` and ``$`` stand for.
     GUI.Forms has no culture service; the default is the invariant culture
     (``.``, ``,``, ``:``, ``/`` and the generic currency sign U+00A4).
-    `set_culture` replaces them as `set_mask` replaces the mask.
+    Assigning a culture replaces them as assigning `mask` replaces the mask.
 provider
     The `MaskedTextProvider` that holds the mask and the assigned characters,
     for reading. Edits go through the box, so that the field and the events
@@ -83,7 +83,7 @@ mask_input_rejected
 text_changed
     Raised after `text` changes, with the new text.
 mask_changed
-    Raised after `set_mask` changes the mask, with the new mask.
+    Raised after an assignment changes `mask`, with the new mask.
 overwrite_mode_changed
     Raised after `overwrite_mode` changes, with the new mode.
 type_validation_completed

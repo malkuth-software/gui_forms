@@ -18,21 +18,26 @@ Parameters
 ----------
 stable_id
     Identity of the control, unique within its window.
-text
+initial_text
     Text to display, as UTF-8. Line ends are white space, not breaks.
 
 Properties
 ----------
 text : default ``""``
     The text. Setting a different value raises `text_changed`.
-font
-    The font in use: the one given to `set_font`, or else the theme's field
-    typography. It is scaled by the window's text scale. An invalid
-    specification throws `std::invalid_argument`; `clear_font` returns to
-    the theme's font.
+font : default empty
+    The block's own font. While empty, the block uses the theme's field
+    typography; `resolved_font` reports the font in use. It is scaled by the
+    window's text scale. An invalid specification throws
+    `std::invalid_argument`; writing `std::nullopt` returns to the theme's
+    font.
+resolved_font
+    The font in use: `font` when set, or else the theme's field typography,
+    before the window's text scale.
 foreground
-    The text colour: the one given to `set_foreground`, or else the theme's
-    text colour. `clear_foreground` returns to the theme's colour.
+    The text colour in use: `Control`'s `fore_color` cell when set, or else
+    the theme's text colour. Writing `std::nullopt` to `fore_color` returns
+    to the theme's colour.
 text_align : default ``TextAlignment::start``
     How each line sits across the block, as CSS's `text-align`: `start`,
     `end`, `left`, `right` or `center`. `start` and `end` follow the
@@ -44,8 +49,8 @@ line_height : default none
     `line-height: normal`: the font's ascent, descent and line gap, each
     rounded to a whole pixel. The extra space (or the shortfall) goes half
     above the text, rounded down, and the rest below. A value that is not
-    finite and positive throws `std::invalid_argument`; `clear_line_height`
-    returns to normal.
+    finite and positive throws `std::invalid_argument`; writing
+    `std::nullopt` returns to normal.
 
 Events
 ------
@@ -60,12 +65,6 @@ first_baseline
 last_baseline
     The baseline of the last line when the block is laid out at the given
     width, or none when the block has no text.
-clear_font
-    Removes the font given to `set_font`, so the block follows the theme.
-clear_foreground
-    Removes the colour given to `set_foreground`.
-clear_line_height
-    Returns to `line-height: normal`.
 
 See Also
 --------
@@ -97,10 +96,10 @@ A heading and a wrapped paragraph in a column:
 
    std::shared_ptr<gf::FlexPanel> column =
        gf::make_control<gf::FlexPanel>(gf::StableId("article"));
-   (*column).set_flex_direction(gf::FlexDirection::column);
+   (*column).flex_direction = gf::FlexDirection::column;
    std::shared_ptr<gf::TextBlock> heading = gf::make_control<gf::TextBlock>(
        gf::StableId("article.heading"), "Export settings");
-   (*heading).set_font(gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0});
+   (*heading).font = gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0};
    std::shared_ptr<gf::TextBlock> body = gf::make_control<gf::TextBlock>(
        gf::StableId("article.body"),
        "Exported files keep their names; existing files are never overwritten.");
@@ -117,12 +116,12 @@ Align a caption with a larger value by their baselines:
 
    std::shared_ptr<gf::FlexPanel> row =
        gf::make_control<gf::FlexPanel>(gf::StableId("rate"));
-   (*row).set_align_items(gf::LayoutAlignment::baseline);
+   (*row).align_items = gf::LayoutAlignment::baseline;
    std::shared_ptr<gf::TextBlock> caption =
        gf::make_control<gf::TextBlock>(gf::StableId("rate.caption"), "Rate");
    std::shared_ptr<gf::TextBlock> value =
        gf::make_control<gf::TextBlock>(gf::StableId("rate.value"), "42 MB/s");
-   (*value).set_font(gf::FontSpec{gf::FontRole::content, 26.0, 400, false, 0.0});
+   (*value).font = gf::FontSpec{gf::FontRole::content, 26.0, 400, false, 0.0};
    (*row).add_child(caption);
    (*row).add_child(value);
 

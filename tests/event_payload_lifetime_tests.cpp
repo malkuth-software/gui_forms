@@ -71,7 +71,7 @@ void test_object_view_activation_outlives_replaced_items() {
     SubscriptionToken record = (*view).item_activated().subscribe(
         callbacks::PushBack<std::vector<std::string>, const std::string&>(activated));
     require(window.request_focus(view), "the object view takes focus");
-    (*view).set_selected_id(first_id);
+    (*view).selected_id = first_id;
     require(window.dispatch_key({KeyAction::down, PhysicalKey::enter}),
             "Enter activates the selected object");
     require(activated.size() == 1U && activated[0] == first_id,
@@ -132,7 +132,7 @@ void test_tree_view_collapse_outlives_an_expansion_handler() {
     (*root).add_child(view);
     Window window(root, {320.0, 220.0});
     window.perform_layout();
-    (*view).set_selected_id(second_id);
+    (*view).selected_id = second_id;
     SubscriptionToken replace = (*view).expansion_changed().subscribe(
         ReplaceTreeItemsOnExpansion{view.get()});
     bool threw = false;

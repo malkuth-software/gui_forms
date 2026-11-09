@@ -54,6 +54,11 @@ struct Ready final {
 } // namespace
 
 int main() {
+    // The program's application (APP_WINDOW_RULES_DESIGN A.2): windows made
+    // from here join it, and it runs them.
+    ApplicationCreateResult created = Application::create(ApplicationConfig{});
+    if (!created) return 1;
+    Application& application = *created.application;
     try {
         std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
         bool checked = false;
@@ -61,7 +66,7 @@ int main() {
         options.title = "GUI.Forms input settings fixture";
         options.ready = Ready{&checked};
         const ApplicationResult result =
-            Application::run(std::make_unique<gui_forms::Window>(root, Size{200, 120}), options);
+            application.run(std::make_unique<gui_forms::Window>(root, Size{200, 120}), options);
         if (result.callback_exception) std::rethrow_exception(result.callback_exception);
         require(result.accepted(), "the native fixture completed");
         require(checked, "the ready callback ran its checks");

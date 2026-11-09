@@ -160,7 +160,15 @@ HostWindowFrame HeadlessWindowing::native_frame(HostWindowId window) const {
 }
 
 bool HeadlessWindowing::supports_popup_windows() const noexcept {
-    return true;
+    return popup_windows_;
+}
+
+bool HeadlessWindowing::supports_splash_windows() const noexcept {
+    return splash_windows_;
+}
+
+bool HeadlessWindowing::transient_windows_translucent() const noexcept {
+    return translucent_;
 }
 
 void HeadlessWindowing::create_native(HostWindowId window, std::string_view stable_id,
@@ -203,6 +211,7 @@ void HeadlessWindowing::set_native_visible(HostWindowId window, bool visible) {
     NativeWindow* entry = native(window);
     if (entry == nullptr || (*entry).visible == visible) return;
     (*entry).visible = visible;
+    if (!tracing_) return;
     std::ostringstream line;
     line << (visible ? "show" : "hide") << " id=" << window.value;
     note(line.str());
@@ -281,10 +290,12 @@ HostServiceStatus HeadlessWindowing::request_frame_impl(HostWindowId window, Rec
     }
     const Rect old_content = (*entry).content;
     (*entry).content = content;
-    std::ostringstream line;
-    line << "frame id=" << window.value << " content=";
-    append_rect(line, content);
-    note(line.str());
+    if (tracing_) {
+        std::ostringstream line;
+        line << "frame id=" << window.value << " content=";
+        append_rect(line, content);
+        note(line.str());
+    }
     if (deferred_reports_) {
         deferred_.push_back({window, old_content});
         return {};
@@ -333,9 +344,11 @@ HostWindowAtResult HeadlessWindowing::window_at_impl(DesktopLogicalPoint point) 
 
 HostServiceStatus HeadlessWindowing::bring_to_front_impl(HostWindowId window) {
     if (native(window) == nullptr) return {HostServiceError::invalid_argument};
-    std::ostringstream line;
-    line << "raise id=" << window.value;
-    note(line.str());
+    if (tracing_) {
+        std::ostringstream line;
+        line << "raise id=" << window.value;
+        note(line.str());
+    }
     // Owned windows stay above their owners: raise the window, then each
     // window it owns (directly or through another owned window), keeping
     // their order among themselves. The table holds at most 64 windows.
@@ -364,6 +377,13 @@ HostMonitorResult HeadlessWindowing::query_monitors_impl() {
     HostMonitorResult result;
     result.monitors = monitors_;
     return result;
+}
+
+// Copies into `result`'s storage: a warm Splash or Popup placement queries
+// the table on every show and allocates nothing.
+void HeadlessWindowing::query_monitors_into_impl(HostMonitorResult& result) {
+    result.status = {};
+    result.monitors = monitors_;
 }
 
 HostServiceStatus HeadlessWindowing::show_impl(HostWindowId window) {
@@ -518,6 +538,7 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     description.stable_id = source.stable_id;
     description.owner = owner;
     description.kind = kind;
+    if (popup.has_value()) description.transient = (*popup).kind;
     const HostWindowAdmission admission = windowing_.admit(description);
     if (!admission.status.accepted()) {
         result.status = admission.status;
@@ -571,7 +592,10 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
         line << "open id=" << window.id.value << " kind=" << host_window_kind_name(kind)
              << " owner=" << owner.value << " visible=" << (window.options.initially_visible ? 1 : 0)
              << " runtime=" << (runtime ? 1 : 0);
-        if (popup.has_value()) line << " focus=" << host_popup_focus_name((*popup).focus);
+        if (popup.has_value()) {
+            line << " focus=" << host_popup_focus_name((*popup).focus)
+                 << " transient=" << host_transient_kind_name((*popup).kind);
+        }
         windowing_.note(line.str());
     }
     windowing_.report_frame(window.id, windowing_.native_frame(window.id));

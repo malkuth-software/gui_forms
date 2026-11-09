@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -10,36 +11,26 @@
 
 namespace gui_forms {
 
-class NumericUpDown final : public Panel {
+class NumericUpDown final : public Panel, public NumericUpDownCapabilities<NumericUpDown> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit NumericUpDown(StableId stable_id);
     void initialize_control_tree();
 
-    [[nodiscard]] double minimum() const noexcept { return minimum_; }
-    [[nodiscard]] double maximum() const noexcept { return maximum_; }
-    void set_range(double minimum, double maximum);
-    [[nodiscard]] double value() const noexcept { return value_; }
-    void set_value(double value);
-    [[nodiscard]] double increment() const noexcept { return increment_; }
-    void set_increment(double increment);
-    [[nodiscard]] std::uint8_t decimal_places() const noexcept {
-        return decimal_places_;
-    }
-    void set_decimal_places(std::uint8_t places);
-    [[nodiscard]] bool hexadecimal() const noexcept { return hexadecimal_; }
-    void set_hexadecimal(bool hexadecimal);
-    [[nodiscard]] double button_width() const noexcept { return button_width_; }
-    void set_button_width(double width);
+    // Sets both bounds; they must be finite and ordered (std::invalid_argument).
+    void set_range(double lowest, double highest);
     [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept { return editor_; }
     [[nodiscard]] Event<double>& value_changed() noexcept { return value_changed_; }
 
     void arrange(Rect final_bounds) override;
+    // The scroll bars, then the spin column's halves as this control's
+    // arrow and glyph parts.
+    void on_paint_overlay(Painter& painter, Rect local_damage) override;
     void on_key_preview(KeyEvent& event) override;
     void on_pointer_preview(PointerEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action,
-                            std::string_view value) override;
+                            std::string_view value_text) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members.
@@ -85,20 +76,55 @@ private:
     void commit_editor_text();
     void synchronize_editor();
     [[nodiscard]] std::string formatted_value() const;
+    // Moves value into [minimum, maximum] when a bound has passed it.
+    void clamp_value();
 
     std::shared_ptr<TextBox> editor_;
     Control::Ptr spinner_;
     SubscriptionToken editor_change_;
     SubscriptionToken spinner_step_;
-    double minimum_{0.0};
-    double maximum_{100.0};
-    double value_{};
-    double increment_{1.0};
-    double button_width_{18.0};
-    std::uint8_t decimal_places_{};
-    bool hexadecimal_{};
     bool synchronizing_{};
+    // Set while the editor's own text is committed to value, so the write
+    // leaves the text as the user typed it.
+    bool committing_{};
     Event<double> value_changed_;
+    // property_codemod begin NumericUpDown (tools/property_families/numeric_up_down.json; generated, do not edit)
+public:
+    // NumericUpDown's property table: Panel's entries, then its own.
+    static constexpr std::size_t numeric_up_down_property_count = Panel::panel_property_count + 1U;
+    [[nodiscard]] static const std::array<PropertyEntry, numeric_up_down_property_count>& numeric_up_down_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_value_changed();
+
+private:
+    friend struct NumericUpDownValueCapability<NumericUpDown>;
+    friend struct NumericUpDownMinimumCapability<NumericUpDown>;
+    friend struct NumericUpDownMaximumCapability<NumericUpDown>;
+    friend struct NumericUpDownIncrementCapability<NumericUpDown>;
+    friend struct NumericUpDownDecimalPlacesCapability<NumericUpDown>;
+    friend struct NumericUpDownHexadecimalCapability<NumericUpDown>;
+    friend struct NumericUpDownButtonWidthCapability<NumericUpDown>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(value)& cell, double& incoming);
+    void written(const decltype(value)& cell);
+    void prepare_write(const decltype(minimum)& cell, double& incoming);
+    void written(const decltype(minimum)& cell);
+    void prepare_write(const decltype(maximum)& cell, double& incoming);
+    void written(const decltype(maximum)& cell);
+    void prepare_write(const decltype(increment)& cell, double& incoming);
+    void written(const decltype(increment)& cell);
+    void prepare_write(const decltype(decimal_places)& cell, std::uint8_t& incoming);
+    void written(const decltype(decimal_places)& cell);
+    void prepare_write(const decltype(hexadecimal)& cell, bool& incoming);
+    void written(const decltype(hexadecimal)& cell);
+    void prepare_write(const decltype(button_width)& cell, double& incoming);
+    void written(const decltype(button_width)& cell);
+    // property_codemod end NumericUpDown
 };
 
 } // namespace gui_forms

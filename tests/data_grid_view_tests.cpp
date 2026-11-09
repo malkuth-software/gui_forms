@@ -170,14 +170,14 @@ bool has_action(const SemanticNode& node, SemanticAction action) {
 std::shared_ptr<DataGridView> make_grid(const char* identity) {
     std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId(std::string(identity)));
     (*grid).set_columns(sample_columns());
-    (*grid).add_row({.stable_id = {"alpha"}, .cells = {BindingValue{std::string("Alpha")}, BindingValue{true},
-                                                      BindingValue{std::string("FM")}}});
-    (*grid).add_row({.stable_id = {"bravo"}, .cells = {BindingValue{std::string("Bravo")}, BindingValue{false},
-                                                      BindingValue{std::string("AM")}}});
-    (*grid).add_row({.stable_id = {"charlie"}, .cells = {BindingValue{std::string("Charlie")}}});
+    (*grid).rows.append({.stable_id = {"alpha"}, .cells = {BindingValue{std::string("Alpha")}, BindingValue{true},
+                                                           BindingValue{std::string("FM")}}});
+    (*grid).rows.append({.stable_id = {"bravo"}, .cells = {BindingValue{std::string("Bravo")}, BindingValue{false},
+                                                           BindingValue{std::string("AM")}}});
+    (*grid).rows.append({.stable_id = {"charlie"}, .cells = {BindingValue{std::string("Charlie")}}});
     // The tests count the fixture's three rows, so the new row (on by
     // default) is turned off here; new_row_unbound turns it back on.
-    (*grid).set_allow_user_to_add_rows(false);
+    (*grid).allow_user_to_add_rows = false;
     return grid;
 }
 
@@ -245,49 +245,49 @@ struct AddDottedColumn final {
 };
 struct AddDuplicateRow final {
     DataGridView* grid{};
-    void operator()() const { static_cast<void>((*grid).add_row({.stable_id = {"alpha"}})); }
-};
-struct AddItemsToText final {
-    DataGridView* grid{};
-    void operator()() const { (*grid).add_column({.name = "extra", .items = {"x"}}); }
-};
-struct NarrowColumn final {
-    DataGridView* grid{};
-    void operator()() const { (*grid).set_column_width(0U, 5.0); }
-};
-struct SetOrder final {
-    DataGridView* grid{};
-    std::vector<DataGridViewRowId> order{};
-    void operator()() const { (*grid).set_virtual_row_order(order); }
-};
-struct RemoveNewRow final {
-    DataGridView* grid{};
-    void operator()() const { (*grid).remove_row_at(*(*grid).new_row_index()); }
-};
-struct SetCount final {
-    DataGridView* grid{};
-    std::size_t count{};
-    void operator()() const { (*grid).set_row_count(count); }
-};
-struct SetSortMode final {
-    DataGridView* grid{};
-    DataGridViewColumnSortMode mode{};
-    void operator()() const { (*grid).set_column_sort_mode(0U, mode); }
-};
-struct SetVirtualRows final {
-    DataGridView* grid{};
-    std::shared_ptr<DataGridViewCellValueProvider> provider{};
-    std::vector<DataGridViewRowId> order{};
-    void operator()() const { (*grid).set_virtual_rows(provider, order); }
-};
-
-std::shared_ptr<Control> as_control(const std::shared_ptr<TextBox>& editor) {
-    const std::shared_ptr<Control> control = editor;
-    return control;
-}
-
-void columns_and_rows() {
-    std::shared_ptr<DataGridView> grid = make_grid("grid.model");
+    void operator()() const { (*grid).rows.append({.stable_id = {"alpha"}}); }
+     };
+     struct AddItemsToText final {
+         DataGridView* grid{};
+         void operator()() const { (*grid).add_column({.name = "extra", .items = {"x"}}); }
+     };
+     struct NarrowColumn final {
+         DataGridView* grid{};
+         void operator()() const { (*grid).set_column_width(0U, 5.0); }
+     };
+     struct SetOrder final {
+         DataGridView* grid{};
+         std::vector<DataGridViewRowId> order{};
+         void operator()() const { (*grid).set_virtual_row_order(order); }
+     };
+     struct RemoveNewRow final {
+         DataGridView* grid{};
+         void operator()() const { (*grid).rows.erase((*(*grid).new_row_index()).value, 1U); }
+     };
+     struct SetCount final {
+         DataGridView* grid{};
+         std::size_t count{};
+         void operator()() const { (*grid).set_row_count(count); }
+     };
+     struct SetSortMode final {
+         DataGridView* grid{};
+         DataGridViewColumnSortMode mode{};
+         void operator()() const { (*grid).set_column_sort_mode(0U, mode); }
+     };
+     struct SetVirtualRows final {
+         DataGridView* grid{};
+         std::shared_ptr<DataGridViewCellValueProvider> provider{};
+         std::vector<DataGridViewRowId> order{};
+         void operator()() const { (*grid).set_virtual_rows(provider, order); }
+     };
+     
+     std::shared_ptr<Control> as_control(const std::shared_ptr<TextBox>& editor) {
+         const std::shared_ptr<Control> control = editor;
+         return control;
+     }
+     
+     void columns_and_rows() {
+         std::shared_ptr<DataGridView> grid = make_grid("grid.model");
     const ControlAnatomy& anatomy = (*grid).anatomy();
     require(validate_control_anatomy(anatomy).defect == AnatomyDefect::none &&
                 anatomy.control_id == "data_grid_view" && anatomy.item_systems.size() == 3U,
@@ -299,11 +299,12 @@ void columns_and_rows() {
             "short rows are padded, and an empty button cell shows its column's text");
     require((*grid).row_position(id("bravo")) == row_at(1U) && (*grid).row_id(row_at(2U)) == id("charlie"),
             "rows keep their stable IDs");
-    const DataGridViewRowPosition generated = (*grid).add_row({});
+    (*grid).rows.append(DataGridViewRow{});
+    const DataGridViewRowPosition generated{(*grid).rows.read().size() - 1U};
     require((*grid).row_id(generated).value.rfind("row.", 0U) == 0U, "an empty row ID is generated");
-    (*grid).insert_row(row_at(0U), {.stable_id = {"zulu"}});
+    (*grid).rows.insert(0U, {.stable_id = {"zulu"}});
     require((*grid).row_position(id("alpha")) == row_at(1U), "inserting moves later rows");
-    (*grid).remove_row_at(row_at(0U));
+    (*grid).rows.erase(0U, 1U);
     require((*grid).row_position(id("alpha")) == row_at(0U) && (*grid).row_count() == 4U,
             "removing moves them back");
     require(!(*grid).row_position(id("zulu")), "a removed row's ID is gone");
@@ -314,7 +315,7 @@ void columns_and_rows() {
             "and is cut from the end");
     std::shared_ptr<DataGridView> fresh = make_control<DataGridView>(StableId("grid.model.fresh"));
     (*fresh).set_columns(sample_columns());
-    (*fresh).set_rows({{.stable_id = {"row.1"}}, {}});
+    (*fresh).rows = {{.stable_id = {"row.1"}}, {}};
     require((*fresh).row_id(row_at(1U)).value != "row.1" && !(*fresh).row_id(row_at(1U)).value.empty(),
             "a generated row ID skips the IDs the rows already use");
     require(throws<std::invalid_argument>(AddDottedColumn{grid.get()}), "a column name with '.' is refused");
@@ -477,8 +478,8 @@ void text_editing() {
     window.perform_layout();
     require((*grid).parts().editor.present && window.focused_control() == as_control((*grid).editing_control()),
             "the editor covers the cell and takes focus");
-    require((*(*grid).editing_control()).text() == "Alpha", "the editor starts with the cell's text");
-    require(window.dispatch_text({"Delta"}) && (*(*grid).editing_control()).text() == "Delta",
+    require((*(*grid).editing_control()).text.read() == "Alpha", "the editor starts with the cell's text");
+    require(window.dispatch_text({"Delta"}) && (*(*grid).editing_control()).text.read() == "Delta",
             "typing replaces the selected text");
     require(key(window, PhysicalKey::enter), "Enter commits");
     require(!(*grid).is_current_cell_in_edit_mode() && (*grid).cell_text(row_at(0U), 0U) == "Delta",
@@ -491,7 +492,7 @@ void text_editing() {
             "Enter moves to the cell below and focus returns to the grid");
 
     require(window.dispatch_text({"X"}) && (*grid).is_current_cell_in_edit_mode() &&
-                (*(*grid).editing_control()).text() == "X",
+                (*(*grid).editing_control()).text.read() == "X",
             "typing on a text cell begins an edit with the typed text");
     require(key(window, PhysicalKey::escape) && !(*grid).is_current_cell_in_edit_mode() &&
                 (*grid).cell_text(row_at(1U), 0U) == "Bravo" && ended.size() == 2U && changed.size() == 1U,
@@ -512,7 +513,7 @@ void text_editing() {
     const std::vector<DataGridView::Cell> refused_cells = (*grid).realized_cells();
     const DataGridView::Cell* refused = find_cell(refused_cells, 1U, 0U);
     require(refused != nullptr && (*refused).states.invalid, "the refused cell publishes invalid");
-    (*(*grid).editing_control()).set_text("Echo");
+    (*(*grid).editing_control()).text = "Echo";
     require(key(window, PhysicalKey::tab) && !(*grid).is_current_cell_in_edit_mode() &&
                 (*grid).cell_text(row_at(1U), 0U) == "Echo" && (*grid).current_cell() == cell_at(1U, 1U),
             "Tab commits and moves to the next cell");
@@ -521,9 +522,9 @@ void text_editing() {
     (*grid).add_column({.name = "frequency", .header_text = "MHz", .width = 60.0,
                         .value_kind = BindingValueKind::number});
     require((*grid).set_current_cell(cell_at(0U, 4U)) && (*grid).begin_edit(), "edit a number");
-    (*(*grid).editing_control()).set_text("abc");
+    (*(*grid).editing_control()).text = "abc";
     require(!(*grid).end_edit() && (*grid).is_current_cell_in_edit_mode(), "text that is not a number is refused");
-    (*(*grid).editing_control()).set_text("7.25");
+    (*(*grid).editing_control()).text = "7.25";
     require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 4U) == BindingValue{7.25} &&
                 (*grid).cell_text(row_at(0U), 4U) == "7.25",
             "a number commits as a number and shows its shortest text");
@@ -750,7 +751,7 @@ void virtual_row_identity() {
     require((*grid).set_current_cell(DataGridViewCellAddress{*(*grid).row_position(id("v3")), 0U}) &&
                 (*grid).begin_edit(),
             "an edit begins on v3");
-    (*(*grid).editing_control()).set_text("edited");
+    (*(*grid).editing_control()).text = "edited";
     std::vector<DataGridViewRowId> moved{};
     for (const DataGridViewRowId& row : removed) {
         if (!(row == id("v3"))) moved.push_back(row);
@@ -817,16 +818,16 @@ void unbound_row_identity() {
     window.perform_layout();
     require((*grid).set_current_cell(cell_at(1U, 0U)), "bravo becomes current");
     (*grid).set_cell_selected(row_at(2U), 0U, true);
-    (*grid).insert_row(row_at(0U), {.stable_id = {"zulu"}});
+    (*grid).rows.insert(0U, {.stable_id = {"zulu"}});
     require((*grid).current_cell() == cell_at(2U, 0U) && (*grid).current_row_id() == id("bravo") &&
                 (*grid).is_cell_selected(row_at(3U), 0U) && (*grid).selected_cells().size() == 2U,
             "an insert above keeps the current cell and the selection on their rows");
     int selection_changes = 0;
     SubscriptionToken token = (*grid).selection_changed().subscribe(Counter{&selection_changes});
-    (*grid).remove_row_at(row_at(3U));
+    (*grid).rows.erase(3U, 1U);
     require((*grid).selected_cells().size() == 1U && selection_changes == 1 && (*grid).current_row_id() == id("bravo"),
             "removing a selected row drops it from the selection");
-    (*grid).remove_row_at(row_at(2U));
+    (*grid).rows.erase(2U, 1U);
     require((*grid).current_row_id() == id("alpha") && (*grid).current_cell() == cell_at(1U, 0U),
             "removing the current last row makes the new last row current");
 }
@@ -892,7 +893,7 @@ void bound_rows() {
                          {.name = "city", .header_text = "City", .data_property_name = "City"}});
     // The rows counted below are the source's records alone; new_row_bound
     // covers the new row of a bound grid.
-    (*grid).set_allow_user_to_add_rows(false);
+    (*grid).allow_user_to_add_rows = false;
     Window window(grid, {360.0, 160.0});
     std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
     BindingRecord::FieldMap first;
@@ -902,7 +903,7 @@ void bound_rows() {
     second["Name"] = std::string("Grace");
     second["City"] = std::string("Arlington");
     (*source).set_records({BindingRecord("person.1", first), BindingRecord("person.2", second)});
-    (*grid).set_data_source(source);
+    (*grid).data_source = source;
     window.perform_layout();
     require((*grid).row_source() == DataGridViewRowSource::binding_source && (*grid).row_count() == 2U &&
                 (*grid).cell_text(row_at(1U), 0U) == "Grace" && (*grid).row_id(row_at(1U)) == id("person.2"),
@@ -912,7 +913,7 @@ void bound_rows() {
     require((*grid).set_current_cell(cell_at(0U, 1U)) && (*source).position() == 0,
             "moving the current row moves the position");
     require((*grid).begin_edit(), "a bound cell edits");
-    (*(*grid).editing_control()).set_text("Paris");
+    (*(*grid).editing_control()).text = "Paris";
     require((*grid).end_edit() && (*source).current_field("City") == BindingValue{std::string("Paris")} &&
                 (*grid).cell_text(row_at(0U), 1U) == "Paris",
             "a committed edit sets the source's field");
@@ -933,7 +934,7 @@ void bound_rows() {
             "the record that takes the removed current record's place becomes current");
     require((*grid).is_cell_selected(row_at(2U), 0U) && (*grid).selected_cells().size() == 1U,
             "the removed record leaves the selection and person.3 stays selected");
-    (*grid).set_data_source(nullptr);
+    (*grid).data_source = nullptr;
     require((*grid).row_source() == DataGridViewRowSource::unbound && (*grid).row_count() == 0U,
             "a null source returns to empty unbound rows");
 }
@@ -952,7 +953,7 @@ void scrolling() {
     require((*grid).current_cell() == cell_at(10U, 0U) && (*grid).first_displayed_row().value > 0U &&
                 (*grid).displayed_row_end().value > 10U,
             "moving below the displayed rows scrolls them");
-    require(static_cast<std::size_t>((*(*grid).vertical_scroll_bar()).value()) == (*grid).first_displayed_row().value,
+    require(static_cast<std::size_t>((*(*grid).vertical_scroll_bar()).value.read()) == (*grid).first_displayed_row().value,
             "the vertical bar follows the first displayed row");
     require(key(window, PhysicalKey::end) && (*grid).horizontal_scroll_offset() > 0.0,
             "moving to the last column scrolls it into view");
@@ -963,7 +964,7 @@ void scrolling() {
     require(window.dispatch_pointer(wheel) && (*grid).first_displayed_row().value + 3U == before,
             "a wheel notch scrolls three rows");
     window.perform_layout();
-    (*(*grid).vertical_scroll_bar()).set_value(20.0);
+    (*(*grid).vertical_scroll_bar()).value = 20.0;
     require((*grid).first_displayed_row() == row_at(20U), "moving the bar scrolls the rows");
 }
 
@@ -1035,13 +1036,13 @@ void image_cells() {
     Window window(grid, {400.0, 160.0});
     const ImageId badge = load_solid_image(window, 16U, 8U);
     const ImageId wide = load_solid_image(window, 80U, 10U);
-    (*grid).add_row({.stable_id = {"alpha"},
-                     .cells = {BindingValue{std::string("Alpha")}, BindingValue{badge}, BindingValue{badge},
-                               BindingValue{badge}, BindingValue{wide}}});
-    (*grid).add_row({.stable_id = {"bravo"}, .cells = {BindingValue{std::string("Bravo")}}});
-    (*grid).add_row({.stable_id = {"charlie"},
-                     .cells = {BindingValue{std::string("Charlie")}, BindingValue{ImageId{0x7FFFFFFFU}},
-                               BindingValue{std::string("not an image")}}});
+    (*grid).rows.append({.stable_id = {"alpha"},
+                          .cells = {BindingValue{std::string("Alpha")}, BindingValue{badge}, BindingValue{badge},
+                                    BindingValue{badge}, BindingValue{wide}}});
+    (*grid).rows.append({.stable_id = {"bravo"}, .cells = {BindingValue{std::string("Bravo")}}});
+    (*grid).rows.append({.stable_id = {"charlie"},
+                          .cells = {BindingValue{std::string("Charlie")}, BindingValue{ImageId{0x7FFFFFFFU}},
+                                    BindingValue{std::string("not an image")}}});
     window.perform_layout();
     require(throws<std::invalid_argument>(SetBadLayout{grid.get()}) && (*grid).columns().size() == 5U,
             "an image layout outside the enumeration is refused");
@@ -1192,10 +1193,10 @@ void link_cells() {
          .default_cell_style = {.alignment = DataGridViewContentAlignment::middle_end}, .track_visited_state = false},
     });
     Window window(grid, {420.0, 160.0});
-    (*grid).add_row({.stable_id = {"alpha"},
-                     .cells = {BindingValue{std::string("Alpha")}, BindingValue{std::string("Go")},
-                               BindingValue{std::string("Docs")}}});
-    (*grid).add_row({.stable_id = {"bravo"}, .cells = {BindingValue{std::string("Bravo")}}});
+    (*grid).rows.append({.stable_id = {"alpha"},
+                          .cells = {BindingValue{std::string("Alpha")}, BindingValue{std::string("Go")},
+                                    BindingValue{std::string("Docs")}}});
+    (*grid).rows.append({.stable_id = {"bravo"}, .cells = {BindingValue{std::string("Bravo")}}});
     window.perform_layout();
     require(throws<std::invalid_argument>(AddBadLinkText{grid.get()}), "link text must be valid UTF-8");
     require(throws<std::invalid_argument>(LinkVisitedOnText{grid.get()}),
@@ -1317,8 +1318,8 @@ void link_cells() {
     require((*grid).sort(0U, DataGridViewSortDirection::descending) && (*grid).link_visited(row_at(0U), 1U) &&
                 (*grid).link_visited(row_at(1U), 1U) && (*grid).row_position(id("bravo")) == row_at(0U),
             "visits stay on their rows when rows move");
-    (*grid).remove_row_at(row_at(0U));
-    (*grid).add_row({.stable_id = {"bravo"}});
+    (*grid).rows.erase(0U, 1U);
+    (*grid).rows.append({.stable_id = {"bravo"}});
     require(!(*grid).link_visited(row_at(1U), 1U) && (*grid).link_visited(row_at(0U), 1U),
             "a removed row's visits end with it");
     const std::span<const DataGridViewColumn> kept = (*grid).columns();
@@ -1513,13 +1514,13 @@ void data_errors_and_dirty_state() {
 
     // commit_edit stores without leaving edit; refresh_edit restores the cell.
     require((*grid).begin_edit(), "edit again");
-    (*(*grid).editing_control()).set_text("7.5");
+    (*(*grid).editing_control()).text = "7.5";
     require((*grid).commit_edit() && (*grid).is_current_cell_in_edit_mode() && !(*grid).is_current_cell_dirty() &&
                 (*grid).cell_value(row_at(0U), 4U) == BindingValue{7.5},
             "commit_edit stores and stays in edit");
     require((*grid).is_current_row_dirty(), "a committed value makes the row dirty");
-    (*(*grid).editing_control()).set_text("9");
-    require((*grid).refresh_edit() && (*(*grid).editing_control()).text() == "7.5" &&
+    (*(*grid).editing_control()).text = "9";
+    require((*grid).refresh_edit() && (*(*grid).editing_control()).text.read() == "7.5" &&
                 !(*grid).is_current_cell_dirty(),
             "refresh_edit shows the stored value again");
     require((*grid).end_edit() && validated.size() == 1U && validated[0].column == 4U,
@@ -1536,7 +1537,7 @@ void data_errors_and_dirty_state() {
     std::vector<DataGridViewDataErrorEvent> commits;
     SubscriptionToken commit_token = (*virtual_grid).data_error().subscribe(RecordDataError{&commits, true});
     require((*virtual_grid).set_current_cell(cell_at(1U, 0U)) && (*virtual_grid).begin_edit(), "virtual edit");
-    (*(*virtual_grid).editing_control()).set_text("changed");
+    (*(*virtual_grid).editing_control()).text = "changed";
     require(!(*virtual_grid).end_edit() && commits.size() == 1U &&
                 commits[0].context == DataGridViewDataErrorContext::commit && commits[0].row_id == id("v1"),
             "a refused store is a commit data error");
@@ -1624,13 +1625,13 @@ void new_row_unbound() {
     Window window(grid, {360.0, 200.0});
     window.perform_layout();
     std::shared_ptr<DataGridView> fresh = make_control<DataGridView>(StableId("grid.new-row.fresh"));
-    require((*fresh).allow_user_to_add_rows() && (*fresh).allow_user_to_delete_rows.read(),
+    require((*fresh).allow_user_to_add_rows.read() && (*fresh).allow_user_to_delete_rows.read(),
             "adding and deleting rows are on by default, as in Windows Forms");
     (*fresh).set_columns(sample_columns());
     require((*fresh).row_count() == 1U && (*fresh).new_row_index() == row_at(0U),
             "a fresh grid with columns shows only the new row");
     require(!(*grid).new_row_index() && (*grid).row_count() == 3U, "no new row once turned off");
-    (*grid).set_allow_user_to_add_rows(true);
+    (*grid).allow_user_to_add_rows = true;
     window.perform_layout();
     require((*grid).new_row_index() == row_at(3U) && (*grid).row_count() == 4U,
             "the new row follows the last row");
@@ -1666,8 +1667,8 @@ void new_row_unbound() {
             "a toggle adds the row too");
     require((*grid).set_current_cell(cell_at(0U, 0U)) && !(*grid).cancel_row_edit() && (*grid).row_count() == 5U,
             "once left, the added row is kept");
-    require(throws<std::invalid_argument>(RemoveNewRow{grid.get()}), "the new row is not removed");
-    (*grid).set_allow_user_to_add_rows(false);
+    require(throws<std::out_of_range>(RemoveNewRow{grid.get()}), "the new row is not removed");
+    (*grid).allow_user_to_add_rows = false;
     require((*grid).row_count() == 4U && !(*grid).new_row_index(), "turning it off hides the new row");
 }
 
@@ -1680,13 +1681,13 @@ void new_row_bound() {
     BindingRecord::FieldMap first;
     first["Name"] = std::string("Ada");
     (*source).set_records({BindingRecord("person.1", first)});
-    (*grid).set_data_source(source);
-    (*grid).set_allow_user_to_add_rows(true);
+    (*grid).data_source = source;
+    (*grid).allow_user_to_add_rows = true;
     window.perform_layout();
     require((*grid).row_count() == 2U && (*grid).new_row_index() == row_at(1U), "a bound grid shows the new row");
     const DataGridViewRowId placeholder = (*grid).row_id(row_at(1U));
     require((*grid).set_current_cell(cell_at(1U, 1U)) && (*grid).begin_edit(), "edit the new row");
-    (*(*grid).editing_control()).set_text("Paris");
+    (*(*grid).editing_control()).text = "Paris";
     require((*grid).end_edit() && (*source).count() == 2U && (*source).records()[1].stable_id == placeholder.value &&
                 (*grid).cell_text(row_at(1U), 1U) == "Paris" && (*grid).row_count() == 3U,
             "the commit adds a record with the new row's ID and the value");
@@ -1724,7 +1725,7 @@ void deleting_rows() {
     BindingRecord::FieldMap fields;
     fields["Name"] = std::string("Ada");
     (*source).set_records({BindingRecord("p.1", fields), BindingRecord("p.2", fields)});
-    (*bound).set_data_source(source);
+    (*bound).data_source = source;
     (*bound).allow_user_to_delete_rows = true;
     bound_window.perform_layout();
     require(bound_window.request_focus(bound) && (*bound).set_current_cell(cell_at(0U, 0U)), "bound focus");
@@ -1777,7 +1778,7 @@ void error_text() {
     const std::vector<DataGridView::Cell> hidden = (*grid).realized_cells();
     const DataGridView::Cell* quiet = find_cell(hidden, 1U, 0U);
     require(quiet != nullptr && !(*quiet).parts.cell_error.present, "show_cell_errors hides the glyph");
-    (*grid).remove_row_at(row_at(1U));
+    (*grid).rows.erase(1U, 1U);
     require((*grid).row_count() == 2U && (*grid).cell_error_text(row_at(1U), 0U).empty(),
             "error text ends with its row");
 }
@@ -1885,7 +1886,7 @@ void cell_styles() {
                 (*grid).row_position(id("charlie")) == row_at(0U) &&
                 (*grid).cell_style(row_at(0U), 0U).padding && (*grid).row_default_cell_style(row_at(0U)).alignment,
             "sorting moves a row's and a cell's styles with the row");
-    (*grid).remove_row_at(row_at(0U));
+    (*grid).rows.erase(0U, 1U);
     require(!(*grid).row_default_cell_style(row_at(0U)).alignment, "a removed row's styles end with it");
 
     // Geometry: padding and alignment place the content part.
@@ -1910,11 +1911,11 @@ void cell_styles() {
 
 void formatting_and_parsing() {
     std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.format"));
-    (*grid).set_allow_user_to_add_rows(false);
+    (*grid).allow_user_to_add_rows = false;
     (*grid).set_columns({{.name = "price", .header_text = "Price", .value_kind = BindingValueKind::number},
                          {.name = "note", .header_text = "Note"}});
-    (*grid).add_row({.stable_id = {"a"}, .cells = {BindingValue{3.14159}, BindingValue{std::string("x")}}});
-    (*grid).add_row({.stable_id = {"b"}, .cells = {BindingValue{}, BindingValue{}}});
+    (*grid).rows.append({.stable_id = {"a"}, .cells = {BindingValue{3.14159}, BindingValue{std::string("x")}}});
+    (*grid).rows.append({.stable_id = {"b"}, .cells = {BindingValue{}, BindingValue{}}});
     Window window(grid, {360.0, 160.0});
     window.perform_layout();
     require((*grid).cell_text(row_at(0U), 0U) == "3.14159", "an unformatted number shows as it is");
@@ -1924,14 +1925,14 @@ void formatting_and_parsing() {
     require((*grid).cell_text(row_at(0U), 0U) == "3.14" && (*grid).cell_text(row_at(1U), 0U) == "(none)",
             "the style's fixed format and null value give the cell's text");
     require(window.request_focus(grid) && (*grid).set_current_cell(cell_at(0U, 0U)) && (*grid).begin_edit() &&
-                (*(*grid).editing_control()).text() == "3.14",
+                (*(*grid).editing_control()).text.read() == "3.14",
             "an edit begins with the formatted text");
     require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 0U) == BindingValue{3.14159},
             "an edit the user did not change stores nothing");
     require((*grid).set_current_cell(cell_at(1U, 0U)) && (*grid).set_current_cell(cell_at(0U, 0U)) &&
                 (*grid).begin_edit(),
             "edit the number again");
-    (*(*grid).editing_control()).set_text("(none)");
+    (*(*grid).editing_control()).text = "(none)";
     require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 0U) == BindingValue{-1.0},
             "the null value's text stores the data source null value");
 
@@ -1941,7 +1942,7 @@ void formatting_and_parsing() {
     require((*grid).set_current_cell(cell_at(1U, 0U)) && (*grid).set_current_cell(cell_at(0U, 0U)) &&
                 (*grid).begin_edit(),
             "edit the number under N2");
-    (*(*grid).editing_control()).set_text("1,234.5");
+    (*(*grid).editing_control()).text = "1,234.5";
     require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 0U) == BindingValue{1234.5} &&
                 (*grid).cell_text(row_at(0U), 0U) == "1,234.50",
             "grouped text stores the number it shows");
@@ -1952,7 +1953,7 @@ void formatting_and_parsing() {
     require((*grid).set_current_cell(cell_at(1U, 0U)) && (*grid).set_current_cell(cell_at(0U, 0U)) &&
                 (*grid).begin_edit(),
             "edit the number under P0");
-    (*(*grid).editing_control()).set_text("50 %");
+    (*(*grid).editing_control()).text = "50 %";
     require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 0U) == BindingValue{0.5},
             "a percent text stores its hundredth");
     (*grid).set_column_default_cell_style(0U, {.format = std::string("E2")});
@@ -1963,7 +1964,7 @@ void formatting_and_parsing() {
     SubscriptionToken parse_token = (*grid).cell_parsing().subscribe(ParseStar{});
     require((*grid).cell_text(row_at(0U), 1U) == "x" && formatted > 0, "cell_formatting is raised for cell text");
     require((*grid).set_current_cell(cell_at(0U, 1U)) && (*grid).begin_edit(), "edit the note");
-    (*(*grid).editing_control()).set_text("*");
+    (*(*grid).editing_control()).text = "*";
     require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 1U) == BindingValue{std::string("star")},
             "a cell_parsing handler gives the stored value");
 
@@ -2727,11 +2728,11 @@ void row_heights() {
     (*grid).set_row_height_at(row_at(0U), 30.0);
     require((*grid).sort(0U, DataGridViewSortDirection::ascending) && (*grid).row_height_at(row_at(2U)) == 30.0,
             "both own heights follow their rows");
-    (*grid).insert_row(row_at(0U), {.stable_id = {"delta"}, .cells = {BindingValue{std::string("Delta")}}});
+    (*grid).rows.insert(0U, {.stable_id = {"delta"}, .cells = {BindingValue{std::string("Delta")}}});
     require((*grid).row_height_at(row_at(0U)) == 22.0 && (*grid).row_height_at(row_at(2U)) == 50.0,
             "an inserted row has the default and shifts the others");
-    (*grid).remove_row_at(row_at(2U));
-    (*grid).insert_row(row_at(2U), {.stable_id = {"bravo"}, .cells = {BindingValue{std::string("Bravo")}}});
+    (*grid).rows.erase(2U, 1U);
+    (*grid).rows.insert(2U, {.stable_id = {"bravo"}, .cells = {BindingValue{std::string("Bravo")}}});
     require((*grid).row_height_at(row_at(2U)) == 22.0, "a removed row's height ends with it");
     changed.clear();
     (*grid).reset_row_height_at(row_at(3U));

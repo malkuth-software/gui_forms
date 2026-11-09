@@ -89,6 +89,7 @@ void test_field_names() {
     const std::vector<std::string_view> names{
         "text", "outline_style", "outline_colour", "outline_width", "outline_offset", "text_shadow",
         "font_family", "font_size",     "font_weight",   "font_style",     "letter_spacing",
+        "muted_text",  "glyph",         "default_outline_width", "default_outline_colour",
     };
     require(names.size() == recipe_field_count, "every recipe field is named");
     for (std::size_t index = 0U; index < names.size(); ++index) {
@@ -110,6 +111,10 @@ void test_compile() {
     on_part.selector.part = "label";
     on_part.recipe_fields.push_back(colour_field(RecipeField::text, green));
     sheet.rules.push_back(on_part);
+    ThemeRule on_part_outline = control_rule("on-part-outline", "pad");
+    on_part_outline.selector.part = "label";
+    on_part_outline.recipe_fields.push_back(number_field(RecipeField::outline_width, 2.0));
+    sheet.rules.push_back(on_part_outline);
     ThemeRule on_role = control_rule("on-role", "pad");
     on_role.selector.role = PartRole::label;
     on_role.recipe_fields.push_back(colour_field(RecipeField::text, green));
@@ -131,15 +136,17 @@ void test_compile() {
                 has_diagnostic(rules, RuleDiagnosticKind::recipe_field_invalid, "wide", "outline_width") &&
                 has_diagnostic(rules, RuleDiagnosticKind::recipe_field_invalid, "wide", "text_shadow"),
             "a field outside its range is dropped");
-    require(has_diagnostic(rules, RuleDiagnosticKind::recipe_field_on_part, "on-part", "text") &&
-                has_diagnostic(rules, RuleDiagnosticKind::recipe_field_on_part, "on-role", "text"),
-            "a rule naming a part or a role sets no recipe field");
-    require(has_diagnostic(rules, RuleDiagnosticKind::rule_empty, "on-part", {}),
+    require(has_diagnostic(rules, RuleDiagnosticKind::recipe_field_on_part, "on-role", "text") &&
+                !has_diagnostic(rules, RuleDiagnosticKind::recipe_field_on_part, "on-part", "text") &&
+                has_diagnostic(rules, RuleDiagnosticKind::recipe_field_on_part, "on-part-outline", "outline_width"),
+            "a rule naming a role sets no recipe field, one naming a part only its text colours");
+    require(has_diagnostic(rules, RuleDiagnosticKind::rule_empty, "on-role", {}) &&
+                has_diagnostic(rules, RuleDiagnosticKind::rule_empty, "on-part-outline", {}),
             "and a rule left with nothing is dropped");
     require(!has_diagnostic(rules, RuleDiagnosticKind::rule_empty, "kept", {}) &&
                 !has_diagnostic(rules, RuleDiagnosticKind::recipe_field_invalid, "wide", "outline_offset"),
             "a rule of recipe fields alone stands, and an initial declaration's value is not read");
-    require(rules.rule_count() == 2U, "the two rules that keep a field");
+    require(rules.rule_count() == 3U, "the three rules that keep a field");
 }
 
 // -- the cascade -----------------------------------------------------------------------
@@ -328,6 +335,31 @@ void test_resolve() {
             "forced high contrast keeps the floor");
 }
 
+// A part's own text colour (`::part(label) { color }`): Theme::resolve
+// with the part's name reads it over the control's; without the name, or
+// for another part, the control's stands.
+void test_part_text_colour() {
+    std::vector<ThemeRule> rules{};
+    ThemeRule control = control_rule("first", "first");
+    control.recipe_fields.push_back(colour_field(RecipeField::text, red));
+    rules.push_back(control);
+    ThemeRule label = control_rule("first-label", "first");
+    label.selector.part = "label";
+    label.recipe_fields.push_back(colour_field(RecipeField::text, blue));
+    label.recipe_fields.push_back(colour_field(RecipeField::glyph, green));
+    rules.push_back(label);
+    const std::unique_ptr<Fixture> fixture = make_fixture(rules);
+    const Theme& theme = (*(*fixture).window).theme();
+    const Labelled& first = *(*fixture).first;
+    const ControlVisualContext context = first.visual_context();
+    const AnatomyStateSet states{};
+    const ResolvedControlRecipe whole = theme.resolve(first, ControlVisualRole::button, context, states);
+    const ResolvedControlRecipe part = theme.resolve(first, ControlVisualRole::button, context, states, "label");
+    const ResolvedControlRecipe other = theme.resolve(first, ControlVisualRole::button, context, states, "face");
+    require(whole.recipe().text == red && other.recipe().text == red, "the control's text colour without the part");
+    require(part.recipe().text == blue && part.recipe().glyph == green, "the part's own text and glyph colours");
+}
+
 void test_states() {
     std::vector<ThemeRule> rules{};
     ThemeRule focused = control_rule("first-focus", "first");
@@ -414,6 +446,7 @@ int main() {
     test_cascade();
     test_floor();
     test_resolve();
+    test_part_text_colour();
     test_states();
     test_label_part();
     test_authored_colours();

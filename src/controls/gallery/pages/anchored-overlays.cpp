@@ -1,11 +1,14 @@
 #include "pages.hpp"
 
+#include "anchored-overlays_form.hpp"
+
 namespace gui_forms::gallery::pages {
 namespace {
 
 constexpr Size overlay_size{280.0, 200.0};
 
-// One AnchoredOverlayLayer, reopened from three anchors. The page owns the
+// The page demo/pages/anchored-overlays.form describes: one
+// AnchoredOverlayLayer, reopened from three anchors. The page owns the
 // placement policy as Values bound to a ChoiceGroup and CheckBoxes; a change
 // re-resolves an open overlay in place. Overlay lifetime (OverlayToken) and focus
 // containment (FocusScopeId) stay with the Window, as the layer's contract
@@ -15,18 +18,11 @@ public:
     AnchoredOverlaysPage(const std::shared_ptr<Surface>& body,
                        const std::shared_ptr<PageContext>& context) {
         static_cast<void>(context);
-        (*body).add_at(label("gallery.anchored-overlays.heading", "ANCHORED OVERLAYS", 22.0, 700,
-                             shell_blue_dark), {24.0, 18.0, 620.0, 34.0});
-        (*body).add_at(label("gallery.anchored-overlays.lead",
-                             "AnchoredOverlayLayer resolves one retained content subtree against a live anchor, flips when the preferred side cannot fit, clamps to the client margin and reports dismissal requests.",
-                             12.0, 400, muted), {26.0, 52.0, 920.0, 24.0});
-        build_options(body);
-        build_stage(body);
+        document_.initialize_component(*this);
+        mount_document(body);
+        build_options();
+        build_stage();
         build_overlay();
-        status_ = label("gallery.overlays.status",
-                        "Ready · open an overlay from any anchor; Tab stays inside until it closes",
-                        11.0, 600, green);
-        (*body).add_at(status_, {24.0, 600.0, 930.0, 26.0});
         on(alignment_.changed(), *this, &AnchoredOverlaysPage::on_placement_changed);
         on(above_.changed(), *this, &AnchoredOverlaysPage::on_placement_changed);
         on(flip_.changed(), *this, &AnchoredOverlaysPage::on_placement_changed);
@@ -35,92 +31,49 @@ public:
     }
 
 private:
-    void build_options(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> options = group(
-            "gallery.overlays.options", "Placement policy · Values drive the live overlay",
-            {930.0, 118.0});
-        (*body).add_at(options, {24.0, 88.0, 930.0, 118.0});
-        std::shared_ptr<ChoiceGroup> alignment = make_control<ChoiceGroup>(
-            StableId("gallery.overlays.alignment"));
-        (*alignment).set_style(page_style());
-        (*alignment).accessible_name = "Horizontal alignment";
-        (*alignment).set_items({{.id = 0, .label = "Near"}, {.id = 1, .label = "Center"},
-                                {.id = 2, .label = "Far"}});
-        (*alignment).bind(alignment_);
-        (*options).add_at(alignment, {22.0, 36.0, 300.0, 32.0});
-        add_option(options, "gallery.overlays.above", "Prefer above", above_, {340.0, 38.0, 150.0, 26.0});
-        add_option(options, "gallery.overlays.flip", "Allow vertical flip", flip_, {500.0, 38.0, 180.0, 26.0});
-        add_option(options, "gallery.overlays.click-away", "Dismiss on click-away", click_away_,
-                   {690.0, 38.0, 210.0, 26.0});
-        add_option(options, "gallery.overlays.escape", "Dismiss on Escape", escape_,
-                   {22.0, 76.0, 200.0, 26.0});
-        (*options).add_at(label("gallery.overlays.options.note",
-                                "Changes apply to an open overlay immediately; the layer also re-resolves on host resize.",
-                                10.0, 400, muted), {340.0, 78.0, 560.0, 22.0});
+    // The document binds the option Values (FD-6).
+    template <typename> friend class gui_forms::gallery::pages::AnchoredOverlaysDocument;
+
+    // The overlay's content is the document's last child: it leaves the
+    // root before the rest move into the page body, and the layer takes it.
+    void mount_document(const std::shared_ptr<Surface>& body) {
+        Control& root = *document_.gallery_overlays_document;
+        static_cast<void>(root.remove_child((*document_.gallery_overlays_content).runtime_id()));
+        mount_form_children(root, *body);
+        (*document_.gallery_overlays_options).set_style(page_style());
+        (*document_.gallery_overlays_stage).set_style(page_style());
     }
 
-    void add_option(const std::shared_ptr<LayoutGroup>& options, const std::string_view id,
-                    const std::string_view text, Value<bool>& model, const Rect bounds) {
-        std::shared_ptr<CheckBox> check = make_control<CheckBox>(
-            StableId(std::string(id)), std::string(text));
-        (*check).set_indicator_style(ChoiceIndicatorStyle::modern);
-        (*check).bind(model);
-        (*options).add_at(check, bounds);
+    void build_options() {
+        ChoiceGroup& alignment = *document_.gallery_overlays_alignment;
+        alignment.set_style(page_style());
+        alignment.set_items({{.id = 0, .label = "Near"}, {.id = 1, .label = "Center"},
+                             {.id = 2, .label = "Far"}});
+        // The four check boxes bind their Values in the document (FD-6).
+        alignment.bind(alignment_);
     }
 
-    void build_stage(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> stage = group(
-            "gallery.overlays.stage", "Anchors · the overlay resolves against whichever opened it",
-            {930.0, 372.0});
-        (*body).add_at(stage, {24.0, 220.0, 930.0, 372.0});
-        const std::array<std::pair<std::string_view, Rect>, 3> anchors{{
-            {"Open near top-left", {22.0, 36.0, 200.0, 32.0}},
-            {"Open from the centre", {365.0, 170.0, 200.0, 32.0}},
-            {"Open near bottom-right", {708.0, 322.0, 200.0, 32.0}},
-        }};
+    void build_stage() {
+        const std::array<std::shared_ptr<Button>, 3> anchors{document_.gallery_overlays_anchor_0,
+                                                             document_.gallery_overlays_anchor_1,
+                                                             document_.gallery_overlays_anchor_2};
         for (std::size_t index = 0; index < anchors.size(); ++index) {
-            std::shared_ptr<Button> anchor = make_control<Button>(
-                StableId("gallery.overlays.anchor." + std::to_string(index)),
-                std::string(anchors[index].first));
+            const std::shared_ptr<Button>& anchor = anchors[index];
             (*anchor).set_style(page_style());
             (*anchor).expanded_state = false;
-            (*stage).add_at(anchor, anchors[index].second);
             on((*anchor).clicked(), *this, &AnchoredOverlaysPage::on_anchor_clicked,
                static_cast<int>(index));
             anchors_[index] = anchor;
         }
-        (*stage).add_at(label("gallery.overlays.stage.note",
-                              "The bottom-right anchor cannot fit the overlay below, so it flips above; with flipping disabled it keeps its height and is clamped inside the client margin instead.",
-                              10.0, 400, muted), {22.0, 84.0, 600.0, 22.0});
     }
 
     void build_overlay() {
-        content_ = make_control<Panel>(StableId("gallery.overlays.content"));
-        (*content_).set_background(paper);
+        content_ = document_.gallery_overlays_content;
+        static_cast<void>((*content_).add_class("paper"));
         (*content_).set_style(page_style());
-        (*content_).border_style = BorderStyle::raised;
-        (*content_).accessible_name = "Anchored overlay";
-        std::shared_ptr<Label> title = label("gallery.overlays.content.title",
-                                             "Anchored overlay · focus contained", 12.0, 700,
-                                             shell_blue_dark);
-        (*title).set_requested_bounds({14.0, 12.0, 250.0, 22.0});
-        (*content_).add_child(title);
-        field_ = make_control<TextBox>(StableId("gallery.overlays.field"));
-        (*field_).set_placeholder_text("Type here; Tab stays inside");
-        (*field_).accessible_name = "Overlay field";
-        (*field_).set_requested_bounds({14.0, 44.0, 250.0, 32.0});
-        (*content_).add_child(field_);
-        std::shared_ptr<Label> note = label("gallery.overlays.content.note",
-                                            "Click away or press Escape to request dismissal.",
-                                            10.0, 400, muted);
-        (*note).set_requested_bounds({14.0, 86.0, 250.0, 22.0});
-        (*content_).add_child(note);
-        std::shared_ptr<Button> close = make_control<Button>(
-            StableId("gallery.overlays.close"), "Close");
-        (*close).set_style(page_style());
-        (*close).set_requested_bounds({14.0, 146.0, 110.0, 32.0});
-        (*content_).add_child(close);
-        on((*close).clicked(), *this, &AnchoredOverlaysPage::on_close_clicked);
+        (*document_.gallery_overlays_close).set_style(page_style());
+        field_ = document_.gallery_overlays_field;
+        on((*document_.gallery_overlays_close).clicked(), *this, &AnchoredOverlaysPage::on_close_clicked);
 
         layer_ = make_control<AnchoredOverlayLayer>(StableId("gallery.overlays.layer"), anchors_[0],
                                                   placement());
@@ -150,9 +103,9 @@ private:
         const Size client = (*window).client_size();
         (*layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
         (*layer_).set_anchor(anchor.shared_from_this());
-        (*layer_).set_placement(placement());
-        (*layer_).set_dismiss_on_click_away(click_away_.get());
-        (*layer_).set_dismiss_on_escape(escape_.get());
+        (*layer_).placement = placement();
+        (*layer_).dismiss_on_click_away = click_away_.get();
+        (*layer_).dismiss_on_escape = escape_.get();
         token_ = (*window).open_overlay(anchor.shared_from_this(), layer_);
         scope_ = (*window).begin_focus_scope(layer_, field_);
         anchor.expanded_state = true;
@@ -164,14 +117,14 @@ private:
 
     void on_dismiss_requested(const OverlayDismissReason reason) {
         close_overlay();
-        (*status_).set_text(reason == OverlayDismissReason::click_away
+        (*document_.gallery_overlays_status).text = std::string(reason == OverlayDismissReason::click_away
                                 ? "Dismissed by click-away · the press did not fall through to the page"
                                 : "Dismissed by Escape · intercepted before the focused field");
     }
 
     void on_close_clicked() {
         close_overlay();
-        (*status_).set_text("Closed by its button · focus restored to the anchor");
+        (*document_.gallery_overlays_status).text = "Closed by its button · focus restored to the anchor";
     }
 
     // The Window may revoke the overlay itself (for example when its owner is
@@ -199,23 +152,23 @@ private:
 
     void on_placement_changed() {
         if (!open()) {
-            (*status_).set_text("Placement policy retained · it applies when the next overlay opens");
+            (*document_.gallery_overlays_status).text = "Placement policy retained · it applies when the next overlay opens";
             return;
         }
-        (*layer_).set_placement(placement());
+        (*layer_).placement = placement();
         report("Placement re-resolved while open");
     }
 
     void on_click_away_changed(const bool enabled) {
-        (*layer_).set_dismiss_on_click_away(enabled);
-        (*status_).set_text(enabled ? "Click-away requests dismissal"
-                                    : "Click-away is swallowed; use Escape or the Close button");
+        (*layer_).dismiss_on_click_away = enabled;
+        (*document_.gallery_overlays_status).text = enabled ? "Click-away requests dismissal"
+                                    : "Click-away is swallowed; use Escape or the Close button";
     }
 
     void on_escape_changed(const bool enabled) {
-        (*layer_).set_dismiss_on_escape(enabled);
-        (*status_).set_text(enabled ? "Escape requests dismissal"
-                                    : "Escape reaches the focused field instead");
+        (*layer_).dismiss_on_escape = enabled;
+        (*document_.gallery_overlays_status).text = enabled ? "Escape requests dismissal"
+                                    : "Escape reaches the focused field instead";
     }
 
     // The public resolver is deterministic, so the status can state the
@@ -232,19 +185,20 @@ private:
                            std::to_string(static_cast<int>(resolved.bounds.y));
         if (resolved.width_clamped) text += " · width clamped";
         if (resolved.height_clamped) text += " · height clamped";
-        (*status_).set_text(std::move(text));
+        (*document_.gallery_overlays_status).text = std::move(text);
     }
 
     std::array<std::shared_ptr<Button>, 3> anchors_;
     std::shared_ptr<Panel> content_;
     std::shared_ptr<TextBox> field_;
     std::shared_ptr<AnchoredOverlayLayer> layer_;
-    std::shared_ptr<Label> status_;
     Value<int> alignment_{0};
     Value<bool> above_{false};
     Value<bool> flip_{true};
     Value<bool> click_away_{true};
     Value<bool> escape_{true};
+    // Declared after the Values its controls bind, so it is released first.
+    AnchoredOverlaysDocument<AnchoredOverlaysPage> document_{};
     OverlayToken token_;
     FocusScopeId scope_;
     int open_anchor_{-1};

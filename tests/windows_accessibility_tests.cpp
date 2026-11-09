@@ -59,11 +59,11 @@ struct Ready {
         AccessibleOwner coordinate; coordinate.value = named(*root.value, L"Canvas X");
         require(coordinate.value, "numeric control named in tree");
         BSTR value = SysAllocString(L"37"); HRESULT status = (*coordinate.value).put_accValue(self(), value); SysFreeString(value);
-        require(status == S_OK && (*number).value() == 37, "MSAA numeric value changes retained control");
+        require(status == S_OK && (*number).value.read() == 37, "MSAA numeric value changes retained control");
         AccessibleOwner textbox; textbox.value = named(*root.value, L"Artwork text");
         require(textbox.value, "text control named in tree");
         value = SysAllocString(L"مرحبا ABC"); status = (*textbox.value).put_accValue(self(), value); SysFreeString(value);
-        require(status == S_OK && (*text).text() == "مرحبا ABC", "MSAA Unicode edit keeps original UTF-8 text");
+        require(status == S_OK && (*text).text.read() == "مرحبا ABC", "MSAA Unicode edit keeps original UTF-8 text");
         LONG x = 0, y = 0, width = 0, height = 0;
         require(SUCCEEDED((*coordinate.value).accLocation(&x, &y, &width, &height, self())) && width > 0 && height > 0,
             "native accessibility reports screen geometry");
@@ -93,13 +93,18 @@ struct Ready {
         require((*tab.value).get_accDefaultAction(self(), &action) == S_OK && action && wcscmp(action, L"Select") == 0,
             "a tab's default action is select");
         SysFreeString(action);
-        require(SUCCEEDED((*tab.value).accDoDefaultAction(self())) && (*tabs).selected_index() == 1U,
+        require(SUCCEEDED((*tab.value).accDoDefaultAction(self())) && (*tabs).selected_index.read() == 1U,
             "the default action selects the tab");
         require(handle.request_close().accepted(), "fixture closes");
     }
 };
 }
 int main() {
+    // The program's application (APP_WINDOW_RULES_DESIGN A.2): windows made
+    // from here join it, and it runs them.
+    ApplicationCreateResult created = Application::create(ApplicationConfig{});
+    if (!created) return 1;
+    Application& application = *created.application;
     try {
         std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
         std::shared_ptr<Button> button = make_control<Button>(StableId("button"), "Draw mark");
@@ -116,7 +121,7 @@ int main() {
         (*details).accessible_name = "Details page"; (*tabs).add_page(details);
         Probe probe; SubscriptionToken token = (*button).clicked().subscribe(Delegate<ButtonBase&>::bind<Probe, &Probe::clicked>(probe));
         ApplicationWindowOptions options; options.title = "GUI.Forms accessibility fixture"; options.ready = Ready{&probe, number, text, tabs};
-        const ApplicationResult result = Application::run(std::make_unique<gui_forms::Window>(root, Size{400, 300}), options);
+        const ApplicationResult result = application.run(std::make_unique<gui_forms::Window>(root, Size{400, 300}), options);
         if (result.callback_exception) { std::rethrow_exception(result.callback_exception); }
         require(result.accepted(), "native fixture completed");
         BSTR name = nullptr;

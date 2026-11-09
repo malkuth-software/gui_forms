@@ -117,10 +117,10 @@ void measure(ProbeMetrics& provider, const std::string_view name,
              const std::string& text, const Rect requested) {
     const std::shared_ptr<Label> label = make_control<Label>(StableId("probe.label"), text);
     (*label).set_requested_bounds(requested);
-    (*label).set_font({FontRole::content, 13.0, 400, false});
-    (*label).set_use_mnemonic(false);
-    (*label).set_text_wrapping(TextWrapping::word);
-    (*label).set_maximum_lines(7U);
+    (*label).font = {FontRole::content, 13.0, 400, false};
+    (*label).use_mnemonic = false;
+    (*label).text_wrapping = TextWrapping::word;
+    (*label).maximum_lines = 7U;
     // The caller's provider owns fonts and outlives this borrowed registration.
     Window window(label, {190.0, 108.0});
     window.set_text_metrics_provider(&provider);

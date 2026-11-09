@@ -1,6 +1,7 @@
 #include "linux_host_internal.hpp"
 #include "../../../core/host/frame_capture/frame_capture.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
+#include "../../../core/application/splashscreen_surface.hpp"
 #include "../../posix/fonts/sealed_pages_posix.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/text/types/text_types.hpp"
@@ -9,6 +10,8 @@
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
+#include <X11/extensions/Xfixes.h>
+#include <X11/extensions/shapeconst.h>
 #include <algorithm>
 #include <bit>
 #include <chrono>
@@ -71,6 +74,26 @@ bool window_state_hidden(NativeWindow& window) {
 }
 // True when the window manager holds the window full screen or maximized
 // (_NET_WM_STATE); a size request would fight it.
+// True when the window manager holds the window full screen
+// (_NET_WM_STATE_FULLSCREEN).
+bool window_state_full_screen(NativeWindow& window) {
+  Atom type{};
+  int format{};
+  unsigned long count{}, remaining{};
+  unsigned char* data = nullptr;
+  bool full_screen = false;
+  if (XGetWindowProperty(window.runtime.display, window.xid, window.runtime.atom("_NET_WM_STATE"),
+                         0, 64, False, XA_ATOM, &type, &format, &count, &remaining,
+                         &data) == Success && type == XA_ATOM && format == 32) {
+    const Atom fullscreen = window.runtime.atom("_NET_WM_STATE_FULLSCREEN");
+    const Atom* atoms = reinterpret_cast<const Atom*>(data);
+    for (unsigned long index = 0; index < count; ++index) {
+      if (atoms[index] == fullscreen) full_screen = true;
+    }
+  }
+  if (data != nullptr) XFree(data);
+  return full_screen;
+}
 bool window_state_fixed(NativeWindow& window) {
   Atom type{};
   int format{};
@@ -553,14 +576,6 @@ struct WriteText final {
     return (*(*window).services).write_clipboard_text(text);
   }
 };
-struct Tooltip final {
-  HostServiceStatus operator()(const HostTooltipRequest &) const {
-    return {HostServiceError::unsupported};
-  }
-};
-struct NoOperation final {
-  void operator()() const {}
-};
 } // namespace
 void Wake::operator()() const noexcept {
   const char byte = 1;
@@ -648,6 +663,11 @@ Runtime::~Runtime() {
 Atom Runtime::atom(const char *name) const {
   return XInternAtom(display, name, False);
 }
+double Runtime::double_click_distance() const noexcept {
+  if (!input_settings)
+    return default_double_click_distance;
+  return (*input_settings).double_click_distance();
+}
 std::uint32_t Runtime::double_click_milliseconds() const noexcept {
   if (!input_settings)
     return default_double_click_milliseconds;
@@ -658,7 +678,8 @@ void Runtime::report_input_settings() {
   if (!input_settings)
     return;
   const HostInputSettingsEvent input{(*input_settings).double_click_milliseconds(),
-                                     (*input_settings).double_click_origin()};
+                                     (*input_settings).double_click_origin(),
+                                     (*input_settings).pointer_settings()};
   const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
   for (std::size_t i = 0; i < snapshot.size(); ++i)
     if ((*snapshot[i]).session)
@@ -717,18 +738,26 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
   const X11ArgbVisual &argb_visual = (*runtime.compositor).argb();
   // A window declared non-opaque gets the ARGB visual, which is fixed at
   // creation (PLAN.md §1.3): its own colormap, and border and background
-  // pixels 0, without which the server answers BadMatch.
-  if ((*entry.model).non_opaque_declared() && argb_visual.found) {
+  // pixels 0, without which the server answers BadMatch. A popup or Splash
+  // takes it only while a compositing manager runs; without one it is
+  // opaque on the default visual, made override-redirect by mark_transient
+  // (owner, 2026-11-08: Q-S2 (b)).
+  const bool translucent_transient =
+      !entry.popup.has_value() || (*runtime.compositor).compositor_present();
+  if ((*entry.model).non_opaque_declared() && argb_visual.found && translucent_transient) {
     colormap = XCreateColormap(runtime.display, RootWindow(runtime.display, screen),
                                argb_visual.visual, AllocNone);
     XSetWindowAttributes attributes{};
     attributes.colormap = colormap;
     attributes.border_pixel = 0UL;
     attributes.background_pixel = 0UL;
+    // A popup or Splash (SPLASH_STUDY D5 (b)) is placed and stacked by the
+    // program, never decorated or moved by a window manager.
+    attributes.override_redirect = entry.popup.has_value() ? True : False;
     xid = XCreateWindow(runtime.display, RootWindow(runtime.display, screen), 60, 60,
                         static_cast<unsigned>(size.width), static_cast<unsigned>(size.height), 0,
                         argb_visual.depth, InputOutput, argb_visual.visual,
-                        CWColormap | CWBorderPixel | CWBackPixel, &attributes);
+                        CWColormap | CWBorderPixel | CWBackPixel | CWOverrideRedirect, &attributes);
     visual = argb_visual.visual;
     depth = argb_visual.depth;
     alpha_mask = argb_visual.alpha_mask;
@@ -776,6 +805,8 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
   wm.flags = InputHint;
   wm.input = True;
   XSetWMHints(runtime.display, xid, &wm);
+  if (entry.popup.has_value())
+    mark_transient(*entry.popup);
   utility = entry.tool_window || entry.floating != HostWindowFloating::none;
   if (utility) {
     // Set while unmapped, so the window manager reads them when it first
@@ -812,6 +843,34 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
                                           services.get());
   closing_token = (*session).closing().subscribe(Closing{this});
 }
+// Types a popup or Splash window for the compositing manager (EWMH
+// _NET_WM_WINDOW_TYPE: a tooltip, a splash screen, a popup menu) and gives a
+// Splash an empty input shape (XFixes, ShapeInput), so the pointer passes
+// through it to the windows beneath. Never focused: the input hint is off.
+void NativeWindow::mark_transient(const HostPopupPlacement &popup) {
+  const char *type_name = "_NET_WM_WINDOW_TYPE_POPUP_MENU";
+  if (popup.kind == HostTransientKind::tool_tip)
+    type_name = "_NET_WM_WINDOW_TYPE_TOOLTIP";
+  if (popup.kind == HostTransientKind::splashscreen)
+    type_name = "_NET_WM_WINDOW_TYPE_SPLASH";
+  XSetWindowAttributes attributes{};
+  attributes.override_redirect = True;
+  XChangeWindowAttributes(runtime.display, xid, CWOverrideRedirect, &attributes);
+  const Atom type = runtime.atom(type_name);
+  XChangeProperty(runtime.display, xid, runtime.atom("_NET_WM_WINDOW_TYPE"),
+                  XA_ATOM, 32, PropModeReplace,
+                  reinterpret_cast<const unsigned char *>(&type), 1);
+  XWMHints wm{};
+  wm.flags = InputHint;
+  wm.input = False;
+  XSetWMHints(runtime.display, xid, &wm);
+  if (!host_transient_is_splash(popup.kind))
+    return;
+  const XserverRegion empty = XFixesCreateRegion(runtime.display, nullptr, 0);
+  XFixesSetWindowShapeRegion(runtime.display, xid, ShapeInput, 0, 0, empty);
+  XFixesDestroyRegion(runtime.display, empty);
+}
+
 NativeWindow::~NativeWindow() {
   (*entry.model).set_dispatch_wake_handler({});
   (*entry.model).set_paint_wake_handler({});
@@ -844,15 +903,24 @@ void NativeWindow::report_compositor_state() {
   compositor_generation = next;
   static_cast<void>(dispatch(HostCompositorEvent{state}));
 }
+void NativeWindow::report_window_state() {
+  const bool full_screen = fallback_fullscreen || window_state_full_screen(*this);
+  if (window_state_reported && reported_full_screen == full_screen) return;
+  if (!dispatch(HostWindowStateEvent{full_screen}).accepted()) return;
+  window_state_reported = true;
+  reported_full_screen = full_screen;
+}
 void NativeWindow::attach() {
   (*entry.model).set_dispatch_wake_handler(Wake{runtime.wake_pipe[1]});
   (*entry.model).set_paint_wake_handler(Wake{runtime.wake_pipe[1]});
   if (!dispatch(HostAttachEvent{size, 1.0}).accepted())
     throw std::runtime_error("Linux host attach rejected");
   report_compositor_state();
+  report_window_state();
   if (runtime.input_settings) {
     const HostInputSettingsEvent input{(*runtime.input_settings).double_click_milliseconds(),
-                                       (*runtime.input_settings).double_click_origin()};
+                                       (*runtime.input_settings).double_click_origin(),
+                                       (*runtime.input_settings).pointer_settings()};
     static_cast<void>(dispatch(input));
   }
   accessibility = std::make_unique<LinuxAccessibility>(runtime.display, xid, *entry.model, entry.options.title);
@@ -866,8 +934,7 @@ void NativeWindow::ready() {
                                   ActionKind::close};
   if (entry.options.host_ready)
     entry.options.host_ready(Wake{runtime.wake_pipe[1]}, close_window,
-                             Dialog{this}, Tooltip{}, NoOperation{},
-                             ReadText{this}, WriteText{this});
+                             Dialog{this}, ReadText{this}, WriteText{this});
   if (entry.options.full_screen_ready)
     entry.options.full_screen_ready(WindowAction{
         weak_from_this(), runtime.actions, ActionKind::fullscreen});
@@ -953,6 +1020,8 @@ void NativeWindow::action(ActionKind kind) {
       XMapRaised(runtime.display, xid);
       if (fallback_fullscreen)
         XSetInputFocus(runtime.display, xid, RevertToParent, CurrentTime);
+      // No window manager reports the fallback: the host does.
+      report_window_state();
       return;
     }
     XEvent event{};
@@ -1043,6 +1112,7 @@ void NativeWindow::event(XEvent &event) {
     if (runtime.windowing)
       (*runtime.windowing)
           .report_minimized(window_id, window_state_hidden(*this));
+    report_window_state();
     return;
   }
   if (event.type == FocusIn || event.type == FocusOut) {
@@ -1097,30 +1167,32 @@ void NativeWindow::event(XEvent &event) {
                                button == 4   ? 40.0
                                : button == 5 ? -40.0
                                              : 0.0};
+        // Forty logical pixels a notch.
+        pointer.wheel_unit = WheelDeltaUnit::pixels;
       } else {
         pointer.action =
             event.type == ButtonPress ? PointerAction::down : PointerAction::up;
         pointer.button = button == 1   ? PointerButton::primary
                          : button == 3 ? PointerButton::secondary
                                        : PointerButton::middle;
+        // X reports no click count: count it from the desktop's
+        // double-click time and distance (linux_input_rules.hpp). A
+        // release carries the count of the press it ends.
         if (event.type == ButtonPress) {
-          const double dx = pointer.position.x - last_click_position.x,
-                       dy = pointer.position.y - last_click_position.y;
-          click_count = button == last_click_button &&
-                                event.xbutton.time - last_click <
-                                    runtime.double_click_milliseconds() &&
-                                dx * dx + dy * dy < 25
-                            ? click_count % 3 + 1
-                            : 1;
-          last_click = event.xbutton.time;
-          last_click_button = button;
-          last_click_position = pointer.position;
+          static_cast<void>(next_click_count(
+              click_history, button, static_cast<std::uint32_t>(event.xbutton.time),
+              pointer.position, runtime.double_click_milliseconds(),
+              runtime.double_click_distance()));
         }
-        pointer.click_count = click_count;
+        pointer.click_count = click_history.count;
       }
     }
     pointer.modifiers = modifiers(state);
     static_cast<void>(dispatch(pointer));
+    // X has no context-menu event: the desktop convention is the right
+    // button's press, which the host reports after the press itself.
+    if (pointer.action == PointerAction::down && pointer.button == PointerButton::secondary)
+      static_cast<void>(dispatch(HostContextRequestEvent{ContextRequestOrigin::pointer, pointer.position}));
     const Control::Ptr captured = (*entry.model).captured_control();
     const Control::Ptr target = captured ? captured : (*entry.model).hit_test(pointer.position);
     static_cast<void>((*services).set_custom_cursor(
@@ -1144,6 +1216,14 @@ void NativeWindow::event(XEvent &event) {
       key.physical_key = key_usage(symbol);
     key.modifiers = modifiers(event.xkey.state);
     const HostDispatchResult result = dispatch(key);
+    // The Menu key and Shift+F10 the window left unhandled ask for a
+    // context menu (the desktop convention, emulated: X has no such event).
+    const bool context_key = event.type == KeyPress && !result.handled && !key.repeat &&
+                             requests_keyboard_context(key.physical_key, key.modifiers);
+    if (context_key) {
+      static_cast<void>(dispatch(HostContextRequestEvent{ContextRequestOrigin::keyboard, Point{}}));
+      return;
+    }
     if (event.type == KeyPress && !result.handled &&
         (event.xkey.state & (ControlMask | Mod1Mask | Mod4Mask)) == 0) {
       std::vector<char> bytes(128);
@@ -1580,8 +1660,13 @@ HostServiceStatus NativeWindow::request_frame(Rect content) {
   XFlush(runtime.display);
   return {};
 }
+#include "linux_splashscreen.inc"
 } // namespace gui_forms::host::linux_detail
 namespace gui_forms::host {
+std::unique_ptr<gui_forms::detail::SplashscreenSurface> open_platform_splashscreen(const Size size) {
+  std::unique_ptr<gui_forms::detail::SplashscreenSurface> surface = linux_detail::open_x11_splashscreen(size);
+  return surface;
+}
 // accessibility: ATK/AT-SPI publication of the semantic tree, including
 // AtkText, verified by the AT-SPI client tests over a fixture and the
 // Gallery (stage A). ATK is a required dependency of this host.
@@ -1600,7 +1685,10 @@ HostCapabilities linux_capabilities() {
               HostCapability::screen_pointer | HostCapability::window_at_point |
               HostCapability::window_ordering |
               HostCapability::transparent_windows |
-              HostCapability::compositor_notifications,
+              HostCapability::compositor_notifications |
+              HostCapability::transient_surfaces |
+              HostCapability::opaque_transient_surfaces |
+              HostCapability::window_state_reports,
           // X11 desktops follow the PC keyboard convention.
           pc_key_map()};
 }

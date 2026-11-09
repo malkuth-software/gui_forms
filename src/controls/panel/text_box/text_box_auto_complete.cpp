@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -73,6 +74,8 @@ void release_overlay(detail::TextBoxAutoCompleteSession& session, OverlayRelease
     session.dismissal.disconnect();
     if (release == OverlayRelease::close) session.revocation.disconnect();
     session.collection_change.disconnect();
+    session.lift_closed.disconnect();
+    session.lift.release();
     if (release == OverlayRelease::close) session.token.disconnect();
     session.list.reset();
     session.layer.reset();
@@ -80,6 +83,16 @@ void release_overlay(detail::TextBoxAutoCompleteSession& session, OverlayRelease
 
 // Each suggestion's typed prefix, highlighted in the list: a prefix match
 // is the typed text's bytes from the start.
+// The list's size under `anchor_width`: the visible rows of `row_height`
+// (already scaled) and the border, at least 80 wide.
+Size auto_complete_list_size(const detail::TextBoxAutoCompleteSession& session, const double anchor_width,
+                             const double row_height) {
+    const std::size_t rows = std::min(auto_complete_visible_rows, session.suggestions.size());
+    const double height = static_cast<double>(rows) * row_height + 4.0;
+    const Size size{std::max(anchor_width, 80.0), height};
+    return size;
+}
+
 std::vector<TextMatchRange> prefix_matches(std::size_t count, std::size_t typed_bytes) {
     const TextMatchRange match{.offset = 0U, .length = typed_bytes};
     std::vector<TextMatchRange> matches(count, match);
@@ -88,47 +101,53 @@ std::vector<TextMatchRange> prefix_matches(std::size_t count, std::size_t typed_
 
 } // namespace
 
-void TextBox::set_auto_complete_mode(AutoCompleteMode mode) {
+// The auto-complete settings: a change ends any completion in progress.
+void TextBox::prepare_write(const decltype(auto_complete_mode)&, AutoCompleteMode&) {
     require_mutable();
-    if (auto_complete_mode_ == mode) return;
+}
+
+void TextBox::written(const decltype(auto_complete_mode)&) {
     end_auto_complete(false);
-    auto_complete_mode_ = mode;
     invalidate(Dirty::semantics);
 }
 
-void TextBox::set_auto_complete_source(AutoCompleteSource source) {
+void TextBox::prepare_write(const decltype(auto_complete_source)&, AutoCompleteSource& incoming) {
     require_mutable();
-    if (source == AutoCompleteSource::list_items) {
+    if (incoming == AutoCompleteSource::list_items) {
         throw std::invalid_argument(
             "TextBox auto-complete has no list items; use custom_source");
     }
-    if (auto_complete_source_ == source) return;
+}
+
+void TextBox::written(const decltype(auto_complete_source)&) {
     end_auto_complete(false);
-    auto_complete_source_ = source;
     invalidate(Dirty::semantics);
 }
 
-void TextBox::set_auto_complete_custom_source(std::shared_ptr<AutoCompleteStringCollection> source) {
+void TextBox::prepare_write(const decltype(auto_complete_custom_source)&,
+                            std::shared_ptr<AutoCompleteStringCollection>& incoming) {
     require_mutable();
-    if (!source) {
+    if (!incoming) {
         throw std::invalid_argument("TextBox auto-complete custom source may not be null");
     }
-    if (auto_complete_custom_source_ == source) return;
-    end_auto_complete(false);
-    auto_complete_custom_source_ = std::move(source);
 }
 
-void TextBox::set_auto_complete_case_sensitive(bool case_sensitive) {
-    require_mutable();
-    if (auto_complete_case_sensitive_ == case_sensitive) return;
+void TextBox::written(const decltype(auto_complete_custom_source)&) {
     end_auto_complete(false);
-    auto_complete_case_sensitive_ = case_sensitive;
+}
+
+void TextBox::prepare_write(const decltype(auto_complete_case_sensitive)&, bool&) {
+    require_mutable();
+}
+
+void TextBox::written(const decltype(auto_complete_case_sensitive)&) {
+    end_auto_complete(false);
 }
 
 HostServiceStatus TextBox::auto_complete_source_status() {
     HostServiceStatus status;
     const std::optional<HostAutoCompleteSource> host_source =
-        host_auto_complete_source(auto_complete_source_);
+        host_auto_complete_source(auto_complete_source.read());
     if (!host_source) return status;
     Window* const host = window();
     HostServices* const services = host != nullptr ? (*host).host_services() : nullptr;
@@ -170,8 +189,8 @@ void TextBox::close_auto_complete() {
 }
 
 bool TextBox::auto_complete_active() const noexcept {
-    const bool result = auto_complete_mode_ != AutoCompleteMode::none &&
-        auto_complete_source_ != AutoCompleteSource::none && !multiline_ &&
+    const bool result = auto_complete_mode.read() != AutoCompleteMode::none &&
+        auto_complete_source.read() != AutoCompleteSource::none && !multiline.read() &&
         !password_protected() && !(*editing_).read_only() && !(*editing_).has_edit_filter();
     return result;
 }
@@ -185,15 +204,15 @@ void TextBox::collect_auto_complete_candidates(std::string_view typed,
                                                std::vector<std::string>& matches) {
     matches.clear();
     if (typed.empty()) return;
-    if (auto_complete_source_ == AutoCompleteSource::custom_source) {
-        const std::span<const std::string> items = (*auto_complete_custom_source_).items();
+    if (auto_complete_source.read() == AutoCompleteSource::custom_source) {
+        const std::span<const std::string> items = (*auto_complete_custom_source.read()).items();
         for (const std::string& candidate : items) {
-            add_match(candidate, typed, auto_complete_case_sensitive_, matches);
+            add_match(candidate, typed, auto_complete_case_sensitive.read(), matches);
         }
         return;
     }
     const std::optional<HostAutoCompleteSource> host_source =
-        host_auto_complete_source(auto_complete_source_);
+        host_auto_complete_source(auto_complete_source.read());
     if (!host_source) return;
     Window* const host = window();
     HostServices* const services = host != nullptr ? (*host).host_services() : nullptr;
@@ -203,7 +222,7 @@ void TextBox::collect_auto_complete_candidates(std::string_view typed,
     const HostAutoCompleteResult result = (*services).query_auto_complete(request);
     if (!result.status.accepted()) return;
     for (const std::string& candidate : result.candidates_utf8) {
-        add_match(candidate, typed, auto_complete_case_sensitive_, matches);
+        add_match(candidate, typed, auto_complete_case_sensitive.read(), matches);
     }
 }
 
@@ -215,7 +234,7 @@ void TextBox::auto_complete_after_edit(TextEditKind kind, bool composing) {
         return;
     }
     detail::TextBoxAutoCompleteSession& session = auto_complete_session();
-    session.typed = std::string(text());
+    session.typed = std::string((*editing_).text());
     session.typed_selection = (*editing_).selection();
     session.highlighted.reset();
     session.shown = false;
@@ -224,7 +243,7 @@ void TextBox::auto_complete_after_edit(TextEditKind kind, bool composing) {
 
     const TextSelection typed_selection = (*editing_).selection();
     const bool caret_at_end = typed_selection.empty() && typed_selection.caret == (*editing_).store().utf8_size();
-    if (appends(auto_complete_mode_) && kind == TextEditKind::typing && caret_at_end) {
+    if (appends(auto_complete_mode.read()) && kind == TextEditKind::typing && caret_at_end) {
         const std::size_t typed_size = session.typed.size();
         for (const std::string& candidate : session.suggestions) {
             if (candidate.size() <= typed_size) continue;
@@ -235,8 +254,8 @@ void TextBox::auto_complete_after_edit(TextEditKind kind, bool composing) {
             const TextStore probe(completed);
             const Utf8Offset typed_end(typed_size);
             if (!probe.is_grapheme_boundary(typed_end)) continue;
-            const std::size_t maximum_length = (*editing_).maximum_length();
-            if (maximum_length != 0U && probe.scalar_count().value() > maximum_length) break;
+            const std::size_t length_limit = (*editing_).maximum_length();
+            if (length_limit != 0U && probe.scalar_count().value() > length_limit) break;
             const Utf8Offset completed_end(completed.size());
             show_completion_text(completed, TextSelection{.anchor = typed_end, .caret = completed_end});
             session.appended = true;
@@ -244,7 +263,7 @@ void TextBox::auto_complete_after_edit(TextEditKind kind, bool composing) {
             break;
         }
     }
-    if (suggests(auto_complete_mode_) && !session.suggestions.empty()) {
+    if (suggests(auto_complete_mode.read()) && !session.suggestions.empty()) {
         open_auto_complete_list();
     } else {
         close_auto_complete_list();
@@ -296,7 +315,7 @@ bool TextBox::auto_complete_key(const KeyEvent& event) {
             return true;
         }
         if (pending) {
-            std::string accepted(text());
+            std::string accepted((*editing_).text());
             accept_auto_complete(std::move(accepted));
             return true;
         }
@@ -383,10 +402,10 @@ void TextBox::open_auto_complete_list() {
     detail::TextBoxAutoCompleteSession& session = auto_complete_session();
     if (session.open) {
         session.synchronizing = true;
-        (*session.list).set_items(session.suggestions);
+        (*session.list).items = session.suggestions;
         (*session.list).set_matches(prefix_matches(session.suggestions.size(), session.typed.size()));
         (*session.list).clear_selection();
-        (*session.list).set_top_index(0U);
+        (*session.list).top_index = 0U;
         session.synchronizing = false;
         place_auto_complete_list();
         return;
@@ -401,13 +420,25 @@ void TextBox::open_auto_complete_list() {
         make_control<AnchoredOverlayLayer>(StableId(prefix + ".auto-complete"), anchor);
     std::shared_ptr<DropDownList> list = make_control<DropDownList>(StableId(prefix + ".auto-complete.list"));
     // The list never takes focus: typing stays in this box.
-    (*list).set_focusable(false);
+    (*list).focusable = false;
     (*list).set_paint_plane(PaintPlane::overlay);
-    (*list).set_font(font_);
-    (*list).set_items(session.suggestions);
+    (*list).font = font.read();
+    (*list).items = session.suggestions;
     (*list).set_matches(prefix_matches(session.suggestions.size(), session.typed.size()));
-    (*layer).set_content(list);
     OverlayToken token = (*window()).open_overlay(shared_from_this(), layer);
+    // In the picker Popup the list may reach past the owner onto the
+    // desktop; the box keeps the keys either way.
+    const Rect anchor_bounds = (*anchor).absolute_bounds();
+    const double row_height = (*list).item_height.read() * effective_text_scale();
+    const Size list_size = auto_complete_list_size(session, anchor_bounds.width, row_height);
+    const std::optional<Rect> face = drop_down_popup_face(*window(), anchor_bounds, list_size, anchor_bounds.x);
+    const bool lifted = face.has_value() && session.lift.lift(*window(), list, *face, PopupLiftInput::kept_by_owner);
+    if (lifted) {
+        session.lift_closed = (*window()).popup_window_closed().subscribe(*this,
+            Delegate<std::size_t>::bind<TextBox, &TextBox::auto_complete_popup_closed>(*this));
+    } else {
+        (*layer).set_content(list);
+    }
     session.layer = layer;
     session.list = list;
     session.token = std::move(token);
@@ -421,8 +452,8 @@ void TextBox::open_auto_complete_list() {
         session.revocation = (*closed).subscribe(*this,
             Delegate<>::bind<TextBox, &TextBox::auto_complete_overlay_revoked>(*this));
     }
-    if (auto_complete_source_ == AutoCompleteSource::custom_source) {
-        session.collection_change = (*auto_complete_custom_source_).changed().subscribe(*this,
+    if (auto_complete_source.read() == AutoCompleteSource::custom_source) {
+        session.collection_change = (*auto_complete_custom_source.read()).changed().subscribe(*this,
             Delegate<>::bind<TextBox, &TextBox::auto_complete_collection_changed>(*this));
     }
     session.open = true;
@@ -435,13 +466,17 @@ void TextBox::place_auto_complete_list() {
     detail::TextBoxAutoCompleteSession& session = auto_complete_session();
     if (!session.layer || !session.list) return;
     const Control::Ptr anchor = (*session.layer).anchor();
-    const double width = anchor ? (*anchor).absolute_bounds().width : absolute_bounds().width;
-    const std::size_t rows = std::min(auto_complete_visible_rows, session.suggestions.size());
-    const double row_height = (*session.list).item_height() * effective_text_scale();
-    const double height = static_cast<double>(rows) * row_height + 4.0;
+    const Rect anchor_bounds = anchor ? (*anchor).absolute_bounds() : absolute_bounds();
+    const double row_height = (*session.list).item_height.read() * effective_text_scale();
+    const Size list_size = auto_complete_list_size(session, anchor_bounds.width, row_height);
     AnchoredOverlayPlacement placement{};
-    placement.preferred_size = Size{std::max(width, 80.0), height};
-    (*session.layer).set_placement(placement);
+    placement.preferred_size = list_size;
+    (*session.layer).placement = placement;
+    if (session.lift.lifted() && window() != nullptr) {
+        const std::optional<Rect> face =
+            drop_down_popup_face(*window(), anchor_bounds, list_size, anchor_bounds.x);
+        if (face.has_value()) static_cast<void>(session.lift.move(*face));
+    }
 }
 
 void TextBox::close_auto_complete_list() {
@@ -503,6 +538,12 @@ void TextBox::auto_complete_overlay_revoked() {
     publish_change(auto_complete_open_changed_, false);
 }
 
+void TextBox::auto_complete_popup_closed(const std::size_t slot) {
+    detail::TextBoxAutoCompleteSession& session = auto_complete_session();
+    if (slot != Window::picker_popup_window_slot || !session.lift.lifted()) return;
+    end_auto_complete(false);
+}
+
 void TextBox::auto_complete_collection_changed() {
     detail::TextBoxAutoCompleteSession& session = auto_complete_session();
     if (!session.open) return;
@@ -524,7 +565,7 @@ void TextBox::auto_complete_collection_changed() {
         }
     }
     session.synchronizing = true;
-    (*session.list).set_items(session.suggestions);
+    (*session.list).items = session.suggestions;
     (*session.list).set_matches(prefix_matches(session.suggestions.size(), session.typed.size()));
     if (kept) {
         (*session.list).select_index(*kept);

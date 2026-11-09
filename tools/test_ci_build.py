@@ -70,16 +70,7 @@ def rule_expression(pattern: str) -> re.Pattern[str]:
 
 
 class CheckoutFileTests(unittest.TestCase):
-    """The GUI.Forms files the shared steps read: the fetch pins, the sanitizer job, the test labels."""
-
-    def test_the_fetch_script_pins_are_readable(self) -> None:
-        # If the pins stop matching the pattern the skip silently stops working.
-        script: str = (CHECKOUT / 'third_party/fetch_text_stack.sh').read_text(encoding='utf-8')
-        names: list[str] = []
-        pin: tuple[str, str]
-        for pin in ci_build_steps.PIN_PATTERN.findall(script):
-            names.append(pin[0])
-        self.assertEqual(names, ['harfbuzz', 'freetype'])
+    """The GUI.Forms files the shared steps read: the sanitizer job and the test labels."""
 
     def test_the_sanitizer_job_sets_the_variable_this_tool_reads(self) -> None:
         workflow: str = (CHECKOUT / '.github/workflows/native.yml').read_text(encoding='utf-8')

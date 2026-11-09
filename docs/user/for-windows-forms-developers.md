@@ -15,19 +15,25 @@ every Forms type to its GUI.Forms counterpart.
 | Garbage collection and `Dispose()` | `std::shared_ptr` ownership; `Component::dispose()` | A parent owns its children strongly and a child refers to its parent weakly. `dispose()` is synchronous and idempotent. See [Retained tree](retained-tree). |
 | `new Button()`, then `Controls.Add` | `make_control<Button>(StableId("ok"), "OK")`, then `add_child` | `remove_child(RuntimeId)` returns the detached child; a `shared_ptr` you hold keeps it alive. |
 | `Name` | `StableId`, required and immutable | Unique within a window, checked at attach time. It names the control in metrics, the semantic tree, automation and logs. `name()` is a separate mutable property. |
-| Properties (`button.Text = "OK"`) | Accessor pairs (`text()`, `set_text("OK")`) | Writing an equal value does nothing. Every actual change marks dirtiness and emits a typed change event. |
+| Properties (`button.Text = "OK"`) | Property cells: `(*button).text = "OK";`, read with `(*button).text.read()` | Writing an equal value does nothing. Every actual change marks dirtiness and emits a typed change event. There are no getter and setter pairs for properties. See [Properties](properties). |
 | `Click += handler` with `(sender, EventArgs)` | `on(button.clicked(), owner, &Owner::method)` | The owner is a `Component` that keeps the connection; disposing it disconnects the handler, so you never need `-=`. A handler accepts the leading part of the event's typed arguments, or none. |
+| `MouseDown`, `MouseUp`, `MouseMove`, `MouseWheel`, `MouseClick`, `MouseDoubleClick` with `MouseEventArgs` | `mouse_down()`, `mouse_up()`, `mouse_move()`, `mouse_wheel()`, `mouse_click()`, `mouse_double_click()` with `MouseEventArgs` | Same order as in Forms. `MouseEventArgs` has `button`, `clicks`, `location` (control coordinates), `window_position`, `wheel_delta` and `modifiers`. The host supplies `clicks`. See [Mouse events and context requests](mouse-events). |
+| `Click`, `DoubleClick` (on any control) | `click()`, `double_click()` | Raised on the release over the pressed control, as in Forms. `DoubleClick` comes on the second release. A button's `clicked()` is its activation, raised after `Click` and also by `perform_click()` and the keyboard. |
+| `MouseEnter`, `MouseHover`, `MouseLeave`, `MouseCaptureChanged` | `mouse_enter()`, `mouse_hover()`, `mouse_leave()`, `mouse_capture_changed()` | `MouseHover` is raised once per entry. On Windows it comes from `WM_MOUSEHOVER`; elsewhere it comes from the window's timer. |
+| `SetStyle(ControlStyles.StandardClick / StandardDoubleClick)`, `GetStyle` | `set_style(ControlStyles::standard_click / standard_double_click, on)`, `has_style` | Same meaning. A button clears `standard_double_click` and clicks for the primary button only. |
+| `ContextMenuStrip` property, `WM_CONTEXTMENU`, Shift+F10 | `context_menu_requested()` with `ContextMenuRequest`, or override `on_context_menu_requested` | Show your `ContextMenu` from the handler and set `handled`. Otherwise the request goes on to each ancestor. Each request has a pointer or keyboard origin. The Linux host emulates both kinds. |
+| `ProcessCmdKey` overrides for window-wide keys | A window rule: `window.rules()`, `trigger::key_pressed` | Rules run before the control route. A consuming rule ends the key. See [Rules](rules). |
 | `BeginInit` / `EndInit` | `begin_init()` / `end_init()` | During initialization each change event holds only its latest value and is published when the outermost `end_init()` runs. |
 | `SuspendLayout` / `ResumeLayout` / `PerformLayout` | `suspend_layout()` / `resume_layout(perform)` / `perform_layout()` | Per control, as in Forms. `Window::begin_update()` adds a window-wide `UpdateScope` that batches every kind of change, not only layout. See [Update scopes and dirtiness](update-scopes-and-dirtiness). |
 | `Invalidate()`, `Invalidate(Rectangle)`, `Refresh()`, `Update()` | `invalidate(Dirty)`, `invalidate(Rect)` | Invalidation says *what* changed: measure, arrange, paint, hit test, text, semantics. Invalidation never paints; the host paints the accumulated damage on its next frame. |
 | `OnPaint(PaintEventArgs)` and `Graphics` | Override `on_paint(Painter&, Rect local_damage)`, or use `DrawingSurface` | `Painter` is a renderer-neutral drawing vocabulary over a CPU rasterizer. See [Painting and damage](painting-and-damage). |
 | `Handle`, `CreateControl`, `WndProc` | None | Controls are not native windows. Only the top-level window is native, and reparenting a control creates nothing native. |
-| `Form` and `Application.Run(form)` | `Window` and `Application::run(window, options)` | `Window` is a complete model that also runs without a native window, which is how tests run. `ApplicationWindowOptions` carries the title, sizes and the `ready`, `closing` and `closed` callbacks. Up to 64 windows run in one host. |
+| `Form` and `Application.Run(form)` | The window class a `.form` document generates (a `Window` subclass), `Application::create(config)` and `application.run(std::make_unique<Form1>(model), options)`, which owns the window for the run | `Window` is a complete model that also runs without a native window, which is how tests run. The application compiles the program's theme once and every window it makes joins it. `ApplicationWindowOptions` carries the title, sizes and the `ready`, `closing` and `closed` callbacks. Up to 64 windows run in one host. |
 | `FormClosing` with `e.Cancel` | `closing(HostCloseRequest&)` with `cancel` | The request carries its `reason`. |
-| `AcceptButton`, `CancelButton`, `DialogResult` | `Window::set_accept_button`, `set_cancel_button`, `Button::set_dialog_result` | Return and Escape activate the targets when the focused control does not use the key. A button copies its result to the window after its click handlers run. Assigning a cancel button gives it `DialogResult::cancel` if it had none. |
-| `ShowDialog()` | No modal run loop for your own windows | The window's `dialog_result()` is retained state and closes nothing; act on `dialog_result_changed()`. Use an owned overlay (`AnchoredOverlayLayer`, `Window::open_overlay`) with a focus scope, or a second window. |
+| `AcceptButton`, `CancelButton`, `DialogResult` | `accept-button` and `cancel-button` on the form (`Window::set_accept_button`, `set_cancel_button` in code), `Button::set_dialog_result` | Return and Escape activate the targets when the focused control does not use the key. A button copies its result to the window after its click handlers run. Assigning a cancel button gives it `DialogResult::cancel` if it had none. |
+| `ShowDialog()` | No modal run loop for your own windows | The window's `dialog_result()` is retained state and closes nothing; act on `dialog_result_changed()`. Use an owned dialog panel (`TaskDialog`, shown as an overlay or in a Popup window), an overlay (`AnchoredOverlayLayer`, `Window::open_overlay`) with a focus scope, or a second window. See [Overlays, Popups and Splash](overlays-popups-and-splash). |
 | `MessageBox`, `OpenFileDialog`, `SaveFileDialog`, `FolderBrowserDialog`, `ColorDialog` | Typed requests to `Window::host_services()->show_dialog(...)` | Each request returns a typed result. A host that cannot show a dialog reports `unsupported`. |
-| `InvokeRequired`, `Invoke`, `BeginInvoke` | `invoke_required()`, `invoke`, `begin_invoke` | `begin_invoke` returns a `DispatchOperation` with explicit `cancel()`. A property write or setter called from the wrong thread on an attached control throws. There is no `DoEvents`. See [Threading](threading). |
+| `InvokeRequired`, `Invoke`, `BeginInvoke` | `invoke_required()`, `invoke`, `begin_invoke` | `begin_invoke` returns a `DispatchOperation` with explicit `cancel()`. A property write or other mutation called from the wrong thread on an attached control throws. There is no `DoEvents`. See [Threading](threading). |
 | `BackgroundWorker` | `Worker` and `CancellationFlag`, then `begin_invoke` | The worker never touches a control; it posts results to the UI thread. |
 | `System.Windows.Forms.Timer` | `Timer(Window&)` with `tick()` | Bound to one window and fires on its UI thread. |
 | `Dock`, `Anchor` | `dock = DockStyle::fill`, `anchor = AnchorStyles::top` (properties: assign to write, `.read()` to read) | Same values. The default anchor is top and left. Dock places children backmost first. |
@@ -40,36 +46,34 @@ every Forms type to its GUI.Forms counterpart.
 | `ListViewItem.ToolTipText`, `ListView.ShowItemToolTips`, `TreeNode.ToolTipText`, `TreeView.ShowNodeToolTips`, `TabControl.ShowToolTips` | None | GUI.Forms does not provide these members. Data items, such as list rows and tree nodes, have no tooltips. When an item's text is cut off, `ListView` (in the details and list views) and `TreeView` show the whole text in place while the pointer is over it. A tab header shows its `TabPage`'s own tooltip text, and empty text shows nothing. |
 | `AccessibleName`, `AccessibleDescription` | `accessible_name`, `accessible_description` | Optional. Every stock control already publishes a role, name and state. |
 | System fonts, visual styles, `SystemColors` | Bundled fonts and a `Theme` set on the window | GUI.Forms draws every control itself and never uses host fonts for control text. |
-| Designer, `InitializeComponent`, `.resx` | Code | Trees are built in C++. |
+| Designer, `InitializeComponent`, `.resx` | A `.form` document, generated at build time by `gui_forms_add_form` | The document is authoritative and round-trips byte for byte; the generated window class is disposable. Colours and fonts go in a theme package. See [Forms](forms) and [Converting an existing application](converting-an-app). |
 
 ### Example: accept and cancel buttons
 
+```text
+/* forms/confirm.form */
+form confirm.window {
+  text: "Confirm";
+  client-size: 400 140;
+  accept-button: confirm.ok;
+  cancel-button: confirm.cancel;   /* assigns DialogResult::cancel */
+
+  panel confirm.root {
+    button confirm.ok { text: "OK"; bounds: 200 96 88 32; anchor: bottom right; }
+    button confirm.cancel { text: "Cancel"; bounds: 296 96 88 32; anchor: bottom right; }
+  }
+}
+```
+
 ```cpp
+// gui_forms_add_form(my_app forms/confirm.form CLASS ConfirmWindow NAMESPACE my_app DERIVED)
 class Confirm final : public gf::Component {
 public:
-    Confirm() {
-        root = gf::make_control<gf::Panel>(gf::StableId("confirm"));
-        ok = gf::make_control<gf::Button>(gf::StableId("confirm.ok"), "OK");
-        cancel = gf::make_control<gf::Button>(gf::StableId("confirm.cancel"), "Cancel");
-        (*ok).set_bounds({200.0, 96.0, 88.0, 32.0});
-        (*cancel).set_bounds({296.0, 96.0, 88.0, 32.0});
-        (*ok).anchor = gf::AnchorStyles::bottom | gf::AnchorStyles::right;
-        (*cancel).anchor = gf::AnchorStyles::bottom | gf::AnchorStyles::right;
-        (*ok).set_dialog_result(gf::DialogResult::ok);
-        (*root).add_child(ok);
-        (*root).add_child(cancel);
-    }
-
-    // Accept and cancel targets must already belong to the window.
-    void attach(gf::Window& window) {
-        window.set_accept_button(ok);
-        window.set_cancel_button(cancel);  // assigns DialogResult::cancel
+    explicit Confirm(my_app::ConfirmWindow& window) {
+        (*window.confirm_ok).set_dialog_result(gf::DialogResult::ok);
         gf::on(window.dialog_result_changed(), *this, &Confirm::on_result);
     }
 
-    std::shared_ptr<gf::Panel> root{};
-    std::shared_ptr<gf::Button> ok{};
-    std::shared_ptr<gf::Button> cancel{};
     gf::DialogResult last_result{gf::DialogResult::none};
 
 private:
@@ -77,9 +81,8 @@ private:
     void on_result(gf::DialogResult result) { last_result = result; }
 };
 
-Confirm confirm{};
-gf::Window window(confirm.root, gf::Size{400.0, 140.0});
-confirm.attach(window);
+my_app::ConfirmWindow window{};   // binds nothing, so it takes no model
+Confirm confirm(window);          // declared after the window, so it ends first
 ```
 
 ## Type correspondence

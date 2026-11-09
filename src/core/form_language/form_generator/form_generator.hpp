@@ -6,8 +6,8 @@
 // shipped in the SDK.
 //
 // The generated header holds one class template over the owner class
-// (owner decision FD-3), whose member functions are the document's
-// handlers:
+// (owner decision FD-3), whose members are the sources the document binds
+// (owner rulings FD-6 R1 and R2):
 //
 //   template <typename Owner>
 //   class SettingsForm final {
@@ -21,18 +21,26 @@
 //   with '.' and '-' spelled '_' (settings.auto-save: settings_auto_save).
 //   A form root has no member; it is the window (see below).
 // - initialize_component makes every object in document order, adding each
-//   control to its parent as it is made, then sets each property in
-//   document order, then connects each handler in document order: the
-//   loader's order (form_loader.hpp). It builds a fresh instance and moves
-//   it into this one only once everything succeeded, so a throw leaves the
-//   form as it was.
-// - Handlers connect through Delegate::bind<Owner, &Owner::name>(owner),
-//   so a handler whose signature differs from its event's arguments does
-//   not compile. The form holds the connections: Owner must outlive the
-//   form, or the form be reinitialized or destroyed first.
-// - Properties are set through Control::set_property_value with the
-//   model's normalized value, the path the loader takes, so both paths set
-//   the same values.
+//   control to its parent as it is made, then sets or binds each property
+//   in document order: the loader's order (form_loader.hpp). It builds a
+//   fresh instance and moves it into this one only once everything
+//   succeeded, so a throw leaves the form as it was.
+// - A property on a capability (PropertyDescriptor::assignable_member) is
+//   assigned through its cell or view, `(*made.ok).text =
+//   gui_forms::assigned_property_value<decltype((*made.ok).text)>(value)`,
+//   and a child property through the parent's child view subscripted by
+//   the child (CLOSURE P-6). A property not yet migrated is set through
+//   Control::set_property_value (set_child_property_value), the loader's
+//   path. Both take the model's normalized value and convert it as the
+//   table write does, so both paths set the same values.
+// - A bound property is bound where a literal would be set, reading the
+//   owner's member: `gui_forms::bind_form_value<Kind>(..., owner.<source>,
+//   ...)` for a Value (one whose type does not carry the property's kind
+//   does not compile), `gui_forms::bind_form_field(...)` for a
+//   BindingSource field and `bind(owner.<source>)` for a Command. The
+//   controls keep their bindings, so the owner's sources must outlive them:
+//   declare the form after them. A form names no program code (FD-6 R6):
+//   the owner attaches behaviour itself.
 // - A form root adds window_title, window_client_size (when the document
 //   sets them) and attach_buttons(window), which gives a window the accept
 //   and cancel buttons.
@@ -62,6 +70,19 @@ struct FormGeneratorOptions final {
     std::string namespace_name{};
     // The document's name as the header's first comment cites it.
     std::string source_name{};
+    // Stage B (APP_WINDOW_RULES_DESIGN Part B): the class derives from the
+    // root's type instead of being a document over an owner. A form root
+    // gives a gui_forms::Window subclass whose constructors take the model
+    // (and, in an overload, the Application); a control root gives a
+    // subclass of its type made with make(model). Opt-in until the Gallery
+    // migrates.
+    bool derived{};
+    // The model a derived class binds: a `::`-separated name, required when
+    // the form binds (E812 otherwise).
+    std::string model_type{};
+    // The header that declares the model, included by the generated header
+    // when not empty (a path as an #include names it).
+    std::string model_header{};
 };
 
 enum class FormGenerateOutcome : std::uint8_t {

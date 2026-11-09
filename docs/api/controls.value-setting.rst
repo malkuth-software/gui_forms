@@ -15,6 +15,8 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
      - A box with a caption that the user checks and unchecks.
    * - :cpp:class:`RadioButton <gui_forms::RadioButton>`
      - A round button with a caption that the user selects from a group of exclusive options.
+   * - :cpp:class:`ToggleSwitch <gui_forms::ToggleSwitch>`
+     - A switch for a setting that takes effect as soon as it is turned, such as "Wi-Fi" on or off.
    * - :cpp:class:`RangeControl <gui_forms::RangeControl>`
      - The shared base of controls that show a number within a bounded range.
    * - :cpp:class:`TrackBar <gui_forms::TrackBar>`
@@ -39,6 +41,7 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
 
    generated/gui_forms.CheckBox
    generated/gui_forms.RadioButton
+   generated/gui_forms.ToggleSwitch
    generated/gui_forms.RangeControl
    generated/gui_forms.TrackBar
    generated/gui_forms.NumericUpDown
@@ -60,18 +63,62 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`CheckBox::States <gui_forms::CheckBox::States>`
      -  
+   * - :cpp:class:`CheckBoxAppearanceStyleCapability <gui_forms::CheckBoxAppearanceStyleCapability>`
+     - Normal or button (Appearance): only the visual projection changes.
+   * - :cpp:class:`CheckBoxAutoCheckCapability <gui_forms::CheckBoxAutoCheckCapability>`
+     - Whether activation advances the check state (AutoCheck).
+   * - :cpp:class:`CheckBoxCapabilities <gui_forms::CheckBoxCapabilities>`
+     - Every CheckBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`CheckBoxCheckedCapability <gui_forms::CheckBoxCheckedCapability>`
+     - Whether the box is checked (Checked); a view onto check_state: a write sets checked or unchecked.
+   * - :cpp:class:`CheckBoxCheckStateCapability <gui_forms::CheckBoxCheckStateCapability>`
+     - Unchecked, checked or indeterminate (CheckState); a view onto the check state.
+   * - :cpp:class:`CheckBoxIndicatorStyleCapability <gui_forms::CheckBoxIndicatorStyleCapability>`
+     - How the check mark draws: classic, modern or toggle (std::invalid_argument outside them).
+   * - :cpp:class:`CheckBoxThreeStateCapability <gui_forms::CheckBoxThreeStateCapability>`
+     - Whether the box also takes the indeterminate state (ThreeState); clearing it turns an indeterminate box checked.
    * - :cpp:class:`ColorValueEditor::Parts <gui_forms::ColorValueEditor::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`ColorValueEditor::States <gui_forms::ColorValueEditor::States>`
      -  
+   * - :cpp:class:`ColorValueEditorCapabilities <gui_forms::ColorValueEditorCapabilities>`
+     - Every ColorValueEditor capability, in the order the declaring class takes them.
+   * - :cpp:class:`ColorValueEditorSwatchWidthCapability <gui_forms::ColorValueEditorSwatchWidthCapability>`
+     - The width of the colour swatch before the text, 12 to 96 (std::invalid_argument otherwise).
+   * - :cpp:class:`ColorValueEditorValueCapability <gui_forms::ColorValueEditorValueCapability>`
+     - The edited colour; a view, since committing the text moves it and an equal write still restores the text and the normal status.
    * - :cpp:class:`DomainUpDown::Parts <gui_forms::DomainUpDown::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`DomainUpDown::States <gui_forms::DomainUpDown::States>`
      -  
+   * - :cpp:class:`DomainUpDownButtonWidthCapability <gui_forms::DomainUpDownButtonWidthCapability>`
+     - The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).
+   * - :cpp:class:`DomainUpDownCapabilities <gui_forms::DomainUpDownCapabilities>`
+     - Every DomainUpDown capability, in the order the declaring class takes them.
+   * - :cpp:class:`DomainUpDownReadOnlyCapability <gui_forms::DomainUpDownReadOnlyCapability>`
+     - Whether typing is refused (ReadOnly): a typed character then selects the next item that starts with it.
+   * - :cpp:class:`DomainUpDownSelectedIndexCapability <gui_forms::DomainUpDownSelectedIndexCapability>`
+     - The selected item (SelectedIndex), or none when the text equals no item; a view onto the selection the text follows.
+   * - :cpp:class:`DomainUpDownSortedCapability <gui_forms::DomainUpDownSortedCapability>`
+     - Whether the items are kept sorted (Sorted): ASCII case folded, then byte order.
+   * - :cpp:class:`DomainUpDownTextCapability <gui_forms::DomainUpDownTextCapability>`
+     - The field's text (Text); a view onto the editor.
+   * - :cpp:class:`DomainUpDownWrapCapability <gui_forms::DomainUpDownWrapCapability>`
+     - Stepping past either end continues at the other while wrap is on (Wrap).
    * - :cpp:class:`FlagsValueEditor::Parts <gui_forms::FlagsValueEditor::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`FlagsValueEditor::States <gui_forms::FlagsValueEditor::States>`
      -  
+   * - :cpp:class:`FlagsValueEditorCapabilities <gui_forms::FlagsValueEditorCapabilities>`
+     - Every FlagsValueEditor capability, in the order the declaring class takes them.
+   * - :cpp:class:`FlagsValueEditorDescriptorCapability <gui_forms::FlagsValueEditorDescriptorCapability>`
+     - The flags enumeration the editor offers; a view, since the form properties rebuild it.
+   * - :cpp:class:`FlagsValueEditorDroppedDownCapability <gui_forms::FlagsValueEditorDroppedDownCapability>`
+     - Whether the list of flags is open; a view, since the list closes itself.
+   * - :cpp:class:`FlagsValueEditorOverlayWidthCapability <gui_forms::FlagsValueEditorOverlayWidthCapability>`
+     - The width of the list of flags, 80 to 1024 (std::invalid_argument otherwise); a change reopens an open list.
+   * - :cpp:class:`FlagsValueEditorValueCapability <gui_forms::FlagsValueEditorValueCapability>`
+     - The checked flags, normalized against descriptor; a view, since the list's checks move it.
    * - :cpp:class:`InstrumentFieldChange <gui_forms::InstrumentFieldChange>`
      - InstrumentFieldChange carries stable module and field identities, previous/current text, and whether the transition is a committed edit.
    * - :cpp:class:`InstrumentFieldSpec <gui_forms::InstrumentFieldSpec>`
@@ -84,10 +131,36 @@ Related types
      - InstrumentModuleSpec is the authoritative caller model for one stable named module, its fields, status/state, priority, enablement, and removal policy.
    * - :cpp:class:`InstrumentModuleToggle <gui_forms::InstrumentModuleToggle>`
      - InstrumentModuleToggle carries stable module identity and the committed enabled state.
+   * - :cpp:class:`InstrumentRackCapabilities <gui_forms::InstrumentRackCapabilities>`
+     - Every InstrumentRack capability, in the order the declaring class takes them.
+   * - :cpp:class:`InstrumentRackModuleHeightCapability <gui_forms::InstrumentRackModuleHeightCapability>`
+     - The module height before text scaling; finite and positive (std::invalid_argument otherwise).
+   * - :cpp:class:`InstrumentRackModuleWidthCapability <gui_forms::InstrumentRackModuleWidthCapability>`
+     - The preferred module width before text scaling; finite and positive (std::invalid_argument otherwise).
+   * - :cpp:class:`InstrumentRackRackGapCapability <gui_forms::InstrumentRackRackGapCapability>`
+     - The gap between modules before text scaling; finite and nonnegative (std::invalid_argument otherwise).
+   * - :cpp:class:`InstrumentRackScrollOffsetCapability <gui_forms::InstrumentRackScrollOffsetCapability>`
+     - The vertical scroll position, clamped to the content; a view, since revealing a module moves it.
    * - :cpp:class:`NumericUpDown::Parts <gui_forms::NumericUpDown::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`NumericUpDown::States <gui_forms::NumericUpDown::States>`
      -  
+   * - :cpp:class:`NumericUpDownButtonWidthCapability <gui_forms::NumericUpDownButtonWidthCapability>`
+     - The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).
+   * - :cpp:class:`NumericUpDownCapabilities <gui_forms::NumericUpDownCapabilities>`
+     - Every NumericUpDown capability, in the order the declaring class takes them.
+   * - :cpp:class:`NumericUpDownDecimalPlacesCapability <gui_forms::NumericUpDownDecimalPlacesCapability>`
+     - How many decimal places the editor shows (DecimalPlaces), at most 12 (std::invalid_argument).
+   * - :cpp:class:`NumericUpDownHexadecimalCapability <gui_forms::NumericUpDownHexadecimalCapability>`
+     - Whether the editor shows the value in hexadecimal (Hexadecimal); turning it on sets decimal_places to zero.
+   * - :cpp:class:`NumericUpDownIncrementCapability <gui_forms::NumericUpDownIncrementCapability>`
+     - How far one step moves the value (Increment); it must be finite and positive, or std::invalid_argument is thrown.
+   * - :cpp:class:`NumericUpDownMaximumCapability <gui_forms::NumericUpDownMaximumCapability>`
+     - The highest value (Maximum).
+   * - :cpp:class:`NumericUpDownMinimumCapability <gui_forms::NumericUpDownMinimumCapability>`
+     - The lowest value (Minimum).
+   * - :cpp:class:`NumericUpDownValueCapability <gui_forms::NumericUpDownValueCapability>`
+     - The current value (Value), within minimum and maximum; anything else, or a value that is not finite, throws std::out_of_range.
    * - :cpp:class:`PropertyConversionContext <gui_forms::PropertyConversionContext>`
      - PropertyConversionContext is an inspector-local culture label, decimal/group separator policy, and grouping flag.
    * - :cpp:class:`PropertyEditorBinding <gui_forms::PropertyEditorBinding>`
@@ -98,8 +171,16 @@ Related types
      - PropertyEditorRegistry is an instance-owned canonical service map from explicit editor names or value-kind defaults to retained-control factories.
    * - :cpp:class:`PropertyEditorRequest <gui_forms::PropertyEditorRequest>`
      - PropertyEditorRequest is the complete immutable input to an editor factory: stable control identity, property path, inert descriptor, typed value, writeability, and top-level/compound position.
+   * - :cpp:class:`PropertyGridCapabilities <gui_forms::PropertyGridCapabilities>`
+     - Every PropertyGrid capability, in the order the declaring class takes them.
+   * - :cpp:class:`PropertyGridConverterRegistryCapability <gui_forms::PropertyGridConverterRegistryCapability>`
+     - The value converters the grid's editors use; a view onto the projection.
    * - :cpp:class:`PropertyGridEditError <gui_forms::PropertyGridEditError>`
      - PropertyGridEditError carries exact property path, attempted representation, and failure message after a rejected or rolled-back edit.
+   * - :cpp:class:`PropertyGridEditorRegistryCapability <gui_forms::PropertyGridEditorRegistryCapability>`
+     - The editors the grid installs per property type; a view onto the projection.
+   * - :cpp:class:`PropertyGridPropertySortCapability <gui_forms::PropertyGridPropertySortCapability>`
+     - How the rows are ordered (PropertySort): grouped by category (the default) or alphabetical; a view onto the grid's projection.
    * - :cpp:class:`PropertyGridValueChange <gui_forms::PropertyGridValueChange>`
      - PropertyGridValueChange is the post-transaction typed publication for a property edit or reset, including authoritative origin.
    * - :cpp:class:`PropertyGroupChange <gui_forms::PropertyGroupChange>`
@@ -114,6 +195,18 @@ Related types
      -  
    * - :cpp:class:`PropertyList::Parts <gui_forms::PropertyList::Parts>`
      - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`PropertyListCapabilities <gui_forms::PropertyListCapabilities>`
+     - Every PropertyList capability, in the order the declaring class takes them.
+   * - :cpp:class:`PropertyListFontCapability <gui_forms::PropertyListFontCapability>`
+     - The rows' font (Font); a view onto the list's typography, which follows the theme until written.
+   * - :cpp:class:`PropertyListHeaderHeightCapability <gui_forms::PropertyListHeaderHeightCapability>`
+     - The header content's height, 0 to 4096 (std::invalid_argument otherwise; nonzero needs header content); a view onto the list's layout.
+   * - :cpp:class:`PropertyListLabelWidthCapability <gui_forms::PropertyListLabelWidthCapability>`
+     - The label column's width, 40 to 320 (std::invalid_argument otherwise); a view onto the list's layout.
+   * - :cpp:class:`PropertyListRowHeightCapability <gui_forms::PropertyListRowHeightCapability>`
+     - Each row's height, above 0 and at most 4096 (std::invalid_argument otherwise); a view onto the list's layout.
+   * - :cpp:class:`PropertyListScrollOffsetCapability <gui_forms::PropertyListScrollOffsetCapability>`
+     - How far the rows are scrolled; a view onto the list's scroll state.
    * - :cpp:class:`PropertyResetRequest <gui_forms::PropertyResetRequest>`
      - PropertyResetRequest identifies the stable authored row whose reset action the consumer must authorize.
    * - :cpp:class:`PropertyRowExpansionChange <gui_forms::PropertyRowExpansionChange>`
@@ -130,16 +223,58 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`RadioButton::States <gui_forms::RadioButton::States>`
      -  
+   * - :cpp:class:`RadioButtonAutoCheckCapability <gui_forms::RadioButtonAutoCheckCapability>`
+     - Whether activation checks the button (AutoCheck).
+   * - :cpp:class:`RadioButtonCapabilities <gui_forms::RadioButtonCapabilities>`
+     - Every RadioButton capability, in the order the declaring class takes them.
+   * - :cpp:class:`RadioButtonCheckedCapability <gui_forms::RadioButtonCheckedCapability>`
+     - Whether the button is selected within its group (Checked); a view onto the check.
+   * - :cpp:class:`RadioButtonGroupNameCapability <gui_forms::RadioButtonGroupNameCapability>`
+     - The exclusion group among the parent's radio buttons (GroupName); empty is the parent's own group.
+   * - :cpp:class:`RadioButtonIndicatorStyleCapability <gui_forms::RadioButtonIndicatorStyleCapability>`
+     - How the choice mark draws: classic, modern or toggle (std::invalid_argument outside them).
    * - :cpp:class:`RangeControl::Parts <gui_forms::RangeControl::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`RangeControl::States <gui_forms::RangeControl::States>`
      -  
+   * - :cpp:class:`RangeControlCapabilities <gui_forms::RangeControlCapabilities>`
+     - Every RangeControl capability, in the order the declaring class takes them.
+   * - :cpp:class:`RangeControlLargeChangeCapability <gui_forms::RangeControlLargeChangeCapability>`
+     - How far a track click or Page Up/Down moves the value (LargeChange); positive and finite, else std::invalid_argument.
+   * - :cpp:class:`RangeControlMaximumCapability <gui_forms::RangeControlMaximumCapability>`
+     - The upper bound (Maximum); a view onto the range: a write is set_range(minimum, incoming), so it must stay above the minimum.
+   * - :cpp:class:`RangeControlMinimumCapability <gui_forms::RangeControlMinimumCapability>`
+     - The lower bound (Minimum); a view onto the range: a write is set_range(incoming, maximum), so it must stay below the maximum.
+   * - :cpp:class:`RangeControlOrientationCapability <gui_forms::RangeControlOrientationCapability>`
+     - Horizontal or vertical (Orientation).
+   * - :cpp:class:`RangeControlSmallChangeCapability <gui_forms::RangeControlSmallChangeCapability>`
+     - How far an arrow key or button moves the value (SmallChange); positive and finite, else std::invalid_argument.
+   * - :cpp:class:`RangeControlValueCapability <gui_forms::RangeControlValueCapability>`
+     - The current value (Value), within minimum and maximum; a view onto the range's value.
    * - :cpp:class:`RangeScrollEvent <gui_forms::RangeScrollEvent>`
      - RangeScrollEvent is the typed transition payload shared by interactive range controls.
+   * - :cpp:class:`ToggleSwitch::Parts <gui_forms::ToggleSwitch::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`ToggleSwitchCapabilities <gui_forms::ToggleSwitchCapabilities>`
+     - Every ToggleSwitch capability, in the order the declaring class takes them.
+   * - :cpp:class:`ToggleSwitchCheckedCapability <gui_forms::ToggleSwitchCheckedCapability>`
+     - Whether the switch is on; a change raises checked_changed.
+   * - :cpp:class:`ToggleSwitchOffTextCapability <gui_forms::ToggleSwitchOffTextCapability>`
+     - The state text shown after the label while the switch is off, such as "Off"; empty for none.
+   * - :cpp:class:`ToggleSwitchOnTextCapability <gui_forms::ToggleSwitchOnTextCapability>`
+     - The state text shown after the label while the switch is on, such as "On"; empty for none.
    * - :cpp:class:`TrackBar::Parts <gui_forms::TrackBar::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`TrackBar::States <gui_forms::TrackBar::States>`
      -  
+   * - :cpp:class:`TrackBarCapabilities <gui_forms::TrackBarCapabilities>`
+     - Every TrackBar capability, in the order the declaring class takes them.
+   * - :cpp:class:`TrackBarShowTicksCapability <gui_forms::TrackBarShowTicksCapability>`
+     - Whether the tick marks draw.
+   * - :cpp:class:`TrackBarTickFrequencyCapability <gui_forms::TrackBarTickFrequencyCapability>`
+     - Distance in value units between tick marks; positive and finite, else std::invalid_argument.
+   * - :cpp:class:`TrackBarVisualStyleChoiceCapability <gui_forms::TrackBarVisualStyleChoiceCapability>`
+     - How the rail and thumb draw: classic ticks, a filled rail or a compact rail.
 
 .. cpp:namespace:: gui_forms
 
@@ -193,6 +328,143 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> CheckBoxAppearanceStyleCapability
+
+   ``#include <gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp>``
+
+   Normal or button (Appearance): only the visual projection changes. Outside the enumeration throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckBoxAppearanceStyleCapability& capability, CheckBoxAppearance incoming)
+
+   .. cpp:member:: PropertyCell<CheckBoxAppearance, CheckBoxAppearanceStyleCapability<Declaring>> appearance
+
+      Default: ``{CheckBoxAppearance::normal}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckBoxAutoCheckCapability
+
+   ``#include <gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp>``
+
+   Whether activation advances the check state (AutoCheck).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckBoxAutoCheckCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, CheckBoxAutoCheckCapability<Declaring>> auto_check
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckBoxCapabilities : public CheckBoxCheckStateCapability<Declaring>, public CheckBoxCheckedCapability<Declaring>, public CheckBoxThreeStateCapability<Declaring>, public CheckBoxAutoCheckCapability<Declaring>, public CheckBoxAppearanceStyleCapability<Declaring>, public CheckBoxIndicatorStyleCapability<Declaring>
+
+   ``#include <gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp>``
+
+   Every CheckBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: CheckState check_state
+
+      Unchecked, checked or indeterminate (CheckState); a view onto the check state. Indeterminate becomes checked unless three_state. A change raises check_state_changed, then checked_changed when checked changes. Outside the enumeration throws std::invalid_argument.
+
+   .. cpp:member:: bool checked
+
+      Whether the box is checked (Checked); a view onto check_state: a write sets checked or unchecked.
+
+   .. cpp:member:: bool three_state
+
+      Whether the box also takes the indeterminate state (ThreeState); clearing it turns an indeterminate box checked.
+
+   .. cpp:member:: bool auto_check
+
+      Whether activation advances the check state (AutoCheck).
+
+   .. cpp:member:: CheckBoxAppearance appearance
+
+      Normal or button (Appearance): only the visual projection changes. Outside the enumeration throws std::invalid_argument.
+
+   .. cpp:member:: ChoiceIndicatorStyle indicator_style
+
+      How the check mark draws: classic, modern or toggle (std::invalid_argument outside them).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckBoxCheckedCapability
+
+   ``#include <gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp>``
+
+   Whether the box is checked (Checked); a view onto check_state: a write sets checked or unchecked.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckBoxCheckedCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const CheckBoxCheckedCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, CheckBoxCheckedCapability<Declaring>> checked
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckBoxCheckStateCapability
+
+   ``#include <gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp>``
+
+   Unchecked, checked or indeterminate (CheckState); a view onto the check state. Indeterminate becomes checked unless three_state. A change raises check_state_changed, then checked_changed when checked changes. Outside the enumeration throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckBoxCheckStateCapability& capability, CheckState incoming)
+
+   .. cpp:function:: static CheckState read(const CheckBoxCheckStateCapability& capability)
+
+   .. cpp:member:: PropertyView<CheckState, CheckBoxCheckStateCapability<Declaring>> check_state
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckBoxIndicatorStyleCapability
+
+   ``#include <gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp>``
+
+   How the check mark draws: classic, modern or toggle (std::invalid_argument outside them).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckBoxIndicatorStyleCapability& capability, ChoiceIndicatorStyle incoming)
+
+   .. cpp:member:: PropertyCell<ChoiceIndicatorStyle, CheckBoxIndicatorStyleCapability<Declaring>> indicator_style
+
+      Default: ``{ChoiceIndicatorStyle::classic}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckBoxThreeStateCapability
+
+   ``#include <gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp>``
+
+   Whether the box also takes the indeterminate state (ThreeState); clearing it turns an indeterminate box checked.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckBoxThreeStateCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, CheckBoxThreeStateCapability<Declaring>> three_state
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ColorValueEditor::Parts final
 
    ``#include <gui_forms/controls/panel/color_value_editor/color_value_editor.hpp>``
@@ -228,6 +500,59 @@ Related types
    .. cpp:member:: bool invalid
 
    .. cpp:member:: bool pending
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ColorValueEditorCapabilities : public ColorValueEditorValueCapability<Declaring>, public ColorValueEditorSwatchWidthCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/color_value_editor/color_value_editor_capabilities/color_value_editor_capabilities.hpp>``
+
+   Every ColorValueEditor capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: Color value
+
+      The edited colour; a view, since committing the text moves it and an equal write still restores the text and the normal status. A write raises no event.
+
+   .. cpp:member:: double swatch_width
+
+      The width of the colour swatch before the text, 12 to 96 (std::invalid_argument otherwise).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ColorValueEditorSwatchWidthCapability
+
+   ``#include <gui_forms/controls/panel/color_value_editor/color_value_editor_capabilities/color_value_editor_capabilities.hpp>``
+
+   The width of the colour swatch before the text, 12 to 96 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ColorValueEditorSwatchWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ColorValueEditorSwatchWidthCapability<Declaring>> swatch_width
+
+      Default: ``{30.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ColorValueEditorValueCapability
+
+   ``#include <gui_forms/controls/panel/color_value_editor/color_value_editor_capabilities/color_value_editor_capabilities.hpp>``
+
+   The edited colour; a view, since committing the text moves it and an equal write still restores the text and the normal status. A write raises no event.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ColorValueEditorValueCapability& capability, Color incoming)
+
+   .. cpp:function:: static Color read(const ColorValueEditorValueCapability& capability)
+
+   .. cpp:member:: PropertyView<Color, ColorValueEditorValueCapability<Declaring>> value
 
 .. cpp:namespace:: gui_forms
 
@@ -281,6 +606,137 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> DomainUpDownButtonWidthCapability
+
+   ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp>``
+
+   The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DomainUpDownButtonWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, DomainUpDownButtonWidthCapability<Declaring>> button_width
+
+      Default: ``{18.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DomainUpDownCapabilities : public DomainUpDownSelectedIndexCapability<Declaring>, public DomainUpDownTextCapability<Declaring>, public DomainUpDownWrapCapability<Declaring>, public DomainUpDownReadOnlyCapability<Declaring>, public DomainUpDownSortedCapability<Declaring>, public DomainUpDownButtonWidthCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp>``
+
+   Every DomainUpDown capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::optional<std::size_t> selected_index
+
+      The selected item (SelectedIndex), or none when the text equals no item; a view onto the selection the text follows. A write selects an item and shows its text, or clears the selection and keeps the text, and raises selected_index_changed. An index past the end throws std::out_of_range.
+
+   .. cpp:member:: std::string text
+
+      The field's text (Text); a view onto the editor. A write sets the editor's text and re-matches the selection to it. Allowed on a read-only field: read-only stops typing, not the program.
+
+   .. cpp:member:: bool wrap
+
+      Stepping past either end continues at the other while wrap is on (Wrap).
+
+   .. cpp:member:: bool read_only
+
+      Whether typing is refused (ReadOnly): a typed character then selects the next item that starts with it. A change clears the editor's undo history.
+
+   .. cpp:member:: bool sorted
+
+      Whether the items are kept sorted (Sorted): ASCII case folded, then byte order. Turning it on sorts them and re-matches the selection.
+
+   .. cpp:member:: double button_width
+
+      The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DomainUpDownReadOnlyCapability
+
+   ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp>``
+
+   Whether typing is refused (ReadOnly): a typed character then selects the next item that starts with it. A change clears the editor's undo history.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DomainUpDownReadOnlyCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, DomainUpDownReadOnlyCapability<Declaring>> read_only
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DomainUpDownSelectedIndexCapability
+
+   ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp>``
+
+   The selected item (SelectedIndex), or none when the text equals no item; a view onto the selection the text follows. A write selects an item and shows its text, or clears the selection and keeps the text, and raises selected_index_changed. An index past the end throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DomainUpDownSelectedIndexCapability& capability, std::optional<std::size_t> incoming)
+
+   .. cpp:function:: static std::optional<std::size_t> read(const DomainUpDownSelectedIndexCapability& capability)
+
+   .. cpp:member:: PropertyView<std::optional<std::size_t>, DomainUpDownSelectedIndexCapability<Declaring>> selected_index
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DomainUpDownSortedCapability
+
+   ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp>``
+
+   Whether the items are kept sorted (Sorted): ASCII case folded, then byte order. Turning it on sorts them and re-matches the selection.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DomainUpDownSortedCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, DomainUpDownSortedCapability<Declaring>> sorted
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DomainUpDownTextCapability
+
+   ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp>``
+
+   The field's text (Text); a view onto the editor. A write sets the editor's text and re-matches the selection to it. Allowed on a read-only field: read-only stops typing, not the program.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DomainUpDownTextCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const DomainUpDownTextCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, DomainUpDownTextCapability<Declaring>> text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DomainUpDownWrapCapability
+
+   ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp>``
+
+   Stepping past either end continues at the other while wrap is on (Wrap).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DomainUpDownWrapCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, DomainUpDownWrapCapability<Declaring>> wrap
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: FlagsValueEditor::Parts final
 
    ``#include <gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp>``
@@ -328,6 +784,101 @@ Related types
    .. cpp:member:: bool invalid
 
    .. cpp:member:: bool pending
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FlagsValueEditorCapabilities : public FlagsValueEditorDescriptorCapability<Declaring>, public FlagsValueEditorValueCapability<Declaring>, public FlagsValueEditorDroppedDownCapability<Declaring>, public FlagsValueEditorOverlayWidthCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/flags_value_editor/flags_value_editor_capabilities/flags_value_editor_capabilities.hpp>``
+
+   Every FlagsValueEditor capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: PropertyEnumDescriptor descriptor
+
+      The flags enumeration the editor offers; a view, since the form properties rebuild it. It must be a valid flags descriptor with at least one positive single-bit choice that can represent the current value (std::invalid_argument otherwise); a change normalizes the value and reopens an open list.
+
+   .. cpp:member:: PropertyEnumValue value
+
+      The checked flags, normalized against descriptor; a view, since the list's checks move it. A value the descriptor cannot represent throws std::invalid_argument.
+
+   .. cpp:member:: bool dropped_down
+
+      Whether the list of flags is open; a view, since the list closes itself. A write opens or closes it and raises drop_down_changed.
+
+   .. cpp:member:: double overlay_width
+
+      The width of the list of flags, 80 to 1024 (std::invalid_argument otherwise); a change reopens an open list.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FlagsValueEditorDescriptorCapability
+
+   ``#include <gui_forms/controls/panel/flags_value_editor/flags_value_editor_capabilities/flags_value_editor_capabilities.hpp>``
+
+   The flags enumeration the editor offers; a view, since the form properties rebuild it. It must be a valid flags descriptor with at least one positive single-bit choice that can represent the current value (std::invalid_argument otherwise); a change normalizes the value and reopens an open list.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FlagsValueEditorDescriptorCapability& capability, PropertyEnumDescriptor incoming)
+
+   .. cpp:function:: static PropertyEnumDescriptor read(const FlagsValueEditorDescriptorCapability& capability)
+
+   .. cpp:member:: PropertyView<PropertyEnumDescriptor, FlagsValueEditorDescriptorCapability<Declaring>> descriptor
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FlagsValueEditorDroppedDownCapability
+
+   ``#include <gui_forms/controls/panel/flags_value_editor/flags_value_editor_capabilities/flags_value_editor_capabilities.hpp>``
+
+   Whether the list of flags is open; a view, since the list closes itself. A write opens or closes it and raises drop_down_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FlagsValueEditorDroppedDownCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const FlagsValueEditorDroppedDownCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, FlagsValueEditorDroppedDownCapability<Declaring>> dropped_down
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FlagsValueEditorOverlayWidthCapability
+
+   ``#include <gui_forms/controls/panel/flags_value_editor/flags_value_editor_capabilities/flags_value_editor_capabilities.hpp>``
+
+   The width of the list of flags, 80 to 1024 (std::invalid_argument otherwise); a change reopens an open list.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FlagsValueEditorOverlayWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, FlagsValueEditorOverlayWidthCapability<Declaring>> overlay_width
+
+      Default: ``{240.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FlagsValueEditorValueCapability
+
+   ``#include <gui_forms/controls/panel/flags_value_editor/flags_value_editor_capabilities/flags_value_editor_capabilities.hpp>``
+
+   The checked flags, normalized against descriptor; a view, since the list's checks move it. A value the descriptor cannot represent throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FlagsValueEditorValueCapability& capability, PropertyEnumValue incoming)
+
+   .. cpp:function:: static PropertyEnumValue read(const FlagsValueEditorValueCapability& capability)
+
+   .. cpp:member:: PropertyView<PropertyEnumValue, FlagsValueEditorValueCapability<Declaring>> value
 
 .. cpp:namespace:: gui_forms
 
@@ -443,6 +994,101 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> InstrumentRackCapabilities : public InstrumentRackModuleWidthCapability<Declaring>, public InstrumentRackModuleHeightCapability<Declaring>, public InstrumentRackRackGapCapability<Declaring>, public InstrumentRackScrollOffsetCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/instrument_rack/instrument_rack_capabilities/instrument_rack_capabilities.hpp>``
+
+   Every InstrumentRack capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double module_width
+
+      The preferred module width before text scaling; finite and positive (std::invalid_argument otherwise). A view onto the rack's layout state; a change re-lays out the modules.
+
+   .. cpp:member:: double module_height
+
+      The module height before text scaling; finite and positive (std::invalid_argument otherwise). A view onto the rack's layout state; a change re-lays out the modules.
+
+   .. cpp:member:: double rack_gap
+
+      The gap between modules before text scaling; finite and nonnegative (std::invalid_argument otherwise). A view onto the rack's layout state; a change re-lays out the modules.
+
+   .. cpp:member:: double scroll_offset
+
+      The vertical scroll position, clamped to the content; a view, since revealing a module moves it. A non-finite offset throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InstrumentRackModuleHeightCapability
+
+   ``#include <gui_forms/controls/panel/instrument_rack/instrument_rack_capabilities/instrument_rack_capabilities.hpp>``
+
+   The module height before text scaling; finite and positive (std::invalid_argument otherwise). A view onto the rack's layout state; a change re-lays out the modules.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(InstrumentRackModuleHeightCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const InstrumentRackModuleHeightCapability& capability)
+
+   .. cpp:member:: PropertyView<double, InstrumentRackModuleHeightCapability<Declaring>> module_height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InstrumentRackModuleWidthCapability
+
+   ``#include <gui_forms/controls/panel/instrument_rack/instrument_rack_capabilities/instrument_rack_capabilities.hpp>``
+
+   The preferred module width before text scaling; finite and positive (std::invalid_argument otherwise). A view onto the rack's layout state; a change re-lays out the modules.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(InstrumentRackModuleWidthCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const InstrumentRackModuleWidthCapability& capability)
+
+   .. cpp:member:: PropertyView<double, InstrumentRackModuleWidthCapability<Declaring>> module_width
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InstrumentRackRackGapCapability
+
+   ``#include <gui_forms/controls/panel/instrument_rack/instrument_rack_capabilities/instrument_rack_capabilities.hpp>``
+
+   The gap between modules before text scaling; finite and nonnegative (std::invalid_argument otherwise). A view onto the rack's layout state; a change re-lays out the modules.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(InstrumentRackRackGapCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const InstrumentRackRackGapCapability& capability)
+
+   .. cpp:member:: PropertyView<double, InstrumentRackRackGapCapability<Declaring>> rack_gap
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InstrumentRackScrollOffsetCapability
+
+   ``#include <gui_forms/controls/panel/instrument_rack/instrument_rack_capabilities/instrument_rack_capabilities.hpp>``
+
+   The vertical scroll position, clamped to the content; a view, since revealing a module moves it. A non-finite offset throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(InstrumentRackScrollOffsetCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const InstrumentRackScrollOffsetCapability& capability)
+
+   .. cpp:member:: PropertyView<double, InstrumentRackScrollOffsetCapability<Declaring>> scroll_offset
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: NumericUpDown::Parts final
 
    ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp>``
@@ -488,6 +1134,160 @@ Related types
    .. cpp:member:: bool invalid
 
    .. cpp:member:: bool pending
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownButtonWidthCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownButtonWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, NumericUpDownButtonWidthCapability<Declaring>> button_width
+
+      Default: ``{18.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownCapabilities : public NumericUpDownValueCapability<Declaring>, public NumericUpDownMinimumCapability<Declaring>, public NumericUpDownMaximumCapability<Declaring>, public NumericUpDownIncrementCapability<Declaring>, public NumericUpDownDecimalPlacesCapability<Declaring>, public NumericUpDownHexadecimalCapability<Declaring>, public NumericUpDownButtonWidthCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   Every NumericUpDown capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double value
+
+      The current value (Value), within minimum and maximum; anything else, or a value that is not finite, throws std::out_of_range. A change shows it in the editor and raises value_changed.
+
+   .. cpp:member:: double minimum
+
+      The lowest value (Minimum). A minimum above maximum raises maximum to it, and value is clamped into the range (raising value_changed), in that order. A value that is not finite throws std::invalid_argument.
+
+   .. cpp:member:: double maximum
+
+      The highest value (Maximum). A maximum below minimum lowers minimum to it, and value is clamped into the range (raising value_changed), in that order. A value that is not finite throws std::invalid_argument.
+
+   .. cpp:member:: double increment
+
+      How far one step moves the value (Increment); it must be finite and positive, or std::invalid_argument is thrown.
+
+   .. cpp:member:: std::uint8_t decimal_places
+
+      How many decimal places the editor shows (DecimalPlaces), at most 12 (std::invalid_argument). Any decimal places turn hexadecimal off.
+
+   .. cpp:member:: bool hexadecimal
+
+      Whether the editor shows the value in hexadecimal (Hexadecimal); turning it on sets decimal_places to zero.
+
+   .. cpp:member:: double button_width
+
+      The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownDecimalPlacesCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   How many decimal places the editor shows (DecimalPlaces), at most 12 (std::invalid_argument). Any decimal places turn hexadecimal off.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownDecimalPlacesCapability& capability, std::uint8_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint8_t, NumericUpDownDecimalPlacesCapability<Declaring>> decimal_places
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownHexadecimalCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   Whether the editor shows the value in hexadecimal (Hexadecimal); turning it on sets decimal_places to zero.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownHexadecimalCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, NumericUpDownHexadecimalCapability<Declaring>> hexadecimal
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownIncrementCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   How far one step moves the value (Increment); it must be finite and positive, or std::invalid_argument is thrown.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownIncrementCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, NumericUpDownIncrementCapability<Declaring>> increment
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownMaximumCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   The highest value (Maximum). A maximum below minimum lowers minimum to it, and value is clamped into the range (raising value_changed), in that order. A value that is not finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownMaximumCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, NumericUpDownMaximumCapability<Declaring>> maximum
+
+      Default: ``{100.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownMinimumCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   The lowest value (Minimum). A minimum above maximum raises maximum to it, and value is clamped into the range (raising value_changed), in that order. A value that is not finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownMinimumCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, NumericUpDownMinimumCapability<Declaring>> minimum
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownValueCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   The current value (Value), within minimum and maximum; anything else, or a value that is not finite, throws std::out_of_range. A change shows it in the editor and raises value_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownValueCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, NumericUpDownValueCapability<Declaring>> value
+
+      Default: ``{0.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -600,6 +1400,46 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> PropertyGridCapabilities : public PropertyGridPropertySortCapability<Declaring>, public PropertyGridConverterRegistryCapability<Declaring>, public PropertyGridEditorRegistryCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/property_grid/property_grid_capabilities/property_grid_capabilities.hpp>``
+
+   Every PropertyGrid capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: PropertySort property_sort
+
+      How the rows are ordered (PropertySort): grouped by category (the default) or alphabetical; a view onto the grid's projection. A change rebuilds the rows.
+
+   .. cpp:member:: std::shared_ptr<PropertyValueConverterRegistry> converter_registry
+
+      The value converters the grid's editors use; a view onto the projection. Never null (std::invalid_argument); a change rebuilds the rows.
+
+   .. cpp:member:: std::shared_ptr<PropertyEditorRegistry> editor_registry
+
+      The editors the grid installs per property type; a view onto the projection. Never null (std::invalid_argument); a change rebuilds the rows.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyGridConverterRegistryCapability
+
+   ``#include <gui_forms/controls/panel/property_grid/property_grid_capabilities/property_grid_capabilities.hpp>``
+
+   The value converters the grid's editors use; a view onto the projection. Never null (std::invalid_argument); a change rebuilds the rows.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PropertyGridConverterRegistryCapability& capability, std::shared_ptr<PropertyValueConverterRegistry> incoming)
+
+   .. cpp:function:: static std::shared_ptr<PropertyValueConverterRegistry> read(const PropertyGridConverterRegistryCapability& capability)
+
+   .. cpp:member:: PropertyView<std::shared_ptr<PropertyValueConverterRegistry>, PropertyGridConverterRegistryCapability<Declaring>> converter_registry
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PropertyGridEditError final
 
    ``#include <gui_forms/inspection/inspection_types.hpp>``
@@ -611,6 +1451,40 @@ Related types
    .. cpp:member:: std::string attempted_value
 
    .. cpp:member:: std::string message
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyGridEditorRegistryCapability
+
+   ``#include <gui_forms/controls/panel/property_grid/property_grid_capabilities/property_grid_capabilities.hpp>``
+
+   The editors the grid installs per property type; a view onto the projection. Never null (std::invalid_argument); a change rebuilds the rows.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PropertyGridEditorRegistryCapability& capability, std::shared_ptr<PropertyEditorRegistry> incoming)
+
+   .. cpp:function:: static std::shared_ptr<PropertyEditorRegistry> read(const PropertyGridEditorRegistryCapability& capability)
+
+   .. cpp:member:: PropertyView<std::shared_ptr<PropertyEditorRegistry>, PropertyGridEditorRegistryCapability<Declaring>> editor_registry
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyGridPropertySortCapability
+
+   ``#include <gui_forms/controls/panel/property_grid/property_grid_capabilities/property_grid_capabilities.hpp>``
+
+   How the rows are ordered (PropertySort): grouped by category (the default) or alphabetical; a view onto the grid's projection. A change rebuilds the rows.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PropertyGridPropertySortCapability& capability, PropertySort incoming)
+
+   .. cpp:function:: static PropertySort read(const PropertyGridPropertySortCapability& capability)
+
+   .. cpp:member:: PropertyView<PropertySort, PropertyGridPropertySortCapability<Declaring>> property_sort
 
 .. cpp:namespace:: gui_forms
 
@@ -729,6 +1603,122 @@ Related types
    .. cpp:member:: ScrollableControl::Parts scrollable
 
    .. cpp:member:: PartGeometry face
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyListCapabilities : public PropertyListHeaderHeightCapability<Declaring>, public PropertyListLabelWidthCapability<Declaring>, public PropertyListFontCapability<Declaring>, public PropertyListRowHeightCapability<Declaring>, public PropertyListScrollOffsetCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/property_list/property_list_capabilities/property_list_capabilities.hpp>``
+
+   Every PropertyList capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double header_height
+
+      The header content's height, 0 to 4096 (std::invalid_argument otherwise; nonzero needs header content); a view onto the list's layout. A change re-lays out the rows.
+
+   .. cpp:member:: double label_width
+
+      The label column's width, 40 to 320 (std::invalid_argument otherwise); a view onto the list's layout. A change re-lays out the rows.
+
+   .. cpp:member:: FontSpec font
+
+      The rows' font (Font); a view onto the list's typography, which follows the theme until written. A write marks the font as set from code, passes it to the editors and re-lays out; an invalid FontSpec throws std::invalid_argument.
+
+   .. cpp:member:: double row_height
+
+      Each row's height, above 0 and at most 4096 (std::invalid_argument otherwise); a view onto the list's layout. A change re-lays out the rows.
+
+   .. cpp:member:: double scroll_offset
+
+      How far the rows are scrolled; a view onto the list's scroll state. A write is clamped to the content's overflow; a value that is not finite throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyListFontCapability
+
+   ``#include <gui_forms/controls/panel/property_list/property_list_capabilities/property_list_capabilities.hpp>``
+
+   The rows' font (Font); a view onto the list's typography, which follows the theme until written. A write marks the font as set from code, passes it to the editors and re-lays out; an invalid FontSpec throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PropertyListFontCapability& capability, FontSpec incoming)
+
+   .. cpp:function:: static FontSpec read(const PropertyListFontCapability& capability)
+
+   .. cpp:member:: PropertyView<FontSpec, PropertyListFontCapability<Declaring>> font
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyListHeaderHeightCapability
+
+   ``#include <gui_forms/controls/panel/property_list/property_list_capabilities/property_list_capabilities.hpp>``
+
+   The header content's height, 0 to 4096 (std::invalid_argument otherwise; nonzero needs header content); a view onto the list's layout. A change re-lays out the rows.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PropertyListHeaderHeightCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const PropertyListHeaderHeightCapability& capability)
+
+   .. cpp:member:: PropertyView<double, PropertyListHeaderHeightCapability<Declaring>> header_height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyListLabelWidthCapability
+
+   ``#include <gui_forms/controls/panel/property_list/property_list_capabilities/property_list_capabilities.hpp>``
+
+   The label column's width, 40 to 320 (std::invalid_argument otherwise); a view onto the list's layout. A change re-lays out the rows.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PropertyListLabelWidthCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const PropertyListLabelWidthCapability& capability)
+
+   .. cpp:member:: PropertyView<double, PropertyListLabelWidthCapability<Declaring>> label_width
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyListRowHeightCapability
+
+   ``#include <gui_forms/controls/panel/property_list/property_list_capabilities/property_list_capabilities.hpp>``
+
+   Each row's height, above 0 and at most 4096 (std::invalid_argument otherwise); a view onto the list's layout. A change re-lays out the rows.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PropertyListRowHeightCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const PropertyListRowHeightCapability& capability)
+
+   .. cpp:member:: PropertyView<double, PropertyListRowHeightCapability<Declaring>> row_height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyListScrollOffsetCapability
+
+   ``#include <gui_forms/controls/panel/property_list/property_list_capabilities/property_list_capabilities.hpp>``
+
+   How far the rows are scrolled; a view onto the list's scroll state. A write is clamped to the content's overflow; a value that is not finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PropertyListScrollOffsetCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const PropertyListScrollOffsetCapability& capability)
+
+   .. cpp:member:: PropertyView<double, PropertyListScrollOffsetCapability<Declaring>> scroll_offset
 
 .. cpp:namespace:: gui_forms
 
@@ -951,6 +1941,99 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RadioButtonAutoCheckCapability
+
+   ``#include <gui_forms/controls/button_base/radio_button/radio_button_capabilities/radio_button_capabilities.hpp>``
+
+   Whether activation checks the button (AutoCheck).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RadioButtonAutoCheckCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RadioButtonAutoCheckCapability<Declaring>> auto_check
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RadioButtonCapabilities : public RadioButtonCheckedCapability<Declaring>, public RadioButtonGroupNameCapability<Declaring>, public RadioButtonAutoCheckCapability<Declaring>, public RadioButtonIndicatorStyleCapability<Declaring>
+
+   ``#include <gui_forms/controls/button_base/radio_button/radio_button_capabilities/radio_button_capabilities.hpp>``
+
+   Every RadioButton capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool checked
+
+      Whether the button is selected within its group (Checked); a view onto the check. Checking it clears the checked sibling of the same group_name first; a change raises checked_changed.
+
+   .. cpp:member:: std::string group_name
+
+      The exclusion group among the parent's radio buttons (GroupName); empty is the parent's own group. A checked button that joins a group clears that group's checked sibling.
+
+   .. cpp:member:: bool auto_check
+
+      Whether activation checks the button (AutoCheck).
+
+   .. cpp:member:: ChoiceIndicatorStyle indicator_style
+
+      How the choice mark draws: classic, modern or toggle (std::invalid_argument outside them).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RadioButtonCheckedCapability
+
+   ``#include <gui_forms/controls/button_base/radio_button/radio_button_capabilities/radio_button_capabilities.hpp>``
+
+   Whether the button is selected within its group (Checked); a view onto the check. Checking it clears the checked sibling of the same group_name first; a change raises checked_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RadioButtonCheckedCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const RadioButtonCheckedCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, RadioButtonCheckedCapability<Declaring>> checked
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RadioButtonGroupNameCapability
+
+   ``#include <gui_forms/controls/button_base/radio_button/radio_button_capabilities/radio_button_capabilities.hpp>``
+
+   The exclusion group among the parent's radio buttons (GroupName); empty is the parent's own group. A checked button that joins a group clears that group's checked sibling.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RadioButtonGroupNameCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, RadioButtonGroupNameCapability<Declaring>> group_name
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RadioButtonIndicatorStyleCapability
+
+   ``#include <gui_forms/controls/button_base/radio_button/radio_button_capabilities/radio_button_capabilities.hpp>``
+
+   How the choice mark draws: classic, modern or toggle (std::invalid_argument outside them).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RadioButtonIndicatorStyleCapability& capability, ChoiceIndicatorStyle incoming)
+
+   .. cpp:member:: PropertyCell<ChoiceIndicatorStyle, RadioButtonIndicatorStyleCapability<Declaring>> indicator_style
+
+      Default: ``{ChoiceIndicatorStyle::classic}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RangeControl::Parts final
 
    ``#include <gui_forms/controls/range_control/range_control.hpp>``
@@ -979,9 +2062,146 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RangeControlCapabilities : public RangeControlValueCapability<Declaring>, public RangeControlMinimumCapability<Declaring>, public RangeControlMaximumCapability<Declaring>, public RangeControlSmallChangeCapability<Declaring>, public RangeControlLargeChangeCapability<Declaring>, public RangeControlOrientationCapability<Declaring>
+
+   ``#include <gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp>``
+
+   Every RangeControl capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double value
+
+      The current value (Value), within minimum and maximum; a view onto the range's value. Outside them throws std::out_of_range, a non-finite value std::invalid_argument; a bound Value may refuse it. A change raises value_changed.
+
+   .. cpp:member:: double minimum
+
+      The lower bound (Minimum); a view onto the range: a write is set_range(incoming, maximum), so it must stay below the maximum.
+
+   .. cpp:member:: double maximum
+
+      The upper bound (Maximum); a view onto the range: a write is set_range(minimum, incoming), so it must stay above the minimum.
+
+   .. cpp:member:: double small_change
+
+      How far an arrow key or button moves the value (SmallChange); positive and finite, else std::invalid_argument.
+
+   .. cpp:member:: double large_change
+
+      How far a track click or Page Up/Down moves the value (LargeChange); positive and finite, else std::invalid_argument.
+
+   .. cpp:member:: Orientation orientation
+
+      Horizontal or vertical (Orientation).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RangeControlLargeChangeCapability
+
+   ``#include <gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp>``
+
+   How far a track click or Page Up/Down moves the value (LargeChange); positive and finite, else std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RangeControlLargeChangeCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, RangeControlLargeChangeCapability<Declaring>> large_change
+
+      Default: ``{10.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RangeControlMaximumCapability
+
+   ``#include <gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp>``
+
+   The upper bound (Maximum); a view onto the range: a write is set_range(minimum, incoming), so it must stay above the minimum.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RangeControlMaximumCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const RangeControlMaximumCapability& capability)
+
+   .. cpp:member:: PropertyView<double, RangeControlMaximumCapability<Declaring>> maximum
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RangeControlMinimumCapability
+
+   ``#include <gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp>``
+
+   The lower bound (Minimum); a view onto the range: a write is set_range(incoming, maximum), so it must stay below the maximum.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RangeControlMinimumCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const RangeControlMinimumCapability& capability)
+
+   .. cpp:member:: PropertyView<double, RangeControlMinimumCapability<Declaring>> minimum
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RangeControlOrientationCapability
+
+   ``#include <gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp>``
+
+   Horizontal or vertical (Orientation).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RangeControlOrientationCapability& capability, Orientation incoming)
+
+   .. cpp:member:: PropertyCell<Orientation, RangeControlOrientationCapability<Declaring>> orientation
+
+      Default: ``{Orientation::horizontal}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RangeControlSmallChangeCapability
+
+   ``#include <gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp>``
+
+   How far an arrow key or button moves the value (SmallChange); positive and finite, else std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RangeControlSmallChangeCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, RangeControlSmallChangeCapability<Declaring>> small_change
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RangeControlValueCapability
+
+   ``#include <gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp>``
+
+   The current value (Value), within minimum and maximum; a view onto the range's value. Outside them throws std::out_of_range, a non-finite value std::invalid_argument; a bound Value may refuse it. A change raises value_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RangeControlValueCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const RangeControlValueCapability& capability)
+
+   .. cpp:member:: PropertyView<double, RangeControlValueCapability<Declaring>> value
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RangeScrollEvent final
 
-   ``#include <gui_forms/controls/range_control/range_control.hpp>``
+   ``#include <gui_forms/controls/range_control/range_control_values/range_control_values.hpp>``
 
    RangeScrollEvent is the typed transition payload shared by interactive range controls. It records the old value, committed new value, and the exact pointer, keyboard, command, or programmatic reason.
 
@@ -992,6 +2212,94 @@ Related types
    .. cpp:member:: RangeAction action
 
       Default: ``{RangeAction::thumb_position}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ToggleSwitch::Parts final
+
+   ``#include <gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``track`` is the rounded ground, ``thumb`` the knob at its start (off) or end (on), ``label`` the text, ``state`` the state text (absent when empty) and ``focus`` the cue around the whole control.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry track
+
+   .. cpp:member:: PartGeometry thumb
+
+   .. cpp:member:: PartGeometry label
+
+   .. cpp:member:: PartGeometry state
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToggleSwitchCapabilities : public ToggleSwitchCheckedCapability<Declaring>, public ToggleSwitchOnTextCapability<Declaring>, public ToggleSwitchOffTextCapability<Declaring>
+
+   ``#include <gui_forms/controls/button_base/toggle_switch/toggle_switch_capabilities/toggle_switch_capabilities.hpp>``
+
+   Every ToggleSwitch capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool checked
+
+      Whether the switch is on; a change raises checked_changed. Activation (a click, Space, the press action) turns it over before clicked is raised.
+
+   .. cpp:member:: std::string on_text
+
+      The state text shown after the label while the switch is on, such as "On"; empty for none. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: std::string off_text
+
+      The state text shown after the label while the switch is off, such as "Off"; empty for none. Must be valid UTF-8 (std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToggleSwitchCheckedCapability
+
+   ``#include <gui_forms/controls/button_base/toggle_switch/toggle_switch_capabilities/toggle_switch_capabilities.hpp>``
+
+   Whether the switch is on; a change raises checked_changed. Activation (a click, Space, the press action) turns it over before clicked is raised.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToggleSwitchCheckedCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToggleSwitchCheckedCapability<Declaring>> checked
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToggleSwitchOffTextCapability
+
+   ``#include <gui_forms/controls/button_base/toggle_switch/toggle_switch_capabilities/toggle_switch_capabilities.hpp>``
+
+   The state text shown after the label while the switch is off, such as "Off"; empty for none. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToggleSwitchOffTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, ToggleSwitchOffTextCapability<Declaring>> off_text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToggleSwitchOnTextCapability
+
+   ``#include <gui_forms/controls/button_base/toggle_switch/toggle_switch_capabilities/toggle_switch_capabilities.hpp>``
+
+   The state text shown after the label while the switch is on, such as "On"; empty for none. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToggleSwitchOnTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, ToggleSwitchOnTextCapability<Declaring>> on_text
 
 .. cpp:namespace:: gui_forms
 
@@ -1033,6 +2341,80 @@ Related types
 
    .. cpp:member:: bool focus_visible
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TrackBarCapabilities : public TrackBarTickFrequencyCapability<Declaring>, public TrackBarShowTicksCapability<Declaring>, public TrackBarVisualStyleChoiceCapability<Declaring>
+
+   ``#include <gui_forms/controls/range_control/track_bar/track_bar_capabilities/track_bar_capabilities.hpp>``
+
+   Every TrackBar capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double tick_frequency
+
+      Distance in value units between tick marks; positive and finite, else std::invalid_argument.
+
+   .. cpp:member:: bool show_ticks
+
+      Whether the tick marks draw.
+
+   .. cpp:member:: TrackBarVisualStyle visual_style
+
+      How the rail and thumb draw: classic ticks, a filled rail or a compact rail.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TrackBarShowTicksCapability
+
+   ``#include <gui_forms/controls/range_control/track_bar/track_bar_capabilities/track_bar_capabilities.hpp>``
+
+   Whether the tick marks draw.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TrackBarShowTicksCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TrackBarShowTicksCapability<Declaring>> show_ticks
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TrackBarTickFrequencyCapability
+
+   ``#include <gui_forms/controls/range_control/track_bar/track_bar_capabilities/track_bar_capabilities.hpp>``
+
+   Distance in value units between tick marks; positive and finite, else std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TrackBarTickFrequencyCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, TrackBarTickFrequencyCapability<Declaring>> tick_frequency
+
+      Default: ``{10.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TrackBarVisualStyleChoiceCapability
+
+   ``#include <gui_forms/controls/range_control/track_bar/track_bar_capabilities/track_bar_capabilities.hpp>``
+
+   How the rail and thumb draw: classic ticks, a filled rail or a compact rail.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TrackBarVisualStyleChoiceCapability& capability, TrackBarVisualStyle incoming)
+
+   .. cpp:member:: PropertyCell<TrackBarVisualStyle, TrackBarVisualStyleChoiceCapability<Declaring>> visual_style
+
+      Default: ``{TrackBarVisualStyle::classic}``.
+
 Enumerations
 ------------
 
@@ -1040,7 +2422,7 @@ Enumerations
 
 .. cpp:enum-class:: CheckBoxAppearance
 
-   ``#include <gui_forms/controls/button_base/check_box/check_box.hpp>``
+   ``#include <gui_forms/controls/button_base/check_box/check_box_values/check_box_values.hpp>``
 
    .. cpp:enumerator:: normal
 
@@ -1050,7 +2432,7 @@ Enumerations
 
 .. cpp:enum-class:: CheckState
 
-   ``#include <gui_forms/controls/button_base/check_box/check_box.hpp>``
+   ``#include <gui_forms/controls/button_base/check_box/check_box_values/check_box_values.hpp>``
 
    .. cpp:enumerator:: unchecked
 
@@ -1086,7 +2468,7 @@ Enumerations
 
 .. cpp:enum-class:: Orientation
 
-   ``#include <gui_forms/controls/range_control/range_control.hpp>``
+   ``#include <gui_forms/controls/range_control/range_control_values/range_control_values.hpp>``
 
    .. cpp:enumerator:: horizontal
 
@@ -1122,7 +2504,7 @@ Enumerations
 
 .. cpp:enum-class:: RangeAction
 
-   ``#include <gui_forms/controls/range_control/range_control.hpp>``
+   ``#include <gui_forms/controls/range_control/range_control_values/range_control_values.hpp>``
 
    .. cpp:enumerator:: small_decrement
 
@@ -1144,7 +2526,7 @@ Enumerations
 
 .. cpp:enum-class:: TrackBarVisualStyle
 
-   ``#include <gui_forms/controls/range_control/track_bar/track_bar.hpp>``
+   ``#include <gui_forms/controls/range_control/track_bar/track_bar_values/track_bar_values.hpp>``
 
    .. cpp:enumerator:: classic
 
@@ -1154,6 +2536,14 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp>``
+
+.. cpp:var:: constexpr FrameInterval toggle_switch_thumb_duration
+
+   A switch that is on or off at once (W-4): a rounded track with a thumb at its end, the label after it and, when given, the state text after the label (on_text or off_text). Unlike a CheckBox it has no third state and stands for a setting that takes effect as it is turned. Activation (a click, Space or the press action) turns ``checked`` over, which raises checked_changed, and then raises clicked and runs the bound command, as a CheckBox does. A write to ``checked`` raises checked_changed only. To assistive technology it is a toggle_switch (hosts without a mapping publish a check box), named by its label, checked while on. The thumb travels to its new end on the window's motion clock whenever ``checked`` changes; the state, the event and the semantics change at once. Under reduced motion, in an occluded window or outside a window the thumb stands at its end at once. The thumb's travel: a smoothstep move of 150 ms (design language §9.2, within motion_duration_ceiling). Value: ``std::chrono::milliseconds(150)``.
 
 .. cpp:namespace:: gui_forms
 

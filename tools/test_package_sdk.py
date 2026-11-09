@@ -47,38 +47,33 @@ def make_repository(directory: Path, files: dict[str, str]) -> str:
 
 
 class Fixture:
-    """A release tree whose pin files name four fixture upstream repositories.
+    """A release tree whose pin files name two fixture upstream repositories.
 
-    harfbuzz, freetype and libunibreak are checked out at their in-tree
-    paths (ignored by the release tree); miniaudio is elsewhere, as CI's
-    FetchContent clone is, and reached through checkouts.
+    stx (stx.lock's commit: the stx packages, stx_skia and the third-party
+    sources) and miniaudio are elsewhere, as CI's FetchContent clones are,
+    and reached through checkouts.
     """
 
     def __init__(self, base: Path) -> None:
         self.root: Path = base / "gui_forms"
-        third_party: Path = self.root / "third_party"
         self.revisions: dict[str, str] = {
-            "harfbuzz": make_repository(third_party / "harfbuzz", {
-                "COPYING": "HarfBuzz licence\n", "CMakeLists.txt": "# harfbuzz\n", "src/hb.cc": "// hb\n",
-                "test/shape/big.txt": "test data\n", "perf/bench.cc": "// perf\n"}),
-            "freetype": make_repository(third_party / "freetype", {
-                "LICENSE.TXT": "FreeType licence\n", "CMakeLists.txt": "# freetype\n"}),
-            "libunibreak": make_repository(third_party / "libunibreak", {
-                "LICENCE": "zlib licence\n", "src/linebreak.c": "/* lb */\n"}),
+            "stx": make_repository(base / "deps/stx-src", {
+                "LICENSE": "MIT\n", "CMakeLists.txt": "# stx\n", "stx_skia/CMakeLists.txt": "# stx_skia\n",
+                "third_party/harfbuzz/src/hb.cc": "// hb\n", "third_party/freetype/LICENSE.TXT": "FTL\n",
+                "third_party/libunibreak/src/linebreak.c": "/* lb */\n",
+                ".github/workflows/stx.yml": "name: stx\n"}),
             "miniaudio": make_repository(base / "deps/miniaudio-src", {
                 "LICENSE": "MIT-0\n", "miniaudio.h": "/* ma */\n", "extras/stb_vorbis.c": "/* v */\n"}),
         }
-        self.checkouts: dict[str, Path] = {"miniaudio": base / "deps/miniaudio-src"}
+        self.checkouts: dict[str, Path] = {"stx": base / "deps/stx-src", "miniaudio": base / "deps/miniaudio-src"}
         self.revision: str = make_repository(self.root, {
             "CMakeLists.txt": "cmake_minimum_required(VERSION 3.25)\n",
             "tools/build_sdk.py": "# entry point\n",
             "cmake/llvm22.cmake": "# toolchain\n",
             "cmake/Audio.cmake": "FetchContent_Declare(gui_forms_miniaudio\n    GIT_TAG "
                                  + self.revisions["miniaudio"] + "\n)\n",
-            "third_party/.gitignore": "/harfbuzz/\n/freetype/\n/libunibreak/\n/miniaudio/\n",
-            "third_party/fetch_text_stack.sh": "harfbuzz_revision=" + self.revisions["harfbuzz"] + "\n"
-                                               "freetype_revision=" + self.revisions["freetype"] + "\n",
-            "third_party/fetch_linebreak.sh": "revision=" + self.revisions["libunibreak"] + "\n",
+            "third_party/.gitignore": "/miniaudio/\n",
+            "stx.lock": "[stx]\nrepository = \"malkuth-software/stx\"\ncommit = \"" + self.revisions["stx"] + "\"\n",
         })
 
     def package(self, out: Path) -> Path:
@@ -122,11 +117,11 @@ class SourceArchiveTests(unittest.TestCase):
         members: dict[str, sdk.Entry] = sdk.read_archive(self.archive)
         name: str
         for name in ("CMakeLists.txt", "tools/build_sdk.py", "SDK_MANIFEST.json",
-                     "third_party/harfbuzz/src/hb.cc", "third_party/freetype/LICENSE.TXT",
-                     "third_party/libunibreak/src/linebreak.c", "third_party/miniaudio/miniaudio.h"):
+                     "stx/LICENSE", "stx/stx_skia/CMakeLists.txt", "stx/third_party/harfbuzz/src/hb.cc",
+                     "stx/third_party/freetype/LICENSE.TXT", "stx/third_party/libunibreak/src/linebreak.c",
+                     "third_party/miniaudio/miniaudio.h"):
             self.assertIn(self.top + name, members)
-        self.assertNotIn(self.top + "third_party/harfbuzz/test/shape/big.txt", members)
-        self.assertNotIn(self.top + "third_party/harfbuzz/perf/bench.cc", members)
+        self.assertNotIn(self.top + "stx/.github/workflows/stx.yml", members)
         for name in members:
             self.assertTrue(name.startswith(self.top))
             self.assertNotIn("/.git/", name)
@@ -142,13 +137,12 @@ class SourceArchiveTests(unittest.TestCase):
         for source in record["third_party"]:
             paths[source["name"]] = source["path"]
             revisions[source["name"]] = source["revision"]
-        self.assertEqual(paths, {"harfbuzz": "third_party/harfbuzz", "freetype": "third_party/freetype",
-                                 "libunibreak": "third_party/libunibreak", "miniaudio": "third_party/miniaudio"})
+        self.assertEqual(paths, {"stx": "stx", "miniaudio": "third_party/miniaudio"})
         self.assertEqual(revisions, self.fixture.revisions)
         network: list[str] = []
         for source in record["network_inputs"]:
             network.append(source["name"])
-        # stx_skia/ is part of the tree, so Skia is no longer downloaded.
+        # stx (with stx_skia and the third-party sources) is vendored, so nothing else is downloaded.
         self.assertEqual(network, ["llvm-runtimes-source"])
         self.assertTrue(record["prebuilt_inputs"])
 
@@ -184,8 +178,8 @@ class SourceArchiveTests(unittest.TestCase):
 
     def test_a_changed_vendored_file_is_rejected(self) -> None:
         members: dict[str, sdk.Entry] = sdk.read_archive(self.archive)
-        members[self.top + "third_party/freetype/CMakeLists.txt"] = sdk.Entry(b"# changed\n", None, False)
-        with self.assertRaisesRegex(ValueError, "freetype .* differs from its recorded digest"):
+        members[self.top + "stx/CMakeLists.txt"] = sdk.Entry(b"# changed\n", None, False)
+        with self.assertRaisesRegex(ValueError, "stx .* differs from its recorded digest"):
             sdk.check_archive(self.rewrite(members), VERSION)
 
     def test_a_missing_vendored_source_is_rejected(self) -> None:
@@ -193,9 +187,9 @@ class SourceArchiveTests(unittest.TestCase):
         archived: dict[str, sdk.Entry] = sdk.read_archive(self.archive)
         name: str
         for name in archived:
-            if "/third_party/libunibreak/" not in name:
+            if not name.startswith(self.top + "stx/"):
                 members[name] = archived[name]
-        with self.assertRaisesRegex(ValueError, "libunibreak is absent"):
+        with self.assertRaisesRegex(ValueError, "stx is absent"):
             sdk.check_archive(self.rewrite(members), VERSION)
 
     def test_missing_cmakelists_is_rejected(self) -> None:
@@ -206,7 +200,7 @@ class SourceArchiveTests(unittest.TestCase):
 
     def test_git_directories_and_build_output_are_rejected(self) -> None:
         name: str
-        for name in (".git/HEAD", "third_party/harfbuzz/.git/config", ".build/native/build.ninja",
+        for name in (".git/HEAD", "stx/.git/config", ".build/native/build.ninja",
                      "src/core/object.o", "CMakeCache.txt"):
             with self.subTest(name=name):
                 members: dict[str, sdk.Entry] = sdk.read_archive(self.archive)
@@ -229,7 +223,7 @@ class SourceArchiveTests(unittest.TestCase):
         make_repository(other, {"LICENSE": "other\n"})
         with self.assertRaisesRegex(ValueError, "does not hold miniaudio's pin"):
             sdk.package(self.fixture.root, VERSION, self.fixture.revision, self.base / "refused",
-                        {"miniaudio": other})
+                        {"stx": self.fixture.checkouts["stx"], "miniaudio": other})
 
     def test_a_missing_pin_is_fetched_from_its_upstream(self) -> None:
         upstream: Path = self.fixture.checkouts["miniaudio"]

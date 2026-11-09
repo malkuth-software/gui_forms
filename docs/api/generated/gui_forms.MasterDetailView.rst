@@ -7,7 +7,7 @@ gui_forms::MasterDetailView
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: MasterDetailView final : public ContainerControl
+.. cpp:class:: MasterDetailView final : public ContainerControl, public MasterDetailViewCapabilities<MasterDetailView>
 
    ``#include <gui_forms/controls/container/master_detail_view/master_detail_view.hpp>``
 
@@ -30,6 +30,16 @@ gui_forms::MasterDetailView
          takes the identity ``<stable_id>.split``.
 
    :Properties:
+
+      **display_mode** : ``MasterDetailDisplayMode``, default ``MasterDetailDisplayMode::automatic``
+         :cpp:enumerator:`MasterDetailDisplayMode::automatic <gui_forms::MasterDetailDisplayMode::automatic>` chooses the presentation from the
+         view's size. ``side_by_side``, ``master_only`` and ``detail_only`` force one
+         presentation whatever the size. An unknown value throws
+         ``std::invalid_argument``.
+
+      **compact_detail_visible** : ``bool``, default ``false``
+         Which role the automatic mode shows when the view is compact: the detail
+         when true, the master when false. :cpp:func:`show_detail <gui_forms::MasterDetailView::show_detail>` and :cpp:func:`show_master <gui_forms::MasterDetailView::show_master>` set it.
 
       **master** : ``Control::Ptr``
          The control in the master role, or null. ``set_master(control)`` docks the
@@ -67,33 +77,23 @@ gui_forms::MasterDetailView
          The layout in use: the theme's while :cpp:func:`uses_theme_layout <gui_forms::MasterDetailView::uses_theme_layout>` is true,
          otherwise :cpp:func:`master_detail_layout <gui_forms::MasterDetailView::master_detail_layout>`.
 
-      **display_mode** : ``MasterDetailDisplayMode``, default ``MasterDetailDisplayMode::automatic``
-         :cpp:enumerator:`MasterDetailDisplayMode::automatic <gui_forms::MasterDetailDisplayMode::automatic>` chooses the presentation from the
-         view's size. ``side_by_side``, ``master_only`` and ``detail_only`` force one
-         presentation whatever the size. An unknown value throws
-         ``std::invalid_argument``.
-
       **effective_display_mode** : ``MasterDetailDisplayMode``, default ``MasterDetailDisplayMode::side_by_side``, read-only
          The presentation applied by the last layout: ``side_by_side``,
          ``master_only`` or ``detail_only``.
-
-      **compact_detail_visible** : ``bool``, default ``false``
-         Which role the automatic mode shows when the view is compact: the detail
-         when true, the master when false. :cpp:func:`show_detail <gui_forms::MasterDetailView::show_detail>` and :cpp:func:`show_master <gui_forms::MasterDetailView::show_master>` set it.
 
    :Events:
 
       **presentation_changed** : ``Event<const MasterDetailPresentationChange&>``
          Raised during layout when :cpp:func:`effective_display_mode <gui_forms::MasterDetailView::effective_display_mode>` changes, after the
          panes have been collapsed or restored. It carries the previous and the
-         current presentation, and ``automatic`` is true when :cpp:func:`display_mode <gui_forms::MasterDetailView::display_mode>` is
+         current presentation, and ``automatic`` is true when :cpp:member:`display_mode <gui_forms::MasterDetailView::display_mode>` is
          ``automatic``.
 
    :Inherited:
 
-      From :cpp:class:`ContainerControl <gui_forms::ContainerControl>`: properties :cpp:func:`active_control <gui_forms::ContainerControl::active_control>`, :cpp:func:`auto_validate <gui_forms::ContainerControl::auto_validate>`, :cpp:func:`effective_auto_validate <gui_forms::ContainerControl::effective_auto_validate>`; events :cpp:func:`auto_validate_changed <gui_forms::ContainerControl::auto_validate_changed>`; methods :cpp:func:`clear_active_control <gui_forms::ContainerControl::clear_active_control>`, :cpp:func:`contains_descendant <gui_forms::ContainerControl::contains_descendant>`, :cpp:func:`request_active_control <gui_forms::ContainerControl::request_active_control>`, :cpp:func:`validate <gui_forms::ContainerControl::validate>`, :cpp:func:`validate_children <gui_forms::ContainerControl::validate_children>`.
+      From :cpp:class:`ContainerControl <gui_forms::ContainerControl>`: properties :cpp:member:`auto_validate <gui_forms::ContainerControl::auto_validate>`, :cpp:func:`active_control <gui_forms::ContainerControl::active_control>`, :cpp:func:`effective_auto_validate <gui_forms::ContainerControl::effective_auto_validate>`; events :cpp:func:`auto_validate_changed <gui_forms::ContainerControl::auto_validate_changed>`; methods :cpp:func:`clear_active_control <gui_forms::ContainerControl::clear_active_control>`, :cpp:func:`contains_descendant <gui_forms::ContainerControl::contains_descendant>`, :cpp:func:`request_active_control <gui_forms::ContainerControl::request_active_control>`, :cpp:func:`validate <gui_forms::ContainerControl::validate>`, :cpp:func:`validate_children <gui_forms::ContainerControl::validate_children>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`parts <gui_forms::ScrollableControl::parts>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`parts <gui_forms::ScrollableControl::parts>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -108,9 +108,9 @@ gui_forms::MasterDetailView
       * - :cpp:func:`reset_master_detail_layout_to_theme <gui_forms::MasterDetailView::reset_master_detail_layout_to_theme>`
         - Makes the view follow the theme's layout again.
       * - :cpp:func:`show_master <gui_forms::MasterDetailView::show_master>`
-        - Shows the master when the view is compact; sets :cpp:func:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>` to false.
+        - Shows the master when the view is compact; sets :cpp:member:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>` to false.
       * - :cpp:func:`show_detail <gui_forms::MasterDetailView::show_detail>`
-        - Shows the detail when the view is compact; sets :cpp:func:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>` to true.
+        - Shows the detail when the view is compact; sets :cpp:member:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>` to true.
 
    .. seealso::
 
@@ -125,7 +125,7 @@ gui_forms::MasterDetailView
    In automatic mode the view is side by side while its width, or its height
    for a horizontal layout, is at least the larger of the compact threshold and
    the master minimum plus seam width plus detail minimum. Below that it shows
-   the master, or the detail if :cpp:func:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>` is true. The mode is
+   the master, or the detail if :cpp:member:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>` is true. The mode is
    applied when the view is arranged, so :cpp:func:`effective_display_mode <gui_forms::MasterDetailView::effective_display_mode>` and
    :cpp:func:`presentation_changed <gui_forms::MasterDetailView::presentation_changed>` follow the next layout pass, not the call that
    changed the size or the mode.
@@ -192,6 +192,18 @@ gui_forms::MasterDetailView
 
    .. rubric:: Properties
 
+   .. cpp:member:: MasterDetailDisplayMode display_mode
+
+      :cpp:enumerator:`MasterDetailDisplayMode::automatic <gui_forms::MasterDetailDisplayMode::automatic>` chooses the presentation from the
+      view's size. ``side_by_side``, ``master_only`` and ``detail_only`` force one
+      presentation whatever the size. An unknown value throws
+      ``std::invalid_argument``.
+
+   .. cpp:member:: bool compact_detail_visible
+
+      Which role the automatic mode shows when the view is compact: the detail
+      when true, the master when false. :cpp:func:`show_detail <gui_forms::MasterDetailView::show_detail>` and :cpp:func:`show_master <gui_forms::MasterDetailView::show_master>` set it.
+
    .. cpp:function:: Control::Ptr master() const noexcept
 
       The control in the master role, or null. ``set_master(control)`` docks the
@@ -246,30 +258,10 @@ gui_forms::MasterDetailView
       The layout in use: the theme's while :cpp:func:`uses_theme_layout <gui_forms::MasterDetailView::uses_theme_layout>` is true,
       otherwise :cpp:func:`master_detail_layout <gui_forms::MasterDetailView::master_detail_layout>`.
 
-   .. cpp:function:: MasterDetailDisplayMode display_mode() const noexcept
-
-      :cpp:enumerator:`MasterDetailDisplayMode::automatic <gui_forms::MasterDetailDisplayMode::automatic>` chooses the presentation from the
-      view's size. ``side_by_side``, ``master_only`` and ``detail_only`` force one
-      presentation whatever the size. An unknown value throws
-      ``std::invalid_argument``.
-
-   .. cpp:function:: void set_display_mode(MasterDetailDisplayMode mode)
-
-      Sets :cpp:func:`display_mode <gui_forms::MasterDetailView::display_mode>`; see the property's description above.
-
    .. cpp:function:: MasterDetailDisplayMode effective_display_mode() const noexcept
 
       The presentation applied by the last layout: ``side_by_side``,
       ``master_only`` or ``detail_only``.
-
-   .. cpp:function:: bool compact_detail_visible() const noexcept
-
-      Which role the automatic mode shows when the view is compact: the detail
-      when true, the master when false. :cpp:func:`show_detail <gui_forms::MasterDetailView::show_detail>` and :cpp:func:`show_master <gui_forms::MasterDetailView::show_master>` set it.
-
-   .. cpp:function:: void set_compact_detail_visible(bool visible)
-
-      Sets :cpp:func:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>`; see the property's description above.
 
 
    .. rubric:: Events
@@ -278,7 +270,7 @@ gui_forms::MasterDetailView
 
       Raised during layout when :cpp:func:`effective_display_mode <gui_forms::MasterDetailView::effective_display_mode>` changes, after the
       panes have been collapsed or restored. It carries the previous and the
-      current presentation, and ``automatic`` is true when :cpp:func:`display_mode <gui_forms::MasterDetailView::display_mode>` is
+      current presentation, and ``automatic`` is true when :cpp:member:`display_mode <gui_forms::MasterDetailView::display_mode>` is
       ``automatic``.
 
 
@@ -295,12 +287,12 @@ gui_forms::MasterDetailView
 
    .. cpp:function:: void show_master()
 
-      Shows the master when the view is compact; sets :cpp:func:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>`
+      Shows the master when the view is compact; sets :cpp:member:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>`
       to false.
 
    .. cpp:function:: void show_detail()
 
-      Shows the detail when the view is compact; sets :cpp:func:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>`
+      Shows the detail when the view is compact; sets :cpp:member:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>`
       to true. A side-by-side view is not affected until it becomes compact.
 
 

@@ -1,7 +1,7 @@
 #include "gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.hpp"
 #include "../container_layout_utilities.hpp"
-#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../scrollable_anatomy.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -17,12 +17,18 @@ using namespace container_layout_detail;
 
 namespace {
 
+PropertyDescriptor flow_break_descriptor() {
+    PropertyDescriptor descriptor{"flow_break", BindingValueKind::boolean, "Layout",
+                                  "Whether the flow continues on a new line after this child.", BindingValue{false},
+                                  invalidation::bounds};
+    // The write is the child view's assignment (generated forms assign it).
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
 const PropertyDescriptor& describe_flow_break() {
-    static const PropertyDescriptor descriptor = property_table_descriptor(
-        PropertyDescriptor{"flow_break", BindingValueKind::boolean, "Layout",
-                           "Whether the flow continues on a new line after this child.", BindingValue{false},
-                           invalidation::bounds},
-        PropertyOperations{true, true, false, false});
+    static const PropertyDescriptor descriptor =
+        property_table_descriptor(flow_break_descriptor(), PropertyOperations{true, true, false, false});
     return descriptor;
 }
 
@@ -36,7 +42,6 @@ void write_flow_break(Component& container, const Control& child, const BindingV
     FlowLayoutPanelCompat& flow = static_cast<FlowLayoutPanelCompat&>(container);
     flow.flow_break[child] = std::get<bool>(value);
 }
-
 
 std::shared_ptr<const PropertyEnumDescriptor> flow_direction_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
@@ -64,66 +69,7 @@ std::shared_ptr<const PropertyEnumDescriptor> cross_alignment_enum() {
 } // namespace
 
 FlowLayoutPanelCompat::FlowLayoutPanelCompat(StableId stable_id)
-    : ContainerControl(std::move(stable_id)) {
-    register_panel_properties();
-}
-
-void FlowLayoutPanelCompat::register_panel_properties() {
-    PropertyDescriptor direction{"flow_direction", BindingValueKind::enumeration, "Layout",
-                                 "The direction children follow one another: left to right, right to left, top "
-                                 "down or bottom up.",
-                                 BindingValue{std::int64_t{0}}, invalidation::bounds};
-    direction.bindable = false;
-    direction.enumeration = flow_direction_enum();
-    define_bindable_property({std::move(direction),
-                              detail::EnumerationPropertyGetter<FlowLayoutPanelCompat, FlowDirection>(
-                                  *this, &FlowLayoutPanelCompat::flow_direction, flow_direction_enum()),
-                              detail::EnumerationPropertySetter<FlowLayoutPanelCompat, FlowDirection>(
-                                  *this, &FlowLayoutPanelCompat::set_flow_direction),
-                              {}, {}, {}});
-    PropertyDescriptor wrap{"wrap_contents", BindingValueKind::boolean, "Layout",
-                            "Whether a child that does not fit the rest of the line starts a new one.",
-                            BindingValue{true}, invalidation::bounds};
-    wrap.bindable = false;
-    define_bindable_property({std::move(wrap),
-                              detail::BindingNoexceptMethodGetter<FlowLayoutPanelCompat, bool>(
-                                  *this, &FlowLayoutPanelCompat::wrap_contents),
-                              detail::DirectPropertySetter<FlowLayoutPanelCompat, bool>(
-                                  *this, &FlowLayoutPanelCompat::set_wrap_contents),
-                              {}, {}, {}});
-    PropertyDescriptor spacing{"item_spacing", BindingValueKind::size, "Layout",
-                               "The space between items along a line (width) and between lines (height).",
-                               BindingValue{Size{}}, invalidation::bounds};
-    spacing.bindable = false;
-    define_bindable_property({std::move(spacing),
-                              detail::BindingNoexceptMethodGetter<FlowLayoutPanelCompat, Size>(
-                                  *this, &FlowLayoutPanelCompat::item_spacing),
-                              detail::DirectPropertySetter<FlowLayoutPanelCompat, Size>(
-                                  *this, &FlowLayoutPanelCompat::set_item_spacing),
-                              {}, {}, {}});
-    PropertyDescriptor main{"main_alignment", BindingValueKind::enumeration, "Layout",
-                            "How a line's items share its free space along the flow.",
-                            BindingValue{std::int64_t{0}}, invalidation::bounds};
-    main.bindable = false;
-    main.enumeration = main_alignment_enum();
-    define_bindable_property({std::move(main),
-                              detail::EnumerationPropertyGetter<FlowLayoutPanelCompat, FlowMainAlignment>(
-                                  *this, &FlowLayoutPanelCompat::main_alignment, main_alignment_enum()),
-                              detail::EnumerationPropertySetter<FlowLayoutPanelCompat, FlowMainAlignment>(
-                                  *this, &FlowLayoutPanelCompat::set_main_alignment),
-                              {}, {}, {}});
-    PropertyDescriptor cross{"cross_alignment", BindingValueKind::enumeration, "Layout",
-                             "Where an item sits across its line: start, center, end or stretched.",
-                             BindingValue{std::int64_t{0}}, invalidation::bounds};
-    cross.bindable = false;
-    cross.enumeration = cross_alignment_enum();
-    define_bindable_property({std::move(cross),
-                              detail::EnumerationPropertyGetter<FlowLayoutPanelCompat, FlowCrossAlignment>(
-                                  *this, &FlowLayoutPanelCompat::cross_alignment, cross_alignment_enum()),
-                              detail::EnumerationPropertySetter<FlowLayoutPanelCompat, FlowCrossAlignment>(
-                                  *this, &FlowLayoutPanelCompat::set_cross_alignment),
-                              {}, {}, {}});
-}
+    : ContainerControl(std::move(stable_id)) {}
 
 const std::array<ChildPropertyEntry, FlowLayoutPanelCompat::flow_child_property_count>&
 FlowLayoutPanelCompat::flow_child_property_entries() noexcept {
@@ -137,53 +83,6 @@ FlowLayoutPanelCompat::flow_child_property_entries() noexcept {
 std::span<const ChildPropertyEntry> FlowLayoutPanelCompat::child_property_table() const noexcept {
     const std::array<ChildPropertyEntry, flow_child_property_count>& entries = flow_child_property_entries();
     return std::span<const ChildPropertyEntry>(entries);
-}
-
-void FlowLayoutPanelCompat::set_flow_direction(FlowDirection direction) {
-    require_mutable();
-    if (flow_direction_ == direction) return;
-    flow_direction_ = direction;
-    invalidate(invalidation::bounds);
-}
-
-void FlowLayoutPanelCompat::set_wrap_contents(bool wrap) {
-    require_mutable();
-    if (wrap_contents_ == wrap) return;
-    wrap_contents_ = wrap;
-    invalidate(invalidation::bounds);
-}
-
-void FlowLayoutPanelCompat::set_item_spacing(Size spacing) {
-    require_mutable();
-    if (!std::isfinite(spacing.width) || !std::isfinite(spacing.height) ||
-        spacing.width < 0.0 || spacing.height < 0.0 ||
-        spacing.width > 256.0 || spacing.height > 256.0) {
-        throw std::invalid_argument(
-            "FlowLayoutPanelCompat item spacing must be finite and between zero and 256");
-    }
-    if (item_spacing_ == spacing) return;
-    item_spacing_ = spacing;
-    invalidate(invalidation::bounds);
-}
-
-void FlowLayoutPanelCompat::set_main_alignment(FlowMainAlignment alignment) {
-    require_mutable();
-    if (alignment > FlowMainAlignment::space_evenly) {
-        throw std::invalid_argument("FlowLayoutPanelCompat main alignment is unknown");
-    }
-    if (main_alignment_ == alignment) return;
-    main_alignment_ = alignment;
-    invalidate(invalidation::bounds);
-}
-
-void FlowLayoutPanelCompat::set_cross_alignment(FlowCrossAlignment alignment) {
-    require_mutable();
-    if (alignment > FlowCrossAlignment::stretch) {
-        throw std::invalid_argument("FlowLayoutPanelCompat cross alignment is unknown");
-    }
-    if (cross_alignment_ == alignment) return;
-    cross_alignment_ = alignment;
-    invalidate(invalidation::bounds);
 }
 
 void FlowLayoutPanelCompat::prepare_write(
@@ -367,14 +266,14 @@ Size FlowLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace& 
     const Size inner{std::max(0.0, available.width - horizontal_extent(inset)),
                      std::max(0.0, available.height - vertical_extent(inset))};
     const bool right_to_left = effective_layout_direction() == LayoutDirection::right_to_left;
-    const bool horizontal = flow_direction_ == FlowDirection::left_to_right ||
-                            flow_direction_ == FlowDirection::right_to_left;
+    const bool horizontal = flow_direction.read() == FlowDirection::left_to_right ||
+                            flow_direction.read() == FlowDirection::right_to_left;
     const double main_limit = horizontal ? inner.width : inner.height;
     const double cross_limit = horizontal ? inner.height : inner.width;
-    const double main_spacing = horizontal ? item_spacing_.width
-                                           : item_spacing_.height;
-    const double cross_spacing = horizontal ? item_spacing_.height
-                                            : item_spacing_.width;
+    const double main_spacing = horizontal ? item_spacing.read().width
+                                           : item_spacing.read().height;
+    const double cross_spacing = horizontal ? item_spacing.read().height
+                                            : item_spacing.read().width;
 
     // The children, held for the pass: a measure callback may change the
     // tree, so each is revalidated after it is measured.
@@ -398,7 +297,7 @@ Size FlowLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace& 
             ? vertical_extent(item.margin) + item.desired.height
             : horizontal_extent(item.margin) + item.desired.width;
         const double preceding_spacing = line.count == 0U ? 0.0 : main_spacing;
-        if (line.count != 0U && wrap_contents_ &&
+        if (line.count != 0U && wrap_contents.read() &&
             line.main + preceding_spacing + item_main > main_limit) {
             workspace.lines.push_back(line);
             line = FlowLine{workspace.items.size(), 0U, 0.0, 0.0};
@@ -430,7 +329,7 @@ Size FlowLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace& 
         const double free_main = assign && total_grow > 0.0
             ? 0.0 : available_main;
         const MainPlacement main_placement =
-            place_along(main_alignment_, free_main, line_items.size());
+            place_along(main_alignment.read(), free_main, line_items.size());
         double main_origin = main_placement.origin;
         const double distributed_spacing = main_placement.spacing;
         const double line_cross = assign && workspace.lines.size() == 1U
@@ -453,7 +352,7 @@ Size FlowLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace& 
                 (assign && total_grow > 0.0
                     ? available_main * item.grow / total_grow : 0.0);
             const CrossPlacement cross_placement = place_across(
-                cross_alignment_, line_cross, item_cross, desired_cross, margin_cross);
+                cross_alignment.read(), line_cross, item_cross, desired_cross, margin_cross);
             const double cross_item_origin = cross_placement.origin;
             const double assigned_cross = cross_placement.extent;
             Rect slot;
@@ -462,7 +361,7 @@ Size FlowLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace& 
                 slot.height = assigned_cross;
                 slot.y = inset.top + cross_origin + cross_item_origin +
                          item.margin.top;
-                if (flow_direction_ == FlowDirection::left_to_right) {
+                if (flow_direction.read() == FlowDirection::left_to_right) {
                     slot.x = inset.left + main_origin + item.margin.left;
                 } else {
                     slot.x = inset.left + inner.width - main_origin -
@@ -474,7 +373,7 @@ Size FlowLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace& 
                 slot.height = assigned_main;
                 slot.x = inset.left + cross_origin + cross_item_origin +
                          item.margin.left;
-                if (flow_direction_ == FlowDirection::top_down) {
+                if (flow_direction.read() == FlowDirection::top_down) {
                     slot.y = inset.top + main_origin + item.margin.top;
                 } else {
                     slot.y = inset.top + inner.height - main_origin -
@@ -565,7 +464,6 @@ SemanticDescriptor FlowLayoutPanelCompat::semantic_descriptor() const {
     return descriptor;
 }
 
-
 namespace {
 
 constexpr ControlAnatomy flow_layout_panel_compat_anatomy{
@@ -580,5 +478,250 @@ constexpr ControlAnatomy flow_layout_panel_compat_anatomy{
 const ControlAnatomy& FlowLayoutPanelCompat::anatomy() const noexcept {
     return flow_layout_panel_compat_anatomy;
 }
+
+// property_codemod begin FlowLayoutPanelCompat (tools/property_families/flow_layout_panel_compat.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor flow_layout_panel_compat_flow_direction_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "flow_direction";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Layout";
+    descriptor.description = "The direction children follow one another: left to right, right to left, top down or bottom up.";
+    descriptor.default_value = BindingValue{std::int64_t{0}};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    descriptor.enumeration = flow_direction_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_flow_layout_panel_compat_flow_direction() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        flow_layout_panel_compat_flow_direction_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor flow_layout_panel_compat_wrap_contents_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "wrap_contents";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Layout";
+    descriptor.description = "Whether a child that does not fit the rest of the line starts a new one.";
+    descriptor.default_value = BindingValue{true};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_flow_layout_panel_compat_wrap_contents() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        flow_layout_panel_compat_wrap_contents_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor flow_layout_panel_compat_item_spacing_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "item_spacing";
+    descriptor.kind = BindingValueKind::size;
+    descriptor.category = "Layout";
+    descriptor.description = "The space between items along a line (width) and between lines (height).";
+    descriptor.default_value = BindingValue{Size{}};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_flow_layout_panel_compat_item_spacing() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        flow_layout_panel_compat_item_spacing_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor flow_layout_panel_compat_main_alignment_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "main_alignment";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Layout";
+    descriptor.description = "How a line's items share its free space along the flow.";
+    descriptor.default_value = BindingValue{std::int64_t{0}};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    descriptor.enumeration = main_alignment_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_flow_layout_panel_compat_main_alignment() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        flow_layout_panel_compat_main_alignment_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor flow_layout_panel_compat_cross_alignment_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "cross_alignment";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Layout";
+    descriptor.description = "Where an item sits across its line: start, center, end or stretched.";
+    descriptor.default_value = BindingValue{std::int64_t{0}};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    descriptor.enumeration = cross_alignment_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_flow_layout_panel_compat_cross_alignment() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        flow_layout_panel_compat_cross_alignment_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<FlowDirection>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, flow_direction_enum()};
+}
+
+BindingValue PropertyValueTraits<FlowDirection>::to_binding(FlowDirection value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = flow_direction_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+FlowDirection PropertyValueTraits<FlowDirection>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<FlowDirection>(choice.value);
+}
+
+PropertyType PropertyValueTraits<FlowMainAlignment>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, main_alignment_enum()};
+}
+
+BindingValue PropertyValueTraits<FlowMainAlignment>::to_binding(FlowMainAlignment value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = main_alignment_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+FlowMainAlignment PropertyValueTraits<FlowMainAlignment>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<FlowMainAlignment>(choice.value);
+}
+
+PropertyType PropertyValueTraits<FlowCrossAlignment>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, cross_alignment_enum()};
+}
+
+BindingValue PropertyValueTraits<FlowCrossAlignment>::to_binding(FlowCrossAlignment value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = cross_alignment_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+FlowCrossAlignment PropertyValueTraits<FlowCrossAlignment>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<FlowCrossAlignment>(choice.value);
+}
+
+const std::array<PropertyEntry, FlowLayoutPanelCompat::flow_layout_panel_compat_property_count>& FlowLayoutPanelCompat::flow_layout_panel_compat_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 5U> own{{
+        {"flow_direction", &describe_flow_layout_panel_compat_flow_direction,
+         &read_cell_entry<FlowLayoutPanelCompat, decltype(&FlowLayoutPanelCompat::flow_direction), &FlowLayoutPanelCompat::flow_direction>,
+         &write_cell_entry<FlowLayoutPanelCompat, decltype(&FlowLayoutPanelCompat::flow_direction), &FlowLayoutPanelCompat::flow_direction>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"wrap_contents", &describe_flow_layout_panel_compat_wrap_contents,
+         &read_cell_entry<FlowLayoutPanelCompat, decltype(&FlowLayoutPanelCompat::wrap_contents), &FlowLayoutPanelCompat::wrap_contents>,
+         &write_cell_entry<FlowLayoutPanelCompat, decltype(&FlowLayoutPanelCompat::wrap_contents), &FlowLayoutPanelCompat::wrap_contents>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"item_spacing", &describe_flow_layout_panel_compat_item_spacing,
+         &read_cell_entry<FlowLayoutPanelCompat, decltype(&FlowLayoutPanelCompat::item_spacing), &FlowLayoutPanelCompat::item_spacing>,
+         &write_cell_entry<FlowLayoutPanelCompat, decltype(&FlowLayoutPanelCompat::item_spacing), &FlowLayoutPanelCompat::item_spacing>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"main_alignment", &describe_flow_layout_panel_compat_main_alignment,
+         &read_cell_entry<FlowLayoutPanelCompat, decltype(&FlowLayoutPanelCompat::main_alignment), &FlowLayoutPanelCompat::main_alignment>,
+         &write_cell_entry<FlowLayoutPanelCompat, decltype(&FlowLayoutPanelCompat::main_alignment), &FlowLayoutPanelCompat::main_alignment>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"cross_alignment", &describe_flow_layout_panel_compat_cross_alignment,
+         &read_cell_entry<FlowLayoutPanelCompat, decltype(&FlowLayoutPanelCompat::cross_alignment), &FlowLayoutPanelCompat::cross_alignment>,
+         &write_cell_entry<FlowLayoutPanelCompat, decltype(&FlowLayoutPanelCompat::cross_alignment), &FlowLayoutPanelCompat::cross_alignment>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "FlowLayoutPanelCompat's property table names a property twice");
+    static const std::array<PropertyEntry, flow_layout_panel_compat_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> FlowLayoutPanelCompat::property_table() const noexcept {
+    const std::array<PropertyEntry, flow_layout_panel_compat_property_count>& entries = flow_layout_panel_compat_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void FlowLayoutPanelCompat::prepare_write(const decltype(flow_direction)&, FlowDirection&) {
+    require_mutable();
+}
+
+void FlowLayoutPanelCompat::written(const decltype(flow_direction)&) {
+    invalidate(invalidation::bounds);
+}
+
+void FlowLayoutPanelCompat::prepare_write(const decltype(wrap_contents)&, bool&) {
+    require_mutable();
+}
+
+void FlowLayoutPanelCompat::written(const decltype(wrap_contents)&) {
+    invalidate(invalidation::bounds);
+}
+
+void FlowLayoutPanelCompat::prepare_write(const decltype(item_spacing)&, Size& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) || incoming.width < 0.0 || incoming.height < 0.0 || incoming.width > 256.0 || incoming.height > 256.0) throw std::invalid_argument("FlowLayoutPanelCompat item spacing must be finite and between zero and 256");
+}
+
+void FlowLayoutPanelCompat::written(const decltype(item_spacing)&) {
+    invalidate(invalidation::bounds);
+}
+
+void FlowLayoutPanelCompat::prepare_write(const decltype(main_alignment)&, FlowMainAlignment& incoming) {
+    require_mutable();
+    if (incoming > FlowMainAlignment::space_evenly) throw std::invalid_argument("FlowLayoutPanelCompat main alignment is unknown");
+}
+
+void FlowLayoutPanelCompat::written(const decltype(main_alignment)&) {
+    invalidate(invalidation::bounds);
+}
+
+void FlowLayoutPanelCompat::prepare_write(const decltype(cross_alignment)&, FlowCrossAlignment& incoming) {
+    require_mutable();
+    if (incoming > FlowCrossAlignment::stretch) throw std::invalid_argument("FlowLayoutPanelCompat cross alignment is unknown");
+}
+
+void FlowLayoutPanelCompat::written(const decltype(cross_alignment)&) {
+    invalidate(invalidation::bounds);
+}
+
+// property_codemod end FlowLayoutPanelCompat
 
 } // namespace gui_forms

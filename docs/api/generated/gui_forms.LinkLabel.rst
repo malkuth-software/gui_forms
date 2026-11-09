@@ -7,7 +7,7 @@ gui_forms::LinkLabel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: LinkLabel : public ButtonBase
+.. cpp:class:: LinkLabel : public ButtonBase, public LinkLabelCapabilities<LinkLabel>
 
    ``#include <gui_forms/controls/button_base/link_label/link_label.hpp>``
 
@@ -46,7 +46,7 @@ gui_forms::LinkLabel
 
    :Inherited:
 
-      From :cpp:class:`ButtonBase <gui_forms::ButtonBase>`: properties :cpp:member:`text <gui_forms::ButtonBase::text>`, :cpp:member:`text_alignment <gui_forms::ButtonBase::text_alignment>`, :cpp:member:`font <gui_forms::ButtonBase::font>`, :cpp:member:`content_padding <gui_forms::ButtonBase::content_padding>`, :cpp:member:`text_line_spacing <gui_forms::ButtonBase::text_line_spacing>`, :cpp:member:`image_alignment <gui_forms::ButtonBase::image_alignment>`, :cpp:member:`text_image_relation <gui_forms::ButtonBase::text_image_relation>`, :cpp:member:`image_gap <gui_forms::ButtonBase::image_gap>`, :cpp:member:`use_mnemonic <gui_forms::ButtonBase::use_mnemonic>`, :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>`, :cpp:func:`command_connected <gui_forms::ButtonBase::command_connected>`, :cpp:func:`style <gui_forms::ButtonBase::style>`, :cpp:func:`has_style_override <gui_forms::ButtonBase::has_style_override>`, :cpp:func:`visual_recipes_override <gui_forms::ButtonBase::visual_recipes_override>`, :cpp:func:`connection_topology <gui_forms::ButtonBase::connection_topology>`, :cpp:func:`image <gui_forms::ButtonBase::image>`, :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`, :cpp:func:`image_index <gui_forms::ButtonBase::image_index>`, :cpp:func:`image_key <gui_forms::ButtonBase::image_key>`, :cpp:func:`pressed_visual <gui_forms::ButtonBase::pressed_visual>`, :cpp:func:`focused_visual <gui_forms::ButtonBase::focused_visual>`, :cpp:func:`focus_cue_visible <gui_forms::ButtonBase::focus_cue_visible>`, :cpp:func:`hovered_visual <gui_forms::ButtonBase::hovered_visual>`; events :cpp:func:`expanded_changed <gui_forms::ButtonBase::expanded_changed>`, :cpp:func:`clicked <gui_forms::ButtonBase::clicked>`, :cpp:func:`text_changed <gui_forms::ButtonBase::text_changed>`; methods :cpp:func:`button_base_property_entries <gui_forms::ButtonBase::button_base_property_entries>`, :cpp:func:`clear_image <gui_forms::ButtonBase::clear_image>`, :cpp:func:`clear_style <gui_forms::ButtonBase::clear_style>`, :cpp:func:`clear_visual_recipes <gui_forms::ButtonBase::clear_visual_recipes>`, :cpp:func:`perform_click <gui_forms::ButtonBase::perform_click>`, :cpp:func:`set_visual_recipes <gui_forms::ButtonBase::set_visual_recipes>`, :cpp:func:`unbind_command <gui_forms::ButtonBase::unbind_command>`.
+      From :cpp:class:`ButtonBase <gui_forms::ButtonBase>`: properties :cpp:member:`text <gui_forms::ButtonBase::text>`, :cpp:member:`text_alignment <gui_forms::ButtonBase::text_alignment>`, :cpp:member:`font <gui_forms::ButtonBase::font>`, :cpp:member:`content_padding <gui_forms::ButtonBase::content_padding>`, :cpp:member:`text_line_spacing <gui_forms::ButtonBase::text_line_spacing>`, :cpp:member:`image_alignment <gui_forms::ButtonBase::image_alignment>`, :cpp:member:`text_image_relation <gui_forms::ButtonBase::text_image_relation>`, :cpp:member:`image_gap <gui_forms::ButtonBase::image_gap>`, :cpp:member:`use_mnemonic <gui_forms::ButtonBase::use_mnemonic>`, :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>`, :cpp:member:`image <gui_forms::ButtonBase::image>`, :cpp:func:`command_connected <gui_forms::ButtonBase::command_connected>`, :cpp:func:`style <gui_forms::ButtonBase::style>`, :cpp:func:`has_style_override <gui_forms::ButtonBase::has_style_override>`, :cpp:func:`visual_recipes_override <gui_forms::ButtonBase::visual_recipes_override>`, :cpp:func:`connection_topology <gui_forms::ButtonBase::connection_topology>`, :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`, :cpp:func:`image_index <gui_forms::ButtonBase::image_index>`, :cpp:func:`image_key <gui_forms::ButtonBase::image_key>`, :cpp:func:`pressed_visual <gui_forms::ButtonBase::pressed_visual>`, :cpp:func:`focused_visual <gui_forms::ButtonBase::focused_visual>`, :cpp:func:`focus_cue_visible <gui_forms::ButtonBase::focus_cue_visible>`, :cpp:func:`hovered_visual <gui_forms::ButtonBase::hovered_visual>`; events :cpp:func:`expanded_changed <gui_forms::ButtonBase::expanded_changed>`, :cpp:func:`clicked <gui_forms::ButtonBase::clicked>`, :cpp:func:`text_changed <gui_forms::ButtonBase::text_changed>`; methods :cpp:func:`button_base_property_entries <gui_forms::ButtonBase::button_base_property_entries>`, :cpp:func:`clear_image <gui_forms::ButtonBase::clear_image>`, :cpp:func:`clear_style <gui_forms::ButtonBase::clear_style>`, :cpp:func:`clear_visual_recipes <gui_forms::ButtonBase::clear_visual_recipes>`, :cpp:func:`perform_click <gui_forms::ButtonBase::perform_click>`, :cpp:func:`set_visual_recipes <gui_forms::ButtonBase::set_visual_recipes>`, :cpp:func:`unbind_command <gui_forms::ButtonBase::unbind_command>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -63,7 +63,7 @@ gui_forms::LinkLabel
 
    .. rubric:: Notes
 
-   When the user activates the link, :cpp:func:`visited <gui_forms::LinkLabel::visited>` becomes true first and ``clicked``
+   When the user activates the link, :cpp:member:`visited <gui_forms::LinkLabel::visited>` becomes true first and ``clicked``
    is raised afterwards, so a handler already sees the visited state.
 
    The link is drawn as one line of text at the left, vertically centred, with
@@ -83,7 +83,7 @@ gui_forms::LinkLabel
    and by ``perform_click``.
 
    The control publishes the accessibility role ``link``, with the value
-   :cpp:func:`visited <gui_forms::LinkLabel::visited>` or ``unvisited``. Its name is the accessible name, or else the caption
+   :cpp:member:`visited <gui_forms::LinkLabel::visited>` or ``unvisited``. Its name is the accessible name, or else the caption
    without the mnemonic marker.
 
    .. rubric:: Examples
@@ -103,7 +103,7 @@ gui_forms::LinkLabel
 
       void example() {
           Report report;
-          (*report.details).perform_click();   // report.showing and visited() are now true
+          (*report.details).perform_click();   // report.showing and visited.read() are now true
       }
 
 
@@ -114,15 +114,11 @@ gui_forms::LinkLabel
 
    .. rubric:: Properties
 
-   .. cpp:function:: bool visited() const noexcept
+   .. cpp:member:: bool visited
 
       Whether the link draws in the visited colour. Activation sets it to true;
       set it back to false yourself if the target can become new again. It
       raises no event.
-
-   .. cpp:function:: void set_visited(bool visited)
-
-      Sets :cpp:func:`visited <gui_forms::LinkLabel::visited>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 

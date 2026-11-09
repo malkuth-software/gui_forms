@@ -7,7 +7,7 @@ gui_forms::MaskedTextBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: MaskedTextBox final : public Panel
+.. cpp:class:: MaskedTextBox final : public Panel, public MaskedTextBoxCapabilities<MaskedTextBox>
 
    ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box.hpp>``
 
@@ -30,14 +30,14 @@ gui_forms::MaskedTextBox
          Identity of the control, unique within its window. The editor is created
          as ``<stable_id>.editor``.
 
-      **mask** : ``std::string``, default ``{}``
+      **initial_mask** : ``std::string``, default ``{}``
          The mask, in the language of :cpp:class:`MaskedTextProvider <gui_forms::MaskedTextProvider>`. An empty mask takes
          any text, as a plain :cpp:class:`TextBox <gui_forms::TextBox>`.
 
    :Properties:
 
-      **mask** : ``std::string_view``
-         The mask. :cpp:func:`set_mask <gui_forms::MaskedTextBox::set_mask>` replaces it and places the assigned characters again
+      **mask** : ``std::string``
+         The mask. Assigning a new one replaces it and places the assigned characters again
          from the first position (without prompts or literals); when the new mask
          refuses them, the box starts empty. An invalid mask throws
          ``std::invalid_argument``.
@@ -46,37 +46,19 @@ gui_forms::MaskedTextBox
          The symbols the mask's ``.``, ``,``, ``:``, ``/`` and ``$`` stand for.
          GUI.Forms has no culture service; the default is the invariant culture
          (``.``, ``,``, ``:``, ``/`` and the generic currency sign U+00A4).
-         :cpp:func:`set_culture <gui_forms::MaskedTextBox::set_culture>` replaces them as :cpp:func:`set_mask <gui_forms::MaskedTextBox::set_mask>` replaces the mask.
-
-      **provider** : ``MaskedTextProvider``, read-only
-         The :cpp:class:`MaskedTextProvider <gui_forms::MaskedTextProvider>` that holds the mask and the assigned characters,
-         for reading. Edits go through the box, so that the field and the events
-         follow.
-
-      **text** : ``std::string``
-         The text in :cpp:func:`text_mask_format <gui_forms::MaskedTextBox::text_mask_format>`. :cpp:func:`set_text <gui_forms::MaskedTextBox::set_text>` clears the box and places its
-         argument from the first position, passing over literals it repeats; text
-         the mask refuses leaves the box unchanged, raises :cpp:func:`mask_input_rejected <gui_forms::MaskedTextBox::mask_input_rejected>`,
-         and is reported in the returned :cpp:class:`MaskEditResult <gui_forms::MaskEditResult>`. :cpp:func:`clear <gui_forms::MaskedTextBox::clear>` unassigns every
-         position.
+         Assigning a culture replaces them as assigning :cpp:member:`mask <gui_forms::MaskedTextBox::mask>` replaces the mask.
 
       **text_mask_format** : ``MaskTextFormat``, default ``MaskTextFormat::include_literals``
          Which characters :cpp:func:`text <gui_forms::MaskedTextBox::text>` keeps: prompts, literals, both or neither. Without
          prompts an unassigned position is a space and the text ends at the last
          assigned position. An unknown value throws ``std::invalid_argument``.
 
-      **mask_completed** : ``bool``, read-only
-         Whether every required position is assigned.
-
-      **mask_full** : ``bool``, read-only
-         Whether every position, required or optional, is assigned.
-
       **prompt_character** : ``char32_t``, default ``'_'``
          The character an unassigned position shows: any non-control character.
          Anything else throws ``std::invalid_argument``.
 
       **allow_prompt_as_input** : ``bool``, default ``true``
-         Whether the prompt character may be typed; with :cpp:func:`reset_on_prompt <gui_forms::MaskedTextBox::reset_on_prompt>` it
+         Whether the prompt character may be typed; with :cpp:member:`reset_on_prompt <gui_forms::MaskedTextBox::reset_on_prompt>` it
          clears its position.
 
       **ascii_only** : ``bool``, default ``false``
@@ -103,6 +85,24 @@ gui_forms::MaskedTextBox
       **read_only** : ``bool``, default ``false``
          Whether the editor refuses typing.
 
+      **provider** : ``MaskedTextProvider``, read-only
+         The :cpp:class:`MaskedTextProvider <gui_forms::MaskedTextProvider>` that holds the mask and the assigned characters,
+         for reading. Edits go through the box, so that the field and the events
+         follow.
+
+      **text** : ``std::string``
+         The text in :cpp:member:`text_mask_format <gui_forms::MaskedTextBox::text_mask_format>`. :cpp:func:`set_text <gui_forms::MaskedTextBox::set_text>` clears the box and places its
+         argument from the first position, passing over literals it repeats; text
+         the mask refuses leaves the box unchanged, raises :cpp:func:`mask_input_rejected <gui_forms::MaskedTextBox::mask_input_rejected>`,
+         and is reported in the returned :cpp:class:`MaskEditResult <gui_forms::MaskEditResult>`. :cpp:func:`clear <gui_forms::MaskedTextBox::clear>` unassigns every
+         position.
+
+      **mask_completed** : ``bool``, read-only
+         Whether every required position is assigned.
+
+      **mask_full** : ``bool``, read-only
+         Whether every position, required or optional, is assigned.
+
       **editor** : ``std::shared_ptr<TextBox>``, read-only
          The :cpp:class:`TextBox <gui_forms::TextBox>` that shows the prompts, literals and assigned characters.
 
@@ -121,10 +121,10 @@ gui_forms::MaskedTextBox
          Raised after :cpp:func:`text <gui_forms::MaskedTextBox::text>` changes, with the new text.
 
       **mask_changed** : ``Event<const std::string&>``
-         Raised after :cpp:func:`set_mask <gui_forms::MaskedTextBox::set_mask>` changes the mask, with the new mask.
+         Raised after an assignment changes :cpp:member:`mask <gui_forms::MaskedTextBox::mask>`, with the new mask.
 
       **overwrite_mode_changed** : ``Event<bool>``
-         Raised after :cpp:func:`overwrite_mode <gui_forms::MaskedTextBox::overwrite_mode>` changes, with the new mode.
+         Raised after :cpp:member:`overwrite_mode <gui_forms::MaskedTextBox::overwrite_mode>` changes, with the new mode.
 
       **type_validation_completed** : ``Event<const MaskValidation&>``
          Raised after the validation hook runs, with its :cpp:class:`MaskValidation <gui_forms::MaskValidation>` record.
@@ -133,7 +133,7 @@ gui_forms::MaskedTextBox
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -170,7 +170,7 @@ gui_forms::MaskedTextBox
 
    The caret passes over literals: after a character is typed it moves to the
    next position the user can fill. Typing inserts before the caret (later
-   characters move on) unless :cpp:func:`overwrite_mode <gui_forms::MaskedTextBox::overwrite_mode>` is on. Backspace and Delete
+   characters move on) unless :cpp:member:`overwrite_mode <gui_forms::MaskedTextBox::overwrite_mode>` is on. Backspace and Delete
    remove a character and move the later ones back; over a literal they only
    move the caret, since a literal cannot be removed. Undo and redo restore the
    field and the provider follows it.
@@ -206,32 +206,71 @@ gui_forms::MaskedTextBox
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit MaskedTextBox(StableId stable_id, std::string mask = {})
+   .. cpp:function:: explicit MaskedTextBox(StableId stable_id, std::string initial_mask = {})
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::string_view mask() const noexcept
+   .. cpp:member:: std::string mask
 
-      The mask. :cpp:func:`set_mask <gui_forms::MaskedTextBox::set_mask>` replaces it and places the assigned characters again
+      The mask. Assigning a new one replaces it and places the assigned characters again
       from the first position (without prompts or literals); when the new mask
       refuses them, the box starts empty. An invalid mask throws
       ``std::invalid_argument``.
 
-   .. cpp:function:: void set_mask(std::string mask)
-
-      Sets :cpp:func:`mask <gui_forms::MaskedTextBox::mask>`; see the property's description above.
-
-   .. cpp:function:: const MaskCulture& culture() const noexcept
+   .. cpp:member:: MaskCulture culture
 
       The symbols the mask's ``.``, ``,``, ``:``, ``/`` and ``$`` stand for.
       GUI.Forms has no culture service; the default is the invariant culture
       (``.``, ``,``, ``:``, ``/`` and the generic currency sign U+00A4).
-      :cpp:func:`set_culture <gui_forms::MaskedTextBox::set_culture>` replaces them as :cpp:func:`set_mask <gui_forms::MaskedTextBox::set_mask>` replaces the mask.
+      Assigning a culture replaces them as assigning :cpp:member:`mask <gui_forms::MaskedTextBox::mask>` replaces the mask.
 
-   .. cpp:function:: void set_culture(MaskCulture culture)
+   .. cpp:member:: MaskTextFormat text_mask_format
 
-      Sets :cpp:func:`culture <gui_forms::MaskedTextBox::culture>`; see the property's description above.
+      Which characters :cpp:func:`text <gui_forms::MaskedTextBox::text>` keeps: prompts, literals, both or neither. Without
+      prompts an unassigned position is a space and the text ends at the last
+      assigned position. An unknown value throws ``std::invalid_argument``.
+
+   .. cpp:member:: char32_t prompt_character
+
+      The character an unassigned position shows: any non-control character.
+      Anything else throws ``std::invalid_argument``.
+
+   .. cpp:member:: bool allow_prompt_as_input
+
+      Whether the prompt character may be typed; with :cpp:member:`reset_on_prompt <gui_forms::MaskedTextBox::reset_on_prompt>` it
+      clears its position.
+
+   .. cpp:member:: bool ascii_only
+
+      Whether characters past the ASCII range are refused everywhere.
+
+   .. cpp:member:: bool skip_literals
+
+      Whether a typed character equal to the literal at the caret passes over
+      it.
+
+   .. cpp:member:: bool reset_on_prompt
+
+      Whether a typed prompt character clears its position.
+
+   .. cpp:member:: bool reset_on_space
+
+      Whether a typed space clears its position instead of being tested.
+
+   .. cpp:member:: bool reject_input_on_first_failure
+
+      Whether one refused character refuses a whole paste. Off, a paste keeps
+      the characters the mask takes and reports each one it drops.
+
+   .. cpp:member:: bool overwrite_mode
+
+      Whether typing replaces the character at the caret instead of inserting
+      before it. The Insert key toggles it.
+
+   .. cpp:member:: bool read_only
+
+      Whether the editor refuses typing.
 
    .. cpp:function:: const MaskedTextProvider& provider() const noexcept
 
@@ -241,7 +280,7 @@ gui_forms::MaskedTextBox
 
    .. cpp:function:: std::string text() const
 
-      The text in :cpp:func:`text_mask_format <gui_forms::MaskedTextBox::text_mask_format>`. :cpp:func:`set_text <gui_forms::MaskedTextBox::set_text>` clears the box and places its
+      The text in :cpp:member:`text_mask_format <gui_forms::MaskedTextBox::text_mask_format>`. :cpp:func:`set_text <gui_forms::MaskedTextBox::set_text>` clears the box and places its
       argument from the first position, passing over literals it repeats; text
       the mask refuses leaves the box unchanged, raises :cpp:func:`mask_input_rejected <gui_forms::MaskedTextBox::mask_input_rejected>`,
       and is reported in the returned :cpp:class:`MaskEditResult <gui_forms::MaskEditResult>`. :cpp:func:`clear <gui_forms::MaskedTextBox::clear>` unassigns every
@@ -251,16 +290,6 @@ gui_forms::MaskedTextBox
 
       Sets :cpp:func:`text <gui_forms::MaskedTextBox::text>`; see the property's description above.
 
-   .. cpp:function:: MaskTextFormat text_mask_format() const noexcept
-
-      Which characters :cpp:func:`text <gui_forms::MaskedTextBox::text>` keeps: prompts, literals, both or neither. Without
-      prompts an unassigned position is a space and the text ends at the last
-      assigned position. An unknown value throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_text_mask_format(MaskTextFormat format)
-
-      Sets :cpp:func:`text_mask_format <gui_forms::MaskedTextBox::text_mask_format>`; see the property's description above.
-
    .. cpp:function:: bool mask_completed() const noexcept
 
       Whether every required position is assigned.
@@ -268,83 +297,6 @@ gui_forms::MaskedTextBox
    .. cpp:function:: bool mask_full() const noexcept
 
       Whether every position, required or optional, is assigned.
-
-   .. cpp:function:: char32_t prompt_character() const noexcept
-
-      The character an unassigned position shows: any non-control character.
-      Anything else throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_prompt_character(char32_t character)
-
-      Sets :cpp:func:`prompt_character <gui_forms::MaskedTextBox::prompt_character>`; see the property's description above.
-
-   .. cpp:function:: bool allow_prompt_as_input() const noexcept
-
-      Whether the prompt character may be typed; with :cpp:func:`reset_on_prompt <gui_forms::MaskedTextBox::reset_on_prompt>` it
-      clears its position.
-
-   .. cpp:function:: void set_allow_prompt_as_input(bool allow)
-
-      Sets :cpp:func:`allow_prompt_as_input <gui_forms::MaskedTextBox::allow_prompt_as_input>`; see the property's description above.
-
-   .. cpp:function:: bool ascii_only() const noexcept
-
-      Whether characters past the ASCII range are refused everywhere.
-
-   .. cpp:function:: void set_ascii_only(bool ascii_only)
-
-      Sets :cpp:func:`ascii_only <gui_forms::MaskedTextBox::ascii_only>`; see the property's description above.
-
-   .. cpp:function:: bool skip_literals() const noexcept
-
-      Whether a typed character equal to the literal at the caret passes over
-      it.
-
-   .. cpp:function:: void set_skip_literals(bool skip)
-
-      Sets :cpp:func:`skip_literals <gui_forms::MaskedTextBox::skip_literals>`; see the property's description above.
-
-   .. cpp:function:: bool reset_on_prompt() const noexcept
-
-      Whether a typed prompt character clears its position.
-
-   .. cpp:function:: void set_reset_on_prompt(bool reset)
-
-      Sets :cpp:func:`reset_on_prompt <gui_forms::MaskedTextBox::reset_on_prompt>`; see the property's description above.
-
-   .. cpp:function:: bool reset_on_space() const noexcept
-
-      Whether a typed space clears its position instead of being tested.
-
-   .. cpp:function:: void set_reset_on_space(bool reset)
-
-      Sets :cpp:func:`reset_on_space <gui_forms::MaskedTextBox::reset_on_space>`; see the property's description above.
-
-   .. cpp:function:: bool reject_input_on_first_failure() const noexcept
-
-      Whether one refused character refuses a whole paste. Off, a paste keeps
-      the characters the mask takes and reports each one it drops.
-
-   .. cpp:function:: void set_reject_input_on_first_failure(bool reject)
-
-      Sets :cpp:func:`reject_input_on_first_failure <gui_forms::MaskedTextBox::reject_input_on_first_failure>`; see the property's description above.
-
-   .. cpp:function:: bool overwrite_mode() const noexcept
-
-      Whether typing replaces the character at the caret instead of inserting
-      before it. The Insert key toggles it.
-
-   .. cpp:function:: void set_overwrite_mode(bool overwrite)
-
-      Sets :cpp:func:`overwrite_mode <gui_forms::MaskedTextBox::overwrite_mode>`; see the property's description above.
-
-   .. cpp:function:: bool read_only() const noexcept
-
-      Whether the editor refuses typing.
-
-   .. cpp:function:: void set_read_only(bool read_only)
-
-      Sets :cpp:func:`read_only <gui_forms::MaskedTextBox::read_only>`; see the property's description above.
 
    .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
 
@@ -369,11 +321,11 @@ gui_forms::MaskedTextBox
 
    .. cpp:function:: Event<const std::string&>& mask_changed() noexcept
 
-      Raised after :cpp:func:`set_mask <gui_forms::MaskedTextBox::set_mask>` changes the mask, with the new mask.
+      Raised after an assignment changes :cpp:member:`mask <gui_forms::MaskedTextBox::mask>`, with the new mask.
 
    .. cpp:function:: Event<bool>& overwrite_mode_changed() noexcept
 
-      Raised after :cpp:func:`overwrite_mode <gui_forms::MaskedTextBox::overwrite_mode>` changes, with the new mode.
+      Raised after :cpp:member:`overwrite_mode <gui_forms::MaskedTextBox::overwrite_mode>` changes, with the new mode.
 
    .. cpp:function:: Event<const MaskValidation&>& type_validation_completed() noexcept
 
@@ -428,6 +380,16 @@ gui_forms::MaskedTextBox
       *Protected.*
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mask_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
+   .. cpp:function:: virtual void on_read_only_changed()
 
       *Protected.*
 

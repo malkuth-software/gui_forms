@@ -5,6 +5,7 @@
 #include "tool_tip_route.hpp"
 #include "../../scheduler/request/scheduled_frame_request.hpp"
 
+#include <atomic>
 #include <cmath>
 #include <stdexcept>
 #include <string>
@@ -30,7 +31,9 @@ void SurfaceRoot::set_tool_tips_shown(std::optional<bool> shown) {
 }
 
 bool SurfaceRoot::tool_tips_shown() const noexcept {
-    const bool shown = tool_tips_shown_.value_or(Application::tool_tips_shown());
+    bool program_shown = true;
+    if (application_tool_tips_shown_) program_shown = (*application_tool_tips_shown_).load(std::memory_order_relaxed);
+    const bool shown = tool_tips_shown_.value_or(program_shown);
     return shown;
 }
 
@@ -179,17 +182,7 @@ void SurfaceRoot::cover_tool_tip(RuntimeId control, std::string_view item_id, bo
 
 FrameRequestToken SurfaceRoot::request_tool_tip_wake(FrameTime deadline, std::function<void(FrameTime)> callback) {
     require_root_thread("tooltip scheduling");
-    compact_frame_requests();
-    if (frame_requests_.size() >= maximum_scheduled_frame_requests) {
-        throw std::length_error("GUI.Forms scheduled frame request limit reached");
-    }
-    // A one-shot: the presenter disconnects the request when it wakes, so
-    // the interval is never reached.
-    std::shared_ptr<detail::ScheduledFrameRequest> request = std::make_shared<detail::ScheduledFrameRequest>(
-        deadline, std::chrono::duration_cast<FrameInterval>(std::chrono::hours(1)), std::move(callback));
-    frame_requests_.push_back(request);
-    metrics_.record_frame_request();
-    return FrameRequestToken(request);
+    return request_one_shot_wake(deadline, std::move(callback));
 }
 
 } // namespace gui_forms

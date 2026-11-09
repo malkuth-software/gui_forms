@@ -40,7 +40,7 @@ SOURCE: Path = ROOT / 'gui_forms'
 # perf report's column separator: symbols (demangled C++) never hold a tab.
 SEPARATOR: str = '\t'
 # Frame pointers let perf walk GUI.Forms' own stacks (inclusive shares); line
-# tables name the functions. stx_skia/ is built in this tree, so it takes
+# tables name the functions. stx_skia/ (from the stx checkout) is built in this tree, so it takes
 # the same flags and its frames reach their GUI.Forms callers.
 PROFILE_FLAGS: str = '-fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -gline-tables-only'
 # CMake's own Release flags for clang, which a CMAKE_<LANG>_FLAGS_RELEASE

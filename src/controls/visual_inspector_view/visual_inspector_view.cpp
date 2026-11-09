@@ -1,9 +1,9 @@
 #include "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
-#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/window.hpp"
 #include "../basic/basic_control_rendering.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <cstddef>
@@ -253,30 +253,18 @@ std::string content_key(const InspectorContent& content) {
 } // namespace
 
 VisualInspectorView::VisualInspectorView(StableId stable_id,
-                                         std::string target_stable_id)
-    : Control(std::move(stable_id)),
-      target_stable_id_(std::move(target_stable_id)) {
+                                         std::string initial_target)
+    : Control(std::move(stable_id)) {
+    target_stable_id = std::move(initial_target);
     accessible_name = "Visual state inspector";
-    // The inspected control's stable ID, for a form document (FD6.3).
-    PropertyDescriptor target_property;
-    target_property.name = "target_stable_id";
-    target_property.kind = BindingValueKind::text;
-    target_property.category = "Behavior";
-    target_property.description = "Stable ID of the control the view inspects; empty for none.";
-    target_property.default_value = BindingValue{std::string{}};
-    target_property.invalidation_effects = Dirty::paint | Dirty::semantics;
-    target_property.bindable = false;
-    define_bindable_property({
-        std::move(target_property),
-        detail::BindingMemberGetter<VisualInspectorView, std::string>(*this, &VisualInspectorView::target_stable_id_),
-        detail::DirectPropertySetter<VisualInspectorView, std::string>(*this, &VisualInspectorView::set_target_stable_id),
-        {}, {}, {}});
 }
 
-void VisualInspectorView::set_target_stable_id(std::string stable_id) {
+void VisualInspectorView::prepare_write(const decltype(target_stable_id)&, std::string&) {
     require_mutable();
-    if (target_stable_id_ == stable_id) return;
-    target_stable_id_ = std::move(stable_id);
+}
+
+// A new target drops the cached semantic value.
+void VisualInspectorView::written(const decltype(target_stable_id)&) {
     semantic_value_.reset();
     invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
 }
@@ -291,7 +279,7 @@ bool VisualInspectorView::refresh_if_changed() {
     // compares against what was last drawn.
     const Window* owner = window();
     if (owner != nullptr && (*owner).occluded()) return false;
-    const InspectorContent content = inspector_content(window(), target_stable_id_);
+    const InspectorContent content = inspector_content(window(), target_stable_id.read());
     const std::string key = content_key(content);
     const bool changed = key != painted_content_;
     if (changed) refresh();
@@ -314,7 +302,6 @@ AnimationTickResult VisualInspectorView::PollTick::operator()(FrameTime) const {
     return result;
 }
 
-
 void VisualInspectorView::on_paint(Painter& painter, Rect) {
     poll_timer_.note_painted();
     const Rect bounds = client_rectangle();
@@ -328,7 +315,7 @@ void VisualInspectorView::on_paint(Painter& painter, Rect) {
     painter.draw_text_utf8({18.0, 27.0}, "VISUAL STATE INSPECTOR", title,
                            inspector_ink);
 
-    const InspectorContent content = inspector_content(window(), target_stable_id_);
+    const InspectorContent content = inspector_content(window(), target_stable_id.read());
     painted_content_ = content_key(content);
     if (content.rows.empty()) {
         painter.draw_text_utf8({18.0, 68.0}, content.message, body, content.message_color);
@@ -390,7 +377,7 @@ std::string VisualInspectorView::accessible_value() const {
     }
     // The key is read after the inspection, which may lay the window out
     // first and so move its revision.
-    std::string value = inspected_value(*owner, target_stable_id_);
+    std::string value = inspected_value(*owner, target_stable_id.read());
     semantic_value_ = SemanticValue{semantic_value_key(*owner), value};
     return value;
 }
@@ -405,32 +392,11 @@ SemanticDescriptor VisualInspectorView::semantic_descriptor() const {
 }
 
 VisualInspectorOverlay::VisualInspectorOverlay(StableId stable_id,
-                                               std::string target_stable_id)
-    : Control(std::move(stable_id)),
-      target_stable_id_(std::move(target_stable_id)) {
+                                               std::string initial_target)
+    : Control(std::move(stable_id)) {
+    target_stable_id = std::move(initial_target);
     hit_test_transparent = true;
     set_paint_plane(PaintPlane::overlay);
-    // The inspected control's stable ID, for a form document (FD6.3).
-    PropertyDescriptor target_property;
-    target_property.name = "target_stable_id";
-    target_property.kind = BindingValueKind::text;
-    target_property.category = "Behavior";
-    target_property.description = "Stable ID of the control the overlay outlines; empty for none.";
-    target_property.default_value = BindingValue{std::string{}};
-    target_property.invalidation_effects = Dirty::paint | Dirty::semantics;
-    target_property.bindable = false;
-    define_bindable_property({
-        std::move(target_property),
-        detail::BindingMemberGetter<VisualInspectorOverlay, std::string>(*this, &VisualInspectorOverlay::target_stable_id_),
-        detail::DirectPropertySetter<VisualInspectorOverlay, std::string>(*this, &VisualInspectorOverlay::set_target_stable_id),
-        {}, {}, {}});
-}
-
-void VisualInspectorOverlay::set_target_stable_id(std::string stable_id) {
-    require_mutable();
-    if (target_stable_id_ == stable_id) return;
-    target_stable_id_ = std::move(stable_id);
-    invalidate(Dirty::paint);
 }
 
 void VisualInspectorOverlay::refresh() { invalidate(Dirty::paint); }
@@ -438,10 +404,10 @@ void VisualInspectorOverlay::refresh() { invalidate(Dirty::paint); }
 VisualInspectorOverlay::Outlines VisualInspectorOverlay::current_outlines() const {
     Outlines outlines;
     Window* owner = window();
-    if (owner == nullptr || target_stable_id_.empty()) return outlines;
+    if (owner == nullptr || target_stable_id.read().empty()) return outlines;
     const VisualInspectionSnapshot snapshot =
         (*owner).visual_inspection_snapshot(overlay_options());
-    const VisualControlInspection* target = snapshot.find(target_stable_id_);
+    const VisualControlInspection* target = snapshot.find(target_stable_id.read());
     if (target == nullptr || (*target).runtime_id == runtime_id()) return outlines;
     outlines.shown = true;
     outlines.arranged = rectangle_from_window((*target).layout.absolute_bounds);
@@ -474,7 +440,6 @@ AnimationTickResult VisualInspectorOverlay::PollTick::operator()(FrameTime) cons
         changed ? AnimationTickResult::damaged : AnimationTickResult::unchanged;
     return result;
 }
-
 
 void VisualInspectorOverlay::on_paint(Painter& painter, Rect) {
     poll_timer_.note_painted();
@@ -515,7 +480,6 @@ SemanticDescriptor VisualInspectorOverlay::semantic_descriptor() const {
     descriptor.exposed = false;
     return descriptor;
 }
-
 
 namespace {
 
@@ -586,7 +550,6 @@ VisualInspectorView::States VisualInspectorView::states() const {
     return record;
 }
 
-
 namespace {
 
 constexpr std::array<PartField<VisualInspectorOverlay::Parts>, 3> visual_inspector_overlay_part_fields{{
@@ -632,10 +595,10 @@ void VisualInspectorOverlay::publish_part_geometry(std::span<PartGeometry> geome
     record.focus = PartGeometry::from_bounds(bounds);
     // The target's arranged and visual bounds that on_paint outlines.
     Window* owner = window();
-    if (owner != nullptr && !target_stable_id_.empty()) {
+    if (owner != nullptr && !target_stable_id.read().empty()) {
         const VisualInspectionSnapshot snapshot =
             (*owner).visual_inspection_snapshot(overlay_options());
-        const VisualControlInspection* target = snapshot.find(target_stable_id_);
+        const VisualControlInspection* target = snapshot.find(target_stable_id.read());
         if (target != nullptr && (*target).runtime_id != runtime_id()) {
             const Rect arranged = rectangle_from_window((*target).layout.absolute_bounds);
             const Rect visual = rectangle_from_window((*target).layout.visual_bounds);
@@ -657,5 +620,105 @@ VisualInspectorOverlay::States VisualInspectorOverlay::states() const {
     read_states(visual_inspector_overlay_state_fields, anatomy_states(), record);
     return record;
 }
+
+// property_codemod begin VisualInspectorView (tools/property_families/visual_inspector_view.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor visual_inspector_view_target_stable_id_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "target_stable_id";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Behavior";
+    descriptor.description = "Stable ID of the control the view inspects; empty for none.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_visual_inspector_view_target_stable_id() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        visual_inspector_view_target_stable_id_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+const std::array<PropertyEntry, VisualInspectorView::visual_inspector_view_property_count>& VisualInspectorView::visual_inspector_view_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"target_stable_id", &describe_visual_inspector_view_target_stable_id,
+         &read_cell_entry<VisualInspectorView, decltype(&VisualInspectorView::target_stable_id), &VisualInspectorView::target_stable_id>,
+         &write_cell_entry<VisualInspectorView, decltype(&VisualInspectorView::target_stable_id), &VisualInspectorView::target_stable_id>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "VisualInspectorView's property table names a property twice");
+    static const std::array<PropertyEntry, visual_inspector_view_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> VisualInspectorView::property_table() const noexcept {
+    const std::array<PropertyEntry, visual_inspector_view_property_count>& entries = visual_inspector_view_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+// property_codemod end VisualInspectorView
+
+// property_codemod begin VisualInspectorOverlay (tools/property_families/visual_inspector_overlay.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor visual_inspector_overlay_target_stable_id_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "target_stable_id";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Behavior";
+    descriptor.description = "Stable ID of the control the overlay outlines; empty for none.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = Dirty::paint;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_visual_inspector_overlay_target_stable_id() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        visual_inspector_overlay_target_stable_id_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+const std::array<PropertyEntry, VisualInspectorOverlay::visual_inspector_overlay_property_count>& VisualInspectorOverlay::visual_inspector_overlay_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"target_stable_id", &describe_visual_inspector_overlay_target_stable_id,
+         &read_cell_entry<VisualInspectorOverlay, decltype(&VisualInspectorOverlay::target_stable_id), &VisualInspectorOverlay::target_stable_id>,
+         &write_cell_entry<VisualInspectorOverlay, decltype(&VisualInspectorOverlay::target_stable_id), &VisualInspectorOverlay::target_stable_id>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "VisualInspectorOverlay's property table names a property twice");
+    static const std::array<PropertyEntry, visual_inspector_overlay_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> VisualInspectorOverlay::property_table() const noexcept {
+    const std::array<PropertyEntry, visual_inspector_overlay_property_count>& entries = visual_inspector_overlay_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void VisualInspectorOverlay::prepare_write(const decltype(target_stable_id)&, std::string&) {
+    require_mutable();
+}
+
+void VisualInspectorOverlay::written(const decltype(target_stable_id)&) {
+    invalidate(Dirty::paint);
+}
+
+// property_codemod end VisualInspectorOverlay
 
 } // namespace gui_forms

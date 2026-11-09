@@ -790,6 +790,7 @@ std::string_view pattern_name(ProceduralPattern pattern) {
     case ProceduralPattern::pinstripe: return "pinstripe";
     case ProceduralPattern::brushed_metal: return "brushed_metal";
     case ProceduralPattern::fresco: return "fresco";
+    case ProceduralPattern::checker: return "checker";
     }
     return {};
 }

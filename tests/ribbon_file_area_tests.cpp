@@ -8,6 +8,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -156,25 +157,25 @@ void font_control() {
     (*command).set_value({"Carlito", 12.0});
     std::shared_ptr<RibbonFontControl> control = make_control<RibbonFontControl>(StableId("font"));
     (*control).set_families({"Carlito", "Portsmouth", "Tahoma"});
-    (*control).set_command(command);
+    (*control).command = command;
     Window window(control, {200.0, 22.0});
     window.perform_layout();
     const std::shared_ptr<ComboBox> family = (*control).family_box();
     const std::shared_ptr<ComboBox> size = (*control).size_box();
-    require((*family).selected_index() == std::size_t{0U} && (*size).selected_text() == "12",
+    require((*family).selected_index.read() == std::size_t{0U} && (*size).selected_text() == "12",
             "the fields show the command's value");
     require((*control).parts().family_field.bounds == (*family).committed_arranged_bounds() &&
                 (*control).parts().size_field.present,
             "the fields sit where the control's parts say");
     int runs = 0;
     SubscriptionToken counted = (*(*command).command()).invoked().subscribe(CountInvocation{&runs});
-    (*family).set_selected_index(std::size_t{2U});
+    (*family).selected_index = std::size_t{2U};
     require(runs == 1 && (*command).value().family == "Tahoma" && (*command).value().size == 12.0,
             "choosing a family commits it with the shown size");
-    (*size).set_selected_index(std::size_t{0U});
+    (*size).selected_index = std::size_t{0U};
     require(runs == 2 && (*command).value().size == 8.0, "choosing a size commits it with the shown family");
     (*command).set_value({"Unknown face", 10.5});
-    require(!(*family).selected_index() && (*size).selected_text() == "10.5" && runs == 2,
+    require(!(*family).selected_index.read() && (*size).selected_text() == "10.5" && runs == 2,
             "a value outside the lists shows that field empty; the program's change runs nothing");
     (*(*command).command()).set_enabled(false);
     require(!(*family).enabled.read() && !(*size).enabled.read(), "a disabled command disables both fields");
@@ -197,9 +198,9 @@ void font_control() {
 void color_picker() {
     std::shared_ptr<ColorCommand> command = std::make_shared<ColorCommand>(std::make_shared<Command>("color", "Colour"));
     std::shared_ptr<RibbonColorPicker> picker = make_control<RibbonColorPicker>(StableId("picker"));
-    (*picker).set_command(command);
-    (*picker).set_text("Font &colour");
-    (*picker).set_image(ImageId{4U});
+    (*picker).command = command;
+    (*picker).text = "Font &colour";
+    (*picker).image = ImageId{4U};
     Window window(picker, {300.0, 300.0});
     window.perform_layout();
     require((*picker).natural_size().width == 34.0 && (*picker).parts().arrow.present &&
@@ -420,7 +421,7 @@ void backstage() {
                        {.stable_id = "info", .kind = BackstageItemKind::topic, .text = "&Info", .page = info},
                        {.stable_id = "print", .kind = BackstageItemKind::topic, .text = "&Print", .page = print_button},
                        {.stable_id = "close", .command = close, .definitive = true}});
-    (*ribbon).set_backstage(view);
+    (*ribbon).backstage = view;
     Window window(ribbon, {900.0, 500.0});
     window.perform_layout();
     std::vector<std::string> topics;
@@ -429,7 +430,7 @@ void backstage() {
     int closes = 0;
     SubscriptionToken saved = (*save).invoked().subscribe(CountInvocation{&saves});
     SubscriptionToken closed = (*close).invoked().subscribe(CountInvocation{&closes});
-    require((*view).selected_topic() == std::size_t{1U}, "the first topic is selected");
+    require((*view).selected_topic.read() == std::size_t{1U}, "the first topic is selected");
     click(window, centre((*ribbon).parts().application_button.bounds));
     require((*ribbon).backstage_open() && (*ribbon).parts().application_button.states.contains(AnatomyState::open),
             "the File tab opens Backstage");
@@ -468,7 +469,7 @@ void backstage() {
     require((*ribbon).show_backstage(), "and again");
     window.perform_layout();
     click(window, centre((*ribbon).realized_tabs()[1].parts.tab.bounds));
-    require(!(*ribbon).backstage_open() && (*ribbon).selected_tab() == std::size_t{1U} && !(*ribbon).minimized(),
+    require(!(*ribbon).backstage_open() && (*ribbon).selected_tab.read() == std::size_t{1U} && !(*ribbon).minimized.read(),
             "a tab closes it and selects that tab");
     require((*ribbon).show_backstage(), "Backstage reopens");
     window.perform_layout();
@@ -499,7 +500,7 @@ void color_palette_shrinks_while_open() {
     static_cast<void>((*command).commit(Color::rgba(1, 2, 3), "test"));
     static_cast<void>((*command).commit(Color::rgba(4, 5, 6), "test"));
     std::shared_ptr<RibbonColorPicker> picker = make_control<RibbonColorPicker>(StableId("shrinking"));
-    (*picker).set_command(command);
+    (*picker).command = command;
     Window window(picker, {300.0, 300.0});
     window.perform_layout();
     require(window.request_focus(picker), "the picker takes focus");
@@ -539,6 +540,47 @@ void arranged_within_maximum_size() {
             "a font control's family field sits on its published part within the control's maximum width");
 }
 
+// set_field_widths: the two widths read back, change the natural size and
+// move the fields; widths outside 16 to 512 (or not finite) are refused
+// whole, keeping both.
+bool field_widths_refused(RibbonFontControl& control, double family, double size) {
+    try {
+        control.set_field_widths(family, size);
+    } catch (const std::invalid_argument&) {
+        return true;
+    }
+    return false;
+}
+
+void font_field_widths() {
+    std::shared_ptr<RibbonFontControl> control = make_control<RibbonFontControl>(StableId("widths.font"));
+    Window window(control, {400.0, 22.0});
+    window.perform_layout();
+    require((*control).family_width() == 120.0 && (*control).size_width() == 44.0 &&
+                (*control).natural_size() == Size{166.0, 22.0},
+            "the default widths are 120 and 44 with a 2-unit gap");
+    (*control).set_field_widths(150.0, 60.0);
+    window.perform_layout();
+    const Rect family = (*control).parts().family_field.bounds;
+    const Rect size = (*control).parts().size_field.bounds;
+    require((*control).family_width() == 150.0 && (*control).size_width() == 60.0 &&
+                (*control).natural_size() == Size{212.0, 22.0},
+            "new widths read back and change the measured size");
+    require(family.width == 150.0 && size.width == 60.0 && size.x - family.x == 152.0 &&
+                (*(*control).family_box()).committed_arranged_bounds() == family &&
+                (*(*control).size_box()).committed_arranged_bounds() == size,
+            "the fields are arranged at the new widths");
+    const double not_a_number = std::numeric_limits<double>::quiet_NaN();
+    require(field_widths_refused(*control, 15.5, 60.0) && field_widths_refused(*control, 150.0, 513.0) &&
+                field_widths_refused(*control, not_a_number, 60.0) &&
+                field_widths_refused(*control, 150.0, std::numeric_limits<double>::infinity()),
+            "widths outside 16 to 512, or not finite, are refused");
+    require((*control).family_width() == 150.0 && (*control).size_width() == 60.0,
+            "a refused pair keeps both widths, even when one of them was valid");
+    (*control).set_field_widths(16.0, 512.0);
+    require((*control).family_width() == 16.0 && (*control).size_width() == 512.0, "the bounds themselves are taken");
+}
+
 } // namespace
 
 int main() {
@@ -549,6 +591,7 @@ int main() {
     recent_pane();
     backstage();
     arranged_within_maximum_size();
+    font_field_widths();
     color_palette_shrinks_while_open();
     std::cout << "Ribbon file area: value commands, font control, colour picker, hosting, recent pane and Backstage "
                  "passed\n";

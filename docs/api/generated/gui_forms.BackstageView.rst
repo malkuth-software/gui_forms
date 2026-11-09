@@ -7,7 +7,7 @@ gui_forms::BackstageView
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: BackstageView final : public Control
+.. cpp:class:: BackstageView final : public Control, public BackstageViewCapabilities<BackstageView>
 
    ``#include <gui_forms/controls/backstage_view/backstage_view.hpp>``
 
@@ -30,6 +30,15 @@ gui_forms::BackstageView
 
    :Properties:
 
+      **column_width** : ``double``, default ``132``
+         The column's width in logical units at text scale 1.
+         ``set_column_width`` throws ``std::invalid_argument`` outside 48 to 480.
+
+      **selected_topic** : ``std::optional<std::size_t>``
+         The topic whose page shows. Assigning an item past the end throws
+         ``std::out_of_range``; an item that is not a topic, or no value, throws
+         ``std::invalid_argument``.
+
       **items** : ``std::span<const BackstageItemSpec>``
          The column (:cpp:class:`BackstageItemSpec <gui_forms::BackstageItemSpec>`: ID, kind, Command, text with an
          optional mnemonic, image, definitive flag, page). :cpp:func:`set_items <gui_forms::BackstageView::set_items>` keeps the
@@ -39,15 +48,6 @@ gui_forms::BackstageView
          a :cpp:class:`Command <gui_forms::Command>`, a topic without a page or text, a page given twice or owned
          elsewhere, a page or definitive flag where it does not belong, or more
          than ``BackstageView::maximum_items`` (64).
-
-      **selected_topic** : ``std::optional<std::size_t>``
-         The topic whose page shows. :cpp:func:`set_selected_topic <gui_forms::BackstageView::set_selected_topic>` throws
-         ``std::out_of_range`` past the end and ``std::invalid_argument`` for an item
-         that is not a topic.
-
-      **column_width** : ``double``, default ``132``
-         The column's width in logical units at text scale 1.
-         :cpp:func:`set_column_width <gui_forms::BackstageView::set_column_width>` throws ``std::invalid_argument`` outside 48 to 480.
 
       **parts** : ``Parts``, read-only
 
@@ -113,7 +113,7 @@ gui_forms::BackstageView
       (*view).set_items({{.stable_id = "save", .command = save},
                          {.stable_id = "info", .kind = gf::BackstageItemKind::topic, .text = "&Info", .page = info}});
       std::shared_ptr<gf::Ribbon> ribbon = gf::make_control<gf::Ribbon>(gf::StableId("doc.ribbon"));
-      (*ribbon).set_backstage(view);
+      (*ribbon).backstage = view;
 
 
    .. rubric:: Construction
@@ -122,6 +122,17 @@ gui_forms::BackstageView
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: double column_width
+
+      The column's width in logical units at text scale 1.
+      ``set_column_width`` throws ``std::invalid_argument`` outside 48 to 480.
+
+   .. cpp:member:: std::optional<std::size_t> selected_topic
+
+      The topic whose page shows. Assigning an item past the end throws
+      ``std::out_of_range``; an item that is not a topic, or no value, throws
+      ``std::invalid_argument``.
 
    .. cpp:function:: std::span<const BackstageItemSpec> items() const noexcept
 
@@ -137,25 +148,6 @@ gui_forms::BackstageView
    .. cpp:function:: void set_items(std::vector<BackstageItemSpec> items)
 
       Sets :cpp:func:`items <gui_forms::BackstageView::items>`; see the property's description above.
-
-   .. cpp:function:: std::optional<std::size_t> selected_topic() const noexcept
-
-      The topic whose page shows. :cpp:func:`set_selected_topic <gui_forms::BackstageView::set_selected_topic>` throws
-      ``std::out_of_range`` past the end and ``std::invalid_argument`` for an item
-      that is not a topic.
-
-   .. cpp:function:: void set_selected_topic(std::size_t item)
-
-      Sets :cpp:func:`selected_topic <gui_forms::BackstageView::selected_topic>`; see the property's description above.
-
-   .. cpp:function:: double column_width() const noexcept
-
-      The column's width in logical units at text scale 1.
-      :cpp:func:`set_column_width <gui_forms::BackstageView::set_column_width>` throws ``std::invalid_argument`` outside 48 to 480.
-
-   .. cpp:function:: void set_column_width(double width)
-
-      Sets :cpp:func:`column_width <gui_forms::BackstageView::column_width>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 

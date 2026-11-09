@@ -2,6 +2,7 @@
 #include "gui_forms/container_controls.hpp"
 #include "gui_forms/window.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -9,6 +10,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <stdexcept>
 #include <thread>
@@ -52,7 +54,7 @@ public:
 
     void operator()() const {
         try {
-            flow_.set_wrap_contents(true);
+            flow_.wrap_contents = true;
         } catch (const std::logic_error&) {
             rejected_ = true;
         }
@@ -216,7 +218,7 @@ void test_flow_direction_break_visibility_and_resize() {
             "FlowBreak must terminate one row while retaining later child order");
 
     (*flow).flow_break[*first] = false;
-    (*flow).set_flow_direction(FlowDirection::right_to_left);
+    (*flow).flow_direction = FlowDirection::right_to_left;
     window.perform_layout();
     require((*first).arranged_bounds().x == 60.0 &&
                 (*second).arranged_bounds().x == 20.0 &&
@@ -232,8 +234,8 @@ void test_flow_direction_break_visibility_and_resize() {
             "hidden flow children must consume neither main-axis nor wrap space");
 
     (*second).visible = true;
-    (*flow).set_flow_direction(FlowDirection::bottom_up);
-    (*flow).set_wrap_contents(false);
+    (*flow).flow_direction = FlowDirection::bottom_up;
+    (*flow).wrap_contents = false;
     window.perform_layout();
     require((*first).arranged_bounds().y == 80.0 &&
                 (*second).arranged_bounds().y == 60.0 &&
@@ -255,7 +257,7 @@ void test_flow_item_spacing_is_explicit_bounded_layout_state() {
     (*flow).add_child(first);
     (*flow).add_child(second);
     (*flow).add_child(third);
-    (*flow).set_item_spacing({7.0, 9.0});
+    (*flow).item_spacing = {7.0, 9.0};
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(flow, Size{75.0, 80.0});
     Window& window = *held_window;
     window.perform_layout();
@@ -266,11 +268,11 @@ void test_flow_item_spacing_is_explicit_bounded_layout_state() {
 
     bool rejected{};
     try {
-        (*flow).set_item_spacing({257.0, 9.0});
+        (*flow).item_spacing = {257.0, 9.0};
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*flow).item_spacing() == Size{7.0, 9.0},
+    require(rejected && (*flow).item_spacing.read() == Size{7.0, 9.0},
             "FlowLayoutPanelCompat item spacing must reject invalid geometry atomically");
 }
 
@@ -300,9 +302,9 @@ void test_flow_alignment_projects_relational_flex_geometry() {
     std::shared_ptr<Button> centered_child =
         sized_button("layout.flow.centered.child", 40.0, 20.0);
     (*centered).add_child(centered_child);
-    (*centered).set_wrap_contents(false);
-    (*centered).set_main_alignment(FlowMainAlignment::center);
-    (*centered).set_cross_alignment(FlowCrossAlignment::center);
+    (*centered).wrap_contents = false;
+    (*centered).main_alignment = FlowMainAlignment::center;
+    (*centered).cross_alignment = FlowCrossAlignment::center;
     const std::unique_ptr<Window> held_centered_window = std::make_unique<Window>(centered, Size{200.0, 100.0});
     Window& centered_window = *held_centered_window;
     centered_window.perform_layout();
@@ -320,9 +322,9 @@ void test_flow_alignment_projects_relational_flex_geometry() {
     (*distributed).add_child(first);
     (*distributed).add_child(second);
     (*distributed).add_child(third);
-    (*distributed).set_wrap_contents(false);
-    (*distributed).set_main_alignment(FlowMainAlignment::space_between);
-    (*distributed).set_cross_alignment(FlowCrossAlignment::stretch);
+    (*distributed).wrap_contents = false;
+    (*distributed).main_alignment = FlowMainAlignment::space_between;
+    (*distributed).cross_alignment = FlowCrossAlignment::stretch;
     const std::unique_ptr<Window> held_distributed_window = std::make_unique<Window>(distributed, Size{100.0, 30.0});
     Window& distributed_window = *held_distributed_window;
     distributed_window.perform_layout();
@@ -334,18 +336,18 @@ void test_flow_alignment_projects_relational_flex_geometry() {
     bool invalid_main = false;
     bool invalid_cross = false;
     try {
-        (*distributed).set_main_alignment(static_cast<FlowMainAlignment>(0xffU));
+        (*distributed).main_alignment = static_cast<FlowMainAlignment>(0xffU);
     } catch (const std::invalid_argument&) {
         invalid_main = true;
     }
     try {
-        (*distributed).set_cross_alignment(static_cast<FlowCrossAlignment>(0xffU));
+        (*distributed).cross_alignment = static_cast<FlowCrossAlignment>(0xffU);
     } catch (const std::invalid_argument&) {
         invalid_cross = true;
     }
     require(invalid_main && invalid_cross &&
-                (*distributed).main_alignment() == FlowMainAlignment::space_between &&
-                (*distributed).cross_alignment() == FlowCrossAlignment::stretch,
+                (*distributed).main_alignment.read() == FlowMainAlignment::space_between &&
+                (*distributed).cross_alignment.read() == FlowCrossAlignment::stretch,
             "flow alignment must reject unknown values without mutation");
 
     std::shared_ptr<gui_forms::FlowLayoutPanelCompat> growing =
@@ -359,7 +361,7 @@ void test_flow_alignment_projects_relational_flex_geometry() {
     (*growing).add_child(fixed);
     (*growing).add_child(first_grow);
     (*growing).add_child(second_grow);
-    (*growing).set_wrap_contents(false);
+    (*growing).wrap_contents = false;
     (*growing).set_flex_grow(*first_grow, 1.0);
     (*growing).set_flex_grow(*second_grow, 2.0);
     const std::unique_ptr<Window> held_growing_window = std::make_unique<Window>(growing, Size{100.0, 20.0});
@@ -402,7 +404,7 @@ void test_layout_panels_revalidate_snapshot_after_measure_callback() {
         bool removed_once{};
         (*mutator).callback =
             RemoveControlDuringMeasure(*flow, *removed, removed_once);
-        (*flow).set_flow_direction(FlowDirection::right_to_left);
+        (*flow).flow_direction = FlowDirection::right_to_left;
         window.perform_layout();
         require(removed_once && (*removed).measure_count == 0U &&
                     !(*removed).attached() && !(*removed).parent() &&
@@ -413,8 +415,8 @@ void test_layout_panels_revalidate_snapshot_after_measure_callback() {
     {
         std::shared_ptr<gui_forms::TableLayoutPanelCompat> table = make_control<TableLayoutPanelCompat>(
             StableId("layout.table.mutation"));
-        (*table).set_column_count(2U);
-        (*table).set_row_count(1U);
+        (*table).column_count = 2U;
+        (*table).row_count = 1U;
         std::shared_ptr<MeasureMutationControl> mutator =
             make_control<MeasureMutationControl>(
                 StableId("layout.table.mutation.mutator"));
@@ -446,15 +448,15 @@ void test_table_mixed_tracks_spans_and_lookup() {
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> table = make_control<TableLayoutPanelCompat>(StableId("layout.table.mixed"));
     (*table).accessible_name = "Mixed table specimen";
     (*table).padding = {5.0, 5.0, 5.0, 5.0};
-    (*table).set_column_count(4U);
-    (*table).set_row_count(2U);
+    (*table).column_count = 4U;
+    (*table).row_count = 2U;
     (*table).set_column_style(0U, {TableSizeMode::absolute, 40.0});
     (*table).set_column_style(1U, {TableSizeMode::auto_size, 0.0});
     (*table).set_column_style(2U, {TableSizeMode::percent, 1.0});
     (*table).set_column_style(3U, {TableSizeMode::percent, 2.0});
     (*table).set_row_style(0U, {TableSizeMode::auto_size, 0.0});
     (*table).set_row_style(1U, {TableSizeMode::percent, 1.0});
-    (*table).set_cell_border_style(TableCellBorderStyle::single);
+    (*table).cell_border_style = TableCellBorderStyle::single;
 
     std::shared_ptr<Button> first = sized_button("layout.table.first", 30.0, 20.0);
     std::shared_ptr<Button> second = sized_button("layout.table.second", 60.0, 30.0);
@@ -505,9 +507,9 @@ void test_table_mixed_tracks_spans_and_lookup() {
 
 void test_table_growth_hidden_children_and_fixed_overflow() {
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> table = make_control<TableLayoutPanelCompat>(StableId("layout.table.growth"));
-    (*table).set_column_count(2U);
-    (*table).set_row_count(1U);
-    (*table).set_grow_style(TableLayoutGrowStyle::add_rows);
+    (*table).column_count = 2U;
+    (*table).row_count = 1U;
+    (*table).grow_style = TableLayoutGrowStyle::add_rows;
     std::shared_ptr<Button> first = sized_button("layout.table.growth.first", 30.0, 20.0);
     std::shared_ptr<Button> second = sized_button("layout.table.growth.second", 30.0, 20.0);
     std::shared_ptr<Button> third = sized_button("layout.table.growth.third", 30.0, 20.0);
@@ -530,7 +532,7 @@ void test_table_growth_hidden_children_and_fixed_overflow() {
             "hidden table children must release occupancy and collapse runtime tracks");
 
     (*second).visible = true;
-    (*table).set_grow_style(TableLayoutGrowStyle::fixed_size);
+    (*table).grow_style = TableLayoutGrowStyle::fixed_size;
     window.perform_layout();
     require((*table).layout_overflowed() && (*third).arranged_bounds().empty() &&
                 !(*table).cell_position(*third),
@@ -554,8 +556,8 @@ void test_table_growth_hidden_children_and_fixed_overflow() {
 
 void test_table_cell_dock_fill_consumes_growth() {
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> table = make_control<TableLayoutPanelCompat>(StableId("layout.table.fill"));
-    (*table).set_column_count(1U);
-    (*table).set_row_count(1U);
+    (*table).column_count = 1U;
+    (*table).row_count = 1U;
     (*table).set_column_style(0U, {TableSizeMode::percent, 100.0});
     (*table).set_row_style(0U, {TableSizeMode::percent, 100.0});
     std::shared_ptr<Button> child = sized_button("layout.table.fill.child", 120.0, 60.0);
@@ -577,12 +579,12 @@ void test_table_cell_dock_fill_consumes_growth() {
 void test_table_track_spacing_is_relational_and_bounded() {
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> table =
         make_control<TableLayoutPanelCompat>(StableId("layout.table.spacing"));
-    (*table).set_column_count(2U);
-    (*table).set_row_count(1U);
+    (*table).column_count = 2U;
+    (*table).row_count = 1U;
     (*table).set_column_style(0U, {TableSizeMode::percent, 1.0});
     (*table).set_column_style(1U, {TableSizeMode::percent, 1.0});
     (*table).set_row_style(0U, {TableSizeMode::percent, 1.0});
-    (*table).set_track_spacing({18.0, 0.0});
+    (*table).track_spacing = {18.0, 0.0};
     std::shared_ptr<Button> first =
         sized_button("layout.table.spacing.first", 20.0, 20.0);
     std::shared_ptr<Button> second =
@@ -603,11 +605,11 @@ void test_table_track_spacing_is_relational_and_bounded() {
 
     bool rejected{};
     try {
-        (*table).set_track_spacing({257.0, 0.0});
+        (*table).track_spacing = {257.0, 0.0};
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*table).track_spacing() == Size{18.0, 0.0},
+    require(rejected && (*table).track_spacing.read() == Size{18.0, 0.0},
             "table track spacing must reject invalid geometry atomically");
 }
 
@@ -627,9 +629,9 @@ public:
 
 void test_table_border_paint_is_public_geometry() {
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> table = make_control<TableLayoutPanelCompat>(StableId("layout.table.paint"));
-    (*table).set_column_count(2U);
-    (*table).set_row_count(2U);
-    (*table).set_cell_border_style(TableCellBorderStyle::inset);
+    (*table).column_count = 2U;
+    (*table).row_count = 2U;
+    (*table).cell_border_style = TableCellBorderStyle::inset;
     // Tracks with extent, so every rule has length: a rule of no length is
     // not drawn.
     (*table).set_column_style(0U, {TableSizeMode::percent, 50.0});
@@ -687,7 +689,7 @@ void test_scaled_panel_and_group_are_public_layout_controls() {
     bool invalid_size_rejected = false;
     bool foreign_child_rejected = false;
     try {
-        (*root).set_design_size({0.0, 100.0});
+        (*root).design_size = Size{0.0, 100.0};
     } catch (const std::invalid_argument&) {
         invalid_size_rejected = true;
     }
@@ -829,8 +831,8 @@ void test_compound_anchor_resize_runtime_rebase_and_validation() {
 void test_flow_auto_scroll_owns_viewport_and_input() {
     std::shared_ptr<FlowLayoutPanelCompat> flow = make_control<FlowLayoutPanelCompat>(StableId("flow.scroll"));
     (*flow).auto_scroll = true;
-    (*flow).set_wrap_contents(false);
-    (*flow).set_item_spacing({4.0, 4.0});
+    (*flow).wrap_contents = false;
+    (*flow).item_spacing = {4.0, 4.0};
     std::vector<std::shared_ptr<Button>> items;
     for (int index = 0; index < 8; ++index) {
         std::shared_ptr<Button> item = make_control<Button>(StableId("flow.item." + std::to_string(index)), "Frame");
@@ -852,7 +854,7 @@ void test_flow_auto_scroll_owns_viewport_and_input() {
     require((*flow).scroll_position().x > 0.0 && last.right() <= 300.001 &&
                 window.hit_test({last.x + 10.0, last.y + 10.0}) == items.back(),
             "scroll into view moves retained flow geometry and routed input together");
-    (*flow).set_wrap_contents(true);
+    (*flow).wrap_contents = true;
     window.resize({180.0, 100.0});
     window.perform_layout();
     require(!(*flow).hscroll() && (*flow).vscroll() &&
@@ -892,11 +894,92 @@ bool cell_refused(TableLayoutPanelCompat& table, const Control& child, GridCell 
     return false;
 }
 
+// Whether replacing the column (or row) styles throws `Refusal`.
+template <typename Refusal>
+bool column_styles_refused(TableLayoutPanelCompat& table, const std::vector<TableLayoutStyle>& styles) {
+    try {
+        table.set_column_styles(styles);
+    } catch (const Refusal&) {
+        return true;
+    }
+    return false;
+}
+
+template <typename Refusal>
+bool row_styles_refused(TableLayoutPanelCompat& table, const std::vector<TableLayoutStyle>& styles) {
+    try {
+        table.set_row_styles(styles);
+    } catch (const Refusal&) {
+        return true;
+    }
+    return false;
+}
+
+// set_column_styles and set_row_styles replace every track's style, set the
+// track count to the number of styles and lay the table out again; a
+// refused list changes nothing.
+void test_table_style_lists() {
+    std::shared_ptr<TableLayoutPanelCompat> table =
+        make_control<TableLayoutPanelCompat>(StableId("layout.table.style-lists"));
+    std::shared_ptr<Button> corner = sized_button("layout.table.style-lists.corner", 20.0, 10.0);
+    std::shared_ptr<Button> far = sized_button("layout.table.style-lists.far", 20.0, 10.0);
+    (*table).add_child(corner);
+    (*table).add_child(far);
+    const std::vector<TableLayoutStyle> columns{{TableSizeMode::absolute, 60.0}, {TableSizeMode::percent, 1.0},
+                                                {TableSizeMode::percent, 3.0}};
+    const std::vector<TableLayoutStyle> rows{{TableSizeMode::absolute, 30.0}, {TableSizeMode::percent, 1.0}};
+    (*table).set_column_styles(columns);
+    (*table).set_row_styles(rows);
+    (*table).cell[*corner] = GridCell{.row = 0U, .column = 0U};
+    (*table).cell[*far] = GridCell{.row = 1U, .column = 2U};
+    require((*table).column_count.read() == 3U && (*table).row_count.read() == 2U &&
+                std::equal(columns.begin(), columns.end(), (*table).column_styles().begin(),
+                           (*table).column_styles().end()) &&
+                std::equal(rows.begin(), rows.end(), (*table).row_styles().begin(), (*table).row_styles().end()),
+            "the style lists read back and set the track counts");
+
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(table, Size{300.0, 130.0});
+    Window& window = *held_window;
+    window.perform_layout();
+    std::span<const double> widths = (*table).column_widths();
+    std::span<const double> heights = (*table).row_heights();
+    require(widths.size() == 3U && near(widths[0], 60.0) && near(widths[1], 60.0) && near(widths[2], 180.0) &&
+                heights.size() == 2U && near(heights[0], 30.0) && near(heights[1], 100.0),
+            "the tracks resolve from the replaced styles");
+    require((*far).arranged_bounds() == Rect{120.0, 30.0, 20.0, 10.0}, "a child sits in its styled cell");
+
+    const std::vector<TableLayoutStyle> two_columns{{TableSizeMode::percent, 1.0}, {TableSizeMode::percent, 1.0}};
+    (*table).cell[*far] = GridCell{.row = 1U, .column = 1U};
+    (*table).set_column_styles(two_columns);
+    window.perform_layout();
+    widths = (*table).column_widths();
+    require((*table).column_count.read() == 2U && widths.size() == 2U && near(widths[0], 150.0) &&
+                near(widths[1], 150.0) && (*far).arranged_bounds() == Rect{150.0, 30.0, 20.0, 10.0},
+            "a shorter list lowers the column count and lays the table out again");
+
+    const std::vector<TableLayoutStyle> none{};
+    const std::vector<TableLayoutStyle> too_many(65U, TableLayoutStyle{TableSizeMode::auto_size, 0.0});
+    const std::vector<TableLayoutStyle> negative{{TableSizeMode::absolute, 10.0}, {TableSizeMode::absolute, -1.0}};
+    const std::vector<TableLayoutStyle> zero_percent{{TableSizeMode::percent, 0.0}};
+    require(column_styles_refused<std::out_of_range>(*table, none) &&
+                column_styles_refused<std::out_of_range>(*table, too_many) &&
+                column_styles_refused<std::invalid_argument>(*table, negative) &&
+                row_styles_refused<std::out_of_range>(*table, none) &&
+                row_styles_refused<std::out_of_range>(*table, too_many) &&
+                row_styles_refused<std::invalid_argument>(*table, zero_percent),
+            "empty, oversized and invalid style lists are refused");
+    require((*table).column_count.read() == 2U && (*table).row_count.read() == 2U &&
+                std::equal(two_columns.begin(), two_columns.end(), (*table).column_styles().begin(),
+                           (*table).column_styles().end()) &&
+                std::equal(rows.begin(), rows.end(), (*table).row_styles().begin(), (*table).row_styles().end()),
+            "a refused list leaves the styles and counts as they were");
+}
+
 void test_table_child_properties() {
     std::shared_ptr<TableLayoutPanelCompat> table =
         make_control<TableLayoutPanelCompat>(StableId("layout.table.child"));
-    (*table).set_column_count(3U);
-    (*table).set_row_count(3U);
+    (*table).column_count = 3U;
+    (*table).row_count = 3U;
     std::shared_ptr<Button> header = sized_button("layout.table.child.header", 40.0, 20.0);
     std::shared_ptr<Button> other = sized_button("layout.table.child.other", 40.0, 20.0);
     std::shared_ptr<Button> automatic = sized_button("layout.table.child.automatic", 40.0, 20.0);
@@ -989,7 +1072,7 @@ void test_panel_settings_as_properties() {
     (*table).set_property_value("column-styles", text_items({gui_forms::BindingValue{std::string{"absolute 140"}},
                                                              gui_forms::BindingValue{std::string{"auto"}},
                                                              gui_forms::BindingValue{std::string{"percent 1.5"}}}));
-    require((*table).column_count() == 3U && (*table).column_styles()[0] == TableLayoutStyle{TableSizeMode::absolute, 140.0} &&
+    require((*table).column_count.read() == 3U && (*table).column_styles()[0] == TableLayoutStyle{TableSizeMode::absolute, 140.0} &&
                 (*table).column_styles()[2] == TableLayoutStyle{TableSizeMode::percent, 1.5},
             "table settings: the column styles set the count and each style");
     const std::optional<gui_forms::BindingValue> styles = (*table).property_value("column_styles");
@@ -998,8 +1081,8 @@ void test_panel_settings_as_properties() {
     (*table).set_property_value("row_count", gui_forms::BindingValue{std::uint64_t{2U}});
     (*table).set_property_value("grow_style", gui_forms::BindingValue{std::int64_t{0}});
     (*table).set_property_value("track_spacing", gui_forms::BindingValue{gui_forms::Size{4.0, 2.0}});
-    require((*table).row_count() == 2U && (*table).grow_style() == TableLayoutGrowStyle::fixed_size &&
-                (*table).track_spacing() == gui_forms::Size{4.0, 2.0},
+    require((*table).row_count.read() == 2U && (*table).grow_style.read() == TableLayoutGrowStyle::fixed_size &&
+                (*table).track_spacing.read() == gui_forms::Size{4.0, 2.0},
             "table settings: count, grow style and spacing by name");
     bool malformed_refused = false;
     try {
@@ -1007,14 +1090,14 @@ void test_panel_settings_as_properties() {
     } catch (const std::invalid_argument&) {
         malformed_refused = true;
     }
-    require(malformed_refused && (*table).row_count() == 2U, "table settings: a malformed style is refused");
+    require(malformed_refused && (*table).row_count.read() == 2U, "table settings: a malformed style is refused");
 
     std::shared_ptr<FlowLayoutPanelCompat> flow = make_control<FlowLayoutPanelCompat>(StableId("layout.flow.settings"));
     (*flow).set_property_value("flow-direction", gui_forms::BindingValue{std::int64_t{2}});
     (*flow).set_property_value("wrap-contents", gui_forms::BindingValue{false});
     (*flow).set_property_value("cross_alignment", gui_forms::BindingValue{std::int64_t{3}});
-    require((*flow).flow_direction() == FlowDirection::top_down && !(*flow).wrap_contents() &&
-                (*flow).cross_alignment() == FlowCrossAlignment::stretch,
+    require((*flow).flow_direction.read() == FlowDirection::top_down && !(*flow).wrap_contents.read() &&
+                (*flow).cross_alignment.read() == FlowCrossAlignment::stretch,
             "flow settings: direction, wrapping and alignment by name");
 }
 
@@ -1024,6 +1107,7 @@ int main() {
         test_margin_padding_validation_and_retained_slots();
         test_flow_break_child_property();
         test_table_child_properties();
+        test_table_style_lists();
         test_panel_settings_as_properties();
         test_flow_direction_break_visibility_and_resize();
         test_flow_item_spacing_is_explicit_bounded_layout_state();

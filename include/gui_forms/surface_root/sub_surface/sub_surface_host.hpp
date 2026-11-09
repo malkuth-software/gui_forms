@@ -31,6 +31,14 @@ struct SubSurfaceRequestStatistics final {
     std::uint64_t alerts{};
 };
 
+// How a host's sub-surface thread ended (SubSurfaceHost::stopped): stopped
+// when the host stopped it (new content, leaving the window), failed when
+// the content threw or built no root, with what it threw.
+struct SubSurfaceStopped final {
+    SubSurfaceState state{SubSurfaceState::stopped};
+    std::string failure{};
+};
+
 // The parent's control for one threaded sub-surface (stage S2, design note
 // section 2): it occupies the region, owns the sub-surface's thread, sizes
 // and reconfigures it, and composes its LiveSurface into the window. On the
@@ -65,6 +73,16 @@ struct SubSurfaceRequestStatistics final {
 // the pointer's requests when the pointer leaves it, the keyboard's when its
 // keyboard focus leaves, and drops every request when its thread stops.
 //
+// Notices (decision 6 and section 9): `stopped` is raised once for each
+// thread that ends, whether the host stopped it or its content failed, and
+// `pairing_missed` once for each content epoch whose required frame was not
+// published in time, so the window presented an older frame unpaired (the
+// epoch is the payload). Both are raised by tasks posted to the window's
+// thread, never inside the present path or the stop that found them: a
+// handler may set new content or call redraw_all. A host destroyed before
+// its task runs raises nothing; one detached raises `stopped` only while
+// its former window's dispatcher still runs.
+//
 // Accessibility (design note section 5, decision 5): the sub-surface
 // publishes an immutable semantic snapshot whenever its tree's semantic
 // generation moves, and the host publishes that snapshot's nodes as its own
@@ -88,6 +106,15 @@ public:
     explicit SubSurfaceHost(StableId stable_id);
     ~SubSurfaceHost() override;
 
+    // Whether the host publishes the sub-surface in the window's semantic
+    // tree: its own pane and the sub-surface's nodes as its virtual
+    // children (the class comment). On by default. A control that publishes
+    // what the sub-surface draws itself (a DataGridView's cell region: the
+    // grid publishes its cells) turns it off; the host then publishes no
+    // node, takes no snapshot and performs no semantic action, and the
+    // sub-surface's own controls are reached only through its owner.
+    void set_publishes_semantics(bool publishes);
+    [[nodiscard]] bool publishes_semantics() const noexcept { return publishes_semantics_; }
     // The content to show and whether it covers its whole region with
     // opaque pixels (the window then copies its frames instead of blending,
     // resize rule 2). A running sub-surface is stopped and joined first.
@@ -130,6 +157,14 @@ public:
     // coordinates; a program request has no bounds (it is shown at once,
     // never found under the pointer or focus).
     [[nodiscard]] std::vector<SemanticNode> tool_tip_items() const override;
+    // A thread ended (see the class comment). Raised on the window's thread
+    // by a posted task.
+    [[nodiscard]] Event<const SubSurfaceStopped&>& stopped() noexcept { return stopped_; }
+    // The window presented a frame older than the epoch it required (the
+    // payload) once the one-frame wait ran out. Raised on the window's
+    // thread by a posted task, once per epoch.
+    [[nodiscard]] Event<std::uint64_t>& pairing_missed() noexcept { return pairing_missed_; }
+    void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
 
     // Arranges as any control, then reconfigures the sub-surface when its
     // device size or scale changed. The window's theme and presentation
@@ -217,6 +252,20 @@ private:
     // The sub-surface's semantics listener for one thread, revoked like
     // KeyReturn. Parent thread only.
     class SemanticsNotice;
+    // The host's own notices, alive as long as the host and revoked by its
+    // destructor: the window's unpaired-presentation notices, the thread's
+    // end notice, and the stop notices the host posts for itself. Parent
+    // thread only.
+    class Notices;
+    // The task a stop posts to raise `stopped` through Notices.
+    class PostedStop;
+    // The task the host posts when its thread failed before the end
+    // listener was set (Notices::sub_surface_ended).
+    class PostedEnd;
+    // A posted notice ran (Notices): raises the event.
+    void notice_thread_ended();
+    void notice_stopped(const SubSurfaceStopped& stopped);
+    void notice_pairing_missed(std::uint64_t epoch);
 
     // Tells the sub-surface whether it has keyboard focus: the host is the
     // window's focused control in an active window. `entry` is where focus
@@ -277,6 +326,8 @@ private:
     // The newest snapshot taken from the running sub-surface; null before
     // the first and after the thread stopped.
     std::shared_ptr<const SemanticSnapshot> semantics_{};
+    // set_publishes_semantics.
+    bool publishes_semantics_{true};
     // The sub-surface was last told it has keyboard focus.
     bool keyboard_inside_{};
     // The non-primary pointer buttons forwarded down and not yet up, one bit
@@ -288,6 +339,14 @@ private:
     // The host, not the window, took the capture pressed_buttons_ holds.
     bool took_capture_{};
     std::uint64_t returned_keys_discarded_{};
+    Event<const SubSurfaceStopped&> stopped_;
+    Event<std::uint64_t> pairing_missed_;
+    std::shared_ptr<Notices> notices_{};
+    // The window dispatcher the running thread's notices go through, kept
+    // so that a stop while detaching still posts to the former window.
+    WindowDispatcher notice_dispatcher_{};
+    // `stopped` is already raised (or posted) for the running thread.
+    bool end_noticed_{};
 };
 
 } // namespace gui_forms

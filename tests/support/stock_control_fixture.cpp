@@ -143,26 +143,26 @@ void place_display(FixtureBuilder& builder) {
     std::shared_ptr<ProgressBar> progress = builder.place(
         make_control<ProgressBar>(StableId("progress-bar")), 20.0);
     (*progress).accessible_name = "Export progress";
-    (*progress).set_value(40);
+    (*progress).value = 40;
     std::shared_ptr<Card> card = builder.place(make_control<Card>(StableId("card")), 70.0);
     (*card).accessible_name = "Summary card";
     std::shared_ptr<ReviewCard> review = builder.place(
         make_control<ReviewCard>(StableId("review-card")), 90.0);
     (*review).accessible_name = "Review";
-    (*review).set_interactive(true);
+    (*review).interactive = true;
 }
 
 void place_lists(FixtureBuilder& builder) {
     std::shared_ptr<ListBox> list = builder.place(make_control<ListBox>(StableId("list-box")), 80.0);
     (*list).accessible_name = "Colours";
-    (*list).set_items({"Red", "Green", "Blue"});
+    (*list).items = {"Red", "Green", "Blue"};
     std::shared_ptr<CheckedListBox> checks = builder.place(
         make_control<CheckedListBox>(StableId("checked-list-box")), 80.0);
     (*checks).accessible_name = "Options";
-    (*checks).set_items({"Wrap", "Spell"});
+    (*checks).items = {"Wrap", "Spell"};
     std::shared_ptr<ComboBox> combo = builder.place(make_control<ComboBox>(StableId("combo-box")), 28.0);
     (*combo).accessible_name = "Size";
-    (*combo).set_items({"Small", "Large"});
+    (*combo).items = {"Small", "Large"};
 
     std::shared_ptr<TreeView> tree = builder.place(make_control<TreeView>(StableId("tree-view")), 90.0);
     (*tree).accessible_name = "Folders";
@@ -184,7 +184,7 @@ void place_lists(FixtureBuilder& builder) {
     std::shared_ptr<ObjectView> objects = builder.place(
         make_control<ObjectView>(StableId("object-view")), 100.0);
     (*objects).accessible_name = "Objects";
-    (*objects).set_view_mode(ObjectViewMode::details);
+    (*objects).view_mode = ObjectViewMode::details;
     std::vector<ObjectDetailsColumn> object_columns;
     object_columns.push_back({.id = {"name"}, .label = "Name", .width = 150.0});
     object_columns.push_back({.id = {"kind"}, .label = "Kind", .width = 100.0});
@@ -265,7 +265,7 @@ void place_lists(FixtureBuilder& builder) {
     DataGridViewRow apple;
     apple.stable_id = DataGridViewRowId{"row1"};
     apple.cells = {BindingValue{std::string("Apple")}};
-    (*grid).set_rows({zebra, apple});
+    (*grid).rows = {zebra, apple};
 
     std::shared_ptr<ChoiceGroup> choices = builder.place(
         make_control<ChoiceGroup>(StableId("choice-group")), 32.0);
@@ -299,7 +299,7 @@ void place_values(FixtureBuilder& builder) {
     std::shared_ptr<DomainUpDown> domain = builder.place(
         make_control<DomainUpDown>(StableId("domain-up-down")), 28.0);
     (*domain).accessible_name = "Band";
-    (*domain).set_items({"AM", "FM", "WFM"});
+    (*domain).items = {"AM", "FM", "WFM"};
     std::shared_ptr<ColorValueEditor> colour = builder.place(
         make_control<ColorValueEditor>(StableId("color-value-editor"), Color{40, 80, 160, 255}), 30.0);
     (*colour).accessible_name = "Tint";
@@ -547,7 +547,7 @@ void place_menus(FixtureBuilder& builder) {
     (*ribbon).set_tabs(std::move(tabs));
     std::shared_ptr<BackstageView> ribbon_backstage = make_control<BackstageView>(StableId("ribbon.backstage"));
     (*ribbon_backstage).set_items({{.stable_id = "ribbon.backstage.open", .command = open}});
-    (*ribbon).set_backstage(ribbon_backstage);
+    (*ribbon).backstage = ribbon_backstage;
 
     std::shared_ptr<BackstageView> backstage = builder.place(
         make_control<BackstageView>(StableId("backstage-view")), 120.0);
@@ -559,7 +559,7 @@ void place_menus(FixtureBuilder& builder) {
     std::shared_ptr<RibbonGallery> gallery = builder.place(
         make_control<RibbonGallery>(StableId("ribbon-gallery")), 60.0);
     (*gallery).accessible_name = "Styles";
-    (*gallery).set_item_size({40.0, 24.0});
+    (*gallery).item_size = Size{40.0, 24.0};
     std::vector<RibbonGalleryItem> gallery_items;
     for (std::size_t index = 0U; index < 3U; ++index) {
         RibbonGalleryItem item;
@@ -574,10 +574,10 @@ void place_menus(FixtureBuilder& builder) {
     (*font).set_families({"Carlito", "Portsmouth"});
     std::shared_ptr<RibbonColorPicker> colour = builder.place(
         make_control<RibbonColorPicker>(StableId("ribbon-color-picker")), 30.0);
-    (*colour).set_text("Font &colour");
+    (*colour).text = "Font &colour";
     std::shared_ptr<Command> font_colour = builder.command("stock.font_colour", "Font colour");
     builder.fixture().color_command = std::make_shared<ColorCommand>(font_colour);
-    (*colour).set_command(builder.fixture().color_command);
+    (*colour).command = builder.fixture().color_command;
 
     builder.omit("context_menu", "component; an overlay that exists only while open");
     builder.omit("command", "component; published through the menus, strips and ribbon that present it");
@@ -620,7 +620,7 @@ void place_diagnostics(FixtureBuilder& builder) {
         make_control<EasingPreview>(StableId("easing-preview")), 60.0);
     (*easing).accessible_name = "Easing";
     // Paused, so its published value does not move between two readings.
-    (*easing).set_motion_policy(MotionPolicy{.enabled = true, .paused = true});
+    (*easing).motion_policy = MotionPolicy{.enabled = true, .paused = true};
     std::shared_ptr<MetricsView> metrics = builder.place(
         make_control<MetricsView>(StableId("metrics-view")), 80.0);
     static_cast<void>(metrics);

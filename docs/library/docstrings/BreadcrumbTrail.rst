@@ -74,7 +74,7 @@ overflow_activated
 edit_committed
     Raised when the user presses Enter in the editor. It carries the
     editor's text. The trail stays in editing mode: validate the path, and
-    call `set_editing` with false when you accept it.
+    write false to `editing` when you accept it.
 edit_started
     Raised by `begin_edit`, after the editor is shown and focused. It
     carries the editor's text.
@@ -153,7 +153,7 @@ Show the path to the current folder with raised segments:
    (*trail).set_segments({{"root", "Home", "Go to Home"},
                           {"projects", "Projects", "Go to Projects"},
                           {"site", "Site", "Current folder"}});
-   (*trail).set_appearance(gf::BreadcrumbAppearance::raised);
+   (*trail).appearance = gf::BreadcrumbAppearance::raised;
 
 Navigate when the user activates a segment, and accept a typed path. In a
 window, Home moves to the first segment and Enter activates it:
@@ -173,7 +173,7 @@ window, Home moves to the first segment and Enter activates it:
        void on_segment(const std::string& id) { target = id; }
        void on_path(const std::string& path) {
            target = path;
-           (*trail).set_editing(false);   // a commit does not end editing by itself
+           (*trail).editing = false;   // a commit does not end editing by itself
        }
    };
 

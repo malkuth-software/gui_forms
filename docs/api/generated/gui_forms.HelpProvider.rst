@@ -7,7 +7,7 @@ gui_forms::HelpProvider
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: HelpProvider final : public Component
+.. cpp:class:: HelpProvider final : public Component, public HelpProviderCapabilities<HelpProvider>
 
    ``#include <gui_forms/components/help_provider/help_provider.hpp>``
 
@@ -52,7 +52,7 @@ gui_forms::HelpProvider
          Raised when help is requested for a control that offers it and the
          control's own :cpp:func:`help_requested <gui_forms::HelpProvider::help_requested>` handlers did not handle the request. The
          :cpp:class:`HelpRequestEvent <gui_forms::HelpRequestEvent>` carries the control's stable ID, the position, the
-         :cpp:func:`help_namespace <gui_forms::HelpProvider::help_namespace>`, the control's help string, keyword and navigator, and
+         :cpp:member:`help_namespace <gui_forms::HelpProvider::help_namespace>`, the control's help string, keyword and navigator, and
          whether the request came from the keyboard. Set ``handled`` to report that
          help was shown. It is also raised for the window's own help request (a
          message box's Help button or F1, ``Window::request_help``) that the
@@ -152,7 +152,7 @@ gui_forms::HelpProvider
           gf::HelpProvider help(window);
           HelpDesk desk;
           gf::on(help.help_requested(), desk, &HelpDesk::on_help);
-          help.set_help_namespace("app-help://network");
+          help.help_namespace = "app-help://network";
           help.set_help_string(connect, "Connects to the server named above.");
           help.set_help_keyword(connect, "network.connect");
 
@@ -170,23 +170,15 @@ gui_forms::HelpProvider
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& help_namespace() const noexcept
+   .. cpp:member:: std::string help_namespace
 
       The help collection to search, such as a URL or a help-file name. It is
       passed to handlers in ``HelpRequestEvent::help_namespace`` and never
       interpreted. It must be valid UTF-8.
 
-   .. cpp:function:: void set_help_namespace(std::string value)
-
-      Sets :cpp:func:`help_namespace <gui_forms::HelpProvider::help_namespace>`; see the property's description above.
-
-   .. cpp:function:: const std::any& tag() const noexcept
+   .. cpp:member:: std::any tag
 
       Application data, kept as given and never interpreted.
-
-   .. cpp:function:: void set_tag(std::any tag)
-
-      Sets :cpp:func:`tag <gui_forms::HelpProvider::tag>`; see the property's description above.
 
    .. cpp:function:: HelpProviderSnapshot snapshot() const noexcept
 
@@ -202,7 +194,7 @@ gui_forms::HelpProvider
       Raised when help is requested for a control that offers it and the
       control's own :cpp:func:`help_requested <gui_forms::HelpProvider::help_requested>` handlers did not handle the request. The
       :cpp:class:`HelpRequestEvent <gui_forms::HelpRequestEvent>` carries the control's stable ID, the position, the
-      :cpp:func:`help_namespace <gui_forms::HelpProvider::help_namespace>`, the control's help string, keyword and navigator, and
+      :cpp:member:`help_namespace <gui_forms::HelpProvider::help_namespace>`, the control's help string, keyword and navigator, and
       whether the request came from the keyboard. Set ``handled`` to report that
       help was shown. It is also raised for the window's own help request (a
       message box's Help button or F1, ``Window::request_help``) that the

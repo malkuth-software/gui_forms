@@ -7,7 +7,7 @@ gui_forms::PageView
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: PageView : public Control
+.. cpp:class:: PageView : public Control, public PageViewCapabilities<PageView>
 
    ``#include <gui_forms/controls/pages/page_view/page_view.hpp>``
 
@@ -46,22 +46,6 @@ gui_forms::PageView
 
    :Properties:
 
-      **pages** : ``PageSet``, read-only
-         The view's set: add, remove, move, select, take and put pages through it.
-
-      **strip** : ``std::shared_ptr<PageStrip>``, read-only
-         The child strip that shows the tabs; its placement, sizing, activation,
-         overflow, close buttons and mnemonics are set on it. Hiding it (as a
-         docking tool stack with one panel does) gives the whole view to the
-         content.
-
-      **preset** : ``PageViewPreset``, read-only
-         ``PageViewPreset::strip`` or ``document``, fixed when the view is made.
-         The document preset sets the strip's close buttons to
-         ``selected_and_hot``, its overflow to ``shrink_then_list``, turns its
-         mnemonics off (document titles are data) and its live reorder on; these
-         may be changed on the strip afterwards.
-
       **close_policy** : ``PageViewClosePolicy``, default ``PageViewClosePolicy::remove_when_unhandled``
          What the view does with a close request that no handler of the strip's
          ``page_close_requested`` handled: remove the page, or, under
@@ -77,6 +61,22 @@ gui_forms::PageView
       **focus_region** : ``bool``, default ``false``
          Whether the view registers itself as an F6 region of its window. A view
          nested in another region is not registered.
+
+      **pages** : ``PageSet``, read-only
+         The view's set: add, remove, move, select, take and put pages through it.
+
+      **strip** : ``std::shared_ptr<PageStrip>``, read-only
+         The child strip that shows the tabs; its placement, sizing, activation,
+         overflow, close buttons and mnemonics are set on it. Hiding it (as a
+         docking tool stack with one panel does) gives the whole view to the
+         content.
+
+      **preset** : ``PageViewPreset``, read-only
+         ``PageViewPreset::strip`` or ``document``, fixed when the view is made.
+         The document preset sets the strip's close buttons to
+         ``selected_and_hot``, its overflow to ``shrink_then_list``, turns its
+         mnemonics off (document titles are data) and its live reorder on; these
+         may be changed on the strip afterwards.
 
       **parts** : ``Parts``, read-only
 
@@ -143,7 +143,7 @@ gui_forms::PageView
 
    Ctrl+PageDown, Ctrl+PageUp and Ctrl+Tab are taken in the bubble phase, so
    when views are nested the innermost view around the focus answers first; a
-   view whose :cpp:func:`ctrl_tab <gui_forms::PageView::ctrl_tab>` is ``pass`` leaves Ctrl+Tab to the views around it.
+   view whose :cpp:member:`ctrl_tab <gui_forms::PageView::ctrl_tab>` is ``pass`` leaves Ctrl+Tab to the views around it.
    Ctrl+F4 (close the selected closable page; Cmd+W on macOS) and
    Ctrl+Shift+PageDown and Ctrl+Shift+PageUp (move it within its group) are
    taken the same way. All of these are the window's named keyboard commands
@@ -239,6 +239,25 @@ gui_forms::PageView
 
    .. rubric:: Properties
 
+   .. cpp:member:: PageViewClosePolicy close_policy
+
+      What the view does with a close request that no handler of the strip's
+      ``page_close_requested`` handled: remove the page, or, under
+      ``request_only`` (for an owner that decides, such as a docking
+      workspace), nothing.
+
+   .. cpp:member:: PageViewCtrlTab ctrl_tab
+
+      What Ctrl+Tab and Ctrl+Shift+Tab do while focus is inside the view:
+      select the next or previous page, or pass the key on, as a view inside a
+      docking workspace does so that the workspace's navigator receives it.
+      Ctrl+PageDown and Ctrl+PageUp select in every view.
+
+   .. cpp:member:: bool focus_region
+
+      Whether the view registers itself as an F6 region of its window. A view
+      nested in another region is not registered.
+
    .. cpp:function:: const PageSet& pages() const noexcept
 
       The view's set: add, remove, move, select, take and put pages through it.
@@ -257,37 +276,6 @@ gui_forms::PageView
       ``selected_and_hot``, its overflow to ``shrink_then_list``, turns its
       mnemonics off (document titles are data) and its live reorder on; these
       may be changed on the strip afterwards.
-
-   .. cpp:function:: PageViewClosePolicy close_policy() const noexcept
-
-      What the view does with a close request that no handler of the strip's
-      ``page_close_requested`` handled: remove the page, or, under
-      ``request_only`` (for an owner that decides, such as a docking
-      workspace), nothing.
-
-   .. cpp:function:: void set_close_policy(PageViewClosePolicy policy)
-
-      Sets :cpp:func:`close_policy <gui_forms::PageView::close_policy>`; see the property's description above.
-
-   .. cpp:function:: PageViewCtrlTab ctrl_tab() const noexcept
-
-      What Ctrl+Tab and Ctrl+Shift+Tab do while focus is inside the view:
-      select the next or previous page, or pass the key on, as a view inside a
-      docking workspace does so that the workspace's navigator receives it.
-      Ctrl+PageDown and Ctrl+PageUp select in every view.
-
-   .. cpp:function:: void set_ctrl_tab(PageViewCtrlTab policy)
-
-      Sets :cpp:func:`ctrl_tab <gui_forms::PageView::ctrl_tab>`; see the property's description above.
-
-   .. cpp:function:: bool focus_region() const noexcept
-
-      Whether the view registers itself as an F6 region of its window. A view
-      nested in another region is not registered.
-
-   .. cpp:function:: void set_focus_region(bool region)
-
-      Sets :cpp:func:`focus_region <gui_forms::PageView::focus_region>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 

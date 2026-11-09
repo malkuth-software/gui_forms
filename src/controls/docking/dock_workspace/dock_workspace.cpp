@@ -5,6 +5,7 @@
 #include "gui_forms/controls/docking/dock_site/dock_site.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -387,7 +388,7 @@ DockCloseOutcome DockWorkspace::run_close() {
         CloseRequest& request = *close_request_;
         if (request.next >= request.documents.size()) break;
         const std::size_t remaining = request.documents.size() - request.next;
-        const std::size_t count = close_prompt_ == DockClosePrompt::combined ? remaining : 1U;
+        const std::size_t count = close_prompt.read() == DockClosePrompt::combined ? remaining : 1U;
         // The handlers see the documents through a copy, which stays valid
         // whatever they do to the request.
         const std::vector<DockPanelId> asked(request.documents.begin() + static_cast<std::ptrdiff_t>(request.next),
@@ -969,7 +970,7 @@ void DockWorkspace::open_window(const DockFloatingSite& site, WorkspaceTransacti
     entry.floating = record.kind;
     entry.model = std::make_unique<Window>(control, Size{frame.width, frame.height}, (*main).resources());
     // One application key set (owner decision DK-44).
-    (*entry.model).set_key_bindings((*main).key_bindings());
+    (*entry.model).set_key_bindings((*main).share_key_bindings());
     entry.options.title = record.title;
     entry.options.initial_size = Size{frame.width, frame.height};
     entry.options.minimum_size = Size{std::clamp(minimum.width, smallest_floating_window.width, frame.width),
@@ -1278,5 +1279,17 @@ void DockWorkspace::append_interactions(std::vector<InteractionDeclaration>& int
     Component::append_interactions(interactions);
     interactions.insert(interactions.end(), workspace_interactions.begin(), workspace_interactions.end());
 }
+
+// property_codemod begin DockWorkspace (tools/property_families/dock_workspace.json; generated, do not edit)
+
+void DockWorkspace::prepare_write(const decltype(close_prompt)&, DockClosePrompt&) {}
+
+void DockWorkspace::written(const decltype(close_prompt)&) {}
+
+void DockWorkspace::prepare_write(const decltype(flyout_opening)&, DockFlyoutOpening&) {}
+
+void DockWorkspace::written(const decltype(flyout_opening)&) {}
+
+// property_codemod end DockWorkspace
 
 } // namespace gui_forms

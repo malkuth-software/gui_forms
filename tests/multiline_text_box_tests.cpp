@@ -46,10 +46,18 @@ struct Fixture {
     test_support::TypographyPainter painter{};
     // Window borrows metrics; declaration order destroys it before the provider.
     Window window{field, {110.0, 68.0}};
-    Fixture() {
+    // Reduced motion unless `smooth`: wheel and paging scrolls land at once,
+    // so the tests read positions right after the input.
+    Fixture() : Fixture(false) {}
+    explicit Fixture(bool smooth) {
         editor.set_requested_bounds({0, 0, 110, 68});
-        editor.set_multiline(true);
+        editor.multiline = true;
         window.set_text_metrics_provider(&metrics);
+        if (!smooth) {
+            PresentationSettings settings = window.presentation_settings();
+            settings.reduced_motion = true;
+            window.set_presentation_settings(settings);
+        }
         window.perform_layout();
         const bool focused = window.request_focus(field);
         require(focused, "focus");
@@ -96,38 +104,38 @@ public:
 void exact_editing() {
     Fixture f{};
     const std::string source = "alpha\r\nbeta\rgamma\n";
-    f.editor.set_text(source);
+    f.editor.text = source;
     const std::size_t visual_count_1 = f.editor.visual_line_count();
-    require(f.editor.text() == source && visual_count_1 == 4, "preserve mixed line endings");
-    f.editor.set_text("a\xC2\x85" "b\xE2\x80\xA8" "c\xE2\x80\xA9");
+    require(f.editor.text.read() == source && visual_count_1 == 4, "preserve mixed line endings");
+    f.editor.text = "a\xC2\x85" "b\xE2\x80\xA8" "c\xE2\x80\xA9";
     const std::size_t visual_count_2 = f.editor.visual_line_count();
     require(visual_count_2 == 4, "TextStore Unicode line separators");
-    f.editor.set_text(source);
-    f.editor.set_newline_sequence("\r\n");
+    f.editor.text = source;
+    f.editor.newline_sequence = "\r\n";
     f.caret(5);
     f.key(PhysicalKey::enter);
-    require(f.editor.text() == "alpha\r\n\r\nbeta\rgamma\n" && f.caret() == 7, "configured Enter");
+    require(f.editor.text.read() == "alpha\r\n\r\nbeta\rgamma\n" && f.caret() == 7, "configured Enter");
     f.key(PhysicalKey::z, Modifier::control);
-    require(f.editor.text() == source && f.caret() == 5, "undo newline and selection");
+    require(f.editor.text.read() == source && f.caret() == 5, "undo newline and selection");
     f.key(PhysicalKey::y, Modifier::control);
     require(f.caret() == 7, "redo newline");
-    f.editor.set_accepts_tab(true);
+    f.editor.accepts_tab = true;
     f.key(PhysicalKey::tab);
-    require(f.editor.text().substr(7, 1) == "\t", "literal Tab");
-    f.editor.set_read_only(true);
-    const std::string before(f.editor.text());
+    require(f.editor.text.read().substr(7, 1) == "\t", "literal Tab");
+    f.editor.read_only = true;
+    const std::string before(f.editor.text.read());
     f.key(PhysicalKey::enter);
     f.key(PhysicalKey::tab);
-    require(f.editor.text() == before, "read-only Enter/Tab");
+    require(f.editor.text.read() == before, "read-only Enter/Tab");
 
-    f.editor.set_read_only(false);
-    f.editor.set_text("\rX");
+    f.editor.read_only = false;
+    f.editor.text = "\rX";
     f.caret(1);
     const bool inserted_newline = f.editor.replace_selection("\n");
     require(inserted_newline && f.caret() == 2, "CRLF merge caret remains valid");
     f.key(PhysicalKey::backspace);
-    require(f.editor.text() == "X", "delete complete CRLF grapheme");
-    f.editor.set_text("a\n\xCC\x81");
+    require(f.editor.text.read() == "X", "delete complete CRLF grapheme");
+    f.editor.text = "a\n\xCC\x81";
     f.editor.select(Utf8Offset(1), Utf8Offset(2));
     const bool deleted_newline = f.editor.delete_selection();
     require(deleted_newline && f.caret() == 3, "deletion joining combining mark snaps caret");
@@ -137,7 +145,7 @@ void document_scrollbars() {
     Fixture f{};
     f.window.resize({360.0, 240.0});
     f.editor.auto_scroll = true;
-    f.editor.set_text("short");
+    f.editor.text = "short";
     f.window.perform_layout();
     require(!f.editor.hscroll() && !f.editor.vscroll(), "fitting text has no bars");
     std::string source{};
@@ -145,7 +153,7 @@ void document_scrollbars() {
         source.append(140, 'x');
         source.append("\n");
     }
-    f.editor.set_text(source);
+    f.editor.text = source;
     f.editor.select(Utf8Offset(0), Utf8Offset(4));
     f.window.perform_layout();
     require(f.editor.hscroll() && f.editor.vscroll(), "text extent exposes both scrollbars");
@@ -159,7 +167,7 @@ void document_scrollbars() {
     f.paint();
     require(f.editor.scroll_offset() == Point{120.0, 300.0}, "paint does not undo explicit scrolling");
     require(f.metrics.calls == measured, "scrolling reuses retained text measurements");
-    require(f.editor.text() == source && f.editor.selection() == selection &&
+    require(f.editor.text.read() == source && f.editor.selection() == selection &&
             f.editor.can_undo() == undo, "scroll preserves document selection and history");
     ScrollbarPainter painter{};
     f.editor.invalidate(Dirty::paint);
@@ -176,13 +184,13 @@ void document_scrollbars() {
             std::find(painter.fills.begin(), painter.fills.end(), vertical_bar) != painter.fills.end(),
             "retained overlay paints both document scrollbars");
 
-    f.editor.set_word_wrap(true);
+    f.editor.word_wrap = true;
     f.window.perform_layout();
     const std::size_t wrapped = f.editor.visual_line_count();
     require(f.editor.vscroll() && !f.editor.hscroll() && f.editor.scroll_offset().x == 0.0,
             "wrap removes horizontal overflow");
     require(wrapped == 401, "wrap uses width remaining beside the vertical scrollbar");
-    f.editor.set_word_wrap(false);
+    f.editor.word_wrap = false;
     f.window.perform_layout();
     require(f.editor.hscroll(), "unwrapping restores horizontal bar");
     f.window.resize({2400.0, 2400.0});
@@ -192,7 +200,7 @@ void document_scrollbars() {
     f.window.resize({360.0, 240.0});
     f.window.perform_layout();
     require(f.editor.vscroll() && f.editor.hscroll(), "shrinking restores overflow");
-    f.editor.set_text("short again");
+    f.editor.text = "short again";
     f.window.perform_layout();
     require(!f.editor.vscroll() && !f.editor.hscroll() && f.editor.scroll_offset() == Point{},
             "short replacement clears text scroll ranges");
@@ -204,7 +212,7 @@ void document_scrollbar_input() {
     f.editor.auto_scroll = true;
     std::string source{};
     for (unsigned int row = 0; row < 80; ++row) source.append("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\n");
-    f.editor.set_text(source);
+    f.editor.text = source;
     f.caret(0);
     f.window.perform_layout();
     f.paint();
@@ -243,8 +251,8 @@ void document_scrollbar_input() {
 void document_scrollbar_reflow() {
     Fixture f{};
     f.editor.auto_scroll = true;
-    f.editor.set_word_wrap(true);
-    f.editor.set_text("abcdefghijklmnopqrst");
+    f.editor.word_wrap = true;
+    f.editor.text = "abcdefghijklmnopqrst";
     f.caret(0);
     f.window.perform_layout();
     require(!f.editor.hscroll() && !f.editor.vscroll(), "two wrapped rows fit initial viewport");
@@ -260,9 +268,9 @@ void document_scrollbar_reflow() {
     require(f.editor.scroll_offset().y > 0.0, "DPI geometry reveals final line");
     f.metrics.advance = 10.0;
     f.metrics.line_height = 20.0;
-    FontSpec font = f.editor.font();
+    FontSpec font = f.editor.font.read();
     font.size += 1.0;
-    f.editor.set_font(font);
+    f.editor.font = font;
     f.window.perform_layout();
     require(!f.editor.hscroll() && !f.editor.vscroll() && f.editor.scroll_offset() == Point{},
             "font reflow can remove a previously visible bar without oscillation");
@@ -274,7 +282,7 @@ void document_scrollbar_reflow() {
     f.paint();
     const Point offset = f.editor.scroll_offset();
     require(std::isfinite(offset.x) && std::isfinite(offset.y), "tiny viewport retains finite positions");
-    f.editor.set_multiline(false);
+    f.editor.multiline = false;
     f.window.resize({110.0, 68.0});
     f.window.perform_layout();
     require(!f.editor.hscroll() && !f.editor.vscroll(), "single-line mode removes document bars");
@@ -284,7 +292,7 @@ void document_scrollbar_reflow() {
 
 void navigation() {
     Fixture f{};
-    f.editor.set_text("abcdef\nx\nabcdef\nlast\n");
+    f.editor.text = "abcdef\nx\nabcdef\nlast\n";
     f.caret(4);
     f.key(PhysicalKey::down);
     require(f.caret() == 8, "down clamps short line");
@@ -301,7 +309,7 @@ void navigation() {
     f.key(PhysicalKey::page_up);
     require(f.caret() == 0, "PageUp uses visible rows");
     f.key(PhysicalKey::end, Modifier::control | Modifier::shift);
-    require(f.editor.selected_text() == f.editor.text(), "Ctrl Shift End document selection");
+    require(f.editor.selected_text() == f.editor.text.read(), "Ctrl Shift End document selection");
     f.paint();
     require(f.editor.scroll_offset().y > 0, "caret selection scrolls into view");
     const PointerEvent wheel{.action = PointerAction::wheel, .position = {20.0, 20.0}, .wheel_delta = {0.0, 1000.0}};
@@ -309,7 +317,7 @@ void navigation() {
     f.paint();
     require(f.editor.scroll_offset().y == 0, "wheel scroll persists despite offscreen caret");
 
-    f.editor.set_text("a\xCC\x81\xF0\x9F\x9A\x80\r\nabc");
+    f.editor.text = "a\xCC\x81\xF0\x9F\x9A\x80\r\nabc";
     f.caret(7);
     f.key(PhysicalKey::left);
     require(f.caret() == 3, "emoji left boundary");
@@ -321,8 +329,8 @@ void navigation() {
 
 void wrapping_metrics_and_hit_testing() {
     Fixture f{};
-    f.editor.set_word_wrap(true);
-    f.editor.set_text("one two three four");
+    f.editor.word_wrap = true;
+    f.editor.text = "one two three four";
     const std::size_t visual_count_3 = f.editor.visual_line_count();
     require(visual_count_3 == 2, "word wrap splits at whitespace");
     f.editor.arrange({0, 0, 60, 68});
@@ -348,30 +356,30 @@ void wrapping_metrics_and_hit_testing() {
     require(f.editor.selected_text() == "two th", "cross-row pointer selection uses exact bytes");
     const PointerEvent release{.action = PointerAction::up, .button = PointerButton::primary, .position = {46.0, 9.0}};
     f.pointer(release);
-    f.editor.set_word_wrap(false);
+    f.editor.word_wrap = false;
     const std::size_t visual_count_5 = f.editor.visual_line_count();
-    require(visual_count_5 == 1 && f.editor.text() == "one two three four", "wrap toggle preserves exact source");
+    require(visual_count_5 == 1 && f.editor.text.read() == "one two three four", "wrap toggle preserves exact source");
     f.key(PhysicalKey::end, Modifier::control);
     f.paint();
     require(f.editor.scroll_offset().x > 0, "unwrapped caret horizontal reveal");
-    f.editor.set_word_wrap(true);
+    f.editor.word_wrap = true;
     f.paint();
     require(f.editor.scroll_offset().x == 0, "wrap resets horizontal offset");
-    FontSpec font = f.editor.font();
+    FontSpec font = f.editor.font.read();
     font.size += 2;
-    f.editor.set_font(font);
+    f.editor.font = font;
     f.paint();
     require(f.metrics.calls > calls, "font change remeasures");
     const std::string long_run(300U, 'a');
-    f.editor.set_text(long_run);
-    f.editor.set_word_wrap(false);
+    f.editor.text = long_run;
+    f.editor.word_wrap = false;
     f.caret(0);
     f.painter.texts.clear();
     f.paint();
     require(f.painter.texts.size() == 1 && f.painter.texts.front().text.size() == 300,
         "long shaping run must not be arbitrarily split");
     const std::string joining = "العربية العربية العربية العربية العربية العربية العربية العربية";
-    f.editor.set_text(joining);
+    f.editor.text = joining;
     f.caret(0);
     f.painter.texts.clear();
     f.paint();
@@ -381,8 +389,8 @@ void wrapping_metrics_and_hit_testing() {
 
 void tab_wrap_and_reused_rows() {
     Fixture f{};
-    f.editor.set_word_wrap(true);
-    f.editor.set_text("a\tb");
+    f.editor.word_wrap = true;
+    f.editor.text = "a\tb";
     f.editor.arrange({0.0, 0.0, 40.0, 68.0});
     f.caret(0U);
     const std::size_t narrow_rows = f.editor.visual_line_count();
@@ -398,21 +406,21 @@ void tab_wrap_and_reused_rows() {
     require(wide_rows == 1U, "widening removes stale retained rows");
     f.editor.arrange({0.0, 0.0, 40.0, 68.0});
     const std::size_t rebuilt_rows = f.editor.visual_line_count();
-    require(rebuilt_rows == narrow_rows && f.editor.text() == "a\tb",
+    require(rebuilt_rows == narrow_rows && f.editor.text.read() == "a\tb",
         "narrowing again rebuilds rows without changing exact source");
 }
 
 void clipboard_and_limits() {
     Fixture f{};
     host::HeadlessHost host(f.window);
-    f.editor.set_text("first\r\nsecond");
+    f.editor.text = "first\r\nsecond";
     f.editor.select(Utf8Offset(3), Utf8Offset(10));
     f.key(PhysicalKey::x, Modifier::control);
     HostServices& services = host.services();
     const HostClipboardTextResult clipboard = services.read_clipboard_text();
-    require(f.editor.text() == "firond" && clipboard.text_utf8 == "st\r\nsec", "cross-line cut");
+    require(f.editor.text.read() == "firond" && clipboard.text_utf8 == "st\r\nsec", "cross-line cut");
     f.key(PhysicalKey::v, Modifier::control);
-    require(f.editor.text() == "first\r\nsecond", "exact clipboard paste");
+    require(f.editor.text.read() == "first\r\nsecond", "exact clipboard paste");
     const std::string oversized_line(4097U, 'x');
     const std::string oversized_document(1048577U, '\n');
     const TextBox::MultilineValidation line_status = TextBox::validate_multiline_text(oversized_line);
@@ -424,35 +432,35 @@ void clipboard_and_limits() {
         "queryable document refusal");
     require(encoding_status == TextBox::MultilineValidation::invalid_utf8,
         "queryable invalid UTF8 refusal");
-    const std::string before(f.editor.text());
+    const std::string before(f.editor.text.read());
     const TextSelection selected = f.editor.selection();
     bool rejected{};
     try {
-        f.editor.set_text(oversized_line);
+        f.editor.text = oversized_line;
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && f.editor.text() == before && f.editor.selection() == selected, "set_text refusal atomicity");
+    require(rejected && f.editor.text.read() == before && f.editor.selection() == selected, "set_text refusal atomicity");
     const bool oversized_edit = f.editor.replace_selection(oversized_line);
-    require(!oversized_edit && f.editor.text() == before &&
+    require(!oversized_edit && f.editor.text.read() == before &&
         f.editor.selection() == selected, "edit refusal atomicity");
     const bool semantic_edit = f.editor.on_semantic_action(SemanticAction::set_value, oversized_line);
     require(!semantic_edit &&
         f.editor.selection() == selected, "semantic refusal preserves selection");
     const bool undone = f.editor.undo();
-    require(undone && f.editor.text() == "firond", "refused edit leaves undo unchanged");
+    require(undone && f.editor.text.read() == "firond", "refused edit leaves undo unchanged");
 }
 
 void dpi_transition_remeasures_same_provider() {
     Fixture f{};
-    f.editor.set_word_wrap(true);
-    f.editor.set_text("abcdefghijklmnopqrst");
+    f.editor.word_wrap = true;
+    f.editor.text = "abcdefghijklmnopqrst";
     f.caret(0);
     f.paint();
     const std::size_t visual_count_6 = f.editor.visual_line_count();
     require(visual_count_6 == 2, "initial DPI wrap geometry");
     const std::size_t calls = f.metrics.calls;
-    const FontSpec font = f.editor.font();
+    const FontSpec font = f.editor.font.read();
     const Rect bounds = f.editor.arranged_bounds();
 
     // Native providers stay at the same address across a DPI change; rounded
@@ -465,7 +473,7 @@ void dpi_transition_remeasures_same_provider() {
     f.painter.texts.clear();
     f.paint();
     require(f.metrics.calls > calls, "DPI change must invalidate same-provider multiline metrics");
-    require(f.editor.font() == font && f.editor.arranged_bounds() == bounds &&
+    require(f.editor.font.read() == font && f.editor.arranged_bounds() == bounds &&
         f.window.text_metrics_provider() == &f.metrics, "DPI regression keeps other cache keys unchanged");
     const std::size_t visual_count_7 = f.editor.visual_line_count();
     require(visual_count_7 == 4, "DPI transition updates wrapping");
@@ -495,7 +503,7 @@ void dpi_transition_remeasures_same_provider() {
 
 void clear_history_establishes_save_boundary() {
     Fixture f{};
-    f.editor.set_text("alpha\r\nbeta\r\ngamma\r\ndelta\r\nepsilon");
+    f.editor.text = "alpha\r\nbeta\r\ngamma\r\ndelta\r\nepsilon";
     const bool first_edit = f.editor.replace_selection("1");
     require(first_edit, "first save-boundary edit");
     const bool second_edit = f.editor.replace_selection("2");
@@ -503,10 +511,10 @@ void clear_history_establishes_save_boundary() {
     const bool initial_undo = f.editor.undo();
     require(initial_undo && f.editor.can_undo() && f.editor.can_redo(),
         "save-boundary fixture has both undo and redo history");
-    f.editor.select(Utf8Offset(2), Utf8Offset(f.editor.text().size()));
-    f.editor.set_read_only(true);
+    f.editor.select(Utf8Offset(2), Utf8Offset(f.editor.text.read().size()));
+    f.editor.read_only = true;
     f.paint();
-    const std::string text(f.editor.text());
+    const std::string text(f.editor.text.read());
     const TextSelection selection = f.editor.selection();
     const Point viewport = f.editor.scroll_offset();
     const Dirty dirty = f.editor.dirty();
@@ -521,11 +529,11 @@ void clear_history_establishes_save_boundary() {
     f.editor.clear_undo_history();
     f.editor.clear_undo_history();
     require(!f.editor.can_undo() && !f.editor.can_redo(), "clear history removes both directions and is idempotent");
-    require(f.editor.text() == text && f.editor.selection() == selection &&
+    require(f.editor.text.read() == text && f.editor.selection() == selection &&
         f.editor.scroll_offset() == viewport && f.editor.dirty() == dirty &&
         f.metrics.calls == metric_calls && text_events == 0 && selection_events == 0,
         "clearing history preserves document, selection, viewport and notifications");
-    f.editor.set_read_only(false);
+    f.editor.read_only = false;
     const bool old_undo = f.editor.undo();
     const bool old_redo = f.editor.redo();
     require(!old_undo && !old_redo, "old states cannot cross save boundary");
@@ -533,17 +541,17 @@ void clear_history_establishes_save_boundary() {
     require(replacement, "post-save replacement");
     const bool new_undo = f.editor.undo();
     require(new_undo &&
-        f.editor.text() == text && f.editor.selection() == selection && !f.editor.can_undo(),
+        f.editor.text.read() == text && f.editor.selection() == selection && !f.editor.can_undo(),
         "next edit can undo exactly to successful-save boundary");
     const bool new_redo = f.editor.redo();
-    require(new_redo && f.editor.text() != text, "redo works after new post-save edit");
+    require(new_redo && f.editor.text.read() != text, "redo works after new post-save edit");
 
     const std::shared_ptr<TextBox> single = make_control<TextBox>(StableId("single.history"), "saved");
     const bool single_edit = (*single).replace_selection(" edit");
     require(single_edit, "single-line edit");
     (*single).clear_undo_history();
     const bool single_undo = (*single).undo();
-    require((*single).text() == "saved edit" && !single_undo, "single-line history boundary preserves value");
+    require((*single).text.read() == "saved edit" && !single_undo, "single-line history boundary preserves value");
 }
 
 void bounded_workload() {
@@ -552,7 +560,7 @@ void bounded_workload() {
     many.reserve(140000U);
     for (std::size_t i = 0; i < 10000; ++i) many += "line fixture\r\n";
     std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-    f.editor.set_text(many);
+    f.editor.text = many;
     const std::size_t visual_count_9 = f.editor.visual_line_count();
     require(visual_count_9 == 10001, "10k logical lines");
     f.paint();
@@ -565,7 +573,7 @@ void bounded_workload() {
     require(f.metrics.calls == count, "large document warm repaint performs no measurements");
     std::cout << "10k lines: " << elapsed << " ms; cold metric calls=" << count << "; warm=0\n";
     const std::string maximum_line(4096U, 'x');
-    f.editor.set_text(maximum_line);
+    f.editor.text = maximum_line;
     start = std::chrono::steady_clock::now();
     const std::size_t visual_count_10 = f.editor.visual_line_count();
     require(visual_count_10 == 1, "maximum admitted line");
@@ -624,7 +632,7 @@ void localized_caret_blinks() {
     const std::array<bool, 2> modes{false, true};
     for (const bool multiline : modes) {
         Fixture fixture{};
-        fixture.editor.set_multiline(multiline);
+        fixture.editor.multiline = multiline;
         CaretPainter painter{};
         paint_retained(fixture, painter);
         require(painter.lines == 1U, "empty editor initially draws its visible caret");
@@ -666,7 +674,7 @@ void localized_caret_blinks() {
     }
 
     Fixture fixture{};
-    fixture.editor.set_text("alpha\nbeta\ngamma");
+    fixture.editor.text = "alpha\nbeta\ngamma";
     fixture.caret(7U);
     CaretPainter painter{};
     paint_retained(fixture, painter);
@@ -677,7 +685,7 @@ void localized_caret_blinks() {
     const std::array<double, 3> scales{0.5, 1.5, 2.0};
     for (const double scale : scales) {
         Fixture scaled{};
-        scaled.editor.set_text("abc");
+        scaled.editor.text = "abc";
         scaled.caret(1U);
         scaled.window.set_scale(scale);
         CaretPainter scaled_painter{};
@@ -687,6 +695,48 @@ void localized_caret_blinks() {
         require(std::abs(scaled_damage.width - expected_width) < 1.0e-9,
                 "unclipped caret damage includes one device pixel beyond each stroke edge");
     }
+}
+
+// The motion clock's time, set by the test. Declared before the fixture
+// whose window borrows it.
+class ManualTime final : public MotionTimeSource {
+public:
+    [[nodiscard]] FrameTime now() const noexcept override { return time; }
+    FrameTime time{std::chrono::seconds(1000)};
+};
+
+// PageDown's caret reveal glides (smooth scrolling); a paint while it moves
+// restates the position and leaves it moving; it settles on the reveal.
+void paging_reveal_glides() {
+    ManualTime time{};
+    Fixture f{true};
+    f.window.motion_clock().set_time_source(&time);
+    f.window.resize({360.0, 240.0});
+    f.editor.auto_scroll = true;
+    std::string source{};
+    for (unsigned int row = 0; row < 80; ++row) source.append("abcdefghijklmnopqrstuvwxyz\n");
+    f.editor.text = source;
+    f.caret(0);
+    f.window.perform_layout();
+    f.paint();
+    require(f.editor.scroll_offset().y == 0.0, "the document starts at its top");
+    f.key(PhysicalKey::page_down);
+    f.paint();
+    const double target = f.editor.scroll_target().y;
+    require(target > 0.0 && f.editor.scroll_offset().y == 0.0 && f.editor.scrolling_smoothly(),
+            "PageDown's reveal must glide toward the caret rather than jump");
+    time.time += std::chrono::milliseconds(32);
+    static_cast<void>(f.window.poll_frame_schedule(time.time));
+    f.paint();
+    require(f.editor.scroll_offset().y > 0.0 && f.editor.scroll_offset().y < target &&
+                f.editor.scrolling_smoothly(),
+            "a paint during the glide must leave it moving");
+    for (int frame = 0; frame < 60; ++frame) {
+        time.time += std::chrono::milliseconds(16);
+        static_cast<void>(f.window.poll_frame_schedule(time.time));
+    }
+    require(f.editor.scroll_offset().y == target && !f.editor.scrolling_smoothly(),
+            "the reveal's glide settles on the reveal");
 }
 
 void require_full_blink_fallback(Fixture& fixture, const char* message) {
@@ -705,7 +755,7 @@ void caret_geometry_fallbacks() {
     require_full_blink_fallback(fixture, "unpainted caret requires full fallback");
     fixture.editor.invalidate(Dirty::paint);
     paint_retained(fixture, painter);
-    fixture.editor.set_text("alpha\nbeta\ngamma\ndelta\nepsilon");
+    fixture.editor.text = "alpha\nbeta\ngamma\ndelta\nepsilon";
     require_full_blink_fallback(fixture, "text replacement invalidates caret geometry");
     fixture.editor.invalidate(Dirty::paint);
     paint_retained(fixture, painter);
@@ -723,9 +773,9 @@ void caret_geometry_fallbacks() {
     require_full_blink_fallback(fixture, "device scale invalidates caret geometry");
     fixture.editor.invalidate(Dirty::paint);
     paint_retained(fixture, painter);
-    FontSpec font = fixture.editor.font();
+    FontSpec font = fixture.editor.font.read();
     font.size += 2.0;
-    fixture.editor.set_font(font);
+    fixture.editor.font = font;
     require_full_blink_fallback(fixture, "font invalidates caret geometry");
     fixture.editor.invalidate(Dirty::paint);
     paint_retained(fixture, painter);
@@ -751,7 +801,7 @@ void caret_geometry_fallbacks() {
 // drawn twice antialiases heavier than its neighbours).
 void selected_text_drawn_once() {
     Fixture f;
-    f.editor.set_text("abc def");
+    f.editor.text = "abc def";
     f.window.perform_layout();
     f.editor.select(Utf8Offset(2U), Utf8Offset(5U));
     test_support::ClipTrackingPainter multiline{};
@@ -760,7 +810,7 @@ void selected_text_drawn_once() {
 
     std::shared_ptr<TextBox> line = make_control<TextBox>(StableId("single"));
     (*line).set_requested_bounds({0, 0, 200, 28});
-    (*line).set_text("hello world");
+    (*line).text = "hello world";
     Window window(line, {200.0, 28.0});
     window.perform_layout();
     require(window.request_focus(line), "the single-line box takes focus");
@@ -789,6 +839,7 @@ int main() {
         clear_history_establishes_save_boundary();
         localized_caret_blinks();
         caret_geometry_fallbacks();
+        paging_reveal_glides();
         selected_text_drawn_once();
         bounded_workload();
         std::cout << "gui_forms_multiline_text_box_tests: passed\n";

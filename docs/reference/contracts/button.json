@@ -21,41 +21,9 @@
       "reviewed": false,
       "summary": "Constructs a ButtonBase with standard visual policy and no dialog result."
     },
-    "gui_forms::Button::default_button|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether Window currently designates this command as the default action."
-    },
-    "gui_forms::Button::set_default_button|void (bool)": {
-      "reviewed": false,
-      "summary": "Commits the default cue and invalidates paint and semantics."
-    },
-    "gui_forms::Button::dialog_result|DialogResult () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the result assigned to successful activation."
-    },
-    "gui_forms::Button::set_dialog_result|void (DialogResult)": {
-      "reviewed": false,
-      "summary": "Validates the dialog-result vocabulary, commits it, and publishes dialog_result_changed."
-    },
     "gui_forms::Button::dialog_result_changed|Event<DialogResult> &() noexcept": {
       "reviewed": false,
       "summary": "Returns the event published after dialog result commits."
-    },
-    "gui_forms::Button::visual_style|ButtonVisualStyle () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns standard, flat, accent, or command presentation policy."
-    },
-    "gui_forms::Button::set_visual_style|void (ButtonVisualStyle)": {
-      "reviewed": false,
-      "summary": "Validates the closed visual vocabulary and invalidates size, style, paint, and semantics."
-    },
-    "gui_forms::Button::flat_border_width|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the explicit flat-style border width."
-    },
-    "gui_forms::Button::set_flat_border_width|void (double)": {
-      "reviewed": false,
-      "summary": "Accepts a finite bounded width and invalidates painting."
     },
     "gui_forms::Button::on_paint|void (Painter &, Rect)": {
       "reviewed": false,

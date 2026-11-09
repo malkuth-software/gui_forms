@@ -31,7 +31,7 @@ constexpr std::size_t numbered_recent = 9U;
 
 RibbonApplicationMenu::RibbonApplicationMenu(StableId stable_id, Ribbon& ribbon)
     : Control(std::move(stable_id)), ribbon_(&ribbon) {
-    set_focusable(true);
+    focusable = true;
     set_paint_plane(PaintPlane::control);
 }
 
@@ -134,7 +134,7 @@ void RibbonApplicationMenu::on_paint(Painter& painter, Rect) {
     const Window* const host = attached_window();
     const bool cue = host != nullptr && (*host).focus_cue_visible();
     PartPaint part;
-    part.font = effective_font((*ribbon_).font_);
+    part.font = effective_font((*ribbon_).font.read());
     part.family = ControlVisualRole::panel;
     part.role = PartRole::shadow;
     part.bounds = placed.panel;
@@ -146,7 +146,7 @@ void RibbonApplicationMenu::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, part);
     part.role = PartRole::caption;
     part.bounds = placed.caption;
-    part.text = (*ribbon_).recent_caption_;
+    part.text = (*ribbon_).recent_caption.read();
     paint_part(painter, *this, part);
     part.text = {};
     const double scale = effective_text_scale();
@@ -346,7 +346,7 @@ std::vector<SemanticNode> RibbonApplicationMenu::semantic_virtual_children() con
         if (row.recent) {
             const RibbonRecentItem& item = ribbon.recent_items_[row.index];
             node.stable_id = menu_id + ".recent." + item.stable_id;
-            node.description = item.description.empty() ? ribbon.recent_caption_ : item.description;
+            node.description = item.description.empty() ? ribbon.recent_caption.read() : item.description;
             node.position_in_set = ++recent_position;
             node.set_size = recent;
         } else {

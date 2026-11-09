@@ -1,0 +1,148 @@
+{
+  "family": "SearchField",
+  "step": "W-4",
+  "declaring": "SearchField",
+  "header": "include/gui_forms/controls/search_field/search_field.hpp",
+  "source": "src/controls/search_field/search_field.cpp",
+  "capabilities_header": "include/gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "<chrono>"
+  ],
+  "properties": [
+    {
+      "name": "text",
+      "capability": "SearchFieldText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The query: a view onto the inner editor's text (see TextBox). A change raises text_changed and, after search_delay, search_requested.",
+      "getter": "text",
+      "setter": "set_text",
+      "clear": null,
+      "field": null,
+      "event": "text_changed_",
+      "on_changed": true,
+      "localizable": null,
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The query text.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "a view onto the inner editor's text; the editor's text_changed is published again as the field's"
+      ],
+      "storage": "view"
+    },
+    {
+      "name": "placeholder_text",
+      "capability": "SearchFieldPlaceholderText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The hint the empty field shows, such as \"Search\": a view onto the inner editor's placeholder (see TextBox).",
+      "getter": "placeholder_text",
+      "setter": "set_placeholder_text",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": "placeholder",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The hint the empty field shows.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "a view onto the inner editor's placeholder"
+      ],
+      "storage": "view"
+    },
+    {
+      "name": "search_delay",
+      "capability": "SearchFieldSearchDelay",
+      "value": "std::chrono::milliseconds",
+      "initial": "std::chrono::milliseconds(300)",
+      "comment": "How long typing must pause before search_requested is raised, 300 ms by default; zero raises it at each change. Negative or over 10 s throws std::invalid_argument. A change applies to the next edit.",
+      "getter": "search_delay",
+      "setter": "set_search_delay",
+      "clear": null,
+      "field": "search_delay_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "if (incoming.count() < 0 || incoming > std::chrono::milliseconds(10000)) {",
+        "    throw std::invalid_argument(\"SearchField search delay must be between 0 ms and 10 s\");",
+        "}"
+      ],
+      "sample": "std::chrono::milliseconds(150)"
+    },
+    {
+      "name": "busy",
+      "capability": "SearchFieldBusy",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether a search is running; the field shows an activity strip along its bottom and is busy to assistive technology. The application sets and clears it.",
+      "getter": "busy",
+      "setter": "set_busy",
+      "clear": null,
+      "field": "busy_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether a search is running.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written starts or stops the activity strip's ambient motion"
+      ],
+      "sample": "true"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "editor",
+      "reason": "the owned inner TextBox, made after construction"
+    }
+  ],
+  "test": {
+    "type": "SearchField",
+    "include": "gui_forms/controls/search_field/search_field.hpp"
+  }
+}

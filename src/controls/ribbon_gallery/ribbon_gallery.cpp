@@ -4,10 +4,12 @@
 
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <unordered_map>
 #include <utility>
@@ -51,7 +53,7 @@ RibbonGallery::RibbonGallery(StableId stable_id, RibbonGalleryForm form)
     if (form_ != RibbonGalleryForm::in_ribbon && form_ != RibbonGalleryForm::drop_down) {
         throw std::invalid_argument("RibbonGallery form is invalid");
     }
-    set_focusable(true);
+    focusable = true;
     cursor = CursorKind::arrow;
     set_paint_plane(form_ == RibbonGalleryForm::drop_down ? PaintPlane::overlay : PaintPlane::control);
 }
@@ -64,14 +66,15 @@ RibbonGallery::~RibbonGallery() {
 
 void RibbonGallery::on_dispose() noexcept {
     stop_dwell();
-    if (command_ && (*command_).is_alive() && (*command_).previewing()) {
+    if (command.read() && (*command.read()).is_alive() && (*command.read()).previewing()) {
         try {
-            (*command_).cancel_preview(source_of(*this));
+            (*command.read()).cancel_preview(source_of(*this));
         } catch (...) {
         }
     }
     overlay_revoked_.disconnect();
     overlay_.disconnect();
+    release_lift();
     overlay_open_ = false;
     command_value_.disconnect();
     command_state_.disconnect();
@@ -154,38 +157,42 @@ std::optional<std::size_t> RibbonGallery::position_of(std::string_view item_id) 
 
 bool RibbonGallery::item_enabled(std::size_t position) const noexcept {
     if (position >= order_.size() || !effectively_enabled()) return false;
-    if (command_ && !(*command_).state().enabled) return false;
+    if (command.read() && !(*command.read()).state().enabled) return false;
     const bool result = items_[order_[position]].enabled;
     return result;
 }
 
-void RibbonGallery::set_command(std::shared_ptr<GalleryCommand> command) {
+// A changed command first ends the old one's preview and subscriptions.
+void RibbonGallery::prepare_write(const decltype(command)&, std::shared_ptr<GalleryCommand>& incoming) {
     require_mutable();
-    if (command_ == command) return;
+    if (command.read() == incoming) return;
     cancel_preview();
     command_value_.disconnect();
     command_state_.disconnect();
-    command_ = std::move(command);
-    if (command_) {
-        command_value_ = (*command_).value_changed().subscribe(
+}
+
+void RibbonGallery::written(const decltype(command)&) {
+    const std::shared_ptr<GalleryCommand> bound = command.read();
+    if (bound) {
+        command_value_ = (*bound).value_changed().subscribe(
             Delegate<const std::optional<std::string>&>::bind<RibbonGallery, &RibbonGallery::on_command_value>(*this));
-        command_state_ = (*(*command_).command()).state_changed().subscribe(
+        command_state_ = (*(*bound).command()).state_changed().subscribe(
             Delegate<const CommandState&>::bind<RibbonGallery, &RibbonGallery::on_command_state>(*this));
     }
     invalidate(Dirty::paint | Dirty::semantics);
-    if (more_gallery_) (*more_gallery_).set_command(command_);
+    if (more_gallery_) (*more_gallery_).command = bound;
 }
 
-std::optional<std::string> RibbonGallery::selected_id() const {
-    if (command_) return (*command_).value();
+std::optional<std::string> RibbonGallery::read_view(const decltype(selected_id)&) const {
+    if (command.read()) return (*command.read()).value();
     return own_selection_;
 }
 
-void RibbonGallery::set_selected_id(std::optional<std::string> item_id) {
+void RibbonGallery::write_view(const decltype(selected_id)&, std::optional<std::string> item_id) {
     require_mutable();
     if (item_id && !position_of(*item_id)) throw std::invalid_argument("RibbonGallery has no item with this ID");
-    if (command_) {
-        (*command_).set_value(std::move(item_id));
+    if (command.read()) {
+        (*command.read()).set_value(std::move(item_id));
         return;
     }
     if (own_selection_ == item_id) return;
@@ -211,31 +218,34 @@ void RibbonGallery::on_command_state(const CommandState& state) {
 
 // -- layout settings -------------------------------------------------------------
 
-void RibbonGallery::set_item_size(Size size) {
+void RibbonGallery::prepare_write(const decltype(item_size)&, Size& incoming) {
     require_mutable();
-    if (!std::isfinite(size.width) || !std::isfinite(size.height) || size.width < 16.0 || size.height < 16.0 ||
-        size.width > 256.0 || size.height > 256.0) {
+    if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) || incoming.width < 16.0 ||
+        incoming.height < 16.0 || incoming.width > 256.0 || incoming.height > 256.0) {
         throw std::out_of_range("RibbonGallery item size must be between 16 and 256");
     }
-    if (item_size_ == size) return;
-    item_size_ = size;
-    model_changed();
-    if (more_gallery_) (*more_gallery_).set_item_size(size);
 }
 
-void RibbonGallery::set_show_labels(bool show) {
-    require_mutable();
-    if (show_labels_ == show) return;
-    show_labels_ = show;
+void RibbonGallery::written(const decltype(item_size)&) {
     model_changed();
-    if (more_gallery_) (*more_gallery_).set_show_labels(show);
+    if (more_gallery_) (*more_gallery_).item_size = item_size.read();
 }
 
-void RibbonGallery::set_visible_rows(std::size_t rows) {
+void RibbonGallery::prepare_write(const decltype(show_labels)&, bool&) {
     require_mutable();
-    if (rows == 0U || rows > maximum_visible_rows) throw std::out_of_range("RibbonGallery shows 1 to 8 rows");
-    if (visible_rows_ == rows) return;
-    visible_rows_ = rows;
+}
+
+void RibbonGallery::written(const decltype(show_labels)&) {
+    model_changed();
+    if (more_gallery_) (*more_gallery_).show_labels = show_labels.read();
+}
+
+void RibbonGallery::prepare_write(const decltype(visible_rows)&, std::size_t& incoming) {
+    require_mutable();
+    if (incoming == 0U || incoming > maximum_visible_rows) throw std::out_of_range("RibbonGallery shows 1 to 8 rows");
+}
+
+void RibbonGallery::written(const decltype(visible_rows)&) {
     model_changed();
 }
 
@@ -250,15 +260,20 @@ void RibbonGallery::set_column_range(std::size_t minimum, std::size_t maximum) {
     model_changed();
 }
 
-void RibbonGallery::set_columns(std::size_t columns) {
+// columns is a view: set_column_range clamps the field directly.
+void RibbonGallery::write_view(const decltype(columns)&, std::size_t incoming) {
     require_mutable();
-    if (columns < minimum_columns_ || columns > maximum_columns_) {
+    if (incoming < minimum_columns_ || incoming > maximum_columns_) {
         throw std::out_of_range("RibbonGallery column count is outside its range");
     }
-    if (columns_ == columns) return;
-    columns_ = columns;
+    if (columns_ == incoming) return;
+    columns_ = incoming;
     model_changed();
     if (focused_) scroll_into_view(*focused_);
+}
+
+std::size_t RibbonGallery::read_view(const decltype(columns)&) const {
+    return columns_;
 }
 
 void RibbonGallery::set_drop_down_size(std::size_t columns, std::size_t rows) {
@@ -304,13 +319,13 @@ void RibbonGallery::commit(std::size_t position) {
     stop_dwell();
     if (!item_enabled(position)) return;
     const std::string item_id = items_[order_[position]].stable_id;
-    if (command_) {
-        const std::shared_ptr<GalleryCommand> command = command_;
+    if (command.read()) {
+        const std::shared_ptr<GalleryCommand> bound = command.read();
         // Through the window's command chain (owner decision DK-47).
         if (window() != nullptr) {
-            static_cast<void>((*command).commit_routed(item_id, *window(), source_of(*this)));
+            static_cast<void>((*bound).commit_routed(item_id, *window(), source_of(*this)));
         } else {
-            static_cast<void>((*command).commit(item_id, source_of(*this)));
+            static_cast<void>((*bound).commit(item_id, source_of(*this)));
         }
     } else if (!(own_selection_ && *own_selection_ == item_id)) {
         own_selection_ = item_id;
@@ -321,13 +336,13 @@ void RibbonGallery::commit(std::size_t position) {
 }
 
 void RibbonGallery::start_dwell(std::size_t position) {
-    if (!command_ || !item_enabled(position) || attached_window() == nullptr) {
+    if (!command.read() || !item_enabled(position) || attached_window() == nullptr) {
         stop_dwell();
         return;
     }
     const std::string& item_id = items_[order_[position]].stable_id;
     if (dwell_item_ == item_id && dwell_timer_.connected()) return;
-    const std::optional<std::string>& previewing = (*command_).previewing();
+    const std::optional<std::string>& previewing = (*command.read()).previewing();
     stop_dwell();
     if (previewing && *previewing == item_id) return;
     dwell_item_ = item_id;
@@ -347,19 +362,19 @@ void RibbonGallery::dwell_elapsed(const std::string& item_id) {
     if (dwell_item_ != item_id) return;
     stop_dwell();
     const std::optional<std::size_t> position = position_of(item_id);
-    if (!command_ || !position || !item_enabled(*position)) return;
+    if (!command.read() || !position || !item_enabled(*position)) return;
     // The pointer or the keyboard must still rest on the item.
     const bool resting = hot_ == position || (has_focus_ && focused_ == position);
     if (!resting) return;
-    const std::shared_ptr<GalleryCommand> command = command_;
-    static_cast<void>((*command).preview(item_id, source_of(*this)));
+    const std::shared_ptr<GalleryCommand> bound = command.read();
+    static_cast<void>((*bound).preview(item_id, source_of(*this)));
 }
 
 void RibbonGallery::cancel_preview() {
     stop_dwell();
-    if (!command_ || !(*command_).previewing()) return;
-    const std::shared_ptr<GalleryCommand> command = command_;
-    (*command).cancel_preview(source_of(*this));
+    if (!command.read() || !(*command.read()).previewing()) return;
+    const std::shared_ptr<GalleryCommand> bound = command.read();
+    (*bound).cancel_preview(source_of(*this));
 }
 
 // -- focus and keyboard ---------------------------------------------------------------
@@ -381,7 +396,7 @@ void RibbonGallery::on_focus_changed(bool focused) {
     has_focus_ = focused;
     if (focused) {
         if (!focused_ && !order_.empty()) {
-            const std::optional<std::string> selected = selected_id();
+            const std::optional<std::string> selected = selected_id.read();
             const std::optional<std::size_t> position = selected ? position_of(*selected) : std::nullopt;
             focused_ = position ? *position : 0U;
         }
@@ -454,7 +469,7 @@ void RibbonGallery::on_key(KeyEvent& event) {
     }
     if (key == PhysicalKey::escape) {
         // Escape withdraws a preview first; a second Escape closes an overlay.
-        if (command_ && (*command_).previewing()) {
+        if (command.read() && (*command.read()).previewing()) {
             cancel_preview();
             event.handled = true;
         } else if (overlay_open_) {
@@ -559,24 +574,37 @@ bool RibbonGallery::open_overlay(const Control::Ptr& anchor) {
             Delegate<OverlayDismissReason>::bind<RibbonGallery, &RibbonGallery::on_layer_dismissed>(*this));
     } else {
         (*layer_).set_anchor(anchor);
-        (*layer_).set_placement(placement);
+        (*layer_).placement = placement;
     }
-    // The gallery owns its layer, and is the layer's content only while
-    // open (release_layer_content).
-    (*layer_).set_content(shared_from_this());
+    // In the picker Popup the gallery may reach past the owner onto the
+    // desktop. Otherwise the gallery owns its layer, and is the layer's
+    // content only while open (release_layer_content).
+    const Rect anchor_bounds = (*anchor).absolute_bounds();
+    const Rect hung{anchor_bounds.x, anchor_bounds.y, anchor_bounds.width, anchor_bounds.height + placement.gap};
+    const std::optional<Rect> face =
+        drop_down_popup_face(window, hung, placement.preferred_size, anchor_bounds.x);
+    const bool lifted = face.has_value() && lift_.lift(window, shared_from_this(), *face);
+    if (!lifted) (*layer_).set_content(shared_from_this());
+    (*layer_).focusable = lifted;
     const Size client = window.client_size();
     (*layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
     try {
         overlay_ = window.open_overlay(anchor, layer_);
     } catch (...) {
+        release_lift();
         release_layer_content();
         throw;
+    }
+    if (lifted) {
+        lift_closed_ = window.popup_window_closed().subscribe(
+            Delegate<std::size_t>::bind<RibbonGallery, &RibbonGallery::on_popup_window_closed>(*this));
     }
     overlay_open_ = true;
     if (Event<>* closed = overlay_.closed_event()) {
         overlay_revoked_ = (*closed).subscribe(Delegate<>::bind<RibbonGallery, &RibbonGallery::on_overlay_revoked>(*this));
     }
-    scope_ = window.begin_focus_scope(layer_, shared_from_this());
+    const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer_) : shared_from_this();
+    scope_ = window.begin_focus_scope(layer_, preferred_focus);
     invalidate(Dirty::paint | Dirty::semantics);
     overlay_open_changed_.emit(true);
     return true;
@@ -587,11 +615,14 @@ void RibbonGallery::close_overlay() {
     // The preview is withdrawn before the overlay goes.
     cancel_preview();
     overlay_open_ = false;
-    Window* const window = attached_window();
+    // The scope is the owner's, where the layer is (the gallery itself may
+    // be in the picker Popup).
+    Window* const window = layer_ ? (*layer_).attached_window() : attached_window();
     if (window != nullptr && scope_) static_cast<void>((*window).end_focus_scope(scope_));
     scope_ = {};
     overlay_revoked_.disconnect();
     overlay_.disconnect();
+    release_lift();
     release_layer_content();
     hot_.reset();
     pressed_.reset();
@@ -609,6 +640,7 @@ void RibbonGallery::on_overlay_revoked() {
     overlay_open_ = false;
     scope_ = {};
     overlay_revoked_.disconnect();
+    release_lift();
     release_layer_content();
     invalidate(Dirty::paint | Dirty::semantics);
     overlay_open_changed_.emit(false);
@@ -627,6 +659,16 @@ void RibbonGallery::release_layer_content() noexcept {
     }
 }
 
+void RibbonGallery::release_lift() noexcept {
+    lift_closed_.disconnect();
+    lift_.release();
+}
+
+void RibbonGallery::on_popup_window_closed(const std::size_t slot) {
+    if (slot != Window::picker_popup_window_slot || !lift_.lifted()) return;
+    close_overlay();
+}
+
 bool RibbonGallery::show_more() {
     require_mutable();
     if (form_ != RibbonGalleryForm::in_ribbon || attached_window() == nullptr) return false;
@@ -634,17 +676,17 @@ bool RibbonGallery::show_more() {
         more_gallery_ = make_control<RibbonGallery>(StableId(std::string(stable_id().value()) + ".more"),
                                                     RibbonGalleryForm::drop_down);
         RibbonGallery& more = *more_gallery_;
-        more.set_item_size(item_size_);
-        more.set_show_labels(show_labels_);
+        more.item_size = item_size.read();
+        more.show_labels = show_labels.read();
         more.set_drop_down_size(drop_down_columns_, drop_down_rows_);
         more.set_items(categories_, items_);
-        more.set_command(command_);
+        more.command = command.read();
         more.accessible_name = accessible_name.read();
         more_open_changed_ = more.overlay_open_changed().subscribe(
             Delegate<bool>::bind<RibbonGallery, &RibbonGallery::on_more_open_changed>(*this));
     }
     if ((*more_gallery_).overlay_open()) return true;
-    if (!command_) (*more_gallery_).own_selection_ = own_selection_;
+    if (!command.read()) (*more_gallery_).own_selection_ = own_selection_;
     // The pointer is on the more button now: the in-ribbon preview ends.
     cancel_preview();
     const bool opened = (*more_gallery_).open_overlay(shared_from_this());
@@ -653,7 +695,7 @@ bool RibbonGallery::show_more() {
 
 void RibbonGallery::on_more_open_changed(bool open) {
     // Without a command the full gallery's choice becomes this gallery's.
-    if (!open && !command_ && more_gallery_ && (*more_gallery_).own_selection_ != own_selection_) {
+    if (!open && !command.read() && more_gallery_ && (*more_gallery_).own_selection_ != own_selection_) {
         own_selection_ = (*more_gallery_).own_selection_;
         selection_changed_.emit(own_selection_);
     }
@@ -668,7 +710,7 @@ SemanticDescriptor RibbonGallery::semantic_descriptor() const {
     descriptor.role = SemanticRole::list;
     descriptor.name = accessible_name.read().empty() ? "Gallery" : accessible_name.read();
     descriptor.description = accessible_description.read();
-    const std::optional<std::string> selected = selected_id();
+    const std::optional<std::string> selected = selected_id.read();
     const std::optional<std::size_t> position = selected ? position_of(*selected) : std::nullopt;
     if (position) descriptor.value = items_[order_[*position]].label;
     descriptor.actions = {SemanticAction::focus};
@@ -681,7 +723,7 @@ std::vector<SemanticNode> RibbonGallery::semantic_virtual_children() const {
     const Rect absolute = absolute_bounds();
     const Geometry layout = geometry();
     const std::string prefix(stable_id().value());
-    const std::optional<std::string> selected = selected_id();
+    const std::optional<std::string> selected = selected_id.read();
     // Every item is published, with bounds only where it is in view, so the
     // whole collection is readable (RIBBON_STUDY.md §5.2).
     const std::size_t end = visible_line_end(layout);
@@ -806,5 +848,9 @@ bool RibbonGallery::on_semantic_child_action(std::string_view id, SemanticAction
     }
     return false;
 }
+
+// property_codemod begin RibbonGallery (tools/property_families/ribbon_gallery.json; generated, do not edit)
+
+// property_codemod end RibbonGallery
 
 } // namespace gui_forms

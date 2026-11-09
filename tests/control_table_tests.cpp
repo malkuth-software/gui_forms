@@ -7,6 +7,7 @@
 // marks and places the damage at the bounds as they are then.
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/surface_root/control_table/control_table.hpp"
+#include "gui_forms/control/content_region/content_region.hpp"
 
 #include <cstdint>
 #include <cstdlib>
@@ -220,6 +221,80 @@ void test_subtree_marks_settle() {
            "the escalating container takes its child's paint as its subtree mark");
 }
 
+// A panel painting a grid of 10 by 10 items itself, through one content
+// region: item (major, minor) is the square at (10 * major, 10 * minor).
+// It counts the items its gathers saw.
+class RegionPanel final : public Panel {
+public:
+    explicit RegionPanel(StableId id, std::size_t capacity) : Panel(std::move(id)), region(*this, capacity) {}
+
+    void gather_content_regions() override {
+        for (const ContentItemKey& item : region.pending()) {
+            invalidate(Rect{10.0 * static_cast<double>(item.major), 10.0 * static_cast<double>(item.minor), 10.0, 10.0});
+            ++gathered;
+        }
+        region.clear_pending();
+    }
+
+    [[nodiscard]] Dirty fold_content_regions() noexcept override {
+        const Dirty folded = region.fold_pending();
+        return folded;
+    }
+
+    ContentRegion region;
+    std::size_t gathered{};
+};
+
+// Content regions (study decision 10): noted items are gathered after the
+// layout as damage at their squares, with no layout of their own; a
+// redraw-all folds them (nothing gathered, the whole control damaged); past
+// its capacity a region paints its whole owner; a detached owner paints
+// whole.
+void test_content_regions() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("region.root"));
+    std::shared_ptr<RegionPanel> owner = std::make_shared<RegionPanel>(StableId("region.owner"), 3U);
+    (*owner).set_bounds(Rect{0.0, 0.0, 100.0, 100.0});
+    (*root).add_child(owner);
+    Window window(root, Size{200.0, 200.0});
+    window.perform_layout();
+    static_cast<void>(window.take_damage());
+    static_cast<void>(settled_area(window));
+
+    (*owner).region.note_item(ContentItemKey{1U, 2U}, Dirty::paint);
+    (*owner).region.note_item(ContentItemKey{1U, 2U}, Dirty::paint);
+    (*owner).region.note_item(ContentItemKey{5U, 5U}, Dirty::paint);
+    expect((*owner).region.pending().size() == 2U, "an item noted twice in a row is kept once");
+    window.perform_layout();
+    const MetricsSnapshot metrics = window.metrics_snapshot();
+    expect((*owner).gathered == 2U && (*owner).region.pending().empty(), "the layout's end gathers the region");
+    expect(metrics.controls_arranged == 0U, "a noted item lays nothing out");
+    const DamageRegion damage = window.take_damage();
+    expect(damage.bounds() == Rect{10.0, 20.0, 50.0, 40.0}, "the damage is the noted items' squares");
+    window.reset_activity_metrics();
+
+    (*owner).gathered = 0U;
+    (*owner).region.note_item(ContentItemKey{2U, 2U}, Dirty::paint);
+    (*owner).redraw_all(Dirty::paint);
+    window.perform_layout();
+    expect((*owner).gathered == 0U, "a redraw-all folds the pending items: none is gathered");
+    expect(window.take_damage().bounds() == Rect{0.0, 0.0, 100.0, 100.0}, "and the whole control repaints");
+
+    for (std::uint64_t item = 0U; item < 4U; ++item) {
+        (*owner).region.note_item(ContentItemKey{item, 0U}, Dirty::paint);
+    }
+    window.perform_layout();
+    expect((*owner).gathered == 0U && window.take_damage().bounds() == Rect{0.0, 0.0, 100.0, 100.0},
+           "past its capacity a region paints its whole owner");
+
+    (*owner).region.note_item(ContentItemKey{3U, 3U}, Dirty::paint | Dirty::semantics);
+    expect(has_dirty((*owner).dirty(), Dirty::semantics), "other kinds reach the owner at the note");
+    const Control::Ptr removed = (*root).remove_child((*owner).runtime_id());
+    expect((*owner).region.pending().empty(), "a detach folds the owner's regions");
+    (*owner).region.note_item(ContentItemKey{4U, 4U}, Dirty::paint);
+    expect((*owner).region.pending().empty() && has_dirty((*owner).dirty(), Dirty::paint),
+           "a detached owner paints whole instead of recording");
+}
+
 // Reduced M0.4: a control's resize registration is asked again when its
 // arranged size changes and kept in its slot; resize_relayouts counts the
 // size changes along an axis the children follow. The root holds a strip
@@ -276,6 +351,7 @@ int main() {
     test_window_lifecycle();
     test_settle_defers_bookkeeping();
     test_subtree_marks_settle();
+    test_content_regions();
     test_resize_registrations();
     std::cout << "control table tests passed\n";
     return EXIT_SUCCESS;

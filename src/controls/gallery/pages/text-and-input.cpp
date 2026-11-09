@@ -33,6 +33,7 @@ public:
         build_auto_complete();
         build_tokens();
         build_rich_text();
+        build_search();
         refresh_state();
     }
 
@@ -71,7 +72,7 @@ private:
     }
 
     void build_fields() {
-        (*document_.gallery_text_password).set_use_system_password_character(true);
+        (*document_.gallery_text_password).use_system_password_character = true;
         // Both are state events; the handler reads the field, so it takes no
         // event argument and serves either publisher.
         on((*primary_).text_changed(), *this, &TextAndInputPage::refresh_state);
@@ -95,7 +96,7 @@ private:
         for (int index = 0; index < static_cast<int>((*bar_).items().size()); ++index) {
             (*bar_).item(index).set_style(page_style());
         }
-        (*bar_).item(4).set_visual_style(ButtonVisualStyle::accent);
+        (*bar_).item(4).visual_style = ButtonVisualStyle::accent;
         on((*bar_).invoked(), *this, &TextAndInputPage::on_command);
         on(undo_.invoked(), *this, &TextAndInputPage::on_undo);
         on(redo_.invoked(), *this, &TextAndInputPage::on_redo);
@@ -105,8 +106,8 @@ private:
     // letters are shifted to upper and then lower case. The telephone
     // field's refusals and completion report to the status label.
     void build_masked() {
-        (*phone_).set_mask("(000) 000-0000");
-        (*document_.gallery_text_masked_code).set_mask(">LL-0000-<aa");
+        (*phone_).mask = "(000) 000-0000";
+        (*document_.gallery_text_masked_code).mask = ">LL-0000-<aa";
         on((*phone_).mask_input_rejected(), *this, &TextAndInputPage::masked_rejected);
         on((*phone_).text_changed(), *this, &TextAndInputPage::masked_changed);
     }
@@ -115,14 +116,14 @@ private:
     // own collection, and an editable ComboBox that completes from its
     // items. Accepted completions report to the status label.
     void build_auto_complete() {
-        (*(*city_).auto_complete_custom_source()).add_range(
+        (*(*city_).auto_complete_custom_source.read()).add_range(
             {"Calgary", "Cambridge", "Canberra", "Cardiff", "Edinburgh", "Edmonton", "London", "Los Angeles"});
-        (*city_).set_auto_complete_source(AutoCompleteSource::custom_source);
-        (*city_).set_auto_complete_mode(AutoCompleteMode::suggest_append);
-        (*band_).set_items({"Long wave", "Medium wave", "Short wave", "VHF FM", "UHF", "Microwave"});
-        (*band_).set_drop_down_style(ComboBoxStyle::drop_down);
-        (*band_).set_auto_complete_source(AutoCompleteSource::list_items);
-        (*band_).set_auto_complete_mode(AutoCompleteMode::suggest);
+        (*city_).auto_complete_source = AutoCompleteSource::custom_source;
+        (*city_).auto_complete_mode = AutoCompleteMode::suggest_append;
+        (*band_).items = {"Long wave", "Medium wave", "Short wave", "VHF FM", "UHF", "Microwave"};
+        (*band_).drop_down_style = ComboBoxStyle::drop_down;
+        (*band_).auto_complete_source = AutoCompleteSource::list_items;
+        (*band_).auto_complete_mode = AutoCompleteMode::suggest;
         on((*city_).auto_complete_accepted(), *this, &TextAndInputPage::completion_accepted);
         on((*(*band_).editor()).auto_complete_accepted(), *this, &TextAndInputPage::completion_accepted);
     }
@@ -152,41 +153,60 @@ private:
         on((*note_).link_clicked(), *this, &TextAndInputPage::rich_link_clicked);
     }
 
+    // The search field reports each query and each clearing.
+    void build_search() {
+        (*document_.gallery_text_search).set_style(page_style());
+        on((*document_.gallery_text_search_field).search_requested(), *this, &TextAndInputPage::search_requested);
+        on((*document_.gallery_text_search_field).cleared(), *this, &TextAndInputPage::search_cleared);
+    }
+
+    void search_requested(const std::string& query) {
+        if (query.empty()) {
+            (*document_.gallery_text_search_status).text = "Showing everything";
+            return;
+        }
+        (*document_.gallery_text_search_status).text = "Searching for \"" + query + "\"";
+    }
+
+    void search_cleared() {
+        (*document_.gallery_text_search_status).text = "Cleared";
+    }
+
     void rich_link_clicked(const std::string& target) {
-        (*rich_status_).set_text("Link clicked: " + target);
+        (*rich_status_).text = "Link clicked: " + target;
     }
 
     void token_added(const Token& token) {
-        (*tokens_status_).set_text("Added \"" + token.text + "\" · recipients: " +
-                                   std::to_string((*recipients_).tokens().size()));
+        (*tokens_status_).text = "Added \"" + token.text + "\" · recipients: " +
+                                   std::to_string((*recipients_).tokens().size());
     }
 
     void token_removed(const Token& token) {
-        (*tokens_status_).set_text("Removed \"" + token.text + "\" · recipients: " +
-                                   std::to_string((*recipients_).tokens().size()));
+        (*tokens_status_).text = "Removed \"" + token.text + "\" · recipients: " +
+                                   std::to_string((*recipients_).tokens().size());
     }
 
     void completion_accepted(const std::string& text) {
-        (*complete_status_).set_text("Accepted \"" + text + "\"");
+        (*complete_status_).text = "Accepted \"" + text + "\"";
     }
 
     void masked_rejected(const MaskInputRejection& rejection) {
-        (*masked_status_).set_text("Telephone refused \"" + rejection.text + "\" at position " +
+        (*masked_status_).text = "Telephone refused \"" + rejection.text + "\" at position " +
                                    std::to_string(rejection.position.value()) + " · " +
-                                   std::string(mask_result_hint_name(rejection.hint)));
+                                   std::string(mask_result_hint_name(rejection.hint));
     }
 
     void masked_changed(const std::string& text) {
-        (*masked_status_).set_text("Telephone " + text +
-                                   ((*phone_).mask_completed() ? " · complete" : " · incomplete"));
+        (*masked_status_).text = "Telephone " + text +
+                                   ((*phone_).mask_completed() ? " · complete" : " · incomplete");
     }
 
     void refresh_state() {
         const TextSelection selection = (*primary_).selection();
-        (*state_).set_text("Selection: " + std::to_string(selection.start().value()) + ".." +
+        (*state_).text = "Selection: " + std::to_string(selection.start().value()) + ".." +
                            std::to_string(selection.end().value()) + " bytes · Undo: " +
                            ((*primary_).can_undo() ? "ready" : "clean") + " · Redo: " +
-                           ((*primary_).can_redo() ? "ready" : "clean"));
+                           ((*primary_).can_redo() ? "ready" : "clean");
         undo_.set_enabled((*primary_).can_undo());
         redo_.set_enabled((*primary_).can_redo());
     }
@@ -217,10 +237,9 @@ private:
     void on_redo() { static_cast<void>((*primary_).redo()); }
 
     void publish_clipboard_status(const std::string_view command, const bool accepted) {
-        (*clipboard_status_).set_text(
-            std::string("Clipboard ") + std::string(command) +
+        (*clipboard_status_).text = std::string("Clipboard ") + std::string(command) +
             (accepted ? " · accepted" : " · unavailable or empty") + " · " +
-            std::to_string((*primary_).text().size()) + " UTF-8 bytes retained");
+            std::to_string((*primary_).text.read().size()) + " UTF-8 bytes retained";
     }
 
     std::shared_ptr<TextBox> primary_;

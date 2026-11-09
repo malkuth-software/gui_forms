@@ -7,7 +7,7 @@ gui_forms::BlockPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: BlockPanel final : public ContainerControl
+.. cpp:class:: BlockPanel final : public ContainerControl, public BlockPanelCapabilities<BlockPanel>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp>``
 
@@ -20,7 +20,7 @@ gui_forms::BlockPanel
    its neighbours' to the larger one (a positive and a negative margin add).
    A run of consecutive inline items, each an atomic box such as an
    ``inline-block`` element or a text control, is broken into line boxes at
-   the boundaries between items, aligned along the line by :cpp:func:`text_align <gui_forms::BlockPanel::text_align>` and
+   the boundaries between items, aligned along the line by :cpp:member:`text_align <gui_forms::BlockPanel::text_align>` and
    on it by each item's ``vertical_align``. A nested block flow panel laid out
    as a block item shares its first and last children's margins with this
    panel where no padding separates them, as nested CSS blocks do. Use it
@@ -55,21 +55,22 @@ gui_forms::BlockPanel
          The :cpp:class:`LineStrut <gui_forms::LineStrut>` every line box starts with: the ascent and descent the
          panel's font and line height give a line above and below its
          baseline, and the x-height ``middle`` aligns to. When none is set the
-         panel uses its font's: the ``line-height: normal`` line box of :cpp:func:`font <gui_forms::BlockPanel::font>`
+         panel uses its font's: the ``line-height: normal`` line box of :cpp:member:`font <gui_forms::BlockPanel::font>`
          at the window's text scale, as CSS's strut is. With a zero strut a
          line is as tall as its items. Its values must be finite and
-         nonnegative; :cpp:func:`clear_line_strut <gui_forms::BlockPanel::clear_line_strut>` returns to the font's.
+         nonnegative; assigning ``std::nullopt`` returns to the font's.
+
+      **font** : ``std::optional<FontSpec>``, default none
+         The panel's own font for its strut. An invalid specification throws
+         ``std::invalid_argument``; assigning ``std::nullopt`` returns to the
+         theme's font.
 
       **used_line_strut** : ``LineStrut``, read-only
-         The strut the line boxes use: the set one, or the font's.
+         text_align, line_strut and font are capabilities (block_panel_capabilities). The strut the line boxes use: the set one, or the font's.
 
-      **font** : ``FontSpec``
-         The font the panel's inline content is set in, for its strut: the one
-         given to :cpp:func:`set_font <gui_forms::BlockPanel::set_font>`, or else the theme's field typography. An invalid
-         specification throws ``std::invalid_argument``; :cpp:func:`clear_font <gui_forms::BlockPanel::clear_font>` returns to
-         the theme's font.
-
-      **has_font_override** : ``bool``, read-only
+      **resolved_font** : ``FontSpec``, read-only
+         The font the panel's inline content is set in, for its strut: :cpp:member:`font <gui_forms::BlockPanel::font>`
+         when set, or else the theme's field typography.
 
       **layout_snapshot** : ``BlockFlowLayoutWorkspace``, read-only, read-only
          The last arrange's resolution: for each laid-out child its bounds and
@@ -89,9 +90,9 @@ gui_forms::BlockPanel
 
    :Inherited:
 
-      From :cpp:class:`ContainerControl <gui_forms::ContainerControl>`: properties :cpp:func:`active_control <gui_forms::ContainerControl::active_control>`, :cpp:func:`auto_validate <gui_forms::ContainerControl::auto_validate>`, :cpp:func:`effective_auto_validate <gui_forms::ContainerControl::effective_auto_validate>`; events :cpp:func:`auto_validate_changed <gui_forms::ContainerControl::auto_validate_changed>`; methods :cpp:func:`clear_active_control <gui_forms::ContainerControl::clear_active_control>`, :cpp:func:`contains_descendant <gui_forms::ContainerControl::contains_descendant>`, :cpp:func:`request_active_control <gui_forms::ContainerControl::request_active_control>`, :cpp:func:`validate <gui_forms::ContainerControl::validate>`, :cpp:func:`validate_children <gui_forms::ContainerControl::validate_children>`.
+      From :cpp:class:`ContainerControl <gui_forms::ContainerControl>`: properties :cpp:member:`auto_validate <gui_forms::ContainerControl::auto_validate>`, :cpp:func:`active_control <gui_forms::ContainerControl::active_control>`, :cpp:func:`effective_auto_validate <gui_forms::ContainerControl::effective_auto_validate>`; events :cpp:func:`auto_validate_changed <gui_forms::ContainerControl::auto_validate_changed>`; methods :cpp:func:`clear_active_control <gui_forms::ContainerControl::clear_active_control>`, :cpp:func:`contains_descendant <gui_forms::ContainerControl::contains_descendant>`, :cpp:func:`request_active_control <gui_forms::ContainerControl::request_active_control>`, :cpp:func:`validate <gui_forms::ContainerControl::validate>`, :cpp:func:`validate_children <gui_forms::ContainerControl::validate_children>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`parts <gui_forms::ScrollableControl::parts>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`parts <gui_forms::ScrollableControl::parts>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -101,16 +102,14 @@ gui_forms::BlockPanel
       :class: autosummary longtable
       :widths: 35 65
 
-      * - :cpp:func:`clear_line_strut <gui_forms::BlockPanel::clear_line_strut>`
-        -  
-      * - :cpp:func:`clear_font <gui_forms::BlockPanel::clear_font>`
-        -  
       * - :cpp:func:`item_layout <gui_forms::BlockPanel::item_layout>`
         - The child's item layout, or the default one for a child without its own record or a control that is not a direct child.
       * - :cpp:func:`item_positioning <gui_forms::BlockPanel::item_positioning>`
         - The child's ``position`` and insets, without copying its whole record; static for a control that is not a live direct child.
       * - :cpp:func:`shared_margins <gui_forms::BlockPanel::shared_margins>`
         - ``shared_margins(width)`` reports the margins this panel's content collapses through its top and bottom edges when it is laid out at that border-box width as a block item of another block flow panel, which reads them; for any other panel it reports none.
+      * - :cpp:func:`block_panel_property_entries <gui_forms::BlockPanel::block_panel_property_entries>`
+        -  
       * - :cpp:func:`set_item_layout <gui_forms::BlockPanel::set_item_layout>`
         - ``set_item_layout(child, layout)`` sets a direct child's :cpp:class:`BlockFlowItemLayout <gui_forms::BlockFlowItemLayout>`: its ``level`` (:cpp:enumerator:`BlockFlowLevel::block <gui_forms::BlockFlowLevel::block>` or ``inline_level``); its ``width``, ``height``, minimums and maximums; which margins are ``auto``; and its ``vertical_align`` (``baseline``, ``middle``, ``top`` or ``bottom``).
 
@@ -196,8 +195,8 @@ gui_forms::BlockPanel
 
       std::shared_ptr<gf::BlockPanel> row =
           gf::make_control<gf::BlockPanel>(gf::StableId("row"));
-      (*row).set_text_align(gf::TextAlignment::center);
-      (*row).set_line_strut(gf::LineStrut{});   // lines as tall as their items
+      (*row).text_align = gf::TextAlignment::center;
+      (*row).line_strut = gf::LineStrut{};   // lines as tall as their items
       gf::BlockFlowItemLayout atomic{};
       atomic.level = gf::BlockFlowLevel::inline_level;
       atomic.width = gf::SizeValue{gf::SizeKind::length_percentage,
@@ -227,46 +226,36 @@ gui_forms::BlockPanel
 
    .. rubric:: Properties
 
-   .. cpp:function:: TextAlignment text_align() const noexcept
+   .. cpp:member:: TextAlignment text_align
 
       How each line box's items sit along it: ``start``, ``end``, ``left``,
       ``right`` or ``center``. A line wider than the panel starts at its start
       edge whatever the alignment.
 
-   .. cpp:function:: void set_text_align(TextAlignment alignment)
-
-      Sets :cpp:func:`text_align <gui_forms::BlockPanel::text_align>`; see the property's description above.
-
-   .. cpp:function:: std::optional<LineStrut> line_strut() const noexcept
+   .. cpp:member:: std::optional<LineStrut> line_strut
 
       The :cpp:class:`LineStrut <gui_forms::LineStrut>` every line box starts with: the ascent and descent the
       panel's font and line height give a line above and below its
       baseline, and the x-height ``middle`` aligns to. When none is set the
-      panel uses its font's: the ``line-height: normal`` line box of :cpp:func:`font <gui_forms::BlockPanel::font>`
+      panel uses its font's: the ``line-height: normal`` line box of :cpp:member:`font <gui_forms::BlockPanel::font>`
       at the window's text scale, as CSS's strut is. With a zero strut a
       line is as tall as its items. Its values must be finite and
-      nonnegative; :cpp:func:`clear_line_strut <gui_forms::BlockPanel::clear_line_strut>` returns to the font's.
+      nonnegative; assigning ``std::nullopt`` returns to the font's.
 
-   .. cpp:function:: void set_line_strut(LineStrut strut)
+   .. cpp:member:: std::optional<FontSpec> font
 
-      Sets :cpp:func:`line_strut <gui_forms::BlockPanel::line_strut>`; see the property's description above.
+      The panel's own font for its strut. An invalid specification throws
+      ``std::invalid_argument``; assigning ``std::nullopt`` returns to the
+      theme's font.
 
    .. cpp:function:: LineStrut used_line_strut() const
 
-      The strut the line boxes use: the set one, or the font's.
+      text_align, line_strut and font are capabilities (block_panel_capabilities). The strut the line boxes use: the set one, or the font's.
 
-   .. cpp:function:: FontSpec font() const noexcept
+   .. cpp:function:: FontSpec resolved_font() const noexcept
 
-      The font the panel's inline content is set in, for its strut: the one
-      given to :cpp:func:`set_font <gui_forms::BlockPanel::set_font>`, or else the theme's field typography. An invalid
-      specification throws ``std::invalid_argument``; :cpp:func:`clear_font <gui_forms::BlockPanel::clear_font>` returns to
-      the theme's font.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::BlockPanel::font>`; see the property's description above.
-
-   .. cpp:function:: bool has_font_override() const noexcept
+      The font the panel's inline content is set in, for its strut: :cpp:member:`font <gui_forms::BlockPanel::font>`
+      when set, or else the theme's field typography.
 
    .. cpp:function:: const BlockFlowLayoutWorkspace& layout_snapshot() const& noexcept
 
@@ -290,10 +279,6 @@ gui_forms::BlockPanel
 
    .. rubric:: Methods
 
-   .. cpp:function:: void clear_line_strut()
-
-   .. cpp:function:: void clear_font()
-
    .. cpp:function:: BlockFlowItemLayout item_layout(const Control& child) const
 
       The child's item layout, or the default one for a child without its
@@ -309,6 +294,8 @@ gui_forms::BlockPanel
       collapses through its top and bottom edges when it is laid out at that
       border-box width as a block item of another block flow panel, which
       reads them; for any other panel it reports none.
+
+   .. cpp:function:: static const std::array<PropertyEntry, block_panel_property_count>& block_panel_property_entries() noexcept
 
    .. cpp:function:: void set_item_layout(const Control& child, const BlockFlowItemLayout& layout)
 
@@ -340,3 +327,9 @@ gui_forms::BlockPanel
    .. cpp:function:: Size measure_intrinsic(const LayoutConstraint& constraint) override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t block_panel_property_count
+
+      BlockPanel's property table: Control's entries, then its own. Default: ``Control::control_property_count + 1U``.

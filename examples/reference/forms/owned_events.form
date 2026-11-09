@@ -1,0 +1,9 @@
+/* One button; owned_events.cpp attaches and revokes its handler. */
+form example.window {
+  text: "Owned events";
+  client-size: 200 60;
+
+  panel example.root {
+    button example.run { text: "Run"; bounds: 12 12 120 32; }
+  }
+}

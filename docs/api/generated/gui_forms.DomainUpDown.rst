@@ -7,13 +7,13 @@ gui_forms::DomainUpDown
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: DomainUpDown final : public Panel
+.. cpp:class:: DomainUpDown final : public Panel, public TextItemsCapability<DomainUpDown>, public DomainUpDownCapabilities<DomainUpDown>
 
    ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down.hpp>``
 
    A text field with up and down buttons that steps through a list of strings.
 
-   A domain up-down shows one of its :cpp:func:`items <gui_forms::DomainUpDown::items>` in an :cpp:func:`editor <gui_forms::DomainUpDown::editor>` text box beside a
+   A domain up-down shows one of its :cpp:member:`items <gui_forms::DomainUpDown::items>` in an :cpp:func:`editor <gui_forms::DomainUpDown::editor>` text box beside a
    pair of spin buttons. The items are a list read top to bottom: the upper
    button, the Up key and the wheel turned up move to the previous item, and the
    lower button, the Down key and the wheel turned down move to the next. Use it
@@ -30,19 +30,24 @@ gui_forms::DomainUpDown
 
    :Properties:
 
-      **items** : ``std::span<const std::string>``
-         The strings, in display order. :cpp:func:`set_items <gui_forms::DomainUpDown::set_items>` replaces them, :cpp:func:`add_item <gui_forms::DomainUpDown::add_item>`
-         appends one and :cpp:func:`remove_item_at <gui_forms::DomainUpDown::remove_item_at>` removes one; an index past the end
-         throws ``std::out_of_range``.
+      **items** : ``std::vector<std::string>``
+         The strings, in display order, edited in place. Read them with
+         ``items.read()`` (a span) or ``items[i]``; write them with ``items = {...}``,
+         ``items.insert(i, text)``, ``items.append(text)``, ``items.erase(i, n)``,
+         ``items.replace(i, text)`` and ``items.clear()``; a position outside the
+         items throws ``std::out_of_range`` and changes nothing. While :cpp:member:`sorted <gui_forms::DomainUpDown::sorted>` is
+         on, each edit is followed by sorting, so an inserted string need not
+         stay where it was put. After each edit the text is kept and the
+         selection re-matched to it.
 
       **selected_index** : ``std::optional<std::size_t>``, default none
-         The item the text equals, or none. :cpp:func:`set_selected_index <gui_forms::DomainUpDown::set_selected_index>` selects an item
+         The item the text equals, or none. ``set_selected_index`` selects an item
          and shows its text, or clears the selection and keeps the text; an index
          past the end throws ``std::out_of_range``.
 
-      **text** : ``std::string_view``
-         The editor's text. :cpp:func:`set_text <gui_forms::DomainUpDown::set_text>` sets it and selects the item it equals,
-         even while :cpp:func:`read_only <gui_forms::DomainUpDown::read_only>` is on.
+      **text** : ``std::string``
+         The editor's text. ``set_text`` sets it and selects the item it equals,
+         even while :cpp:member:`read_only <gui_forms::DomainUpDown::read_only>` is on.
 
       **wrap** : ``bool``, default ``false``
          Whether stepping past the last item continues at the first, and before
@@ -72,14 +77,14 @@ gui_forms::DomainUpDown
    :Events:
 
       **selected_index_changed** : ``Event<std::optional<std::size_t>>``
-         Raised after :cpp:func:`selected_index <gui_forms::DomainUpDown::selected_index>` changes, whatever the cause: stepping,
+         Raised after :cpp:member:`selected_index <gui_forms::DomainUpDown::selected_index>` changes, whatever the cause: stepping,
          typing, a setter or a change to the items. It carries the new selection.
 
    :Inherited:
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -91,16 +96,16 @@ gui_forms::DomainUpDown
 
       * - :cpp:func:`initialize_control_tree <gui_forms::DomainUpDown::initialize_control_tree>`
         - Creates the editor and the spin buttons.
-      * - :cpp:func:`add_item <gui_forms::DomainUpDown::add_item>`
-        -  
-      * - :cpp:func:`remove_item_at <gui_forms::DomainUpDown::remove_item_at>`
-        - Throws std::out_of_range for an index past the end.
-      * - :cpp:func:`clear_items <gui_forms::DomainUpDown::clear_items>`
+      * - :cpp:func:`prepare_edit <gui_forms::DomainUpDown::prepare_edit>`
+        - The items in display order (:cpp:member:`items <gui_forms::DomainUpDown::items>`, TextItemsCapability, edited in place): while sorted is true, every edit is followed by sorting (ASCII case folded, then byte order), as Windows Forms' sorted DomainUpDown, so an inserted item need not stay at its position.
+      * - :cpp:func:`written <gui_forms::DomainUpDown::written>`
         -  
       * - :cpp:func:`up_button <gui_forms::DomainUpDown::up_button>`
         - Selects the previous item, or the last when nothing is selected.
       * - :cpp:func:`down_button <gui_forms::DomainUpDown::down_button>`
         - Selects the next item, or the first when nothing is selected.
+      * - :cpp:func:`domain_up_down_property_entries <gui_forms::DomainUpDown::domain_up_down_property_entries>`
+        -  
 
    .. seealso::
 
@@ -144,9 +149,9 @@ gui_forms::DomainUpDown
 
       std::shared_ptr<gf::DomainUpDown> mode =
           gf::make_control<gf::DomainUpDown>(gf::StableId("radio.mode"));
-      (*mode).set_items({"AM", "FM", "USB", "LSB"});
-      (*mode).set_wrap(true);
-      (*mode).set_selected_index(3U);   // the field shows "LSB"
+      (*mode).items = {"AM", "FM", "USB", "LSB"};
+      (*mode).wrap = true;
+      (*mode).selected_index = std::optional<std::size_t>{3U};   // the field shows "LSB"
       (*mode).down_button();            // wraps: the field shows "AM"
 
 
@@ -157,72 +162,49 @@ gui_forms::DomainUpDown
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const std::string> items() const noexcept
+   .. cpp:member:: std::vector<std::string> items
 
-      The strings, in display order. :cpp:func:`set_items <gui_forms::DomainUpDown::set_items>` replaces them, :cpp:func:`add_item <gui_forms::DomainUpDown::add_item>`
-      appends one and :cpp:func:`remove_item_at <gui_forms::DomainUpDown::remove_item_at>` removes one; an index past the end
-      throws ``std::out_of_range``.
+      The strings, in display order, edited in place. Read them with
+      ``items.read()`` (a span) or ``items[i]``; write them with ``items = {...}``,
+      ``items.insert(i, text)``, ``items.append(text)``, ``items.erase(i, n)``,
+      ``items.replace(i, text)`` and ``items.clear()``; a position outside the
+      items throws ``std::out_of_range`` and changes nothing. While :cpp:member:`sorted <gui_forms::DomainUpDown::sorted>` is
+      on, each edit is followed by sorting, so an inserted string need not
+      stay where it was put. After each edit the text is kept and the
+      selection re-matched to it.
 
-   .. cpp:function:: void set_items(std::vector<std::string> items)
+   .. cpp:member:: std::optional<std::size_t> selected_index
 
-      Sets :cpp:func:`items <gui_forms::DomainUpDown::items>`; see the property's description above.
-
-   .. cpp:function:: std::optional<std::size_t> selected_index() const noexcept
-
-      The item the text equals, or none. :cpp:func:`set_selected_index <gui_forms::DomainUpDown::set_selected_index>` selects an item
+      The item the text equals, or none. ``set_selected_index`` selects an item
       and shows its text, or clears the selection and keeps the text; an index
       past the end throws ``std::out_of_range``.
 
-   .. cpp:function:: void set_selected_index(std::optional<std::size_t> index)
+   .. cpp:member:: std::string text
 
-      Sets :cpp:func:`selected_index <gui_forms::DomainUpDown::selected_index>`; see the property's description above.
+      The editor's text. ``set_text`` sets it and selects the item it equals,
+      even while :cpp:member:`read_only <gui_forms::DomainUpDown::read_only>` is on.
 
-   .. cpp:function:: std::string_view text() const noexcept
-
-      The editor's text. :cpp:func:`set_text <gui_forms::DomainUpDown::set_text>` sets it and selects the item it equals,
-      even while :cpp:func:`read_only <gui_forms::DomainUpDown::read_only>` is on.
-
-   .. cpp:function:: void set_text(std::string text)
-
-      Sets :cpp:func:`text <gui_forms::DomainUpDown::text>`; see the property's description above.
-
-   .. cpp:function:: bool wrap() const noexcept
+   .. cpp:member:: bool wrap
 
       Whether stepping past the last item continues at the first, and before
       the first at the last. Without it a step stops at the end.
 
-   .. cpp:function:: void set_wrap(bool wrap)
-
-      Sets :cpp:func:`wrap <gui_forms::DomainUpDown::wrap>`; see the property's description above.
-
-   .. cpp:function:: bool read_only() const noexcept
+   .. cpp:member:: bool read_only
 
       Whether the field refuses text. A typed character then selects the next
       item that starts with it, ignoring ASCII case and wrapping past the last
       item; otherwise the value changes only by stepping or from the program.
 
-   .. cpp:function:: void set_read_only(bool read_only)
-
-      Sets :cpp:func:`read_only <gui_forms::DomainUpDown::read_only>`; see the property's description above.
-
-   .. cpp:function:: bool sorted() const noexcept
+   .. cpp:member:: bool sorted
 
       Whether the items are kept sorted: ignoring ASCII case, then by byte, so
       ``"Apple"`` sorts before ``"apple"``. Turning it on sorts the list;
       turning it off keeps the current order.
 
-   .. cpp:function:: void set_sorted(bool sorted)
-
-      Sets :cpp:func:`sorted <gui_forms::DomainUpDown::sorted>`; see the property's description above.
-
-   .. cpp:function:: double button_width() const noexcept
+   .. cpp:member:: double button_width
 
       The width of the spin buttons, from 12 to 64; a width outside that range
       throws ``std::out_of_range``.
-
-   .. cpp:function:: void set_button_width(double width)
-
-      Sets :cpp:func:`button_width <gui_forms::DomainUpDown::button_width>`; see the property's description above.
 
    .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
 
@@ -237,7 +219,7 @@ gui_forms::DomainUpDown
 
    .. cpp:function:: Event<std::optional<std::size_t>>& selected_index_changed() noexcept
 
-      Raised after :cpp:func:`selected_index <gui_forms::DomainUpDown::selected_index>` changes, whatever the cause: stepping,
+      Raised after :cpp:member:`selected_index <gui_forms::DomainUpDown::selected_index>` changes, whatever the cause: stepping,
       typing, a setter or a change to the items. It carries the new selection.
 
 
@@ -248,13 +230,11 @@ gui_forms::DomainUpDown
       Creates the editor and the spin buttons. ``make_control`` calls it; do not
       call it yourself.
 
-   .. cpp:function:: void add_item(std::string item)
+   .. cpp:function:: void prepare_edit(const decltype(items)& cell, const CollectionEdit& edit, std::span<std::string> incoming)
 
-   .. cpp:function:: void remove_item_at(std::size_t index)
+      The items in display order (:cpp:member:`items <gui_forms::DomainUpDown::items>`, TextItemsCapability, edited in place): while sorted is true, every edit is followed by sorting (ASCII case folded, then byte order), as Windows Forms' sorted DomainUpDown, so an inserted item need not stay at its position. After each edit the text is kept and the selection re-matched to it: erasing the selected item clears the selection unless another item equals the text. The TextItemsCapability hooks.
 
-      Throws std::out_of_range for an index past the end. Removing the selected item clears the selection and keeps the text.
-
-   .. cpp:function:: void clear_items()
+   .. cpp:function:: void written(const decltype(items)& cell, const CollectionEdit& edit)
 
    .. cpp:function:: void up_button()
 
@@ -264,10 +244,16 @@ gui_forms::DomainUpDown
 
       Selects the next item, or the first when nothing is selected.
 
+   .. cpp:function:: static const std::array<PropertyEntry, domain_up_down_property_count>& domain_up_down_property_entries() noexcept
+
 
    .. rubric:: Extension points
 
    .. cpp:function:: void arrange(Rect final_bounds) override
+
+   .. cpp:function:: void on_paint_overlay(Painter& painter, Rect local_damage) override
+
+      The scroll bars, then the spin column's halves as this control's arrow and glyph parts.
 
    .. cpp:function:: void on_key_preview(KeyEvent& event) override
 
@@ -289,6 +275,18 @@ gui_forms::DomainUpDown
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:function:: virtual void on_text_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+   .. cpp:member:: constexpr std::size_t domain_up_down_property_count
+
+      DomainUpDown's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.

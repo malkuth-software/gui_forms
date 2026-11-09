@@ -159,15 +159,107 @@ private:
     SubSurfaceHost* host_{};
 };
 
+class SubSurfaceHost::Notices final : public SubSurfaceEndListener, public LiveSurfacePairingListener {
+public:
+    explicit Notices(SubSurfaceHost& host) noexcept : host_(&host) {}
+    void sub_surface_ended() override {
+        if (host_ == nullptr) return;
+        (*host_).notice_thread_ended();
+    }
+    void live_surface_pairing_missed(std::uint64_t content_tag) override {
+        if (host_ == nullptr) return;
+        (*host_).notice_pairing_missed(content_tag);
+    }
+    void stopped(const SubSurfaceStopped& stopped) {
+        if (host_ == nullptr) return;
+        (*host_).notice_stopped(stopped);
+    }
+    // The host is going away.
+    void revoke() noexcept { host_ = nullptr; }
+
+private:
+    // Observes the host that owns this object; null once revoked.
+    SubSurfaceHost* host_{};
+};
+
+// Posted by the host to the window's dispatcher when it stopped its
+// thread: raises `stopped` after the stop, unless the host went first.
+class SubSurfaceHost::PostedStop final {
+public:
+    PostedStop(std::weak_ptr<Notices> notices, SubSurfaceStopped stopped) noexcept
+        : notices_(std::move(notices)), stopped_(std::move(stopped)) {}
+    void operator()() const {
+        const std::shared_ptr<Notices> notices = notices_.lock();
+        if (!notices) return;
+        (*notices).stopped(stopped_);
+    }
+
+private:
+    std::weak_ptr<Notices> notices_;
+    SubSurfaceStopped stopped_{};
+};
+
+class SubSurfaceHost::PostedEnd final {
+public:
+    explicit PostedEnd(std::weak_ptr<Notices> notices) noexcept : notices_(std::move(notices)) {}
+    void operator()() const {
+        const std::shared_ptr<Notices> notices = notices_.lock();
+        if (!notices) return;
+        (*notices).sub_surface_ended();
+    }
+
+private:
+    std::weak_ptr<Notices> notices_;
+};
+
+namespace {
+
+// The events SubSurfaceHost adds to those of Control, in declaration order.
+constexpr std::array<InteractionDeclaration, 2> sub_surface_host_interactions{{
+    {.name = "stopped", .payload = "SubSurfaceStopped", .mutable_payload = false},
+    {.name = "pairing_missed", .payload = "std::uint64_t", .mutable_payload = false},
+}};
+
+} // namespace
+
 SubSurfaceHost::SubSurfaceHost(StableId stable_id)
-    : Control(std::move(stable_id)) {
-    set_focusable(true);
+    : Control(std::move(stable_id)), notices_(std::make_shared<Notices>(*this)) {
+    focusable = true;
     // The sub-surface's tooltip requests are this host's tooltip parts.
     set_publishes_item_tool_tips(true);
 }
 
 SubSurfaceHost::~SubSurfaceHost() {
+    // Notices already posted find the host gone; the stop below posts one
+    // that finds the same.
+    (*notices_).revoke();
     stop_thread();
+}
+
+void SubSurfaceHost::append_interactions(std::vector<InteractionDeclaration>& interactions) const {
+    Control::append_interactions(interactions);
+    interactions.insert(interactions.end(), sub_surface_host_interactions.begin(),
+                        sub_surface_host_interactions.end());
+}
+
+void SubSurfaceHost::notice_thread_ended() {
+    // A notice of a thread the host has stopped since, or already noticed,
+    // or of an earlier thread while a newer one runs, raises nothing.
+    if (!thread_ || end_noticed_) return;
+    if ((*thread_).state() != SubSurfaceState::failed) return;
+    end_noticed_ = true;
+    SubSurfaceStopped ended;
+    ended.state = SubSurfaceState::failed;
+    ended.failure = (*thread_).failure();
+    stopped_.emit(ended);
+}
+
+void SubSurfaceHost::notice_stopped(const SubSurfaceStopped& stopped) {
+    stopped_.emit(stopped);
+}
+
+void SubSurfaceHost::notice_pairing_missed(std::uint64_t epoch) {
+    pairing_missed_.emit(epoch);
 }
 
 void SubSurfaceHost::set_content(std::unique_ptr<SubSurfaceContent> content, bool opaque) {
@@ -263,8 +355,34 @@ constexpr ControlAnatomy sub_surface_host_anatomy{
 
 } // namespace
 
+void SubSurfaceHost::set_publishes_semantics(bool publishes) {
+    require_mutable();
+    if (publishes == publishes_semantics_) return;
+    publishes_semantics_ = publishes;
+    Window* const window = attached_window();
+    if (!publishes && semantics_notice_) {
+        // Notices already posted find the listener revoked; the thread posts
+        // no more.
+        (*semantics_notice_).revoke();
+        semantics_notice_.reset();
+        if (thread_) (*thread_).set_semantics_listener(WindowDispatcher{}, std::weak_ptr<SubSurfaceSemanticsListener>{});
+    } else if (publishes && thread_ && window != nullptr) {
+        semantics_notice_ = std::make_shared<SemanticsNotice>(*this);
+        (*thread_).set_semantics_listener((*window).dispatcher(), semantics_notice_);
+    }
+    semantics_.reset();
+    // The newest snapshot the running sub-surface published, if any.
+    if (publishes) take_sub_surface_semantics();
+    invalidate(Dirty::semantics);
+}
+
 SemanticDescriptor SubSurfaceHost::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
+    if (!publishes_semantics_) {
+        // Neither a node nor descendants: the virtual children are empty too.
+        descriptor.exposed = false;
+        return descriptor;
+    }
     descriptor.role = SemanticRole::pane;
     descriptor.name = accessible_name.read().empty() ? "Sub-surface" : accessible_name.read();
     descriptor.description = accessible_description.read();
@@ -274,7 +392,7 @@ SemanticDescriptor SubSurfaceHost::semantic_descriptor() const {
 }
 
 std::vector<SemanticNode> SubSurfaceHost::semantic_virtual_children() const {
-    if (!semantics_) return {};
+    if (!publishes_semantics_ || !semantics_) return {};
     std::vector<SemanticNode> nodes = (*semantics_).roots;
     std::string prefix(stable_id().value());
     prefix += '.';
@@ -285,7 +403,7 @@ std::vector<SemanticNode> SubSurfaceHost::semantic_virtual_children() const {
 
 bool SubSurfaceHost::on_semantic_child_action(std::string_view stable_id_text, SemanticAction action,
                                               std::string_view value) {
-    if (!semantics_ || !thread_) return false;
+    if (!publishes_semantics_ || !semantics_ || !thread_) return false;
     const std::string_view own = stable_id().value();
     const bool prefixed = stable_id_text.size() > own.size() + 1U && stable_id_text.substr(0U, own.size()) == own &&
                           stable_id_text[own.size()] == '.';
@@ -297,8 +415,8 @@ bool SubSurfaceHost::on_semantic_child_action(std::string_view stable_id_text, S
     }
     const SemanticNode& node = *target.node;
     const bool offered = std::find(node.actions.begin(), node.actions.end(), action) != node.actions.end();
-    const bool focusable = action == SemanticAction::focus && has_semantic_state(node.states, SemanticState::focusable);
-    if (!offered && !focusable) return false;
+    const bool focus_offered = action == SemanticAction::focus && has_semantic_state(node.states, SemanticState::focusable);
+    if (!offered && !focus_offered) return false;
     SubSurfaceInput input;
     input.kind = SubSurfaceInputKind::semantic_action;
     input.semantic.control = target.control;
@@ -726,8 +844,19 @@ void SubSurfaceHost::configure_region() {
         (*thread_).set_request_target((*window).dispatcher(), request_target_);
         pointer_left_sequence_ = 0U;
         focus_left_sequence_ = 0U;
-        semantics_notice_ = std::make_shared<SemanticsNotice>(*this);
-        (*thread_).set_semantics_listener((*window).dispatcher(), semantics_notice_);
+        if (publishes_semantics_) {
+            semantics_notice_ = std::make_shared<SemanticsNotice>(*this);
+            (*thread_).set_semantics_listener((*window).dispatcher(), semantics_notice_);
+        }
+        notice_dispatcher_ = (*window).dispatcher();
+        end_noticed_ = false;
+        (*thread_).set_end_listener(notice_dispatcher_, notices_);
+        // A content that failed before the listener was set posted nothing;
+        // a failure after it posts its own notice, and the second of two
+        // finds end_noticed_ set.
+        if ((*thread_).state() == SubSurfaceState::failed) {
+            static_cast<void>(notice_dispatcher_.begin_invoke(PostedEnd(notices_)));
+        }
         keyboard_inside_ = false;
         update_keyboard_focus(SubSurfaceFocusEntry::restore);
     }
@@ -756,6 +885,7 @@ void SubSurfaceHost::configure_region() {
     const Control::Ptr self = shared_from_this();
     static_cast<void>((*window).queue_live_surface_presentation(self, surface_));
     static_cast<void>((*window).require_live_surface_content(self, content_epoch_));
+    static_cast<void>((*window).set_live_surface_pairing_listener(self, notices_));
     // Only a new surface or device size repaints the host: the window
     // composes each new frame through the live surface path, and a
     // redraw-all sent while its owner paints (a DataGridView's cell region)
@@ -785,13 +915,29 @@ void SubSurfaceHost::stop_thread() noexcept {
     alerts_.clear();
     // Snapshot notices already posted find the target revoked; the nodes go
     // with the thread.
-    (*semantics_notice_).revoke();
+    if (semantics_notice_) (*semantics_notice_).revoke();
     semantics_notice_.reset();
     semantics_.reset();
     keyboard_inside_ = false;
     pressed_buttons_ = 0U;
     took_capture_ = false;
     (*thread_).stop();
+    // `stopped` for this thread, unless its failure was noticed already:
+    // posted, so that it is raised after this stop (which may run inside a
+    // detach or a set_content), never within it. A post that is refused (the
+    // window closed) or cannot allocate raises nothing.
+    if (!end_noticed_) {
+        end_noticed_ = true;
+        try {
+            SubSurfaceStopped ended;
+            ended.state = (*thread_).state();
+            ended.failure = (*thread_).failure();
+            static_cast<void>(notice_dispatcher_.begin_invoke(PostedStop(notices_, std::move(ended))));
+        } catch (const std::exception&) {
+            // Dropped, as the comment above says.
+        }
+    }
+    notice_dispatcher_ = WindowDispatcher{};
     thread_.reset();
     pixel_width_ = 0U;
     pixel_height_ = 0U;

@@ -1,0 +1,396 @@
+{
+  "family": "SplitContainer",
+  "step": "M-S8",
+  "declaring": "SplitContainer",
+  "header": "include/gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp",
+  "source": "src/controls/scrollable_control/container_control/split_container/split_container.cpp",
+  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/range_control/range_control.hpp",
+    "gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp",
+    "gui_forms/scheduler/types/scheduler_types.hpp"
+  ],
+  "test": {
+    "type": "SplitContainer",
+    "include": "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
+  },
+  "properties": [
+    {
+      "name": "orientation",
+      "capability": "SplitContainerOrientation",
+      "value": "Orientation",
+      "initial": "Orientation::vertical",
+      "comment": "Which way the panels are laid out (Windows Forms' Orientation): vertical puts the splitter between a left and a right panel, horizontal between a top and a bottom one. A change re-derives the panel extents and the splitter cursor.",
+      "getter": "orientation",
+      "setter": "set_orientation",
+      "clear": null,
+      "field": "orientation_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written forgets the previous extents and updates the splitter cursor before invalidating the bounds"
+      ],
+      "effects": "invalidation::bounds",
+      "sample": "Orientation::horizontal"
+    },
+    {
+      "name": "splitter_distance",
+      "capability": "SplitContainerSplitterDistance",
+      "value": "double",
+      "initial": null,
+      "comment": "The first panel's extent along the orientation (Windows Forms' SplitterDistance). A read returns the effective distance after the panel limits; a write is the requested distance, kept and re-applied as the container resizes, and raises splitter_changed with SplitChangeReason::programmatic. A negative or non-finite value throws std::invalid_argument.",
+      "getter": "splitter_distance",
+      "setter": "set_splitter_distance",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view: the write records the requested distance through set_distance; the read is the effective distance"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "splitter_width",
+      "capability": "SplitContainerSplitterWidth",
+      "value": "double",
+      "initial": null,
+      "comment": "The splitter's visible thickness (Windows Forms' SplitterWidth), shorthand for splitter_geometry's visible_thickness that keeps the hit target centred. A zero, negative or non-finite value throws std::invalid_argument.",
+      "getter": "splitter_width",
+      "setter": "set_splitter_width",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto splitter_geometry: the write derives a centred geometry and writes it"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "splitter_hit_width",
+      "capability": "SplitContainerSplitterHitWidth",
+      "value": "double",
+      "initial": null,
+      "comment": "The least pointer target across the splitter, never below the visible thickness; shorthand for splitter_geometry's minimum_hit_target with the extra extent split evenly. A zero, negative or non-finite value throws std::invalid_argument.",
+      "getter": "splitter_hit_width",
+      "setter": "set_splitter_hit_width",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto splitter_geometry: the write derives a centred geometry and writes it"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "splitter_geometry",
+      "capability": "SplitContainerSplitterGeometry",
+      "value": "SplitSeamGeometry",
+      "initial": null,
+      "comment": "The seam's visible thickness, thickness policy and hit extents. The whole geometry is validated before any of it is published (std::invalid_argument for an invalid one); this is the form to use for asymmetric hit extents or a physical hairline, and splitter_width and splitter_hit_width are shorthands for it.",
+      "getter": "splitter_geometry",
+      "setter": "set_splitter_geometry",
+      "clear": null,
+      "field": "splitter_geometry_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written mirrors the visible thickness and hit target into splitter_width and splitter_hit_width before invalidating"
+      ],
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics | Dirty::accessibility",
+      "sample": "SplitSeamGeometry{6.0, SplitSeamThicknessPolicy::logical, 2.0, 2.0, 10.0}"
+    },
+    {
+      "name": "splitter_transition_duration",
+      "capability": "SplitContainerSplitterTransitionDuration",
+      "value": "FrameInterval",
+      "initial": null,
+      "comment": "How long the seam's hot and pressed appearance takes to change; held by the splitter grip.",
+      "getter": "splitter_transition_duration",
+      "setter": "set_splitter_transition_duration",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the splitter grip's transition duration"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "first_minimum",
+      "capability": "SplitContainerFirstMinimum",
+      "value": "double",
+      "initial": "25.0",
+      "comment": "The least extent of the first panel (Windows Forms' Panel1MinSize, default 25). A negative, non-finite or above-maximum value throws std::invalid_argument and changes nothing.",
+      "getter": "first_minimum",
+      "setter": "set_first_minimum",
+      "clear": null,
+      "field": "first_minimum_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "invalidation::bounds",
+      "prepare": [
+        "require_finite_nonnegative(incoming, \"first panel minimum must be finite and nonnegative\");",
+        "const std::optional<double>& maximum = first_maximum.read();",
+        "if (maximum && incoming > *maximum) {",
+        "    throw std::invalid_argument(\"first panel minimum may not exceed its maximum\");",
+        "}"
+      ],
+      "sample": "40.0"
+    },
+    {
+      "name": "second_minimum",
+      "capability": "SplitContainerSecondMinimum",
+      "value": "double",
+      "initial": "25.0",
+      "comment": "The least extent of the second panel (Windows Forms' Panel2MinSize, default 25). Refused as first_minimum is.",
+      "getter": "second_minimum",
+      "setter": "set_second_minimum",
+      "clear": null,
+      "field": "second_minimum_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "invalidation::bounds",
+      "prepare": [
+        "require_finite_nonnegative(incoming, \"second panel minimum must be finite and nonnegative\");",
+        "const std::optional<double>& maximum = second_maximum.read();",
+        "if (maximum && incoming > *maximum) {",
+        "    throw std::invalid_argument(\"second panel minimum may not exceed its maximum\");",
+        "}"
+      ],
+      "sample": "40.0"
+    },
+    {
+      "name": "first_maximum",
+      "capability": "SplitContainerFirstMaximum",
+      "value": "std::optional<double>",
+      "initial": null,
+      "comment": "The greatest extent of the first panel, or none for no limit. A negative, non-finite or below-minimum value throws std::invalid_argument and changes nothing.",
+      "getter": "first_maximum",
+      "setter": "set_first_maximum",
+      "clear": null,
+      "field": "first_maximum_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "invalidation::bounds",
+      "prepare": [
+        "if (incoming) {",
+        "    require_finite_nonnegative(*incoming, \"first panel maximum must be finite and nonnegative\");",
+        "    if (*incoming < first_minimum.read()) {",
+        "        throw std::invalid_argument(\"first panel maximum may not be below its minimum\");",
+        "    }",
+        "}"
+      ],
+      "sample": "std::optional<double>{400.0}"
+    },
+    {
+      "name": "second_maximum",
+      "capability": "SplitContainerSecondMaximum",
+      "value": "std::optional<double>",
+      "initial": null,
+      "comment": "The greatest extent of the second panel, or none for no limit. Refused as first_maximum is.",
+      "getter": "second_maximum",
+      "setter": "set_second_maximum",
+      "clear": null,
+      "field": "second_maximum_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "invalidation::bounds",
+      "prepare": [
+        "if (incoming) {",
+        "    require_finite_nonnegative(*incoming, \"second panel maximum must be finite and nonnegative\");",
+        "    if (*incoming < second_minimum.read()) {",
+        "        throw std::invalid_argument(\"second panel maximum may not be below its minimum\");",
+        "    }",
+        "}"
+      ],
+      "sample": "std::optional<double>{400.0}"
+    },
+    {
+      "name": "splitter_fixed",
+      "capability": "SplitContainerSplitterFixed",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the user may not move the splitter (Windows Forms' IsSplitterFixed). Programmatic distances still apply.",
+      "getter": "splitter_fixed",
+      "setter": "set_splitter_fixed",
+      "clear": null,
+      "field": "splitter_fixed_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::semantics | Dirty::accessibility"
+    },
+    {
+      "name": "fixed_panel",
+      "capability": "SplitContainerFixedPanel",
+      "value": "SplitFixedPanel",
+      "initial": "SplitFixedPanel::none",
+      "comment": "The panel that keeps its extent when the container resizes (Windows Forms' FixedPanel); none shares the change.",
+      "getter": "fixed_panel",
+      "setter": "set_fixed_panel",
+      "clear": null,
+      "field": "fixed_panel_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::semantics | Dirty::accessibility",
+      "sample": "SplitFixedPanel::second"
+    },
+    {
+      "name": "collapse_panel",
+      "capability": "SplitContainerCollapsePanel",
+      "value": "SplitFixedPanel",
+      "initial": "SplitFixedPanel::none",
+      "comment": "Optional seam-tab authority. Unlike fixed_panel, this identifies the pane toggled by a compact splitter tab and may remain operable while ordinary splitter resizing is fixed.",
+      "getter": "collapse_panel",
+      "setter": "set_collapse_panel",
+      "clear": null,
+      "field": "collapse_panel_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written clears the automatic-collapse suppression and updates the grip's collapse appearance before invalidating"
+      ],
+      "effects": "Dirty::paint | Dirty::hit_test | Dirty::semantics | Dirty::accessibility",
+      "sample": "SplitFixedPanel::first"
+    },
+    {
+      "name": "automatic_collapse_threshold",
+      "capability": "SplitContainerAutomaticCollapseThreshold",
+      "value": "double",
+      "initial": null,
+      "comment": "Consumer-authored content threshold. Crossing below it automatically collapses collapse_panel; crossing back restores only an automatically collapsed pane. A user restore below the threshold is honored until the composition next crosses above it. Zero turns it off and restores an automatically collapsed pane. A negative or non-finite value throws std::invalid_argument.",
+      "getter": "automatic_collapse_threshold",
+      "setter": "set_automatic_collapse_threshold",
+      "clear": null,
+      "field": "automatic_collapse_threshold_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written clears the automatic-collapse suppression and, when turned off, restores an automatically collapsed pane before invalidating"
+      ],
+      "effects": "invalidation::bounds",
+      "sample": "300.0"
+    },
+    {
+      "name": "keyboard_increment",
+      "capability": "SplitContainerKeyboardIncrement",
+      "value": "double",
+      "initial": "4.0",
+      "comment": "How far an arrow key moves the focused splitter (Windows Forms' SplitterIncrement, default 4). A zero, negative or non-finite value throws std::invalid_argument.",
+      "getter": "keyboard_increment",
+      "setter": "set_keyboard_increment",
+      "clear": null,
+      "field": "keyboard_increment_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming <= 0.0) {",
+        "    throw std::invalid_argument(\"splitter keyboard increment must be finite and positive\");",
+        "}"
+      ],
+      "sample": "8.0"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "first_collapsed",
+      "reason": "set_first_collapsed takes the collapse origin as well; a method"
+    },
+    {
+      "name": "second_collapsed",
+      "reason": "set_second_collapsed takes the collapse origin as well; a method"
+    },
+    {
+      "name": "first_panel",
+      "reason": "structural slot, read-only"
+    },
+    {
+      "name": "second_panel",
+      "reason": "structural slot, read-only"
+    },
+    {
+      "name": "splitter_control",
+      "reason": "structural slot, read-only"
+    },
+    {
+      "name": "splitter_seam_snapshot",
+      "reason": "read-only diagnostic snapshot"
+    }
+  ]
+}

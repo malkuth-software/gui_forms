@@ -1,0 +1,7 @@
+/* forms: selector.where selector.not selector.not-family selector.family selector.descendant selector.child */
+button:where(.primary, #save) { opacity: 0.9 }
+button:not(.primary, :hover) { opacity: 0.8 }
+:family(accent-button):hover { opacity: 0.7 }
+button:not(:family(command-button)) { opacity: 0.6 }
+.panel button { opacity: 0.5 }
+#form > .row > button { opacity: 0.4 }

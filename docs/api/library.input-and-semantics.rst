@@ -14,6 +14,8 @@ Types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`ContextMenuRequest <gui_forms::ContextMenuRequest>`
+     - A request for a context menu, raised on the control under the pointer (or the focused control for a keyboard request) and then on each ancestor until a handler sets ``handled``.
    * - :cpp:class:`DragBinaryData <gui_forms::DragBinaryData>`
      - DragBinaryData owns a bounded byte payload and explicit format identifier.
    * - :cpp:class:`DragDispatchResult <gui_forms::DragDispatchResult>`
@@ -27,7 +29,7 @@ Types
    * - :cpp:class:`DragTextData <gui_forms::DragTextData>`
      - DragTextData owns one validated UTF-8 text payload.
    * - :cpp:class:`KeyBinding <gui_forms::KeyBinding>`
-     - The chords that invoke one command: at most two (Shift+F10 and the context-menu key).
+     - The chords that invoke one command: at most two (Ctrl+F6 and its macOS equivalent, say).
    * - :cpp:class:`KeyBindings <gui_forms::KeyBindings>`
      - The keys of an application's named keyboard commands (owner decision DK-44, review R3): one object shared by every window of the application, floating windows included (Window::set_key_bindings), so a rebinding made in one window holds in all of them.
    * - :cpp:class:`KeyChord <gui_forms::KeyChord>`
@@ -36,6 +38,8 @@ Types
      - KeyEvent carries logical/physical key identity, modifier and repeat state, key direction, and mutable handled state through preview/target/bubble routing.
    * - :cpp:class:`KeyMap <gui_forms::KeyMap>`
      - One binding per KeyCommand: a value, copied whole.
+   * - :cpp:class:`MouseEventArgs <gui_forms::MouseEventArgs>`
+     - One mouse event as WinForms' MouseEventArgs gives it: the button (none for a move or wheel without one), the click count the host reported for the press (1, 2 for the second press of a double-click, and so on; 0 for a move or wheel), the position in the control's own coordinates and in the window's, the wheel delta (logical pixels, positive away from the user and to the right) and the modifiers held.
    * - :cpp:class:`PhysicalKey <gui_forms::PhysicalKey>`
      - PhysicalKey preserves host-independent scan position, extended-key state, and location for shortcut and compatibility logic.
    * - :cpp:class:`PointerEvent <gui_forms::PointerEvent>`
@@ -56,6 +60,24 @@ Types
      - The selection and caret of a node's text (owner decision A-T1, 12.13), as UTF-8 byte offsets into the node's value, on grapheme boundaries; with nothing selected the anchor and the caret are the same offset.
    * - :cpp:class:`TextInputEvent <gui_forms::TextInputEvent>`
      - TextInputEvent owns UTF-8 text or composition payload plus replacement range and mutable handled state.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContextMenuRequest final
+
+   ``#include <gui_forms/events/mouse_events/mouse_events.hpp>``
+
+   A request for a context menu, raised on the control under the pointer (or the focused control for a keyboard request) and then on each ancestor until a handler sets ``handled``. ``location`` is in the control's coordinates and ``window_position`` in the window's; a keyboard request has no pointer position and carries the control's own origin, so the control chooses its anchor (its selection, its keyboard item).
+
+   .. cpp:member:: ContextRequestOrigin origin
+
+      Default: ``{ContextRequestOrigin::pointer}``.
+
+   .. cpp:member:: Point location
+
+   .. cpp:member:: Point window_position
+
+   .. cpp:member:: bool handled
 
 .. cpp:namespace:: gui_forms
 
@@ -183,7 +205,7 @@ Types
 
    ``#include <gui_forms/events/key_commands/key_commands.hpp>``
 
-   The chords that invoke one command: at most two (Shift+F10 and the context-menu key). Either may be empty; a binding with both empty leaves the command without keys.
+   The chords that invoke one command: at most two (Ctrl+F6 and its macOS equivalent, say). Either may be empty; a binding with both empty leaves the command without keys.
 
 
    .. rubric:: Methods
@@ -219,6 +241,10 @@ Types
       The host's defaults (the PC convention until seeded).
 
    .. cpp:function:: bool seeded() const noexcept
+
+   .. cpp:function:: std::shared_ptr<KeyBindings> copy_bindings() const
+
+      A new set equal to this one, shared by nobody yet: a window's copy-on-write table (APP_WINDOW_RULES_DESIGN K.1). One allocation.
 
 
    .. rubric:: Methods
@@ -302,6 +328,30 @@ Types
    .. cpp:function:: void set_binding(KeyCommand command, KeyBinding binding)
 
       Throws std::invalid_argument for a command outside the enumeration, or a chord with modifier bits outside shift, control, alt and meta, or an empty chord with modifiers; the map is then unchanged.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MouseEventArgs final
+
+   ``#include <gui_forms/events/mouse_events/mouse_events.hpp>``
+
+   One mouse event as WinForms' MouseEventArgs gives it: the button (none for a move or wheel without one), the click count the host reported for the press (1, 2 for the second press of a double-click, and so on; 0 for a move or wheel), the position in the control's own coordinates and in the window's, the wheel delta (logical pixels, positive away from the user and to the right) and the modifiers held.
+
+   .. cpp:member:: PointerButton button
+
+      Default: ``{PointerButton::none}``.
+
+   .. cpp:member:: std::uint32_t clicks
+
+   .. cpp:member:: Point location
+
+   .. cpp:member:: Point window_position
+
+   .. cpp:member:: Point wheel_delta
+
+   .. cpp:member:: Modifier modifiers
+
+      Default: ``{Modifier::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -591,6 +641,10 @@ Types
 
       Host-normalized click cardinality. Move/wheel events report zero or one; a second native press in the platform double-click sequence reports two. Default: ``{1U}``.
 
+   .. cpp:member:: WheelDeltaUnit wheel_unit
+
+      The unit of wheel_delta (a wheel event's only). Default: ``{WheelDeltaUnit::lines}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: SemanticDescriptor final
@@ -646,6 +700,8 @@ Types
    .. cpp:member:: std::optional<SemanticTextSelection> text_selection
 
    .. cpp:member:: bool multiline
+
+   .. cpp:member:: bool announces_on_appearance
 
    .. cpp:member:: SemanticState states
 
@@ -718,6 +774,8 @@ Types
    .. cpp:member:: std::optional<SemanticTextSelection> text_selection
 
    .. cpp:member:: bool multiline
+
+   .. cpp:member:: bool announces_on_appearance
 
    .. cpp:member:: std::string tool_tip
 
@@ -838,6 +896,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ContextRequestOrigin
+
+   ``#include <gui_forms/events/mouse_events/mouse_events.hpp>``
+
+   .. cpp:enumerator:: pointer
+
+   .. cpp:enumerator:: keyboard
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: DragAction
 
    ``#include <gui_forms/events/input_events/input_events.hpp>``
@@ -905,8 +973,6 @@ Enumerations
    .. cpp:enumerator:: cycle_forward
 
    .. cpp:enumerator:: cycle_backward
-
-   .. cpp:enumerator:: context_menu
 
    .. cpp:enumerator:: next_document
 
@@ -1120,6 +1186,10 @@ Enumerations
 
    .. cpp:enumerator:: meter
 
+   .. cpp:enumerator:: toggle_switch
+
+   .. cpp:enumerator:: search_box
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -1192,6 +1262,16 @@ Enumerations
 
    .. cpp:enumerator:: document
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WheelDeltaUnit
+
+   ``#include <gui_forms/events/input_events/input_events.hpp>``
+
+   .. cpp:enumerator:: lines
+
+   .. cpp:enumerator:: pixels
+
 Functions, constants and aliases
 --------------------------------
 
@@ -1225,6 +1305,10 @@ Functions, constants and aliases
 
 ``#include <gui_forms/semantics/types/semantic_types.hpp>``
 
+.. cpp:function:: constexpr SemanticRole semantic_role_fallback(SemanticRole role) noexcept
+
+   The role ``role`` specialises, which a host without a mapping for ``role`` publishes, and whose behaviour (patterns, interfaces, checked value and text) ``role`` shares: check_box for toggle_switch, text_box for search_box. Every other role is its own fallback.
+
 .. cpp:function:: constexpr bool has_semantic_state(SemanticState states, SemanticState requested) noexcept
 
 .. cpp:function:: const char* semantic_role_name(SemanticRole role) noexcept
@@ -1248,6 +1332,10 @@ Functions, constants and aliases
 .. cpp:function:: std::span<const char* const> semantic_field_names() noexcept
 
    The node fields the vocabulary admits, by name, for the schema export.
+
+.. cpp:function:: bool semantic_announcement_due(const SemanticNode* previous, const SemanticNode& current) noexcept
+
+   Whether a host asks assistive technology to speak ``current``'s name now, at polite priority (DK-51; the toast, owner ruling 2026-11-08). ``current`` is a node the host is publishing and ``previous`` the same node (same control, same virtual child) at the host's last publication, or null when the node is new. Due when ``current`` is a live region with a non-empty name and either ``previous`` had another name, or the node is new and announces on appearance. Every host decides through this one rule: UI Automation raises the live-region event, AppKit posts an announcement request, AT-SPI emits object:announcement; the text spoken is ``current.name``.
 
 .. cpp:function:: std::uint64_t virtual_semantic_runtime_id(std::string_view stable_id) noexcept
 

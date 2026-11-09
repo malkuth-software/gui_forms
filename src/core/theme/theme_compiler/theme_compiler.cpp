@@ -2,12 +2,14 @@
 
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
 #include "../../image/resource_pixels.hpp"
 #include "../../resources/image_registry/image_registry_access.hpp"
 #include "../../theme_language/compiler/theme_compiler.hpp"
 #include "../../theme_language/package/theme_header.hpp"
 #include "../../theme_language/package/theme_package.hpp"
+#include "../theme/floor_sheet.hpp"
 #include "../theme/theme_access.hpp"
 #include "built_in_theme.hpp"
 #include "control_inline_style.hpp"
@@ -160,6 +162,42 @@ void place(ThemeDiagnostic& diagnostic, std::span<const ClosureSegment> segments
     diagnostic.position = lines.position(pack.sheet, theme_language::ByteOffset{static_cast<std::uint32_t>(within)});
 }
 
+// Places each rule of the combined text (provenance file closure_file) in
+// its own sheet (T4 cascade spec, item 5): the sheet's file, the line and
+// column within it, its pack's name and manifest hash, and its layer:
+// GUI.Forms' base sheet and the packages `roots` import are library packs,
+// the roots themselves the project theme; a user theme's rules keep the
+// user layer. `segments` are in increasing order of start.
+void place_rules(ThemeRuleSheet& sheet, std::span<const ClosureSegment> segments,
+                 std::span<const VerifiedThemePack* const> roots, const VerifiedThemePack* base, ThemeRuleSet set) {
+    if (segments.empty()) return;
+    std::vector<theme_language::LineStartTable> lines(segments.size());
+    for (std::size_t index = 0U; index < segments.size(); ++index) lines[index].reset((*segments[index].pack).sheet);
+    for (ThemeRule& rule : sheet.rules) {
+        RuleProvenance& provenance = rule.provenance;
+        if (provenance.file != closure_file) continue;
+        const std::size_t offset = provenance.offset;
+        std::size_t found = 0U;
+        for (std::size_t index = 0U; index < segments.size(); ++index) {
+            if (segments[index].start <= offset) found = index;
+        }
+        const VerifiedThemePack& pack = *segments[found].pack;
+        const std::size_t within = std::min(offset - segments[found].start, pack.sheet.size());
+        const theme_language::SourcePosition position =
+            lines[found].position(pack.sheet, theme_language::ByteOffset{static_cast<std::uint32_t>(within)});
+        provenance.file = sheet_file(pack);
+        provenance.line = position.line.value;
+        provenance.column = position.column.value;
+        provenance.offset = position.offset.value;
+        provenance.pack = pack.manifest.name;
+        const bool own_base = &pack == base;
+        if (!own_base) provenance.pack_hash = theme_language::package_sha256_hex(pack.identity);
+        if (set == ThemeRuleSet::user) continue;
+        const bool root = std::find(roots.begin(), roots.end(), &pack) != roots.end();
+        provenance.layer = root && !own_base ? ThemeLayer::project_theme : ThemeLayer::library_pack;
+    }
+}
+
 // The coverage names no control type of `controls` has (W106).
 void check_coverage(const VerifiedThemePack& pack, std::span<const ControlAnatomy> controls,
                     std::vector<ThemeCompileDiagnostic>& diagnostics) {
@@ -283,26 +321,58 @@ std::shared_ptr<detail::ThemeImageLease> checked_icon(const UserIcon& icon, Imag
     return lease;
 }
 
-// Compiles `root` with its imports among `index`'s packs, at the levels of
-// `set`, into a theme named `id`.
-ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_language::InstalledThemeIndex& index,
-                                   ImageRegistry& images, ThemeImageShares& shares, const ThemeCompileOptions& options,
-                                   ThemeRuleSet set, std::string_view id, std::span<const UserIcon> icons) {
-    std::vector<const VerifiedThemePack*> order{};
-    ThemeDiagnostic problem{};
-    if (theme_language::resolve_theme_imports(root, index, order, problem) != theme_language::ThemeImportOutcome::resolved) {
-        return refusal(problem);
+// Whether `order` already holds a pack named `name`.
+bool order_names(std::span<const VerifiedThemePack* const> order, std::string_view name) noexcept {
+    for (const VerifiedThemePack* const pack : order) {
+        if ((*pack).manifest.name == name) return true;
     }
+    return false;
+}
+
+// Compiles `roots`, in order, each with its imports among `index`'s packs,
+// as one cascade at the levels of `set`, into a theme named `id` (the
+// base's own id where `id` is empty). Every pack appears once, where it is
+// first reached: a pack a later root imports again keeps its earlier
+// place. Two roots of one name are refused (E601). With no roots the theme
+// is the base alone.
+ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roots,
+                                   const theme_language::InstalledThemeIndex& index, ImageRegistry& images,
+                                   ThemeImageShares& shares, const ThemeCompileOptions& options, ThemeRuleSet set,
+                                   std::string_view id, std::span<const UserIcon> icons) {
     // GUI.Forms' own theme as the base: its light sheet as the first sheet
     // of the cascade, a pack with no manifest entries of its own, held here
-    // for the whole compilation (`order` borrows it).
+    // for the whole compilation (`order` borrows it). Onto
+    // windows-professional it only names the theme's findings when there
+    // is no root, and is not part of the cascade.
+    const bool onto_gui_forms = options.base == ThemeBase::gui_forms;
     VerifiedThemePack base_pack{};
-    if (options.base == ThemeCompileBase::gui_forms) {
-        base_pack.manifest.name = "gui-forms";
+    base_pack.manifest.name = onto_gui_forms ? "gui-forms" : "windows-professional";
+    std::vector<const VerifiedThemePack*> order{};
+    if (onto_gui_forms) {
         base_pack.manifest.sheet.path = "light.css";
         base_pack.sheet = std::string(gui_forms_light_sheet());
-        order.insert(order.begin(), &base_pack);
+        order.push_back(&base_pack);
     }
+    std::vector<const VerifiedThemePack*> reached{};
+    ThemeDiagnostic problem{};
+    for (std::size_t position = 0U; position < roots.size(); ++position) {
+        const VerifiedThemePack& root = *roots[position];
+        for (std::size_t earlier = 0U; earlier < position; ++earlier) {
+            if ((*roots[earlier]).manifest.name == root.manifest.name) {
+                return refusal(problem_of(DiagnosticCode::manifest_invalid, manifest_file(root), "listed twice"));
+            }
+        }
+        if (theme_language::resolve_theme_imports(root, index, reached, problem) !=
+            theme_language::ThemeImportOutcome::resolved) {
+            return refusal(problem);
+        }
+        for (const VerifiedThemePack* const pack : reached) {
+            if (!order_names(order, (*pack).manifest.name)) order.push_back(pack);
+        }
+    }
+    // The pack the theme's own findings name: the last root, which the
+    // cascade lets override the others, else the base.
+    const VerifiedThemePack& root = roots.empty() ? base_pack : *roots.back();
     // The published values every pack lists, each one the application
     // publishes (E606); the engine bound, the highest of the closure's.
     std::vector<std::string> published{};
@@ -370,6 +440,13 @@ ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_la
         loaded.push_back(resource);
         held.push_back(lease);
     }
+    // Packages compiled onto the GUI.Forms base: the base sheet is CSS's
+    // user-agent origin under them (selector step 1). Alone, it is the
+    // program's own sheet.
+    std::optional<std::uint32_t> base_origin_end{};
+    if (onto_gui_forms && set == ThemeRuleSet::program && segments.size() > 1U) {
+        base_origin_end = static_cast<std::uint32_t>(segments[1].start);
+    }
     const theme_language::ThemeSource source{.file = closure_file, .text = text};
     const PrimitiveRegistry& registry = builtin_primitive_registry();
     const theme_language::ThemeCompileInput input{.source = source,
@@ -380,9 +457,11 @@ ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_la
                                                   .images = loaded,
                                                   .requires_engine = requires_engine,
                                                   .user_theme = set == ThemeRuleSet::user,
-                                                  .system_colours = options.system_colours};
+                                                  .base_origin_end = base_origin_end,
+                                                  .system_colours = options.system_colours,
+                                                  .colour_authority = onto_gui_forms && roots.empty(),
+                                                  .effects = options.effects};
     // The base's recipes, some 100 KB held out of line.
-    const bool onto_gui_forms = options.base == ThemeCompileBase::gui_forms;
     std::unique_ptr<ThemeDefinition> definition(new ThemeDefinition(
         onto_gui_forms ? gui_forms_theme_definition() : windows_professional_theme_definition()));
     (*definition).rule_set = set;
@@ -397,6 +476,7 @@ ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_la
         found.push_back(public_diagnostic(placed));
     }
     if (outcome != theme_language::CompileOutcome::compiled) return ThemeCompileResult::refused(std::move(found));
+    place_rules((*definition).rules, segments, roots, onto_gui_forms ? &base_pack : nullptr, set);
     // A program theme with rules for the dark scheme but no dark variant
     // (T4 theme variants): a dark window shows GUI.Forms' own dark theme,
     // so the rules apply nowhere. A user theme is layered, and has none.
@@ -405,7 +485,7 @@ ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_la
         found.push_back(public_diagnostic(
             problem_of(DiagnosticCode::scheme_rules_without_variant, sheet_file(root), "color-scheme: light dark")));
     }
-    (*definition).id = std::string(id);
+    if (!id.empty()) (*definition).id = std::string(id);
     // The source the theme keeps for inline styles compiled against it
     // (P12b).
     std::shared_ptr<detail::ThemeSourceRecord> record = std::make_shared<detail::ThemeSourceRecord>();
@@ -648,8 +728,54 @@ ThemeCompileResult compile_theme_package(const ThemePackage& package, const Them
         library.size() == 0U ? empty : ThemeLibraryAccess::index(library);
     ThemeImageShares unshared{};
     ThemeImageShares* const shares = ThemeLibraryAccess::images(library);
-    return compile_closure(root, index, images, shares == nullptr ? unshared : *shares, options, ThemeRuleSet::program,
+    const VerifiedThemePack* const roots[] = {&root};
+    return compile_closure(roots, index, images, shares == nullptr ? unshared : *shares, options, ThemeRuleSet::program,
                            root.manifest.name, std::span<const UserIcon>{});
+}
+
+ThemeCompileResult compile_theme_packages(std::span<const ThemePackage> packages, const ThemeLibrary& library,
+                                          ImageRegistry& images, const ThemeCompileOptions& options) {
+    if (packages.size() > maximum_theme_packages) {
+        return refusal(problem_of(DiagnosticCode::manifest_invalid, std::string(theme_language::theme_manifest_file),
+                                  "more than " + std::to_string(maximum_theme_packages) + " packages"));
+    }
+    // Every package verified whole before any is compiled; `roots` borrows
+    // from `verified`, which is sized once and never grows after.
+    std::vector<VerifiedThemePack> verified(packages.size());
+    std::vector<const VerifiedThemePack*> roots{};
+    roots.reserve(packages.size());
+    theme_language::ThemePackageBytes bytes{};
+    ThemeDiagnostic problem{};
+    for (std::size_t position = 0U; position < packages.size(); ++position) {
+        const ThemePackage& package = packages[position];
+        bytes.manifest = package.manifest;
+        bytes.files.clear();
+        for (const ThemePackageFile& file : package.files) {
+            bytes.files.push_back(theme_language::ThemePackageEntry{file.path, file.bytes});
+        }
+        if (theme_language::verify_theme_package(bytes, current_engine_version, verified[position], problem) !=
+            theme_language::ThemePackageOutcome::verified) {
+            return refusal(problem);
+        }
+        roots.push_back(&verified[position]);
+    }
+    const theme_language::InstalledThemeIndex empty{};
+    const theme_language::InstalledThemeIndex& index =
+        library.size() == 0U ? empty : ThemeLibraryAccess::index(library);
+    ThemeImageShares unshared{};
+    ThemeImageShares* const shares = ThemeLibraryAccess::images(library);
+    const std::string_view id = roots.empty() ? std::string_view{} : std::string_view((*roots.back()).manifest.name);
+    ThemeCompileResult result = compile_closure(roots, index, images, shares == nullptr ? unshared : *shares, options,
+                                                ThemeRuleSet::program, id, std::span<const UserIcon>{});
+    return result;
+}
+
+std::shared_ptr<const Theme> default_compiled_theme() {
+    // Built once, on the first call's thread (C++ makes the initialization
+    // thread-safe), and never recompiled.
+    static const std::shared_ptr<const Theme> theme =
+        default_theme_base == ThemeBase::gui_forms ? gui_forms_theme() : default_theme();
+    return theme;
 }
 
 ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLibrary& library, ImageRegistry& images,
@@ -660,7 +786,8 @@ ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLib
         return refusal(problem_of(DiagnosticCode::import_not_installed, std::string{},
                                   theme_language::clipped_theme_detail(name)));
     }
-    return compile_closure(*root, ThemeLibraryAccess::index(library), images, *ThemeLibraryAccess::images(library),
+    const VerifiedThemePack* const roots[] = {root};
+    return compile_closure(roots, ThemeLibraryAccess::index(library), images, *ThemeLibraryAccess::images(library),
                            options, ThemeRuleSet::program, (*root).manifest.name, std::span<const UserIcon>{});
 }
 
@@ -842,7 +969,8 @@ ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLi
     }
     ThemeImageShares unshared{};
     ThemeImageShares* const shares = ThemeLibraryAccess::images(program);
-    ThemeCompileResult compiled = compile_closure(main, index, images, shares == nullptr ? unshared : *shares, options,
+    const VerifiedThemePack* const roots[] = {&main};
+    ThemeCompileResult compiled = compile_closure(roots, index, images, shares == nullptr ? unshared : *shares, options,
                                                   set, files.name, icons);
     if (!compiled.succeeded()) return compiled;
     if (warnings.empty()) return compiled;
@@ -1245,7 +1373,8 @@ detail::BuiltInThemeCompilation detail::compile_built_in_theme(const ThemeDefini
     const PrimitiveRegistry& registry = builtin_primitive_registry();
     const theme_language::ThemeCompileInput input{.source = source,
                                                   .registry = registry,
-                                                  .vocabulary = theme_language::SelectorVocabulary{controls}};
+                                                  .vocabulary = theme_language::SelectorVocabulary{controls},
+                                                  .colour_authority = true};
     // The definition is some 100 KB of recipes held out of line; it is
     // copied once, onto the heap, as compile_closure's is.
     std::unique_ptr<ThemeDefinition> definition(new ThemeDefinition(floor));
@@ -1267,6 +1396,23 @@ detail::BuiltInThemeCompilation detail::compile_built_in_theme(const ThemeDefini
     (*record).requires_engine = current_engine_version;
     std::shared_ptr<const ThemeSourceRecord> kept(std::move(record));
     result.theme = ThemeAccess::create_holding(*definition, {}, std::move(kept));
+    return result;
+}
+
+detail::FloorSheetEvaluation detail::evaluate_floor_sheet(std::string_view file, std::string_view sheet,
+                                                          const ControlVisualRecipe& structure,
+                                                          ThemeDefinition& definition) {
+    FloorSheetEvaluation result{};
+    BuiltInThemeCompilation compiled = compile_built_in_theme(definition, file, sheet, stock_control_anatomies());
+    result.diagnostics = std::move(compiled.diagnostics);
+    result.operations = compiled.operations;
+    if (compiled.theme == nullptr) return result;
+    const CompiledThemeRules& rules = (*compiled.theme).engine().rules();
+    for (std::size_t index = 0U; index < control_visual_role_count; ++index) {
+        const ControlVisualRole role = static_cast<ControlVisualRole>(index);
+        fill_family_recipes(rules, role, structure, definition.roles[index]);
+    }
+    result.evaluated = true;
     return result;
 }
 

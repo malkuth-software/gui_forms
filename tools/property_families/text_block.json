@@ -1,0 +1,175 @@
+{
+  "family": "TextBlock",
+  "step": "M-S2",
+  "declaring": "TextBlock",
+  "header": "include/gui_forms/controls/text_block/text_block.hpp",
+  "source": "src/controls/text_block/text_block.cpp",
+  "capabilities_header": "include/gui_forms/controls/text_block/text_block_capabilities/text_block_capabilities.hpp",
+  "base": "Control",
+  "shared": [
+    "TextCapability"
+  ],
+  "includes": [
+    "gui_forms/types.hpp",
+    "gui_forms/layout/style/layout_style.hpp",
+    "<cmath>"
+  ],
+  "overrides": [
+    "{\"fore_color\", &describe_text_block_fore_color,\n         &read_member_entry<TextBlock, decltype(&TextBlock::fore_color_property_value), &TextBlock::fore_color_property_value>,\n         &write_member_entry<TextBlock, decltype(&TextBlock::write_fore_color_property), &TextBlock::write_fore_color_property>,\n         &reset_member_entry<TextBlock, decltype(&TextBlock::reset_fore_color_property), &TextBlock::reset_fore_color_property>,\n         &should_serialize_member_entry<TextBlock, decltype(&TextBlock::fore_color_serialized), &TextBlock::fore_color_serialized>,\n         &origin_member_entry<TextBlock, decltype(&TextBlock::fore_color_property_origin), &TextBlock::fore_color_property_origin>,\n         nullptr}"
+  ],
+  "properties": [
+    {
+      "name": "text",
+      "capability": "Text",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The block's text; white space collapses as in CSS. A change raises text_changed.",
+      "getter": "text",
+      "setter": "set_text",
+      "clear": null,
+      "field": "text_",
+      "event": "text_changed_",
+      "on_changed": true,
+      "localizable": "text",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "Text shown by the block; white space collapses as in CSS.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "invalidation::text_content",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "sample": "std::string{\"Name\"}"
+    },
+    {
+      "name": "font",
+      "capability": "TextBlockFont",
+      "value": "std::optional<FontSpec>",
+      "initial": null,
+      "comment": "The block's own font; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": "clear_font",
+      "field": "font_override_",
+      "event": null,
+      "on_changed": true,
+      "localizable": null,
+      "table": {
+        "kind": "font",
+        "category": "Appearance",
+        "description": "Effective font; reset resumes the theme's field typography.",
+        "default": null,
+        "effects": "invalidation::text_content",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "thunks": {
+        "read": "font_property_value",
+        "reset": "reset_font",
+        "should_serialize": "font_serialized",
+        "origin": "font_property_origin"
+      },
+      "hand": [
+        "prepare validates a present font and records set_font_from_code; the table reads the resolved font"
+      ],
+      "sample": "FontSpec{FontRole::content, 14.0, 400, false}"
+    },
+    {
+      "name": "text_align",
+      "capability": "TextBlockTextAlign",
+      "value": "TextAlignment",
+      "initial": "TextAlignment::start",
+      "comment": "CSS text-align; start and end follow the effective layout direction (std::invalid_argument outside the enumeration).",
+      "getter": "text_align",
+      "setter": "set_text_align",
+      "clear": null,
+      "field": "text_align_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "CSS text-align; start and end follow the layout direction.",
+        "default": "BindingValue{PropertyEnumValue{\"text_alignment\", \"start\", 0}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "text_block_alignment_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(TextAlignment::center)) throw std::invalid_argument(\"TextBlock text alignment is invalid\");"
+      ],
+      "sample": "TextAlignment::center"
+    },
+    {
+      "name": "line_height",
+      "capability": "TextBlockLineHeight",
+      "value": "std::optional<double>",
+      "initial": null,
+      "comment": "CSS line-height as a length in logical pixels at text scale 1; empty is normal. A present value must be finite and positive (std::invalid_argument).",
+      "getter": "line_height",
+      "setter": "set_line_height",
+      "clear": "clear_line_height",
+      "field": "line_height_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Layout",
+        "description": "CSS line-height in logical pixels at text scale 1; zero is normal.",
+        "default": "BindingValue{0.0}",
+        "effects": "invalidation::text_content",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "if (incoming && (!std::isfinite(*incoming) || *incoming <= 0.0)) throw std::invalid_argument(\"TextBlock line height must be finite and positive\");"
+      ],
+      "thunks": {
+        "read": "line_height_property_value",
+        "write": "write_line_height_property"
+      },
+      "sample": "18.0"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "foreground()",
+      "reason": "the resolved text colour: Control's fore_color when set, else the theme's"
+    },
+    {
+      "name": "resolved_font()",
+      "reason": "the resolved font: the block's own when set, else the theme's field typography"
+    }
+  ],
+  "test": {
+    "type": "TextBlock",
+    "include": "gui_forms/controls/text_block/text_block.hpp"
+  }
+}

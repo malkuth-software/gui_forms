@@ -1,7 +1,7 @@
 #include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
-#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../../scrollable_control/container_control/scaled_layout_utilities.hpp"
 #include "../group_box_anatomy.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -14,32 +14,9 @@
 
 namespace gui_forms {
 
-ScaledGroupBox::ScaledGroupBox(StableId stable_id, std::string text,
-                               Size design_size)
-    : GroupBox(std::move(stable_id), std::move(text)),
-      design_size_(design_size) {
-    scaled_layout_detail::validate_design_size(design_size_);
-    PropertyDescriptor design_size_property;
-    design_size_property.name = "design_size";
-    design_size_property.kind = BindingValueKind::size;
-    design_size_property.category = "Layout";
-    design_size_property.description =
-        "The coordinate space the children's design bounds are written in; it scales to the arranged size.";
-    design_size_property.default_value = BindingValue{Size{1.0, 1.0}};
-    design_size_property.invalidation_effects = Dirty::layout;
-    design_size_property.bindable = false;
-    define_bindable_property({
-        std::move(design_size_property),
-        detail::BindingMemberGetter<ScaledGroupBox, Size>(*this, &ScaledGroupBox::design_size_),
-        detail::DirectPropertySetter<ScaledGroupBox, Size>(*this, &ScaledGroupBox::set_design_size), {}, {}, {}});
-}
-
-void ScaledGroupBox::set_design_size(Size size) {
-    require_mutable();
-    scaled_layout_detail::validate_design_size(size);
-    if (design_size_ == size) return;
-    design_size_ = size;
-    invalidate(Dirty::layout);
+ScaledGroupBox::ScaledGroupBox(StableId stable_id, std::string initial_text, Size initial_design_size)
+    : GroupBox(std::move(stable_id), std::move(initial_text)) {
+    design_size = initial_design_size;
 }
 
 void ScaledGroupBox::add_at(Control::Ptr child, Rect design_bounds) {
@@ -83,10 +60,9 @@ void ScaledGroupBox::arrange(Rect final_bounds) {
         const SlotMap::iterator slot =
             slots_.find((*child).runtime_id().value);
         const Rect design = slot == slots_.end() ? (*child).requested_bounds() : (*slot).second;
-        set_child_layout(child, scaled_layout_detail::child_bounds(design_size_, design, final_bounds));
+        set_child_layout(child, scaled_layout_detail::child_bounds(design_size.read(), design, final_bounds));
     }
 }
-
 
 namespace {
 
@@ -102,5 +78,60 @@ constexpr ControlAnatomy scaled_group_box_anatomy{
 const ControlAnatomy& ScaledGroupBox::anatomy() const noexcept {
     return scaled_group_box_anatomy;
 }
+
+// property_codemod begin ScaledGroupBox (tools/property_families/scaled_group_box.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor scaled_group_box_design_size_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "design_size";
+    descriptor.kind = BindingValueKind::size;
+    descriptor.category = "Layout";
+    descriptor.description = "The coordinate space the children's design bounds are written in; it scales to the arranged size.";
+    descriptor.default_value = BindingValue{Size{1.0, 1.0}};
+    descriptor.invalidation_effects = Dirty::layout;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_scaled_group_box_design_size() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        scaled_group_box_design_size_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+const std::array<PropertyEntry, ScaledGroupBox::scaled_group_box_property_count>& ScaledGroupBox::scaled_group_box_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"design_size", &describe_scaled_group_box_design_size,
+         &read_cell_entry<ScaledGroupBox, decltype(&ScaledGroupBox::design_size), &ScaledGroupBox::design_size>,
+         &write_cell_entry<ScaledGroupBox, decltype(&ScaledGroupBox::design_size), &ScaledGroupBox::design_size>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "ScaledGroupBox's property table names a property twice");
+    static const std::array<PropertyEntry, scaled_group_box_property_count> entries =
+        join_property_tables(GroupBox::group_box_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> ScaledGroupBox::property_table() const noexcept {
+    const std::array<PropertyEntry, scaled_group_box_property_count>& entries = scaled_group_box_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void ScaledGroupBox::prepare_write(const decltype(design_size)&, Size& incoming) {
+    require_mutable();
+    scaled_layout_detail::validate_design_size(incoming);
+}
+
+void ScaledGroupBox::written(const decltype(design_size)&) {
+    invalidate(Dirty::layout);
+}
+
+// property_codemod end ScaledGroupBox
 
 } // namespace gui_forms

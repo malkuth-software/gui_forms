@@ -5,6 +5,7 @@
 #include "gui_forms/engine/motion_value/motion_value.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/controls/tool_strip_container/tool_strip_container_capabilities/tool_strip_container_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -74,7 +75,7 @@ struct ToolStripMove final {
 // pointer capture is lost leaves the strip where it was. A StatusStrip has
 // no left or right target. An empty panel's band reaches a few units in
 // from its edge, so a strip can be dropped on it.
-class ToolStripContainer final : public Control {
+class ToolStripContainer final : public Control, public ToolStripContainerCapabilities<ToolStripContainer> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit ToolStripContainer(StableId stable_id);
@@ -90,16 +91,6 @@ public:
     [[nodiscard]] const std::shared_ptr<ToolStripPanel>& left_panel() const noexcept { return left_; }
     [[nodiscard]] const std::shared_ptr<ToolStripPanel>& right_panel() const noexcept { return right_; }
     [[nodiscard]] const std::shared_ptr<Panel>& content_panel() const noexcept { return content_; }
-
-    // A hidden panel takes no room and shows none of its strips.
-    [[nodiscard]] bool top_panel_visible() const noexcept { return top_visible_; }
-    void set_top_panel_visible(bool visible);
-    [[nodiscard]] bool bottom_panel_visible() const noexcept { return bottom_visible_; }
-    void set_bottom_panel_visible(bool visible);
-    [[nodiscard]] bool left_panel_visible() const noexcept { return left_visible_; }
-    void set_left_panel_visible(bool visible);
-    [[nodiscard]] bool right_panel_visible() const noexcept { return right_visible_; }
-    void set_right_panel_visible(bool visible);
 
     // Moves a strip joined to one of the four panels into a new row at `row`
     // of the panel on `edge` (rows counted without the strip), as a drop
@@ -125,10 +116,6 @@ public:
     [[nodiscard]] Rect drag_stamp() const noexcept;
     // Whether Ctrl is suppressing the targets.
     [[nodiscard]] bool drag_suppressed() const noexcept { return drag_.suppressed; }
-    // How far the pointer moves from a grip press before it drags (4 units;
-    // a host may set 1 to 64). Throws std::out_of_range outside that.
-    [[nodiscard]] double drag_threshold() const noexcept { return drag_threshold_; }
-    void set_drag_threshold(double threshold);
     // Ends an armed drag, or a drag under way as Escape does. False when
     // there is none.
     bool cancel_drag();
@@ -234,7 +221,6 @@ private:
         Rect content{};
     };
     [[nodiscard]] Layout layout_for(Size client);
-    void set_panel_visible(bool& flag, bool visible);
     [[nodiscard]] const std::shared_ptr<ToolStripPanel>& panel_on(ToolStripPanelEdge edge) const noexcept;
     [[nodiscard]] bool panel_shown(ToolStripPanelEdge edge) const noexcept;
     [[nodiscard]] std::optional<StripPlace> place_of(const ToolStrip& strip) const;
@@ -298,10 +284,6 @@ private:
     std::shared_ptr<ToolStripPanel> left_{};
     std::shared_ptr<ToolStripPanel> right_{};
     std::shared_ptr<Panel> content_{};
-    bool top_visible_{true};
-    bool bottom_visible_{true};
-    bool left_visible_{true};
-    bool right_visible_{true};
     Event<const ToolStripMove&> strip_moved_{};
     // The drag: its session, the layer that paints it above the panels (a
     // child kept last), the stamp's motion (0 to 1 on the shared drag
@@ -316,7 +298,25 @@ private:
     DispatchOperation focus_return_{};
     // drag_gesture::default_threshold, kept here so the public header needs
     // no private one.
-    double drag_threshold_{4.0};
+    // property_codemod begin ToolStripContainer (tools/property_families/tool_strip_container.json; generated, do not edit)
+private:
+    friend struct ToolStripContainerTopPanelVisibleCapability<ToolStripContainer>;
+    friend struct ToolStripContainerBottomPanelVisibleCapability<ToolStripContainer>;
+    friend struct ToolStripContainerLeftPanelVisibleCapability<ToolStripContainer>;
+    friend struct ToolStripContainerRightPanelVisibleCapability<ToolStripContainer>;
+    friend struct ToolStripContainerDragThresholdCapability<ToolStripContainer>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(top_panel_visible)& cell, bool& incoming);
+    void written(const decltype(top_panel_visible)& cell);
+    void prepare_write(const decltype(bottom_panel_visible)& cell, bool& incoming);
+    void written(const decltype(bottom_panel_visible)& cell);
+    void prepare_write(const decltype(left_panel_visible)& cell, bool& incoming);
+    void written(const decltype(left_panel_visible)& cell);
+    void prepare_write(const decltype(right_panel_visible)& cell, bool& incoming);
+    void written(const decltype(right_panel_visible)& cell);
+    void prepare_write(const decltype(drag_threshold)& cell, double& incoming);
+    void written(const decltype(drag_threshold)& cell);
+    // property_codemod end ToolStripContainer
 };
 
 } // namespace gui_forms

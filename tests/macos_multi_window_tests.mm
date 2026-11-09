@@ -14,8 +14,6 @@ namespace {
 using VoidHostCallback = std::function<void()>;
 using ShowDialogCallback = std::function<gui_forms::HostDialogResult(
     const gui_forms::HostDialogRequest&)>;
-using ShowTooltipCallback = std::function<gui_forms::HostServiceStatus(
-    const gui_forms::HostTooltipRequest&)>;
 using ReadClipboardCallback =
     std::function<gui_forms::HostClipboardTextResult()>;
 using WriteClipboardCallback =
@@ -48,8 +46,6 @@ public:
         VoidHostCallback,
         VoidHostCallback request_close,
         ShowDialogCallback,
-        ShowTooltipCallback,
-        VoidHostCallback,
         ReadClipboardCallback,
         WriteClipboardCallback) const {
         close_request_ = std::move(request_close);

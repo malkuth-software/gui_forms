@@ -67,7 +67,7 @@ void single_line_layout_and_words() {
     (*root).add_child(field);
     Window window(root, {300.0, 100.0});
     window.perform_layout();
-    (*field).set_text("ab cd");
+    (*field).text = "ab cd";
     SemanticTextLayout layout;
     const SemanticTextResult result = window.semantic_text_layout((*field).runtime_id(), layout);
     require(result == SemanticTextResult::done, "a text box answers a layout query");
@@ -96,7 +96,7 @@ void single_line_layout_and_words() {
     require(again == SemanticTextResult::done && layout.lines.size() == 1U && layout.graphemes.size() == 5U &&
                 layout.lines.capacity() == lines_capacity,
             "a second query empties and reuses the caller's storage");
-    (*field).set_text("");
+    (*field).text = "";
     const SemanticTextResult empty = window.semantic_text_layout((*field).runtime_id(), layout);
     require(empty == SemanticTextResult::done && layout.lines.size() == 1U && layout.graphemes.empty() &&
                 layout.word_starts.empty(),
@@ -109,10 +109,10 @@ void multiline_layout() {
     // The window borrows the metrics provider, so it is destroyed first.
     Window window(field, {200.0, 100.0});
     (*field).set_requested_bounds({0.0, 0.0, 200.0, 100.0});
-    (*field).set_multiline(true);
+    (*field).multiline = true;
     window.set_text_metrics_provider(&metrics);
     window.perform_layout();
-    (*field).set_text("ab\ncd");
+    (*field).text = "ab\ncd";
     SemanticTextLayout layout;
     const SemanticTextResult result = window.semantic_text_layout((*field).runtime_id(), layout);
     require(result == SemanticTextResult::done, "a multiline box answers a layout query");
@@ -147,12 +147,12 @@ void unit_boundaries() {
     // The window borrows the metrics provider, so it is destroyed first.
     Window window(field, {200.0, 100.0});
     (*field).set_requested_bounds({0.0, 0.0, 200.0, 100.0});
-    (*field).set_multiline(true);
+    (*field).multiline = true;
     window.set_text_metrics_provider(&metrics);
     window.perform_layout();
     // "e" and U+0301 are one grapheme, bytes 3 to 6.
     const std::string value = "Cafe\xCC\x81 x\nyz";
-    (*field).set_text(value);
+    (*field).text = value;
     SemanticTextLayout layout;
     require(window.semantic_text_layout((*field).runtime_id(), layout) == SemanticTextResult::done,
             "the box answers a layout query");
@@ -174,7 +174,7 @@ void unit_boundaries() {
     fill_semantic_text_boundaries(layout, std::string_view(value).substr(0U, 7U), SemanticTextUnit::character,
                                   boundaries);
     require(boundaries_are(boundaries, {0U, 1U, 2U, 3U, 6U, 7U}), "boundaries stop at the value's end");
-    (*field).set_text("");
+    (*field).text = "";
     require(window.semantic_text_layout((*field).runtime_id(), layout) == SemanticTextResult::done,
             "an empty box answers a layout query");
     fill_semantic_text_boundaries(layout, "", SemanticTextUnit::word, boundaries);
@@ -189,7 +189,7 @@ void selection_and_boundaries() {
     (*field).set_requested_bounds({0.0, 0.0, 200.0, 30.0});
     window.perform_layout();
     // "e" and a combining acute accent are one grapheme of three bytes.
-    (*field).set_text("e\xCC\x81x");
+    (*field).text = "e\xCC\x81x";
     SemanticTextLayout layout;
     const SemanticTextResult read = window.semantic_text_layout((*field).runtime_id(), layout);
     require(read == SemanticTextResult::done && layout.graphemes.size() == 2U &&
@@ -234,11 +234,11 @@ void refusals() {
     (*root).add_child(scope);
     Window window(root, {300.0, 200.0});
     window.perform_layout();
-    (*secret).set_text("hunter");
-    (*secret).set_password_character(U'*');
-    (*caption).set_text("Name");
-    (*outside).set_text("out");
-    (*inside).set_text("in");
+    (*secret).text = "hunter";
+    (*secret).password_character = U'*';
+    (*caption).text = "Name";
+    (*outside).text = "out";
+    (*inside).text = "in";
     SemanticTextLayout layout;
     layout.word_starts.push_back(Utf8Offset(7U));
     require(window.semantic_text_layout((*secret).runtime_id(), layout) == SemanticTextResult::no_text &&
@@ -303,7 +303,7 @@ void during_paint() {
     (*root).add_child(probe);
     Window window(root, {200.0, 60.0});
     window.perform_layout();
-    (*field).set_text("abc");
+    (*field).text = "abc";
     (*probe).target = (*field).runtime_id();
     const TextSelection before = (*field).selection();
     test_support::TypographyPainter painter{};

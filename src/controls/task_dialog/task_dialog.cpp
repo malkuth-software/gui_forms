@@ -4,6 +4,7 @@
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -256,9 +257,9 @@ std::shared_ptr<Label> TaskDialog::make_paragraph(std::string_view suffix, const
     std::string identity(stable_id().value());
     identity.append(suffix);
     std::shared_ptr<Label> paragraph = make_control<Label>(StableId(std::move(identity)), text);
-    (*paragraph).set_font(font);
-    (*paragraph).set_text_wrapping(TextWrapping::word);
-    (*paragraph).set_vertical_alignment(VerticalAlignment::near);
+    (*paragraph).font = font;
+    (*paragraph).text_wrapping = TextWrapping::word;
+    (*paragraph).vertical_alignment = VerticalAlignment::near;
     add_child(paragraph);
     return paragraph;
 }
@@ -278,14 +279,14 @@ void TaskDialog::rebuild_children() {
         const TaskDialogProgressBar& settings = *page_.progress_bar;
         progress_ = make_control<ProgressBar>(StableId(prefix + ".progress"));
         (*progress_).set_range(settings.minimum, settings.maximum);
-        (*progress_).set_value(std::clamp(settings.value, settings.minimum, settings.maximum));
-        if (settings.marquee) (*progress_).set_visual_style(ProgressBarVisualStyle::marquee);
+        (*progress_).value = std::clamp(settings.value, settings.minimum, settings.maximum);
+        if (settings.marquee) (*progress_).visual_style = ProgressBarVisualStyle::marquee;
         add_child(progress_);
     }
     for (const TaskDialogRadioButton& radio : page_.radio_buttons) {
         std::shared_ptr<RadioButton> control =
             make_control<RadioButton>(StableId(prefix + ".radio." + radio.stable_id), radio.text);
-        (*control).set_checked(radio.checked);
+        (*control).checked = radio.checked;
         (*control).enabled = radio.enabled;
         add_child(control);
         child_tokens_.push_back((*control).checked_changed().subscribe(
@@ -297,7 +298,7 @@ void TaskDialog::rebuild_children() {
         expander_button_ = make_control<Button>(
             StableId(prefix + ".expander"),
             expander.expanded ? expander.expanded_button_text : expander.collapsed_button_text);
-        (*expander_button_).set_visual_style(ButtonVisualStyle::flat);
+        (*expander_button_).visual_style = ButtonVisualStyle::flat;
         add_child(expander_button_);
         child_tokens_.push_back((*expander_button_).clicked().subscribe(
             *this, Delegate<ButtonBase&>::bind<TaskDialog, &TaskDialog::on_expander>(*this)));
@@ -306,7 +307,7 @@ void TaskDialog::rebuild_children() {
     }
     if (!page_.verification_text.empty()) {
         verification_ = make_control<CheckBox>(StableId(prefix + ".verification"), page_.verification_text);
-        (*verification_).set_checked(page_.verification_checked);
+        (*verification_).checked = page_.verification_checked;
         add_child(verification_);
         child_tokens_.push_back((*verification_).checked_changed().subscribe(
             *this, Delegate<bool>::bind<TaskDialog, &TaskDialog::on_verification>(*this)));
@@ -316,7 +317,7 @@ void TaskDialog::rebuild_children() {
         std::shared_ptr<Button> control =
             make_control<Button>(StableId(prefix + ".button." + definition.stable_id), definition.text);
         (*control).enabled = definition.enabled;
-        if (definition.stable_id == preferred) (*control).set_visual_style(ButtonVisualStyle::accent);
+        if (definition.stable_id == preferred) (*control).visual_style = ButtonVisualStyle::accent;
         add_child(control);
         child_tokens_.push_back((*control).clicked().subscribe(
             *this, Delegate<ButtonBase&>::bind<TaskDialog, &TaskDialog::on_child_button>(*this)));
@@ -365,33 +366,42 @@ std::string TaskDialog::checked_radio_button() const {
     return {};
 }
 
-bool TaskDialog::expanded() const noexcept {
+// The expander and verification views: the page holds both states.
+bool TaskDialog::read_view(const decltype(expanded)&) const {
     const bool result = page_.expander && (*page_.expander).expanded;
     return result;
 }
 
-void TaskDialog::set_expanded(bool expanded) {
+void TaskDialog::write_view(const decltype(expanded)&, bool incoming) {
     require_mutable();
-    if (!page_.expander || (*page_.expander).expanded == expanded) return;
+    if (!page_.expander || (*page_.expander).expanded == incoming) return;
     TaskDialogExpander& expander = *page_.expander;
-    expander.expanded = expanded;
+    expander.expanded = incoming;
     if (expander_button_) {
-        (*expander_button_).text = expanded ? expander.expanded_button_text : expander.collapsed_button_text;
+        (*expander_button_).text = incoming ? expander.expanded_button_text : expander.collapsed_button_text;
     }
-    if (expanded_text_) set_child_layout_collapsed(expanded_text_, !expanded);
+    if (expanded_text_) set_child_layout_collapsed(expanded_text_, !incoming);
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     // The layer centres the dialog again at its new height.
     if (layer_) (*layer_).invalidate(Dirty::arrange);
-    expanded_changed_.emit(expanded);
+    expanded_changed_.emit(incoming);
 }
 
-void TaskDialog::set_verification_checked(bool checked) {
+bool TaskDialog::read_view(const decltype(verification_checked)&) const {
+    const bool result = page_.verification_checked;
+    return result;
+}
+
+// While the check box exists the write goes through it, and its change
+// reaches on_verification, which stores the state and raises
+// verification_changed.
+void TaskDialog::write_view(const decltype(verification_checked)&, bool incoming) {
     require_mutable();
     if (verification_) {
-        (*verification_).set_checked(checked);
+        (*verification_).checked = incoming;
         return;
     }
-    page_.verification_checked = checked;
+    page_.verification_checked = incoming;
 }
 
 void TaskDialog::set_progress_value(double value) {
@@ -399,7 +409,7 @@ void TaskDialog::set_progress_value(double value) {
     if (!page_.progress_bar || !progress_ || !std::isfinite(value)) return;
     TaskDialogProgressBar& settings = *page_.progress_bar;
     settings.value = std::clamp(value, settings.minimum, settings.maximum);
-    (*progress_).set_value(settings.value);
+    (*progress_).value = settings.value;
 }
 
 // -- interaction ---------------------------------------------------------------
@@ -427,7 +437,7 @@ bool TaskDialog::click(std::string_view button_id) {
 }
 
 void TaskDialog::on_expander(ButtonBase&) {
-    set_expanded(!expanded());
+    expanded = !expanded.read();
 }
 
 void TaskDialog::on_verification(bool checked) {
@@ -440,7 +450,7 @@ void TaskDialog::on_radio(bool) {
     if (synchronizing_) return;
     std::string newly_checked{};
     for (std::size_t index = 0; index < radios_.size() && index < page_.radio_buttons.size(); ++index) {
-        const bool checked = (*radios_[index]).checked();
+        const bool checked = (*radios_[index]).checked.read();
         if (checked && !page_.radio_buttons[index].checked) newly_checked = page_.radio_buttons[index].stable_id;
         page_.radio_buttons[index].checked = checked;
     }
@@ -664,7 +674,7 @@ TaskDialog::Layout TaskDialog::layout(double width) const {
         parts.expander_button = PartGeometry::from_bounds(
             {button_x, y, std::max(0.0, text_x + text_width - button_x), row});
         y += row + gap * 0.5;
-        if (expanded() && expanded_text_) {
+        if (expanded.read() && expanded_text_) {
             const double height = (*expanded_text_).measure({text_width, unbounded}).height;
             parts.expanded_text = PartGeometry::from_bounds({text_x, y, text_width, height});
             y += height + gap;
@@ -824,8 +834,8 @@ void TaskDialog::on_paint(Painter& painter, Rect) {
     if (parts.expander_glyph.present) {
         part.role = PartRole::disclosure;
         part.bounds = parts.expander_glyph.bounds;
-        part.mark = expanded() ? PartMark::chevron_down : PartMark::chevron_right;
-        if (expanded()) part.states.insert(AnatomyState::open);
+        part.mark = expanded.read() ? PartMark::chevron_down : PartMark::chevron_right;
+        if (expanded.read()) part.states.insert(AnatomyState::open);
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
         part.states = {};
@@ -955,7 +965,7 @@ const ControlAnatomy& TaskDialog::anatomy() const noexcept {
 
 void TaskDialog::publish_part_geometry(std::span<PartGeometry> geometry) const {
     Parts record = layout(client_rectangle().width).parts;
-    if (expanded()) record.expander_glyph.states.insert(AnatomyState::open);
+    if (expanded.read()) record.expander_glyph.states.insert(AnatomyState::open);
     write_parts(anatomy(), task_dialog_part_fields, record, geometry);
 }
 
@@ -970,5 +980,9 @@ void TaskDialog::append_interactions(std::vector<InteractionDeclaration>& intera
     Control::append_interactions(interactions);
     interactions.insert(interactions.end(), task_dialog_interactions.begin(), task_dialog_interactions.end());
 }
+
+// property_codemod begin TaskDialog (tools/property_families/task_dialog.json; generated, do not edit)
+
+// property_codemod end TaskDialog
 
 } // namespace gui_forms

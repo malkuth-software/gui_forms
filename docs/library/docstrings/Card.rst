@@ -157,11 +157,11 @@ Make a card selectable. Each activation toggles the selection before
        bool chosen = false;
 
        Plans() {
-           (*pro).set_interactive(true);
-           (*pro).set_selection_behavior(gf::CardSelectionBehavior::toggle_on_activation);
+           (*pro).interactive = true;
+           (*pro).selection_behavior = gf::CardSelectionBehavior::toggle_on_activation;
            gf::on((*pro).activated(), *this, &Plans::on_activated);
        }
-       void on_activated(gf::Card& card) { chosen = card.selected(); }
+       void on_activated(gf::Card& card) { chosen = card.selected.read(); }
    };
 
    void example() {

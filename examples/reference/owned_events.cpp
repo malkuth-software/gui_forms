@@ -1,13 +1,12 @@
-#include <gui_forms/basic_controls.hpp>
+#include "owned_events_form.hpp"   // generated from forms/owned_events.form
+
 #include <gui_forms/component.hpp>
 #include <gui_forms/event.hpp>
 
-#include <memory>
-
 namespace gui_forms::examples {
 
-// Actions owns the subscription. The retained parent continues to own the
-// button; this connection adds no visual ownership or scheduler work.
+// Actions owns the subscription. The window continues to own the button;
+// this connection adds no visual ownership or scheduler work.
 class Actions final : public Component {
 public:
     explicit Actions(Button& run) {
@@ -25,16 +24,14 @@ private:
 } // namespace gui_forms::examples
 
 int main() {
-    const std::shared_ptr<gui_forms::Button> run =
-        gui_forms::make_control<gui_forms::Button>(
-            gui_forms::StableId("example.run"), "Run");
-    gui_forms::examples::Actions actions(*run);
-    (*run).perform_click();
+    reference::ExampleWindow window{};   // binds nothing, so it takes no model
+    gui_forms::examples::Actions actions(*window.example_run);
+    (*window.example_run).perform_click();
     if (actions.runs() != 1U) {
         return 1;
     }
     actions.dispose();
-    (*run).perform_click();
+    (*window.example_run).perform_click();
     if (actions.runs() != 1U) {
         return 1;
     }

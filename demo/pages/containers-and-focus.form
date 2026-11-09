@@ -1,0 +1,84 @@
+/* The Gallery's containers-and-focus page (stage FD, phase FD-4): one
+   SplitContainer whose seam is dragged, keyed and collapsed, a base
+   ContainerControl with descendant focus authority, a UserControl whose
+   one-shot Loaded lifecycle is observed, and a small docked workspace with
+   a DockNavigator beside it. gui_forms_add_form() compiles this document
+   into containers-and-focus_form.hpp at build time.
+
+   gallery.containers.document is a declared boundary only: the page moves
+   its children into the shell's page body, where each is placed by its
+   bounds in design coordinates. The split container makes its two panels
+   itself, so the page fills them in code; the DockSite needs its workspace
+   to be made, so the page makes it and places it first in its group. The
+   page also keeps the splitter's distance and minimums, the faces, the
+   navigator's entries, every event handler and the page style in code. */
+scaled-panel gallery.containers.document {
+  design-size: 1000 1076;
+
+  label gallery.containers.heading {
+    text: "CONTAINERS AND FOCUS";
+    classes: "heading" "page-title";
+    bounds: 24 18 500 34;
+  }
+  label gallery.containers.lead {
+    text: "Real retained composition: split allocation, wide hit target, collapse, focus transfer, nested scope.";
+    classes: "muted" "body";
+    bounds: 26 52 900 24;
+  }
+
+  split-container gallery.containers.split {
+    bounds: 24 100 930 430;
+  }
+
+  container-control gallery.containers.base {
+    accessible-name: "Base ContainerControl specimen";
+    bounds: 24 548 450 82;
+    panel gallery.containers.base.face {
+      border-style: line;
+      dock: fill;
+      label gallery.containers.base.copy {
+        text: "ContainerControl · active descendant + retained child composition";
+        classes: "heading" "emphasis";
+        bounds: 14 12 390 24;
+      }
+      button gallery.containers.base.focus {
+        text: "Focus descendant";
+        bounds: 14 42 150 28;
+      }
+    }
+  }
+
+  user-control gallery.containers.user {
+    accessible-name: "UserControl lifecycle specimen";
+    bounds: 488 548 466 82;
+    panel gallery.containers.user.face {
+      border-style: line;
+      dock: fill;
+      label gallery.containers.user.status {
+        text: "UserControl · awaiting one-shot Loaded lifecycle";
+        classes: "positive" "emphasis";
+        bounds: 14 12 420 24;
+      }
+      button gallery.containers.user.action {
+        text: "Reusable child action";
+        visual-style: command;
+        bounds: 14 42 178 28;
+      }
+    }
+  }
+
+  scaled-group-box gallery.containers.docking.group {
+    text: "DockSite · seams, captions, F6 regions, Ctrl+Tab navigator, auto-hide, collapse by priority";
+    design-size: 930 400;
+    bounds: 24 652 930 400;
+    classes: "paper" "group-caption";
+    label gallery.containers.docking.status {
+      text: "Active: none";
+      classes: "positive" "emphasis";
+      bounds: 640 36 270 44;
+    }
+    dock-navigator gallery.containers.navigator {
+      bounds: 640 96 270 120;
+    }
+  }
+}

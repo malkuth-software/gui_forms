@@ -26,9 +26,7 @@ auto_scroll_margin : default ``{0.0, 0.0}``
     Extra space added beyond the right-most and bottom-most child when the
     content size is computed, and kept around a control that
     `scroll_control_into_view` reveals. Writing it rejects
-    a negative or non-finite size with `std::invalid_argument`;
-    `set_auto_scroll_margin(x, y)` clamps negative values to zero and rejects
-    only non-finite ones.
+    a negative or non-finite size with `std::invalid_argument`.
 auto_scroll_min_size : default ``{0.0, 0.0}``
     A minimum content size, so the control can scroll over an area larger
     than its children. Setting it also turns `auto_scroll` on. A negative or

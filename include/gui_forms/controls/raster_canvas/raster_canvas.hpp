@@ -3,6 +3,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/drawing.hpp"
 #include "gui_forms/resources.hpp"
+#include "gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -14,38 +15,15 @@ namespace gui_forms {
 // Retained viewport over an owned GUI.Drawing bitmap. Applications own tools,
 // document history, and selection state; RasterCanvas owns presentation,
 // coordinate transforms, resource synchronization, and local invalidation.
-class RasterCanvas : public Control {
+class RasterCanvas : public Control, public RasterCanvasCapabilities<RasterCanvas> {
 public:
     explicit RasterCanvas(StableId stable_id);
 
-    [[nodiscard]] const std::shared_ptr<gui_drawing::Bitmap>& bitmap() const noexcept {
-        return bitmap_;
-    }
-    void set_bitmap(std::shared_ptr<gui_drawing::Bitmap> bitmap);
     void clear_bitmap();
 
-    [[nodiscard]] double zoom() const noexcept { return zoom_; }
-    void set_zoom(double zoom);
-    [[nodiscard]] gui_drawing::PointF view_origin() const noexcept {
-        return view_origin_;
-    }
-    void set_view_origin(gui_drawing::PointF origin);
     void set_view(double zoom, gui_drawing::PointF origin);
-    [[nodiscard]] ImageSampling sampling() const noexcept { return sampling_; }
-    void set_sampling(ImageSampling sampling);
 
-    [[nodiscard]] bool transparency_grid() const noexcept {
-        return transparency_grid_;
-    }
-    void set_transparency_grid(bool visible);
-    [[nodiscard]] Color canvas_background() const noexcept { return background_; }
-    void set_canvas_background(Color color);
     void set_transparency_colors(Color first, Color second);
-    [[nodiscard]] double transparency_cell_size() const noexcept {
-        return transparency_cell_size_;
-    }
-    // Zero selects an adaptive bounded cell size.
-    void set_transparency_cell_size(double size);
 
     [[nodiscard]] std::uint64_t presented_generation() const noexcept {
         return presented_generation_;
@@ -102,13 +80,34 @@ private:
     std::uint64_t presented_generation_{};
     double zoom_{1.0};
     gui_drawing::PointF view_origin_{};
-    ImageSampling sampling_{ImageSampling::nearest};
-    bool transparency_grid_{true};
-    Color background_{Color::rgba(112, 118, 126)};
     Color transparency_first_{Color::rgba(246, 247, 249)};
     Color transparency_second_{Color::rgba(211, 215, 220)};
-    double transparency_cell_size_{};
     ImageResourceError last_resource_error_{ImageResourceError::none};
+    // property_codemod begin RasterCanvas (tools/property_families/raster_canvas.json; generated, do not edit)
+private:
+    friend struct RasterCanvasBitmapCapability<RasterCanvas>;
+    friend struct RasterCanvasZoomCapability<RasterCanvas>;
+    friend struct RasterCanvasViewOriginCapability<RasterCanvas>;
+    friend struct RasterCanvasSamplingCapability<RasterCanvas>;
+    friend struct RasterCanvasTransparencyGridCapability<RasterCanvas>;
+    friend struct RasterCanvasCanvasBackgroundCapability<RasterCanvas>;
+    friend struct RasterCanvasTransparencyCellSizeCapability<RasterCanvas>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(bitmap)& cell, std::shared_ptr<gui_drawing::Bitmap> incoming);
+    [[nodiscard]] std::shared_ptr<gui_drawing::Bitmap> read_view(const decltype(bitmap)& cell) const;
+    void write_view(const decltype(zoom)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(zoom)& cell) const;
+    void write_view(const decltype(view_origin)& cell, gui_drawing::PointF incoming);
+    [[nodiscard]] gui_drawing::PointF read_view(const decltype(view_origin)& cell) const;
+    void prepare_write(const decltype(sampling)& cell, ImageSampling& incoming);
+    void written(const decltype(sampling)& cell);
+    void prepare_write(const decltype(transparency_grid)& cell, bool& incoming);
+    void written(const decltype(transparency_grid)& cell);
+    void prepare_write(const decltype(canvas_background)& cell, Color& incoming);
+    void written(const decltype(canvas_background)& cell);
+    void prepare_write(const decltype(transparency_cell_size)& cell, double& incoming);
+    void written(const decltype(transparency_cell_size)& cell);
+    // property_codemod end RasterCanvas
 };
 
 } // namespace gui_forms

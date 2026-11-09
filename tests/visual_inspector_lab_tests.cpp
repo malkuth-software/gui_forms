@@ -69,10 +69,10 @@ void test_readout_value_follows_its_target(Window& window) {
     const std::shared_ptr<VisualInspectorView> readout =
         std::dynamic_pointer_cast<VisualInspectorView>(window.find("visual-inspector.readout"));
     require(readout != nullptr, "the readout is a VisualInspectorView");
-    (*readout).set_target_stable_id("visual-inspector.specimen-button");
+    (*readout).target_stable_id = "visual-inspector.specimen-button";
     require(readout_value(window).find("visual-inspector.specimen-button; ") == 0U,
             "a new target gives the readout a new value");
-    (*readout).set_target_stable_id("visual-inspector.specimen-card");
+    (*readout).target_stable_id = "visual-inspector.specimen-card";
 }
 
 } // namespace

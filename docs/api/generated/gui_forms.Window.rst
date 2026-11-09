@@ -23,6 +23,13 @@ gui_forms::Window
    and ``dispatch_key``, run posted work with ``drain_posted_work``, and read the
    results.
 
+   A window made on the thread of the current application (see :cpp:class:`Application <gui_forms::Application>`)
+   joins it. It shares the application's resources unless it was given its own,
+   starts from the application's presentation defaults, follows its tooltip
+   switch, and leaves the application when destroyed. With no current
+   application, as in tests, the window makes its own resources with the
+   built-in theme.
+
    Everything but the native-host connection is declared on its base,
    :cpp:class:`SurfaceRoot <gui_forms::SurfaceRoot>`: the control tree, layout, focus, input, painting, the
    posted-work queue, overlays, accelerators, tooltips and the counters. :cpp:class:`Window <gui_forms::Window>`
@@ -49,15 +56,43 @@ gui_forms::Window
 
       **cursor_capabilities** : ``CursorCapabilities``, read-only
 
+      **band_snapshot** : ``WindowBandSnapshot``, read-only
+
+      **corner_preference** : ``WindowCornerPreference``
+
       **presentation_availability** : ``PresentationAvailability``, read-only
          The availability record: the host's declaration and the live lease.
 
       **has_live_surface_presentations** : ``bool``, read-only
          Reports whether durable live-layer registrations keep a native display clock relevant.
 
+      **popup_windows_available** : ``bool``, read-only
+
+      **popup_windows_translucent** : ``bool``, read-only
+         Whether this window's popup windows are translucent now: false on a run whose host draws them opaque (X11 without a compositing manager), where content shown in them casts no shadow and does not fade.
+
+      **application** : ``Application*``, read-only
+         The application the window joined, or null: none was current when it
+         was made, or the application was destroyed first.
+
+      **toast_visible** : ``bool``, read-only
+
+      **toast_content** : ``Control::Ptr``, read-only
+         The content of the toast that shows, or null.
+
+      **toast_id** : ``std::uint64_t``, read-only
+         The ID of the toast that shows, or 0.
+
+   :Events:
+
+      **popup_window_closed** : ``Event<std::size_t>``
+
+      **toast_dismissed** : ``Event<const ToastDismissal&>``
+         Raised after a toast closed, last in the operation that closed it.
+
    :Inherited:
 
-      From :cpp:class:`SurfaceRoot <gui_forms::SurfaceRoot>`: properties :cpp:func:`check_access <gui_forms::SurfaceRoot::check_access>`, :cpp:func:`invoke_required <gui_forms::SurfaceRoot::invoke_required>`, :cpp:func:`dispatcher <gui_forms::SurfaceRoot::dispatcher>`, :cpp:func:`dispatcher_snapshot <gui_forms::SurfaceRoot::dispatcher_snapshot>`, :cpp:func:`metrics_snapshot <gui_forms::SurfaceRoot::metrics_snapshot>`, :cpp:func:`root <gui_forms::SurfaceRoot::root>`, :cpp:func:`client_size <gui_forms::SurfaceRoot::client_size>`, :cpp:func:`scale <gui_forms::SurfaceRoot::scale>`, :cpp:func:`presentation_settings <gui_forms::SurfaceRoot::presentation_settings>`, :cpp:func:`text_metrics_provider <gui_forms::SurfaceRoot::text_metrics_provider>`, :cpp:func:`theme <gui_forms::SurfaceRoot::theme>`, :cpp:func:`application_theme <gui_forms::SurfaceRoot::application_theme>`, :cpp:func:`theme_fallback <gui_forms::SurfaceRoot::theme_fallback>`, :cpp:func:`user_theme_rules <gui_forms::SurfaceRoot::user_theme_rules>`, :cpp:func:`theme_ptr <gui_forms::SurfaceRoot::theme_ptr>`, :cpp:func:`inline_with_theme_reported <gui_forms::SurfaceRoot::inline_with_theme_reported>`, :cpp:func:`resources <gui_forms::SurfaceRoot::resources>`, :cpp:func:`active <gui_forms::SurfaceRoot::active>`, :cpp:func:`non_opaque_declared <gui_forms::SurfaceRoot::non_opaque_declared>`, :cpp:func:`compositor_state <gui_forms::SurfaceRoot::compositor_state>`, :cpp:func:`backdrop_request <gui_forms::SurfaceRoot::backdrop_request>`, :cpp:func:`backdrop_grant <gui_forms::SurfaceRoot::backdrop_grant>`, :cpp:func:`backdrop_chain <gui_forms::SurfaceRoot::backdrop_chain>`, :cpp:func:`backdrop_chain_resolution <gui_forms::SurfaceRoot::backdrop_chain_resolution>`, :cpp:func:`host_services <gui_forms::SurfaceRoot::host_services>`, :cpp:func:`key_map <gui_forms::SurfaceRoot::key_map>`, :cpp:func:`key_bindings <gui_forms::SurfaceRoot::key_bindings>`, :cpp:func:`paint_lease_snapshot <gui_forms::SurfaceRoot::paint_lease_snapshot>`, :cpp:func:`needs_frame <gui_forms::SurfaceRoot::needs_frame>`, :cpp:func:`next_wake <gui_forms::SurfaceRoot::next_wake>`, :cpp:func:`occluded <gui_forms::SurfaceRoot::occluded>`, :cpp:func:`image_resources <gui_forms::SurfaceRoot::image_resources>`, :cpp:func:`image_resource_snapshot <gui_forms::SurfaceRoot::image_resource_snapshot>`, :cpp:func:`focused_control <gui_forms::SurfaceRoot::focused_control>`, :cpp:func:`focus_cue_visible <gui_forms::SurfaceRoot::focus_cue_visible>`, :cpp:func:`validation_snapshot <gui_forms::SurfaceRoot::validation_snapshot>`, :cpp:func:`focus_scope_depth <gui_forms::SurfaceRoot::focus_scope_depth>`, :cpp:func:`active_focus_scope_root <gui_forms::SurfaceRoot::active_focus_scope_root>`, :cpp:func:`focus_regions <gui_forms::SurfaceRoot::focus_regions>`, :cpp:func:`accept_button <gui_forms::SurfaceRoot::accept_button>`, :cpp:func:`cancel_button <gui_forms::SurfaceRoot::cancel_button>`, :cpp:func:`dialog_key_snapshot <gui_forms::SurfaceRoot::dialog_key_snapshot>`, :cpp:func:`dialog_result <gui_forms::SurfaceRoot::dialog_result>`, :cpp:func:`captured_control <gui_forms::SurfaceRoot::captured_control>`, :cpp:func:`captured_pointer_id <gui_forms::SurfaceRoot::captured_pointer_id>`, :cpp:func:`tool_tips_shown_setting <gui_forms::SurfaceRoot::tool_tips_shown_setting>`, :cpp:func:`tool_tips_shown <gui_forms::SurfaceRoot::tool_tips_shown>`, :cpp:func:`tool_tip_settings <gui_forms::SurfaceRoot::tool_tip_settings>`, :cpp:func:`tool_tip_visible <gui_forms::SurfaceRoot::tool_tip_visible>`, :cpp:func:`tool_tip_target <gui_forms::SurfaceRoot::tool_tip_target>`, :cpp:func:`tool_tip_item_id <gui_forms::SurfaceRoot::tool_tip_item_id>`, :cpp:func:`tool_tip_text <gui_forms::SurfaceRoot::tool_tip_text>`, :cpp:func:`pressed_control <gui_forms::SurfaceRoot::pressed_control>`, :cpp:func:`deferred_input_snapshot <gui_forms::SurfaceRoot::deferred_input_snapshot>`, :cpp:func:`engine_parts <gui_forms::SurfaceRoot::engine_parts>`, :cpp:func:`motion_clock <gui_forms::SurfaceRoot::motion_clock>`, :cpp:func:`layout_diagnostics <gui_forms::SurfaceRoot::layout_diagnostics>`, :cpp:func:`dropped_layout_diagnostics <gui_forms::SurfaceRoot::dropped_layout_diagnostics>`, :cpp:func:`control_table <gui_forms::SurfaceRoot::control_table>`, :cpp:func:`containing_block_watch_count <gui_forms::SurfaceRoot::containing_block_watch_count>`, :cpp:func:`containing_block_subtree_arranges <gui_forms::SurfaceRoot::containing_block_subtree_arranges>`, :cpp:func:`semantic_generation <gui_forms::SurfaceRoot::semantic_generation>`; events :cpp:func:`presentation_changed <gui_forms::SurfaceRoot::presentation_changed>`, :cpp:func:`theme_changed <gui_forms::SurfaceRoot::theme_changed>`, :cpp:func:`active_changed <gui_forms::SurfaceRoot::active_changed>`, :cpp:func:`backdrop_changed <gui_forms::SurfaceRoot::backdrop_changed>`, :cpp:func:`focused_control_changed <gui_forms::SurfaceRoot::focused_control_changed>`, :cpp:func:`help_requested <gui_forms::SurfaceRoot::help_requested>`, :cpp:func:`dialog_result_changed <gui_forms::SurfaceRoot::dialog_result_changed>`, :cpp:func:`focus_scope_changed <gui_forms::SurfaceRoot::focus_scope_changed>`, :cpp:func:`pointer_capture_changed <gui_forms::SurfaceRoot::pointer_capture_changed>`, :cpp:func:`control_availability_changed <gui_forms::SurfaceRoot::control_availability_changed>`, :cpp:func:`tool_tip_visibility_changed <gui_forms::SurfaceRoot::tool_tip_visibility_changed>`; methods :cpp:func:`add_focus_region <gui_forms::SurfaceRoot::add_focus_region>`, :cpp:func:`append_interactions <gui_forms::SurfaceRoot::append_interactions>`, :cpp:func:`begin_focus_scope <gui_forms::SurfaceRoot::begin_focus_scope>`, :cpp:func:`begin_invoke <gui_forms::SurfaceRoot::begin_invoke>`, :cpp:func:`begin_update <gui_forms::SurfaceRoot::begin_update>`, :cpp:func:`cancel_drag <gui_forms::SurfaceRoot::cancel_drag>`, :cpp:func:`cancel_frame_requests <gui_forms::SurfaceRoot::cancel_frame_requests>`, :cpp:func:`capture_pointer <gui_forms::SurfaceRoot::capture_pointer>`, :cpp:func:`clear_layout_diagnostics <gui_forms::SurfaceRoot::clear_layout_diagnostics>`, :cpp:func:`command_target <gui_forms::SurfaceRoot::command_target>`, :cpp:func:`containing_block_dependent_count <gui_forms::SurfaceRoot::containing_block_dependent_count>`, :cpp:func:`create_framebuffer <gui_forms::SurfaceRoot::create_framebuffer>`, :cpp:func:`declare_non_opaque <gui_forms::SurfaceRoot::declare_non_opaque>`, :cpp:func:`dispatch_drag <gui_forms::SurfaceRoot::dispatch_drag>`, :cpp:func:`dispatch_key <gui_forms::SurfaceRoot::dispatch_key>`, :cpp:func:`dispatch_pointer <gui_forms::SurfaceRoot::dispatch_pointer>`, :cpp:func:`dispatch_text <gui_forms::SurfaceRoot::dispatch_text>`, :cpp:func:`drain_posted_work <gui_forms::SurfaceRoot::drain_posted_work>`, :cpp:func:`end_focus_scope <gui_forms::SurfaceRoot::end_focus_scope>`, :cpp:func:`fill_line_break_opportunities_utf8 <gui_forms::SurfaceRoot::fill_line_break_opportunities_utf8>`, :cpp:func:`find <gui_forms::SurfaceRoot::find>`, :cpp:func:`flush <gui_forms::SurfaceRoot::flush>`, :cpp:func:`hide_tool_tip <gui_forms::SurfaceRoot::hide_tool_tip>`, :cpp:func:`hit_test <gui_forms::SurfaceRoot::hit_test>`, :cpp:func:`invoke <gui_forms::SurfaceRoot::invoke>`, :cpp:func:`load_bgra32_premultiplied <gui_forms::SurfaceRoot::load_bgra32_premultiplied>`, :cpp:func:`load_png <gui_forms::SurfaceRoot::load_png>`, :cpp:func:`metrics <gui_forms::SurfaceRoot::metrics>`, :cpp:func:`metrics_snapshot <gui_forms::SurfaceRoot::metrics_snapshot>`, :cpp:func:`motion_clock <gui_forms::SurfaceRoot::motion_clock>`, :cpp:func:`move_focus <gui_forms::SurfaceRoot::move_focus>`, :cpp:func:`move_focus_region <gui_forms::SurfaceRoot::move_focus_region>`, :cpp:func:`notify_presented <gui_forms::SurfaceRoot::notify_presented>`, :cpp:func:`offer_accelerators <gui_forms::SurfaceRoot::offer_accelerators>`, :cpp:func:`open_overlay <gui_forms::SurfaceRoot::open_overlay>`, :cpp:func:`paint <gui_forms::SurfaceRoot::paint>`, :cpp:func:`patch_bgra32_premultiplied <gui_forms::SurfaceRoot::patch_bgra32_premultiplied>`, :cpp:func:`perform_layout <gui_forms::SurfaceRoot::perform_layout>`, :cpp:func:`perform_semantic_action <gui_forms::SurfaceRoot::perform_semantic_action>`, :cpp:func:`poll_frame_schedule <gui_forms::SurfaceRoot::poll_frame_schedule>`, :cpp:func:`publish_value <gui_forms::SurfaceRoot::publish_value>`, :cpp:func:`published_value <gui_forms::SurfaceRoot::published_value>`, :cpp:func:`raise_alert <gui_forms::SurfaceRoot::raise_alert>`, :cpp:func:`rebind_key_command <gui_forms::SurfaceRoot::rebind_key_command>`, :cpp:func:`register_accelerator <gui_forms::SurfaceRoot::register_accelerator>`, :cpp:func:`release_control_snapshot <gui_forms::SurfaceRoot::release_control_snapshot>`, :cpp:func:`release_pointer <gui_forms::SurfaceRoot::release_pointer>`, :cpp:func:`remove_image <gui_forms::SurfaceRoot::remove_image>`, :cpp:func:`replace_bgra32_premultiplied <gui_forms::SurfaceRoot::replace_bgra32_premultiplied>`, :cpp:func:`replace_png <gui_forms::SurfaceRoot::replace_png>`, :cpp:func:`request_backdrop <gui_forms::SurfaceRoot::request_backdrop>`, :cpp:func:`request_focus <gui_forms::SurfaceRoot::request_focus>`, :cpp:func:`request_help <gui_forms::SurfaceRoot::request_help>`, :cpp:func:`request_tool_tip <gui_forms::SurfaceRoot::request_tool_tip>`, :cpp:func:`reset_activity_metrics <gui_forms::SurfaceRoot::reset_activity_metrics>`, :cpp:func:`resolve_command <gui_forms::SurfaceRoot::resolve_command>`, :cpp:func:`resolve_text_layout_utf8 <gui_forms::SurfaceRoot::resolve_text_layout_utf8>`, :cpp:func:`restore_key_command <gui_forms::SurfaceRoot::restore_key_command>`, :cpp:func:`route_command <gui_forms::SurfaceRoot::route_command>`, :cpp:func:`schedule_paint <gui_forms::SurfaceRoot::schedule_paint>`, :cpp:func:`schedule_ui_timer <gui_forms::SurfaceRoot::schedule_ui_timer>`, :cpp:func:`semantic_snapshot <gui_forms::SurfaceRoot::semantic_snapshot>`, :cpp:func:`semantic_text_layout <gui_forms::SurfaceRoot::semantic_text_layout>`, :cpp:func:`set_command_target <gui_forms::SurfaceRoot::set_command_target>`, :cpp:func:`set_dispatch_wake_handler <gui_forms::SurfaceRoot::set_dispatch_wake_handler>`, :cpp:func:`set_framebuffer_painter <gui_forms::SurfaceRoot::set_framebuffer_painter>`, :cpp:func:`set_paint_wake_handler <gui_forms::SurfaceRoot::set_paint_wake_handler>`, :cpp:func:`set_semantic_text_selection <gui_forms::SurfaceRoot::set_semantic_text_selection>`, :cpp:func:`set_text_scale <gui_forms::SurfaceRoot::set_text_scale>`, :cpp:func:`shares_resources_with <gui_forms::SurfaceRoot::shares_resources_with>`, :cpp:func:`show_tool_tip <gui_forms::SurfaceRoot::show_tool_tip>`, :cpp:func:`shutdown_dispatcher <gui_forms::SurfaceRoot::shutdown_dispatcher>`, :cpp:func:`snapshot_control <gui_forms::SurfaceRoot::snapshot_control>`, :cpp:func:`take_damage <gui_forms::SurfaceRoot::take_damage>`, :cpp:func:`text_input_caret <gui_forms::SurfaceRoot::text_input_caret>`, :cpp:func:`update_bgra32_premultiplied <gui_forms::SurfaceRoot::update_bgra32_premultiplied>`, :cpp:func:`validate_children <gui_forms::SurfaceRoot::validate_children>`, :cpp:func:`validate_control <gui_forms::SurfaceRoot::validate_control>`, :cpp:func:`verify_access <gui_forms::SurfaceRoot::verify_access>`, :cpp:func:`visual_inspection_snapshot <gui_forms::SurfaceRoot::visual_inspection_snapshot>`, :cpp:func:`withdraw_alert <gui_forms::SurfaceRoot::withdraw_alert>`, :cpp:func:`withdraw_tool_tip_request <gui_forms::SurfaceRoot::withdraw_tool_tip_request>`, :cpp:func:`withdraw_value <gui_forms::SurfaceRoot::withdraw_value>`.
+      From :cpp:class:`SurfaceRoot <gui_forms::SurfaceRoot>`: properties :cpp:func:`check_access <gui_forms::SurfaceRoot::check_access>`, :cpp:func:`invoke_required <gui_forms::SurfaceRoot::invoke_required>`, :cpp:func:`dispatcher <gui_forms::SurfaceRoot::dispatcher>`, :cpp:func:`dispatcher_snapshot <gui_forms::SurfaceRoot::dispatcher_snapshot>`, :cpp:func:`metrics_snapshot <gui_forms::SurfaceRoot::metrics_snapshot>`, :cpp:func:`root <gui_forms::SurfaceRoot::root>`, :cpp:func:`client_size <gui_forms::SurfaceRoot::client_size>`, :cpp:func:`root_slot <gui_forms::SurfaceRoot::root_slot>`, :cpp:func:`content_rect <gui_forms::SurfaceRoot::content_rect>`, :cpp:func:`chrome_insets <gui_forms::SurfaceRoot::chrome_insets>`, :cpp:func:`scale <gui_forms::SurfaceRoot::scale>`, :cpp:func:`presentation_settings <gui_forms::SurfaceRoot::presentation_settings>`, :cpp:func:`presentation_base <gui_forms::SurfaceRoot::presentation_base>`, :cpp:func:`presentation_overrides <gui_forms::SurfaceRoot::presentation_overrides>`, :cpp:func:`overrides <gui_forms::SurfaceRoot::overrides>`, :cpp:func:`text_metrics_provider <gui_forms::SurfaceRoot::text_metrics_provider>`, :cpp:func:`theme <gui_forms::SurfaceRoot::theme>`, :cpp:func:`application_theme <gui_forms::SurfaceRoot::application_theme>`, :cpp:func:`theme_fallback <gui_forms::SurfaceRoot::theme_fallback>`, :cpp:func:`user_theme_rules <gui_forms::SurfaceRoot::user_theme_rules>`, :cpp:func:`theme_ptr <gui_forms::SurfaceRoot::theme_ptr>`, :cpp:func:`inline_with_theme_reported <gui_forms::SurfaceRoot::inline_with_theme_reported>`, :cpp:func:`resources <gui_forms::SurfaceRoot::resources>`, :cpp:func:`active <gui_forms::SurfaceRoot::active>`, :cpp:func:`non_opaque_declared <gui_forms::SurfaceRoot::non_opaque_declared>`, :cpp:func:`compositor_state <gui_forms::SurfaceRoot::compositor_state>`, :cpp:func:`backdrop_request <gui_forms::SurfaceRoot::backdrop_request>`, :cpp:func:`backdrop_grant <gui_forms::SurfaceRoot::backdrop_grant>`, :cpp:func:`backdrop_chain <gui_forms::SurfaceRoot::backdrop_chain>`, :cpp:func:`backdrop_chain_resolution <gui_forms::SurfaceRoot::backdrop_chain_resolution>`, :cpp:func:`host_services <gui_forms::SurfaceRoot::host_services>`, :cpp:func:`key_map <gui_forms::SurfaceRoot::key_map>`, :cpp:func:`key_bindings <gui_forms::SurfaceRoot::key_bindings>`, :cpp:func:`paint_lease_snapshot <gui_forms::SurfaceRoot::paint_lease_snapshot>`, :cpp:func:`scroll_copies_supported <gui_forms::SurfaceRoot::scroll_copies_supported>`, :cpp:func:`needs_frame <gui_forms::SurfaceRoot::needs_frame>`, :cpp:func:`next_wake <gui_forms::SurfaceRoot::next_wake>`, :cpp:func:`occluded <gui_forms::SurfaceRoot::occluded>`, :cpp:func:`image_resources <gui_forms::SurfaceRoot::image_resources>`, :cpp:func:`image_resource_snapshot <gui_forms::SurfaceRoot::image_resource_snapshot>`, :cpp:func:`focused_control <gui_forms::SurfaceRoot::focused_control>`, :cpp:func:`focus_cue_visible <gui_forms::SurfaceRoot::focus_cue_visible>`, :cpp:func:`validation_snapshot <gui_forms::SurfaceRoot::validation_snapshot>`, :cpp:func:`focus_scope_depth <gui_forms::SurfaceRoot::focus_scope_depth>`, :cpp:func:`active_focus_scope_root <gui_forms::SurfaceRoot::active_focus_scope_root>`, :cpp:func:`focus_regions <gui_forms::SurfaceRoot::focus_regions>`, :cpp:func:`accept_button <gui_forms::SurfaceRoot::accept_button>`, :cpp:func:`cancel_button <gui_forms::SurfaceRoot::cancel_button>`, :cpp:func:`dialog_key_snapshot <gui_forms::SurfaceRoot::dialog_key_snapshot>`, :cpp:func:`dialog_result <gui_forms::SurfaceRoot::dialog_result>`, :cpp:func:`captured_control <gui_forms::SurfaceRoot::captured_control>`, :cpp:func:`captured_pointer_id <gui_forms::SurfaceRoot::captured_pointer_id>`, :cpp:func:`tool_tips_shown_setting <gui_forms::SurfaceRoot::tool_tips_shown_setting>`, :cpp:func:`tool_tips_shown <gui_forms::SurfaceRoot::tool_tips_shown>`, :cpp:func:`tool_tip_settings <gui_forms::SurfaceRoot::tool_tip_settings>`, :cpp:func:`tool_tip_visible <gui_forms::SurfaceRoot::tool_tip_visible>`, :cpp:func:`tool_tip_target <gui_forms::SurfaceRoot::tool_tip_target>`, :cpp:func:`tool_tip_item_id <gui_forms::SurfaceRoot::tool_tip_item_id>`, :cpp:func:`tool_tip_text <gui_forms::SurfaceRoot::tool_tip_text>`, :cpp:func:`pressed_control <gui_forms::SurfaceRoot::pressed_control>`, :cpp:func:`hovered_control <gui_forms::SurfaceRoot::hovered_control>`, :cpp:func:`interaction_snapshot <gui_forms::SurfaceRoot::interaction_snapshot>`, :cpp:func:`deferred_input_snapshot <gui_forms::SurfaceRoot::deferred_input_snapshot>`, :cpp:func:`engine_parts <gui_forms::SurfaceRoot::engine_parts>`, :cpp:func:`motion_clock <gui_forms::SurfaceRoot::motion_clock>`, :cpp:func:`layout_diagnostics <gui_forms::SurfaceRoot::layout_diagnostics>`, :cpp:func:`dropped_layout_diagnostics <gui_forms::SurfaceRoot::dropped_layout_diagnostics>`, :cpp:func:`control_table <gui_forms::SurfaceRoot::control_table>`, :cpp:func:`containing_block_watch_count <gui_forms::SurfaceRoot::containing_block_watch_count>`, :cpp:func:`containing_block_subtree_arranges <gui_forms::SurfaceRoot::containing_block_subtree_arranges>`, :cpp:func:`semantic_generation <gui_forms::SurfaceRoot::semantic_generation>`; events :cpp:func:`presentation_changed <gui_forms::SurfaceRoot::presentation_changed>`, :cpp:func:`theme_changed <gui_forms::SurfaceRoot::theme_changed>`, :cpp:func:`active_changed <gui_forms::SurfaceRoot::active_changed>`, :cpp:func:`backdrop_changed <gui_forms::SurfaceRoot::backdrop_changed>`, :cpp:func:`focused_control_changed <gui_forms::SurfaceRoot::focused_control_changed>`, :cpp:func:`help_requested <gui_forms::SurfaceRoot::help_requested>`, :cpp:func:`dialog_result_changed <gui_forms::SurfaceRoot::dialog_result_changed>`, :cpp:func:`focus_scope_changed <gui_forms::SurfaceRoot::focus_scope_changed>`, :cpp:func:`pointer_capture_changed <gui_forms::SurfaceRoot::pointer_capture_changed>`, :cpp:func:`control_availability_changed <gui_forms::SurfaceRoot::control_availability_changed>`, :cpp:func:`tool_tip_visibility_changed <gui_forms::SurfaceRoot::tool_tip_visibility_changed>`; methods :cpp:func:`add_focus_region <gui_forms::SurfaceRoot::add_focus_region>`, :cpp:func:`append_interactions <gui_forms::SurfaceRoot::append_interactions>`, :cpp:func:`begin_focus_scope <gui_forms::SurfaceRoot::begin_focus_scope>`, :cpp:func:`begin_invoke <gui_forms::SurfaceRoot::begin_invoke>`, :cpp:func:`begin_update <gui_forms::SurfaceRoot::begin_update>`, :cpp:func:`cancel_drag <gui_forms::SurfaceRoot::cancel_drag>`, :cpp:func:`cancel_frame_requests <gui_forms::SurfaceRoot::cancel_frame_requests>`, :cpp:func:`capture_pointer <gui_forms::SurfaceRoot::capture_pointer>`, :cpp:func:`clear_key_bindings <gui_forms::SurfaceRoot::clear_key_bindings>`, :cpp:func:`clear_layout_diagnostics <gui_forms::SurfaceRoot::clear_layout_diagnostics>`, :cpp:func:`command_target <gui_forms::SurfaceRoot::command_target>`, :cpp:func:`containing_block_dependent_count <gui_forms::SurfaceRoot::containing_block_dependent_count>`, :cpp:func:`control <gui_forms::SurfaceRoot::control>`, :cpp:func:`create_framebuffer <gui_forms::SurfaceRoot::create_framebuffer>`, :cpp:func:`declare_non_opaque <gui_forms::SurfaceRoot::declare_non_opaque>`, :cpp:func:`dispatch_context_request <gui_forms::SurfaceRoot::dispatch_context_request>`, :cpp:func:`dispatch_drag <gui_forms::SurfaceRoot::dispatch_drag>`, :cpp:func:`dispatch_host_hover <gui_forms::SurfaceRoot::dispatch_host_hover>`, :cpp:func:`dispatch_key <gui_forms::SurfaceRoot::dispatch_key>`, :cpp:func:`dispatch_pointer <gui_forms::SurfaceRoot::dispatch_pointer>`, :cpp:func:`dispatch_text <gui_forms::SurfaceRoot::dispatch_text>`, :cpp:func:`drain_posted_work <gui_forms::SurfaceRoot::drain_posted_work>`, :cpp:func:`end_focus_scope <gui_forms::SurfaceRoot::end_focus_scope>`, :cpp:func:`fill_line_break_opportunities_utf8 <gui_forms::SurfaceRoot::fill_line_break_opportunities_utf8>`, :cpp:func:`find <gui_forms::SurfaceRoot::find>`, :cpp:func:`flush <gui_forms::SurfaceRoot::flush>`, :cpp:func:`hide_tool_tip <gui_forms::SurfaceRoot::hide_tool_tip>`, :cpp:func:`hit_test <gui_forms::SurfaceRoot::hit_test>`, :cpp:func:`invoke <gui_forms::SurfaceRoot::invoke>`, :cpp:func:`load_bgra32_premultiplied <gui_forms::SurfaceRoot::load_bgra32_premultiplied>`, :cpp:func:`load_png <gui_forms::SurfaceRoot::load_png>`, :cpp:func:`metrics <gui_forms::SurfaceRoot::metrics>`, :cpp:func:`metrics_snapshot <gui_forms::SurfaceRoot::metrics_snapshot>`, :cpp:func:`motion_clock <gui_forms::SurfaceRoot::motion_clock>`, :cpp:func:`move_focus <gui_forms::SurfaceRoot::move_focus>`, :cpp:func:`move_focus_region <gui_forms::SurfaceRoot::move_focus_region>`, :cpp:func:`notify_presented <gui_forms::SurfaceRoot::notify_presented>`, :cpp:func:`offer_accelerators <gui_forms::SurfaceRoot::offer_accelerators>`, :cpp:func:`open_overlay <gui_forms::SurfaceRoot::open_overlay>`, :cpp:func:`paint <gui_forms::SurfaceRoot::paint>`, :cpp:func:`patch_bgra32_premultiplied <gui_forms::SurfaceRoot::patch_bgra32_premultiplied>`, :cpp:func:`perform_layout <gui_forms::SurfaceRoot::perform_layout>`, :cpp:func:`perform_semantic_action <gui_forms::SurfaceRoot::perform_semantic_action>`, :cpp:func:`poll_frame_schedule <gui_forms::SurfaceRoot::poll_frame_schedule>`, :cpp:func:`publish_value <gui_forms::SurfaceRoot::publish_value>`, :cpp:func:`published_value <gui_forms::SurfaceRoot::published_value>`, :cpp:func:`raise_alert <gui_forms::SurfaceRoot::raise_alert>`, :cpp:func:`rebind_key_command <gui_forms::SurfaceRoot::rebind_key_command>`, :cpp:func:`register_accelerator <gui_forms::SurfaceRoot::register_accelerator>`, :cpp:func:`release_control_snapshot <gui_forms::SurfaceRoot::release_control_snapshot>`, :cpp:func:`release_pointer <gui_forms::SurfaceRoot::release_pointer>`, :cpp:func:`remove_image <gui_forms::SurfaceRoot::remove_image>`, :cpp:func:`replace_bgra32_premultiplied <gui_forms::SurfaceRoot::replace_bgra32_premultiplied>`, :cpp:func:`replace_png <gui_forms::SurfaceRoot::replace_png>`, :cpp:func:`request_backdrop <gui_forms::SurfaceRoot::request_backdrop>`, :cpp:func:`request_focus <gui_forms::SurfaceRoot::request_focus>`, :cpp:func:`request_help <gui_forms::SurfaceRoot::request_help>`, :cpp:func:`request_scroll_copy <gui_forms::SurfaceRoot::request_scroll_copy>`, :cpp:func:`request_tool_tip <gui_forms::SurfaceRoot::request_tool_tip>`, :cpp:func:`reset_activity_metrics <gui_forms::SurfaceRoot::reset_activity_metrics>`, :cpp:func:`resolve_command <gui_forms::SurfaceRoot::resolve_command>`, :cpp:func:`resolve_text_layout_utf8 <gui_forms::SurfaceRoot::resolve_text_layout_utf8>`, :cpp:func:`restore_key_command <gui_forms::SurfaceRoot::restore_key_command>`, :cpp:func:`route_command <gui_forms::SurfaceRoot::route_command>`, :cpp:func:`rules <gui_forms::SurfaceRoot::rules>`, :cpp:func:`schedule_paint <gui_forms::SurfaceRoot::schedule_paint>`, :cpp:func:`schedule_ui_timer <gui_forms::SurfaceRoot::schedule_ui_timer>`, :cpp:func:`semantic_snapshot <gui_forms::SurfaceRoot::semantic_snapshot>`, :cpp:func:`semantic_text_layout <gui_forms::SurfaceRoot::semantic_text_layout>`, :cpp:func:`set_command_target <gui_forms::SurfaceRoot::set_command_target>`, :cpp:func:`set_dispatch_wake_handler <gui_forms::SurfaceRoot::set_dispatch_wake_handler>`, :cpp:func:`set_framebuffer_painter <gui_forms::SurfaceRoot::set_framebuffer_painter>`, :cpp:func:`set_input_time_source <gui_forms::SurfaceRoot::set_input_time_source>`, :cpp:func:`set_paint_wake_handler <gui_forms::SurfaceRoot::set_paint_wake_handler>`, :cpp:func:`set_semantic_text_selection <gui_forms::SurfaceRoot::set_semantic_text_selection>`, :cpp:func:`set_text_scale <gui_forms::SurfaceRoot::set_text_scale>`, :cpp:func:`set_theme_override <gui_forms::SurfaceRoot::set_theme_override>`, :cpp:func:`share_key_bindings <gui_forms::SurfaceRoot::share_key_bindings>`, :cpp:func:`shares_resources_with <gui_forms::SurfaceRoot::shares_resources_with>`, :cpp:func:`show_tool_tip <gui_forms::SurfaceRoot::show_tool_tip>`, :cpp:func:`shutdown_dispatcher <gui_forms::SurfaceRoot::shutdown_dispatcher>`, :cpp:func:`snapshot_control <gui_forms::SurfaceRoot::snapshot_control>`, :cpp:func:`take_damage <gui_forms::SurfaceRoot::take_damage>`, :cpp:func:`take_scroll_copies <gui_forms::SurfaceRoot::take_scroll_copies>`, :cpp:func:`text_input_caret <gui_forms::SurfaceRoot::text_input_caret>`, :cpp:func:`update_bgra32_premultiplied <gui_forms::SurfaceRoot::update_bgra32_premultiplied>`, :cpp:func:`validate_children <gui_forms::SurfaceRoot::validate_children>`, :cpp:func:`validate_control <gui_forms::SurfaceRoot::validate_control>`, :cpp:func:`verify_access <gui_forms::SurfaceRoot::verify_access>`, :cpp:func:`visual_inspection_snapshot <gui_forms::SurfaceRoot::visual_inspection_snapshot>`, :cpp:func:`withdraw_alert <gui_forms::SurfaceRoot::withdraw_alert>`, :cpp:func:`withdraw_tool_tip_request <gui_forms::SurfaceRoot::withdraw_tool_tip_request>`, :cpp:func:`withdraw_value <gui_forms::SurfaceRoot::withdraw_value>`.
 
    .. rubric:: Methods
 
@@ -71,6 +106,12 @@ gui_forms::Window
         - Synchronous client-DIP placement.
       * - :cpp:func:`resize <gui_forms::Window::resize>`
         - Changes the client size and marks the whole tree for layout, which runs at the next flush or geometry read.
+      * - :cpp:func:`declare_band <gui_forms::Window::declare_band>`
+        - The window outer band (owner, 2026-11-08; gui_forms/window/band/ window_band.hpp).
+      * - :cpp:func:`undeclare_band <gui_forms::Window::undeclare_band>`
+        - Removes the band and its reservation; the window is laid out again.
+      * - :cpp:func:`report_full_screen <gui_forms::Window::report_full_screen>`
+        - Host-only: the native window entered or left full screen.
       * - :cpp:func:`notify_live_presented <gui_forms::Window::notify_live_presented>`
         - Records one live-surface frame the host copied to the screen.
       * - :cpp:func:`declare_presentation <gui_forms::Window::declare_presentation>`
@@ -83,8 +124,30 @@ gui_forms::Window
         - Returns surfaces with a new generation or a changed placement (destination, clip or crossing overlays).
       * - :cpp:func:`open_native_popup <gui_forms::Window::open_native_popup>`
         - Opens ``content``, a live detached root, in a native popup window owned by this window (owner, 2026-11-04; native_popup.hpp), at ``bounds`` in this window's client area (logical units; each extent 1 to 32768), kept inside the work area of its monitor.
+      * - :cpp:func:`show_popup_window <gui_forms::Window::show_popup_window>`
+        -  
+      * - :cpp:func:`move_popup_window <gui_forms::Window::move_popup_window>`
+        -  
+      * - :cpp:func:`hide_popup_window <gui_forms::Window::hide_popup_window>`
+        -  
+      * - :cpp:func:`popup_window_model <gui_forms::Window::popup_window_model>`
+        -  
+      * - :cpp:func:`forward_input_to_popup_window <gui_forms::Window::forward_input_to_popup_window>`
+        - While ``slot`` is set, every key and text event this window receives is offered first to ``popup_window_model(*slot)``, and routed here only when that leaves it unhandled; none ends the forwarding.
+      * - :cpp:func:`popup_work_area <gui_forms::Window::popup_work_area>`
+        - The work area of the monitor under ``client_point`` (this window's client coordinates), in client coordinates: the region a Popup window may cover, which reaches past the client area onto the desktop.
+      * - :cpp:func:`show_toast <gui_forms::Window::show_toast>`
+        - Toasts (W-4; coordinator ruling: one presenter per window, on the tooltip presenter's pattern, so that both move to lightweight Splash windows in Part S).
+      * - :cpp:func:`dismiss_toast <gui_forms::Window::dismiss_toast>`
+        - Closes the toast that shows when ``content`` is its content, for ``reason`` (the content's own close mark or action); false, changing nothing, otherwise.
+      * - :cpp:func:`hide_toast <gui_forms::Window::hide_toast>`
+        - Closes the toast that shows (dismissed ``hidden``).
       * - :cpp:func:`set_scale <gui_forms::Window::set_scale>`
         -  
+      * - :cpp:func:`set_band_appearance <gui_forms::Window::set_band_appearance>`
+        - What the band shows: paint only, never a layout; only the four strips repaint.
+      * - :cpp:func:`set_live_surface_pairing_listener <gui_forms::Window::set_live_surface_pairing_listener>`
+        - Where the notice of an unpaired presentation of the surface registered for ``control`` goes, held weakly; replaces any earlier listener (an empty one: none).
       * - :cpp:func:`set_live_surface_idle_wake_handler <gui_forms::Window::set_live_surface_idle_wake_handler>`
         - Native host idle handshake.
       * - :cpp:func:`set_live_surface_idle_waiting <gui_forms::Window::set_live_surface_idle_waiting>`
@@ -200,7 +263,7 @@ gui_forms::Window
 
       struct ShowDone final {
           std::shared_ptr<gf::Label> status;
-          void operator()() const { (*status).set_text("Done"); }
+          void operator()() const { (*status).text = "Done"; }
       };
 
       void example() {
@@ -222,6 +285,10 @@ gui_forms::Window
 
    .. cpp:function:: explicit Window(Control::Ptr root, Size client_size = {})
 
+   .. cpp:function:: Window(Application& application, Control::Ptr root, Size client_size = {})
+
+      Joins :cpp:func:`application <gui_forms::Window::application>` explicitly, for a program that wants the dependency visible: std::logic_error off its thread or once closed.
+
    .. cpp:function:: Window(Control::Ptr root, Size client_size, ImageRegistryLimits image_limits)
 
       Uses explicit per-window image quotas. The two-argument constructor retains the normal defaults; large-document consumers choose a budget.
@@ -237,6 +304,14 @@ gui_forms::Window
 
    .. cpp:function:: CursorCapabilities cursor_capabilities() const noexcept
 
+   .. cpp:function:: WindowBandSnapshot band_snapshot() const noexcept
+
+   .. cpp:function:: WindowCornerPreference corner_preference() const noexcept
+
+   .. cpp:function:: void set_corner_preference(WindowCornerPreference preference)
+
+      The corners this window asks its host for (owner, 2026-11-08, answer 4): sent at once while a host is attached, and when one attaches. The band follows what the host reports (band_snapshot().corners), not the preference: a host without HostCapability::window_corners reports unknown corners, and the band draws square. std::invalid_argument for a value outside the enumeration, changing nothing. UI thread.
+
    .. cpp:function:: PresentationAvailability presentation_availability() const noexcept
 
       The availability record: the host's declaration and the live lease.
@@ -244,6 +319,36 @@ gui_forms::Window
    .. cpp:function:: bool has_live_surface_presentations() const noexcept
 
       A registration is retained while its control remains attached. Native display clocks use this to stay armed without polling the control tree or requiring one UI callback per producer publication.
+
+   .. cpp:function:: bool popup_windows_available() const
+
+   .. cpp:function:: bool popup_windows_translucent() const
+
+      Whether this window's popup windows are translucent now: false on a run whose host draws them opaque (X11 without a compositing manager), where content shown in them casts no shadow and does not fade.
+
+   .. cpp:function:: Application* application() const noexcept
+
+      The application the window joined, or null: none was current when it
+      was made, or the application was destroyed first.
+
+   .. cpp:function:: bool toast_visible() const noexcept
+
+   .. cpp:function:: Control::Ptr toast_content() const noexcept
+
+      The content of the toast that shows, or null.
+
+   .. cpp:function:: std::uint64_t toast_id() const noexcept
+
+      The ID of the toast that shows, or 0.
+
+
+   .. rubric:: Events
+
+   .. cpp:function:: Event<std::size_t>& popup_window_closed()
+
+   .. cpp:function:: Event<const ToastDismissal&>& toast_dismissed() noexcept
+
+      Raised after a toast closed, last in the operation that closed it.
 
 
    .. rubric:: Methods
@@ -259,6 +364,18 @@ gui_forms::Window
       Changes the client size and marks the whole tree for layout, which runs
       at the next flush or geometry read. A negative size throws
       ``std::invalid_argument``.
+
+   .. cpp:function:: void declare_band(const WindowBandOptions& options)
+
+      The window outer band (owner, 2026-11-08; gui_forms/window/band/ window_band.hpp). declare_band reserves the band on every side at once: the root is measured against the client size less the band and arranged inside it, and the window is laid out again. Declaring again lays it out only when the reserved width changes. std::invalid_argument for options window_band_options_valid refuses, changing nothing. UI thread.
+
+   .. cpp:function:: void undeclare_band()
+
+      Removes the band and its reservation; the window is laid out again. Does nothing for an undeclared band. UI thread.
+
+   .. cpp:function:: void report_full_screen(bool full_screen)
+
+      Host-only: the native window entered or left full screen. A band declared WindowBandFullScreen::hides gives up its reservation in full screen (a layout each way). UI thread.
 
    .. cpp:function:: void notify_live_presented(std::uint64_t duration_nanoseconds, PresentedArea presented)
 
@@ -282,10 +399,54 @@ gui_forms::Window
 
       Opens ``content``, a live detached root, in a native popup window owned by this window (owner, 2026-11-04; native_popup.hpp), at ``bounds`` in this window's client area (logical units; each extent 1 to 32768), kept inside the work area of its monitor. Only a true root window has this capability: a sub-surface is not a Window (owner, 2026-11-05). ``owner`` is a live, visible control of this window; the popup closes when it is gone. When the run cannot open a popup window (no run, a host without popup windows, a host refusal; the token's refusal() names which) the content opens as an overlay at ``bounds`` instead, or nothing opens (NativePopupOptions::fallback). std::logic_error for an unavailable owner or content, std::invalid_argument for bounds out of range or an invalid backdrop chain, changing nothing. UI thread.
 
+   .. cpp:function:: bool show_popup_window(std::size_t slot, const Control::Ptr& content, Rect bounds)
+
+   .. cpp:function:: bool move_popup_window(std::size_t slot, Rect bounds)
+
+   .. cpp:function:: void hide_popup_window(std::size_t slot) noexcept
+
+   .. cpp:function:: Window* popup_window_model(std::size_t slot) const noexcept
+
+   .. cpp:function:: void forward_input_to_popup_window(std::optional<std::size_t> slot)
+
+      While ``slot`` is set, every key and text event this window receives is offered first to ``popup_window_model(*slot)``, and routed here only when that leaves it unhandled; none ends the forwarding. The control whose Popup has the keyboard sets it (PopupLift does) and clears it when the Popup hides. std::out_of_range for a slot out of range. UI thread.
+
+   .. cpp:function:: std::optional<Rect> popup_work_area(Point client_point)
+
+      The work area of the monitor under ``client_point`` (this window's client coordinates), in client coordinates: the region a Popup window may cover, which reaches past the client area onto the desktop. None when the run cannot say (no run, no frame, no monitors). Reads the monitor table into storage the window keeps. UI thread.
+
+   .. cpp:function:: std::uint64_t show_toast(const Control::Ptr& owner, const Control::Ptr& content, std::chrono::milliseconds duration = default_toast_duration)
+
+      Toasts (W-4; coordinator ruling: one presenter per window, on the tooltip presenter's pattern, so that both move to lightweight Splash windows in Part S). Only a true root window shows toasts, as only it opens native popups. show_toast places ``content``, a live control subtree with no parent and in no window (the stock content is Toast), in an overlay owned by ``owner`` (passive, as a tooltip: a disabled owner may show one), centred above the bottom of the client area at the size it measures, for ``duration`` (zero: until dismissed or hidden). A toast that shows is replaced (dismissed ``replaced``). The content takes no focus from the window. When the toast closes, the content leaves the overlay, detached again, so the caller may show it again. Returns the toast's ID: 1 for the first, growing by one. std::invalid_argument for an owner that is not a live, visible control of this window, null or disposed content, content with a parent or in a window, or a negative duration, changing nothing. UI thread.
+
+   .. cpp:function:: bool dismiss_toast(const Control& content, ToastDismissReason reason)
+
+      Closes the toast that shows when ``content`` is its content, for ``reason`` (the content's own close mark or action); false, changing nothing, otherwise. UI thread.
+
+   .. cpp:function:: void hide_toast()
+
+      Closes the toast that shows (dismissed ``hidden``). UI thread.
+
    .. cpp:function:: void set_scale(double scale)
+
+   .. cpp:function:: void set_band_appearance(const WindowBandAppearance& appearance)
+
+      What the band shows: paint only, never a layout; only the four strips repaint. Kept while the band is undeclared, and shown once it is declared. std::invalid_argument for an unknown state, changing nothing. UI thread.
+
+   .. cpp:function:: bool set_live_surface_pairing_listener(const Control::Ptr& control, std::weak_ptr<LiveSurfacePairingListener> listener)
+
+      Where the notice of an unpaired presentation of the surface registered for ``control`` goes, held weakly; replaces any earlier listener (an empty one: none). A new surface for the control drops it. False when ``control`` has no registration. UI thread.
 
    .. cpp:function:: void set_live_surface_idle_wake_handler(std::function<void()> wake)
 
       Native host idle handshake. Install/arm on the UI thread. The handler may run on a producer thread and must only schedule lifetime-safe UI work. One publication wakes each armed idle period; arm also checks generations to cover a publication racing the host's final empty presentation drain.
 
    .. cpp:function:: void set_live_surface_idle_waiting(bool waiting)
+
+   .. cpp:member:: constexpr std::size_t maximum_popup_windows
+
+      Warm Popup windows (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S; menus are Popups). Slot ``slot`` (below maximum_popup_windows; a menu uses its depth) is one passive popup-kind host window, opened hidden on the slot's first show and kept, hidden between shows, for this window's life. show_popup_window shows ``content`` (a live detached root) as its whole client at ``bounds`` (this window's client coordinates, kept inside the monitor's work area), replacing content already shown there; move_popup_window moves it; hide_popup_window hides it and takes the content out. A Popup never takes the focus: keys reach this window, and the control that opened the popup forwards them to popup_window_model(slot), the model while the slot shows (else null). False when the run cannot (no run, a host without popup windows, a host refusal): the caller opens an overlay instead. popup_window_closed() is raised with the slot when the host closes a slot that shows. std::out_of_range for a slot out of range. UI thread. Default: ``8U``.
+
+   .. cpp:member:: constexpr std::size_t picker_popup_window_slot
+
+      The slot drop-downs and pickers lift their lists and panels into (PopupLift; owner, 2026-11-08: Part S scope for 0.5). Menus use the slots below it, one per depth. Default: ``maximum_popup_windows - 1U``.

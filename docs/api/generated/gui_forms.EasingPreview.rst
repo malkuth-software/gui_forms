@@ -7,7 +7,7 @@ gui_forms::EasingPreview
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: EasingPreview final : public Control
+.. cpp:class:: EasingPreview final : public Control, public EasingPreviewCapabilities<EasingPreview>
 
    ``#include <gui_forms/controls/easing_preview/easing_preview.hpp>``
 
@@ -33,21 +33,11 @@ gui_forms::EasingPreview
       **title** : ``std::string``, default ``"Animation timeline and easing"``
          Heading drawn at the top left.
 
-      **style** : ``BasicControlStyle``
-         The :cpp:class:`BasicControlStyle <gui_forms::BasicControlStyle>` colours used for the paper, borders, labels and
-         track rails.
-
       **specification** : ``AnimationSpec``
          The :cpp:class:`AnimationSpec <gui_forms::AnimationSpec>` of the timeline. The constructor sets a 2400 ms,
          infinitely repeating, linear timeline. Setting it restarts the timeline
          from the beginning, even with an equal value. The easing of the
          specification itself does not move the markers; each track's curve does.
-
-      **tracks** : ``std::vector<EasingPreviewTrack>``
-         The rows, each an :cpp:class:`EasingPreviewTrack <gui_forms::EasingPreviewTrack>` with a curve, a label and a marker
-         colour. By default there are eight, one per :cpp:enum:`EasingCurve <gui_forms::EasingCurve>`. There must be
-         1 to 32 tracks with nonempty labels, or ``std::invalid_argument`` is
-         thrown.
 
       **motion_policy** : ``MotionPolicy``, default ``MotionPolicy{}``
          The authored policy. While it is ``active()``, that is enabled and not
@@ -55,13 +45,25 @@ gui_forms::EasingPreview
          phase. With ``reduced``, frames come every 100 ms instead of every 16 ms
          and the markers travel half as far.
 
-      **effective_motion_policy** : ``MotionPolicy``, read-only
-         :cpp:func:`motion_policy <gui_forms::EasingPreview::motion_policy>`, with ``reduced`` also set when the window's presentation
-         settings ask for reduced motion. This is the policy the preview obeys.
-
       **marker_size** : ``double``, default ``14.0``
          Side of each marker square in layout units. It must be finite and from 4
          to 48, or ``std::invalid_argument`` is thrown.
+
+      **style** : ``BasicControlStyle``
+         The :cpp:class:`BasicControlStyle <gui_forms::BasicControlStyle>` colours used for the paper, borders, labels and
+         track rails.
+
+      **has_style_override** : ``bool``, read-only
+
+      **tracks** : ``std::vector<EasingPreviewTrack>``
+         The rows, each an :cpp:class:`EasingPreviewTrack <gui_forms::EasingPreviewTrack>` with a curve, a label and a marker
+         colour. By default there are eight, one per :cpp:enum:`EasingCurve <gui_forms::EasingCurve>`. There must be
+         1 to 32 tracks with nonempty labels, or ``std::invalid_argument`` is
+         thrown.
+
+      **effective_motion_policy** : ``MotionPolicy``, read-only
+         :cpp:member:`motion_policy <gui_forms::EasingPreview::motion_policy>`, with ``reduced`` also set when the window's presentation
+         settings ask for reduced motion. This is the policy the preview obeys.
 
       **phase** : ``double``, default ``0.0``, read-only
          Progress through the current iteration of the timeline, from 0 to 1. The
@@ -81,8 +83,12 @@ gui_forms::EasingPreview
       :class: autosummary longtable
       :widths: 35 65
 
+      * - :cpp:func:`clear_style <gui_forms::EasingPreview::clear_style>`
+        -  
       * - :cpp:func:`advance_animation <gui_forms::EasingPreview::advance_animation>`
         - Samples the timeline at a frame time into :cpp:func:`phase <gui_forms::EasingPreview::phase>`.
+      * - :cpp:func:`easing_preview_property_entries <gui_forms::EasingPreview::easing_preview_property_entries>`
+        -  
 
    .. seealso::
 
@@ -100,11 +106,11 @@ gui_forms::EasingPreview
    The timeline starts when the preview is first attached to a window. While
    detached it pauses at its phase and resumes on reattachment. While the
    policy is active and the preview is shown, it runs an :cpp:class:`AnimationTimer <gui_forms::AnimationTimer>` at
-   the display rate, so it keeps a resting window awake; pause it with :cpp:func:`motion_policy <gui_forms::EasingPreview::motion_policy>` when
+   the display rate, so it keeps a resting window awake; pause it with :cpp:member:`motion_policy <gui_forms::EasingPreview::motion_policy>` when
    it is not being watched. Each tick repaints only what moved: each marker's old
    and new place and the readout. A preview that is hidden, or not painted since
    the last tick, stops its timer at that tick and starts it again when it is
-   next painted. With a finite :cpp:func:`specification <gui_forms::EasingPreview::specification>`, it stops its timer when the
+   next painted. With a finite :cpp:member:`specification <gui_forms::EasingPreview::specification>`, it stops its timer when the
    timeline finishes.
 
    A readout at the top right shows the policy, ``LIVE``, ``PAUSED``, ``REDUCED``,
@@ -131,12 +137,12 @@ gui_forms::EasingPreview
       gf::AnimationSpec specification;
       specification.duration = std::chrono::milliseconds(600);
       specification.infinite = true;
-      (*preview).set_specification(specification);
+      (*preview).specification = specification;
       gf::Window window(preview, gf::Size{480.0, 160.0});   // starts the timeline
 
       gf::MotionPolicy paused;
       paused.paused = true;
-      (*preview).set_motion_policy(paused);   // stops its animation timer
+      (*preview).motion_policy = paused;   // stops its animation timer
 
 
    .. rubric:: Construction
@@ -146,13 +152,28 @@ gui_forms::EasingPreview
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& title() const noexcept
+   .. cpp:member:: std::string title
 
       Heading drawn at the top left.
 
-   .. cpp:function:: void set_title(std::string title)
+   .. cpp:member:: AnimationSpec specification
 
-      Sets :cpp:func:`title <gui_forms::EasingPreview::title>`; see the property's description above.
+      The :cpp:class:`AnimationSpec <gui_forms::AnimationSpec>` of the timeline. The constructor sets a 2400 ms,
+      infinitely repeating, linear timeline. Setting it restarts the timeline
+      from the beginning, even with an equal value. The easing of the
+      specification itself does not move the markers; each track's curve does.
+
+   .. cpp:member:: MotionPolicy motion_policy
+
+      The authored policy. While it is ``active()``, that is enabled and not
+      paused, the preview runs its animation timer; otherwise it freezes at its current
+      phase. With ``reduced``, frames come every 100 ms instead of every 16 ms
+      and the markers travel half as far.
+
+   .. cpp:member:: double marker_size
+
+      Side of each marker square in layout units. It must be finite and from 4
+      to 48, or ``std::invalid_argument`` is thrown.
 
    .. cpp:function:: const BasicControlStyle& style() const noexcept
 
@@ -163,16 +184,7 @@ gui_forms::EasingPreview
 
       Sets :cpp:func:`style <gui_forms::EasingPreview::style>`; see the property's description above.
 
-   .. cpp:function:: const AnimationSpec& specification() const noexcept
-
-      The :cpp:class:`AnimationSpec <gui_forms::AnimationSpec>` of the timeline. The constructor sets a 2400 ms,
-      infinitely repeating, linear timeline. Setting it restarts the timeline
-      from the beginning, even with an equal value. The easing of the
-      specification itself does not move the markers; each track's curve does.
-
-   .. cpp:function:: void set_specification(AnimationSpec specification)
-
-      Sets :cpp:func:`specification <gui_forms::EasingPreview::specification>`; see the property's description above.
+   .. cpp:function:: bool has_style_override() const noexcept
 
    .. cpp:function:: const std::vector<EasingPreviewTrack>& tracks() const noexcept
 
@@ -185,30 +197,10 @@ gui_forms::EasingPreview
 
       Sets :cpp:func:`tracks <gui_forms::EasingPreview::tracks>`; see the property's description above.
 
-   .. cpp:function:: MotionPolicy motion_policy() const noexcept
-
-      The authored policy. While it is ``active()``, that is enabled and not
-      paused, the preview runs its animation timer; otherwise it freezes at its current
-      phase. With ``reduced``, frames come every 100 ms instead of every 16 ms
-      and the markers travel half as far.
-
-   .. cpp:function:: void set_motion_policy(MotionPolicy policy)
-
-      Sets :cpp:func:`motion_policy <gui_forms::EasingPreview::motion_policy>`; see the property's description above.
-
    .. cpp:function:: MotionPolicy effective_motion_policy() const noexcept
 
-      :cpp:func:`motion_policy <gui_forms::EasingPreview::motion_policy>`, with ``reduced`` also set when the window's presentation
+      :cpp:member:`motion_policy <gui_forms::EasingPreview::motion_policy>`, with ``reduced`` also set when the window's presentation
       settings ask for reduced motion. This is the policy the preview obeys.
-
-   .. cpp:function:: double marker_size() const noexcept
-
-      Side of each marker square in layout units. It must be finite and from 4
-      to 48, or ``std::invalid_argument`` is thrown.
-
-   .. cpp:function:: void set_marker_size(double size)
-
-      Sets :cpp:func:`marker_size <gui_forms::EasingPreview::marker_size>`; see the property's description above.
 
    .. cpp:function:: double phase() const noexcept
 
@@ -222,11 +214,15 @@ gui_forms::EasingPreview
 
    .. rubric:: Methods
 
+   .. cpp:function:: void clear_style()
+
    .. cpp:function:: void advance_animation(FrameTime now)
 
       Samples the timeline at a frame time into :cpp:func:`phase <gui_forms::EasingPreview::phase>`. The preview's
       animation timer calls it on each tick; tests call it to step the preview
       without a clock.
+
+   .. cpp:function:: static const std::array<PropertyEntry, easing_preview_property_count>& easing_preview_property_entries() noexcept
 
 
    .. rubric:: Extension points
@@ -250,3 +246,9 @@ gui_forms::EasingPreview
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t easing_preview_property_count
+
+      EasingPreview's property table: Control's entries, then its own. Default: ``Control::control_property_count + 1U``.

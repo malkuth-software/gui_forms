@@ -1,15 +1,14 @@
 #pragma once
 
 #include "gui_forms/controls/button_base/button_base.hpp"
+#include "gui_forms/controls/button_base/link_label/link_label_capabilities/link_label_capabilities.hpp"
 
 namespace gui_forms {
 
-class LinkLabel : public ButtonBase {
+class LinkLabel : public ButtonBase, public LinkLabelCapabilities<LinkLabel> {
 public:
     explicit LinkLabel(StableId stable_id, std::string text = {});
 
-    [[nodiscard]] bool visited() const noexcept { return visited_; }
-    void set_visited(bool visited);
     void on_paint(Painter& painter, Rect local_damage) override;
     void on_activate() override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
@@ -44,7 +43,13 @@ private:
     [[nodiscard]] double text_baseline() const noexcept;
     [[nodiscard]] double underline_width() const;
 
-    bool visited_{};
+    // property_codemod begin LinkLabel (tools/property_families/link_label.json; generated, do not edit)
+private:
+    friend struct LinkLabelVisitedCapability<LinkLabel>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(visited)& cell, bool& incoming);
+    void written(const decltype(visited)& cell);
+    // property_codemod end LinkLabel
 };
 
 } // namespace gui_forms

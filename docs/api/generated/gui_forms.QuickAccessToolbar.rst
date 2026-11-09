@@ -7,7 +7,7 @@ gui_forms::QuickAccessToolbar
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: QuickAccessToolbar final : public ToolStrip
+.. cpp:class:: QuickAccessToolbar final : public ToolStrip, public QuickAccessToolbarCapabilities<QuickAccessToolbar>
 
    ``#include <gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp>``
 
@@ -31,6 +31,13 @@ gui_forms::QuickAccessToolbar
 
    :Properties:
 
+      **placement** : ``QuickAccessToolbarPlacement``, default ``QuickAccessToolbarPlacement::above_ribbon``
+         Whether the toolbar sits on the ribbon's tab row or below the ribbon.
+         The toolbar only records the choice and reports it; the ribbon that
+         hosts it applies it. ``set_placement`` raises :cpp:func:`placement_changed <gui_forms::QuickAccessToolbar::placement_changed>` when the
+         value changes and throws ``std::invalid_argument`` for a value outside the
+         enumeration.
+
       **commands** : ``std::vector<QuickAccessToolbarCommand>``
          The declared commands, in toolbar order, as given to :cpp:func:`set_commands <gui_forms::QuickAccessToolbar::set_commands>`.
          Each has its :cpp:class:`Command <gui_forms::Command>`, an optional image (a command with an image shows
@@ -48,13 +55,6 @@ gui_forms::QuickAccessToolbar
          names no declared command is kept in place and shows nothing, so state
          saved by a later version survives a round trip. An empty, repeated or
          invalid ID, or more than 20, throws ``std::invalid_argument``.
-
-      **placement** : ``QuickAccessToolbarPlacement``, default ``QuickAccessToolbarPlacement::above_ribbon``
-         Whether the toolbar sits on the ribbon's tab row or below the ribbon.
-         The toolbar only records the choice and reports it; the ribbon that
-         hosts it applies it. :cpp:func:`set_placement <gui_forms::QuickAccessToolbar::set_placement>` raises :cpp:func:`placement_changed <gui_forms::QuickAccessToolbar::placement_changed>` when the
-         value changes and throws ``std::invalid_argument`` for a value outside the
-         enumeration.
 
       **customize_menu_open** : ``bool``, default ``false``, read-only
          Whether the customize menu is showing.
@@ -77,11 +77,11 @@ gui_forms::QuickAccessToolbar
 
       **placement_changed** : ``Event<const QuickAccessToolbarPlacementChange&>``
          Raised when the placement changes, from the customize menu or
-         :cpp:func:`set_placement <gui_forms::QuickAccessToolbar::set_placement>`, with the toolbar's ID and the new placement.
+         ``set_placement``, with the toolbar's ID and the new placement.
 
    :Inherited:
 
-      From :cpp:class:`ToolStrip <gui_forms::ToolStrip>`: properties :cpp:func:`items <gui_forms::ToolStrip::items>`, :cpp:func:`grip_visible <gui_forms::ToolStrip::grip_visible>`, :cpp:func:`allow_merge <gui_forms::ToolStrip::allow_merge>`, :cpp:func:`font <gui_forms::ToolStrip::font>`, :cpp:func:`orientation <gui_forms::ToolStrip::orientation>`, :cpp:func:`drop_down_open <gui_forms::ToolStrip::drop_down_open>`, :cpp:func:`overflow_item_ids <gui_forms::ToolStrip::overflow_item_ids>`, :cpp:func:`focused_item_id <gui_forms::ToolStrip::focused_item_id>`, :cpp:func:`content_length <gui_forms::ToolStrip::content_length>`, :cpp:func:`realized_items <gui_forms::ToolStrip::realized_items>`; events :cpp:func:`item_clicked <gui_forms::ToolStrip::item_clicked>`, :cpp:func:`drop_down_item_invoked <gui_forms::ToolStrip::drop_down_item_invoked>`, :cpp:func:`item_focus_changed <gui_forms::ToolStrip::item_focus_changed>`; methods :cpp:func:`close_drop_down <gui_forms::ToolStrip::close_drop_down>`, :cpp:func:`combo_box <gui_forms::ToolStrip::combo_box>`, :cpp:func:`item_checked <gui_forms::ToolStrip::item_checked>`, :cpp:func:`item_id_at <gui_forms::ToolStrip::item_id_at>`, :cpp:func:`progress_bar <gui_forms::ToolStrip::progress_bar>`, :cpp:func:`set_item_checked <gui_forms::ToolStrip::set_item_checked>`, :cpp:func:`set_item_text <gui_forms::ToolStrip::set_item_text>`, :cpp:func:`show_drop_down <gui_forms::ToolStrip::show_drop_down>`, :cpp:func:`show_overflow <gui_forms::ToolStrip::show_overflow>`, :cpp:func:`text_box <gui_forms::ToolStrip::text_box>`.
+      From :cpp:class:`ToolStrip <gui_forms::ToolStrip>`: properties :cpp:member:`grip_visible <gui_forms::ToolStrip::grip_visible>`, :cpp:member:`allow_merge <gui_forms::ToolStrip::allow_merge>`, :cpp:member:`font <gui_forms::ToolStrip::font>`, :cpp:member:`orientation <gui_forms::ToolStrip::orientation>`, :cpp:member:`sizing_grip_visible <gui_forms::ToolStrip::sizing_grip_visible>`, :cpp:member:`end_reserve <gui_forms::ToolStrip::end_reserve>`, :cpp:func:`items <gui_forms::ToolStrip::items>`, :cpp:func:`drop_down_open <gui_forms::ToolStrip::drop_down_open>`, :cpp:func:`overflow_item_ids <gui_forms::ToolStrip::overflow_item_ids>`, :cpp:func:`focused_item_id <gui_forms::ToolStrip::focused_item_id>`, :cpp:func:`content_length <gui_forms::ToolStrip::content_length>`, :cpp:func:`realized_items <gui_forms::ToolStrip::realized_items>`; events :cpp:func:`item_clicked <gui_forms::ToolStrip::item_clicked>`, :cpp:func:`drop_down_item_invoked <gui_forms::ToolStrip::drop_down_item_invoked>`, :cpp:func:`item_focus_changed <gui_forms::ToolStrip::item_focus_changed>`; methods :cpp:func:`close_drop_down <gui_forms::ToolStrip::close_drop_down>`, :cpp:func:`combo_box <gui_forms::ToolStrip::combo_box>`, :cpp:func:`item_checked <gui_forms::ToolStrip::item_checked>`, :cpp:func:`item_id_at <gui_forms::ToolStrip::item_id_at>`, :cpp:func:`progress_bar <gui_forms::ToolStrip::progress_bar>`, :cpp:func:`set_item_checked <gui_forms::ToolStrip::set_item_checked>`, :cpp:func:`set_item_text <gui_forms::ToolStrip::set_item_text>`, :cpp:func:`show_drop_down <gui_forms::ToolStrip::show_drop_down>`, :cpp:func:`show_overflow <gui_forms::ToolStrip::show_overflow>`, :cpp:func:`text_box <gui_forms::ToolStrip::text_box>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -161,6 +161,14 @@ gui_forms::QuickAccessToolbar
 
    .. rubric:: Properties
 
+   .. cpp:member:: QuickAccessToolbarPlacement placement
+
+      Whether the toolbar sits on the ribbon's tab row or below the ribbon.
+      The toolbar only records the choice and reports it; the ribbon that
+      hosts it applies it. ``set_placement`` raises :cpp:func:`placement_changed <gui_forms::QuickAccessToolbar::placement_changed>` when the
+      value changes and throws ``std::invalid_argument`` for a value outside the
+      enumeration.
+
    .. cpp:function:: const std::vector<QuickAccessToolbarCommand>& commands() const noexcept
 
       The declared commands, in toolbar order, as given to :cpp:func:`set_commands <gui_forms::QuickAccessToolbar::set_commands>`.
@@ -189,18 +197,6 @@ gui_forms::QuickAccessToolbar
 
       Sets :cpp:func:`shown_command_ids <gui_forms::QuickAccessToolbar::shown_command_ids>`; see the property's description above.
 
-   .. cpp:function:: QuickAccessToolbarPlacement placement() const noexcept
-
-      Whether the toolbar sits on the ribbon's tab row or below the ribbon.
-      The toolbar only records the choice and reports it; the ribbon that
-      hosts it applies it. :cpp:func:`set_placement <gui_forms::QuickAccessToolbar::set_placement>` raises :cpp:func:`placement_changed <gui_forms::QuickAccessToolbar::placement_changed>` when the
-      value changes and throws ``std::invalid_argument`` for a value outside the
-      enumeration.
-
-   .. cpp:function:: void set_placement(QuickAccessToolbarPlacement placement)
-
-      Sets :cpp:func:`placement <gui_forms::QuickAccessToolbar::placement>`; see the property's description above.
-
    .. cpp:function:: bool customize_menu_open() const noexcept
 
       Whether the customize menu is showing.
@@ -228,7 +224,7 @@ gui_forms::QuickAccessToolbar
    .. cpp:function:: Event<const QuickAccessToolbarPlacementChange&>& placement_changed() noexcept
 
       Raised when the placement changes, from the customize menu or
-      :cpp:func:`set_placement <gui_forms::QuickAccessToolbar::set_placement>`, with the toolbar's ID and the new placement.
+      ``set_placement``, with the toolbar's ID and the new placement.
 
 
    .. rubric:: Methods

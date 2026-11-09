@@ -13,7 +13,7 @@
 
 namespace {
 
-// The stable IDs demo/gallery.form declares below gallery.root.
+// The stable IDs of demo/gallery.form's command strip, own pages and diagnostics.
 constexpr std::array<std::string_view, 37> gallery_form_ids{
     "gallery.command-strip", "gallery.command.reset", "gallery.command.diagnostics",
     "gallery.command.status-badge", "gallery.command.status", "gallery.backplane",
@@ -199,7 +199,7 @@ int main()
         (*window).find("gallery.lifecycle-status"));
     expect(lifecycle != nullptr && (*lifecycle).is_loaded() &&
                (*lifecycle).attachment_count() == 1 && lifecycle_status != nullptr &&
-               (*lifecycle_status).text() == "Load 1 · attach 1 · init 1",
+               (*lifecycle_status).text.read() == "Load 1 · attach 1 · init 1",
            "Gallery visibly consumes composed UserControl load and initialization lifecycle");
     expect(gui_forms::gallery::select_gallery_page(*window, "instrument"),
            "instrument page selects by stable id");
@@ -274,10 +274,10 @@ int main()
 
     const std::shared_ptr<gui_forms::CheckBox> checkbox = std::dynamic_pointer_cast<gui_forms::CheckBox>(
         (*window).find("gallery.checkbox"));
-    expect(checkbox != nullptr && (*checkbox).checked(), "retained checkbox begins checked");
+    expect(checkbox != nullptr && (*checkbox).checked.read(), "retained checkbox begins checked");
     const std::uint64_t activations_before_checkbox = (*window).metrics_snapshot().activations;
     click(*window, "gallery.checkbox");
-    expect(!(*checkbox).checked(), "window dispatch toggles checkbox state");
+    expect(!(*checkbox).checked.read(), "window dispatch toggles checkbox state");
     expect((*window).metrics_snapshot().activations == activations_before_checkbox + 1U,
            "matching press and release produces exactly one activation");
     CountingPainter partial_painter;
@@ -322,11 +322,11 @@ int main()
         (*window).find("gallery.text-input"));
     expect(text_input != nullptr && (*window).focused_control() == text_input,
            "a click focuses the Gallery text box");
-    const gui_forms::Utf8Offset text_end((*text_input).text().size());
+    const gui_forms::Utf8Offset text_end((*text_input).text.read().size());
     (*text_input).select(text_end, text_end);
     expect((*window).dispatch_text({" retained", false, -1, 0, false}),
            "focused text input accepts committed UTF-8 text");
-    expect((*text_input).text() == "Edit this text retained",
+    expect((*text_input).text.read() == "Edit this text retained",
            "text edit survives event dispatch in the retained text box");
 
     expect(gui_forms::gallery::select_gallery_page(*window, "values"),
@@ -348,9 +348,9 @@ int main()
                                      gui_forms::PointerButton::primary,
                                      near_end}),
            "slider handles pointer up");
-    expect((*slider).value() > 98.0, "slider maps pointer position to bounded value");
-    expect((*progress).value() == (*slider).value(), "progress remains bound to slider");
-    expect((*instrument).value() == (*slider).value() / 100.0,
+    expect((*slider).value.read() > 98.0, "slider maps pointer position to bounded value");
+    expect((*progress).value.read() == (*slider).value.read(), "progress remains bound to slider");
+    expect((*instrument).value() == (*slider).value.read() / 100.0,
            "custom instrument remains bound to slider");
 
     expect(gui_forms::gallery::select_gallery_page(*window, "retained-rows"),
@@ -363,7 +363,7 @@ int main()
     // The third row (gamma), below the list's 2-pixel frame.
     const gui_forms::Rect collection_bounds = (*collection).absolute_bounds();
     const gui_forms::Point gamma_point{collection_bounds.x + collection_bounds.width * 0.5,
-                                       collection_bounds.y + 2.0 + (*collection).item_height() * 2.5};
+                                       collection_bounds.y + 2.0 + (*collection).item_height.read() * 2.5};
     (void)(*window).dispatch_pointer({gui_forms::PointerAction::down,
                                     gui_forms::PointerButton::primary, gamma_point});
     (void)(*window).dispatch_pointer({gui_forms::PointerAction::up,
@@ -385,7 +385,7 @@ int main()
            "Gallery collection handles a typed file drop");
     const std::shared_ptr<gui_forms::Label> status = std::dynamic_pointer_cast<gui_forms::Label>(
         (*window).find("gallery.command.status"));
-    expect((*status).text() == "Drop received · 1 file · 0 text · 0 data",
+    expect((*status).text.read() == "Drop received · 1 file · 0 text · 0 data",
            "Gallery exposes the accepted typed drop without platform payloads");
 
     click(*window, "gallery.command.diagnostics");
@@ -393,7 +393,7 @@ int main()
            "diagnostics command reveals structured metrics panel");
     const std::shared_ptr<gui_forms::Label> diagnostic = std::dynamic_pointer_cast<gui_forms::Label>(
         (*window).find("gallery.diagnostics.input"));
-    expect((*diagnostic).text().find("input ") == 0,
+    expect((*diagnostic).text.read().find("input ") == 0,
            "on-screen diagnostics consume the core MetricsSnapshot");
 
     std::shared_ptr<OverflowPaintProbe> clip_root =

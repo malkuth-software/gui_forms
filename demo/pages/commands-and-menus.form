@@ -1,0 +1,218 @@
+/* The Gallery's commands-and-menus page (stage FD, phase FD-4): every
+   command surface (MenuStrip, CommandBar, drop-down buttons, a button, a
+   check box, ContextMenu, QuickAccessToolbar, ToolStrip, StatusStrip,
+   ToolStripContainer, Ribbons, RibbonGallery and BackstageView) over one
+   set of application-owned Commands. gui_forms_add_form() compiles this
+   document into commands-and-menus_form.hpp at build time.
+
+   gallery.commands.document is a declared boundary only: the page moves
+   its children into the shell's page body, where each is placed by its
+   bounds in design coordinates. The page keeps in code the Commands, each
+   surface's items, menus, tabs and galleries, the strips joined into the
+   container's panels, the run button's split mode, the Values the check
+   boxes bind, the menu bar's font, every event handler and the page
+   style. */
+scaled-panel gallery.commands.document {
+  design-size: 1000 1830;
+
+  label gallery.commands-and-menus.heading {
+    text: "COMMANDS AND MENUS";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.commands-and-menus.lead {
+    text: "One Command per action: the menu bar, command bar, context menu, drop-down menus, a button, a check box and Ctrl+S all invoke the same retained authority.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  menu-strip gallery.commands.menu {
+    accessible-name: "Document menu";
+    bounds: 24 88 930 28;
+  }
+
+  scaled-group-box gallery.commands.row {
+    text: "CommandBar · DropDownButton (menu and split modes)";
+    design-size: 930 116;
+    bounds: 24 128 930 116;
+    classes: "paper" "group-caption";
+    command-bar gallery.commands.bar {
+      accessible-name: "Document commands";
+      bounds: 22 36 520 36;
+    }
+    drop-down-button gallery.commands.export {
+      text: "Export";
+      accessible-name: "Export document";
+      bounds: 566 36 150 36;
+    }
+    drop-down-button gallery.commands.run {
+      text: "Run";
+      accessible-name: "Run document";
+      bounds: 732 36 170 36;
+    }
+    label gallery.commands.row.note {
+      text: "Ctrl+N and Ctrl+S are CommandBar shortcuts · Arrow keys rove the bar · Alt+Down opens a focused drop-down · the split button keeps a primary click region";
+      classes: "muted" "note";
+      bounds: 22 80 890 20;
+    }
+  }
+
+  scaled-group-box gallery.commands.state {
+    text: "Command · one authority, projected everywhere";
+    design-size: 450 336;
+    bounds: 24 256 450 336;
+    classes: "paper" "group-caption";
+    check-box gallery.commands.modified {
+      text: "Document modified (enables Save)";
+      indicator-style: modern;
+      bounds: 22 36 400 26;
+      checked: bind(dirty_);
+    }
+    button gallery.commands.save.button {
+      text: "Save";
+      visual-style: accent;
+      bounds: 22 74 150 34;
+    }
+    button gallery.commands.delete.button {
+      text: "Delete";
+      bounds: 186 74 150 34;
+    }
+    check-box gallery.commands.wrap.check {
+      text: "Word wrap";
+      indicator-style: toggle;
+      bounds: 22 120 300 26;
+      checked: bind(wrap_);
+    }
+    label gallery.commands.saves {
+      text: "Saves: 0";
+      classes: "heading" "emphasis";
+      bounds: 22 156 400 22;
+    }
+    label gallery.commands.state.note {
+      text: "Save is one Command: the bar item, File > Save, the context-menu row, this button and Ctrl+S invoke it, and its enabled state follows the modified flag. Delete is disabled with an availability reason. Word wrap is a Value bound to the check box and projected onto the check Command, so the bar item, the View menu and the context menu stay in step.";
+      classes: "muted" "note";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 22 186 400 136;
+    }
+  }
+
+  scaled-group-box gallery.commands.context-group {
+    text: "ContextMenu · stable rows over bound Commands";
+    design-size: 460 336;
+    bounds: 494 256 460 336;
+    classes: "paper" "group-caption";
+    button gallery.commands.context.open {
+      text: "Open context menu";
+      bounds: 22 36 240 34;
+    }
+    label gallery.commands.context.note {
+      text: "Rows are temporary overlay presentations over stable MenuItemSpec identities. Arrow keys and Enter invoke; Escape and click-away revoke the overlay and restore the invoker's focus. Command state (enabled, checked, destructive, availability reason) is snapshotted as the menu opens.";
+      classes: "muted" "note";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 22 84 410 120;
+    }
+  }
+
+  scaled-group-box gallery.commands.strips {
+    text: "QuickAccessToolbar · ToolStrip · StatusStrip · by-role painted items";
+    design-size: 930 170;
+    bounds: 24 636 930 170;
+    classes: "paper" "group-caption";
+    quick-access-toolbar gallery.commands.quick-access {
+      bounds: 22 36 250 27;
+    }
+    label gallery.commands.quick-access.note {
+      text: "The customize button lists each command with a check · placement: above the ribbon";
+      classes: "muted" "note";
+      bounds: 290 40 610 20;
+    }
+    tool-strip gallery.commands.tool-strip {
+      accessible-name: "Document tools";
+      bounds: 22 74 430 27;
+    }
+    status-strip gallery.commands.status-strip {
+      accessible-name: "Document status";
+      bounds: 22 122 880 24;
+    }
+  }
+
+  scaled-group-box gallery.commands.container {
+    text: "ToolStripContainer · top, left and bottom panels around content";
+    design-size: 930 230;
+    bounds: 24 818 930 230;
+    classes: "paper" "group-caption";
+    tool-strip-container gallery.commands.container.frame {
+      accessible-name: "Drawing frame";
+      bounds: 22 36 880 176;
+    }
+  }
+
+  scaled-group-box gallery.commands.ribbon {
+    text: "Ribbon · phases 1 and 5: tabs, groups, launchers, hosted controls, a contextual set";
+    design-size: 930 160;
+    bounds: 24 1068 930 160;
+    classes: "paper" "group-caption";
+    ribbon gallery.commands.ribbon.bar {
+      accessible-name: "Document ribbon";
+      bounds: 22 36 880 112;
+    }
+  }
+
+  scaled-group-box gallery.commands.gallery {
+    text: "RibbonGallery · value command, live preview, more button, drop-down form";
+    design-size: 930 150;
+    bounds: 24 1240 930 150;
+    classes: "paper" "group-caption";
+    ribbon-gallery gallery.commands.styles {
+      accessible-name: "Styles";
+      bounds: 22 36 312 84;
+    }
+    button gallery.commands.styles.button {
+      text: "Styles";
+      bounds: 354 40 110 32;
+    }
+    label gallery.commands.gallery.status {
+      text: "Hover an item for 300 ms to preview it";
+      classes: "muted" "small";
+      bounds: 484 44 420 24;
+    }
+  }
+
+  scaled-group-box gallery.commands.ribbon-scaling {
+    text: "Ribbon · phase 2b: the same tab at 560 and 300 units wide";
+    design-size: 930 160;
+    bounds: 24 1402 930 160;
+    classes: "paper" "group-caption";
+    ribbon gallery.commands.ribbon-scaling.wide {
+      accessible-name: "Ribbon at 560 units";
+      bounds: 22 36 560 112;
+    }
+    ribbon gallery.commands.ribbon-scaling.narrow {
+      accessible-name: "Ribbon at 300 units";
+      bounds: 602 36 300 112;
+    }
+  }
+
+  scaled-group-box gallery.commands.ribbon-file-area {
+    text: "Ribbon · phase 6: font control, colour picker, Backstage (File) and a Backstage in place";
+    design-size: 930 230;
+    bounds: 24 1574 930 230;
+    classes: "paper" "group-caption";
+    ribbon gallery.commands.ribbon-file-area.bar {
+      accessible-name: "Ribbon with a file area";
+      bounds: 22 36 430 112;
+    }
+    backstage-view gallery.commands.ribbon-file-area.backstage-in-place {
+      accessible-name: "Backstage in place";
+      bounds: 472 36 430 180;
+    }
+  }
+
+  label gallery.commands.status {
+    text: "Ready · toggle \"Document modified\" to enable Save on every surface";
+    classes: "positive" "emphasis";
+    bounds: 24 600 930 26;
+  }
+}

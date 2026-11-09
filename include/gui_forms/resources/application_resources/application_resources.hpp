@@ -100,6 +100,9 @@ public:
     void set_theme(std::shared_ptr<const Theme> theme);
     // The program's own theme: theme() but while a user theme replaces it.
     [[nodiscard]] const Theme& program_theme() const noexcept { return *program_theme_; }
+    // The program's theme shared, for other resources (a window of the same
+    // application with its own image quotas) to take the same theme.
+    [[nodiscard]] std::shared_ptr<const Theme> program_theme_ptr() const noexcept { return program_theme_; }
 
     // Whether the windows follow the host's light or dark preference (T4
     // theme variants): off by default, so a program keeps the scheme it
@@ -146,6 +149,12 @@ public:
     // leaves none. On the UI thread (std::logic_error elsewhere).
     [[nodiscard]] ThemeCompileResult compile_theme_package(const ThemePackage& package, const ThemeLibrary& library,
                                                            const ThemeCompileOptions& options);
+    // As compile_theme_package, for an application's theme: the base, then
+    // `packages` in their order, as one cascade (compile_theme_packages).
+    // On the UI thread (std::logic_error elsewhere).
+    [[nodiscard]] ThemeCompileResult compile_theme_packages(std::span<const ThemePackage> packages,
+                                                            const ThemeLibrary& library,
+                                                            const ThemeCompileOptions& options);
     // The selected user theme, or null.
     [[nodiscard]] const Theme* user_theme() const noexcept { return user_theme_.get(); }
     // The selected user theme shared, for resources of another thread (a

@@ -7,7 +7,7 @@ gui_forms::ProgressBar
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ProgressBar : public RangeControl
+.. cpp:class:: ProgressBar : public RangeControl, public ProgressBarCapabilities<ProgressBar>
 
    ``#include <gui_forms/controls/range_control/progress_bar/progress_bar.hpp>``
 
@@ -53,39 +53,34 @@ gui_forms::ProgressBar
          Whether animated styles move. When false they are drawn still and the
          bar schedules no frames.
 
-      **animation_paused** : ``bool``, default ``false``
-         Pauses the animation and keeps its current phase, so it resumes where it
-         stopped.
-
-      **reduced_motion** : ``bool``, default ``false``
-         Requests gentler animation: at most ten frames a second, about a third
-         of the speed and half the travel. The bar also reduces motion when the
-         window's presentation settings ask for it.
-
-      **motion_policy** : ``MotionPolicy``, default ``MotionPolicy{}``
-         The whole policy: ``enabled``, ``paused`` and ``reduced``. A policy that is not
-         enabled stops the animation like a pause. :cpp:func:`set_motion_policy <gui_forms::ProgressBar::set_motion_policy>` also
-         accepts paused and reduced as two booleans.
-
-      **effective_motion_policy** : ``MotionPolicy``, read-only
-         :cpp:func:`motion_policy <gui_forms::ProgressBar::motion_policy>` combined with the window's reduced-motion setting; this
-         is what the bar animates with.
-
       **animation_period** : ``FrameInterval``, default ``std::chrono::milliseconds(1400)``
          Time for one animation cycle. Periods under 100 ms throw
          ``std::invalid_argument``.
 
-      **animation_phase** : ``double``, read-only
-         Position in the current animation cycle, from 0 up to 1.
-
       **effect** : ``std::string``
-         The effect program drawn over the bar (effect programs, design note §7), by registered name. Empty (the default) selects the visual style's own: progress_stripes for marching_stripes, progress_pulse for pulse, progress_laser for laser_etch; for the other styles, the effect the theme declares for the bar's fill part (its activity part while marquee), if any (effect_property). A name no registered progress-bar effect has, or one the load checks refuse, draws no effect (effect_selection says why). The moving-stripes overlay draws progress_stripes over any other effect.
+         The registered effect program drawn over the bar, by name (effect programs, design note section 7); empty takes the visual style's own, or the theme's.
 
       **effect_seed** : ``std::optional<std::uint64_t>``
-         The seed of the bar's effects. None (the default) derives it from the bar's stable ID and the effect's name, so runs, tests and motion checksums reproduce; an application sets one for another arrangement.
+         The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce. A change restarts the effects.
 
       **effect_input** : ``EffectInputKind``
-         The input the bar grants its effect (none by default): with a grant the bar is hit-tested and passes the pointer, in part-local units, to an effect that declares pointer input. The bar never takes focus, so a key grant delivers nothing.
+         The input the bar grants its effect: none, the pointer, or the pointer and keys. The bar never takes focus, so a key grant delivers nothing.
+
+      **motion_policy** : ``MotionPolicy``, default ``MotionPolicy{}``
+         The bar's own motion policy, a capability: ``enabled``, ``paused`` and
+         ``reduced``. Paused stops the animation and keeps its current phase, so it
+         resumes where it stopped; a policy that is not enabled stops it the same
+         way. Reduced asks for gentler animation: at most ten frames a second,
+         about a third of the speed and half the travel. The bar also reduces
+         motion when the window's presentation settings ask for it. To change one
+         flag, read the policy, change it and assign it back.
+
+      **effective_motion_policy** : ``MotionPolicy``, read-only
+         :cpp:member:`motion_policy <gui_forms::ProgressBar::motion_policy>` combined with the window's reduced-motion setting; this
+         is what the bar animates with.
+
+      **animation_phase** : ``double``, read-only
+         Position in the current animation cycle, from 0 up to 1.
 
       **effect_selection** : ``EffectSelection``, read-only
          What the bar's last effect selection came to: the name asked for, who asked (the application, the visual style or the theme) and the load checks' verdict.
@@ -102,7 +97,7 @@ gui_forms::ProgressBar
 
    :Inherited:
 
-      From :cpp:class:`RangeControl <gui_forms::RangeControl>`: properties :cpp:func:`minimum <gui_forms::RangeControl::minimum>`, :cpp:func:`maximum <gui_forms::RangeControl::maximum>`, :cpp:func:`value <gui_forms::RangeControl::value>`, :cpp:func:`small_change <gui_forms::RangeControl::small_change>`, :cpp:func:`large_change <gui_forms::RangeControl::large_change>`, :cpp:func:`orientation <gui_forms::RangeControl::orientation>`, :cpp:func:`normalized_value <gui_forms::RangeControl::normalized_value>`, :cpp:func:`style <gui_forms::RangeControl::style>`; events :cpp:func:`range_changed <gui_forms::RangeControl::range_changed>`, :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>`, :cpp:func:`scroll <gui_forms::RangeControl::scroll>`; methods :cpp:func:`bind <gui_forms::RangeControl::bind>`, :cpp:func:`increment <gui_forms::RangeControl::increment>`, :cpp:func:`set_range <gui_forms::RangeControl::set_range>`, :cpp:func:`unbind <gui_forms::RangeControl::unbind>`.
+      From :cpp:class:`RangeControl <gui_forms::RangeControl>`: properties :cpp:member:`value <gui_forms::RangeControl::value>`, :cpp:member:`minimum <gui_forms::RangeControl::minimum>`, :cpp:member:`maximum <gui_forms::RangeControl::maximum>`, :cpp:member:`small_change <gui_forms::RangeControl::small_change>`, :cpp:member:`large_change <gui_forms::RangeControl::large_change>`, :cpp:member:`orientation <gui_forms::RangeControl::orientation>`, :cpp:func:`normalized_value <gui_forms::RangeControl::normalized_value>`, :cpp:func:`style <gui_forms::RangeControl::style>`; events :cpp:func:`range_changed <gui_forms::RangeControl::range_changed>`, :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>`, :cpp:func:`scroll <gui_forms::RangeControl::scroll>`; methods :cpp:func:`bind <gui_forms::RangeControl::bind>`, :cpp:func:`increment <gui_forms::RangeControl::increment>`, :cpp:func:`range_control_property_entries <gui_forms::RangeControl::range_control_property_entries>`, :cpp:func:`set_range <gui_forms::RangeControl::set_range>`, :cpp:func:`unbind <gui_forms::RangeControl::unbind>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -114,6 +109,8 @@ gui_forms::ProgressBar
 
       * - :cpp:func:`advance_animation <gui_forms::ProgressBar::advance_animation>`
         - Advances the indeterminate or marquee phase, and the effect programs' time, to ``now``; the animation timer calls it on each tick, and tests call it to step the bar.
+      * - :cpp:func:`progress_bar_property_entries <gui_forms::ProgressBar::progress_bar_property_entries>`
+        -  
 
    .. seealso::
 
@@ -174,9 +171,11 @@ gui_forms::ProgressBar
       std::shared_ptr<gf::ProgressBar> busy =
           gf::make_control<gf::ProgressBar>(gf::StableId("sync.busy"));
       (*busy).accessible_name = "Synchronizing";
-      (*busy).set_visual_style(gf::ProgressBarVisualStyle::marquee);
+      (*busy).visual_style = gf::ProgressBarVisualStyle::marquee;
       gf::Window window(busy, gf::Size{160.0, 20.0});   // the band now animates
-      (*busy).set_animation_paused(true);               // it stops, keeping its phase
+      gf::MotionPolicy policy = (*busy).motion_policy.read();
+      policy.paused = true;
+      (*busy).motion_policy = policy;                   // it stops, keeping its phase
 
 
    .. rubric:: Construction
@@ -186,121 +185,68 @@ gui_forms::ProgressBar
 
    .. rubric:: Properties
 
-   .. cpp:function:: ProgressBarVisualStyle visual_style() const noexcept
+   .. cpp:member:: ProgressBarVisualStyle visual_style
 
       How the bar is drawn: ``blocks`` (separate segments), ``continuous``,
       ``marquee`` (a moving band for unknown progress), ``pulse`` (a moving
       highlight over the fill), ``marching_stripes`` or ``laser_etch``. All but
       ``blocks`` and ``continuous`` are animated.
 
-   .. cpp:function:: void set_visual_style(ProgressBarVisualStyle style)
-
-      Sets :cpp:func:`visual_style <gui_forms::ProgressBar::visual_style>`; see the property's description above.
-
-   .. cpp:function:: ProgressBarOverlayStyle overlay_style() const noexcept
+   .. cpp:member:: ProgressBarOverlayStyle overlay_style
 
       ``moving_stripes`` adds animated diagonal stripes over the fill of any
       style except ``marching_stripes``.
 
-   .. cpp:function:: void set_overlay_style(ProgressBarOverlayStyle style)
-
-      Sets :cpp:func:`overlay_style <gui_forms::ProgressBar::overlay_style>`; see the property's description above.
-
-   .. cpp:function:: double stripe_width() const noexcept
+   .. cpp:member:: double stripe_width
 
       Width of the stripes, between 2 and 32; other values throw
       ``std::invalid_argument``.
 
-   .. cpp:function:: void set_stripe_width(double width)
-
-      Sets :cpp:func:`stripe_width <gui_forms::ProgressBar::stripe_width>`; see the property's description above.
-
-   .. cpp:function:: const ProgressBarAnimationAppearance& animation_appearance() const noexcept
+   .. cpp:member:: ProgressBarAnimationAppearance animation_appearance
 
       Colours and extents of the pulse, stripe and laser effects. Out-of-range
       extents throw ``std::invalid_argument``.
 
-   .. cpp:function:: void set_animation_appearance(ProgressBarAnimationAppearance appearance)
-
-      Sets :cpp:func:`animation_appearance <gui_forms::ProgressBar::animation_appearance>`; see the property's description above.
-
-   .. cpp:function:: bool animation_enabled() const noexcept
+   .. cpp:member:: bool animation_enabled
 
       Whether animated styles move. When false they are drawn still and the
       bar schedules no frames.
 
-   .. cpp:function:: void set_animation_enabled(bool enabled)
-
-      Sets :cpp:func:`animation_enabled <gui_forms::ProgressBar::animation_enabled>`; see the property's description above.
-
-   .. cpp:function:: bool animation_paused() const noexcept
-
-      Pauses the animation and keeps its current phase, so it resumes where it
-      stopped.
-
-   .. cpp:function:: void set_animation_paused(bool paused)
-
-      Sets :cpp:func:`animation_paused <gui_forms::ProgressBar::animation_paused>`; see the property's description above.
-
-   .. cpp:function:: bool reduced_motion() const noexcept
-
-      Requests gentler animation: at most ten frames a second, about a third
-      of the speed and half the travel. The bar also reduces motion when the
-      window's presentation settings ask for it.
-
-   .. cpp:function:: void set_reduced_motion(bool reduced)
-
-      Sets :cpp:func:`reduced_motion <gui_forms::ProgressBar::reduced_motion>`; see the property's description above.
-
-   .. cpp:function:: MotionPolicy motion_policy() const noexcept
-
-      The whole policy: ``enabled``, ``paused`` and ``reduced``. A policy that is not
-      enabled stops the animation like a pause. :cpp:func:`set_motion_policy <gui_forms::ProgressBar::set_motion_policy>` also
-      accepts paused and reduced as two booleans.
-
-   .. cpp:function:: void set_motion_policy(bool paused, bool reduced_motion)
-
-      Sets :cpp:func:`motion_policy <gui_forms::ProgressBar::motion_policy>`; see the property's description above.
-
-   .. cpp:function:: void set_motion_policy(MotionPolicy policy)
-
-      Sets :cpp:func:`motion_policy <gui_forms::ProgressBar::motion_policy>`; see the property's description above.
-
-   .. cpp:function:: MotionPolicy effective_motion_policy() const noexcept
-
-      :cpp:func:`motion_policy <gui_forms::ProgressBar::motion_policy>` combined with the window's reduced-motion setting; this
-      is what the bar animates with.
-
-   .. cpp:function:: FrameInterval animation_period() const noexcept
+   .. cpp:member:: FrameInterval animation_period
 
       Time for one animation cycle. Periods under 100 ms throw
       ``std::invalid_argument``.
 
-   .. cpp:function:: void set_animation_period(FrameInterval period)
+   .. cpp:member:: std::string effect
 
-      Sets :cpp:func:`animation_period <gui_forms::ProgressBar::animation_period>`; see the property's description above.
+      The registered effect program drawn over the bar, by name (effect programs, design note section 7); empty takes the visual style's own, or the theme's.
+
+   .. cpp:member:: std::optional<std::uint64_t> effect_seed
+
+      The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce. A change restarts the effects.
+
+   .. cpp:member:: EffectInputKind effect_input
+
+      The input the bar grants its effect: none, the pointer, or the pointer and keys. The bar never takes focus, so a key grant delivers nothing.
+
+   .. cpp:member:: MotionPolicy motion_policy
+
+      The bar's own motion policy, a capability: ``enabled``, ``paused`` and
+      ``reduced``. Paused stops the animation and keeps its current phase, so it
+      resumes where it stopped; a policy that is not enabled stops it the same
+      way. Reduced asks for gentler animation: at most ten frames a second,
+      about a third of the speed and half the travel. The bar also reduces
+      motion when the window's presentation settings ask for it. To change one
+      flag, read the policy, change it and assign it back.
+
+   .. cpp:function:: MotionPolicy effective_motion_policy() const noexcept
+
+      :cpp:member:`motion_policy <gui_forms::ProgressBar::motion_policy>` combined with the window's reduced-motion setting; this
+      is what the bar animates with.
 
    .. cpp:function:: double animation_phase() const noexcept
 
       Position in the current animation cycle, from 0 up to 1.
-
-   .. cpp:function:: const std::string& effect() const noexcept
-
-      The effect program drawn over the bar (effect programs, design note §7), by registered name. Empty (the default) selects the visual style's own: progress_stripes for marching_stripes, progress_pulse for pulse, progress_laser for laser_etch; for the other styles, the effect the theme declares for the bar's fill part (its activity part while marquee), if any (effect_property). A name no registered progress-bar effect has, or one the load checks refuse, draws no effect (effect_selection says why). The moving-stripes overlay draws progress_stripes over any other effect.
-
-   .. cpp:function:: void set_effect(std::string name)
-
-   .. cpp:function:: std::optional<std::uint64_t> effect_seed() const noexcept
-
-      The seed of the bar's effects. None (the default) derives it from the bar's stable ID and the effect's name, so runs, tests and motion checksums reproduce; an application sets one for another arrangement.
-
-   .. cpp:function:: void set_effect_seed(std::optional<std::uint64_t> seed)
-
-   .. cpp:function:: EffectInputKind effect_input() const noexcept
-
-      The input the bar grants its effect (none by default): with a grant the bar is hit-tested and passes the pointer, in part-local units, to an effect that declares pointer input. The bar never takes focus, so a key grant delivers nothing.
-
-   .. cpp:function:: void set_effect_input(EffectInputKind input)
 
    .. cpp:function:: const EffectSelection& effect_selection() const noexcept
 
@@ -324,6 +270,8 @@ gui_forms::ProgressBar
    .. cpp:function:: void advance_animation(FrameTime now)
 
       Advances the indeterminate or marquee phase, and the effect programs' time, to ``now``; the animation timer calls it on each tick, and tests call it to step the bar.
+
+   .. cpp:function:: static const std::array<PropertyEntry, progress_bar_property_count>& progress_bar_property_entries() noexcept
 
 
    .. rubric:: Extension points
@@ -361,3 +309,9 @@ gui_forms::ProgressBar
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t progress_bar_property_count
+
+      ProgressBar's property table: RangeControl's entries, then its own. Default: ``RangeControl::range_control_property_count + 4U``.

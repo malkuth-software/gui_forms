@@ -1,0 +1,41 @@
+{
+  "family": "MaterialPanel",
+  "step": "B6",
+  "declaring": "MaterialPanel",
+  "header": "include/gui_forms/controls/panel/material_panel/material_panel.hpp",
+  "source": "src/controls/panel/material_panel/material_panel.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/material_panel/material_panel_capabilities/material_panel_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [
+    "gui_forms/surface_material.hpp"
+  ],
+  "properties": [
+    {
+      "name": "material",
+      "capability": "MaterialPanelMaterial",
+      "value": "SurfaceMaterial",
+      "initial": null,
+      "comment": "The surface recipe painted behind the content; a change repaints and raises material_changed. An invalid or unbounded recipe, or an image the attached window does not hold, throws std::invalid_argument.",
+      "getter": "material",
+      "setter": "set_material",
+      "clear": null,
+      "field": "material_",
+      "event": "material_changed_",
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "invalidation::paint_only",
+      "prepare": [
+        "if (!valid_surface_material(incoming)) throw std::invalid_argument(\"material recipe is invalid or unbounded\");",
+        "validate_window_images(incoming);"
+      ]
+    }
+  ],
+  "test": {
+    "type": "MaterialPanel",
+    "include": "gui_forms/controls/panel/material_panel/material_panel.hpp"
+  }
+}

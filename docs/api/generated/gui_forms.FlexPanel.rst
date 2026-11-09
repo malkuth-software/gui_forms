@@ -7,7 +7,7 @@ gui_forms::FlexPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: FlexPanel final : public ContainerControl
+.. cpp:class:: FlexPanel final : public ContainerControl, public FlexPanelCapabilities<FlexPanel>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel.hpp>``
 
@@ -62,7 +62,7 @@ gui_forms::FlexPanel
 
       **align_content** : ``LayoutAlignment``, default ``LayoutAlignment::normal``
          How the lines share the panel's cross space, with the values of
-         :cpp:func:`justify_content <gui_forms::FlexPanel::justify_content>`; ``normal`` and ``stretch`` grow the lines to fill it. A
+         :cpp:member:`justify_content <gui_forms::FlexPanel::justify_content>`; ``normal`` and ``stretch`` grow the lines to fill it. A
          single-line panel's line always fills the cross space.
 
       **align_items** : ``LayoutAlignment``, default ``LayoutAlignment::normal``
@@ -78,7 +78,7 @@ gui_forms::FlexPanel
 
       **column_gap** : ``LengthPercentage``, default ``0``
          Space between items of a row, or between lines of a column, with the
-         same rules as :cpp:func:`row_gap <gui_forms::FlexPanel::row_gap>` against the content width.
+         same rules as :cpp:member:`row_gap <gui_forms::FlexPanel::row_gap>` against the content width.
 
       **layout_snapshot** : ``FlexLayoutWorkspace``, read-only, read-only
          The last arrange's resolution: for each laid-out child its flex base
@@ -92,9 +92,9 @@ gui_forms::FlexPanel
 
    :Inherited:
 
-      From :cpp:class:`ContainerControl <gui_forms::ContainerControl>`: properties :cpp:func:`active_control <gui_forms::ContainerControl::active_control>`, :cpp:func:`auto_validate <gui_forms::ContainerControl::auto_validate>`, :cpp:func:`effective_auto_validate <gui_forms::ContainerControl::effective_auto_validate>`; events :cpp:func:`auto_validate_changed <gui_forms::ContainerControl::auto_validate_changed>`; methods :cpp:func:`clear_active_control <gui_forms::ContainerControl::clear_active_control>`, :cpp:func:`contains_descendant <gui_forms::ContainerControl::contains_descendant>`, :cpp:func:`request_active_control <gui_forms::ContainerControl::request_active_control>`, :cpp:func:`validate <gui_forms::ContainerControl::validate>`, :cpp:func:`validate_children <gui_forms::ContainerControl::validate_children>`.
+      From :cpp:class:`ContainerControl <gui_forms::ContainerControl>`: properties :cpp:member:`auto_validate <gui_forms::ContainerControl::auto_validate>`, :cpp:func:`active_control <gui_forms::ContainerControl::active_control>`, :cpp:func:`effective_auto_validate <gui_forms::ContainerControl::effective_auto_validate>`; events :cpp:func:`auto_validate_changed <gui_forms::ContainerControl::auto_validate_changed>`; methods :cpp:func:`clear_active_control <gui_forms::ContainerControl::clear_active_control>`, :cpp:func:`contains_descendant <gui_forms::ContainerControl::contains_descendant>`, :cpp:func:`request_active_control <gui_forms::ContainerControl::request_active_control>`, :cpp:func:`validate <gui_forms::ContainerControl::validate>`, :cpp:func:`validate_children <gui_forms::ContainerControl::validate_children>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`parts <gui_forms::ScrollableControl::parts>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`parts <gui_forms::ScrollableControl::parts>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -108,6 +108,8 @@ gui_forms::FlexPanel
         - The child's item layout, or the default one for a child without its own record or a control that is not a direct child.
       * - :cpp:func:`item_positioning <gui_forms::FlexPanel::item_positioning>`
         - The child's ``position`` and insets, without copying its whole record; static for a control that is not a live direct child.
+      * - :cpp:func:`flex_panel_property_entries <gui_forms::FlexPanel::flex_panel_property_entries>`
+        -  
       * - :cpp:func:`set_item_layout <gui_forms::FlexPanel::set_item_layout>`
         - ``set_item_layout(child, layout)`` sets a direct child's :cpp:class:`FlexItemLayout <gui_forms::FlexItemLayout>`: its ``flex`` grow and shrink factors, basis and order; ``align_self``; its ``width``, ``height``, minimums and maximums; and which margins are ``auto``.
 
@@ -194,7 +196,7 @@ gui_forms::FlexPanel
 
       std::shared_ptr<gf::FlexPanel> bar =
           gf::make_control<gf::FlexPanel>(gf::StableId("bar"));
-      (*bar).set_align_items(gf::LayoutAlignment::center);
+      (*bar).align_items = gf::LayoutAlignment::center;
       std::shared_ptr<gf::Button> save =
           gf::make_control<gf::Button>(gf::StableId("bar.save"), "Save");
       std::shared_ptr<gf::Button> close =
@@ -221,27 +223,19 @@ gui_forms::FlexPanel
 
    .. rubric:: Properties
 
-   .. cpp:function:: FlexDirection flex_direction() const noexcept
+   .. cpp:member:: FlexDirection flex_direction
 
       The main axis and the end it starts from: ``row``, ``row_reverse``,
       ``column`` or ``column_reverse``. A row follows the effective layout
       direction, so a right-to-left panel starts its rows at the right edge.
 
-   .. cpp:function:: void set_flex_direction(FlexDirection direction)
-
-      Sets :cpp:func:`flex_direction <gui_forms::FlexPanel::flex_direction>`; see the property's description above.
-
-   .. cpp:function:: FlexWrap flex_wrap() const noexcept
+   .. cpp:member:: FlexWrap flex_wrap
 
       Whether items that overflow the main axis start new lines. With
       ``nowrap`` the panel holds one line and its items shrink to fit;
       ``wrap_reverse`` stacks the lines from the cross end.
 
-   .. cpp:function:: void set_flex_wrap(FlexWrap wrap)
-
-      Sets :cpp:func:`flex_wrap <gui_forms::FlexPanel::flex_wrap>`; see the property's description above.
-
-   .. cpp:function:: LayoutAlignment justify_content() const noexcept
+   .. cpp:member:: LayoutAlignment justify_content
 
       How each line distributes its free space along the main axis: ``start``,
       ``end``, ``flex_start``, ``flex_end``, ``center``, ``space_between``,
@@ -250,49 +244,29 @@ gui_forms::FlexPanel
       distributions start at the start; a lone item is centred by
       ``space_around`` and ``space_evenly``.
 
-   .. cpp:function:: void set_justify_content(LayoutAlignment alignment)
-
-      Sets :cpp:func:`justify_content <gui_forms::FlexPanel::justify_content>`; see the property's description above.
-
-   .. cpp:function:: LayoutAlignment align_content() const noexcept
+   .. cpp:member:: LayoutAlignment align_content
 
       How the lines share the panel's cross space, with the values of
-      :cpp:func:`justify_content <gui_forms::FlexPanel::justify_content>`; ``normal`` and ``stretch`` grow the lines to fill it. A
+      :cpp:member:`justify_content <gui_forms::FlexPanel::justify_content>`; ``normal`` and ``stretch`` grow the lines to fill it. A
       single-line panel's line always fills the cross space.
 
-   .. cpp:function:: void set_align_content(LayoutAlignment alignment)
-
-      Sets :cpp:func:`align_content <gui_forms::FlexPanel::align_content>`; see the property's description above.
-
-   .. cpp:function:: LayoutAlignment align_items() const noexcept
+   .. cpp:member:: LayoutAlignment align_items
 
       How each item sits across its line, unless its item layout sets
       ``align_self``: ``start``, ``end``, ``flex_start``, ``flex_end``, ``center`` or
       ``baseline``; ``normal`` and ``stretch`` stretch an item whose cross size is
       ``auto`` to the line's thickness minus its margins.
 
-   .. cpp:function:: void set_align_items(LayoutAlignment alignment)
-
-      Sets :cpp:func:`align_items <gui_forms::FlexPanel::align_items>`; see the property's description above.
-
-   .. cpp:function:: LengthPercentage row_gap() const noexcept
+   .. cpp:member:: LengthPercentage row_gap
 
       Space between lines of a row, or between items of a column. A
       percentage is of the panel's content height, and zero when that height
       is indefinite. It must be finite and nonnegative.
 
-   .. cpp:function:: void set_row_gap(LengthPercentage gap)
-
-      Sets :cpp:func:`row_gap <gui_forms::FlexPanel::row_gap>`; see the property's description above.
-
-   .. cpp:function:: LengthPercentage column_gap() const noexcept
+   .. cpp:member:: LengthPercentage column_gap
 
       Space between items of a row, or between lines of a column, with the
-      same rules as :cpp:func:`row_gap <gui_forms::FlexPanel::row_gap>` against the content width.
-
-   .. cpp:function:: void set_column_gap(LengthPercentage gap)
-
-      Sets :cpp:func:`column_gap <gui_forms::FlexPanel::column_gap>`; see the property's description above.
+      same rules as :cpp:member:`row_gap <gui_forms::FlexPanel::row_gap>` against the content width.
 
    .. cpp:function:: const FlexLayoutWorkspace& layout_snapshot() const& noexcept
 
@@ -317,6 +291,8 @@ gui_forms::FlexPanel
    .. cpp:function:: ItemPositioning item_positioning(const Control& child) const noexcept
 
       The child's ``position`` and insets, without copying its whole record; static for a control that is not a live direct child.
+
+   .. cpp:function:: static const std::array<PropertyEntry, flex_panel_property_count>& flex_panel_property_entries() noexcept
 
    .. cpp:function:: void set_item_layout(const Control& child, const FlexItemLayout& layout)
 
@@ -348,3 +324,9 @@ gui_forms::FlexPanel
    .. cpp:function:: Size measure_intrinsic(const LayoutConstraint& constraint) override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t flex_panel_property_count
+
+      FlexPanel's property table: Control's entries, then its own. Default: ``Control::control_property_count + 1U``.

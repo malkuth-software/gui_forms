@@ -143,8 +143,8 @@ pixel is uploaded, and only its four-by-four area is repainted:
    std::shared_ptr<gf::RasterCanvas> canvas =
        gf::make_control<gf::RasterCanvas>(gf::StableId("paint.canvas"));
    (*canvas).set_requested_bounds({0.0, 0.0, 256.0, 256.0});
-   (*canvas).set_zoom(4.0);
-   (*canvas).set_bitmap(document);
+   (*canvas).zoom = 4.0;
+   (*canvas).bitmap = document;
    gf::Window window(canvas, gf::Size{256.0, 256.0});   // uploads the bitmap
    window.perform_layout();
 
@@ -163,15 +163,15 @@ window to client coordinates, then to a bitmap pixel:
        explicit PencilCanvas(gf::StableId id) : gf::RasterCanvas(std::move(id)) {}
 
        void on_pointer(gf::PointerEvent& event) override {
-           if (event.action != gf::PointerAction::down || !bitmap()) return;
+           if (event.action != gf::PointerAction::down || !bitmap.read()) return;
            const gui_drawing::PointF at =
                client_to_bitmap(point_from_window(event.position));
            if (at.x < 0.0 || at.y < 0.0 ||
-               at.x >= static_cast<double>((*bitmap()).width()) ||
-               at.y >= static_cast<double>((*bitmap()).height())) {
+               at.x >= static_cast<double>((*bitmap.read()).width()) ||
+               at.y >= static_cast<double>((*bitmap.read()).height())) {
                return;
            }
-           (*bitmap()).set_pixel(static_cast<std::uint32_t>(at.x),
+           (*bitmap.read()).set_pixel(static_cast<std::uint32_t>(at.x),
                                  static_cast<std::uint32_t>(at.y),
                                  gui_drawing::Color::from_rgb(0, 0, 0));
            static_cast<void>(synchronize_bitmap());
@@ -183,8 +183,8 @@ window to client coordinates, then to a bitmap pixel:
        std::shared_ptr<PencilCanvas> canvas =
            gf::make_control<PencilCanvas>(gf::StableId("sketch.canvas"));
        (*canvas).set_requested_bounds({0.0, 0.0, 128.0, 128.0});
-       (*canvas).set_zoom(4.0);
-       (*canvas).set_bitmap(std::make_shared<gui_drawing::Bitmap>(32U, 32U));
+       (*canvas).zoom = 4.0;
+       (*canvas).bitmap = std::make_shared<gui_drawing::Bitmap>(32U, 32U);
        gf::Window window(canvas, gf::Size{128.0, 128.0});
        window.perform_layout();
 

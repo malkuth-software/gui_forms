@@ -1,4 +1,5 @@
 #include "gui_forms/controls/drawing_surface/drawing_surface.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <utility>
@@ -14,47 +15,25 @@ void DrawingSurface::set_paint_callback(PaintCallback callback) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void DrawingSurface::set_hit_test_visible(bool visible) {
-    require_mutable();
-    if (hit_test_visible_ == visible) return;
-    hit_test_visible_ = visible;
-    invalidate(Dirty::hit_test | Dirty::semantics);
-}
-
-void DrawingSurface::set_semantic_role(SemanticRole role) {
-    require_mutable();
-    if (semantic_role_ == role) return;
-    semantic_role_ = role;
-    invalidate(Dirty::semantics);
-}
-
-void DrawingSurface::set_background(Color color) {
-    require_mutable();
-    if (background_ == color) return;
-    background_ = color;
-    invalidate(Dirty::paint);
-}
-
 void DrawingSurface::on_paint(Painter& painter, Rect local_damage) {
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                       committed_arranged_bounds().height};
-    painter.fill_rect(bounds, background_);
+    painter.fill_rect(bounds, background.read());
     if (paint_callback_) paint_callback_(painter, bounds, local_damage);
 }
 
 bool DrawingSurface::hit_test_local(Point local_point) const {
-    return hit_test_visible_ && Control::hit_test_local(local_point);
+    return hit_test_visible.read() && Control::hit_test_local(local_point);
 }
 
 SemanticDescriptor DrawingSurface::semantic_descriptor() const {
     SemanticDescriptor descriptor;
-    descriptor.role = semantic_role_;
+    descriptor.role = semantic_role.read();
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
     descriptor.exposed = !descriptor.name.empty() || !descriptor.description.empty();
     return descriptor;
 }
-
 
 namespace {
 
@@ -99,7 +78,7 @@ void DrawingSurface::publish_part_geometry(std::span<PartGeometry> geometry) con
     Parts record;
     record.region = PartGeometry::from_bounds(bounds);
     // The background fill; the application's drawing lies over it.
-    if (background_.alpha != 0U) {
+    if (background.read().alpha != 0U) {
         record.face = PartGeometry::from_bounds(bounds);
     }
     record.focus = PartGeometry::from_bounds(bounds);
@@ -118,5 +97,33 @@ DrawingSurface::States DrawingSurface::states() const {
     read_states(drawing_surface_state_fields, anatomy_states(), record);
     return record;
 }
+
+// property_codemod begin DrawingSurface (tools/property_families/drawing_surface.json; generated, do not edit)
+
+void DrawingSurface::prepare_write(const decltype(hit_test_visible)&, bool&) {
+    require_mutable();
+}
+
+void DrawingSurface::written(const decltype(hit_test_visible)&) {
+    invalidate(Dirty::hit_test | Dirty::semantics);
+}
+
+void DrawingSurface::prepare_write(const decltype(semantic_role)&, SemanticRole&) {
+    require_mutable();
+}
+
+void DrawingSurface::written(const decltype(semantic_role)&) {
+    invalidate(Dirty::semantics);
+}
+
+void DrawingSurface::prepare_write(const decltype(background)&, Color&) {
+    require_mutable();
+}
+
+void DrawingSurface::written(const decltype(background)&) {
+    invalidate(Dirty::paint);
+}
+
+// property_codemod end DrawingSurface
 
 } // namespace gui_forms

@@ -1,4 +1,5 @@
 #include "gui_forms/window.hpp"
+#include "gui_forms/application.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
@@ -7,7 +8,9 @@
 #include "../accelerator/accelerator_attachment.hpp"
 #include "../overlay/overlay_attachment.hpp"
 #include "../alerts/window_alerts.hpp"
+#include "../interaction/interaction_state.hpp"
 #include "../tool_tips/tool_tip_presenter.hpp"
+#include "../toasts/toast_presenter.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -23,18 +26,76 @@
 #include <unordered_set>
 
 namespace gui_forms {
+namespace {
+
+bool known_setting_origin(SettingOrigin origin) noexcept {
+    return origin == SettingOrigin::default_value || origin == SettingOrigin::host;
+}
+
+bool valid_pointer_distance(double distance) noexcept {
+    return std::isfinite(distance) && distance >= 0.0 && distance <= maximum_pointer_distance;
+}
+
+// The current application, when a window made on this thread may join it.
+Application* joinable_application() noexcept {
+    Application* const current = Application::current();
+    if (current == nullptr) return nullptr;
+    const bool here = (*current).resources() && (*(*current).resources()).check_access();
+    return here ? current : nullptr;
+}
+
+// The resources of a window made without its own: the application's, or
+// fresh ones with the built-in theme.
+std::shared_ptr<ApplicationResources> default_window_resources(Application* application) {
+    if (application != nullptr) return (*application).resources();
+    std::shared_ptr<ApplicationResources> own = std::make_shared<ApplicationResources>(ImageRegistryLimits{});
+    return own;
+}
+
+// Fresh resources with `limits`, taking the application's theme.
+std::shared_ptr<ApplicationResources> limited_window_resources(Application* application,
+                                                               ImageRegistryLimits limits) {
+    std::shared_ptr<ApplicationResources> own = std::make_shared<ApplicationResources>(limits);
+    if (application != nullptr) (*own).set_theme((*(*application).resources()).program_theme_ptr());
+    return own;
+}
+
+// The application an explicit window joins: refused off its thread or
+// once closed.
+Application& checked_application(Application& application) {
+    if (application.closed()) throw std::logic_error("GUI.Forms window: the application is closed");
+    if (!(*application.resources()).check_access()) {
+        throw std::logic_error("GUI.Forms window: the application belongs to another thread");
+    }
+    return application;
+}
+
+} // namespace
 
 Window::Window(Control::Ptr root, Size client_size)
-    : Window(std::move(root), client_size, ImageRegistryLimits{}) {}
+    : Window(std::move(root), client_size, default_window_resources(joinable_application()),
+             joinable_application()) {}
+
+Window::Window(Application& application, Control::Ptr root, Size client_size)
+    : Window(std::move(root), client_size, checked_application(application).resources(), &application) {}
 
 Window::Window(Control::Ptr root, Size client_size, ImageRegistryLimits image_limits)
-    : Window(std::move(root), client_size, std::make_shared<ApplicationResources>(image_limits)) {}
+    : Window(std::move(root), client_size, limited_window_resources(joinable_application(), image_limits),
+             joinable_application()) {}
 
 Window::Window(Control::Ptr root, Size client_size,
                std::shared_ptr<ApplicationResources> resources)
+    : Window(std::move(root), client_size, std::move(resources), joinable_application()) {}
+
+Window::Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationResources> resources,
+               Application* application)
     : SurfaceRoot(std::move(root), client_size, std::move(resources)) {
     presenting_window_ = this;
+    if (application != nullptr) application_tool_tips_shown_ = (*application).tool_tips_shown_;
+    // The application's key table, read until a window-local change (K.1).
+    if (application != nullptr) inherited_key_bindings_ = (*application).key_bindings();
     tool_tips_ = std::make_unique<detail::ToolTipPresenter>(*this);
+    toasts_ = std::make_unique<detail::ToastPresenter>(*this);
     alerts_ = std::make_unique<detail::WindowAlerts>(*this);
     initialize_cursor_identity();
     (*lifetime_).window = this;
@@ -64,17 +125,28 @@ Window::Window(Control::Ptr root, Size client_size,
     const Rect initial_damage{0.0, 0.0, client_size_.width, client_size_.height};
     add_damage_all_planes(initial_damage);
     metrics_.record_dirty_mark(initial_damage.area());
+    // A joined window takes the application's presentation as its own, with
+    // its consequences (the scheme's theme among them) once the tree is
+    // attached.
+    if (application != nullptr && (*application).presentation_settings() != presentation_settings_) {
+        presentation_base_ = (*application).presentation_settings();
+        apply_presentation(presentation_base_);
+    }
     // Last: a constructor that throws never leaves itself registered.
     (*resources_).attach(*this);
+    if (application != nullptr) (*application).join(*this);
 }
 Window::~Window() {
     // The tooltip presenter goes first: it holds an overlay and a wake, and
     // raises nothing while it shuts down.
     if (tool_tips_) (*tool_tips_).shutdown();
+    // The toast presenter likewise holds an overlay and a wake.
+    if (toasts_) (*toasts_).shutdown();
     // Waiting alerts go unshown; one showing returns to nothing.
     if (alerts_) (*alerts_).shutdown();
     invalidate_cursor_interaction(CursorError::closing);
     release_tree();
+    if (application_ != nullptr) (*application_).leave(*this);
     (*resources_).detach(*this);
     (*lifetime_).window = nullptr;
 }
@@ -133,6 +205,7 @@ void SurfaceRoot::shutdown_dispatcher() noexcept {
 void Window::resize(Size client_size) {
     require_root_thread("window resize");
     if (!resize_surface(client_size)) return;
+    if (toasts_) (*toasts_).client_resized();
     invalidate_cursor_interaction(CursorError::stale_metrics);
 }
 
@@ -148,9 +221,13 @@ bool SurfaceRoot::resize_surface(Size client_size) {
     settle_dirty();
     const Rect old_bounds{0.0, 0.0, client_size_.width, client_size_.height};
     const Rect new_bounds{0.0, 0.0, client_size.width, client_size.height};
-    const bool width_changed = client_size_.width != client_size.width;
-    const bool height_changed = client_size_.height != client_size.height;
+    // What the root is handed changes with its slot, which the insets keep
+    // apart from the client area's edges.
+    const Rect old_slot = root_slot();
     client_size_ = client_size;
+    const Rect new_slot = root_slot();
+    const bool width_changed = old_slot.width != new_slot.width;
+    const bool height_changed = old_slot.height != new_slot.height;
     ++surface_epoch_;
     if (surface_epoch_ == 0U) ++surface_epoch_;
     apply_client_resize(old_bounds, new_bounds, width_changed, height_changed);
@@ -163,8 +240,9 @@ bool SurfaceRoot::resize_surface(Size client_size) {
 }
 
 // The surface side of a client resize (Window::resize is its host entry):
-// damage and layout marks for a root that went from `old_bounds` to
-// `new_bounds`, both at the window origin.
+// damage for a client area that went from `old_bounds` to `new_bounds`,
+// both at the window origin, and layout marks for a root slot whose width
+// or height changed.
 void SurfaceRoot::apply_client_resize(Rect old_bounds, Rect new_bounds, bool width_changed,
                                       bool height_changed) {
     // What the resize touched, and whether it needs repainting (the owner,
@@ -185,7 +263,13 @@ void SurfaceRoot::apply_client_resize(Rect old_bounds, Rect new_bounds, bool wid
     base_context.high_contrast = presentation_settings_.high_contrast;
     const std::optional<double> base_band = surface_material_resize_band(backplane_base(base_context));
     if (base_band) {
-        add_resize_strip_damage(old_bounds, new_bounds, *base_band);
+        // The outer band moves with the edges too, its rounded corners
+        // reaching in by their radius.
+        double reach = std::max(*base_band, band_.reserved);
+        if (band_.reserved > 0.0 && band_.corners.shape == WindowCornerShape::rounded) {
+            reach = std::max(reach, band_.corners.radius);
+        }
+        add_resize_strip_damage(old_bounds, new_bounds, reach);
     } else {
         add_damage_all_planes(old_bounds);
         add_damage_all_planes(new_bounds);
@@ -194,9 +278,39 @@ void SurfaceRoot::apply_client_resize(Rect old_bounds, Rect new_bounds, bool wid
     mark_resized_measure(*root_, width_changed, height_changed);
 }
 
-// The window's measure pass hands the root the client size, and hands each
+Rect SurfaceRoot::root_slot() const noexcept {
+    // The outer band lies along the client area's edges; the chrome insets
+    // are measured inside it.
+    const Insets& insets = chrome_insets_;
+    const double band = band_.reserved;
+    const double width = client_size_.width - insets.left - insets.right - 2.0 * band;
+    const double height = client_size_.height - insets.top - insets.bottom - 2.0 * band;
+    const Rect slot{band + insets.left, band + insets.top, width > 0.0 ? width : 0.0, height > 0.0 ? height : 0.0};
+    return slot;
+}
+
+void SurfaceRoot::set_chrome_insets(Insets insets) {
+    require_root_thread("chrome insets mutation");
+    const bool finite = std::isfinite(insets.left) && std::isfinite(insets.top) && std::isfinite(insets.right) &&
+                        std::isfinite(insets.bottom);
+    const bool not_negative = insets.left >= 0.0 && insets.top >= 0.0 && insets.right >= 0.0 && insets.bottom >= 0.0;
+    if (!finite || !not_negative) {
+        throw std::invalid_argument("GUI.Forms chrome insets must be finite and not negative");
+    }
+    if (chrome_insets_ == insets) return;
+    // Pending touches place their damage where the controls were.
+    settle_dirty();
+    const Rect old_slot = root_slot();
+    chrome_insets_ = insets;
+    const Rect new_slot = root_slot();
+    add_damage_all_planes({0.0, 0.0, client_size_.width, client_size_.height});
+    mark_child_layout_slot(*root_);
+    mark_resized_measure(*root_, old_slot.width != new_slot.width, old_slot.height != new_slot.height);
+}
+
+// The window's measure pass hands the root its slot's size, and hands each
 // child its parent's requested extent on each axis, or, where that is zero,
-// what the parent was handed (measure_dirty_recursive). A client-size change
+// what the parent was handed (measure_dirty_recursive). A slot-size change
 // therefore changes what a control is handed exactly when it reaches the
 // control: on a changed axis, through ancestors that request no extent on
 // that axis. Those controls, and only those, are marked for measure. The
@@ -232,6 +346,8 @@ bool SurfaceRoot::set_surface_scale(double scale) {
     scale_ = scale;
     // A resolution media query may give the window another backdrop.
     lower_theme_backdrop_chain();
+    // The band is snapped to whole device pixels of the new scale.
+    refresh_band();
     ++surface_epoch_;
     if (surface_epoch_ == 0U) ++surface_epoch_;
     mark_subtree_dirty(*root_, invalidation::conservative_subtree);
@@ -243,8 +359,17 @@ bool SurfaceRoot::set_surface_scale(double scale) {
     return true;
 }
 
-void SurfaceRoot::set_presentation_settings(PresentationSettings settings) {
-    require_root_thread("presentation settings mutation");
+bool valid_pointer_settings(const PointerSettings& settings) noexcept {
+    const bool drag = valid_pointer_distance(settings.drag_width) && valid_pointer_distance(settings.drag_height);
+    const bool hover = settings.hover_milliseconds != 0U &&
+                       settings.hover_milliseconds <= maximum_hover_milliseconds &&
+                       valid_pointer_distance(settings.hover_width) &&
+                       valid_pointer_distance(settings.hover_height);
+    const bool origins = known_setting_origin(settings.drag_origin) && known_setting_origin(settings.hover_origin);
+    return drag && hover && origins;
+}
+
+void validate_presentation_settings(const PresentationSettings& settings) {
     if (!std::isfinite(settings.text_scale) ||
         settings.text_scale < 0.5 || settings.text_scale > 4.0) {
         throw std::invalid_argument(
@@ -259,9 +384,74 @@ void SurfaceRoot::set_presentation_settings(PresentationSettings settings) {
         settings.double_click_origin != SettingOrigin::host) {
         throw std::invalid_argument("GUI.Forms double-click origin is not a SettingOrigin");
     }
+    if (!valid_pointer_settings(settings.pointer)) {
+        throw std::invalid_argument(
+            "GUI.Forms pointer settings are outside their ranges or enums");
+    }
     if (settings.colour_scheme != ColourScheme::light && settings.colour_scheme != ColourScheme::dark) {
         throw std::invalid_argument("GUI.Forms colour scheme is not a ColourScheme");
     }
+}
+
+PresentationSettings overridden_presentation(PresentationSettings settings,
+                                             const PresentationOverrides& overrides) noexcept {
+    if (overrides.text_scale) settings.text_scale = *overrides.text_scale;
+    if (overrides.high_contrast) settings.high_contrast = *overrides.high_contrast;
+    if (overrides.reduced_motion) settings.reduced_motion = *overrides.reduced_motion;
+    if (overrides.sound_enabled) settings.sound_enabled = *overrides.sound_enabled;
+    if (overrides.ambient_motion) settings.ambient_motion = *overrides.ambient_motion;
+    if (overrides.reduced_transparency) settings.reduced_transparency = *overrides.reduced_transparency;
+    if (overrides.colour_scheme) settings.colour_scheme = *overrides.colour_scheme;
+    return settings;
+}
+
+WindowOverrides& SurfaceRoot::edit_overrides() {
+    if (!overrides_) overrides_ = std::make_unique<WindowOverrides>();
+    return *overrides_;
+}
+
+void SurfaceRoot::release_empty_overrides() noexcept {
+    if (overrides_ && (*overrides_).empty()) overrides_.reset();
+}
+
+const PresentationOverrides* SurfaceRoot::presentation_overrides() const noexcept {
+    if (!overrides_ || (*overrides_).presentation.empty()) return nullptr;
+    return &(*overrides_).presentation;
+}
+
+void SurfaceRoot::set_presentation_settings(PresentationSettings settings) {
+    require_root_thread("presentation settings mutation");
+    validate_presentation_settings(settings);
+    PresentationSettings effective = settings;
+    if (overrides_) effective = overridden_presentation(settings, (*overrides_).presentation);
+    validate_presentation_settings(effective);
+    presentation_base_ = settings;
+    apply_presentation(effective);
+}
+
+void SurfaceRoot::set_presentation_overrides(const PresentationOverrides& overrides) {
+    require_root_thread("presentation overrides");
+    const PresentationSettings effective = overridden_presentation(presentation_base_, overrides);
+    validate_presentation_settings(effective);
+    if (overrides.empty()) {
+        if (overrides_) (*overrides_).presentation = PresentationOverrides{};
+        release_empty_overrides();
+    } else {
+        edit_overrides().presentation = overrides;
+    }
+    apply_presentation(effective);
+}
+
+void SurfaceRoot::set_host_presentation(PresentationSettings settings) {
+    Application* const application = presenting_window_ == this ? (*presenting_window_).application_ : nullptr;
+    if (application != nullptr) {
+        (*application).set_presentation_settings(settings);
+        return;
+    }
+    set_presentation_settings(settings);
+}
+
+void SurfaceRoot::apply_presentation(PresentationSettings settings) {
     if (presentation_settings_ == settings) {
         return;
     }
@@ -306,11 +496,13 @@ void SurfaceRoot::set_presentation_settings(PresentationSettings settings) {
     // The theme for the new scheme: the application's where it has the
     // variant, else GUI.Forms' own (T4 theme variants). A handler above may
     // have changed the scheme again; the scheme in force decides.
-    if (scheme_switched && resources_) show_theme(scheme_theme((*resources_).theme_ptr()));
+    if (scheme_switched && resources_) show_theme(scheme_theme(followed_theme()));
     // The window's media changed: its rules may give another backdrop, or
     // another colour for a role in tint(). Where a theme shown above has
     // lowered it already, this changes nothing.
     lower_theme_backdrop_chain();
+    // High contrast, the scheme and the motion settings change the band.
+    refresh_band();
 }
 
 const Theme& SurfaceRoot::application_theme() const noexcept {
@@ -334,10 +526,10 @@ std::shared_ptr<const Theme> SurfaceRoot::scheme_theme(const std::shared_ptr<con
 }
 
 void SurfaceRoot::follow_host_colour_scheme(bool automatic) {
-    if (!automatic || presentation_settings_.colour_scheme == host_colour_scheme_) return;
-    PresentationSettings settings = presentation_settings_;
+    if (!automatic || presentation_base_.colour_scheme == host_colour_scheme_) return;
+    PresentationSettings settings = presentation_base_;
     settings.colour_scheme = host_colour_scheme_;
-    set_presentation_settings(settings);
+    set_host_presentation(settings);
 }
 
 const CompiledThemeRules* SurfaceRoot::user_theme_rules() const noexcept {
@@ -353,7 +545,27 @@ void SurfaceRoot::set_theme(std::shared_ptr<const Theme> theme) {
 }
 
 void SurfaceRoot::apply_theme(const std::shared_ptr<const Theme>& theme) {
+    // A window showing its own theme keeps it.
+    if (overrides_ && (*overrides_).theme) return;
     show_theme(scheme_theme(theme));
+}
+
+std::shared_ptr<const Theme> SurfaceRoot::followed_theme() const {
+    if (overrides_ && (*overrides_).theme) return (*overrides_).theme;
+    const std::shared_ptr<const Theme> shared = (*resources_).theme_ptr();
+    return shared;
+}
+
+void SurfaceRoot::set_theme_override(std::shared_ptr<const Theme> theme) {
+    require_root_thread("theme override");
+    if (theme) {
+        edit_overrides().theme = std::move(theme);
+    } else if (overrides_) {
+        (*overrides_).theme = nullptr;
+        release_empty_overrides();
+    }
+    if (!resources_) return;
+    show_theme(scheme_theme(followed_theme()));
 }
 
 void SurfaceRoot::show_theme(const std::shared_ptr<const Theme>& shown) {
@@ -367,6 +579,8 @@ void SurfaceRoot::show_theme(const std::shared_ptr<const Theme>& shown) {
     // The new theme's window backdrop chain first: the request below is
     // implied by it.
     lower_theme_backdrop_chain();
+    // The new theme's `window` band rule.
+    refresh_band();
     // A window following its theme's backdrop request takes the new
     // theme's, and its grant is resolved again before theme_changed is
     // raised, so handlers see the grant the theme brings.
@@ -395,6 +609,9 @@ void SurfaceRoot::set_active(bool active) {
     require_root_thread("activation mutation");
     if (active_ == active) return;
     if (!active && host_services_ != nullptr) { (*host_services_).revoke_cursor_interaction(); }
+    // Keys and buttons released while the window was inactive never reach
+    // it: forget them.
+    if (!active && interaction_) (*interaction_).deactivated();
     active_ = active;
     // The window's backplane material follows activation (E9-B).
     damage_backplane_readers(nullptr);
@@ -410,29 +627,104 @@ void SurfaceRoot::set_active(bool active) {
 
 // Nothing a control shows depends on the key map yet (no control displays a
 // command's keys), so changing it invalidates nothing.
+namespace {
+
+// The PC convention, read by a window holding no table and joined to no
+// application. Made once; never changed.
+const KeyBindings& pc_key_bindings() {
+    static const KeyBindings convention{};
+    return convention;
+}
+
+// The null table key_bindings() names for a window reading the convention.
+const std::shared_ptr<KeyBindings>& no_key_bindings() {
+    static const std::shared_ptr<KeyBindings> none{};
+    return none;
+}
+
+} // namespace
+
+const KeyMap& SurfaceRoot::key_map() const noexcept {
+    if (overrides_ && (*overrides_).key_bindings) return (*(*overrides_).key_bindings).map();
+    if (inherited_key_bindings_) return (*inherited_key_bindings_).map();
+    return pc_key_bindings().map();
+}
+
+const std::shared_ptr<KeyBindings>& SurfaceRoot::key_bindings() const noexcept {
+    if (overrides_ && (*overrides_).key_bindings) return (*overrides_).key_bindings;
+    if (inherited_key_bindings_) return inherited_key_bindings_;
+    return no_key_bindings();
+}
+
+KeyBindings& SurfaceRoot::held_key_bindings() {
+    if (overrides_ && (*overrides_).key_bindings) return *(*overrides_).key_bindings;
+    if (inherited_key_bindings_) return *inherited_key_bindings_;
+    WindowOverrides& overrides = edit_overrides();
+    overrides.key_bindings = std::make_shared<KeyBindings>();
+    return *overrides.key_bindings;
+}
+
+std::shared_ptr<KeyBindings> SurfaceRoot::share_key_bindings() {
+    require_root_thread("key binding sharing");
+    static_cast<void>(held_key_bindings());
+    std::shared_ptr<KeyBindings> shared = key_bindings();
+    return shared;
+}
+
 void SurfaceRoot::set_key_bindings(std::shared_ptr<KeyBindings> bindings) {
     require_root_thread("key binding mutation");
     if (!bindings) throw std::invalid_argument("GUI.Forms window key bindings may not be null");
-    key_bindings_ = std::move(bindings);
+    // Sharing the application's table, which the window reads already,
+    // stores nothing.
+    const bool held = overrides_ && (*overrides_).key_bindings;
+    if (!held && bindings == inherited_key_bindings_) return;
+    edit_overrides().key_bindings = std::move(bindings);
 }
 
 void SurfaceRoot::rebind_key_command(KeyCommand command, KeyBinding binding) {
     require_root_thread("key binding mutation");
-    (*key_bindings_).rebind(command, binding);
+    const bool held = overrides_ && (*overrides_).key_bindings;
+    if (held) {
+        (*(*overrides_).key_bindings).rebind(command, binding);
+        return;
+    }
+    // A window-local rebinding: the table it read, copied, then changed;
+    // refused, the copy is dropped and nothing is stored.
+    const KeyBindings& read = inherited_key_bindings_ ? *inherited_key_bindings_ : pc_key_bindings();
+    std::shared_ptr<KeyBindings> local = read.copy_bindings();
+    (*local).rebind(command, binding);
+    edit_overrides().key_bindings = std::move(local);
 }
 
 void SurfaceRoot::restore_key_command(KeyCommand command) {
     require_root_thread("key binding mutation");
-    (*key_bindings_).restore(command);
+    const bool held = overrides_ && (*overrides_).key_bindings;
+    if (held) {
+        (*(*overrides_).key_bindings).restore(command);
+        return;
+    }
+    const KeyBindings& read = inherited_key_bindings_ ? *inherited_key_bindings_ : pc_key_bindings();
+    std::shared_ptr<KeyBindings> local = read.copy_bindings();
+    (*local).restore(command);
+    edit_overrides().key_bindings = std::move(local);
+}
+
+void SurfaceRoot::clear_key_bindings() {
+    require_root_thread("key binding mutation");
+    if (!overrides_) return;
+    (*overrides_).key_bindings = nullptr;
+    release_empty_overrides();
 }
 
 void Window::install_host_key_map(const KeyMap& defaults) {
     require_root_thread("host key map installation");
-    static_cast<void>((*key_bindings_).seed(defaults));
+    // Seeds the table the window holds or reads (its application's, shared
+    // by the application's windows), made now for a window with neither.
+    static_cast<void>(held_key_bindings().seed(defaults));
 }
 
 void SurfaceRoot::set_text_scale(double text_scale) {
-    PresentationSettings settings = presentation_settings_;
+    PresentationSettings settings = presentation_base_;
     settings.text_scale = text_scale;
     set_presentation_settings(settings);
 }

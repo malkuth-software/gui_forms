@@ -13,7 +13,6 @@ constexpr std::array<std::string_view, key_command_count> key_command_names{{
     "move_tab_earlier",
     "cycle_forward",
     "cycle_backward",
-    "context_menu",
     "next_document",
     "previous_document",
     "next_tool_panel",
@@ -25,7 +24,7 @@ constexpr std::array<std::string_view, key_command_count> key_command_names{{
     "move_panel",
 }};
 
-static_assert(key_command_count == 17U, "every KeyCommand has a name");
+static_assert(key_command_count == 16U, "every KeyCommand has a name");
 
 constexpr std::uint8_t modifier_bits = static_cast<std::uint8_t>(
     Modifier::shift | Modifier::control | Modifier::alt | Modifier::meta);
@@ -94,8 +93,6 @@ KeyMap pc_key_map() {
     map.set_binding(KeyCommand::move_tab_earlier, {{PhysicalKey::page_up, control_shift}, {}});
     map.set_binding(KeyCommand::cycle_forward, {{PhysicalKey::tab, control}, {}});
     map.set_binding(KeyCommand::cycle_backward, {{PhysicalKey::tab, control_shift}, {}});
-    map.set_binding(KeyCommand::context_menu,
-                    {{PhysicalKey::f10, Modifier::shift}, {PhysicalKey::context_menu, Modifier::none}});
     map.set_binding(KeyCommand::next_document, {{PhysicalKey::f6, control}, {}});
     map.set_binding(KeyCommand::previous_document, {{PhysicalKey::f6, control_shift}, {}});
     map.set_binding(KeyCommand::next_tool_panel, {{PhysicalKey::f7, Modifier::alt}, {}});
@@ -110,6 +107,15 @@ KeyMap pc_key_map() {
 }
 
 KeyBindings::KeyBindings() : defaults_(pc_key_map()), effective_(pc_key_map()) {}
+
+std::shared_ptr<KeyBindings> KeyBindings::copy_bindings() const {
+    std::shared_ptr<KeyBindings> copied = std::make_shared<KeyBindings>();
+    (*copied).defaults_ = defaults_;
+    (*copied).effective_ = effective_;
+    (*copied).rebound_ = rebound_;
+    (*copied).seeded_ = seeded_;
+    return copied;
+}
 
 void KeyBindings::rebind(KeyCommand command, KeyBinding binding) {
     effective_.set_binding(command, binding);

@@ -20,26 +20,6 @@
       "reviewed": false,
       "summary": "Constructs a focusable clipped row surface with vertical scrolling and collection semantics."
     },
-    "gui_forms::ListBox::items|std::span<const std::string> () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the authoritative ordered display strings."
-    },
-    "gui_forms::ListBox::set_items|void (std::vector<std::string>)": {
-      "reviewed": false,
-      "summary": "Replaces the collection, repairs identity/selection/scroll state, and publishes only real selection changes."
-    },
-    "gui_forms::ListBox::add_item|void (std::string)": {
-      "reviewed": false,
-      "summary": "Appends one display item with a deterministic identity and invalidates layout, paint, and semantics."
-    },
-    "gui_forms::ListBox::remove_item|void (std::size_t)": {
-      "reviewed": false,
-      "summary": "Removes a valid row, shifts selection and identity state, and reports whether removal occurred."
-    },
-    "gui_forms::ListBox::clear_items|void ()": {
-      "reviewed": false,
-      "summary": "Clears rows, identities, selection, active anchor, and scroll position atomically."
-    },
     "gui_forms::ListBox::set_item_stable_ids|void (std::vector<std::string>)": {
       "reviewed": false,
       "summary": "Installs caller-provided unique nonzero row identities after exact cardinality validation."
@@ -47,14 +27,6 @@
     "gui_forms::ListBox::item_stable_id|std::string (std::size_t) const": {
       "reviewed": false,
       "summary": "Returns the durable semantic identity for a valid row."
-    },
-    "gui_forms::ListBox::selection_mode|ListSelectionMode () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the active none, single, multi-simple, or multi-extended policy."
-    },
-    "gui_forms::ListBox::set_selection_mode|void (ListSelectionMode)": {
-      "reviewed": false,
-      "summary": "Validates policy and reconciles existing selection to its admitted cardinality."
     },
     "gui_forms::ListBox::selected_indices|std::span<const std::size_t> () const noexcept": {
       "reviewed": false,
@@ -71,30 +43,6 @@
     "gui_forms::ListBox::clear_selection|void ()": {
       "reviewed": false,
       "summary": "Clears selected rows and publishes a typed old/new selection transition."
-    },
-    "gui_forms::ListBox::top_index|std::size_t () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the first row projected into the viewport."
-    },
-    "gui_forms::ListBox::set_top_index|void (std::size_t)": {
-      "reviewed": false,
-      "summary": "Constrains a requested first row to the available collection and viewport."
-    },
-    "gui_forms::ListBox::item_height|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the logical fixed row height."
-    },
-    "gui_forms::ListBox::set_item_height|void (double)": {
-      "reviewed": false,
-      "summary": "Accepts a finite bounded positive height and invalidates scrolling, layout, and paint."
-    },
-    "gui_forms::ListBox::font|FontSpec () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the retained row FontSpec."
-    },
-    "gui_forms::ListBox::set_font|void (FontSpec)": {
-      "reviewed": false,
-      "summary": "Validates row typography and invalidates measurement, paint, and semantics."
     },
     "gui_forms::ListBox::selection_changed|Event<const ListSelectionChange &> &() noexcept": {
       "reviewed": false,

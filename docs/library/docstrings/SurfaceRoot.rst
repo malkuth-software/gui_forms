@@ -47,11 +47,27 @@ scale : default ``1.0``
     Device pixels per logical unit. The host sets it from the display; a
     value that is not finite and positive throws `std::invalid_argument`.
 presentation_settings
-    Text scale, high contrast, reduced motion and sound preferences. The
-    text scale must lie between 0.5 and 4.0, and changing it closes open
-    overlays. Any change remeasures the tree and raises
-    `presentation_changed`. Turning reduced motion on puts every motion
-    value of the window at its end in the same call.
+    Text scale, high contrast, reduced motion and sound preferences in
+    force: the window's own settings (`presentation_base`) with its
+    overrides (`presentation_overrides`) applied. `set_presentation_settings`
+    sets the window's own settings, and the overrides still win. A window
+    joined to an application takes the application's settings as its own,
+    and the host's reports change the application's
+    (`Application::set_presentation_settings`). The text scale must lie
+    between 0.5 and 4.0, and changing it closes open overlays. Any change
+    remeasures the tree and raises `presentation_changed`. Turning reduced
+    motion on puts every motion value of the window at its end in the same
+    call.
+presentation_base
+    The window's own presentation settings, before its overrides.
+presentation_overrides
+    The fields this window overrides (`PresentationOverrides`), or null when
+    it has none: each set field wins over the window's own settings.
+    `set_presentation_overrides` stores the first override, and an empty
+    record releases them, so a window without overrides stores nothing. A
+    result outside the valid settings throws `std::invalid_argument` and
+    changes nothing. The double-click interval and the pointer settings are
+    the host's and have no override.
 theme
     The theme every control inherits unless it has its own override.
     Setting it sets the theme of every window sharing this window's
@@ -66,6 +82,18 @@ active : default ``true``
     inactive state when it is false. Setting it raises `active_changed`.
 focused_control
     The control with keyboard focus, or null.
+interaction_snapshot
+    A copy of the window's input state (`InteractionSnapshot`): the held
+    keys in press order with their press times, the modifiers, the pointer
+    and its buttons, the click count the host reported for the last press,
+    the focused, captured, pressed and hovered controls, and the hover
+    timing. The window updates the state as each pointer or key event
+    arrives, before any control sees it, and makes it on the first such
+    event. GUI.Forms recognizes no gestures and counts no clicks: the host
+    reports the click count, and controls raise the WinForms mouse events
+    (`Control::mouse_down` and the rest) from it.
+hovered_control
+    The control the pointer is over, or null.
 focus_cue_visible : default ``false``
     Whether focus rectangles are shown. A key press turns them on; a primary
     pointer press turns them off without moving focus.
@@ -122,11 +150,12 @@ validation_snapshot
 semantic_generation
     A number that changes whenever the semantic (accessibility) tree may
     have changed.
-tool_tips_shown : default follows ``Application::tool_tips_shown()``
+tool_tips_shown : default follows the application's ``tool_tips_shown()``
     Whether the window's tooltip presenter shows tooltips when the pointer
     rests or keyboard focus arrives. `set_tool_tips_shown` takes an
-    optional: unset, the window follows the program switch,
-    `Application::set_tool_tips_shown`. Turning it off closes a tooltip that
+    optional: unset, the window follows the switch of the application it
+    joined (`Application::set_tool_tips_shown`), and shows tooltips when it
+    joined none. Turning it off closes a tooltip that
     shows. `show_tool_tip` shows one regardless.
 tool_tip_settings
     The window's `ToolTipSettings`: the initial, reshow and auto-pop delays,
@@ -183,6 +212,25 @@ help_requested
 
 Methods
 -------
+set_input_time_source
+    Installs the clock the input state reads (`InputTimeSource`), borrowed,
+    or null for the steady clock. Tests install one to place key presses
+    and hovers in time; its times must be in the domain the window is polled
+    with, which wakes a pending hover.
+dispatch_context_request
+    Offers a context-menu request (`ContextMenuRequest`) from the host's
+    `HostContextRequestEvent`: a pointer request to the control under the
+    position (the captured control while one is), a keyboard request to
+    the focused control, then to each ancestor until one handles it,
+    through `Control::on_context_menu_requested` and its
+    `context_menu_requested` subscribers. Returns whether one handled it.
+    The core makes no request of its own from keys: Windows reports
+    Shift+F10 and the Menu key, the Linux host emulates them, and macOS
+    reports its accessibility show-menu action.
+dispatch_host_hover
+    The host's own hover report (`HostHoverEvent`, where the pointer
+    settings say `native_hover`): raises MouseHover on the hovered control,
+    once per entry.
 begin_invoke
     Queues a callback to run on the root's thread in a later dispatch turn
     and returns a `DispatchOperation`; it may be called from any thread. The

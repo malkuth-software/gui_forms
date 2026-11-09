@@ -2,6 +2,7 @@
 #include "gui_forms/detail/weak_member_callback.hpp"
 #include "../panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -12,8 +13,8 @@
 
 namespace gui_forms {
 
-ColorValueEditor::ColorValueEditor(StableId stable_id, Color value)
-    : Panel(std::move(stable_id)), value_(value) {
+ColorValueEditor::ColorValueEditor(StableId stable_id, Color initial_value)
+    : Panel(std::move(stable_id)), value_(initial_value) {
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::none;
 }
@@ -23,11 +24,11 @@ void ColorValueEditor::initialize_control_tree() {
     editor_ = make_control<TextBox>(
         StableId(std::string(stable_id().value()) + ".text"),
         format_value(value_));
-    (*editor_).set_font({FontRole::monospace, 9.5, 400, false});
+    (*editor_).font = FontSpec{FontRole::monospace, 9.5, 400, false};
     // Enter commits the text (commit_text) and Escape restores the value
     // (cancel); neither goes further.
-    (*editor_).set_accepts_enter(true);
-    (*editor_).set_accepts_escape(true);
+    (*editor_).accepts_enter = true;
+    (*editor_).accepts_escape = true;
     add_child(editor_);
     const std::weak_ptr<ColorValueEditor> weak =
         std::static_pointer_cast<ColorValueEditor>(shared_from_this());
@@ -40,10 +41,10 @@ void ColorValueEditor::initialize_control_tree() {
             weak, &ColorValueEditor::cancel));
 }
 
-std::string ColorValueEditor::format_value(Color value) {
+std::string ColorValueEditor::format_value(Color colour) {
     constexpr char digits[] = "0123456789ABCDEF";
     std::string result{"#00000000"};
-    const std::uint8_t channels[]{value.red, value.green, value.blue, value.alpha};
+    const std::uint8_t channels[]{colour.red, colour.green, colour.blue, colour.alpha};
     for (std::size_t index = 0U; index < 4U; ++index) {
         result[1U + index * 2U] = digits[channels[index] >> 4U];
         result[2U + index * 2U] = digits[channels[index] & 0x0fU];
@@ -75,15 +76,15 @@ std::optional<Color> ColorValueEditor::parse_value(std::string_view text) {
 }
 
 std::optional<std::uint8_t> ColorValueEditor::parse_nibble(
-    char value) noexcept {
-    if (value >= '0' && value <= '9') {
-        return static_cast<std::uint8_t>(value - '0');
+    char digit) noexcept {
+    if (digit >= '0' && digit <= '9') {
+        return static_cast<std::uint8_t>(digit - '0');
     }
-    if (value >= 'a' && value <= 'f') {
-        return static_cast<std::uint8_t>(value - 'a' + 10);
+    if (digit >= 'a' && digit <= 'f') {
+        return static_cast<std::uint8_t>(digit - 'a' + 10);
     }
-    if (value >= 'A' && value <= 'F') {
-        return static_cast<std::uint8_t>(value - 'A' + 10);
+    if (digit >= 'A' && digit <= 'F') {
+        return static_cast<std::uint8_t>(digit - 'A' + 10);
     }
     return {};
 }
@@ -92,12 +93,17 @@ void ColorValueEditor::commit_text(const std::string& text) {
     commit(text);
 }
 
-void ColorValueEditor::set_value(Color value) {
+Color ColorValueEditor::read_view(const decltype(value)&) const {
+    return value_;
+}
+
+// An equal write still restores the text and the normal status.
+void ColorValueEditor::write_view(const decltype(value)&, Color incoming) {
     require_mutable();
-    if (value_ == value) {
-        if (editor_ && (*editor_).text() != format_value(value)) {
+    if (value_ == incoming) {
+        if (editor_ && (*editor_).text.read() != format_value(incoming)) {
             synchronizing_ = true;
-            (*editor_).set_text(format_value(value));
+            (*editor_).text = format_value(incoming);
             synchronizing_ = false;
         }
         if (editor_) (*editor_).set_visual_status(ControlVisualStatus::normal);
@@ -105,26 +111,15 @@ void ColorValueEditor::set_value(Color value) {
         invalidate(Dirty::paint | Dirty::semantics);
         return;
     }
-    value_ = value;
+    value_ = incoming;
     if (editor_) {
         synchronizing_ = true;
-        (*editor_).set_text(format_value(value_));
+        (*editor_).text = format_value(value_);
         (*editor_).set_visual_status(ControlVisualStatus::normal);
         synchronizing_ = false;
     }
     set_visual_status(ControlVisualStatus::normal);
     invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void ColorValueEditor::set_swatch_width(double width) {
-    require_mutable();
-    if (!std::isfinite(width) || width < 12.0 || width > 96.0) {
-        throw std::invalid_argument(
-            "color editor swatch width must be within [12, 96]");
-    }
-    if (swatch_width_ == width) return;
-    swatch_width_ = width;
-    invalidate(Dirty::layout | Dirty::paint | Dirty::hit_test);
 }
 
 void ColorValueEditor::commit(std::string_view text) {
@@ -143,7 +138,7 @@ void ColorValueEditor::commit(std::string_view text) {
     set_visual_status(ControlVisualStatus::normal);
     if (editor_) {
         synchronizing_ = true;
-        (*editor_).set_text(format_value(value_));
+        (*editor_).text = format_value(value_);
         (*editor_).set_visual_status(ControlVisualStatus::normal);
         synchronizing_ = false;
     }
@@ -154,7 +149,7 @@ void ColorValueEditor::commit(std::string_view text) {
 void ColorValueEditor::cancel() {
     if (!editor_) return;
     synchronizing_ = true;
-    (*editor_).set_text(format_value(value_));
+    (*editor_).text = format_value(value_);
     (*editor_).set_visual_status(ControlVisualStatus::normal);
     synchronizing_ = false;
     set_visual_status(ControlVisualStatus::normal);
@@ -168,7 +163,7 @@ Size ColorValueEditor::measure(Size available) {
 void ColorValueEditor::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     const double swatch = std::min(
-        swatch_width_, std::max(0.0, final_bounds.width));
+        swatch_width.read(), std::max(0.0, final_bounds.width));
     if (editor_) {
         set_child_layout(editor_, {swatch, 0.0,
             std::max(0.0, final_bounds.width - swatch), final_bounds.height});
@@ -181,8 +176,8 @@ void ColorValueEditor::arrange(Rect final_bounds) {
 // backdrop the value is judged against, the same in every theme.
 void ColorValueEditor::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
-    const double swatch_width = std::min(swatch_width_, bounds.width);
-    const Rect swatch{2.0, 2.0, std::max(0.0, swatch_width - 5.0),
+    const double swatch_extent = std::min(swatch_width.read(), bounds.width);
+    const Rect swatch{2.0, 2.0, std::max(0.0, swatch_extent - 5.0),
                       std::max(0.0, bounds.height - 4.0)};
     const AnatomyStateSet states = anatomy_states();
     PartPaint well;
@@ -239,7 +234,6 @@ void ColorValueEditor::on_dispose() noexcept {
     Control::on_dispose();
 }
 
-
 namespace {
 
 constexpr std::array<PartField<ColorValueEditor::Parts>, 2> color_value_editor_extra_part_fields{{
@@ -283,8 +277,8 @@ const ControlAnatomy& ColorValueEditor::anatomy() const noexcept {
 void ColorValueEditor::publish_part_geometry(std::span<PartGeometry> geometry) const {
 
     const Rect bounds = local_bounds();
-    const double swatch_width = std::min(swatch_width_, bounds.width);
-    const Rect swatch{2.0, 2.0, std::max(0.0, swatch_width - 5.0),
+    const double swatch_extent = std::min(swatch_width.read(), bounds.width);
+    const Rect swatch{2.0, 2.0, std::max(0.0, swatch_extent - 5.0),
                       std::max(0.0, bounds.height - 4.0)};
     Parts record;
     record.scrollable = scrollable_parts();
@@ -335,5 +329,20 @@ void ColorValueEditor::append_interactions(std::vector<InteractionDeclaration>& 
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), color_value_editor_interactions.begin(), color_value_editor_interactions.end());
 }
+
+// property_codemod begin ColorValueEditor (tools/property_families/color_value_editor.json; generated, do not edit)
+
+void ColorValueEditor::prepare_write(const decltype(swatch_width)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 12.0 || incoming > 96.0) {
+        throw std::invalid_argument("color editor swatch width must be within [12, 96]");
+    }
+}
+
+void ColorValueEditor::written(const decltype(swatch_width)&) {
+    invalidate(Dirty::layout | Dirty::paint | Dirty::hit_test);
+}
+
+// property_codemod end ColorValueEditor
 
 } // namespace gui_forms

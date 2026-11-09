@@ -23,15 +23,21 @@ double usable_scale(double scale) noexcept {
 } // namespace
 
 HostMonitor logical_monitor(const HostMonitor& device) noexcept {
-    const double scale = usable_scale(device.scale);
     HostMonitor result = device;
-    result.frame.width = device.frame.width / scale;
-    result.frame.height = device.frame.height / scale;
-    result.work_area.x = device.frame.x + (device.work_area.x - device.frame.x) / scale;
-    result.work_area.y = device.frame.y + (device.work_area.y - device.frame.y) / scale;
-    result.work_area.width = device.work_area.width / scale;
-    result.work_area.height = device.work_area.height / scale;
+    make_logical_monitor(result);
     return result;
+}
+
+void make_logical_monitor(HostMonitor& monitor) noexcept {
+    const double scale = usable_scale(monitor.scale);
+    const Rect frame = monitor.frame;
+    const Rect work_area = monitor.work_area;
+    monitor.frame.width = frame.width / scale;
+    monitor.frame.height = frame.height / scale;
+    monitor.work_area.x = frame.x + (work_area.x - frame.x) / scale;
+    monitor.work_area.y = frame.y + (work_area.y - frame.y) / scale;
+    monitor.work_area.width = work_area.width / scale;
+    monitor.work_area.height = work_area.height / scale;
 }
 
 namespace {

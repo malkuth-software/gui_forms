@@ -7,7 +7,7 @@ gui_forms::FolderBrowserDialog
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: FolderBrowserDialog final : public Component
+.. cpp:class:: FolderBrowserDialog final : public Component, public FolderBrowserDialogCapabilities<FolderBrowserDialog>
 
    ``#include <gui_forms/components/folder_browser_dialog/folder_browser_dialog.hpp>``
 
@@ -31,14 +31,14 @@ gui_forms::FolderBrowserDialog
 
       **description** : ``std::string``, default empty
          The text the dialog shows: above the tree on Windows, as the title
-         elsewhere. Empty gives the host's own. :cpp:func:`set_description <gui_forms::FolderBrowserDialog::set_description>` throws
+         elsewhere. Empty gives the host's own. A write throws
          ``std::invalid_argument`` for text that is not valid UTF-8, holds NUL or
          is longer than ``HostServices::maximum_dialog_text_bytes``, and keeps the
          old text.
 
       **initial_directory** : ``std::string``, default empty
          The folder the dialog starts in while no folder is selected; empty lets
-         the host choose. Refused as :cpp:func:`description <gui_forms::FolderBrowserDialog::description>` is.
+         the host choose. Refused as :cpp:member:`description <gui_forms::FolderBrowserDialog::description>` is.
 
       **selected_path** : ``std::string``, default empty
          The chosen folder, or empty. A folder set before the dialog is shown is
@@ -92,10 +92,10 @@ gui_forms::FolderBrowserDialog
       std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
       gf::Window window(root, {320.0, 200.0});
       gf::FolderBrowserDialog dialog;
-      dialog.set_description("Choose where the exports go");
+      dialog.description = "Choose where the exports go";
       const gf::DialogResult result = dialog.show_dialog(window);
       if (result == gf::DialogResult::ok) {
-          const std::string& folder = dialog.selected_path();
+          const std::string folder = dialog.selected_path.read();
           static_cast<void>(folder);
       } else if (result == gf::DialogResult::none) {
           // Without a host, dialog.status().error is gf::HostServiceError::unsupported.
@@ -109,36 +109,24 @@ gui_forms::FolderBrowserDialog
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& description() const noexcept
+   .. cpp:member:: std::string description
 
       The text the dialog shows: above the tree on Windows, as the title
-      elsewhere. Empty gives the host's own. :cpp:func:`set_description <gui_forms::FolderBrowserDialog::set_description>` throws
+      elsewhere. Empty gives the host's own. A write throws
       ``std::invalid_argument`` for text that is not valid UTF-8, holds NUL or
       is longer than ``HostServices::maximum_dialog_text_bytes``, and keeps the
       old text.
 
-   .. cpp:function:: void set_description(std::string description)
-
-      Sets :cpp:func:`description <gui_forms::FolderBrowserDialog::description>`; see the property's description above.
-
-   .. cpp:function:: const std::string& initial_directory() const noexcept
+   .. cpp:member:: std::string initial_directory
 
       The folder the dialog starts in while no folder is selected; empty lets
-      the host choose. Refused as :cpp:func:`description <gui_forms::FolderBrowserDialog::description>` is.
+      the host choose. Refused as :cpp:member:`description <gui_forms::FolderBrowserDialog::description>` is.
 
-   .. cpp:function:: void set_initial_directory(std::string directory)
-
-      Sets :cpp:func:`initial_directory <gui_forms::FolderBrowserDialog::initial_directory>`; see the property's description above.
-
-   .. cpp:function:: const std::string& selected_path() const noexcept
+   .. cpp:member:: std::string selected_path
 
       The chosen folder, or empty. A folder set before the dialog is shown is
       the one it starts in, as in Windows Forms. Only an accepted dialog
       changes it.
-
-   .. cpp:function:: void set_selected_path(std::string path)
-
-      Sets :cpp:func:`selected_path <gui_forms::FolderBrowserDialog::selected_path>`; see the property's description above.
 
    .. cpp:function:: HostServiceStatus status() const noexcept
 

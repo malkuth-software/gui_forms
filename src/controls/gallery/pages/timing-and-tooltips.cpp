@@ -110,12 +110,10 @@ void TimingPage::build_timer(PageContext& context) {
 
     const std::shared_ptr<ProgressBar>& progress = document_.gallery_timing_progress;
     (*progress).set_range(0.0, 100.0);
-    (*progress).set_value(0.0);
+    (*progress).value = 0.0;
     context.timer_progress = progress;
 
     const std::shared_ptr<ScaledPanel>& motion = document_.gallery_timing_motion;
-    (*motion).set_background(Color::rgba(247, 249, 251));
-    (*document_.gallery_timing_motion_rule).set_background(rule);
     const std::shared_ptr<Button>& motion_target = document_.gallery_timing_motion_target;
     (*motion_target).set_style(page_style());
     context.timer_motion = motion;
@@ -170,7 +168,7 @@ void TimingPage::on_run_work() {
     (*worker_).run_worker_async();
     run_work_.set_enabled(false);
     cancel_work_.set_enabled(true);
-    (*work_status_).set_text("Running on a worker thread");
+    (*work_status_).text = "Running on a worker thread";
 }
 
 void TimingPage::on_cancel_work() {
@@ -178,18 +176,18 @@ void TimingPage::on_cancel_work() {
 }
 
 void TimingPage::on_work_progress(const BackgroundWorkerProgress& progress) {
-    (*work_progress_).set_value(static_cast<double>(progress.percent));
+    (*work_progress_).value = static_cast<double>(progress.percent);
 }
 
 void TimingPage::on_work_completed(const BackgroundWorkerCompleted& completed) {
     run_work_.set_enabled(true);
     cancel_work_.set_enabled(false);
     if (completed.cancelled) {
-        (*work_status_).set_text("Cancelled");
+        (*work_status_).text = "Cancelled";
     } else if (completed.error) {
-        (*work_status_).set_text("Failed: " + completed.error_message);
+        (*work_status_).text = "Failed: " + completed.error_message;
     } else {
-        (*work_status_).set_text(binding_value_to_string(completed.result));
+        (*work_status_).text = binding_value_to_string(completed.result);
     }
 }
 
@@ -203,14 +201,14 @@ void TimingPage::on_start() {
     const std::shared_ptr<Timer> ui_timer = timer();
     if (!ui_timer) return;
     (*ui_timer).start();
-    (*status_).set_text("Running · deadline armed on the UI queue");
+    (*status_).text = "Running · deadline armed on the UI queue";
 }
 
 void TimingPage::on_stop() {
     const std::shared_ptr<Timer> ui_timer = timer();
     if (!ui_timer) return;
     (*ui_timer).stop();
-    (*status_).set_text("Stopped · zero idle wakeups");
+    (*status_).text = "Stopped · zero idle wakeups";
 }
 
 void TimingPage::on_interval_changed(const double milliseconds) {

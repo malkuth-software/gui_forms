@@ -1,10 +1,9 @@
 #include "gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/window.hpp"
 
 #include "../container_layout_utilities.hpp"
 #include "../text_collection_property.hpp"
-#include "gui_forms/detail/bound_member_function.hpp"
-#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../scrollable_anatomy.hpp"
 #include "../../../../core/types/restrict/restrict.hpp"
 
@@ -136,6 +135,8 @@ PropertyDescriptor nullable_child_track() {
                                   "The track the child occupies; none takes the next track no child names.",
                                   BindingValue{}, invalidation::bounds};
     descriptor.nullable = true;
+    // The write is the child view's assignment (generated forms assign it).
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -166,7 +167,6 @@ void write_child_track(Component& container, const Control& child, const Binding
     }
     panel.child_track[child] = static_cast<std::uint32_t>(index);
 }
-
 
 constexpr std::size_t maximum_responsive_tracks = 64U;
 constexpr double maximum_track_extent = 1'000'000.0;
@@ -481,44 +481,7 @@ ResponsiveTrackResolution resolve_responsive_tracks(
 using namespace container_layout_detail;
 
 ResponsiveTrackPanel::ResponsiveTrackPanel(StableId stable_id)
-    : ContainerControl(std::move(stable_id)) {
-    register_panel_properties();
-}
-
-void ResponsiveTrackPanel::register_panel_properties() {
-    PropertyDescriptor orientation{"orientation", BindingValueKind::enumeration, "Layout",
-                                   "The axis the tracks run along: horizontal or vertical.",
-                                   BindingValue{std::int64_t{0}}, invalidation::bounds};
-    orientation.bindable = false;
-    orientation.enumeration = orientation_enum();
-    define_bindable_property({std::move(orientation),
-                              detail::EnumerationPropertyGetter<ResponsiveTrackPanel, ResponsiveTrackOrientation>(
-                                  *this, &ResponsiveTrackPanel::orientation, orientation_enum()),
-                              detail::EnumerationPropertySetter<ResponsiveTrackPanel, ResponsiveTrackOrientation>(
-                                  *this, &ResponsiveTrackPanel::set_orientation),
-                              {}, {}, {}});
-    PropertyDescriptor gap{"track_gap", BindingValueKind::number, "Layout", "The space between neighbouring tracks.",
-                           BindingValue{0.0}, invalidation::bounds};
-    gap.bindable = false;
-    define_bindable_property({std::move(gap),
-                              detail::BindingNoexceptMethodGetter<ResponsiveTrackPanel, double>(
-                                  *this, &ResponsiveTrackPanel::track_gap),
-                              detail::DirectPropertySetter<ResponsiveTrackPanel, double>(
-                                  *this, &ResponsiveTrackPanel::set_track_gap),
-                              {}, {}, {}});
-    const std::array<std::string, 1U> single{spec_text(ResponsiveTrackSpec{})};
-    PropertyDescriptor specs{"track_specs", BindingValueKind::collection, "Layout",
-                             "One item per track: \"<fixed|content|remaining> <minimum> <preferred> <maximum>\", "
-                             "optionally followed by \"weight <w>\", \"hidden\" and \"priority <n>\".",
-                             text_collection_property::value_of(single), invalidation::bounds};
-    specs.bindable = false;
-    define_bindable_property({std::move(specs),
-                              detail::BoundMemberFunction<BindingValue (ResponsiveTrackPanel::*)() const>(
-                                  *this, &ResponsiveTrackPanel::track_specs_property),
-                              detail::BoundMemberFunction<void (ResponsiveTrackPanel::*)(const BindingValue&)>(
-                                  *this, &ResponsiveTrackPanel::set_track_specs_property),
-                              {}, {}, {}});
-}
+    : ContainerControl(std::move(stable_id)) {}
 
 BindingValue ResponsiveTrackPanel::track_specs_property() const {
     std::vector<std::string> items{};
@@ -553,29 +516,6 @@ ResponsiveTrackPanel::track_child_property_entries() noexcept {
 std::span<const ChildPropertyEntry> ResponsiveTrackPanel::child_property_table() const noexcept {
     const std::array<ChildPropertyEntry, track_child_property_count>& entries = track_child_property_entries();
     return std::span<const ChildPropertyEntry>(entries);
-}
-
-void ResponsiveTrackPanel::set_orientation(
-    ResponsiveTrackOrientation orientation) {
-    require_mutable();
-    if (orientation > ResponsiveTrackOrientation::vertical) {
-        throw std::invalid_argument(
-            "ResponsiveTrackPanel orientation is unknown");
-    }
-    if (orientation_ == orientation) return;
-    orientation_ = orientation;
-    invalidate(invalidation::bounds);
-}
-
-void ResponsiveTrackPanel::set_track_gap(double gap) {
-    require_mutable();
-    if (!std::isfinite(gap) || gap < 0.0 || gap > 256.0) {
-        throw std::invalid_argument(
-            "ResponsiveTrackPanel gap must be finite and between zero and 256");
-    }
-    if (track_gap_ == gap) return;
-    track_gap_ = gap;
-    invalidate(invalidation::bounds);
 }
 
 void ResponsiveTrackPanel::set_track_specs(
@@ -697,7 +637,7 @@ void ResponsiveTrackPanel::clear_track_focus_fallback(std::size_t track) {
 
 ResponsiveLayoutSnapshot ResponsiveTrackPanel::layout_snapshot() const {
     if (attached_window() != nullptr) static_cast<void>(arranged_bounds());
-    return {orientation_, committed_resolution_, layout_transaction_state(),
+    return {orientation.read(), committed_resolution_, layout_transaction_state(),
             committed_resolution_revision_};
 }
 
@@ -732,7 +672,7 @@ ResponsiveTrackResolution ResponsiveTrackPanel::layout_children(
         std::max(0.0, available.width - horizontal_extent(inset)),
         std::max(0.0, available.height - vertical_extent(inset))};
     const bool horizontal =
-        orientation_ == ResponsiveTrackOrientation::horizontal;
+        orientation.read() == ResponsiveTrackOrientation::horizontal;
     const double main_extent = horizontal ? inner.width : inner.height;
 
     struct Item final {
@@ -798,7 +738,7 @@ ResponsiveTrackResolution ResponsiveTrackPanel::layout_children(
     }
     const double device_scale = owner == nullptr ? 1.0 : (*owner).scale();
     ResponsiveTrackResolution resolution = resolve_responsive_tracks(
-        track_specs_, measured, main_extent, track_gap_, device_scale,
+        track_specs_, measured, main_extent, track_gap.read(), device_scale,
         protected_tracks);
 
     if (assign && focused_track && resolution.overflow && owner != nullptr) {
@@ -806,7 +746,7 @@ ResponsiveTrackResolution ResponsiveTrackPanel::layout_children(
             revealed_tracks_.begin(), revealed_tracks_.end());
         std::sort(reveal_only.begin(), reveal_only.end());
         ResponsiveTrackResolution alternative = resolve_responsive_tracks(
-            track_specs_, measured, main_extent, track_gap_, device_scale,
+            track_specs_, measured, main_extent, track_gap.read(), device_scale,
             reveal_only);
         const bool would_collapse =
             alternative.tracks[*focused_track].collapsed();
@@ -876,7 +816,7 @@ Size ResponsiveTrackPanel::measure(Size available) {
         layout_children(available, false);
     const Insets inset = padding.read();
     if (auto_size.read()) {
-        if (orientation_ == ResponsiveTrackOrientation::horizontal) {
+        if (orientation.read() == ResponsiveTrackOrientation::horizontal) {
             return {std::min(available.width,
                              resolution.desired_extent + horizontal_extent(inset)),
                     available.height};
@@ -908,7 +848,6 @@ SemanticDescriptor ResponsiveTrackPanel::semantic_descriptor() const {
     return descriptor;
 }
 
-
 namespace {
 
 constexpr ControlAnatomy responsive_track_panel_anatomy{
@@ -923,5 +862,142 @@ constexpr ControlAnatomy responsive_track_panel_anatomy{
 const ControlAnatomy& ResponsiveTrackPanel::anatomy() const noexcept {
     return responsive_track_panel_anatomy;
 }
+
+namespace {
+
+// The track specifications as text items: a hand table entry
+// (responsive_track_panel.json extra_entries).
+PropertyDescriptor responsive_track_panel_track_specs_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "track_specs";
+    descriptor.kind = BindingValueKind::collection;
+    descriptor.category = "Layout";
+    descriptor.description = "One item per track: \"<fixed|content|remaining> <minimum> <preferred> <maximum>\", optionally followed by \"weight <w>\", \"hidden\" and \"priority <n>\".";
+    descriptor.default_value = text_collection_property::value_of(std::array<std::string, 1U>{spec_text(ResponsiveTrackSpec{})});
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_responsive_track_panel_track_specs() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        responsive_track_panel_track_specs_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+// property_codemod begin ResponsiveTrackPanel (tools/property_families/responsive_track_panel.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor responsive_track_panel_orientation_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "orientation";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Layout";
+    descriptor.description = "The axis the tracks run along: horizontal or vertical.";
+    descriptor.default_value = BindingValue{std::int64_t{0}};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    descriptor.enumeration = orientation_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_responsive_track_panel_orientation() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        responsive_track_panel_orientation_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor responsive_track_panel_track_gap_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "track_gap";
+    descriptor.kind = BindingValueKind::number;
+    descriptor.category = "Layout";
+    descriptor.description = "The space between neighbouring tracks.";
+    descriptor.default_value = BindingValue{0.0};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_responsive_track_panel_track_gap() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        responsive_track_panel_track_gap_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<ResponsiveTrackOrientation>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, orientation_enum()};
+}
+
+BindingValue PropertyValueTraits<ResponsiveTrackOrientation>::to_binding(ResponsiveTrackOrientation value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = orientation_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+ResponsiveTrackOrientation PropertyValueTraits<ResponsiveTrackOrientation>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<ResponsiveTrackOrientation>(choice.value);
+}
+
+const std::array<PropertyEntry, ResponsiveTrackPanel::responsive_track_panel_property_count>& ResponsiveTrackPanel::responsive_track_panel_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 3U> own{{
+        {"orientation", &describe_responsive_track_panel_orientation,
+         &read_cell_entry<ResponsiveTrackPanel, decltype(&ResponsiveTrackPanel::orientation), &ResponsiveTrackPanel::orientation>,
+         &write_cell_entry<ResponsiveTrackPanel, decltype(&ResponsiveTrackPanel::orientation), &ResponsiveTrackPanel::orientation>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"track_gap", &describe_responsive_track_panel_track_gap,
+         &read_cell_entry<ResponsiveTrackPanel, decltype(&ResponsiveTrackPanel::track_gap), &ResponsiveTrackPanel::track_gap>,
+         &write_cell_entry<ResponsiveTrackPanel, decltype(&ResponsiveTrackPanel::track_gap), &ResponsiveTrackPanel::track_gap>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"track_specs", &describe_responsive_track_panel_track_specs,
+         &read_member_entry<ResponsiveTrackPanel, decltype(&ResponsiveTrackPanel::track_specs_property), &ResponsiveTrackPanel::track_specs_property>,
+         &write_member_entry<ResponsiveTrackPanel, decltype(&ResponsiveTrackPanel::set_track_specs_property), &ResponsiveTrackPanel::set_track_specs_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "ResponsiveTrackPanel's property table names a property twice");
+    static const std::array<PropertyEntry, responsive_track_panel_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> ResponsiveTrackPanel::property_table() const noexcept {
+    const std::array<PropertyEntry, responsive_track_panel_property_count>& entries = responsive_track_panel_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void ResponsiveTrackPanel::prepare_write(const decltype(orientation)&, ResponsiveTrackOrientation& incoming) {
+    require_mutable();
+    if (incoming > ResponsiveTrackOrientation::vertical) throw std::invalid_argument("ResponsiveTrackPanel orientation is unknown");
+}
+
+void ResponsiveTrackPanel::written(const decltype(orientation)&) {
+    invalidate(invalidation::bounds);
+}
+
+void ResponsiveTrackPanel::prepare_write(const decltype(track_gap)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 256.0) throw std::invalid_argument("ResponsiveTrackPanel gap must be finite and between zero and 256");
+}
+
+void ResponsiveTrackPanel::written(const decltype(track_gap)&) {
+    invalidate(invalidation::bounds);
+}
+
+// property_codemod end ResponsiveTrackPanel
 
 } // namespace gui_forms

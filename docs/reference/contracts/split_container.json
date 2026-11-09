@@ -36,70 +36,6 @@
       "reviewed": false,
       "summary": "Returns the focusable source-private seam Control for inspection or focus routing."
     },
-    "gui_forms::SplitContainer::orientation|Orientation () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns vertical side-by-side or horizontal top/bottom allocation policy."
-    },
-    "gui_forms::SplitContainer::set_orientation|void (Orientation)": {
-      "reviewed": false,
-      "summary": "Validates orientation, preserves coherent distance state, updates seam cursor/painting, and invalidates all geometry."
-    },
-    "gui_forms::SplitContainer::splitter_distance|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the effective constrained leading-pane extent from the most recent arrangement."
-    },
-    "gui_forms::SplitContainer::set_splitter_distance|void (double)": {
-      "reviewed": false,
-      "summary": "Validates a finite nonnegative request and commits it through the common constrained change/event law."
-    },
-    "gui_forms::SplitContainer::splitter_width|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the visible seam thickness."
-    },
-    "gui_forms::SplitContainer::set_splitter_width|void (double)": {
-      "reviewed": false,
-      "summary": "Accepts a finite bounded positive width, preserves hit-width authority, and invalidates geometry/paint."
-    },
-    "gui_forms::SplitContainer::splitter_hit_width|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the independent pointer hit-target thickness centered on the visible seam."
-    },
-    "gui_forms::SplitContainer::set_splitter_hit_width|void (double)": {
-      "reviewed": false,
-      "summary": "Accepts a finite bounded width no smaller than the visible seam and invalidates hit geometry."
-    },
-    "gui_forms::SplitContainer::first_minimum|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the minimum admitted leading/top pane extent."
-    },
-    "gui_forms::SplitContainer::set_first_minimum|void (double)": {
-      "reviewed": false,
-      "summary": "Validates a finite nonnegative bound and reconstrains current/requested distance."
-    },
-    "gui_forms::SplitContainer::second_minimum|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the minimum admitted trailing/bottom pane extent."
-    },
-    "gui_forms::SplitContainer::set_second_minimum|void (double)": {
-      "reviewed": false,
-      "summary": "Validates a finite nonnegative bound and reconstrains current/requested distance."
-    },
-    "gui_forms::SplitContainer::first_maximum|std::optional<double> () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the optional maximum leading/top extent."
-    },
-    "gui_forms::SplitContainer::set_first_maximum|void (std::optional<double>)": {
-      "reviewed": false,
-      "summary": "Validates an optional finite ordered bound and reconstrains allocation atomically."
-    },
-    "gui_forms::SplitContainer::second_maximum|std::optional<double> () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the optional maximum trailing/bottom extent."
-    },
-    "gui_forms::SplitContainer::set_second_maximum|void (std::optional<double>)": {
-      "reviewed": false,
-      "summary": "Validates an optional finite ordered bound and reconstrains allocation atomically."
-    },
     "gui_forms::SplitContainer::first_collapsed|bool () const noexcept": {
       "reviewed": false,
       "summary": "Reports whether the leading/top pane is intentionally absent from allocation."
@@ -123,46 +59,6 @@
     "gui_forms::SplitContainer::set_second_collapsed|void (bool, SplitCollapseOrigin)": {
       "reviewed": false,
       "summary": "Commits exclusive collapse/restore, remembers useful distance, transfers focus safely, and publishes a collapse-reason change."
-    },
-    "gui_forms::SplitContainer::splitter_fixed|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether ordinary pointer/keyboard distance changes are disabled."
-    },
-    "gui_forms::SplitContainer::set_splitter_fixed|void (bool)": {
-      "reviewed": false,
-      "summary": "Toggles resizing while leaving an explicitly configured collapse tab independently operable."
-    },
-    "gui_forms::SplitContainer::fixed_panel|SplitFixedPanel () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns none, first, or second resize-preservation policy."
-    },
-    "gui_forms::SplitContainer::set_fixed_panel|void (SplitFixedPanel)": {
-      "reviewed": false,
-      "summary": "Validates fixed-pane vocabulary and selects which pane keeps its extent when the container axis changes."
-    },
-    "gui_forms::SplitContainer::collapse_panel|SplitFixedPanel () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the optional pane controlled by the compact seam tab."
-    },
-    "gui_forms::SplitContainer::set_collapse_panel|void (SplitFixedPanel)": {
-      "reviewed": false,
-      "summary": "Validates collapse-target vocabulary and updates seam appearance and semantic actions."
-    },
-    "gui_forms::SplitContainer::automatic_collapse_threshold|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the consumer-authored axis threshold below which the collapse target may be accommodated."
-    },
-    "gui_forms::SplitContainer::set_automatic_collapse_threshold|void (double)": {
-      "reviewed": false,
-      "summary": "Accepts a finite nonnegative threshold and reconciles only automatic-origin collapse/restore transitions."
-    },
-    "gui_forms::SplitContainer::keyboard_increment|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the logical distance applied per splitter arrow-key action."
-    },
-    "gui_forms::SplitContainer::set_keyboard_increment|void (double)": {
-      "reviewed": false,
-      "summary": "Accepts a finite bounded positive increment and invalidates semantic range metadata."
     },
     "gui_forms::SplitContainer::splitter_changed|Event<const SplitChangeEvent &> &() noexcept": {
       "reviewed": false,

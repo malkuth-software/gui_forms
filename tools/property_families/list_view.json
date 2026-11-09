@@ -1,0 +1,314 @@
+{
+  "family": "ListView",
+  "step": "B7",
+  "declaring": "ListView",
+  "header": "include/gui_forms/controls/panel/list_view/list_view.hpp",
+  "source": "src/controls/panel/list_view/list_view.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp",
+  "includes": [
+    "gui_forms/controls/panel/list_view/list_view_values/list_view_values.hpp",
+    "gui_forms/image_list.hpp",
+    "gui_forms/theme/owner_draw/owner_draw.hpp",
+    "gui_forms/types.hpp"
+  ],
+  "shared": [
+    "FontCapability"
+  ],
+  "properties": [
+    {
+      "name": "view",
+      "capability": "ListViewView",
+      "value": "ListViewView",
+      "initial": "ListViewView::details",
+      "comment": "How the items are arranged (see ListViewView). Changing it drops the hot item and column and any revealed cut-off text. Throws std::invalid_argument for an unknown view.",
+      "getter": "view",
+      "setter": "set_view",
+      "clear": null,
+      "field": "view_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "hand",
+      "hand": [
+        "written drops the hot item and column, conceals cut-off text and bumps the model revision before invalidating"
+      ],
+      "sample": "ListViewView::tile"
+    },
+    {
+      "name": "check_boxes",
+      "capability": "ListViewCheckBoxes",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether each item shows a check box (Windows Forms' CheckBoxes); item_checked and set_item_checked read and write the state.",
+      "getter": "check_boxes",
+      "setter": "set_check_boxes",
+      "clear": null,
+      "field": "check_boxes_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "generated",
+      "hand": []
+    },
+    {
+      "name": "multi_select",
+      "capability": "ListViewMultiSelect",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether several items can be selected (Windows Forms' MultiSelect). Turning it off keeps only the focused item selected (or the first selected one) and raises selection_changed when that drops any.",
+      "getter": "multi_select",
+      "setter": "set_multi_select",
+      "clear": null,
+      "field": "multi_select_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::semantics",
+      "hooks": "hand",
+      "hand": [
+        "written trims the selection to the focused or first selected item and publishes it"
+      ]
+    },
+    {
+      "name": "full_row_select",
+      "capability": "ListViewFullRowSelect",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the selection highlight spans the whole details row rather than the first column's text.",
+      "getter": "full_row_select",
+      "setter": "set_full_row_select",
+      "clear": null,
+      "field": "full_row_select_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "generated",
+      "hand": []
+    },
+    {
+      "name": "small_image_list",
+      "capability": "SmallImageList",
+      "value": "std::shared_ptr<ImageList>",
+      "initial": null,
+      "comment": "The images of the details, list and small-icon views, looked up by each item's image_key; null for none. Throws std::invalid_argument for a list that is disposed or bound to another window.",
+      "getter": "small_image_list",
+      "setter": "set_small_image_list",
+      "clear": null,
+      "field": "small_images_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "hand",
+      "hand": [
+        "prepare refuses a list that is not live or belongs to another window; written resubscribes to its changes"
+      ]
+    },
+    {
+      "name": "large_image_list",
+      "capability": "LargeImageList",
+      "value": "std::shared_ptr<ImageList>",
+      "initial": null,
+      "comment": "The images of the large-icon and tile views, looked up by each item's image_key; null for none. Throws std::invalid_argument for a list that is disposed or bound to another window.",
+      "getter": "large_image_list",
+      "setter": "set_large_image_list",
+      "clear": null,
+      "field": "large_images_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "hand",
+      "hand": [
+        "prepare refuses a list that is not live or belongs to another window; written resubscribes to its changes"
+      ]
+    },
+    {
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::content, 10.5, 400, false",
+      "comment": "The font of the items, headers and label editor.",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": null,
+      "field": "font_",
+      "event": null,
+      "on_changed": true,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "hand",
+      "hand": [
+        "shared FontCapability<ListView>; written forwards the font to the label editor"
+      ],
+      "sample": "FontSpec{FontRole::content, 12.0, 700, false}"
+    },
+    {
+      "name": "tile_size",
+      "capability": "TileSize",
+      "value": "Size",
+      "initial": null,
+      "comment": "The tile view's tile, in logical units at text scale 1 (Windows Forms' TileSize). The default, an empty size, sizes tiles from the large icon and three lines of text. Throws std::invalid_argument unless both sides are zero, or both are finite and between minimum_tile_side and maximum_tile_side.",
+      "getter": "tile_size",
+      "setter": "set_tile_size",
+      "clear": null,
+      "field": "tile_size_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "hand",
+      "hand": [
+        "written invalidates only while the view is the tile view"
+      ],
+      "sample": "Size{120.0, 48.0}"
+    },
+    {
+      "name": "draw_mode",
+      "capability": "ListViewDrawMode",
+      "value": "ItemDrawMode",
+      "initial": "ItemDrawMode::normal",
+      "comment": "Content-only owner drawing (owner decision W-Q6; Windows Forms' OwnerDraw with DrawItem and DrawSubItem). In ItemDrawMode::owner_draw the view raises draw_item_content for each painted item's own content (column 0: its icon and text) and, in the details view, for each visible sub-item cell (its column), and in the tile view for each sub-item line shown (its column), in paint order; the item's plate, check box and focus cue stay painted by role, and a handler's draw_default adds the default content. Column headers are not owner-drawn. A handler that changes the view's items, order, columns or view, or disposes it, ends that paint at once; the view is painted again with the change. Throws std::invalid_argument for an unknown mode.",
+      "getter": "draw_mode",
+      "setter": "set_draw_mode",
+      "clear": null,
+      "field": "draw_mode_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::paint",
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (incoming != ItemDrawMode::normal && incoming != ItemDrawMode::owner_draw) {",
+        "    throw std::invalid_argument(\"ListView draw mode is invalid\");",
+        "}"
+      ],
+      "sample": "ItemDrawMode::owner_draw"
+    },
+    {
+      "name": "show_groups",
+      "capability": "ShowGroups",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the items are shown in their groups (Windows Forms' ShowGroups; see groups). On by default.",
+      "getter": "show_groups",
+      "setter": "set_show_groups",
+      "clear": null,
+      "field": "show_groups_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "hand",
+      "hand": [
+        "written drops the hot item, conceals cut-off text and bumps the model revision before invalidating"
+      ]
+    },
+    {
+      "name": "default_group_header",
+      "capability": "DefaultGroupHeader",
+      "value": "std::string",
+      "initial": "\"Default\"",
+      "comment": "The default group's header; \"Default\" until set. Throws std::invalid_argument for invalid UTF-8.",
+      "getter": "default_group_header",
+      "setter": "set_default_group_header",
+      "clear": null,
+      "field": "default_group_header_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::paint | Dirty::semantics",
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!validate_utf8(incoming).valid()) throw std::invalid_argument(\"ListView group header is not valid UTF-8\");"
+      ],
+      "sample": "std::string{\"Other\"}"
+    },
+    {
+      "name": "label_edit",
+      "capability": "ListViewLabelEdit",
+      "value": "bool",
+      "initial": null,
+      "comment": "Label editing (Windows Forms' LabelEdit, ListViewItem.BeginEdit, BeforeLabelEdit and AfterLabelEdit). While label_edit is on, F2 on the focused item, or begin_label_edit, places a TextBox (the `label_editor` part) over the item's text with its text selected. Enter, a press elsewhere in the view, or focus leaving the editor commits the edit; Escape and cancel_label_edit cancel it. Each ended edit raises after_label_edit once, after the editor has closed. A committed label after_label_edit does not cancel becomes an ordinary item's text; in a virtual view the application stores it while handling after_label_edit, and the view shows what the source then retrieves. Replacing or sorting the items, a new virtual source or refresh_virtual_items cancels the edit once the change is made, before any selection event; scrolling keeps it, the editor following its item. A slow second click on the focused item does not begin an edit yet: the host does not report its double-click interval. Turning label_edit off cancels an edit in progress.",
+      "getter": "label_edit",
+      "setter": "set_label_edit",
+      "clear": null,
+      "field": "label_edit_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "effects": null,
+      "hooks": "hand",
+      "hand": [
+        "written cancels a pending label click and an edit in progress when turned off; it invalidates nothing"
+      ]
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "columns",
+      "reason": "a collection edited in place (set_column_width, the sort indicator); collections stay methods"
+    },
+    {
+      "name": "items",
+      "reason": "a collection edited in place (set_item_checked, sort_items, label edits); collections stay methods"
+    },
+    {
+      "name": "groups",
+      "reason": "a collection; collections stay methods"
+    },
+    {
+      "name": "virtual_source",
+      "reason": "replaces the model (drops the items, reads the count, resets selection and focus)"
+    },
+    {
+      "name": "focused_index",
+      "reason": "keyboard and selection state written by the view itself in six places (item replacement, sorting, virtual refresh, focus entry) that must not scroll; a cell's written hook would run for each"
+    },
+    {
+      "name": "horizontal_offset",
+      "reason": "scroll state clamped by layout"
+    },
+    {
+      "name": "top_line",
+      "reason": "scroll state clamped by layout"
+    },
+    {
+      "name": "set_column_width(column, width)",
+      "reason": "per-column edit"
+    },
+    {
+      "name": "set_item_checked(index, checked)",
+      "reason": "per-item edit"
+    },
+    {
+      "name": "set_selected(index, selected)",
+      "reason": "per-item edit"
+    },
+    {
+      "name": "set_sort_indicator(column, order)",
+      "reason": "two values written together"
+    }
+  ],
+  "test": {
+    "type": "ListView",
+    "include": "gui_forms/controls/panel/list_view/list_view.hpp"
+  }
+}

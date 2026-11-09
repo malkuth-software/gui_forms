@@ -7,7 +7,7 @@ gui_forms::MetricsView
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: MetricsView final : public Control
+.. cpp:class:: MetricsView final : public Control, public MetricsViewCapabilities<MetricsView>
 
    ``#include <gui_forms/controls/metrics_view/metrics_view.hpp>``
 
@@ -28,22 +28,21 @@ gui_forms::MetricsView
       **stable_id** : ``StableId``
          Identity of the control, unique within its window.
 
-      **title** : ``std::string``, default ``"Runtime metrics"``
-         Heading drawn on the card, "Runtime metrics" by default. It is also the
-         accessible name.
+      **initial_title** : ``std::string``, default ``"Runtime metrics"``
+         The first :cpp:member:`title <gui_forms::MetricsView::title>`, "Runtime metrics" by default.
 
    :Properties:
 
-      **title** : ``std::string``
+      **title** : ``std::string``, default ``"Runtime metrics"``
          Heading drawn on the card and published as the accessible name.
-
-      **style** : ``BasicControlStyle``
-         The :cpp:class:`BasicControlStyle <gui_forms::BasicControlStyle>` colours: the card is filled with ``text``, the
-         accent bar uses ``accent``, the title ``face_light`` and the counters ``face``.
 
       **accent_width** : ``double``, default ``5.0``
          Width of the accent bar at the left edge, in layout units. It must be
          finite and from 1 to 32, or ``std::invalid_argument`` is thrown.
+
+      **style** : ``BasicControlStyle``
+         The :cpp:class:`BasicControlStyle <gui_forms::BasicControlStyle>` colours: the card is filled with ``text``, the
+         accent bar uses ``accent``, the title ``face_light`` and the counters ``face``.
 
       **parts** : ``Parts``, read-only
 
@@ -70,7 +69,7 @@ gui_forms::MetricsView
    that changes it advances the window's semantic generation, and before the
    first paint the value is empty.
 
-   The view publishes the accessibility role ``group``, named by :cpp:func:`title <gui_forms::MetricsView::title>`, with the
+   The view publishes the accessibility role ``group``, named by :cpp:member:`title <gui_forms::MetricsView::title>`, with the
    counters as its value. While it is not attached to a window, it shows
    ``Detached``.
 
@@ -116,18 +115,19 @@ gui_forms::MetricsView
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit MetricsView(StableId stable_id, std::string title = "Runtime metrics")
+   .. cpp:function:: explicit MetricsView(StableId stable_id, std::string initial_title = "Runtime metrics")
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& title() const noexcept
+   .. cpp:member:: std::string title
 
       Heading drawn on the card and published as the accessible name.
 
-   .. cpp:function:: void set_title(std::string title)
+   .. cpp:member:: double accent_width
 
-      Sets :cpp:func:`title <gui_forms::MetricsView::title>`; see the property's description above.
+      Width of the accent bar at the left edge, in layout units. It must be
+      finite and from 1 to 32, or ``std::invalid_argument`` is thrown.
 
    .. cpp:function:: const BasicControlStyle& style() const noexcept
 
@@ -137,15 +137,6 @@ gui_forms::MetricsView
    .. cpp:function:: void set_style(BasicControlStyle style)
 
       Sets :cpp:func:`style <gui_forms::MetricsView::style>`; see the property's description above.
-
-   .. cpp:function:: double accent_width() const noexcept
-
-      Width of the accent bar at the left edge, in layout units. It must be
-      finite and from 1 to 32, or ``std::invalid_argument`` is thrown.
-
-   .. cpp:function:: void set_accent_width(double width)
-
-      Sets :cpp:func:`accent_width <gui_forms::MetricsView::accent_width>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 

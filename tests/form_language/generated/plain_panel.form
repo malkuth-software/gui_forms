@@ -1,0 +1,5 @@
+/* A derived control that binds nothing (stage B): its class takes no
+   model. */
+user-control plain.root {
+  label plain.caption { text: "Caption"; }
+}

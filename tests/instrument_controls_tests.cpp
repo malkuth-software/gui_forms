@@ -146,8 +146,8 @@ std::shared_ptr<InstrumentRack> make_rack() {
     std::shared_ptr<gui_forms::Button> add = make_control<Button>(StableId("criteria.add"), "+ module");
     (*add).set_requested_bounds({4.0, 5.0, 92.0, 28.0});
     std::shared_ptr<gui_forms::Button> apply = make_control<Button>(StableId("criteria.apply"), "Apply 1");
-    (*apply).set_default_button(true);
-    (*apply).set_visual_style(ButtonVisualStyle::accent);
+    (*apply).default_button = true;
+    (*apply).visual_style = ButtonVisualStyle::accent;
     (*apply).set_requested_bounds({100.0, 5.0, 70.0, 28.0});
     (*actions).add_child(add);
     (*actions).add_child(apply);
@@ -207,7 +207,7 @@ void test_field_toggle_validation_move_and_focus_safe_remove() {
 
     const std::shared_ptr<gui_forms::ComboBox> kind_value = std::dynamic_pointer_cast<ComboBox>(
         (*rack).field_editor("criteria.kind", "value"));
-    (*kind_value).set_selected_index(1U);
+    (*kind_value).selected_index = 1U;
     require(trace.ends_with("criteria.kind.value=Documents;"),
             "choice fields must commit through the rack's typed field event");
 
@@ -215,7 +215,7 @@ void test_field_toggle_validation_move_and_focus_safe_remove() {
         (*rack).field_editor("criteria.content", "value"));
     require(window.request_focus(content_value),
             "text criterion must accept keyboard focus");
-    (*content_value).set_text("");
+    (*content_value).text = "";
     require(window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
                 (*rack).modules()[2].state == InstrumentModuleState::invalid &&
                 (*rack).modules()[2].fields[2].validation_message ==
@@ -268,9 +268,9 @@ void test_responsive_wrap_compact_stack_and_scroll() {
                 (*value).absolute_bounds().y > (*property).absolute_bounds().y &&
                 (*rack).content_height() > 300.0,
             "severe width must stack fields inside each instrument instead of crushing three columns");
-    (*rack).set_scroll_offset(10000.0);
-    require((*rack).scroll_offset() > 0.0 &&
-                (*rack).scroll_offset() <= (*rack).content_height() - 90.0,
+    (*rack).scroll_offset = 10000.0;
+    require((*rack).scroll_offset.read() > 0.0 &&
+                (*rack).scroll_offset.read() <= (*rack).content_height() - 90.0,
             "the rack's one bounded scroll plane must keep wrapped modules reachable");
 
     window.set_text_scale(2.25);

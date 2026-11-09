@@ -7,7 +7,7 @@ gui_forms::ResponsiveTrackPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ResponsiveTrackPanel final : public ContainerControl, public ChildTrackCapability<ResponsiveTrackPanel>
+.. cpp:class:: ResponsiveTrackPanel final : public ContainerControl, public ChildTrackCapability<ResponsiveTrackPanel>, public ResponsiveTrackPanelCapabilities<ResponsiveTrackPanel>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp>``
 
@@ -74,9 +74,9 @@ gui_forms::ResponsiveTrackPanel
 
    :Inherited:
 
-      From :cpp:class:`ContainerControl <gui_forms::ContainerControl>`: properties :cpp:func:`active_control <gui_forms::ContainerControl::active_control>`, :cpp:func:`auto_validate <gui_forms::ContainerControl::auto_validate>`, :cpp:func:`effective_auto_validate <gui_forms::ContainerControl::effective_auto_validate>`; events :cpp:func:`auto_validate_changed <gui_forms::ContainerControl::auto_validate_changed>`; methods :cpp:func:`clear_active_control <gui_forms::ContainerControl::clear_active_control>`, :cpp:func:`contains_descendant <gui_forms::ContainerControl::contains_descendant>`, :cpp:func:`request_active_control <gui_forms::ContainerControl::request_active_control>`, :cpp:func:`validate <gui_forms::ContainerControl::validate>`, :cpp:func:`validate_children <gui_forms::ContainerControl::validate_children>`.
+      From :cpp:class:`ContainerControl <gui_forms::ContainerControl>`: properties :cpp:member:`auto_validate <gui_forms::ContainerControl::auto_validate>`, :cpp:func:`active_control <gui_forms::ContainerControl::active_control>`, :cpp:func:`effective_auto_validate <gui_forms::ContainerControl::effective_auto_validate>`; events :cpp:func:`auto_validate_changed <gui_forms::ContainerControl::auto_validate_changed>`; methods :cpp:func:`clear_active_control <gui_forms::ContainerControl::clear_active_control>`, :cpp:func:`contains_descendant <gui_forms::ContainerControl::contains_descendant>`, :cpp:func:`request_active_control <gui_forms::ContainerControl::request_active_control>`, :cpp:func:`validate <gui_forms::ContainerControl::validate>`, :cpp:func:`validate_children <gui_forms::ContainerControl::validate_children>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`parts <gui_forms::ScrollableControl::parts>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`parts <gui_forms::ScrollableControl::parts>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -92,6 +92,8 @@ gui_forms::ResponsiveTrackPanel
         - Whether a track is protected by :cpp:func:`set_track_revealed <gui_forms::ResponsiveTrackPanel::set_track_revealed>`.
       * - :cpp:func:`clear_track_focus_fallback <gui_forms::ResponsiveTrackPanel::clear_track_focus_fallback>`
         - Removes a track's focus fallback.
+      * - :cpp:func:`responsive_track_panel_property_entries <gui_forms::ResponsiveTrackPanel::responsive_track_panel_property_entries>`
+        -  
       * - :cpp:func:`set_track_spec <gui_forms::ResponsiveTrackPanel::set_track_spec>`
         - Replaces one track's spec.
       * - :cpp:func:`set_track_revealed <gui_forms::ResponsiveTrackPanel::set_track_revealed>`
@@ -224,23 +226,15 @@ gui_forms::ResponsiveTrackPanel
       ``std::out_of_range``; the value is dropped when the child leaves or when
       the specs shrink below it.
 
-   .. cpp:function:: ResponsiveTrackOrientation orientation() const noexcept
+   .. cpp:member:: ResponsiveTrackOrientation orientation
 
       The axis the tracks run along. Horizontal tracks are columns that fill
       the panel's height; vertical tracks are rows that fill its width.
 
-   .. cpp:function:: void set_orientation(ResponsiveTrackOrientation orientation)
-
-      Sets :cpp:func:`orientation <gui_forms::ResponsiveTrackPanel::orientation>`; see the property's description above.
-
-   .. cpp:function:: double track_gap() const noexcept
+   .. cpp:member:: double track_gap
 
       Space between neighbouring tracks that are not collapsed. It must be
       finite and between 0 and 256.
-
-   .. cpp:function:: void set_track_gap(double gap)
-
-      Sets :cpp:func:`track_gap <gui_forms::ResponsiveTrackPanel::track_gap>`; see the property's description above.
 
    .. cpp:function:: std::span<const ResponsiveTrackSpec> track_specs() const noexcept
 
@@ -281,6 +275,8 @@ gui_forms::ResponsiveTrackPanel
 
       Removes a track's focus fallback.
 
+   .. cpp:function:: static const std::array<PropertyEntry, responsive_track_panel_property_count>& responsive_track_panel_property_entries() noexcept
+
    .. cpp:function:: void set_track_spec(std::size_t track, ResponsiveTrackSpec spec)
 
       Replaces one track's spec. The track index must be below the track
@@ -317,6 +313,12 @@ gui_forms::ResponsiveTrackPanel
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
    .. cpp:member:: constexpr std::size_t track_child_property_count
 
       The child properties it provides: child_track. Default: ``1U``.
+
+   .. cpp:member:: constexpr std::size_t responsive_track_panel_property_count
+
+      ResponsiveTrackPanel's property table: Control's entries, then its own. Default: ``Control::control_property_count + 3U``.

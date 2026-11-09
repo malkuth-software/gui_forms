@@ -1,0 +1,126 @@
+/* The Gallery's live-surfaces page (stage FD, phase FD-4): the presenter
+   of one page-owned LiveSurface, the producer controls that publish its
+   frames, and a SubSurfaceHost composing a retained tree that runs on its
+   own thread. gui_forms_add_form() compiles this document into
+   live-surfaces_form.hpp at build time.
+
+   gallery.live-surfaces.document is a declared boundary only: the page
+   moves its children into the shell's page body, where each is placed by
+   its bounds in design coordinates. The page keeps in code the surface,
+   the presenter's paint callback, the sub-surface's content, the Timer, the
+   Commands the producer buttons bind, the interval Value the track bar
+   binds, the status and telemetry texts, every event handler and the page
+   style. */
+scaled-panel gallery.live-surfaces.document {
+  design-size: 1000 800;
+
+  label gallery.live-surfaces.heading {
+    text: "LIVE SURFACES";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.live-surfaces.lead {
+    text: "A producer publishes complete frame candidates through a write lease; the presenter acquires only the newest immutable one and copies only its damage.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.live-surfaces.presenter {
+    text: "LiveSurface · newest-frame presentation through Painter::draw_live_surface";
+    design-size: 930 336;
+    bounds: 24 92 930 336;
+    classes: "paper" "group-caption";
+    drawing-surface gallery.live-surfaces.view {
+      accessible-name: "Live surface presentation";
+      accessible-description: "Latest published frame of the page-owned LiveSurface";
+      bounds: 22 40 480 270;
+    }
+    label gallery.live-surfaces.status {
+      classes: "positive" "body-strong";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 524 40 384 60;
+    }
+    label gallery.live-surfaces.telemetry {
+      classes: "ink" "small";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 524 108 384 130;
+    }
+    label gallery.live-surfaces.note {
+      text: "Publishing never blocks: when every buffer is held by readers the producer drops that frame and the counter records it. Reconfigure starts a new epoch; the previous frame stays presentable, scaled, until the first new publication.";
+      classes: "muted" "note";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 524 244 384 80;
+    }
+  }
+
+  scaled-group-box gallery.live-surfaces.producer {
+    text: "Producer · UI-thread Timer ticks write one band per frame";
+    design-size: 930 170;
+    bounds: 24 450 930 170;
+    classes: "paper" "group-caption";
+    button gallery.live-surfaces.start {
+      text: "Start producer";
+      visual-style: accent;
+      bounds: 22 42 150 36;
+      command: bind(start_);
+    }
+    button gallery.live-surfaces.stop {
+      text: "Stop producer";
+      bounds: 184 42 150 36;
+      command: bind(stop_);
+    }
+    button gallery.live-surfaces.publish {
+      text: "Publish one frame";
+      visual-style: command;
+      bounds: 346 42 160 36;
+      command: bind(publish_once_);
+    }
+    button gallery.live-surfaces.reconfigure {
+      text: "Reconfigure 240×150";
+      visual-style: command;
+      bounds: 518 42 180 36;
+      command: bind(reconfigure_);
+    }
+    label gallery.live-surfaces.interval.label {
+      text: "Tick interval · 60–500 ms";
+      classes: "heading" "note-strong";
+      bounds: 22 92 220 20;
+    }
+    track-bar gallery.live-surfaces.interval {
+      accessible-name: "Producer tick interval in milliseconds";
+      maximum: 500;
+      minimum: 60;
+      tick-frequency: 4;
+      bounds: 22 112 320 44;
+      value: bind(interval_);
+    }
+    label gallery.live-surfaces.policy {
+      text: "The write lease preserves the previous publication, so a tick repaints one band and publishes only that rectangle. Hidden pages suspend the producer: the next tick on an invisible presenter stops the Timer.";
+      classes: "muted" "note";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 366 92 540 66;
+    }
+  }
+
+  scaled-group-box gallery.live-surfaces.sub-surface {
+    text: "SubSurfaceHost · a retained tree on its own thread, composed as a live surface";
+    design-size: 930 130;
+    bounds: 24 642 930 130;
+    classes: "paper" "group-caption";
+    sub-surface-host gallery.live-surfaces.sub-surface.host {
+      accessible-name: "Threaded sub-surface";
+      bounds: 22 40 340 82;
+    }
+    label gallery.live-surfaces.sub-surface.note {
+      text: "The host starts the sub-surface's thread when it is first shown and stops it when it leaves the window. Pointer, keys and focus are forwarded to it; its frames never mark the window's tree.";
+      classes: "muted" "note";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 384 40 524 80;
+    }
+  }
+}

@@ -247,6 +247,18 @@ public:
     virtual void sub_surface_semantics_changed() = 0;
 };
 
+// Told that a sub-surface's thread ended on its own: its content threw or
+// built no root (state failed). Called on the parent's thread only, through
+// the parent's dispatcher, after the thread recorded its state and failure;
+// a stop the parent asked for (SubSurfaceThread::stop) posts nothing, since
+// the parent knows of it. A target the parent has released receives
+// nothing.
+class SubSurfaceEndListener {
+public:
+    virtual ~SubSurfaceEndListener() = default;
+    virtual void sub_surface_ended() = 0;
+};
+
 // Where a sub-surface is in its life, as its parent last saw it.
 enum class SubSurfaceState : std::uint8_t {
     // The thread is building the content's tree.
@@ -422,6 +434,11 @@ public:
     // runtime identities); null before the first. Taking it re-arms the
     // notice: the next publication posts a new one.
     [[nodiscard]] std::shared_ptr<const SemanticSnapshot> take_semantics();
+    // Where the notice of the thread ending on its own goes: posted through
+    // `parent` to `target`, held weakly, as set_key_return. Replaces any
+    // earlier target. A thread that already failed posts nothing for a
+    // target set afterwards; the parent reads state() then.
+    void set_end_listener(WindowDispatcher parent, std::weak_ptr<SubSurfaceEndListener> target);
     // Revokes the sub-surface (it publishes no frame from now on), asks its
     // loop to stop, and joins the thread: the loop finishes its current
     // flush, releases its tree on its own thread and exits (design note

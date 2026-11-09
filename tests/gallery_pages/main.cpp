@@ -87,9 +87,21 @@ void test_registry_pages_gallery() {
     test_live_surfaces(window);
     test_typography_and_inspection(window);
     test_semantic_feedback(window);
+    test_notices_and_badges(window);
+    test_spinners_and_rings(window);
     test_retained_layout_panels(window);
     test_css_layout_panels(window);
     test_control_spectrum(window);
+}
+
+// The input-and-rules and theme-settings pages change the window (its
+// rules, its theme and presentation overrides), so they run in a window
+// of their own.
+void test_input_and_theme_gallery() {
+    std::unique_ptr<Window> owned = gallery::make_gallery();
+    Window& window = *owned;
+    test_input_and_rules(window);
+    test_theme_settings(window);
 }
 
 } // namespace
@@ -109,6 +121,7 @@ int main(int argc, char** argv) {
             return EXIT_SUCCESS;
         }
         test_page_contract_and_rendering();
+        test_every_page_scrolls_to_its_end();
         test_catalog_pages_resolve_and_headers_describe_pages();
         test_gallery_semantic_surface();
         test_ranges_containers_and_animation();
@@ -120,6 +133,7 @@ int main(int argc, char** argv) {
         test_dispatcher_gallery();
         test_dock_anchor_gallery_interaction();
         test_registry_pages_gallery();
+        test_input_and_theme_gallery();
         test_anatomy_coverage();
         test_schema_export();
         std::cout << "gui_forms_gallery_pages_tests: all tests passed\n";

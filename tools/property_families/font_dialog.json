@@ -1,0 +1,92 @@
+{
+  "family": "FontDialog",
+  "step": "B8",
+  "declaring": "FontDialog",
+  "header": "include/gui_forms/controls/panel/font_dialog/font_dialog.hpp",
+  "source": "src/controls/panel/font_dialog/font_dialog.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/font_dialog/font_dialog_capabilities/font_dialog_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [
+    "gui_forms/types.hpp"
+  ],
+  "properties": [
+    {
+      "name": "font",
+      "capability": "FontDialogFont",
+      "value": "FontSpec",
+      "initial": null,
+      "comment": "The font OK or Apply last took (initially 9-unit Carlito, like Windows Forms' default); not the dialog's own text font (G1). A view, since OK and Apply move it. A write also resets the selection to it and marks the font as set from code; an invalid FontSpec throws std::invalid_argument.",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto font_, which OK, Apply and close move; write_view resets the selection to it, even when unchanged"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "show_apply",
+      "capability": "FontDialogShowApply",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the Apply button is shown.",
+      "getter": "show_apply",
+      "setter": "set_show_apply",
+      "clear": null,
+      "field": "show_apply_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written shows or hides the Apply button"
+      ],
+      "effects": null
+    },
+    {
+      "name": "preview_text",
+      "capability": "FontDialogPreviewText",
+      "value": "std::string",
+      "initial": "\"AaBbYyZz 0123\"",
+      "comment": "The preview text; invalid UTF-8 throws std::invalid_argument.",
+      "getter": "preview_text",
+      "setter": "set_preview_text",
+      "clear": null,
+      "field": "preview_text_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (!validate_utf8(incoming).valid()) throw std::invalid_argument(\"FontDialog preview text must be valid UTF-8\");"
+      ],
+      "sample": "std::string{\"Sample\"}"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "set_size_range",
+      "reason": "two values that clamp the selection together; kept as a method"
+    },
+    {
+      "name": "surface",
+      "reason": "read at the next show(); a plain presentation choice, not a property of the dialog's content"
+    }
+  ],
+  "test": {
+    "type": "FontDialog",
+    "include": "gui_forms/controls/panel/font_dialog/font_dialog.hpp"
+  }
+}

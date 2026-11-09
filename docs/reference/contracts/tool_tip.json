@@ -42,62 +42,6 @@
       "reviewed": false,
       "summary": "Clears the text this ToolTip set on every target."
     },
-    "gui_forms::ToolTip::initial_delay|std::chrono::milliseconds () const": {
-      "reviewed": false,
-      "summary": "Returns the window's hover or focus dwell before a fresh tooltip shows (ToolTipSettings)."
-    },
-    "gui_forms::ToolTip::set_initial_delay|void (std::chrono::milliseconds)": {
-      "reviewed": false,
-      "summary": "Sets the window's initial delay; a negative delay is rejected, changing nothing."
-    },
-    "gui_forms::ToolTip::reshow_delay|std::chrono::milliseconds () const": {
-      "reviewed": false,
-      "summary": "Returns the window's shorter delay used soon after a tooltip was hidden (ToolTipSettings)."
-    },
-    "gui_forms::ToolTip::set_reshow_delay|void (std::chrono::milliseconds)": {
-      "reviewed": false,
-      "summary": "Sets the window's reshow delay; a negative delay is rejected, changing nothing."
-    },
-    "gui_forms::ToolTip::auto_pop_delay|std::chrono::milliseconds () const": {
-      "reviewed": false,
-      "summary": "Returns how long the window shows a tooltip before hiding it (ToolTipSettings)."
-    },
-    "gui_forms::ToolTip::set_auto_pop_delay|void (std::chrono::milliseconds)": {
-      "reviewed": false,
-      "summary": "Sets the window's auto-pop delay; a negative delay is rejected, changing nothing."
-    },
-    "gui_forms::ToolTip::show_on_hover|bool () const": {
-      "reviewed": false,
-      "summary": "Reports whether pointer hover shows tooltips in the window."
-    },
-    "gui_forms::ToolTip::set_show_on_hover|void (bool)": {
-      "reviewed": false,
-      "summary": "Sets the window's hover policy."
-    },
-    "gui_forms::ToolTip::show_on_focus|bool () const": {
-      "reviewed": false,
-      "summary": "Reports whether keyboard focus shows tooltips in the window."
-    },
-    "gui_forms::ToolTip::set_show_on_focus|void (bool)": {
-      "reviewed": false,
-      "summary": "Sets the window's focus policy."
-    },
-    "gui_forms::ToolTip::show_always|bool () const": {
-      "reviewed": false,
-      "summary": "Reports whether a disabled control's tooltip shows (ToolTipSettings::show_when_disabled)."
-    },
-    "gui_forms::ToolTip::set_show_always|void (bool)": {
-      "reviewed": false,
-      "summary": "Sets whether a disabled control's tooltip shows (ToolTipSettings::show_when_disabled)."
-    },
-    "gui_forms::ToolTip::maximum_width|double () const": {
-      "reviewed": false,
-      "summary": "Returns the window's tooltip wrapping width."
-    },
-    "gui_forms::ToolTip::set_maximum_width|void (double)": {
-      "reviewed": false,
-      "summary": "Sets the window's tooltip wrapping width; a width outside 80 to 2048 is rejected, changing nothing."
-    },
     "gui_forms::ToolTip::show|void (const std::shared_ptr<Control> &)": {
       "reviewed": false,
       "summary": "Shows the target's tooltip at once, below it, for the auto-pop delay. Rejects a target this ToolTip set no text on."

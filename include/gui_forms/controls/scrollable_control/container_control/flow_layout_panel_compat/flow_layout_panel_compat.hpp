@@ -2,6 +2,8 @@
 
 #include "gui_forms/binding/child_property_view/child_property_view.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_values/flow_layout_panel_compat_values.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_capabilities/flow_layout_panel_compat_capabilities.hpp"
 
 #include <array>
 #include <cstddef>
@@ -12,29 +14,6 @@
 #include <vector>
 
 namespace gui_forms {
-
-enum class FlowDirection : std::uint8_t {
-    left_to_right,
-    right_to_left,
-    top_down,
-    bottom_up,
-};
-
-enum class FlowMainAlignment : std::uint8_t {
-    start,
-    center,
-    end,
-    space_between,
-    space_around,
-    space_evenly,
-};
-
-enum class FlowCrossAlignment : std::uint8_t {
-    start,
-    center,
-    end,
-    stretch,
-};
 
 // The flow break a flow container provides to its children (FlowBreak; a
 // child property, study sections 10 and 15.4): whether the flow continues
@@ -63,7 +42,7 @@ struct FlowBreakCapability {
 // force"). In a right-to-left effective layout direction the layout is
 // computed left to right and mirrored about the viewport, padding and
 // margins included: a `left_to_right` flow starts at the right edge.
-class FlowLayoutPanelCompat final : public ContainerControl, public FlowBreakCapability<FlowLayoutPanelCompat> {
+class FlowLayoutPanelCompat final : public ContainerControl, public FlowBreakCapability<FlowLayoutPanelCompat>, public FlowLayoutPanelCompatCapabilities<FlowLayoutPanelCompat> {
 public:
     explicit FlowLayoutPanelCompat(StableId stable_id);
 
@@ -73,22 +52,6 @@ public:
     flow_child_property_entries() noexcept;
     [[nodiscard]] std::span<const ChildPropertyEntry> child_property_table() const noexcept override;
 
-    [[nodiscard]] FlowDirection flow_direction() const noexcept {
-        return flow_direction_;
-    }
-    void set_flow_direction(FlowDirection direction);
-    [[nodiscard]] bool wrap_contents() const noexcept { return wrap_contents_; }
-    void set_wrap_contents(bool wrap);
-    [[nodiscard]] Size item_spacing() const noexcept { return item_spacing_; }
-    void set_item_spacing(Size spacing);
-    [[nodiscard]] FlowMainAlignment main_alignment() const noexcept {
-        return main_alignment_;
-    }
-    void set_main_alignment(FlowMainAlignment alignment);
-    [[nodiscard]] FlowCrossAlignment cross_alignment() const noexcept {
-        return cross_alignment_;
-    }
-    void set_cross_alignment(FlowCrossAlignment alignment);
     void set_flex_grow(const Control& child, double grow);
     [[nodiscard]] double flex_grow(const Control& child) const;
 
@@ -102,9 +65,6 @@ protected:
 
 private:
     friend struct FlowBreakCapability<FlowLayoutPanelCompat>;
-
-    // The panel settings as form properties (study 10, section 6).
-    void register_panel_properties();
 
     // The flow break's hooks: the container's thread and a live direct
     // child before the compare; the container's relayout after a change.
@@ -166,11 +126,31 @@ private:
     std::uint64_t pass_{};
     Workspace workspace_{};
     bool workspace_busy_{};
-    FlowDirection flow_direction_{FlowDirection::left_to_right};
-    FlowMainAlignment main_alignment_{FlowMainAlignment::start};
-    FlowCrossAlignment cross_alignment_{FlowCrossAlignment::start};
-    Size item_spacing_{};
-    bool wrap_contents_{true};
+    // property_codemod begin FlowLayoutPanelCompat (tools/property_families/flow_layout_panel_compat.json; generated, do not edit)
+public:
+    // FlowLayoutPanelCompat's property table: Control's entries, then its own.
+    static constexpr std::size_t flow_layout_panel_compat_property_count = Control::control_property_count + 5U;
+    [[nodiscard]] static const std::array<PropertyEntry, flow_layout_panel_compat_property_count>& flow_layout_panel_compat_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct FlowLayoutDirectionCapability<FlowLayoutPanelCompat>;
+    friend struct FlowLayoutWrapContentsCapability<FlowLayoutPanelCompat>;
+    friend struct FlowLayoutItemSpacingCapability<FlowLayoutPanelCompat>;
+    friend struct FlowLayoutMainAlignmentCapability<FlowLayoutPanelCompat>;
+    friend struct FlowLayoutCrossAlignmentCapability<FlowLayoutPanelCompat>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(flow_direction)& cell, FlowDirection& incoming);
+    void written(const decltype(flow_direction)& cell);
+    void prepare_write(const decltype(wrap_contents)& cell, bool& incoming);
+    void written(const decltype(wrap_contents)& cell);
+    void prepare_write(const decltype(item_spacing)& cell, Size& incoming);
+    void written(const decltype(item_spacing)& cell);
+    void prepare_write(const decltype(main_alignment)& cell, FlowMainAlignment& incoming);
+    void written(const decltype(main_alignment)& cell);
+    void prepare_write(const decltype(cross_alignment)& cell, FlowCrossAlignment& incoming);
+    void written(const decltype(cross_alignment)& cell);
+    // property_codemod end FlowLayoutPanelCompat
 };
 
 } // namespace gui_forms

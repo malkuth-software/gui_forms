@@ -1,7 +1,10 @@
 #pragma once
 
+#include "gui_forms/controls/panel/list_box/list_box_values/list_box_values.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel/text_items_capability/text_items_capability.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -13,46 +16,28 @@
 
 namespace gui_forms {
 
-enum class ListSelectionMode : std::uint8_t {
-    one,
-    multiple_extended,
-};
-
 struct ListSelectionChange final {
     std::vector<std::size_t> previous;
     std::vector<std::size_t> current;
     std::optional<std::size_t> active_index;
 };
 
-class ListBox : public Panel {
+class ListBox : public Panel, public TextItemsCapability<ListBox>, public ListBoxCapabilities<ListBox> {
 public:
     explicit ListBox(StableId stable_id);
 
-    [[nodiscard]] std::span<const std::string> items() const noexcept {
-        return items_;
-    }
-    virtual void set_items(GUI_FORMS_LOCALIZABLE(items) std::vector<std::string> items);
-    virtual void add_item(GUI_FORMS_LOCALIZABLE(items) std::string item);
-    virtual void remove_item(std::size_t index);
-    virtual void clear_items();
+    // The items are the `items` cell (TextItemsCapability): edits keep the
+    // selection on its items (remapped through each edit, or cleared from
+    // an item an edit removes) and repaint only the shown rows they reach,
+    // at the next flush.
     void set_item_stable_ids(std::vector<std::string> stable_ids);
     [[nodiscard]] std::string item_stable_id(std::size_t index) const;
-    [[nodiscard]] ListSelectionMode selection_mode() const noexcept {
-        return selection_mode_;
-    }
-    void set_selection_mode(ListSelectionMode mode);
     [[nodiscard]] std::span<const std::size_t> selected_indices() const noexcept {
         return selected_;
     }
     [[nodiscard]] std::optional<std::size_t> selected_index() const noexcept;
     void select_index(std::size_t index, bool extend = false, bool toggle = false);
     void clear_selection();
-    [[nodiscard]] std::size_t top_index() const noexcept { return top_index_; }
-    void set_top_index(std::size_t index);
-    [[nodiscard]] double item_height() const noexcept { return item_height_; }
-    void set_item_height(double height);
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
 
     [[nodiscard]] Event<const ListSelectionChange&>& selection_changed() noexcept {
         return selection_changed_;
@@ -107,6 +92,15 @@ public:
     [[nodiscard]] std::vector<Item> realized_items() const;
 
 protected:
+    // Called by the items' prepare_edit after ListBox's own checks, before
+    // anything changes: a subclass readies its per-item state (reserving)
+    // or refuses the edit by throwing.
+    virtual void on_items_changing(const CollectionEdit& edit);
+    // Called by the items' written hook after the items are stored and the
+    // selection remapped, before the selection change is raised: a
+    // subclass brings its per-item state to the edit. It must not throw;
+    // what it allocates it reserved in on_items_changing.
+    virtual void on_items_changed(const CollectionEdit& edit) noexcept;
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     [[nodiscard]] virtual double row_text_left() const noexcept;
     virtual void paint_row_adornment(Painter& painter, std::size_t index,
@@ -129,6 +123,16 @@ protected:
     [[nodiscard]] AnatomyStateSet list_item_states(std::size_t index) const;
 
 private:
+    friend struct TextItemsCapability<ListBox>;
+
+    // The items' hooks: require_mutable, UTF-8 and the remapped selection
+    // first; then the stable identities, selection, window and damage.
+    void prepare_edit(const decltype(items)& cell, const CollectionEdit& edit, std::span<std::string> incoming);
+    void written(const decltype(items)& cell, const CollectionEdit& edit);
+    // Takes the items' pending damage (in arrange, at the flush) and
+    // repaints the shown rows it reaches; the whole list when the shown
+    // window moved.
+    void settle_items_damage(bool window_moved);
     // The `items` property (text_items_property.hpp).
     [[nodiscard]] BindingValue items_property_value() const;
     void set_items_property(const BindingValue& value);
@@ -139,19 +143,49 @@ private:
     void ensure_visible(std::size_t index);
     [[nodiscard]] std::size_t visible_row_count() const noexcept;
 
-    std::vector<std::string> items_;
     std::vector<std::string> item_stable_ids_;
     std::vector<std::size_t> selected_;
+    // The selection an edit leaves, made by prepare_edit before the edit
+    // is stored; after the written hook swaps it in, the selection before
+    // the edit, for the change event. Reused across edits.
+    std::vector<std::size_t> edit_selection_;
+    // The replaced rows taken at a settle; reused across flushes.
+    std::vector<std::uint32_t> settled_rows_;
     std::optional<std::size_t> active_index_;
     std::optional<std::size_t> anchor_index_;
     std::optional<std::size_t> hovered_index_;
     std::size_t top_index_{};
-    double item_height_{26.0};
-    FontSpec font_{FontRole::content, 12.0, 400, false};
-    ListSelectionMode selection_mode_{ListSelectionMode::one};
     bool focused_{};
     Event<const ListSelectionChange&> selection_changed_;
     Event<std::size_t> item_activated_;
+    // property_codemod begin ListBox (tools/property_families/list_box.json; generated, do not edit)
+public:
+    // ListBox's property table: Panel's entries, then its own.
+    static constexpr std::size_t list_box_property_count = Panel::panel_property_count + 2U;
+    [[nodiscard]] static const std::array<PropertyEntry, list_box_property_count>& list_box_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_font_changed();
+
+private:
+    friend struct ListBoxSelectionModeCapability<ListBox>;
+    friend struct ListBoxTopIndexCapability<ListBox>;
+    friend struct ListBoxItemHeightCapability<ListBox>;
+    friend struct FontCapability<ListBox>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(selection_mode)& cell, ListSelectionMode& incoming);
+    void written(const decltype(selection_mode)& cell);
+    void write_view(const decltype(top_index)& cell, std::size_t incoming);
+    [[nodiscard]] std::size_t read_view(const decltype(top_index)& cell) const;
+    void prepare_write(const decltype(item_height)& cell, double& incoming);
+    void written(const decltype(item_height)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    // property_codemod end ListBox
 };
 
 } // namespace gui_forms

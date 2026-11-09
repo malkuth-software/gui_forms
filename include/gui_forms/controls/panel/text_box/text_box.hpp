@@ -6,6 +6,7 @@
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -95,55 +96,14 @@ struct TextBoxAutoCompleteSession;
 class TextEditingEngine;
 } // namespace detail
 
-class TextBox final : public Panel {
+class TextBox final : public Panel, public TextBoxCapabilities<TextBox> {
 public:
-    explicit TextBox(StableId stable_id, std::string text = {});
+    explicit TextBox(StableId stable_id, std::string initial_text = {});
     ~TextBox() override;
 
-    [[nodiscard]] std::string_view text() const noexcept;
-    void set_text(std::string text);
-    [[nodiscard]] std::string_view placeholder_text() const noexcept {
-        return placeholder_;
-    }
-    // The placeholder shows in the empty field. Without one, the field's
-    // tooltip (Control::field_hint_text) shows there in the same light grey
-    // while the field has focus.
-    void set_placeholder_text(GUI_FORMS_LOCALIZABLE(placeholder) std::string text);
-    [[nodiscard]] bool read_only() const noexcept;
-    void set_read_only(bool read_only);
-    // Opt-in plain-text document editing. Existing single-line behavior remains
-    // the default. Stored line endings are preserved; Enter uses newline_sequence
-    // (LF initially). Tab insertion is separately opt-in.
-    [[nodiscard]] bool multiline() const noexcept { return multiline_; }
-    void set_multiline(bool enabled);
     // Multiline opt-in: document extent drives the inherited scrollbars and
     // scroll_position. Wrapped documents expose only vertical overflow.
     void arrange(Rect final_bounds) override;
-    [[nodiscard]] bool word_wrap() const noexcept { return word_wrap_; }
-    void set_word_wrap(bool enabled);
-    [[nodiscard]] std::string_view newline_sequence() const noexcept { return newline_; }
-    void set_newline_sequence(std::string sequence);
-    [[nodiscard]] bool accepts_tab() const noexcept { return accepts_tab_; }
-    void set_accepts_tab(bool enabled);
-    // In a single-line box Enter is the box's own only while it has
-    // something to accept: an open suggestion list or appended completion,
-    // or an input-method composition. Otherwise Enter goes on to the
-    // containers and the window's accept button. A box that is an edit
-    // session (a search field, an in-place editor) opts in with
-    // accepts_enter: plain Enter (no modifiers) with nothing else to accept
-    // then raises committed() and stops there. Off by default. A multi-line
-    // box always takes Enter to insert newline_sequence.
-    [[nodiscard]] bool accepts_enter() const noexcept { return accepts_enter_; }
-    void set_accepts_enter(bool enabled);
-    // Escape is the box's own only while it has something to cancel: an open
-    // suggestion list or appended completion, an input-method composition or
-    // a selection drag. Otherwise Escape, with or without Shift, goes on to
-    // the containers, menus and the window's cancel button. A box that is an
-    // edit session (an in-place editor) opts in with accepts_escape: plain
-    // Escape (no modifiers) with nothing else to cancel then raises
-    // cancelled() and stops there. Off by default.
-    [[nodiscard]] bool accepts_escape() const noexcept { return accepts_escape_; }
-    void set_accepts_escape(bool enabled);
     // Provisional development bounds until cluster-position metrics replace
     // prefix measurement. Validation/refusal never truncates source text.
     static constexpr std::size_t maximum_multiline_bytes = 1024U * 1024U;
@@ -151,32 +111,17 @@ public:
     enum class MultilineValidation : std::uint8_t {
         valid, invalid_utf8, document_too_large, line_too_long
     };
-    [[nodiscard]] static MultilineValidation validate_multiline_text(std::string_view text);
+    [[nodiscard]] static MultilineValidation validate_multiline_text(std::string_view source);
     [[nodiscard]] std::size_t visual_line_count();
     [[nodiscard]] Point scroll_offset() const noexcept {
-        if (multiline_ && auto_scroll.read()) return scroll_position();
+        if (multiline.read() && auto_scroll.read()) return scroll_position();
         const Point result{.x = horizontal_offset_, .y = vertical_offset_};
         return result;
     }
-    [[nodiscard]] std::size_t maximum_length() const noexcept;
-    // Zero admits any text that fits the TextStore. A positive limit applies
-    // to user edits, paste, and semantic set-value without truncating a value
-    // assigned programmatically through set_text().
-    void set_maximum_length(std::size_t length);
-    [[nodiscard]] char32_t password_character() const noexcept {
-        return password_character_;
-    }
-    void set_password_character(char32_t character);
-    [[nodiscard]] bool use_system_password_character() const noexcept {
-        return use_system_password_character_;
-    }
-    void set_use_system_password_character(bool enabled);
     [[nodiscard]] bool password_protected() const noexcept {
-        const bool result = use_system_password_character_ || password_character_ != U'\0';
+        const bool result = use_system_password_character.read() || password_character.read() != U'\0';
         return result;
     }
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
     [[nodiscard]] TextSelection selection() const noexcept;
     void select(Utf8Offset anchor, Utf8Offset caret);
     void select_all();
@@ -196,8 +141,8 @@ public:
     // The edit filter sees every user edit (TextEditKind) after the TextBox's
     // own checks (read-only, UTF-8, grapheme boundaries) and before it is
     // applied; a composite control uses it to refuse or rewrite input, as
-    // MaskedTextBox does. It does not see set_text, undo or redo. A filter
-    // may change this TextBox's text (with set_text) only when it refuses the
+    // MaskedTextBox does. It does not see text assignments, undo or redo. A filter
+    // may change this TextBox's text (by assigning text) only when it refuses the
     // edit, to show a value it looked up, as a read-only DomainUpDown does;
     // an edit during whose filter call the text changed is abandoned whatever
     // the verdict. A rewrite is applied as one history step
@@ -206,32 +151,6 @@ public:
     // the target goes away.
     void set_edit_filter(Delegate<TextEdit&> filter) noexcept;
 
-    // Auto-complete, as Windows Forms' AutoCompleteMode, AutoCompleteSource
-    // and AutoCompleteCustomSource. It acts only in a single-line, unmasked,
-    // writable box with no edit filter (a composite that filters edits owns
-    // the text); otherwise the settings are kept and do nothing. Matching is
-    // by prefix, ignoring ASCII case unless auto_complete_case_sensitive.
-    [[nodiscard]] AutoCompleteMode auto_complete_mode() const noexcept {
-        return auto_complete_mode_;
-    }
-    void set_auto_complete_mode(AutoCompleteMode mode);
-    [[nodiscard]] AutoCompleteSource auto_complete_source() const noexcept {
-        return auto_complete_source_;
-    }
-    // list_items throws std::invalid_argument: a TextBox has no list (an
-    // editable ComboBox offers its items through its own setting).
-    void set_auto_complete_source(AutoCompleteSource source);
-    // Never null: a new box owns an empty collection. Assigning one shares it
-    // (see AutoCompleteStringCollection); null throws std::invalid_argument.
-    [[nodiscard]] const std::shared_ptr<AutoCompleteStringCollection>&
-    auto_complete_custom_source() const noexcept {
-        return auto_complete_custom_source_;
-    }
-    void set_auto_complete_custom_source(std::shared_ptr<AutoCompleteStringCollection> source);
-    [[nodiscard]] bool auto_complete_case_sensitive() const noexcept {
-        return auto_complete_case_sensitive_;
-    }
-    void set_auto_complete_case_sensitive(bool case_sensitive);
     // Whether the source can offer candidates: accepted for none and
     // custom_source; for a host source, the window's host services' answer
     // (unsupported from every host today, and without a host).
@@ -322,6 +241,7 @@ public:
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_scroll_position_changed() override;
+    [[nodiscard]] bool paints_scrolled_content() const noexcept override { return true; }
     // Multiline opt-in: the document extent drives the inherited scroll bars;
     // turning auto scroll off keeps the document where it was.
     void on_auto_scroll_changed(Point previous_position) override;
@@ -353,7 +273,7 @@ private:
     [[nodiscard]] Rect multiline_text_rectangle() const noexcept;
     void set_multiline_scroll(Point position);
     [[nodiscard]] AnatomyStateSet text_states() const;
-    [[nodiscard]] PartPaint text_part_template(FontSpec font, bool selected) const;
+    [[nodiscard]] PartPaint text_part_template(FontSpec part_font, bool selected) const;
     void paint_selection_band(Painter& painter, Rect band) const;
     void paint_caret(Painter& painter, Rect caret) const;
     [[nodiscard]] Rect paint_multiline(Painter& painter);
@@ -362,8 +282,6 @@ private:
     [[nodiscard]] Utf8Offset multiline_position_at(double x, double y);
     [[nodiscard]] Utf8Offset position_in_line(std::size_t line, double x) const;
     [[nodiscard]] double multiline_boundary_x(std::size_t line, Utf8Offset offset) const;
-
-    [[nodiscard]] BindingValue text_property_value() const;
 
     // Auto-complete (text_box_auto_complete.cpp). The session holds the
     // typed text, the suggestions, a pending appended completion and the
@@ -390,11 +308,12 @@ private:
     // Shows completion text without an edit-filter call or a history step:
     // the completion belongs to the user edit that produced it, so undo
     // removes both.
-    void show_completion_text(std::string_view text, TextSelection selection);
+    void show_completion_text(std::string_view shown_text, TextSelection selection);
     void auto_complete_list_selection_changed(const ListSelectionChange& change);
     void auto_complete_list_activated(std::size_t index);
     void auto_complete_list_dismissed(OverlayDismissReason reason);
     void auto_complete_overlay_revoked();
+    void auto_complete_popup_closed(std::size_t slot);
     void auto_complete_collection_changed();
 
     // How the editing engine reaches this box (text_box.cpp).
@@ -423,19 +342,14 @@ private:
     // destroyed last. Neither is ever null.
     std::unique_ptr<EditingHost> editing_host_;
     std::unique_ptr<detail::TextEditingEngine> editing_;
-    std::string placeholder_{};
-    FontSpec font_{FontRole::content, 12.0, 400, false};
     std::vector<double> layout_positions_{};
     std::vector<std::uint64_t> layout_offsets_{};
     double layout_text_scale_{};
     double horizontal_offset_{};
-    bool multiline_{};
-    bool word_wrap_{};
-    bool accepts_tab_{};
-    bool accepts_enter_{};
-    bool accepts_escape_{};
-    std::string newline_{"\n"};
     bool reveal_pending_{true};
+    // A paging key moved the caret: the next caret reveal scrolls smoothly
+    // (ScrollableControl::glide_to) instead of at once. Taken by that reveal.
+    bool glide_next_reveal_{};
     bool caret_upstream_{};
     bool next_upstream_{};
     double vertical_offset_{};
@@ -451,8 +365,6 @@ private:
     bool multiline_scroll_enabled_{};
     double multiline_device_scale_{};
     const TextMetricsProvider* multiline_provider_{};
-    char32_t password_character_{};
-    bool use_system_password_character_{};
     bool focused_{};
     bool selecting_{};
     bool caret_visible_{true};
@@ -477,10 +389,6 @@ private:
     };
     CaretDamage caret_damage_{};
     FrameRequestToken caret_frame_{};
-    AutoCompleteMode auto_complete_mode_{AutoCompleteMode::none};
-    AutoCompleteSource auto_complete_source_{AutoCompleteSource::none};
-    std::shared_ptr<AutoCompleteStringCollection> auto_complete_custom_source_;
-    bool auto_complete_case_sensitive_{};
     Control::WeakPtr auto_complete_anchor_{};
     std::unique_ptr<detail::TextBoxAutoCompleteSession> auto_complete_session_;
     Event<const std::string&> text_changed_{};
@@ -492,6 +400,77 @@ private:
 
     static constexpr double text_left_ = 6.0;
     static constexpr std::size_t maximum_configured_length_ = 16U * 1024U * 1024U;
+    // property_codemod begin TextBox (tools/property_families/text_box.json; generated, do not edit)
+public:
+    // TextBox's property table: Panel's entries, then its own.
+    static constexpr std::size_t text_box_property_count = Panel::panel_property_count + 4U;
+    [[nodiscard]] static const std::array<PropertyEntry, text_box_property_count>& text_box_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_text_changed();
+    virtual void on_read_only_changed();
+    virtual void on_multiline_changed();
+    virtual void on_accepts_tab_changed();
+    virtual void on_font_changed();
+
+private:
+    friend struct TextBoxTextCapability<TextBox>;
+    friend struct TextBoxPlaceholderTextCapability<TextBox>;
+    friend struct TextBoxReadOnlyCapability<TextBox>;
+    friend struct TextBoxMultilineCapability<TextBox>;
+    friend struct TextBoxWordWrapCapability<TextBox>;
+    friend struct TextBoxNewlineSequenceCapability<TextBox>;
+    friend struct TextBoxAcceptsTabCapability<TextBox>;
+    friend struct TextBoxAcceptsEnterCapability<TextBox>;
+    friend struct TextBoxAcceptsEscapeCapability<TextBox>;
+    friend struct TextBoxMaximumLengthCapability<TextBox>;
+    friend struct TextBoxPasswordCharacterCapability<TextBox>;
+    friend struct TextBoxUseSystemPasswordCharacterCapability<TextBox>;
+    friend struct FontCapability<TextBox>;
+    friend struct TextBoxAutoCompleteModeCapability<TextBox>;
+    friend struct TextBoxAutoCompleteSourceCapability<TextBox>;
+    friend struct TextBoxAutoCompleteCustomSourceCapability<TextBox>;
+    friend struct TextBoxAutoCompleteCaseSensitiveCapability<TextBox>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(text)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(text)& cell) const;
+    void prepare_write(const decltype(placeholder_text)& cell, std::string& incoming);
+    void written(const decltype(placeholder_text)& cell);
+    void write_view(const decltype(read_only)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(read_only)& cell) const;
+    void prepare_write(const decltype(multiline)& cell, bool& incoming);
+    void written(const decltype(multiline)& cell);
+    void prepare_write(const decltype(word_wrap)& cell, bool& incoming);
+    void written(const decltype(word_wrap)& cell);
+    void prepare_write(const decltype(newline_sequence)& cell, std::string& incoming);
+    void written(const decltype(newline_sequence)& cell);
+    void prepare_write(const decltype(accepts_tab)& cell, bool& incoming);
+    void written(const decltype(accepts_tab)& cell);
+    void prepare_write(const decltype(accepts_enter)& cell, bool& incoming);
+    void written(const decltype(accepts_enter)& cell);
+    void prepare_write(const decltype(accepts_escape)& cell, bool& incoming);
+    void written(const decltype(accepts_escape)& cell);
+    void write_view(const decltype(maximum_length)& cell, std::size_t incoming);
+    [[nodiscard]] std::size_t read_view(const decltype(maximum_length)& cell) const;
+    void prepare_write(const decltype(password_character)& cell, char32_t& incoming);
+    void written(const decltype(password_character)& cell);
+    void prepare_write(const decltype(use_system_password_character)& cell, bool& incoming);
+    void written(const decltype(use_system_password_character)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    void prepare_write(const decltype(auto_complete_mode)& cell, AutoCompleteMode& incoming);
+    void written(const decltype(auto_complete_mode)& cell);
+    void prepare_write(const decltype(auto_complete_source)& cell, AutoCompleteSource& incoming);
+    void written(const decltype(auto_complete_source)& cell);
+    void prepare_write(const decltype(auto_complete_custom_source)& cell, std::shared_ptr<AutoCompleteStringCollection>& incoming);
+    void written(const decltype(auto_complete_custom_source)& cell);
+    void prepare_write(const decltype(auto_complete_case_sensitive)& cell, bool& incoming);
+    void written(const decltype(auto_complete_case_sensitive)& cell);
+    // property_codemod end TextBox
 };
 
 } // namespace gui_forms

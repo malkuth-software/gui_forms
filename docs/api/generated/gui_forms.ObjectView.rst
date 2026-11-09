@@ -7,7 +7,7 @@ gui_forms::ObjectView
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ObjectView final : public Panel
+.. cpp:class:: ObjectView final : public Panel, public ObjectViewCapabilities<ObjectView>
 
    ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
 
@@ -21,7 +21,7 @@ gui_forms::ObjectView
    are divided into cells under a header that the user clicks to sort and drags
    to resize. The user selects one or several items with the pointer and
    keyboard, activates an item by double-clicking it or pressing Enter, and
-   asks for a context menu with the secondary button. Only the items in view
+   asks for a context menu the platform's way (the host's context request). Only the items in view
    are painted and published, and no child control is created per item. Use a
    :cpp:class:`TreeView <gui_forms::TreeView>` for a hierarchy, a :cpp:class:`ListBox <gui_forms::ListBox>` for plain text rows, and a
    :cpp:class:`CorrespondenceView <gui_forms::CorrespondenceView>` for records that expand to show more detail.
@@ -35,6 +35,51 @@ gui_forms::ObjectView
          semantic actions address the control by this ID.
 
    :Properties:
+
+      **view_mode** : ``ObjectViewMode``, default ``ObjectViewMode::icons``
+         Whether items are shown as a grid of icon cells or as details rows.
+         Switching keeps the selection and the first item in view.
+
+      **selected_id** : ``std::string``, default ``""``
+         The primary selected item, normally the one selected last, or empty
+         when nothing is selected. Setting it replaces
+         the whole selection with that one item, and an empty ID clears it. An
+         ID that is not in :cpp:func:`items <gui_forms::ObjectView::items>` throws ``std::out_of_range``.
+
+      **selection_mode** : ``ObjectSelectionMode``, default ``ObjectSelectionMode::multiple``
+         Whether several items can be selected at once. Switching to ``single``
+         while several are selected keeps only the primary.
+
+      **icon_cell_size** : ``Size``, default ``Size{112.0, 91.0}``
+         Size of each cell in icon mode, in logical pixels before text scaling.
+         As many cells fit in a row as the width allows. Sizes outside 86 by 78
+         to 512 by 512, or not finite, throw ``std::invalid_argument``.
+
+      **details_row_height** : ``double``, default ``28.0``
+         Height of each details row, and of the header, in logical pixels before
+         text scaling. Values outside 20 to 256 throw ``std::invalid_argument``.
+
+      **show_secondary_text** : ``bool``, default ``true``
+         Whether the secondary text is drawn: under the name in icon cells at
+         least 90 pixels high, and beside the name in details rows without
+         columns that are at least 112 pixels wide.
+
+      **font** : ``FontSpec``, default ``FontSpec{FontRole::content, 11.0, 400, false}``
+         The font of item names and cell text. An invalid specification throws
+         ``std::invalid_argument``.
+
+      **image_list** : ``std::shared_ptr<ImageList>``
+         The :cpp:class:`ImageList <gui_forms::ImageList>` whose images the items show, looked up by each item's
+         ``image_key``; an item without an image shows its ``glyph``. Empty by
+         default. The list must be alive and, while the view is in a window,
+         belong to that window, or ``std::invalid_argument`` is thrown.
+
+      **details_sort** : ``ObjectDetailsSort``
+         The sort indicator shown in the header: a column ID and an
+         :cpp:enum:`ObjectSortDirection <gui_forms::ObjectSortDirection>`. An empty column ID, the default, shows no
+         indicator. Writing :cpp:member:`details_sort <gui_forms::ObjectView::details_sort>` changes only the indicator and never
+         reorders the items. A column that does not exist or is not sortable, or
+         an invalid direction, throws ``std::invalid_argument``.
 
       **items** : ``std::span<const ObjectViewItem>``
          The items in display order. Empty by default. :cpp:func:`set_items <gui_forms::ObjectView::set_items>` replaces the
@@ -54,13 +99,6 @@ gui_forms::ObjectView
          :cpp:func:`set_details_model <gui_forms::ObjectView::set_details_model>`. Empty by default; without columns, a details row
          shows the glyph, the name and the secondary text.
 
-      **details_sort** : ``ObjectDetailsSort``
-         The sort indicator shown in the header: a column ID and an
-         :cpp:enum:`ObjectSortDirection <gui_forms::ObjectSortDirection>`. An empty column ID, the default, shows no
-         indicator. :cpp:func:`set_details_sort <gui_forms::ObjectView::set_details_sort>` changes only the indicator and never
-         reorders the items. A column that does not exist or is not sortable, or
-         an invalid direction, throws ``std::invalid_argument``.
-
       **horizontal_offset** : ``double``, default ``0.0``
          How far the details columns are scrolled to the left, in logical
          pixels. It is clamped so the columns never scroll past their total
@@ -70,16 +108,6 @@ gui_forms::ObjectView
          Counts of rows, cells and text preparations in the last paint of the
          details columns, for diagnostics.
 
-      **view_mode** : ``ObjectViewMode``, default ``ObjectViewMode::icons``
-         Whether items are shown as a grid of icon cells or as details rows.
-         Switching keeps the selection and the first item in view.
-
-      **selected_id** : ``std::string_view``, default ``""``
-         The primary selected item, normally the one selected last, or empty
-         when nothing is selected. Setting it replaces
-         the whole selection with that one item, and an empty ID clears it. An
-         ID that is not in :cpp:func:`items <gui_forms::ObjectView::items>` throws ``std::out_of_range``.
-
       **selected_ids** : ``std::span<const std::string>``
          Every selected ID, in the order of :cpp:func:`items <gui_forms::ObjectView::items>`. :cpp:func:`set_selected_ids <gui_forms::ObjectView::set_selected_ids>` replaces
          the selection; its ``primary_id`` must be one of the IDs or empty, in
@@ -88,10 +116,6 @@ gui_forms::ObjectView
          ``std::out_of_range``, and a ``primary_id`` that is not selected, or more
          than one ID in :cpp:enumerator:`ObjectSelectionMode::single <gui_forms::ObjectSelectionMode::single>` mode, throws
          ``std::invalid_argument``.
-
-      **selection_mode** : ``ObjectSelectionMode``, default ``ObjectSelectionMode::multiple``
-         Whether several items can be selected at once. Switching to ``single``
-         while several are selected keeps only the primary.
 
       **selection_anchor_id** : ``std::string_view``, read-only
          The item a Shift range starts from. Plain and toggling selections move
@@ -104,34 +128,10 @@ gui_forms::ObjectView
          focus with no focused item, the primary selection, or else the first
          item, is focused.
 
-      **icon_cell_size** : ``Size``, default ``Size{112.0, 91.0}``
-         Size of each cell in icon mode, in logical pixels before text scaling.
-         As many cells fit in a row as the width allows. Sizes outside 86 by 78
-         to 512 by 512, or not finite, throw ``std::invalid_argument``.
-
-      **details_row_height** : ``double``, default ``28.0``
-         Height of each details row, and of the header, in logical pixels before
-         text scaling. Values outside 20 to 256 throw ``std::invalid_argument``.
-
-      **show_secondary_text** : ``bool``, default ``true``
-         Whether the secondary text is drawn: under the name in icon cells at
-         least 90 pixels high, and beside the name in details rows without
-         columns that are at least 112 pixels wide.
-
       **top_row** : ``std::size_t``, default ``0``
          The first row in view: a row of cells in icon mode, an item in details
          mode. The mouse wheel moves it by two rows. A row outside the items
          throws ``std::out_of_range``; a row past the last full page is clamped.
-
-      **font** : ``FontSpec``, default ``FontSpec{FontRole::content, 11.0, 400, false}``
-         The font of item names and cell text. An invalid specification throws
-         ``std::invalid_argument``.
-
-      **image_list** : ``std::shared_ptr<ImageList>``
-         The :cpp:class:`ImageList <gui_forms::ImageList>` whose images the items show, looked up by each item's
-         ``image_key``; an item without an image shows its ``glyph``. Empty by
-         default. The list must be alive and, while the view is in a window,
-         belong to that window, or ``std::invalid_argument`` is thrown.
 
       **parts** : ``Parts``, read-only
 
@@ -148,7 +148,7 @@ gui_forms::ObjectView
          :cpp:class:`ObjectDetailsSort <gui_forms::ObjectDetailsSort>`: that column, descending if the column is now
          sorted ascending and ascending otherwise. The view does not sort:
          reorder the items, then publish them with :cpp:func:`set_details_model <gui_forms::ObjectView::set_details_model>` and the
-         accepted sort, or call :cpp:func:`set_details_sort <gui_forms::ObjectView::set_details_sort>`.
+         accepted sort, or write :cpp:member:`details_sort <gui_forms::ObjectView::details_sort>`.
 
       **selection_changed** : ``Event<const ObjectSelectionChange&>``
          Raised after the selected IDs or the primary selection change, by
@@ -162,19 +162,22 @@ gui_forms::ObjectView
          press. It carries the item ID. Disabled items are not activated.
 
       **context_requested** : ``Event<const ObjectContextRequest&>``
-         Raised on the release of a secondary click on an item, on a secondary
-         click on the background, and on a semantic ``show_menu``. It carries an
+         Raised on the host's context request (Windows' right-button release,
+         Shift+F10 or Menu key; macOS's right press, Control-click or show-menu
+         action; the Linux desktop's right press, Menu key or Shift+F10) and on
+         a semantic ``show_menu``: a pointer request names the item under the
+         pointer, a keyboard request the focused item. It carries an
          :cpp:class:`ObjectContextRequest <gui_forms::ObjectContextRequest>` with the item ID, empty for the background, and
          the position to open a menu at, in window coordinates despite its name
-         ``screen_position``; pass it to :cpp:class:`ContextMenu <gui_forms::ContextMenu>`. A secondary press on an
-         unselected item selects it first; a background click clears the
+         ``screen_position``; pass it to :cpp:class:`ContextMenu <gui_forms::ContextMenu>`. A request on an
+         unselected item selects it first; one on the background clears the
          selection first.
 
    :Inherited:
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -291,7 +294,7 @@ gui_forms::ObjectView
                                  .alignment = gf::ObjectColumnAlignment::right});
               rows.push_back(row("budget", "Budget.ods", "12 KB"));
               rows.push_back(row("agenda", "Agenda.txt", "1 KB"));
-              (*view).set_view_mode(gf::ObjectViewMode::details);
+              (*view).view_mode = gf::ObjectViewMode::details;
               (*view).set_details_model(columns, rows);
               gf::on((*view).sort_requested(), *this, &FileTable::on_sort);
           }
@@ -312,7 +315,7 @@ gui_forms::ObjectView
       void example() {
           FileTable table;
           table.on_sort({{"name"}, gf::ObjectSortDirection::ascending});
-          // (*table.view).details_sort() now shows Name, ascending
+          // (*table.view).details_sort.read() now shows Name, ascending
       }
 
 
@@ -322,6 +325,60 @@ gui_forms::ObjectView
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: ObjectViewMode view_mode
+
+      Whether items are shown as a grid of icon cells or as details rows.
+      Switching keeps the selection and the first item in view.
+
+   .. cpp:member:: std::string selected_id
+
+      The primary selected item, normally the one selected last, or empty
+      when nothing is selected. Setting it replaces
+      the whole selection with that one item, and an empty ID clears it. An
+      ID that is not in :cpp:func:`items <gui_forms::ObjectView::items>` throws ``std::out_of_range``.
+
+   .. cpp:member:: ObjectSelectionMode selection_mode
+
+      Whether several items can be selected at once. Switching to ``single``
+      while several are selected keeps only the primary.
+
+   .. cpp:member:: Size icon_cell_size
+
+      Size of each cell in icon mode, in logical pixels before text scaling.
+      As many cells fit in a row as the width allows. Sizes outside 86 by 78
+      to 512 by 512, or not finite, throw ``std::invalid_argument``.
+
+   .. cpp:member:: double details_row_height
+
+      Height of each details row, and of the header, in logical pixels before
+      text scaling. Values outside 20 to 256 throw ``std::invalid_argument``.
+
+   .. cpp:member:: bool show_secondary_text
+
+      Whether the secondary text is drawn: under the name in icon cells at
+      least 90 pixels high, and beside the name in details rows without
+      columns that are at least 112 pixels wide.
+
+   .. cpp:member:: FontSpec font
+
+      The font of item names and cell text. An invalid specification throws
+      ``std::invalid_argument``.
+
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
+
+      The :cpp:class:`ImageList <gui_forms::ImageList>` whose images the items show, looked up by each item's
+      ``image_key``; an item without an image shows its ``glyph``. Empty by
+      default. The list must be alive and, while the view is in a window,
+      belong to that window, or ``std::invalid_argument`` is thrown.
+
+   .. cpp:member:: ObjectDetailsSort details_sort
+
+      The sort indicator shown in the header: a column ID and an
+      :cpp:enum:`ObjectSortDirection <gui_forms::ObjectSortDirection>`. An empty column ID, the default, shows no
+      indicator. Writing :cpp:member:`details_sort <gui_forms::ObjectView::details_sort>` changes only the indicator and never
+      reorders the items. A column that does not exist or is not sortable, or
+      an invalid direction, throws ``std::invalid_argument``.
 
    .. cpp:function:: std::span<const ObjectViewItem> items() const noexcept
 
@@ -347,18 +404,6 @@ gui_forms::ObjectView
       :cpp:func:`set_details_model <gui_forms::ObjectView::set_details_model>`. Empty by default; without columns, a details row
       shows the glyph, the name and the secondary text.
 
-   .. cpp:function:: const ObjectDetailsSort& details_sort() const noexcept
-
-      The sort indicator shown in the header: a column ID and an
-      :cpp:enum:`ObjectSortDirection <gui_forms::ObjectSortDirection>`. An empty column ID, the default, shows no
-      indicator. :cpp:func:`set_details_sort <gui_forms::ObjectView::set_details_sort>` changes only the indicator and never
-      reorders the items. A column that does not exist or is not sortable, or
-      an invalid direction, throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_details_sort(ObjectDetailsSort state)
-
-      Sets :cpp:func:`details_sort <gui_forms::ObjectView::details_sort>`; see the property's description above.
-
    .. cpp:function:: double horizontal_offset() const noexcept
 
       How far the details columns are scrolled to the left, in logical
@@ -374,26 +419,6 @@ gui_forms::ObjectView
       Counts of rows, cells and text preparations in the last paint of the
       details columns, for diagnostics.
 
-   .. cpp:function:: ObjectViewMode view_mode() const noexcept
-
-      Whether items are shown as a grid of icon cells or as details rows.
-      Switching keeps the selection and the first item in view.
-
-   .. cpp:function:: void set_view_mode(ObjectViewMode mode)
-
-      Sets :cpp:func:`view_mode <gui_forms::ObjectView::view_mode>`; see the property's description above.
-
-   .. cpp:function:: std::string_view selected_id() const noexcept
-
-      The primary selected item, normally the one selected last, or empty
-      when nothing is selected. Setting it replaces
-      the whole selection with that one item, and an empty ID clears it. An
-      ID that is not in :cpp:func:`items <gui_forms::ObjectView::items>` throws ``std::out_of_range``.
-
-   .. cpp:function:: void set_selected_id(std::string_view stable_id)
-
-      Sets :cpp:func:`selected_id <gui_forms::ObjectView::selected_id>`; see the property's description above.
-
    .. cpp:function:: std::span<const std::string> selected_ids() const noexcept
 
       Every selected ID, in the order of :cpp:func:`items <gui_forms::ObjectView::items>`. :cpp:func:`set_selected_ids <gui_forms::ObjectView::set_selected_ids>` replaces
@@ -408,15 +433,6 @@ gui_forms::ObjectView
 
       Sets :cpp:func:`selected_ids <gui_forms::ObjectView::selected_ids>`; see the property's description above.
 
-   .. cpp:function:: ObjectSelectionMode selection_mode() const noexcept
-
-      Whether several items can be selected at once. Switching to ``single``
-      while several are selected keeps only the primary.
-
-   .. cpp:function:: void set_selection_mode(ObjectSelectionMode mode)
-
-      Sets :cpp:func:`selection_mode <gui_forms::ObjectView::selection_mode>`; see the property's description above.
-
    .. cpp:function:: std::string_view selection_anchor_id() const noexcept
 
       The item a Shift range starts from. Plain and toggling selections move
@@ -430,35 +446,6 @@ gui_forms::ObjectView
       focus with no focused item, the primary selection, or else the first
       item, is focused.
 
-   .. cpp:function:: Size icon_cell_size() const noexcept
-
-      Size of each cell in icon mode, in logical pixels before text scaling.
-      As many cells fit in a row as the width allows. Sizes outside 86 by 78
-      to 512 by 512, or not finite, throw ``std::invalid_argument``.
-
-   .. cpp:function:: void set_icon_cell_size(Size size)
-
-      Sets :cpp:func:`icon_cell_size <gui_forms::ObjectView::icon_cell_size>`; see the property's description above.
-
-   .. cpp:function:: double details_row_height() const noexcept
-
-      Height of each details row, and of the header, in logical pixels before
-      text scaling. Values outside 20 to 256 throw ``std::invalid_argument``.
-
-   .. cpp:function:: void set_details_row_height(double height)
-
-      Sets :cpp:func:`details_row_height <gui_forms::ObjectView::details_row_height>`; see the property's description above.
-
-   .. cpp:function:: bool show_secondary_text() const noexcept
-
-      Whether the secondary text is drawn: under the name in icon cells at
-      least 90 pixels high, and beside the name in details rows without
-      columns that are at least 112 pixels wide.
-
-   .. cpp:function:: void set_show_secondary_text(bool show)
-
-      Sets :cpp:func:`show_secondary_text <gui_forms::ObjectView::show_secondary_text>`; see the property's description above.
-
    .. cpp:function:: std::size_t top_row() const noexcept
 
       The first row in view: a row of cells in icon mode, an item in details
@@ -468,26 +455,6 @@ gui_forms::ObjectView
    .. cpp:function:: void set_top_row(std::size_t row)
 
       Sets :cpp:func:`top_row <gui_forms::ObjectView::top_row>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
-
-      The font of item names and cell text. An invalid specification throws
-      ``std::invalid_argument``.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::ObjectView::font>`; see the property's description above.
-
-   .. cpp:function:: std::shared_ptr<ImageList> image_list() const noexcept
-
-      The :cpp:class:`ImageList <gui_forms::ImageList>` whose images the items show, looked up by each item's
-      ``image_key``; an item without an image shows its ``glyph``. Empty by
-      default. The list must be alive and, while the view is in a window,
-      belong to that window, or ``std::invalid_argument`` is thrown.
-
-   .. cpp:function:: void set_image_list(std::shared_ptr<ImageList> image_list)
-
-      Sets :cpp:func:`image_list <gui_forms::ObjectView::image_list>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 
@@ -507,7 +474,7 @@ gui_forms::ObjectView
       :cpp:class:`ObjectDetailsSort <gui_forms::ObjectDetailsSort>`: that column, descending if the column is now
       sorted ascending and ascending otherwise. The view does not sort:
       reorder the items, then publish them with :cpp:func:`set_details_model <gui_forms::ObjectView::set_details_model>` and the
-      accepted sort, or call :cpp:func:`set_details_sort <gui_forms::ObjectView::set_details_sort>`.
+      accepted sort, or write :cpp:member:`details_sort <gui_forms::ObjectView::details_sort>`.
 
    .. cpp:function:: Event<const ObjectSelectionChange&>& selection_changed() noexcept
 
@@ -524,12 +491,15 @@ gui_forms::ObjectView
 
    .. cpp:function:: Event<const ObjectContextRequest&>& context_requested() noexcept
 
-      Raised on the release of a secondary click on an item, on a secondary
-      click on the background, and on a semantic ``show_menu``. It carries an
+      Raised on the host's context request (Windows' right-button release,
+      Shift+F10 or Menu key; macOS's right press, Control-click or show-menu
+      action; the Linux desktop's right press, Menu key or Shift+F10) and on
+      a semantic ``show_menu``: a pointer request names the item under the
+      pointer, a keyboard request the focused item. It carries an
       :cpp:class:`ObjectContextRequest <gui_forms::ObjectContextRequest>` with the item ID, empty for the background, and
       the position to open a menu at, in window coordinates despite its name
-      ``screen_position``; pass it to :cpp:class:`ContextMenu <gui_forms::ContextMenu>`. A secondary press on an
-      unselected item selects it first; a background click clears the
+      ``screen_position``; pass it to :cpp:class:`ContextMenu <gui_forms::ContextMenu>`. A request on an
+      unselected item selects it first; one on the background clears the
       selection first.
 
 
@@ -602,6 +572,8 @@ gui_forms::ObjectView
 
       Handles the keyboard input described under Notes. The window calls it.
 
+   .. cpp:function:: void on_context_menu_requested(ContextMenuRequest& request) override
+
    .. cpp:function:: void on_text_input(TextInputEvent& event) override
 
       Selects by typed prefix, as described under Notes. The window calls
@@ -659,6 +631,12 @@ gui_forms::ObjectView
    .. cpp:function:: void publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: virtual void on_font_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
 
    .. cpp:member:: constexpr std::size_t maximum_details_text_bytes
 

@@ -5,8 +5,10 @@
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
+#include <optional>
 #include <array>
 #include <cmath>
 #include <cstdio>
@@ -74,7 +76,7 @@ std::string color_name(Color color) {
 // -- construction --------------------------------------------------------------
 
 RibbonColorPicker::RibbonColorPicker(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(true);
+    focusable = true;
     set_paint_plane(PaintPlane::control);
     palette_ = standard_colors();
 }
@@ -106,32 +108,41 @@ void RibbonColorPicker::CommandStateChanged::operator()(const CommandState&) con
     (*picker).invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void RibbonColorPicker::set_command(std::shared_ptr<ColorCommand> command) {
+// A changed command first drops the old one's subscriptions.
+void RibbonColorPicker::prepare_write(const decltype(command)&, std::shared_ptr<ColorCommand>& incoming) {
     require_mutable();
-    if (command_ == command) return;
+    if (command.read() == incoming) return;
     command_value_.disconnect();
     command_state_.disconnect();
-    command_ = std::move(command);
-    if (command_) {
-        command_value_ = (*command_).value_changed().subscribe(*this, CommandValueChanged{this});
-        command_state_ = (*(*command_).command()).state_changed().subscribe(*this, CommandStateChanged{this});
+}
+
+void RibbonColorPicker::written(const decltype(command)&) {
+    const std::shared_ptr<ColorCommand> bound = command.read();
+    if (bound) {
+        command_value_ = (*bound).value_changed().subscribe(*this, CommandValueChanged{this});
+        command_state_ = (*(*bound).command()).state_changed().subscribe(*this, CommandStateChanged{this});
     }
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-std::optional<Color> RibbonColorPicker::value() const {
-    if (command_) return (*command_).value();
+// value is a view: the command's value when there is one, else the
+// picker's own.
+std::optional<Color> RibbonColorPicker::read_view(const decltype(value)&) const {
+    const std::shared_ptr<ColorCommand>& bound = command.read();
+    if (bound) return (*bound).value();
     return own_value_;
 }
 
-void RibbonColorPicker::set_value(std::optional<Color> value) {
+
+void RibbonColorPicker::write_view(const decltype(value)&, std::optional<Color> incoming) {
     require_mutable();
-    if (command_) {
-        (*command_).set_value(value);
+    const std::shared_ptr<ColorCommand> bound = command.read();
+    if (bound) {
+        (*bound).set_value(incoming);
         return;
     }
-    if (own_value_ == value) return;
-    own_value_ = value;
+    if (own_value_ == incoming) return;
+    own_value_ = incoming;
     invalidate(Dirty::paint | Dirty::semantics);
     value_changed_.emit(own_value_);
 }
@@ -150,22 +161,17 @@ void RibbonColorPicker::set_palette(std::vector<Color> palette) {
     palette_ = std::move(palette);
 }
 
-void RibbonColorPicker::set_image(ImageId image) {
+void RibbonColorPicker::prepare_write(const decltype(text)&, std::string& incoming) {
     require_mutable();
-    if (image_.value == image.value) return;
-    image_ = image;
-    invalidate(Dirty::paint);
+    if (!validate_utf8(incoming).valid()) throw std::invalid_argument("RibbonColorPicker text must be valid UTF-8");
 }
 
-void RibbonColorPicker::set_text(std::string text) {
-    require_mutable();
-    if (!validate_utf8(text).valid()) throw std::invalid_argument("RibbonColorPicker text must be valid UTF-8");
-    text_ = std::move(text);
+void RibbonColorPicker::written(const decltype(text)&) {
     invalidate(Dirty::semantics);
 }
 
 bool RibbonColorPicker::enabled_to_use() const {
-    const bool own = !command_ || (*command_).state().enabled;
+    const bool own = !command.read() || (*command.read()).state().enabled;
     return own && effectively_enabled();
 }
 
@@ -175,8 +181,8 @@ void RibbonColorPicker::commit(std::optional<Color> color) {
     if (!enabled_to_use()) return;
     const Control::Ptr lifetime = shared_from_this();
     close_palette();
-    if (command_) {
-        static_cast<void>((*command_).commit(color, stable_id().value()));
+    if (command.read()) {
+        static_cast<void>((*command.read()).commit(color, stable_id().value()));
         return;
     }
     if (own_value_ == color) return;
@@ -209,7 +215,7 @@ RibbonColorPicker::Geometry RibbonColorPicker::geometry() const {
     const double side = icon_side * scale;
     const double inset = icon_inset * scale;
     const double top = std::floor((client.height - side - bar_height * scale) * 0.5);
-    if (image_.value != 0U) placed.icon = {inset, top, side, side - bar_height * scale * 0.5};
+    if (image.read().value != 0U) placed.icon = {inset, top, side, side - bar_height * scale * 0.5};
     placed.bar = {inset, top + side - bar_height * scale * 0.5, side, bar_height * scale};
     placed.sample = inset_by(placed.bar, sample_frame * scale);
     placed.glyph = centred_square(placed.arrow, arrow_glyph * scale);
@@ -248,7 +254,7 @@ RibbonColorPicker::Parts RibbonColorPicker::own_parts() const {
     record.color_bar = PartGeometry::from_bounds(placed.bar);
     // The current colour (none for Automatic), painted by role as a fill
     // with a content colour (owner decision W-7).
-    const std::optional<Color> shown = value();
+    const std::optional<Color> shown = value.read();
     if (shown) {
         record.color_sample = PartGeometry::from_bounds(placed.sample);
         record.color_sample.content_color = shown;
@@ -271,7 +277,7 @@ std::vector<RibbonColorPicker::Cell> RibbonColorPicker::cells() const {
     const double width = static_cast<double>(palette_columns) * (cell + gap) - gap;
     std::vector<Cell> all;
     std::span<const Color> recent{};
-    if (command_) recent = (*command_).recent_colors();
+    if (command.read()) recent = (*command.read()).recent_colors();
     all.reserve(1U + palette_.size() + recent.size());
     all.push_back(Cell{RibbonPaletteEntryKind::automatic, std::nullopt, {margin, margin, width, automatic_extent * scale}});
     const double grid_top = margin + automatic_extent * scale + section_gap * scale * 0.5;
@@ -307,7 +313,7 @@ Size RibbonColorPicker::palette_size() const {
 // palette or recent entry of that colour, or none when the colour is not
 // offered.
 std::optional<std::size_t> RibbonColorPicker::current_entry(const std::vector<Cell>& all) const {
-    const std::optional<Color> shown = value();
+    const std::optional<Color> shown = value.read();
     if (!shown) return 0U;
     for (std::size_t entry = 1; entry < all.size(); ++entry) {
         if (all[entry].color == shown) return entry;
@@ -377,7 +383,7 @@ void RibbonColorPicker::on_paint(Painter& painter, Rect) {
         part.role = PartRole::icon;
         part.states = own.icon.states;
         part.bounds = own.icon.bounds;
-        part.image = image_;
+        part.image = image.read();
         paint_part(painter, *this, part);
         part.image = {};
     }
@@ -491,7 +497,7 @@ void RibbonColorPicker::on_pointer(PointerEvent& event) {
     // A click on the face applies the current colour again.
     if (pressed == Zone::face && zone == Zone::face) {
         event.handled = true;
-        commit(value());
+        commit(value.read());
     }
 }
 
@@ -499,7 +505,7 @@ void RibbonColorPicker::on_key(KeyEvent& event) {
     if (event.action != KeyAction::down || !enabled_to_use()) return;
     const std::uint32_t key = event.physical_key;
     if (key == PhysicalKey::enter || key == PhysicalKey::space) {
-        commit(value());
+        commit(value.read());
     } else if (key == PhysicalKey::down || key == PhysicalKey::f4) {
         static_cast<void>(open_palette(MenuOpenMode::keyboard));
     } else {
@@ -605,8 +611,8 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
             Delegate<OverlayDismissReason>::bind<RibbonColorPicker, &RibbonColorPicker::on_layer_dismissed>(*this));
     }
     placement.preferred_size = palette_size();
-    (*layer_).set_placement(placement);
-    (*palette_overlay_).accessible_name = parse_mnemonic_text(text_).display_text;
+    (*layer_).placement = placement;
+    (*palette_overlay_).accessible_name = parse_mnemonic_text(text.read()).display_text;
     const Size client = (*window).client_size();
     (*layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
     hot_entry_.reset();
@@ -619,13 +625,31 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
     } else {
         focus_entry_ = current.value_or(0U);
     }
+    (*layer_).set_content(palette_overlay_);
     overlay_ = (*window).open_overlay(self, layer_);
     palette_open_ = true;
     if (Event<>* closed = overlay_.closed_event()) {
         overlay_revoked_ =
             (*closed).subscribe(*this, Delegate<>::bind<RibbonColorPicker, &RibbonColorPicker::on_overlay_revoked>(*this));
     }
-    scope_ = (*window).begin_focus_scope(layer_, palette_overlay_);
+    // In a Popup the palette may reach past the owner onto the desktop; the
+    // emptied layer stays in the owner and holds the focus scope.
+    const Rect anchor = absolute_bounds();
+    const Rect hung{anchor.x, anchor.y, anchor.width, anchor.height + placement.gap};
+    const std::optional<Rect> face = drop_down_popup_face(*window, hung, placement.preferred_size, anchor.x);
+    bool lifted = false;
+    if (face.has_value()) {
+        (*layer_).clear_content();
+        lifted = lift_.lift(*window, palette_overlay_, *face);
+        if (!lifted) (*layer_).set_content(palette_overlay_);
+    }
+    (*layer_).focusable = lifted;
+    if (lifted) {
+        lift_closed_ = (*window).popup_window_closed().subscribe(
+            Delegate<std::size_t>::bind<RibbonColorPicker, &RibbonColorPicker::on_popup_window_closed>(*this));
+    }
+    const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer_) : Control::Ptr(palette_overlay_);
+    scope_ = (*window).begin_focus_scope(layer_, preferred_focus);
     invalidate(Dirty::paint | Dirty::semantics);
     palette_open_changed_.emit(true);
     return true;
@@ -634,6 +658,8 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
 void RibbonColorPicker::close_palette() noexcept {
     if (!palette_open_) return;
     palette_open_ = false;
+    lift_closed_.disconnect();
+    lift_.release();
     Window* const window = attached_window();
     if (window != nullptr && scope_) {
         try {
@@ -661,12 +687,19 @@ void RibbonColorPicker::on_layer_dismissed(OverlayDismissReason) {
 void RibbonColorPicker::on_overlay_revoked() {
     if (!palette_open_) return;
     palette_open_ = false;
+    lift_closed_.disconnect();
+    lift_.release();
     scope_ = {};
     overlay_revoked_.disconnect();
     hot_entry_.reset();
     palette_focused_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
     palette_open_changed_.emit(false);
+}
+
+void RibbonColorPicker::on_popup_window_closed(const std::size_t slot) {
+    if (slot != Window::picker_popup_window_slot || !lift_.lifted()) return;
+    close_palette();
 }
 
 Control::Ptr RibbonColorPicker::palette_overlay() const noexcept {
@@ -700,8 +733,8 @@ std::vector<RibbonColorPicker::PaletteEntry> RibbonColorPicker::realized_entries
 SemanticDescriptor RibbonColorPicker::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::split_button;
-    descriptor.name = accessible_name.read().empty() ? parse_mnemonic_text(text_).display_text : accessible_name.read();
-    const std::optional<Color> shown = value();
+    descriptor.name = accessible_name.read().empty() ? parse_mnemonic_text(text.read()).display_text : accessible_name.read();
+    const std::optional<Color> shown = value.read();
     descriptor.value = shown ? color_name(*shown) : std::string("Automatic");
     descriptor.description = accessible_description.read();
     descriptor.has_popup = true;
@@ -715,7 +748,7 @@ SemanticDescriptor RibbonColorPicker::semantic_descriptor() const {
 bool RibbonColorPicker::on_semantic_action(SemanticAction action, std::string_view) {
     if (action == SemanticAction::press) {
         if (!enabled_to_use()) return false;
-        commit(value());
+        commit(value.read());
         return true;
     }
     if (action == SemanticAction::show_menu || action == SemanticAction::expand) {
@@ -868,7 +901,7 @@ void RibbonColorPicker::append_interactions(std::vector<InteractionDeclaration>&
 
 RibbonColorPalette::RibbonColorPalette(StableId stable_id, RibbonColorPicker& picker)
     : Control(std::move(stable_id)), picker_(&picker) {
-    set_focusable(true);
+    focusable = true;
     set_paint_plane(PaintPlane::control);
 }
 
@@ -933,5 +966,17 @@ bool RibbonColorPalette::on_semantic_child_action(std::string_view stable_id, Se
     const bool handled = (*picker_).palette_semantic_action(stable_id, action);
     return handled;
 }
+
+// property_codemod begin RibbonColorPicker (tools/property_families/ribbon_color_picker.json; generated, do not edit)
+
+void RibbonColorPicker::prepare_write(const decltype(image)&, ImageId&) {
+    require_mutable();
+}
+
+void RibbonColorPicker::written(const decltype(image)&) {
+    invalidate(Dirty::paint);
+}
+
+// property_codemod end RibbonColorPicker
 
 } // namespace gui_forms

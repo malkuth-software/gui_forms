@@ -2,7 +2,7 @@
 // the PC convention's map; the headless host's reported map and its
 // installation in an attached window; a macOS-style host map binding Cmd+W,
 // reaching PageStrip and PageView; application rebinding over a host's
-// defaults and its restoration; the context-menu key beside Shift+F10;
+// defaults and its restoration; the keyboard context request;
 // refusals that leave the map unchanged.
 
 #include "gui_forms/application.hpp"
@@ -86,10 +86,6 @@ void pc_convention() {
                 !map.matches(KeyCommand::close_document, key(PhysicalKey::w, Modifier::meta)) &&
                 !map.matches(KeyCommand::close_document, key(PhysicalKey::f4, Modifier::control | Modifier::shift)),
             "the PC convention closes with Ctrl+F4 and exactly those modifiers");
-    require(map.matches(KeyCommand::context_menu, key(PhysicalKey::f10, Modifier::shift)) &&
-                map.matches(KeyCommand::context_menu, key(PhysicalKey::context_menu)) &&
-                !map.matches(KeyCommand::context_menu, key(PhysicalKey::f10)),
-            "the context menu is Shift+F10 or the context-menu key");
     require(map.matches(KeyCommand::cycle_forward, key(PhysicalKey::tab, Modifier::control)) &&
                 map.matches(KeyCommand::cycle_backward, key(PhysicalKey::tab, Modifier::control | Modifier::shift)) &&
                 map.matches(KeyCommand::next_tab, key(PhysicalKey::page_down, Modifier::control)) &&
@@ -161,8 +157,8 @@ void headless_host_map() {
             "the headless host reports the PC convention from protocol 8");
     const std::string json = capabilities.to_json();
     require(json.find("\"key_map\":{\"close_document\":[{\"key\":61,\"modifiers\":2}]") != std::string::npos &&
-                json.find("\"context_menu\":[{\"key\":67,\"modifiers\":1},{\"key\":101,\"modifiers\":0}]") !=
-                    std::string::npos,
+                json.find("\"next_tab\":[{\"key\":78,\"modifiers\":2}]") != std::string::npos &&
+                json.find("\"context_menu\"") == std::string::npos,
             "the capability report lists each command's chords");
 
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
@@ -264,14 +260,12 @@ void context_menu_key() {
     std::vector<PageContextMenuRequest> menus;
     SubscriptionToken menu_token = (*strip).page_context_menu_requested().subscribe(RecordContextMenu{&menus});
     require(window.request_focus(strip), "the strip takes focus");
-    require(window.dispatch_key(key(PhysicalKey::context_menu)) && menus.size() == 1U &&
+    require(window.dispatch_context_request(ContextRequestOrigin::keyboard, Point{}) && menus.size() == 1U &&
                 menus[0].page.value == "p0" && menus[0].cause == PageContextMenuCause::keyboard,
-            "the context-menu key asks for the keyboard's tab's menu");
-    require(window.dispatch_key(key(PhysicalKey::f10, Modifier::shift)) && menus.size() == 2U &&
-                menus[1].anchor == menus[0].anchor,
-            "Shift+F10 asks for the same menu at the same anchor");
-    require(!window.dispatch_key(key(PhysicalKey::context_menu, Modifier::control)) && menus.size() == 2U,
-            "the context-menu key with a modifier is not the command");
+            "a keyboard context request asks for the keyboard's tab's menu");
+    require(!window.dispatch_key(key(PhysicalKey::context_menu)) &&
+                !window.dispatch_key(key(PhysicalKey::f10, Modifier::shift)) && menus.size() == 1U,
+            "the keys themselves are the host's: the core binds none");
 }
 
 // One key map per application (owner decision DK-44): windows sharing one
@@ -282,7 +276,9 @@ void application_key_map() {
     std::shared_ptr<Panel> second_root = make_control<Panel>(StableId("second"));
     Window first(first_root, {100.0, 100.0});
     Window second(second_root, {100.0, 100.0});
-    require(first.key_bindings() != second.key_bindings(), "windows made alone have sets of their own");
+    // A window made alone holds no table until one is needed (Part K's lazy
+    // tables); sharing makes it, and each window makes its own.
+    require(first.share_key_bindings() != second.share_key_bindings(), "windows made alone have sets of their own");
     second.set_key_bindings(first.key_bindings());
     second.rebind_key_command(KeyCommand::next_tab, {{PhysicalKey::right, Modifier::alt}, {}});
     require(first.key_map().matches(KeyCommand::next_tab, key(PhysicalKey::right, Modifier::alt)),
@@ -308,7 +304,9 @@ void application_key_map() {
         refused = true;
     }
     require(refused && first.key_bindings() == second.key_bindings(), "a null set is refused");
-    require(Application::key_bindings() && Application::key_bindings() == Application::key_bindings(),
+    const ApplicationCreateResult created = Application::create(ApplicationConfig{});
+    require(static_cast<bool>(created) && (*created.application).key_bindings() != nullptr &&
+                (*created.application).key_bindings() == (*created.application).key_bindings(),
             "the application has one set");
 }
 

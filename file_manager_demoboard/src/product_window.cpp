@@ -120,8 +120,8 @@ std::shared_ptr<Label> label(std::string id, std::string text, Rect bounds,
                              FontSpec font = {FontRole::content, 11.0, 400, false}) {
     std::shared_ptr<gui_forms::Label> result = std::make_shared<Label>(StableId(std::move(id)), std::move(text));
     (*result).set_requested_bounds(bounds);
-    (*result).set_font(font);
-    (*result).set_foreground(ink);
+    (*result).font = font;
+    (*result).fore_color = ink;
     return result;
 }
 
@@ -131,7 +131,7 @@ std::shared_ptr<Button> button(std::string id, std::string text, Rect bounds,
     (*result).set_requested_bounds(bounds);
     (*result).set_style(house_style());
     (*result).font = FontSpec{FontRole::control, 10.0, 600, false, 0.18};
-    (*result).set_visual_style(visual);
+    (*result).visual_style = visual;
     return result;
 }
 
@@ -139,8 +139,8 @@ std::shared_ptr<DrawingSurface> material(std::string id,
                                          DrawingSurface::PaintCallback paint) {
     std::shared_ptr<gui_forms::DrawingSurface> result = std::make_shared<DrawingSurface>(StableId(std::move(id)));
     (*result).set_paint_callback(std::move(paint));
-    (*result).set_hit_test_visible(false);
-    (*result).set_semantic_role(SemanticRole::generic);
+    (*result).hit_test_visible = false;
+    (*result).semantic_role = SemanticRole::generic;
     return result;
 }
 
@@ -226,7 +226,7 @@ std::shared_ptr<ScaledPanel> make_title(ProductRefs& refs) {
             {0.94, 1.05}, {0.22, 0.82},
             {{0.0, Color::rgba(255, 185, 144, 110)},
              {1.0, Color::rgba(255, 185, 144, 0)}})};
-    (*fresco).set_material(std::move(title_material));
+    (*fresco).material = std::move(title_material);
     (*panel).add_at(fresco, {0.0, 0.0, 1450.0, 40.0});
     std::shared_ptr<DrawingSurface> keylines =
         material("fm.title.keylines", paint_title_keylines);
@@ -236,13 +236,13 @@ std::shared_ptr<ScaledPanel> make_title(ProductRefs& refs) {
     (*panel).add_at(mark, {7.0, 5.0, 30.0, 30.0});
     std::shared_ptr<Label> title = label("fm.title.text", "File Manager  ·  Projects", {45.0, 4.0, 900.0, 32.0},
                        {FontRole::control, 16.0, 700, false, 0.32});
-    (*title).set_foreground(Color::rgba(255, 255, 255));
+    (*title).fore_color = Color::rgba(255, 255, 255);
     refs.title = title;
     (*panel).add_at(title, (*title).requested_bounds());
     std::shared_ptr<Label> state = label("fm.title.state", "LOCAL · GENERATION 86", {1160.0, 5.0, 274.0, 30.0},
                        {FontRole::control, 9.0, 600, false, 0.42});
-    (*state).set_alignment(HorizontalAlignment::far);
-    (*state).set_foreground(Color::rgba(245, 249, 255));
+    (*state).alignment = HorizontalAlignment::far;
+    (*state).fore_color = Color::rgba(245, 249, 255);
     (*panel).add_at(state, (*state).requested_bounds());
     return panel;
 }
@@ -266,7 +266,7 @@ std::shared_ptr<ScaledPanel> make_ribbon(ProductRefs& refs) {
          {0.29, Color::rgba(250, 253, 255)},
          {0.64, Color::rgba(237, 243, 249)},
          {1.0, Color::rgba(213, 225, 235)}})};
-    (*pearl).set_material(std::move(ribbon_material));
+    (*pearl).material = std::move(ribbon_material);
     (*panel).add_at(pearl, {0.0, 0.0, 1450.0, 66.0});
     std::shared_ptr<DrawingSurface> ribbon_lines =
         material("fm.ribbon.keylines", paint_ribbon_keylines);
@@ -330,12 +330,12 @@ std::shared_ptr<ScaledPanel> make_navigation(ProductRefs& refs) {
     (*panel).add_at(refs.path_terminal, {936, 7, 35, 26});
     std::shared_ptr<gui_forms::TextBox> search = std::make_shared<TextBox>(StableId("fm.search.editor"));
     (*search).set_requested_bounds({980, 6, 463, 28});
-    (*search).set_placeholder_text("Search Projects and descendants");
+    (*search).placeholder_text = "Search Projects and descendants";
     (*search).set_style(house_style());
     // Enter runs the search (SearchController::on_search_committed) and
     // Escape leaves it (SearchController::on_search_cancelled).
-    (*search).set_accepts_enter(true);
-    (*search).set_accepts_escape(true);
+    (*search).accepts_enter = true;
+    (*search).accepts_escape = true;
     refs.search = search;
     (*panel).add_at(search, (*search).requested_bounds());
     return panel;
@@ -355,8 +355,8 @@ std::shared_ptr<ObjectView> make_object_field(ProductRefs& refs) {
     (*field).set_requested_bounds({0.0, 0.0, 935.0, 657.0});
     (*field).set_background(paper);
     (*field).set_style(house_style());
-    (*field).set_font({FontRole::content, 9.5, 400, false});
-    (*field).set_icon_cell_size({112.0, 91.0});
+    (*field).font = FontSpec{FontRole::content, 9.5, 400, false};
+    (*field).icon_cell_size = {112.0, 91.0};
     (*field).accessible_name = "Projects objects";
     const std::span<const FixtureObject>& objects = FixtureCatalogue::instance().project_objects();
     std::vector<ObjectViewItem> items;
@@ -370,7 +370,7 @@ std::shared_ptr<ObjectView> make_object_field(ProductRefs& refs) {
         if (object.selected) selected = id;
     }
     (*field).set_items(std::move(items));
-    (*field).set_selected_id(selected);
+    (*field).selected_id = selected;
     refs.objects = field;
     return field;
 }
@@ -382,10 +382,10 @@ std::shared_ptr<Panel> make_search_surface(ProductRefs& refs) {
     std::shared_ptr<gui_forms::CorrespondenceView> results = std::make_shared<CorrespondenceView>(
         StableId("fm.search.results"));
     (*results).set_style(house_style());
-    (*results).set_font({FontRole::content, 11.0, 400, false});
-    (*results).set_compact_height(45.0);
-    (*results).set_expanded_height(126.0);
-    (*results).set_hover_intent_delay(std::chrono::milliseconds(180));
+    (*results).font = FontSpec{FontRole::content, 11.0, 400, false};
+    (*results).compact_height = 45.0;
+    (*results).expanded_height = 126.0;
+    (*results).hover_intent_delay = std::chrono::milliseconds(180);
     (*results).accessible_name = "Search results";
     (*results).accessible_description =
         "Seven factual fixture correspondences with one pinned row and bounded virtual realization";
@@ -405,8 +405,8 @@ std::shared_ptr<Panel> make_search_surface(ProductRefs& refs) {
         if (fixture.default_pinned) pinned = id;
     }
     (*results).set_items(std::move(items));
-    (*results).set_selected_id(pinned);
-    (*results).set_pinned_id(pinned);
+    (*results).selected_id = pinned;
+    (*results).pinned_id = pinned;
     (*results).dock = DockStyle::fill;
     (*surface).add_child(results);
     refs.search_results = results;
@@ -553,14 +553,14 @@ std::shared_ptr<CriteriaSurfacePanel> make_criteria_surface(ProductRefs& refs) {
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> actions = make_control<TableLayoutPanelCompat>(
         StableId("fm.criteria.actions"));
     (*actions).accessible_name = "Predicate rack actions";
-    (*actions).set_column_count(2);
-    (*actions).set_row_count(3);
+    (*actions).column_count = 2;
+    (*actions).row_count = 3;
     (*actions).set_column_style(0, {TableSizeMode::percent, 100.0});
     (*actions).set_column_style(1, {TableSizeMode::absolute, 78.0});
     (*actions).set_row_style(0, {TableSizeMode::absolute, 20.0});
     (*actions).set_row_style(1, {TableSizeMode::percent, 100.0});
     (*actions).set_row_style(2, {TableSizeMode::absolute, 9.0});
-    (*actions).set_grow_style(TableLayoutGrowStyle::fixed_size);
+    (*actions).grow_style = TableLayoutGrowStyle::fixed_size;
     std::shared_ptr<Label> action_title = label("fm.criteria.actions.title", "PREDICATE RACK",
                               {0, 0, 120, 20},
                               {FontRole::control, 8.0, 700, false, .35});
@@ -583,7 +583,7 @@ std::shared_ptr<CriteriaSurfacePanel> make_criteria_surface(ProductRefs& refs) {
     (*actions).cell[*refs.criteria_action_state] = GridCell{.row = 1, .column = 0};
     refs.criteria_apply = button("fm.criteria.apply", "Apply 1", {0, 0, 78, 27},
                                  ButtonVisualStyle::accent);
-    (*refs.criteria_apply).set_default_button(true);
+    (*refs.criteria_apply).default_button = true;
     (*refs.criteria_apply).margin = {2, 1, 2, 1};
     (*refs.criteria_apply).dock = DockStyle::fill;
     (*actions).add_child(refs.criteria_apply);
@@ -591,11 +591,11 @@ std::shared_ptr<CriteriaSurfacePanel> make_criteria_surface(ProductRefs& refs) {
     refs.criteria_progress = make_control<ProgressBar>(
         StableId("fm.criteria.progress"));
     (*refs.criteria_progress).set_range(0.0, 100.0);
-    (*refs.criteria_progress).set_value(0.0);
-    (*refs.criteria_progress).set_visual_style(ProgressBarVisualStyle::continuous);
-    (*refs.criteria_progress).set_overlay_style(
-        ProgressBarOverlayStyle::moving_stripes);
-    (*refs.criteria_progress).set_animation_enabled(false);
+    (*refs.criteria_progress).value = 0.0;
+    (*refs.criteria_progress).visual_style = ProgressBarVisualStyle::continuous;
+    (*refs.criteria_progress).overlay_style = 
+        ProgressBarOverlayStyle::moving_stripes;
+    (*refs.criteria_progress).animation_enabled = false;
     (*refs.criteria_progress).accessible_name = "Criteria application progress";
     (*refs.criteria_progress).margin = {5, 0, 5, 1};
     (*refs.criteria_progress).dock = DockStyle::fill;
@@ -618,9 +618,9 @@ std::shared_ptr<CriteriaSurfacePanel> make_criteria_surface(ProductRefs& refs) {
     refs.criteria_results_summary = virtual_label;
     std::shared_ptr<gui_forms::ObjectView> objects = make_control<ObjectView>(StableId("fm.criteria.objects"));
     (*objects).set_items(criteria_object_items());
-    (*objects).set_selected_id("fm.object.obj-facade-study");
-    (*objects).set_icon_cell_size({112.0, 91.0});
-    (*objects).set_font({FontRole::content, 9.5, 400, false});
+    (*objects).selected_id = "fm.object.obj-facade-study";
+    (*objects).icon_cell_size = {112.0, 91.0};
+    (*objects).font = FontSpec{FontRole::content, 9.5, 400, false};
     (*objects).set_style(house_style());
     (*objects).set_background(paper);
     (*objects).accessible_name = "Criteria virtual folder objects";
@@ -661,7 +661,7 @@ std::shared_ptr<FlowLayoutPanelCompat> make_palette_surface(ProductRefs& refs) {
     std::shared_ptr<gui_forms::FlowLayoutPanelCompat> surface = std::make_shared<FlowLayoutPanelCompat>(
         StableId("fm.review.palettes"));
     (*surface).padding = {14.0, 14.0, 14.0, 14.0};
-    (*surface).set_wrap_contents(true);
+    (*surface).wrap_contents = true;
     (*surface).visible = false;
     (*surface).accessible_name = "Atmosphere palette review";
     for (std::size_t index = 0; index < std::size(palettes); ++index) {
@@ -670,15 +670,15 @@ std::shared_ptr<FlowLayoutPanelCompat> make_palette_surface(ProductRefs& refs) {
             StableId(std::string("fm.palette.") + spec.id));
         (*card).set_requested_bounds({0.0, 0.0, 220.0, 142.0});
         (*card).margin = {7.0, 7.0, 7.0, 7.0};
-        (*card).set_interactive(true);
-        (*card).set_selected(index == 8U);
+        (*card).interactive = true;
+        (*card).selected = index == 8U;
         (*card).accessible_name = std::string(spec.name) + " atmosphere";
         CardLayout card_layout;
         card_layout.padding = {10.0, 8.0, 10.0, 8.0};
         card_layout.section_gap = 6.0;
         card_layout.header_extent = 24.0;
         card_layout.footer_extent = 18.0;
-        (*card).set_card_layout(card_layout);
+        (*card).card_layout = card_layout;
         std::shared_ptr<Label> heading = label(std::string("fm.palette.") + spec.id + ".title",
                              spec.name, {},
                              {FontRole::control, 11.0, 700, false, 0.22});
@@ -696,12 +696,12 @@ std::shared_ptr<FlowLayoutPanelCompat> make_palette_surface(ProductRefs& refs) {
                  {1.0, Color::rgba(255, 255, 255, 0)}})};
         material_recipe.corner_radius = 4.0;
         material_recipe.border = MaterialBorder{Color::rgba(56, 72, 92), 1.0};
-        (*swatch).set_material(std::move(material_recipe));
+        (*swatch).material = std::move(material_recipe);
         static_cast<void>((*card).set_body(swatch));
         std::shared_ptr<Label> footer = label(std::string("fm.palette.") + spec.id + ".state",
                             index == 8U ? "CURRENT · HOUSE" : "AVAILABLE",
                             {}, {FontRole::content, 8.5, 600, false, 0.28});
-        (*footer).set_foreground(muted);
+        (*footer).fore_color = muted;
         static_cast<void>((*card).set_footer(footer));
         (*surface).add_child(card);
         refs.palette_cards.push_back(card);
@@ -721,9 +721,9 @@ std::shared_ptr<ReviewCard> review_card(
     layout.section_gap = 7.0;
     layout.header_extent = 28.0;
     layout.footer_extent = 22.0;
-    (*card).set_card_layout(layout);
-    (*card).set_record({std::string((*card).stable_id().value()), std::move(title),
-                      std::move(body), std::move(footer), disposition});
+    (*card).card_layout = layout;
+    (*card).record = ReviewRecord{std::string((*card).stable_id().value()), std::move(title),
+                      std::move(body), std::move(footer), disposition};
     return card;
 }
 
@@ -764,8 +764,8 @@ std::shared_ptr<MasterDetailView> make_dna_surface(ProductRefs& refs) {
 
     std::shared_ptr<gui_forms::FlowLayoutPanelCompat> master = std::make_shared<FlowLayoutPanelCompat>(
         StableId("fm.review.dna.master"));
-    (*master).set_flow_direction(FlowDirection::top_down);
-    (*master).set_wrap_contents(false);
+    (*master).flow_direction = FlowDirection::top_down;
+    (*master).wrap_contents = false;
     (*master).padding = {12.0, 12.0, 12.0, 12.0};
     std::shared_ptr<Label> master_title = label("fm.review.dna.master.title",
                               "PROGRAM DNA · DECISIONS", {0.0, 0.0, 296.0, 28.0},
@@ -777,16 +777,16 @@ std::shared_ptr<MasterDetailView> make_dna_surface(ProductRefs& refs) {
                                 spec.title, spec.summary, spec.state, 130.0);
         (*card).set_requested_bounds({0.0, 0.0, 296.0, 130.0});
         (*card).margin = {0.0, 4.0, 0.0, 4.0};
-        (*card).set_interactive(true);
-        (*card).set_selected(index == 0U);
+        (*card).interactive = true;
+        (*card).selected = index == 0U;
         (*master).add_child(card);
         refs.dna_decisions.push_back(card);
     }
 
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> detail = std::make_shared<TableLayoutPanelCompat>(
         StableId("fm.review.dna.detail"));
-    (*detail).set_column_count(1U);
-    (*detail).set_row_count(4U);
+    (*detail).column_count = 1U;
+    (*detail).row_count = 4U;
     (*detail).set_column_style(0U, {TableSizeMode::percent, 1.0});
     (*detail).set_row_style(0U, {TableSizeMode::absolute, 62.0});
     (*detail).set_row_style(1U, {TableSizeMode::absolute, 142.0});
@@ -854,11 +854,11 @@ std::shared_ptr<Panel> make_tree_pane(ProductRefs& refs) {
         {"fm.tree.node.macintosh-hd", "Macintosh HD", 1},
         {"fm.tree.node.archive-04", "Archive 04  · offline", 1},
     });
-    (*tree).set_item_height(24.0);
-    (*tree).set_font({FontRole::content, 10.5, 400, false});
+    (*tree).item_height = 24.0;
+    (*tree).font = FontSpec{FontRole::content, 10.5, 400, false};
     (*tree).set_style(house_style());
     (*tree).accessible_name = "Folders";
-    (*tree).set_selected_id("fm.tree.node.projects");
+    (*tree).selected_id = "fm.tree.node.projects";
     refs.tree = tree;
     (*tree).dock = DockStyle::fill;
     // Dock consumes reverse public z-order: add edge reservations behind the
@@ -896,7 +896,7 @@ std::shared_ptr<Panel> make_selection_pane(ProductRefs& refs) {
     std::shared_ptr<gui_forms::PropertyList> properties = std::make_shared<PropertyList>(
         StableId("fm.selection.properties"));
     (*properties).accessible_name = "Selection properties";
-    (*properties).set_label_width(76.0);
+    (*properties).label_width = 76.0;
     (*properties).margin = Insets{};
     (*properties).dock = DockStyle::fill;
     std::shared_ptr<gui_forms::ScaledPanel> header = std::make_shared<ScaledPanel>(
@@ -943,31 +943,31 @@ std::shared_ptr<SplitContainer> make_workspace(ProductRefs& refs) {
     std::shared_ptr<gui_forms::SplitContainer> outer = std::make_shared<SplitContainer>(StableId("fm.workspace"));
     refs.workspace_split = outer;
     (*outer).initialize_control_tree();
-    (*outer).set_splitter_width(3);
-    (*outer).set_splitter_hit_width(12);
-    (*outer).set_splitter_distance(218);
-    (*outer).set_collapse_panel(SplitFixedPanel::first);
-    (*outer).set_automatic_collapse_threshold(700);
-    (*outer).set_first_minimum(120);
-    (*outer).set_second_minimum(320);
-    (*outer).set_first_maximum(360);
-    (*(*outer).first_panel()).set_background(Color::rgba(235,240,246));
+    (*outer).splitter_width = 3;
+    (*outer).splitter_hit_width = 12;
+    (*outer).splitter_distance = 218;
+    (*outer).collapse_panel = SplitFixedPanel::first;
+    (*outer).automatic_collapse_threshold = 700;
+    (*outer).first_minimum = 120;
+    (*outer).second_minimum = 320;
+    (*outer).first_maximum = 360;
+    (*(*outer).first_panel()).background = Color::rgba(235,240,246);
     (*(*outer).first_panel()).add_child(make_tree_pane(refs));
     (*(*(*outer).first_panel()).children().back()).dock = DockStyle::fill;
 
     std::shared_ptr<gui_forms::SplitContainer> inner = std::make_shared<SplitContainer>(StableId("fm.workspace.content-selection"));
     (*inner).initialize_control_tree();
     refs.selection_split = inner;
-    (*inner).set_splitter_width(3);
-    (*inner).set_splitter_hit_width(12);
-    (*inner).set_fixed_panel(SplitFixedPanel::second);
-    (*inner).set_splitter_distance(935);
-    (*inner).set_collapse_panel(SplitFixedPanel::second);
-    (*inner).set_automatic_collapse_threshold(900);
-    (*inner).set_first_minimum(260);
-    (*inner).set_second_minimum(288);
-    (*inner).set_second_maximum(420);
-    (*(*inner).first_panel()).set_background(paper);
+    (*inner).splitter_width = 3;
+    (*inner).splitter_hit_width = 12;
+    (*inner).fixed_panel = SplitFixedPanel::second;
+    (*inner).splitter_distance = 935;
+    (*inner).collapse_panel = SplitFixedPanel::second;
+    (*inner).automatic_collapse_threshold = 900;
+    (*inner).first_minimum = 260;
+    (*inner).second_minimum = 288;
+    (*inner).second_maximum = 420;
+    (*(*inner).first_panel()).background = paper;
     std::shared_ptr<gui_forms::Panel> daily_content = std::make_shared<Panel>(
         StableId("fm.content.host"));
     (*daily_content).set_background(paper);
@@ -1009,7 +1009,7 @@ std::shared_ptr<ScaledPanel> make_status(ProductRefs& refs) {
     refs.status_summary = label("fm.status.summary", "1 selected · 2.8 MB · 14 objects", {8,1,590,22}, {FontRole::content,9.5,400,false});
     (*panel).add_at(refs.status_summary, {8,1,590,22});
     refs.status_authority = label("fm.status.authority", "Local navigation ready · index 86 current", {660,1,520,22}, {FontRole::content,9.5,600,false});
-    (*refs.status_authority).set_alignment(HorizontalAlignment::far);
+    (*refs.status_authority).alignment = HorizontalAlignment::far;
     (*panel).add_at(refs.status_authority,(*refs.status_authority).requested_bounds());
     refs.status_view = button("fm.status.view", "Icons ▼", {1235,2,205,20}, ButtonVisualStyle::flat);
     (*panel).add_at(refs.status_view, {1235,2,205,20});
@@ -1238,7 +1238,7 @@ private:
         location.items.assign((*refs_.objects).items().begin(), (*refs_.objects).items().end());
         location.selected_ids.assign((*refs_.objects).selected_ids().begin(),
                                      (*refs_.objects).selected_ids().end());
-        location.primary_id = std::string((*refs_.objects).selected_id());
+        location.primary_id = std::string((*refs_.objects).selected_id.read());
         location.top_row = (*refs_.objects).top_row();
     }
 
@@ -1261,15 +1261,15 @@ private:
             (*refs_.objects).set_top_row(std::min(location.top_row, rows - 1U));
         }
         (*refs_.objects).accessible_name = location.title + " objects";
-        (*refs_.tree).set_selected_id("fm.tree.node." + location.tree_id);
-        (*refs_.title).set_text("File Manager  ·  " + location.title);
-        (*refs_.search).set_placeholder_text("Search " + location.title + " and descendants");
-        (*refs_.status_authority).set_text("Local navigation · " + location.id +
-                                         " · index 86 current");
-        (*refs_.status_summary).set_text(location.selected_ids.empty()
+        (*refs_.tree).selected_id = "fm.tree.node." + location.tree_id;
+        (*refs_.title).text = "File Manager  ·  " + location.title;
+        (*refs_.search).placeholder_text = "Search " + location.title + " and descendants";
+        (*refs_.status_authority).text = "Local navigation · " + location.id +
+                                         " · index 86 current";
+        (*refs_.status_summary).text = location.selected_ids.empty()
             ? std::to_string(location.items.size()) + " objects"
             : std::to_string(location.selected_ids.size()) + " selected · " +
-                std::to_string(location.items.size()) + " objects");
+                std::to_string(location.items.size()) + " objects";
         for (std::size_t slot = 0; slot < refs_.breadcrumbs.size(); ++slot) {
             const bool visible = slot < location.path.size();
             (*refs_.breadcrumbs[slot]).visible = visible;
@@ -1413,7 +1413,7 @@ private:
         std::shared_ptr<Label> heading = label("fm.path.matrix.heading", "COMPLETE PATH MATRIX",
                              {10.0, 5.0, 840.0, 34.0},
                              {FontRole::control, 12.0, 700, false, .45});
-        (*heading).set_foreground(Color::rgba(247, 250, 251));
+        (*heading).fore_color = Color::rgba(247, 250, 251);
         (*heading).accessible_description =
             "Browse a full drive-rooted stack or edit the current fixture path";
         std::shared_ptr<DrawingSurface> heading_back = material(
@@ -1449,7 +1449,7 @@ private:
                     "fm.path.matrix.current.separator." + std::to_string(index),
                     "›", {x, 13.0, 18.0, 33.0},
                     {FontRole::control, 11.0, 500, false});
-                (*separator).set_alignment(HorizontalAlignment::center);
+                (*separator).alignment = HorizontalAlignment::center;
                 (*current_).add_at(separator, (*separator).requested_bounds());
                 x += 18.0;
             }
@@ -1469,7 +1469,7 @@ private:
 
         editor_ = make_control<TextBox>(StableId("fm.path.matrix.editor"));
         (*editor_).set_style(house_style());
-        (*editor_).set_font({FontRole::content, 11.0, 500, false});
+        (*editor_).font = FontSpec{FontRole::content, 11.0, 500, false};
         (*editor_).accessible_name = "Direct fixture path";
         (*editor_).accessible_description =
             "Type a fixture path or one of the admitted HOME and PROJECTS variables";
@@ -1483,8 +1483,8 @@ private:
         completions_ = make_control<ListBox>(
             StableId("fm.path.matrix.completions"));
         (*completions_).set_style(house_style());
-        (*completions_).set_font({FontRole::content, 10.0, 500, false});
-        (*completions_).set_item_height(25.0);
+        (*completions_).font = FontSpec{FontRole::content, 10.0, 500, false};
+        (*completions_).item_height = 25.0;
         (*completions_).accessible_name = "Path completions";
         (*completions_).visible = false;
         (*content_).add_at(completions_, {10.0, 85.0, 840.0, 79.0});
@@ -1495,7 +1495,7 @@ private:
 
         resolution_ = label("fm.path.matrix.resolution", "", {12.0, 166.0, 836.0, 25.0},
                             {FontRole::content, 9.5, 600, false});
-        (*resolution_).set_text_wrapping(TextWrapping::no_wrap);
+        (*resolution_).text_wrapping = TextWrapping::no_wrap;
         (*resolution_).visible = false;
         (*content_).add_at(resolution_, (*resolution_).requested_bounds());
 
@@ -1539,7 +1539,7 @@ private:
                             std::to_string(index), "›",
                         {segment_x, 8.0, 15.0, 31.0},
                         {FontRole::control, 9.0, 500, false});
-                    (*separator).set_alignment(HorizontalAlignment::center);
+                    (*separator).alignment = HorizontalAlignment::center;
                     (*row).add_at(separator, (*separator).requested_bounds());
                     segment_x += 15.0;
                 }
@@ -1560,7 +1560,7 @@ private:
         (*content_).set_design_bounds(*recents_, {10.0, 194.0, 840.0, 222.0});
         const std::string value =
             std::string(FixtureCatalogue::instance().current_path()) + "/";
-        (*editor_).set_text(value);
+        (*editor_).text = value;
         (*editor_).select(Utf8Offset(value.size()), Utf8Offset(value.size()));
         refresh_completions();
         if (Window* window = (*editor_).attached_window()) {
@@ -1590,7 +1590,7 @@ private:
     void refresh_completions() {
         if (!editor_ || !completions_) return;
         const std::uint64_t generation = ++completion_generation_;
-        std::vector<FixturePathCompletion> matches = FixtureCatalogue::instance().complete_path((*editor_).text());
+        std::vector<FixturePathCompletion> matches = FixtureCatalogue::instance().complete_path((*editor_).text.read());
         static_cast<void>(pending_completion_.cancel());
         pending_completion_ = (*editor_).begin_invoke(
             CompletionDelivery{this, generation, std::move(matches)});
@@ -1611,20 +1611,20 @@ private:
             values.push_back(match.path);
             ids.push_back("fm.path.matrix.completion." + match.id);
         }
-        (*completions_).set_items(std::move(values));
+        (*completions_).items = std::move(values);
         (*completions_).set_item_stable_ids(std::move(ids));
-        if (!(*completions_).items().empty()) (*completions_).select_index(0U);
-        (*resolution_).set_text("Completion generation " +
+        if (!(*completions_).items.read().empty()) (*completions_).select_index(0U);
+        (*resolution_).text = "Completion generation " +
                               std::to_string(generation) + " · " +
-                              std::to_string((*completions_).items().size()) +
-                              " fixture matches");
-        (*resolution_).accessible_description = (*resolution_).text();
+                              std::to_string((*completions_).items.read().size()) +
+                              " fixture matches";
+        (*resolution_).accessible_description = (*resolution_).text.read();
     }
 
     void accept_completion(std::size_t index) {
-        if (!editor_ || !completions_ || index >= (*completions_).items().size()) return;
-        const std::string value((*completions_).items()[index]);
-        (*editor_).set_text(value);
+        if (!editor_ || !completions_ || index >= (*completions_).items.read().size()) return;
+        const std::string value((*completions_).items.read()[index]);
+        (*editor_).text = value;
         (*editor_).select(Utf8Offset(value.size()), Utf8Offset(value.size()));
         if (Window* window = (*editor_).attached_window()) {
             static_cast<void>((*window).request_focus(editor_));
@@ -1637,12 +1637,12 @@ private:
             !completions_) return;
         if (event.physical_key == PhysicalKey::up ||
             event.physical_key == PhysicalKey::down) {
-            if (!(*completions_).items().empty()) {
+            if (!(*completions_).items.read().empty()) {
                 std::size_t index = (*completions_).selected_index().value_or(0U);
                 if (event.physical_key == PhysicalKey::up) {
                     index = index == 0U ? 0U : index - 1U;
                 } else {
-                    index = std::min(index + 1U, (*completions_).items().size() - 1U);
+                    index = std::min(index + 1U, (*completions_).items.read().size() - 1U);
                 }
                 (*completions_).select_index(index);
             }
@@ -1658,13 +1658,13 @@ private:
         }
         if (event.physical_key == PhysicalKey::enter) {
             const FixturePathResolution result =
-                FixtureCatalogue::instance().resolve_path((*editor_).text());
+                FixtureCatalogue::instance().resolve_path((*editor_).text.read());
             if (result.valid) {
                 status_(result.explanation + " · " + result.expanded_path);
                 navigate_and_close(result.destination_id);
             } else {
-                (*resolution_).set_text("Path not resolved · " + result.explanation);
-                (*resolution_).set_foreground(Color::rgba(139, 43, 47));
+                (*resolution_).text = "Path not resolved · " + result.explanation;
+                (*resolution_).fore_color = Color::rgba(139, 43, 47);
                 (*resolution_).accessible_description =
                     "Error: " + result.explanation;
                 status_("Path rejected · " + result.explanation);
@@ -1800,7 +1800,7 @@ public:
                 void (SearchController::*)(const ObjectContextRequest&)>(
                     *this, &SearchController::on_context_requested));
         build_context_menu();
-        update_context_availability((*refs_.search_results).selected_id());
+        update_context_availability((*refs_.search_results).selected_id.read());
     }
 
     [[nodiscard]] bool select_surface(std::string_view surface) {
@@ -1825,9 +1825,9 @@ public:
             return true;
         }
         if (normalized != "search") return false;
-        const std::string query((*refs_.search).text().empty()
+        const std::string query((*refs_.search).text.read().empty()
             ? FixtureCatalogue::instance().search_query()
-            : (*refs_.search).text());
+            : (*refs_.search).text.read());
         show_search(query, true);
         return true;
     }
@@ -1952,17 +1952,17 @@ private:
         if (immediate) ++query_generation_;
         (*path_matrix_).dismiss();
         applying_ = true;
-        if ((*refs_.search).text() != query) (*refs_.search).set_text(query);
+        if ((*refs_.search).text.read() != query) (*refs_.search).text = query;
         applying_ = false;
         search_visible_ = true;
         (*refs_.folder_surface).visible = false;
         (*refs_.search_surface).visible = true;
         (*refs_.palette_surface).visible = false;
         (*refs_.dna_surface).visible = false;
-        (*refs_.title).set_text("File Manager  ·  Search");
-        (*refs_.status_summary).set_text(search_status());
-        (*refs_.status_authority).set_text(
-            "Local navigation ready · result generation 86");
+        (*refs_.title).text = "File Manager  ·  Search";
+        (*refs_.status_summary).text = search_status();
+        (*refs_.status_authority).text =
+            "Local navigation ready · result generation 86";
         if (Window* window = (*refs_.shell).attached_window()) {
             (*window).perform_layout();
             static_cast<void>((*window).request_focus(refs_.search_results));
@@ -1993,7 +1993,7 @@ private:
                 }
             }
             if (object_exists) {
-                (*refs_.objects).set_selected_id(stable_object);
+                (*refs_.objects).selected_id = stable_object;
             }
         }
         status_(select_object ? "Opened search result · " + (*fixture).name
@@ -2057,8 +2057,8 @@ private:
 
     void on_properties_invoked(const CommandInvocation&) {
         if (!context_id_.empty()) {
-            (*refs_.search_results).set_selected_id(context_id_);
-            (*refs_.search_results).set_pinned_id(context_id_);
+            (*refs_.search_results).selected_id = context_id_;
+            (*refs_.search_results).pinned_id = context_id_;
             status_("Search evidence pinned · " + title_for(context_id_));
         }
     }
@@ -2161,13 +2161,13 @@ public:
         (*refs_.criteria_surface).visible = true;
         (*refs_.palette_surface).visible = false;
         (*refs_.dna_surface).visible = false;
-        (*refs_.title).set_text("File Manager  ·  Criteria");
-        (*refs_.search).set_placeholder_text("Search this virtual folder");
+        (*refs_.title).text = "File Manager  ·  Criteria";
+        (*refs_.search).placeholder_text = "Search this virtual folder";
         update_actions();
         update_status();
-        (*refs_.status_authority).set_text(
+        (*refs_.status_authority).text =
             "Local navigation ready · index " + std::to_string(generation_) +
-            " current");
+            " current";
         project_selection();
         if (Window* window = (*refs_.shell).attached_window()) {
             (*window).perform_layout();
@@ -2333,7 +2333,7 @@ private:
         }
         const std::size_t limit = enabled_cheap >= 2U ? 31U
                                 : enabled_cheap == 1U ? 18U : 7U;
-        const std::string selected((*refs_.criteria_objects).selected_id());
+        const std::string selected((*refs_.criteria_objects).selected_id.read());
         (*refs_.criteria_objects).set_items(criteria_object_items(limit));
         bool survives = false;
         for (const ObjectViewItem& item : (*refs_.criteria_objects).items()) {
@@ -2342,54 +2342,53 @@ private:
                 break;
             }
         }
-        if (survives) (*refs_.criteria_objects).set_selected_id(selected);
+        if (survives) (*refs_.criteria_objects).selected_id = selected;
         else if (!(*refs_.criteria_objects).items().empty()) {
-            (*refs_.criteria_objects).set_selected_id(
-                (*refs_.criteria_objects).items().front().stable_id);
+            (*refs_.criteria_objects).selected_id = (*refs_.criteria_objects).items().front().stable_id;
         }
         ++generation_;
         update_status();
-        (*refs_.status_authority).set_text(
+        (*refs_.status_authority).text =
             "Local navigation ready · index " + std::to_string(generation_) +
-            " current");
+            " current";
     }
 
     void update_status() {
         const std::size_t staged = staged_count();
         const std::size_t shown = (*refs_.criteria_objects).items().size();
-        (*refs_.criteria_results_summary).set_text(
+        (*refs_.criteria_results_summary).text =
             std::to_string(shown) +
-            " OBJECTS   ·   FROM PROJECTS AND DESCENDANTS   ·   ONE INSPECTABLE VIRTUAL FOLDER");
-        (*refs_.status_summary).set_text(
+            " OBJECTS   ·   FROM PROJECTS AND DESCENDANTS   ·   ONE INSPECTABLE VIRTUAL FOLDER";
+        (*refs_.status_summary).text =
             std::to_string(shown) + " objects · " +
             std::to_string(live_count()) + " live criteria" +
             (staged == 0U ? std::string{}
                           : " · " + std::to_string(staged) +
                             (staged == 1U ? " expensive criterion staged"
-                                          : " expensive criteria staged")));
+                                          : " expensive criteria staged"));
     }
 
     void update_actions() {
         const std::size_t staged = staged_count();
         const std::size_t invalid = invalid_count();
-        (*refs_.criteria_title).set_text(
+        (*refs_.criteria_title).text =
             "PROJECTS   ·   VIRTUAL FOLDER   ·   " +
             std::to_string(live_count()) + " LIVE MODULES   ·   " +
             (pending_ ? std::string("APPLYING")
-                      : std::to_string(staged) + " STAGED"));
+                      : std::to_string(staged) + " STAGED");
         (*refs_.criteria_apply).enabled = !pending_ && staged > 0U && invalid == 0U;
         (*refs_.criteria_apply).text = staged == 0U ? std::string("Applied")
             : "Apply " + std::to_string(staged);
         if (pending_) {
-            (*refs_.criteria_action_state).set_text("Applying staged criteria");
+            (*refs_.criteria_action_state).text = "Applying staged criteria";
         } else if (invalid > 0U) {
-            (*refs_.criteria_action_state).set_text(
-                std::to_string(invalid) + " invalid criterion");
+            (*refs_.criteria_action_state).text =
+                std::to_string(invalid) + " invalid criterion";
         } else if (staged > 0U) {
-            (*refs_.criteria_action_state).set_text(
-                std::to_string(staged) + " expensive change staged");
+            (*refs_.criteria_action_state).text =
+                std::to_string(staged) + " expensive change staged";
         } else {
-            (*refs_.criteria_action_state).set_text("All criteria live");
+            (*refs_.criteria_action_state).text = "All criteria live";
         }
     }
 
@@ -2434,7 +2433,7 @@ private:
 
     void project_selection() {
         if (!visible()) return;
-        const std::string selected((*refs_.criteria_objects).selected_id());
+        const std::string selected((*refs_.criteria_objects).selected_id.read());
         constexpr std::string_view prefix = "fm.object.";
         const std::string_view fixture_id = selected.starts_with(prefix)
             ? std::string_view(selected).substr(prefix.size())
@@ -2448,10 +2447,10 @@ private:
             }
         }
         if (fixture == nullptr) {
-            (*refs_.selection_name).set_text("No selection");
+            (*refs_.selection_name).text = "No selection";
             return;
         }
-        (*refs_.selection_name).set_text((*fixture).name);
+        (*refs_.selection_name).text = (*fixture).name;
         static_cast<void>((*refs_.properties).set_value(
             "fm.property.kind", (*fixture).kind));
         static_cast<void>((*refs_.properties).set_value(
@@ -2503,11 +2502,11 @@ private:
             static_cast<void>((*refs_.criteria_rack).set_module_state(
                 module.stable_id, module.state, module.status_text));
         }
-        (*refs_.criteria_progress).set_value(0.0);
-        (*refs_.criteria_progress).set_animation_enabled(true);
+        (*refs_.criteria_progress).value = 0.0;
+        (*refs_.criteria_progress).animation_enabled = true;
         update_actions();
-        (*refs_.status_summary).set_text(
-            "Applying staged criteria · selection remains stable");
+        (*refs_.status_summary).text =
+            "Applying staged criteria · selection remains stable";
         status_("Criteria evaluation started · deterministic local fixture");
         feedback_(SemanticFeedbackKind::operation_started);
         Window* window = (*refs_.criteria_apply).attached_window();
@@ -2521,7 +2520,7 @@ private:
 
     void on_apply_tick(FrameTime) {
         progress_ = std::min(100, progress_ + 25);
-        (*refs_.criteria_progress).set_value(static_cast<double>(progress_));
+        (*refs_.criteria_progress).value = static_cast<double>(progress_);
         if (progress_ >= 100) finish_apply();
     }
 
@@ -2536,7 +2535,7 @@ private:
             static_cast<void>((*refs_.criteria_rack).set_module_state(
                 module.stable_id, module.state, module.status_text));
         }
-        const std::string selected((*refs_.criteria_objects).selected_id());
+        const std::string selected((*refs_.criteria_objects).selected_id.read());
         (*refs_.criteria_objects).set_items(criteria_object_items(5U));
         bool selection_survives = false;
         for (const ObjectViewItem& item : (*refs_.criteria_objects).items()) {
@@ -2546,23 +2545,22 @@ private:
             }
         }
         if (selection_survives) {
-            (*refs_.criteria_objects).set_selected_id(selected);
+            (*refs_.criteria_objects).selected_id = selected;
         } else if (!(*refs_.criteria_objects).items().empty()) {
-            (*refs_.criteria_objects).set_selected_id(
-                (*refs_.criteria_objects).items().front().stable_id);
+            (*refs_.criteria_objects).selected_id = (*refs_.criteria_objects).items().front().stable_id;
         }
         ++generation_;
-        (*refs_.criteria_progress).set_animation_enabled(false);
+        (*refs_.criteria_progress).animation_enabled = false;
         update_actions();
         update_status();
-        (*refs_.status_summary).set_text(
+        (*refs_.status_summary).text =
             "5 objects · " + std::to_string(enabled_count()) +
-            " criteria applied");
+            " criteria applied";
         status_("Criteria evaluation complete · deterministic generation " +
                 std::to_string(generation_));
-        (*refs_.status_authority).set_text(
+        (*refs_.status_authority).text =
             "Local navigation ready · index " + std::to_string(generation_) +
-            " current");
+            " current";
         feedback_(SemanticFeedbackKind::operation_completed);
     }
 
@@ -2612,7 +2610,7 @@ public:
 
     void operator()(std::string text) const {
         const std::shared_ptr<Label> authority = authority_.lock();
-        if (authority) (*authority).set_text(std::move(text));
+        if (authority) (*authority).text = std::move(text);
     }
 
 private:
@@ -2628,9 +2626,9 @@ struct ViewModeCommandHandler final {
         const std::shared_ptr<ObjectView> field = objects.lock();
         const std::shared_ptr<Command> authority = command.lock();
         if (!field || !authority) return;
-        const ObjectViewMode next = (*field).view_mode() == ObjectViewMode::icons
+        const ObjectViewMode next = (*field).view_mode.read() == ObjectViewMode::icons
             ? ObjectViewMode::details : ObjectViewMode::icons;
-        (*field).set_view_mode(next);
+        (*field).view_mode = next;
         (*authority).set_text(next == ObjectViewMode::icons ? "Icons  ▼"
                                                            : "Details  ▼");
         feedback(SemanticFeedbackKind::option_committed);
@@ -2715,9 +2713,9 @@ public:
         set_band(navigation_, 40.0 * text_scale, true);
         set_band(status_, 24.0 * text_scale, show_status);
         const std::shared_ptr<SplitContainer> workspace = workspace_split_.lock();
-        if (workspace) (*workspace).set_automatic_collapse_threshold(700.0 * text_scale);
+        if (workspace) (*workspace).automatic_collapse_threshold = 700.0 * text_scale;
         const std::shared_ptr<SplitContainer> selection = selection_split_.lock();
-        if (selection) (*selection).set_automatic_collapse_threshold(900.0 * text_scale);
+        if (selection) (*selection).automatic_collapse_threshold = 900.0 * text_scale;
     }
 
 private:
@@ -2912,7 +2910,7 @@ struct NewFolderHandler final {
                          "Folder", "Session-only fixture folder",
                          ObjectGlyph::folder});
         (*field).set_items(std::move(items));
-        (*field).set_selected_id(id);
+        (*field).selected_id = id;
         status("Fixture folder created · reset or restart restores catalogue");
     }
 };
@@ -3034,12 +3032,12 @@ private:
 
     void set_name(std::string text) const {
         const std::shared_ptr<Label> name = name_.lock();
-        if (name) (*name).set_text(std::move(text));
+        if (name) (*name).text = std::move(text);
     }
 
     void set_status(std::string text) const {
         const std::shared_ptr<Label> status = status_.lock();
-        if (status) (*status).set_text(std::move(text));
+        if (status) (*status).text = std::move(text);
     }
 
     void set_properties(std::string kind,
@@ -3102,7 +3100,7 @@ struct PreviewDisclosureHandler final {
         const std::shared_ptr<Control> control = preview.lock();
         if (control) (*control).visible = *expanded;
         const std::shared_ptr<PropertyList> list = property_list.lock();
-        if (list) (*list).set_header_height(*expanded ? 212.0 : 34.0);
+        if (list) (*list).header_height = *expanded ? 212.0 : 34.0;
         const std::shared_ptr<Button> button = disclosure.lock();
         if (button) {
             (*button).text = std::string(*expanded ? "▼" : "▶");
@@ -3144,7 +3142,7 @@ public:
 private:
     void commit_handler(ObjectView& field, const std::string& handler) const {
         if (field.selected_ids().size() == 1U) {
-            (*handlers_)[std::string(field.selected_id())] = handler;
+            (*handlers_)[std::string(field.selected_id.read())] = handler;
         }
         const std::shared_ptr<Command> preview = preview_.lock();
         if (preview) (*preview).set_checked(handler == "Preview");
@@ -3159,7 +3157,7 @@ private:
         const std::string& candidate = change.current_value;
         const bool separator = candidate.find('/') != std::string::npos ||
                                candidate.find('\\') != std::string::npos;
-        const std::string selected_id(field.selected_id());
+        const std::string selected_id(field.selected_id.read());
         bool duplicate = false;
         for (const ObjectViewItem& item : field.items()) {
             if (item.stable_id != selected_id &&
@@ -3185,10 +3183,10 @@ private:
         if (selected == items.end()) return;
         (*selected).name = candidate;
         field.set_items(std::move(items));
-        field.set_selected_id(selected_id);
+        field.selected_id = selected_id;
         static_cast<void>(properties.set_validation("fm.property.name", {}));
         const std::shared_ptr<Label> label = name_label_.lock();
-        if (label) (*label).set_text(candidate);
+        if (label) (*label).text = candidate;
         status_("Fixture renamed · " + candidate + " · session only");
     }
 
@@ -3258,7 +3256,7 @@ public:
 private:
     static void set_label(const std::weak_ptr<Label>& source, std::string text) {
         const std::shared_ptr<Label> label = source.lock();
-        if (label) (*label).set_text(std::move(text));
+        if (label) (*label).text = std::move(text);
     }
 
     std::weak_ptr<Control> palette_;
@@ -3284,12 +3282,12 @@ struct CardSelectionHandler final {
         if (!selected) return;
         for (const std::weak_ptr<Card>& source : cards) {
             const std::shared_ptr<Card> candidate = source.lock();
-            if (candidate) (*candidate).set_selected(candidate == selected);
+            if (candidate) (*candidate).selected = candidate == selected;
         }
         const std::shared_ptr<Label> label = summary.lock();
         if (label) {
-            (*label).set_text(std::string((*selected).accessible_name.read()) +
-                              " · selected for review");
+            (*label).text = std::string((*selected).accessible_name.read()) +
+                              " · selected for review";
         }
     }
 };
@@ -3307,19 +3305,19 @@ struct DnaSelectionHandler final {
         if (!selected) return;
         for (const std::weak_ptr<Card>& source : cards) {
             const std::shared_ptr<Card> candidate = source.lock();
-            if (candidate) (*candidate).set_selected(candidate == selected);
+            if (candidate) (*candidate).selected = candidate == selected;
         }
         const std::string name((*selected).accessible_name.read());
         const std::shared_ptr<Label> heading_label = heading.lock();
-        if (heading_label) (*heading_label).set_text(name);
+        if (heading_label) (*heading_label).text = name;
         const std::shared_ptr<ReviewCard> verdict_card = verdict.lock();
         if (verdict_card) {
-            ReviewRecord record = (*verdict_card).record();
+            ReviewRecord record = (*verdict_card).record.read();
             record.verdict = "ACTIVE REVIEW · " + name;
-            (*verdict_card).set_record(std::move(record));
+            (*verdict_card).record = std::move(record);
         }
         const std::shared_ptr<Label> summary_label = summary.lock();
-        if (summary_label) (*summary_label).set_text(name + " · decision record selected");
+        if (summary_label) (*summary_label).text = name + " · decision record selected";
         const std::shared_ptr<MasterDetailView> view = browser.lock();
         if (view && (*view).effective_display_mode() !=
                         MasterDetailDisplayMode::side_by_side) {
@@ -3763,8 +3761,8 @@ std::unique_ptr<gui_forms::Window> make_product_window() {
     ProductRefs refs;
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> root = std::make_shared<TableLayoutPanelCompat>(StableId("fm.window.primary"));
     refs.shell = root;
-    (*root).set_column_count(1);
-    (*root).set_row_count(6);
+    (*root).column_count = 1;
+    (*root).row_count = 6;
     (*root).set_column_style(0, {TableSizeMode::percent, 100});
     (*root).set_row_style(0, {TableSizeMode::absolute, 40});
     (*root).set_row_style(1, {TableSizeMode::absolute, 23});
@@ -3772,7 +3770,7 @@ std::unique_ptr<gui_forms::Window> make_product_window() {
     (*root).set_row_style(3, {TableSizeMode::absolute, 40});
     (*root).set_row_style(4, {TableSizeMode::percent, 100});
     (*root).set_row_style(5, {TableSizeMode::absolute, 24});
-    (*root).set_grow_style(TableLayoutGrowStyle::fixed_size);
+    (*root).grow_style = TableLayoutGrowStyle::fixed_size;
 
     const Control::Ptr bands[] = {make_title(refs), make_tabs(refs), make_ribbon(refs),
                                   make_navigation(refs), make_workspace(refs), make_status(refs)};
@@ -3790,7 +3788,7 @@ std::unique_ptr<gui_forms::Window> make_product_window() {
     }
     std::unique_ptr<gui_forms::Window> window = std::make_unique<Window>(root, Size{1450,850});
     (*window).perform_layout();
-    (*root).set_tag(wire_product(refs));
+    (*root).tag = wire_product(refs);
     return window;
 }
 
@@ -3837,9 +3835,11 @@ bool set_product_surface(gui_forms::Window& product,
                          std::string_view surface) {
     const gui_forms::Control::Ptr root = product.root();
     if (!root) return false;
+    // A copy of the tag: the view reads by value, and the copy holds the
+    // lifetime for the rest of this call.
+    const std::any held = (*root).tag.read();
     const std::shared_ptr<ProductLifetime>* lifetime =
-        std::any_cast<std::shared_ptr<ProductLifetime>>(
-        &(*root).tag());
+        std::any_cast<std::shared_ptr<ProductLifetime>>(&held);
     if (lifetime == nullptr || *lifetime == nullptr) return false;
     const std::string normalized = lower_ascii(surface);
     if (normalized == "criteria") {

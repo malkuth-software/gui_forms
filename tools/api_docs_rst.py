@@ -37,7 +37,7 @@ class Property:
 # register_capabilities before any shape is taken.
 CAPABILITY_CELLS: dict[str, tuple[str, str, str]] = {}
 CAPABILITY_BUNDLES: dict[str, list[str]] = {}
-CELL_FIELD = re.compile(r"^(?:GUI_FORMS_LOCALIZABLE\(\w+\)\s*)?(?:Property(?:Cell|View)|ChildPropertyView)<(.*),\s*\w+Capability<\w+>>\s+(\w+)")
+CELL_FIELD = re.compile(r"^(?:GUI_FORMS_LOCALIZABLE\(\w+\)\s*)?(Property(?:Cell|View)|ChildPropertyView|CollectionCell)<(.*),\s*\w+Capability<\w+>>\s+(\w+)")
 
 
 def template_name(base: str) -> str:
@@ -52,7 +52,11 @@ def register_capabilities(types: list[TypeRecord]) -> None:
         for item in record.fields:
             match = CELL_FIELD.match(item.text.strip())
             if match:
-                CAPABILITY_CELLS[record.name] = (match.group(2), match.group(1).strip(), record.comment)
+                # A collection cell's value is its element sequence.
+                value = match.group(2).strip()
+                if match.group(1) == "CollectionCell":
+                    value = f"std::vector<{value}>"
+                CAPABILITY_CELLS[record.name] = (match.group(3), value, record.comment)
     for record in types:
         names = [template_name(base) for base in record.bases]
         if names and all(name in CAPABILITY_CELLS for name in names):

@@ -14,6 +14,8 @@
 #include "../../../core/image/resource_pixels.hpp"
 #include "../../../core/image/png_writer.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
+#include "../../../core/engine/primitives/material/material_raster.hpp"
+#include "../../../core/theme/theme/material_layers.hpp"
 
 #include "include/core/SkCanvas.h"
 #include "include/core/SkBlurTypes.h"
@@ -756,6 +758,53 @@ void SkiaRaster::begin_frame(const DamageRegion& damage) {
     } else {
         (*impl_).reset_text_clips(*canvas, nullptr);
     }
+}
+
+bool SkiaRaster::scroll_copy(const Rect clip, const Point offset) {
+    // The frame's own surface, never an open group's layer.
+    SkCanvas* canvas = nullptr;
+    bool prepared = false;
+#if defined(GUI_FORMS_PREPARED_TEXT)
+    prepared = (*impl_).prepared_mode;
+    if (prepared) canvas = (*impl_).prepared_frame.canvas();
+#endif
+    if (!prepared && (*impl_).surface) canvas = (*(*impl_).surface).getCanvas();
+    if (canvas == nullptr) return false;
+    const std::optional<SkPixmap> peeked = (*canvas).peekPixels();
+    if (!peeked || (*peeked).colorType() != kBGRA_8888_SkColorType) return false;
+    const SkPixmap& pixels = *peeked;
+    const double scale = (*impl_).scale;
+    const double values[] = {clip.x * scale, clip.y * scale, clip.width * scale, clip.height * scale,
+                             offset.x * scale, offset.y * scale};
+    for (const double value : values) {
+        if (!std::isfinite(value) || std::abs(value - std::round(value)) > 1.0e-6) return false;
+    }
+    // Device rectangles: the clip within the surface, and the destination,
+    // the clip's pixels that receive a pixel from inside it.
+    const long long width = pixels.width();
+    const long long height = pixels.height();
+    const long long left = std::clamp(std::llround(values[0]), 0LL, width);
+    const long long top = std::clamp(std::llround(values[1]), 0LL, height);
+    const long long right = std::clamp(std::llround(values[0] + values[2]), left, width);
+    const long long bottom = std::clamp(std::llround(values[1] + values[3]), top, height);
+    const long long dx = std::llround(values[4]);
+    const long long dy = std::llround(values[5]);
+    const long long destination_left = std::max(left, left + dx);
+    const long long destination_right = std::min(right, right + dx);
+    const long long destination_top = std::max(top, top + dy);
+    const long long destination_bottom = std::min(bottom, bottom + dy);
+    if (destination_left >= destination_right || destination_top >= destination_bottom) return true;
+    const std::size_t row_bytes = static_cast<std::size_t>(destination_right - destination_left) * 4U;
+    const long long rows = destination_bottom - destination_top;
+    // Rows move toward the copy's direction: a row is read before the copy
+    // overwrites it. memmove handles the overlap within a row.
+    for (long long step = 0; step < rows; ++step) {
+        const long long row = dy > 0 ? destination_bottom - 1 - step : destination_top + step;
+        void* const target = pixels.writable_addr(static_cast<int>(destination_left), static_cast<int>(row));
+        const void* const source = pixels.addr(static_cast<int>(destination_left - dx), static_cast<int>(row - dy));
+        std::memmove(target, source, row_bytes);
+    }
+    return true;
 }
 
 void SkiaRaster::clip_damage(const DamageRegion& damage) {
@@ -1867,6 +1916,35 @@ void SkiaRaster::draw_part_raster_scaled(const std::shared_ptr<const PartRaster>
     SkCanvas* const canvas = (*impl_).canvas();
     if (canvas == nullptr || !raster) return;
     static_cast<void>((*impl_).composite_part_scaled(*canvas, *raster, destination, opacity));
+}
+
+void SkiaRaster::draw_surface_material(const Rect bounds, const SurfaceMaterial& authored) {
+    SkCanvas* const canvas = (*impl_).canvas();
+    if (canvas == nullptr) return;
+    const SkMatrix matrix = (*canvas).getTotalMatrix();
+    const bool uniform = matrix.isScaleTranslate() && matrix.getScaleX() == matrix.getScaleY();
+    if (!uniform || detail::material_painting(authored) == detail::MaterialPainting::layers) {
+        detail::paint_material_layers(*this, bounds, authored);
+        return;
+    }
+    const std::optional<SurfaceMaterial> stripped = detail::material_as_painted(authored);
+    const SurfaceMaterial& material = stripped ? *stripped : authored;
+    const double outset = detail::material_raster_outset(material);
+    const DeviceScale scale{static_cast<double>(matrix.getScaleX())};
+    const std::shared_ptr<const PartRaster> raster =
+        detail::bake_material_raster(material, Size{bounds.width, bounds.height}, scale, outset);
+    const Point origin{bounds.x - outset, bounds.y - outset};
+    if (raster && (*impl_).composite_part(*canvas, *raster, origin, 1.0)) return;
+    detail::paint_material_layers(*this, bounds, authored);
+}
+
+void SkiaRaster::draw_baked_surface_material(const Rect bounds, const std::shared_ptr<const SurfaceMaterial>& material,
+                                             const std::shared_ptr<const PartRaster>& raster, const double outset) {
+    SkCanvas* const canvas = (*impl_).canvas();
+    if (canvas == nullptr || !material) return;
+    const Point origin{bounds.x - outset, bounds.y - outset};
+    if (raster && (*impl_).composite_part(*canvas, *raster, origin, 1.0)) return;
+    draw_surface_material(bounds, *material);
 }
 
 void SkiaRaster::draw_live_surface(const std::shared_ptr<LiveSurface> surface,

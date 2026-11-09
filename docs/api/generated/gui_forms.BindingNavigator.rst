@@ -7,7 +7,7 @@ gui_forms::BindingNavigator
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: BindingNavigator final : public ToolStrip
+.. cpp:class:: BindingNavigator final : public ToolStrip, public BindingNavigatorCapabilities<BindingNavigator>
 
    ``#include <gui_forms/controls/binding_navigator/binding_navigator.hpp>``
 
@@ -65,7 +65,7 @@ gui_forms::BindingNavigator
 
    :Inherited:
 
-      From :cpp:class:`ToolStrip <gui_forms::ToolStrip>`: properties :cpp:func:`items <gui_forms::ToolStrip::items>`, :cpp:func:`grip_visible <gui_forms::ToolStrip::grip_visible>`, :cpp:func:`allow_merge <gui_forms::ToolStrip::allow_merge>`, :cpp:func:`font <gui_forms::ToolStrip::font>`, :cpp:func:`orientation <gui_forms::ToolStrip::orientation>`, :cpp:func:`drop_down_open <gui_forms::ToolStrip::drop_down_open>`, :cpp:func:`overflow_item_ids <gui_forms::ToolStrip::overflow_item_ids>`, :cpp:func:`focused_item_id <gui_forms::ToolStrip::focused_item_id>`, :cpp:func:`content_length <gui_forms::ToolStrip::content_length>`, :cpp:func:`parts <gui_forms::ToolStrip::parts>`, :cpp:func:`realized_items <gui_forms::ToolStrip::realized_items>`; events :cpp:func:`item_clicked <gui_forms::ToolStrip::item_clicked>`, :cpp:func:`drop_down_item_invoked <gui_forms::ToolStrip::drop_down_item_invoked>`, :cpp:func:`item_focus_changed <gui_forms::ToolStrip::item_focus_changed>`; methods :cpp:func:`close_drop_down <gui_forms::ToolStrip::close_drop_down>`, :cpp:func:`combo_box <gui_forms::ToolStrip::combo_box>`, :cpp:func:`item_checked <gui_forms::ToolStrip::item_checked>`, :cpp:func:`item_id_at <gui_forms::ToolStrip::item_id_at>`, :cpp:func:`progress_bar <gui_forms::ToolStrip::progress_bar>`, :cpp:func:`set_item_checked <gui_forms::ToolStrip::set_item_checked>`, :cpp:func:`set_item_text <gui_forms::ToolStrip::set_item_text>`, :cpp:func:`show_drop_down <gui_forms::ToolStrip::show_drop_down>`, :cpp:func:`show_overflow <gui_forms::ToolStrip::show_overflow>`, :cpp:func:`text_box <gui_forms::ToolStrip::text_box>`.
+      From :cpp:class:`ToolStrip <gui_forms::ToolStrip>`: properties :cpp:member:`grip_visible <gui_forms::ToolStrip::grip_visible>`, :cpp:member:`allow_merge <gui_forms::ToolStrip::allow_merge>`, :cpp:member:`font <gui_forms::ToolStrip::font>`, :cpp:member:`orientation <gui_forms::ToolStrip::orientation>`, :cpp:member:`sizing_grip_visible <gui_forms::ToolStrip::sizing_grip_visible>`, :cpp:member:`end_reserve <gui_forms::ToolStrip::end_reserve>`, :cpp:func:`items <gui_forms::ToolStrip::items>`, :cpp:func:`drop_down_open <gui_forms::ToolStrip::drop_down_open>`, :cpp:func:`overflow_item_ids <gui_forms::ToolStrip::overflow_item_ids>`, :cpp:func:`focused_item_id <gui_forms::ToolStrip::focused_item_id>`, :cpp:func:`content_length <gui_forms::ToolStrip::content_length>`, :cpp:func:`parts <gui_forms::ToolStrip::parts>`, :cpp:func:`realized_items <gui_forms::ToolStrip::realized_items>`; events :cpp:func:`item_clicked <gui_forms::ToolStrip::item_clicked>`, :cpp:func:`drop_down_item_invoked <gui_forms::ToolStrip::drop_down_item_invoked>`, :cpp:func:`item_focus_changed <gui_forms::ToolStrip::item_focus_changed>`; methods :cpp:func:`close_drop_down <gui_forms::ToolStrip::close_drop_down>`, :cpp:func:`combo_box <gui_forms::ToolStrip::combo_box>`, :cpp:func:`item_checked <gui_forms::ToolStrip::item_checked>`, :cpp:func:`item_id_at <gui_forms::ToolStrip::item_id_at>`, :cpp:func:`progress_bar <gui_forms::ToolStrip::progress_bar>`, :cpp:func:`set_item_checked <gui_forms::ToolStrip::set_item_checked>`, :cpp:func:`set_item_text <gui_forms::ToolStrip::set_item_text>`, :cpp:func:`show_drop_down <gui_forms::ToolStrip::show_drop_down>`, :cpp:func:`show_overflow <gui_forms::ToolStrip::show_overflow>`, :cpp:func:`text_box <gui_forms::ToolStrip::text_box>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -125,15 +125,11 @@ gui_forms::BindingNavigator
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::shared_ptr<BindingSource>& binding_source() const noexcept
+   .. cpp:member:: std::shared_ptr<BindingSource> binding_source
 
       The :cpp:class:`BindingSource <gui_forms::BindingSource>` the navigator moves through, or null. Setting it
       shows the source's position and count at once; when the source is
       disposed the navigator lets it go and disables every action.
-
-   .. cpp:function:: void set_binding_source(std::shared_ptr<BindingSource> source)
-
-      Sets :cpp:func:`binding_source <gui_forms::BindingNavigator::binding_source>`; see the property's description above.
 
    .. cpp:function:: const std::shared_ptr<Command>& move_first_command() const noexcept
 

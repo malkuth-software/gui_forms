@@ -248,7 +248,7 @@ void test_range_control_anatomies_validate() {
 void test_track_bar_geometry_matches_pointer_mapping() {
     std::shared_ptr<TrackBar> slider = make_control<TrackBar>(StableId("anatomy.slider"));
     (*slider).set_requested_bounds({10.0, 10.0, 200.0, 28.0});
-    (*slider).set_value(25.0);
+    (*slider).value = 25.0;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(slider, Size{240.0, 60.0});
     Window& window = *held_window;
     window.perform_layout();
@@ -274,7 +274,7 @@ void test_track_bar_geometry_matches_pointer_mapping() {
     down.button = PointerButton::primary;
     down.position = {absolute.x + span.x + span.width * 0.75, absolute.y + 14.0};
     down.pointer_id = 3;
-    require(window.dispatch_pointer(down) && near((*slider).value(), 75.0),
+    require(window.dispatch_pointer(down) && near((*slider).value.read(), 75.0),
             "pointer at three quarters of the published span must select 75");
     const TrackBar::States dragging = (*slider).states();
     require(dragging.pressed && dragging.captured && !dragging.normal,
@@ -293,14 +293,14 @@ void test_track_bar_geometry_matches_pointer_mapping() {
     require(!(*slider).parts().thumb.states.contains(AnatomyState::pressed),
             "release clears the thumb's own states");
 
-    (*slider).set_visual_style(TrackBarVisualStyle::filled);
+    (*slider).visual_style = TrackBarVisualStyle::filled;
     const PartGeometry filled = (*slider).parts().fill;
     const PartGeometry groove = (*slider).parts().track;
     require(filled.present && near(filled.bounds.x, span.x) &&
                 near(filled.bounds.width, span.width * 0.75) &&
                 near(groove.bounds.width, span.width),
             "filled style must publish the value portion of the groove");
-    (*slider).set_visual_style(TrackBarVisualStyle::compact);
+    (*slider).visual_style = TrackBarVisualStyle::compact;
     require(!(*slider).parts().ticks.present,
             "compact style draws no ticks");
     require_parts_within_region(*slider);
@@ -311,8 +311,8 @@ void test_scroll_bar_geometry_and_states() {
     std::shared_ptr<HScrollBar> horizontal = make_control<HScrollBar>(StableId("anatomy.scroll.h"));
     (*horizontal).set_requested_bounds({10.0, 10.0, 240.0, 18.0});
     (*horizontal).set_range(0.0, 100.0);
-    (*horizontal).set_large_change(20.0);
-    (*horizontal).set_value(50.0);
+    (*horizontal).large_change = 20.0;
+    (*horizontal).value = 50.0;
     std::shared_ptr<VScrollBar> vertical = make_control<VScrollBar>(StableId("anatomy.scroll.v"));
     (*vertical).set_requested_bounds({260.0, 10.0, 18.0, 180.0});
     (*root).add_child(horizontal);
@@ -381,7 +381,7 @@ void test_scroll_bar_geometry_and_states() {
 void test_progress_bar_geometry_and_states() {
     std::shared_ptr<ProgressBar> progress = make_control<ProgressBar>(StableId("anatomy.bar"));
     (*progress).set_requested_bounds({0.0, 0.0, 204.0, 20.0});
-    (*progress).set_value(50.0);
+    (*progress).value = 50.0;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(progress, Size{204.0, 20.0});
     Window& window = *held_window;
     window.perform_layout();
@@ -395,7 +395,7 @@ void test_progress_bar_geometry_and_states() {
     require(!(*progress).states().indeterminate,
             "a determinate bar is not indeterminate");
 
-    (*progress).set_visual_style(ProgressBarVisualStyle::marquee);
+    (*progress).visual_style = ProgressBarVisualStyle::marquee;
     require(!(*progress).parts().fill.present &&
                 (*progress).parts().activity.present,
             "a marquee bar publishes its activity band instead of a fill");
@@ -552,8 +552,8 @@ void test_check_box_and_radio_button_parts() {
     require(!(*check).parts().face.present,
             "a normal-appearance check box has no button face");
 
-    (*check).set_checked(true);
-    (*radio).set_checked(true);
+    (*check).checked = true;
+    (*radio).checked = true;
     const PartGeometry check_mark = (*check).parts().indicator;
     const PartGeometry radio_dot = (*radio).parts().indicator;
     const Rect check_well = (*check).parts().well.bounds;
@@ -567,24 +567,24 @@ void test_check_box_and_radio_button_parts() {
                 (*radio).states().checked,
             "checked choices publish checked");
 
-    (*check).set_three_state(true);
-    (*check).set_check_state(CheckState::indeterminate);
+    (*check).three_state = true;
+    (*check).check_state = CheckState::indeterminate;
     const CheckBox::States mixed = (*check).states();
     require(mixed.indeterminate && !mixed.checked &&
                 (*check).parts().indicator.present,
             "an indeterminate box publishes indeterminate and its bar");
 
-    (*check).set_indicator_style(ChoiceIndicatorStyle::toggle);
-    (*check).set_check_state(CheckState::unchecked);
+    (*check).indicator_style = ChoiceIndicatorStyle::toggle;
+    (*check).check_state = CheckState::unchecked;
     const PartGeometry knob_off = (*check).parts().indicator;
-    (*check).set_check_state(CheckState::checked);
+    (*check).check_state = CheckState::checked;
     const PartGeometry knob_on = (*check).parts().indicator;
     require(knob_off.present && knob_on.present &&
                 knob_on.bounds.x > knob_off.bounds.x &&
                 near((*check).parts().well.bounds.width, 30.0),
             "a toggle publishes its knob, which moves when checked");
 
-    (*check).set_appearance(CheckBoxAppearance::button);
+    (*check).appearance = CheckBoxAppearance::button;
     require((*check).parts().face.present &&
                 !(*check).parts().well.present &&
                 !(*check).parts().indicator.present,
@@ -604,7 +604,7 @@ void test_link_label_custom_visited_state() {
     const std::optional<CustomStateIndex> visited = find_custom_state(anatomy, "visited");
     require(visited.has_value(), "LinkLabel declares a visited state");
     require(!(*link).states().visited, "a new link is not visited");
-    (*link).set_visited(true);
+    (*link).visited = true;
     require((*link).states().visited && (*link).anatomy_states().contains(*visited),
             "a visited link publishes its visited state");
     const PartGeometry label = (*link).parts().label;
@@ -632,7 +632,7 @@ void test_drop_down_button_disclosure() {
     const Rect region = (*button).client_rectangle();
     require(segment.present && segment.bounds == (*button).drop_down_bounds() &&
                 near(segment.bounds.right(), region.right()) &&
-                near(segment.bounds.width, (*button).drop_down_width()),
+                near(segment.bounds.width, (*button).drop_down_width.read()),
             "the drop-down segment sits at the trailing edge");
     require(arrow.present && segment.bounds.contains(arrow.bounds),
             "the disclosure arrow lies inside its segment");
@@ -779,7 +779,7 @@ void test_text_box_caret_and_selection() {
             "a selection publishes its highlight between the two boundaries");
     window.set_text_metrics_provider(nullptr);
 
-    (*box).set_read_only(true);
+    (*box).read_only = true;
     (*box).set_visual_status(ControlVisualStatus::invalid);
     const TextBox::States states = (*box).states();
     require(states.read_only && states.invalid && !states.pending,
@@ -795,7 +795,7 @@ void test_spin_combo_and_picker_parts() {
     (*spin).set_requested_bounds({10.0, 10.0, 120.0, 26.0});
     std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("anatomy.combo"));
     (*combo).set_requested_bounds({10.0, 50.0, 160.0, 26.0});
-    (*combo).set_items({"One", "Two"});
+    (*combo).items = {"One", "Two"};
     std::shared_ptr<DateTimePicker> picker = make_control<DateTimePicker>(StableId("anatomy.picker"));
     (*picker).set_requested_bounds({10.0, 90.0, 200.0, 26.0});
     (*root).add_child(spin);
@@ -824,10 +824,10 @@ void test_spin_combo_and_picker_parts() {
                 closed.content.bounds.right() <= closed.divider.bounds.x,
             "a combo box publishes its field, divider, drop-down and arrow");
     require((*combo).states().closed, "a shut combo box is closed");
-    (*combo).set_dropped_down(true);
+    (*combo).dropped_down = true;
     require((*combo).states().open && !(*combo).states().closed,
             "an open combo box publishes open");
-    (*combo).set_dropped_down(false);
+    (*combo).dropped_down = false;
     // Hot under the pointer (stage T4, hot states): the anatomy declares it.
     PointerEvent over{};
     over.action = PointerAction::move;
@@ -840,15 +840,15 @@ void test_spin_combo_and_picker_parts() {
 
     require((*picker).parts().drop_down.present && !(*picker).parts().well.present,
             "a plain picker has a drop-down and no check box");
-    (*picker).set_show_check_box(true);
-    (*picker).set_checked(true);
+    (*picker).show_check_box = true;
+    (*picker).checked = true;
     const DateTimePicker::Parts checked = (*picker).parts();
     require(checked.well.present && checked.indicator.present &&
                 checked.well.bounds.contains(checked.indicator.bounds) &&
                 checked.content.bounds.x >= checked.well.bounds.right() &&
                 (*picker).states().checked,
             "a checked picker publishes its check well, mark and state");
-    (*picker).set_show_up_down(true);
+    (*picker).show_up_down = true;
     const DateTimePicker::Parts spinning = (*picker).parts();
     require(!spinning.drop_down.present && spinning.increment_arrow.present &&
                 spinning.decrement_arrow.present,
@@ -868,10 +868,10 @@ void test_list_rows_are_item_records() {
     (*root).set_requested_bounds({0.0, 0.0, 400.0, 200.0});
     std::shared_ptr<ListBox> list = make_control<ListBox>(StableId("anatomy.list"));
     (*list).set_requested_bounds({10.0, 10.0, 160.0, 120.0});
-    (*list).set_items({"Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta"});
+    (*list).items = {"Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta"};
     std::shared_ptr<CheckedListBox> checks = make_control<CheckedListBox>(StableId("anatomy.checks"));
     (*checks).set_requested_bounds({200.0, 10.0, 160.0, 120.0});
-    (*checks).set_items({"Wrap", "Spell", "Grammar"});
+    (*checks).items = {"Wrap", "Spell", "Grammar"};
     (*root).add_child(list);
     (*root).add_child(checks);
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{400.0, 200.0});
@@ -1090,7 +1090,7 @@ void test_value_editors_and_diagnostic_views() {
             "the colour editor's swatch sits before its text field");
     const MetricsView::Parts metric_parts = (*metrics).parts();
     require(metric_parts.accent_strip.present &&
-                near(metric_parts.accent_strip.bounds.width, (*metrics).accent_width()) &&
+                near(metric_parts.accent_strip.bounds.width, (*metrics).accent_width.read()) &&
                 near(metric_parts.accent_strip.bounds.x, 0.0),
             "the metrics view publishes its accent strip on the leading edge");
     const std::array<const Control*, 2> controls{color.get(), metrics.get()};
@@ -1247,7 +1247,7 @@ void test_object_view_columns_are_items() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("anatomy.objects.root"));
     std::shared_ptr<ObjectView> view = make_control<ObjectView>(StableId("anatomy.objects"));
     (*view).set_bounds({0.0, 0.0, 400.0, 200.0});
-    (*view).set_view_mode(ObjectViewMode::details);
+    (*view).view_mode = ObjectViewMode::details;
     std::vector<ObjectDetailsColumn> columns;
     columns.push_back({.id = {"name"}, .label = "Name", .width = 150.0});
     columns.push_back({.id = {"size"}, .label = "Size", .width = 120.0});

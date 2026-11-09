@@ -23,13 +23,21 @@ stable_id
 Properties
 ----------
 items
-    The choices, in display order. Empty by default. Replacing them with
-    `set_items` raises `items_changed`, unless the new items are equal to
-    the current ones. A selected index that no longer exists is cleared
-    first, raising `selected_index_changed`; a selected index that still
-    exists is kept, even if a different item now has it. Every item must
-    be valid UTF-8, or `std::invalid_argument` is thrown. The same
-    collection is also available to bindings as the ``Items`` property.
+    The choices, in display order, edited in place. Empty by default.
+    Read them with `items.read()` (a span) or `items[i]`; write them with
+    `items = {...}`, `items.insert(i, text)`, `items.append(text)` or
+    `items.append(choices)`, `items.erase(i, n)`, `items.replace(i, text)`
+    and `items.clear()`. Each edit raises `items_changed`; an assignment
+    equal to the current items changes nothing. In the drop_down style the
+    selection follows the editor's text. Otherwise the selected index
+    follows its item: an insertion or erasure before it moves it, erasing
+    it clears it, and an assignment keeps an index that still exists, even
+    if a different item now has it; `selected_index_changed` and then
+    `text_changed` are raised first when the index or its text changed.
+    Every item must be valid UTF-8, or `std::invalid_argument` is thrown,
+    and a position outside the items throws `std::out_of_range`; a refused
+    edit changes nothing. The same collection is also available to
+    bindings as the ``Items`` property.
 selected_index : default ``std::nullopt``
     The index of the selected item, or no value when nothing is selected.
     Setting an index outside the items throws `std::out_of_range`. Also
@@ -45,7 +53,7 @@ drop_down_style : default ``ComboBoxStyle::drop_down_list``
     always shown under the field, is not offered.
 text
     The field's text: the editor's in the drop_down style, otherwise the
-    selected item's. `set_text` in the drop_down style sets the editor's
+    selected item's. Writing `text` in the drop_down style sets the editor's
     text and selects the item it equals, ignoring ASCII case, or clears the
     selection; in the drop_down_list style it selects the first item equal
     to the text, or clears the selection. Invalid UTF-8 throws
@@ -102,14 +110,14 @@ Events
 ------
 selected_index_changed
     Raised after `selected_index` changes, by input, by the setter, or by
-    `set_items` clearing an index that no longer exists. It carries the new
+    an edit of `items` moving or clearing it. It carries the new
     index, or no value. Setting the current index again raises nothing.
 drop_down_changed
     Raised with `true` after the overlay list opens and with `false` after
     it closes, whichever way it closed.
 items_changed
-    Raised after `set_items` or `add_item` changes the items, after any
-    `selected_index_changed` the change caused.
+    Raised after each edit of `items`, after any `selected_index_changed`
+    and `text_changed` the edit caused.
 text_changed
     Raised after `text` changes, with the new text: in the drop_down style
     for every change of the editor's text, before any selection change it
@@ -117,9 +125,6 @@ text_changed
 
 Methods
 -------
-add_item
-    Appends one choice, raising `items_changed`. The item must be valid
-    UTF-8, or `std::invalid_argument` is thrown.
 on_pointer
     Opens the overlay list on a primary press. The window calls it.
 on_key
@@ -185,9 +190,9 @@ closes the suggestions.
 With a `drop_down_filter`, the combo box is searchable. Each edit the user
 makes opens the list on the items that match the typed text, in their own
 order, narrows or widens the rows as the text changes, and closes the list
-when nothing matches; text set by the program (`set_text`, or the editor
+when nothing matches; text set by the program (a `text` write, or the editor
 showing a chosen item) does not filter. Opening the list with the button,
-F4, Alt+Down or `set_dropped_down` shows every item. The rows keep their
+F4, Alt+Down or writing `dropped_down` shows every item. The rows keep their
 items' identities: the selection is always an index into `items`, a row's
 semantic ID ends in its item's index rather than its position, a row
 pressed or chosen with the keys selects its item, and when the items change
@@ -211,9 +216,9 @@ Offer three choices with a placeholder, and select one:
 
    std::shared_ptr<gf::ComboBox> density =
        gf::make_control<gf::ComboBox>(gf::StableId("view.density"));
-   (*density).set_items({"Compact", "Comfortable", "Spacious"});
-   (*density).set_placeholder_text("Choose a density");
-   (*density).set_selected_index(1U);
+   (*density).items = {"Compact", "Comfortable", "Spacious"};
+   (*density).placeholder_text = "Choose a density";
+   (*density).selected_index = 1U;
    // (*density).selected_text() is now "Comfortable"
 
 React to the selection with an owned handler. Shrinking the items clears a
@@ -227,7 +232,7 @@ selection that no longer exists, and the handler sees that too:
        std::string density;
 
        DensityField() {
-           (*combo).set_items({"Compact", "Comfortable", "Spacious"});
+           (*combo).items = {"Compact", "Comfortable", "Spacious"};
            gf::on((*combo).selected_index_changed(), *this, &DensityField::on_density);
        }
        void on_density(std::optional<std::size_t> index) {
@@ -237,8 +242,8 @@ selection that no longer exists, and the handler sees that too:
 
    void example() {
        DensityField field;
-       (*field.combo).set_selected_index(2U);                 // field.density is "Spacious"
-       (*field.combo).set_items({"Compact", "Comfortable"});  // and now ""
+       (*field.combo).selected_index = 2U;                 // field.density is "Spacious"
+       (*field.combo).items = {"Compact", "Comfortable"};  // and now ""
    }
 
 An editable field that completes from its items:
@@ -247,15 +252,15 @@ An editable field that completes from its items:
 
    std::shared_ptr<gf::ComboBox> band =
        gf::make_control<gf::ComboBox>(gf::StableId("radio.band"));
-   (*band).set_items({"Long wave", "Medium wave", "Short wave"});
-   (*band).set_drop_down_style(gf::ComboBoxStyle::drop_down);
-   (*band).set_auto_complete_source(gf::AutoCompleteSource::list_items);
-   (*band).set_auto_complete_mode(gf::AutoCompleteMode::append);
+   (*band).items = {"Long wave", "Medium wave", "Short wave"};
+   (*band).drop_down_style = gf::ComboBoxStyle::drop_down;
+   (*band).auto_complete_source = gf::AutoCompleteSource::list_items;
+   (*band).auto_complete_mode = gf::AutoCompleteMode::append;
    gf::Window window(band, gf::Size{220.0, 30.0});
    window.request_focus((*band).editor());
    window.dispatch_text(gf::TextInputEvent{"m"});
    // The field shows "medium wave" with "edium wave" selected, and the
-   // text equals the second item, so (*band).selected_index() is 1.
+   // text equals the second item, so (*band).selected_index.read() is 1.
 
 A searchable field that lists the stations containing what is typed:
 
@@ -263,9 +268,9 @@ A searchable field that lists the stations containing what is typed:
 
    std::shared_ptr<gf::ComboBox> station =
        gf::make_control<gf::ComboBox>(gf::StableId("trip.station"));
-   (*station).set_items({"Hamburg Hbf", "Köln Hbf", "Paris Nord", "Zürich HB"});
-   (*station).set_drop_down_style(gf::ComboBoxStyle::drop_down);
-   (*station).set_drop_down_filter(gf::ComboBoxFilter::substring);
+   (*station).items = {"Hamburg Hbf", "Köln Hbf", "Paris Nord", "Zürich HB"};
+   (*station).drop_down_style = gf::ComboBoxStyle::drop_down;
+   (*station).drop_down_filter = gf::ComboBoxFilter::substring;
    gf::Window window(station, gf::Size{240.0, 200.0});
    window.request_focus((*station).editor());
    window.dispatch_text(gf::TextInputEvent{"hb"});

@@ -1,9 +1,7 @@
+#include "gui_forms/application.hpp"
 #include "gui_forms/canvas.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/window.hpp"
-#if GUI_FORMS_EXAMPLE_NATIVE
-#include "gui_forms/application.hpp"
-#endif
 
 #include <array>
 #include <cstddef>
@@ -76,6 +74,12 @@ struct CloseWhenReady final {
 
 int main() {
     using namespace gui_forms;
+    // The program's application (APP_WINDOW_RULES_DESIGN A.2): windows made
+    // from here join it and share its resources, and the native build runs
+    // them. Making it needs only Core; `run` needs GUIForms::Application.
+    ApplicationCreateResult created = Application::create(ApplicationConfig{});
+    if (!created) return 1;
+    Application& application = *created.application;
     Document document;
     document.pixels[0] = 231U; // Hidden color in a completely transparent pixel.
     document.undo = document.pixels;
@@ -87,9 +91,10 @@ int main() {
     (*root).set_requested_bounds({0, 0, 100, 100});
     (*canvas).set_requested_bounds({10, 20, 40, 40});
     (*canvas).set_view(2.0, {0, 0});
-    (*canvas).set_bitmap(display);
+    (*canvas).bitmap = display;
     (*root).add_child(canvas);
-    std::unique_ptr<Window> window = std::make_unique<Window>(root, Size{100, 100});
+    std::unique_ptr<Window> window = std::make_unique<Window>(application, root, Size{100, 100});
+    require(application.window_count() == 1U, "the window did not join the application");
     (*window).perform_layout();
     static_cast<void>((*window).take_damage());
 
@@ -133,7 +138,7 @@ int main() {
     options.initial_size = {240, 180};
     options.ready = CloseWhenReady{};
     options.print_metrics_on_close = false;
-    const ApplicationResult result = Application::run(std::move(window), std::move(options));
+    const ApplicationResult result = application.run(std::move(window), std::move(options));
     // Once, after the last run: ends the rendering library for the process.
     const ApplicationResult ended = Application::shutdown();
     return result.accepted() && ended.accepted() ? 0 : 1;

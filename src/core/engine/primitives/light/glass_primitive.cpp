@@ -40,10 +40,10 @@ constexpr std::size_t glass_layers = 4U;
 
 // `none`, then the theme's recipe roles in enum order (E9.6): the recipe
 // whose material's colour filter glass applies to its backdrop.
-constexpr std::array<std::string_view, 15> glass_recipe_names{
+constexpr std::array<std::string_view, 17> glass_recipe_names{
     "none", "window", "panel", "card", "button", "accent_button", "command_button",
     "choice", "editor", "menu_item", "selection", "progress", "tool_tip",
-    "link", "visited_link"};
+    "link", "visited_link", "notice", "badge"};
 static_assert(glass_recipe_names.size() == static_cast<std::size_t>(ControlVisualRole::count) + 1U,
               "none, then one choice per recipe role");
 

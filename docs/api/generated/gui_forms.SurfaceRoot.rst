@@ -56,16 +56,45 @@ gui_forms::SurfaceRoot
       **client_size** : ``Size``, read-only
          The logical client size. ``resize`` changes it.
 
+      **root_slot** : ``Rect``, read-only
+         The root slot (stage B, B.2a): the client rectangle less the window's outer band (Window::declare_band) and, inside it, the chrome insets, in client coordinates. The layout pass measures the root at its size and arranges it there, and a resize marks what it reaches through it; damage and clipping stay in the whole client area. The inset band is the window's own (chrome hit-testing, frame drag): no control is there. Empty on an axis the band and insets cover.
+
+      **content_rect** : ``Rect``, read-only
+         The content rectangle: the client rectangle less the reserved outer band (the whole client area when none is reserved), in client coordinates. Live surfaces are clipped to it; points outside it hit nothing.
+
+      **chrome_insets** : ``Insets``
+
       **scale** : ``double``, default ``1.0``, read-only
          Device pixels per logical unit. The host sets it from the display; a
          value that is not finite and positive throws ``std::invalid_argument``.
 
       **presentation_settings** : ``PresentationSettings``
-         Text scale, high contrast, reduced motion and sound preferences. The
-         text scale must lie between 0.5 and 4.0, and changing it closes open
-         overlays. Any change remeasures the tree and raises
-         :cpp:func:`presentation_changed <gui_forms::SurfaceRoot::presentation_changed>`. Turning reduced motion on puts every motion
-         value of the window at its end in the same call.
+         Text scale, high contrast, reduced motion and sound preferences in
+         force: the window's own settings (:cpp:func:`presentation_base <gui_forms::SurfaceRoot::presentation_base>`) with its
+         overrides (:cpp:func:`presentation_overrides <gui_forms::SurfaceRoot::presentation_overrides>`) applied. :cpp:func:`set_presentation_settings <gui_forms::SurfaceRoot::set_presentation_settings>`
+         sets the window's own settings, and the overrides still win. A window
+         joined to an application takes the application's settings as its own,
+         and the host's reports change the application's
+         (``Application::set_presentation_settings``). The text scale must lie
+         between 0.5 and 4.0, and changing it closes open overlays. Any change
+         remeasures the tree and raises :cpp:func:`presentation_changed <gui_forms::SurfaceRoot::presentation_changed>`. Turning reduced
+         motion on puts every motion value of the window at its end in the same
+         call.
+
+      **presentation_base** : ``PresentationSettings``, read-only
+         The window's own presentation settings, before its overrides.
+
+      **presentation_overrides** : ``PresentationOverrides*``
+         The fields this window overrides (:cpp:class:`PresentationOverrides <gui_forms::PresentationOverrides>`), or null when
+         it has none: each set field wins over the window's own settings.
+         :cpp:func:`set_presentation_overrides <gui_forms::SurfaceRoot::set_presentation_overrides>` stores the first override, and an empty
+         record releases them, so a window without overrides stores nothing. A
+         result outside the valid settings throws ``std::invalid_argument`` and
+         changes nothing. The double-click interval and the pointer settings are
+         the host's and have no override.
+
+      **overrides** : ``WindowOverrides*``, read-only
+         Everything the window overrides, or null when it overrides nothing (no record is allocated until the first override).
 
       **text_metrics_provider** : ``TextMetricsProvider*``
 
@@ -136,6 +165,8 @@ gui_forms::SurfaceRoot
 
       **paint_lease_snapshot** : ``PaintLeaseSnapshot``, read-only
          Returns revision, epoch, lease, wake, deferral, and receipt counters plus current lease state.
+
+      **scroll_copies_supported** : ``bool``
 
       **needs_frame** : ``bool``, read-only
          Whether painting is pending.
@@ -208,13 +239,14 @@ gui_forms::SurfaceRoot
          Returns the captured pointer identity or zero.
 
       **tool_tips_shown_setting** : ``std::optional<bool>``, read-only
-         Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the program's switch decides (Application::tool_tips_shown). Turning tooltips off closes one that shows. UI thread.
+         Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the switch of the application the window joined decides (Application::tool_tips_shown), and with none they show. Turning tooltips off closes one that shows. UI thread.
 
-      **tool_tips_shown** : ``bool``, default follows ``Application::tool_tips_shown()``
+      **tool_tips_shown** : ``bool``, default follows the application's ``tool_tips_shown()``
          Whether the window's tooltip presenter shows tooltips when the pointer
          rests or keyboard focus arrives. :cpp:func:`set_tool_tips_shown <gui_forms::SurfaceRoot::set_tool_tips_shown>` takes an
-         optional: unset, the window follows the program switch,
-         ``Application::set_tool_tips_shown``. Turning it off closes a tooltip that
+         optional: unset, the window follows the switch of the application it
+         joined (``Application::set_tool_tips_shown``), and shows tooltips when it
+         joined none. Turning it off closes a tooltip that
          shows. :cpp:func:`show_tool_tip <gui_forms::SurfaceRoot::show_tool_tip>` shows one regardless.
 
       **tool_tip_settings** : ``ToolTipSettings``
@@ -239,6 +271,20 @@ gui_forms::SurfaceRoot
       **pressed_control** : ``Control::Ptr``, read-only
          The control on which the primary button went down and has not yet been
          released, or null.
+
+      **hovered_control** : ``Control::Ptr``, read-only
+         The control the pointer is over, or null.
+
+      **interaction_snapshot** : ``InteractionSnapshot``, read-only
+         A copy of the window's input state (:cpp:class:`InteractionSnapshot <gui_forms::InteractionSnapshot>`): the held
+         keys in press order with their press times, the modifiers, the pointer
+         and its buttons, the click count the host reported for the last press,
+         the focused, captured, pressed and hovered controls, and the hover
+         timing. The window updates the state as each pointer or key event
+         arrives, before any control sees it, and makes it on the first such
+         event. GUI.Forms recognizes no gestures and counts no clicks: the host
+         reports the click count, and controls raise the WinForms mouse events
+         (``Control::mouse_down`` and the rest) from it.
 
       **deferred_input_snapshot** : ``DeferredInputSnapshot``, read-only
          Returns fixed-capacity queue, delivery, compaction, rejection, abandonment, fault, and drain telemetry.
@@ -342,6 +388,8 @@ gui_forms::SurfaceRoot
         - The live instrumentation counters, for hosts and renderers that record into them.
       * - :cpp:func:`reset_activity_metrics <gui_forms::SurfaceRoot::reset_activity_metrics>`
         - Zeroes the activity counters, keeping the population and depth values, so a test can measure one workload.
+      * - :cpp:func:`control <gui_forms::SurfaceRoot::control>`
+        - The control attached to the window with ``stable_id`` (stage B, B.3: a runtime-loaded form's controls, a rule's target), as find() gives it but with the reason when there is none.
       * - :cpp:func:`create_framebuffer <gui_forms::SurfaceRoot::create_framebuffer>`
         -  
       * - :cpp:func:`snapshot_control <gui_forms::SurfaceRoot::snapshot_control>`
@@ -358,10 +406,14 @@ gui_forms::SurfaceRoot
         - Compositor cooperation (stage T5, notes:planning/stages/T5-compositor/ PLAN.md §2).
       * - :cpp:func:`request_backdrop <gui_forms::SurfaceRoot::request_backdrop>`
         - Asks for a backdrop (owner decisions T5-Q3 and T5-Q5) and returns the grant now in force: the request's first entry this window may be given under the host's state and its presentation settings, else ``opaque``, with the reason the preferred entry was or was not given.
+      * - :cpp:func:`share_key_bindings <gui_forms::SurfaceRoot::share_key_bindings>`
+        - The table the window reads, made now (one allocation) when it reads the PC convention, so that another window can share it.
       * - :cpp:func:`rebind_key_command <gui_forms::SurfaceRoot::rebind_key_command>`
         - Binds a :cpp:enum:`KeyCommand <gui_forms::KeyCommand>` to a :cpp:class:`KeyBinding <gui_forms::KeyBinding>` (up to two chords) in the window's key bindings, so in every window sharing them, over the host's default; an empty binding leaves the command without keys.
       * - :cpp:func:`restore_key_command <gui_forms::SurfaceRoot::restore_key_command>`
         - Returns a command to the host's default.
+      * - :cpp:func:`clear_key_bindings <gui_forms::SurfaceRoot::clear_key_bindings>`
+        - Drops the table the window holds, so it reads its owner's again.
       * - :cpp:func:`begin_update <gui_forms::SurfaceRoot::begin_update>`
         - Opens an update scope and returns its :cpp:class:`UpdateScope <gui_forms::UpdateScope>` token.
       * - :cpp:func:`perform_layout <gui_forms::SurfaceRoot::perform_layout>`
@@ -374,6 +426,10 @@ gui_forms::SurfaceRoot
         - Preferred host release.
       * - :cpp:func:`take_damage <gui_forms::SurfaceRoot::take_damage>`
         - Runs pending layout, then returns and clears the accumulated damage of every paint plane.
+      * - :cpp:func:`take_scroll_copies <gui_forms::SurfaceRoot::take_scroll_copies>`
+        - Appends the copies recorded since the last take to ``copies``, in the order recorded, and forgets them.
+      * - :cpp:func:`request_scroll_copy <gui_forms::SurfaceRoot::request_scroll_copy>`
+        - Called by ``scroller``'s arrange, inside the layout pass, after it moved its scrolling children by ``offset`` (whole device pixels) and nothing else changed in its child viewport.
       * - :cpp:func:`schedule_paint <gui_forms::SurfaceRoot::schedule_paint>`
         -  
       * - :cpp:func:`schedule_ui_timer <gui_forms::SurfaceRoot::schedule_ui_timer>`
@@ -406,6 +462,8 @@ gui_forms::SurfaceRoot
         - Moves keyboard focus to a control, or clears it with null.
       * - :cpp:func:`text_input_caret <gui_forms::SurfaceRoot::text_input_caret>`
         - The box an input method places its windows by, in this root's coordinates: the focused control's Control::text_input_caret, or a one-unit-wide box at its left edge when it names none; none without an eligible focused control.
+      * - :cpp:func:`rules <gui_forms::SurfaceRoot::rules>`
+        - The window's rules (gui_forms/rules.hpp; notes:planning APP_WINDOW_RULES_DESIGN Part C), made on first use; the window owns them and they end with it.
       * - :cpp:func:`append_interactions <gui_forms::SurfaceRoot::append_interactions>`
         - The interactions a window raises, by the name of their event accessor, appended in declaration order: the window events the C ABI subscribes by name (stage C, tools/abi_event_catalog.py).
       * - :cpp:func:`request_help <gui_forms::SurfaceRoot::request_help>`
@@ -456,6 +514,10 @@ gui_forms::SurfaceRoot
         - Delivers a pointer event, as the host does for mouse, pen and touch input, and returns whether a control handled it.
       * - :cpp:func:`dispatch_key <gui_forms::SurfaceRoot::dispatch_key>`
         - Delivers a key event and returns whether anything handled it: the focused control, an accelerator, a dialog key or Tab traversal.
+      * - :cpp:func:`dispatch_context_request <gui_forms::SurfaceRoot::dispatch_context_request>`
+        - Offers a context-menu request (:cpp:class:`ContextMenuRequest <gui_forms::ContextMenuRequest>`) from the host's :cpp:class:`HostContextRequestEvent <gui_forms::HostContextRequestEvent>`: a pointer request to the control under the position (the captured control while one is), a keyboard request to the focused control, then to each ancestor until one handles it, through ``Control::on_context_menu_requested`` and its ``context_menu_requested`` subscribers.
+      * - :cpp:func:`dispatch_host_hover <gui_forms::SurfaceRoot::dispatch_host_hover>`
+        - The host's own hover report (:cpp:class:`HostHoverEvent <gui_forms::HostHoverEvent>`, where the pointer settings say ``native_hover``): raises MouseHover on the hovered control, once per entry.
       * - :cpp:func:`dispatch_text <gui_forms::SurfaceRoot::dispatch_text>`
         - Delivers text input to the focused control and returns whether it was handled.
       * - :cpp:func:`dispatch_drag <gui_forms::SurfaceRoot::dispatch_drag>`
@@ -481,19 +543,23 @@ gui_forms::SurfaceRoot
       * - :cpp:func:`perform_semantic_action <gui_forms::SurfaceRoot::perform_semantic_action>`
         - Performs an automation action, such as focus or press, and returns whether it was performed.
       * - :cpp:func:`semantic_text_layout <gui_forms::SurfaceRoot::semantic_text_layout>`
-        - Fills ``layout`` (caller-owned storage, emptied first and reused) with the text layout of the control with runtime identity ``control``: its visual lines, graphemes and word starts, built only now (owner decision A-T1, 12.13).
+        - Fills ``layout`` (caller-owned storage, emptied first and reused) with the text layout of the control with runtime identity :cpp:func:`control <gui_forms::SurfaceRoot::control>`: its visual lines, graphemes and word starts, built only now (owner decision A-T1, 12.13).
       * - :cpp:func:`set_dispatch_wake_handler <gui_forms::SurfaceRoot::set_dispatch_wake_handler>`
         - Installs the host's thread-safe wake.
       * - :cpp:func:`set_text_scale <gui_forms::SurfaceRoot::set_text_scale>`
         -  
+      * - :cpp:func:`set_theme_override <gui_forms::SurfaceRoot::set_theme_override>`
+        - Shows :cpp:func:`theme <gui_forms::SurfaceRoot::theme>` in this window alone, whatever its resources' theme (ApplicationResources::set_theme no longer reaches it); null returns to the resources' theme.
       * - :cpp:func:`set_framebuffer_painter <gui_forms::SurfaceRoot::set_framebuffer_painter>`
         - Native host borrows its painter until shutdown; clear before destroying it.
       * - :cpp:func:`set_paint_wake_handler <gui_forms::SurfaceRoot::set_paint_wake_handler>`
         - Host adapters also install a paint wake seam.
       * - :cpp:func:`set_command_target <gui_forms::SurfaceRoot::set_command_target>`
         - Names the :cpp:class:`CommandTarget <gui_forms::CommandTarget>` of one stage of the command routing chain: the active panel, the active document or the main window, or clears it with null.
+      * - :cpp:func:`set_input_time_source <gui_forms::SurfaceRoot::set_input_time_source>`
+        - Installs the clock the input state reads (:cpp:class:`InputTimeSource <gui_forms::InputTimeSource>`), borrowed, or null for the steady clock.
       * - :cpp:func:`set_semantic_text_selection <gui_forms::SurfaceRoot::set_semantic_text_selection>`
-        - Moves the text selection of the control with runtime identity ``control`` (A-T1); focus does not move.
+        - Moves the text selection of the control with runtime identity :cpp:func:`control <gui_forms::SurfaceRoot::control>` (A-T1); focus does not move.
 
    .. seealso::
 
@@ -545,6 +611,20 @@ gui_forms::SurfaceRoot
 
       The logical client size. ``resize`` changes it.
 
+   .. cpp:function:: Rect root_slot() const noexcept
+
+      The root slot (stage B, B.2a): the client rectangle less the window's outer band (Window::declare_band) and, inside it, the chrome insets, in client coordinates. The layout pass measures the root at its size and arranges it there, and a resize marks what it reaches through it; damage and clipping stay in the whole client area. The inset band is the window's own (chrome hit-testing, frame drag): no control is there. Empty on an axis the band and insets cover.
+
+   .. cpp:function:: Rect content_rect() const noexcept
+
+      The content rectangle: the client rectangle less the reserved outer band (the whole client area when none is reserved), in client coordinates. Live surfaces are clipped to it; points outside it hit nothing.
+
+   .. cpp:function:: Insets chrome_insets() const noexcept
+
+   .. cpp:function:: void set_chrome_insets(Insets insets)
+
+      Sets the chrome insets: std::invalid_argument, changing nothing, unless each is finite and not negative; otherwise damages the client area and marks the root to be arranged again, and measured again on an axis whose slot extent changed. Root thread.
+
    .. cpp:function:: double scale() const noexcept
 
       Device pixels per logical unit. The host sets it from the display; a
@@ -552,15 +632,43 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: const PresentationSettings& presentation_settings() const noexcept
 
-      Text scale, high contrast, reduced motion and sound preferences. The
-      text scale must lie between 0.5 and 4.0, and changing it closes open
-      overlays. Any change remeasures the tree and raises
-      :cpp:func:`presentation_changed <gui_forms::SurfaceRoot::presentation_changed>`. Turning reduced motion on puts every motion
-      value of the window at its end in the same call.
+      Text scale, high contrast, reduced motion and sound preferences in
+      force: the window's own settings (:cpp:func:`presentation_base <gui_forms::SurfaceRoot::presentation_base>`) with its
+      overrides (:cpp:func:`presentation_overrides <gui_forms::SurfaceRoot::presentation_overrides>`) applied. :cpp:func:`set_presentation_settings <gui_forms::SurfaceRoot::set_presentation_settings>`
+      sets the window's own settings, and the overrides still win. A window
+      joined to an application takes the application's settings as its own,
+      and the host's reports change the application's
+      (``Application::set_presentation_settings``). The text scale must lie
+      between 0.5 and 4.0, and changing it closes open overlays. Any change
+      remeasures the tree and raises :cpp:func:`presentation_changed <gui_forms::SurfaceRoot::presentation_changed>`. Turning reduced
+      motion on puts every motion value of the window at its end in the same
+      call.
 
    .. cpp:function:: void set_presentation_settings(PresentationSettings settings)
 
       Sets :cpp:func:`presentation_settings <gui_forms::SurfaceRoot::presentation_settings>`; see the property's description above.
+
+   .. cpp:function:: const PresentationSettings& presentation_base() const noexcept
+
+      The window's own presentation settings, before its overrides.
+
+   .. cpp:function:: const PresentationOverrides* presentation_overrides() const noexcept
+
+      The fields this window overrides (:cpp:class:`PresentationOverrides <gui_forms::PresentationOverrides>`), or null when
+      it has none: each set field wins over the window's own settings.
+      :cpp:func:`set_presentation_overrides <gui_forms::SurfaceRoot::set_presentation_overrides>` stores the first override, and an empty
+      record releases them, so a window without overrides stores nothing. A
+      result outside the valid settings throws ``std::invalid_argument`` and
+      changes nothing. The double-click interval and the pointer settings are
+      the host's and have no override.
+
+   .. cpp:function:: void set_presentation_overrides(const PresentationOverrides& overrides)
+
+      Sets :cpp:func:`presentation_overrides <gui_forms::SurfaceRoot::presentation_overrides>`; see the property's description above.
+
+   .. cpp:function:: const WindowOverrides* overrides() const noexcept
+
+      Everything the window overrides, or null when it overrides nothing (no record is allocated until the first override).
 
    .. cpp:function:: TextMetricsProvider* text_metrics_provider() const noexcept
 
@@ -667,6 +775,12 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: PaintLeaseSnapshot paint_lease_snapshot() const noexcept
 
+   .. cpp:function:: bool scroll_copies_supported() const noexcept
+
+   .. cpp:function:: void set_scroll_copies_supported(bool supported) noexcept
+
+      Scroll copies (ScrollCopy). A host that can move the pixels it holds turns them on; then a scroll that only translates a viewport's children by whole device pixels damages the band it exposed and records a copy instead of damaging the viewport. take_damage commits the layout that records them; take them after it and apply them, in order, before painting that damage: the damage already taken (and any the host still holds) is moved with each copy (damage_after_scroll_copy). A host that cannot apply a copy damages its clip instead. Off by default.
+
    .. cpp:function:: bool needs_frame() const noexcept
 
       Whether painting is pending.
@@ -762,14 +876,15 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: std::optional<bool> tool_tips_shown_setting() const noexcept
 
-      Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the program's switch decides (Application::tool_tips_shown). Turning tooltips off closes one that shows. UI thread.
+      Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the switch of the application the window joined decides (Application::tool_tips_shown), and with none they show. Turning tooltips off closes one that shows. UI thread.
 
    .. cpp:function:: bool tool_tips_shown() const noexcept
 
       Whether the window's tooltip presenter shows tooltips when the pointer
       rests or keyboard focus arrives. :cpp:func:`set_tool_tips_shown <gui_forms::SurfaceRoot::set_tool_tips_shown>` takes an
-      optional: unset, the window follows the program switch,
-      ``Application::set_tool_tips_shown``. Turning it off closes a tooltip that
+      optional: unset, the window follows the switch of the application it
+      joined (``Application::set_tool_tips_shown``), and shows tooltips when it
+      joined none. Turning it off closes a tooltip that
       shows. :cpp:func:`show_tool_tip <gui_forms::SurfaceRoot::show_tool_tip>` shows one regardless.
 
    .. cpp:function:: void set_tool_tips_shown(std::optional<bool> shown)
@@ -806,6 +921,22 @@ gui_forms::SurfaceRoot
 
       The control on which the primary button went down and has not yet been
       released, or null.
+
+   .. cpp:function:: Control::Ptr hovered_control() const noexcept
+
+      The control the pointer is over, or null.
+
+   .. cpp:function:: InteractionSnapshot interaction_snapshot() const
+
+      A copy of the window's input state (:cpp:class:`InteractionSnapshot <gui_forms::InteractionSnapshot>`): the held
+      keys in press order with their press times, the modifiers, the pointer
+      and its buttons, the click count the host reported for the last press,
+      the focused, captured, pressed and hovered controls, and the hover
+      timing. The window updates the state as each pointer or key event
+      arrives, before any control sees it, and makes it on the first such
+      event. GUI.Forms recognizes no gestures and counts no clicks: the host
+      reports the click count, and controls raise the WinForms mouse events
+      (``Control::mouse_down`` and the rest) from it.
 
    .. cpp:function:: DeferredInputSnapshot deferred_input_snapshot() const noexcept
 
@@ -963,6 +1094,10 @@ gui_forms::SurfaceRoot
       Zeroes the activity counters, keeping the population and depth values,
       so a test can measure one workload.
 
+   .. cpp:function:: ControlLookup control(std::string_view stable_id) const
+
+      The control attached to the window with ``stable_id`` (stage B, B.3: a runtime-loaded form's controls, a rule's target), as find() gives it but with the reason when there is none. Stable IDs are unique within a window (attaching a repeated one is refused). Changes nothing.
+
    .. cpp:function:: std::unique_ptr<PaintFramebuffer> create_framebuffer(Size logical_size, double scale)
 
    .. cpp:function:: std::optional<ControlSnapshot> snapshot_control(const Control::Ptr& control, double scale)
@@ -999,6 +1134,10 @@ gui_forms::SurfaceRoot
 
       Asks for a backdrop (owner decisions T5-Q3 and T5-Q5) and returns the grant now in force: the request's first entry this window may be given under the host's state and its presentation settings, else ``opaque``, with the reason the preferred entry was or was not given. The request stands: the grant is resolved again whenever the state, the settings or the declaration change. Until the application makes one, the window makes its theme's (ThemeWindowBackdrop::request) and follows each new theme's. std::invalid_argument, changing nothing, for a request window_backdrop_request_valid refuses. UI thread.
 
+   .. cpp:function:: std::shared_ptr<KeyBindings> share_key_bindings()
+
+      The table the window reads, made now (one allocation) when it reads the PC convention, so that another window can share it. Root thread.
+
    .. cpp:function:: void rebind_key_command(KeyCommand command, KeyBinding binding)
 
       Binds a :cpp:enum:`KeyCommand <gui_forms::KeyCommand>` to a :cpp:class:`KeyBinding <gui_forms::KeyBinding>` (up to two chords) in the
@@ -1012,6 +1151,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: void restore_key_command(KeyCommand command)
 
       Returns a command to the host's default.
+
+   .. cpp:function:: void clear_key_bindings()
+
+      Drops the table the window holds, so it reads its owner's again.
 
    .. cpp:function:: UpdateScope begin_update()
 
@@ -1061,6 +1204,14 @@ gui_forms::SurfaceRoot
 
       Runs pending layout, then returns and clears the accumulated damage of
       every paint plane.
+
+   .. cpp:function:: void take_scroll_copies(std::vector<ScrollCopy>& copies)
+
+      Appends the copies recorded since the last take to ``copies``, in the order recorded, and forgets them.
+
+   .. cpp:function:: bool request_scroll_copy(Control& scroller, Point offset)
+
+      Called by ``scroller``'s arrange, inside the layout pass, after it moved its scrolling children by ``offset`` (whole device pixels) and nothing else changed in its child viewport. Returns true when the copy is recorded: the damage already pending in the viewport is moved by ``offset``, the exposed band is damaged, and the children's moves by exactly ``offset`` in this pass damage nothing; controls drawn over the viewport (later siblings, overlays) are damaged where they are and where the copy moved their pixels. False when the pixels beneath the viewport would not move with it (an earlier sibling or a backplane control crosses it, or an ancestor's paint depends on its size, below the first opaque fill covering it), the viewport or offset is not device-aligned, or copies are off; the caller then repaints its viewport.
 
    .. cpp:function:: FrameRequestToken schedule_paint(const Control::Ptr& control, FrameTime deadline)
 
@@ -1115,6 +1266,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: std::optional<Rect> text_input_caret()
 
       The box an input method places its windows by, in this root's coordinates: the focused control's Control::text_input_caret, or a one-unit-wide box at its left edge when it names none; none without an eligible focused control. Hosts read it when the input method asks. Root thread only.
+
+   .. cpp:function:: RuleSet& rules()
+
+      The window's rules (gui_forms/rules.hpp; notes:planning APP_WINDOW_RULES_DESIGN Part C), made on first use; the window owns them and they end with it. Key rules see each key before the control route. Root thread only. Defined with the rules, in gui_forms_controls.
 
    .. cpp:function:: static void append_interactions(std::vector<InteractionDeclaration>& interactions)
 
@@ -1252,6 +1407,24 @@ gui_forms::SurfaceRoot
       Delivers a key event and returns whether anything handled it: the
       focused control, an accelerator, a dialog key or Tab traversal.
 
+   .. cpp:function:: bool dispatch_context_request(ContextRequestOrigin origin, Point position)
+
+      Offers a context-menu request (:cpp:class:`ContextMenuRequest <gui_forms::ContextMenuRequest>`) from the host's
+      :cpp:class:`HostContextRequestEvent <gui_forms::HostContextRequestEvent>`: a pointer request to the control under the
+      position (the captured control while one is), a keyboard request to
+      the focused control, then to each ancestor until one handles it,
+      through ``Control::on_context_menu_requested`` and its
+      ``context_menu_requested`` subscribers. Returns whether one handled it.
+      The core makes no request of its own from keys: Windows reports
+      Shift+F10 and the Menu key, the Linux host emulates them, and macOS
+      reports its accessibility show-menu action.
+
+   .. cpp:function:: void dispatch_host_hover(Point position)
+
+      The host's own hover report (:cpp:class:`HostHoverEvent <gui_forms::HostHoverEvent>`, where the pointer
+      settings say ``native_hover``): raises MouseHover on the hovered control,
+      once per entry.
+
    .. cpp:function:: bool dispatch_text(TextInputEvent event)
 
       Delivers text input to the focused control and returns whether it was
@@ -1326,7 +1499,7 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: SemanticTextResult semantic_text_layout(RuntimeId control, SemanticTextLayout& layout)
 
-      Fills ``layout`` (caller-owned storage, emptied first and reused) with the text layout of the control with runtime identity ``control``: its visual lines, graphemes and word starts, built only now (owner decision A-T1, 12.13). Text is published on a control's own node, never on a virtual child. UI thread only, and not deferred: during paint it answers during_paint and the host asks again. A runtime identity no attached control holds answers stale_identity (interview GF017). Reading changes no text, selection or scroll position.
+      Fills ``layout`` (caller-owned storage, emptied first and reused) with the text layout of the control with runtime identity :cpp:func:`control <gui_forms::SurfaceRoot::control>`: its visual lines, graphemes and word starts, built only now (owner decision A-T1, 12.13). Text is published on a control's own node, never on a virtual child. UI thread only, and not deferred: during paint it answers during_paint and the host asks again. A runtime identity no attached control holds answers stale_identity (interview GF017). Reading changes no text, selection or scroll position.
 
    .. cpp:function:: void set_dispatch_wake_handler(std::function<void()> wake)
 
@@ -1337,6 +1510,10 @@ gui_forms::SurfaceRoot
       :cpp:func:`invoke <gui_forms::SurfaceRoot::invoke>` waits throws ``std::logic_error``.
 
    .. cpp:function:: void set_text_scale(double text_scale)
+
+   .. cpp:function:: void set_theme_override(std::shared_ptr<const Theme> theme)
+
+      Shows :cpp:func:`theme <gui_forms::SurfaceRoot::theme>` in this window alone, whatever its resources' theme (ApplicationResources::set_theme no longer reaches it); null returns to the resources' theme. Root thread.
 
    .. cpp:function:: void set_framebuffer_painter(Painter* painter)
 
@@ -1357,9 +1534,16 @@ gui_forms::SurfaceRoot
       ``std::invalid_argument``. ``command_target(stage)`` returns the named
       target while it lives.
 
+   .. cpp:function:: void set_input_time_source(const InputTimeSource* source) noexcept
+
+      Installs the clock the input state reads (:cpp:class:`InputTimeSource <gui_forms::InputTimeSource>`), borrowed,
+      or null for the steady clock. Tests install one to place key presses
+      and hovers in time; its times must be in the domain the window is polled
+      with, which wakes a pending hover.
+
    .. cpp:function:: SemanticTextResult set_semantic_text_selection(RuntimeId control, SemanticTextSelection selection)
 
-      Moves the text selection of the control with runtime identity ``control`` (A-T1); focus does not move. Refused as semantic_text_layout refuses, and also for a control outside the active focus scope (outside_focus_scope) or an offset off a grapheme boundary (off_boundary); a refusal changes nothing. A done change reaches hosts through the next snapshot's text_selection field.
+      Moves the text selection of the control with runtime identity :cpp:func:`control <gui_forms::SurfaceRoot::control>` (A-T1); focus does not move. Refused as semantic_text_layout refuses, and also for a control outside the active focus scope (outside_focus_scope) or an offset off a grapheme boundary (off_boundary); a refusal changes nothing. A done change reaches hosts through the next snapshot's text_selection field.
 
 
    .. rubric:: Extension points

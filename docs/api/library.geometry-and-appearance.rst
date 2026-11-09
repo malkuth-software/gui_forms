@@ -16,6 +16,10 @@ Types
 
    * - :cpp:class:`AmbientEffect <gui_forms::AmbientEffect>`
      - An ambient effect (E7): its part repaints as time passes, at most ``frames_per_second``, and reads time_in_state within one ``period`` (it wraps), so that the effect cycles.
+   * - :cpp:class:`AncestorBloom <gui_forms::AncestorBloom>`
+     - The keys an ancestor chain holds, hashed into 256 bits: a rule whose ancestor keys are not all present cannot match, and is rejected without walking the chain (CSS engines' ancestor Bloom filter).
+   * - :cpp:class:`AncestorFacts <gui_forms::AncestorFacts>`
+     - One ancestor control as a selector's ancestor compounds read it: borrowed from the control for the resolution.
    * - :cpp:class:`AssembledPartMaterial <gui_forms::AssembledPartMaterial>`
      - A part's assembled material (T3 EC1): its recipe's material, the floor, with the winning material fields of the theme's rules in place, and what it was assembled from.
    * - :cpp:class:`AuthoredGradient <gui_forms::AuthoredGradient>`
@@ -28,6 +32,8 @@ Types
      -  
    * - :cpp:class:`BackplaneRegion <gui_forms::BackplaneRegion>`
      - One backplane image's region (E9-B): ``extent`` device pixels at ``scale``, its top-left pixel at ``origin`` in the window's device pixels (the window's logical origin times the scale; possibly fractional).
+   * - :cpp:class:`BandDeclaration <gui_forms::BandDeclaration>`
+     - A ``window`` rule's band (owner, 2026-11-08: the window outer band): ``band-width`` (logical units, before device-pixel snapping), ``band-color`` (the rest colour), ``band-lit-color`` and ``band-effect``.
    * - :cpp:class:`BasicControlStyle <gui_forms::BasicControlStyle>`
      - BasicControlStyle retains the compact compatibility palette used by callers that do not select full role recipes.
    * - :cpp:class:`BoundedRange <gui_forms::BoundedRange>`
@@ -48,8 +54,12 @@ Types
      - One state of a compiled machine (see PresentationState).
    * - :cpp:class:`CompiledThemeRules::CompiledTransition <gui_forms::CompiledThemeRules::CompiledTransition>`
      - A checked transition: an engine property, or the parameter at ``parameter``.
+   * - :cpp:class:`CompiledThemeRules::FieldProvenance <gui_forms::CompiledThemeRules::FieldProvenance>`
+     - Where one resolved field came from (T4 cascade spec, item 5).
    * - :cpp:class:`CompiledThemeRules::PartFacts <gui_forms::CompiledThemeRules::PartFacts>`
      - What a part is: the facts its selectors are matched against.
+   * - :cpp:class:`CompiledThemeRules::PartProvenance <gui_forms::CompiledThemeRules::PartProvenance>`
+     - The provenance of every field of the part ``facts`` name: its primitive parameters (by position; ``parameter_count`` are the chosen primitive's, none when no rule selects one), its material fields and its recipe fields (by their positions), as resolve(), resolve_recipe_fields() and the primitive's parameters resolve them.
    * - :cpp:class:`CompiledThemeRules::RecipeResolution <gui_forms::CompiledThemeRules::RecipeResolution>`
      - The winning declaration of each recipe field (RecipeField) of the rules matching a control, by the field's position, or null where no matching rule sets it; they belong to the compiled rules.
    * - :cpp:class:`CompiledThemeRules::Resolution <gui_forms::CompiledThemeRules::Resolution>`
@@ -150,6 +160,8 @@ Types
      - The position of a number parameter among a primitive's declared parameters (PrimitiveDescriptor::parameters).
    * - :cpp:class:`ExpressionResult <gui_forms::ExpressionResult>`
      -  
+   * - :cpp:class:`FamiliarThemeBuild <gui_forms::FamiliarThemeBuild>`
+     - A built theme and what building it measured.
    * - :cpp:class:`FontDeclaration <gui_forms::FontDeclaration>`
      - A part's font as the cascade resolved it: a text role, or, with ``inherit`` (D7), the parent control's, which the caller resolves at paint.
    * - :cpp:class:`FontSpec <gui_forms::FontSpec>`
@@ -177,7 +189,7 @@ Types
    * - :cpp:class:`MaterialBorder <gui_forms::MaterialBorder>`
      - MaterialBorder pairs an authored color and logical stroke width.
    * - :cpp:class:`MaterialBorderEdges <gui_forms::MaterialBorderEdges>`
-     -  
+     - Single edges (CSS border-color with differing sides).
    * - :cpp:class:`MaterialColourFilter <gui_forms::MaterialColourFilter>`
      - A material's colour filter: none, or one matrix held out of line.
    * - :cpp:class:`MaterialColourMatrix <gui_forms::MaterialColourMatrix>`
@@ -296,14 +308,20 @@ Types
      -  
    * - :cpp:class:`RetainedDrawMemo <gui_forms::RetainedDrawMemo>`
      - Renderer-derived data for one retained draw command, such as shaped text.
+   * - :cpp:class:`RuleAncestor <gui_forms::RuleAncestor>`
+     - One ancestor compound of a selector (selector step 4): a control type, a stable ID and classes, each optional, matched against an ancestor control.
    * - :cpp:class:`RuleDeclaration <gui_forms::RuleDeclaration>`
      - One declaration: a property and its value.
    * - :cpp:class:`RuleDiagnostic <gui_forms::RuleDiagnostic>`
      -  
+   * - :cpp:class:`RuleExclusion <gui_forms::RuleExclusion>`
+     - One argument of a selector's ``:not()`` (selector step 2): a compound of a control type, a stable ID, classes, states and a family, each optional; it excludes the parts it matches.
+   * - :cpp:class:`RuleProvenance <gui_forms::RuleProvenance>`
+     - Where a rule was written (T4 cascade spec, item 5), for an editor's queries; paint never reads it.
    * - :cpp:class:`RuleSelector <gui_forms::RuleSelector>`
-     -  
+     - ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family).
    * - :cpp:class:`RuleSpecificity <gui_forms::RuleSpecificity>`
-     - A selector's specificity: the stable ID, the classes, the control type, the part (its name or role, one each) and the states, compared in that order (T2 plan, E4).
+     - A selector's specificity, CSS's three columns compared in order: the stable ID; the classes, the states and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements).
    * - :cpp:class:`ScopedCondition <gui_forms::ScopedCondition>`
      - A copy's condition: the part's winning definition of ``name`` is ``definition``, or, for custom_property_undefined, no definition matches.
    * - :cpp:class:`ScopedDefinition <gui_forms::ScopedDefinition>`
@@ -372,6 +390,39 @@ Types
    .. cpp:member:: double frames_per_second
 
    .. cpp:member:: FrameInterval pose
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AncestorBloom final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   The keys an ancestor chain holds, hashed into 256 bits: a rule whose ancestor keys are not all present cannot match, and is rejected without walking the chain (CSS engines' ancestor Bloom filter).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void add(std::string_view prefix, std::string_view key) noexcept
+
+      Adds ``key``, written as a selector writes it: ``type``, ``#id`` or ``.class``.
+
+   .. cpp:function:: bool holds(const AncestorBloom& needed) const noexcept
+
+   .. cpp:member:: std::array<std::uint64_t, 4> bits
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AncestorFacts final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   One ancestor control as a selector's ancestor compounds read it: borrowed from the control for the resolution.
+
+   .. cpp:member:: std::string_view control_type
+
+   .. cpp:member:: std::string_view stable_id
+
+   .. cpp:member:: std::span<const std::string> classes
 
 .. cpp:namespace:: gui_forms
 
@@ -506,6 +557,27 @@ Types
    .. cpp:member:: DeviceExtent extent
 
    .. cpp:member:: DeviceScale scale
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BandDeclaration final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   A ``window`` rule's band (owner, 2026-11-08: the window outer band): ``band-width`` (logical units, before device-pixel snapping), ``band-color`` (the rest colour), ``band-lit-color`` and ``band-effect``. Each field is set only by its own declaration; the cascade takes each field from the last matching rule that sets it.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:member:: std::optional<double> width
+
+   .. cpp:member:: std::optional<Color> rest_colour
+
+   .. cpp:member:: std::optional<Color> lit_colour
+
+   .. cpp:member:: std::optional<BandEffect> effect
 
 .. cpp:namespace:: gui_forms
 
@@ -723,6 +795,10 @@ Types
 
       How many of the rules are the engine's built-in rules.
 
+   .. cpp:function:: bool uses_ancestors() const noexcept
+
+      Whether a rule has ancestor compounds (selector step 4): its facts need the control's ancestors, and a change to an ancestor's type, ID or classes, or a move, re-resolves the control's subtree.
+
    .. cpp:function:: bool empty() const noexcept
 
    .. cpp:function:: std::size_t rule_count() const noexcept
@@ -772,9 +848,17 @@ Types
 
       The recipe fields' cascade for a control: ``facts`` name no part and the region role. Linear in the number of rules, and at once when no rule sets a recipe field.
 
+   .. cpp:function:: void resolve_provenance(const PartFacts& facts, PartProvenance& result) const noexcept
+
+      Fills ``result`` with the provenance of the part ``facts`` name, for an editor's query: linear in the number of rules, allocating nothing. Paint never calls it. The borrows in ``result`` stay valid while these rules and the facts' inline style and user theme live.
+
    .. cpp:function:: const BackdropDeclaration* resolve_backdrop(const PartFacts& facts) const noexcept
 
       The winning backdrop of the surface ``facts`` name (PartFacts::surface, its root control's classes and ID): the last matching rule's, which belongs to the compiled rules or to the user theme's, or null where no matching rule declares one. ``backdrop: none`` wins as a chain of length 0. Linear in the number of rules.
+
+   .. cpp:function:: BandDeclaration resolve_band(const PartFacts& facts) const noexcept
+
+      The band of the window ``facts`` name (PartFacts::surface window, its root control's classes and ID): each field from the last matching rule that sets it, among the compiled rules and the user theme's. Empty where none does, and for any surface but a window. Linear in the number of rules.
 
    .. cpp:function:: Resolution resolve(const PartFacts& facts) const noexcept
 
@@ -826,6 +910,32 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: CompiledThemeRules::FieldProvenance final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   Where one resolved field came from (T4 cascade spec, item 5). ``authored`` is whether a rule set it; where none did, the built-in recipe's value stands, at ``built_in`` in the built-in layer. ``source`` and ``selector`` are the winning rule's provenance and selector, which belong to the compiled rules (this table, or the facts' inline style or user theme) and are null where no rule set the field; ``origin`` is a colour's (ColourOrigin, none for a value that is not a colour).
+
+   .. cpp:member:: bool authored
+
+   .. cpp:member:: CascadeLevel level
+
+      Default: ``{CascadeLevel::built_in}``.
+
+   .. cpp:member:: ThemeLayer layer
+
+      Default: ``{ThemeLayer::built_in}``.
+
+   .. cpp:member:: const RuleProvenance* source
+
+   .. cpp:member:: const RuleSelector* selector
+
+   .. cpp:member:: RuleSpecificity specificity
+
+   .. cpp:member:: ColourOrigin origin
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: CompiledThemeRules::PartFacts final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
@@ -867,6 +977,32 @@ Types
    .. cpp:member:: SurfaceKind surface
 
       The surface whose rules are resolved, or none for a control's part: a rule matches only facts of its own surface kind. Default: ``{SurfaceKind::none}``.
+
+   .. cpp:member:: std::string_view family
+
+      The control visual family the part is resolved for (RuleSelector:: family), or empty where none is known: a ``:family()`` rule then does not match.
+
+   .. cpp:member:: std::span<const AncestorFacts> ancestors
+
+      The part's control's ancestors, its parent first, and their keys (fill_ancestor_facts): read only by rules with ancestor compounds (uses_ancestors). Borrowed for the call.
+
+   .. cpp:member:: AncestorBloom ancestor_bloom
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CompiledThemeRules::PartProvenance final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   The provenance of every field of the part ``facts`` name: its primitive parameters (by position; ``parameter_count`` are the chosen primitive's, none when no rule selects one), its material fields and its recipe fields (by their positions), as resolve(), resolve_recipe_fields() and the primitive's parameters resolve them.
+
+   .. cpp:member:: std::array<FieldProvenance, maximum_primitive_parameters> parameters
+
+   .. cpp:member:: std::size_t parameter_count
+
+   .. cpp:member:: std::array<FieldProvenance, material_field_count> materials
+
+   .. cpp:member:: std::array<FieldProvenance, recipe_field_count> recipe_fields
 
 .. cpp:namespace:: gui_forms
 
@@ -1028,7 +1164,7 @@ Types
 
    .. cpp:member:: std::array<ControlVisualRecipe, control_surface_state_count> dark
 
-      The dark variant's records (stage T4 phase 5): derived from the ordinary and selected ones when the theme asks for a derived dark variant (ThemeDefinition::dark_variant), otherwise copies of them. Theme::create fills them; authored values are replaced.
+      The dark variant's records (stage T4 phase 5): derived from the ordinary and selected ones when the theme asks for a derived dark variant (ThemeDefinition::dark_variant), kept as written when it asks for an authored one, otherwise copies of them. Theme::create fills them; authored values are replaced.
 
    .. cpp:member:: std::array<ControlVisualRecipe, control_surface_state_count> dark_selected
 
@@ -2254,6 +2390,26 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: FamiliarThemeBuild final
+
+   ``#include <gui_forms/theme/familiar_themes/familiar_themes.hpp>``
+
+   A built theme and what building it measured. When the floor sheet is refused, ``theme`` keeps windows-professional's recipes under the theme's id and ``diagnostics`` says why; the stock sheets compile with no diagnostics (tests/familiar_themes_tests).
+
+   .. cpp:member:: std::shared_ptr<const Theme> theme
+
+   .. cpp:member:: std::vector<ThemeCompileDiagnostic> diagnostics
+
+   .. cpp:member:: std::uint64_t compile_operations
+
+      The compiler's work for the floor sheet (ThemeCompileWork:: operations), a count independent of the machine.
+
+   .. cpp:member:: std::chrono::nanoseconds build_time
+
+      Wall time of the build, on the first call's thread.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: FontDeclaration final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
@@ -2342,7 +2498,7 @@ Types
 
    ``#include <gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp>``
 
-   The built theme and what building it measured. When the sheet is refused, ``theme`` is the floor alone and ``diagnostics`` says why; the stock sheet compiles with no diagnostics (tests/gui_forms_theme_tests).
+   The built theme and what building it measured. ``diagnostics`` holds the floor sheet's, then the light sheet's. When the light sheet is refused, ``theme`` is the floor alone; when the floor sheet is, the floor keeps windows-professional's recipes. The stock sheets compile with no diagnostics (tests/gui_forms_theme_tests).
 
    .. cpp:member:: std::shared_ptr<const Theme> theme
 
@@ -2351,6 +2507,10 @@ Types
    .. cpp:member:: std::uint64_t compile_operations
 
       The compiler's work for the sheet (ThemeCompileWork::operations), a count independent of the machine.
+
+   .. cpp:member:: std::uint64_t floor_compile_operations
+
+      The same for the floor sheet.
 
    .. cpp:member:: std::chrono::nanoseconds build_time
 
@@ -2505,6 +2665,8 @@ Types
 .. cpp:struct:: MaterialBorderEdges final
 
    ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   Single edges (CSS border-color with differing sides). On a square box each is a band along its edge; on a rounded one (corner_radius above 0, every present edge the same width) they draw as one ring, each pixel in the colour of the edge it lies nearest (split along 45-degree lines from the corners, as CSS splits a rounded box's edge colours), and the material's keylines draw as rings the same way.
 
 
    .. rubric:: Properties
@@ -2853,7 +3015,7 @@ Types
 
    ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
 
-   A soft coloured emission of the material's box (E9-C): the box grown by ``spread`` on every side and blurred by ``blur_radius`` (σ = blur_radius / 2, as a shadow's), centred on the box. The engine's material bake adds it as light, each premultiplied channel at most 1: - ``under``, to the outer shadows beneath it, with the fills drawn over it. paint_surface_material composites it as an outer shadow at no offset after the outer shadows, which differs only where it lies over a shadow. - ``over``, to the finished face (after its keylines), within the box's coverage. paint_surface_material composites it as an outer shadow at no offset, clipped to the face, after the keylines; that is source-over, not added, so the built-in path's over glow is the dimmer of the two. Its reach, spread + 2 × blur_radius (where its blur is below one 8-bit step), is at most SurfaceMaterial::maximum_glow_reach in both placements, so that an under glow stays within the part's granted overflow; an over glow lies within the box and needs no overflow.
+   A soft coloured emission of the material's box (E9-C): the box grown by ``spread`` on every side and blurred by ``blur_radius`` (σ = blur_radius / 2, as a shadow's), centred on the box. The engine's material bake adds it as light, each premultiplied channel at most 1: - ``under``, to the outer shadows beneath it, with the fills drawn over it. - ``over``, to the finished face (after its keylines), within the box's coverage. paint_surface_material adds them so too where it bakes through the kernel. A minimal painter's layers composite each as an outer shadow at no offset (an over glow clipped to the face, after the keylines): that is source-over, not added, so its under glow differs where it lies over a shadow and its over glow is the dimmer. Its reach, spread + 2 × blur_radius (where its blur is below one 8-bit step), is at most SurfaceMaterial::maximum_glow_reach in both placements, so that an under glow stays within the part's granted overflow; an over glow lies within the box and needs no overflow.
 
    .. cpp:member:: Color color
 
@@ -3394,6 +3556,14 @@ Types
 
       Composites a part raster shown at another size (E7r): the raster is stretched over ``destination``, in logical units, whose corners the painter places on the device pixels nearest them. Each device pixel samples the raster bilinearly through the same shared blend, so every host writes the same bytes. The engine shows a part this way while its presentational scale moves, and bakes it sharp at its size once the scale rests. Otherwise as draw_part_raster; the base implementation draws nothing.
 
+   .. cpp:function:: virtual void draw_surface_material(Rect bounds, const SurfaceMaterial& material)
+
+      Draws a valid, unfinished ``material`` over ``bounds`` (paint_surface_material calls it after its checks). Painters that can composite part rasters draw it as one (stage T4, owner 2026-11-07: one rasteriser): the theme engine's material kernel bakes it at the painter's display scale and the raster goes on the device pixels nearest the box grown by its outsets, so a material looks the same whether a rule selects it as a part's face or a control paints it. The base implementation, a minimal painter's fallback, draws its layers as fills, strokes and shadows, in the kernel's order.
+
+   .. cpp:function:: virtual void draw_baked_surface_material(Rect bounds, const std::shared_ptr<const SurfaceMaterial>& material, const std::shared_ptr<const PartRaster>& raster, double outset)
+
+      The replay of a material a recording baked: ``raster``, made at the recording's display scale, covers ``bounds`` grown by ``outset`` logical units on every side. A painter at that scale composites it as draw_part_raster does; one at another scale, or one that cannot composite rasters, draws the material as draw_surface_material does. The base implementation calls draw_surface_material. ``material`` is shared read-only with the recording; null draws nothing.
+
    .. cpp:function:: virtual void draw_image_region(ImageId image, Rect source, Rect destination, double opacity = 1.0)
 
       Source-region replay is the renderer-neutral primitive behind image strips, texture fills, and nine-patch materials. ``source`` is expressed in source-image pixels. Minimal painters may preserve coherence by falling back to whole-image scaling; production painters override it.
@@ -3593,6 +3763,10 @@ Types
    .. cpp:member:: std::optional<PartKey> key
 
       The part's identity across frames (T2 GIVEN H3-1), or none. A part with a key has a record in its window's engine part table; one without is drawn statically, with no transitions and no cached raster. It is identity, not vocabulary: it changes nothing a part looks like today. Its views are borrowed for the call.
+
+   .. cpp:member:: std::string_view control_type
+
+      The control type whose theme rules style the part (an anatomy control id, such as "v_scroll_bar"), when a control draws a part on behalf of a stock control it embeds (a scrollable control's built-in scroll bars, so that ``v-scroll-bar::part(thumb)`` styles them as it styles a VScrollBar); empty, the default, for the painting control's own type. Only the type selector changes: the painting control's id, classes, ancestors and inline style still match. Borrowed for the call.
 
    .. cpp:member:: Insets granted_overflow
 
@@ -4164,7 +4338,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text and outline_colour: ``colour``; - outline_style: ``outline_style``; - outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``; font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``.
+   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph and default_outline_colour: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``; font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``.
 
    .. cpp:member:: RecipeField field
 
@@ -4314,6 +4488,24 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: RuleAncestor final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   One ancestor compound of a selector (selector step 4): a control type, a stable ID and classes, each optional, matched against an ancestor control. ``combinator`` relates it to the compound on its right: the subject's for the nearest, else the next nearer ancestor compound's. Ancestor compounds name no state, family, part, role or surface, so a rule's ancestors change only when an ancestor's type, ID or classes do, or a control moves.
+
+   .. cpp:member:: std::string control_type
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::vector<std::string> classes
+
+   .. cpp:member:: AncestorCombinator combinator
+
+      Default: ``{AncestorCombinator::descendant}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RuleDeclaration final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
@@ -4383,9 +4575,55 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: RuleExclusion final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   One argument of a selector's ``:not()`` (selector step 2): a compound of a control type, a stable ID, classes, states and a family, each optional; it excludes the parts it matches. It names no part, role or surface.
+
+   .. cpp:member:: std::string control_type
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::vector<std::string> classes
+
+   .. cpp:member:: std::vector<AnatomyState> states
+
+   .. cpp:member:: std::string family
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RuleProvenance final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   Where a rule was written (T4 cascade spec, item 5), for an editor's queries; paint never reads it. ``layer`` as above; ``pack`` and ``pack_hash`` name a library pack or a project package (its manifest's name and the SHA-256 of its manifest, 64 lowercase hexadecimal digits), empty elsewhere; ``file``, ``line`` and ``column`` (from 1; 0 for none) place the rule's first token in its own sheet, and ``offset`` is that token's byte offset in the text compiled (a closure's combined sheets until the package compiler places it); ``setter`` names the C++ setter of inline code that is not a written style (empty otherwise).
+
+   .. cpp:member:: ThemeLayer layer
+
+      Default: ``{ThemeLayer::project_theme}``.
+
+   .. cpp:member:: std::string pack
+
+   .. cpp:member:: std::string pack_hash
+
+   .. cpp:member:: std::string file
+
+   .. cpp:member:: std::uint32_t line
+
+   .. cpp:member:: std::uint32_t column
+
+   .. cpp:member:: std::uint32_t offset
+
+   .. cpp:member:: std::string setter
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RuleSelector final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family). ``excluded`` holds the arguments of its ``:not()`` selectors: it matches no part any of them matches.
 
    .. cpp:member:: std::string control_type
 
@@ -4403,23 +4641,27 @@ Types
 
       Default: ``{SurfaceKind::none}``.
 
+   .. cpp:member:: std::string family
+
+   .. cpp:member:: std::vector<RuleExclusion> excluded
+
+   .. cpp:member:: std::vector<RuleAncestor> ancestors
+
+      The selector's ancestor compounds, nearest first (selector step 4).
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: RuleSpecificity final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   A selector's specificity: the stable ID, the classes, the control type, the part (its name or role, one each) and the states, compared in that order (T2 plan, E4).
+   A selector's specificity, CSS's three columns compared in order: the stable ID; the classes, the states and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements). A ``:not()`` adds its most specific argument's, and each ancestor compound its own.
 
    .. cpp:member:: std::uint32_t ids
 
    .. cpp:member:: std::uint32_t classes
 
    .. cpp:member:: std::uint32_t types
-
-   .. cpp:member:: std::uint32_t parts
-
-   .. cpp:member:: std::uint32_t states
 
 .. cpp:namespace:: gui_forms
 
@@ -4608,6 +4850,18 @@ Types
 
       Bounds role/state indices and chooses ordinary, selected, high-contrast, or high-contrast-selected recipe deterministically.
 
+   .. cpp:function:: ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role, ControlVisualContext context, AnatomyStateSet states, std::string_view part) const
+
+      Bounds role/state indices and chooses ordinary, selected, high-contrast, or high-contrast-selected recipe deterministically.
+
+   .. cpp:function:: ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role, ControlVisualContext context, AnatomyStateSet states, std::string_view part, std::string_view control_type) const
+
+      Bounds role/state indices and chooses ordinary, selected, high-contrast, or high-contrast-selected recipe deterministically.
+
+   .. cpp:function:: void provenance(const Control& control, ControlVisualRole role, ControlVisualContext context, CompiledThemeRules::PartProvenance& result) const
+
+      Where each field of ``control``'s recipe in ``role`` and ``context`` came from (T4 cascade spec, item 5), for an editor's query: the facts resolve() reads, through CompiledThemeRules::resolve_provenance, into ``result``, its parameters left unset (a recipe has no primitive). In forced high contrast the fields the engine's pass draws are at forced_high_contrast in its layer, unauthored. Paint never calls it; the borrows in ``result`` stay valid while this theme, the control's inline style and its window's user theme live.
+
    .. cpp:function:: ResolvedFont resolve_font(const Control& control, FontSpec own) const noexcept
 
       ``control``'s primary text font (T4 fonts): ``own``, the font it holds, with the font fields (RecipeField::font_family to letter_spacing) of the theme's rules matching it at rest in place: no part, the region role, and the states of a default ControlVisualContext. Forced high contrast keeps them: they are not colours. An em size is of ``own``'s size, an em spacing of the resolved size. Where the fields make no font valid_font_spec admits, or a size outside minimum_rule_font_size to maximum_rule_font_size, it is ``own`` with no field themed.
@@ -4619,6 +4873,10 @@ Types
    .. cpp:function:: std::optional<BackdropChain> window_backdrop_chain(const Window& window) const noexcept
 
       The backdrop chain the rules selecting ``window`` declare (``window { backdrop: ... }``, owner decisions 2026-11-05): the winning ``backdrop:`` among the theme's and the user theme's rules, matched against the window's media and its root control's classes and stable ID, lowered operation by operation. A role colour in tint() is the colour the matching rules give it under the window's scheme. Nullopt where no rule declares one or the winner is ``none``. ``popup`` rules are not read here: they wait for native popup windows (stage T5).
+
+   .. cpp:function:: BandDeclaration window_band(const Window& window) const noexcept
+
+      The band the rules selecting ``window`` declare (``window { band-width: ...; band-color: ...; band-lit-color: ...; band-effect: ... }``; owner, 2026-11-08): each field from the last matching rule that sets it, among the theme's and the user theme's rules, matched as window_backdrop_chain matches. Empty where no rule sets one.
 
    .. cpp:function:: bool supports(ColourScheme scheme) const noexcept
 
@@ -4712,9 +4970,13 @@ Types
 
       The host's colour hints the sheets' env() reads (T4 theme variants), as compiled: a theme compiled again reads new hints. Empty, every env() reads its fallback. ApplicationResources::compile_theme_package and compile_user_theme pass the resources' (system_colour_hints) where these are empty.
 
-   .. cpp:member:: ThemeCompileBase base
+   .. cpp:member:: ThemeBase base
 
-      The theme the sheets compile onto; windows_professional unless the caller chooses gui_forms. With gui_forms, ``controls`` names the stock control types too: the light sheet's rules for a type outside it are warnings that drop them, named for ``gui-forms/light.css``. Default: ``{ThemeCompileBase::windows_professional}``.
+      The theme the sheets compile onto; windows_professional unless the caller chooses gui_forms. With gui_forms, ``controls`` names the stock control types too: the light sheet's rules for a type outside it are warnings that drop them, named for ``gui-forms/light.css``. Default: ``{ThemeBase::windows_professional}``.
+
+   .. cpp:member:: const EffectRegistry* effects
+
+      The effects a sheet's ``effect`` may name (EP-3), borrowed for the call; usually built_in_effect_registry(). A name it does not hold refuses the package (E417, at the name). Null, only the name's form is checked, and a control checks its effect when it attaches it.
 
 .. cpp:namespace:: gui_forms
 
@@ -4911,6 +5173,10 @@ Types
 
       Default: ``{720.0}``.
 
+   .. cpp:member:: bool scroll_arrows
+
+      Whether scroll bars draw their arrow buttons: false gives the track the whole bar, as a macOS scroller (ScrollBar and the scroll bars of a ScrollableControl; their button extent then reads as zero). Default: ``{true}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: ThemeLibrary final
@@ -5051,6 +5317,14 @@ Types
    .. cpp:member:: std::optional<BackdropDeclaration> backdrop
 
       A surface rule's backdrop (``backdrop:``), or none.
+
+   .. cpp:member:: std::optional<BandDeclaration> band
+
+      A window rule's band (``band-*``), or none.
+
+   .. cpp:member:: RuleProvenance provenance
+
+      Where the rule was written. Not compared: two rules that cascade alike are equal wherever they were written.
 
 .. cpp:namespace:: gui_forms
 
@@ -5216,6 +5490,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: AncestorCombinator
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: descendant
+
+   .. cpp:enumerator:: child
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: BackdropStepKind
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
@@ -5228,11 +5512,23 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: BandEffect
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: flash
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: CascadeLevel
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
    .. cpp:enumerator:: built_in
+
+   .. cpp:enumerator:: base_sheet
 
    .. cpp:enumerator:: user_theme
 
@@ -5243,6 +5539,8 @@ Enumerations
    .. cpp:enumerator:: stable_id_rule
 
    .. cpp:enumerator:: inline_style
+
+   .. cpp:enumerator:: important_base_sheet
 
    .. cpp:enumerator:: important_user_theme
 
@@ -5443,6 +5741,10 @@ Enumerations
    .. cpp:enumerator:: link
 
    .. cpp:enumerator:: visited_link
+
+   .. cpp:enumerator:: notice
+
+   .. cpp:enumerator:: badge
 
    .. cpp:enumerator:: count
 
@@ -5687,6 +5989,24 @@ Enumerations
    .. cpp:enumerator:: smoothstep
 
    .. cpp:enumerator:: choose
+
+   .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: FamiliarTheme
+
+   ``#include <gui_forms/theme/familiar_themes/familiar_themes.hpp>``
+
+   .. cpp:enumerator:: classic
+
+   .. cpp:enumerator:: modern_flat
+
+   .. cpp:enumerator:: xp_style
+
+   .. cpp:enumerator:: windows7_style
+
+   .. cpp:enumerator:: macos_style
 
    .. cpp:enumerator:: count
 
@@ -6196,6 +6516,14 @@ Enumerations
 
    .. cpp:enumerator:: error
 
+   .. cpp:enumerator:: search
+
+   .. cpp:enumerator:: information
+
+   .. cpp:enumerator:: warning
+
+   .. cpp:enumerator:: success
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -6330,6 +6658,8 @@ Enumerations
 
    .. cpp:enumerator:: fresco
 
+   .. cpp:enumerator:: checker
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: RadialExtent
@@ -6407,6 +6737,14 @@ Enumerations
    .. cpp:enumerator:: font_style
 
    .. cpp:enumerator:: letter_spacing
+
+   .. cpp:enumerator:: muted_text
+
+   .. cpp:enumerator:: glyph
+
+   .. cpp:enumerator:: default_outline_width
+
+   .. cpp:enumerator:: default_outline_colour
 
    .. cpp:enumerator:: count
 
@@ -6505,6 +6843,8 @@ Enumerations
    .. cpp:enumerator:: rule_empty
 
    .. cpp:enumerator:: backdrop_invalid
+
+   .. cpp:enumerator:: band_invalid
 
    .. cpp:enumerator:: transition_property_unknown
 
@@ -6612,7 +6952,7 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:enum-class:: ThemeCompileBase
+.. cpp:enum-class:: ThemeBase
 
    ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
 
@@ -6629,6 +6969,8 @@ Enumerations
    .. cpp:enumerator:: none
 
    .. cpp:enumerator:: derived
+
+   .. cpp:enumerator:: authored
 
 .. cpp:namespace:: gui_forms
 
@@ -6657,6 +6999,28 @@ Enumerations
    .. cpp:enumerator:: over_frame_budget
 
    .. cpp:enumerator:: not_paintable
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ThemeLayer
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: built_in
+
+   .. cpp:enumerator:: library_pack
+
+   .. cpp:enumerator:: project_theme
+
+   .. cpp:enumerator:: user_theme
+
+   .. cpp:enumerator:: inline_code
+
+   .. cpp:enumerator:: forced_high_contrast
+
+   .. cpp:enumerator:: fallback_theme
+
+   .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
 
@@ -7141,6 +7505,10 @@ Functions, constants and aliases
 
    Whether ``backdrop`` is a chain the engine admits: its length within capacity, every amount finite and in its range, and at most one blur.
 
+.. cpp:function:: bool band_declaration_valid(const BandDeclaration& band) noexcept
+
+   Whether ``band`` is one the engine admits: a width, if set, finite from 0 to maximum_theme_band_width; an effect, if set, in the enumeration.
+
 .. cpp:function:: std::string_view text_role_name(TextRole role) noexcept
 
    The role's name in a sheet: ``ui``, ``field``, ``caption``, ``heading``, ``title``, ``monospace``.
@@ -7203,7 +7571,7 @@ Functions, constants and aliases
 
 .. cpp:function:: ColourPosition recipe_field_colour_position(RecipeField field) noexcept
 
-   Where the field's colour is drawn (EC4): the text colour is text and the outline colour an edge; every other field none.
+   Where the field's colour is drawn (EC4): the text, muted text and glyph colours are text, and the outline and default outline colours edges; every other field none.
 
 .. cpp:function:: void recipe_declaration_lengths(const RecipeDeclaration& declaration, std::vector<double>& lengths)
 
@@ -7227,11 +7595,21 @@ Functions, constants and aliases
 
    Whether ``declaration`` is one a recipe admits: a field below ``count``, and a finite value within its field's range.
 
+.. cpp:function:: std::string_view theme_layer_name(ThemeLayer layer) noexcept
+
 .. cpp:function:: std::string_view rule_diagnostic_name(RuleDiagnosticKind kind) noexcept
 
 .. cpp:function:: const ThemeRuleSheet& built_in_theme_rules()
 
    The engine's built-in rules (E7), compiled below every theme's: the docking drop tiles' fade (T2 GIVEN C2-1) and the ribbon's dithered rise (D3-1, G4-1). Static storage, made once on first use.
+
+.. cpp:var:: constexpr std::size_t maximum_rule_ancestors
+
+   At most this many ancestor compounds in one selector, and ancestors are matched within this depth of the subject: a control nested deeper than maximum_ancestor_depth below an ancestor is not matched against it. Value: ``8U``.
+
+.. cpp:var:: constexpr std::size_t maximum_ancestor_depth
+
+   Value: ``256U``.
 
 .. cpp:var:: constexpr std::string_view primitive_property
 
@@ -7252,6 +7630,10 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double maximum_backdrop_saturation
 
    Value: ``4.0``.
+
+.. cpp:var:: constexpr double maximum_theme_band_width
+
+   The widest ``band-width`` a theme may declare, in logical units (the same as gui_forms::maximum_band_width, which a window checks). Value: ``32.0``.
 
 .. cpp:var:: constexpr std::string_view opacity_property
 
@@ -7327,7 +7709,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr double maximum_ambient_frames_per_second
 
-   The ambient budget (design language §9.4, the accepted starting tokens): at most 30 frames per second, over a region of at most 10 % of the window on everyday surfaces. A surface the application marks ceremonial (Control::set_ceremonial, GIVEN B3-1) lifts the area cap for the parts on it. Value: ``30.0``.
+   The ambient budget (design language §9.4, the accepted starting tokens): at most 30 frames per second, over a region of at most 10 % of the window on everyday surfaces. A surface the application marks ceremonial (Control::ceremonial, GIVEN B3-1) lifts the area cap for the parts on it. Value: ``30.0``.
 
 .. cpp:var:: constexpr double maximum_ambient_window_fraction
 
@@ -7525,11 +7907,45 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/theme/familiar_themes/familiar_themes.hpp>``
+
+.. cpp:function:: std::string_view familiar_theme_id(FamiliarTheme theme) noexcept
+
+   The theme's id (``classic``, ``modern-flat``, ``xp-style``, ``windows7-style``, ``macos-style``); empty for ``count``.
+
+.. cpp:function:: std::optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept
+
+   The theme ``id`` names, or none.
+
+.. cpp:function:: std::string_view familiar_theme_floor_sheet(FamiliarTheme theme) noexcept
+
+   The theme's floor sheet (``<id>/floor.css`` in diagnostics). Static storage; empty for ``count``.
+
+.. cpp:function:: std::string_view familiar_theme_dark_floor_sheet(FamiliarTheme theme) noexcept
+
+   The theme's dark floor sheet (``<id>/floor-dark.css``), whose records the theme's dark colour scheme resolves (ThemeDarkVariant::authored). Static storage; empty for a light-only theme and for ``count``.
+
+.. cpp:function:: const FamiliarThemeBuild& familiar_theme_build(FamiliarTheme theme)
+
+   The theme, built on its first call (thread-safe; later calls return the same build) and kept for the life of the program. ``theme`` is below familiar_theme_count.
+
+.. cpp:function:: std::shared_ptr<const Theme> familiar_theme(FamiliarTheme theme)
+
+.. cpp:var:: constexpr std::size_t familiar_theme_count
+
+   Value: ``static_cast<std::size_t>(FamiliarTheme::count)``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp>``
 
 .. cpp:function:: ThemeDefinition gui_forms_theme_definition()
 
-   The floor: Plan Paint's action plate for push buttons, the gold active tool for selected ones, recessed wells for entry fields and choices, near-white stock (#F4F4F5) for windows and panels, flat command members at rest, and text colours that meet the contrast gate (4.5:1, 3:1 for disabled text) on every face. Id ``gui-forms``; its rules are empty.
+   The floor: Plan Paint's action plate for push buttons, the gold active tool for selected ones, recessed wells for entry fields and choices, near-white stock (#F4F4F5) for windows and panels, flat command members at rest, and enabled text colours that meet the contrast gate (4.5:1) on every face (disabled text is exempt). Its recipes are the floor sheet's (gui_forms_floor_sheet), evaluated once on the first call (thread-safe) over the C++ structure (owner option 1); a copy each call. Id ``gui-forms``; its rules are empty.
+
+.. cpp:function:: std::string_view gui_forms_floor_sheet() noexcept
+
+   The floor sheet's source text (``gui-forms/floor.css`` in diagnostics): every family's recipe in every surface state, as ``:family()`` rules. Static storage.
 
 .. cpp:function:: std::string_view gui_forms_light_sheet() noexcept
 
@@ -7621,6 +8037,14 @@ Functions, constants and aliases
 
    Compiles ``package`` with its ``@import`` closure among ``library``'s packages (one cascade: imported sheets first, and the later definition of a colour role or ``@keyframes`` wins) onto the built-in professional theme. Its image resources are loaded into ``images`` and owned by the compiled theme: each is removed from ``images`` when the last theme holding it is released, so replacing or dropping a theme removes its images. Themes compiled through one library that load the same bytes into one registry share one image. A refusal leaves none of its own. The package itself need not be installed. Compiles through one library, and the release of their themes, are not safe to run concurrently.
 
+.. cpp:function:: ThemeCompileResult compile_theme_packages(std::span<const ThemePackage> packages, const ThemeLibrary& library, ImageRegistry& images, const ThemeCompileOptions& options)
+
+   Compiles an application's theme (APP_WINDOW_RULES_DESIGN.md section A): ``options.base``, then ``packages`` in their order, each with its ``@import`` closure among ``library``'s packages, as one cascade, so a later package overrides an earlier one and may read its colour roles. A package another imports again keeps its earlier place. The theme is named after the last package, or is the base alone, under the base's id, when ``packages`` is empty. Every package is verified before any is compiled; two of one name, or more than maximum_theme_packages, are refused (E601), and the findings name each package's files. The combined sheets are bounded as one closure's are (1 MiB). Images are owned as compile_theme_package's are; compile_theme_package is the one-package case.
+
+.. cpp:function:: std::shared_ptr<const Theme> default_compiled_theme()
+
+   The process default theme: the theme a window shows while no application is current, the compiled base default_theme_base names alone. Built on the first call (thread-safe) and never recompiled; every call returns the same theme.
+
 .. cpp:function:: ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program, ImageRegistry& images, const ThemeCompileOptions& options, ThemeRuleSet set, UserThemeHeader* header = nullptr)
 
    Compiles a user theme as the package its files imply (USER_THEMES.md section 3): its sub-sheets in filename order (byte order of their names) and then its main file, one cascade; an ``@import`` of a sub-sheet (``@import "editor.css";``) places it there instead, and an ``@import`` of another name imports the program's package of that name from ``program``, pinned to the installed one. The main file opens with an ``@theme`` header (refused without, E601); its ``engine`` descriptor bounds the engine (E607). ``set`` chooses the levels: ThemeRuleSet::user for a theme layered under the program's (ApplicationResources::set_user_theme under the layered policy), ThemeRuleSet::program for one replacing it. Images are owned as compile_theme_package's are. ``header``, when given, receives the main file's header once it is read, whether or not the theme then compiles (present false where the main file has none or does not read).
@@ -7632,6 +8056,14 @@ Functions, constants and aliases
 .. cpp:function:: ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLibrary& library, ImageRegistry& images, const ThemeCompileOptions& options)
 
    As compile_theme_package, for the installed package named ``name``; an unknown name is refused (E603).
+
+.. cpp:var:: constexpr ThemeBase default_theme_base
+
+   The base of the process default theme (default_compiled_theme()), the one place that chooses it: windows_professional until default_theme() switches to gui-forms (stage T4 phase 6, an owner decision). Value: ``ThemeBase::windows_professional``.
+
+.. cpp:var:: constexpr std::size_t maximum_theme_packages
+
+   The most packages compile_theme_packages takes: 16, as many as one package's ``@import`` closure may hold. Value: ``16U``.
 
 .. cpp:var:: constexpr std::size_t maximum_user_theme_files
 
@@ -7686,6 +8118,14 @@ Functions, constants and aliases
 ``#include <gui_forms/types/cursor_image/cursor_image.hpp>``
 
 .. cpp:type:: CursorImagesPtr = std::shared_ptr<const CursorImages>
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/types/damage_region/damage_region.hpp>``
+
+.. cpp:function:: DamageRegion damage_after_scroll_copy(const DamageRegion& damage, Rect clip, Point offset)
+
+   The damage ``damage`` becomes once a scroll copy moved the pixels inside ``clip`` by ``offset`` (window coordinates): a rectangle's share inside the clip moves with its pixels and is cut to the clip; its share outside the clip stays where it was. The pixels the copy exposed are not included.
 
 .. cpp:namespace:: gui_forms
 

@@ -62,7 +62,7 @@ std::size_t RibbonGallery::active_columns() const noexcept {
 void RibbonGallery::rebuild_lines() {
     lines_.clear();
     const double scale = effective_text_scale();
-    const double row_height = cell_height(item_size_, show_labels_, scale);
+    const double row_height = cell_height(item_size.read(), show_labels.read(), scale);
     const std::size_t columns = active_columns();
     const bool grouped = form_ == RibbonGalleryForm::drop_down && !categories_.empty();
     lines_.reserve(order_.size() / columns + categories_.size() + 1U);
@@ -133,7 +133,7 @@ RibbonGallery::Geometry RibbonGallery::geometry() const {
     const double scale = effective_text_scale();
     layout.scale = scale;
     layout.client = client_rectangle();
-    layout.cell = {item_size_.width * scale, cell_height(item_size_, show_labels_, scale)};
+    layout.cell = {item_size.read().width * scale, cell_height(item_size.read(), show_labels.read(), scale)};
     const double column = scroll_column_width * scale;
     const double inset = viewport_inset * scale;
     const double width = layout.client.width;
@@ -208,7 +208,7 @@ void RibbonGallery::scroll_into_view(std::size_t position) {
 
 double RibbonGallery::width_for_columns(std::size_t columns) const noexcept {
     const double scale = effective_text_scale();
-    const double cell_width = item_size_.width * scale;
+    const double cell_width = item_size.read().width * scale;
     const double chrome_width = (scroll_column_width + viewport_inset * 2.0) * scale;
     const double width = static_cast<double>(columns) * cell_width + chrome_width;
     return width;
@@ -216,13 +216,13 @@ double RibbonGallery::width_for_columns(std::size_t columns) const noexcept {
 
 Size RibbonGallery::measure(Size available) {
     const double scale = effective_text_scale();
-    const double row_height = cell_height(item_size_, show_labels_, scale);
+    const double row_height = cell_height(item_size.read(), show_labels.read(), scale);
     const double chrome_height = viewport_inset * 2.0 * scale;
     double width = 0.0;
     double height = 0.0;
     if (form_ == RibbonGalleryForm::in_ribbon) {
         width = width_for_columns(columns_);
-        height = static_cast<double>(visible_rows_) * row_height + chrome_height;
+        height = static_cast<double>(visible_rows.read()) * row_height + chrome_height;
     } else {
         // The drop-down shows its rows of items, plus the captions among
         // them, up to drop_down_rows rows; a short gallery is shorter.
@@ -287,10 +287,10 @@ RibbonGallery::ItemParts RibbonGallery::item_parts(std::size_t position, const G
     record.item_face = visible_part(inside, clip);
     record.item_selection = visible_part(inside, clip);
     record.item_focus = visible_part(inside, clip);
-    const Rect image_area{cell.x, cell.y, cell.width, item_size_.height * scale};
+    const Rect image_area{cell.x, cell.y, cell.width, item_size.read().height * scale};
     record.item_icon = visible_part(inset_rect(image_area, icon_inset * scale), clip);
-    if (show_labels_) {
-        const Rect label{cell.x + 2.0, cell.y + item_size_.height * scale, std::max(0.0, cell.width - 4.0),
+    if (show_labels.read()) {
+        const Rect label{cell.x + 2.0, cell.y + item_size.read().height * scale, std::max(0.0, cell.width - 4.0),
                          label_height * scale};
         record.item_label = visible_part(label, clip);
     }
@@ -314,7 +314,7 @@ RibbonGallery::CategoryParts RibbonGallery::category_parts(std::size_t line, con
 AnatomyStateSet RibbonGallery::item_states(std::size_t position) const {
     AnatomyStateSet states;
     if (position >= order_.size()) return states;
-    const std::optional<std::string> selected = selected_id();
+    const std::optional<std::string> selected = selected_id.read();
     if (selected && *selected == items_[order_[position]].stable_id) states.insert(AnatomyState::selected);
     if (!item_enabled(position)) states.insert(AnatomyState::disabled);
     if (hot_ == position) states.insert(AnatomyState::hot);

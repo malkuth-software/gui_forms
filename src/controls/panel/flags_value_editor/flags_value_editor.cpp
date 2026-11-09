@@ -6,8 +6,10 @@
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
+#include <optional>
 #include <string>
 #include <optional>
 #include <algorithm>
@@ -64,95 +66,24 @@ bool single_bit(const std::int64_t value) noexcept {
 FlagsValueEditor::FlagsValueEditor(StableId stable_id) : Panel(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
-    set_focusable(true);
+    focusable = true;
     cursor = CursorKind::hand;
-    define_form_properties();
 }
 
 FlagsValueEditor::FlagsValueEditor(
-    StableId stable_id, PropertyEnumDescriptor descriptor,
-    PropertyEnumValue value)
+    StableId stable_id, PropertyEnumDescriptor initial_descriptor,
+    PropertyEnumValue initial_value)
     : FlagsValueEditor(std::move(stable_id)) {
-    set_descriptor(std::move(descriptor));
-    set_value(std::move(value));
-}
-
-// The form properties (stage FD6.3): none raises a change event of its own;
-// value_changed reports user commits only.
-void FlagsValueEditor::define_form_properties() {
-    PropertyDescriptor enumeration_name;
-    enumeration_name.name = "enumeration_name";
-    enumeration_name.kind = BindingValueKind::text;
-    enumeration_name.category = "Data";
-    enumeration_name.description = "The flags enumeration's name, which the value carries.";
-    enumeration_name.default_value = BindingValue{std::string{}};
-    enumeration_name.invalidation_effects = Dirty::semantics;
-    enumeration_name.bindable = false;
-    define_bindable_property({
-        std::move(enumeration_name),
-        detail::BoundMemberFunction<BindingValue (FlagsValueEditor::*)() const>(
-            *this, &FlagsValueEditor::enumeration_name_property),
-        detail::BoundMemberFunction<void (FlagsValueEditor::*)(const BindingValue&)>(
-            *this, &FlagsValueEditor::set_enumeration_name_property),
-        {}, {}, {}});
-
-    PropertyDescriptor flag_names;
-    flag_names.name = "flag_names";
-    flag_names.kind = BindingValueKind::collection;
-    flag_names.category = "Data";
-    flag_names.description = "The flags' names in order, each the next bit: 1, 2, 4 and so on.";
-    flag_names.default_value = text_collection({});
-    flag_names.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
-    flag_names.serialization_visibility = PropertySerializationVisibility::content;
-    flag_names.bindable = false;
-    define_bindable_property({
-        std::move(flag_names),
-        detail::BoundMemberFunction<BindingValue (FlagsValueEditor::*)() const>(
-            *this, &FlagsValueEditor::flag_names_property),
-        detail::BoundMemberFunction<void (FlagsValueEditor::*)(const BindingValue&)>(
-            *this, &FlagsValueEditor::set_flag_names_property),
-        {}, {}, {}});
-
-    PropertyDescriptor none_name;
-    none_name.name = "none_name";
-    none_name.kind = BindingValueKind::text;
-    none_name.category = "Data";
-    none_name.description = "The name of the value with no flag set; empty when it has none.";
-    none_name.default_value = BindingValue{std::string{}};
-    none_name.invalidation_effects = Dirty::paint | Dirty::semantics;
-    none_name.bindable = false;
-    define_bindable_property({
-        std::move(none_name),
-        detail::BoundMemberFunction<BindingValue (FlagsValueEditor::*)() const>(
-            *this, &FlagsValueEditor::none_name_property),
-        detail::BoundMemberFunction<void (FlagsValueEditor::*)(const BindingValue&)>(
-            *this, &FlagsValueEditor::set_none_name_property),
-        {}, {}, {}});
-
-    PropertyDescriptor checked_flags;
-    checked_flags.name = "checked_flags";
-    checked_flags.kind = BindingValueKind::collection;
-    checked_flags.category = "Data";
-    checked_flags.description = "The names of the flags the value sets, among flag_names.";
-    checked_flags.default_value = text_collection({});
-    checked_flags.invalidation_effects = Dirty::paint | Dirty::semantics;
-    checked_flags.serialization_visibility = PropertySerializationVisibility::content;
-    checked_flags.bindable = false;
-    define_bindable_property({
-        std::move(checked_flags),
-        detail::BoundMemberFunction<BindingValue (FlagsValueEditor::*)() const>(
-            *this, &FlagsValueEditor::checked_flags_property),
-        detail::BoundMemberFunction<void (FlagsValueEditor::*)(const BindingValue&)>(
-            *this, &FlagsValueEditor::set_checked_flags_property),
-        {}, {}, {}});
+    descriptor = std::move(initial_descriptor);
+    value = std::move(initial_value);
 }
 
 BindingValue FlagsValueEditor::enumeration_name_property() const {
     return BindingValue{descriptor_.type_name};
 }
 
-void FlagsValueEditor::set_enumeration_name_property(const BindingValue& value) {
-    form_enumeration_name_ = text_value(value, "enumeration_name");
+void FlagsValueEditor::set_enumeration_name_property(const BindingValue& binding) {
+    form_enumeration_name_ = text_value(binding, "enumeration_name");
     apply_form_flags();
 }
 
@@ -164,8 +95,8 @@ BindingValue FlagsValueEditor::flag_names_property() const {
     return text_collection(names);
 }
 
-void FlagsValueEditor::set_flag_names_property(const BindingValue& value) {
-    std::vector<std::string> names = text_items(value, "flag_names");
+void FlagsValueEditor::set_flag_names_property(const BindingValue& binding) {
+    std::vector<std::string> names = text_items(binding, "flag_names");
     if (names.size() > 62U) {
         throw std::invalid_argument("FlagsValueEditor.flag_names holds at most 62 flags");
     }
@@ -180,8 +111,8 @@ BindingValue FlagsValueEditor::none_name_property() const {
     return BindingValue{std::string{}};
 }
 
-void FlagsValueEditor::set_none_name_property(const BindingValue& value) {
-    form_none_name_ = text_value(value, "none_name");
+void FlagsValueEditor::set_none_name_property(const BindingValue& binding) {
+    form_none_name_ = text_value(binding, "none_name");
     apply_form_flags();
 }
 
@@ -196,8 +127,8 @@ BindingValue FlagsValueEditor::checked_flags_property() const {
     return text_collection(names);
 }
 
-void FlagsValueEditor::set_checked_flags_property(const BindingValue& value) {
-    form_checked_flags_ = text_items(value, "checked_flags");
+void FlagsValueEditor::set_checked_flags_property(const BindingValue& binding) {
+    form_checked_flags_ = text_items(binding, "checked_flags");
     apply_form_flags();
 }
 
@@ -208,15 +139,15 @@ void FlagsValueEditor::set_checked_flags_property(const BindingValue& value) {
 // the descriptor and value as they were.
 void FlagsValueEditor::apply_form_flags() {
     if (form_flag_names_.empty()) return;
-    PropertyEnumDescriptor descriptor;
+    PropertyEnumDescriptor built;
     // An enumeration needs a name; `Flags` until the document writes one.
-    descriptor.type_name = form_enumeration_name_.empty() ? std::string("Flags") : form_enumeration_name_;
-    descriptor.flags = true;
-    descriptor.choices.reserve(form_flag_names_.size() + 1U);
-    if (!form_none_name_.empty()) descriptor.choices.push_back({form_none_name_, 0});
+    built.type_name = form_enumeration_name_.empty() ? std::string("Flags") : form_enumeration_name_;
+    built.flags = true;
+    built.choices.reserve(form_flag_names_.size() + 1U);
+    if (!form_none_name_.empty()) built.choices.push_back({form_none_name_, 0});
     for (std::size_t index = 0U; index < form_flag_names_.size(); ++index) {
         const std::int64_t bit = std::int64_t{1} << index;
-        descriptor.choices.push_back({form_flag_names_[index], bit});
+        built.choices.push_back({form_flag_names_[index], bit});
     }
     std::uint64_t bits = 0U;
     for (const std::string& checked : form_checked_flags_) {
@@ -228,24 +159,28 @@ void FlagsValueEditor::apply_form_flags() {
         const std::size_t index = static_cast<std::size_t>(found - form_flag_names_.begin());
         bits |= std::uint64_t{1} << index;
     }
-    if (!valid_property_enum_descriptor(descriptor)) {
+    if (!valid_property_enum_descriptor(built)) {
         throw std::invalid_argument("FlagsValueEditor's form properties describe no valid flags enumeration");
     }
     // The current value may not belong to the new descriptor: it is
     // replaced, not normalized.
     value_ = PropertyEnumValue{};
-    set_descriptor(std::move(descriptor));
-    set_value(PropertyEnumValue{descriptor_.type_name, std::string{}, static_cast<std::int64_t>(bits)});
+    descriptor = std::move(built);
+    value = PropertyEnumValue{descriptor_.type_name, std::string{}, static_cast<std::int64_t>(bits)};
 }
 
-void FlagsValueEditor::set_descriptor(PropertyEnumDescriptor descriptor) {
+PropertyEnumDescriptor FlagsValueEditor::read_view(const decltype(descriptor)&) const {
+    return descriptor_;
+}
+
+void FlagsValueEditor::write_view(const decltype(descriptor)&, PropertyEnumDescriptor incoming) {
     require_mutable();
-    if (!descriptor.flags || !valid_property_enum_descriptor(descriptor)) {
+    if (!incoming.flags || !valid_property_enum_descriptor(incoming)) {
         throw std::invalid_argument(
-            "FlagsValueEditor requires a valid finite flags descriptor");
+            "FlagsValueEditor requires a valid finite flags incoming");
     }
     bool has_bit = false;
-    for (const PropertyEnumChoice& choice : descriptor.choices) {
+    for (const PropertyEnumChoice& choice : incoming.choices) {
         if (choice.value > 0 &&
             std::has_single_bit(static_cast<std::uint64_t>(choice.value))) {
             has_bit = true;
@@ -256,23 +191,23 @@ void FlagsValueEditor::set_descriptor(PropertyEnumDescriptor descriptor) {
         throw std::invalid_argument(
             "FlagsValueEditor requires at least one positive single-bit choice");
     }
-    if (descriptor_ == descriptor) return;
+    if (descriptor_ == incoming) return;
     std::optional<PropertyEnumValue> normalized_value;
     if (!value_.type_name.empty()) {
         PropertyDescriptor property;
         property.name = "value";
         property.kind = BindingValueKind::enumeration;
         property.enumeration =
-            std::make_shared<const PropertyEnumDescriptor>(descriptor);
+            std::make_shared<const PropertyEnumDescriptor>(incoming);
         const std::optional<BindingValue> normalized = convert_property_value(BindingValue{value_},
                                                         property);
         if (!normalized) {
             throw std::invalid_argument(
-                "FlagsValueEditor descriptor cannot represent its current value");
+                "FlagsValueEditor incoming cannot represent its current value");
         }
         normalized_value = std::get<PropertyEnumValue>(*normalized);
     }
-    descriptor_ = std::move(descriptor);
+    descriptor_ = std::move(incoming);
     if (normalized_value) value_ = std::move(*normalized_value);
     if (dropped_down_) {
         close_drop_down();
@@ -281,14 +216,18 @@ void FlagsValueEditor::set_descriptor(PropertyEnumDescriptor descriptor) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
-void FlagsValueEditor::set_value(PropertyEnumValue value) {
+PropertyEnumValue FlagsValueEditor::read_view(const decltype(value)&) const {
+    return value_;
+}
+
+void FlagsValueEditor::write_view(const decltype(value)&, PropertyEnumValue incoming) {
     require_mutable();
     PropertyDescriptor property;
     property.name = "value";
     property.kind = BindingValueKind::enumeration;
     property.enumeration =
         std::make_shared<const PropertyEnumDescriptor>(descriptor_);
-    const std::optional<BindingValue> normalized = convert_property_value(BindingValue{std::move(value)},
+    const std::optional<BindingValue> normalized = convert_property_value(BindingValue{std::move(incoming)},
                                                     property);
     if (!normalized) {
         throw std::invalid_argument(
@@ -301,21 +240,27 @@ void FlagsValueEditor::set_value(PropertyEnumValue value) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void FlagsValueEditor::set_dropped_down(bool dropped_down) {
+bool FlagsValueEditor::read_view(const decltype(dropped_down)&) const {
+    return dropped_down_;
+}
+
+void FlagsValueEditor::write_view(const decltype(dropped_down)&, bool incoming) {
     require_mutable();
-    if (dropped_down == dropped_down_) return;
-    if (dropped_down) open_drop_down();
+    if (incoming == dropped_down_) return;
+    if (incoming) open_drop_down();
     else close_drop_down();
 }
 
-void FlagsValueEditor::set_overlay_width(double width) {
+void FlagsValueEditor::prepare_write(const decltype(overlay_width)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(width) || width < 80.0 || width > 1024.0) {
+    if (!std::isfinite(incoming) || incoming < 80.0 || incoming > 1024.0) {
         throw std::invalid_argument(
             "flags editor overlay width must be within [80, 1024]");
     }
-    if (overlay_width_ == width) return;
-    overlay_width_ = width;
+}
+
+// An open list reopens at the new width.
+void FlagsValueEditor::written(const decltype(overlay_width)&) {
     if (dropped_down_) {
         close_drop_down();
         open_drop_down();
@@ -352,14 +297,18 @@ void FlagsValueEditor::open_drop_down() {
     std::shared_ptr<gui_forms::CheckedListBox> list = make_control<CheckedListBox>(
         StableId(prefix + ".overlay.list"));
     (*list).set_paint_plane(PaintPlane::overlay);
-    (*list).set_items(std::move(items));
-    (*list).set_check_on_click(true);
-    const double overlay_width = std::min(overlay_width_, client.width);
+    (*list).items = std::move(items);
+    (*list).check_on_click = true;
+    const double list_width = std::min(overlay_width.read(), client.width);
     const double overlay_x = std::clamp(
-        editor.x, 0.0, std::max(0.0, client.width - overlay_width));
-    (*list).set_requested_bounds({overlay_x, y, overlay_width, height});
-    (*layer).add_child(list);
+        editor.x, 0.0, std::max(0.0, client.width - list_width));
+    (*list).set_requested_bounds({overlay_x, y, list_width, height});
     OverlayToken token = (*window()).open_overlay(shared_from_this(), layer);
+    const std::optional<Rect> face =
+        drop_down_popup_face(*window(), editor, Size{overlay_width.read(), height}, editor.x);
+    const bool lifted = face.has_value() && lift_.lift(*window(), list, *face);
+    if (lifted) (*layer).focusable = true;
+    else (*layer).add_child(list);
 
     overlay_layer_ = layer;
     overlay_list_ = list;
@@ -381,7 +330,13 @@ void FlagsValueEditor::open_drop_down() {
             detail::WeakMemberCallback<void (FlagsValueEditor::*)()>(
                 weak, &FlagsValueEditor::on_overlay_revoked));
     }
-    overlay_scope_ = (*window()).begin_focus_scope(layer, list).value;
+    if (lifted) {
+        lift_closed_ = (*window()).popup_window_closed().subscribe(
+            *this, detail::WeakMemberCallback<void (FlagsValueEditor::*)(std::size_t)>(
+                weak, &FlagsValueEditor::on_popup_window_closed));
+    }
+    const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer) : Control::Ptr(list);
+    overlay_scope_ = (*window()).begin_focus_scope(layer, preferred_focus).value;
     dropped_down_ = true;
     synchronize_overlay();
     invalidate(Dirty::paint | Dirty::semantics);
@@ -393,6 +348,8 @@ void FlagsValueEditor::close_drop_down() {
     closing_overlay_ = true;
     overlay_check_.disconnect();
     overlay_dismissal_.disconnect();
+    lift_closed_.disconnect();
+    lift_.release();
     if (window() != nullptr && overlay_scope_ != 0U) {
         static_cast<void>((*window()).end_focus_scope(FocusScopeId{overlay_scope_}));
     }
@@ -409,11 +366,18 @@ void FlagsValueEditor::close_drop_down() {
     if (changed) publish_change(drop_down_changed_, false);
 }
 
+void FlagsValueEditor::on_popup_window_closed(const std::size_t slot) {
+    if (slot != Window::picker_popup_window_slot || !lift_.lifted()) return;
+    close_drop_down();
+}
+
 void FlagsValueEditor::on_overlay_revoked() {
     if (closing_overlay_) return;
     overlay_check_.disconnect();
     overlay_dismissal_.disconnect();
     overlay_revocation_.disconnect();
+    lift_closed_.disconnect();
+    lift_.release();
     if (window() != nullptr && overlay_scope_ != 0U) {
         static_cast<void>((*window()).end_focus_scope(
             FocusScopeId{overlay_scope_},
@@ -542,7 +506,7 @@ void FlagsValueEditor::on_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     if (event.action == PointerAction::down &&
         event.button == PointerButton::primary) {
-        set_dropped_down(!dropped_down_);
+        dropped_down = !dropped_down_;
         event.handled = true;
     } else if (event.action == PointerAction::up &&
                event.button == PointerButton::primary) {
@@ -559,7 +523,7 @@ void FlagsValueEditor::on_key(KeyEvent& event) {
                event.physical_key == PhysicalKey::space ||
                (event.physical_key == PhysicalKey::down &&
                 has_modifier(event.modifiers, Modifier::alt))) {
-        set_dropped_down(!dropped_down_);
+        dropped_down = !dropped_down_;
         event.handled = true;
     }
 }
@@ -583,20 +547,22 @@ SemanticDescriptor FlagsValueEditor::semantic_descriptor() const {
 }
 
 bool FlagsValueEditor::on_semantic_action(SemanticAction action,
-                                           std::string_view value) {
+                                           std::string_view action_value) {
     if (action == SemanticAction::expand) {
-        set_dropped_down(true);
+        dropped_down = true;
         return true;
     }
     if (action == SemanticAction::collapse) {
-        set_dropped_down(false);
+        dropped_down = false;
         return true;
     }
-    return Panel::on_semantic_action(action, value);
+    return Panel::on_semantic_action(action, action_value);
 }
 
 void FlagsValueEditor::on_detached_from_window() noexcept {
     overlay_check_.disconnect();
+    lift_closed_.disconnect();
+    lift_.release();
     overlay_dismissal_.disconnect();
     overlay_revocation_.disconnect();
     overlay_scope_ = 0U;
@@ -607,7 +573,6 @@ void FlagsValueEditor::on_detached_from_window() noexcept {
     dropped_down_ = false;
     focused_ = false;
 }
-
 
 namespace {
 
@@ -730,5 +695,124 @@ void FlagsValueEditor::append_interactions(std::vector<InteractionDeclaration>& 
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), flags_value_editor_interactions.begin(), flags_value_editor_interactions.end());
 }
+
+namespace {
+
+// The form properties (stage FD6.3), over descriptor and value: hand table
+// entries (flags_value_editor.json extra_entries). None raises a change
+// event of its own; value_changed reports user commits only.
+PropertyDescriptor flags_value_editor_enumeration_name_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "enumeration_name";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Data";
+    descriptor.description = "The flags enumeration's name, which the value carries.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = Dirty::semantics;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_flags_value_editor_enumeration_name() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        flags_value_editor_enumeration_name_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor flags_value_editor_flag_names_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "flag_names";
+    descriptor.kind = BindingValueKind::collection;
+    descriptor.category = "Data";
+    descriptor.description = "The flags' names in order, each the next bit: 1, 2, 4 and so on.";
+    descriptor.default_value = text_collection({});
+    descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.serialization_visibility = PropertySerializationVisibility::content;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_flags_value_editor_flag_names() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        flags_value_editor_flag_names_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor flags_value_editor_none_name_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "none_name";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Data";
+    descriptor.description = "The name of the value with no flag set; empty when it has none.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_flags_value_editor_none_name() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        flags_value_editor_none_name_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor flags_value_editor_checked_flags_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "checked_flags";
+    descriptor.kind = BindingValueKind::collection;
+    descriptor.category = "Data";
+    descriptor.description = "The names of the flags the value sets, among flag_names.";
+    descriptor.default_value = text_collection({});
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.serialization_visibility = PropertySerializationVisibility::content;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_flags_value_editor_checked_flags() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        flags_value_editor_checked_flags_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+// property_codemod begin FlagsValueEditor (tools/property_families/flags_value_editor.json; generated, do not edit)
+
+const std::array<PropertyEntry, FlagsValueEditor::flags_value_editor_property_count>& FlagsValueEditor::flags_value_editor_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 4U> own{{
+        {"enumeration_name", &describe_flags_value_editor_enumeration_name,
+         &read_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::enumeration_name_property), &FlagsValueEditor::enumeration_name_property>,
+         &write_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::set_enumeration_name_property), &FlagsValueEditor::set_enumeration_name_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"flag_names", &describe_flags_value_editor_flag_names,
+         &read_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::flag_names_property), &FlagsValueEditor::flag_names_property>,
+         &write_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::set_flag_names_property), &FlagsValueEditor::set_flag_names_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"none_name", &describe_flags_value_editor_none_name,
+         &read_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::none_name_property), &FlagsValueEditor::none_name_property>,
+         &write_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::set_none_name_property), &FlagsValueEditor::set_none_name_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"checked_flags", &describe_flags_value_editor_checked_flags,
+         &read_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::checked_flags_property), &FlagsValueEditor::checked_flags_property>,
+         &write_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::set_checked_flags_property), &FlagsValueEditor::set_checked_flags_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "FlagsValueEditor's property table names a property twice");
+    static const std::array<PropertyEntry, flags_value_editor_property_count> entries =
+        join_property_tables(Panel::panel_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> FlagsValueEditor::property_table() const noexcept {
+    const std::array<PropertyEntry, flags_value_editor_property_count>& entries = flags_value_editor_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+// property_codemod end FlagsValueEditor
 
 } // namespace gui_forms

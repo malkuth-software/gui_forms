@@ -1,2 +1,2 @@
 refused
-E302 combinator_not_admitted 2:8 rule=button > button detail=whitespace
+E302 combinator_not_admitted 2:8 rule=button + button detail=+

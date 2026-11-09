@@ -4,6 +4,7 @@
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -222,7 +223,7 @@ private:
 // -- construction --------------------------------------------------------------
 
 NavigationPane::NavigationPane(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(true);
+    focusable = true;
     cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
     // The pane sizes itself: its width follows collapsing (measure).
@@ -270,7 +271,7 @@ void NavigationPane::on_dispose() noexcept {
 void NavigationPane::on_attachment_committed() noexcept {
     Control::on_attachment_committed();
     Window* const host = attached_window();
-    if (!focus_region_ || host == nullptr) return;
+    if (!focus_region.read() || host == nullptr) return;
     // A pane nested in another region, or already registered, stays out.
     try {
         static_cast<void>((*host).add_focus_region(shared_from_this()));
@@ -278,14 +279,16 @@ void NavigationPane::on_attachment_committed() noexcept {
     }
 }
 
-void NavigationPane::set_focus_region(bool region) {
+void NavigationPane::prepare_write(const decltype(focus_region)&, bool&) {
     require_mutable();
-    if (focus_region_ == region) return;
-    focus_region_ = region;
+}
+
+// The attached window's focus regions follow the cell.
+void NavigationPane::written(const decltype(focus_region)&) {
     Window* const host = attached_window();
     if (host == nullptr) return;
     const Control::Ptr self = shared_from_this();
-    if (region) {
+    if (focus_region.read()) {
         static_cast<void>((*host).add_focus_region(self));
         return;
     }
@@ -296,15 +299,17 @@ void NavigationPane::set_focus_region(bool region) {
 
 // -- properties ----------------------------------------------------------------
 
-void NavigationPane::set_collapsed(bool collapsed) {
+// collapsed and button_count are views: restore_state, the collapse
+// button, the grip and the keyboard steps write their fields directly.
+void NavigationPane::write_view(const decltype(collapsed)&, bool incoming) {
     require_mutable();
-    if (collapsed_ == collapsed) return;
-    if (collapsed) {
+    if (collapsed_ == incoming) return;
+    if (incoming) {
         close_configure_menu();
     } else {
         close_overlay();
     }
-    collapsed_ = collapsed;
+    collapsed_ = incoming;
     hot_ = {};
     pressed_ = {};
     grip_captured_ = false;
@@ -313,15 +318,23 @@ void NavigationPane::set_collapsed(bool collapsed) {
     notify_state();
 }
 
-void NavigationPane::set_button_count(std::size_t count) {
+bool NavigationPane::read_view(const decltype(collapsed)&) const {
+    return collapsed_;
+}
+
+void NavigationPane::write_view(const decltype(button_count)&, std::size_t incoming) {
     require_mutable();
-    if (count > PageSetLimits::maximum_capacity) {
+    if (incoming > PageSetLimits::maximum_capacity) {
         throw std::out_of_range("NavigationPane button count is above PageSetLimits::maximum_capacity");
     }
-    if (button_count_ == count) return;
-    button_count_ = count;
+    if (button_count_ == incoming) return;
+    button_count_ = incoming;
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     notify_state();
+}
+
+std::size_t NavigationPane::read_view(const decltype(button_count)&) const {
+    return button_count_;
 }
 
 std::size_t NavigationPane::visible_button_count() const {
@@ -390,30 +403,22 @@ std::vector<PageId> NavigationPane::hidden_pages() const {
     return ordered;
 }
 
-void NavigationPane::set_expanded_width(double width) {
+void NavigationPane::prepare_write(const decltype(image_list)&, std::shared_ptr<ImageList>& incoming) {
     require_mutable();
-    if (!std::isfinite(width) || width < minimum_expanded_width || width > maximum_expanded_width) {
-        throw std::out_of_range("NavigationPane expanded width must be from 80 to 1024");
-    }
-    if (expanded_width_ == width) return;
-    expanded_width_ = width;
-    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void NavigationPane::set_image_list(std::shared_ptr<ImageList> image_list) {
-    require_mutable();
-    if (image_list && !(*image_list).is_alive()) {
+    if (incoming && !(*incoming).is_alive()) {
         throw std::invalid_argument("NavigationPane requires a live ImageList");
     }
     const Window* const host = attached_window();
-    if (image_list && host != nullptr && !(*image_list).belongs_to(*host)) {
+    if (incoming && host != nullptr && !(*incoming).belongs_to(*host)) {
         throw std::invalid_argument("NavigationPane and ImageList must belong to the same Window");
     }
-    if (image_list_ == image_list) return;
+}
+
+// The change subscription follows the list.
+void NavigationPane::written(const decltype(image_list)&) {
     image_list_token_.disconnect();
-    image_list_ = std::move(image_list);
-    if (image_list_) {
-        image_list_token_ = (*image_list_).changed().subscribe(
+    if (image_list.read()) {
+        image_list_token_ = (*image_list.read()).changed().subscribe(
             *this,
             Delegate<const ImageListChange&>::bind<NavigationPane, &NavigationPane::on_image_list_changed>(*this));
     }
@@ -578,11 +583,11 @@ std::string NavigationPane::selected_text() const {
 ImageId NavigationPane::page_image(std::size_t position) const {
     const PageRecord& record = pages_.record_at(PagePosition{position});
     const Window* const host = attached_window();
-    if (record.image_key.empty() || !image_list_ || !(*image_list_).is_alive() || host == nullptr ||
-        !(*image_list_).belongs_to(*host)) {
+    if (record.image_key.empty() || !image_list.read() || !(*image_list.read()).is_alive() || host == nullptr ||
+        !(*image_list.read()).belongs_to(*host)) {
         return {};
     }
-    const ImageListResolution resolved = (*image_list_).resolve(record.image_key, ImageVisualState::normal,
+    const ImageListResolution resolved = (*image_list.read()).resolve(record.image_key, ImageVisualState::normal,
                                                                (*host).scale());
     return resolved.image;
 }
@@ -590,7 +595,7 @@ ImageId NavigationPane::page_image(std::size_t position) const {
 double NavigationPane::icon_side() const {
     const double scale = effective_text_scale();
     double side = default_icon_side;
-    if (image_list_) side = std::min((*image_list_).image_size().height, maximum_icon_side);
+    if (image_list.read()) side = std::min((*image_list.read()).image_size().height, maximum_icon_side);
     const double scaled = side * scale;
     return scaled;
 }
@@ -609,7 +614,7 @@ FontSpec NavigationPane::header_font() const {
 
 Size NavigationPane::measure(Size available) {
     const double scale = effective_text_scale();
-    const double width = collapsed_ ? collapsed_width * scale : expanded_width_;
+    const double width = collapsed_ ? collapsed_width * scale : expanded_width.read();
     // The height is the requested one, or all there is (docked left or right).
     const double requested = requested_bounds().height;
     const double height = requested > 0.0 ? requested : available.height;
@@ -791,7 +796,7 @@ NavigationPane::FlyoutLayout NavigationPane::flyout_layout() const {
     const double scale = effective_text_scale();
     const Rect absolute = absolute_bounds();
     const Size client = (*host).client_size();
-    const double width = std::min(expanded_width_, client.width);
+    const double width = std::min(expanded_width.read(), client.width);
     // Beside the bar, on its right unless only the left has room.
     double x = absolute.x + absolute.width;
     if (x + width > client.width && absolute.x - width >= 0.0) x = absolute.x - width;
@@ -1178,7 +1183,7 @@ void NavigationPane::select_page(std::size_t position, PageSelectionCause cause)
 void NavigationPane::activate(const Target& target) {
     switch (target.kind) {
     case TargetKind::collapse:
-        set_collapsed(!collapsed_);
+        collapsed = !collapsed_;
         return;
     case TargetKind::caption:
         if (overlay_open_) {
@@ -1669,11 +1674,11 @@ bool NavigationPane::on_semantic_child_action(std::string_view id, SemanticActio
     if (id == prefix + ".collapse") {
         target.kind = TargetKind::collapse;
         if (action == SemanticAction::press) {
-            set_collapsed(!collapsed_);
+            collapsed = !collapsed_;
             return true;
         }
         if (action == SemanticAction::expand || action == SemanticAction::collapse) {
-            set_collapsed(action == SemanticAction::collapse);
+            collapsed = action == SemanticAction::collapse;
             return true;
         }
     } else if (id == prefix + ".caption") {
@@ -1983,5 +1988,20 @@ void NavigationPane::append_interactions(std::vector<InteractionDeclaration>& in
     Control::append_interactions(interactions);
     interactions.insert(interactions.end(), navigation_pane_interactions.begin(), navigation_pane_interactions.end());
 }
+
+// property_codemod begin NavigationPane (tools/property_families/navigation_pane.json; generated, do not edit)
+
+void NavigationPane::prepare_write(const decltype(expanded_width)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < minimum_expanded_width || incoming > maximum_expanded_width) {
+        throw std::out_of_range("NavigationPane expanded width must be from 80 to 1024");
+    }
+}
+
+void NavigationPane::written(const decltype(expanded_width)&) {
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+// property_codemod end NavigationPane
 
 } // namespace gui_forms

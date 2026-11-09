@@ -1,5 +1,4 @@
 compiled
-W107 property_not_admitted 5:23 rule=button::part(label) property=color detail=color on a part or a role
 rule 0 theme_sheet type=button
   label button
   decl primitive = name material
@@ -17,3 +16,6 @@ rule 1 theme_sheet type=button part=face
   material border_bottom_colour colours=[#1b2733ff] origin=role(ink-on-paper foreground)
   material border_left_colour colours=[#1b2733ff] origin=role(ink-on-paper foreground)
   material background_colour colours=[#ddddddff] origin=role(chrome foreground)
+rule 2 theme_sheet type=button part=label
+  label button::part(label)
+  recipe text colour=#0e4489ff number=0 outline=0 origin=role(ink-on-paper foreground)

@@ -1,0 +1,12 @@
+/* A button that runs a model command and two sliders sharing one model
+   value, all bound by the document as the window makes them. */
+form shared.window {
+  text: "Shared state";
+  client-size: 360 160;
+
+  panel shared.root {
+    button run { text: "Run"; bounds: 12 12 120 32; command: bind(run); }
+    track-bar volume.first { bounds: 12 56 336 40; value: bind(volume); }
+    track-bar volume.second { bounds: 12 104 336 40; value: bind(volume); }
+  }
+}

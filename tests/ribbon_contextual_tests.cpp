@@ -72,8 +72,8 @@ std::size_t index_of(const Ribbon& ribbon, std::string_view id) {
 }
 
 std::string selected(const Ribbon& ribbon) {
-    if (!ribbon.selected_tab()) return "none";
-    return ribbon.tabs()[*ribbon.selected_tab()].stable_id;
+    if (!ribbon.selected_tab.read()) return "none";
+    return ribbon.tabs()[*ribbon.selected_tab.read()].stable_id;
 }
 
 std::vector<std::string> shown_tabs(const Ribbon& ribbon) {
@@ -168,7 +168,7 @@ void availability_and_selection_rules() {
     require(threw, "an unknown set is refused");
     threw = false;
     try {
-        ribbon.set_selected_tab(index_of(ribbon, "design"));
+        ribbon.selected_tab = index_of(ribbon, "design");
     } catch (const std::invalid_argument&) {
         threw = true;
     }
@@ -235,22 +235,22 @@ void modes() {
     (*ribbon).set_tabs(std::move(tabs), std::move(sets));
     Window window(ribbon, {1200.0, 300.0});
     window.perform_layout();
-    require((*ribbon).application_modes() == 0x1U &&
+    require((*ribbon).application_modes.read() == 0x1U &&
                 shown_tabs(*ribbon) == std::vector<std::string>{"home", "edit", "view"},
             "mode 0 shows the core tabs that belong to it, and those in every mode");
-    (*ribbon).set_selected_tab(index_of(*ribbon, "edit"));
+    (*ribbon).selected_tab = index_of(*ribbon, "edit");
     (*ribbon).set_tab_set_availability("picture", RibbonTabSetAvailability::active);
     window.perform_layout();
     require(selected(*ribbon) == "format", "a set shows in its modes");
-    (*ribbon).set_application_modes(0x2U);
+    (*ribbon).application_modes = 0x2U;
     window.perform_layout();
     require(shown_tabs(*ribbon) == std::vector<std::string>{"print", "view"} && selected(*ribbon) == "print",
             "switching modes replaces the core tabs; a hidden selection falls back to the first core tab shown");
-    (*ribbon).set_selected_tab(index_of(*ribbon, "view"));
+    (*ribbon).selected_tab = index_of(*ribbon, "view");
     window.perform_layout();
     require((*ribbon).realized_groups().size() == 2U, "a group in the new mode shows on its tab");
     const std::vector<RibbonLadderEntry> both = (*ribbon).reduction_ladder(index_of(*ribbon, "view"));
-    (*ribbon).set_application_modes(0x1U);
+    (*ribbon).application_modes = 0x1U;
     window.perform_layout();
     const std::vector<RibbonLadderEntry> one = (*ribbon).reduction_ladder(index_of(*ribbon, "view"));
     require((*ribbon).realized_groups().size() == 1U && one[0].width < both[0].width && one.size() < both.size(),
@@ -258,16 +258,16 @@ void modes() {
     require(shown_tabs(*ribbon) == std::vector<std::string>{"home", "edit", "view", "format"} &&
                 selected(*ribbon) == "view",
             "returning to mode 0 brings back its tabs, and the active set");
-    (*ribbon).set_application_modes(0x3U);
+    (*ribbon).application_modes = 0x3U;
     window.perform_layout();
     require(shown_tabs(*ribbon).size() == 5U, "several modes show the union");
     bool threw = false;
     try {
-        (*ribbon).set_application_modes(0U);
+        (*ribbon).application_modes = 0U;
     } catch (const std::invalid_argument&) {
         threw = true;
     }
-    require(threw && (*ribbon).application_modes() == 0x3U, "an empty mode set is refused");
+    require(threw && (*ribbon).application_modes.read() == 0x3U, "an empty mode set is refused");
 }
 
 void semantics_and_keyboard() {
@@ -315,23 +315,23 @@ void plane_expand_collapse() {
                 nodes[2].actions == std::vector<SemanticAction>{SemanticAction::collapse},
             "the shown plane is expanded and offers collapse");
     require(ribbon.on_semantic_child_action("ribbon.command-plane", SemanticAction::collapse, {}) &&
-                ribbon.minimized(),
+                ribbon.minimized.read(),
             "collapse minimizes the plane");
     (*fixture.window).perform_layout();
     nodes = ribbon.semantic_virtual_children();
     require(nodes.size() == 3U && !has_semantic_state(nodes[2].states, SemanticState::expanded) &&
                 nodes[2].actions == std::vector<SemanticAction>{SemanticAction::expand} && nodes[2].children.empty(),
             "the minimized plane stays published, collapsed, offering expand");
-    require(ribbon.on_semantic_child_action("ribbon.command-plane", SemanticAction::expand, {}) && !ribbon.minimized(),
+    require(ribbon.on_semantic_child_action("ribbon.command-plane", SemanticAction::expand, {}) && !ribbon.minimized.read(),
             "expand restores it");
     (*fixture.window).perform_layout();
     click_tab(fixture, "home");
-    require(ribbon.minimized(), "the pointer path still minimizes");
+    require(ribbon.minimized.read(), "the pointer path still minimizes");
     nodes = ribbon.semantic_virtual_children();
     require(nodes[2].actions == std::vector<SemanticAction>{SemanticAction::expand},
             "and the plane's state follows it");
     click_tab(fixture, "home");
-    require(!ribbon.minimized(), "and restores");
+    require(!ribbon.minimized.read(), "and restores");
 }
 
 void refusals() {
@@ -414,7 +414,7 @@ void scaling_with_contextual_tabs() {
     (*fixture.window).resize({ladder.back().width - 10.0, 300.0});
     (*fixture.window).perform_layout();
     require(ribbon.scrolling() && !ribbon.plane_hidden(), "and scrolls below its narrowest entry");
-    ribbon.set_selected_tab(0U);
+    ribbon.selected_tab = 0U;
     (*fixture.window).resize({home[0].width, 300.0});
     (*fixture.window).perform_layout();
     const std::vector<RibbonLadderEntry> home_again = ribbon.reduction_ladder(0U);

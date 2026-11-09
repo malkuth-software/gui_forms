@@ -13,9 +13,9 @@ Parameters
 ----------
 stable_id
     Identity of the group box, unique within its window.
-text
+initial_text
     The caption, with `&` marking the mnemonic as in `GroupBox`.
-design_size
+initial_design_size
     The width and height of the design space. Both must be finite and
     positive, or the constructor throws `std::invalid_argument`. The default
     unit square lets you give design bounds as fractions of the box.

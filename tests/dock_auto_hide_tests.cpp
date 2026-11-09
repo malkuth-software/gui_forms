@@ -362,7 +362,7 @@ void hover_order() {
             "hovering, sliding and leaving never edit the layout");
 
     // Click only: hovering opens nothing.
-    workspace.set_flyout_opening(DockFlyoutOpening::click);
+    workspace.flyout_opening = DockFlyoutOpening::click;
     move_to(window, tab_point(site, DockSide::bottom, "output"));
     advance(window, std::chrono::milliseconds(3000));
     require(!site.flyout_open(), "with click-only opening, hover opens nothing");

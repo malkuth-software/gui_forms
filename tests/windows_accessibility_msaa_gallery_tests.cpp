@@ -176,7 +176,8 @@ bool is_button_role(SemanticRole role) noexcept {
 }
 
 bool is_check_role(SemanticRole role) noexcept {
-    const bool check = role == SemanticRole::check_box || role == SemanticRole::check_list_item;
+    const SemanticRole acting = semantic_role_fallback(role);
+    const bool check = acting == SemanticRole::check_box || acting == SemanticRole::check_list_item;
     return check;
 }
 
@@ -236,6 +237,8 @@ LONG expected_role(SemanticRole role) noexcept {
     case SemanticRole::status_bar: return ROLE_SYSTEM_STATUSBAR;
     case SemanticRole::live_region: return ROLE_SYSTEM_GROUPING;
     case SemanticRole::meter: return ROLE_SYSTEM_PROGRESSBAR;
+    case SemanticRole::toggle_switch: return ROLE_SYSTEM_CHECKBUTTON;
+    case SemanticRole::search_box: return ROLE_SYSTEM_TEXT;
     case SemanticRole::count: return ROLE_SYSTEM_GROUPING;
     }
     return ROLE_SYSTEM_GROUPING;
@@ -945,8 +948,8 @@ ActionResult perform_candidate(Window& window, HWND hwnd, const std::string& key
     SubscriptionToken invocation_subscription;
     const std::shared_ptr<RibbonColorPicker> picker =
         std::dynamic_pointer_cast<RibbonColorPicker>(control);
-    if (picker && (*picker).command()) {
-        const std::shared_ptr<Command>& command = (*(*picker).command()).command();
+    if (picker && (*picker).command.read()) {
+        const std::shared_ptr<Command>& command = (*(*picker).command.read()).command();
         invocation_subscription = (*command).invoked().subscribe(
             Delegate<const CommandInvocation&>::bind<InvocationCounter,
                                                      &InvocationCounter::invoked>(invocations));
@@ -1165,8 +1168,7 @@ struct HostReady final {
 
     void operator()(std::function<void()>, std::function<void()> request_close,
                     std::function<HostDialogResult(const HostDialogRequest&)>,
-                    std::function<HostServiceStatus(const HostTooltipRequest&)>,
-                    std::function<void()>, std::function<HostClipboardTextResult()>,
+                    std::function<HostClipboardTextResult()>,
                     std::function<HostServiceStatus(std::string_view)>) const {
         try {
             run(*window);

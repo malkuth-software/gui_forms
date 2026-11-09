@@ -103,6 +103,7 @@ OPENERS: tuple[tuple[str, str, str], ...] = (
     ('font_dialog', 'dialogs-and-host-services', 'gallery.host.font.choose'),
     ('task_dialog', 'dialogs-and-host-services', 'gallery.host.task-dialog.show'),
     ('anchored_overlay_layer', 'anchored-overlays', 'gallery.overlays.anchor.0'),
+    ('toast', 'notices-and-badges', 'gallery.notices.show-toast'),
 )
 
 # Defects this test finds and the ATK adapter cannot fix: the default action
@@ -160,7 +161,17 @@ ROLE_NAMES: dict[str, str] = {
     'pane': 'PANEL', 'tab_panel': 'SCROLL_PANE', 'tree': 'TREE', 'tree_item': 'TREE_ITEM', 'table': 'TABLE',
     'row': 'TABLE_ROW', 'cell': 'TABLE_CELL', 'column_header': 'COLUMN_HEADER', 'row_header': 'ROW_HEADER',
     'tree_grid': 'TREE_TABLE', 'dialog': 'DIALOG', 'status_bar': 'STATUS_BAR', 'live_region': 'PANEL',
+    'toggle_switch': 'TOGGLE_BUTTON', 'search_box': 'ENTRY',
 }
+
+# The role whose states and interfaces a newer role shares
+# (semantic_role_fallback in semantic_types.hpp); every other role is its own.
+ROLE_FALLBACKS: dict[str, str] = {'toggle_switch': 'check_box', 'search_box': 'text_box'}
+
+
+def acting_role(node: dict[str, Any]) -> str:
+    role: str = ROLE_FALLBACKS.get(node['role'], node['role'])
+    return role
 
 # Semantic state bits and the AT-SPI state names that publish them.
 STATE_NAMES: tuple[tuple[int, str], ...] = (
@@ -239,11 +250,12 @@ def expected_states(node: dict[str, Any]) -> set[str]:
         if (node['states'] & bit) != 0:
             states.add(name)
     actions: list[str] = node['actions']
-    if node['role'] == 'text_box' and (node['states'] & READ_ONLY) == 0:
+    acting: str = acting_role(node)
+    if acting == 'text_box' and (node['states'] & READ_ONLY) == 0:
         states.add('EDITABLE')
-    if node['role'] == 'text_box':
+    if acting == 'text_box':
         states.add('MULTI_LINE' if node['multiline'] else 'SINGLE_LINE')
-    if node['role'] in ('check_box', 'check_list_item', 'radio_button'):
+    if acting in ('check_box', 'check_list_item', 'radio_button'):
         states.add('CHECKABLE')
     if (node['states'] & EXPANDED) != 0 or 'expand' in actions or 'collapse' in actions:
         states.add('EXPANDABLE')
@@ -297,9 +309,10 @@ def expected_interfaces(node: dict[str, Any]) -> set[str]:
     interfaces: set[str] = {'Accessible', 'Component'}
     if node['actions']:
         interfaces.add('Action')
-    if node['numeric_value'] is not None or (node['value'] != '' and node['role'] != 'text_box'):
+    text: bool = acting_role(node) == 'text_box'
+    if node['numeric_value'] is not None or (node['value'] != '' and not text):
         interfaces.add('Value')
-    if node['role'] == 'text_box':
+    if text:
         interfaces.add('Text')
         interfaces.add('EditableText')
     return interfaces

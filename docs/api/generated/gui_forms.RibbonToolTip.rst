@@ -7,7 +7,7 @@ gui_forms::RibbonToolTip
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: RibbonToolTip final : public Component
+.. cpp:class:: RibbonToolTip final : public Component, public RibbonToolTipCapabilities<RibbonToolTip>
 
    ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp>``
 
@@ -16,10 +16,10 @@ gui_forms::RibbonToolTip
    A ribbon tool tip belongs to one window. It holds content for a whole
    control (:cpp:func:`set_tool_tip <gui_forms::RibbonToolTip::set_tool_tip>`) or for one item of a :cpp:class:`ToolStrip <gui_forms::ToolStrip>` or
    :cpp:class:`QuickAccessToolbar <gui_forms::QuickAccessToolbar>` (:cpp:func:`set_item_tool_tip <gui_forms::RibbonToolTip::set_item_tool_tip>`). When the pointer rests on a
-   mapped control or item, the tooltip appears after :cpp:func:`initial_delay <gui_forms::RibbonToolTip::initial_delay>`, below it;
+   mapped control or item, the tooltip appears after :cpp:member:`initial_delay <gui_forms::RibbonToolTip::initial_delay>`, below it;
    when keyboard focus reaches a mapped control, or moves to a mapped item of a
    focused strip, it appears the same way, keyboard-initiated. It disappears
-   after :cpp:func:`auto_pop_delay <gui_forms::RibbonToolTip::auto_pop_delay>`, or when the pointer leaves, presses or moves to
+   after :cpp:member:`auto_pop_delay <gui_forms::RibbonToolTip::auto_pop_delay>`, or when the pointer leaves, presses or moves to
    another item, or focus moves. The overlay is drawn over the window but never
    intercepts the pointer. While a tooltip with a help topic shows, F1 raises
    :cpp:func:`help_requested <gui_forms::RibbonToolTip::help_requested>` with the topic; GUI.Forms opens no help viewer.
@@ -168,32 +168,20 @@ gui_forms::RibbonToolTip
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::chrono::milliseconds initial_delay() const noexcept
+   .. cpp:member:: std::chrono::milliseconds initial_delay
 
       How long the pointer must rest, or focus stay, before the tooltip
       appears. A negative delay throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_initial_delay(std::chrono::milliseconds delay)
-
-      Sets :cpp:func:`initial_delay <gui_forms::RibbonToolTip::initial_delay>`; see the property's description above.
-
-   .. cpp:function:: std::chrono::milliseconds auto_pop_delay() const noexcept
+   .. cpp:member:: std::chrono::milliseconds auto_pop_delay
 
       How long a tooltip stays up; zero keeps it until the pointer leaves or
       focus moves. A negative delay throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_auto_pop_delay(std::chrono::milliseconds delay)
-
-      Sets :cpp:func:`auto_pop_delay <gui_forms::RibbonToolTip::auto_pop_delay>`; see the property's description above.
-
-   .. cpp:function:: const std::string& help_line_text() const noexcept
+   .. cpp:member:: std::string help_line_text
 
       The line a tooltip with a help topic shows under a rule. Invalid UTF-8
       throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_help_line_text(std::string text)
-
-      Sets :cpp:func:`help_line_text <gui_forms::RibbonToolTip::help_line_text>`; see the property's description above.
 
    .. cpp:function:: bool visible() const noexcept
 

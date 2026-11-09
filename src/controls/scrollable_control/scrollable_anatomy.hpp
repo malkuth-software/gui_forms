@@ -8,9 +8,12 @@
 
 namespace gui_forms::scrollable_detail {
 
-// A thumb is pressed and captures the pointer while dragged.
-inline constexpr std::array<AnatomyState, 2> thumb_part_states{{
-    AnatomyState::pressed, AnatomyState::captured}};
+// The bars' arrows and track are hot under the pointer and pressed while
+// held; a thumb also captures the pointer while dragged (as ScrollBar's).
+inline constexpr std::array<AnatomyState, 2> pressable_part_states{{
+    AnatomyState::hot, AnatomyState::pressed}};
+inline constexpr std::array<AnatomyState, 3> thumb_part_states{{
+    AnatomyState::hot, AnatomyState::pressed, AnatomyState::captured}};
 
 // Parts every ScrollableControl publishes: its region, the viewport granted
 // to children, and the two scroll axes it paints itself. The axes reuse the
@@ -20,23 +23,29 @@ inline constexpr std::array<PartField<ScrollableControl::Parts>, 12> part_fields
      .member = &ScrollableControl::Parts::region},
     {.declaration = {.name = "viewport", .role = PartRole::region, .composed_from = {}},
      .member = &ScrollableControl::Parts::viewport},
-    {.declaration = {.name = "horizontal_decrement_arrow", .role = PartRole::actuator, .composed_from = "button"},
+    {.declaration = {.name = "horizontal_decrement_arrow", .role = PartRole::actuator, .composed_from = "button",
+                     .states = pressable_part_states},
      .member = &ScrollableControl::Parts::horizontal_decrement_arrow},
-    {.declaration = {.name = "horizontal_track", .role = PartRole::track, .composed_from = {}},
+    {.declaration = {.name = "horizontal_track", .role = PartRole::track, .composed_from = {},
+                     .states = pressable_part_states},
      .member = &ScrollableControl::Parts::horizontal_track},
     {.declaration = {.name = "horizontal_thumb", .role = PartRole::thumb, .composed_from = {},
                      .states = thumb_part_states},
      .member = &ScrollableControl::Parts::horizontal_thumb},
-    {.declaration = {.name = "horizontal_increment_arrow", .role = PartRole::actuator, .composed_from = "button"},
+    {.declaration = {.name = "horizontal_increment_arrow", .role = PartRole::actuator, .composed_from = "button",
+                     .states = pressable_part_states},
      .member = &ScrollableControl::Parts::horizontal_increment_arrow},
-    {.declaration = {.name = "vertical_decrement_arrow", .role = PartRole::actuator, .composed_from = "button"},
+    {.declaration = {.name = "vertical_decrement_arrow", .role = PartRole::actuator, .composed_from = "button",
+                     .states = pressable_part_states},
      .member = &ScrollableControl::Parts::vertical_decrement_arrow},
-    {.declaration = {.name = "vertical_track", .role = PartRole::track, .composed_from = {}},
+    {.declaration = {.name = "vertical_track", .role = PartRole::track, .composed_from = {},
+                     .states = pressable_part_states},
      .member = &ScrollableControl::Parts::vertical_track},
     {.declaration = {.name = "vertical_thumb", .role = PartRole::thumb, .composed_from = {},
                      .states = thumb_part_states},
      .member = &ScrollableControl::Parts::vertical_thumb},
-    {.declaration = {.name = "vertical_increment_arrow", .role = PartRole::actuator, .composed_from = "button"},
+    {.declaration = {.name = "vertical_increment_arrow", .role = PartRole::actuator, .composed_from = "button",
+                     .states = pressable_part_states},
      .member = &ScrollableControl::Parts::vertical_increment_arrow},
     {.declaration = {.name = "scroll_corner", .role = PartRole::face, .composed_from = {}},
      .member = &ScrollableControl::Parts::scroll_corner},

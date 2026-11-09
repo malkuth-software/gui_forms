@@ -1,0 +1,205 @@
+{
+  "family": "CorrespondenceView",
+  "step": "B6",
+  "declaring": "CorrespondenceView",
+  "header": "include/gui_forms/controls/panel/correspondence_view/correspondence_view.hpp",
+  "source": "src/controls/panel/correspondence_view/correspondence_view.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp",
+  "base": "Panel",
+  "shared": [
+    "FontCapability"
+  ],
+  "includes": [
+    "gui_forms/types.hpp",
+    "<chrono>"
+  ],
+  "properties": [
+    {
+      "name": "selected_id",
+      "capability": "CorrespondenceViewSelectedId",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The selected item's stable ID, or empty; a view, since replacing the items keeps or clears it. A change raises selection_changed; an ID not in the model throws std::out_of_range.",
+      "getter": "selected_id",
+      "setter": "set_selected_id",
+      "clear": null,
+      "field": null,
+      "event": "selection_changed_",
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto selected_id_, which set_items retains or clears; write_view validates and raises selection_changed"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "pinned_id",
+      "capability": "CorrespondenceViewPinnedId",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The pinned (persistently expanded) item's stable ID, or empty; a view, since replacing the items keeps or clears it. A change keeps the visible anchor row, raises pin_changed, then expansion_changed for each item whose expansion changed; an ID not in the model throws std::out_of_range.",
+      "getter": "pinned_id",
+      "setter": "set_pinned_id",
+      "clear": null,
+      "field": null,
+      "event": "pin_changed_",
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto pinned_id_, which set_items retains or clears; write_view anchors the scroll and raises pin_changed then expansion_changed"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "compact_height",
+      "capability": "CorrespondenceViewCompactHeight",
+      "value": "double",
+      "initial": null,
+      "comment": "The height of a collapsed row before text scaling, 24 to 192 and below expanded_height (std::invalid_argument otherwise); a view, so a change can keep the visible anchor row.",
+      "getter": "compact_height",
+      "setter": "set_compact_height",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto compact_height_; write_view captures and restores the scroll anchor around the change"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "expanded_height",
+      "capability": "CorrespondenceViewExpandedHeight",
+      "value": "double",
+      "initial": null,
+      "comment": "The height of an expanded row before text scaling, above compact_height and at most 512 (std::invalid_argument otherwise); a view, so a change can keep the visible anchor row.",
+      "getter": "expanded_height",
+      "setter": "set_expanded_height",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto expanded_height_; write_view captures and restores the scroll anchor around the change"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "status_rail_width",
+      "capability": "CorrespondenceViewStatusRailWidth",
+      "value": "double",
+      "initial": "4.0",
+      "comment": "The width of each row's status rail, 1 to 12 (std::invalid_argument otherwise).",
+      "getter": "status_rail_width",
+      "setter": "set_status_rail_width",
+      "clear": null,
+      "field": "status_rail_width_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::paint",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 1.0 || incoming > 12.0) {",
+        "    throw std::invalid_argument(\"CorrespondenceView status rail width must be finite and between 1 and 12\");",
+        "}"
+      ],
+      "sample": "6.0"
+    },
+    {
+      "name": "hover_intent_delay",
+      "capability": "CorrespondenceViewHoverIntentDelay",
+      "value": "std::chrono::milliseconds",
+      "initial": "std::chrono::milliseconds(180)",
+      "comment": "How long the pointer must rest on a row before it expands, 1 ms to 5 s (std::invalid_argument otherwise). A change restarts a pending hover.",
+      "getter": "hover_intent_delay",
+      "setter": "set_hover_intent_delay",
+      "clear": null,
+      "field": "hover_intent_delay_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare validates; written reschedules the hovered row's intent"
+      ],
+      "effects": null,
+      "sample": "std::chrono::milliseconds(250)"
+    },
+    {
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::content, 11.0, 400, false",
+      "comment": "The rows' font (Font). Throws std::invalid_argument for an invalid FontSpec; any write marks the font as set from code.",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": null,
+      "field": "font_",
+      "event": null,
+      "on_changed": true,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (!valid_font_spec(incoming)) throw std::invalid_argument(\"CorrespondenceView font is invalid\");",
+        "set_font_from_code(true);"
+      ],
+      "sample": "FontSpec{FontRole::content, 13.0, 400, false}"
+    },
+    {
+      "name": "scroll_offset",
+      "capability": "CorrespondenceViewScrollOffset",
+      "value": "double",
+      "initial": null,
+      "comment": "The vertical scroll position, clamped to the content; a view, since the view's own anchoring and reveal move it. A negative or non-finite offset throws std::invalid_argument; a change ends a pending hover.",
+      "getter": "scroll_offset",
+      "setter": "set_scroll_offset",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto scroll_offset_, which anchoring and reveal move directly; write_view clamps and clears the hover intent"
+      ],
+      "effects": null,
+      "storage": "view"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "items",
+      "reason": "the model is replaced whole and validated as a set; collections stay methods"
+    },
+    {
+      "name": "hovered_index",
+      "reason": "interaction state, not authored"
+    }
+  ],
+  "test": {
+    "type": "CorrespondenceView",
+    "include": "gui_forms/controls/panel/correspondence_view/correspondence_view.hpp"
+  }
+}

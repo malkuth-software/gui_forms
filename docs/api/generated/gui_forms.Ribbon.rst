@@ -7,7 +7,7 @@ gui_forms::Ribbon
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: Ribbon final : public Control
+.. cpp:class:: Ribbon final : public Control, public RibbonCapabilities<Ribbon>
 
    ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
 
@@ -40,6 +40,43 @@ gui_forms::Ribbon
 
    :Properties:
 
+      **application_modes** : ``std::uint32_t``, default ``1``
+         The application modes shown, one bit per mode. Tabs and groups whose
+         ``modes`` share a bit with it show. ``set_application_modes`` throws
+         ``std::invalid_argument`` for zero.
+
+      **document_minimum_height** : ``double``, default ``0``
+         The minimum height, in logical units, the document area under the ribbon
+         declares (owner decision 34); zero declares none.
+         ``set_document_minimum_height`` throws ``std::invalid_argument`` for a
+         negative or non-finite height.
+
+      **minimized** : ``bool``, default ``false``
+         Whether the command plane is hidden, leaving the tab row.
+
+      **application_text** : ``std::string``, default ``"File"``
+         The File tab's text, with an optional mnemonic.
+
+      **recent_caption** : ``std::string``, default ``"Recent documents"``
+         The recent pane's caption.
+
+      **backstage** : ``std::shared_ptr<BackstageView>``
+         The :cpp:class:`BackstageView <gui_forms::BackstageView>` the File tab opens instead of the application menu,
+         or null. ``set_backstage`` throws ``std::invalid_argument`` for a view that
+         already has a parent.
+
+      **focus_region** : ``bool``, default ``true``
+         Whether the ribbon adds itself to its window's F6 regions when it is
+         attached.
+
+      **font** : ``FontSpec``
+         The font of tab, caption and command text.
+
+      **selected_tab** : ``std::optional<std::size_t>``
+         The selected tab, or none while no tab shows. Assigning a tab past the
+         end throws ``std::out_of_range``; a tab not shown, or no value, throws
+         ``std::invalid_argument``.
+
       **tabs** : ``std::span<const RibbonTabSpec>``
          The tabs, each with its groups and their commands: the core tabs, then
          the contextual tabs, each set's together in the sets' order.
@@ -65,11 +102,6 @@ gui_forms::Ribbon
       **tab_sets** : ``std::span<const RibbonTabSetSpec>``, read-only
          The contextual tab sets (:cpp:class:`RibbonTabSetSpec <gui_forms::RibbonTabSetSpec>`: ID and caption).
 
-      **application_modes** : ``std::uint32_t``, default ``1``
-         The application modes shown, one bit per mode. Tabs and groups whose
-         ``modes`` share a bit with it show. :cpp:func:`set_application_modes <gui_forms::Ribbon::set_application_modes>` throws
-         ``std::invalid_argument`` for zero.
-
       **ladder_step** : ``std::optional<std::size_t>``, read-only
          The selected tab's ladder entry the plane shows, or none while it is
          hidden or minimized.
@@ -82,29 +114,12 @@ gui_forms::Ribbon
       **first_visible_group** : ``std::size_t``, read-only
          The first group shown while the plane scrolls.
 
-      **document_minimum_height** : ``double``, default ``0``
-         The minimum height, in logical units, the document area under the ribbon
-         declares (owner decision 34); zero declares none.
-         :cpp:func:`set_document_minimum_height <gui_forms::Ribbon::set_document_minimum_height>` throws ``std::invalid_argument`` for a
-         negative or non-finite height.
-
       **plane_hidden** : ``bool``, read-only
          Whether the document-area rule hides the command plane now.
 
       **scaling_counters** : ``RibbonScalingCounters``, read-only
          :cpp:class:`RibbonScalingCounters <gui_forms::RibbonScalingCounters>`: ladders built, the last ladder's entries and
          folded steps, ladder lookups and the ribbon's own text measurements.
-
-      **selected_tab** : ``std::optional<std::size_t>``
-         The selected tab, or none while no tab shows. :cpp:func:`set_selected_tab <gui_forms::Ribbon::set_selected_tab>` throws
-         ``std::out_of_range`` for a tab past the end and ``std::invalid_argument``
-         for a tab not shown.
-
-      **minimized** : ``bool``, default ``false``
-         Whether the command plane is hidden, leaving the tab row.
-
-      **application_text** : ``std::string``, default ``"File"``
-         The File tab's text, with an optional mnemonic.
 
       **application_menu** : ``std::vector<MenuItemSpec>``
          The File tab's menu. :cpp:func:`set_application_menu <gui_forms::Ribbon::set_application_menu>` throws
@@ -113,7 +128,7 @@ gui_forms::Ribbon
 
       **recent_items** : ``std::span<const RibbonRecentItem>``
          The application menu's recent pane (:cpp:class:`RibbonRecentItem <gui_forms::RibbonRecentItem>`: ID, text and a
-         description such as its folder), numbered under :cpp:func:`recent_caption <gui_forms::Ribbon::recent_caption>`. While
+         description such as its folder), numbered under :cpp:member:`recent_caption <gui_forms::Ribbon::recent_caption>`. While
          there are recent items the File tab opens a two-pane menu: the
          application menu's commands on the left, the recent items on the right.
          :cpp:func:`set_recent_items <gui_forms::Ribbon::set_recent_items>` throws ``std::invalid_argument`` for a repeated ID or one
@@ -121,16 +136,8 @@ gui_forms::Ribbon
          than ``Ribbon::maximum_recent_items`` (50), or an application menu holding
          other kinds than commands and separators.
 
-      **recent_caption** : ``std::string``, default ``"Recent documents"``
-         The recent pane's caption.
-
       **application_menu_overlay** : ``Control::Ptr``, read-only
          The two-pane menu's content control, null before its first opening.
-
-      **backstage** : ``std::shared_ptr<BackstageView>``
-         The :cpp:class:`BackstageView <gui_forms::BackstageView>` the File tab opens instead of the application menu,
-         or null. :cpp:func:`set_backstage <gui_forms::Ribbon::set_backstage>` throws ``std::invalid_argument`` for a view that
-         already has a parent.
 
       **backstage_open** : ``bool``, read-only
          Whether Backstage is open.
@@ -144,13 +151,6 @@ gui_forms::Ribbon
       **group_overlay** : ``Control::Ptr``, read-only
          The overlay's content control (null before the first overlay); the overlay's
          parts are in its local coordinates.
-
-      **focus_region** : ``bool``, default ``true``
-         Whether the ribbon adds itself to its window's F6 regions when it is
-         attached.
-
-      **font** : ``FontSpec``
-         The font of tab, caption and command text.
 
       **parts** : ``Parts``, read-only
 
@@ -298,7 +298,7 @@ gui_forms::Ribbon
    The hide rule (decisions 28, 34 to 36). The height the ribbon's parent offers
    it holds the ribbon and the document area beneath. The command plane, never
    the tab row, hides when that area (with the plane shown) would be shorter
-   than :cpp:func:`document_minimum_height <gui_forms::Ribbon::document_minimum_height>`, or below zero when none is declared; a hidden
+   than :cpp:member:`document_minimum_height <gui_forms::Ribbon::document_minimum_height>`, or below zero when none is declared; a hidden
    plane shows again once the area is at least the minimum plus
    ``Ribbon::hide_hysteresis`` (8 units). Width never hides it.
 
@@ -367,7 +367,7 @@ gui_forms::Ribbon
 
    Application modes (F2-1, after the Windows Ribbon Framework). Every tab and
    group belongs to the modes in its ``modes`` bit set (every mode by default),
-   and shows while one of them is in :cpp:func:`application_modes <gui_forms::Ribbon::application_modes>`. A mode switch
+   and shows while one of them is in :cpp:member:`application_modes <gui_forms::Ribbon::application_modes>`. A mode switch
    replaces the tabs shown at once; a selected tab that no longer shows gives
    way as above, and groups that leave take no room and no ladder steps.
 
@@ -402,7 +402,7 @@ gui_forms::Ribbon
       home.groups.push_back(std::move(clipboard));
       home.reduction_order = {{.group = "clipboard"}};
       (*ribbon).set_tabs({std::move(home)});
-      (*ribbon).set_document_minimum_height(120.0);
+      (*ribbon).document_minimum_height = 120.0;
 
 
    .. rubric:: Construction
@@ -411,6 +411,52 @@ gui_forms::Ribbon
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: std::uint32_t application_modes
+
+      The application modes shown, one bit per mode. Tabs and groups whose
+      ``modes`` share a bit with it show. ``set_application_modes`` throws
+      ``std::invalid_argument`` for zero.
+
+   .. cpp:member:: double document_minimum_height
+
+      The minimum height, in logical units, the document area under the ribbon
+      declares (owner decision 34); zero declares none.
+      ``set_document_minimum_height`` throws ``std::invalid_argument`` for a
+      negative or non-finite height.
+
+   .. cpp:member:: bool minimized
+
+      Whether the command plane is hidden, leaving the tab row.
+
+   .. cpp:member:: std::string application_text
+
+      The File tab's text, with an optional mnemonic.
+
+   .. cpp:member:: std::string recent_caption
+
+      The recent pane's caption.
+
+   .. cpp:member:: std::shared_ptr<BackstageView> backstage
+
+      The :cpp:class:`BackstageView <gui_forms::BackstageView>` the File tab opens instead of the application menu,
+      or null. ``set_backstage`` throws ``std::invalid_argument`` for a view that
+      already has a parent.
+
+   .. cpp:member:: bool focus_region
+
+      Whether the ribbon adds itself to its window's F6 regions when it is
+      attached.
+
+   .. cpp:member:: FontSpec font
+
+      The font of tab, caption and command text.
+
+   .. cpp:member:: std::optional<std::size_t> selected_tab
+
+      The selected tab, or none while no tab shows. Assigning a tab past the
+      end throws ``std::out_of_range``; a tab not shown, or no value, throws
+      ``std::invalid_argument``.
 
    .. cpp:function:: std::span<const RibbonTabSpec> tabs() const noexcept
 
@@ -443,16 +489,6 @@ gui_forms::Ribbon
 
       The contextual tab sets (:cpp:class:`RibbonTabSetSpec <gui_forms::RibbonTabSetSpec>`: ID and caption).
 
-   .. cpp:function:: std::uint32_t application_modes() const noexcept
-
-      The application modes shown, one bit per mode. Tabs and groups whose
-      ``modes`` share a bit with it show. :cpp:func:`set_application_modes <gui_forms::Ribbon::set_application_modes>` throws
-      ``std::invalid_argument`` for zero.
-
-   .. cpp:function:: void set_application_modes(std::uint32_t modes)
-
-      Sets :cpp:func:`application_modes <gui_forms::Ribbon::application_modes>`; see the property's description above.
-
    .. cpp:function:: std::optional<std::size_t> ladder_step() const
 
       The selected tab's ladder entry the plane shows, or none while it is
@@ -468,17 +504,6 @@ gui_forms::Ribbon
 
       The first group shown while the plane scrolls.
 
-   .. cpp:function:: double document_minimum_height() const noexcept
-
-      The minimum height, in logical units, the document area under the ribbon
-      declares (owner decision 34); zero declares none.
-      :cpp:func:`set_document_minimum_height <gui_forms::Ribbon::set_document_minimum_height>` throws ``std::invalid_argument`` for a
-      negative or non-finite height.
-
-   .. cpp:function:: void set_document_minimum_height(double height)
-
-      Sets :cpp:func:`document_minimum_height <gui_forms::Ribbon::document_minimum_height>`; see the property's description above.
-
    .. cpp:function:: bool plane_hidden() const noexcept
 
       Whether the document-area rule hides the command plane now.
@@ -487,32 +512,6 @@ gui_forms::Ribbon
 
       :cpp:class:`RibbonScalingCounters <gui_forms::RibbonScalingCounters>`: ladders built, the last ladder's entries and
       folded steps, ladder lookups and the ribbon's own text measurements.
-
-   .. cpp:function:: std::optional<std::size_t> selected_tab() const noexcept
-
-      The selected tab, or none while no tab shows. :cpp:func:`set_selected_tab <gui_forms::Ribbon::set_selected_tab>` throws
-      ``std::out_of_range`` for a tab past the end and ``std::invalid_argument``
-      for a tab not shown.
-
-   .. cpp:function:: void set_selected_tab(std::size_t tab)
-
-      Sets :cpp:func:`selected_tab <gui_forms::Ribbon::selected_tab>`; see the property's description above.
-
-   .. cpp:function:: bool minimized() const noexcept
-
-      Whether the command plane is hidden, leaving the tab row.
-
-   .. cpp:function:: void set_minimized(bool minimized)
-
-      Sets :cpp:func:`minimized <gui_forms::Ribbon::minimized>`; see the property's description above.
-
-   .. cpp:function:: const std::string& application_text() const noexcept
-
-      The File tab's text, with an optional mnemonic.
-
-   .. cpp:function:: void set_application_text(std::string text)
-
-      Sets :cpp:func:`application_text <gui_forms::Ribbon::application_text>`; see the property's description above.
 
    .. cpp:function:: const std::vector<MenuItemSpec>& application_menu() const noexcept
 
@@ -527,7 +526,7 @@ gui_forms::Ribbon
    .. cpp:function:: std::span<const RibbonRecentItem> recent_items() const noexcept
 
       The application menu's recent pane (:cpp:class:`RibbonRecentItem <gui_forms::RibbonRecentItem>`: ID, text and a
-      description such as its folder), numbered under :cpp:func:`recent_caption <gui_forms::Ribbon::recent_caption>`. While
+      description such as its folder), numbered under :cpp:member:`recent_caption <gui_forms::Ribbon::recent_caption>`. While
       there are recent items the File tab opens a two-pane menu: the
       application menu's commands on the left, the recent items on the right.
       :cpp:func:`set_recent_items <gui_forms::Ribbon::set_recent_items>` throws ``std::invalid_argument`` for a repeated ID or one
@@ -539,27 +538,9 @@ gui_forms::Ribbon
 
       Sets :cpp:func:`recent_items <gui_forms::Ribbon::recent_items>`; see the property's description above.
 
-   .. cpp:function:: const std::string& recent_caption() const noexcept
-
-      The recent pane's caption.
-
-   .. cpp:function:: void set_recent_caption(std::string caption)
-
-      Sets :cpp:func:`recent_caption <gui_forms::Ribbon::recent_caption>`; see the property's description above.
-
    .. cpp:function:: Control::Ptr application_menu_overlay() const noexcept
 
       The two-pane menu's content control, null before its first opening.
-
-   .. cpp:function:: std::shared_ptr<BackstageView> backstage() const noexcept
-
-      The :cpp:class:`BackstageView <gui_forms::BackstageView>` the File tab opens instead of the application menu,
-      or null. :cpp:func:`set_backstage <gui_forms::Ribbon::set_backstage>` throws ``std::invalid_argument`` for a view that
-      already has a parent.
-
-   .. cpp:function:: void set_backstage(std::shared_ptr<BackstageView> view)
-
-      Sets :cpp:func:`backstage <gui_forms::Ribbon::backstage>`; see the property's description above.
 
    .. cpp:function:: bool backstage_open() const noexcept
 
@@ -577,23 +558,6 @@ gui_forms::Ribbon
 
       The overlay's content control (null before the first overlay); the overlay's
       parts are in its local coordinates.
-
-   .. cpp:function:: bool focus_region() const noexcept
-
-      Whether the ribbon adds itself to its window's F6 regions when it is
-      attached.
-
-   .. cpp:function:: void set_focus_region(bool region)
-
-      Sets :cpp:func:`focus_region <gui_forms::Ribbon::focus_region>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
-
-      The font of tab, caption and command text.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::Ribbon::font>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 

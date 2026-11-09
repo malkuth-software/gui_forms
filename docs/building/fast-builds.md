@@ -129,7 +129,7 @@ echo "CCACHE_MAXSIZE=500M" >> "$GITHUB_ENV"
 `CCACHE_COMPILERCHECK=content` hashes the compiler binary itself, not its
 path or timestamp. No sloppiness options are set. The Objective-C++ launcher
 matters on macOS, where the AppKit host is Objective-C++. The CPU renderer,
-`stx_skia/`, builds as part of the tree, so its objects land in the same
+`stx_skia/` from the stx checkout, builds as part of the tree, so its objects land in the same
 cache. A build then runs as:
 
 ```sh

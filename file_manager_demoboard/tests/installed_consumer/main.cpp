@@ -49,7 +49,7 @@ int main() {
     (*tree).set_requested_bounds({8, 36, 140, 80});
     (*tree).set_items({{"installed.node.root", "Root", 0, true, true},
                        {"installed.node.child", "Child", 1}});
-    (*tree).set_selected_id("installed.node.child");
+    (*tree).selected_id = "installed.node.child";
     (*root).add_child(tree);
     std::shared_ptr<gui_forms::ObjectView> objects =
         std::make_shared<gui_forms::ObjectView>(
@@ -84,7 +84,7 @@ int main() {
         std::make_shared<gui_forms::ListBox>(
             gui_forms::StableId("installed.stable-list"));
     (*stable_list).set_requested_bounds({320, 244, 192, 82});
-    (*stable_list).set_items({"Alpha", "Beta"});
+    (*stable_list).items = {"Alpha", "Beta"};
     (*stable_list).set_item_stable_ids(
         {"installed.stable-list.alpha", "installed.stable-list.beta"});
     (*root).add_child(stable_list);
@@ -122,8 +122,8 @@ int main() {
             gui_forms::StableId("installed.split"));
     (*split).initialize_control_tree();
     (*split).set_requested_bounds({8, 184, 304, 150});
-    (*split).set_splitter_distance(190);
-    (*split).set_collapse_panel(gui_forms::SplitFixedPanel::second);
+    (*split).splitter_distance = 190;
+    (*split).collapse_panel = gui_forms::SplitFixedPanel::second;
     (*root).add_child(split);
     std::shared_ptr<gui_forms::CorrespondenceView> correspondence =
         std::make_shared<gui_forms::CorrespondenceView>(
@@ -141,8 +141,8 @@ int main() {
     };
     correspondence_items.front().emphasis_terms = {"evidence"};
     (*correspondence).set_items(std::move(correspondence_items));
-    (*correspondence).set_selected_id("installed.correspondence.first");
-    (*correspondence).set_pinned_id("installed.correspondence.first");
+    (*correspondence).selected_id = "installed.correspondence.first";
+    (*correspondence).pinned_id = "installed.correspondence.first";
     (*root).add_child(correspondence);
     std::shared_ptr<gui_forms::InstrumentRack> rack =
         std::make_shared<gui_forms::InstrumentRack>(
@@ -205,7 +205,7 @@ int main() {
         "installed.properties.name", "Installed validation") &&
         (*properties).set_value("installed.properties.name", "Renamed fixture") &&
         (*properties).value("installed.properties.name") == "Renamed fixture";
-    const double remembered_split = (*split).splitter_distance();
+    const double remembered_split = (*split).splitter_distance.read();
     const bool collapsed = window.perform_semantic_action(
         "installed.split", gui_forms::SemanticAction::collapse);
     window.perform_layout();
@@ -220,12 +220,12 @@ int main() {
         "installed.correspondence.first.activate",
         gui_forms::SemanticAction::press);
     return window.find("installed.consumer.label") == label &&
-        (*tree).selected_id() == "installed.node.child" &&
-        (*objects).selected_id() == "installed.object" &&
+        (*tree).selected_id.read() == "installed.node.child" &&
+        (*objects).selected_id.read() == "installed.object" &&
         (*objects).selected_ids().size() == 2U && menu_visible && strip_open &&
         accelerated && accelerator.connected() && accelerator_invocations == 1U &&
         property_edit && collapsed && restored && !(*split).second_collapsed() &&
-        (*split).splitter_distance() == remembered_split &&
+        (*split).splitter_distance.read() == remembered_split &&
         overlay_resolved &&
         (*correspondence).items().size() == 2U &&
         (*correspondence).children().empty() &&

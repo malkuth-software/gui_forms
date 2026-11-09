@@ -1,7 +1,7 @@
 // Form documents' C++ generator (stage FD, phase FD5). Gate: the generated
 // header builds the tree the loader builds, with the same values; it
-// connects the document's handlers to the owner's members, and a second
-// initialization releases the first one's connections; the generator
+// binds the document's properties to the owner's sources at creation, and
+// a released control ends its bindings; the generator
 // refuses what it cannot spell, located, leaving the caller's text as it
 // was; and the golden header is what the generator writes today.
 
@@ -18,7 +18,9 @@
 
 #include "gui_forms/gui_forms.hpp"
 
+#include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -44,6 +46,7 @@ using gui_forms::form_language::FormModelOutcome;
 using gui_forms::form_language::FormProperty;
 using gui_forms::form_language::FormSchema;
 using gui_forms::form_language::FormSchemaType;
+using gui_forms::form_language::FormSources;
 using gui_forms::form_language::LoadedForm;
 using gui_forms::theme_language::DiagnosticCode;
 using gui_forms::theme_language::LineStartTable;
@@ -149,32 +152,46 @@ bool same_shape(const Control::Ptr& left, const Control::Ptr& right) {
     return true;
 }
 
-// The owner class of sample_dialog.form: its handlers count their calls.
+// The owner class of sample_dialog.form: the sources its bindings name,
+// and counts of its commands' invocations.
 class SampleOwner final {
 public:
-    void auto_save_changed(bool checked) {
-        ++auto_save_calls;
-        last_checked = checked;
-    }
-    void accept(gui_forms::ButtonBase& button) {
-        static_cast<void>(button);
-        ++accept_calls;
-    }
-    void dismiss(gui_forms::ButtonBase& button) {
-        static_cast<void>(button);
-        ++dismiss_calls;
-    }
-    void save(const gui_forms::CommandInvocation& invocation) {
-        static_cast<void>(invocation);
-        ++save_calls;
+    SampleOwner() {
+        using Invoked = gui_forms::Delegate<const gui_forms::CommandInvocation&>;
+        accepted_ = accept_.invoked().subscribe(Invoked::bind<SampleOwner, &SampleOwner::count_accept>(*this));
+        dismissed_ = dismiss_.invoked().subscribe(Invoked::bind<SampleOwner, &SampleOwner::count_dismiss>(*this));
     }
 
-    int auto_save_calls{};
-    bool last_checked{};
+    void count_accept(const gui_forms::CommandInvocation& invocation) {
+        static_cast<void>(invocation);
+        ++accept_calls;
+    }
+    void count_dismiss(const gui_forms::CommandInvocation& invocation) {
+        static_cast<void>(invocation);
+        ++dismiss_calls;
+    }
+
+    gui_forms::Value<bool> auto_save_{true};
+    gui_forms::Value<double> level_{25.0};
+    gui_forms::Command accept_{};
+    gui_forms::Command dismiss_{};
     int accept_calls{};
     int dismiss_calls{};
-    int save_calls{};
+
+private:
+    gui_forms::SubscriptionToken accepted_{};
+    gui_forms::SubscriptionToken dismissed_{};
 };
+
+// The sources a run-time load of sample_dialog.form binds: `owner`'s.
+FormSources sample_sources(SampleOwner& owner) {
+    FormSources sources{};
+    sources.add("auto_save_", owner.auto_save_);
+    sources.add("level_", owner.level_);
+    sources.add("accept_", owner.accept_);
+    sources.add("dismiss_", owner.dismiss_);
+    return sources;
+}
 
 // The generated header builds the loader's tree with the loader's values.
 void test_generated_matches_loader() {
@@ -185,20 +202,23 @@ void test_generated_matches_loader() {
     if (!read) print_diagnostics(workspace);
     require(read, "loader: the sample document's model builds");
     if (!read) return;
+    // Declared before both forms: their controls hold bindings to it.
+    SampleOwner owner{};
+    const FormSources sources = sample_sources(owner);
     LoadedForm loaded{};
     const FormLoadOutcome outcome = gui_forms::form_language::load_form(
-        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, loaded,
-        workspace.diagnostics);
+        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, sources,
+        loaded, workspace.diagnostics);
     require(outcome == FormLoadOutcome::loaded, "loader: the sample document loads");
     if (outcome != FormLoadOutcome::loaded) return;
 
-    SampleOwner owner{};
     form_generated::SampleDialogForm<SampleOwner> form{};
     form.initialize_component(owner);
     const Control::Ptr root = form.root_control();
     require(root != nullptr && same_shape(root, loaded.root), "generated: the loader's tree, in child order");
     for (const FormProperty& property : workspace.model.properties) {
-        if (property.object.value == 0U) continue;
+        // A bound property's value is its source's, compared below.
+        if (property.object.value == 0U || property.binding) continue;
         const std::string& stable_id = workspace.model.objects[property.object.value].stable_id;
         const std::string& name =
             gui_forms::form_language::form_property_descriptor(schema, workspace.model, property).name;
@@ -210,6 +230,15 @@ void test_generated_matches_loader() {
         require(same, "generated: " + stable_id + " " + name + " as the loader sets it");
     }
     require(form.sample_save != nullptr, "generated: the command, held by the form");
+    const Control::Ptr loaded_check = find_control(loaded.root, "sample.general.auto-save");
+    const Control::Ptr loaded_level = find_control(loaded.root, "sample.level");
+    const bool bound_alike =
+        loaded_check != nullptr && loaded_level != nullptr && form.sample_general_auto_save != nullptr &&
+        form.sample_level != nullptr &&
+        (*loaded_check).property_value("checked") == (*form.sample_general_auto_save).property_value("checked") &&
+        (*loaded_level).property_value("value") == (*form.sample_level).property_value("value") &&
+        (*form.sample_level).value.read() == 25.0;
+    require(bound_alike, "generated: the bound properties take their sources' values, as the loader's do");
 
     // The window's description.
     require(form_generated::SampleDialogForm<SampleOwner>::window_title == "R\303\251glages",
@@ -222,31 +251,75 @@ void test_generated_matches_loader() {
             "window: the accept and cancel buttons");
 }
 
-// The document's handlers reach the owner's members; a second
-// initialization releases the first one's connections.
-void test_handlers() {
+// The document's bindings, made at creation: the check box takes its
+// Value's state and writes the user's change back (two way, its
+// property's default); the numeric value follows its Value one way (the
+// document narrows it); the buttons run the owner's commands. A released
+// control ends its bindings, so its source changes on alone.
+void test_bindings() {
     SampleOwner owner{};
-    form_generated::SampleDialogForm<SampleOwner> form{};
-    form.initialize_component(owner);
-    require(form.sample_general_auto_save != nullptr && (*form.sample_general_auto_save).checked(),
-            "handlers: the check box starts checked");
-    if (form.sample_general_auto_save == nullptr) return;
-    (*form.sample_general_auto_save).set_checked(false);
-    require(owner.auto_save_calls == 1 && !owner.last_checked, "handlers: checked_changed reaches the owner");
-    gui_forms::Window window(form.root_control(), gui_forms::Size{480.0, 320.0});
-    static_cast<void>((*form.sample_ok).perform_click());
-    static_cast<void>((*form.sample_cancel).perform_click());
-    require(owner.accept_calls == 1 && owner.dismiss_calls == 1, "handlers: clicked reaches accept and dismiss");
-    static_cast<void>((*form.sample_save).execute());
-    require(owner.save_calls == 1, "handlers: the command's invoked reaches save");
+    std::weak_ptr<gui_forms::CheckBox> released{};
+    {
+        form_generated::SampleDialogForm<SampleOwner> form{};
+        form.initialize_component(owner);
+        require(form.sample_general_auto_save != nullptr && form.sample_level != nullptr &&
+                    form.sample_ok != nullptr && form.sample_cancel != nullptr,
+                "bindings: the bound controls");
+        if (form.sample_general_auto_save == nullptr || form.sample_level == nullptr || form.sample_ok == nullptr ||
+            form.sample_cancel == nullptr) {
+            return;
+        }
+        gui_forms::CheckBox& check = *form.sample_general_auto_save;
+        require(check.checked.read(), "bindings: the check box takes its Value's state");
+        check.checked = false;
+        require(!owner.auto_save_.get(), "bindings: two way, the check box's change reaches its Value");
+        owner.auto_save_.set(true);
+        require(check.checked.read(), "bindings: the Value's change reaches the check box");
 
-    const std::shared_ptr<gui_forms::CheckBox> first = form.sample_general_auto_save;
-    form.initialize_component(owner);
-    require(form.sample_general_auto_save != first, "handlers: a second initialization makes new objects");
-    (*first).set_checked(true);
-    require(owner.auto_save_calls == 1, "handlers: the first initialization's connection is released");
-    (*form.sample_general_auto_save).set_checked(false);
-    require(owner.auto_save_calls == 2, "handlers: the second initialization's connection reaches the owner");
+        gui_forms::NumericUpDown& level = *form.sample_level;
+        owner.level_.set(40.0);
+        require(level.value.read() == 40.0, "bindings: one way, the Value's change reaches the control");
+        level.value = 10.0;
+        require(owner.level_.get() == 40.0, "bindings: one way, the control's change stays in the control");
+
+        gui_forms::Window window(form.root_control(), gui_forms::Size{480.0, 320.0});
+        static_cast<void>((*form.sample_ok).perform_click());
+        static_cast<void>((*form.sample_cancel).perform_click());
+        require(owner.accept_calls == 1 && owner.dismiss_calls == 1, "bindings: the buttons run their commands");
+        released = form.sample_general_auto_save;
+    }
+    require(released.expired(), "bindings: the form's controls are released with it");
+    owner.auto_save_.set(false);
+    owner.level_.set(1.0);
+    require(!owner.auto_save_.get() && owner.level_.get() == 1.0,
+            "bindings: the sources change on alone once their controls are gone");
+}
+
+// The library calls under the generated code: what they refuse leaves the
+// control as it was, and a disposed Value is no longer written.
+void test_value_bindings() {
+    const std::shared_ptr<gui_forms::CheckBox> check =
+        gui_forms::make_control<gui_forms::CheckBox>(gui_forms::StableId("check"));
+    gui_forms::Value<int> number{3};
+    gui_forms::Value<bool> flag{true};
+    int refusals = 0;
+    try {
+        gui_forms::bind_form_value(*check, "checked", number, gui_forms::PropertyBindingDirection::one_way);
+    } catch (const std::invalid_argument&) {
+        ++refusals;
+    }
+    try {
+        gui_forms::bind_form_value(*check, "no_such_property", flag, gui_forms::PropertyBindingDirection::one_way);
+    } catch (const std::invalid_argument&) {
+        ++refusals;
+    }
+    require(refusals == 2 && !(*check).checked.read(), "values: another kind and an unknown property, refused");
+
+    gui_forms::bind_form_value(*check, "checked", flag, gui_forms::PropertyBindingDirection::two_way);
+    require((*check).checked.read(), "values: bound, the property takes the Value's state");
+    flag.dispose();
+    (*check).checked = false;
+    require(!(*check).checked.read() && flag.get(), "values: a disposed Value is no longer written");
 }
 
 // The golden header is what the generator writes today, and the generator
@@ -288,7 +361,7 @@ void test_refusals() {
                                       "  button app.ok { }\n"
                                       "  button app-ok { }\n"
                                       "  button 1st.button { }\n"
-                                      "  button delete { on-clicked: class; }\n"
+                                      "  button delete { command: bind(class); }\n"
                                       "}\n";
     Workspace workspace{};
     const bool read = read_document(workspace, "test.form", document, schema);
@@ -303,9 +376,9 @@ void test_refusals() {
         records[0].rule == "app-ok" && records[0].position.line.value == 3U &&
         records[0].position.column.value == 3U && records[1].rule == "1st.button" &&
         records[1].position.line.value == 4U && records[2].rule == "delete" && records[2].position.line.value == 5U &&
-        records[3].rule == "delete" && records[3].property == "clicked";
+        records[3].rule == "delete" && records[3].property == "command";
     if (!located) print_diagnostics(workspace);
-    require(located, "refusals: the shared member, the digit, the keyword and the handler, located");
+    require(located, "refusals: the shared member, the digit, the keyword and the binding's source, located");
 
     // A type without a C++ spelling.
     const FormSchema unspelled = sample_schema(false);
@@ -346,11 +419,11 @@ void test_fonts_and_items() {
     SampleOwner owner{};
     form_generated::SampleDialogForm<SampleOwner> form{};
     form.initialize_component(owner);
-    require(form.sample_modes != nullptr && (*form.sample_modes).items().size() == 3U &&
-                (*form.sample_modes).items()[2] == "Wide FM",
+    require(form.sample_modes != nullptr && (*form.sample_modes).items.read().size() == 3U &&
+                (*form.sample_modes).items[2] == "Wide FM",
             "items: the list box's items");
-    require(form.sample_band != nullptr && (*form.sample_band).items().size() == 3U &&
-                (*form.sample_band).items()[0] == "HF",
+    require(form.sample_band != nullptr && (*form.sample_band).items.read().size() == 3U &&
+                (*form.sample_band).items[0] == "HF",
             "items: the domain's items");
     require(form.sample_heading != nullptr, "fonts: the heading, its font left to the theme");
 
@@ -398,10 +471,11 @@ void test_page_descriptors() {
     if (!read) print_diagnostics(workspace);
     require(read, "page descriptors: the model builds");
     if (!read) return;
+    const FormSources no_sources{};
     LoadedForm loaded{};
     const FormLoadOutcome outcome = gui_forms::form_language::load_form(
-        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, loaded,
-        workspace.diagnostics);
+        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, no_sources,
+        loaded, workspace.diagnostics);
     require(outcome == FormLoadOutcome::loaded, "page descriptors: the document loads");
     if (outcome != FormLoadOutcome::loaded) return;
 
@@ -418,13 +492,13 @@ void test_page_descriptors() {
     require(root != nullptr && group != nullptr && check != nullptr && radio != nullptr && italic != nullptr,
             "page descriptors: every object made");
     if (root == nullptr || group == nullptr || check == nullptr || radio == nullptr || italic == nullptr) return;
-    require((*root).design_size() == gui_forms::Size{200.0, 100.0}, "page descriptors: the panel's design size");
-    require((*group).design_size() == gui_forms::Size{50.0, 50.0}, "page descriptors: the group's design size");
+    require((*root).design_size.read() == gui_forms::Size{200.0, 100.0}, "page descriptors: the panel's design size");
+    require((*group).design_size.read() == gui_forms::Size{50.0, 50.0}, "page descriptors: the group's design size");
     const gui_forms::FontSpec body{gui_forms::FontRole::content, 13.0, 400, true, 0.5};
-    require((*italic).font() == body, "page descriptors: italic, then spacing");
-    require((*check).indicator_style() == gui_forms::ChoiceIndicatorStyle::toggle,
+    require((*italic).font.read() == body, "page descriptors: italic, then spacing");
+    require((*check).indicator_style.read() == gui_forms::ChoiceIndicatorStyle::toggle,
             "page descriptors: the check box's indicator style");
-    require((*radio).indicator_style() == gui_forms::ChoiceIndicatorStyle::modern,
+    require((*radio).indicator_style.read() == gui_forms::ChoiceIndicatorStyle::modern,
             "page descriptors: the radio button's indicator style");
 
     // Arranged at twice the design size: each child's own bounds, scaled.
@@ -471,6 +545,54 @@ void test_presentation_fonts() {
     require(refused, "presentation fonts: each refused at its name, pointing at the theme; content stays");
 }
 
+// The refusal is staged complete (FD-5b): every writable colour or font
+// property of every registry type is refused with E813 at its name unless
+// its descriptor marks it as content, so a property a control adds later
+// is covered without a test of its own. Each property is written in a
+// document of its own, whose root is the type; the refusal comes before
+// the value is read, so one value per kind serves every property.
+void test_presentation_refused_registry_wide() {
+    const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    std::size_t colours_refused = 0U;
+    std::size_t fonts_refused = 0U;
+    Workspace workspace{};
+    for (const FormSchemaType& type : schema.types) {
+        for (const gui_forms::PropertyDescriptor& property : type.properties) {
+            const bool colour = property.kind == gui_forms::BindingValueKind::color;
+            const bool font = property.kind == gui_forms::BindingValueKind::font;
+            if (!(colour || font) || property.content_value || !property.writable) continue;
+            std::string type_name = type.name;
+            std::replace(type_name.begin(), type_name.end(), '_', '-');
+            std::string property_name = property.name;
+            std::replace(property_name.begin(), property_name.end(), '_', '-');
+            const std::string_view value = colour ? "red" : "control 12";
+            std::string document = type_name;
+            document += " app.x { ";
+            document += property_name;
+            document += ": ";
+            document += value;
+            document += "; }\n";
+            const bool built = read_document(workspace, "presentation.form", document, schema);
+            bool refused = false;
+            for (const ThemeDiagnostic& record : workspace.diagnostics.records()) {
+                if (record.code == DiagnosticCode::form_presentation_property &&
+                    record.detail.find("project theme") != std::string::npos) {
+                    refused = true;
+                }
+            }
+            if (!refused) {
+                std::cerr << "  not refused: " << type.name << '.' << property.name << '\n';
+                print_diagnostics(workspace);
+            }
+            require(!built && refused, "presentation: every colour and font property refused, naming the theme");
+            if (colour && refused) ++colours_refused;
+            if (font && refused) ++fonts_refused;
+        }
+    }
+    require(colours_refused > 0U && fonts_refused > 0U,
+            "presentation: the registry has colour and font properties, and each was refused");
+}
+
 // A child writes what its parent provides (study section 10): the loader
 // stores it in the parent, the generator writes it through the parent, and
 // under a parent that does not provide it the model refuses it.
@@ -485,10 +607,11 @@ void test_attached_properties() {
     if (!read) print_diagnostics(workspace);
     require(read, "attached: the model builds");
     if (!read) return;
+    const FormSources no_sources{};
     LoadedForm loaded{};
     const FormLoadOutcome outcome = gui_forms::form_language::load_form(
-        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, loaded,
-        workspace.diagnostics);
+        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, no_sources,
+        loaded, workspace.diagnostics);
     require(outcome == FormLoadOutcome::loaded, "attached: the document loads");
     if (outcome != FormLoadOutcome::loaded) return;
     const std::shared_ptr<gui_forms::FlowLayoutPanelCompat> flow =
@@ -506,9 +629,10 @@ void test_attached_properties() {
     std::string generated{};
     require(generate(workspace, schema, options, generated) == FormGenerateOutcome::generated,
             "attached: the generator writes the document");
-    require(generated.find("(*made.app_root).set_child_property_value(*made.app_a, \"flow_break\", "
-                           "gui_forms::BindingValue{true});") != std::string::npos,
-            "attached: generated through the parent, after the child is added");
+    require(generated.find("(*made.app_root).flow_break[*made.app_a] = gui_forms::assigned_property_value<"
+                           "decltype((*made.app_root).flow_break)>(gui_forms::BindingValue{true});") !=
+                std::string::npos,
+            "attached: assigned through the parent's child view, after the child is added");
 
     const std::string_view stranger = "panel app.root {\n"
                                       "  button app.a { flow-break: true; }\n"
@@ -563,15 +687,16 @@ void test_string_escapes() {
     if (!read) print_diagnostics(workspace);
     require(read, "escapes: the model builds");
     if (!read) return;
+    const FormSources no_sources{};
     LoadedForm loaded{};
     const FormLoadOutcome outcome = gui_forms::form_language::load_form(
-        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, loaded,
-        workspace.diagnostics);
+        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, no_sources,
+        loaded, workspace.diagnostics);
     require(outcome == FormLoadOutcome::loaded, "escapes: the document loads");
     if (outcome != FormLoadOutcome::loaded) return;
     const std::shared_ptr<gui_forms::Label> note =
         std::dynamic_pointer_cast<gui_forms::Label>(find_control(loaded.root, "app.note"));
-    require(note != nullptr && (*note).text() == "Two\nlines \"quoted\" \xCE\xA9",
+    require(note != nullptr && (*note).text.read() == "Two\nlines \"quoted\" \xCE\xA9",
             "escapes: the loader sets the decoded text");
 
     FormGeneratorOptions options = sample_options();
@@ -582,6 +707,113 @@ void test_string_escapes() {
             "escapes: the generator writes the document");
     require(generated.find("\"Two\\012lines \\\"quoted\\\" \\316\\251\"") != std::string::npos,
             "escapes: the generated literal spells the decoded text");
+}
+
+// A field binding and a narrowed Value binding, spelled as the library
+// calls the generated code makes.
+void test_binding_spelling() {
+    const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    const std::string_view document = "user-control app.root {\n"
+                                      "  text-box app.name { text: bind(records_, \"name\", update on-change); }\n"
+                                      "  check-box app.flag { checked: bind(flag_, one_way); }\n"
+                                      "}\n";
+    Workspace workspace{};
+    const bool read = read_document(workspace, "bound.form", document, schema);
+    if (!read) print_diagnostics(workspace);
+    require(read, "binding spelling: the model builds");
+    if (!read) return;
+    FormGeneratorOptions options = sample_options();
+    options.class_name = "BoundForm";
+    options.source_name = "bound.form";
+    std::string generated{};
+    require(generate(workspace, schema, options, generated) == FormGenerateOutcome::generated,
+            "binding spelling: the generator writes the document");
+    require(generated.find("gui_forms::bind_form_field(*made.app_name, \"text\", owner.records_, "
+                           "std::string(\"name\"), gui_forms::PropertyBindingDirection::two_way, "
+                           "gui_forms::FormUpdateTrigger::on_change);") != std::string::npos,
+            "binding spelling: the field, two way by the text's default, on every change");
+    require(generated.find("gui_forms::bind_form_value<gui_forms::BindingValueKind::boolean>(*made.app_flag, "
+                           "\"checked\", owner.flag_, gui_forms::PropertyBindingDirection::one_way);") !=
+                std::string::npos,
+            "binding spelling: the Value, narrowed to one way, with the property's kind");
+    require(generated.find("#include \"gui_forms/binding/form_binding/form_binding.hpp\"") != std::string::npos,
+            "binding spelling: the generated header includes the binding calls");
+}
+
+// CLOSURE P-6: a property on a capability is assigned through its cell
+// (a child property through the parent's child view); one not yet migrated
+// is still written by name. The descriptors say which.
+void test_capability_assignment() {
+    const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    const std::string_view document = "grid-panel app.root {\n"
+                                      "  check-box app.check { text: \"Wrap\"; tab-index: 2; area: \"side\"; }\n"
+                                      "  label app.note { text: \"Note\"; cell: 1 0; }\n"
+                                      "  span side { anchor: 0 0; }\n"
+                                      "}\n";
+    Workspace workspace{};
+    const bool read = read_document(workspace, "cells.form", document, schema);
+    if (!read) print_diagnostics(workspace);
+    require(read, "capabilities: the model builds");
+    if (!read) return;
+    FormGeneratorOptions options = sample_options();
+    options.class_name = "CellsForm";
+    options.source_name = "cells.form";
+    std::string generated{};
+    require(generate(workspace, schema, options, generated) == FormGenerateOutcome::generated,
+            "capabilities: the generator writes the document");
+    require(generated.find("(*made.app_check).text = gui_forms::assigned_property_value<"
+                           "decltype((*made.app_check).text)>(gui_forms::BindingValue{std::string(\"Wrap\")});") !=
+                std::string::npos,
+            "capabilities: a button's text is assigned through its cell");
+    require(generated.find("(*made.app_check).tab_index = gui_forms::assigned_property_value<"
+                           "decltype((*made.app_check).tab_index)>(gui_forms::BindingValue{std::uint64_t{2U}});") !=
+                std::string::npos,
+            "capabilities: Control's tab index is assigned through its cell");
+    require(generated.find("(*made.app_root).area[*made.app_check] = gui_forms::assigned_property_value<"
+                           "decltype((*made.app_root).area)>(gui_forms::BindingValue{std::string(\"side\")});") !=
+                std::string::npos,
+            "capabilities: a grid area is assigned through the parent's child view");
+    require(generated.find("(*made.app_note).text = gui_forms::assigned_property_value<"
+                           "decltype((*made.app_note).text)>(gui_forms::BindingValue{std::string(\"Note\")});") !=
+                std::string::npos,
+            "capabilities: a label's text is assigned through its cell");
+    require(generated.find("(*made.app_root).set_child_property_value(*made.app_note, \"cell\"") !=
+                std::string::npos,
+            "capabilities: a grid cell, which converts through a named write, is written by name");
+    require(generated.find("#include \"gui_forms/binding/property_cell_entry/property_cell_entry.hpp\"") !=
+                std::string::npos,
+            "capabilities: the generated header includes assigned_property_value");
+
+    // The conversion the generated assignments use.
+    const std::shared_ptr<gui_forms::CheckBox> check = gui_forms::make_control<gui_forms::CheckBox>(
+        gui_forms::StableId("capabilities.check"));
+    const std::uint32_t index = gui_forms::assigned_property_value<decltype((*check).tab_index)>(
+        gui_forms::BindingValue{std::uint64_t{7U}});
+    require(index == 7U, "assigned value: an unsigned literal narrowed to the cell's uint32");
+    const gui_forms::AnchorStyles anchor = gui_forms::assigned_property_value<decltype((*check).anchor)>(
+        gui_forms::BindingValue{gui_forms::PropertyEnumValue{.type_name = std::string("anchor_styles"),
+                                                             .name = std::string("top, right"),
+                                                             .value = std::int64_t{9}}});
+    require(anchor == (gui_forms::AnchorStyles::top | gui_forms::AnchorStyles::right),
+            "assigned value: an enumeration literal as the cell's enum");
+    bool refused = false;
+    try {
+        const bool flag = gui_forms::assigned_property_value<decltype((*check).visible)>(
+            gui_forms::BindingValue{gui_forms::Point{.x = 1.0, .y = 2.0}});
+        static_cast<void>(flag);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused, "assigned value: a value with no form of the cell's type is refused");
+    bool too_wide = false;
+    try {
+        const std::uint32_t wide = gui_forms::assigned_property_value<decltype((*check).tab_index)>(
+            gui_forms::BindingValue{std::uint64_t{1U} << 40U});
+        static_cast<void>(wide);
+    } catch (const std::invalid_argument&) {
+        too_wide = true;
+    }
+    require(too_wide, "assigned value: a value outside the cell's narrower type is refused");
 }
 
 void test_member_names() {
@@ -597,16 +829,20 @@ void test_member_names() {
 
 int main() {
     test_generated_matches_loader();
-    test_handlers();
+    test_bindings();
+    test_value_bindings();
     test_golden();
     test_fonts_and_items();
     test_presentation_fonts();
+    test_presentation_refused_registry_wide();
     test_attached_properties();
     test_spans();
     test_page_descriptors();
     test_refusals();
     test_member_names();
+    test_binding_spelling();
     test_string_escapes();
+    test_capability_assignment();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

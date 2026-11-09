@@ -9,6 +9,7 @@
 #include "gui_forms/detail/algorithm/binary_search.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -19,14 +20,6 @@
 
 namespace gui_forms {
 namespace {
-
-struct SelectionOutsideItemCount final {
-    std::size_t item_count{};
-
-    [[nodiscard]] bool operator()(std::size_t index) const noexcept {
-        return index >= item_count;
-    }
-};
 
 // The ListSelectionMode enumeration, numbered as declared. Static storage;
 // any thread may read it.
@@ -43,130 +36,97 @@ using namespace input_control_detail;
 ListBox::ListBox(StableId stable_id) : Panel(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
-    set_focusable(true);
-    PropertyRegistration items_registration;
-    items_registration.descriptor = text_items_property::descriptor("Ordered text items the list shows.");
-    items_registration.get =
-        detail::BoundMemberFunction<BindingValue (ListBox::*)() const>(*this, &ListBox::items_property_value);
-    items_registration.set =
-        detail::BoundMemberFunction<void (ListBox::*)(const BindingValue&)>(*this, &ListBox::set_items_property);
-    items_registration.reset = detail::BoundMemberFunction<void (ListBox::*)()>(*this, &ListBox::reset_items_property);
-    items_registration.should_serialize = detail::BoundMemberFunction<bool (ListBox::*)() const noexcept>(
-        *this, &ListBox::should_serialize_items_property);
-    define_bindable_property(std::move(items_registration));
-
-    // What a form document sets besides the items (stage FD6.3); it raises
-    // no change event.
-    PropertyDescriptor mode;
-    mode.name = "selection_mode";
-    mode.kind = BindingValueKind::enumeration;
-    mode.category = "Behavior";
-    mode.description = "One selected item, or an extended selection with Shift and Ctrl.";
-    mode.default_value = BindingValue{PropertyEnumValue{"list_selection_mode", "one", 0}};
-    mode.invalidation_effects = Dirty::paint | Dirty::semantics;
-    mode.bindable = false;
-    mode.enumeration = list_selection_mode_enum();
-    define_bindable_property({
-        std::move(mode),
-        detail::EnumerationPropertyGetter<ListBox, ListSelectionMode>(
-            *this, &ListBox::selection_mode, list_selection_mode_enum()),
-        detail::EnumerationPropertySetter<ListBox, ListSelectionMode>(*this, &ListBox::set_selection_mode),
-        {}, {}, {}});
+    focusable = true;
 }
 
 BindingValue ListBox::items_property_value() const {
-    BindingValue value = text_items_property::value_of(items_);
+    BindingValue value = text_items_property::value_of(items.read());
     return value;
 }
 
 void ListBox::set_items_property(const BindingValue& value) {
-    std::vector<std::string> items = text_items_property::items_of(value, "ListBox");
-    set_items(std::move(items));
+    std::vector<std::string> incoming = text_items_property::items_of(value, "ListBox");
+    items = std::move(incoming);
 }
 
 void ListBox::reset_items_property() {
-    set_items({});
+    items.clear();
 }
 
 bool ListBox::should_serialize_items_property() const noexcept {
-    return !items_.empty();
+    return !items.read().empty();
 }
 
-void ListBox::set_items(std::vector<std::string> items) {
+// A refused edit throws here, before anything changes: the list is
+// mutable, every incoming item is UTF-8, and the selection the edit leaves
+// is made (the only allocation) before the subclass readies its own state.
+void ListBox::prepare_edit(const decltype(items)&, const CollectionEdit& edit,
+                           std::span<std::string> incoming) {
     require_mutable();
-    for (const std::string& item : items) {
+    for (const std::string& item : incoming) {
         if (!validate_utf8(item).valid()) {
             throw std::invalid_argument("ListBox items must be valid UTF-8");
         }
     }
-    items_ = std::move(items);
-    item_stable_ids_.clear();
-    const std::vector<std::size_t> previous = selected_;
-    selected_.erase(
-        std::remove_if(selected_.begin(), selected_.end(),
-                       SelectionOutsideItemCount{items_.size()}),
-        selected_.end());
-    if (active_index_ && *active_index_ >= items_.size()) active_index_.reset();
-    if (anchor_index_ && *anchor_index_ >= items_.size()) anchor_index_.reset();
-    top_index_ = items_.empty() ? 0U : std::min(top_index_, items_.size() - 1U);
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-    if (previous != selected_) {
-        publish_change(selection_changed_,
-                       ListSelectionChange{previous, selected_, active_index_});
-    }
-}
-
-void ListBox::add_item(std::string item) {
-    require_mutable();
-    if (!validate_utf8(item).valid()) {
-        throw std::invalid_argument("ListBox item must be valid UTF-8");
-    }
-    // Appending without an accompanying model identity returns the collection
-    // to the deterministic index-derived identity policy.
-    item_stable_ids_.clear();
-    items_.push_back(std::move(item));
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-}
-
-void ListBox::remove_item(std::size_t index) {
-    require_mutable();
-    if (index >= items_.size()) {
-        throw std::out_of_range("ListBox item index is outside the collection");
-    }
-    const std::vector<std::size_t> previous = selected_;
-    items_.erase(items_.begin() + static_cast<std::ptrdiff_t>(index));
-    if (!item_stable_ids_.empty()) {
-        item_stable_ids_.erase(item_stable_ids_.begin() +
-                               static_cast<std::ptrdiff_t>(index));
-    }
-    std::vector<std::size_t> adjusted;
+    edit_selection_.clear();
+    edit_selection_.reserve(selected_.size());
     for (const std::size_t selected : selected_) {
-        if (selected != index) adjusted.push_back(selected > index ? selected - 1U : selected);
+        const std::optional<std::size_t> kept = edit.remap(selected);
+        if (kept) edit_selection_.push_back(*kept);
     }
-    selected_ = std::move(adjusted);
-    if (active_index_) {
-        if (*active_index_ == index) active_index_.reset();
-        else if (*active_index_ > index) --*active_index_;
+    on_items_changing(edit);
+}
+
+// The edit is stored. Nothing here throws before the change event: the
+// stable identities follow the edit (an insertion has no identity for its
+// item, so the list returns to index-derived identities, as an assignment
+// does), the selection is swapped in, and the anchor, active and hovered
+// rows are remapped.
+void ListBox::written(const decltype(items)&, const CollectionEdit& edit) {
+    const std::size_t count = items.read().size();
+    switch (edit.kind()) {
+    case CollectionEditKind::erase:
+        if (!item_stable_ids_.empty()) {
+            const std::vector<std::string>::iterator first =
+                item_stable_ids_.begin() + static_cast<std::ptrdiff_t>(edit.index());
+            item_stable_ids_.erase(first, first + static_cast<std::ptrdiff_t>(edit.count()));
+        }
+        break;
+    case CollectionEditKind::replace:
+        break;
+    case CollectionEditKind::assign:
+    case CollectionEditKind::insert:
+    default:
+        item_stable_ids_.clear();
+        break;
     }
-    if (anchor_index_) {
-        if (*anchor_index_ == index) anchor_index_.reset();
-        else if (*anchor_index_ > index) --*anchor_index_;
-    }
-    top_index_ = items_.empty() ? 0U : std::min(top_index_, items_.size() - 1U);
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-    if (previous != selected_) {
+    const bool selection_changed = edit_selection_ != selected_;
+    if (selection_changed) std::swap(selected_, edit_selection_);
+    if (active_index_) active_index_ = edit.remap(*active_index_);
+    if (anchor_index_) anchor_index_ = edit.remap(*anchor_index_);
+    if (hovered_index_) hovered_index_ = edit.remap(*hovered_index_);
+    const std::size_t top_before = top_index_;
+    top_index_ = count == 0U ? 0U : std::min(top_index_, count - 1U);
+    on_items_changed(edit);
+    // The rows are repainted at the flush (settle_items_damage, from
+    // arrange); a structural edit also changes what the list measures.
+    Dirty effects = Dirty::arrange | Dirty::semantics;
+    if (edit.structural()) effects |= Dirty::measure;
+    if (selection_changed || top_before != top_index_) effects |= Dirty::paint;
+    invalidate(effects);
+    if (selection_changed) {
         publish_change(selection_changed_,
-                       ListSelectionChange{previous, selected_, active_index_});
+                       ListSelectionChange{edit_selection_, selected_, active_index_});
     }
 }
 
-void ListBox::clear_items() {
-    set_items({});
-}
+void ListBox::on_items_changing(const CollectionEdit&) {}
+
+void ListBox::on_items_changed(const CollectionEdit&) noexcept {}
 
 void ListBox::set_item_stable_ids(std::vector<std::string> stable_ids) {
     require_mutable();
-    if (stable_ids.size() != items_.size()) {
+    if (stable_ids.size() != items.read().size()) {
         throw std::invalid_argument(
             "ListBox stable item IDs must match the item count");
     }
@@ -186,7 +146,7 @@ void ListBox::set_item_stable_ids(std::vector<std::string> stable_ids) {
 }
 
 std::string ListBox::item_stable_id(std::size_t index) const {
-    if (index >= items_.size()) {
+    if (index >= items.read().size()) {
         throw std::out_of_range(
             "ListBox item stable ID index is outside the collection");
     }
@@ -195,11 +155,14 @@ std::string ListBox::item_stable_id(std::size_t index) const {
            std::to_string(index);
 }
 
-void ListBox::set_selection_mode(ListSelectionMode mode) {
+void ListBox::prepare_write(const decltype(selection_mode)&, ListSelectionMode&) {
     require_mutable();
-    if (selection_mode_ == mode) return;
-    selection_mode_ = mode;
-    if (mode == ListSelectionMode::one && selected_.size() > 1U) {
+}
+
+// Narrowing to one item keeps the active (or first) selected row; dropping
+// the others raises selection_changed before the repaint request.
+void ListBox::written(const decltype(selection_mode)&) {
+    if (selection_mode.read() == ListSelectionMode::one && selected_.size() > 1U) {
         const std::size_t retained = active_index_.value_or(selected_.front());
         apply_selection({retained}, retained);
     }
@@ -227,10 +190,10 @@ void ListBox::apply_selection(std::vector<std::size_t> selection,
 
 void ListBox::select_index(std::size_t index, bool extend, bool toggle) {
     require_mutable();
-    if (index >= items_.size()) {
+    if (index >= items.read().size()) {
         throw std::out_of_range("ListBox selection index is outside the collection");
     }
-    if (selection_mode_ == ListSelectionMode::one) {
+    if (selection_mode.read() == ListSelectionMode::one) {
         apply_selection({index}, index);
         anchor_index_ = index;
     } else if (extend && anchor_index_) {
@@ -261,37 +224,20 @@ void ListBox::clear_selection() {
     anchor_index_.reset();
 }
 
-void ListBox::set_top_index(std::size_t index) {
+std::size_t ListBox::read_view(const decltype(top_index)&) const {
+    return top_index_;
+}
+
+void ListBox::write_view(const decltype(top_index)&, std::size_t incoming) {
     require_mutable();
-    if (items_.empty()) {
-        if (index != 0U) throw std::out_of_range("empty ListBox top index must be zero");
-    } else if (index >= items_.size()) {
+    if (items.read().empty()) {
+        if (incoming != 0U) throw std::out_of_range("empty ListBox top index must be zero");
+    } else if (incoming >= items.read().size()) {
         throw std::out_of_range("ListBox top index is outside the collection");
     }
-    if (top_index_ == index) return;
-    top_index_ = index;
+    if (top_index_ == incoming) return;
+    top_index_ = incoming;
     invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void ListBox::set_item_height(double height) {
-    require_mutable();
-    if (!std::isfinite(height) || height < 12.0 || height > 256.0) {
-        throw std::invalid_argument("ListBox item height must be finite and between 12 and 256");
-    }
-    if (item_height_ == height) return;
-    item_height_ = height;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void ListBox::set_font(FontSpec font) {
-    require_mutable();
-    if (!valid_font_spec(font)) {
-        throw std::invalid_argument("ListBox font specification is invalid");
-    }
-    set_font_from_code(true);
-    if (font_ == font) return;
-    font_ = font;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
 std::size_t ListBox::visible_row_count() const noexcept {
@@ -299,7 +245,7 @@ std::size_t ListBox::visible_row_count() const noexcept {
     if (height <= 4.0) {
         height = requested_bounds().height;
     }
-    const double row_height = item_height_ * effective_text_scale();
+    const double row_height = item_height.read() * effective_text_scale();
     return std::max<std::size_t>(1U, static_cast<std::size_t>(
         std::floor(std::max(0.0, height - 4.0) / row_height)));
 }
@@ -314,9 +260,47 @@ void ListBox::ensure_visible(std::size_t index) {
 }
 
 void ListBox::arrange(Rect final_bounds) {
+    const std::size_t top_before = top_index_;
     Panel::arrange(final_bounds);
     if (active_index_) {
         ensure_visible(*active_index_);
+    }
+    settle_items_damage(top_before != top_index_);
+}
+
+// The design's flush intersection: the rows shown are [top, top + visible
+// + 1) (the last one partly). A structural edit at or above the last shown
+// row repaints the shown rows from it to the bottom of the content; one
+// below the window changes only what is measured. A replaced row is
+// repainted when shown and above the structural watermark.
+void ListBox::settle_items_damage(bool window_moved) {
+    settled_rows_.clear();
+    const std::optional<std::size_t> structural_from =
+        TextItemsCapability<ListBox>::take_dirty(*this, settled_rows_);
+    if (window_moved) {
+        invalidate(Dirty::paint);
+        return;
+    }
+    if (!structural_from && settled_rows_.empty()) return;
+    const Rect bounds = local_bounds();
+    if (bounds.empty()) return;
+    const double row_height = item_height.read() * effective_text_scale();
+    const double row_width = std::max(0.0, bounds.width - 4.0);
+    const double content_bottom = std::max(2.0, bounds.height - 2.0);
+    const std::size_t window_end = top_index_ + visible_row_count() + 1U;
+    std::size_t replaced_end = window_end;
+    if (structural_from && *structural_from < window_end) {
+        const std::size_t first = std::max(*structural_from, top_index_);
+        const double top = 2.0 + static_cast<double>(first - top_index_) * row_height;
+        if (top < content_bottom) invalidate(Rect{2.0, top, row_width, content_bottom - top});
+        replaced_end = first;
+    }
+    for (const std::uint32_t row : settled_rows_) {
+        const std::size_t index = static_cast<std::size_t>(row);
+        if (index < top_index_) continue;
+        if (index >= replaced_end) break;
+        const double top = 2.0 + static_cast<double>(index - top_index_) * row_height;
+        invalidate(Rect{2.0, top, row_width, row_height});
     }
 }
 
@@ -325,10 +309,10 @@ std::optional<std::size_t> ListBox::index_at(Point absolute) const noexcept {
     if (!bounds.contains(absolute)) return {};
     const double local_y = absolute.y - bounds.y - 2.0;
     if (local_y < 0.0) return {};
-    const double row_height = item_height_ * effective_text_scale();
+    const double row_height = item_height.read() * effective_text_scale();
     const std::size_t index = top_index_ +
         static_cast<std::size_t>(std::floor(local_y / row_height));
-    return index < items_.size() ? std::optional<std::size_t>{index}
+    return index < items.read().size() ? std::optional<std::size_t>{index}
                                  : std::optional<std::size_t>{};
 }
 
@@ -349,13 +333,13 @@ void ListBox::on_paint(Painter& painter, Rect) {
     if (has_background_override() || overridden) well.authored_background = background();
     well.key = PartKey{"well", {}, {}};
     paint_part(painter, *this, well);
-    const FontSpec font = text_font(font_);
-    const double row_height = item_height_ * effective_text_scale();
+    const FontSpec row_font = text_font(font.read());
+    const double row_height = item_height.read() * effective_text_scale();
     painter.save();
     painter.clip_rect({2.0, 2.0, std::max(0.0, bounds.width - 4.0),
                        std::max(0.0, bounds.height - 4.0)});
     const std::size_t visible = visible_row_count() + 1U;
-    const std::size_t end = std::min(items_.size(), top_index_ + visible);
+    const std::size_t end = std::min(items.read().size(), top_index_ + visible);
     for (std::size_t index = top_index_; index < end; ++index) {
         const double y = 2.0 + static_cast<double>(index - top_index_) * row_height;
         const bool selected = detail::binary_search_contains(
@@ -382,12 +366,12 @@ void ListBox::on_paint(Painter& painter, Rect) {
         text.family = selected || hovered ? ControlVisualRole::selection : ControlVisualRole::editor;
         text.role = PartRole::content;
         text.states = row_states;
-        text.text = items_[index];
-        text.font = font;
+        text.text = items.read()[index];
+        text.font = row_font;
         if (overridden) text.authored_foreground = selected && focused_ ? style().highlight : style().text;
         const double left = row_text_left();
         paint_text_part_at(painter, *this, text,
-                           {left, y + std::max(font.size, row_height * 0.5 + 4.0)},
+                           {left, y + std::max(row_font.size, row_height * 0.5 + 4.0)},
                            std::max(0.0, row.x + row.width - left));
         if (focused_ && active_index_ == index) {
             PartPaint ring;
@@ -425,12 +409,12 @@ void ListBox::on_pointer(PointerEvent& event) {
         return;
     }
     if (event.action == PointerAction::wheel) {
-        if (!items_.empty() && event.wheel_delta.y != 0.0) {
+        if (!items.read().empty() && event.wheel_delta.y != 0.0) {
             const int direction = event.wheel_delta.y > 0.0 ? -1 : 1;
             const std::ptrdiff_t next = std::clamp<std::ptrdiff_t>(
                 static_cast<std::ptrdiff_t>(top_index_) + direction * 3,
-                0, static_cast<std::ptrdiff_t>(items_.size() - 1U));
-            set_top_index(static_cast<std::size_t>(next));
+                0, static_cast<std::ptrdiff_t>(items.read().size() - 1U));
+            top_index = static_cast<std::size_t>(next);
             event.handled = true;
         }
         return;
@@ -453,7 +437,7 @@ void ListBox::on_pointer(PointerEvent& event) {
 }
 
 void ListBox::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled.read() || event.action != KeyAction::down || items_.empty()) return;
+    if (!focused_ || !enabled.read() || event.action != KeyAction::down || items.read().empty()) return;
     if (event.physical_key == PhysicalKey::enter && active_index_) {
         item_activated_.emit(*active_index_);
         event.handled = true;
@@ -462,11 +446,11 @@ void ListBox::on_key(KeyEvent& event) {
     std::optional<std::size_t> next;
     const std::size_t current = active_index_.value_or(0U);
     if (event.physical_key == PhysicalKey::up) next = current == 0U ? 0U : current - 1U;
-    else if (event.physical_key == PhysicalKey::down) next = std::min(current + 1U, items_.size() - 1U);
+    else if (event.physical_key == PhysicalKey::down) next = std::min(current + 1U, items.read().size() - 1U);
     else if (event.physical_key == PhysicalKey::home) next = 0U;
-    else if (event.physical_key == PhysicalKey::end) next = items_.size() - 1U;
+    else if (event.physical_key == PhysicalKey::end) next = items.read().size() - 1U;
     else if (event.physical_key == PhysicalKey::page_up) next = current > visible_row_count() ? current - visible_row_count() : 0U;
-    else if (event.physical_key == PhysicalKey::page_down) next = std::min(current + visible_row_count(), items_.size() - 1U);
+    else if (event.physical_key == PhysicalKey::page_down) next = std::min(current + visible_row_count(), items.read().size() - 1U);
     if (next) {
         select_index(*next, includes(event.modifiers, Modifier::shift), false);
         event.handled = true;
@@ -481,13 +465,13 @@ void ListBox::on_focus_changed(bool focused) {
 SemanticDescriptor ListBox::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::list;
-    if (selection_mode_ == ListSelectionMode::multiple_extended) {
+    if (selection_mode.read() == ListSelectionMode::multiple_extended) {
         descriptor.states |= SemanticState::multiselectable;
     }
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
     if (const std::optional<std::size_t> selected = selected_index()) {
-        descriptor.value = items_[*selected];
+        descriptor.value = items.read()[*selected];
     } else if (!selected_.empty()) {
         descriptor.value = std::to_string(selected_.size()) + " items selected";
     }
@@ -498,20 +482,20 @@ SemanticDescriptor ListBox::semantic_descriptor() const {
 
 std::vector<SemanticNode> ListBox::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes;
-    nodes.reserve(items_.size());
+    nodes.reserve(items.read().size());
     const Rect list_bounds = absolute_bounds();
     const std::size_t visible_count = visible_row_count();
-    const std::size_t visible_end = std::min(items_.size(), top_index_ + visible_count);
-    const double row_height = item_height_ * effective_text_scale();
-    for (std::size_t index = 0; index < items_.size(); ++index) {
+    const std::size_t visible_end = std::min(items.read().size(), top_index_ + visible_count);
+    const double row_height = item_height.read() * effective_text_scale();
+    for (std::size_t index = 0; index < items.read().size(); ++index) {
         SemanticNode node;
         node.stable_id = item_stable_id(index);
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::list_item;
-        node.name = items_[index];
-        node.value = items_[index];
+        node.name = items.read()[index];
+        node.value = items.read()[index];
         node.position_in_set = index + 1U;
-        node.set_size = items_.size();
+        node.set_size = items.read().size();
         const double row_y = list_bounds.y + 2.0 +
             (static_cast<double>(index) - static_cast<double>(top_index_)) *
                 row_height;
@@ -555,7 +539,7 @@ bool ListBox::on_semantic_child_action(std::string_view child_stable_id,
             suffix.data(), suffix.data() + suffix.size(), index);
         if (parsed.ec != std::errc{} ||
             parsed.ptr != suffix.data() + suffix.size() ||
-            index >= items_.size()) return false;
+            index >= items.read().size()) return false;
     }
     if (action != SemanticAction::focus && action != SemanticAction::select &&
         action != SemanticAction::press) return false;
@@ -568,7 +552,6 @@ bool ListBox::on_semantic_child_action(std::string_view child_stable_id,
     }
     return true;
 }
-
 
 namespace {
 
@@ -639,9 +622,9 @@ ListBox::Parts ListBox::parts() const {
 }
 
 std::size_t ListBox::realized_item_count() const {
-    if (top_index_ >= items_.size()) return 0U;
+    if (top_index_ >= items.read().size()) return 0U;
     // Paint realizes one row past the fully visible ones.
-    const std::size_t end = std::min(items_.size(), top_index_ + visible_row_count() + 1U);
+    const std::size_t end = std::min(items.read().size(), top_index_ + visible_row_count() + 1U);
     const std::size_t count = end - top_index_;
     return count;
 }
@@ -660,12 +643,12 @@ ListBox::ItemParts ListBox::list_item_parts(std::size_t item) const {
     const Rect bounds = local_bounds();
     const Rect content{2.0, 2.0, std::max(0.0, bounds.width - 4.0),
                        std::max(0.0, bounds.height - 4.0)};
-    const double row_height = item_height_ * effective_text_scale();
+    const double row_height = item_height.read() * effective_text_scale();
     const double y = 2.0 + static_cast<double>(item) * row_height;
     const Rect row{2.0, y, std::max(0.0, bounds.width - 4.0), row_height};
     const std::size_t index = realized_item_index(item);
-    const FontSpec font = text_font(font_);
-    const ResolvedTextLayout text = resolve_text_layout_utf8(items_[index], font);
+    const FontSpec label_font = text_font(font.read());
+    const ResolvedTextLayout text = resolve_text_layout_utf8(items.read()[index], label_font);
     const double label_left = row_text_left();
     const double label_width = std::min(text.logical_size.width,
                                         std::max(0.0, row.right() - label_left));
@@ -733,5 +716,117 @@ void ListBox::append_interactions(std::vector<InteractionDeclaration>& interacti
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), list_box_interactions.begin(), list_box_interactions.end());
 }
+
+namespace {
+
+// The items collection in its BindingValue form (text_items_property.hpp):
+// a hand table entry (extra_entries) over the CollectionCell.
+PropertyDescriptor list_box_items_descriptor() {
+    PropertyDescriptor descriptor = text_items_property::descriptor("Ordered text items the list shows.");
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_box_items() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_box_items_descriptor(), PropertyOperations{true, true, true, false});
+    return descriptor;
+}
+
+} // namespace
+
+// property_codemod begin ListBox (tools/property_families/list_box.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor list_box_selection_mode_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "selection_mode";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Behavior";
+    descriptor.description = "One selected item, or an extended selection with Shift and Ctrl.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"list_selection_mode", "one", 0}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = list_selection_mode_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_box_selection_mode() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_box_selection_mode_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<ListSelectionMode>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, list_selection_mode_enum()};
+}
+
+BindingValue PropertyValueTraits<ListSelectionMode>::to_binding(ListSelectionMode value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = list_selection_mode_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+ListSelectionMode PropertyValueTraits<ListSelectionMode>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<ListSelectionMode>(choice.value);
+}
+
+const std::array<PropertyEntry, ListBox::list_box_property_count>& ListBox::list_box_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 2U> own{{
+        {"selection_mode", &describe_list_box_selection_mode,
+         &read_cell_entry<ListBox, decltype(&ListBox::selection_mode), &ListBox::selection_mode>,
+         &write_cell_entry<ListBox, decltype(&ListBox::selection_mode), &ListBox::selection_mode>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"items", &describe_list_box_items,
+         &read_member_entry<ListBox, decltype(&ListBox::items_property_value), &ListBox::items_property_value>,
+         &write_member_entry<ListBox, decltype(&ListBox::set_items_property), &ListBox::set_items_property>,
+         &reset_member_entry<ListBox, decltype(&ListBox::reset_items_property), &ListBox::reset_items_property>, &should_serialize_member_entry<ListBox, decltype(&ListBox::should_serialize_items_property), &ListBox::should_serialize_items_property>, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "ListBox's property table names a property twice");
+    static const std::array<PropertyEntry, list_box_property_count> entries =
+        join_property_tables(Panel::panel_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> ListBox::property_table() const noexcept {
+    const std::array<PropertyEntry, list_box_property_count>& entries = list_box_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void ListBox::prepare_write(const decltype(item_height)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 12.0 || incoming > 256.0) {
+        throw std::invalid_argument("ListBox item height must be finite and between 12 and 256");
+    }
+}
+
+void ListBox::written(const decltype(item_height)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void ListBox::prepare_write(const decltype(font)&, FontSpec& incoming) {
+    require_mutable();
+    if (!valid_font_spec(incoming)) throw std::invalid_argument("ListBox font specification is invalid");
+    set_font_from_code(true);
+}
+
+void ListBox::written(const decltype(font)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_font_changed();
+}
+
+void ListBox::on_font_changed() {}
+
+// property_codemod end ListBox
 
 } // namespace gui_forms

@@ -2,8 +2,10 @@
 
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/pages/page_strip/page_strip.hpp"
+#include "gui_forms/controls/pages/page_view/page_view_values/page_view_values.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/pages.hpp"
+#include "gui_forms/controls/pages/page_view/page_view_capabilities/page_view_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -32,13 +34,6 @@ private:
     Control::Ptr control_;
 };
 
-// What Ctrl+Tab and Ctrl+Shift+Tab (the cycle_forward and cycle_backward key
-// commands) do while focus is inside the view (owner decisions DK-30 and
-// DK-38): select the next or previous page (a view on its own), or pass the
-// key on (a view inside docking, whose navigator takes it). Ctrl+PageDown and
-// Ctrl+PageUp select in every view.
-enum class PageViewCtrlTab : std::uint8_t { select_next, pass };
-
 // The presentation a view starts from (owner decision DK-15). `strip`:
 // content-sized tabs, scroll and list overflow, mnemonics, no close buttons,
 // selection after a close by neighbour, no live reorder. `document` (DK-31,
@@ -46,12 +41,6 @@ enum class PageViewCtrlTab : std::uint8_t { select_next, pass };
 // list overflow, no mnemonics (titles are data), live reorder by dragging,
 // selection after a close by most recent activation. The navigation preset is phase P8's.
 enum class PageViewPreset : std::uint8_t { strip, document };
-
-// What a view does with a close request no handler took (owner decision
-// DK-38). `remove_when_unhandled`, the default: the view removes the page.
-// `request_only`, for an owner that decides (a docking workspace): the view
-// never removes a page itself.
-enum class PageViewClosePolicy : std::uint8_t { remove_when_unhandled, request_only };
 
 struct PageViewOptions final {
     PageViewPreset preset{PageViewPreset::strip};
@@ -102,7 +91,7 @@ struct PageContentRequest final {
 // from a click on a tab (the strip then takes focus itself); then the other
 // `selected_page_changed` handlers; then the strip's `page_invoked` when a
 // tab was chosen.
-class PageView : public Control {
+class PageView : public Control, public PageViewCapabilities<PageView> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     // The strip preset over a set made with `options`.
@@ -133,16 +122,6 @@ public:
     [[nodiscard]] std::string panel_identity(const PageId& page) const;
 
     [[nodiscard]] PageViewPreset preset() const noexcept { return preset_; }
-    [[nodiscard]] PageViewClosePolicy close_policy() const noexcept { return close_policy_; }
-    void set_close_policy(PageViewClosePolicy policy);
-
-    [[nodiscard]] PageViewCtrlTab ctrl_tab() const noexcept { return ctrl_tab_; }
-    void set_ctrl_tab(PageViewCtrlTab policy);
-    // Whether the view registers itself as an F6 region of its window
-    // (owner decision RB-17), off by default. A view nested in another region
-    // is not registered.
-    [[nodiscard]] bool focus_region() const noexcept { return focus_region_; }
-    void set_focus_region(bool region);
 
     [[nodiscard]] Event<const PageContentRequest&>& content_requested() noexcept {
         return content_requested_;
@@ -201,15 +180,25 @@ private:
 
     PageSet pages_;
     PageViewPreset preset_{PageViewPreset::strip};
-    PageViewClosePolicy close_policy_{PageViewClosePolicy::remove_when_unhandled};
     std::shared_ptr<PageStrip> strip_{};
     // One per page of the set (reconciled on every change), in no order.
     std::vector<PageSlot> slots_{};
-    PageViewCtrlTab ctrl_tab_{PageViewCtrlTab::select_next};
-    bool focus_region_{};
     SubscriptionToken pages_changed_token_{};
     SubscriptionToken selection_token_{};
     Event<const PageContentRequest&> content_requested_{};
+    // property_codemod begin PageView (tools/property_families/page_view.json; generated, do not edit)
+private:
+    friend struct PageViewClosePolicyPropertyCapability<PageView>;
+    friend struct PageViewCtrlTabPropertyCapability<PageView>;
+    friend struct PageViewFocusRegionCapability<PageView>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(close_policy)& cell, PageViewClosePolicy& incoming);
+    void written(const decltype(close_policy)& cell);
+    void prepare_write(const decltype(ctrl_tab)& cell, PageViewCtrlTab& incoming);
+    void written(const decltype(ctrl_tab)& cell);
+    void prepare_write(const decltype(focus_region)& cell, bool& incoming);
+    void written(const decltype(focus_region)& cell);
+    // property_codemod end PageView
 };
 
 } // namespace gui_forms

@@ -67,6 +67,31 @@ enum class HostCapability : std::uint64_t {
     // The host's high-contrast and reduced-transparency settings reported
     // and fed to each window's PresentationSettings (owner decision T5-Q7).
     presentation_preferences = 1ULL << 31U,
+    // Transient surfaces (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part
+    // S): Splash windows (tooltips, the splashscreen) and Popup windows
+    // (menus, drop-downs, pickers) opened during the run, translucent with
+    // the core's shadow and fade where the compositor allows it
+    // (HostWindowing::supports_popup_windows, supports_splash_windows,
+    // transient_windows_translucent). Additive flags; no protocol version
+    // change.
+    transient_surfaces = 1ULL << 32U,
+    // Transient surfaces may be opaque, with no shadow or fade, as the
+    // compositor decides at run time (X11 without a compositing manager;
+    // owner, 2026-11-08: Q-S2 (b)). Reported with transient_surfaces.
+    opaque_transient_surfaces = 1ULL << 33U,
+    // The window's corner shape requested and reported
+    // (HostServices::apply_window_corners; owner, 2026-11-08: the window
+    // outer band follows the host's corners only where the host reports
+    // them). Windows 11 DWM corner preference today; macOS and X11 report
+    // nothing and the band draws square. Additive flag; no protocol version
+    // change.
+    window_corners = 1ULL << 34U,
+    // The host reports the native window's state (HostWindowStateEvent:
+    // full screen, and the changes that can reshape its corners, such as
+    // maximize, snap and restore) after attach and whenever it changes
+    // (owner, 2026-11-08: the window outer band hides in full screen when
+    // declared so). Windows, macOS and X11. Host protocol version 12.
+    window_state_reports = 1ULL << 35U,
 };
 
 [[nodiscard]] constexpr HostCapability operator|(HostCapability left,

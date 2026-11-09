@@ -112,19 +112,6 @@ std::shared_ptr<const PropertyEnumDescriptor> picture_box_size_mode_enum() {
     return value;
 }
 
-BindingValue picture_box_size_mode_value(PictureBoxSizeMode mode) {
-    PropertyDescriptor descriptor;
-    descriptor.kind = BindingValueKind::enumeration;
-    descriptor.enumeration = picture_box_size_mode_enum();
-    const std::optional<BindingValue> normalized = convert_property_value(
-        BindingValue{static_cast<std::int64_t>(mode)}, descriptor);
-    if (!normalized) {
-        throw std::logic_error(
-            "GUI.Forms retained PictureBoxSizeMode is outside its property schema");
-    }
-    return *normalized;
-}
-
 double estimated_text_width(std::string_view text, FontSpec font) noexcept {
     std::size_t scalars{};
     for (const unsigned char byte : text) {

@@ -775,13 +775,13 @@ private:
         }
         if (kind == FixtureKind::block_panel) {
             BlockPanel& panel = static_cast<BlockPanel&>(control);
-            panel.set_text_align(own.text_align);
+            panel.text_align = own.text_align;
             if (own.zero_font) {
                 const double half = own.line_height < 0.0 ? 0.0 : own.line_height / 2.0;
-                panel.set_line_strut(LineStrut{half, half, 0.0});
+                panel.line_strut = LineStrut{half, half, 0.0};
             } else {
                 // The strut comes from the panel's font, as CSS's does.
-                panel.set_font(own.font);
+                panel.font = own.font;
             }
         }
         if (text_leaf) {
@@ -789,9 +789,9 @@ private:
                 fault(where, "a text-block takes a font in rem and a unitless line-height, which scale with the text");
             }
             TextBlock& leaf = static_cast<TextBlock&>(control);
-            leaf.set_font(own.font);
-            leaf.set_text_align(own.text_align);
-            if (own.line_height_number >= 0.0) leaf.set_line_height(own.line_height_number * own.font.size);
+            leaf.font = own.font;
+            leaf.text_align = own.text_align;
+            if (own.line_height_number >= 0.0) leaf.line_height = own.line_height_number * own.font.size;
         }
         const std::vector<StyleDeclaration> declarations =
             style_text == nullptr || reader_context ? std::vector<StyleDeclaration>{}
@@ -935,19 +935,19 @@ private:
 
         if (roles.flex_container) {
             FlexPanel& panel = static_cast<FlexPanel&>(control);
-            panel.set_flex_direction(style.flex.direction);
-            panel.set_flex_wrap(style.flex.wrap);
-            panel.set_justify_content(style.alignment.justify_content);
-            panel.set_align_content(style.alignment.align_content);
-            panel.set_align_items(style.alignment.align_items);
-            panel.set_row_gap(style.row_gap);
-            panel.set_column_gap(style.column_gap);
+            panel.flex_direction = style.flex.direction;
+            panel.flex_wrap = style.flex.wrap;
+            panel.justify_content = style.alignment.justify_content;
+            panel.align_content = style.alignment.align_content;
+            panel.align_items = style.alignment.align_items;
+            panel.row_gap = style.row_gap;
+            panel.column_gap = style.column_gap;
         }
         if (roles.grid_container) {
             configure_grid(static_cast<GridPanel&>(control), style, where);
         }
         if (roles.block_container) {
-            static_cast<BlockPanel&>(control).set_text_align(style.text_align);
+            static_cast<BlockPanel&>(control).text_align = style.text_align;
         }
         if (roles.block_item) {
             BlockFlowItemLayout& layout = child.block_item;
@@ -993,18 +993,18 @@ private:
     // the fixture.
     static void configure_grid(GridPanel& panel, const LayoutStyle& style, const std::string& where) {
         try {
-            panel.set_template_columns(style.grid.template_columns);
-            panel.set_template_rows(style.grid.template_rows);
+            panel.template_columns = style.grid.template_columns;
+            panel.template_rows = style.grid.template_rows;
             panel.set_template_areas(style.grid.template_areas);
-            panel.set_auto_flow(style.grid.auto_flow);
-            panel.set_auto_columns(style.grid.auto_columns);
-            panel.set_auto_rows(style.grid.auto_rows);
-            panel.set_justify_content(style.alignment.justify_content);
-            panel.set_align_content(style.alignment.align_content);
-            panel.set_justify_items(style.alignment.justify_items);
-            panel.set_align_items(style.alignment.align_items);
-            panel.set_row_gap(style.row_gap);
-            panel.set_column_gap(style.column_gap);
+            panel.auto_flow = style.grid.auto_flow;
+            panel.auto_columns = style.grid.auto_columns;
+            panel.auto_rows = style.grid.auto_rows;
+            panel.justify_content = style.alignment.justify_content;
+            panel.align_content = style.alignment.align_content;
+            panel.justify_items = style.alignment.justify_items;
+            panel.align_items = style.alignment.align_items;
+            panel.row_gap = style.row_gap;
+            panel.column_gap = style.column_gap;
         } catch (const std::invalid_argument& error) {
             fault(where, std::string("GridPanel refused a container value: ") + error.what());
         }
@@ -1162,32 +1162,32 @@ private:
             return true;
         }
         if (declaration.name == "flex-direction") {
-            if (value == "row") flow.set_flow_direction(FlowDirection::left_to_right);
-            else if (value == "row-reverse") flow.set_flow_direction(FlowDirection::right_to_left);
-            else if (value == "column") flow.set_flow_direction(FlowDirection::top_down);
-            else if (value == "column-reverse") flow.set_flow_direction(FlowDirection::bottom_up);
+            if (value == "row") flow.flow_direction = FlowDirection::left_to_right;
+            else if (value == "row-reverse") flow.flow_direction = FlowDirection::right_to_left;
+            else if (value == "column") flow.flow_direction = FlowDirection::top_down;
+            else if (value == "column-reverse") flow.flow_direction = FlowDirection::bottom_up;
             else fault(where, "unknown direction");
             return true;
         }
         if (declaration.name == "flex-wrap") {
-            if (value == "wrap") flow.set_wrap_contents(true);
-            else if (value == "nowrap") flow.set_wrap_contents(false);
+            if (value == "wrap") flow.wrap_contents = true;
+            else if (value == "nowrap") flow.wrap_contents = false;
             else fault(where, "FlowLayoutPanelCompat has no " + value);
             return true;
         }
         if (declaration.name == "justify-content") {
             if (value == "flex-start" || value == "start") {
-                flow.set_main_alignment(FlowMainAlignment::start);
+                flow.main_alignment = FlowMainAlignment::start;
             } else if (value == "center") {
-                flow.set_main_alignment(FlowMainAlignment::center);
+                flow.main_alignment = FlowMainAlignment::center;
             } else if (value == "flex-end" || value == "end") {
-                flow.set_main_alignment(FlowMainAlignment::end);
+                flow.main_alignment = FlowMainAlignment::end;
             } else if (value == "space-between") {
-                flow.set_main_alignment(FlowMainAlignment::space_between);
+                flow.main_alignment = FlowMainAlignment::space_between;
             } else if (value == "space-around") {
-                flow.set_main_alignment(FlowMainAlignment::space_around);
+                flow.main_alignment = FlowMainAlignment::space_around;
             } else if (value == "space-evenly") {
-                flow.set_main_alignment(FlowMainAlignment::space_evenly);
+                flow.main_alignment = FlowMainAlignment::space_evenly;
             } else {
                 fault(where, "unknown justify-content");
             }
@@ -1195,13 +1195,13 @@ private:
         }
         if (declaration.name == "align-items") {
             if (value == "flex-start" || value == "start") {
-                flow.set_cross_alignment(FlowCrossAlignment::start);
+                flow.cross_alignment = FlowCrossAlignment::start;
             } else if (value == "center") {
-                flow.set_cross_alignment(FlowCrossAlignment::center);
+                flow.cross_alignment = FlowCrossAlignment::center;
             } else if (value == "flex-end" || value == "end") {
-                flow.set_cross_alignment(FlowCrossAlignment::end);
+                flow.cross_alignment = FlowCrossAlignment::end;
             } else if (value == "stretch") {
-                flow.set_cross_alignment(FlowCrossAlignment::stretch);
+                flow.cross_alignment = FlowCrossAlignment::stretch;
             } else {
                 fault(where, "unknown align-items");
             }
@@ -1220,7 +1220,7 @@ private:
             const double row_gap = parse_length(components[0], where);
             const double column_gap =
                 components.size() == 2U ? parse_length(components[1], where) : row_gap;
-            flow.set_item_spacing({column_gap, row_gap});
+            flow.item_spacing = {column_gap, row_gap};
             return true;
         }
         return false;
@@ -1279,7 +1279,7 @@ private:
             const double row_gap = parse_length(components[0], where);
             const double column_gap =
                 components.size() == 2U ? parse_length(components[1], where) : row_gap;
-            table.set_track_spacing({column_gap, row_gap});
+            table.track_spacing = {column_gap, row_gap};
             return true;
         }
         if (declaration.name == "justify-items") {
@@ -1300,8 +1300,8 @@ private:
             return true;
         }
         if (declaration.name == "grid-auto-flow") {
-            if (value == "row") table.set_grow_style(TableLayoutGrowStyle::add_rows);
-            else if (value == "column") table.set_grow_style(TableLayoutGrowStyle::add_columns);
+            if (value == "row") table.grow_style = TableLayoutGrowStyle::add_rows;
+            else if (value == "column") table.grow_style = TableLayoutGrowStyle::add_columns;
             else fault(where, "TableLayoutPanelCompat grows by rows or columns only");
             return true;
         }
@@ -1332,9 +1332,9 @@ private:
     static void configure_table(TableLayoutPanelCompat& table, const std::vector<TableLayoutStyle>& columns,
                                 const std::vector<TableLayoutStyle>& rows, const std::string& where) {
         if (columns.empty()) fault(where, "a table-layout-panel-compat needs grid-template-columns");
-        table.set_grow_style(TableLayoutGrowStyle::add_rows);
-        table.set_column_count(columns.size());
-        table.set_row_count(rows.empty() ? 1U : rows.size());
+        table.grow_style = TableLayoutGrowStyle::add_rows;
+        table.column_count = columns.size();
+        table.row_count = rows.empty() ? 1U : rows.size();
         for (std::size_t index = 0U; index < columns.size(); ++index) {
             table.set_column_style(index, columns[index]);
         }

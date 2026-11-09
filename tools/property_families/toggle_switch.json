@@ -1,0 +1,123 @@
+{
+  "family": "ToggleSwitch",
+  "step": "W-4",
+  "declaring": "ToggleSwitch",
+  "header": "include/gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp",
+  "source": "src/controls/button_base/toggle_switch/toggle_switch.cpp",
+  "capabilities_header": "include/gui_forms/controls/button_base/toggle_switch/toggle_switch_capabilities/toggle_switch_capabilities.hpp",
+  "base": "ButtonBase",
+  "shared": [],
+  "includes": [],
+  "properties": [
+    {
+      "name": "checked",
+      "capability": "ToggleSwitchChecked",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the switch is on; a change raises checked_changed. Activation (a click, Space, the press action) turns it over before clicked is raised.",
+      "getter": "checked",
+      "setter": "set_checked",
+      "clear": null,
+      "field": "checked_",
+      "event": "checked_changed_",
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether the switch is on.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written moves the thumb on the motion clock (at once under reduced motion), then raises checked_changed"
+      ],
+      "sample": "true"
+    },
+    {
+      "name": "on_text",
+      "capability": "ToggleSwitchOnText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The state text shown after the label while the switch is on, such as \"On\"; empty for none. Must be valid UTF-8 (std::invalid_argument).",
+      "getter": "on_text",
+      "setter": "set_on_text",
+      "clear": null,
+      "field": "on_text_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "on_text",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The state text shown while the switch is on.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!validate_utf8(incoming).valid()) {",
+        "    throw std::invalid_argument(\"ToggleSwitch on text must be valid UTF-8\");",
+        "}"
+      ],
+      "sample": "std::string{\"On\"}"
+    },
+    {
+      "name": "off_text",
+      "capability": "ToggleSwitchOffText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The state text shown after the label while the switch is off, such as \"Off\"; empty for none. Must be valid UTF-8 (std::invalid_argument).",
+      "getter": "off_text",
+      "setter": "set_off_text",
+      "clear": null,
+      "field": "off_text_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "off_text",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The state text shown while the switch is off.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!validate_utf8(incoming).valid()) {",
+        "    throw std::invalid_argument(\"ToggleSwitch off text must be valid UTF-8\");",
+        "}"
+      ],
+      "sample": "std::string{\"Off\"}"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "ToggleSwitch",
+    "include": "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
+  }
+}

@@ -75,11 +75,11 @@ void test_snapshot_roles_states_hierarchy_and_json() {
     (*field).accessible_name = "Frequency in MHz";
     (*field).set_requested_bounds({112.0, 24.0, 150.0, 28.0});
     std::shared_ptr<gui_forms::CheckBox> check = make_control<CheckBox>(StableId("semantics.check"), "Noise reduction");
-    (*check).set_checked(true);
+    (*check).checked = true;
     (*check).set_requested_bounds({12.0, 62.0, 180.0, 28.0});
     std::shared_ptr<gui_forms::ProgressBar> progress = make_control<ProgressBar>(StableId("semantics.progress"));
     (*progress).accessible_name = "Signal buffer";
-    (*progress).set_value(42.0);
+    (*progress).value = 42.0;
     (*progress).set_requested_bounds({12.0, 104.0, 220.0, 20.0});
     std::shared_ptr<gui_forms::Button> hidden = make_control<Button>(StableId("semantics.hidden"), "Hidden");
     (*hidden).visible = false;
@@ -147,11 +147,11 @@ void test_semantic_actions_use_control_behavior() {
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("actions.button"), "Apply");
     std::shared_ptr<gui_forms::CheckBox> check = make_control<CheckBox>(StableId("actions.check"), "Enabled");
     std::shared_ptr<gui_forms::TrackBar> slider = make_control<TrackBar>(StableId("actions.slider"));
-    (*slider).set_small_change(2.5);
-    (*slider).set_value(25.0);
+    (*slider).small_change = 2.5;
+    (*slider).value = 25.0;
     std::shared_ptr<gui_forms::TextBox> field = make_control<TextBox>(StableId("actions.field"), "old");
     std::shared_ptr<gui_forms::ComboBox> combo = make_control<ComboBox>(StableId("actions.combo"));
-    (*combo).set_items({"Local", "Remote"});
+    (*combo).items = {"Local", "Remote"};
     (*root).add_child(button);
     (*root).add_child(check);
     (*root).add_child(slider);
@@ -166,37 +166,37 @@ void test_semantic_actions_use_control_behavior() {
                 presses == 1U,
             "semantic press must execute the Button activation contract once");
     require(window.perform_semantic_action("actions.check", SemanticAction::press) &&
-                (*check).checked(),
+                (*check).checked.read(),
             "semantic press must use CheckBox auto-check behavior");
     require(window.perform_semantic_action("actions.slider", SemanticAction::increment) &&
-                (*slider).value() == 27.5,
+                (*slider).value.read() == 27.5,
             "semantic slider increment must use the public small change");
     require(window.perform_semantic_action("actions.slider", SemanticAction::set_value,
-                                            "63.5") && (*slider).value() == 63.5,
+                                            "63.5") && (*slider).value.read() == 63.5,
             "semantic slider set-value must use bounded range behavior");
     require(window.perform_semantic_action("actions.field", SemanticAction::set_value,
-                                            "new value") && (*field).text() == "new value",
+                                            "new value") && (*field).text.read() == "new value",
             "semantic text set-value must use the TextBox mutation contract");
-    (*field).set_read_only(true);
+    (*field).read_only = true;
     require(!window.perform_semantic_action("actions.field", SemanticAction::set_value,
-                                             "blocked") && (*field).text() == "new value",
+                                             "blocked") && (*field).text.read() == "new value",
             "semantic actions must preserve TextBox read-only state");
     require(window.perform_semantic_action("actions.combo", SemanticAction::expand) &&
-                (*combo).dropped_down() && window.focus_scope_depth() == 1U,
+                (*combo).dropped_down.read() && window.focus_scope_depth() == 1U,
             "semantic combo expansion must enter the real overlay focus scope");
     const bool chosen = window.perform_semantic_action("actions.combo.overlay.list.item.1", SemanticAction::press);
     const SemanticSnapshot closed = window.semantic_snapshot();
     require(chosen &&
-                (*combo).selected_index() == 1U && !(*combo).dropped_down() &&
+                (*combo).selected_index.read() == 1U && !(*combo).dropped_down.read() &&
                 window.focus_scope_depth() == 0U &&
                 !find_node(closed.roots,
                            "actions.combo.overlay.list"),
             "semantic overlay row press must commit, detach, and restore focus safely");
     require(window.perform_semantic_action("actions.combo", SemanticAction::expand) &&
-                (*combo).dropped_down(),
+                (*combo).dropped_down.read(),
             "ComboBox must reopen after semantic row activation");
     require(window.perform_semantic_action("actions.combo", SemanticAction::collapse) &&
-                !(*combo).dropped_down() && window.focus_scope_depth() == 0U,
+                !(*combo).dropped_down.read() && window.focus_scope_depth() == 0U,
             "semantic combo collapse must revoke the real overlay scope");
     const SemanticSnapshot after_close = window.semantic_snapshot();
     require(!find_node(after_close.roots,
@@ -219,7 +219,7 @@ void test_semantics_enforce_ui_thread() {
 void test_virtual_list_items_are_selectable() {
     std::shared_ptr<gui_forms::ListBox> list = make_control<ListBox>(StableId("virtual.list"));
     (*list).accessible_name = "Saved locations";
-    (*list).set_items({"Desktop", "Documents", "Downloads"});
+    (*list).items = {"Desktop", "Documents", "Downloads"};
     (*list).set_requested_bounds({10.0, 20.0, 180.0, 82.0});
     Window window(list, {220.0, 130.0});
     const SemanticSnapshot before = window.semantic_snapshot();
@@ -434,7 +434,7 @@ void test_semantic_focus_reaches_composites() {
     const std::array<Control::Ptr, 5> composites{numeric, domain, masked, tokens, split};
     for (std::size_t index = 0; index < composites.size(); ++index) {
         const Control::Ptr& composite = composites[index];
-        require(!(*composite).focusable(), "the composite is not focusable itself");
+        require(!(*composite).focusable.read(), "the composite is not focusable itself");
         require(window.request_focus(button) && window.focused_control() == button,
                 "focus starts on the button");
         require(window.perform_semantic_action((*composite).stable_id().value(), SemanticAction::focus),
@@ -555,6 +555,7 @@ public:
         descriptor.large_step = 10.0;
         descriptor.text_selection = SemanticTextSelection{Utf8Offset(1U), Utf8Offset(3U)};
         descriptor.multiline = true;
+        descriptor.announces_on_appearance = true;
         descriptor.states = SemanticState::checkable | SemanticState::multiselectable;
         descriptor.exposed = true;
         return descriptor;
@@ -569,8 +570,9 @@ void test_stage_a_vocabulary_reaches_the_snapshot() {
                 std::string_view(semantic_state_name(SemanticState::multiselectable)) == "multiselectable",
             "the new roles and states have their names");
     const std::span<const char* const> fields = semantic_field_names();
-    require(fields.size() == 17U && std::string_view(fields[5]) == "level" &&
-                std::string_view(fields[15]) == "multiline" && std::string_view(fields[16]) == "tool_tip",
+    require(fields.size() == 18U && std::string_view(fields[5]) == "level" &&
+                std::string_view(fields[15]) == "multiline" && std::string_view(fields[16]) == "tool_tip" &&
+                std::string_view(fields[17]) == "announces_on_appearance",
             "the field list names the admitted fields in order");
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("stage-a.root"));
     std::shared_ptr<StageAFields> item = make_control<StageAFields>(StableId("stage-a.item"));
@@ -584,16 +586,60 @@ void test_stage_a_vocabulary_reaches_the_snapshot() {
                 (*node).column_count == 5U && (*node).access_key == "F" && (*node).small_step == 1.0 &&
                 (*node).large_step == 10.0 && (*node).text_selection &&
                 (*(*node).text_selection).anchor == Utf8Offset(1U) && (*(*node).text_selection).caret == Utf8Offset(3U) &&
-                (*node).multiline && has_semantic_state((*node).states, SemanticState::checkable) &&
+                (*node).multiline && (*node).announces_on_appearance &&
+                has_semantic_state((*node).states, SemanticState::checkable) &&
                 has_semantic_state((*node).states, SemanticState::multiselectable),
             "every stage A field reaches the node");
     const std::string json = snapshot.to_json();
     require(json.find("\"role\":\"tree_item\"") != std::string::npos &&
                 json.find("\"level\":3,\"modal\":true,\"row_index\":4,\"column_index\":2,\"row_count\":10,"
                           "\"column_count\":5,\"access_key\":\"F\",\"small_step\":1,\"large_step\":10,"
-                          "\"text_selection\":{\"anchor\":1,\"caret\":3},\"multiline\":true") != std::string::npos,
+                          "\"text_selection\":{\"anchor\":1,\"caret\":3},\"multiline\":true") != std::string::npos &&
+                json.find("\"announces_on_appearance\":true") != std::string::npos,
             "the snapshot's JSON carries every stage A field");
 }
+
+// The announcement rule every host shares (semantic_announcement_due): a
+// known live region announces a new, non-empty name; a new one only when it
+// announces on appearance (a toast); nothing else announces.
+void test_announcement_rule() {
+    SemanticNode region;
+    region.role = SemanticRole::live_region;
+    region.name = "Message archived.";
+    require(!semantic_announcement_due(nullptr, region), "a new live region announces nothing by default");
+    region.announces_on_appearance = true;
+    require(semantic_announcement_due(nullptr, region), "a new live region that announces on appearance is spoken");
+    SemanticNode same = region;
+    require(!semantic_announcement_due(&same, region), "an unchanged name is not spoken again");
+    SemanticNode renamed = region;
+    renamed.name = "Message restored.";
+    renamed.announces_on_appearance = false;
+    require(semantic_announcement_due(&region, renamed), "a known live region speaks its new name");
+    SemanticNode emptied = region;
+    emptied.name.clear();
+    require(!semantic_announcement_due(&region, emptied) && !semantic_announcement_due(nullptr, emptied),
+            "an empty name is never spoken");
+    SemanticNode label = region;
+    label.role = SemanticRole::static_text;
+    require(!semantic_announcement_due(nullptr, label) && !semantic_announcement_due(&region, label),
+            "only a live region announces");
+}
+
+// A node of a given role, exposed.
+class RoleProbe final : public Control {
+public:
+    RoleProbe(StableId stable_id, SemanticRole role) : Control(std::move(stable_id)), role_(role) {}
+    [[nodiscard]] SemanticDescriptor semantic_descriptor() const override {
+        SemanticDescriptor descriptor;
+        descriptor.role = role_;
+        descriptor.name = "Probe";
+        descriptor.exposed = true;
+        return descriptor;
+    }
+
+private:
+    SemanticRole role_;
+};
 
 // A read-only reading within a range, as an instrument publishes one.
 class MeterProbe final : public Control {
@@ -616,10 +662,76 @@ public:
 // The instrument vocabulary (W-5): the meter role has its name, comes after
 // every earlier role (names are only added), and reaches the snapshot with
 // its reading and range.
+// The specialised roles (W-4): appended after meter with their names; each
+// falls back to the role it specialises, and every other role to itself.
+void test_specialised_roles() {
+    require(std::string_view(semantic_role_name(SemanticRole::toggle_switch)) == "toggle_switch" &&
+                std::string_view(semantic_role_name(SemanticRole::search_box)) == "search_box",
+            "the switch and search roles have their names");
+    const std::size_t meter = static_cast<std::size_t>(SemanticRole::meter);
+    require(static_cast<std::size_t>(SemanticRole::toggle_switch) == meter + 1U &&
+                static_cast<std::size_t>(SemanticRole::search_box) + 1U == semantic_role_count,
+            "the switch and search roles are appended after meter");
+    require(semantic_role_fallback(SemanticRole::toggle_switch) == SemanticRole::check_box &&
+                semantic_role_fallback(SemanticRole::search_box) == SemanticRole::text_box,
+            "a switch falls back to a check box, a search box to a text box");
+    bool own = true;
+    for (std::size_t index = 0U; index < semantic_role_count; ++index) {
+        const SemanticRole role = static_cast<SemanticRole>(index);
+        const bool specialised = role == SemanticRole::toggle_switch || role == SemanticRole::search_box;
+        if (!specialised && semantic_role_fallback(role) != role) own = false;
+    }
+    require(own, "every other role is its own fallback");
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("special.root"));
+    std::shared_ptr<RoleProbe> toggle =
+        make_control<RoleProbe>(StableId("special.switch"), SemanticRole::toggle_switch);
+    std::shared_ptr<RoleProbe> search =
+        make_control<RoleProbe>(StableId("special.search"), SemanticRole::search_box);
+    (*toggle).set_requested_bounds({0, 0, 40, 20});
+    (*search).set_requested_bounds({0, 20, 80, 20});
+    (*root).add_child(toggle);
+    (*root).add_child(search);
+    Window window(root, {100, 50});
+    const std::string json = window.semantic_snapshot().to_json();
+    require(json.find("\"role\":\"toggle_switch\"") != std::string::npos &&
+                json.find("\"role\":\"search_box\"") != std::string::npos,
+            "the snapshot's JSON names both roles");
+}
+
+// A SearchField (coordinator ruling) is one search_box node: the inner
+// editor is not published, the node carries the query, the editor's
+// selection and the focus, and its text requests reach the editor.
+void test_search_field_is_one_node() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("single.root"));
+    std::shared_ptr<SearchField> field = make_control<SearchField>(StableId("single.search"));
+    (*field).set_requested_bounds({0, 0, 200, 30});
+    (*field).accessible_name = std::string{"Search"};
+    (*root).add_child(field);
+    Window window(root, {240, 60});
+    (*field).text = std::string{"ab"};
+    require(window.request_focus((*field).editor()), "the editor takes the focus");
+    window.perform_layout();
+    const SemanticSnapshot snapshot = window.semantic_snapshot();
+    const SemanticNode* node = find_node(snapshot.roots, "single.search");
+    require(node != nullptr && (*node).role == SemanticRole::search_box && (*node).value == "ab" &&
+                (*node).children.empty() && !find_node(snapshot.roots, "single.search.editor"),
+            "the field is one search_box node and its editor is not published");
+    require((*node).text_selection.has_value() && has_semantic_state((*node).states, SemanticState::focused),
+            "the node carries the editor's selection and its focus");
+    SemanticTextLayout layout;
+    require(window.semantic_text_layout((*field).runtime_id(), layout) == SemanticTextResult::done &&
+                layout.graphemes.size() == 2U,
+            "the node's text layout is the editor's");
+    const SemanticTextSelection all{Utf8Offset(0U), Utf8Offset(2U)};
+    require(window.set_semantic_text_selection((*field).runtime_id(), all) == SemanticTextResult::done &&
+                (*(*field).editor()).semantic_descriptor().text_selection == std::optional<SemanticTextSelection>{all},
+            "a selection set on the node selects in the editor");
+}
+
 void test_meter_role_reaches_the_snapshot() {
     require(std::string_view(semantic_role_name(SemanticRole::meter)) == "meter",
             "the meter role has its name");
-    require(static_cast<std::size_t>(SemanticRole::meter) + 1U == semantic_role_count,
+    require(static_cast<std::size_t>(SemanticRole::meter) == static_cast<std::size_t>(SemanticRole::live_region) + 1U,
             "the meter role is appended after live_region");
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("meter.root"));
     std::shared_ptr<MeterProbe> meter = make_control<MeterProbe>(StableId("meter.level"));
@@ -696,10 +808,10 @@ void test_trees_sharing_item_identities_route_by_owner() {
                 find_node((*right_node).children, "docs") != nullptr,
             "both trees publish an item docs");
     require(window.perform_semantic_action((*right).runtime_id(), "docs", SemanticAction::select) &&
-                (*right).selected_id() == "docs" && (*left).selected_id() != "docs",
+                (*right).selected_id.read() == "docs" && (*left).selected_id.read() != "docs",
             "an action named by the right tree's runtime identity reaches its item");
     require(window.perform_semantic_action("docs", SemanticAction::select) &&
-                (*left).selected_id() == "docs",
+                (*left).selected_id.read() == "docs",
             "an action named by stable identity alone reaches the first tree's item");
 }
 
@@ -850,7 +962,10 @@ int main() {
         test_semantic_focus_reaches_composites();
         test_hidden_focus_is_published_on_the_composite();
         test_stage_a_vocabulary_reaches_the_snapshot();
+        test_announcement_rule();
         test_meter_role_reaches_the_snapshot();
+        test_specialised_roles();
+        test_search_field_is_one_node();
         test_semantics_enforce_ui_thread();
         std::cout << "gui_forms_semantic_tests: all tests passed\n";
         return EXIT_SUCCESS;

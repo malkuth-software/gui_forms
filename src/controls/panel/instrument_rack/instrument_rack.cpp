@@ -5,6 +5,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -38,41 +39,33 @@ void require_finite_positive(double value, const char* field) {
     }
 }
 
-BasicControlStyle module_style(InstrumentModuleState state) {
-    BasicControlStyle result;
-    result.face = Color::rgba(226, 235, 241);
-    result.face_light = Color::rgba(252, 254, 255);
-    result.paper = Color::rgba(255, 255, 255);
-    result.border = Color::rgba(105, 126, 142);
-    result.dark_border = Color::rgba(72, 97, 116);
-    result.text = Color::rgba(43, 65, 82);
-    result.disabled_text = Color::rgba(111, 126, 137);
-    result.accent = Color::rgba(61, 96, 138);
-    result.accent_light = Color::rgba(219, 232, 242);
-    // A live module keeps these colours.
-    if (state == InstrumentModuleState::staged) {
-        result.face = Color::rgba(238, 229, 241);
-        result.border = Color::rgba(138, 106, 152);
-        result.dark_border = Color::rgba(108, 79, 121);
-        result.accent = Color::rgba(113, 78, 133);
-        result.accent_light = Color::rgba(239, 226, 245);
-    } else if (state == InstrumentModuleState::pending) {
-        result.face = Color::rgba(225, 235, 247);
-        result.border = Color::rgba(83, 116, 157);
-        result.accent = Color::rgba(56, 91, 139);
-    } else if (state == InstrumentModuleState::invalid) {
-        result.face = Color::rgba(247, 231, 229);
-        result.border = Color::rgba(157, 91, 86);
-        result.dark_border = Color::rgba(121, 65, 62);
-        result.accent = Color::rgba(139, 69, 66);
-        result.accent_light = Color::rgba(250, 224, 222);
-    }
-    return result;
+// A module's look in its state, from the theme's roles so that it follows
+// the colour scheme: a live module is a card; a staged one the notice
+// role; a pending or invalid one a card in that surface state.
+ControlVisualRole module_role(InstrumentModuleState state) noexcept {
+    if (state == InstrumentModuleState::staged) return ControlVisualRole::notice;
+    return ControlVisualRole::card;
+}
+
+// The status tint a module's state keeps, as a notice severity: staged is
+// a warning (applied when committed), pending information, invalid an
+// error; a live module has none.
+std::optional<NoticeSeverity> module_severity(InstrumentModuleState state) noexcept {
+    if (state == InstrumentModuleState::staged) return NoticeSeverity::warning;
+    if (state == InstrumentModuleState::pending) return NoticeSeverity::information;
+    if (state == InstrumentModuleState::invalid) return NoticeSeverity::error;
+    return std::nullopt;
+}
+
+ControlVisualStatus module_status(InstrumentModuleState state) noexcept {
+    if (state == InstrumentModuleState::pending) return ControlVisualStatus::pending;
+    if (state == InstrumentModuleState::invalid) return ControlVisualStatus::invalid;
+    return ControlVisualStatus::normal;
 }
 
 Control::Ptr first_focusable_descendant(const Control::Ptr& root) {
     if (!root) return {};
-    if ((*root).focusable() && (*root).effectively_visible() &&
+    if ((*root).focusable.read() && (*root).effectively_visible() &&
         (*root).effectively_enabled()) return root;
     for (const Control::Ptr& child : (*root).children()) {
         if (Control::Ptr result = first_focusable_descendant(child)) return result;
@@ -356,7 +349,7 @@ struct InstrumentRack::Impl final {
         FieldState& state = (*module).fields[static_cast<std::size_t>(
             field - (*module).spec.fields.data())];
         synchronizing = true;
-        (*control).set_text(state.committed_value);
+        (*control).text = state.committed_value;
         (*field).value = state.committed_value;
         for (InstrumentModuleSpec& public_module : public_modules) {
             if (public_module.stable_id != module_id) continue;
@@ -393,19 +386,19 @@ struct InstrumentRack::Impl final {
         const FontSpec field_font{FontRole::content, 11.0, 400, false};
         if (field.editor == InstrumentFieldEditor::choice) {
             std::shared_ptr<gui_forms::ComboBox> choice = make_control<ComboBox>(StableId(id));
-            (*choice).set_items(field.choices);
+            (*choice).items = field.choices;
             const std::vector<std::string>::iterator selected =
                 std::find(field.choices.begin(),
                                             field.choices.end(), field.value);
             if (selected != field.choices.end()) {
-                (*choice).set_selected_index(static_cast<std::size_t>(
-                    std::distance(field.choices.begin(), selected)));
+                (*choice).selected_index = static_cast<std::size_t>(
+                    std::distance(field.choices.begin(), selected));
             }
-            (*choice).set_font(field_font);
+            (*choice).font = field_font;
             editor = choice;
         } else {
             std::shared_ptr<gui_forms::TextBox> text = make_control<TextBox>(StableId(id), field.value);
-            (*text).set_font(field_font);
+            (*text).font = field_font;
             editor = text;
         }
         (*editor).margin = Insets{};
@@ -431,8 +424,8 @@ struct InstrumentRack::Impl final {
         } else if (const std::shared_ptr<gui_forms::TextBox> text = std::dynamic_pointer_cast<TextBox>(state.editor)) {
             // Enter commits the field (TextFieldCommitted) and Escape reverts
             // it (TextFieldCancelled); neither goes further.
-            (*text).set_accepts_enter(true);
-            (*text).set_accepts_escape(true);
+            (*text).accepts_enter = true;
+            (*text).accepts_escape = true;
             state.changed = (*text).text_changed().subscribe(
                 owner, TextFieldChanged{this, module_id, field_id});
             state.committed = (*text).committed().subscribe(
@@ -466,14 +459,13 @@ struct InstrumentRack::Impl final {
         module.status = make_control<Label>(
             StableId(module.spec.stable_id + ".state"),
             module.spec.status_text);
-        (*module.status).set_font({FontRole::control, 9.5, 600, false, 0.30});
-        (*module.status).set_foreground(Color::rgba(92, 113, 128));
+        (*module.status).font = FontSpec{FontRole::control, 9.5, 600, false, 0.30};
         (*module.status).margin = Insets{};
         (*module.status).accessible_name = "Application state";
         (*module.panel).add_child(module.status);
         module.remove = make_control<Button>(
             StableId(module.spec.stable_id + ".remove"), "×");
-        (*module.remove).set_visual_style(ButtonVisualStyle::flat);
+        (*module.remove).visual_style = ButtonVisualStyle::flat;
         (*module.remove).accessible_name = "Remove " + module.spec.name;
         (*module.remove).margin = Insets{};
         (*module.panel).add_child(module.remove);
@@ -500,26 +492,22 @@ struct InstrumentRack::Impl final {
     }
 
     void update_module_presentation(ModuleState& module) {
-        const BasicControlStyle style = module_style(module.spec.state);
-        (*module.panel).set_style(style);
-        (*module.panel).set_background(style.face);
-        (*module.enable).set_style(style);
+        // The module and its status line take the state's role and status;
+        // no colour is written, so both resolve in the window's scheme.
+        const ControlVisualStatus status = module_status(module.spec.state);
+        (*module.panel).visual_role = module_role(module.spec.state);
+        (*module.panel).set_visual_status(status);
+        (*module.panel).set_severity(module_severity(module.spec.state));
+        (*module.status).set_visual_status(status);
         synchronizing = true;
-        (*module.enable).set_checked(module.spec.enabled);
+        (*module.enable).checked = module.spec.enabled;
         synchronizing = false;
         const bool pending = module.spec.state == InstrumentModuleState::pending;
         (*module.enable).enabled = !pending;
         (*module.remove).enabled = module.spec.removable && !pending;
         (*module.remove).visible = module.spec.removable;
-        (*module.remove).set_style(style);
-        (*module.status).set_text(module.spec.status_text);
+        (*module.status).text = module.spec.status_text;
         (*module.status).accessible_description = module.spec.status_text;
-        (*module.status).set_foreground(
-            module.spec.state == InstrumentModuleState::invalid
-                ? Color::rgba(130, 59, 57)
-                : module.spec.state == InstrumentModuleState::staged
-                    ? Color::rgba(121, 93, 131)
-                    : Color::rgba(92, 113, 128));
         (*module.panel).accessible_description = module.spec.status_text +
             " · Alt+Left and Alt+Right request reordering";
         for (std::size_t index = 0; index < module.fields.size(); ++index) {
@@ -528,10 +516,6 @@ struct InstrumentRack::Impl final {
             (*module.fields[index].editor).accessible_description = field.validation_message.empty()
                     ? module.spec.name + " criterion field"
                     : field.validation_message;
-            if (const std::shared_ptr<gui_forms::Panel> panel = std::dynamic_pointer_cast<Panel>(
-                    module.fields[index].editor)) {
-                (*panel).set_style(style);
-            }
         }
         owner.invalidate(Dirty::paint | Dirty::semantics);
     }
@@ -562,17 +546,17 @@ struct InstrumentRack::Impl final {
             (*field_state.editor).accessible_name = field.name;
             if (const std::shared_ptr<gui_forms::ComboBox> choice = std::dynamic_pointer_cast<ComboBox>(
                     field_state.editor)) {
-                (*choice).set_items(field.choices);
+                (*choice).items = field.choices;
                 const std::vector<std::string>::iterator selected =
                     std::find(field.choices.begin(),
                                                 field.choices.end(), field.value);
-                (*choice).set_selected_index(selected == field.choices.end()
+                (*choice).selected_index = selected == field.choices.end()
                     ? std::optional<std::size_t>{}
                     : std::optional<std::size_t>{static_cast<std::size_t>(
-                        std::distance(field.choices.begin(), selected))});
+                        std::distance(field.choices.begin(), selected))};
             } else if (const std::shared_ptr<gui_forms::TextBox> text = std::dynamic_pointer_cast<TextBox>(
                            field_state.editor)) {
-                (*text).set_text(field.value);
+                (*text).text = field.value;
             }
             (*state.panel).field_weights.push_back(field.width_weight);
         }
@@ -698,7 +682,8 @@ struct InstrumentRack::Impl final {
 
 InstrumentRack::InstrumentRack(StableId stable_id)
     : Panel(std::move(stable_id)), impl_(std::make_unique<Impl>(*this)) {
-    set_background(Color::rgba(242, 247, 250));
+    // The theme's panel ground, resolved per colour scheme (no colour
+    // written here, which would fix a light grey in every scheme).
     border_style = BorderStyle::none;
     padding = Insets{};
     accessible_name = "Editing instrument rack";
@@ -882,16 +867,16 @@ bool InstrumentRack::set_field_value(std::string_view module_id,
     (*module).fields[index].committed_value = (*field).value;
     if (const std::shared_ptr<gui_forms::TextBox> text = std::dynamic_pointer_cast<TextBox>(
             (*module).fields[index].editor)) {
-        (*text).set_text((*field).value);
+        (*text).text = (*field).value;
     } else if (const std::shared_ptr<gui_forms::ComboBox> choice = std::dynamic_pointer_cast<ComboBox>(
                    (*module).fields[index].editor)) {
         const std::vector<std::string>::iterator selected =
             std::find((*field).choices.begin(),
                                         (*field).choices.end(), (*field).value);
-        (*choice).set_selected_index(selected == (*field).choices.end()
+        (*choice).selected_index = selected == (*field).choices.end()
             ? std::optional<std::size_t>{}
             : std::optional<std::size_t>{static_cast<std::size_t>(
-                std::distance((*field).choices.begin(), selected))});
+                std::distance((*field).choices.begin(), selected))};
     }
     (*impl_).synchronizing = false;
     for (InstrumentModuleSpec& public_module : (*impl_).public_modules) {
@@ -957,36 +942,36 @@ Control::Ptr InstrumentRack::action_content() const noexcept {
     return (*impl_).action_content;
 }
 
-double InstrumentRack::module_width() const noexcept { return (*impl_).module_width; }
+double InstrumentRack::read_view(const decltype(module_width)&) const { return (*impl_).module_width; }
 
-void InstrumentRack::set_module_width(double width) {
+void InstrumentRack::write_view(const decltype(module_width)&, double incoming) {
     require_mutable();
-    require_finite_positive(width, "module width");
-    if ((*impl_).module_width == width) return;
-    (*impl_).module_width = width;
+    require_finite_positive(incoming, "module width");
+    if ((*impl_).module_width == incoming) return;
+    (*impl_).module_width = incoming;
     invalidate(invalidation::bounds);
 }
 
-double InstrumentRack::module_height() const noexcept { return (*impl_).module_height; }
+double InstrumentRack::read_view(const decltype(module_height)&) const { return (*impl_).module_height; }
 
-void InstrumentRack::set_module_height(double height) {
+void InstrumentRack::write_view(const decltype(module_height)&, double incoming) {
     require_mutable();
-    require_finite_positive(height, "module height");
-    if ((*impl_).module_height == height) return;
-    (*impl_).module_height = height;
+    require_finite_positive(incoming, "module height");
+    if ((*impl_).module_height == incoming) return;
+    (*impl_).module_height = incoming;
     invalidate(invalidation::bounds);
 }
 
-double InstrumentRack::rack_gap() const noexcept { return (*impl_).rack_gap; }
+double InstrumentRack::read_view(const decltype(rack_gap)&) const { return (*impl_).rack_gap; }
 
-void InstrumentRack::set_rack_gap(double gap) {
+void InstrumentRack::write_view(const decltype(rack_gap)&, double incoming) {
     require_mutable();
-    if (!std::isfinite(gap) || gap < 0.0) {
+    if (!std::isfinite(incoming) || incoming < 0.0) {
         throw std::invalid_argument(
             "InstrumentRack gap must be finite and nonnegative");
     }
-    if ((*impl_).rack_gap == gap) return;
-    (*impl_).rack_gap = gap;
+    if ((*impl_).rack_gap == incoming) return;
+    (*impl_).rack_gap = incoming;
     invalidate(invalidation::bounds);
 }
 
@@ -1000,16 +985,16 @@ double InstrumentRack::preferred_height(double available_width) const {
     return (*impl_).computed_content_height;
 }
 
-double InstrumentRack::scroll_offset() const noexcept { return (*impl_).scroll_offset; }
+double InstrumentRack::read_view(const decltype(scroll_offset)&) const { return (*impl_).scroll_offset; }
 
-void InstrumentRack::set_scroll_offset(double offset) {
+void InstrumentRack::write_view(const decltype(scroll_offset)&, double incoming) {
     require_mutable();
-    if (!std::isfinite(offset)) {
+    if (!std::isfinite(incoming)) {
         throw std::invalid_argument(
             "InstrumentRack scroll offset must be finite");
     }
     static_cast<void>((*impl_).compute_slots(committed_arranged_bounds().width));
-    (*impl_).scroll_offset = offset;
+    (*impl_).scroll_offset = incoming;
     (*impl_).clamp_scroll();
     (*impl_).arrange_children();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
@@ -1032,7 +1017,7 @@ void InstrumentRack::on_pointer(PointerEvent& event) {
     Panel::on_pointer(event);
     if (event.action != PointerAction::wheel ||
         std::abs(event.wheel_delta.y) <= 0.001) return;
-    set_scroll_offset((*impl_).scroll_offset - event.wheel_delta.y);
+    scroll_offset = (*impl_).scroll_offset - event.wheel_delta.y;
     event.handled = true;
 }
 
@@ -1076,7 +1061,6 @@ void InstrumentRack::on_dispose() noexcept {
     (*impl_).action_content.reset();
 }
 
-
 namespace {
 
 // Its rows, modules and toolbars are child controls with their own anatomies.
@@ -1110,5 +1094,9 @@ void InstrumentRack::append_interactions(std::vector<InteractionDeclaration>& in
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), instrument_rack_interactions.begin(), instrument_rack_interactions.end());
 }
+
+// property_codemod begin InstrumentRack (tools/property_families/instrument_rack.json; generated, do not edit)
+
+// property_codemod end InstrumentRack
 
 } // namespace gui_forms

@@ -32,13 +32,16 @@ void compare(ImageSampling sampling, double zoom, double scale, bool edited) {
     }
     static_cast<void>((*bitmap).commit_edit(edit.token));
     const std::shared_ptr<RasterCanvas> canvas = make_control<RasterCanvas>(StableId("raster"));
-    (*canvas).set_bitmap(bitmap);
-    (*canvas).set_transparency_grid(false);
-    (*canvas).set_canvas_background(Color::rgba(23, 37, 51));
-    (*canvas).set_sampling(sampling);
+    (*canvas).bitmap = bitmap;
+    (*canvas).transparency_grid = false;
+    (*canvas).canvas_background = Color::rgba(23, 37, 51);
+    (*canvas).sampling = sampling;
     (*canvas).set_view(zoom, {470.3, 480.7});
     const Size size{180, 150};
     Window window(canvas, size);
+    // The window is told its device scale, as a host does: painted
+    // rectangles grow to whole pixels of that scale.
+    window.set_scale(scale);
     window.perform_layout();
     host::WindowsRaster tiled;
     require(tiled.resize(size, scale));

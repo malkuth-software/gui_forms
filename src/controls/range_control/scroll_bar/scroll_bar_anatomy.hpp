@@ -7,11 +7,13 @@
 
 namespace gui_forms::scroll_bar_detail {
 
-// The states a scroll bar's arrows and track take on their own, and those
-// of its thumb, which captures the pointer while dragged.
-inline constexpr std::array<AnatomyState, 1> pressable_part_states{{AnatomyState::pressed}};
-inline constexpr std::array<AnatomyState, 2> thumb_part_states{{
-    AnatomyState::pressed, AnatomyState::captured}};
+// The states a scroll bar's arrows and track take on their own (hot under
+// the pointer, pressed while held), and those of its thumb, which also
+// captures the pointer while dragged.
+inline constexpr std::array<AnatomyState, 2> pressable_part_states{{
+    AnatomyState::hot, AnatomyState::pressed}};
+inline constexpr std::array<AnatomyState, 3> thumb_part_states{{
+    AnatomyState::hot, AnatomyState::pressed, AnatomyState::captured}};
 
 // Parts and states ScrollBar, HScrollBar and VScrollBar share. Each type
 // publishes them under its own registry id.

@@ -1454,6 +1454,135 @@ void test_mutated_restores() {
 
 } // namespace
 
+// The main site's restrictions (the site layer for the main tools and the
+// document area): refusals name the site layer, the floating sites keep
+// their own record, and restoring the defaults admits again.
+void test_main_site_restrictions() {
+    DockLayout layout{};
+    register_standard(layout);
+    DockPanelDescriptor alpha = tool("tools.alpha");
+    alpha.group = DockGroupId("alpha");
+    require(layout.register_panel(alpha), "register alpha");
+    show_standard(layout);
+    require(static_cast<bool>(apply_one(layout, DockEdit::show(panel("tools.alpha")))), "show alpha");
+
+    DockSiteRestrictions no_tools{};
+    no_tools.accepts_tools = false;
+    layout.set_main_site_restrictions(no_tools);
+    require_refused(layout, DockEdit::dock_into(subject("tools.output"), stack_of(layout, "tools.solution")),
+                    DockRefusalReason::site_refuses_kind, DockRefusalLayer::site,
+                    "a main site without tools refuses a tool docked there");
+    require_refused(layout, DockEdit::dock_at_edge(subject("tools.properties"), DockSide::left),
+                    DockRefusalReason::site_refuses_kind, DockRefusalLayer::site,
+                    "and a tool docked at its edge");
+    require(static_cast<bool>(apply_one(layout, DockEdit::float_subject(subject("tools.output"),
+                                                                         Rect{0.0, 0.0, 200.0, 100.0}, ""))),
+            "the floating sites keep their own restrictions");
+
+    DockSiteRestrictions no_documents{};
+    no_documents.accepts_documents = false;
+    layout.set_main_site_restrictions(no_documents);
+    require(static_cast<bool>(apply_one(layout, DockEdit::float_subject(subject("doc.a"),
+                                                                         Rect{0.0, 0.0, 300.0, 200.0}, ""))),
+            "a document may still float");
+    require_refused(layout, DockEdit::dock_into(subject("doc.a"), layout.document_area()),
+                    DockRefusalReason::site_refuses_kind, DockRefusalLayer::site,
+                    "a main site without documents refuses one back into the document area");
+
+    DockSiteRestrictions only_alpha{};
+    only_alpha.admitted_groups.push_back(DockGroupId("alpha"));
+    layout.set_main_site_restrictions(only_alpha);
+    require_refused(layout, DockEdit::dock_into(subject("tools.output"), stack_of(layout, "tools.solution")),
+                    DockRefusalReason::site_refuses_group, DockRefusalLayer::site,
+                    "a main site admitting only alpha refuses the default group");
+    require(static_cast<bool>(apply_one(layout, DockEdit::dock_at_edge(subject("tools.alpha"), DockSide::right))),
+            "and admits alpha");
+
+    layout.set_main_site_restrictions(DockSiteRestrictions{});
+    require(static_cast<bool>(apply_one(layout, DockEdit::dock_into(subject("tools.output"),
+                                                                     stack_of(layout, "tools.solution")))) &&
+                static_cast<bool>(apply_one(layout, DockEdit::dock_into(subject("doc.a"), layout.document_area()))),
+            "the default restrictions admit tools and documents again");
+    require(static_cast<bool>(layout.check_invariants()), "valid after the main-site restriction checks");
+}
+
+// set_application_version: recorded in the state and the saved layout, not
+// a layout change (no generation, no event); a restore with the same
+// version reports no upgrade, another version reports one.
+void test_application_version() {
+    DockLayout layout{};
+    register_standard(layout);
+    show_standard(layout);
+    ChangeRecorder recorder{};
+    gui_forms::on(layout.changed(), recorder, &ChangeRecorder::record);
+    const std::uint64_t generation = layout.generation();
+    layout.set_application_version(7U);
+    require(layout.state().application_version == 7U, "the version reads back");
+    require(layout.generation() == generation && recorder.count == 0U,
+            "setting the version is not a layout change and publishes nothing");
+    const DockLayoutWriteResult written = layout.write_xml();
+    require(static_cast<bool>(written) && written.text.find("application_version=\"7\"") != std::string::npos,
+            "the saved layout carries the version");
+
+    DockLayout same{};
+    register_standard(same);
+    DockRestoreOptions current{};
+    current.application_version = 7U;
+    const DockRestoreResult restored = same.restore_xml(written.text, current);
+    require(restored.status == DockRestoreStatus::restored &&
+                !has_diagnostic(restored, DockRestoreDiagnosticKind::application_version_upgraded) &&
+                same.state().application_version == 7U,
+            "a restore at the same version reports no upgrade");
+
+    DockLayout newer{};
+    register_standard(newer);
+    DockRestoreOptions next{};
+    next.application_version = 8U;
+    const DockRestoreResult upgraded = newer.restore_xml(written.text, next);
+    require(upgraded.status == DockRestoreStatus::restored &&
+                has_diagnostic(upgraded, DockRestoreDiagnosticKind::application_version_upgraded) &&
+                newer.state().application_version == 8U,
+            "a restore at another version reports the upgrade and takes the current version");
+}
+
+// The refusals of DockEdit::set_ratio and DockEdit::set_floating_frame, and
+// the effect of set_ratio on the arranged rectangles.
+void test_ratio_and_frame_edits() {
+    DockLayout layout{};
+    register_standard(layout);
+    show_standard(layout);
+    const DockNodeId root = layout.state().main_root;
+    require((*layout.find_node(root)).kind == DockNodeKind::split, "the standard layout's root is a split");
+    std::vector<DockArrangedNode> before{};
+    layout.arrange(root, Rect{0.0, 0.0, 1000.0, 600.0}, 0.0, before);
+    const double old_ratio = (*layout.find_node(root)).ratio;
+    const double new_ratio = old_ratio < 0.5 ? 0.6 : 0.3;
+    require(static_cast<bool>(apply_one(layout, DockEdit::set_ratio(root, new_ratio))) &&
+                (*layout.find_node(root)).ratio == new_ratio,
+            "a valid ratio is set");
+    std::vector<DockArrangedNode> after{};
+    layout.arrange(root, Rect{0.0, 0.0, 1000.0, 600.0}, 0.0, after);
+    require(before.size() == after.size() && before.size() > 1U && !(before[1].bounds == after[1].bounds),
+            "a new ratio moves the split's children");
+    require_refused(layout, DockEdit::set_ratio(root, 0.0), DockRefusalReason::invalid_ratio,
+                    DockRefusalLayer::model, "ratio 0 is outside (0, 1)");
+    require_refused(layout, DockEdit::set_ratio(root, std::nan("")), DockRefusalReason::invalid_ratio,
+                    DockRefusalLayer::model, "a ratio that is not a number");
+    require_refused(layout, DockEdit::set_ratio(DockNodeId{999}, 0.5), DockRefusalReason::unknown_node,
+                    DockRefusalLayer::model, "set_ratio on an unknown node");
+
+    require(static_cast<bool>(apply_one(layout, DockEdit::float_subject(subject("tools.output"),
+                                                                         Rect{10.0, 10.0, 200.0, 100.0}, "M"))),
+            "output floats");
+    const DockSiteId site = layout.locate(panel("tools.output")).site;
+    require_refused(layout, DockEdit::set_floating_frame(site, Rect{0.0, 0.0, 0.0, 50.0}, "M"),
+                    DockRefusalReason::invalid_frame, DockRefusalLayer::model, "an empty floating frame");
+    require_refused(layout, DockEdit::set_floating_frame(DockSiteId{999}, Rect{0.0, 0.0, 50.0, 50.0}, "M"),
+                    DockRefusalReason::unknown_site, DockRefusalLayer::model, "a frame for an unknown site");
+    require((*layout.find_floating_site(site)).frame == Rect{10.0, 10.0, 200.0, 100.0},
+            "refused frame edits leave the frame");
+}
+
 int main() {
     test_default_layout();
     test_standard_layout_and_format();
@@ -1461,6 +1590,9 @@ int main() {
     test_hide_and_show_memory();
     test_primitive_edits();
     test_restrictions();
+    test_main_site_restrictions();
+    test_application_version();
+    test_ratio_and_frame_edits();
     test_floating_limit();
     test_pins();
     test_pin_round_trip_exact();

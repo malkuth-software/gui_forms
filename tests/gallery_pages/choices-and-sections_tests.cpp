@@ -54,54 +54,82 @@ void test_choices_and_sections(gui_forms::Window& window) {
     ChoiceObserver observer;
     on((*ring).changed(), observer, &ChoiceObserver::changed);
     on((*ring).activated(), observer, &ChoiceObserver::activated);
-    require((*ring).selected_index() == 0 && (*chips).selected_index() == 0 &&
-                (*review).record().disposition == ReviewDisposition::pending,
+    require((*ring).selected_index.read() == 0 && (*chips).selected_index.read() == 0 &&
+                (*review).record.read().disposition == ReviewDisposition::pending,
             "both choice views must start from the shared ring Value");
     click(window, window.find("gallery.choices.ring.item.20"));
-    require((*ring).selected_index() == 1 && (*chips).selected_index() == 1 &&
+    require((*ring).selected_index.read() == 1 && (*chips).selected_index.read() == 1 &&
                 observer.changes == 1 && observer.activations == 1,
             "a user click must change the shared Value once and activate once");
-    require((*review).record().title == "Review: Staged" &&
-                (*review).record().disposition == ReviewDisposition::accepted &&
-                (*card_body).text().find("Staged") != std::string::npos &&
-                (*ring_status).text().find("user activations: 1") != std::string::npos,
+    // The labelled row is the segmented presentation (W-4); the glyph row
+    // keeps the buttons.
+    window.perform_layout();
+    require((*ring).presentation.read() == ChoiceGroupPresentation::segmented &&
+                (*ring).parts().selection.present &&
+                (*ring).parts().selection.bounds == (*ring).item(1).committed_arranged_bounds() &&
+                (*chips).presentation.read() == ChoiceGroupPresentation::buttons && !(*chips).parts().track.present,
+            "the segmented row draws its indicator behind the chosen segment");
+    require((*review).record.read().title == "Review: Staged" &&
+                (*review).record.read().disposition == ReviewDisposition::accepted &&
+                (*card_body).text.read().find("Staged") != std::string::npos &&
+                (*ring_status).text.read().find("user activations: 1") != std::string::npos,
             "the ReviewCard and Card must project the chosen ring");
     // A programmatic change through the other view is a state change only.
-    (*chips).set_selected_index(2);
-    require((*ring).selected_index() == 2 && observer.changes == 2 &&
+    (*chips).selected_index = 2;
+    require((*ring).selected_index.read() == 2 && observer.changes == 2 &&
                 observer.activations == 1 &&
-                (*review).record().disposition == ReviewDisposition::warning,
+                (*review).record.read().disposition == ReviewDisposition::warning,
             "a setter on the glyph view must move the labelled view without an activation");
     // Arrow keys select and focus the neighbouring choice.
     require(window.request_focus((*ring).item(2).shared_from_this()) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::left}) &&
-                (*ring).selected_index() == 1 && (*chips).selected_index() == 1 &&
+                (*ring).selected_index.read() == 1 && (*chips).selected_index.read() == 1 &&
                 observer.changes == 3,
             "Left must select the previous choice through the shared Value");
 
     // Three Value<bool>s: section headers and the GroupBox toggles share them.
     require((*sections).expanded(0) && !(*sections).expanded(1) &&
-                (*checklist_toggle).checked() && !(*notes_toggle).checked(),
+                (*checklist_toggle).checked.read() && !(*notes_toggle).checked.read(),
             "section expansion and the bound toggles must start from the same models");
     click(window, window.find("gallery.choices.sections.header.2"));
-    require((*sections).expanded(1) && (*notes_toggle).checked() &&
+    require((*sections).expanded(1) && (*notes_toggle).checked.read() &&
                 (*std::dynamic_pointer_cast<Label>(window.find("gallery.choices.sections-status")))
-                        .text().find("Notes open") != std::string::npos,
+                        .text.read().find("Notes open") != std::string::npos,
             "clicking a section header must open it and check the bound toggle");
     click(window, notes_toggle);
-    require(!(*sections).expanded(1) && !(*notes_toggle).checked(),
+    require(!(*sections).expanded(1) && !(*notes_toggle).checked.read(),
             "unchecking the bound toggle must collapse the section through the Value");
     click(window, checklist_toggle);
-    require(!(*sections).expanded(0) && !(*checklist_toggle).checked() &&
+    require(!(*sections).expanded(0) && !(*checklist_toggle).checked.read() &&
                 !(*window.find("gallery.choices.sections.checklist")).visible.read(),
             "collapsing through the toggle must hide the retained section body");
 
     // The interactive Card selects on activation and reports through its footer.
-    require(!(*card).selected() && window.perform_semantic_action(
-                "gallery.choices.card", SemanticAction::press) && (*card).selected() &&
+    require(!(*card).selected.read() && window.perform_semantic_action(
+                "gallery.choices.card", SemanticAction::press) && (*card).selected.read() &&
                 (*std::dynamic_pointer_cast<Label>(window.find("gallery.choices.card.footer")))
-                        .text().find("Selected") != std::string::npos,
+                        .text.read().find("Selected") != std::string::npos,
             "activating the Card must set its retained selection and report it");
+
+    // The switches (W-4) turn over on a click and report through the status line.
+    const std::shared_ptr<ToggleSwitch> deploy =
+        std::dynamic_pointer_cast<ToggleSwitch>(window.find("gallery.choices.switches.auto-deploy"));
+    const std::shared_ptr<ToggleSwitch> notify =
+        std::dynamic_pointer_cast<ToggleSwitch>(window.find("gallery.choices.switches.notify"));
+    const std::shared_ptr<Label> switch_status =
+        std::dynamic_pointer_cast<Label>(window.find("gallery.choices.switches.status"));
+    require(deploy && notify && switch_status && (*deploy).checked.read() && !(*notify).checked.read() &&
+                (*deploy).state_text() == "On",
+            "the switches start as the form sets them");
+    window.perform_layout();
+    click(window, notify);
+    require((*notify).checked.read() &&
+                (*switch_status).text.read() == "Automatic deployment is on · reviewers are notified",
+            "clicking a switch turns it on and the page reports it");
+    require(window.perform_semantic_action("gallery.choices.switches.auto-deploy", SemanticAction::press) &&
+                !(*deploy).checked.read() && (*deploy).state_text() == "Off" &&
+                (*switch_status).text.read().starts_with("Automatic deployment is off"),
+            "the press action turns the other switch off");
 }
 
 }  // namespace gallery_pages_tests

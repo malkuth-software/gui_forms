@@ -4,6 +4,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/controls/backstage_view/backstage_view_capabilities/backstage_view_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -50,7 +51,7 @@ struct BackstageTopicChange final {
 // The column and page are told apart by their surfaces (decision 26: the
 // contrast between them helps), the column on the card family and the page
 // on the window family until the default theme (T4) gives the column its own.
-class BackstageView final : public Control {
+class BackstageView final : public Control, public BackstageViewCapabilities<BackstageView> {
 public:
     // Development bounds, not measured capacity.
     static constexpr std::size_t maximum_items = 64U;
@@ -65,14 +66,6 @@ public:
     // another parent, a page or definitive flag on a command or topic that
     // takes none, or more than maximum_items.
     void set_items(std::vector<BackstageItemSpec> items);
-    [[nodiscard]] std::optional<std::size_t> selected_topic() const noexcept { return selected_; }
-    // Throws std::out_of_range past the end and std::invalid_argument for an
-    // item that is not a topic.
-    void set_selected_topic(std::size_t item);
-    // The column's width in logical units at text scale 1 (132 by default).
-    // Throws std::invalid_argument outside 48 to 480.
-    [[nodiscard]] double column_width() const noexcept { return column_width_; }
-    void set_column_width(double width);
 
     // The one path every activation takes (pointer, keyboard, mnemonic and
     // accessibility): runs a command, or selects a topic. False for an
@@ -170,10 +163,19 @@ private:
     std::optional<std::size_t> pressed_{};
     std::optional<std::size_t> focus_item_{};
     bool focused_{};
-    double column_width_{132.0};
     FontSpec font_{FontRole::control, 10.5, 400, false, 0.12};
     Event<const BackstageTopicChange&> topic_changed_{};
     Event<> close_requested_{};
+    // property_codemod begin BackstageView (tools/property_families/backstage_view.json; generated, do not edit)
+private:
+    friend struct BackstageViewColumnWidthCapability<BackstageView>;
+    friend struct BackstageViewSelectedTopicCapability<BackstageView>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(column_width)& cell, double& incoming);
+    void written(const decltype(column_width)& cell);
+    void write_view(const decltype(selected_topic)& cell, std::optional<std::size_t> incoming);
+    [[nodiscard]] std::optional<std::size_t> read_view(const decltype(selected_topic)& cell) const;
+    // property_codemod end BackstageView
 };
 
 } // namespace gui_forms

@@ -46,6 +46,13 @@ public:
     // to device pixels, so drawing touches those rectangles and not the span
     // between them. Bracket with save() and restore().
     void clip_damage(const DamageRegion& damage);
+    // Applies a scroll copy (ScrollCopy) to the frame begun: moves the pixels
+    // inside `clip` by `offset`, both logical and whole device pixels; pixels
+    // that would come from outside the clip are left as they were. Call after
+    // begin_frame or begin_prepared_frame and before painting the frame's
+    // damage. False, changing nothing, when no frame surface is addressable
+    // or the copy is not device-aligned; the caller then repaints the clip.
+    [[nodiscard]] bool scroll_copy(Rect clip, Point offset);
 #if defined(GUI_FORMS_PREPARED_TEXT)
     // Guarded host transaction. begin expands damage when a full repaint is
     // required; caller paints that updated region. Null receipts and exceptions
@@ -156,6 +163,15 @@ public:
     // As draw_part_raster, stretched over `destination` (E7r scale motion).
     void draw_part_raster_scaled(const std::shared_ptr<const PartRaster>& raster, Rect destination,
                                  double opacity) override;
+    // The material kernel's raster of `material` (material_raster.hpp),
+    // baked at the canvas's scale for this draw and composited as a part
+    // raster; the layers where the canvas is rotated or skewed, its two
+    // scales differ, or the kernel does not bake the material.
+    void draw_surface_material(Rect bounds, const SurfaceMaterial& material) override;
+    // The recorded raster where it was made at the canvas's scale, else as
+    // draw_surface_material.
+    void draw_baked_surface_material(Rect bounds, const std::shared_ptr<const SurfaceMaterial>& material,
+                                     const std::shared_ptr<const PartRaster>& raster, double outset) override;
     // Internal host seam: keep the coverage promise and sampled pixels in the
     // same read lease through rasterization, even during producer reconfigure.
     [[nodiscard]] bool draw_live_surface_frame(const LiveSurfaceFrame& frame,

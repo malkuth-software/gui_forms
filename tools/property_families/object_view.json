@@ -1,0 +1,244 @@
+{
+  "family": "ObjectView",
+  "step": "B7",
+  "declaring": "ObjectView",
+  "header": "include/gui_forms/controls/panel/object_view/object_view.hpp",
+  "source": "src/controls/panel/object_view/object_view.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp",
+  "base": "Panel",
+  "shared": [
+    "FontCapability"
+  ],
+  "includes": [
+    "gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp",
+    "gui_forms/image_list.hpp",
+    "gui_forms/types.hpp"
+  ],
+  "properties": [
+    {
+      "name": "view_mode",
+      "capability": "ObjectViewViewMode",
+      "value": "ObjectViewMode",
+      "initial": null,
+      "comment": "Icons or details. An undeclared mode throws std::invalid_argument; a change keeps the first visible item in view and ends a header interaction. A view, so the write can keep the first visible item.",
+      "getter": "view_mode",
+      "setter": "set_view_mode",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto view_mode_; write_view converts top_row across the column count and cancels header interaction"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "selected_id",
+      "capability": "ObjectViewSelectedId",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The primary selected item's stable ID, or empty; a view over the selection (G2). A write selects that item alone, or clears the selection, and raises selection_changed; an ID not in the model throws std::out_of_range. set_selected_ids sets several.",
+      "getter": "selected_id",
+      "setter": "set_selected_id",
+      "clear": null,
+      "field": null,
+      "event": "selection_changed_",
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the selection: write_view applies a one-item (or empty) selection"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "selection_mode",
+      "capability": "ObjectViewSelectionMode",
+      "value": "ObjectSelectionMode",
+      "initial": "ObjectSelectionMode::multiple",
+      "comment": "Whether one item or several may be selected. Turning on single selection keeps only the primary item.",
+      "getter": "selection_mode",
+      "setter": "set_selection_mode",
+      "clear": null,
+      "field": "selection_mode_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written trims a multiple selection to the primary item under single selection"
+      ],
+      "effects": null,
+      "sample": "ObjectSelectionMode::single"
+    },
+    {
+      "name": "icon_cell_size",
+      "capability": "ObjectViewIconCellSize",
+      "value": "Size",
+      "initial": "Size{112.0, 91.0}",
+      "comment": "The icon mode's cell size, 86 by 78 through 512 by 512 (std::invalid_argument otherwise).",
+      "getter": "icon_cell_size",
+      "setter": "set_icon_cell_size",
+      "clear": null,
+      "field": "icon_cell_size_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "prepare": [
+        "if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) ||",
+        "    incoming.width < 86.0 || incoming.height < 78.0 ||",
+        "    incoming.width > 512.0 || incoming.height > 512.0) {",
+        "    throw std::invalid_argument(\"ObjectView icon cell must be 86x78 through 512x512\");",
+        "}"
+      ],
+      "sample": "Size{120.0, 100.0}"
+    },
+    {
+      "name": "details_row_height",
+      "capability": "ObjectViewDetailsRowHeight",
+      "value": "double",
+      "initial": "28.0",
+      "comment": "The details mode's row height, 20 through 256 (std::invalid_argument otherwise).",
+      "getter": "details_row_height",
+      "setter": "set_details_row_height",
+      "clear": null,
+      "field": "details_row_height_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 20.0 || incoming > 256.0) {",
+        "    throw std::invalid_argument(\"ObjectView details row height must be 20 through 256\");",
+        "}"
+      ],
+      "sample": "32.0"
+    },
+    {
+      "name": "show_secondary_text",
+      "capability": "ObjectViewShowSecondaryText",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether icon cells show each item's secondary text under its name.",
+      "getter": "show_secondary_text",
+      "setter": "set_show_secondary_text",
+      "clear": null,
+      "field": "show_secondary_text_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::paint | Dirty::semantics"
+    },
+    {
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::content, 11.0, 400, false",
+      "comment": "The items' font (Font). Throws std::invalid_argument for an invalid FontSpec; any write marks the font as set from code.",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": null,
+      "field": "font_",
+      "event": null,
+      "on_changed": true,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (!valid_font_spec(incoming)) throw std::invalid_argument(\"ObjectView font is invalid\");",
+        "set_font_from_code(true);"
+      ],
+      "sample": "FontSpec{FontRole::content, 13.0, 400, false}"
+    },
+    {
+      "name": "image_list",
+      "capability": "ObjectViewImageList",
+      "value": "std::shared_ptr<ImageList>",
+      "initial": null,
+      "comment": "The images that the items' image keys name; a list must be alive and belong to this view's Window (std::invalid_argument otherwise). A change follows the new list's changes.",
+      "getter": "image_list",
+      "setter": "set_image_list",
+      "clear": null,
+      "field": "image_list_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare_write: a live list of the own Window; written: resubscribe to the list's changes"
+      ],
+      "effects": null
+    },
+    {
+      "name": "details_sort",
+      "capability": "ObjectViewDetailsSort",
+      "value": "ObjectDetailsSort",
+      "initial": null,
+      "comment": "The accepted sort indicator: a sortable column and a direction, or an empty column for none; a view, since set_details_model carries or clears it. Sorting the items is the application's work (sort_requested). An unknown or unsortable column or an undeclared direction throws std::invalid_argument.",
+      "getter": "details_sort",
+      "setter": "set_details_sort",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto details_sort_, which set_details_model carries or clears; write_view validates and drops the text cache"
+      ],
+      "effects": null,
+      "storage": "view"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "items",
+      "reason": "the model is replaced whole and validated as a set; collections stay methods"
+    },
+    {
+      "name": "details_model",
+      "reason": "a two-part call (columns with items)"
+    },
+    {
+      "name": "selected_ids",
+      "reason": "derived selection with a primary ID (G2); stays a method"
+    },
+    {
+      "name": "set_details_column_width",
+      "reason": "kept as a method (per-item)"
+    },
+    {
+      "name": "top_row",
+      "reason": "scroll state clamped by layout: the read differs from the write"
+    },
+    {
+      "name": "horizontal_offset",
+      "reason": "scroll state clamped by layout: the read differs from the write"
+    }
+  ],
+  "test": {
+    "type": "ObjectView",
+    "include": "gui_forms/controls/panel/object_view/object_view.hpp"
+  }
+}

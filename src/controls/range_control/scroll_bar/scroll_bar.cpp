@@ -2,9 +2,10 @@
 
 #include "../range_control_rendering.hpp"
 #include "scroll_bar_anatomy.hpp"
-#include "gui_forms/detail/property_binding_adapters.hpp"
+#include "scroll_bar_painting.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -16,86 +17,57 @@
 namespace gui_forms {
 using namespace range_control_detail;
 
-ScrollBar::ScrollBar(StableId stable_id, Orientation orientation)
+ScrollBar::ScrollBar(StableId stable_id, Orientation initial_orientation)
     : RangeControl(std::move(stable_id)) {
-    set_orientation(orientation);
-    set_focusable(true);
+    orientation = initial_orientation;
+    focusable = true;
     cursor = CursorKind::arrow;
-    // What a form document sets besides the range (stage FD6.3); it raises
-    // no change event.
-    PropertyDescriptor large_change;
-    large_change.name = "large_change";
-    large_change.kind = BindingValueKind::number;
-    large_change.category = "Behavior";
-    large_change.description = "How far a click on the track or Page Up/Down moves the value.";
-    large_change.default_value = BindingValue{10.0};
-    large_change.invalidation_effects = Dirty::paint | Dirty::semantics;
-    large_change.bindable = false;
-    define_bindable_property({
-        std::move(large_change),
-        detail::BindingNoexceptMethodGetter<ScrollBar, double>(*this, &ScrollBar::large_change),
-        detail::DirectPropertySetter<ScrollBar, double>(*this, &ScrollBar::set_large_change),
-        {}, {}, {}});
 }
 
-void ScrollBar::set_button_extent(double extent) {
+void ScrollBar::prepare_write(const decltype(initial_repeat_delay)&, FrameInterval& incoming) {
     require_mutable();
-    require_finite(extent, "scrollbar button extent must be finite");
-    if (extent < 8.0 || extent > 64.0) {
-        throw std::invalid_argument("scrollbar button extent must be between 8 and 64");
+    if (incoming < std::chrono::milliseconds(100) || incoming > std::chrono::seconds(2)) {
+        throw std::invalid_argument("scrollbar initial repeat delay must be between 100ms and 2s");
     }
-    if (button_extent_ == extent) return;
-    button_extent_ = extent;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-void ScrollBar::set_minimum_thumb_extent(double extent) {
+// The delay is read when a press starts repeating; nothing is drawn from it.
+void ScrollBar::written(const decltype(initial_repeat_delay)&) {}
+
+void ScrollBar::prepare_write(const decltype(repeat_interval)&, FrameInterval& incoming) {
     require_mutable();
-    require_finite(extent, "scrollbar thumb extent must be finite");
-    if (extent < 8.0 || extent > 128.0) {
-        throw std::invalid_argument("scrollbar thumb extent must be between 8 and 128");
+    if (incoming < std::chrono::milliseconds(16) || incoming > std::chrono::milliseconds(500)) {
+        throw std::invalid_argument("scrollbar repeat interval must be between 16ms and 500ms");
     }
-    if (minimum_thumb_extent_ == extent) return;
-    minimum_thumb_extent_ = extent;
-    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-void ScrollBar::set_initial_repeat_delay(FrameInterval delay) {
-    require_mutable();
-    if (delay < std::chrono::milliseconds(100) ||
-        delay > std::chrono::seconds(2)) {
-        throw std::invalid_argument(
-            "scrollbar initial repeat delay must be between 100ms and 2s");
-    }
-    initial_repeat_delay_ = delay;
-}
+void ScrollBar::written(const decltype(repeat_interval)&) {}
 
-void ScrollBar::set_repeat_interval(FrameInterval interval) {
-    require_mutable();
-    if (interval < std::chrono::milliseconds(16) ||
-        interval > std::chrono::milliseconds(500)) {
-        throw std::invalid_argument(
-            "scrollbar repeat interval must be between 16ms and 500ms");
-    }
-    repeat_interval_ = interval;
+// The arrow buttons' extent along the bar: none where the theme draws no
+// scroll arrows (ThemeGeometryTokens::scroll_arrows), else the button
+// extent, at most half the bar.
+double ScrollBar::arrow_extent(double axis) const noexcept {
+    if (!effective_theme().structure().geometry.scroll_arrows) return 0.0;
+    const double extent = std::min(button_extent.read(), axis * 0.5);
+    return extent;
 }
 
 Rect ScrollBar::decrement_button_bounds() const noexcept {
     const Rect bounds = local_bounds();
-    const double axis = orientation() == Orientation::horizontal
+    const double axis = orientation.read() == Orientation::horizontal
         ? bounds.width : bounds.height;
-    const double extent = std::min(button_extent_, axis * 0.5);
-    return orientation() == Orientation::horizontal
+    const double extent = arrow_extent(axis);
+    return orientation.read() == Orientation::horizontal
         ? Rect{0.0, 0.0, extent, bounds.height}
         : Rect{0.0, 0.0, bounds.width, extent};
 }
 
 Rect ScrollBar::increment_button_bounds() const noexcept {
     const Rect bounds = local_bounds();
-    const double axis = orientation() == Orientation::horizontal
+    const double axis = orientation.read() == Orientation::horizontal
         ? bounds.width : bounds.height;
-    const double extent = std::min(button_extent_, axis * 0.5);
-    return orientation() == Orientation::horizontal
+    const double extent = arrow_extent(axis);
+    return orientation.read() == Orientation::horizontal
         ? Rect{std::max(0.0, bounds.width - extent), 0.0, extent, bounds.height}
         : Rect{0.0, std::max(0.0, bounds.height - extent), bounds.width, extent};
 }
@@ -104,7 +76,7 @@ Rect ScrollBar::track_bounds() const noexcept {
     const Rect bounds = local_bounds();
     const Rect decrement = decrement_button_bounds();
     const Rect increment = increment_button_bounds();
-    return orientation() == Orientation::horizontal
+    return orientation.read() == Orientation::horizontal
         ? Rect{decrement.width, 0.0,
                std::max(0.0, increment.x - decrement.width), bounds.height}
         : Rect{0.0, decrement.height, bounds.width,
@@ -113,22 +85,20 @@ Rect ScrollBar::track_bounds() const noexcept {
 
 Rect ScrollBar::thumb_bounds() const noexcept {
     const Rect track = track_bounds();
-    const double track_extent = orientation() == Orientation::horizontal
+    const double track_extent = orientation.read() == Orientation::horizontal
         ? track.width : track.height;
-    if (track_extent <= 0.0) return track;
-    const double range = maximum() - minimum();
-    const double proportion = large_change() / (range + large_change());
-    const double thumb_extent = std::clamp(track_extent * proportion,
-        std::min(minimum_thumb_extent_, track_extent), track_extent);
-    const double movable = std::max(0.0, track_extent - thumb_extent);
-    const double position = normalized_value() * movable;
-    return orientation() == Orientation::horizontal
-        ? Rect{track.x + position, track.y, thumb_extent, track.height}
-        : Rect{track.x, track.y + position, track.width, thumb_extent};
+    if (track_extent <= 0.0) return Rect{track.x, track.y, 0.0, 0.0};
+    const double range = maximum.read() - minimum.read();
+    const double proportion = large_change.read() / (range + large_change.read());
+    const scroll_bar_detail::ThumbPlacement placed = scroll_bar_detail::place_thumb(
+        track_extent, proportion, normalized_value(), minimum_thumb_extent.read());
+    return orientation.read() == Orientation::horizontal
+        ? Rect{track.x + placed.offset, track.y, placed.extent, track.height}
+        : Rect{track.x, track.y + placed.offset, track.width, placed.extent};
 }
 
 double ScrollBar::axis_coordinate(Point local_point) const noexcept {
-    return orientation() == Orientation::horizontal ? local_point.x : local_point.y;
+    return orientation.read() == Orientation::horizontal ? local_point.x : local_point.y;
 }
 
 ScrollBarPart ScrollBar::part_at(Point local_point) const noexcept {
@@ -142,7 +112,7 @@ ScrollBarPart ScrollBar::part_at(Point local_point) const noexcept {
     const Rect thumb = thumb_bounds();
     if (thumb.contains(local_point)) return ScrollBarPart::thumb;
     const double coordinate = axis_coordinate(local_point);
-    const double thumb_start = orientation() == Orientation::horizontal
+    const double thumb_start = orientation.read() == Orientation::horizontal
         ? thumb.x : thumb.y;
     return coordinate < thumb_start ? ScrollBarPart::decrement_track
                                     : ScrollBarPart::increment_track;
@@ -188,6 +158,17 @@ void ScrollBar::publish_part_geometry(std::span<PartGeometry> geometry) const {
     if (tracking_thumb_) {
         record.thumb.states.insert(AnatomyState::captured);
     }
+    // The part under the pointer carries the hover.
+    if (hot_part_ == ScrollBarPart::decrement_button) {
+        record.decrement_arrow.states.insert(AnatomyState::hot);
+    } else if (hot_part_ == ScrollBarPart::increment_button) {
+        record.increment_arrow.states.insert(AnatomyState::hot);
+    } else if (hot_part_ == ScrollBarPart::decrement_track ||
+               hot_part_ == ScrollBarPart::increment_track) {
+        record.track.states.insert(AnatomyState::hot);
+    } else if (hot_part_ == ScrollBarPart::thumb) {
+        record.thumb.states.insert(AnatomyState::hot);
+    }
     write_parts(anatomy(), scroll_bar_detail::part_fields, record, geometry);
 }
 
@@ -219,31 +200,31 @@ ScrollBar::States ScrollBar::states() const {
 double ScrollBar::value_from_thumb_coordinate(double coordinate) const noexcept {
     const Rect track = track_bounds();
     const Rect thumb = thumb_bounds();
-    const double track_start = orientation() == Orientation::horizontal
+    const double track_start = orientation.read() == Orientation::horizontal
         ? track.x : track.y;
-    const double track_extent = orientation() == Orientation::horizontal
+    const double track_extent = orientation.read() == Orientation::horizontal
         ? track.width : track.height;
-    const double thumb_extent = orientation() == Orientation::horizontal
+    const double thumb_extent = orientation.read() == Orientation::horizontal
         ? thumb.width : thumb.height;
     const double movable = std::max(0.0, track_extent - thumb_extent);
-    if (movable <= 0.0) return minimum();
+    if (movable <= 0.0) return minimum.read();
     const double ratio = std::clamp((coordinate - track_start) / movable, 0.0, 1.0);
-    return minimum() + ratio * (maximum() - minimum());
+    return minimum.read() + ratio * (maximum.read() - minimum.read());
 }
 
 bool ScrollBar::apply_part(ScrollBarPart part) {
     switch (part) {
     case ScrollBarPart::decrement_button:
-        return set_value_from_input(value() - small_change(),
+        return set_value_from_input(value.read() - small_change.read(),
                                     RangeAction::small_decrement);
     case ScrollBarPart::increment_button:
-        return set_value_from_input(value() + small_change(),
+        return set_value_from_input(value.read() + small_change.read(),
                                     RangeAction::small_increment);
     case ScrollBarPart::decrement_track:
-        return set_value_from_input(value() - large_change(),
+        return set_value_from_input(value.read() - large_change.read(),
                                     RangeAction::large_decrement);
     case ScrollBarPart::increment_track:
-        return set_value_from_input(value() + large_change(),
+        return set_value_from_input(value.read() + large_change.read(),
                                     RangeAction::large_increment);
     case ScrollBarPart::none:
     case ScrollBarPart::thumb:
@@ -261,7 +242,7 @@ void ScrollBar::begin_repeat(ScrollBarPart part, Point pointer) {
     const std::shared_ptr<ScrollBar> self =
         std::static_pointer_cast<ScrollBar>(shared_from_this());
     repeat_frames_ = (*window()).schedule_ui_timer(
-        *this, repeat_interval_, now + initial_repeat_delay_, RepeatTick{self});
+        *this, repeat_interval.read(), now + initial_repeat_delay.read(), RepeatTick{self});
 }
 
 void ScrollBar::RepeatTick::operator()(FrameTime now) const {
@@ -279,7 +260,7 @@ void ScrollBar::stop_interaction() noexcept {
 
 Size ScrollBar::measure(Size available) {
     const Rect requested = requested_bounds();
-    const Size preferred = orientation() == Orientation::horizontal
+    const Size preferred = orientation.read() == Orientation::horizontal
         ? Size{requested.width > 0.0 ? requested.width : 180.0,
                requested.height > 0.0 ? requested.height : 18.0}
         : Size{requested.width > 0.0 ? requested.width : 18.0,
@@ -288,102 +269,55 @@ Size ScrollBar::measure(Size available) {
             std::min(available.height, preferred.height)};
 }
 
-namespace {
-
-// `states` with the press moved onto one part: pressed (and captured, for
-// the thumb being dragged) only while `pressed` is true.
-AnatomyStateSet scroll_part_states(AnatomyStateSet states, bool pressed, bool captured) {
-    states.erase(AnatomyState::pressed);
-    states.erase(AnatomyState::captured);
-    if (pressed) {
-        states.erase(AnatomyState::normal);
-        states.insert(AnatomyState::pressed);
-    }
-    if (captured) states.insert(AnatomyState::captured);
-    return states;
-}
-
-} // namespace
-
-void ScrollBar::paint_button(Painter& painter, Rect button,
-                             ScrollBarPart part, bool incrementing,
-                             AnatomyStateSet states) {
-    const bool pressed = pressed_part_ == part;
-    const AnatomyStateSet button_states = scroll_part_states(states, pressed, false);
-    PartPaint actuator;
-    actuator.family = ControlVisualRole::button;
-    actuator.role = PartRole::actuator;
-    actuator.bounds = button;
-    actuator.states = button_states;
-    actuator.key = PartKey{incrementing ? "increment_arrow" : "decrement_arrow", {}, {}};
-    paint_part(painter, *this, actuator);
-    // The arrow mark draws half its square's side in rows: an 8-unit square
-    // centred on the button.
-    const bool horizontal = orientation() == Orientation::horizontal;
-    PartPaint arrow;
-    arrow.family = ControlVisualRole::button;
-    arrow.role = PartRole::glyph;
-    if (horizontal) {
-        arrow.mark = incrementing ? PartMark::arrow_right : PartMark::arrow_left;
-    } else {
-        arrow.mark = incrementing ? PartMark::arrow_down : PartMark::arrow_up;
-    }
-    arrow.bounds = {std::floor(button.x + button.width * 0.5) - 4.0,
-                    std::floor(button.y + button.height * 0.5) - 4.0, 8.0, 8.0};
-    arrow.states = button_states;
-    paint_part(painter, *this, arrow);
-}
-
-// The trough under the whole bar, the track between the buttons, the two
-// arrow buttons and the thumb are parts the theme's engine draws; only the
-// pressed part shows pressed. The focus cue rings the thumb.
+// The trough, track, arrow buttons and thumb are drawn as every scroll bar
+// draws them (scroll_bar_detail::paint_scroll_bar_parts): only the pressed
+// part shows pressed and only the part under the pointer hot. The focus cue
+// rings the thumb, or the track while the bar is too short for a thumb.
 void ScrollBar::on_paint(Painter& painter, Rect) {
-    const Rect bounds = local_bounds();
-    const AnatomyStateSet states = anatomy_states();
-    const AnatomyStateSet rest = scroll_part_states(states, false, false);
-    PartPaint trough;
-    trough.family = ControlVisualRole::panel;
-    trough.role = PartRole::track;
-    trough.bounds = bounds;
-    trough.states = rest;
-    paint_part(painter, *this, trough);
-    PartPaint track;
-    track.family = ControlVisualRole::editor;
-    track.role = PartRole::track;
-    track.bounds = track_bounds();
-    track.states = scroll_part_states(states, pressed_part_ == ScrollBarPart::decrement_track ||
-                                                  pressed_part_ == ScrollBarPart::increment_track,
-                                      false);
-    track.key = PartKey{"track", {}, {}};
-    paint_part(painter, *this, track);
-
-    paint_button(painter, decrement_button_bounds(),
-                 ScrollBarPart::decrement_button, false, states);
-    paint_button(painter, increment_button_bounds(),
-                 ScrollBarPart::increment_button, true, states);
-    PartPaint thumb;
-    thumb.family = ControlVisualRole::button;
-    thumb.role = PartRole::thumb;
-    thumb.bounds = thumb_bounds();
-    thumb.states = scroll_part_states(states, pressed_part_ == ScrollBarPart::thumb, tracking_thumb_);
-    thumb.key = PartKey{"thumb", {}, {}};
-    paint_part(painter, *this, thumb);
+    scroll_bar_detail::ScrollBarPaintParts parts;
+    parts.orientation = orientation.read();
+    parts.bar = local_bounds();
+    parts.track = track_bounds();
+    parts.decrement = decrement_button_bounds();
+    parts.increment = increment_button_bounds();
+    parts.thumb = thumb_bounds();
+    parts.states = anatomy_states();
+    parts.pressed = pressed_part_;
+    parts.hot = hot_part_;
+    parts.thumb_captured = tracking_thumb_;
+    scroll_bar_detail::paint_scroll_bar_parts(painter, *this, parts);
     if (focused_ || tracking_thumb_) {
-        PartPaint focus = thumb;
+        PartPaint focus;
+        focus.family = ControlVisualRole::button;
         focus.role = PartRole::focus;
+        focus.bounds = parts.thumb.empty() ? parts.track : parts.thumb;
+        focus.states = parts.states;
         focus.states.insert(AnatomyState::focus_visible);
         focus.key = PartKey{"focus", {}, {}};
         paint_part(painter, *this, focus);
     }
 }
 
+// Moves the hover onto `part`, repainting the bar when it changes.
+void ScrollBar::set_hot_part(ScrollBarPart part) {
+    if (hot_part_ == part) return;
+    hot_part_ = part;
+    invalidate(Dirty::paint);
+}
+
 void ScrollBar::on_pointer(PointerEvent& event) {
+    if (event.action == PointerAction::leave) {
+        set_hot_part(ScrollBarPart::none);
+        return;
+    }
     if (!eligible_for_input()) return;
     const Rect absolute = absolute_bounds();
     const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    // The hover follows the pointer, except that a dragged thumb keeps it.
+    if (event.action == PointerAction::move && !tracking_thumb_) set_hot_part(part_at(local));
     if (event.action == PointerAction::wheel && event.wheel_delta.y != 0.0) {
         const bool decrementing = event.wheel_delta.y > 0.0;
-        set_value_from_input(value() + (decrementing ? -small_change() : small_change()),
+        set_value_from_input(value.read() + (decrementing ? -small_change.read() : small_change.read()),
                              decrementing ? RangeAction::small_decrement
                                           : RangeAction::small_increment);
         event.handled = true;
@@ -397,7 +331,7 @@ void ScrollBar::on_pointer(PointerEvent& event) {
         set_pointer_capture(true);
         if (pressed_part_ == ScrollBarPart::thumb) {
             const Rect thumb = thumb_bounds();
-            const double thumb_start = orientation() == Orientation::horizontal
+            const double thumb_start = orientation.read() == Orientation::horizontal
                 ? thumb.x : thumb.y;
             thumb_drag_offset_ = axis_coordinate(local) - thumb_start;
             tracking_thumb_ = true;
@@ -435,24 +369,24 @@ void ScrollBar::on_pointer(PointerEvent& event) {
 
 void ScrollBar::on_key(KeyEvent& event) {
     if (!focused_ || event.action != KeyAction::down) return;
-    double next = value();
+    double next = value.read();
     RangeAction action = RangeAction::thumb_position;
     bool recognized = true;
     switch (event.physical_key) {
     case PhysicalKey::left:
     case PhysicalKey::up:
-        next -= small_change(); action = RangeAction::small_decrement; break;
+        next -= small_change.read(); action = RangeAction::small_decrement; break;
     case PhysicalKey::right:
     case PhysicalKey::down:
-        next += small_change(); action = RangeAction::small_increment; break;
+        next += small_change.read(); action = RangeAction::small_increment; break;
     case PhysicalKey::page_up:
-        next -= large_change(); action = RangeAction::large_decrement; break;
+        next -= large_change.read(); action = RangeAction::large_decrement; break;
     case PhysicalKey::page_down:
-        next += large_change(); action = RangeAction::large_increment; break;
+        next += large_change.read(); action = RangeAction::large_increment; break;
     case PhysicalKey::home:
-        next = minimum(); action = RangeAction::first; break;
+        next = minimum.read(); action = RangeAction::first; break;
     case PhysicalKey::end:
-        next = maximum(); action = RangeAction::last; break;
+        next = maximum.read(); action = RangeAction::last; break;
     default:
         recognized = false; break;
     }
@@ -493,14 +427,14 @@ SemanticDescriptor ScrollBar::semantic_descriptor() const {
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
     std::ostringstream value_text;
-    value_text << value();
+    value_text << value.read();
     descriptor.value = value_text.str();
-    descriptor.numeric_value = value();
-    descriptor.minimum_value = minimum();
-    descriptor.maximum_value = maximum();
+    descriptor.numeric_value = value.read();
+    descriptor.minimum_value = minimum.read();
+    descriptor.maximum_value = maximum.read();
     // The arrow keys move by the small change, the page keys by the large.
-    descriptor.small_step = small_change();
-    descriptor.large_step = large_change();
+    descriptor.small_step = small_change.read();
+    descriptor.large_step = large_change.read();
     descriptor.actions = {SemanticAction::focus, SemanticAction::increment,
                           SemanticAction::decrement, SemanticAction::set_value};
     descriptor.exposed = true;
@@ -511,7 +445,7 @@ bool ScrollBar::on_semantic_action(SemanticAction action,
                                    std::string_view value_text) {
     if (action == SemanticAction::increment || action == SemanticAction::decrement) {
         const bool increasing = action == SemanticAction::increment;
-        set_value_from_input(value() + (increasing ? small_change() : -small_change()),
+        set_value_from_input(value.read() + (increasing ? small_change.read() : -small_change.read()),
                              increasing ? RangeAction::small_increment
                                         : RangeAction::small_decrement);
         return true;
@@ -522,12 +456,193 @@ bool ScrollBar::on_semantic_action(SemanticAction action,
             const double parsed = std::stod(std::string(value_text), &consumed);
             if (consumed != value_text.size() || !std::isfinite(parsed)) return false;
             return set_value_from_input(parsed, RangeAction::thumb_position) ||
-                   parsed == value();
+                   parsed == value.read();
         } catch (const std::exception&) {
             return false;
         }
     }
     return RangeControl::on_semantic_action(action, value_text);
 }
+
+namespace {
+
+// RangeControl's large_change, which a scroll bar's form document sets
+// besides the range (stage FD6.3): published in ScrollBar's table alone
+// (tools/property_families/scroll_bar.json, extra_entries). It raises no
+// change event.
+PropertyDescriptor scroll_bar_large_change_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "large_change";
+    descriptor.kind = BindingValueKind::number;
+    descriptor.category = "Behavior";
+    descriptor.description = "How far a click on the track or Page Up/Down moves the value.";
+    descriptor.default_value = BindingValue{10.0};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_scroll_bar_large_change() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        scroll_bar_large_change_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+// property_codemod begin ScrollBar (tools/property_families/scroll_bar.json; generated, do not edit)
+
+const std::array<PropertyEntry, ScrollBar::scroll_bar_property_count>& ScrollBar::scroll_bar_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"large_change", &describe_scroll_bar_large_change,
+         &read_cell_entry<ScrollBar, decltype(&ScrollBar::large_change), &ScrollBar::large_change>,
+         &write_cell_entry<ScrollBar, decltype(&ScrollBar::large_change), &ScrollBar::large_change>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "ScrollBar's property table names a property twice");
+    static const std::array<PropertyEntry, scroll_bar_property_count> entries =
+        join_property_tables(RangeControl::range_control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> ScrollBar::property_table() const noexcept {
+    const std::array<PropertyEntry, scroll_bar_property_count>& entries = scroll_bar_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void ScrollBar::prepare_write(const decltype(button_extent)&, double& incoming) {
+    require_mutable();
+    require_finite(incoming, "scrollbar button extent must be finite");
+    if (incoming < 8.0 || incoming > 64.0) throw std::invalid_argument("scrollbar button extent must be between 8 and 64");
+}
+
+void ScrollBar::written(const decltype(button_extent)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void ScrollBar::prepare_write(const decltype(minimum_thumb_extent)&, double& incoming) {
+    require_mutable();
+    require_finite(incoming, "scrollbar thumb extent must be finite");
+    if (incoming < scroll_thumb_extent_least || incoming > scroll_thumb_extent_most) throw std::invalid_argument("scrollbar thumb extent must be between 8 and 128");
+}
+
+void ScrollBar::written(const decltype(minimum_thumb_extent)&) {
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+// property_codemod end ScrollBar
+
+namespace scroll_bar_detail {
+
+namespace {
+
+// `states` with the press, capture and hover moved onto one part: each only
+// while its flag is true.
+AnatomyStateSet part_states(AnatomyStateSet states, bool pressed, bool captured, bool hot) {
+    states.erase(AnatomyState::pressed);
+    states.erase(AnatomyState::captured);
+    states.erase(AnatomyState::hot);
+    if (pressed) {
+        states.erase(AnatomyState::normal);
+        states.insert(AnatomyState::pressed);
+    }
+    if (captured) states.insert(AnatomyState::captured);
+    if (hot) states.insert(AnatomyState::hot);
+    return states;
+}
+
+bool track_part(ScrollBarPart part) noexcept {
+    const bool track = part == ScrollBarPart::decrement_track || part == ScrollBarPart::increment_track;
+    return track;
+}
+
+// One arrow button: its actuator part and, where the button holds the
+// mark's square, its arrow mark centred in it.
+void paint_arrow_button(Painter& painter, const Control& control, const ScrollBarPaintParts& drawn,
+                        Rect button, bool incrementing) {
+    if (button.empty()) return;
+    const ScrollBarPart part = incrementing ? ScrollBarPart::increment_button : ScrollBarPart::decrement_button;
+    const AnatomyStateSet states = part_states(drawn.states, drawn.pressed == part, false, drawn.hot == part);
+    PartPaint actuator;
+    actuator.family = ControlVisualRole::button;
+    actuator.role = PartRole::actuator;
+    actuator.bounds = button;
+    actuator.states = states;
+    actuator.key = PartKey{incrementing ? "increment_arrow" : "decrement_arrow", drawn.item, {}};
+    actuator.control_type = drawn.control_type;
+    paint_part(painter, control, actuator);
+    if (button.width < scroll_arrow_mark_extent || button.height < scroll_arrow_mark_extent) return;
+    const bool horizontal = drawn.orientation == Orientation::horizontal;
+    const double half = scroll_arrow_mark_extent * 0.5;
+    PartPaint arrow;
+    arrow.family = ControlVisualRole::button;
+    arrow.role = PartRole::glyph;
+    if (horizontal) {
+        arrow.mark = incrementing ? PartMark::arrow_right : PartMark::arrow_left;
+    } else {
+        arrow.mark = incrementing ? PartMark::arrow_down : PartMark::arrow_up;
+    }
+    arrow.bounds = {std::floor(button.x + button.width * 0.5) - half,
+                    std::floor(button.y + button.height * 0.5) - half,
+                    scroll_arrow_mark_extent, scroll_arrow_mark_extent};
+    arrow.states = states;
+    arrow.control_type = drawn.control_type;
+    paint_part(painter, control, arrow);
+}
+
+} // namespace
+
+void paint_scroll_bar_parts(Painter& painter, const Control& control, const ScrollBarPaintParts& drawn) {
+    PartPaint trough;
+    trough.family = ControlVisualRole::panel;
+    trough.role = PartRole::track;
+    trough.bounds = drawn.bar;
+    trough.states = part_states(drawn.states, false, false, false);
+    trough.control_type = drawn.control_type;
+    paint_part(painter, control, trough);
+    PartPaint track;
+    track.family = ControlVisualRole::editor;
+    track.role = PartRole::track;
+    track.bounds = drawn.track;
+    track.states = part_states(drawn.states, track_part(drawn.pressed), false, track_part(drawn.hot));
+    track.key = PartKey{"track", drawn.item, {}};
+    track.control_type = drawn.control_type;
+    paint_part(painter, control, track);
+    paint_arrow_button(painter, control, drawn, drawn.decrement, false);
+    paint_arrow_button(painter, control, drawn, drawn.increment, true);
+    if (drawn.thumb.empty()) return;
+    PartPaint thumb;
+    thumb.family = ControlVisualRole::button;
+    thumb.role = PartRole::thumb;
+    thumb.bounds = drawn.thumb;
+    thumb.states = part_states(drawn.states, drawn.pressed == ScrollBarPart::thumb, drawn.thumb_captured,
+                               drawn.hot == ScrollBarPart::thumb);
+    thumb.key = PartKey{"thumb", drawn.item, {}};
+    thumb.control_type = drawn.control_type;
+    paint_part(painter, control, thumb);
+}
+
+ThumbPlacement place_thumb(double track_extent, double proportion, double fraction,
+                           double minimum_extent) noexcept {
+    ThumbPlacement placed;
+    // A share or fraction that is not a number (an empty range) reads as
+    // the whole content and the start.
+    const double along = fraction >= 0.0 ? std::min(fraction, 1.0) : 0.0;
+    if (!(track_extent > 0.0)) return placed;
+    if (track_extent < minimum_extent) {
+        // No room for a thumb: none is shown; the value's place still
+        // divides the track into its paging halves.
+        placed.offset = along * track_extent;
+        return placed;
+    }
+    const double share = proportion >= 0.0 ? std::min(proportion, 1.0) : 1.0;
+    placed.extent = std::clamp(track_extent * share, minimum_extent, track_extent);
+    placed.offset = along * (track_extent - placed.extent);
+    return placed;
+}
+
+} // namespace scroll_bar_detail
 
 } // namespace gui_forms

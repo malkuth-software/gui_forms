@@ -7,6 +7,7 @@
 #include "gui_forms/image_list.hpp"
 #include "gui_forms/pages/page_set/page_set.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -82,7 +83,7 @@ enum class NavigationPaneItemKind : std::uint8_t { large_button, icon };
 // split pane whose value is the number of large buttons. Every part is
 // painted through paint_part; the buttons use the menu_item family until the
 // default theme (T4) draws Plan Paint's tab material (decision DK-42).
-class NavigationPane : public Control {
+class NavigationPane : public Control, public NavigationPaneCapabilities<NavigationPane> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
 
@@ -97,13 +98,6 @@ public:
     [[nodiscard]] PageSet& pages() noexcept { return pages_; }
     [[nodiscard]] const PageSet& pages() const noexcept { return pages_; }
 
-    [[nodiscard]] bool collapsed() const noexcept { return collapsed_; }
-    // Collapsing closes the configure menu; expanding closes the overlay.
-    void set_collapsed(bool collapsed);
-    // The number of large buttons the user chose; 4 by default.
-    [[nodiscard]] std::size_t button_count() const noexcept { return button_count_; }
-    // Throws std::out_of_range above PageSetLimits::maximum_capacity.
-    void set_button_count(std::size_t count);
     // The large buttons shown after layout: the chosen count, limited by the
     // pages not hidden and by the height. Zero while collapsed or unlaid.
     [[nodiscard]] std::size_t visible_button_count() const;
@@ -118,18 +112,6 @@ public:
     bool set_page_hidden(const PageId& page, bool hidden);
     // The hidden pages, in page order.
     [[nodiscard]] std::vector<PageId> hidden_pages() const;
-    // The width the pane asks for while expanded, and the overlay's width;
-    // 220 by default. Throws std::out_of_range outside 80 to 1024.
-    [[nodiscard]] double expanded_width() const noexcept { return expanded_width_; }
-    void set_expanded_width(double width);
-    // Images for the pages' `image_key`s. Throws std::invalid_argument for a
-    // disposed list or one bound to another window.
-    [[nodiscard]] const std::shared_ptr<ImageList>& image_list() const noexcept { return image_list_; }
-    void set_image_list(std::shared_ptr<ImageList> image_list);
-    // Whether the pane registers itself as an F6 region of its window while
-    // attached (owner decision RB-17); on by default.
-    [[nodiscard]] bool focus_region() const noexcept { return focus_region_; }
-    void set_focus_region(bool region);
 
     // The collapsed pane's content overlay. Opening is refused (false) unless
     // the pane is collapsed and attached to a window.
@@ -360,9 +342,6 @@ private:
     // The hidden pages, by identity, in the order they were hidden; state()
     // and hidden_pages() report them in page order.
     std::vector<PageId> hidden_{};
-    double expanded_width_{220.0};
-    std::shared_ptr<ImageList> image_list_{};
-    bool focus_region_{true};
     // Set while apply_state reorders the set, which then raises one
     // state_changed for the whole restoration.
     bool applying_state_{};
@@ -403,6 +382,25 @@ private:
     Event<const NavigationPaneOptionsRequest&> options_requested_{};
     Event<const NavigationPaneState&> state_changed_{};
     Event<bool> overlay_open_changed_{};
+    // property_codemod begin NavigationPane (tools/property_families/navigation_pane.json; generated, do not edit)
+private:
+    friend struct NavigationPaneCollapsedCapability<NavigationPane>;
+    friend struct NavigationPaneButtonCountCapability<NavigationPane>;
+    friend struct NavigationPaneExpandedWidthCapability<NavigationPane>;
+    friend struct NavigationPaneImageListCapability<NavigationPane>;
+    friend struct NavigationPaneFocusRegionCapability<NavigationPane>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(collapsed)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(collapsed)& cell) const;
+    void write_view(const decltype(button_count)& cell, std::size_t incoming);
+    [[nodiscard]] std::size_t read_view(const decltype(button_count)& cell) const;
+    void prepare_write(const decltype(expanded_width)& cell, double& incoming);
+    void written(const decltype(expanded_width)& cell);
+    void prepare_write(const decltype(image_list)& cell, std::shared_ptr<ImageList>& incoming);
+    void written(const decltype(image_list)& cell);
+    void prepare_write(const decltype(focus_region)& cell, bool& incoming);
+    void written(const decltype(focus_region)& cell);
+    // property_codemod end NavigationPane
 };
 
 } // namespace gui_forms

@@ -1,0 +1,120 @@
+/* The Gallery's anchored-overlays page (stage FD, phase FD-4): the
+   placement policy's controls, three anchors and the content of the one
+   AnchoredOverlayLayer they reopen. gui_forms_add_form() compiles this
+   document into anchored-overlays_form.hpp at build time.
+
+   gallery.overlays.document is a declared boundary only: the page moves
+   its children into the shell's page body, where each is placed by its
+   bounds in design coordinates, except the last, gallery.overlays.content,
+   which the page gives the layer as its content instead. The page keeps in
+   code the alignment choices, the Values the choice group and check boxes
+   bind, the layer and its placement, the anchors' expanded state, the
+   overlay's face, every event handler and the page style. */
+scaled-panel gallery.overlays.document {
+  design-size: 1000 650;
+
+  label gallery.anchored-overlays.heading {
+    text: "ANCHORED OVERLAYS";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.anchored-overlays.lead {
+    text: "AnchoredOverlayLayer resolves one retained content subtree against a live anchor, flips when the preferred side cannot fit, clamps to the client margin and reports dismissal requests.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.overlays.options {
+    text: "Placement policy · Values drive the live overlay";
+    design-size: 930 118;
+    bounds: 24 88 930 118;
+    classes: "paper" "group-caption";
+    choice-group gallery.overlays.alignment {
+      accessible-name: "Horizontal alignment";
+      bounds: 22 36 300 32;
+    }
+    check-box gallery.overlays.above {
+      text: "Prefer above";
+      indicator-style: modern;
+      bounds: 340 38 150 26;
+      checked: bind(above_);
+    }
+    check-box gallery.overlays.flip {
+      text: "Allow vertical flip";
+      indicator-style: modern;
+      bounds: 500 38 180 26;
+      checked: bind(flip_);
+    }
+    check-box gallery.overlays.click-away {
+      text: "Dismiss on click-away";
+      indicator-style: modern;
+      bounds: 690 38 210 26;
+      checked: bind(click_away_);
+    }
+    check-box gallery.overlays.escape {
+      text: "Dismiss on Escape";
+      indicator-style: modern;
+      bounds: 22 76 200 26;
+      checked: bind(escape_);
+    }
+    label gallery.overlays.options.note {
+      text: "Changes apply to an open overlay immediately; the layer also re-resolves on host resize.";
+      classes: "muted" "note";
+      bounds: 340 78 560 22;
+    }
+  }
+
+  scaled-group-box gallery.overlays.stage {
+    text: "Anchors · the overlay resolves against whichever opened it";
+    design-size: 930 372;
+    bounds: 24 220 930 372;
+    classes: "paper" "group-caption";
+    button gallery.overlays.anchor.0 {
+      text: "Open near top-left";
+      bounds: 22 36 200 32;
+    }
+    button gallery.overlays.anchor.1 {
+      text: "Open from the centre";
+      bounds: 365 170 200 32;
+    }
+    button gallery.overlays.anchor.2 {
+      text: "Open near bottom-right";
+      bounds: 708 322 200 32;
+    }
+    label gallery.overlays.stage.note {
+      text: "The bottom-right anchor cannot fit the overlay below, so it flips above; with flipping disabled it keeps its height and is clamped inside the client margin instead.";
+      classes: "muted" "note";
+      bounds: 22 84 600 22;
+    }
+  }
+
+  label gallery.overlays.status {
+    text: "Ready · open an overlay from any anchor; Tab stays inside until it closes";
+    classes: "positive" "emphasis";
+    bounds: 24 600 930 26;
+  }
+
+  panel gallery.overlays.content {
+    accessible-name: "Anchored overlay";
+    border-style: raised;
+    label gallery.overlays.content.title {
+      text: "Anchored overlay · focus contained";
+      classes: "heading" "body-strong";
+      bounds: 14 12 250 22;
+    }
+    text-box gallery.overlays.field {
+      accessible-name: "Overlay field";
+      placeholder-text: "Type here; Tab stays inside";
+      bounds: 14 44 250 32;
+    }
+    label gallery.overlays.content.note {
+      text: "Click away or press Escape to request dismissal.";
+      classes: "muted" "note";
+      bounds: 14 86 250 22;
+    }
+    button gallery.overlays.close {
+      text: "Close";
+      bounds: 14 146 110 32;
+    }
+  }
+}

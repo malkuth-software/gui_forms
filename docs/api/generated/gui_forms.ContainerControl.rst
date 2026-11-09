@@ -7,7 +7,7 @@ gui_forms::ContainerControl
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ContainerControl : public ScrollableControl
+.. cpp:class:: ContainerControl : public ScrollableControl, public ContainerControlCapabilities<ContainerControl>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/container_control.hpp>``
 
@@ -30,10 +30,6 @@ gui_forms::ContainerControl
 
    :Properties:
 
-      **active_control** : ``Control::Ptr``, read-only
-         The focused control when it is a descendant of this container, or null
-         when focus is elsewhere or the container is not in a window.
-
       **auto_validate** : ``AutoValidate``, default ``AutoValidate::inherit``
          How validation runs when focus leaves a control inside this container.
          :cpp:enumerator:`AutoValidate::inherit <gui_forms::AutoValidate::inherit>` uses the policy of the nearest enclosing
@@ -43,6 +39,10 @@ gui_forms::ContainerControl
          lets focus move anyway; :cpp:enumerator:`AutoValidate::disable <gui_forms::AutoValidate::disable>` does not validate on
          focus changes. An unknown value throws ``std::invalid_argument``.
 
+      **active_control** : ``Control::Ptr``, read-only
+         The focused control when it is a descendant of this container, or null
+         when focus is elsewhere or the container is not in a window.
+
       **effective_auto_validate** : ``AutoValidate``, read-only
          The policy in force: this container's own, or the nearest enclosing
          container's, or :cpp:enumerator:`AutoValidate::enable_prevent_focus_change <gui_forms::AutoValidate::enable_prevent_focus_change>` when none
@@ -51,11 +51,11 @@ gui_forms::ContainerControl
    :Events:
 
       **auto_validate_changed** : ``Event<AutoValidate>``
-         Raised after :cpp:func:`auto_validate <gui_forms::ContainerControl::auto_validate>` changes, with the new value.
+         Raised after :cpp:member:`auto_validate <gui_forms::ContainerControl::auto_validate>` changes, with the new value.
 
    :Inherited:
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`parts <gui_forms::ScrollableControl::parts>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`parts <gui_forms::ScrollableControl::parts>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -155,12 +155,7 @@ gui_forms::ContainerControl
 
    .. rubric:: Properties
 
-   .. cpp:function:: Control::Ptr active_control() const noexcept
-
-      The focused control when it is a descendant of this container, or null
-      when focus is elsewhere or the container is not in a window.
-
-   .. cpp:function:: AutoValidate auto_validate() const noexcept
+   .. cpp:member:: AutoValidate auto_validate
 
       How validation runs when focus leaves a control inside this container.
       :cpp:enumerator:`AutoValidate::inherit <gui_forms::AutoValidate::inherit>` uses the policy of the nearest enclosing
@@ -170,9 +165,10 @@ gui_forms::ContainerControl
       lets focus move anyway; :cpp:enumerator:`AutoValidate::disable <gui_forms::AutoValidate::disable>` does not validate on
       focus changes. An unknown value throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_auto_validate(AutoValidate value)
+   .. cpp:function:: Control::Ptr active_control() const noexcept
 
-      Sets :cpp:func:`auto_validate <gui_forms::ContainerControl::auto_validate>`; see the property's description above.
+      The focused control when it is a descendant of this container, or null
+      when focus is elsewhere or the container is not in a window.
 
    .. cpp:function:: AutoValidate effective_auto_validate() const noexcept
 
@@ -185,7 +181,7 @@ gui_forms::ContainerControl
 
    .. cpp:function:: Event<AutoValidate>& auto_validate_changed() noexcept
 
-      Raised after :cpp:func:`auto_validate <gui_forms::ContainerControl::auto_validate>` changes, with the new value.
+      Raised after :cpp:member:`auto_validate <gui_forms::ContainerControl::auto_validate>` changes, with the new value.
 
 
    .. rubric:: Methods

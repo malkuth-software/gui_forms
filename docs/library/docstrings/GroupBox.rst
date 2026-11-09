@@ -10,7 +10,7 @@ Parameters
 ----------
 stable_id
     Identity of the group box, unique within its window.
-text
+initial_text
     The caption. `&` marks the next character as the mnemonic, so
     ``"&Mode"`` responds to Alt+M; write `&&` for a literal ampersand.
 
@@ -18,7 +18,8 @@ Properties
 ----------
 text
     The caption drawn over the top edge of the frame, and the accessible
-    name unless you set one. Setting it repaints the caption.
+    name unless you set one. Setting a different value repaints the caption
+    and raises `text_changed`.
 font : default ``{FontRole::control, 12.0, 600, false, 0.24}``
     The caption font: the control face at 12 logical pixels, semibold, with
     0.24 pixels of letter spacing. An invalid `FontSpec` throws
@@ -26,6 +27,11 @@ font : default ``{FontRole::control, 12.0, 600, false, 0.24}``
 use_mnemonic : default ``true``
     Whether `&` in `text` marks a mnemonic. When false the caption is drawn
     exactly as written and Alt+key does nothing.
+
+Events
+------
+text_changed
+    Raised after `text` changes. It carries the new caption.
 
 Methods
 -------
@@ -83,8 +89,8 @@ checking one unchecks the other:
    (*exact).set_requested_bounds({130.0, 24.0, 110.0, 24.0});
    (*mode).add_child(fast);
    (*mode).add_child(exact);
-   (*fast).set_checked(true);
-   (*exact).set_checked(true);   // fast is now unchecked
+   (*fast).checked = true;
+   (*exact).checked = true;   // fast is now unchecked
 
 Alt and the caption's mnemonic move focus into the group:
 

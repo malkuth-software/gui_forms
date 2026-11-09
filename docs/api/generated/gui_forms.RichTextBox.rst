@@ -7,7 +7,7 @@ gui_forms::RichTextBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: RichTextBox final : public Panel
+.. cpp:class:: RichTextBox final : public Panel, public RichTextBoxCapabilities<RichTextBox>
 
    ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box.hpp>``
 
@@ -38,21 +38,12 @@ gui_forms::RichTextBox
 
    :Properties:
 
-      **markdown** : ``std::string_view``
-         The source as edited. :cpp:func:`set_markdown <gui_forms::RichTextBox::set_markdown>` replaces it, puts the caret at the
-         end, clears the history and raises :cpp:func:`content_changed <gui_forms::RichTextBox::content_changed>`, :cpp:func:`text_changed <gui_forms::RichTextBox::text_changed>`
-         (when the plain text changed) and :cpp:func:`selection_changed <gui_forms::RichTextBox::selection_changed>`; it throws as the
-         constructor does.
-
       **text** : ``std::string``
          The plain text: the document's blocks with the markup removed, joined by
-         line feeds, as ``markdown_plain_text`` gives it. :cpp:func:`set_text <gui_forms::RichTextBox::set_text>` replaces the
+         line feeds, as ``markdown_plain_text`` gives it. Assigning it replaces the
          document with markdown that reads back as the text: punctuation escaped
          and each line feed a hard line break. Leading white space on a line is
          kept as character references; trailing line feeds are dropped.
-
-      **document** : ``MarkdownDocument``, read-only
-         The parsed source the box presents, for reading.
 
       **read_only** : ``bool``, default ``false``
          Whether the user may only select, copy and follow links. Typing,
@@ -73,6 +64,15 @@ gui_forms::RichTextBox
          The body font. Headings scale it and are set bold; code is set in the
          monospace role at its size. An invalid :cpp:class:`FontSpec <gui_forms::FontSpec>` throws
          ``std::invalid_argument``.
+
+      **markdown** : ``std::string_view``
+         The source as edited. :cpp:func:`set_markdown <gui_forms::RichTextBox::set_markdown>` replaces it, puts the caret at the
+         end, clears the history and raises :cpp:func:`content_changed <gui_forms::RichTextBox::content_changed>`, :cpp:func:`text_changed <gui_forms::RichTextBox::text_changed>`
+         (when the plain text changed) and :cpp:func:`selection_changed <gui_forms::RichTextBox::selection_changed>`; it throws as the
+         constructor does.
+
+      **document** : ``MarkdownDocument``, read-only
+         The parsed source the box presents, for reading.
 
       **scroll_offset** : ``Point``, read-only
 
@@ -122,7 +122,7 @@ gui_forms::RichTextBox
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -170,6 +170,8 @@ gui_forms::RichTextBox
         - Copies the selection and then deletes it.
       * - :cpp:func:`paste <gui_forms::RichTextBox::paste>`
         - Replaces the selection with the clipboard's text, as source.
+      * - :cpp:func:`rich_text_box_property_entries <gui_forms::RichTextBox::rich_text_box_property_entries>`
+        -  
       * - :cpp:func:`set_rtf <gui_forms::RichTextBox::set_rtf>`
         - Replaces the document with RTF converted to markdown (``import_rtf``) and clears the history.
       * - :cpp:func:`set_heading_level <gui_forms::RichTextBox::set_heading_level>`
@@ -228,7 +230,7 @@ gui_forms::RichTextBox
       (*note).toggle_bold();
       std::vector<std::byte> rtf;
       const gf::RtfConversionResult saved = (*note).rtf(rtf);
-      // (*note).markdown() starts "**Draft** notes"; (*note).text() starts "Draft notes"
+      // (*note).markdown() starts "**Draft** notes"; (*note).text.read() starts "Draft notes"
 
 
    .. rubric:: Construction
@@ -237,6 +239,39 @@ gui_forms::RichTextBox
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The plain text: the document's blocks with the markup removed, joined by
+      line feeds, as ``markdown_plain_text`` gives it. Assigning it replaces the
+      document with markdown that reads back as the text: punctuation escaped
+      and each line feed a hard line break. Leading white space on a line is
+      kept as character references; trailing line feeds are dropped.
+
+   .. cpp:member:: bool read_only
+
+      Whether the user may only select, copy and follow links. Typing,
+      deleting, pasting, cutting, the bar and its keys, undo and redo are
+      refused, and the bar's buttons show disabled.
+
+   .. cpp:member:: bool word_wrap
+
+      Whether lines wrap at word boundaries to the box's width. Without
+      wrapping a source line is one row and the box scrolls horizontally.
+
+   .. cpp:member:: bool accepts_tab
+
+      Whether Tab inserts a tab instead of moving focus.
+
+   .. cpp:member:: bool control_bar_visible
+
+      Whether the control bar is shown. Its keys work without it.
+
+   .. cpp:member:: FontSpec font
+
+      The body font. Headings scale it and are set bold; code is set in the
+      monospace role at its size. An invalid :cpp:class:`FontSpec <gui_forms::FontSpec>` throws
+      ``std::invalid_argument``.
 
    .. cpp:function:: std::string_view markdown() const noexcept
 
@@ -249,66 +284,9 @@ gui_forms::RichTextBox
 
       Sets :cpp:func:`markdown <gui_forms::RichTextBox::markdown>`; see the property's description above.
 
-   .. cpp:function:: const std::string& text() const noexcept
-
-      The plain text: the document's blocks with the markup removed, joined by
-      line feeds, as ``markdown_plain_text`` gives it. :cpp:func:`set_text <gui_forms::RichTextBox::set_text>` replaces the
-      document with markdown that reads back as the text: punctuation escaped
-      and each line feed a hard line break. Leading white space on a line is
-      kept as character references; trailing line feeds are dropped.
-
-   .. cpp:function:: void set_text(std::string_view text)
-
-      Sets :cpp:func:`text <gui_forms::RichTextBox::text>`; see the property's description above.
-
    .. cpp:function:: const MarkdownDocument& document() const noexcept
 
       The parsed source the box presents, for reading.
-
-   .. cpp:function:: bool read_only() const noexcept
-
-      Whether the user may only select, copy and follow links. Typing,
-      deleting, pasting, cutting, the bar and its keys, undo and redo are
-      refused, and the bar's buttons show disabled.
-
-   .. cpp:function:: void set_read_only(bool read_only)
-
-      Sets :cpp:func:`read_only <gui_forms::RichTextBox::read_only>`; see the property's description above.
-
-   .. cpp:function:: bool word_wrap() const noexcept
-
-      Whether lines wrap at word boundaries to the box's width. Without
-      wrapping a source line is one row and the box scrolls horizontally.
-
-   .. cpp:function:: void set_word_wrap(bool enabled)
-
-      Sets :cpp:func:`word_wrap <gui_forms::RichTextBox::word_wrap>`; see the property's description above.
-
-   .. cpp:function:: bool accepts_tab() const noexcept
-
-      Whether Tab inserts a tab instead of moving focus.
-
-   .. cpp:function:: void set_accepts_tab(bool enabled)
-
-      Sets :cpp:func:`accepts_tab <gui_forms::RichTextBox::accepts_tab>`; see the property's description above.
-
-   .. cpp:function:: bool control_bar_visible() const noexcept
-
-      Whether the control bar is shown. Its keys work without it.
-
-   .. cpp:function:: void set_control_bar_visible(bool visible)
-
-      Sets :cpp:func:`control_bar_visible <gui_forms::RichTextBox::control_bar_visible>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
-
-      The body font. Headings scale it and are set bold; code is set in the
-      monospace role at its size. An invalid :cpp:class:`FontSpec <gui_forms::FontSpec>` throws
-      ``std::invalid_argument``.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::RichTextBox::font>`; see the property's description above.
 
    .. cpp:function:: Point scroll_offset() const noexcept
 
@@ -451,6 +429,8 @@ gui_forms::RichTextBox
 
       Replaces the selection with the clipboard's text, as source.
 
+   .. cpp:function:: static const std::array<PropertyEntry, rich_text_box_property_count>& rich_text_box_property_entries() noexcept
+
    .. cpp:function:: RtfConversionResult set_rtf(std::span<const std::byte> rtf)
 
       Replaces the document with RTF converted to markdown (``import_rtf``) and
@@ -514,6 +494,10 @@ gui_forms::RichTextBox
 
       *Protected.*
 
+   .. cpp:function:: bool paints_scrolled_content() const noexcept override
+
+      *Protected.*
+
    .. cpp:function:: void on_auto_scroll_changed(Point previous_position) override
 
       *Protected.*
@@ -536,6 +520,30 @@ gui_forms::RichTextBox
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:function:: virtual void on_text_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
+   .. cpp:function:: virtual void on_read_only_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_accepts_tab_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_font_changed()
+
+      *Protected.*
+
    .. cpp:member:: constexpr std::size_t maximum_bytes
 
       The largest source the box edits or loads, in UTF-8 bytes. Lines have no bound of their own: a paragraph is one line of the source. Default: ``1024U * 1024U``.
+
+   .. cpp:member:: constexpr std::size_t rich_text_box_property_count
+
+      RichTextBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.

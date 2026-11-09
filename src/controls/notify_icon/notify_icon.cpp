@@ -3,6 +3,7 @@
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -66,46 +67,62 @@ bool NotifyIcon::shown() const noexcept {
 HostTrayIconRequest NotifyIcon::request() const {
     HostTrayIconRequest built;
     built.images = images_;
-    built.tooltip = text_;
+    built.tooltip = text.read();
     return built;
 }
 
-void NotifyIcon::set_icon(std::vector<HostImage> images) {
+// icon is a view onto images_: every write synchronizes the host icon, even
+// an unchanged one.
+std::vector<HostImage> NotifyIcon::read_view(const decltype(icon)&) const {
+    std::vector<HostImage> current = images_;
+    return current;
+}
+
+void NotifyIcon::write_view(const decltype(icon)&, std::vector<HostImage> incoming) {
     require_ui("NotifyIcon icon mutation");
-    if (images.size() > HostServices::maximum_tray_icon_images) {
+    if (incoming.size() > HostServices::maximum_tray_icon_images) {
         throw std::invalid_argument("NotifyIcon takes at most 8 icon images");
     }
-    for (const HostImage& image : images) {
+    for (const HostImage& image : incoming) {
         if (validate_host_image(image.view()) != HostImageError::none ||
             image.width > HostServices::maximum_tray_icon_side || image.height > HostServices::maximum_tray_icon_side) {
             throw std::invalid_argument("NotifyIcon images must be valid and at most 256 pixels a side");
         }
     }
-    images_ = std::move(images);
+    images_ = std::move(incoming);
     status_ = synchronize(true);
 }
 
-void NotifyIcon::set_text(std::string text) {
+void NotifyIcon::prepare_write(const decltype(text)&, std::string& incoming) {
     require_ui("NotifyIcon text mutation");
-    if (text.size() > HostServices::maximum_tray_tooltip_bytes || !valid_text(text)) {
+    if (incoming.size() > HostServices::maximum_tray_tooltip_bytes || !valid_text(incoming)) {
         throw std::invalid_argument("NotifyIcon text must be valid UTF-8 of at most 127 bytes");
     }
-    if (text_ == text) return;
-    text_ = std::move(text);
+}
+
+// A changed tooltip updates a shown icon; nothing is invalidated (a
+// component does not paint).
+void NotifyIcon::written(const decltype(text)&) {
     status_ = synchronize(true);
 }
 
-HostServiceStatus NotifyIcon::set_visible(bool visible) {
-    require_ui("NotifyIcon visibility");
-    visible_ = visible;
-    status_ = synchronize(false);
-    return status_;
+// visible is a view onto visible_: every write synchronizes, so a repeated
+// true adds again an icon that a host session took with it.
+bool NotifyIcon::read_view(const decltype(visible)&) const {
+    return visible_;
 }
 
-void NotifyIcon::set_context_menu(std::shared_ptr<ContextMenu> menu) {
-    require_ui("NotifyIcon menu mutation");
-    context_menu_ = std::move(menu);
+void NotifyIcon::write_view(const decltype(visible)&, bool incoming) {
+    require_ui("NotifyIcon visibility");
+    visible_ = incoming;
+    status_ = synchronize(false);
 }
+
+void NotifyIcon::prepare_write(const decltype(context_menu)&, std::shared_ptr<ContextMenu>&) {
+    require_ui("NotifyIcon menu mutation");
+}
+
+void NotifyIcon::written(const decltype(context_menu)&) {}
 
 // Leaves the icon's host state, removing a shown icon. Never throws.
 void NotifyIcon::forget_icon() noexcept {
@@ -149,8 +166,8 @@ HostServiceStatus NotifyIcon::synchronize(bool content_changed) {
     return added.status;
 }
 
-HostServiceStatus NotifyIcon::show_balloon_tip(std::string title, std::string text, HostTrayNotificationIcon icon,
-                                               std::chrono::milliseconds timeout) {
+HostServiceStatus NotifyIcon::show_balloon_tip(std::string title, std::string message,
+                                               HostTrayNotificationIcon symbol, std::chrono::milliseconds timeout) {
     require_ui("NotifyIcon notification");
     HostServices* const services = current_services();
     if (services == nullptr) {
@@ -167,8 +184,8 @@ HostServiceStatus NotifyIcon::show_balloon_tip(std::string title, std::string te
     }
     HostTrayNotificationRequest notification;
     notification.title = std::move(title);
-    notification.text = std::move(text);
-    notification.icon = icon;
+    notification.text = std::move(message);
+    notification.icon = symbol;
     // At most ten minutes; zero or less is the host's default.
     const long long milliseconds = timeout.count();
     const long long bounded = std::clamp<long long>(milliseconds, 0, 600000);
@@ -207,10 +224,10 @@ void NotifyIcon::on_tray_event(const HostTrayIconEvent& event) {
 
 // Shows the context menu's rows natively, then runs the chosen row's command.
 void NotifyIcon::show_menu() {
-    if (!context_menu_ || !shown()) return;
+    if (!context_menu.read() || !shown()) return;
     HostServices& services = *services_;
     if (!services.snapshot().capabilities.supports(HostCapability::notification_area_menus)) return;
-    const std::vector<MenuItemSpec>& specs = (*context_menu_).items();
+    const std::vector<MenuItemSpec>& specs = (*context_menu.read()).items();
     HostTrayMenuRequest menu;
     menu.items.reserve(specs.size());
     for (const MenuItemSpec& spec : specs) {
@@ -233,10 +250,10 @@ void NotifyIcon::show_menu() {
     if (menu.items.empty()) return;
     const HostTrayMenuResult chosen = services.show_tray_menu(icon_id_, menu);
     status_ = chosen.status;
-    if (!chosen.status.accepted() || chosen.chosen_id.empty() || !is_alive() || !context_menu_) return;
+    if (!chosen.status.accepted() || chosen.chosen_id.empty() || !is_alive() || !context_menu.read()) return;
     // The command may replace or remove this icon's menu, or the menu's rows:
     // everything the invocation reports is copied before it runs.
-    const std::shared_ptr<ContextMenu> menu_owner = context_menu_;
+    const std::shared_ptr<ContextMenu> menu_owner = context_menu.read();
     std::shared_ptr<Command> command{};
     for (const MenuItemSpec& spec : (*menu_owner).items()) {
         if (spec.stable_id != chosen.chosen_id || !spec.command) continue;
@@ -285,5 +302,9 @@ void NotifyIcon::append_interactions(std::vector<InteractionDeclaration>& intera
     Component::append_interactions(interactions);
     interactions.insert(interactions.end(), notify_icon_interactions.begin(), notify_icon_interactions.end());
 }
+
+// property_codemod begin NotifyIcon (tools/property_families/notify_icon.json; generated, do not edit)
+
+// property_codemod end NotifyIcon
 
 } // namespace gui_forms

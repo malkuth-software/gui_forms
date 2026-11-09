@@ -1,5 +1,6 @@
 #include "gui_forms/controls/container/master_detail_view/master_detail_view.hpp"
 #include "../../scrollable_control/scrollable_anatomy.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -121,14 +122,14 @@ Control::Ptr MasterDetailView::set_detail(Control::Ptr control) {
 
 void MasterDetailView::configure_split() {
     const MasterDetailLayout layout = effective_master_detail_layout();
-    (*split_).set_orientation(layout.orientation);
-    (*split_).set_splitter_width(layout.splitter_width);
-    (*split_).set_splitter_hit_width(layout.splitter_hit_width);
-    (*split_).set_first_minimum(layout.master_minimum);
-    (*split_).set_second_minimum(layout.detail_minimum);
-    (*split_).set_splitter_fixed(!layout.resizable);
-    (*split_).set_fixed_panel(SplitFixedPanel::first);
-    (*split_).set_splitter_distance(layout.master_extent);
+    (*split_).orientation = layout.orientation;
+    (*split_).splitter_width = layout.splitter_width;
+    (*split_).splitter_hit_width = layout.splitter_hit_width;
+    (*split_).first_minimum = layout.master_minimum;
+    (*split_).second_minimum = layout.detail_minimum;
+    (*split_).splitter_fixed = !layout.resizable;
+    (*split_).fixed_panel = SplitFixedPanel::first;
+    (*split_).splitter_distance = layout.master_extent;
 }
 
 MasterDetailLayout MasterDetailView::effective_master_detail_layout() const noexcept {
@@ -160,43 +161,18 @@ void MasterDetailView::reset_master_detail_layout_to_theme() {
                Dirty::hit_test | Dirty::semantics);
 }
 
-void MasterDetailView::set_display_mode(MasterDetailDisplayMode mode) {
-    require_mutable();
-    switch (mode) {
-    case MasterDetailDisplayMode::automatic:
-    case MasterDetailDisplayMode::side_by_side:
-    case MasterDetailDisplayMode::master_only:
-    case MasterDetailDisplayMode::detail_only:
-        break;
-    default:
-        throw std::invalid_argument("master/detail display mode is invalid");
-    }
-    if (display_mode_ == mode) return;
-    display_mode_ = mode;
-    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint |
-               Dirty::hit_test | Dirty::semantics);
-}
-
-void MasterDetailView::set_compact_detail_visible(bool visible) {
-    require_mutable();
-    if (compact_detail_visible_ == visible) return;
-    compact_detail_visible_ = visible;
-    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint |
-               Dirty::hit_test | Dirty::semantics);
-}
-
 void MasterDetailView::show_master() {
-    set_compact_detail_visible(false);
+    compact_detail_visible = false;
 }
 
 void MasterDetailView::show_detail() {
-    set_compact_detail_visible(true);
+    compact_detail_visible = true;
 }
 
 MasterDetailDisplayMode MasterDetailView::resolve_display_mode(
     Size available) const noexcept {
-    if (display_mode_ != MasterDetailDisplayMode::automatic) {
-        return display_mode_;
+    if (display_mode.read() != MasterDetailDisplayMode::automatic) {
+        return display_mode.read();
     }
     const MasterDetailLayout layout = effective_master_detail_layout();
     const double axis = layout.orientation == Orientation::vertical
@@ -206,7 +182,7 @@ MasterDetailDisplayMode MasterDetailView::resolve_display_mode(
         layout.master_minimum + layout.splitter_width +
             layout.detail_minimum);
     if (axis >= required) return MasterDetailDisplayMode::side_by_side;
-    return compact_detail_visible_ ? MasterDetailDisplayMode::detail_only
+    return compact_detail_visible.read() ? MasterDetailDisplayMode::detail_only
                                    : MasterDetailDisplayMode::master_only;
 }
 
@@ -269,7 +245,7 @@ void MasterDetailView::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     apply_display_mode(resolve_display_mode(
                            {final_bounds.width, final_bounds.height}),
-                       display_mode_ == MasterDetailDisplayMode::automatic);
+                       display_mode.read() == MasterDetailDisplayMode::automatic);
     set_child_layout(split_,
                      {0.0, 0.0, final_bounds.width, final_bounds.height});
 }
@@ -289,7 +265,6 @@ SemanticDescriptor MasterDetailView::semantic_descriptor() const {
                          !descriptor.description.empty();
     return descriptor;
 }
-
 
 namespace {
 
@@ -320,5 +295,34 @@ void MasterDetailView::append_interactions(std::vector<InteractionDeclaration>& 
     ContainerControl::append_interactions(interactions);
     interactions.insert(interactions.end(), master_detail_view_interactions.begin(), master_detail_view_interactions.end());
 }
+
+// property_codemod begin MasterDetailView (tools/property_families/master_detail_view.json; generated, do not edit)
+
+void MasterDetailView::prepare_write(const decltype(display_mode)&, MasterDetailDisplayMode& incoming) {
+    require_mutable();
+    switch (incoming) {
+    case MasterDetailDisplayMode::automatic:
+    case MasterDetailDisplayMode::side_by_side:
+    case MasterDetailDisplayMode::master_only:
+    case MasterDetailDisplayMode::detail_only:
+        break;
+    default:
+        throw std::invalid_argument("master/detail display mode is invalid");
+    }
+}
+
+void MasterDetailView::written(const decltype(display_mode)&) {
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void MasterDetailView::prepare_write(const decltype(compact_detail_visible)&, bool&) {
+    require_mutable();
+}
+
+void MasterDetailView::written(const decltype(compact_detail_visible)&) {
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+// property_codemod end MasterDetailView
 
 } // namespace gui_forms

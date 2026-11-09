@@ -127,14 +127,6 @@ Rect DockSite::drag_stamp() const noexcept {
     return drag_.stamp;
 }
 
-void DockSite::set_drag_threshold(double threshold) {
-    require_mutable();
-    if (!drag_gesture::valid_threshold(threshold)) {
-        throw std::out_of_range("DockSite drag threshold must lie in 1 to 64");
-    }
-    drag_threshold_ = threshold;
-}
-
 void DockSite::reset_drag() noexcept {
     if (drag_.picture && !drag_.guest) {
         Window* const host = attached_window();
@@ -199,7 +191,7 @@ void DockSite::on_tab_drag(DockNodeId stack, PageDragStart& start) {
     StackSlot* const slot = slot_for(stack);
     if (slot == nullptr || !(*slot).view) return;
     const std::shared_ptr<PageStrip>& strip = (*(*slot).view).strip();
-    if (!strip || (*strip).reorder_enabled()) return;
+    if (!strip || (*strip).reorder_enabled.read()) return;
     const DockNode* const node = (*workspace_).layout().find_node(stack);
     if (node == nullptr) return;
     const Rect absolute = absolute_bounds();
@@ -283,7 +275,7 @@ bool DockSite::begin_drag(const DockSubject& subject, DockNodeId source_stack, b
     if (flyout_panel_) close_flyout(DockFlyoutCause::programmatic);
     // The page leaves its view, or the whole stack the layout, at the next
     // layout pass.
-    set_focusable(true);
+    focusable = true;
     static_cast<void>((*host).request_focus(shared_from_this()));
     if (!keyboard) (*host).capture_pointer(shared_from_this(), drag_.pointer_id);
     (*drag_layer_).visible = true;
@@ -366,7 +358,7 @@ void DockSite::plan_drag_targets() {
 void DockSite::update_drag_pointer(Point local, Modifier modifiers) {
     if (drag_.phase == DockDragPhase::armed) {
         drag_.pointer = local;
-        if (!drag_gesture::past_threshold(drag_.press, local, drag_threshold_)) return;
+        if (!drag_gesture::past_threshold(drag_.press, local, drag_threshold.read())) return;
         const DockSubject subject = drag_.subject;
         const DockNodeId stack = drag_.source_stack;
         const Point press = drag_.press;

@@ -152,6 +152,34 @@ gui_forms::Control
       **accessible_description** : ``std::string``
          A longer description for assistive technology. Empty by default.
 
+      **ceremonial** : ``bool``, default ``false``
+         Whether the application marks the control's surface ceremonial, as an
+         installer's or a first run's world (T2, decision B3-1). On it and its
+         descendants the theme engine's ambient effects may cover more than the
+         everyday 10 % of the window; nothing else changes. A theme never sets
+         it. A change repaints the control and its descendants.
+
+      **tag** : ``std::any``
+         Any value the application wants to attach, stored as ``std::any`` with its
+         exact type. The toolkit never reads it; it is released when the control
+         is disposed.
+
+      **focusable** : ``bool``, default ``false``
+         Whether the control can take keyboard focus. Interactive stock controls
+         such as buttons and text boxes turn it on.
+
+      **double_buffered** : ``bool``
+         Whether both buffering styles are set. GUI.Forms always presents whole
+         composited frames, so the flag changes nothing visible.
+
+      **classes** : ``std::vector<std::string>``, default empty
+         The style classes a theme's class rules select (T2 cascade), in the order
+         they were added, each once. A name is 1 to 64 lowercase ASCII letters,
+         digits, '-' and '_', starting with a letter. Assigning a list replaces
+         them, drops repeated names and throws ``std::invalid_argument``, changing
+         nothing, for an invalid name; :cpp:func:`add_class <gui_forms::Control::add_class>` and :cpp:func:`remove_class <gui_forms::Control::remove_class>` change one.
+         A change repaints the control.
+
       **runtime_id** : ``RuntimeId``, read-only
          A process-local number, unique among the controls of one process run.
          Use it for fast lookup within a run, for example with :cpp:func:`remove_child <gui_forms::Control::remove_child>`;
@@ -159,11 +187,6 @@ gui_forms::Control
 
       **stable_id** : ``StableId``, read-only
          The identity given at construction. It never changes.
-
-      **tag** : ``std::any``
-         Any value the application wants to attach, stored as ``std::any`` with its
-         exact type. The toolkit never reads it; it is released when the control
-         is disposed.
 
       **parent** : ``Ptr``, read-only
          The control this one is a child of, or null. A child refers to its
@@ -284,25 +307,9 @@ gui_forms::Control
          section of an expandable list. It hides the control like :cpp:member:`visible <gui_forms::Control::visible>`
          false, without changing :cpp:member:`visible <gui_forms::Control::visible>`.
 
-      **focusable** : ``bool``, default ``false``
-         Whether the control can take keyboard focus. Interactive stock controls
-         such as buttons and text boxes turn it on.
-
       **styles** : ``ControlStyles``, read-only
          The :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags kept for Windows Forms compatibility;
          :cpp:func:`set_style <gui_forms::Control::set_style>` changes them.
-
-      **double_buffered** : ``bool``
-         Whether both buffering styles are set. GUI.Forms always presents whole
-         composited frames, so the flag changes nothing visible.
-
-      **classes** : ``std::span<const std::string>``
-         The style classes a theme's class rules select (T2 cascade), in the order
-         they were added, each once. A name is 1 to 64 lowercase ASCII letters,
-         digits, '-' and '_', starting with a letter. :cpp:func:`set_classes <gui_forms::Control::set_classes>` replaces them
-         and throws ``std::invalid_argument``, changing nothing, for an invalid
-         name; :cpp:func:`add_class <gui_forms::Control::add_class>` and :cpp:func:`remove_class <gui_forms::Control::remove_class>` change one. A change repaints
-         the control.
 
       **inline_style** : ``std::string_view``
          The inline style's text in force; empty without one.
@@ -310,15 +317,8 @@ gui_forms::Control
       **inline_style_rules** : ``CompiledThemeRules*``, read-only
          Its compiled rules (CompiledThemeRules::compile_inline), or null without one; the cascade reads them for this control alone.
 
-      **ceremonial** : ``bool``, default ``false``
-         Whether the application marks the control's surface ceremonial, as an
-         installer's or a first run's world (T2, decision B3-1). On it and its
-         descendants the theme engine's ambient effects may cover more than the
-         everyday 10 % of the window; nothing else changes. A theme never sets
-         it. A change repaints the control and its descendants.
-
       **on_ceremonial_surface** : ``bool``, read-only
-         Whether this control or one of its ancestors is marked :cpp:func:`ceremonial <gui_forms::Control::ceremonial>`.
+         Whether this control or one of its ancestors is marked :cpp:member:`ceremonial <gui_forms::Control::ceremonial>`.
 
       **effective_cursor_images** : ``CursorImagesPtr``, read-only
 
@@ -434,6 +434,33 @@ gui_forms::Control
          Raised for each control on the route from the root to the target, during
          the preview pass, after that control's ``on_pointer_preview``.
 
+      **mouse_down** : ``Event<const MouseEventArgs&>``
+         The WinForms mouse events (owner's mouse-event rule, 2026-11-08). The window raises them on the UI thread in WinForms' order: MouseDown, then on the release over the control the same button pressed Click and MouseClick (or, for a press the host counted as the second of a double-click on a control with ControlStyles::standard_double_click, DoubleClick and MouseDoubleClick), then MouseUp. Both need ControlStyles::standard_click, as in WinForms; a primary Click is followed by on_activate. MouseEnter, MouseHover (once per entry, after the pointer rests within the hover rectangle for the hover time) and MouseLeave follow the pointer; MouseCaptureChanged is raised on the control losing the capture. The events are kept in a record made by the first accessor called, so a control nobody listens to stores none.
+
+      **mouse_up** : ``Event<const MouseEventArgs&>``
+
+      **mouse_move** : ``Event<const MouseEventArgs&>``
+
+      **mouse_wheel** : ``Event<const MouseEventArgs&>``
+
+      **mouse_enter** : ``Event<>``
+
+      **mouse_hover** : ``Event<>``
+
+      **mouse_leave** : ``Event<>``
+
+      **mouse_capture_changed** : ``Event<>``
+
+      **click** : ``Event<>``
+
+      **mouse_click** : ``Event<const MouseEventArgs&>``
+
+      **double_click** : ``Event<>``
+
+      **mouse_double_click** : ``Event<const MouseEventArgs&>``
+
+      **context_menu_requested** : ``Event<ContextMenuRequest&>``
+
       **focus_observed** : ``Event<bool>``
          Raised with ``true`` when the control gains focus and ``false`` when it loses
          it. When focus moves, the control losing it is told first.
@@ -516,7 +543,7 @@ gui_forms::Control
       * - :cpp:func:`has_style <gui_forms::Control::has_style>`
         - Whether every flag of a :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` mask is set.
       * - :cpp:func:`add_class <gui_forms::Control::add_class>`
-        - Adds or removes one class; false when the class was already there (or absent).
+        - tag, focusable, double_buffered (a view over the two buffering style bits) and classes (style classes, T2 plan E4; valid_style_class_name) are capabilities (control_capabilities.hpp).
       * - :cpp:func:`remove_class <gui_forms::Control::remove_class>`
         -  
       * - :cpp:func:`has_class <gui_forms::Control::has_class>`
@@ -527,12 +554,16 @@ gui_forms::Control
         - Like ``invalidate(Dirty)``, but marks every descendant too, for changes such as a font or theme that affect how children measure and paint.
       * - :cpp:func:`invalidate_declared <gui_forms::Control::invalidate_declared>`
         - For custom controls: forwards a nonempty mask to :cpp:func:`invalidate <gui_forms::Control::invalidate>`.
+      * - :cpp:func:`redraw_all <gui_forms::Control::redraw_all>`
+        - A redraw of this control and everything in it (property-capabilities study, decision 10): folds every content region of the subtree at once (fold_content_regions), drawing nothing for their pending items, then marks the subtree with ``kinds`` and the folded kinds.
       * - :cpp:func:`begin_init <gui_forms::Control::begin_init>`
         - Starts an initialization transaction: until the matching :cpp:func:`end_init <gui_forms::Control::end_init>`, the control's change events and invalidation are held back, and neither it nor its children receive input.
       * - :cpp:func:`end_init <gui_forms::Control::end_init>`
         - Ends one :cpp:func:`begin_init <gui_forms::Control::begin_init>`.
       * - :cpp:func:`data_bindings <gui_forms::Control::data_bindings>`
         - The control's :cpp:class:`ControlBindingsCollection <gui_forms::ControlBindingsCollection>`, created on first use.
+      * - :cpp:func:`adopt_property_link <gui_forms::Control::adopt_property_link>`
+        - Keeps ``link``, a form binding's link of one of this control's properties to its source (form_binding.hpp), for the control's life: destroying the control ends it (owner ruling FD-6 R4).
       * - :cpp:func:`control_property_entries <gui_forms::Control::control_property_entries>`
         -  
       * - :cpp:func:`has_bindable_property <gui_forms::Control::has_bindable_property>`
@@ -841,6 +872,39 @@ gui_forms::Control
 
       A longer description for assistive technology. Empty by default.
 
+   .. cpp:member:: bool ceremonial
+
+      Whether the application marks the control's surface ceremonial, as an
+      installer's or a first run's world (T2, decision B3-1). On it and its
+      descendants the theme engine's ambient effects may cover more than the
+      everyday 10 % of the window; nothing else changes. A theme never sets
+      it. A change repaints the control and its descendants.
+
+   .. cpp:member:: std::any tag
+
+      Any value the application wants to attach, stored as ``std::any`` with its
+      exact type. The toolkit never reads it; it is released when the control
+      is disposed.
+
+   .. cpp:member:: bool focusable
+
+      Whether the control can take keyboard focus. Interactive stock controls
+      such as buttons and text boxes turn it on.
+
+   .. cpp:member:: bool double_buffered
+
+      Whether both buffering styles are set. GUI.Forms always presents whole
+      composited frames, so the flag changes nothing visible.
+
+   .. cpp:member:: std::vector<std::string> classes
+
+      The style classes a theme's class rules select (T2 cascade), in the order
+      they were added, each once. A name is 1 to 64 lowercase ASCII letters,
+      digits, '-' and '_', starting with a letter. Assigning a list replaces
+      them, drops repeated names and throws ``std::invalid_argument``, changing
+      nothing, for an invalid name; :cpp:func:`add_class <gui_forms::Control::add_class>` and :cpp:func:`remove_class <gui_forms::Control::remove_class>` change one.
+      A change repaints the control.
+
    .. cpp:function:: RuntimeId runtime_id() const noexcept
 
       A process-local number, unique among the controls of one process run.
@@ -850,16 +914,6 @@ gui_forms::Control
    .. cpp:function:: const StableId& stable_id() const noexcept
 
       The identity given at construction. It never changes.
-
-   .. cpp:function:: const std::any& tag() const noexcept
-
-      Any value the application wants to attach, stored as ``std::any`` with its
-      exact type. The toolkit never reads it; it is released when the control
-      is disposed.
-
-   .. cpp:function:: void set_tag(std::any tag)
-
-      Sets :cpp:func:`tag <gui_forms::Control::tag>`; see the property's description above.
 
    .. cpp:function:: Ptr parent() const noexcept
 
@@ -1025,41 +1079,10 @@ gui_forms::Control
       section of an expandable list. It hides the control like :cpp:member:`visible <gui_forms::Control::visible>`
       false, without changing :cpp:member:`visible <gui_forms::Control::visible>`.
 
-   .. cpp:function:: bool focusable() const noexcept
-
-      Whether the control can take keyboard focus. Interactive stock controls
-      such as buttons and text boxes turn it on.
-
-   .. cpp:function:: void set_focusable(bool focusable)
-
-      Sets :cpp:func:`focusable <gui_forms::Control::focusable>`; see the property's description above.
-
    .. cpp:function:: ControlStyles styles() const noexcept
 
       The :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags kept for Windows Forms compatibility;
       :cpp:func:`set_style <gui_forms::Control::set_style>` changes them.
-
-   .. cpp:function:: bool double_buffered() const noexcept
-
-      Whether both buffering styles are set. GUI.Forms always presents whole
-      composited frames, so the flag changes nothing visible.
-
-   .. cpp:function:: void set_double_buffered(bool enabled)
-
-      Sets :cpp:func:`double_buffered <gui_forms::Control::double_buffered>`; see the property's description above.
-
-   .. cpp:function:: std::span<const std::string> classes() const noexcept
-
-      The style classes a theme's class rules select (T2 cascade), in the order
-      they were added, each once. A name is 1 to 64 lowercase ASCII letters,
-      digits, '-' and '_', starting with a letter. :cpp:func:`set_classes <gui_forms::Control::set_classes>` replaces them
-      and throws ``std::invalid_argument``, changing nothing, for an invalid
-      name; :cpp:func:`add_class <gui_forms::Control::add_class>` and :cpp:func:`remove_class <gui_forms::Control::remove_class>` change one. A change repaints
-      the control.
-
-   .. cpp:function:: void set_classes(std::vector<std::string> classes)
-
-      Sets :cpp:func:`classes <gui_forms::Control::classes>`; see the property's description above.
 
    .. cpp:function:: std::string_view inline_style() const noexcept
 
@@ -1073,21 +1096,9 @@ gui_forms::Control
 
       Its compiled rules (CompiledThemeRules::compile_inline), or null without one; the cascade reads them for this control alone.
 
-   .. cpp:function:: bool ceremonial() const noexcept
-
-      Whether the application marks the control's surface ceremonial, as an
-      installer's or a first run's world (T2, decision B3-1). On it and its
-      descendants the theme engine's ambient effects may cover more than the
-      everyday 10 % of the window; nothing else changes. A theme never sets
-      it. A change repaints the control and its descendants.
-
-   .. cpp:function:: void set_ceremonial(bool ceremonial)
-
-      Sets :cpp:func:`ceremonial <gui_forms::Control::ceremonial>`; see the property's description above.
-
    .. cpp:function:: bool on_ceremonial_surface() const noexcept
 
-      Whether this control or one of its ancestors is marked :cpp:func:`ceremonial <gui_forms::Control::ceremonial>`.
+      Whether this control or one of its ancestors is marked :cpp:member:`ceremonial <gui_forms::Control::ceremonial>`.
 
    .. cpp:function:: CursorImagesPtr effective_cursor_images() const noexcept
 
@@ -1238,6 +1249,34 @@ gui_forms::Control
 
       Raised for each control on the route from the root to the target, during
       the preview pass, after that control's ``on_pointer_preview``.
+
+   .. cpp:function:: Event<const MouseEventArgs&>& mouse_down()
+
+      The WinForms mouse events (owner's mouse-event rule, 2026-11-08). The window raises them on the UI thread in WinForms' order: MouseDown, then on the release over the control the same button pressed Click and MouseClick (or, for a press the host counted as the second of a double-click on a control with ControlStyles::standard_double_click, DoubleClick and MouseDoubleClick), then MouseUp. Both need ControlStyles::standard_click, as in WinForms; a primary Click is followed by on_activate. MouseEnter, MouseHover (once per entry, after the pointer rests within the hover rectangle for the hover time) and MouseLeave follow the pointer; MouseCaptureChanged is raised on the control losing the capture. The events are kept in a record made by the first accessor called, so a control nobody listens to stores none.
+
+   .. cpp:function:: Event<const MouseEventArgs&>& mouse_up()
+
+   .. cpp:function:: Event<const MouseEventArgs&>& mouse_move()
+
+   .. cpp:function:: Event<const MouseEventArgs&>& mouse_wheel()
+
+   .. cpp:function:: Event<>& mouse_enter()
+
+   .. cpp:function:: Event<>& mouse_hover()
+
+   .. cpp:function:: Event<>& mouse_leave()
+
+   .. cpp:function:: Event<>& mouse_capture_changed()
+
+   .. cpp:function:: Event<>& click()
+
+   .. cpp:function:: Event<const MouseEventArgs&>& mouse_click()
+
+   .. cpp:function:: Event<>& double_click()
+
+   .. cpp:function:: Event<const MouseEventArgs&>& mouse_double_click()
+
+   .. cpp:function:: Event<ContextMenuRequest&>& context_menu_requested()
 
    .. cpp:function:: Event<bool>& focus_observed() noexcept
 
@@ -1390,7 +1429,7 @@ gui_forms::Control
 
    .. cpp:function:: bool add_class(std::string_view name)
 
-      Adds or removes one class; false when the class was already there (or absent). An invalid name throws std::invalid_argument.
+      tag, focusable, double_buffered (a view over the two buffering style bits) and classes (style classes, T2 plan E4; valid_style_class_name) are capabilities (control_capabilities.hpp). Adds or removes one style class; false when the class was already there (or absent). An invalid name throws std::invalid_argument.
 
    .. cpp:function:: bool remove_class(std::string_view name)
 
@@ -1424,6 +1463,10 @@ gui_forms::Control
       then throws ``std::logic_error`` in builds without ``NDEBUG``, or invalidates
       the whole subtree conservatively in builds with it.
 
+   .. cpp:function:: void redraw_all(Dirty kinds)
+
+      A redraw of this control and everything in it (property-capabilities study, decision 10): folds every content region of the subtree at once (fold_content_regions), drawing nothing for their pending items, then marks the subtree with ``kinds`` and the folded kinds. Use it where the whole control moves or changes look (a scroll, a theme).
+
    .. cpp:function:: void begin_init()
 
       Starts an initialization transaction: until the matching :cpp:func:`end_init <gui_forms::Control::end_init>`, the
@@ -1440,6 +1483,10 @@ gui_forms::Control
    .. cpp:function:: ControlBindingsCollection& data_bindings()
 
       The control's :cpp:class:`ControlBindingsCollection <gui_forms::ControlBindingsCollection>`, created on first use.
+
+   .. cpp:function:: void adopt_property_link(std::unique_ptr<PropertyLink> link)
+
+      Keeps ``link``, a form binding's link of one of this control's properties to its source (form_binding.hpp), for the control's life: destroying the control ends it (owner ruling FD-6 R4). A null link is std::invalid_argument. UI thread.
 
    .. cpp:function:: static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept
 
@@ -1568,6 +1615,12 @@ gui_forms::Control
 
       The container's invalidation policy (property-capabilities study, decision 9): the kinds of a descendant's touch that escalate to this control's subtree mark instead of staying with the descendant (for example measure, where one child's size change re-lays out every child anyway). The nearest ancestor escalating a kind takes it, at the settle. Constant per type. The default escalates nothing.
 
+   .. cpp:function:: virtual void gather_content_regions()
+
+      Content regions (property-capabilities study, decision 10). A control owning ContentRegion members overrides both. gather_content_regions runs after the window's layout when one of its regions asked for it: it turns each region's pending items into damage at their final geometry (invalidate with a rectangle) and clears them. fold_content_regions returns the union of every region's folded kinds (ContentRegion::fold_pending), drawing nothing; redraw_all and the control's detach call it. The defaults do nothing.
+
+   .. cpp:function:: virtual Dirty fold_content_regions() noexcept
+
    .. cpp:function:: virtual bool measures_children_in_arrange() const noexcept
 
       Whether this container's arrange asks each child the content questions its algorithm needs (min-content, max-content, a height at a definite width) rather than the at-most question the window's measure pass would ask. When true, the window's pass leaves a measure-dirty direct child to its arrange: the child's dirtiness has already emptied its cache, and measuring it against the parent's available size too would cost a second callback whose answer nothing reads (stage L, PLAN section 5: one item's text change costs one callback). False by default, which keeps every existing container's measure pass unchanged.
@@ -1664,6 +1717,10 @@ gui_forms::Control
       Override to react when the control gains or loses focus. It runs before
       :cpp:func:`focus_observed <gui_forms::Control::focus_observed>` is raised.
 
+   .. cpp:function:: virtual bool reveal_focused_descendant(const Control& descendant)
+
+      Focus moved to ``descendant``, a control inside this one: the window calls this on each ancestor of a newly focused control, innermost first, after the focused control's on_focus_changed (Windows Forms' ScrollControlIntoView on activation). Return true when this control scrolls its content to reveal ``descendant``; the ancestors above then reveal this control instead. The default reveals nothing: false.
+
    .. cpp:function:: virtual std::optional<Rect> text_input_caret() const
 
       Where an input method places its composition and candidate windows while this control has focus: the caret's box, in local coordinates. The base returns none, and SurfaceRoot::text_input_caret then uses a one-unit-wide box at the control's left edge.
@@ -1676,6 +1733,14 @@ gui_forms::Control
 
       Called by the window when the primary button is pressed and released
       over the control. Buttons raise ``clicked`` from here.
+
+   .. cpp:function:: virtual void on_context_menu_requested(ContextMenuRequest& request)
+
+      A context menu was asked for on this control (ContextMenuRequest), before the control's ContextMenuRequested subscribers. A control that shows its own menu sets ``request.handled``, which also stops the request reaching its ancestors. The base does nothing.
+
+   .. cpp:function:: virtual bool clicks_primary_button_only() const noexcept
+
+      Whether Click, MouseClick, DoubleClick and MouseDoubleClick are raised for the primary button only. The base answers false: as in WinForms, a release of any button over the control it pressed is a click. ButtonBase answers true.
 
    .. cpp:function:: virtual const ControlAnatomy& anatomy() const noexcept
 
@@ -1993,4 +2058,4 @@ gui_forms::Control
 
    .. cpp:member:: constexpr std::size_t control_property_count
 
-      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``25U``.
+      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``28U``.

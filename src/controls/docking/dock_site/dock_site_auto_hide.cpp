@@ -101,7 +101,7 @@ public:
         cursor = CursorKind::arrow;
         // Focus lands here when the panel has nothing focusable, so Escape
         // still reaches the flyout.
-        set_focusable(true);
+        focusable = true;
     }
 
     void release_site() noexcept { site_ = nullptr; }
@@ -186,11 +186,11 @@ void DockSite::ensure_side_strip(DockSide edge) {
         std::string(stable_id().value()) + ".side." + std::string(edge_names[edge_index(edge)]);
     entry.strip = make_control<PageStrip>(StableId(identity), *entry.pages);
     PageStrip& strip = *entry.strip;
-    strip.set_placement(placement_for(edge));
+    strip.placement = placement_for(edge);
     // The arrows move along the tabs; Enter or Space opens the flyout.
-    strip.set_activation(PageStripActivation::manual);
-    strip.set_mnemonics_enabled(false);
-    strip.set_close_buttons(PageCloseButtons::none);
+    strip.activation = PageStripActivation::manual;
+    strip.mnemonics_enabled = false;
+    strip.close_buttons = PageCloseButtons::none;
     strip.accessible_name = "Auto-hidden panels";
     on(strip.page_invoked(), *this, &DockSite::on_side_tab_invoked, edge);
     add_child(entry.strip);
@@ -715,7 +715,7 @@ void DockSite::on_root_pointer(const PointerEvent& event) {
             leave_timer_.disconnect();
             return;
         }
-        if (tab && (*workspace_).flyout_opening() == DockFlyoutOpening::hover_or_click) {
+        if (tab && (*workspace_).flyout_opening.read() == DockFlyoutOpening::hover_or_click) {
             start_hover(*tab);
         } else {
             stop_hover();

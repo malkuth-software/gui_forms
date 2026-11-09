@@ -4,6 +4,7 @@
 
 #include "gui_forms/detail/algorithm/binary_search.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -17,53 +18,56 @@ namespace gui_forms {
 CheckedListBox::CheckedListBox(StableId stable_id)
     : ListBox(std::move(stable_id)) {}
 
-void CheckedListBox::set_items(std::vector<std::string> items) {
-    const std::vector<CheckState> previous = check_states_;
-    check_states_.assign(items.size(), CheckState::unchecked);
-    try {
-        ListBox::set_items(std::move(items));
-    } catch (...) {
-        // If ListBox rejected the new collection before mutation, restore the
-        // matching check model. If a user callback threw after mutation, the
-        // new sizes already match and are the only coherent retained state.
-        if ((*this).items().size() == previous.size()) check_states_ = previous;
-        throw;
-    }
-    invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void CheckedListBox::add_item(std::string item) {
-    add_item(std::move(item), CheckState::unchecked);
-}
-
 void CheckedListBox::add_item(std::string item, CheckState state) {
     if (state != CheckState::unchecked && state != CheckState::checked &&
         state != CheckState::indeterminate) {
         throw std::invalid_argument("invalid CheckedListBox item state");
     }
-    ListBox::add_item(std::move(item));
-    try {
-        check_states_.push_back(state);
-    } catch (...) {
-        ListBox::remove_item(items().size() - 1U);
-        throw;
-    }
-    invalidate(Dirty::paint | Dirty::semantics);
+    items.append(std::move(item));
+    // The insertion gave the new item an unchecked state; its row repaints
+    // at the flush either way.
+    check_states_.back() = state;
 }
 
-void CheckedListBox::remove_item(std::size_t index) {
-    if (index >= check_states_.size()) {
-        throw std::out_of_range("CheckedListBox item index");
+// Reserves the check states an assignment or insertion needs, so
+// on_items_changed cannot fail.
+void CheckedListBox::on_items_changing(const CollectionEdit& edit) {
+    switch (edit.kind()) {
+    case CollectionEditKind::assign:
+        check_states_.reserve(edit.count());
+        break;
+    case CollectionEditKind::insert:
+        check_states_.reserve(check_states_.size() + edit.count());
+        break;
+    case CollectionEditKind::erase:
+    case CollectionEditKind::replace:
+    default:
+        // Erasing and replacing need no new capacity.
+        break;
     }
-    check_states_.erase(check_states_.begin() + static_cast<std::ptrdiff_t>(index));
-    ListBox::remove_item(index);
-    invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void CheckedListBox::clear_items() {
-    ListBox::clear_items();
-    check_states_.clear();
-    invalidate(Dirty::paint | Dirty::semantics);
+// New items are unchecked; a replaced item keeps its state.
+void CheckedListBox::on_items_changed(const CollectionEdit& edit) noexcept {
+    switch (edit.kind()) {
+    case CollectionEditKind::assign:
+        check_states_.assign(edit.count(), CheckState::unchecked);
+        break;
+    case CollectionEditKind::insert:
+        check_states_.insert(check_states_.begin() + static_cast<std::ptrdiff_t>(edit.index()),
+                             edit.count(), CheckState::unchecked);
+        break;
+    case CollectionEditKind::erase: {
+        const std::vector<CheckState>::iterator first =
+            check_states_.begin() + static_cast<std::ptrdiff_t>(edit.index());
+        check_states_.erase(first, first + static_cast<std::ptrdiff_t>(edit.count()));
+        break;
+    }
+    case CollectionEditKind::replace:
+    default:
+        // A replaced item keeps its state.
+        break;
+    }
 }
 
 CheckState CheckedListBox::item_check_state(std::size_t index) const {
@@ -123,24 +127,6 @@ std::vector<std::size_t> CheckedListBox::checked_indices() const {
     return result;
 }
 
-void CheckedListBox::set_check_on_click(bool enabled) {
-    require_mutable();
-    if (check_on_click_ == enabled) return;
-    check_on_click_ = enabled;
-    invalidate(Dirty::semantics);
-}
-
-void CheckedListBox::set_indicator_size(double size) {
-    require_mutable();
-    if (!std::isfinite(size) || size < 8.0 || size > 32.0) {
-        throw std::out_of_range(
-            "CheckedListBox indicator size must be finite and between 8 and 32");
-    }
-    if (indicator_size_ == size) return;
-    indicator_size_ = size;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-}
-
 void CheckedListBox::on_pointer(PointerEvent& event) {
     if (!eligible_for_input()) {
         ListBox::on_pointer(event);
@@ -152,8 +138,8 @@ void CheckedListBox::on_pointer(PointerEvent& event) {
     const bool was_selected = index && detail::binary_search_contains(
         selected_indices(), *index);
     ListBox::on_pointer(event);
-    if (!is_alive() || !index || *index >= items().size()) return;
-    if (check_on_click_ || was_selected) {
+    if (!is_alive() || !index || *index >= items.read().size()) return;
+    if (check_on_click.read() || was_selected) {
         toggle_item(*index);
         event.handled = true;
     }
@@ -173,14 +159,14 @@ void CheckedListBox::on_key(KeyEvent& event) {
 }
 
 double CheckedListBox::row_text_left() const noexcept {
-    return indicator_size_ + 14.0;
+    return indicator_size.read() + 14.0;
 }
 
 void CheckedListBox::paint_row_adornment(Painter& painter, std::size_t index,
                                           Rect row, bool selected,
                                           bool focused) const {
     if (index >= check_states_.size()) return;
-    const double size = std::min(indicator_size_,
+    const double size = std::min(indicator_size.read(),
                                  std::max(8.0, row.height - 8.0));
     const double x = row.x + 5.0;
     const double y = row.y + (row.height - size) * 0.5;
@@ -195,7 +181,10 @@ void CheckedListBox::paint_row_adornment(Painter& painter, std::size_t index,
     well.role = PartRole::well;
     well.bounds = {x, y, size, size};
     well.states = states;
-    well.corner_radius = 2.0;
+    // The theme's choice corners up to 2 px, as a check box's well.
+    const ControlVisualContext context = part_visual_context(*this, states);
+    const double theme_radius = effective_theme().resolve(ControlVisualRole::choice, context).material.corner_radius;
+    well.corner_radius = std::min(2.0, theme_radius);
     if (has_style_override()) well.authored_background = selected && focused ? style().highlight : style().paper;
     paint_part(painter, *this, well);
     const CheckState state = check_states_[index];
@@ -249,7 +238,7 @@ bool CheckedListBox::on_semantic_child_action(std::string_view stable_id,
     const std::from_chars_result parsed = std::from_chars(suffix.data(), suffix.data() + suffix.size(),
                                         index);
     if (parsed.ec != std::errc{} || parsed.ptr != suffix.data() + suffix.size() ||
-        index >= items().size()) return false;
+        index >= items.read().size()) return false;
     if (window() != nullptr) {
         static_cast<void>((*window()).request_focus(shared_from_this()));
     }
@@ -257,7 +246,6 @@ bool CheckedListBox::on_semantic_child_action(std::string_view stable_id,
     if (is_alive()) toggle_item(index);
     return true;
 }
-
 
 namespace {
 
@@ -317,7 +305,7 @@ void CheckedListBox::publish_realized_item_geometry(std::size_t item,
     if (base.row.present && index < check_states_.size()) {
         // The check box paint_row_adornment draws, centred in the row.
         const Rect row = base.row.bounds;
-        const double size = std::min(indicator_size_, std::max(8.0, row.height - 8.0));
+        const double size = std::min(indicator_size.read(), std::max(8.0, row.height - 8.0));
         const double x = row.x + 5.0;
         const double y = row.y + (row.height - size) * 0.5;
         record.check_well = PartGeometry::from_bounds({x, y, size, size});
@@ -329,6 +317,8 @@ void CheckedListBox::publish_realized_item_geometry(std::size_t item,
         } else if (check_states_[index] == CheckState::indeterminate) {
             const Rect bar{x + 3.0, y + size * 0.5 - 1.5, std::max(0.0, size - 6.0), 3.0};
             record.check = PartGeometry::from_bounds(bar);
+        } else {
+            // An unchecked item draws no mark.
         }
     }
     write_item_parts(anatomy().item_systems.front(), checked_item_part_fields, record, geometry);
@@ -342,6 +332,8 @@ AnatomyStateSet CheckedListBox::realized_item_anatomy_states(std::size_t item) c
             states.insert(AnatomyState::checked);
         } else if (check_states_[index] == CheckState::indeterminate) {
             states.insert(AnatomyState::indeterminate);
+        } else {
+            // An unchecked item adds no state.
         }
     }
     return states;
@@ -377,5 +369,28 @@ void CheckedListBox::append_interactions(std::vector<InteractionDeclaration>& in
     ListBox::append_interactions(interactions);
     interactions.insert(interactions.end(), checked_list_box_interactions.begin(), checked_list_box_interactions.end());
 }
+
+// property_codemod begin CheckedListBox (tools/property_families/checked_list_box.json; generated, do not edit)
+
+void CheckedListBox::prepare_write(const decltype(check_on_click)&, bool&) {
+    require_mutable();
+}
+
+void CheckedListBox::written(const decltype(check_on_click)&) {
+    invalidate(Dirty::semantics);
+}
+
+void CheckedListBox::prepare_write(const decltype(indicator_size)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 8.0 || incoming > 32.0) {
+        throw std::out_of_range("CheckedListBox indicator size must be finite and between 8 and 32");
+    }
+}
+
+void CheckedListBox::written(const decltype(indicator_size)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+}
+
+// property_codemod end CheckedListBox
 
 } // namespace gui_forms

@@ -42,9 +42,7 @@ gui_forms::ScrollableControl
          Extra space added beyond the right-most and bottom-most child when the
          content size is computed, and kept around a control that
          :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>` reveals. Writing it rejects
-         a negative or non-finite size with ``std::invalid_argument``;
-         ``set_auto_scroll_margin(x, y)`` clamps negative values to zero and rejects
-         only non-finite ones.
+         a negative or non-finite size with ``std::invalid_argument``.
 
       **auto_scroll_min_size** : ``Size``, default ``{0.0, 0.0}``
          A minimum content size, so the control can scroll over an area larger
@@ -98,6 +96,12 @@ gui_forms::ScrollableControl
          A copy of the whole scrolling state: mode, position, margin, minimum
          size, display and viewport rectangles, and both axes.
 
+      **scroll_target** : ``Point``, read-only
+         Smooth scrolling (0.5 scroll fine-tuning). A detented wheel's lines, the scroll bars' arrows and track (held: repeating), focus moving to a descendant (reveal_focused_descendant) and a derived control's paging keys (glide_to) move the position toward a target on the window's motion clock rather than at once; a precise device's pixel deltas (a trackpad, which the system already smooths) move it at once: each frame the position covers a fixed fraction of the remaining gap (MotionCurve::follow, about 63 % per 75 ms) and settles on the target within half a device pixel. A further step while one moves adds to the target, not to the position. With reduced motion, an occluded window or no window, the position moves at once. scroll_to, scroll_by, the scroll properties' set_value, a thumb drag and accessibility actions stay immediate and stop the smooth scroll on each axis they move. Where the position is going on each axis: the smooth scroll's target while one moves, else the position itself.
+
+      **scrolling_smoothly** : ``bool``, read-only
+         Whether a smooth scroll moves on either axis.
+
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
@@ -138,8 +142,6 @@ gui_forms::ScrollableControl
       * - :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`
         - Scrolls the shortest distance that brings a descendant, plus :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, into the viewport, then subtracts the descendant's ``auto_scroll_offset``.
       * - :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`
-        -  
-      * - :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`
         -  
       * - :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`
         - Sets or clears flags.
@@ -265,9 +267,7 @@ gui_forms::ScrollableControl
       Extra space added beyond the right-most and bottom-most child when the
       content size is computed, and kept around a control that
       :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>` reveals. Writing it rejects
-      a negative or non-finite size with ``std::invalid_argument``;
-      ``set_auto_scroll_margin(x, y)`` clamps negative values to zero and rejects
-      only non-finite ones.
+      a negative or non-finite size with ``std::invalid_argument``.
 
    .. cpp:member:: Size auto_scroll_min_size
 
@@ -340,6 +340,14 @@ gui_forms::ScrollableControl
       A copy of the whole scrolling state: mode, position, margin, minimum
       size, display and viewport rectangles, and both axes.
 
+   .. cpp:function:: Point scroll_target() const noexcept
+
+      Smooth scrolling (0.5 scroll fine-tuning). A detented wheel's lines, the scroll bars' arrows and track (held: repeating), focus moving to a descendant (reveal_focused_descendant) and a derived control's paging keys (glide_to) move the position toward a target on the window's motion clock rather than at once; a precise device's pixel deltas (a trackpad, which the system already smooths) move it at once: each frame the position covers a fixed fraction of the remaining gap (MotionCurve::follow, about 63 % per 75 ms) and settles on the target within half a device pixel. A further step while one moves adds to the target, not to the position. With reduced motion, an occluded window or no window, the position moves at once. scroll_to, scroll_by, the scroll properties' set_value, a thumb drag and accessibility actions stay immediate and stop the smooth scroll on each axis they move. Where the position is going on each axis: the smooth scroll's target while one moves, else the position itself.
+
+   .. cpp:function:: bool scrolling_smoothly() const noexcept
+
+      Whether a smooth scroll moves on either axis.
+
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
@@ -402,8 +410,6 @@ gui_forms::ScrollableControl
 
    .. cpp:function:: static const std::array<PropertyEntry, scrollable_control_property_count>& scrollable_control_property_entries() noexcept
 
-   .. cpp:function:: void set_auto_scroll_margin(double x, double y)
-
    .. cpp:function:: void set_scroll_state(std::uint32_t bit, bool value)
 
       Sets or clears flags. The first three are the same as setting
@@ -447,6 +453,12 @@ gui_forms::ScrollableControl
       For container authors. Called after the position changes for any
       reason, including clamping during layout. It raises no event.
 
+   .. cpp:function:: virtual bool paints_scrolled_content() const noexcept
+
+      *Protected.*
+
+      True for a control that paints content of its own at the scroll position (a text box's lines), which a copy of its children's pixels would not move: its scrolls repaint the viewport. False by default: the scroll position moves only the children this class arranges.
+
    .. cpp:function:: virtual void on_auto_scroll_changed(Point previous_position)
 
       *Protected.*
@@ -473,9 +485,25 @@ gui_forms::ScrollableControl
 
       *Protected.*
 
+   .. cpp:function:: void glide_to(Point target)
+
+      *Protected.*
+
+      A smooth scroll toward ``target`` (see scroll_target), clamped to each visible axis's range, for input a derived control turns into a scroll (a text box's PageDown reveal). Raises no Scroll event.
+
    .. cpp:function:: void on_paint_overlay(Painter& painter, Rect local_damage) override
 
       *Protected.*
+
+   .. cpp:function:: void on_detached_from_window() noexcept override
+
+      *Protected.*
+
+   .. cpp:function:: bool reveal_focused_descendant(const Control& descendant) override
+
+      *Protected.*
+
+      Windows Forms' ScrollControlIntoView on activation: with auto scroll, glides ``descendant`` into the viewport (at once under reduced motion) and returns true, so that enclosing scrollers reveal this control.
 
    .. cpp:function:: Rect child_viewport_rectangle() const noexcept override
 
@@ -492,12 +520,6 @@ gui_forms::ScrollableControl
       The region, viewport, scroll axes and focus as currently laid out.
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
-
-   .. cpp:function:: virtual void coerce_auto_scroll(bool& incoming)
-
-      *Protected.*
-
-      on_<property>_changed runs after a changed write's touch and raises the change event; an override calls the base. coerce_<property> runs last before the compare and may rewrite the incoming value.
 
    .. cpp:member:: constexpr std::uint32_t scroll_state_auto_scrolling
 

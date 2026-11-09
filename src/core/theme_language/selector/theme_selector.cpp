@@ -1,9 +1,11 @@
 // Selector lowering (PLAN.md section 1.4): a style rule's selector list,
 // as tokens, into the engine's RuleSelector records. One pass reads the
 // list left to right. Each compound selector being read is a frame on an
-// explicit stack, one per open `:is()`; a compound is held as its
-// alternatives, one per choice of its `:is()` arguments, so that closing an
-// `:is()` multiplies its compound's alternatives by the arguments' union.
+// explicit stack, one per open group (`:is()`, `:where()` or `:not()`); a
+// compound is held as its alternatives, one per choice of its `:is()` and
+// `:where()` arguments, so that closing one multiplies its compound's
+// alternatives by the arguments' union. A `:not()` is one simple selector
+// whose arguments become the expanded selector's exclusions.
 // Every alternative count is bounded by the rule budget, and every
 // alternative by maximum_simple_selectors, so expanding costs a constant
 // per rule the list expands into; the bytes the expanded selectors copy are
@@ -11,6 +13,9 @@
 
 #include "theme_selector.hpp"
 
+#include "gui_forms/theme/types/theme_types.hpp"
+
+#include <algorithm>
 #include <optional>
 #include <string>
 #include <utility>
@@ -22,6 +27,7 @@ namespace {
 using selector_detail::Alternative;
 using selector_detail::DecodedName;
 using selector_detail::Frame;
+using selector_detail::GroupKind;
 using selector_detail::SelectorWorkspace;
 using selector_detail::Simple;
 using selector_detail::SimpleKind;
@@ -49,13 +55,17 @@ constexpr std::array<PseudoClassState, 12> standard_pseudo_classes{{
 
 // CSS's pseudo-classes outside the language (B1): an error, where a name
 // CSS does not have is an unknown name (a warning).
-constexpr std::array<std::string_view, 27> refused_pseudo_classes{{
-    "not",          "where",          "has",          "nth-child",    "nth-last-child", "nth-of-type",
+constexpr std::array<std::string_view, 25> refused_pseudo_classes{{
+    "has",          "nth-child",    "nth-last-child", "nth-of-type",
     "nth-last-of-type", "first-child", "last-child",  "only-child",   "first-of-type",  "last-of-type",
     "only-of-type", "empty",          "focus-within", "read-write",   "link",           "visited",
     "any-link",     "target",         "scope",        "host",         "lang",           "dir",
     "placeholder-shown", "required",  "optional",
 }};
+
+// The language's functional pseudo-classes, an error written without
+// their arguments.
+constexpr std::array<std::string_view, 5> argument_pseudo_classes{{"is", "where", "not", "family", "state"}};
 
 constexpr std::array<std::string_view, 9> refused_pseudo_elements{{
     "before", "after", "first-line", "first-letter", "marker", "placeholder", "selection", "backdrop",
@@ -78,8 +88,6 @@ template <std::size_t Count>
     sum.ids = left.ids + right.ids;
     sum.classes = left.classes + right.classes;
     sum.types = left.types + right.types;
-    sum.parts = left.parts + right.parts;
-    sum.states = left.states + right.states;
     return sum;
 }
 
@@ -88,18 +96,10 @@ template <std::size_t Count>
 [[nodiscard]] RuleSpecificity specificity_of(SimpleKind kind) noexcept {
     RuleSpecificity one{};
     if (kind == SimpleKind::stable_id) one.ids = 1U;
-    if (kind == SimpleKind::style_class) one.classes = 1U;
+    if (kind == SimpleKind::style_class || kind == SimpleKind::state || kind == SimpleKind::family) one.classes = 1U;
     if (kind == SimpleKind::control_type || kind == SimpleKind::surface) one.types = 1U;
-    if (kind == SimpleKind::part || kind == SimpleKind::role) one.parts = 1U;
-    if (kind == SimpleKind::state) one.states = 1U;
+    if (kind == SimpleKind::part || kind == SimpleKind::role) one.types = 1U;
     return one;
-}
-
-// The level a theme-sheet rule takes from its specificity (README, E1).
-[[nodiscard]] CascadeLevel level_of(RuleSpecificity specificity) noexcept {
-    if (specificity.ids != 0U) return CascadeLevel::stable_id_rule;
-    if (specificity.classes != 0U) return CascadeLevel::class_rule;
-    return CascadeLevel::theme_sheet;
 }
 
 // The surface a registered name selects, or none: `window` and `popup`
@@ -163,10 +163,21 @@ private:
     [[nodiscard]] bool read_simple();
     [[nodiscard]] bool read_pseudo();
     [[nodiscard]] bool read_pseudo_element(std::uint32_t name_token);
-    [[nodiscard]] bool open_is(std::uint32_t function_token);
-    [[nodiscard]] bool close_is(std::uint32_t closer);
+    [[nodiscard]] bool open_group(std::uint32_t function_token, GroupKind group);
+    [[nodiscard]] bool close_group(std::uint32_t closer);
+    [[nodiscard]] bool read_family(std::uint32_t function_token);
     [[nodiscard]] bool finish_compound(std::uint32_t at);
     [[nodiscard]] bool add_simple(const Simple& simple);
+    // add_simple, counting `counted` toward the compound's specificity.
+    [[nodiscard]] bool add_counted(const Simple& simple, RuleSpecificity counted);
+    // A `:not()` argument's exclusion, appended to `selector` unless it holds
+    // one already; false (reported) when it names a part, role or surface.
+    [[nodiscard]] bool add_exclusion(const Alternative& argument, RuleSelector& selector);
+    // Ends the compound being read as an ancestor compound joined by
+    // `combinator` to the next (selector step 4); false (reported) when it
+    // is empty, expanded, or names more than a type, a stable ID and
+    // classes, or when the selector would have too many ancestors.
+    [[nodiscard]] bool push_ancestor(std::uint32_t at, AncestorCombinator combinator);
     [[nodiscard]] bool materialize(const Alternative& alternative, RuleSpecificity specificity);
     [[nodiscard]] NameArgument name_argument(std::uint32_t function_token) const noexcept;
     [[nodiscard]] std::uint32_t after_matching_paren(std::uint32_t function_token) const noexcept;
@@ -186,6 +197,8 @@ private:
     std::uint32_t index_{};
     std::uint32_t end_{};
     std::size_t depth_{};
+    // How many open groups are `:not()`s: one may not open inside another.
+    std::size_t negations_open_{};
     std::size_t emitted_{};
     std::size_t emitted_bytes_{};
     // Whether an unknown name has dropped the rule (its one warning is
@@ -204,6 +217,9 @@ SelectorOutcome SelectorPass::run() {
     end_ = input_.selectors.end.value;
     workspace_.simples.clear();
     workspace_.simples.reserve(end_ - index_);
+    workspace_.negated.clear();
+    workspace_.ancestors.clear();
+    workspace_.ancestors_specificity = RuleSpecificity{};
     // Escaped names (`#gallery\.heading`) are decoded first: a decoded
     // name is never longer than its text, so the reservation holds them
     // all and nothing read from `decoded` moves.
@@ -245,17 +261,27 @@ SelectorOutcome SelectorPass::run() {
             continue;
         }
         if (kind == TokenKind::right_paren && depth_ != 0U) {
-            if (!close_is(index_)) return SelectorOutcome::refused;
+            if (!close_group(index_)) return SelectorOutcome::refused;
             ++index_;
             continue;
         }
-        if (frame.space_pending) {
-            report(DiagnosticCode::combinator_not_admitted, index_, "whitespace");
+        // Combinators join compounds at the list's level only (selector
+        // step 4): `>` a child, whitespace before a compound a descendant.
+        const bool child = kind == TokenKind::delim && token_text(index_) == ">";
+        if (child && depth_ == 0U) {
+            if (!push_ancestor(index_, AncestorCombinator::child)) return SelectorOutcome::refused;
+            ++index_;
+            continue;
+        }
+        if (frame.space_pending && depth_ == 0U) {
+            if (!push_ancestor(index_, AncestorCombinator::descendant)) return SelectorOutcome::refused;
+        } else if (frame.space_pending) {
+            report(DiagnosticCode::combinator_not_admitted, index_, "whitespace inside a group");
             return SelectorOutcome::refused;
         }
         if (!read_simple()) return SelectorOutcome::refused;
     }
-    // The parser balanced every group, so no `:is()` is open here.
+    // The parser balanced every group, so no group is open here.
     if (!finish_compound(end_)) return SelectorOutcome::refused;
     if (dropped_) return SelectorOutcome::dropped;
     return SelectorOutcome::lowered;
@@ -387,6 +413,10 @@ bool SelectorPass::read_pseudo() {
             report(DiagnosticCode::pseudo_class_not_admitted, colon, clipped_theme_detail(name));
             return false;
         }
+        if (names_one_of(name, argument_pseudo_classes)) {
+            report(DiagnosticCode::selector_syntax, next, "':" + std::string(name) + "' takes arguments");
+            return false;
+        }
         note_unknown(next, name);
         return true;
     }
@@ -395,7 +425,16 @@ bool SelectorPass::read_pseudo() {
         return false;
     }
     const std::string_view name = function_name(next);
-    if (equals_ascii_folded(name, "is")) return open_is(next);
+    if (equals_ascii_folded(name, "is")) return open_group(next, GroupKind::is);
+    if (equals_ascii_folded(name, "where")) return open_group(next, GroupKind::where);
+    if (equals_ascii_folded(name, "not")) {
+        if (negations_open_ != 0U) {
+            report(DiagnosticCode::pseudo_class_not_admitted, colon, "':not()' inside ':not()'");
+            return false;
+        }
+        return open_group(next, GroupKind::negation);
+    }
+    if (equals_ascii_folded(name, "family")) return read_family(next);
     if (equals_ascii_folded(name, "state")) {
         const NameArgument argument = name_argument(next);
         if (!argument.found) {
@@ -494,7 +533,7 @@ bool SelectorPass::read_pseudo_element(std::uint32_t name_token) {
     return add_simple(simple);
 }
 
-bool SelectorPass::open_is(std::uint32_t function_token) {
+bool SelectorPass::open_group(std::uint32_t function_token, GroupKind group) {
     Frame& parent = workspace_.frames[depth_];
     parent.compound_started = true;
     if (depth_ + 1U >= workspace_.frames.size()) {
@@ -506,15 +545,34 @@ bool SelectorPass::open_is(std::uint32_t function_token) {
     frame.arguments.clear();
     frame.arguments_specificity = RuleSpecificity{};
     frame.argument_count = 0U;
+    frame.group = group;
+    if (group == GroupKind::negation) ++negations_open_;
     reset_compound(frame);
     index_ = function_token + 1U;
     return true;
 }
 
-bool SelectorPass::close_is(std::uint32_t closer) {
+bool SelectorPass::close_group(std::uint32_t closer) {
     if (!finish_compound(closer)) return false;
     const Frame& arguments = workspace_.frames[depth_];
     --depth_;
+    if (arguments.group == GroupKind::negation) {
+        // A `:not()` is one simple selector of its compound: its arguments
+        // become the selector's exclusions when it is expanded.
+        --negations_open_;
+        if (workspace_.negated.size() + arguments.arguments.size() > budget_.rules) {
+            report(DiagnosticCode::too_many_rules, closer, std::to_string(maximum_rules));
+            return false;
+        }
+        Simple simple{};
+        simple.kind = SimpleKind::negation;
+        simple.token = closer;
+        simple.negated_first = static_cast<std::uint32_t>(workspace_.negated.size());
+        simple.negated_count = static_cast<std::uint32_t>(arguments.arguments.size());
+        workspace_.negated.insert(workspace_.negated.end(), arguments.arguments.begin(), arguments.arguments.end());
+        // CSS: a `:not()` counts as its most specific argument.
+        return add_counted(simple, arguments.arguments_specificity);
+    }
     Frame& parent = workspace_.frames[depth_];
     const std::size_t left = parent.compound.size();
     const std::size_t right = arguments.arguments.size();
@@ -541,9 +599,43 @@ bool SelectorPass::close_is(std::uint32_t closer) {
         }
     }
     parent.compound.swap(product);
-    // CSS: an `:is()` counts as its most specific argument.
-    parent.compound_specificity = added(parent.compound_specificity, arguments.arguments_specificity);
+    // CSS: an `:is()` counts as its most specific argument, a `:where()`
+    // as nothing.
+    if (arguments.group == GroupKind::is) {
+        parent.compound_specificity = added(parent.compound_specificity, arguments.arguments_specificity);
+    }
     return true;
+}
+
+// `:family(<name>)`, a control visual family in kebab case: an unknown
+// family is an unknown name (a warning that drops the rule).
+bool SelectorPass::read_family(std::uint32_t function_token) {
+    const NameArgument argument = name_argument(function_token);
+    if (!argument.found) {
+        report(DiagnosticCode::selector_syntax, argument.offending, "':family()' takes one name");
+        return false;
+    }
+    Frame& frame = workspace_.frames[depth_];
+    frame.compound_started = true;
+    index_ = argument.after;
+    const std::string_view written = token_text(argument.name);
+    const std::string registered = registered_name_from_kebab(written);
+    std::string_view family{};
+    for (std::size_t index = 0U; index < control_visual_role_count; ++index) {
+        // The role names are static strings, so the simple selector may
+        // keep one.
+        const std::string_view name = control_visual_role_name(static_cast<ControlVisualRole>(index));
+        if (!registered.empty() && name == registered) family = name;
+    }
+    if (family.empty()) {
+        note_unknown(argument.name, written);
+        return true;
+    }
+    Simple simple{};
+    simple.kind = SimpleKind::family;
+    simple.token = argument.name;
+    simple.name = family;
+    return add_simple(simple);
 }
 
 // Ends the compound being read at token `at` (a ',', the ')' of an
@@ -559,9 +651,13 @@ bool SelectorPass::finish_compound(std::uint32_t at) {
         return false;
     }
     if (depth_ == 0U) {
+        // CSS: every compound of a complex selector counts.
+        const RuleSpecificity counted = added(frame.compound_specificity, workspace_.ancestors_specificity);
         for (const Alternative& alternative : frame.compound) {
-            if (!materialize(alternative, frame.compound_specificity)) return false;
+            if (!materialize(alternative, counted)) return false;
         }
+        workspace_.ancestors.clear();
+        workspace_.ancestors_specificity = RuleSpecificity{};
     } else {
         ++frame.argument_count;
         if (frame.argument_count > maximum_is_arguments) {
@@ -582,6 +678,11 @@ bool SelectorPass::finish_compound(std::uint32_t at) {
 }
 
 bool SelectorPass::add_simple(const Simple& simple) {
+    const bool added_simple = add_counted(simple, specificity_of(simple.kind));
+    return added_simple;
+}
+
+bool SelectorPass::add_counted(const Simple& simple, RuleSpecificity counted) {
     const std::uint32_t position = static_cast<std::uint32_t>(workspace_.simples.size());
     workspace_.simples.push_back(simple);
     Frame& frame = workspace_.frames[depth_];
@@ -593,8 +694,80 @@ bool SelectorPass::add_simple(const Simple& simple) {
         alternative.simples[alternative.count] = position;
         ++alternative.count;
     }
-    frame.compound_specificity = added(frame.compound_specificity, specificity_of(simple.kind));
+    frame.compound_specificity = added(frame.compound_specificity, counted);
     frame.compound_started = true;
+    return true;
+}
+
+bool SelectorPass::push_ancestor(std::uint32_t at, AncestorCombinator combinator) {
+    Frame& frame = workspace_.frames[0];
+    if (!frame.compound_started) {
+        report(DiagnosticCode::selector_syntax, at, "a combinator without a compound before it");
+        return false;
+    }
+    if (frame.compound.size() != 1U) {
+        report(DiagnosticCode::selector_syntax, at, "an ancestor compound takes no :is() or :where()");
+        return false;
+    }
+    if (workspace_.ancestors.size() == maximum_rule_ancestors) {
+        report(DiagnosticCode::selector_too_long, at, std::to_string(maximum_rule_ancestors) + " ancestor compounds");
+        return false;
+    }
+    RuleAncestor ancestor{};
+    ancestor.combinator = combinator;
+    const Alternative& compound = frame.compound.front();
+    for (std::uint32_t position = 0U; position < compound.count; ++position) {
+        const Simple& simple = workspace_.simples[compound.simples[position]];
+        if (simple.kind == SimpleKind::control_type) {
+            ancestor.control_type = registered_name_from_kebab(simple.name);
+        } else if (simple.kind == SimpleKind::stable_id) {
+            ancestor.stable_id = std::string(simple.name);
+        } else if (simple.kind == SimpleKind::style_class) {
+            if (std::find(ancestor.classes.begin(), ancestor.classes.end(), simple.name) == ancestor.classes.end()) {
+                ancestor.classes.push_back(std::string(simple.name));
+            }
+        } else {
+            // A state, family or part of an ancestor would re-resolve a
+            // subtree on every hover; a surface is no control's ancestor.
+            report(DiagnosticCode::selector_syntax, simple.token,
+                   "an ancestor compound takes only a type, a stable ID and classes");
+            return false;
+        }
+    }
+    workspace_.ancestors.push_back(std::move(ancestor));
+    workspace_.ancestors_specificity = added(workspace_.ancestors_specificity, frame.compound_specificity);
+    reset_compound(frame);
+    return true;
+}
+
+bool SelectorPass::add_exclusion(const Alternative& argument, RuleSelector& selector) {
+    RuleExclusion exclusion{};
+    for (std::uint32_t position = 0U; position < argument.count; ++position) {
+        const Simple& simple = workspace_.simples[argument.simples[position]];
+        const bool local = simple.kind == SimpleKind::control_type || simple.kind == SimpleKind::stable_id ||
+                           simple.kind == SimpleKind::style_class || simple.kind == SimpleKind::state ||
+                           simple.kind == SimpleKind::family;
+        if (!local) {
+            report(DiagnosticCode::selector_syntax, simple.token, "':not()' takes no part, role or surface");
+            return false;
+        }
+        if (simple.kind == SimpleKind::control_type) {
+            exclusion.control_type = registered_name_from_kebab(simple.name);
+        } else if (simple.kind == SimpleKind::stable_id) {
+            exclusion.stable_id = std::string(simple.name);
+        } else if (simple.kind == SimpleKind::family) {
+            exclusion.family = std::string(simple.name);
+        } else if (simple.kind == SimpleKind::style_class) {
+            if (std::find(exclusion.classes.begin(), exclusion.classes.end(), simple.name) == exclusion.classes.end()) {
+                exclusion.classes.push_back(std::string(simple.name));
+            }
+        } else if (std::find(exclusion.states.begin(), exclusion.states.end(), simple.state) == exclusion.states.end()) {
+            exclusion.states.push_back(simple.state);
+        }
+    }
+    if (std::find(selector.excluded.begin(), selector.excluded.end(), exclusion) == selector.excluded.end()) {
+        selector.excluded.push_back(std::move(exclusion));
+    }
     return true;
 }
 
@@ -647,6 +820,16 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
                 if (name == simple.name) present = true;
             }
             if (!present) selector.classes.push_back(std::string(simple.name));
+        } else if (simple.kind == SimpleKind::family) {
+            if (!selector.family.empty() && selector.family != simple.name) {
+                report(DiagnosticCode::selector_syntax, simple.token, "two families");
+                return false;
+            }
+            selector.family = std::string(simple.name);
+        } else if (simple.kind == SimpleKind::negation) {
+            for (std::uint32_t argument = 0U; argument < simple.negated_count; ++argument) {
+                if (!add_exclusion(workspace_.negated[simple.negated_first + argument], selector)) return false;
+            }
         } else {
             bool present = false;
             for (const AnatomyState state : selector.states) {
@@ -654,6 +837,12 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
             }
             if (!present) selector.states.push_back(simple.state);
         }
+    }
+    // The ancestor compounds, nearest first.
+    selector.ancestors.assign(workspace_.ancestors.rbegin(), workspace_.ancestors.rend());
+    if (selector.surface != SurfaceKind::none && !selector.ancestors.empty()) {
+        report(DiagnosticCode::selector_syntax, surface_token, "a window or popup has no ancestors");
+        return false;
     }
     // A surface selector names the surface and its root's classes and ID
     // only: its rules style no part of a control.
@@ -687,7 +876,9 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
     }
     emitted_bytes_ += bytes;
     lowered.specificity = specificity;
-    lowered.level = level_of(specificity);
+    // Every theme-sheet rule at one level, ordered there by its CSS
+    // specificity alone (selector step 1).
+    lowered.level = CascadeLevel::theme_sheet;
     if (!dropped_) output_.push_back(std::move(lowered));
     ++emitted_;
     return true;
@@ -774,8 +965,17 @@ void SelectorPass::report(DiagnosticCode code, std::uint32_t token, std::string 
 
 std::size_t lowered_selector_bytes(const RuleSelector& selector) noexcept {
     std::size_t bytes = lowered_record_bytes + selector.control_type.size() + selector.stable_id.size() +
-                        selector.part.size() + selector.states.size();
+                        selector.part.size() + selector.states.size() + selector.family.size();
     for (const std::string& name : selector.classes) bytes += name.size();
+    for (const RuleExclusion& exclusion : selector.excluded) {
+        bytes += lowered_record_bytes + exclusion.control_type.size() + exclusion.stable_id.size() +
+                 exclusion.states.size() + exclusion.family.size();
+        for (const std::string& name : exclusion.classes) bytes += name.size();
+    }
+    for (const RuleAncestor& ancestor : selector.ancestors) {
+        bytes += lowered_record_bytes + ancestor.control_type.size() + ancestor.stable_id.size();
+        for (const std::string& name : ancestor.classes) bytes += name.size();
+    }
     return bytes;
 }
 

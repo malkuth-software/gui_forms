@@ -10,7 +10,9 @@
 #include "support/theme_definition_heap.hpp"
 #include "gui_forms/gui_forms.hpp"
 
+#include <array>
 #include <cstddef>
+#include <cstdint>
 #include <initializer_list>
 #include <iostream>
 #include <memory>
@@ -98,6 +100,148 @@ void set_scheme(Window& window, ColourScheme scheme) {
     PresentationSettings settings = window.presentation_settings();
     settings.colour_scheme = scheme;
     window.set_presentation_settings(settings);
+}
+
+// The sum of a colour's channels: a dark ground's is the smaller.
+unsigned brightness(Color colour) noexcept {
+    const unsigned sum = static_cast<unsigned>(colour.red) + static_cast<unsigned>(colour.green) +
+                         static_cast<unsigned>(colour.blue);
+    return sum;
+}
+
+// One stock control whose ground is checked, with its name for messages.
+struct GroundCase final {
+    std::string name{};
+    std::shared_ptr<Panel> control{};
+};
+
+// T4 defect: controls that wrote the light theme's paper (or another light
+// colour) as their background at construction stayed light in a dark
+// window. Each ground is now the theme's role, so it resolves per scheme:
+// no background override, a different ground in dark, and a darker one.
+// A tab page has a transparent ground over its TabControl's display.
+void test_control_grounds_follow_scheme() {
+    std::vector<GroundCase> cases{};
+    cases.push_back({"NumericUpDown", make_control<NumericUpDown>(StableId("ground.numeric"))});
+    cases.push_back({"DomainUpDown", make_control<DomainUpDown>(StableId("ground.domain"))});
+    cases.push_back({"TreeView", make_control<TreeView>(StableId("ground.tree"))});
+    cases.push_back({"BreadcrumbTrail", make_control<BreadcrumbTrail>(StableId("ground.breadcrumb"))});
+    cases.push_back({"ObjectView", make_control<ObjectView>(StableId("ground.objects"))});
+    cases.push_back({"CorrespondenceView", make_control<CorrespondenceView>(StableId("ground.correspondence"))});
+    cases.push_back({"DateTimePicker", make_control<DateTimePicker>(StableId("ground.date"))});
+    cases.push_back({"PictureBox", make_control<PictureBox>(StableId("ground.picture"))});
+    cases.push_back({"PropertyGrid", make_control<PropertyGrid>(StableId("ground.property-grid"))});
+    cases.push_back({"PropertyList", make_control<PropertyList>(StableId("ground.property-list"))});
+    cases.push_back({"InstrumentRack", make_control<InstrumentRack>(StableId("ground.rack"))});
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("ground.root"));
+    for (const GroundCase& entry : cases) (*root).add_child(entry.control);
+    const std::shared_ptr<TabPage> page = make_control<TabPage>(StableId("ground.page"), "Page");
+    (*root).add_child(page);
+    Window window(root, Size{400.0, 300.0});
+    window.set_theme(gui_forms_theme());
+    set_scheme(window, ColourScheme::light);
+    std::vector<Color> light{};
+    light.reserve(cases.size());
+    for (const GroundCase& entry : cases) {
+        require(!(*entry.control).has_background_override(), entry.name + ": no colour written at construction");
+        light.push_back((*entry.control).background());
+    }
+    set_scheme(window, ColourScheme::dark);
+    require(!window.theme_fallback() && window.theme().id() == "gui-forms", "the dark variant is shown");
+    for (std::size_t index = 0U; index < cases.size(); ++index) {
+        const Color dark = (*cases[index].control).background();
+        require(dark != light[index], cases[index].name + ": the ground changes with the scheme");
+        require(brightness(dark) < brightness(light[index]), cases[index].name + ": the dark ground is darker");
+    }
+    require((*page).background().alpha == 0U, "a tab page's ground is transparent over the display");
+}
+
+// The rack's module panel with `stable_id`, or null.
+std::shared_ptr<Panel> module_panel(const InstrumentRack& rack, std::string_view stable_id) {
+    for (const Control::Ptr& child : rack.children()) {
+        if ((*child).stable_id().value() == stable_id) return std::dynamic_pointer_cast<Panel>(child);
+    }
+    return {};
+}
+
+// The rest of the set: an InstrumentRack's modules take theme roles per
+// state (card, notice for staged, the card's pending and invalid surface
+// states), with no colour written, so each follows the scheme; an
+// EasingPreview without set_style paints from the theme's editor role in
+// its context, which differs by scheme.
+void test_module_and_preview_grounds_follow_scheme() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("modules.root"));
+    const std::shared_ptr<InstrumentRack> rack = make_control<InstrumentRack>(StableId("modules.rack"));
+    std::vector<InstrumentModuleSpec> modules{};
+    const std::array<InstrumentModuleState, 4> states{{InstrumentModuleState::live, InstrumentModuleState::staged,
+                                                       InstrumentModuleState::pending,
+                                                       InstrumentModuleState::invalid}};
+    const std::array<std::string, 4> ids{{"modules.live", "modules.staged", "modules.pending", "modules.invalid"}};
+    for (std::size_t index = 0U; index < states.size(); ++index) {
+        InstrumentModuleSpec spec{};
+        spec.stable_id = ids[index];
+        spec.name = ids[index];
+        spec.status_text = "state";
+        spec.state = states[index];
+        // A module holds one through eight fields.
+        InstrumentFieldSpec field{};
+        field.stable_id = "value";
+        field.name = "Value";
+        field.value = "1";
+        field.editor = InstrumentFieldEditor::text;
+        spec.fields.push_back(field);
+        modules.push_back(spec);
+    }
+    (*rack).set_modules(std::move(modules));
+    (*root).add_child(rack);
+    const std::shared_ptr<EasingPreview> preview = make_control<EasingPreview>(StableId("modules.preview"));
+    (*root).add_child(preview);
+    Window window(root, Size{600.0, 400.0});
+    window.set_theme(gui_forms_theme());
+    set_scheme(window, ColourScheme::light);
+    std::vector<Color> light{};
+    for (const std::string& id : ids) {
+        const std::shared_ptr<Panel> panel = module_panel(*rack, id);
+        require(panel != nullptr, id + ": the module panel is the rack's child");
+        if (panel == nullptr) return;
+        require(!(*panel).has_background_override() && !(*panel).has_style_override(),
+                id + ": no colour or style written for the module");
+        light.push_back((*panel).background());
+    }
+    // The status tints are severity states, as a notice's: the module's
+    // anatomy declares information, warning, success and error, and each
+    // tinted state holds exactly its severity's.
+    const ControlAnatomy& module_anatomy = (*module_panel(*rack, "modules.live")).anatomy();
+    require(module_anatomy.custom_states.size() == 4U && module_anatomy.custom_states[1].name == "warning" &&
+                module_anatomy.custom_states[3].name == "error",
+            "a module declares the notice severities as custom states");
+    const std::array<std::optional<std::uint8_t>, 4> severities{
+        {std::nullopt, std::uint8_t{1}, std::uint8_t{0}, std::uint8_t{3}}};
+    for (std::size_t index = 0U; index < ids.size(); ++index) {
+        const AnatomyStateSet held = (*module_panel(*rack, ids[index])).anatomy_states();
+        for (std::uint8_t state = 0U; state < 4U; ++state) {
+            const bool expected = severities[index] && *severities[index] == state;
+            require(held.contains(CustomStateIndex{state}) == expected,
+                    ids[index] + ": holds exactly its severity state");
+        }
+    }
+    require((*module_panel(*rack, "modules.pending")).visual_context().surface == ControlSurfaceState::pending &&
+                (*module_panel(*rack, "modules.invalid")).visual_context().surface == ControlSurfaceState::invalid,
+            "pending and invalid modules resolve in those surface states");
+    require(!(*preview).has_style_override(), "the preview has no style of its own by default");
+    const Color preview_light =
+        window.theme().resolve(ControlVisualRole::editor, (*preview).visual_context()).text;
+    set_scheme(window, ColourScheme::dark);
+    for (std::size_t index = 0U; index < ids.size(); ++index) {
+        const Color dark = (*module_panel(*rack, ids[index])).background();
+        require(dark != light[index], ids[index] + ": the module's ground changes with the scheme");
+        require(brightness(dark) < brightness(light[index]), ids[index] + ": the dark ground is darker");
+    }
+    require((*preview).visual_context().dark, "the preview's context is dark");
+    const Color preview_dark =
+        window.theme().resolve(ControlVisualRole::editor, (*preview).visual_context()).text;
+    require(brightness(preview_dark) > brightness(preview_light),
+            "the preview's text, from the editor role, lightens in dark");
 }
 
 void test_declaring_schemes() {
@@ -349,7 +493,7 @@ void test_window_backdrop() {
     const std::shared_ptr<Panel> plain_root = make_control<Panel>(StableId("plain-root"));
     std::vector<std::string> classes{};
     classes.push_back("plain");
-    (*plain_root).set_classes(std::move(classes));
+    (*plain_root).classes = std::move(classes);
     Window plain(plain_root, Size{200.0, 100.0});
     plain.set_theme(theme);
     require(!plain.backdrop_chain(), "backdrop: none on the root's class removes the chain");
@@ -369,6 +513,8 @@ void test_window_backdrop() {
 } // namespace
 
 int main() {
+    test_control_grounds_follow_scheme();
+    test_module_and_preview_grounds_follow_scheme();
     test_declaring_schemes();
     test_dark_rules_without_variant();
     test_theme_supports();

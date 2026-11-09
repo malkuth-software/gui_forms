@@ -5,6 +5,7 @@
 #include "gui_forms/commands.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/control/content_region/content_region.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/controls/range_control/scroll_bar/h_scroll_bar/h_scroll_bar.hpp"
@@ -12,6 +13,7 @@
 #include "gui_forms/controls/data_grid_view/data_grid_view_cells.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view_row_heights.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp"
+#include "gui_forms/controls/data_grid_view/data_grid_view_rows/data_grid_view_rows.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
@@ -79,16 +81,6 @@ struct DataGridViewColumn final {
     // A fill column's share of the width the other columns leave, against
     // the other fill columns' weights; finite and positive.
     double fill_weight{100.0};
-};
-
-// One unbound row. `stable_id` is unique within the grid; an empty ID is
-// replaced by a generated one ("row.1", "row.2", ...). `cells` holds one value
-// per column in column order; a shorter list is padded with empty values.
-struct DataGridViewRow final {
-    DataGridViewRowId stable_id{};
-    std::vector<BindingValue> cells{};
-    std::string header_text{};
-    bool read_only{};
 };
 
 // A column's place in the order the grid shows its columns (Windows Forms'
@@ -273,8 +265,10 @@ struct DataGridViewRowValuesEvent final {
 // with set_virtual_rows and set_virtual_row_order, by change with
 // insert_virtual_rows, remove_virtual_rows and move_virtual_row, or on demand
 // through a DataGridViewRowWindowSource); the grid asks for values by ID.
-// It asks for the cells it shows, the current cell, and cells semantics or the
-// application read through the grid; it never asks for any other row. Calls
+// It asks for the cells it shows (except the text cells a cell region's
+// DataGridViewCellsTextProvider fills on its own thread), the current cell,
+// and cells semantics or the application read through the grid; it never
+// asks for any other row. Calls
 // arrive on the grid's UI thread, from paint, layout, input and the grid's own
 // methods. The provider may not mutate the grid from inside a call.
 class DataGridViewCellValueProvider {
@@ -314,7 +308,9 @@ public:
 // every part is painted through the by-role paint path. A text cell edits in
 // a hosted TextBox placed over it; a combo box cell chooses from a
 // ContextMenu of its column's items.
-class DataGridView final : public Control, public DataGridViewCapabilities<DataGridView> {
+class DataGridView final : public Control,
+                           public DataGridViewCapabilities<DataGridView>,
+                           public DataGridViewRowsCapability<DataGridView> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit DataGridView(StableId stable_id);
@@ -374,18 +370,15 @@ public:
     // std::logic_error for virtual rows (counted by their order) and bound
     // rows (counted by their source).
     void set_row_count(std::size_t count);
-    // Unbound rows only (std::logic_error otherwise). Throws
-    // std::invalid_argument for a duplicate stable ID, invalid UTF-8 or more
-    // values than columns, and std::out_of_range for an insertion position
-    // past the end. add_row returns the new row's position.
-    DataGridViewRowPosition add_row(DataGridViewRow row);
-    void insert_row(DataGridViewRowPosition position, DataGridViewRow row);
-    void set_rows(std::vector<DataGridViewRow> rows);
-    // When the removed row held the current cell, the row that takes its
-    // position, or the new last row, becomes current. Throws
-    // std::invalid_argument for the new row, which is not a row of the grid's
-    // until a value is committed to it.
-    void remove_row_at(DataGridViewRowPosition position);
+    // The unbound rows are the `rows` cell (DataGridViewRowsCapability),
+    // edited only while the grid shows unbound rows (std::logic_error
+    // otherwise). An edit throws std::invalid_argument for a duplicate
+    // stable ID, invalid UTF-8 or more values than columns, and
+    // std::out_of_range for a position past the rows; a refused edit
+    // changes nothing. An erasure of the row holding the current cell makes
+    // the row that takes its position, or the new last row, current. The
+    // edits repaint, at the next layout, only the rows shown that they
+    // reach.
     // Removes every row of any source and returns to unbound rows.
     void clear_rows();
     // The ID of the row at a position. Throws std::out_of_range past the end.
@@ -460,6 +453,20 @@ public:
     // invalid UTF-8 ID.
     void set_virtual_row_order(std::vector<DataGridViewRowId> order);
 
+    // The cell region's own text model (threaded sub-surfaces decision 3(a),
+    // DataGridViewCellsTextProvider): owned by the grid until the region
+    // exists, then moved with the region's content to its thread, which
+    // alone calls it; a running region restarts with the new one. While the
+    // rows are virtual and cells_on_sub_surface is on, the visible text
+    // cells (text columns, not wrapped, not the new row) reach the region
+    // without their values: the provider fills their text there. Null
+    // removes it; the region then shows those cells resolved on the UI
+    // thread again. The provider goes with the region: turning
+    // cells_on_sub_surface off releases it (on the region's thread).
+    void set_cells_text_provider(std::unique_ptr<DataGridViewCellsTextProvider> provider);
+    // Whether a cells text provider is set (held or moved to the region).
+    [[nodiscard]] bool cells_text_provided() const noexcept { return cells_text_provided_; }
+
     // -- the virtual row order (owner decision W-5) ----------------------
     // Virtual rows whose order a window source keeps: the grid starts in the
     // mode the order policy gives (window, unless it is pinned to edit or the
@@ -501,27 +508,24 @@ public:
     }
     // Repaints after the provider's values changed outside the grid.
     void refresh_rows();
-    // Shows a BindingSource's records as rows: a column shows the field its
-    // data_property_name names. The current row follows the source's
-    // position and moves it; a committed edit moves the position to its row
-    // and sets the field. A null source returns to unbound rows.
-    void set_data_source(std::shared_ptr<BindingSource> source);
-    [[nodiscard]] std::shared_ptr<BindingSource> data_source() const noexcept { return data_source_; }
+    // data_source (a capability) shows a BindingSource's records as rows: a
+    // column shows the field its data_property_name names. The current row
+    // follows the source's position and moves it; a committed edit moves the
+    // position to its row and sets the field. A null source returns to
+    // unbound rows.
 
     // -- adding and deleting rows (owner decision B1-2) ------------------
-    // With allow_user_to_add_rows (on by default) unbound and bound grids
-    // show a new row after the last row (Windows Forms' new row); virtual
-    // grids do not. A bound grid shows it while its source allows new
-    // records; a read-only grid or one without columns never does. The new
-    // row has a generated ID and empty values; when it becomes current,
-    // default_values_needed gives it its first values. The first value the
-    // user commits to it (an edit, a toggle or a choice) makes it a row of the
-    // grid's, or a record of the source's, with the same ID: user_added_row
-    // is raised, and a new row appears after it. Until the current cell
-    // leaves it, the added row can be discarded with cancel_row_edit (Escape
-    // when no cell is in edit).
-    [[nodiscard]] bool allow_user_to_add_rows() const noexcept { return allow_add_rows_; }
-    void set_allow_user_to_add_rows(bool allow);
+    // With allow_user_to_add_rows (a capability, on by default) unbound and
+    // bound grids show a new row after the last row (Windows Forms' new
+    // row); virtual grids do not. A bound grid shows it while its source
+    // allows new records; a read-only grid or one without columns never does.
+    // The new row has a generated ID and empty values; when it becomes
+    // current, default_values_needed gives it its first values. The first
+    // value the user commits to it (an edit, a toggle or a choice) makes it a
+    // row of the grid's, or a record of the source's, with the same ID:
+    // user_added_row is raised, and a new row appears after it. Until the
+    // current cell leaves it, the added row can be discarded with
+    // cancel_row_edit (Escape when no cell is in edit).
     // The new row's position, while it is shown.
     [[nodiscard]] std::optional<DataGridViewRowPosition> new_row_index() const noexcept;
     // Discards the row the user added, while it is the current row and the
@@ -797,6 +801,11 @@ public:
     // -- Control ---------------------------------------------------------
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
+    // The cell region (property-capabilities study, decision 10): a value
+    // stored into one cell damages that cell alone, at its geometry after
+    // the next layout; a scroll redraws the whole grid and folds it.
+    void gather_content_regions() override;
+    [[nodiscard]] Dirty fold_content_regions() noexcept override;
     void on_pointer(PointerEvent& event) override;
     void on_key_preview(KeyEvent& event) override;
     void on_key(KeyEvent& event) override;
@@ -1062,6 +1071,10 @@ private:
     [[nodiscard]] bool column_resizable(std::size_t column) const;
     [[nodiscard]] bool row_resizable() const noexcept;
     void values_changed();
+    // A value stored into the cell `key` names: the cell region notes it,
+    // or values_changed when the cells size rows or columns or the cell is
+    // no longer placed.
+    void cell_changed(const CellKey& key);
     // Sorting: the comparison sort_compare's handlers decide (a functor
     // over row indices), the mutation refusal while comparisons run, the
     // reorder both sorts end with, and the automatic sort of a header click.
@@ -1162,7 +1175,10 @@ private:
     // `lines` is empty when the text is not wrapped.
     struct CellLayout final {
         CellParts parts{};
+        // With text_provided, the style alone: the text is the region's
+        // provider's, and no value was asked for or formatted.
         FormattedCell content{};
+        bool text_provided{};
         Rect content_box{};
         std::vector<WrappedTextLine> lines{};
         Rect lines_box{};
@@ -1177,6 +1193,11 @@ private:
     [[nodiscard]] static AuthoredColours authored_colours(const DataGridViewCellStyle& style, bool selected);
     [[nodiscard]] CellLayout cell_layout(DataGridViewRowPosition row, std::size_t column,
                                          const GridLayout& layout) const;
+    // The same, leaving the text to the region's provider when `provide_text`
+    // and the cell is one it fills (a text column, not wrapped):
+    // CellLayout::text_provided says which it did.
+    [[nodiscard]] CellLayout cell_layout(DataGridViewRowPosition row, std::size_t column, const GridLayout& layout,
+                                         bool provide_text) const;
     [[nodiscard]] CellParts cell_parts(DataGridViewRowPosition row, std::size_t column,
                                        const GridLayout& layout) const;
     // A link cell's link within the cell's content area: its text's extent,
@@ -1223,12 +1244,20 @@ private:
     // grid's structure: the paint then stops.
     [[nodiscard]] bool paint_cell(Painter& painter, DataGridViewRowPosition row, std::size_t column,
                                   const GridLayout& layout);
+    // Where a resolved cell's text comes from: resolved here, or, when
+    // `provided`, from the region's provider for the row at `row` of the
+    // snapshot's provided_rows, if the cell is one it fills.
+    struct CellTextSource final {
+        bool provided{};
+        std::size_t row{};
+    };
     // Resolves one cell for the shared cell painter (stage S7), its parts
     // moved by `offset`, appending its text and wrapped lines to `into`'s
-    // buffers. False when a cell_formatting handler changed the grid's
-    // structure (nothing is appended then).
+    // buffers (none for a provided cell). False when a cell_formatting
+    // handler changed the grid's structure (nothing is appended then).
     [[nodiscard]] bool resolve_cell(DataGridViewRowPosition row, std::size_t column, const GridLayout& layout,
-                                    Point offset, DataGridViewCellsSnapshot& into, DataGridViewCellsCell& resolved);
+                                    Point offset, CellTextSource source, DataGridViewCellsSnapshot& into,
+                                    DataGridViewCellsCell& resolved);
     // The cell region (cells_on_sub_surface): resolves the visible cells
     // into a snapshot in the region's coordinates and sends it with a new
     // content epoch. False when a handler changed the grid's structure: the
@@ -1339,7 +1368,20 @@ private:
     std::vector<DataGridViewColumn> columns_{};
     DataGridViewRowSource row_source_{DataGridViewRowSource::unbound};
     // Unbound rows, in presentation order.
-    std::vector<DataGridViewRow> rows_{};
+    // What prepare_edit readied for written: an assignment's identity
+    // index, the current row's position before an erasure or replacement,
+    // and whether an insertion took the new row's ID.
+    RowPositions edit_index_{};
+    std::optional<std::size_t> edit_former_current_{};
+    bool edit_takes_new_row_id_{};
+    // The replaced rows taken at a settle; reused across layouts.
+    std::vector<std::uint32_t> settled_rows_{};
+    // The cell viewport at the last arrange: a change repaints everything.
+    Rect settled_data_{};
+    // The cells changed since the last gather, as (row position, column
+    // index); past cells_region_capacity changes the grid repaints whole.
+    static constexpr std::size_t cells_region_capacity = 256U;
+    ContentRegion cells_region_{*this, cells_region_capacity};
     std::uint64_t next_row_number_{1U};
     std::shared_ptr<DataGridViewCellValueProvider> provider_{};
     // Virtual rows: the application's order of row IDs (owner decision W-5),
@@ -1365,6 +1407,10 @@ private:
     // editor and the bars, transparent to hit testing (the grid keeps its
     // input) and no tab stop.
     std::shared_ptr<SubSurfaceHost> cells_host_{};
+    // set_cells_text_provider: the provider while no region holds it, and
+    // whether one is set (here or in the region's content).
+    std::unique_ptr<DataGridViewCellsTextProvider> cells_text_provider_{};
+    bool cells_text_provided_{};
     // One resolved cell's text and lines while the grid paints its cells
     // itself, kept so that its buffers are reused from cell to cell.
     DataGridViewCellsSnapshot paint_scratch_{};
@@ -1533,7 +1579,55 @@ private:
     // Raised from const reads, as cell_formatting_ is.
     mutable Event<DataGridViewCellErrorTextNeededEvent&> cell_error_text_needed_{};
     mutable Event<DataGridViewRowErrorTextNeededEvent&> row_error_text_needed_{};
+    friend struct DataGridViewRowsCapability<DataGridView>;
+    // The rows' hooks (data_grid_view_rows.cpp): require_mutable, not
+    // sorting, unbound rows, the rows' checks and generated IDs, and the
+    // identity index readied first; then the index, the row state and
+    // the touch.
+    void prepare_edit(const decltype(rows)& cell, const CollectionEdit& edit, std::span<DataGridViewRow> incoming);
+    void written(const decltype(rows)& cell, const CollectionEdit& edit);
+    // Takes the rows' pending damage (in arrange) and repaints the shown
+    // rows it reaches; everything when `whole` (the window moved, the
+    // bounds changed, or cells size rows or columns).
+    void settle_rows_damage(bool whole, const GridLayout& layout);
+    // Whether a column or the rows are sized by the cells' contents.
+    [[nodiscard]] bool sized_by_cells() const;
+    // prepare_edit's parts, by edit kind, and the cell edit a row edit
+    // cancels first (std::logic_error when its handlers edited the rows).
+    void prepare_rows_assignment(std::span<DataGridViewRow> incoming);
+    void prepare_rows_insertion(const CollectionEdit& edit, std::span<DataGridViewRow> incoming);
+    void prepare_rows_erasure(const CollectionEdit& edit);
+    void prepare_rows_replacement(const CollectionEdit& edit, std::span<DataGridViewRow> incoming);
+    void cancel_edit_before_row_edit();
     // property_codemod begin DataGridView (tools/property_families/data_grid_view.json; generated, do not edit)
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_auto_size_columns_mode_changed();
+    virtual void on_auto_size_rows_mode_changed();
+    virtual void on_allow_user_to_delete_rows_changed();
+    virtual void on_default_cell_style_changed();
+    virtual void on_rows_default_cell_style_changed();
+    virtual void on_alternating_rows_default_cell_style_changed();
+    virtual void on_column_headers_default_cell_style_changed();
+    virtual void on_row_headers_default_cell_style_changed();
+    virtual void on_grid_color_changed();
+    virtual void on_background_color_changed();
+    virtual void on_border_style_changed();
+    virtual void on_cell_border_style_changed();
+    virtual void on_column_headers_border_style_changed();
+    virtual void on_row_headers_border_style_changed();
+    virtual void on_column_headers_height_changed();
+    virtual void on_row_headers_width_changed();
+    virtual void on_font_changed();
+    virtual void on_read_only_changed();
+    virtual void on_allow_user_to_resize_columns_changed();
+    virtual void on_allow_user_to_resize_rows_changed();
+    virtual void on_allow_user_to_order_columns_changed();
+    virtual void on_multi_select_changed();
+    virtual void on_edit_mode_changed();
+
 private:
     friend struct DataGridViewAutoSizeColumnsModeCapability<DataGridView>;
     friend struct DataGridViewAutoSizeRowsModeCapability<DataGridView>;
@@ -1571,6 +1665,8 @@ private:
     friend struct DataGridViewMultiSelectCapability<DataGridView>;
     friend struct DataGridViewEditModeCapability<DataGridView>;
     friend struct DataGridViewCellsOnSubSurfaceCapability<DataGridView>;
+    friend struct DataGridViewAllowUserToAddRowsCapability<DataGridView>;
+    friend struct DataGridViewDataSourceCapability<DataGridView>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(auto_size_columns_mode)& cell, DataGridViewAutoSizeColumnsMode& incoming);
     void written(const decltype(auto_size_columns_mode)& cell);
@@ -1644,6 +1740,10 @@ private:
     void written(const decltype(edit_mode)& cell);
     void prepare_write(const decltype(cells_on_sub_surface)& cell, bool& incoming);
     void written(const decltype(cells_on_sub_surface)& cell);
+    void write_view(const decltype(allow_user_to_add_rows)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(allow_user_to_add_rows)& cell) const;
+    void write_view(const decltype(data_source)& cell, std::shared_ptr<BindingSource> incoming);
+    [[nodiscard]] std::shared_ptr<BindingSource> read_view(const decltype(data_source)& cell) const;
     // property_codemod end DataGridView
 };
 

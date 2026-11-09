@@ -2,6 +2,7 @@
 
 #include "gui_forms/binding/child_property_view/child_property_view.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel_capabilities/command_overflow_panel_capabilities.hpp"
 
 #include <array>
 #include <cstddef>
@@ -99,7 +100,7 @@ struct GroupSpecCapability {
 // overlay item composition remain with the consumer and can use the stable IDs
 // published by layout_snapshot().
 class CommandOverflowPanel final : public ContainerControl,
-                                   public GroupSpecCapability<CommandOverflowPanel> {
+                                   public GroupSpecCapability<CommandOverflowPanel>, public CommandOverflowPanelCapabilities<CommandOverflowPanel> {
 public:
     explicit CommandOverflowPanel(StableId stable_id);
 
@@ -108,9 +109,6 @@ public:
     [[nodiscard]] static const std::array<ChildPropertyEntry, overflow_child_property_count>&
     overflow_child_property_entries() noexcept;
     [[nodiscard]] std::span<const ChildPropertyEntry> child_property_table() const noexcept override;
-
-    [[nodiscard]] double group_gap() const noexcept { return group_gap_; }
-    void set_group_gap(double gap);
 
     void set_overflow_actuator(Control& control);
     void clear_overflow_actuator();
@@ -131,9 +129,6 @@ protected:
 private:
     friend struct GroupSpecCapability<CommandOverflowPanel>;
 
-    // The panel settings as form properties (study 10, section 6).
-    void register_panel_properties();
-
     // The group spec's hooks: the container's thread, a live direct child
     // that is not the actuator, valid extents, a unique priority and the
     // group limit before the compare; relayout after a change.
@@ -151,8 +146,20 @@ private:
 
     std::unordered_map<std::uint64_t, CommandOverflowGroupSpec> group_specs_;
     std::weak_ptr<Control> overflow_actuator_;
-    double group_gap_{};
     CommandOverflowSnapshot committed_snapshot_;
+    // property_codemod begin CommandOverflowPanel (tools/property_families/command_overflow_panel.json; generated, do not edit)
+public:
+    // CommandOverflowPanel's property table: Control's entries, then its own.
+    static constexpr std::size_t command_overflow_panel_property_count = Control::control_property_count + 1U;
+    [[nodiscard]] static const std::array<PropertyEntry, command_overflow_panel_property_count>& command_overflow_panel_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct CommandOverflowGroupGapCapability<CommandOverflowPanel>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(group_gap)& cell, double& incoming);
+    void written(const decltype(group_gap)& cell);
+    // property_codemod end CommandOverflowPanel
 };
 
 } // namespace gui_forms

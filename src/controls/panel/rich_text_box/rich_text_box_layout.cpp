@@ -95,7 +95,7 @@ struct SpanStartsAfter final {
 } // namespace
 
 RichTextBox::LineBlock RichTextBox::line_block(Utf8Range range, std::size_t& block_cursor) const {
-    const FontSpec body = text_font(font_);
+    const FontSpec body = text_font(font.read());
     LineBlock result{.font = body};
     const std::vector<MarkdownBlock>& blocks = document_.blocks;
     const std::size_t start = range.start.value();
@@ -261,7 +261,7 @@ void RichTextBox::layout_line(std::size_t line, double width, std::size_t& block
     for (const Run& run : runs_) {
         measure_run(run, chunk);
     }
-    const double available = word_wrap_ ? std::max(1.0, width) : std::numeric_limits<double>::infinity();
+    const double available = word_wrap.read() ? std::max(1.0, width) : std::numeric_limits<double>::infinity();
     RowRequest request{.line = line, .code_block = block.code_block, .block_style = block_style,
                        .alignment = block.alignment, .width = width};
     std::size_t begin = 0U;
@@ -281,7 +281,7 @@ void RichTextBox::layout_line(std::size_t line, double width, std::size_t& block
         if (cell.tab) cell.advance = tab_advance(x, cell.style);
         // A space may hang past the edge; anything else past it wraps.
         const bool hanging = cell.space && !cell.tab;
-        if (word_wrap_ && index > begin && !hanging && x + cell.advance > available) {
+        if (word_wrap.read() && index > begin && !hanging && x + cell.advance > available) {
             const std::size_t split = last_break && *last_break > begin ? *last_break : index;
             request.begin = begin;
             request.finish = split;
@@ -314,7 +314,7 @@ void RichTextBox::place_row(const RowRequest& request, double& y) {
         total += cell.advance;
         if (!cell.space || cell.tab) visible = total;
     }
-    const double room = word_wrap_ ? std::max(0.0, request.width) : std::max(request.width, visible);
+    const double room = word_wrap.read() ? std::max(0.0, request.width) : std::max(request.width, visible);
     const double shift = alignment_shift(request.alignment, room, visible);
     Row row{.line = request.line, .code_block = request.code_block, .y = y,
             .height = ascent + descent, .baseline = ascent};
@@ -344,13 +344,13 @@ void RichTextBox::place_row(const RowRequest& request, double& y) {
 }
 
 void RichTextBox::rebuild_rows(double width) {
-    const FontSpec font = text_font(font_);
+    const FontSpec font = text_font((*this).font.read());
     const Window* owner = window();
     const double scale = owner == nullptr ? 1.0 : (*owner).scale();
     const TextMetricsProvider* provider = owner == nullptr ? nullptr : (*owner).text_metrics_provider();
     if (!rows_.empty() && layout_revision_ == content_revision_ && layout_font_ == font &&
         layout_width_ == width && layout_provider_ == provider && layout_scale_ == scale &&
-        layout_wrap_ == word_wrap_) {
+        layout_wrap_ == word_wrap.read()) {
         return;
     }
     // Invalidate before rebuilding: a failure leaves the cache uncommitted.
@@ -370,7 +370,7 @@ void RichTextBox::rebuild_rows(double width) {
     layout_width_ = width;
     layout_provider_ = provider;
     layout_scale_ = scale;
-    layout_wrap_ = word_wrap_;
+    layout_wrap_ = word_wrap.read();
     reveal_pending_ = true;
 }
 
@@ -390,27 +390,27 @@ Rect RichTextBox::text_rectangle() const noexcept {
 
 void RichTextBox::set_scroll(Point position) {
     if (auto_scroll.read()) {
-        if (word_wrap_) position.x = 0.0;
+        if (word_wrap.read()) position.x = 0.0;
         static_cast<void>(scroll_to(position));
         return;
     }
     const Rect viewport = text_rectangle();
     vertical_offset_ = std::clamp(position.y, 0.0, std::max(0.0, document_height() - viewport.height));
-    horizontal_offset_ = word_wrap_ ? 0.0
+    horizontal_offset_ = word_wrap.read() ? 0.0
         : std::clamp(position.x, 0.0, std::max(0.0, document_width_ - viewport.width + 1.0));
 }
 
 void RichTextBox::ensure_layout() {
     const Rect bounds = local_bounds();
     const Size client{bounds.width, bounds.height};
-    const FontSpec font = text_font(font_);
+    const FontSpec font = text_font((*this).font.read());
     const Window* owner = window();
     const double scale = owner == nullptr ? 1.0 : (*owner).scale();
     const TextMetricsProvider* provider = owner == nullptr ? nullptr : (*owner).text_metrics_provider();
     if (!rows_.empty() && layout_width_ >= 0.0 && layout_revision_ == content_revision_ &&
         layout_font_ == font && layout_provider_ == provider && layout_scale_ == scale &&
-        layout_wrap_ == word_wrap_ && layout_client_ == client && layout_scroll_ == auto_scroll.read() &&
-        layout_bar_ == control_bar_visible_) {
+        layout_wrap_ == word_wrap.read() && layout_client_ == client && layout_scroll_ == auto_scroll.read() &&
+        layout_bar_ == control_bar_visible.read()) {
         return;
     }
     // As TextBox: lay out at the full width first, then once more at the
@@ -421,11 +421,11 @@ void RichTextBox::ensure_layout() {
     bool reveal = reveal_pending_;
     if (auto_scroll.read()) {
         const double chrome = bar_height() + 2.0 * text_top_;
-        const double content_width = word_wrap_ ? 0.0 : document_width_ + 11.0;
+        const double content_width = word_wrap.read() ? 0.0 : document_width_ + 11.0;
         double content_height = document_height() + chrome;
         arrange_scroll_viewport(client, {content_width, content_height});
         const double wrap_width = std::max(1.0, text_rectangle().width);
-        if (word_wrap_ && wrap_width != layout_width_) {
+        if (word_wrap.read() && wrap_width != layout_width_) {
             rebuild_rows(wrap_width);
             reveal = reveal || reveal_pending_;
             content_height = document_height() + chrome;
@@ -436,7 +436,7 @@ void RichTextBox::ensure_layout() {
     reveal_pending_ = reveal;
     layout_client_ = client;
     layout_scroll_ = auto_scroll.read();
-    layout_bar_ = control_bar_visible_;
+    layout_bar_ = control_bar_visible.read();
 }
 
 std::size_t RichTextBox::visual_line_count() {
@@ -549,6 +549,7 @@ void RichTextBox::reveal_caret() {
     const double width = std::max(1.0, viewport.width);
     const double height = std::max(1.0, viewport.height);
     Point offset = scroll_offset();
+    const bool glide = std::exchange(glide_next_reveal_, false);
     if (reveal_pending_ && !rows_.empty()) {
         const Row& row = rows_[caret_row()];
         const double x = boundary_x(row, (*editing_).selection().caret);
@@ -557,6 +558,12 @@ void RichTextBox::reveal_caret() {
         if (x < offset.x) offset.x = x;
         if (x > offset.x + width - 1.0) offset.x = x - width + 1.0;
         reveal_pending_ = false;
+        // A paging key's reveal glides; with reduced motion it lands at once.
+        if (glide && auto_scroll.read()) {
+            if (word_wrap.read()) offset.x = 0.0;
+            glide_to(offset);
+            return;
+        }
     }
     set_scroll(offset);
 }
@@ -569,7 +576,7 @@ std::optional<Rect> RichTextBox::selection_band(const Row& row) const {
     const double left = boundary_x(row, selection.start());
     double right = boundary_x(row, selection.end());
     if (selection.end().value() > row.offsets.back()) {
-        right += std::max(3.0, text_font(font_).size * 0.35);
+        right += std::max(3.0, text_font(font.read()).size * 0.35);
     }
     const Rect band{left, row.y, std::max(0.0, right - left), row.height};
     return band;
@@ -722,7 +729,7 @@ Rect RichTextBox::paint_rows(Painter& painter) {
             cue.tone = PartTextTone::secondary;
             cue.states = states;
             cue.text = hint;
-            cue.font = text_font(font_);
+            cue.font = text_font(font.read());
             paint_text_part_at(painter, *this, cue, baseline, viewport.width);
         }
     }

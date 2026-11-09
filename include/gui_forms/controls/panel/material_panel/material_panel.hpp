@@ -2,20 +2,17 @@
 
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/surface_material.hpp"
+#include "gui_forms/controls/panel/material_panel/material_panel_capabilities/material_panel_capabilities.hpp"
 
 #include <span>
 
 namespace gui_forms {
 
 // General retained material container. It is deliberately content-agnostic.
-class MaterialPanel : public Panel {
+class MaterialPanel : public Panel, public MaterialPanelCapabilities<MaterialPanel> {
 public:
     explicit MaterialPanel(StableId stable_id);
 
-    [[nodiscard]] const SurfaceMaterial& material() const noexcept {
-        return material_;
-    }
-    void set_material(SurfaceMaterial material);
     [[nodiscard]] Event<const SurfaceMaterial&>& material_changed() noexcept {
         return material_changed_;
     }
@@ -30,10 +27,16 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
-    void validate_window_images(const SurfaceMaterial& material) const;
+    void validate_window_images(const SurfaceMaterial& recipe) const;
 
-    SurfaceMaterial material_;
     Event<const SurfaceMaterial&> material_changed_;
+    // property_codemod begin MaterialPanel (tools/property_families/material_panel.json; generated, do not edit)
+private:
+    friend struct MaterialPanelMaterialCapability<MaterialPanel>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(material)& cell, SurfaceMaterial& incoming);
+    void written(const decltype(material)& cell);
+    // property_codemod end MaterialPanel
 };
 
 } // namespace gui_forms

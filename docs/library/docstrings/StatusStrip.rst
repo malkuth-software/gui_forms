@@ -2,7 +2,8 @@ A status bar laid out as a strip of labels along the bottom of a window.
 
 A status strip is a `ToolStrip` laid out for status: its items never overflow,
 labels marked `spring` share the width the other items leave, and a sizing
-grip shows in its corner. Use spring labels for the message that should take
+grip shows in its corner (ToolStrip's `sizing_grip_visible`, on for a status
+strip). Use spring labels for the message that should take
 the free space, and plain labels for fixed fields such as a cursor position or
 an encoding.
 
@@ -10,11 +11,6 @@ Parameters
 ----------
 stable_id
     Identity of the strip, unique within its window.
-
-Properties
-----------
-sizing_grip : default ``true``
-    Whether the sizing grip shows in the strip's end corner.
 
 See Also
 --------

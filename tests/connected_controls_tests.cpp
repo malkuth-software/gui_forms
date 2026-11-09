@@ -175,8 +175,8 @@ void test_atomic_grouping_hit_cracks_focus_and_semantics() {
         StableId("connected.test.middle"), "Middle");
     const std::shared_ptr<DropDownButton> last = make_control<DropDownButton>(
         StableId("connected.test.last"), "Last", DropDownButtonMode::split);
-    (*middle).set_appearance(CheckBoxAppearance::button);
-    (*middle).set_checked(true);
+    (*middle).appearance = CheckBoxAppearance::button;
+    (*middle).checked = true;
     (*first).set_requested_bounds({0.0, 0.0, 100.0, 36.0});
     (*middle).set_requested_bounds({100.0, 0.0, 100.0, 36.0});
     (*last).set_requested_bounds({200.0, 0.0, 100.0, 36.0});
@@ -304,7 +304,7 @@ void test_atomic_grouping_hit_cracks_focus_and_semantics() {
     require(operation_count("connected.test.middle",
                             VisualPaintOperation::draw_line) == 1U,
             "disabled interior state must retain one shared seam");
-    (*first).set_default_button(true);
+    (*first).default_button = true;
     static_cast<void>(window.request_focus(first));
     static_cast<void>(window.paint(painter, window.take_damage().bounds()));
     require(operation_count("connected.test.first",

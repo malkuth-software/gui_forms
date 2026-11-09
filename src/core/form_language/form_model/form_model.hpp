@@ -1,14 +1,13 @@
 #pragma once
 
 // A form document's model (stage FD, phase FD2): the objects, properties
-// and handler references a parsed `.form` document describes, checked
-// against a form schema before anything is built. Internal until stage D
+// and bindings a parsed `.form` document describes, checked against a form
+// schema before anything is built. Internal until stage D
 // (owner decision FD-6).
 //
 // Spelling: a document writes the registry's names in kebab-case
-// (`check-box`, `tab-index`, `on-checked-changed`); the schema holds them
-// as registered (`check_box`, `tab_index`, `checked_changed`). A written
-// name holding '_' names nothing.
+// (`check-box`, `tab-index`); the schema holds them as registered
+// (`check_box`, `tab_index`). A written name holding '_' names nothing.
 //
 // Values, by the property's kind:
 // - boolean: `true` or `false`;
@@ -40,8 +39,36 @@
 // (E815 form_escape_invalid, its detail the escape as written).
 // quote_form_string writes a text so that reading it gives the text back.
 //
-// A handler reference, `on-<interaction>: <handler>;`, names a member of
-// the owner class (owner decision FD-3): one C++ identifier.
+// Bindings (owner rulings FD-6 R1 and R2, 2026-11-07): a bindable
+// property may be bound in its own slot instead of set:
+//
+//   `<property>: bind(<source>[, "<field>"][, <option>]...);`
+//
+// - `<source>` is one C++ identifier: the owner's member the generated code
+//   reads (`owner.<source>`), or the name a run-time load's FormSources
+//   gives. Without a field it is a scalar Value (a boolean property's
+//   Value<bool>, a signed integer's Value<int>, a number's Value<double>);
+//   with `"<field>"`, a string, it is a BindingSource and the field is one
+//   of its records' fields, for a property of any kind.
+// - The direction is the property's default (PropertyDescriptor::
+//   binding_direction): two way for what the user changes through the
+//   control, one way otherwise. `one_way` narrows a two-way default.
+// - `update on-change` or `update on-validate` (the default) chooses when a
+//   two-way text property bound to a field writes back.
+// - `convert <name>` is reserved for a named converter: refused (E999)
+//   until converters exist, so that no interim meaning ships.
+// - `command: bind(<source>)` binds a button's Command (a type whose
+//   FormSchemaType::bind_command is set): commands are state.
+// - The form root's window properties and the properties a parent provides
+//   to its children are not bound.
+// The loader and the generated code bind each property at its place in
+// document order, the source's value taken and the subscription made in
+// one step (form_binding.hpp). A malformed binding is E817, an option not
+// admitted E818.
+//
+// A form never names program code (owner ruling FD-6 R6): an
+// `on-<interaction>:` declaration is refused (E816); behaviour is attached
+// from program logic.
 //
 // Spans (study 10.9): directly inside an object whose type holds spans
 // (FormSchemaType::holds_spans), `span [name] { anchor: <row> <column>;
@@ -57,7 +84,9 @@
 #include "../../theme_language/syntax_tree/theme_syntax_tree.hpp"
 #include "../../theme_language/tokenizer/theme_tokenizer.hpp"
 
+#include "gui_forms/binding/form_binding/form_binding.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/layout/grid_span/grid_span.hpp"
@@ -81,6 +110,14 @@ using FormObjectCreator = Component::Ptr (*)(StableId stable_id);
 // a named function per type, made from the template below.
 using FormSpanDefiner = GridSpanOutcome (*)(Component& owner, const GridSpan& span);
 
+// Binds a Command to an object of a type that takes one (a button's
+// bind(Command&)), for the loader: a named function per type, made from
+// the template below.
+using FormCommandBinder = void (*)(Component& owner, Command& command);
+
+// The name of the slot a document binds a type's Command in (Bindings).
+inline constexpr std::string_view form_command_slot_name = "command";
+
 // One type a document may name, as the run-time registry describes it.
 struct FormSchemaType final {
     // The registered name: `check_box`.
@@ -97,6 +134,11 @@ struct FormSchemaType final {
     // how the loader defines one.
     bool holds_spans{};
     FormSpanDefiner define_span{};
+    // How the loader binds a Command to an object of the type; none for a
+    // type that takes no Command. A type that takes one also lists a
+    // bindable `command` property of kind object (form_command_slot_name),
+    // which a document may only bind.
+    FormCommandBinder bind_command{};
     // The interactions' registered names: `checked_changed`.
     std::vector<std::string> interactions{};
     // How the loader makes one; none for a type a document may describe
@@ -144,8 +186,26 @@ template <typename ControlType>
     return outcome;
 }
 
+// The Command binder of a type whose objects take a Command.
+template <typename ControlType>
+void bind_form_command(Component& owner, Command& command) {
+    ControlType& control = static_cast<ControlType&>(owner);
+    control.bind(command);
+}
+
+// Whether objects of a type take a Command: they have bind(Command&).
+template <typename ControlType>
+inline constexpr bool form_takes_command = requires(ControlType& control, Command& command) {
+    control.bind(command);
+};
+
+// Lists the `command` slot of a type that takes a Command, unless the type
+// already describes a property of that name.
+void add_form_command_slot(FormSchemaType& type);
+
 // A control or component type described from a fresh prototype, with its
-// creator (and its span definer, for a type that holds spans).
+// creator (and its span definer, for a type that holds spans, and its
+// Command binder, for a type that takes a Command).
 template <typename ControlType>
 [[nodiscard]] FormSchemaType form_control_type(std::string name) {
     const std::shared_ptr<ControlType> prototype = make_control<ControlType>(StableId("prototype"));
@@ -154,6 +214,10 @@ template <typename ControlType>
     if constexpr (HoldsGridSpans<ControlType>::value) {
         type.holds_spans = true;
         type.define_span = &define_form_span<ControlType>;
+    }
+    if constexpr (form_takes_command<ControlType>) {
+        type.bind_command = &bind_form_command<ControlType>;
+        add_form_command_slot(type);
     }
     return type;
 }
@@ -212,14 +276,29 @@ enum class FormPropertyProvider : std::uint8_t {
     parent_type,
 };
 
+// A bound property's binding (Bindings above).
+struct FormBinding final {
+    // The source's name: an owner member, or a FormSources name.
+    std::string source{};
+    // The BindingSource field; empty for a scalar Value or a Command.
+    std::string field{};
+    // The property's default, narrowed by `one_way`.
+    PropertyBindingDirection direction{PropertyBindingDirection::one_way};
+    // When a two-way field binding writes back; on_validate unless written.
+    FormUpdateTrigger trigger{FormUpdateTrigger::on_validate};
+};
+
 struct FormProperty final {
     ObjectIndex object{};
     FormPropertyProvider provider{FormPropertyProvider::object_type};
     // The property's position in its provider's list (see provider).
     std::size_t schema_property{};
     theme_language::NodeIndex node{};
-    // Of the property's kind, normalized by its descriptor.
+    // Of the property's kind, normalized by its descriptor; empty when the
+    // property is bound.
     BindingValue value{};
+    // The binding, for a bound property.
+    std::optional<FormBinding> binding{};
 };
 
 // One span block: its container, its value and its node.
@@ -229,22 +308,14 @@ struct FormSpan final {
     theme_language::NodeIndex node{};
 };
 
-struct FormHandler final {
-    ObjectIndex object{};
-    // The registered interaction name and the handler member's name.
-    std::string interaction{};
-    std::string handler{};
-    theme_language::NodeIndex node{};
-};
-
 // Caller-owned: replaced whole by a build that succeeds, left as it was by
 // one that refuses. Objects are in document order, each before its
-// children; spans, properties and handlers are in document order.
+// children; spans and properties (bound ones among them) are in document
+// order.
 struct FormModel final {
     std::vector<FormObject> objects{};
     std::vector<FormSpan> spans{};
     std::vector<FormProperty> properties{};
-    std::vector<FormHandler> handlers{};
 };
 
 enum class FormModelOutcome : std::uint8_t {
@@ -284,7 +355,7 @@ struct FormStringReading final {
 // complete parse of `source` as ThemeSheetForm::form_document, from
 // `tokens` and `lines`; all of them and `schema` are borrowed for the call.
 // Diagnostics are appended to `diagnostics`, with the object's stable ID as
-// their rule and the property or handler as their property.
+// their rule and the property as their property.
 [[nodiscard]] FormModelOutcome build_form_model(const theme_language::ThemeSource& source,
                                                 const theme_language::ThemeTokenBuffer& tokens,
                                                 const theme_language::LineStartTable& lines,

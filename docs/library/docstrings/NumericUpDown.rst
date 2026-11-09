@@ -18,11 +18,17 @@ stable_id
 Properties
 ----------
 minimum : default ``0``
-    The lowest value. Set it together with `maximum` through `set_range`.
+    The lowest value. A minimum above `maximum` raises `maximum` to it, and
+    a value below the new minimum is clamped into the range, raising
+    `value_changed`. A number that is not finite throws
+    `std::invalid_argument`.
 maximum : default ``100``
-    The highest value. Set it together with `minimum` through `set_range`.
+    The highest value. A maximum below `minimum` lowers `minimum` to it, and
+    a value above the new maximum is clamped into the range, raising
+    `value_changed`. A number that is not finite throws
+    `std::invalid_argument`.
 value : default ``0``
-    The current number. `set_value` does not clamp: a value outside the
+    The current number. A write does not clamp: a value outside the
     range, or one that is not finite, throws `std::out_of_range`. The value
     keeps its full precision; `decimal_places` and `hexadecimal` only change
     how it is shown.
@@ -116,8 +122,8 @@ A zoom field that steps in quarters from 25 to 400 percent:
    std::shared_ptr<gf::NumericUpDown> zoom =
        gf::make_control<gf::NumericUpDown>(gf::StableId("view.zoom"));
    (*zoom).set_range(25.0, 400.0);
-   (*zoom).set_increment(25.0);
-   (*zoom).set_value(100.0);   // the editor shows "100"
+   (*zoom).increment = 25.0;
+   (*zoom).value = 100.0;   // the editor shows "100"
 
 Show two decimal places and follow the value from an owner. The Up key steps
 the value while the editor has focus:
@@ -131,8 +137,8 @@ the value while the editor has focus:
 
        PageSetup() {
            (*margin).set_range(0.0, 3.0);
-           (*margin).set_increment(0.25);
-           (*margin).set_decimal_places(2U);
+           (*margin).increment = 0.25;
+           (*margin).decimal_places = 2U;
            gf::on((*margin).value_changed(), *this, &PageSetup::on_margin);
        }
        void on_margin(double value) { inches = value; }
@@ -140,7 +146,7 @@ the value while the editor has focus:
 
    void example() {
        PageSetup setup;
-       (*setup.margin).set_value(1.25);   // the editor shows "1.25"
+       (*setup.margin).value = 1.25;   // the editor shows "1.25"
        (*setup.margin).set_requested_bounds({0.0, 0.0, 120.0, 28.0});
        gf::Window window(setup.margin, {120.0, 28.0});
        window.perform_layout();

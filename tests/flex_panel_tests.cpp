@@ -113,7 +113,7 @@ protected:
 void test_row_grows_and_stretches() {
     std::shared_ptr<FlexPanel> panel = make_control<FlexPanel>(StableId("flex.row"));
     (*panel).padding = {10.0, 5.0, 10.0, 5.0};
-    (*panel).set_column_gap(LengthPercentage{LogicalLength{6.0}, 0.0});
+    (*panel).column_gap = LengthPercentage{LogicalLength{6.0}, 0.0};
     std::vector<std::shared_ptr<Panel>> boxes;
     for (int index = 0; index < 3; ++index) {
         boxes.push_back(box("flex.row." + std::to_string(index), 50.0, 20.0));
@@ -176,9 +176,9 @@ void test_item_records_validate_and_reconcile() {
 
 void test_nested_columns_size_from_content() {
     std::shared_ptr<FlexPanel> column = make_control<FlexPanel>(StableId("flex.column"));
-    (*column).set_flex_direction(FlexDirection::column);
-    (*column).set_row_gap(LengthPercentage{LogicalLength{4.0}, 0.0});
-    (*column).set_align_items(LayoutAlignment::flex_start);
+    (*column).flex_direction = FlexDirection::column;
+    (*column).row_gap = LengthPercentage{LogicalLength{4.0}, 0.0};
+    (*column).align_items = LayoutAlignment::flex_start;
     std::shared_ptr<FlexPanel> inner = make_control<FlexPanel>(StableId("flex.column.row"));
     std::shared_ptr<Panel> first = box("flex.column.row.a", 30.0, 12.0);
     std::shared_ptr<Panel> second = box("flex.column.row.b", 40.0, 18.0);
@@ -220,7 +220,7 @@ void test_documented_examples() {
     require_bounds(*wide, 50.0, 0.0, 50.0, 20.0, "the two-share button");
 
     std::shared_ptr<FlexPanel> bar = make_control<FlexPanel>(StableId("doc.bar"));
-    (*bar).set_align_items(LayoutAlignment::center);
+    (*bar).align_items = LayoutAlignment::center;
     std::shared_ptr<Button> save = make_control<Button>(StableId("doc.bar.save"), "Save");
     std::shared_ptr<Button> close = make_control<Button>(StableId("doc.bar.close"), "Close");
     (*save).set_requested_bounds({0.0, 0.0, 40.0, 20.0});
@@ -241,8 +241,8 @@ void test_documented_examples() {
 void test_ten_thousand_children_counts() {
     constexpr std::size_t count = 10'000U;
     std::shared_ptr<FlexPanel> panel = make_control<FlexPanel>(StableId("flex.many"));
-    (*panel).set_flex_wrap(FlexWrap::wrap);
-    (*panel).set_align_items(LayoutAlignment::flex_start);
+    (*panel).flex_wrap = FlexWrap::wrap;
+    (*panel).align_items = LayoutAlignment::flex_start;
     FlexItemLayout rigid{};
     rigid.flex.shrink = FlexFactor{0.0};
     std::vector<std::shared_ptr<CountingLabel>> labels;
@@ -250,7 +250,7 @@ void test_ten_thousand_children_counts() {
     for (std::size_t index = 0U; index < count; ++index) {
         std::shared_ptr<CountingLabel> label =
             make_control<CountingLabel>(StableId("flex.many." + std::to_string(index)));
-        (*label).set_text("Item " + std::to_string(index));
+        (*label).text = "Item " + std::to_string(index);
         (*panel).add_child(label);
         (*panel).set_item_layout(*label, rigid);
         labels.push_back(std::move(label));
@@ -269,7 +269,7 @@ void test_ten_thousand_children_counts() {
     // One item's text: its one content query misses, and so do the
     // panel's own measure and the plain root's above it (Panel keeps the
     // default propagation); every other item answers from its cache.
-    (*labels[4'321]).set_text("A rather longer item text");
+    (*labels[4'321]).text = "A rather longer item text";
     window.perform_layout();
     std::uint64_t callbacks = 0U;
     for (const std::shared_ptr<CountingLabel>& label : labels) callbacks += (*label).callbacks;
@@ -316,16 +316,16 @@ void test_style_properties() {
     (*flex).add_child(item);
     (*flex).set_property_value("style", BindingValue{std::string{
         "flex-direction: column; flex-wrap: wrap; align-items: center; row-gap: 6px"}});
-    require((*flex).flex_direction() == FlexDirection::column && (*flex).flex_wrap() == FlexWrap::wrap &&
-                (*flex).align_items() == LayoutAlignment::center &&
-                (*flex).row_gap() == LengthPercentage{LogicalLength{6.0}, 0.0},
+    require((*flex).flex_direction.read() == FlexDirection::column && (*flex).flex_wrap.read() == FlexWrap::wrap &&
+                (*flex).align_items.read() == LayoutAlignment::center &&
+                (*flex).row_gap.read() == LengthPercentage{LogicalLength{6.0}, 0.0},
             "flex style: direction, wrap, alignment and gap applied");
     const std::optional<BindingValue> text = (*flex).property_value("style");
     std::shared_ptr<FlexPanel> copy = make_control<FlexPanel>(StableId("flex.style.copy"));
     require(text.has_value(), "flex style: reads back");
     (*copy).set_property_value("style", *text);
-    require((*copy).flex_direction() == FlexDirection::column && (*copy).flex_wrap() == FlexWrap::wrap &&
-                (*copy).align_items() == LayoutAlignment::center && (*copy).row_gap() == (*flex).row_gap(),
+    require((*copy).flex_direction.read() == FlexDirection::column && (*copy).flex_wrap.read() == FlexWrap::wrap &&
+                (*copy).align_items.read() == LayoutAlignment::center && (*copy).row_gap.read() == (*flex).row_gap.read(),
             "flex style: the text read back gives the same settings");
     bool item_field_refused = false;
     try {
@@ -339,7 +339,7 @@ void test_style_properties() {
     } catch (const std::invalid_argument&) {
         error_refused = true;
     }
-    require(item_field_refused && error_refused && (*flex).flex_direction() == FlexDirection::column,
+    require(item_field_refused && error_refused && (*flex).flex_direction.read() == FlexDirection::column,
             "flex style: an item field and a bad value are refused and change nothing");
     (*flex).set_child_property_value(*item, "item_style", BindingValue{std::string{"flex-grow: 2; margin-left: auto"}});
     const FlexItemLayout layout = (*flex).item_layout(*item);

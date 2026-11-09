@@ -57,8 +57,19 @@ std::shared_ptr<const Theme> marked_theme() {
     ThemeDefinition& definition = *held_definition;
     definition.id = "overlay-shadow-marked";
     ControlRoleRecipes& tool_tip = definition.roles[static_cast<std::size_t>(ControlVisualRole::tool_tip)];
+    // A lone solid square fill with no border or effects, which the window
+    // still draws as a filled rectangle of its colour (one rasteriser:
+    // other materials are baked into a part raster), so the paint shows
+    // which family's face the bubble took.
     for (ControlVisualRecipe& recipe : tool_tip.ordinary) {
         recipe.material.fills = {MaterialFillLayer::solid(marker_face)};
+        recipe.material.border.reset();
+        recipe.material.border_edges = MaterialBorderEdges{};
+        recipe.material.corner_radius = 0.0;
+        recipe.material.corner_radii.reset();
+        recipe.material.shadows.clear();
+        recipe.material.glows.clear();
+        recipe.material.keylines.clear();
     }
     const std::shared_ptr<const Theme> theme = Theme::create(definition);
     return theme;

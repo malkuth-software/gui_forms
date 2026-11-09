@@ -3,6 +3,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -37,7 +38,7 @@ std::string node_id(std::string_view view_id, std::string_view item_id) {
 } // namespace
 
 BackstageView::BackstageView(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(true);
+    focusable = true;
     set_paint_plane(PaintPlane::control);
 }
 
@@ -100,20 +101,17 @@ void BackstageView::CommandWatch::operator()(const CommandState&) const {
     if (view != nullptr && (*view).is_alive()) (*view).invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void BackstageView::set_selected_topic(std::size_t item) {
+std::optional<std::size_t> BackstageView::read_view(const decltype(selected_topic)&) const {
+    return selected_;
+}
+
+void BackstageView::write_view(const decltype(selected_topic)&, std::optional<std::size_t> incoming) {
     require_mutable();
+    if (!incoming) throw std::invalid_argument("BackstageView selection cannot be cleared");
+    const std::size_t item = *incoming;
     if (item >= items_.size()) throw std::out_of_range("BackstageView item index is past the end");
     if (items_[item].kind != BackstageItemKind::topic) throw std::invalid_argument("BackstageView item is not a topic");
     select_topic(item);
-}
-
-void BackstageView::set_column_width(double width) {
-    require_mutable();
-    if (!std::isfinite(width) || width < minimum_column || width > maximum_column) {
-        throw std::invalid_argument("BackstageView column width must lie within 48 to 480");
-    }
-    column_width_ = width;
-    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
 const std::string& BackstageView::authored_text(const BackstageItemSpec& item) noexcept {
@@ -171,7 +169,7 @@ void BackstageView::activate_item(std::size_t item) {
 BackstageView::Geometry BackstageView::geometry() const {
     const double scale = effective_text_scale();
     const Rect client = client_rectangle();
-    const double column = std::min(client.width, column_width_ * scale);
+    const double column = std::min(client.width, column_width.read() * scale);
     Geometry placed;
     placed.column = {0.0, 0.0, column, client.height};
     placed.page = {column, 0.0, std::max(0.0, client.width - column), client.height};
@@ -571,5 +569,20 @@ void BackstageView::append_interactions(std::vector<InteractionDeclaration>& int
     Control::append_interactions(interactions);
     interactions.insert(interactions.end(), backstage_interactions.begin(), backstage_interactions.end());
 }
+
+// property_codemod begin BackstageView (tools/property_families/backstage_view.json; generated, do not edit)
+
+void BackstageView::prepare_write(const decltype(column_width)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < minimum_column || incoming > maximum_column) {
+        throw std::invalid_argument("BackstageView column width must lie within 48 to 480");
+    }
+}
+
+void BackstageView::written(const decltype(column_width)&) {
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+// property_codemod end BackstageView
 
 } // namespace gui_forms

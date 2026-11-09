@@ -224,11 +224,10 @@ private:
     Event<const CalendarDateRange&> date_selected_{};
     // property_codemod begin MonthCalendar (tools/property_families/month_calendar.json; generated, do not edit)
 protected:
-    // on_<property>_changed runs after a changed write's touch and raises the
-    // change event; an override calls the base. coerce_<property> runs last
-    // before the compare and may rewrite the incoming value.
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
     virtual void on_font_changed();
-    virtual void coerce_font(FontSpec& incoming);
 
 private:
     friend struct ShowTodayCapability<MonthCalendar>;

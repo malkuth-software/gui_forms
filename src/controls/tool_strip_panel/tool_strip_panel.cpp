@@ -2,6 +2,7 @@
 
 #include "gui_forms/controls/status_strip/status_strip.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -37,14 +38,13 @@ double strip_thickness(ToolStrip& strip, bool vertical, Size available) {
 
 } // namespace
 
-ToolStripPanel::ToolStripPanel(StableId stable_id, ToolStripPanelEdge edge) : Control(std::move(stable_id)) {
-    if (!valid_edge(edge)) throw std::invalid_argument("ToolStripPanel edge is invalid");
-    edge_ = edge;
+ToolStripPanel::ToolStripPanel(StableId stable_id, ToolStripPanelEdge initial_edge) : Control(std::move(stable_id)) {
+    edge = initial_edge;
     set_paint_plane(PaintPlane::control);
 }
 
 bool ToolStripPanel::vertical() const noexcept {
-    const bool result = edge_ == ToolStripPanelEdge::left || edge_ == ToolStripPanelEdge::right;
+    const bool result = edge.read() == ToolStripPanelEdge::left || edge.read() == ToolStripPanelEdge::right;
     return result;
 }
 
@@ -60,20 +60,24 @@ std::vector<std::shared_ptr<ToolStrip>> ToolStripPanel::strips() const {
     return joined;
 }
 
-void ToolStripPanel::set_edge(ToolStripPanelEdge edge) {
+// A vertical edge is refused while a StatusStrip is joined, before anything
+// changes.
+void ToolStripPanel::prepare_write(const decltype(edge)&, ToolStripPanelEdge& incoming) {
     require_mutable();
-    if (!valid_edge(edge)) throw std::invalid_argument("ToolStripPanel edge is invalid");
-    if (edge_ == edge) return;
-    const bool turns_vertical = edge == ToolStripPanelEdge::left || edge == ToolStripPanelEdge::right;
+    if (!valid_edge(incoming)) throw std::invalid_argument("ToolStripPanel edge is invalid");
+    const bool turns_vertical = incoming == ToolStripPanelEdge::left || incoming == ToolStripPanelEdge::right;
+    if (!turns_vertical) return;
     const std::vector<std::shared_ptr<ToolStrip>> joined = strips();
-    if (turns_vertical) {
-        for (const std::shared_ptr<ToolStrip>& strip : joined) {
-            if (status_strip(*strip)) throw std::logic_error("A StatusStrip cannot join a left or right panel");
-        }
+    for (const std::shared_ptr<ToolStrip>& strip : joined) {
+        if (status_strip(*strip)) throw std::logic_error("A StatusStrip cannot join a left or right panel");
     }
-    edge_ = edge;
-    const Orientation orientation = turns_vertical ? Orientation::vertical : Orientation::horizontal;
-    for (const std::shared_ptr<ToolStrip>& strip : joined) (*strip).set_orientation(orientation);
+}
+
+// The joined strips turn to the new edge's orientation.
+void ToolStripPanel::written(const decltype(edge)&) {
+    const Orientation orientation = vertical() ? Orientation::vertical : Orientation::horizontal;
+    const std::vector<std::shared_ptr<ToolStrip>> joined = strips();
+    for (const std::shared_ptr<ToolStrip>& strip : joined) (*strip).orientation = orientation;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -83,7 +87,7 @@ void ToolStripPanel::join(std::shared_ptr<ToolStrip> strip) {
     if (vertical() && status_strip(*strip)) {
         throw std::logic_error("A StatusStrip cannot join a left or right panel");
     }
-    (*strip).set_orientation(vertical() ? Orientation::vertical : Orientation::horizontal);
+    (*strip).orientation = vertical() ? Orientation::vertical : Orientation::horizontal;
     add_child(std::move(strip));
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
@@ -307,5 +311,9 @@ ToolStripPanel::Parts ToolStripPanel::parts() const {
     read_parts(anatomy(), tool_strip_panel_part_fields, published.parts(), record);
     return record;
 }
+
+// property_codemod begin ToolStripPanel (tools/property_families/tool_strip_panel.json; generated, do not edit)
+
+// property_codemod end ToolStripPanel
 
 } // namespace gui_forms

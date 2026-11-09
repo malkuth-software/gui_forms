@@ -121,7 +121,7 @@ void test_classes_property() {
     names.emplace_back(std::string("loud"));
     names.emplace_back(std::string("page-heading"));
     (*label).set_property_value("classes", BindingValue{make_property_collection("String", BindingValueKind::text, names)});
-    require((*label).classes().size() == 2U && (*label).has_class("page-heading") && (*label).has_class("loud"),
+    require((*label).classes.read().size() == 2U && (*label).has_class("page-heading") && (*label).has_class("loud"),
             "the classes property sets the classes, dropping a repeated name");
     const BindingValue read = (*label).property_value("classes").value_or(BindingValue{});
     const PropertyCollectionValue* held = std::get_if<PropertyCollectionValue>(&read);
@@ -135,7 +135,7 @@ void test_classes_property() {
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && (*label).classes().size() == 2U, "an invalid class name is refused and changes nothing");
+    require(refused && (*label).classes.read().size() == 2U, "an invalid class name is refused and changes nothing");
 }
 
 void test_rule_faces() {
@@ -181,7 +181,7 @@ void test_rule_faces() {
     require((*group).background() == group_blue, "the group reports the stable-ID rule's background");
     // An application's own colour in code still stands over the theme
     // (truly inline code, the owner's last layer).
-    (*heading).set_foreground(Color::rgba(1, 2, 3));
+    (*heading).fore_color = Color::rgba(1, 2, 3);
     require((*heading).foreground() == Color::rgba(1, 2, 3), "code's own foreground stands over the rule");
 }
 

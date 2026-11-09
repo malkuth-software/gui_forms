@@ -13,7 +13,7 @@ Parameters
 stable_id
     Identity of the control, unique within its window. Logs, automation and
     semantic actions address the control by this ID.
-text
+initial_text
     Text to display. `&` marks the next character as the mnemonic; write
     `&&` for a literal ampersand. A `\n` starts a new line.
 
@@ -22,17 +22,22 @@ Properties
 text : default ``""``
     The text, including any `&` mnemonic marker. Setting a different value
     raises `text_changed`.
-font
-    The font in use: the one given to `set_font`, or else the theme's font
-    for `text_style_role`. It is scaled by the window's text scale. An invalid
-    specification throws `std::invalid_argument`; `clear_font` returns to the
-    theme's font.
+font : default empty
+    The label's own font. While empty, the label uses the theme's font for
+    `text_style_role`; `resolved_font` reports the font in use. It is scaled
+    by the window's text scale. An invalid specification throws
+    `std::invalid_argument`; writing `std::nullopt` returns to the theme's
+    font.
 text_style_role : default ``TextStyleRole::body``
     Which theme font the label uses when no font is set: body, control,
     caption, heading, title or monospace.
+resolved_font
+    The font in use: `font` when set, or else the theme's font for
+    `text_style_role`, before the window's text scale.
 foreground
-    The text colour: the one given to `set_foreground`, or else the theme's
-    text colour. `clear_foreground` returns to the theme's colour.
+    The text colour in use: `Control`'s `fore_color` cell when set, or else
+    the theme's text colour. Writing `std::nullopt` to `fore_color` returns
+    to the theme's colour.
 alignment : default ``HorizontalAlignment::near``
     Horizontal position of each line: near (left), center or far (right).
 vertical_alignment : default ``VerticalAlignment::center``
@@ -59,14 +64,6 @@ Events
 ------
 text_changed
     Raised after `text` changes. It carries the new text.
-
-Methods
--------
-clear_font
-    Removes the font given to `set_font`, so the label follows the theme.
-clear_foreground
-    Removes the colour given to `set_foreground`, so the label follows the
-    theme.
 
 See Also
 --------
@@ -119,7 +116,7 @@ A wrapped description limited to two lines, in the theme's caption font:
    std::shared_ptr<gf::Label> note = gf::make_control<gf::Label>(
        gf::StableId("export.note"),
        "Exported files keep their names; existing files are never overwritten.");
-   (*note).set_text_style_role(gf::TextStyleRole::caption);
-   (*note).set_text_wrapping(gf::TextWrapping::word);
-   (*note).set_maximum_lines(2U);
+   (*note).text_style_role = gf::TextStyleRole::caption;
+   (*note).text_wrapping = gf::TextWrapping::word;
+   (*note).maximum_lines = 2U;
    (*note).set_requested_bounds({0.0, 0.0, 180.0, 0.0});   // fixed width, measured height

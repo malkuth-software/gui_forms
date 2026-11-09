@@ -17,9 +17,9 @@ stable_id
 anchor
     The control the content is placed against. It must be live, or the
     constructor throws `std::invalid_argument`.
-placement
+initial_placement
     The size and placement rules for the content, by default an
-    `AnchoredOverlayPlacement{}`. Invalid geometry throws
+    `AnchoredOverlayPlacement{}`; it becomes `placement`. Invalid geometry throws
     `std::invalid_argument`.
 
 Properties

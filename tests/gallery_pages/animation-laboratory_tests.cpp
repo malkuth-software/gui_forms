@@ -17,7 +17,7 @@ void test_animation_laboratory(gui_forms::Window& window) {
             "animation pause button must bind the page-owned Command");
     const std::shared_ptr<gui_forms::CheckBox> reduced_box =
         std::dynamic_pointer_cast<CheckBox>(window.find("gallery.animation.reduced"));
-    require(reduced_box != nullptr && !(*reduced_box).checked(),
+    require(reduced_box != nullptr && !(*reduced_box).checked.read(),
             "reduced-motion check box must start from the page Value's false state");
     (*animated_progress).advance_animation(
         FrameClock::now() + std::chrono::milliseconds(410));
@@ -48,6 +48,9 @@ void test_animation_laboratory(gui_forms::Window& window) {
             "effectively hidden reduced progress must remain scheduler-suspended");
     const double reduced_progress_phase = reduced_phase_before;
     click(window, window.find("gallery.animation.pause"));
+    // Focus moving to the pause button scrolls the page to reveal it, a
+    // glide on the window's motion clock; let it finish first.
+    static_cast<void>(window.poll_frame_schedule(FrameClock::now() + std::chrono::seconds(1)));
     require(!window.next_wake().has_value() &&
                 (*pause_button).text.read() == "Resume motion",
             "pausing under reduced motion must quiesce its frame lease");

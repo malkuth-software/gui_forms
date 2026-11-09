@@ -33,11 +33,11 @@ rule 7 theme_sheet type=track_bar part=thumb
   label track-bar::part(thumb)
   transition opacity curve kind=0 duration=50000us easing=0 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
     state when= target=1
-rule 8 stable_id_rule id=spring
+rule 8 theme_sheet id=spring
   label #spring
   transition scale curve kind=1 duration=80000us easing=0 overshoot=0.04598791026026775 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
     state when= target=1
-rule 9 stable_id_rule id=decay
+rule 9 theme_sheet id=decay
   label #decay
   transition opacity curve kind=2 duration=80000us easing=0 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
     state when= target=1

@@ -151,7 +151,7 @@ RibbonToolTipBubble::RibbonToolTipBubble(StableId stable_id, RibbonToolTipBubble
                                          RibbonToolTipLayout layout)
     : Control(std::move(stable_id)), content_(std::move(content)), layout_(std::move(layout)) {
     set_paint_plane(PaintPlane::overlay);
-    set_focusable(false);
+    focusable = false;
 }
 
 void RibbonToolTipBubble::on_paint(Painter& painter, Rect) {

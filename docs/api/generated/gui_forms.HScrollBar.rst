@@ -28,9 +28,9 @@ gui_forms::HScrollBar
 
    :Inherited:
 
-      From :cpp:class:`ScrollBar <gui_forms::ScrollBar>`: properties :cpp:func:`button_extent <gui_forms::ScrollBar::button_extent>`, :cpp:func:`minimum_thumb_extent <gui_forms::ScrollBar::minimum_thumb_extent>`, :cpp:func:`initial_repeat_delay <gui_forms::ScrollBar::initial_repeat_delay>`, :cpp:func:`repeat_interval <gui_forms::ScrollBar::repeat_interval>`, :cpp:func:`decrement_button_bounds <gui_forms::ScrollBar::decrement_button_bounds>`, :cpp:func:`increment_button_bounds <gui_forms::ScrollBar::increment_button_bounds>`, :cpp:func:`track_bounds <gui_forms::ScrollBar::track_bounds>`, :cpp:func:`thumb_bounds <gui_forms::ScrollBar::thumb_bounds>`, :cpp:func:`parts <gui_forms::ScrollBar::parts>`, :cpp:func:`states <gui_forms::ScrollBar::states>`; methods :cpp:func:`part_at <gui_forms::ScrollBar::part_at>`.
+      From :cpp:class:`ScrollBar <gui_forms::ScrollBar>`: properties :cpp:member:`button_extent <gui_forms::ScrollBar::button_extent>`, :cpp:member:`minimum_thumb_extent <gui_forms::ScrollBar::minimum_thumb_extent>`, :cpp:member:`initial_repeat_delay <gui_forms::ScrollBar::initial_repeat_delay>`, :cpp:member:`repeat_interval <gui_forms::ScrollBar::repeat_interval>`, :cpp:func:`decrement_button_bounds <gui_forms::ScrollBar::decrement_button_bounds>`, :cpp:func:`increment_button_bounds <gui_forms::ScrollBar::increment_button_bounds>`, :cpp:func:`track_bounds <gui_forms::ScrollBar::track_bounds>`, :cpp:func:`thumb_bounds <gui_forms::ScrollBar::thumb_bounds>`, :cpp:func:`parts <gui_forms::ScrollBar::parts>`, :cpp:func:`states <gui_forms::ScrollBar::states>`; methods :cpp:func:`part_at <gui_forms::ScrollBar::part_at>`, :cpp:func:`scroll_bar_property_entries <gui_forms::ScrollBar::scroll_bar_property_entries>`.
 
-      From :cpp:class:`RangeControl <gui_forms::RangeControl>`: properties :cpp:func:`minimum <gui_forms::RangeControl::minimum>`, :cpp:func:`maximum <gui_forms::RangeControl::maximum>`, :cpp:func:`value <gui_forms::RangeControl::value>`, :cpp:func:`small_change <gui_forms::RangeControl::small_change>`, :cpp:func:`large_change <gui_forms::RangeControl::large_change>`, :cpp:func:`orientation <gui_forms::RangeControl::orientation>`, :cpp:func:`normalized_value <gui_forms::RangeControl::normalized_value>`, :cpp:func:`style <gui_forms::RangeControl::style>`; events :cpp:func:`range_changed <gui_forms::RangeControl::range_changed>`, :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>`, :cpp:func:`scroll <gui_forms::RangeControl::scroll>`; methods :cpp:func:`bind <gui_forms::RangeControl::bind>`, :cpp:func:`increment <gui_forms::RangeControl::increment>`, :cpp:func:`set_range <gui_forms::RangeControl::set_range>`, :cpp:func:`unbind <gui_forms::RangeControl::unbind>`.
+      From :cpp:class:`RangeControl <gui_forms::RangeControl>`: properties :cpp:member:`value <gui_forms::RangeControl::value>`, :cpp:member:`minimum <gui_forms::RangeControl::minimum>`, :cpp:member:`maximum <gui_forms::RangeControl::maximum>`, :cpp:member:`small_change <gui_forms::RangeControl::small_change>`, :cpp:member:`large_change <gui_forms::RangeControl::large_change>`, :cpp:member:`orientation <gui_forms::RangeControl::orientation>`, :cpp:func:`normalized_value <gui_forms::RangeControl::normalized_value>`, :cpp:func:`style <gui_forms::RangeControl::style>`; events :cpp:func:`range_changed <gui_forms::RangeControl::range_changed>`, :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>`, :cpp:func:`scroll <gui_forms::RangeControl::scroll>`; methods :cpp:func:`bind <gui_forms::RangeControl::bind>`, :cpp:func:`increment <gui_forms::RangeControl::increment>`, :cpp:func:`range_control_property_entries <gui_forms::RangeControl::range_control_property_entries>`, :cpp:func:`set_range <gui_forms::RangeControl::set_range>`, :cpp:func:`unbind <gui_forms::RangeControl::unbind>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -59,8 +59,8 @@ gui_forms::HScrollBar
           gf::make_control<gf::HScrollBar>(gf::StableId("image.horizontal"));
       (*bar).set_requested_bounds({0.0, 400.0, 600.0, 18.0});
       (*bar).set_range(0.0, 1400.0);    // the right edge is visible at 1400
-      (*bar).set_large_change(600.0);
-      (*bar).set_small_change(40.0);
+      (*bar).large_change = 600.0;
+      (*bar).small_change = 40.0;
 
 
    .. rubric:: Construction

@@ -7,17 +7,17 @@ gui_forms::FlagsValueEditor
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: FlagsValueEditor final : public Panel
+.. cpp:class:: FlagsValueEditor final : public Panel, public FlagsValueEditorCapabilities<FlagsValueEditor>
 
    ``#include <gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp>``
 
    A drop-down field that edits a flags enumeration as a list of check boxes.
 
-   A flags value editor shows the names of the flags set in its :cpp:func:`value <gui_forms::FlagsValueEditor::value>`, such
+   A flags value editor shows the names of the flags set in its :cpp:member:`value <gui_forms::FlagsValueEditor::value>`, such
    as "Top, Left", in a field with a drop-down arrow. Opening it shows a list
    with a check box for each single flag; checking or unchecking one commits
    the new combination at once, and the list stays open until the user clicks
-   outside it or presses Escape. The set of flags comes from its :cpp:func:`descriptor <gui_forms::FlagsValueEditor::descriptor>`.
+   outside it or presses Escape. The set of flags comes from its :cpp:member:`descriptor <gui_forms::FlagsValueEditor::descriptor>`.
    :cpp:class:`PropertyGrid <gui_forms::PropertyGrid>` uses it for flags properties such as :cpp:class:`Control <gui_forms::Control>` anchoring. For
    an enumeration where exactly one choice applies, use a :cpp:class:`ComboBox <gui_forms::ComboBox>`.
 
@@ -37,7 +37,7 @@ gui_forms::FlagsValueEditor
          :cpp:class:`PropertyEnumDescriptor <gui_forms::PropertyEnumDescriptor>`, with a nonempty type name and 1 to 256 choices
          whose names are nonempty and distinct; it must have ``flags`` set and at
          least one choice whose value is a single positive bit. Otherwise the
-         constructor and the setter throw ``std::invalid_argument``. Setting a new descriptor converts the current
+         constructor and a write throw ``std::invalid_argument``. Setting a new descriptor converts the current
          value to it, and throws ``std::invalid_argument`` if the value has a flag
          the new descriptor lacks. An open drop-down is rebuilt.
 
@@ -46,12 +46,12 @@ gui_forms::FlagsValueEditor
          descriptor's, and only its numeric value counts: the name is rewritten
          as the name of a choice with exactly that value, or else as the names of
          the single-bit choices that are set, joined with ", ". A value with a
-         bit that no choice declares throws ``std::invalid_argument``. :cpp:func:`set_value <gui_forms::FlagsValueEditor::set_value>`
+         bit that no choice declares throws ``std::invalid_argument``. A write
          does not raise :cpp:func:`value_changed <gui_forms::FlagsValueEditor::value_changed>`.
 
       **dropped_down** : ``bool``, default ``false``
          Whether the list is open. Opening it needs the editor to be in a window;
-         in a control that is not attached, ``set_dropped_down(true)`` leaves it
+         in a control that is not attached, writing true to :cpp:member:`dropped_down <gui_forms::FlagsValueEditor::dropped_down>` leaves it
          closed. In a window, opening it while the editor is hidden or disabled
          throws ``std::logic_error``.
 
@@ -68,8 +68,8 @@ gui_forms::FlagsValueEditor
 
       **value_changed** : ``Event<const PropertyEnumValue&>``
          Raised when the user checks or unchecks a flag in the list and the value
-         changes. It carries the new value. It is not raised by :cpp:func:`set_value <gui_forms::FlagsValueEditor::set_value>` or
-         :cpp:func:`set_descriptor <gui_forms::FlagsValueEditor::set_descriptor>`.
+         changes. It carries the new value. It is not raised by writes to :cpp:member:`value <gui_forms::FlagsValueEditor::value>` or
+         :cpp:member:`descriptor <gui_forms::FlagsValueEditor::descriptor>`.
 
       **drop_down_changed** : ``Event<bool>``
          Raised after the list opens, with ``true``, and after it closes, with
@@ -79,9 +79,18 @@ gui_forms::FlagsValueEditor
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
+
+   .. rubric:: Methods
+
+   .. list-table::
+      :class: autosummary longtable
+      :widths: 35 65
+
+      * - :cpp:func:`flags_value_editor_property_entries <gui_forms::FlagsValueEditor::flags_value_editor_property_entries>`
+        -  
 
    .. seealso::
 
@@ -100,7 +109,7 @@ gui_forms::FlagsValueEditor
    .. rubric:: Notes
 
    :cpp:func:`value_changed <gui_forms::FlagsValueEditor::value_changed>` is raised only when the user commits an edit in the list,
-   never when :cpp:func:`set_value <gui_forms::FlagsValueEditor::set_value>` changes the value. An application that changes the
+   never when a write to :cpp:member:`value <gui_forms::FlagsValueEditor::value>` changes it. An application that changes the
    value itself already knows the new value; observe :cpp:func:`value_changed <gui_forms::FlagsValueEditor::value_changed>` to learn
    what the user chose.
 
@@ -136,8 +145,8 @@ gui_forms::FlagsValueEditor
       std::shared_ptr<gf::FlagsValueEditor> editor =
           gf::make_control<gf::FlagsValueEditor>(
               gf::StableId("frame.edges"), edges, gf::PropertyEnumValue{"Edges", "", 3});
-      // (*editor).value().name is "Top, Left"
-      (*editor).set_value(gf::PropertyEnumValue{"Edges", "", 0});   // "None", no event
+      // (*editor).value.read().name is "Top, Left"
+      (*editor).value = gf::PropertyEnumValue{"Edges", "", 0};   // "None", no event
 
    Open the list in a window and check a flag, as the user would. The change
    commits at once and raises :cpp:func:`value_changed <gui_forms::FlagsValueEditor::value_changed>`:
@@ -169,12 +178,12 @@ gui_forms::FlagsValueEditor
           (*root).add_child(frame.edges);
           gf::Window window(root, {320.0, 240.0});
           window.perform_layout();
-          (*frame.edges).set_dropped_down(true);
+          (*frame.edges).dropped_down = true;
           std::shared_ptr<gf::CheckedListBox> list = std::dynamic_pointer_cast<gf::CheckedListBox>(
               window.find("frame.edges.overlay.list"));
           if (list) (*list).set_item_checked(3U, true);   // the "Right" row
           // drawn is "Top, Left, Right"
-          (*frame.edges).set_dropped_down(false);
+          (*frame.edges).dropped_down = false;
       }
 
 
@@ -182,58 +191,42 @@ gui_forms::FlagsValueEditor
 
    .. cpp:function:: explicit FlagsValueEditor(StableId stable_id)
 
-   .. cpp:function:: FlagsValueEditor(StableId stable_id, PropertyEnumDescriptor descriptor, PropertyEnumValue value)
+   .. cpp:function:: FlagsValueEditor(StableId stable_id, PropertyEnumDescriptor initial_descriptor, PropertyEnumValue initial_value)
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: const PropertyEnumDescriptor& descriptor() const noexcept
+   .. cpp:member:: PropertyEnumDescriptor descriptor
 
       The enumeration: a type name and its choices. It must be a valid
       :cpp:class:`PropertyEnumDescriptor <gui_forms::PropertyEnumDescriptor>`, with a nonempty type name and 1 to 256 choices
       whose names are nonempty and distinct; it must have ``flags`` set and at
       least one choice whose value is a single positive bit. Otherwise the
-      constructor and the setter throw ``std::invalid_argument``. Setting a new descriptor converts the current
+      constructor and a write throw ``std::invalid_argument``. Setting a new descriptor converts the current
       value to it, and throws ``std::invalid_argument`` if the value has a flag
       the new descriptor lacks. An open drop-down is rebuilt.
 
-   .. cpp:function:: void set_descriptor(PropertyEnumDescriptor descriptor)
-
-      Sets :cpp:func:`descriptor <gui_forms::FlagsValueEditor::descriptor>`; see the property's description above.
-
-   .. cpp:function:: const PropertyEnumValue& value() const noexcept
+   .. cpp:member:: PropertyEnumValue value
 
       The current value as a :cpp:class:`PropertyEnumValue <gui_forms::PropertyEnumValue>`. Its type name must match the
       descriptor's, and only its numeric value counts: the name is rewritten
       as the name of a choice with exactly that value, or else as the names of
       the single-bit choices that are set, joined with ", ". A value with a
-      bit that no choice declares throws ``std::invalid_argument``. :cpp:func:`set_value <gui_forms::FlagsValueEditor::set_value>`
+      bit that no choice declares throws ``std::invalid_argument``. A write
       does not raise :cpp:func:`value_changed <gui_forms::FlagsValueEditor::value_changed>`.
 
-   .. cpp:function:: void set_value(PropertyEnumValue value)
-
-      Sets :cpp:func:`value <gui_forms::FlagsValueEditor::value>`; see the property's description above.
-
-   .. cpp:function:: bool dropped_down() const noexcept
+   .. cpp:member:: bool dropped_down
 
       Whether the list is open. Opening it needs the editor to be in a window;
-      in a control that is not attached, ``set_dropped_down(true)`` leaves it
+      in a control that is not attached, writing true to :cpp:member:`dropped_down <gui_forms::FlagsValueEditor::dropped_down>` leaves it
       closed. In a window, opening it while the editor is hidden or disabled
       throws ``std::logic_error``.
 
-   .. cpp:function:: void set_dropped_down(bool dropped_down)
-
-      Sets :cpp:func:`dropped_down <gui_forms::FlagsValueEditor::dropped_down>`; see the property's description above.
-
-   .. cpp:function:: double overlay_width() const noexcept
+   .. cpp:member:: double overlay_width
 
       The width of the list, from 80 to 1024; a width outside that range, or
       one that is not finite, throws ``std::invalid_argument``. The list is never
       wider than the window. An open list is rebuilt at the new width.
-
-   .. cpp:function:: void set_overlay_width(double width)
-
-      Sets :cpp:func:`overlay_width <gui_forms::FlagsValueEditor::overlay_width>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 
@@ -245,13 +238,18 @@ gui_forms::FlagsValueEditor
    .. cpp:function:: Event<const PropertyEnumValue&>& value_changed() noexcept
 
       Raised when the user checks or unchecks a flag in the list and the value
-      changes. It carries the new value. It is not raised by :cpp:func:`set_value <gui_forms::FlagsValueEditor::set_value>` or
-      :cpp:func:`set_descriptor <gui_forms::FlagsValueEditor::set_descriptor>`.
+      changes. It carries the new value. It is not raised by writes to :cpp:member:`value <gui_forms::FlagsValueEditor::value>` or
+      :cpp:member:`descriptor <gui_forms::FlagsValueEditor::descriptor>`.
 
    .. cpp:function:: Event<bool>& drop_down_changed() noexcept
 
       Raised after the list opens, with ``true``, and after it closes, with
       ``false``, however that happened.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static const std::array<PropertyEntry, flags_value_editor_property_count>& flags_value_editor_property_entries() noexcept
 
 
    .. rubric:: Extension points
@@ -266,7 +264,7 @@ gui_forms::FlagsValueEditor
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
-   .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value) override
+   .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view action_value) override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
@@ -283,3 +281,9 @@ gui_forms::FlagsValueEditor
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t flags_value_editor_property_count
+
+      FlagsValueEditor's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 4U``.

@@ -60,6 +60,11 @@ struct PresentationSettings final {
     // default. Between 1 and maximum_double_click_milliseconds.
     std::uint32_t double_click_milliseconds{default_double_click_milliseconds};
     SettingOrigin double_click_origin{SettingOrigin::default_value};
+    // The drag and hover rectangles and the hover time (PointerSettings),
+    // from the host where it reports them (HostInputSettingsEvent),
+    // otherwise the Windows-like defaults. Like the double-click interval
+    // they are the host's alone.
+    PointerSettings pointer{};
     // The preferred colour scheme (EC3). A change re-resolves every part:
     // a theme's rules may hold for one scheme only.
     ColourScheme colour_scheme{ColourScheme::light};
@@ -73,9 +78,50 @@ struct PresentationSettings final {
                left.reduced_transparency == right.reduced_transparency &&
                left.double_click_milliseconds == right.double_click_milliseconds &&
                left.double_click_origin == right.double_click_origin &&
+               left.pointer == right.pointer &&
                left.colour_scheme == right.colour_scheme;
     }
 };
+
+// Throws std::invalid_argument for settings no window takes: a text scale
+// outside 0.5 to 4.0 or not finite, a double-click interval outside 1 to
+// maximum_double_click_milliseconds, pointer settings that are not
+// valid_pointer_settings, or an origin or scheme outside its enum.
+void validate_presentation_settings(const PresentationSettings& settings);
+
+// The presentation fields one window overrides (APP_WINDOW_RULES_DESIGN
+// A.2): each set field wins over the window's own settings, which come from
+// its application or its host; an unset field follows them. The
+// double-click interval and the pointer settings are the host's alone and
+// have no override.
+struct PresentationOverrides final {
+    std::optional<double> text_scale{};
+    std::optional<bool> high_contrast{};
+    std::optional<bool> reduced_motion{};
+    std::optional<bool> sound_enabled{};
+    std::optional<bool> ambient_motion{};
+    std::optional<bool> reduced_transparency{};
+    std::optional<ColourScheme> colour_scheme{};
+
+    // Whether no field is set.
+    [[nodiscard]] bool empty() const noexcept {
+        const bool none = !text_scale && !high_contrast && !reduced_motion && !sound_enabled && !ambient_motion &&
+                          !reduced_transparency && !colour_scheme;
+        return none;
+    }
+
+    friend bool operator==(const PresentationOverrides& left, const PresentationOverrides& right) noexcept {
+        return left.text_scale == right.text_scale && left.high_contrast == right.high_contrast &&
+               left.reduced_motion == right.reduced_motion && left.sound_enabled == right.sound_enabled &&
+               left.ambient_motion == right.ambient_motion &&
+               left.reduced_transparency == right.reduced_transparency &&
+               left.colour_scheme == right.colour_scheme;
+    }
+};
+
+// `settings` with each field `overrides` sets replaced.
+[[nodiscard]] PresentationSettings overridden_presentation(PresentationSettings settings,
+                                                           const PresentationOverrides& overrides) noexcept;
 
 // The screen area one presentation copied (stage DP): device pixels, the
 // rectangles they were copied in, and the time spent only copying them
@@ -84,6 +130,15 @@ struct PresentedArea final {
     std::uint64_t device_pixels{};
     std::uint64_t rectangles{};
     std::uint64_t copy_nanoseconds{};
+};
+
+// A scroll copy (SurfaceRoot::take_scroll_copies): the host moves the pixels
+// it holds inside `clip` by `offset`, both in window coordinates and whole
+// device pixels, before painting the damage taken with it. Pixels moved from
+// outside the clip are never needed: the damage covers what the copy exposed.
+struct ScrollCopy final {
+    Rect clip{};
+    Point offset{};
 };
 
 // Immutable host placement for the newest generation of one live surface.

@@ -40,6 +40,12 @@ Types
      - One child's value, writable: borrows the capability and the child.
    * - :cpp:class:`ChildPropertyView::Reading <gui_forms::ChildPropertyView::Reading>`
      - One child's value through a const container: the reads only.
+   * - :cpp:class:`CollectionCell <gui_forms::CollectionCell>`
+     - A collection property's only storage, as the single member of its capability: PropertyCell's shape for a sequence edited in place (design accepted 2026-11-07).
+   * - :cpp:class:`CollectionDirty <gui_forms::CollectionDirty>`
+     - A collection's pending damage between two settles (design: settled at flush, like the control table's DirtyBitset): the replaced positions, as bits, and a structural watermark, the lowest position an insertion, erasure or assignment touched.
+   * - :cpp:class:`CollectionEdit <gui_forms::CollectionEdit>`
+     - One edit's description, made only by the named factories and read only through the queries, so an edit is always one of the four shapes.
    * - :cpp:class:`ControlBindingsCollection <gui_forms::ControlBindingsCollection>`
      - ControlBindingsCollection owns the unique active binding for each canonical target property and disposes the set deterministically.
    * - :cpp:class:`CurrencyManager <gui_forms::CurrencyManager>`
@@ -62,6 +68,8 @@ Types
      - PropertyEnumDescriptor supplies bounded named choices and explicit flags semantics for descriptor-aware conversion.
    * - :cpp:class:`PropertyEnumValue <gui_forms::PropertyEnumValue>`
      - PropertyEnumValue preserves declared enum type, canonical symbolic name, and signed numeric representation.
+   * - :cpp:class:`PropertyLink <gui_forms::PropertyLink>`
+     -  
    * - :cpp:class:`PropertyObjectData <gui_forms::PropertyObjectData>`
      - PropertyObjectData is shared immutable type identity plus bounded ordered members.
    * - :cpp:class:`PropertyObjectMember <gui_forms::PropertyObjectMember>`
@@ -443,6 +451,133 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: template <typename Element, typename Capability> CollectionCell final
+
+   ``#include <gui_forms/binding/collection_cell/collection_cell.hpp>``
+
+   A collection property's only storage, as the single member of its capability: PropertyCell's shape for a sequence edited in place (design accepted 2026-11-07). The read is ``items.read()`` (a span) or ``items[i]``; the writes are ``items = elements``, ``items.insert(i, x)``, ``items.append(x)`` or ``items.append(elements)`` (an insertion at the end), ``items.erase(i, n)``, ``items.replace(i, x)`` and ``items.clear()``. Each write checks its positions (std::out_of_range), skips an edit that changes nothing (an equal assignment or replacement, an empty erasure), reserves what the store needs (capacity only: nothing observable changes), then calls ``Capability::prepare_edit(capability, edit, incoming)``, where the declaring control checks and may coerce the incoming elements and readies its own per-element state; a throw there refuses the edit and the elements have not changed. Nothing fails after prepare_edit returns: the cell stores (Element moves without throwing), records the edit in its dirty record, and calls ``Capability::written(capability, edit)``, so state the hook readied is always followed by its written. An edit of the same collection made while its prepare_edit runs (by a handler the hook raised) refuses the outer edit with std::logic_error. Writes to an element's fields and reorders the declaring control makes itself go through the capability's protected owner operations, which record their damage and raise no hooks. The declaring control takes the dirty record at its flush through the capability (``take_dirty``) and intersects it with what it shows. Element: copyable or movable, comparable with ==, nothrow movable. Capability: the standard-layout class whose only member this cell is.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: CollectionCell()
+
+      Starts empty. There is no constructor from elements, so a braced list on the right of ``items = {...}`` can only be the elements.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::span<const Element> read() const noexcept
+
+      The read.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void insert(std::size_t index, Element element)
+
+      Inserts ``element`` before the element at ``index`` (at the end when ``index`` is the length).
+
+   .. cpp:function:: void append(Element element)
+
+      Appends ``element``: the insertion at the end (Windows Forms' Items.Add).
+
+   .. cpp:function:: void append(std::vector<Element> elements)
+
+      Appends every element of ``elements``, in order, as one insertion at the end; an empty sequence changes nothing.
+
+   .. cpp:function:: void erase(std::size_t index, std::size_t count)
+
+      Erases ``count`` elements from ``index``; an empty erasure changes nothing.
+
+   .. cpp:function:: void replace(std::size_t index, Element element)
+
+      Replaces the element at ``index``; an equal value changes nothing.
+
+   .. cpp:function:: void clear()
+
+      Erases every element: an assignment of nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: CollectionDirty final
+
+   ``#include <gui_forms/binding/collection_cell/collection_cell.hpp>``
+
+   A collection's pending damage between two settles (design: settled at flush, like the control table's DirtyBitset): the replaced positions, as bits, and a structural watermark, the lowest position an insertion, erasure or assignment touched. Every position at or past the watermark is dirty (its element moved or is new), so a bit there says nothing more and is dropped at the take. Edits between two takes coalesce: the lowest watermark wins and the bits unite. Used on its control's thread.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool any() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void reserve(std::size_t length)
+
+      Makes room for replacement bits below ``length``; existing bits keep. The only allocation; called before the edit is stored.
+
+   .. cpp:function:: void record(const CollectionEdit& edit) noexcept
+
+      Records an edit already stored. A replacement needs room reserved for its position; a position past the bitset's reach (2^32) lowers the watermark instead.
+
+   .. cpp:function:: std::optional<std::size_t> take(std::vector<std::uint32_t>& replaced)
+
+      Appends the replaced positions below the watermark to ``replaced``, in increasing order (the caller's storage, reused; not emptied first), clears the record and returns the watermark, or nullopt when no structural edit is pending. If appending fails, the record becomes "everything dirty" (watermark 0) for the next take, and the failure propagates.
+
+   .. cpp:function:: void clear() noexcept
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: CollectionEdit final
+
+   ``#include <gui_forms/binding/collection_cell/collection_cell.hpp>``
+
+   One edit's description, made only by the named factories and read only through the queries, so an edit is always one of the four shapes. The collection's hooks receive it: prepare_edit before anything changes, written after the elements are stored.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: CollectionEditKind kind() const noexcept
+
+   .. cpp:function:: std::size_t index() const noexcept
+
+      The first position the edit touched: 0 for an assignment.
+
+   .. cpp:function:: std::size_t count() const noexcept
+
+      The elements assigned, inserted or erased; 1 for a replacement.
+
+   .. cpp:function:: bool structural() const noexcept
+
+      Whether positions moved or the length changed: every kind but replace.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static CollectionEdit assigned(std::size_t count) noexcept
+
+      The whole sequence replaced by :cpp:func:`count <gui_forms::CollectionEdit::count>` elements (also clear(), with 0).
+
+   .. cpp:function:: static CollectionEdit inserted(std::size_t index, std::size_t count) noexcept
+
+      :cpp:func:`count <gui_forms::CollectionEdit::count>` elements inserted before the element at :cpp:func:`index <gui_forms::CollectionEdit::index>`.
+
+   .. cpp:function:: static CollectionEdit erased(std::size_t index, std::size_t count) noexcept
+
+      :cpp:func:`count <gui_forms::CollectionEdit::count>` elements erased from :cpp:func:`index <gui_forms::CollectionEdit::index>`.
+
+   .. cpp:function:: static CollectionEdit replaced(std::size_t index) noexcept
+
+      The element at :cpp:func:`index <gui_forms::CollectionEdit::index>` replaced by another value.
+
+   .. cpp:function:: std::optional<std::size_t> remap(std::size_t before) const noexcept
+
+      Where an element at position ``before`` is after the edit, or nullopt when the edit removed it. An assignment keeps the positions below its new length (the elements there are new; the position is what a selection without stable identities keeps); a replacement keeps every position.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: ControlBindingsCollection final
 
    ``#include <gui_forms/binding/control_bindings_collection/control_bindings_collection.hpp>``
@@ -780,6 +915,14 @@ Types
 
       Whether the value is the control's content although its kind is a presentation kind (colour, font): a typography specimen's font is what it shows. A form document may set such a property; it refuses other colour and font properties (form_presentation_property) and leaves them to the project theme (owner ruling of 2026-11-04).
 
+   .. cpp:member:: PropertyBindingDirection binding_direction
+
+      A form binding's default direction (PropertyBindingDirection). Default: ``{PropertyBindingDirection::one_way}``.
+
+   .. cpp:member:: bool assignable_member
+
+      Whether the declaring class has a public cell or view member named ``name`` whose assignment is the property's table write, given the value converted with PropertyValueTraits (assigned_property_value); for a child property, the container's child view subscripted by the child. The form generator assigns such a property (``(*control).text = ...``, CLOSURE P-6) and writes any other through set_property_value.
+
    .. cpp:member:: std::shared_ptr<const PropertyEnumDescriptor> enumeration
 
    .. cpp:member:: std::vector<BindingValue> standard_values
@@ -875,6 +1018,17 @@ Types
    .. cpp:member:: std::string name
 
    .. cpp:member:: std::int64_t value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: PropertyLink
+
+   ``#include <gui_forms/binding/property_link/property_link.hpp>``
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: PropertyLink() = default
 
 .. cpp:namespace:: gui_forms
 
@@ -1149,6 +1303,20 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: CollectionEditKind
+
+   ``#include <gui_forms/binding/collection_cell/collection_cell.hpp>``
+
+   .. cpp:enumerator:: assign
+
+   .. cpp:enumerator:: insert
+
+   .. cpp:enumerator:: erase
+
+   .. cpp:enumerator:: replace
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ControlUpdateMode
 
    ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
@@ -1171,6 +1339,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: FormUpdateTrigger
+
+   ``#include <gui_forms/binding/form_binding/form_binding.hpp>``
+
+   .. cpp:enumerator:: on_validate
+
+   .. cpp:enumerator:: on_change
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: NumberFormatKind
 
    ``#include <gui_forms/binding/number_format/number_format.hpp>``
@@ -1186,6 +1364,16 @@ Enumerations
    .. cpp:enumerator:: exponential
 
    .. cpp:enumerator:: general
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PropertyBindingDirection
+
+   ``#include <gui_forms/binding/value/binding_value.hpp>``
+
+   .. cpp:enumerator:: one_way
+
+   .. cpp:enumerator:: two_way
 
 .. cpp:namespace:: gui_forms
 
@@ -1220,6 +1408,26 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/binding/form_binding/form_binding.hpp>``
+
+.. cpp:function:: void bind_form_value(Control& target, std::string_view property, Value<bool>& source, PropertyBindingDirection direction)
+
+   Binds ``property`` of ``target`` to ``source``. See the header comment.
+
+.. cpp:function:: void bind_form_value(Control& target, std::string_view property, Value<int>& source, PropertyBindingDirection direction)
+
+.. cpp:function:: void bind_form_value(Control& target, std::string_view property, Value<double>& source, PropertyBindingDirection direction)
+
+.. cpp:function:: template <BindingValueKind Kind, typename T> void bind_form_value(Control& target, std::string_view property, Value<T>& source, PropertyBindingDirection direction)
+
+   The generated code's spelling: :cpp:enum:`Kind <gui_forms::PagePlacement::Kind>` is the bound property's kind as the form schema recorded it, so a Value whose type does not carry that kind does not compile.
+
+.. cpp:function:: void bind_form_field(Control& target, std::string_view property, const std::shared_ptr<BindingSource>& source, std::string field, PropertyBindingDirection direction, FormUpdateTrigger trigger)
+
+   Binds ``property`` of ``target`` to the field ``field`` of ``source``'s current record. ``trigger`` matters only for a two-way binding.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/binding/number_format/number_format.hpp>``
 
 .. cpp:function:: std::optional<NumberFormat> parse_number_format(std::string_view text) noexcept
@@ -1245,6 +1453,10 @@ Functions, constants and aliases
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/binding/property_cell_entry/property_cell_entry.hpp>``
+
+.. cpp:function:: template <typename Member> typename AssignedMemberValue<std::remove_cvref_t<Member>>::Type assigned_property_value(const BindingValue& value)
+
+   ``value`` as the value of the cell, view or child view ``Member`` (its declared type, as ``decltype((*control).text)`` spells it): converted to the member's PropertyType with the property conversion rules, then through PropertyValueTraits, as write_cell_entry converts a table write. Generated forms assign a property with it (CLOSURE P-6), as in ``(*made.ok).text = gui_forms::assigned_property_value<decltype((*made.ok).text)>(gui_forms::BindingValue{std::string("OK")});``. Throws std::invalid_argument when ``value`` has no form of the member's type, or what the traits throw for a value outside a narrower type.
 
 .. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer Member> BindingValue read_cell_entry(const Component& owner)
 
@@ -1273,6 +1485,10 @@ Functions, constants and aliases
 .. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer ShouldSerialize> bool should_serialize_member_entry(const Component& owner)
 
    A declaring-class member function as an entry's should_serialize.
+
+.. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer Origin> PropertyValueOrigin origin_member_entry(const Component& owner)
+
+   A declaring-class member function as an entry's origin (``PropertyValueOrigin f() const noexcept``).
 
 .. cpp:namespace:: gui_forms
 

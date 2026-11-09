@@ -5,6 +5,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -17,127 +18,36 @@
 namespace gui_forms {
 
 PictureBox::PictureBox(StableId stable_id) : Panel(std::move(stable_id)) {
-    set_background(Color::rgba(255, 255, 255));
-    PropertyDescriptor image;
-    image.name = "image";
-    image.kind = BindingValueKind::image;
-    image.category = "Appearance";
-    image.description = "Generational image resource displayed by this control.";
-    image.default_value = BindingValue{ImageId{}};
-    image.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
-    define_bindable_property({
-        std::move(image),
-        detail::BindingMemberGetter<PictureBox, ImageId>(
-            *this, &PictureBox::image_),
-        detail::DirectPropertySetter<PictureBox, ImageId>(
-            *this, &PictureBox::set_image),
-        detail::EventChangeConnector<ImageId>(image_changed_),
-        detail::BoundMemberFunction<void (PictureBox::*)()>(
-            *this, &PictureBox::clear_image),
-        detail::BoundMemberFunction<
-            bool (PictureBox::*)() const noexcept>(
-                *this, &PictureBox::should_serialize_image)});
+    // A field's ground: the theme's editor role, resolved per colour scheme
+    // (no colour written here, which would fix the light paper in every
+    // scheme).
+    visual_role = ControlVisualRole::editor;
 
-    PropertyDescriptor size_mode;
-    size_mode.name = "size_mode";
-    size_mode.kind = BindingValueKind::enumeration;
-    size_mode.category = "Appearance";
-    size_mode.description = "Image placement and scaling policy.";
-    size_mode.default_value = BindingValue{PropertyEnumValue{
-        "picture_box_size_mode", "normal", 0}};
-    size_mode.invalidation_effects =
-        Dirty::measure | Dirty::paint | Dirty::semantics;
-    size_mode.bindable = false;
-    size_mode.enumeration = picture_box_size_mode_enum();
-    define_bindable_property({
-        std::move(size_mode),
-        detail::BoundMemberFunction<BindingValue (PictureBox::*)() const>(
-            *this, &PictureBox::size_mode_property_value),
-        detail::BoundMemberFunction<
-            void (PictureBox::*)(const BindingValue&)>(
-                *this, &PictureBox::set_size_mode_property_value),
-        {}, {}, {}});
-
-    PropertyDescriptor opacity;
-    opacity.name = "image_opacity";
-    opacity.kind = BindingValueKind::number;
-    opacity.category = "Appearance";
-    opacity.description = "Image opacity from zero through one.";
-    opacity.default_value = BindingValue{1.0};
-    opacity.invalidation_effects = Dirty::paint | Dirty::semantics;
-    opacity.bindable = false;
-    define_bindable_property({
-        std::move(opacity),
-        detail::BindingMemberGetter<PictureBox, double>(
-            *this, &PictureBox::image_opacity_),
-        detail::DirectPropertySetter<PictureBox, double>(
-            *this, &PictureBox::set_image_opacity), {}, {}, {}});
 }
 
 bool PictureBox::should_serialize_image() const noexcept {
-    return image_.value != 0U;
-}
-
-BindingValue PictureBox::size_mode_property_value() const {
-    return picture_box_size_mode_value(size_mode_);
-}
-
-void PictureBox::set_size_mode_property_value(const BindingValue& value) {
-    set_size_mode(static_cast<PictureBoxSizeMode>(
-        std::get<PropertyEnumValue>(value).value));
-}
-
-void PictureBox::set_image(ImageId image) {
-    require_mutable();
-    if (image_ == image) {
-        return;
-    }
-    image_ = image;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-    publish_change(image_changed_, image_);
+    return image.read().value != 0U;
 }
 
 void PictureBox::clear_image() {
-    set_image({});
+    image = ImageId{};
 }
 
 bool PictureBox::has_valid_image() const noexcept {
-    return window() != nullptr && image_.value != 0U &&
-           (*window()).image_resources().find(image_).has_value();
+    return window() != nullptr && image.read().value != 0U &&
+           (*window()).image_resources().find(image.read()).has_value();
 }
 
 Size PictureBox::image_size() const noexcept {
-    if (window() == nullptr || image_.value == 0U) {
+    if (window() == nullptr || image.read().value == 0U) {
         return {};
     }
-    const std::optional<ImageResourceView> resource = (*window()).image_resources().find(image_);
+    const std::optional<ImageResourceView> resource = (*window()).image_resources().find(image.read());
     if (!resource) {
         return {};
     }
     return {static_cast<double>((*resource).metadata.width),
             static_cast<double>((*resource).metadata.height)};
-}
-
-void PictureBox::set_size_mode(PictureBoxSizeMode mode) {
-    require_mutable();
-    if (size_mode_ == mode) {
-        return;
-    }
-    size_mode_ = mode;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-}
-
-void PictureBox::set_image_opacity(double opacity) {
-    require_mutable();
-    if (!std::isfinite(opacity) || opacity < 0.0 || opacity > 1.0) {
-        throw std::invalid_argument(
-            "PictureBox image opacity must be finite and between zero and one");
-    }
-    if (image_opacity_ == opacity) {
-        return;
-    }
-    image_opacity_ = opacity;
-    invalidate(Dirty::paint | Dirty::semantics);
 }
 
 Rect PictureBox::content_bounds() const noexcept {
@@ -153,7 +63,7 @@ Rect PictureBox::image_bounds() const noexcept {
     if (source.width <= 0.0 || source.height <= 0.0 || content.empty()) {
         return {};
     }
-    switch (size_mode_) {
+    switch (size_mode.read()) {
     case PictureBoxSizeMode::stretch_image:
         return content;
     case PictureBoxSizeMode::center_image:
@@ -178,7 +88,7 @@ Rect PictureBox::image_bounds() const noexcept {
 
 Size PictureBox::measure(Size available) {
     const Rect requested = requested_bounds();
-    if (size_mode_ == PictureBoxSizeMode::auto_size) {
+    if (size_mode.read() == PictureBoxSizeMode::auto_size) {
         const Size source = image_size();
         const double border = border_style.read() == BorderStyle::none ? 0.0 : 2.0;
         if (source.width > 0.0 && source.height > 0.0) {
@@ -192,12 +102,12 @@ Size PictureBox::measure(Size available) {
 
 void PictureBox::on_paint(Painter& painter, Rect) {
     paint_panel(painter, local_bounds());
-    if (!has_valid_image() || image_opacity_ <= 0.0) {
+    if (!has_valid_image() || image_opacity.read() <= 0.0) {
         return;
     }
     const Rect destination = image_bounds();
     if (!destination.empty()) {
-        painter.draw_image(image_, destination, image_opacity_);
+        painter.draw_image(image.read(), destination, image_opacity.read());
     }
 }
 
@@ -220,7 +130,6 @@ SemanticDescriptor PictureBox::semantic_descriptor() const {
                          !descriptor.description.empty();
     return descriptor;
 }
-
 
 namespace {
 
@@ -256,7 +165,7 @@ void PictureBox::publish_part_geometry(std::span<PartGeometry> geometry) const {
     record.scrollable = panel.scrollable;
     record.face = panel.face;
     record.edge = panel.edge;
-    if (has_valid_image() && image_opacity_ > 0.0) {
+    if (has_valid_image() && image_opacity.read() > 0.0) {
         record.image = PartGeometry::from_bounds(image_bounds());
     }
     write_parts(anatomy(), scrollable_detail::part_fields, record.scrollable, geometry);
@@ -285,5 +194,149 @@ void PictureBox::append_interactions(std::vector<InteractionDeclaration>& intera
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), picture_box_interactions.begin(), picture_box_interactions.end());
 }
+
+// property_codemod begin PictureBox (tools/property_families/picture_box.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor picture_box_image_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "image";
+    descriptor.kind = BindingValueKind::image;
+    descriptor.category = "Appearance";
+    descriptor.description = "Generational image resource displayed by this control.";
+    descriptor.default_value = BindingValue{ImageId{}};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_picture_box_image() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        picture_box_image_descriptor(), PropertyOperations{true, true, true, true});
+    return descriptor;
+}
+
+PropertyDescriptor picture_box_size_mode_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "size_mode";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "Image placement and scaling policy.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"picture_box_size_mode", "normal", 0}};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = picture_box_size_mode_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_picture_box_size_mode() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        picture_box_size_mode_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor picture_box_image_opacity_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "image_opacity";
+    descriptor.kind = BindingValueKind::number;
+    descriptor.category = "Appearance";
+    descriptor.description = "Image opacity from zero through one.";
+    descriptor.default_value = BindingValue{1.0};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_picture_box_image_opacity() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        picture_box_image_opacity_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<PictureBoxSizeMode>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, picture_box_size_mode_enum()};
+}
+
+BindingValue PropertyValueTraits<PictureBoxSizeMode>::to_binding(PictureBoxSizeMode value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = picture_box_size_mode_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+PictureBoxSizeMode PropertyValueTraits<PictureBoxSizeMode>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<PictureBoxSizeMode>(choice.value);
+}
+
+const std::array<PropertyEntry, PictureBox::picture_box_property_count>& PictureBox::picture_box_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 3U> own{{
+        {"image", &describe_picture_box_image,
+         &read_cell_entry<PictureBox, decltype(&PictureBox::image), &PictureBox::image>,
+         &write_cell_entry<PictureBox, decltype(&PictureBox::image), &PictureBox::image>,
+         &reset_member_entry<PictureBox, decltype(&PictureBox::clear_image), &PictureBox::clear_image>, &should_serialize_member_entry<PictureBox, decltype(&PictureBox::should_serialize_image), &PictureBox::should_serialize_image>, nullptr,
+         &connect_event_entry<PictureBox, decltype(&PictureBox::image_changed_), &PictureBox::image_changed_>},
+        {"size_mode", &describe_picture_box_size_mode,
+         &read_cell_entry<PictureBox, decltype(&PictureBox::size_mode), &PictureBox::size_mode>,
+         &write_cell_entry<PictureBox, decltype(&PictureBox::size_mode), &PictureBox::size_mode>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"image_opacity", &describe_picture_box_image_opacity,
+         &read_cell_entry<PictureBox, decltype(&PictureBox::image_opacity), &PictureBox::image_opacity>,
+         &write_cell_entry<PictureBox, decltype(&PictureBox::image_opacity), &PictureBox::image_opacity>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "PictureBox's property table names a property twice");
+    static const std::array<PropertyEntry, picture_box_property_count> entries =
+        join_property_tables(Panel::panel_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> PictureBox::property_table() const noexcept {
+    const std::array<PropertyEntry, picture_box_property_count>& entries = picture_box_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void PictureBox::prepare_write(const decltype(image)&, ImageId&) {
+    require_mutable();
+}
+
+void PictureBox::written(const decltype(image)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    publish_change(image_changed_, image.read());
+}
+
+void PictureBox::prepare_write(const decltype(size_mode)&, PictureBoxSizeMode&) {
+    require_mutable();
+}
+
+void PictureBox::written(const decltype(size_mode)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_size_mode_changed();
+}
+
+void PictureBox::on_size_mode_changed() {}
+
+void PictureBox::prepare_write(const decltype(image_opacity)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 1.0) {
+        throw std::invalid_argument("PictureBox image opacity must be finite and between zero and one");
+    }
+}
+
+void PictureBox::written(const decltype(image_opacity)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+// property_codemod end PictureBox
 
 } // namespace gui_forms

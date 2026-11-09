@@ -2,6 +2,7 @@
 
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/task_dialog/task_dialog_capabilities/task_dialog_capabilities.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/native_popup/native_popup.hpp"
@@ -132,7 +133,7 @@ struct TaskDialogResult final {
 // in the dialog until it closes. GUI.Forms never runs a nested event loop, so
 // show() returns at once and the clicked button arrives through `closed` and
 // result(). set_page while shown navigates to another page.
-class TaskDialog final : public Control {
+class TaskDialog final : public Control, public TaskDialogCapabilities<TaskDialog> {
 public:
     explicit TaskDialog(StableId stable_id);
     ~TaskDialog() override;
@@ -165,10 +166,6 @@ public:
     // The result of the last close, or none before the first.
     [[nodiscard]] const std::optional<TaskDialogResult>& result() const noexcept { return result_; }
 
-    [[nodiscard]] bool expanded() const noexcept;
-    void set_expanded(bool expanded);
-    [[nodiscard]] bool verification_checked() const noexcept { return page_.verification_checked; }
-    void set_verification_checked(bool checked);
     // The checked radio button's ID, or empty.
     [[nodiscard]] std::string checked_radio_button() const;
     // Moves the progress bar; the value is clamped to its bounds. Does
@@ -303,6 +300,16 @@ private:
     Event<bool> expanded_changed_{};
     Event<bool> verification_changed_{};
     Event<const std::string&> radio_button_changed_{};
+    // property_codemod begin TaskDialog (tools/property_families/task_dialog.json; generated, do not edit)
+private:
+    friend struct TaskDialogExpandedCapability<TaskDialog>;
+    friend struct TaskDialogVerificationCheckedCapability<TaskDialog>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(expanded)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(expanded)& cell) const;
+    void write_view(const decltype(verification_checked)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(verification_checked)& cell) const;
+    // property_codemod end TaskDialog
 };
 
 } // namespace gui_forms

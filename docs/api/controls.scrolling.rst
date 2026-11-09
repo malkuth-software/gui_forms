@@ -55,6 +55,16 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`ScrollBar::States <gui_forms::ScrollBar::States>`
      -  
+   * - :cpp:class:`ScrollBarButtonExtentCapability <gui_forms::ScrollBarButtonExtentCapability>`
+     - The arrow buttons' extent along the axis, 8 to 64 pixels (else std::invalid_argument).
+   * - :cpp:class:`ScrollBarCapabilities <gui_forms::ScrollBarCapabilities>`
+     - Every ScrollBar capability, in the order the declaring class takes them.
+   * - :cpp:class:`ScrollBarInitialRepeatDelayCapability <gui_forms::ScrollBarInitialRepeatDelayCapability>`
+     - How long a held part waits before it repeats, 100ms to 2s (else std::invalid_argument); a press already repeating keeps its schedule.
+   * - :cpp:class:`ScrollBarMinimumThumbExtentCapability <gui_forms::ScrollBarMinimumThumbExtentCapability>`
+     - The thumb's least extent, 8 to 128 pixels (else std::invalid_argument).
+   * - :cpp:class:`ScrollBarRepeatIntervalCapability <gui_forms::ScrollBarRepeatIntervalCapability>`
+     - The interval between a held part's repeats, 16ms to 500ms (else std::invalid_argument).
    * - :cpp:class:`ScrollEvent <gui_forms::ScrollEvent>`
      - ScrollEvent reports axis, mutation kind, old/new values, and logical orientation for one admitted scroll transition.
    * - :cpp:class:`ScrollProperties <gui_forms::ScrollProperties>`
@@ -277,6 +287,101 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ScrollBarButtonExtentCapability
+
+   ``#include <gui_forms/controls/range_control/scroll_bar/scroll_bar_capabilities/scroll_bar_capabilities.hpp>``
+
+   The arrow buttons' extent along the axis, 8 to 64 pixels (else std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ScrollBarButtonExtentCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ScrollBarButtonExtentCapability<Declaring>> button_extent
+
+      Default: ``{17.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ScrollBarCapabilities : public ScrollBarButtonExtentCapability<Declaring>, public ScrollBarMinimumThumbExtentCapability<Declaring>, public ScrollBarInitialRepeatDelayCapability<Declaring>, public ScrollBarRepeatIntervalCapability<Declaring>
+
+   ``#include <gui_forms/controls/range_control/scroll_bar/scroll_bar_capabilities/scroll_bar_capabilities.hpp>``
+
+   Every ScrollBar capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double button_extent
+
+      The arrow buttons' extent along the axis, 8 to 64 pixels (else std::invalid_argument).
+
+   .. cpp:member:: double minimum_thumb_extent
+
+      The thumb's least extent, 8 to 128 pixels (else std::invalid_argument).
+
+   .. cpp:member:: FrameInterval initial_repeat_delay
+
+      How long a held part waits before it repeats, 100ms to 2s (else std::invalid_argument); a press already repeating keeps its schedule.
+
+   .. cpp:member:: FrameInterval repeat_interval
+
+      The interval between a held part's repeats, 16ms to 500ms (else std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ScrollBarInitialRepeatDelayCapability
+
+   ``#include <gui_forms/controls/range_control/scroll_bar/scroll_bar_capabilities/scroll_bar_capabilities.hpp>``
+
+   How long a held part waits before it repeats, 100ms to 2s (else std::invalid_argument); a press already repeating keeps its schedule.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ScrollBarInitialRepeatDelayCapability& capability, FrameInterval incoming)
+
+   .. cpp:member:: PropertyCell<FrameInterval, ScrollBarInitialRepeatDelayCapability<Declaring>> initial_repeat_delay
+
+      Default: ``{scroll_repeat_delay_default}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ScrollBarMinimumThumbExtentCapability
+
+   ``#include <gui_forms/controls/range_control/scroll_bar/scroll_bar_capabilities/scroll_bar_capabilities.hpp>``
+
+   The thumb's least extent, 8 to 128 pixels (else std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ScrollBarMinimumThumbExtentCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ScrollBarMinimumThumbExtentCapability<Declaring>> minimum_thumb_extent
+
+      Default: ``{scroll_thumb_extent_default}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ScrollBarRepeatIntervalCapability
+
+   ``#include <gui_forms/controls/range_control/scroll_bar/scroll_bar_capabilities/scroll_bar_capabilities.hpp>``
+
+   The interval between a held part's repeats, 16ms to 500ms (else std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ScrollBarRepeatIntervalCapability& capability, FrameInterval incoming)
+
+   .. cpp:member:: PropertyCell<FrameInterval, ScrollBarRepeatIntervalCapability<Declaring>> repeat_interval
+
+      Default: ``{scroll_repeat_interval_default}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ScrollEvent final
 
    ``#include <gui_forms/controls/scrollable_control/scroll_properties/scroll_properties.hpp>``
@@ -448,3 +553,34 @@ Enumerations
    .. cpp:enumerator:: horizontal
 
    .. cpp:enumerator:: vertical
+
+Functions, constants and aliases
+--------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/scrollable_control/scroll_bar_metrics/scroll_bar_metrics.hpp>``
+
+.. cpp:var:: constexpr double scroll_thumb_extent_default
+
+   The thumb's least extent along the bar, in logical units: the default, and the range ScrollBar::minimum_thumb_extent accepts. A track shorter than a bar's minimum thumb extent shows no thumb (its presses still page). Value: ``18.0``.
+
+.. cpp:var:: constexpr double scroll_thumb_extent_least
+
+   Value: ``8.0``.
+
+.. cpp:var:: constexpr double scroll_thumb_extent_most
+
+   Value: ``128.0``.
+
+.. cpp:var:: constexpr FrameInterval scroll_repeat_delay_default
+
+   Press-and-hold repeat of an arrow or the track (ADR-016): the first repeat after the delay, then one per interval, until release. Value: ``std::chrono::milliseconds(400)``.
+
+.. cpp:var:: constexpr FrameInterval scroll_repeat_interval_default
+
+   Value: ``std::chrono::milliseconds(60)``.
+
+.. cpp:var:: constexpr double scroll_arrow_mark_extent
+
+   The side of the square an arrow button's mark is drawn in; a button narrower or shorter than this draws no mark. Value: ``8.0``.

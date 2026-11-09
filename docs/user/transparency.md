@@ -89,11 +89,13 @@ application's. The window system supplies the blur.
   the window's base. No host material takes a saturation, so `saturate`
   is dropped. `Window::backdrop_chain_resolution` reports what the
   material gives, what was dropped and how the tint is drawn.
-- Menus, drop-downs and tooltips are overlays: they are composited into
-  their owner's surface, so everything beneath them is the window's own
-  pixels. They take no backdrop chain and paint with the theme's
-  materials, shadows and glass like any other content. A floating panel
-  or native popup in its own window carries a chain like any window.
+- Menus, drop-downs and tooltips are their owner's controls, painted by
+  the owner with the theme's materials, shadows and glass like any other
+  content, whether they are composited into the owner as overlays or shown
+  in Popup and Splash windows
+  ([Overlays, Popups and Splash](overlays-popups-and-splash)). They take no
+  backdrop chain of their own. A floating panel, or a native popup opened
+  with `NativePopupOptions::backdrop`, carries a chain like any window.
 
 Under reduced transparency, or without a compositor, the window is
 opaque and the tint is painted opaque; under high contrast there is no

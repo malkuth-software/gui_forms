@@ -1,0 +1,153 @@
+{
+  "family": "OpenFileDialog",
+  "step": "B9",
+  "declaring": "OpenFileDialog",
+  "header": "include/gui_forms/components/open_file_dialog/open_file_dialog.hpp",
+  "source": "src/controls/open_file_dialog/open_file_dialog.cpp",
+  "capabilities_header": "include/gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp",
+  "shared": [],
+  "includes": [],
+  "mutation_check": null,
+  "properties": [
+    {
+      "name": "title",
+      "capability": "OpenFileDialogTitle",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The dialog's title; empty gives the host's own. Valid UTF-8 without NUL (std::invalid_argument).",
+      "getter": "title",
+      "setter": "set_title",
+      "clear": null,
+      "field": "title_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "title",
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "require_dialog_text(incoming, \"OpenFileDialog title must be valid UTF-8 without NUL\");"
+      ],
+      "sample": "std::string{\"Sample\"}"
+    },
+    {
+      "name": "initial_directory",
+      "capability": "OpenFileDialogInitialDirectory",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The directory the dialog starts in; empty lets the host choose. Valid UTF-8 without NUL (std::invalid_argument).",
+      "getter": "initial_directory",
+      "setter": "set_initial_directory",
+      "clear": null,
+      "field": "initial_directory_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "require_dialog_text(incoming, \"OpenFileDialog initial directory must be valid UTF-8 without NUL\");"
+      ],
+      "sample": "std::string{\"Sample\"}"
+    },
+    {
+      "name": "filter",
+      "capability": "OpenFileDialogFilter",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of `*`, `*.*` or `*.extension` throws std::invalid_argument.",
+      "getter": "filter",
+      "setter": "set_filter",
+      "clear": null,
+      "field": "filter_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare_write keeps the filter grammar check; written parses the stored filter into filters_"
+      ],
+      "effects": null
+    },
+    {
+      "name": "filter_index",
+      "capability": "OpenFileDialogFilterIndex",
+      "value": "std::size_t",
+      "initial": null,
+      "comment": "The filter the dialog starts with, an index into filters() (Windows Forms' FilterIndex, which counts from one; this counts from zero). After the user accepts it is the filter they had selected, where the host tells; an index past the filters starts the dialog on the first.",
+      "getter": "filter_index",
+      "setter": "set_filter_index",
+      "clear": null,
+      "field": "filter_index_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "sample": "std::size_t{2}"
+    },
+    {
+      "name": "multiselect",
+      "capability": "OpenFileDialogMultiselect",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the user may choose more than one file (Windows Forms' Multiselect).",
+      "getter": "multiselect",
+      "setter": "set_multiselect",
+      "clear": null,
+      "field": "multiselect_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null
+    },
+    {
+      "name": "file_name",
+      "capability": "OpenFileDialogFileName",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The first chosen path, or empty. Before the dialog is shown, a name set here is the one the dialog suggests; writing it makes the chosen paths this one name (none for an empty name). Valid UTF-8 without NUL (std::invalid_argument).",
+      "getter": "file_name",
+      "setter": "set_file_name",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto file_names_: the first chosen path, which show_dialog moves; write_view validates and makes the chosen paths this one name (none for an empty name)"
+      ],
+      "effects": null,
+      "storage": "view"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "filters",
+      "reason": "the parsed form of filter; read-only"
+    },
+    {
+      "name": "file_names",
+      "reason": "every chosen path; read-only"
+    },
+    {
+      "name": "status",
+      "reason": "the host's answer to the last show_dialog; read-only"
+    },
+    {
+      "name": "reset",
+      "reason": "restores every setting; a method writing each cell"
+    }
+  ]
+}

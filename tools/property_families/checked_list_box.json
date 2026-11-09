@@ -1,0 +1,65 @@
+{
+  "family": "CheckedListBox",
+  "step": "B5",
+  "declaring": "CheckedListBox",
+  "header": "include/gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp",
+  "source": "src/controls/panel/list_box/checked_list_box/checked_list_box.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/list_box/checked_list_box/checked_list_box_capabilities/checked_list_box_capabilities.hpp",
+  "base": "ListBox",
+  "shared": [],
+  "includes": [],
+  "properties": [
+    {
+      "name": "check_on_click",
+      "capability": "CheckedListBoxCheckOnClick",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the first click on an unselected row also toggles its check (CheckOnClick); off by default, so the first click only selects.",
+      "getter": "check_on_click",
+      "setter": "set_check_on_click",
+      "clear": null,
+      "field": "check_on_click_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::semantics"
+    },
+    {
+      "name": "indicator_size",
+      "capability": "CheckedListBoxIndicatorSize",
+      "value": "double",
+      "initial": "14.0",
+      "comment": "The check box's side in logical pixels, 8 to 32 (std::out_of_range otherwise); the row text starts after it.",
+      "getter": "indicator_size",
+      "setter": "set_indicator_size",
+      "clear": null,
+      "field": "indicator_size_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 8.0 || incoming > 32.0) {",
+        "    throw std::out_of_range(\"CheckedListBox indicator size must be finite and between 8 and 32\");",
+        "}"
+      ],
+      "sample": "18.0"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "item_check_state",
+      "reason": "per-item state with an index argument; stays methods (set_item_check_state raises item_checking and item_check_state_changed)"
+    }
+  ],
+  "test": {
+    "type": "CheckedListBox",
+    "include": "gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp"
+  }
+}

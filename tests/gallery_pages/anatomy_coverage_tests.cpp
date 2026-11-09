@@ -290,7 +290,14 @@ void test_anatomy_coverage() {
         make_control<FontDialog>(StableId("anatomy.coverage.font-dialog"));
     inspect_control(*font_dialog, seen_ids);
     inspect_control(*task_dialog, seen_ids);
-    inspected += 5U;
+    // A toast shows only on demand, in its window's toast overlay.
+    ToastContent toast_content{};
+    toast_content.message = "Anatomy coverage";
+    toast_content.action_text = "Undo";
+    const std::shared_ptr<Toast> toast =
+        make_control<Toast>(StableId("anatomy.coverage.toast"), std::move(toast_content));
+    inspect_control(*toast, seen_ids);
+    inspected += 6U;
 
     std::string unexpected_gaps;
     std::string stale_pending;

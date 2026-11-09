@@ -6,6 +6,7 @@
 #include "gui_forms/layout/grid_span/grid_span.hpp"
 #include "gui_forms/layout/positioning/positioning.hpp"
 #include "gui_forms/layout/style/layout_style.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp"
 
 #include <array>
 #include <cstddef>
@@ -126,7 +127,7 @@ struct GridItemLayout final {
 // alignment, through the core grid solver.
 class GridPanel final : public ContainerControl,
                         public GridAreaCapability<GridPanel>,
-                        public GridCellCapability<GridPanel> {
+                        public GridCellCapability<GridPanel>, public GridPanelCapabilities<GridPanel> {
 public:
     explicit GridPanel(StableId stable_id);
 
@@ -155,16 +156,6 @@ public:
     // child.
     [[nodiscard]] GridPlacement placement(const Control& child) const;
 
-    // grid-template-columns and grid-template-rows: at most 10,000 tracks
-    // each, `repeat()` counted. A list with `repeat(auto-fill | auto-fit,
-    // ...)` holds only fixed tracks (CSS Grid 7.2.3). The getters borrow
-    // the panel and last until the next set.
-    [[nodiscard]] const GridTrackList& template_columns() const& noexcept { return style_.template_columns; }
-    const GridTrackList& template_columns() const&& = delete;
-    void set_template_columns(const GridTrackList& tracks);
-    [[nodiscard]] const GridTrackList& template_rows() const& noexcept { return style_.template_rows; }
-    const GridTrackList& template_rows() const&& = delete;
-    void set_template_rows(const GridTrackList& tracks);
     // grid-template-areas: rectangular named areas within its cells, the
     // named spans in another spelling. The getter answers the named spans
     // in declaration order within the larger of the extent last set here
@@ -176,37 +167,6 @@ public:
     [[nodiscard]] const GridTemplateAreas& template_areas() const& noexcept { return style_.template_areas; }
     const GridTemplateAreas& template_areas() const&& = delete;
     void set_template_areas(const GridTemplateAreas& areas);
-    // grid-auto-flow: row or column, sparse or dense.
-    [[nodiscard]] GridAutoFlow auto_flow() const noexcept { return style_.auto_flow; }
-    void set_auto_flow(GridAutoFlow flow);
-    // grid-auto-columns and grid-auto-rows: one or more sizes, repeated
-    // over the implicit tracks.
-    [[nodiscard]] std::span<const GridTrackSize> auto_columns() const& noexcept { return style_.auto_columns; }
-    std::span<const GridTrackSize> auto_columns() const&& = delete;
-    void set_auto_columns(std::span<const GridTrackSize> sizes);
-    [[nodiscard]] std::span<const GridTrackSize> auto_rows() const& noexcept { return style_.auto_rows; }
-    std::span<const GridTrackSize> auto_rows() const&& = delete;
-    void set_auto_rows(std::span<const GridTrackSize> sizes);
-    // justify-content and align-content: normal, stretch, start, end,
-    // flex-start, flex-end, center and the three space distributions.
-    [[nodiscard]] LayoutAlignment justify_content() const noexcept { return justify_content_; }
-    void set_justify_content(LayoutAlignment alignment);
-    [[nodiscard]] LayoutAlignment align_content() const noexcept { return align_content_; }
-    void set_align_content(LayoutAlignment alignment);
-    // justify-items and align-items: normal and stretch stretch an
-    // auto-sized item; start, end, flex-start, flex-end, center and
-    // baseline (first-baseline alignment across a row; as start for
-    // justify-items).
-    [[nodiscard]] LayoutAlignment justify_items() const noexcept { return justify_items_; }
-    void set_justify_items(LayoutAlignment alignment);
-    [[nodiscard]] LayoutAlignment align_items() const noexcept { return align_items_; }
-    void set_align_items(LayoutAlignment alignment);
-    // row-gap and column-gap; a percentage is of the content box on the
-    // gap's axis, and zero when that is indefinite.
-    [[nodiscard]] LengthPercentage row_gap() const noexcept { return row_gap_; }
-    void set_row_gap(LengthPercentage gap);
-    [[nodiscard]] LengthPercentage column_gap() const noexcept { return column_gap_; }
-    void set_column_gap(LengthPercentage gap);
 
     // A direct child's item properties; a child without its own record has
     // the default one (auto-placed into one cell). The placement lines are
@@ -248,10 +208,6 @@ private:
     friend struct GridAreaCapability<GridPanel>;
     friend struct GridCellCapability<GridPanel>;
 
-    // The `style` property (study 10, section 6): the container settings
-    // as one CSS inline style, read by the layout style reader; spans are
-    // span blocks, so grid-template-areas is refused.
-    void register_panel_properties();
     [[nodiscard]] BindingValue style_property() const;
     void set_style_property(const BindingValue& value);
 
@@ -343,12 +299,6 @@ private:
     std::vector<GridSpan> spans_{};
     GridCell area_extent_{};
     GridContainerStyle style_{};
-    LayoutAlignment justify_content_{LayoutAlignment::normal};
-    LayoutAlignment align_content_{LayoutAlignment::normal};
-    LayoutAlignment justify_items_{LayoutAlignment::normal};
-    LayoutAlignment align_items_{LayoutAlignment::normal};
-    LengthPercentage row_gap_{};
-    LengthPercentage column_gap_{};
 
     // The pass workspace, reserved when the child count grows and reused
     // (PLAN section 5): live length is the laid-out child count.
@@ -373,6 +323,49 @@ private:
     std::vector<RuntimeId> dependency_path_{};
     bool registered_dependencies_{};
     GridSolveOutcome arranged_outcome_{GridSolveOutcome::solved};
+    // property_codemod begin GridPanel (tools/property_families/grid_panel.json; generated, do not edit)
+public:
+    // GridPanel's property table: Control's entries, then its own.
+    static constexpr std::size_t grid_panel_property_count = Control::control_property_count + 1U;
+    [[nodiscard]] static const std::array<PropertyEntry, grid_panel_property_count>& grid_panel_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct GridPanelTemplateColumnsCapability<GridPanel>;
+    friend struct GridPanelTemplateRowsCapability<GridPanel>;
+    friend struct GridPanelAutoFlowCapability<GridPanel>;
+    friend struct GridPanelAutoColumnsCapability<GridPanel>;
+    friend struct GridPanelAutoRowsCapability<GridPanel>;
+    friend struct GridPanelJustifyContentCapability<GridPanel>;
+    friend struct GridPanelAlignContentCapability<GridPanel>;
+    friend struct GridPanelJustifyItemsCapability<GridPanel>;
+    friend struct GridPanelAlignItemsCapability<GridPanel>;
+    friend struct GridPanelRowGapCapability<GridPanel>;
+    friend struct GridPanelColumnGapCapability<GridPanel>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(template_columns)& cell, GridTrackList incoming);
+    [[nodiscard]] GridTrackList read_view(const decltype(template_columns)& cell) const;
+    void write_view(const decltype(template_rows)& cell, GridTrackList incoming);
+    [[nodiscard]] GridTrackList read_view(const decltype(template_rows)& cell) const;
+    void write_view(const decltype(auto_flow)& cell, GridAutoFlow incoming);
+    [[nodiscard]] GridAutoFlow read_view(const decltype(auto_flow)& cell) const;
+    void write_view(const decltype(auto_columns)& cell, std::vector<GridTrackSize> incoming);
+    [[nodiscard]] std::vector<GridTrackSize> read_view(const decltype(auto_columns)& cell) const;
+    void write_view(const decltype(auto_rows)& cell, std::vector<GridTrackSize> incoming);
+    [[nodiscard]] std::vector<GridTrackSize> read_view(const decltype(auto_rows)& cell) const;
+    void prepare_write(const decltype(justify_content)& cell, LayoutAlignment& incoming);
+    void written(const decltype(justify_content)& cell);
+    void prepare_write(const decltype(align_content)& cell, LayoutAlignment& incoming);
+    void written(const decltype(align_content)& cell);
+    void prepare_write(const decltype(justify_items)& cell, LayoutAlignment& incoming);
+    void written(const decltype(justify_items)& cell);
+    void prepare_write(const decltype(align_items)& cell, LayoutAlignment& incoming);
+    void written(const decltype(align_items)& cell);
+    void prepare_write(const decltype(row_gap)& cell, LengthPercentage& incoming);
+    void written(const decltype(row_gap)& cell);
+    void prepare_write(const decltype(column_gap)& cell, LengthPercentage& incoming);
+    void written(const decltype(column_gap)& cell);
+    // property_codemod end GridPanel
 };
 
 // GridPanel holds spans (the form schema and loader's opt-in).

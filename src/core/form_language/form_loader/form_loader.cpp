@@ -5,7 +5,10 @@
 
 #include "form_loader.hpp"
 
+#include "gui_forms/binding/form_binding/form_binding.hpp"
+
 #include <exception>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <variant>
@@ -24,7 +27,7 @@ class FormLoader final {
 public:
     FormLoader(const theme_language::ThemeSource& source, const theme_language::ThemeTokenBuffer& tokens,
                const theme_language::LineStartTable& lines, const theme_language::ThemeSyntaxTree& tree,
-               const FormSchema& schema, const FormModel& model,
+               const FormSchema& schema, const FormModel& model, const FormSources& sources,
                theme_language::ThemeDiagnosticList& diagnostics) noexcept;
 
     // Fills `scratch`; returns whether nothing was refused.
@@ -33,6 +36,9 @@ public:
 private:
     void make_object(std::size_t index, LoadedForm& scratch);
     void set_property(const FormProperty& property, LoadedForm& scratch);
+    // Binds a bound property of `control` (the object's own property: the
+    // model binds no other) to its source.
+    void bind_property(const FormProperty& property, const PropertyDescriptor& descriptor, Control& control);
     void define_span(const FormSpan& span, LoadedForm& scratch);
     // A form root's property, which the window takes.
     static void set_window_property(const std::string& name, const BindingValue& value, LoadedWindow& window);
@@ -44,6 +50,7 @@ private:
     const theme_language::ThemeSyntaxTree& tree_;
     const FormSchema& schema_;
     const FormModel& model_;
+    const FormSources& sources_;
     theme_language::ThemeDiagnosticList& diagnostics_;
     SourcePositionCursor cursor_;
     // Whether the root is the reserved form type.
@@ -53,10 +60,10 @@ private:
 
 FormLoader::FormLoader(const theme_language::ThemeSource& source, const theme_language::ThemeTokenBuffer& tokens,
                        const theme_language::LineStartTable& lines, const theme_language::ThemeSyntaxTree& tree,
-                       const FormSchema& schema, const FormModel& model,
+                       const FormSchema& schema, const FormModel& model, const FormSources& sources,
                        theme_language::ThemeDiagnosticList& diagnostics) noexcept
-    : source_(source), tokens_(tokens), tree_(tree), schema_(schema), model_(model), diagnostics_(diagnostics),
-      cursor_(lines, source.text) {}
+    : source_(source), tokens_(tokens), tree_(tree), schema_(schema), model_(model), sources_(sources),
+      diagnostics_(diagnostics), cursor_(lines, source.text) {}
 
 bool FormLoader::run(LoadedForm& scratch) {
     scratch.objects.assign(model_.objects.size(), Component::Ptr{});
@@ -85,7 +92,6 @@ bool FormLoader::run(LoadedForm& scratch) {
                "the root is not a control");
         return false;
     }
-    scratch.handlers = model_.handlers;
     return true;
 }
 
@@ -154,6 +160,10 @@ void FormLoader::set_property(const FormProperty& property, LoadedForm& scratch)
     }
     // A property the parent's type provides is the parent's to store; the
     // child was added to it when it was made.
+    if (property.binding) {
+        bind_property(property, descriptor, *control);
+        return;
+    }
     const Control::Ptr parent = property.provider == FormPropertyProvider::parent_type
         ? std::dynamic_pointer_cast<Control>(scratch.objects[(*object.parent).value])
         : Control::Ptr{};
@@ -165,6 +175,58 @@ void FormLoader::set_property(const FormProperty& property, LoadedForm& scratch)
         }
     } catch (const std::exception& refusal) {
         report(DiagnosticCode::form_load_refused, property.node, object.stable_id, descriptor.name, refusal.what());
+    }
+}
+
+void FormLoader::bind_property(const FormProperty& property, const PropertyDescriptor& descriptor,
+                               Control& control) {
+    const FormObject& object = model_.objects[property.object.value];
+    const FormBinding& binding = *property.binding;
+    const FormSourceReference* found = sources_.find(binding.source);
+    if (found == nullptr) {
+        report(DiagnosticCode::form_binding_source_refused, property.node, object.stable_id, descriptor.name,
+               "no source named " + binding.source);
+        return;
+    }
+    const FormSchemaType& type = schema_.types[object.schema_type];
+    const bool command_slot = type.bind_command != nullptr && descriptor.name == form_command_slot_name;
+    // The source's alternative the binding needs, by its form.
+    bool matched = false;
+    try {
+        if (command_slot) {
+            Command* const* command = std::get_if<Command*>(found);
+            matched = command != nullptr;
+            if (matched) (*type.bind_command)(control, **command);
+        } else if (!binding.field.empty()) {
+            const std::shared_ptr<BindingSource>* records = std::get_if<std::shared_ptr<BindingSource>>(found);
+            matched = records != nullptr;
+            if (matched) {
+                bind_form_field(control, descriptor.name, *records, binding.field, binding.direction,
+                                binding.trigger);
+            }
+        } else if (descriptor.kind == BindingValueKind::boolean) {
+            Value<bool>* const* scalar = std::get_if<Value<bool>*>(found);
+            matched = scalar != nullptr;
+            if (matched) bind_form_value(control, descriptor.name, **scalar, binding.direction);
+        } else if (descriptor.kind == BindingValueKind::signed_integer) {
+            Value<int>* const* scalar = std::get_if<Value<int>*>(found);
+            matched = scalar != nullptr;
+            if (matched) bind_form_value(control, descriptor.name, **scalar, binding.direction);
+        } else {
+            // The model admits a Value source only for the three scalar
+            // kinds; this is the number's.
+            Value<double>* const* scalar = std::get_if<Value<double>*>(found);
+            matched = scalar != nullptr;
+            if (matched) bind_form_value(control, descriptor.name, **scalar, binding.direction);
+        }
+    } catch (const std::exception& refusal) {
+        report(DiagnosticCode::form_binding_source_refused, property.node, object.stable_id, descriptor.name,
+               refusal.what());
+        return;
+    }
+    if (!matched) {
+        report(DiagnosticCode::form_binding_source_refused, property.node, object.stable_id, descriptor.name,
+               "the source " + binding.source + " is not of the kind the property binds");
     }
 }
 
@@ -198,12 +260,57 @@ void FormLoader::report(DiagnosticCode code, NodeIndex node, const std::string& 
 
 } // namespace
 
+void FormSources::add(std::string name, Value<bool>& source) {
+    add_entry(std::move(name), FormSourceReference{&source});
+}
+
+void FormSources::add(std::string name, Value<int>& source) {
+    add_entry(std::move(name), FormSourceReference{&source});
+}
+
+void FormSources::add(std::string name, Value<double>& source) {
+    add_entry(std::move(name), FormSourceReference{&source});
+}
+
+void FormSources::add(std::string name, Command& source) {
+    add_entry(std::move(name), FormSourceReference{&source});
+}
+
+void FormSources::add(std::string name, std::shared_ptr<BindingSource> source) {
+    if (!source) throw std::invalid_argument("FormSources: a null BindingSource");
+    add_entry(std::move(name), FormSourceReference{std::move(source)});
+}
+
+const FormSourceReference* FormSources::find(std::string_view name) const noexcept {
+    for (const NamedFormSource& entry : entries_) {
+        if (entry.name == name) return &entry.source;
+    }
+    return nullptr;
+}
+
+void FormSources::add_entry(std::string name, FormSourceReference source) {
+    bool identifier = !name.empty();
+    for (std::size_t index = 0U; identifier && index < name.size(); ++index) {
+        const char character = name[index];
+        const bool letter = (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z') ||
+                            character == '_';
+        const bool digit = character >= '0' && character <= '9';
+        identifier = letter || (digit && index != 0U);
+    }
+    if (!identifier) throw std::invalid_argument("FormSources: a source's name is one C++ identifier");
+    if (find(name) != nullptr) throw std::invalid_argument("FormSources: a source's name is added twice");
+    NamedFormSource entry{};
+    entry.name = std::move(name);
+    entry.source = std::move(source);
+    entries_.push_back(std::move(entry));
+}
+
 FormLoadOutcome load_form(const theme_language::ThemeSource& source, const theme_language::ThemeTokenBuffer& tokens,
                           const theme_language::LineStartTable& lines, const theme_language::ThemeSyntaxTree& tree,
-                          const FormSchema& schema, const FormModel& model, LoadedForm& loaded,
-                          theme_language::ThemeDiagnosticList& diagnostics) {
+                          const FormSchema& schema, const FormModel& model, const FormSources& sources,
+                          LoadedForm& loaded, theme_language::ThemeDiagnosticList& diagnostics) {
     LoadedForm scratch{};
-    FormLoader loader(source, tokens, lines, tree, schema, model, diagnostics);
+    FormLoader loader(source, tokens, lines, tree, schema, model, sources, diagnostics);
     if (!loader.run(scratch)) return FormLoadOutcome::refused;
     loaded = std::move(scratch);
     return FormLoadOutcome::loaded;

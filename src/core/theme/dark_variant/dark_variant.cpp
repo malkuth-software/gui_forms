@@ -269,11 +269,13 @@ DarkColourClass face_class_of(ControlVisualRole family) noexcept {
     case ControlVisualRole::window:
     case ControlVisualRole::panel:
     case ControlVisualRole::card:
-    case ControlVisualRole::tool_tip: return DarkColourClass::stock_surface;
+    case ControlVisualRole::tool_tip:
+    case ControlVisualRole::notice: return DarkColourClass::stock_surface;
     case ControlVisualRole::choice:
     case ControlVisualRole::editor:
     case ControlVisualRole::progress: return DarkColourClass::well_surface;
-    case ControlVisualRole::accent_button: return DarkColourClass::accent_surface;
+    case ControlVisualRole::accent_button:
+    case ControlVisualRole::badge: return DarkColourClass::accent_surface;
     case ControlVisualRole::button:
     case ControlVisualRole::command_button:
     case ControlVisualRole::menu_item:

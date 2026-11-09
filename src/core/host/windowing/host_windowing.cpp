@@ -118,6 +118,20 @@ const char* host_popup_focus_name(HostPopupFocus focus) noexcept {
     return "passive";
 }
 
+const char* host_transient_kind_name(HostTransientKind kind) noexcept {
+    switch (kind) {
+    case HostTransientKind::popup: return "popup";
+    case HostTransientKind::tool_tip: return "tool_tip";
+    case HostTransientKind::splashscreen: return "splashscreen";
+    }
+    return "popup";
+}
+
+bool host_transient_is_splash(HostTransientKind kind) noexcept {
+    const bool splash = kind == HostTransientKind::tool_tip || kind == HostTransientKind::splashscreen;
+    return splash;
+}
+
 HostWindowKind host_window_kind(bool has_owner, bool tool_window,
                                 HostWindowFloating floating, bool popup) noexcept {
     if (popup) return HostWindowKind::popup;
@@ -317,6 +331,26 @@ HostMonitorResult HostWindowing::query_monitors() {
     return result;
 }
 
+HostServiceStatus HostWindowing::query_monitors(HostMonitorResult& result) {
+    result.status = validate_request(HostCapability::monitor_geometry);
+    if (!result.status.accepted()) {
+        result.monitors.clear();
+        return result.status;
+    }
+    query_monitors_into_impl(result);
+    if (result.status.accepted() && result.monitors.empty()) {
+        result.status = reject(HostServiceError::backend_failure);
+    } else if (!result.status.accepted()) {
+        ++snapshot_.rejected_requests;
+        result.monitors.clear();
+    }
+    return result.status;
+}
+
+void HostWindowing::query_monitors_into_impl(HostMonitorResult& result) {
+    result = query_monitors_impl();
+}
+
 std::optional<HostWindowId> HostWindowing::find(std::string_view stable_id) const noexcept {
     for (std::size_t index = 0U; index < windows_.size(); ++index) {
         if (windows_[index].stable_id == stable_id) return windows_[index].id;
@@ -374,6 +408,14 @@ bool HostWindowing::supports_popup_windows() const noexcept {
     return false;
 }
 
+bool HostWindowing::supports_splash_windows() const noexcept {
+    return false;
+}
+
+bool HostWindowing::transient_windows_translucent() const noexcept {
+    return true;
+}
+
 HostWindowAdmission HostWindowing::admit(const HostWindowDescription& description) {
     HostWindowAdmission result;
     if (std::this_thread::get_id() != ui_thread_) {
@@ -389,6 +431,11 @@ HostWindowAdmission HostWindowing::admit(const HostWindowDescription& descriptio
         return result;
     }
     if (description.kind == HostWindowKind::popup && !supports_popup_windows()) {
+        result.status = reject(HostServiceError::unsupported);
+        return result;
+    }
+    if (description.kind == HostWindowKind::popup && host_transient_is_splash(description.transient) &&
+        !supports_splash_windows()) {
         result.status = reject(HostServiceError::unsupported);
         return result;
     }

@@ -144,7 +144,7 @@ void test_resolution() {
     const std::shared_ptr<Label> label = make_control<Label>(StableId("caption"), "Caption");
     (*root).add_child(label);
     Window window(root, Size{300.0, 100.0});
-    const FontSpec own = (*label).font();
+    const FontSpec own = (*label).resolved_font();
     require((*label).text_font(own) == (*label).effective_font(own), "no rule: the control's own font");
 
     window.set_theme(theme_of("label { font-family: monospace; font-size: 20px } "
@@ -161,22 +161,22 @@ void test_resolution() {
     const std::size_t style = static_cast<std::size_t>(FontField::style);
     require(resolved.themed[family] && resolved.levels[family] == CascadeLevel::theme_sheet,
             "provenance: the family from the type rule");
-    require(resolved.themed[weight] && resolved.levels[weight] == CascadeLevel::stable_id_rule,
-            "provenance: the weight from the stable-ID rule");
+    require(resolved.themed[weight] && resolved.levels[weight] == CascadeLevel::theme_sheet,
+            "provenance: the weight from a sheet rule (the stable-ID rule)");
     require(!resolved.themed[style], "provenance: an unset field is the control's own");
 
     window.perform_layout();
-    (*label).set_classes({"quiet"});
+    (*label).classes = {"quiet"};
     require(((*label).dirty() & Dirty::measure) == Dirty::measure, "a class that changes the font is a layout change");
     require((*label).resolved_text_font(own).font.italic, "the class rule's style");
-    require((*label).resolved_text_font(own).levels[style] == CascadeLevel::class_rule, "provenance: a class rule");
+    require((*label).resolved_text_font(own).levels[style] == CascadeLevel::theme_sheet, "provenance: a sheet rule (the class rule)");
 
-    (*label).set_font(FontSpec{FontRole::content, 11.0, 400, false});
-    const ResolvedFont coded = (*label).resolved_text_font((*label).font());
+    (*label).font = FontSpec{FontRole::content, 11.0, 400, false};
+    const ResolvedFont coded = (*label).resolved_text_font((*label).resolved_font());
     require(coded.from_code && coded.font == FontSpec{FontRole::content, 11.0, 400, false},
             "a font set in code wins over the theme");
-    (*label).clear_font();
-    require(!(*label).resolved_text_font((*label).font()).from_code, "cleared, the theme's again");
+    (*label).font = std::nullopt;
+    require(!(*label).resolved_text_font((*label).resolved_font()).from_code, "cleared, the theme's again");
 }
 
 void test_scheme_and_em() {
@@ -188,7 +188,7 @@ void test_scheme_and_em() {
                               "#caption { font-size: 1.5em } "
                               "@media (prefers-color-scheme: dark) { #caption { font-weight: 600 } }",
                               "fonts-schemes"));
-    const FontSpec own = (*label).font();
+    const FontSpec own = (*label).resolved_font();
     const ResolvedFont light = (*label).resolved_text_font(own);
     require(light.font.size == own.size * 1.5 && light.font.weight == own.weight, "an em size is of the own size");
     window.perform_layout();
@@ -220,9 +220,9 @@ void test_controls_read_it() {
     require(after.height > before.height && after.width > before.width, "a button measures its themed text");
     require((*button).text_font((*button).font.read()).size == 24.0 * (*button).effective_text_scale(),
             "a button's text font");
-    require((*group).text_font((*group).font()).size == 22.0 * (*group).effective_text_scale(),
+    require((*group).text_font((*group).font.read()).size == 22.0 * (*group).effective_text_scale(),
             "a group box's caption font");
-    require((*box).text_font((*box).font()).size == 21.0 * (*box).effective_text_scale(), "a text box's font");
+    require((*box).text_font((*box).font.read()).size == 21.0 * (*box).effective_text_scale(), "a text box's font");
 }
 
 } // namespace

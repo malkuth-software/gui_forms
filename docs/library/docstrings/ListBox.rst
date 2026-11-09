@@ -19,11 +19,23 @@ stable_id
 Properties
 ----------
 items
-    The rows, in display order. Empty by default. `set_items` replaces
-    them all; it keeps each selected index that still exists, drops the
-    others, raises `selection_changed` if that changed the selection, and
-    discards IDs set with `set_item_stable_ids`. Every item must be valid
-    UTF-8, or `std::invalid_argument` is thrown.
+    The rows, in display order, edited in place. Empty by default. Read
+    them with `items.read()` (a span) or `items[i]`; write them with
+    `items = {...}` (every row), `items.insert(i, text)`,
+    `items.append(text)` or `items.append(rows)` (at the end),
+    `items.erase(i, n)`, `items.replace(i, text)` and `items.clear()`.
+    Each edit keeps the selection on its rows: an insertion or erasure
+    moves the selected, active and anchor indices after it, an erasure
+    drops those it removes, a replacement keeps them, and an assignment
+    keeps each selected index that still exists. `selection_changed` is
+    raised when the selected indices changed. An assignment or insertion
+    discards IDs set with `set_item_stable_ids`; an erasure removes the
+    erased rows' IDs and a replacement keeps the row's. Every item must be
+    valid UTF-8, or `std::invalid_argument` is thrown, and a position
+    outside the items throws `std::out_of_range`; a refused edit changes
+    nothing. An edit repaints, at the next layout, only the rows in view
+    it reaches: a replaced row, or the rows from an insertion or erasure
+    down; an edit below the rows in view repaints nothing.
 selection_mode : default ``ListSelectionMode::one``
     `ListSelectionMode::one` allows at most one selected row;
     `ListSelectionMode::multiple_extended` allows several. Switching to
@@ -50,8 +62,8 @@ Events
 ------
 selection_changed
     Raised after the set of selected rows or the active row changes,
-    whether by input, by a selection method, or by `set_items` and
-    `remove_item` changing the selected indices. It carries a
+    whether by input, by a selection method, or by an edit of `items`
+    changing the selected indices. It carries a
     `ListSelectionChange` with the `previous` and `current` selected
     indices and the new `active_index`.
 item_activated
@@ -62,22 +74,11 @@ item_activated
 
 Methods
 -------
-add_item
-    Appends one row. The selection is unchanged. Appending also discards
-    IDs set with `set_item_stable_ids`, returning every row to its
-    index-derived ID.
-remove_item
-    Removes the row at an index, shifting later rows up. Selected and
-    active indices after it shift with their rows, and
-    `selection_changed` is raised if the selected indices changed, even
-    when the same items stay selected. An index outside the items throws
-    `std::out_of_range`.
-clear_items
-    Removes every row, as `set_items` with an empty list does.
 set_item_stable_ids
     Gives each row its own accessibility ID, in row order. There must be
     exactly one nonempty, unique, valid UTF-8 ID per item, or
-    `std::invalid_argument` is thrown. Call it after every `set_items`.
+    `std::invalid_argument` is thrown. Call it after every assignment or
+    insertion of `items`.
 item_stable_id
     The accessibility ID of a row: its ID from `set_item_stable_ids`, or
     otherwise the list's ID followed by ``.item.`` and the index, as in
@@ -96,7 +97,8 @@ clear_selection
 on_paint
     Paints the rows in view, with hover, selection and focus highlights.
 arrange
-    Lays out the list and scrolls the active row into view.
+    Lays out the list, scrolls the active row into view and repaints the
+    rows in view that edits of `items` reached since the last layout.
 on_pointer
     Handles the pointer input described under Notes. The window calls it.
 on_key
@@ -133,8 +135,9 @@ the first row, so Down then selects the second row. Enter raises
 `item_activated` for the active row. There is no type-ahead search, and
 Space does nothing.
 
-Selection is by index, not by item. After `set_items` a surviving selected
-index refers to whichever new item now has that index.
+Selection follows the rows through insertions, erasures and replacements.
+After an assignment of every row a surviving selected index refers to
+whichever new item now has that index.
 
 The control publishes the accessibility role `list`; its rows are virtual
 `list_item` children rather than child controls.
@@ -147,8 +150,8 @@ Select a range of rows in an extended-selection list:
 
    std::shared_ptr<gf::ListBox> languages =
        gf::make_control<gf::ListBox>(gf::StableId("options.languages"));
-   (*languages).set_items({"English", "French", "German", "Italian"});
-   (*languages).set_selection_mode(gf::ListSelectionMode::multiple_extended);
+   (*languages).items = {"English", "French", "German", "Italian"};
+   (*languages).selection_mode = gf::ListSelectionMode::multiple_extended;
    (*languages).select_index(1U);         // French, which becomes the anchor
    (*languages).select_index(3U, true);   // French through Italian
    // (*languages).selected_indices() is now {1, 2, 3}
@@ -165,14 +168,14 @@ stable accessibility IDs:
        std::size_t opened = 0;
 
        LocationPicker() {
-           (*list).set_items({"Desktop", "Documents", "Downloads"});
+           (*list).items = {"Desktop", "Documents", "Downloads"};
            (*list).set_item_stable_ids({"desktop", "documents", "downloads"});
            gf::on((*list).selection_changed(), *this, &LocationPicker::on_selection);
            gf::on((*list).item_activated(), *this, &LocationPicker::on_open);
        }
        void on_selection(const gf::ListSelectionChange& change) {
            status = change.current.empty() ? std::string("Nothing selected")
-                                           : (*list).items()[change.current.front()];
+                                           : (*list).items[change.current.front()];
        }
        void on_open(std::size_t index) { opened = index; }
    };

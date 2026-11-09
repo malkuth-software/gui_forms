@@ -79,7 +79,7 @@ void TypographyPage::mount_document(const std::shared_ptr<Surface>& body) {
 
 void TypographyPage::connect_policy() {
     for (const std::shared_ptr<TypographySpecimen>& specimen : specimens_) {
-        (*specimen).set_diagnostics_visible(diagnostics_.get());
+        (*specimen).diagnostics_visible = diagnostics_.get();
     }
     ChoiceGroup& target = *document_.gallery_typography_target;
     target.set_items({
@@ -119,23 +119,23 @@ void TypographyPage::on_target_changed(const int index) {
     const std::string target(specimen_ids[static_cast<std::size_t>(index)]);
     VisualInspectorView& inspector = *document_.gallery_typography_inspector;
     VisualInspectorOverlay& overlay = *document_.gallery_typography_inspector_overlay;
-    inspector.set_target_stable_id(target);
-    overlay.set_target_stable_id(target);
+    inspector.target_stable_id = target;
+    overlay.target_stable_id = target;
     inspector.refresh();
     overlay.refresh();
-    (*document_.gallery_typography_readout).set_text("Inspecting " + target);
+    (*document_.gallery_typography_readout).text = "Inspecting " + target;
 }
 
 void TypographyPage::on_diagnostics_changed(const bool visible) {
     for (const std::shared_ptr<TypographySpecimen>& specimen : specimens_) {
-        (*specimen).set_diagnostics_visible(visible);
+        (*specimen).diagnostics_visible = visible;
     }
 }
 
 void TypographyPage::on_size_changed(const double size) {
-    FontSpec font = (*specimens_[3]).font();
+    FontSpec font = (*specimens_[3]).font.read();
     font.size = size;
-    (*specimens_[3]).set_font(font);
+    (*specimens_[3]).font = font;
     (*document_.gallery_typography_inspector).refresh();
 }
 

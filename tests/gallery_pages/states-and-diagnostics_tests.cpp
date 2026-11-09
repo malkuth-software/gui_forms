@@ -18,25 +18,25 @@ void test_states_and_diagnostics(gui_forms::Window& window,
     }
 
     click(window, window.find("gallery.dispatcher.post"));
-    require((*status).text().find("is pending") != std::string::npos &&
+    require((*status).text.read().find("is pending") != std::string::npos &&
                 window.dispatcher_snapshot().pending == 3U,
             "dispatcher gallery click must return before its posted batch runs");
     const DispatchDrainResult first = window.drain_posted_work();
     require(first.invoked == 3U && first.remaining == 1U &&
-                (*status).text().find("order ABC") != std::string::npos &&
-                (*status).text().find("D remains posted") != std::string::npos,
+                (*status).text.read().find("order ABC") != std::string::npos &&
+                (*status).text.read().find("D remains posted") != std::string::npos,
             "dispatcher gallery turn one must retain FIFO snapshot semantics");
     const DispatchDrainResult second = window.drain_posted_work();
     require(second.invoked == 1U && second.remaining == 0U &&
-                (*status).text().find("order ABCD") != std::string::npos,
+                (*status).text.read().find("order ABCD") != std::string::npos,
             "dispatcher gallery nested work must commit on turn two");
 
     click(window, window.find("gallery.dispatcher.cancel"));
-    require((*status).text().find("before dispatch") != std::string::npos,
+    require((*status).text.read().find("before dispatch") != std::string::npos,
             "dispatcher gallery must expose explicit pre-dispatch cancellation");
     const DispatchDrainResult cancelled = window.drain_posted_work();
     require(cancelled.invoked == 0U && cancelled.cancelled == 1U &&
-                (*status).text().find("ERROR") == std::string::npos,
+                (*status).text.read().find("ERROR") == std::string::npos,
             "cancelled gallery work must never execute its callback");
 
     const std::shared_ptr<gui_forms::Button> invoke = std::dynamic_pointer_cast<Button>(
@@ -45,14 +45,14 @@ void test_states_and_diagnostics(gui_forms::Window& window,
     // The Command's disabled state projects to its bound button while the
     // worker waits; the posted completion step re-enables the Command.
     require(invoke && !(*invoke).enabled.read() &&
-                (*status).text().find("Worker blocked") != std::string::npos,
+                (*status).text.read().find("Worker blocked") != std::string::npos,
             "dispatcher gallery must visibly expose a blocking worker Invoke");
     require_eventually(
         DispatcherHasOnePending(window),
         "gallery worker Invoke did not reach the dispatcher queue");
     const DispatchDrainResult invoked = host.pump_dispatcher();
     require(invoked.invoked == 1U && (*invoke).enabled.read() &&
-                (*status).text().find("Worker released after UI callback") !=
+                (*status).text.read().find("Worker released after UI callback") !=
                     std::string::npos,
             "gallery worker must resume only after its callback ran on the UI thread");
 }

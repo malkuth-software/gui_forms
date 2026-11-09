@@ -14,9 +14,6 @@ class StatusStrip final : public ToolStrip {
 public:
     explicit StatusStrip(StableId stable_id);
 
-    [[nodiscard]] bool sizing_grip() const noexcept { return sizing_grip_visible(); }
-    void set_sizing_grip(bool visible) { set_sizing_grip_visible(visible); }
-
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members; its states are Control's, and its

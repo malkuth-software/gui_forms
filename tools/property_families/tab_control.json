@@ -1,0 +1,201 @@
+{
+  "family": "TabControl",
+  "step": "M-S8",
+  "declaring": "TabControl",
+  "header": "include/gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp",
+  "source": "src/controls/scrollable_control/container_control/tab_control/tab_control.cpp",
+  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp",
+  "base": "ContainerControl",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_values/tab_control_values.hpp",
+    "gui_forms/image_list/image_list/image_list.hpp",
+    "gui_forms/theme/owner_draw/owner_draw.hpp",
+    "gui_forms/types.hpp",
+    "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
+  ],
+  "test": {
+    "type": "TabControl",
+    "include": "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "alignment",
+      "capability": "TabControlAlignment",
+      "value": "TabAlignment",
+      "initial": "TabAlignment::top",
+      "hooks": "hand",
+      "hand": [
+        "written configures the strip and invalidates"
+      ],
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "comment": "The edge the tabs sit on (Windows Forms' Alignment; default top). An unknown alignment throws std::invalid_argument.",
+      "sample": "TabAlignment::left",
+      "getter": "alignment",
+      "setter": "set_alignment",
+      "field": "alignment_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "appearance",
+      "capability": "TabControlAppearance",
+      "value": "TabAppearance",
+      "initial": "TabAppearance::normal",
+      "hooks": "hand",
+      "hand": [
+        "written repaints the strip as well"
+      ],
+      "effects": "Dirty::paint | Dirty::semantics",
+      "comment": "How the tabs are drawn (see TabAppearance; default normal). An unknown appearance throws std::invalid_argument.",
+      "sample": "TabAppearance::buttons",
+      "getter": "appearance",
+      "setter": "set_appearance",
+      "field": "appearance_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "size_mode",
+      "capability": "TabControlSizeMode",
+      "value": "TabSizeMode",
+      "initial": "TabSizeMode::normal",
+      "hooks": "hand",
+      "hand": [
+        "written configures the strip and invalidates"
+      ],
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "comment": "How wide each tab is (see TabSizeMode; default normal). An unknown mode throws std::invalid_argument.",
+      "sample": "TabSizeMode::fixed",
+      "getter": "size_mode",
+      "setter": "set_size_mode",
+      "field": "size_mode_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "item_size",
+      "capability": "TabControlItemSize",
+      "value": "Size",
+      "initial": "Size{120.0, 30.0}",
+      "hooks": "hand",
+      "hand": [
+        "written configures the strip and invalidates"
+      ],
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "comment": "A tab's size: its height across the row, and its width along it in TabSizeMode::fixed (default 120 by 30). A size that is not finite, under 24 by 18 or over 1024 by 1024 throws std::invalid_argument.",
+      "sample": "Size{96.0, 28.0}",
+      "getter": "item_size",
+      "setter": "set_item_size",
+      "field": "item_size_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "image_list",
+      "capability": "TabControlImageList",
+      "value": "std::shared_ptr<ImageList>",
+      "hooks": "hand",
+      "hand": [
+        "prepare hands the list to the strip, which checks it first, so a refused list changes neither",
+        "written moves the change subscription and invalidates"
+      ],
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test",
+      "comment": "The images the pages' image_key and image_index name (Windows Forms' ImageList), or null; a tab shows its image before its text. A disposed list or one belonging to another window throws std::invalid_argument and keeps the old list.",
+      "getter": "image_list",
+      "setter": "set_image_list",
+      "field": "image_list_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "draw_mode",
+      "capability": "TabControlDrawMode",
+      "value": "ItemDrawMode",
+      "storage": "view",
+      "hooks": "hand",
+      "hand": [
+        "a view onto the strip's draw_mode"
+      ],
+      "effects": null,
+      "field": null,
+      "comment": "Content-only owner drawing of the tabs (owner decision W-Q6; Windows Forms' DrawMode with DrawItem), the strip's: in ItemDrawMode::owner_draw draw_item_content is raised for each painted tab's icon and label, with the tab's index and its page's stable ID; the tab's plate and focus cue stay painted by role. See PageStrip::draw_item_content.",
+      "getter": "draw_mode",
+      "setter": "set_draw_mode"
+    },
+    {
+      "name": "selected_index",
+      "capability": "TabControlSelectedIndex",
+      "value": "std::optional<std::size_t>",
+      "initial": null,
+      "comment": "The selected page's index, or none without pages. A write past the end throws std::out_of_range, none throws std::invalid_argument; deselecting and selecting may cancel it (see selected_index_changed). A view onto the selected page.",
+      "getter": "selected_index",
+      "setter": "set_selected_index",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::optional<std::size_t>{}",
+      "storage": "view",
+      "hand": [
+        "a view: write_view keeps set_selected_index's cancellable selection; owner 2026-11-08 (G14: selection is a cell)"
+      ]
+    },
+    {
+      "name": "selected_tab",
+      "capability": "TabControlSelectedTab",
+      "value": "std::shared_ptr<TabPage>",
+      "initial": null,
+      "comment": "The selected page, or null. A write selects a page of this control as selected_index does; a page that is not this control's, or null, throws std::invalid_argument. A view onto the selected page.",
+      "getter": "selected_tab",
+      "setter": "set_selected_tab",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::shared_ptr<TabPage>{}",
+      "storage": "view",
+      "hand": [
+        "a view: write_view is set_selected_tab (index_of, then the selected_index write); owner 2026-11-08 (G14: selection is a cell)"
+      ]
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "style",
+      "reason": "theme and presentation plumbing (section 4)"
+    }
+  ]
+}

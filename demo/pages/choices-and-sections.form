@@ -9,10 +9,10 @@
    in design coordinates. The page keeps in code the ChoiceGroups' items and
    their shared Value<int>, the sections' items, content and Value<bool>s,
    the toggles' bindings, the Card's parts and selection behaviour, the
-   review record, every event handler, the status lines' reports and the
-   page style. */
+   review record, every event handler, the status lines' reports (the
+   switches' among them) and the page style. */
 scaled-panel gallery.choices.document {
-  design-size: 1000 600;
+  design-size: 1000 720;
 
   label gallery.choices-and-sections.heading {
     text: "CHOICES AND SECTIONS";
@@ -32,6 +32,7 @@ scaled-panel gallery.choices.document {
     classes: "paper" "group-caption";
     choice-group gallery.choices.ring {
       accessible-name: "Deployment ring";
+      presentation: segmented;
       bounds: 20 38 480 32;
     }
     choice-group gallery.choices.ring-chips {
@@ -84,5 +85,30 @@ scaled-panel gallery.choices.document {
   review-card gallery.choices.review {
     accessible-name: "Rollout review";
     bounds: 730 368 224 196;
+  }
+
+  scaled-group-box gallery.choices.switches {
+    text: "ToggleSwitch · settings that take effect at once";
+    design-size: 930 110;
+    bounds: 24 584 930 110;
+    classes: "paper" "group-caption";
+    toggle-switch gallery.choices.switches.auto-deploy {
+      text: "Deploy automatically";
+      checked: true;
+      on-text: "On";
+      off-text: "Off";
+      bounds: 20 40 300 28;
+    }
+    toggle-switch gallery.choices.switches.notify {
+      text: "Notify reviewers";
+      on-text: "On";
+      off-text: "Off";
+      bounds: 340 40 300 28;
+    }
+    label gallery.choices.switches.status {
+      text: "Automatic deployment is on";
+      classes: "positive" "emphasis";
+      bounds: 20 74 620 24;
+    }
   }
 }

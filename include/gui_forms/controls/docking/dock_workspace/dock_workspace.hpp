@@ -2,10 +2,12 @@
 
 #include "gui_forms/application/application.hpp"
 #include "gui_forms/component/component/component.hpp"
+#include "gui_forms/controls/docking/dock_workspace/dock_workspace_values/dock_workspace_values.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/docking.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/event/delegate/delegate.hpp"
+#include "gui_forms/controls/docking/dock_workspace/dock_workspace_capabilities/dock_workspace_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -53,12 +55,6 @@ struct DockPanelRegistration final {
 // menu), Close All Documents, Close Other Documents, or the close button of
 // the floating window holding them.
 enum class DockCloseCause : std::uint8_t { document, all_documents, other_documents, floating_window };
-
-// How the program is asked before documents close at the user's request
-// (owner decision DK-31, H1): one closing event per document, in order, or
-// one event for all of them (a combined prompt, such as a save-changes
-// list).
-enum class DockClosePrompt : std::uint8_t { each, combined };
 
 // Documents about to close at the user's request (DockWorkspace::
 // document_closing). `documents` is the one document asked about (each) or
@@ -109,11 +105,6 @@ struct DockActivationChange final {
     std::optional<DockPanelId> new_panel{};
     DockActivationCause cause{DockActivationCause::programmatic};
 };
-
-// What opens an auto-hidden panel's flyout from its side tab (owner decision
-// DK-27, E1-1): resting the pointer on the tab for DockSite's hover delay or
-// clicking it (the default), or only clicking it.
-enum class DockFlyoutOpening : std::uint8_t { hover_or_click, click };
 
 // The docking workspace (owner decisions DK-3, DK-29, DK-34): a component
 // owning the DockLayout, the panel registrations with their factories, the
@@ -173,7 +164,7 @@ enum class DockFlyoutOpening : std::uint8_t { hover_or_click, click };
 // so shortcuts such as Ctrl+S work from a floating tool window (F2-1).
 //
 // Execution: one UI thread, the run's; nothing is synchronized.
-class DockWorkspace final : public Component {
+class DockWorkspace final : public Component, public DockWorkspaceCapabilities<DockWorkspace> {
 public:
     explicit DockWorkspace(std::string stable_id);
     ~DockWorkspace() override;
@@ -231,9 +222,6 @@ public:
     // answer or layout change.
     [[nodiscard]] bool close_pending() const noexcept;
     [[nodiscard]] std::span<const DockPanelId> pending_close() const noexcept;
-    // One closing event per document (each, the default) or one for all.
-    [[nodiscard]] DockClosePrompt close_prompt() const noexcept { return close_prompt_; }
-    void set_close_prompt(DockClosePrompt prompt) noexcept { close_prompt_ = prompt; }
     // Raised before documents close at the user's request, on the UI
     // thread. A handler may change the layout or close panels itself; a
     // request made from inside it is busy.
@@ -350,10 +338,6 @@ public:
     // The generation of the last change that touched a site's tree (a
     // frames-only change does not); drags compare it to tell a stale plan.
     [[nodiscard]] std::uint64_t tree_generation() const noexcept { return tree_generation_; }
-
-    // The workspace setting for opening flyouts; hover_or_click by default.
-    [[nodiscard]] DockFlyoutOpening flyout_opening() const noexcept { return flyout_opening_; }
-    void set_flyout_opening(DockFlyoutOpening opening) noexcept { flyout_opening_ = opening; }
 
     // Raised after a track changed: the panel track first, then the document
     // track when both change. Handlers may activate other panels.
@@ -503,12 +487,20 @@ private:
     // one is: a nested change joins it.
     WorkspaceTransaction* transaction_{};
     std::vector<PendingFrame> pending_frames_{};
-    DockFlyoutOpening flyout_opening_{DockFlyoutOpening::hover_or_click};
-    DockClosePrompt close_prompt_{DockClosePrompt::each};
     std::optional<CloseRequest> close_request_{};
     std::vector<DockNamedLayout> named_layouts_{};
     Event<const DockActivationChange&> activation_changed_{};
     Event<DockDocumentClosing&> document_closing_{};
+    // property_codemod begin DockWorkspace (tools/property_families/dock_workspace.json; generated, do not edit)
+private:
+    friend struct DockWorkspaceClosePromptCapability<DockWorkspace>;
+    friend struct DockWorkspaceFlyoutOpeningCapability<DockWorkspace>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(close_prompt)& cell, DockClosePrompt& incoming);
+    void written(const decltype(close_prompt)& cell);
+    void prepare_write(const decltype(flyout_opening)& cell, DockFlyoutOpening& incoming);
+    void written(const decltype(flyout_opening)& cell);
+    // property_codemod end DockWorkspace
 };
 
 } // namespace gui_forms

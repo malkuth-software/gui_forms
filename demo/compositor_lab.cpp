@@ -145,7 +145,7 @@ public:
 
     // Shows `grant` on the status line.
     void show(const WindowBackdropGrant& grant) {
-        if (status_ != nullptr) (*status_).set_text(status_text(grant));
+        if (status_ != nullptr) (*status_).text = status_text(grant);
     }
 
     // backdrop_changed's target, on the UI thread: shows the grant and
@@ -184,7 +184,7 @@ private:
 
 std::shared_ptr<Label> caption(std::string id, std::string text, Rect bounds) {
     std::shared_ptr<Label> made = make_control<Label>(StableId(std::move(id)), std::move(text));
-    (*made).set_foreground(ink);
+    (*made).fore_color = ink;
     (*made).set_requested_bounds(bounds);
     return made;
 }

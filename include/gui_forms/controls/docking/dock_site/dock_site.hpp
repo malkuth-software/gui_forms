@@ -10,6 +10,7 @@
 #include "gui_forms/docking.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/controls/docking/dock_site/dock_site_capabilities/dock_site_capabilities.hpp"
 
 #include <array>
 #include <chrono>
@@ -373,7 +374,7 @@ struct DockFlyoutChange final {
 // the announcement (drag_announcement, also the name of the site's live
 // region, "<site id>.announcements"). Enter commits through the same
 // transaction as a drop; Escape cancels.
-class DockSite : public Control {
+class DockSite : public Control, public DockSiteCapabilities<DockSite> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     // Borrows `workspace` (see the lifetime rule above). Realizes the main
@@ -395,11 +396,6 @@ public:
     [[nodiscard]] DockSiteId floating_site() const noexcept { return floating_site_; }
     // Unbinds the workspace: the site removes its stacks and shows nothing.
     void release_workspace() noexcept;
-
-    // The step of a keyboard seam move, in logical units; 8 by default.
-    // Throws std::out_of_range outside 1 to 256.
-    [[nodiscard]] double keyboard_increment() const noexcept { return keyboard_increment_; }
-    void set_keyboard_increment(double increment);
 
     // The maximized document area (Ctrl+Shift+F12): every tool stack hidden
     // in place, as by collapsing, until it is restored. Focus in a tool
@@ -482,12 +478,6 @@ public:
     // What the drag announces now ("Output: dock right of Properties"), or
     // empty while idle.
     [[nodiscard]] const std::string& drag_announcement() const noexcept { return drag_.announcement; }
-    // The distance, in logical units along either axis, a caption press
-    // moves before it drags (owner decision DK-26, D5-1: 4, or a host's
-    // metric; no host reports one yet). Throws std::out_of_range outside 1
-    // to 64.
-    [[nodiscard]] double drag_threshold() const noexcept { return drag_threshold_; }
-    void set_drag_threshold(double threshold);
     // Starts the keyboard move mode for a panel docked in this site, on the
     // first planned target. False, starting nothing, for any other panel,
     // while a drag runs, or when there is no target.
@@ -539,6 +529,7 @@ public:
     void on_pointer(PointerEvent& event) override;
     void on_key_preview(KeyEvent& event) override;
     void on_key(KeyEvent& event) override;
+    void on_context_menu_requested(ContextMenuRequest& request) override;
     void on_key_bubble(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
@@ -1082,7 +1073,6 @@ private:
     std::vector<SeamSlot> previous_seams_{};
     std::vector<DockNodeId> previous_collapsed_{};
     Rect document_area_{};
-    double keyboard_increment_{8.0};
     bool maximized_{};
     // Set while the site edits its views' page sets, whose selection events
     // it then ignores.
@@ -1139,7 +1129,6 @@ private:
     SubscriptionToken active_token_{};
     // drag_gesture::default_threshold, kept here so the public header needs
     // no private one.
-    double drag_threshold_{4.0};
     // A run of Ctrl+F6 steps: the order taken at its first press, the
     // position reached and the modifier whose release ends it.
     std::vector<DockPanelId> document_steps_{};
@@ -1193,6 +1182,16 @@ private:
     SubscriptionToken root_pointer_{};
     Window* observed_root_window_{};
     Event<const DockFlyoutChange&> flyout_changed_{};
+    // property_codemod begin DockSite (tools/property_families/dock_site.json; generated, do not edit)
+private:
+    friend struct DockSiteKeyboardIncrementCapability<DockSite>;
+    friend struct DockSiteDragThresholdCapability<DockSite>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(keyboard_increment)& cell, double& incoming);
+    void written(const decltype(keyboard_increment)& cell);
+    void prepare_write(const decltype(drag_threshold)& cell, double& incoming);
+    void written(const decltype(drag_threshold)& cell);
+    // property_codemod end DockSite
 };
 
 } // namespace gui_forms

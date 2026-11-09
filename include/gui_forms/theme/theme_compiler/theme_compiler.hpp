@@ -24,6 +24,8 @@
 
 namespace gui_forms {
 
+class EffectRegistry;
+
 // One file of a theme package: its path inside the package, as the
 // manifest lists it, and its bytes.
 struct ThemePackageFile final {
@@ -101,7 +103,12 @@ private:
 //   override it and may read its colour roles; its dark variant is derived
 //   by rule, so the package's colours, written in light terms, darken by the
 //   same rule in a dark window.
-enum class ThemeCompileBase : std::uint8_t { windows_professional, gui_forms };
+enum class ThemeBase : std::uint8_t { windows_professional, gui_forms };
+
+// The base of the process default theme (default_compiled_theme()), the
+// one place that chooses it: windows_professional until default_theme()
+// switches to gui-forms (stage T4 phase 6, an owner decision).
+inline constexpr ThemeBase default_theme_base = ThemeBase::windows_professional;
 
 // What a compilation reads besides the package.
 struct ThemeCompileOptions final {
@@ -125,7 +132,12 @@ struct ThemeCompileOptions final {
     // caller chooses gui_forms. With gui_forms, `controls` names the stock
     // control types too: the light sheet's rules for a type outside it are
     // warnings that drop them, named for `gui-forms/light.css`.
-    ThemeCompileBase base{ThemeCompileBase::windows_professional};
+    ThemeBase base{ThemeBase::windows_professional};
+    // The effects a sheet's `effect` may name (EP-3), borrowed for the call;
+    // usually built_in_effect_registry(). A name it does not hold refuses
+    // the package (E417, at the name). Null, only the name's form is
+    // checked, and a control checks its effect when it attaches it.
+    const EffectRegistry* effects{};
 };
 
 // What setting a control's inline style gave (Control::set_inline_style):
@@ -193,6 +205,32 @@ private:
 // release of their themes, are not safe to run concurrently.
 [[nodiscard]] ThemeCompileResult compile_theme_package(const ThemePackage& package, const ThemeLibrary& library,
                                                        ImageRegistry& images, const ThemeCompileOptions& options);
+
+// The most packages compile_theme_packages takes: 16, as many as one
+// package's `@import` closure may hold.
+inline constexpr std::size_t maximum_theme_packages = 16U;
+
+// Compiles an application's theme (APP_WINDOW_RULES_DESIGN.md section A):
+// `options.base`, then `packages` in their order, each with its `@import`
+// closure among `library`'s packages, as one cascade, so a later package
+// overrides an earlier one and may read its colour roles. A package
+// another imports again keeps its earlier place. The theme is named after
+// the last package, or is the base alone, under the base's id, when
+// `packages` is empty. Every package is verified before any is compiled;
+// two of one name, or more than maximum_theme_packages, are refused
+// (E601), and the findings name each package's files. The combined sheets
+// are bounded as one closure's are (1 MiB). Images are owned as
+// compile_theme_package's are; compile_theme_package is the one-package
+// case.
+[[nodiscard]] ThemeCompileResult compile_theme_packages(std::span<const ThemePackage> packages,
+                                                        const ThemeLibrary& library, ImageRegistry& images,
+                                                        const ThemeCompileOptions& options);
+
+// The process default theme: the theme a window shows while no application
+// is current, the compiled base default_theme_base names alone. Built on
+// the first call (thread-safe) and never recompiled; every call returns
+// the same theme.
+[[nodiscard]] std::shared_ptr<const Theme> default_compiled_theme();
 
 // A user theme's files (T3 user themes, notes:planning/stages/
 // T3-theme-language/USER_THEMES.md): its name, the stem of its main file

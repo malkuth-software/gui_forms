@@ -1,0 +1,40 @@
+{
+  "family": "SplitterPanel",
+  "step": "M-S8",
+  "declaring": "SplitterPanel",
+  "header": "include/gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp",
+  "source": "src/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.cpp",
+  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel_capabilities/splitter_panel_capabilities.hpp",
+  "base": "ContainerControl",
+  "shared": [],
+  "includes": [
+    "gui_forms/types.hpp"
+  ],
+  "test": {
+    "type": "SplitterPanel",
+    "include": "gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp"
+  },
+  "properties": [
+    {
+      "name": "background",
+      "capability": "SplitterPanelBackground",
+      "value": "Color",
+      "initial": "Color::rgba(0, 0, 0, 0)",
+      "comment": "The pane's flat background, painted from its committed bounds so the allocation stays visible while the splitter moves (default transparent: nothing is painted and the face part is absent).",
+      "getter": "background",
+      "setter": "set_background",
+      "clear": null,
+      "field": "background_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "invalidation::style_only",
+      "sample": "Color::rgba(225, 235, 243)"
+    }
+  ],
+  "not_properties": []
+}

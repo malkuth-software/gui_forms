@@ -1,2 +1,2 @@
 refused
-E303 pseudo_class_not_admitted 2:7 rule=button:not(:hover) detail=not
+E303 pseudo_class_not_admitted 2:7 rule=button:has(:hover) detail=has

@@ -14,10 +14,10 @@ stable_id
     Identity of the control, unique within its window. Logs, automation and
     semantic actions address the control by this ID. The drop-down list is
     created as ``<stable_id>.overlay.list`` while it is open.
-descriptor
-    The flags enumeration to edit. See `descriptor` below.
-value
-    The starting value. See `value` below.
+initial_descriptor
+    The flags enumeration to edit; it becomes `descriptor`.
+initial_value
+    The starting value; it becomes `value`.
 
 Properties
 ----------
@@ -26,7 +26,7 @@ descriptor
     `PropertyEnumDescriptor`, with a nonempty type name and 1 to 256 choices
     whose names are nonempty and distinct; it must have `flags` set and at
     least one choice whose value is a single positive bit. Otherwise the
-    constructor and the setter throw `std::invalid_argument`. Setting a new descriptor converts the current
+    constructor and a write throw `std::invalid_argument`. Setting a new descriptor converts the current
     value to it, and throws `std::invalid_argument` if the value has a flag
     the new descriptor lacks. An open drop-down is rebuilt.
 value
@@ -34,11 +34,11 @@ value
     descriptor's, and only its numeric value counts: the name is rewritten
     as the name of a choice with exactly that value, or else as the names of
     the single-bit choices that are set, joined with ", ". A value with a
-    bit that no choice declares throws `std::invalid_argument`. `set_value`
+    bit that no choice declares throws `std::invalid_argument`. A write
     does not raise `value_changed`.
 dropped_down : default ``false``
     Whether the list is open. Opening it needs the editor to be in a window;
-    in a control that is not attached, `set_dropped_down(true)` leaves it
+    in a control that is not attached, writing true to `dropped_down` leaves it
     closed. In a window, opening it while the editor is hidden or disabled
     throws `std::logic_error`.
 overlay_width : default ``240``
@@ -50,8 +50,8 @@ Events
 ------
 value_changed
     Raised when the user checks or unchecks a flag in the list and the value
-    changes. It carries the new value. It is not raised by `set_value` or
-    `set_descriptor`.
+    changes. It carries the new value. It is not raised by writes to `value` or
+    `descriptor`.
 drop_down_changed
     Raised after the list opens, with `true`, and after it closes, with
     `false`, however that happened.
@@ -66,7 +66,7 @@ ColorValueEditor : The editor `PropertyGrid` uses for colours.
 Notes
 -----
 `value_changed` is raised only when the user commits an edit in the list,
-never when `set_value` changes the value. An application that changes the
+never when a write to `value` changes it. An application that changes the
 value itself already knows the new value; observe `value_changed` to learn
 what the user chose.
 
@@ -102,8 +102,8 @@ whatever name the starting value carries:
    std::shared_ptr<gf::FlagsValueEditor> editor =
        gf::make_control<gf::FlagsValueEditor>(
            gf::StableId("frame.edges"), edges, gf::PropertyEnumValue{"Edges", "", 3});
-   // (*editor).value().name is "Top, Left"
-   (*editor).set_value(gf::PropertyEnumValue{"Edges", "", 0});   // "None", no event
+   // (*editor).value.read().name is "Top, Left"
+   (*editor).value = gf::PropertyEnumValue{"Edges", "", 0};   // "None", no event
 
 Open the list in a window and check a flag, as the user would. The change
 commits at once and raises `value_changed`:
@@ -135,10 +135,10 @@ commits at once and raises `value_changed`:
        (*root).add_child(frame.edges);
        gf::Window window(root, {320.0, 240.0});
        window.perform_layout();
-       (*frame.edges).set_dropped_down(true);
+       (*frame.edges).dropped_down = true;
        std::shared_ptr<gf::CheckedListBox> list = std::dynamic_pointer_cast<gf::CheckedListBox>(
            window.find("frame.edges.overlay.list"));
        if (list) (*list).set_item_checked(3U, true);   // the "Right" row
        // drawn is "Top, Left, Right"
-       (*frame.edges).set_dropped_down(false);
+       (*frame.edges).dropped_down = false;
    }

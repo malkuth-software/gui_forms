@@ -23,16 +23,16 @@ void DropDownList::initialize_control_tree() {
 
 void DropDownList::synchronize_scroll() {
     const std::size_t visible = std::max<std::size_t>(1, static_cast<std::size_t>(
-        std::floor(std::max(0.0, local_bounds().height - 4) / (item_height() * effective_text_scale()))));
-    const std::size_t maximum = items().size() > visible ? items().size() - visible : 0;
+        std::floor(std::max(0.0, local_bounds().height - 4) / (item_height.read() * effective_text_scale()))));
+    const std::size_t maximum = items.read().size() > visible ? items.read().size() - visible : 0;
     synchronizing_ = true;
     (*scrollbar_).visible = maximum != 0;
     (*scrollbar_).set_range(0, static_cast<double>(std::max<std::size_t>(1, maximum)));
-    (*scrollbar_).set_small_change(1);
-    (*scrollbar_).set_large_change(static_cast<double>(visible));
-    const std::size_t top = std::min(top_index(), maximum);
-    set_top_index(top);
-    (*scrollbar_).set_value(static_cast<double>(top));
+    (*scrollbar_).small_change = 1;
+    (*scrollbar_).large_change = static_cast<double>(visible);
+    const std::size_t top = std::min(top_index.read(), maximum);
+    top_index = top;
+    (*scrollbar_).value = static_cast<double>(top);
     synchronizing_ = false;
 }
 
@@ -43,7 +43,7 @@ void DropDownList::arrange(Rect bounds) {
 }
 
 void DropDownList::scroll_changed(double value) {
-    if (!synchronizing_) set_top_index(static_cast<std::size_t>(std::round(value)));
+    if (!synchronizing_) top_index = static_cast<std::size_t>(std::round(value));
 }
 
 void DropDownList::on_pointer(PointerEvent& event) {
@@ -72,9 +72,9 @@ void DropDownList::set_matches(std::vector<TextMatchRange> matches) {
 }
 
 Rect DropDownList::match_bounds(std::size_t index, Rect row) const {
-    if (index >= matches_.size() || index >= items().size()) return {};
+    if (index >= matches_.size() || index >= items.read().size()) return {};
     const TextMatchRange match = matches_[index];
-    const std::string_view text = items()[index];
+    const std::string_view text = items.read()[index];
     if (match.length == 0U || match.offset >= text.size()) return {};
     // ListBox keeps its selected indices sorted.
     const std::span<const std::size_t> chosen = selected_indices();
@@ -83,7 +83,7 @@ Rect DropDownList::match_bounds(std::size_t index, Rect row) const {
     const std::size_t end = std::min(text.size(), match.offset + match.length);
     // The run's edges are the widths of the text before them, measured as
     // ListBox measures a row's label.
-    const FontSpec label_font = effective_font(font());
+    const FontSpec label_font = effective_font(font.read());
     const ResolvedTextLayout before = resolve_text_layout_utf8(text.substr(0U, match.offset), label_font);
     const ResolvedTextLayout through = resolve_text_layout_utf8(text.substr(0U, end), label_font);
     const double left = row_text_left() + before.logical_size.width;
@@ -157,7 +157,7 @@ DropDownList::ItemParts DropDownList::drop_down_item_parts(std::size_t item) con
     record.row_focus = base.row_focus;
     // The row as paint lays it out, before ListBox clips it to the content.
     const Rect bounds = local_bounds();
-    const double row_height = item_height() * effective_text_scale();
+    const double row_height = item_height.read() * effective_text_scale();
     const Rect row{2.0, 2.0 + static_cast<double>(item) * row_height,
                    std::max(0.0, bounds.width - 4.0), row_height};
     const Rect content{2.0, 2.0, std::max(0.0, bounds.width - 4.0), std::max(0.0, bounds.height - 4.0)};

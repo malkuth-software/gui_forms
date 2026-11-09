@@ -7,7 +7,7 @@ gui_forms::OpenFileDialog
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: OpenFileDialog final : public Component
+.. cpp:class:: OpenFileDialog final : public Component, public OpenFileDialogCapabilities<OpenFileDialog>
 
    ``#include <gui_forms/components/open_file_dialog/open_file_dialog.hpp>``
 
@@ -29,26 +29,23 @@ gui_forms::OpenFileDialog
    :Properties:
 
       **title** : ``std::string``, default empty
-         The dialog's title; empty gives the host's own. :cpp:func:`set_title <gui_forms::OpenFileDialog::set_title>` throws
+         The dialog's title; empty gives the host's own. A write throws
          ``std::invalid_argument`` for text that is not valid UTF-8, holds NUL or
          is longer than ``HostServices::maximum_dialog_text_bytes``, and keeps the
          old title.
 
       **initial_directory** : ``std::string``, default empty
          The directory the dialog starts in; empty lets the host choose. Refused
-         as :cpp:func:`title <gui_forms::OpenFileDialog::title>` is.
+         as :cpp:member:`title <gui_forms::OpenFileDialog::title>` is.
 
       **filter** : ``std::string``, default empty
          The filter in Windows Forms' syntax: ``label|patterns`` pairs separated
          by ``|``, the patterns separated by ``;``, as in
          ``"Text files|*.txt;*.log|All files|*.*"``. A pattern is ``*``, ``*.*``
          (any file) or ``*.extension``; the hosts filter by extension only, so
-         other patterns are refused. :cpp:func:`set_filter <gui_forms::OpenFileDialog::set_filter>` throws ``std::invalid_argument``
+         other patterns are refused. A write throws ``std::invalid_argument``
          for a string ``parse_file_dialog_filter`` refuses, and keeps the old
          filter.
-
-      **filters** : ``std::span<const HostFileDialogFilter>``, read-only
-         The host filters the filter parsed into, in order.
 
       **filter_index** : ``std::size_t``, default ``0``
          The filter the dialog starts with, an index into :cpp:func:`filters <gui_forms::OpenFileDialog::filters>` counting from
@@ -62,9 +59,12 @@ gui_forms::OpenFileDialog
          Whether the user may choose more than one file.
 
       **file_name** : ``std::string``
-         The first chosen path, or empty. Before the dialog is shown, a name set
-         with :cpp:func:`set_file_name <gui_forms::OpenFileDialog::set_file_name>` is the one the dialog suggests; it becomes the one
+         The first chosen path, or empty. Before the dialog is shown, a name written
+         here is the one the dialog suggests; it becomes the one
          chosen path (none for an empty name).
+
+      **filters** : ``std::span<const HostFileDialogFilter>``, read-only
+         The host filters the filter parsed into, in order.
 
       **file_names** : ``std::span<const std::string>``, read-only
          Every chosen path, in the host's order. Only an accepted dialog changes
@@ -135,9 +135,9 @@ gui_forms::OpenFileDialog
       std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
       gf::Window window(root, {320.0, 200.0});
       gf::OpenFileDialog dialog;
-      dialog.set_title("Open recordings");
-      dialog.set_filter("Recordings|*.wav;*.flac|All files|*.*");
-      dialog.set_multiselect(true);
+      dialog.title = "Open recordings";
+      dialog.filter = "Recordings|*.wav;*.flac|All files|*.*";
+      dialog.multiselect = true;
       const gf::DialogResult result = dialog.show_dialog(window);
       if (result == gf::DialogResult::ok) {
           for (const std::string& path : dialog.file_names()) {
@@ -155,45 +155,29 @@ gui_forms::OpenFileDialog
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& title() const noexcept
+   .. cpp:member:: std::string title
 
-      The dialog's title; empty gives the host's own. :cpp:func:`set_title <gui_forms::OpenFileDialog::set_title>` throws
+      The dialog's title; empty gives the host's own. A write throws
       ``std::invalid_argument`` for text that is not valid UTF-8, holds NUL or
       is longer than ``HostServices::maximum_dialog_text_bytes``, and keeps the
       old title.
 
-   .. cpp:function:: void set_title(std::string title)
-
-      Sets :cpp:func:`title <gui_forms::OpenFileDialog::title>`; see the property's description above.
-
-   .. cpp:function:: const std::string& initial_directory() const noexcept
+   .. cpp:member:: std::string initial_directory
 
       The directory the dialog starts in; empty lets the host choose. Refused
-      as :cpp:func:`title <gui_forms::OpenFileDialog::title>` is.
+      as :cpp:member:`title <gui_forms::OpenFileDialog::title>` is.
 
-   .. cpp:function:: void set_initial_directory(std::string directory)
-
-      Sets :cpp:func:`initial_directory <gui_forms::OpenFileDialog::initial_directory>`; see the property's description above.
-
-   .. cpp:function:: const std::string& filter() const noexcept
+   .. cpp:member:: std::string filter
 
       The filter in Windows Forms' syntax: ``label|patterns`` pairs separated
       by ``|``, the patterns separated by ``;``, as in
       ``"Text files|*.txt;*.log|All files|*.*"``. A pattern is ``*``, ``*.*``
       (any file) or ``*.extension``; the hosts filter by extension only, so
-      other patterns are refused. :cpp:func:`set_filter <gui_forms::OpenFileDialog::set_filter>` throws ``std::invalid_argument``
+      other patterns are refused. A write throws ``std::invalid_argument``
       for a string ``parse_file_dialog_filter`` refuses, and keeps the old
       filter.
 
-   .. cpp:function:: void set_filter(std::string filter)
-
-      Sets :cpp:func:`filter <gui_forms::OpenFileDialog::filter>`; see the property's description above.
-
-   .. cpp:function:: std::span<const HostFileDialogFilter> filters() const noexcept
-
-      The host filters the filter parsed into, in order.
-
-   .. cpp:function:: std::size_t filter_index() const noexcept
+   .. cpp:member:: std::size_t filter_index
 
       The filter the dialog starts with, an index into :cpp:func:`filters <gui_forms::OpenFileDialog::filters>` counting from
       zero (Windows Forms' ``FilterIndex`` counts from one). After the user
@@ -202,27 +186,19 @@ gui_forms::OpenFileDialog
       adds one) is no filter of the program's and leaves the index as it was.
       An index past the filters starts the dialog on the first.
 
-   .. cpp:function:: void set_filter_index(std::size_t index) noexcept
-
-      Sets :cpp:func:`filter_index <gui_forms::OpenFileDialog::filter_index>`; see the property's description above.
-
-   .. cpp:function:: bool multiselect() const noexcept
+   .. cpp:member:: bool multiselect
 
       Whether the user may choose more than one file.
 
-   .. cpp:function:: void set_multiselect(bool multiselect) noexcept
+   .. cpp:member:: std::string file_name
 
-      Sets :cpp:func:`multiselect <gui_forms::OpenFileDialog::multiselect>`; see the property's description above.
-
-   .. cpp:function:: const std::string& file_name() const noexcept
-
-      The first chosen path, or empty. Before the dialog is shown, a name set
-      with :cpp:func:`set_file_name <gui_forms::OpenFileDialog::set_file_name>` is the one the dialog suggests; it becomes the one
+      The first chosen path, or empty. Before the dialog is shown, a name written
+      here is the one the dialog suggests; it becomes the one
       chosen path (none for an empty name).
 
-   .. cpp:function:: void set_file_name(std::string name)
+   .. cpp:function:: std::span<const HostFileDialogFilter> filters() const noexcept
 
-      Sets :cpp:func:`file_name <gui_forms::OpenFileDialog::file_name>`; see the property's description above.
+      The host filters the filter parsed into, in order.
 
    .. cpp:function:: std::span<const std::string> file_names() const noexcept
 

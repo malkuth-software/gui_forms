@@ -12,7 +12,7 @@ Running windows on a native host, host options per platform, and the portable ho
    :widths: 35 65
 
    * - :cpp:class:`Application <gui_forms::Application>`
-     - The entry point that presents windows on the platform's native host.
+     - The application: what every window shares, and the entry point that presents windows on the platform's native host.
    * - :cpp:class:`ApplicationWindowHandle <gui_forms::ApplicationWindowHandle>`
      - A weak handle for asking the host to show, hide, retitle, resize or close a running window.
    * - :cpp:class:`ApplicationWindowOptions <gui_forms::ApplicationWindowOptions>`
@@ -35,8 +35,14 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`ApplicationConfig <gui_forms::ApplicationConfig>`
+     - Everything an application is made with.
+   * - :cpp:class:`ApplicationCreateResult <gui_forms::ApplicationCreateResult>`
+     - What Application::create gave: an application owned by the caller, with the theme compile's warnings in ``findings``, or a refusal with nothing made and, for theme_refused, the compile's diagnostics.
    * - :cpp:class:`ApplicationResult <gui_forms::ApplicationResult>`
      -  
+   * - :cpp:class:`ApplicationThemeConfig <gui_forms::ApplicationThemeConfig>`
+     - The application's theme (APP_WINDOW_RULES_DESIGN A.2): the base sheet, then the program's packages in order, compiled once by Application::create (compile_theme_packages).
    * - :cpp:class:`ApplicationWindow <gui_forms::ApplicationWindow>`
      -  
    * - :cpp:class:`ApplicationWindowAtResult <gui_forms::ApplicationWindowAtResult>`
@@ -89,6 +95,8 @@ Related types
      - HostColorDialogResult carries accepted/cancelled outcome and portable RGBA.
    * - :cpp:class:`HostCompositorEvent <gui_forms::HostCompositorEvent>`
      - The host's compositor and preference state (stage T5): reported once after attach and again whenever it changes (capability compositor_notifications).
+   * - :cpp:class:`HostContextRequestEvent <gui_forms::HostContextRequestEvent>`
+     - The platform asked for a context menu (owner's mouse-event rule): Windows WM_CONTEXTMENU (after the right button's release, or Shift+F10 and the Menu key), macOS menuForEvent: (the right button's press, or a Control-click).
    * - :cpp:class:`HostDialogHelpEvent <gui_forms::HostDialogHelpEvent>`
      - The user asked for help in an open message dialog: its Help button, or F1.
    * - :cpp:class:`HostDialogRequest <gui_forms::HostDialogRequest>`
@@ -105,6 +113,8 @@ Related types
      - HostFileDialogFilter carries a user-facing label and bounded extension vocabulary without native filter syntax.
    * - :cpp:class:`HostFolderDialogRequest <gui_forms::HostFolderDialogRequest>`
      - HostFolderDialogRequest declares portable title and initial directory for one folder selection.
+   * - :cpp:class:`HostHoverEvent <gui_forms::HostHoverEvent>`
+     - The pointer rested within the hover rectangle for the hover time, as the platform measured it (Windows WM_MOUSEHOVER).
    * - :cpp:class:`HostImage <gui_forms::HostImage>`
      - An owned host-service image, premultiplied BGRA8 like HostImageView.
    * - :cpp:class:`HostImageView <gui_forms::HostImageView>`
@@ -153,8 +163,6 @@ Related types
      - HostShutdownEvent is the empty terminal teardown signal admitted from any nonterminal lifecycle where policy allows it.
    * - :cpp:class:`HostSoundCueRequest <gui_forms::HostSoundCueRequest>`
      - HostSoundCueRequest carries semantic meaning, normalized gain, and caller-supplied monotonic time for reproducible coalescing.
-   * - :cpp:class:`HostTooltipRequest <gui_forms::HostTooltipRequest>`
-     - HostTooltipRequest carries UTF-8 text, root-client logical anchor, and bounded lifetime while adapters own screen clamping/nonactivation.
    * - :cpp:class:`HostTrayIconEvent <gui_forms::HostTrayIconEvent>`
      -  
    * - :cpp:class:`HostTrayIconId <gui_forms::HostTrayIconId>`
@@ -175,6 +183,8 @@ Related types
      -  
    * - :cpp:class:`HostWindowAtResult <gui_forms::HostWindowAtResult>`
      - An accepted result whose ``window`` is invalid means no window of this run is the topmost window at the point (the desktop, or another application's window, is).
+   * - :cpp:class:`HostWindowCornersResult <gui_forms::HostWindowCornersResult>`
+     - A corner request's outcome (HostServices::apply_window_corners): the status, and what the window's corners are afterwards, which the window's band follows.
    * - :cpp:class:`HostWindowDescription <gui_forms::HostWindowDescription>`
      - What an adapter tells the windowing seam about a window it is about to create.
    * - :cpp:class:`HostWindowFrame <gui_forms::HostWindowFrame>`
@@ -191,6 +201,8 @@ Related types
      -  
    * - :cpp:class:`HostWindowKindTraits <gui_forms::HostWindowKindTraits>`
      - What the run does with a window of each kind (stage DK decisions 1, 10 and 11).
+   * - :cpp:class:`HostWindowStateEvent <gui_forms::HostWindowStateEvent>`
+     - The native window's state changed (capability window_state_reports; owner, 2026-11-08: the window outer band).
    * - :cpp:class:`LinuxApplicationOptions <gui_forms::host::LinuxApplicationOptions>`
      -  
    * - :cpp:class:`LinuxApplicationWindow <gui_forms::host::LinuxApplicationWindow>`
@@ -205,6 +217,12 @@ Related types
      - MacHostOptions declares initial native window title, geometry, display scale, and run policy.
    * - :cpp:class:`MacHostServiceOptions <gui_forms::host::MacHostServiceOptions>`
      - MacHostServiceOptions injects bounded dialog, tooltip, clipboard, and semantic-sound services into an AppKit session.
+   * - :cpp:class:`Splashscreen <gui_forms::Splashscreen>`
+     - One shown splashscreen, owned by the program.
+   * - :cpp:class:`SplashscreenOptions <gui_forms::SplashscreenOptions>`
+     - A splashscreen (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S; a Splash of kind splashscreen) shown before Application::create, while the program loads: a borderless window centred on the primary monitor that takes no input.
+   * - :cpp:class:`SplashscreenResult <gui_forms::SplashscreenResult>`
+     -  
    * - :cpp:class:`ThemeChoice <gui_forms::ThemeChoice>`
      -  
    * - :cpp:class:`ThemeCommandLine <gui_forms::ThemeCommandLine>`
@@ -246,6 +264,40 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ApplicationConfig final
+
+   ``#include <gui_forms/application/application.hpp>``
+
+   Everything an application is made with. Move-only (it holds a library).
+
+   .. cpp:member:: ApplicationThemeConfig theme
+
+   .. cpp:member:: std::optional<PresentationSettings> presentation
+
+      The presentation defaults every window of the application starts with, until the host reports its own; GUI.Forms' defaults when unset.
+
+   .. cpp:member:: ImageRegistryLimits image_limits
+
+      The quotas of the application's shared image registry.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ApplicationCreateResult final
+
+   ``#include <gui_forms/application/application.hpp>``
+
+   What Application::create gave: an application owned by the caller, with the theme compile's warnings in ``findings``, or a refusal with nothing made and, for theme_refused, the compile's diagnostics.
+
+   .. cpp:member:: ApplicationCreateError error
+
+      Default: ``{ApplicationCreateError::none}``.
+
+   .. cpp:member:: std::unique_ptr<Application> application
+
+   .. cpp:member:: std::vector<ThemeCompileDiagnostic> findings
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ApplicationResult final
 
    ``#include <gui_forms/application/application.hpp>``
@@ -266,6 +318,34 @@ Related types
       Default: ``{std::numeric_limits<std::size_t>::max()}``.
 
    .. cpp:member:: std::exception_ptr callback_exception
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ApplicationThemeConfig final
+
+   ``#include <gui_forms/application/application.hpp>``
+
+   The application's theme (APP_WINDOW_RULES_DESIGN A.2): the base sheet, then the program's packages in order, compiled once by Application::create (compile_theme_packages).
+
+   .. cpp:member:: ThemeBase base
+
+      The process default's base (default_theme_base) unless chosen. Default: ``{default_theme_base}``.
+
+   .. cpp:member:: std::vector<ThemePackage> packages
+
+      The program's packages, in compile order: a later one overrides an earlier one. At most maximum_theme_packages, with distinct names.
+
+   .. cpp:member:: ThemeLibrary library
+
+      The installed packages a package's ``@import`` may name.
+
+   .. cpp:member:: std::span<const ControlAnatomy> controls
+
+      The application's own control types, beside the stock ones, that a selector may name. Borrowed for the call to create only.
+
+   .. cpp:member:: const EffectRegistry* effects
+
+      The effects the packages' ``effect`` may name (EP-3), usually built_in_effect_registry(); a name it does not hold refuses the theme (E417). Borrowed for the call to create only. Null, only the names' form is checked.
 
 .. cpp:namespace:: gui_forms
 
@@ -723,6 +803,20 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HostContextRequestEvent final
+
+   ``#include <gui_forms/host/types/host_types.hpp>``
+
+   The platform asked for a context menu (owner's mouse-event rule): Windows WM_CONTEXTMENU (after the right button's release, or Shift+F10 and the Menu key), macOS menuForEvent: (the right button's press, or a Control-click). The Linux host, whose platform has no such event, emulates it: the right button's press, the Menu key and Shift+F10. A pointer request carries the pointer's window position; a keyboard request names none and goes to the focused control. The window raises ContextMenuRequested from it (SurfaceRoot::dispatch_context_request). A position that is not finite is refused as invalid_payload.
+
+   .. cpp:member:: ContextRequestOrigin origin
+
+      Default: ``{ContextRequestOrigin::pointer}``.
+
+   .. cpp:member:: Point position
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostDialogHelpEvent final
 
    ``#include <gui_forms/host/types/host_types.hpp>``
@@ -846,6 +940,16 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HostHoverEvent final
+
+   ``#include <gui_forms/host/types/host_types.hpp>``
+
+   The pointer rested within the hover rectangle for the hover time, as the platform measured it (Windows WM_MOUSEHOVER). Sent only by a host whose input settings say native_hover; the window raises MouseHover on the hovered control. A position that is not finite is refused as invalid_payload.
+
+   .. cpp:member:: Point position
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostImage final
 
    ``#include <gui_forms/host/image/host_image.hpp>``
@@ -895,7 +999,7 @@ Related types
 
    ``#include <gui_forms/host/types/host_types.hpp>``
 
-   The platform's input settings that controls read (stage W, ListView label editing): reported after attach and again whenever the system setting changes. The session copies them into the window's PresentationSettings (double_click_milliseconds and double_click_origin), leaving every other field as it is. An interval of 0 or above maximum_double_click_milliseconds is refused as invalid_payload.
+   The platform's input settings that controls read (stage W, ListView label editing): reported after attach and again whenever the system setting changes. The session copies them into the window's PresentationSettings (double_click_milliseconds, double_click_origin and pointer), leaving every other field as it is. An interval of 0 or above maximum_double_click_milliseconds, or pointer settings that are not valid_pointer_settings, are refused as invalid_payload. A host reports the pointer values its platform has with origin host and leaves the others at their defaults (origin default_value).
 
    .. cpp:member:: std::uint32_t double_click_milliseconds
 
@@ -904,6 +1008,8 @@ Related types
    .. cpp:member:: SettingOrigin double_click_origin
 
       Default: ``{SettingOrigin::host}``.
+
+   .. cpp:member:: PointerSettings pointer
 
 .. cpp:namespace:: gui_forms
 
@@ -1058,6 +1164,10 @@ Related types
    ``#include <gui_forms/host/windowing/host_windowing.hpp>``
 
    Where a native popup window opens and how it takes focus (owner, 2026-11-04): carried by its window entry (ApplicationWindow::popup and each adapter's native entry). Programs open popups through Window::open_native_popup, which fills this in.
+
+   .. cpp:member:: HostTransientKind kind
+
+      A Splash kind takes no input, so its focus is always passive; an entry declaring takes_focus with a Splash kind is invalid. Default: ``{HostTransientKind::popup}``.
 
    .. cpp:member:: HostPopupFocus focus
 
@@ -1261,6 +1371,10 @@ Related types
 
       Applies a window's backdrop grant to the native window (stage T5). The window calls it only when its granted backdrop changes. ``opaque`` needs no capability, and an adapter must not fail it; ``transparent`` needs transparent_windows, and the two materials window_backdrops. A refused or failed request leaves the native window as it was.
 
+   .. cpp:function:: HostWindowCornersResult apply_window_corners(WindowCornerPreference preference)
+
+      Asks the platform to shape the window's corners (capability window_corners) and reports what they are afterwards. Refused as unsupported, with unknown corners, without the capability; refused as invalid_argument for a value outside the enumeration. A platform that cannot comply (it rounds regardless, or cannot round) reports its actual corners with ``complied`` false.
+
    .. cpp:function:: void shutdown() noexcept
 
       Idempotently enters terminal state on the UI thread and invokes concrete adapter cleanup.
@@ -1397,6 +1511,12 @@ Related types
       *Protected.*
 
       Called with a backdrop whose capability the host advertises. The default accepts ``opaque``, which needs nothing native, and refuses the rest as unsupported.
+
+   .. cpp:function:: virtual HostWindowCornersResult apply_window_corners_impl(WindowCornerPreference preference)
+
+      *Protected.*
+
+      Called with a known preference when the host advertises window_corners. The default refuses as unsupported with unknown corners.
 
    .. cpp:function:: void publish_tray_icon_event(const HostTrayIconEvent& event)
 
@@ -1679,20 +1799,6 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: HostTooltipRequest final
-
-   ``#include <gui_forms/host/types/host_types.hpp>``
-
-   HostTooltipRequest carries UTF-8 text, root-client logical anchor, and bounded lifetime while adapters own screen clamping/nonactivation.
-
-   .. cpp:member:: std::string text
-
-   .. cpp:member:: Point anchor
-
-   .. cpp:member:: std::uint32_t duration_milliseconds
-
-.. cpp:namespace:: gui_forms
-
 .. cpp:struct:: HostTrayIconEvent final
 
    ``#include <gui_forms/host/types/host_types.hpp>``
@@ -1822,6 +1928,18 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HostWindowCornersResult final
+
+   ``#include <gui_forms/host/services/host_services.hpp>``
+
+   A corner request's outcome (HostServices::apply_window_corners): the status, and what the window's corners are afterwards, which the window's band follows. A refused or failed request reports unknown corners.
+
+   .. cpp:member:: HostServiceStatus status
+
+   .. cpp:member:: WindowCornerReport report
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostWindowDescription final
 
    ``#include <gui_forms/host/windowing/host_windowing.hpp>``
@@ -1837,6 +1955,10 @@ Related types
    .. cpp:member:: HostWindowKind kind
 
       Default: ``{HostWindowKind::standard}``.
+
+   .. cpp:member:: HostTransientKind transient
+
+      For a popup: what it is for. A Splash needs supports_splash_windows(). Default: ``{HostTransientKind::popup}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1955,6 +2077,10 @@ Related types
 
       Monitors in desktop logical units.
 
+   .. cpp:function:: HostServiceStatus query_monitors(HostMonitorResult& result)
+
+      As query_monitors, filling ``result`` (its monitor storage reused, so a repeated query on an unchanged table allocates nothing where the adapter fills in place) and returning its status. On a refusal ``result`` holds the status and no monitors.
+
    .. cpp:function:: std::optional<HostWindowId> find(std::string_view stable_id) const noexcept
 
       Table queries (no capability needed).
@@ -1977,7 +2103,7 @@ Related types
 
    .. cpp:function:: HostWindowAdmission admit(const HostWindowDescription& description)
 
-      Validates and records a window before its native creation. Rules: the stable id is 1 to 1024 bytes of UTF-8 without NUL and unique among live windows; at most maximum_windows live windows; the owner, when given, is live; exactly one primary, admitted first, without an owner; a standard window has an owner; a floating window is owned by the primary window, and at most maximum_floating_windows are live; a popup has an owner and needs supports_popup_windows() (else unsupported). After mark_started() an admission needs runtime_windows and may not be primary. A refused admission changes nothing.
+      Validates and records a window before its native creation. Rules: the stable id is 1 to 1024 bytes of UTF-8 without NUL and unique among live windows; at most maximum_windows live windows; the owner, when given, is live; exactly one primary, admitted first, without an owner; a standard window has an owner; a floating window is owned by the primary window, and at most maximum_floating_windows are live; a popup has an owner and needs supports_popup_windows(), and a Splash popup also supports_splash_windows() (else unsupported). After mark_started() an admission needs runtime_windows and may not be primary. A refused admission changes nothing.
 
    .. cpp:function:: void window_created(HostWindowId window, bool initially_visible) noexcept
 
@@ -2018,6 +2144,14 @@ Related types
 
       Whether the adapter opens native popup windows (HostWindowKind::popup) during the run. False unless the adapter says so; admit() refuses a popup as unsupported without it.
 
+   .. cpp:function:: virtual bool supports_splash_windows() const noexcept
+
+      Whether the adapter opens Splash popup windows (HostTransientKind tool_tip and splashscreen): click-through, never key, never activated. False unless the adapter can; admit() refuses a Splash as unsupported without it, and the core then falls back to an overlay. A host reports false only when it truly cannot (owner, 2026-11-08: SPLASH_STUDY D5).
+
+   .. cpp:function:: virtual bool transient_windows_translucent() const noexcept
+
+      Whether the run's popup and Splash windows have per-pixel alpha now, so the core may draw a shadow or fade around their content. True unless the adapter says otherwise; an X11 run without a compositing manager reports false and its transient windows stay real windows, opaque, with no shadow or fade (owner, 2026-11-08: Q-S2 (b)).
+
    .. cpp:function:: virtual HostWindowFrameResult frame_impl(HostWindowId window) = 0
 
       *Protected.*
@@ -2051,6 +2185,12 @@ Related types
    .. cpp:function:: virtual HostMonitorResult query_monitors_impl() = 0
 
       *Protected.*
+
+   .. cpp:function:: virtual void query_monitors_into_impl(HostMonitorResult& result)
+
+      *Protected.*
+
+      Fills ``result`` with what query_monitors_impl returns. The default assigns a new table; an adapter that keeps its table overrides it to copy into ``result``'s storage.
 
    .. cpp:function:: virtual HostServiceStatus show_impl(HostWindowId window) = 0
 
@@ -2149,6 +2289,16 @@ Related types
 
       A native popup: no decorations, no taskbar button, above its owner, placed where the program puts it and never moved by the floating policy. Whether it is activated is declared per popup (HostPopupFocus).
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostWindowStateEvent final
+
+   ``#include <gui_forms/host/types/host_types.hpp>``
+
+   The native window's state changed (capability window_state_reports; owner, 2026-11-08: the window outer band). Reported after attach and whenever the window enters or leaves full screen, or is maximized, snapped or restored, any of which the platform may answer by reshaping its corners. full_screen: the window fills its monitor with no frame (Windows: a captionless window covering its monitor; macOS: the window style mask's full-screen bit; X11: _NET_WM_STATE_FULLSCREEN, or the host's own override-redirect fallback). The session passes full_screen to Window::report_full_screen and asks the host for the window's corners again (HostServices::apply_window_corners), so the band follows both.
+
+   .. cpp:member:: bool full_screen
+
 .. cpp:namespace:: gui_forms::host
 
 .. cpp:struct:: LinuxApplicationOptions final
@@ -2241,7 +2391,7 @@ Related types
 
    .. cpp:member:: std::function<void(HostCloseRequest &)> close_request
 
-   .. cpp:member:: std::function<void(std::function<void()> wake, std::function<void()> request_close, std::function<HostDialogResult(const HostDialogRequest &)> show_dialog, std::function<HostServiceStatus(const HostTooltipRequest &)> show_tooltip, std::function<void()> hide_tooltip, std::function<HostClipboardTextResult()> read_clipboard_text, std::function<HostServiceStatus(std::string_view)> write_clipboard_text)> host_ready
+   .. cpp:member:: std::function<void(std::function<void()> wake, std::function<void()> request_close, std::function<HostDialogResult(const HostDialogRequest &)> show_dialog, std::function<HostClipboardTextResult()> read_clipboard_text, std::function<HostServiceStatus(std::string_view)> write_clipboard_text)> host_ready
 
    .. cpp:member:: std::function<void()> dispatch_pending
 
@@ -2361,7 +2511,7 @@ Related types
 
    .. cpp:member:: std::function<void(HostCloseRequest&)> close_request
 
-   .. cpp:member:: std::function<void(std::function<void()> wake, std::function<void()> request_close, std::function<HostDialogResult(const HostDialogRequest&)> show_dialog, std::function<HostServiceStatus(const HostTooltipRequest&)> show_tooltip, std::function<void()> hide_tooltip, std::function<HostClipboardTextResult()> read_clipboard_text, std::function<HostServiceStatus(std::string_view)> write_clipboard_text)> host_ready
+   .. cpp:member:: std::function<void(std::function<void()> wake, std::function<void()> request_close, std::function<HostDialogResult(const HostDialogRequest&)> show_dialog, std::function<HostClipboardTextResult()> read_clipboard_text, std::function<HostServiceStatus(std::string_view)> write_clipboard_text)> host_ready
 
    .. cpp:member:: std::function<void()> dispatch_pending
 
@@ -2380,6 +2530,90 @@ Related types
    .. cpp:member:: std::string clipboard_name
 
    .. cpp:member:: bool cancel_dialogs_for_testing
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: Splashscreen final
+
+   ``#include <gui_forms/application/splashscreen/splashscreen.hpp>``
+
+   One shown splashscreen, owned by the program. Its window closes when it is destroyed, when close() is called, or (the handover) when the first window of Application::run is ready; after that the setters change its text and do nothing more. Each setter presents the new frame at once, without a run loop. Main thread only (the thread that later runs the application). Link GUIForms::Application for show.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool shown() const noexcept
+
+   .. cpp:function:: const SplashscreenOptions& options() const noexcept
+
+   .. cpp:function:: Size size() const noexcept
+
+      The window's size in logical units: the artwork's pixel size.
+
+   .. cpp:function:: std::uint64_t frames() const noexcept
+
+      Frames presented, the first included.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static SplashscreenResult show(SplashscreenOptions options)
+
+   .. cpp:function:: void close() noexcept
+
+   .. cpp:function:: static SplashscreenResult show_on(SplashscreenOptions options, std::unique_ptr<detail::SplashscreenSurface> surface)
+
+      Shows :cpp:func:`options <gui_forms::Splashscreen::options>` through ``surface`` (a host's or a test's): the portable half of show, which supplies the platform's surface.
+
+   .. cpp:function:: SplashscreenError set_status(std::string_view status)
+
+      invalid_argument for text that is not UTF-8 or too long, or a progress outside [0, 1], changing nothing.
+
+   .. cpp:function:: SplashscreenError set_progress(std::optional<double> progress)
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SplashscreenOptions final
+
+   ``#include <gui_forms/application/splashscreen/splashscreen.hpp>``
+
+   A splashscreen (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S; a Splash of kind splashscreen) shown before Application::create, while the program loads: a borderless window centred on the primary monitor that takes no input. It is the program's artwork plus one status line and an optional progress bar in fixed built-in styling, with no sheet (owner, 2026-11-08: Q-S1 (a)); a minimal paint path of its own draws them with the bundled control face through the host's CPU raster (no theme, controls or layout), so that it shows before the theme is compiled.
+
+   .. cpp:member:: constexpr std::size_t maximum_text_bytes
+
+      Default: ``512U``.
+
+   .. cpp:member:: constexpr std::uint32_t minimum_extent
+
+      Default: ``160U``.
+
+   .. cpp:member:: constexpr std::uint32_t maximum_extent
+
+      Default: ``1600U``.
+
+   .. cpp:member:: std::vector<std::byte> artwork
+
+      The artwork: a PNG file whose pixel size, one logical unit per pixel, is the window's size (each extent minimum_extent to maximum_extent). It covers the whole window; the status and the bar are drawn over its bottom edge, so the artwork leaves room there.
+
+   .. cpp:member:: std::string status
+
+      UTF-8, at most maximum_text_bytes.
+
+   .. cpp:member:: std::optional<double> progress
+
+      In [0, 1]; none shows no bar.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SplashscreenResult final
+
+   ``#include <gui_forms/application/splashscreen/splashscreen.hpp>``
+
+   .. cpp:member:: SplashscreenError error
+
+      Default: ``{SplashscreenError::none}``.
+
+   .. cpp:member:: std::unique_ptr<Splashscreen> splashscreen
 
 .. cpp:namespace:: gui_forms
 
@@ -2826,7 +3060,7 @@ Related types
 
    .. cpp:member:: std::function<void(HostCloseRequest&)> close_request
 
-   .. cpp:member:: std::function<void(std::function<void()> wake, std::function<void()> request_close, std::function<HostDialogResult(const HostDialogRequest&)> show_dialog, std::function<HostServiceStatus(const HostTooltipRequest&)> show_tooltip, std::function<void()> hide_tooltip, std::function<HostClipboardTextResult()> read_clipboard_text, std::function<HostServiceStatus(std::string_view)> write_clipboard_text)> host_ready
+   .. cpp:member:: std::function<void(std::function<void()> wake, std::function<void()> request_close, std::function<HostDialogResult(const HostDialogRequest&)> show_dialog, std::function<HostClipboardTextResult()> read_clipboard_text, std::function<HostServiceStatus(std::string_view)> write_clipboard_text)> host_ready
 
    .. cpp:member:: std::function<void()> dispatch_pending
 
@@ -2899,6 +3133,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ApplicationCreateError
+
+   ``#include <gui_forms/application/application.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: already_exists
+
+   .. cpp:enumerator:: theme_refused
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ApplicationError
 
    ``#include <gui_forms/application/application.hpp>``
@@ -2918,6 +3164,8 @@ Enumerations
    .. cpp:enumerator:: callback_failure
 
    .. cpp:enumerator:: after_shutdown
+
+   .. cpp:enumerator:: windows_alive
 
 .. cpp:namespace:: gui_forms
 
@@ -3062,6 +3310,14 @@ Enumerations
    .. cpp:enumerator:: compositor_notifications
 
    .. cpp:enumerator:: presentation_preferences
+
+   .. cpp:enumerator:: transient_surfaces
+
+   .. cpp:enumerator:: opaque_transient_surfaces
+
+   .. cpp:enumerator:: window_corners
+
+   .. cpp:enumerator:: window_state_reports
 
 .. cpp:namespace:: gui_forms
 
@@ -3259,6 +3515,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: HostTransientKind
+
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+
+   .. cpp:enumerator:: popup
+
+   .. cpp:enumerator:: tool_tip
+
+   .. cpp:enumerator:: splashscreen
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: HostTrayIconAction
 
    ``#include <gui_forms/host/types/host_types.hpp>``
@@ -3326,6 +3594,20 @@ Enumerations
    .. cpp:enumerator:: standard
 
    .. cpp:enumerator:: transparent_full_size_content
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: SplashscreenError
+
+   ``#include <gui_forms/application/splashscreen/splashscreen.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: invalid_argument
+
+   .. cpp:enumerator:: already_shown
+
+   .. cpp:enumerator:: unsupported
 
 .. cpp:namespace:: gui_forms
 
@@ -3536,7 +3818,7 @@ Functions, constants and aliases
 
    Whether the rows run consecutively from 8, each with a feature.
 
-.. cpp:var:: constexpr std::array<HostProtocolRevision, 3> host_protocol_revisions
+.. cpp:var:: constexpr std::array<HostProtocolRevision, 5> host_protocol_revisions
 
    The host protocol's versions, one row each, from version 8 (earlier versions are not recorded). The current version is the last row's. A change to the protocol adds a row at the end, so two changes that claim the same version both add the same line and conflict when merged, and the checks below refuse a skipped or repeated version.
 
@@ -3584,7 +3866,7 @@ Functions, constants and aliases
 
 .. cpp:type:: HostDialogResultPayload = std::variant< HostMessageDialogResult, HostPathDialogResult, HostColorDialogResult>
 
-.. cpp:type:: HostEventPayload = std::variant< HostAttachEvent, HostResizeEvent, HostScaleEvent, HostActivationEvent, HostOcclusionEvent, HostDisplayEvent, DragEvent, PointerEvent, KeyEvent, TextInputEvent, HostCloseRequest, HostClosedEvent, HostShutdownEvent, HostCompositorEvent, HostInputSettingsEvent>
+.. cpp:type:: HostEventPayload = std::variant< HostAttachEvent, HostResizeEvent, HostScaleEvent, HostActivationEvent, HostOcclusionEvent, HostDisplayEvent, DragEvent, PointerEvent, KeyEvent, TextInputEvent, HostCloseRequest, HostClosedEvent, HostShutdownEvent, HostCompositorEvent, HostInputSettingsEvent, HostContextRequestEvent, HostHoverEvent, HostWindowStateEvent>
 
 .. cpp:namespace:: gui_forms
 
@@ -3593,6 +3875,10 @@ Functions, constants and aliases
 .. cpp:function:: HostMonitor logical_monitor(const HostMonitor& device) noexcept
 
    The monitor ``device`` in logical units: same id, origin and scale; frame and work area extents divided by the scale. The work area keeps its offset from the monitor origin divided by the scale, so it stays inside the logical frame.
+
+.. cpp:function:: void make_logical_monitor(HostMonitor& monitor) noexcept
+
+   As logical_monitor, converting ``monitor`` from device to logical units in place (its id untouched, so nothing is allocated).
 
 .. cpp:function:: std::size_t nearest_device_monitor(std::span<const HostMonitor> device_monitors, DesktopDevicePoint point) noexcept
 
@@ -3617,6 +3903,12 @@ Functions, constants and aliases
 .. cpp:function:: HostWindowKindTraits host_window_kind_traits(HostWindowKind kind) noexcept
 
 .. cpp:function:: const char* host_popup_focus_name(HostPopupFocus focus) noexcept
+
+.. cpp:function:: const char* host_transient_kind_name(HostTransientKind kind) noexcept
+
+.. cpp:function:: bool host_transient_is_splash(HostTransientKind kind) noexcept
+
+   Whether ``kind`` is a Splash (takes no input): tool_tip and splashscreen.
 
 .. cpp:function:: HostWindowKind host_window_kind(bool has_owner, bool tool_window, HostWindowFloating floating, bool popup) noexcept
 

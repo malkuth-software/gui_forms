@@ -76,8 +76,8 @@ void example() {
         gf::make_control<gf::TextBox>(gf::StableId("trip.from"));
     std::shared_ptr<gf::TextBox> to =
         gf::make_control<gf::TextBox>(gf::StableId("trip.to"));
-    (*from).set_auto_complete_custom_source(towns);
-    (*to).set_auto_complete_custom_source(towns);
+    (*from).auto_complete_custom_source = towns;
+    (*to).auto_complete_custom_source = towns;
     (*towns).add("Derby");   // both fields offer it from now on
 }
 }  // namespace doc_example_AutoCompleteStringCollection_1
@@ -113,9 +113,19 @@ void example() {
     (*view).set_items({{.stable_id = "save", .command = save},
                        {.stable_id = "info", .kind = gf::BackstageItemKind::topic, .text = "&Info", .page = info}});
     std::shared_ptr<gf::Ribbon> ribbon = gf::make_control<gf::Ribbon>(gf::StableId("doc.ribbon"));
-    (*ribbon).set_backstage(view);
+    (*ribbon).backstage = view;
 }
 }  // namespace doc_example_BackstageView_1
+
+namespace doc_example_Badge_1 {
+void example() {
+    std::shared_ptr<gf::Badge> unread = gf::make_control<gf::Badge>(gf::StableId("inbox.unread"));
+    (*unread).maximum = 9U;
+    (*unread).count = 12U;
+    (*unread).accessible_name = "12 unread messages";
+    // unread->display_text() is "9+"
+}
+}  // namespace doc_example_Badge_1
 
 namespace doc_example_Binding_1 {
 void example() {
@@ -134,7 +144,7 @@ void example() {
     std::shared_ptr<gf::Binding> binding =
         (*name).data_bindings().add("text", people, "name", options);
     // the text box shows "Ada"
-    (*name).set_text("Ada Lovelace");
+    (*name).text = "Ada Lovelace";
     // the current record's "name" field is now "Ada Lovelace"
 }
 }  // namespace doc_example_Binding_1
@@ -166,7 +176,7 @@ void example() {
         (*price).data_bindings().add("text", items, "price", options);
     gf::on((*binding).parse(), field, &PriceField::on_parse);
     // the text box shows "12.50"
-    (*price).set_text("$13.25");
+    (*price).text = "$13.25";
     // the current record's "price" field is now 13.25
 }
 }  // namespace doc_example_Binding_2
@@ -286,8 +296,8 @@ namespace doc_example_BlockPanel_2 {
 void example() {
     std::shared_ptr<gf::BlockPanel> row =
         gf::make_control<gf::BlockPanel>(gf::StableId("row"));
-    (*row).set_text_align(gf::TextAlignment::center);
-    (*row).set_line_strut(gf::LineStrut{});   // lines as tall as their items
+    (*row).text_align = gf::TextAlignment::center;
+    (*row).line_strut = gf::LineStrut{};   // lines as tall as their items
     gf::BlockFlowItemLayout atomic{};
     atomic.level = gf::BlockFlowLevel::inline_level;
     atomic.width = gf::SizeValue{gf::SizeKind::length_percentage,
@@ -319,7 +329,7 @@ void example() {
     (*trail).set_segments({{"root", "Home", "Go to Home"},
                            {"projects", "Projects", "Go to Projects"},
                            {"site", "Site", "Current folder"}});
-    (*trail).set_appearance(gf::BreadcrumbAppearance::raised);
+    (*trail).appearance = gf::BreadcrumbAppearance::raised;
 }
 }  // namespace doc_example_BreadcrumbTrail_1
 
@@ -337,7 +347,7 @@ struct LocationBar final : gf::Component {
     void on_segment(const std::string& id) { target = id; }
     void on_path(const std::string& path) {
         target = path;
-        (*trail).set_editing(false);   // a commit does not end editing by itself
+        (*trail).editing = false;   // a commit does not end editing by itself
     }
 };
 
@@ -360,7 +370,7 @@ void example() {
         gf::make_control<gf::Button>(gf::StableId("dialog.ok"), "OK");
     std::shared_ptr<gf::Button> cancel =
         gf::make_control<gf::Button>(gf::StableId("dialog.cancel"), "Cancel");
-    (*ok).set_dialog_result(gf::DialogResult::ok);
+    (*ok).dialog_result = gf::DialogResult::ok;
     (*ok).set_requested_bounds({8.0, 8.0, 80.0, 28.0});
     (*cancel).set_requested_bounds({96.0, 8.0, 80.0, 28.0});
     (*cancel).causes_validation = false;
@@ -479,11 +489,11 @@ struct Plans final : gf::Component {
     bool chosen = false;
 
     Plans() {
-        (*pro).set_interactive(true);
-        (*pro).set_selection_behavior(gf::CardSelectionBehavior::toggle_on_activation);
+        (*pro).interactive = true;
+        (*pro).selection_behavior = gf::CardSelectionBehavior::toggle_on_activation;
         gf::on((*pro).activated(), *this, &Plans::on_activated);
     }
-    void on_activated(gf::Card& card) { chosen = card.selected(); }
+    void on_activated(gf::Card& card) { chosen = card.selected.read(); }
 };
 
 void example() {
@@ -517,7 +527,7 @@ struct Options final : gf::Component {
 
 void example() {
     Options options;
-    (*options.wrap).set_checked(true);   // options.wrapping is now true
+    (*options.wrap).checked = true;   // options.wrapping is now true
 }
 }  // namespace doc_example_CheckBox_2
 
@@ -526,7 +536,7 @@ void example() {
     std::shared_ptr<gf::CheckedListBox> features =
         gf::make_control<gf::CheckedListBox>(gf::StableId("install.features"));
     (*features).add_item("Core files", gf::CheckState::checked);
-    (*features).add_item("Documentation");
+    (*features).add_item("Documentation", gf::CheckState::unchecked);
     (*features).add_item("Samples", gf::CheckState::indeterminate);
     (*features).toggle_item(1U);   // Documentation is now checked
     // (*features).checked_indices() is {0, 1}; Samples stays indeterminate
@@ -541,7 +551,7 @@ struct FeatureRules final : gf::Component {
 
     FeatureRules() {
         (*features).add_item("Core files", gf::CheckState::checked);
-        (*features).add_item("Samples");
+        (*features).add_item("Samples", gf::CheckState::unchecked);
         gf::on((*features).item_checking(), *this, &FeatureRules::on_checking);
         gf::on((*features).item_check_state_changed(), *this,
                &FeatureRules::on_checked);
@@ -594,7 +604,7 @@ struct ModeSwitch final : gf::Component {
 
 void example() {
     ModeSwitch view;
-    (*view.modes).set_selected_index(1);     // shown is 1, choices is 0
+    (*view.modes).selected_index = 1;     // shown is 1, choices is 0
     (*view.modes).item(0).perform_click();   // shown is 0, choices is 1
 }
 }  // namespace doc_example_ChoiceGroup_2
@@ -612,10 +622,10 @@ void example() {
     std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
     gf::Window window(root, {320.0, 200.0});
     gf::ColorDialog dialog;
-    dialog.set_color(gf::Color::rgba(0x27U, 0x74U, 0xB8U));
+    dialog.color = gf::Color::rgba(0x27U, 0x74U, 0xB8U);
     const gf::DialogResult result = dialog.show_dialog(window);
     if (result == gf::DialogResult::ok) {
-        const gf::Color accent = dialog.color();
+        const gf::Color accent = dialog.color.read();
         static_cast<void>(accent);
     } else if (result == gf::DialogResult::none) {
         // Without a host, dialog.status().error is gf::HostServiceError::unsupported.
@@ -629,10 +639,10 @@ void example() {
         gf::make_control<gf::ColorValueEditor>(gf::StableId("lamp.tint"));
     std::optional<gf::Color> parsed =
         gf::ColorValueEditor::parse_value(" #2a6fb4 ");   // opaque 42, 111, 180
-    if (parsed) (*tint).set_value(*parsed);              // no event is raised
+    if (parsed) (*tint).value = *parsed;              // no event is raised
     std::shared_ptr<gf::Label> caption = gf::make_control<gf::Label>(
         gf::StableId("lamp.caption"),
-        gf::ColorValueEditor::format_value((*tint).value()));   // "#2A6FB4FF"
+        gf::ColorValueEditor::format_value((*tint).value.read()));   // "#2A6FB4FF"
 }
 }  // namespace doc_example_ColorValueEditor_1
 
@@ -656,7 +666,7 @@ struct Lamp final : gf::Component {
 
 void example() {
     Lamp lamp;
-    (*lamp.tint).set_value(gf::Color::rgba(16, 32, 48));   // chosen is unchanged
+    (*lamp.tint).value = gf::Color::rgba(16, 32, 48);   // chosen is unchanged
     (*lamp.tint).set_requested_bounds({0.0, 0.0, 200.0, 28.0});
     gf::Window window(lamp.tint, {200.0, 28.0});
     window.perform_layout();
@@ -672,9 +682,9 @@ namespace doc_example_ComboBox_1 {
 void example() {
     std::shared_ptr<gf::ComboBox> density =
         gf::make_control<gf::ComboBox>(gf::StableId("view.density"));
-    (*density).set_items({"Compact", "Comfortable", "Spacious"});
-    (*density).set_placeholder_text("Choose a density");
-    (*density).set_selected_index(1U);
+    (*density).items = {"Compact", "Comfortable", "Spacious"};
+    (*density).placeholder_text = "Choose a density";
+    (*density).selected_index = 1U;
     // (*density).selected_text() is now "Comfortable"
 }
 }  // namespace doc_example_ComboBox_1
@@ -686,7 +696,7 @@ struct DensityField final : gf::Component {
     std::string density;
 
     DensityField() {
-        (*combo).set_items({"Compact", "Comfortable", "Spacious"});
+        (*combo).items = {"Compact", "Comfortable", "Spacious"};
         gf::on((*combo).selected_index_changed(), *this, &DensityField::on_density);
     }
     void on_density(std::optional<std::size_t> index) {
@@ -696,8 +706,8 @@ struct DensityField final : gf::Component {
 
 void example() {
     DensityField field;
-    (*field.combo).set_selected_index(2U);                 // field.density is "Spacious"
-    (*field.combo).set_items({"Compact", "Comfortable"});  // and now ""
+    (*field.combo).selected_index = 2U;                 // field.density is "Spacious"
+    (*field.combo).items = {"Compact", "Comfortable"};  // and now ""
 }
 }  // namespace doc_example_ComboBox_2
 
@@ -705,15 +715,15 @@ namespace doc_example_ComboBox_3 {
 void example() {
     std::shared_ptr<gf::ComboBox> band =
         gf::make_control<gf::ComboBox>(gf::StableId("radio.band"));
-    (*band).set_items({"Long wave", "Medium wave", "Short wave"});
-    (*band).set_drop_down_style(gf::ComboBoxStyle::drop_down);
-    (*band).set_auto_complete_source(gf::AutoCompleteSource::list_items);
-    (*band).set_auto_complete_mode(gf::AutoCompleteMode::append);
+    (*band).items = {"Long wave", "Medium wave", "Short wave"};
+    (*band).drop_down_style = gf::ComboBoxStyle::drop_down;
+    (*band).auto_complete_source = gf::AutoCompleteSource::list_items;
+    (*band).auto_complete_mode = gf::AutoCompleteMode::append;
     gf::Window window(band, gf::Size{220.0, 30.0});
     window.request_focus((*band).editor());
     window.dispatch_text(gf::TextInputEvent{"m"});
     // The field shows "medium wave" with "edium wave" selected, and the
-    // text equals the second item, so (*band).selected_index() is 1.
+    // text equals the second item, so (*band).selected_index.read() is 1.
 }
 }  // namespace doc_example_ComboBox_3
 
@@ -721,9 +731,9 @@ namespace doc_example_ComboBox_4 {
 void example() {
     std::shared_ptr<gf::ComboBox> station =
         gf::make_control<gf::ComboBox>(gf::StableId("trip.station"));
-    (*station).set_items({"Hamburg Hbf", "Köln Hbf", "Paris Nord", "Zürich HB"});
-    (*station).set_drop_down_style(gf::ComboBoxStyle::drop_down);
-    (*station).set_drop_down_filter(gf::ComboBoxFilter::substring);
+    (*station).items = {"Hamburg Hbf", "Köln Hbf", "Paris Nord", "Zürich HB"};
+    (*station).drop_down_style = gf::ComboBoxStyle::drop_down;
+    (*station).drop_down_filter = gf::ComboBoxFilter::substring;
     gf::Window window(station, gf::Size{240.0, 200.0});
     window.request_focus((*station).editor());
     window.dispatch_text(gf::TextInputEvent{"hb"});
@@ -829,7 +839,7 @@ void example() {
     (*shelf).add_child(selection);
     (*shelf).add_child(arrange);
     (*shelf).add_child(more);
-    (*shelf).set_group_gap(4.0);
+    (*shelf).group_gap = 4.0;
     (*shelf).group_spec[*selection] = gf::CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};
     (*shelf).group_spec[*arrange] = gf::CommandOverflowGroupSpec{306.0, 306.0, 306.0, 1U};
     (*shelf).set_overflow_actuator(*more);
@@ -1024,7 +1034,7 @@ void example() {
     records[1].excerpt = "Payment for invoice 1042 is due on Friday.";
     records[1].emphasis_terms = {"invoice"};
     (*results).set_items(records);
-    (*results).set_pinned_id("mail.1042");
+    (*results).pinned_id = "mail.1042";
     // (*results).expanded("mail.1042") is now true
 }
 }  // namespace doc_example_CorrespondenceView_1
@@ -1057,7 +1067,7 @@ void example() {
     records[1].stable_id = "mail.2";
     records[1].title = "Invoice 1042";
     (*pane.results).set_items(records);
-    (*pane.results).set_pinned_id("mail.2");
+    (*pane.results).pinned_id = "mail.2";
     // pane.pinned is "mail.2", and then pane.expanded_by_pin is true
 }
 }  // namespace doc_example_CorrespondenceView_2
@@ -1073,12 +1083,12 @@ void example() {
         {.name = "mode", .header_text = "Mode", .kind = gf::DataGridViewColumnKind::combo_box,
          .width = 90.0, .items = {"AM", "FM", "USB"}},
     });
-    (*grid).add_row({.stable_id = {"wqxr"}, .cells = {gf::BindingValue{std::string("WQXR")},
-                                                      gf::BindingValue{true},
-                                                      gf::BindingValue{std::string("FM")}}});
-    (*grid).add_row({.stable_id = {"bbc4"}, .cells = {gf::BindingValue{std::string("BBC Radio 4")},
-                                                      gf::BindingValue{false},
-                                                      gf::BindingValue{std::string("AM")}}});
+    (*grid).rows.append({.stable_id = {"wqxr"}, .cells = {gf::BindingValue{std::string("WQXR")},
+                                                           gf::BindingValue{true},
+                                                           gf::BindingValue{std::string("FM")}}});
+    (*grid).rows.append({.stable_id = {"bbc4"}, .cells = {gf::BindingValue{std::string("BBC Radio 4")},
+                                                           gf::BindingValue{false},
+                                                           gf::BindingValue{std::string("AM")}}});
     (*grid).sort(0U, gf::DataGridViewSortDirection::ascending);   // BBC Radio 4 first
     // row_position({"wqxr"}) is now position 1
 }
@@ -1110,8 +1120,8 @@ void example() {
     std::shared_ptr<gf::DateTimePicker> due =
         gf::make_control<gf::DateTimePicker>(gf::StableId("task.due"));
     (*due).set_range({2026, 1U, 1U}, {2026, 12U, 31U, 23U, 59U, 59U, 999U});
-    (*due).set_value({2026, 10U, 11U});
-    (*due).set_format(gf::DateTimePickerFormat::short_date);
+    (*due).value = gf::DateTimeValue{2026, 10U, 11U};
+    (*due).format = gf::DateTimePickerFormat::short_date;
     // formatted_value() is "10/11/2026"
 }
 }  // namespace doc_example_DateTimePicker_1
@@ -1124,26 +1134,26 @@ struct Reminder final : gf::Component {
     std::optional<gf::DateTimeValue> date{};
 
     Reminder() {
-        (*when).set_show_check_box(true);
-        date = (*when).value();
+        (*when).show_check_box = true;
+        date = (*when).value.read();
         gf::on((*when).checked_changed(), *this, &Reminder::on_checked);
         gf::on((*when).value_changed(), *this, &Reminder::on_date);
     }
     void on_checked(bool checked) {
         if (checked) {
-            date = (*when).value();
+            date = (*when).value.read();
         } else {
             date.reset();
         }
     }
     void on_date(gf::DateTimeValue value) {
-        if ((*when).checked()) date = value;
+        if ((*when).checked.read()) date = value;
     }
 };
 
 void example() {
     Reminder reminder;
-    (*reminder.when).set_checked(false);   // date is empty
+    (*reminder.when).checked = false;   // date is empty
     std::shared_ptr<gf::Panel> root =
         gf::make_control<gf::Panel>(gf::StableId("reminder.root"));
     (*reminder.when).set_requested_bounds({10.0, 10.0, 240.0, 29.0});
@@ -1240,7 +1250,7 @@ void example() {
     (*navigator).set_entries(std::move(tools), std::move(files));
     static_cast<void>((*navigator).step(1));        // a.txt is current
     static_cast<void>((*navigator).switch_list());  // Output is current
-    (*navigator).set_release_modifier(gf::Modifier::control);
+    (*navigator).release_modifier = gf::Modifier::control;
 }
 }  // namespace doc_example_DockNavigator_1
 
@@ -1339,9 +1349,9 @@ namespace doc_example_DomainUpDown_1 {
 void example() {
     std::shared_ptr<gf::DomainUpDown> mode =
         gf::make_control<gf::DomainUpDown>(gf::StableId("radio.mode"));
-    (*mode).set_items({"AM", "FM", "USB", "LSB"});
-    (*mode).set_wrap(true);
-    (*mode).set_selected_index(3U);   // the field shows "LSB"
+    (*mode).items = {"AM", "FM", "USB", "LSB"};
+    (*mode).wrap = true;
+    (*mode).selected_index = std::optional<std::size_t>{3U};   // the field shows "LSB"
     (*mode).down_button();            // wraps: the field shows "AM"
 }
 }  // namespace doc_example_DomainUpDown_1
@@ -1370,7 +1380,7 @@ struct Swatch final : gf::Component {
     int presses = 0;
 
     Swatch() {
-        (*surface).set_hit_test_visible(true);
+        (*surface).hit_test_visible = true;
         gf::on((*surface).pointer_observed(), *this, &Swatch::on_pointer);
     }
     void on_pointer(const gf::PointerEvent& event) {
@@ -1427,14 +1437,24 @@ void example() {
     gf::AnimationSpec specification;
     specification.duration = std::chrono::milliseconds(600);
     specification.infinite = true;
-    (*preview).set_specification(specification);
+    (*preview).specification = specification;
     gf::Window window(preview, gf::Size{480.0, 160.0});   // starts the timeline
 
     gf::MotionPolicy paused;
     paused.paused = true;
-    (*preview).set_motion_policy(paused);   // stops its animation timer
+    (*preview).motion_policy = paused;   // stops its animation timer
 }
 }  // namespace doc_example_EasingPreview_1
+
+namespace doc_example_EmptyState_1 {
+void example() {
+    std::shared_ptr<gf::EmptyState> empty = gf::make_control<gf::EmptyState>(gf::StableId("mail.empty"));
+    (*empty).title = "No messages";
+    (*empty).description = "Messages you receive appear here.";
+    gf::Control::Ptr previous = (*empty).set_action(gf::make_control<gf::Button>(gf::StableId("mail.compose"), "Write a message"));
+    // previous is null: the control had no action before
+}
+}  // namespace doc_example_EmptyState_1
 
 namespace doc_example_ErrorProvider_1 {
 void example() {
@@ -1531,7 +1551,7 @@ void example() {
     (*sharing).set_requested_bounds({0.0, 0.0, 0.0, 40.0});
 
     gf::Value<bool> general_open(true);
-    (*inspector).set_single_open(true);
+    (*inspector).single_open = true;
     (*inspector).set_items({
         {.id = 1, .label = "&General", .content = general, .expanded = &general_open},
         {.id = 2, .label = "&Sharing", .content = sharing},
@@ -1573,8 +1593,8 @@ void example() {
     std::shared_ptr<gf::FlagsValueEditor> editor =
         gf::make_control<gf::FlagsValueEditor>(
             gf::StableId("frame.edges"), edges, gf::PropertyEnumValue{"Edges", "", 3});
-    // (*editor).value().name is "Top, Left"
-    (*editor).set_value(gf::PropertyEnumValue{"Edges", "", 0});   // "None", no event
+    // (*editor).value.read().name is "Top, Left"
+    (*editor).value = gf::PropertyEnumValue{"Edges", "", 0};   // "None", no event
 }
 }  // namespace doc_example_FlagsValueEditor_1
 
@@ -1604,12 +1624,12 @@ void example() {
     (*root).add_child(frame.edges);
     gf::Window window(root, {320.0, 240.0});
     window.perform_layout();
-    (*frame.edges).set_dropped_down(true);
+    (*frame.edges).dropped_down = true;
     std::shared_ptr<gf::CheckedListBox> list = std::dynamic_pointer_cast<gf::CheckedListBox>(
         window.find("frame.edges.overlay.list"));
     if (list) (*list).set_item_checked(3U, true);   // the "Right" row
     // drawn is "Top, Left, Right"
-    (*frame.edges).set_dropped_down(false);
+    (*frame.edges).dropped_down = false;
 }
 }  // namespace doc_example_FlagsValueEditor_2
 
@@ -1650,7 +1670,7 @@ namespace doc_example_FlexPanel_2 {
 void example() {
     std::shared_ptr<gf::FlexPanel> bar =
         gf::make_control<gf::FlexPanel>(gf::StableId("bar"));
-    (*bar).set_align_items(gf::LayoutAlignment::center);
+    (*bar).align_items = gf::LayoutAlignment::center;
     std::shared_ptr<gf::Button> save =
         gf::make_control<gf::Button>(gf::StableId("bar.save"), "Save");
     std::shared_ptr<gf::Button> close =
@@ -1675,7 +1695,7 @@ namespace doc_example_FlowLayoutPanelCompat_1 {
 void example() {
     std::shared_ptr<gf::FlowLayoutPanelCompat> tools =
         gf::make_control<gf::FlowLayoutPanelCompat>(gf::StableId("tools"));
-    (*tools).set_item_spacing({7.0, 9.0});
+    (*tools).item_spacing = {7.0, 9.0};
     std::shared_ptr<gf::Button> cut =
         gf::make_control<gf::Button>(gf::StableId("tools.cut"), "Cut");
     std::shared_ptr<gf::Button> copy =
@@ -1702,7 +1722,7 @@ namespace doc_example_FlowLayoutPanelCompat_2 {
 void example() {
     std::shared_ptr<gf::FlowLayoutPanelCompat> row =
         gf::make_control<gf::FlowLayoutPanelCompat>(gf::StableId("row"));
-    (*row).set_wrap_contents(false);
+    (*row).wrap_contents = false;
     std::shared_ptr<gf::Button> fixed =
         gf::make_control<gf::Button>(gf::StableId("row.fixed"), "Fixed");
     std::shared_ptr<gf::Button> narrow =
@@ -1732,10 +1752,10 @@ void example() {
     std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
     gf::Window window(root, {320.0, 200.0});
     gf::FolderBrowserDialog dialog;
-    dialog.set_description("Choose where the exports go");
+    dialog.description = "Choose where the exports go";
     const gf::DialogResult result = dialog.show_dialog(window);
     if (result == gf::DialogResult::ok) {
-        const std::string& folder = dialog.selected_path();
+        const std::string folder = dialog.selected_path.read();
         static_cast<void>(folder);
     } else if (result == gf::DialogResult::none) {
         // Without a host, dialog.status().error is gf::HostServiceError::unsupported.
@@ -1756,7 +1776,7 @@ namespace doc_example_FontDialog_1 {
 void example() {
     std::shared_ptr<gf::FontDialog> dialog =
         gf::make_control<gf::FontDialog>(gf::StableId("log.font"));
-    (*dialog).set_font({gf::FontRole::monospace, 11.0, 400, false});
+    (*dialog).font = gf::FontSpec{gf::FontRole::monospace, 11.0, 400, false};
     (*dialog).set_size_range(8.0, 24.0);
     const gf::FontSpec chosen = (*dialog).selection();   // 11-unit Cousine
     // (*dialog).show(owner) opens it; its closed event carries the result.
@@ -1785,9 +1805,9 @@ void example() {
     flexible.maximum.fraction = gf::FractionFactor{1.0};
     gf::GridTrackList columns{};
     columns.tracks = {fixed, flexible};
-    (*form).set_template_columns(columns);
-    (*form).set_column_gap(gf::LengthPercentage{gf::LogicalLength{10.0}, 0.0});
-    (*form).set_row_gap(gf::LengthPercentage{gf::LogicalLength{5.0}, 0.0});
+    (*form).template_columns = columns;
+    (*form).column_gap = gf::LengthPercentage{gf::LogicalLength{10.0}, 0.0};
+    (*form).row_gap = gf::LengthPercentage{gf::LogicalLength{5.0}, 0.0};
     std::vector<std::shared_ptr<gf::Button>> buttons;
     for (int index = 0; index < 4; ++index) {
         std::shared_ptr<gf::Button> button = gf::make_control<gf::Button>(
@@ -1817,9 +1837,9 @@ void example() {
     gf::GridTrackList columns{};
     columns.auto_repeat = gf::AutoRepeatKind::auto_fill;
     columns.auto_repeat_tracks = {card};
-    (*cards).set_template_columns(columns);
-    (*cards).set_column_gap(gf::LengthPercentage{gf::LogicalLength{15.0}, 0.0});
-    (*cards).set_row_gap(gf::LengthPercentage{gf::LogicalLength{10.0}, 0.0});
+    (*cards).template_columns = columns;
+    (*cards).column_gap = gf::LengthPercentage{gf::LogicalLength{15.0}, 0.0};
+    (*cards).row_gap = gf::LengthPercentage{gf::LogicalLength{10.0}, 0.0};
     std::vector<std::shared_ptr<gf::Button>> buttons;
     for (int index = 0; index < 5; ++index) {
         std::shared_ptr<gf::Button> button = gf::make_control<gf::Button>(
@@ -1850,8 +1870,8 @@ void example() {
     (*exact).set_requested_bounds({130.0, 24.0, 110.0, 24.0});
     (*mode).add_child(fast);
     (*mode).add_child(exact);
-    (*fast).set_checked(true);
-    (*exact).set_checked(true);   // fast is now unchecked
+    (*fast).checked = true;
+    (*exact).checked = true;   // fast is now unchecked
 }
 }  // namespace doc_example_GroupBox_1
 
@@ -1877,8 +1897,8 @@ void example() {
         gf::make_control<gf::HScrollBar>(gf::StableId("image.horizontal"));
     (*bar).set_requested_bounds({0.0, 400.0, 600.0, 18.0});
     (*bar).set_range(0.0, 1400.0);    // the right edge is visible at 1400
-    (*bar).set_large_change(600.0);
-    (*bar).set_small_change(40.0);
+    (*bar).large_change = 600.0;
+    (*bar).small_change = 40.0;
 }
 }  // namespace doc_example_HScrollBar_1
 
@@ -1904,7 +1924,7 @@ void example() {
     gf::HelpProvider help(window);
     HelpDesk desk;
     gf::on(help.help_requested(), desk, &HelpDesk::on_help);
-    help.set_help_namespace("app-help://network");
+    help.help_namespace = "app-help://network";
     help.set_help_string(connect, "Connects to the server named above.");
     help.set_help_keyword(connect, "network.connect");
 
@@ -1947,6 +1967,17 @@ void example() {
     (*open).text_image_relation = gf::TextImageRelation::image_before_text;
 }
 }  // namespace doc_example_ImageList_2
+
+namespace doc_example_InfoBanner_1 {
+void example() {
+    std::shared_ptr<gf::InfoBanner> offline = gf::make_control<gf::InfoBanner>(gf::StableId("sync.offline"));
+    (*offline).severity = gf::NoticeSeverity::warning;
+    (*offline).title = "Offline";
+    (*offline).message = "Changes will sync when the connection returns.";
+    gf::Control::Ptr previous = (*offline).set_action(gf::make_control<gf::Button>(gf::StableId("sync.retry"), "Retry"));
+    // previous is null: the banner had no action before
+}
+}  // namespace doc_example_InfoBanner_1
 
 namespace doc_example_InstrumentRack_1 {
 void example() {
@@ -2007,7 +2038,7 @@ void example() {
     Search search;
     std::shared_ptr<gf::ComboBox> value = std::dynamic_pointer_cast<gf::ComboBox>(
         (*search.rack).field_editor("search.kind", "value"));
-    if (value) (*value).set_selected_index(1U);   // kind is "Documents"
+    if (value) (*value).selected_index = std::size_t{1U};   // kind is "Documents"
 }
 }  // namespace doc_example_InstrumentRack_2
 
@@ -2034,9 +2065,9 @@ void example() {
     std::shared_ptr<gf::Label> note = gf::make_control<gf::Label>(
         gf::StableId("export.note"),
         "Exported files keep their names; existing files are never overwritten.");
-    (*note).set_text_style_role(gf::TextStyleRole::caption);
-    (*note).set_text_wrapping(gf::TextWrapping::word);
-    (*note).set_maximum_lines(2U);
+    (*note).text_style_role = gf::TextStyleRole::caption;
+    (*note).text_wrapping = gf::TextWrapping::word;
+    (*note).maximum_lines = 2U;
     (*note).set_requested_bounds({0.0, 0.0, 180.0, 0.0});   // fixed width, measured height
 }
 }  // namespace doc_example_Label_2
@@ -2053,7 +2084,7 @@ struct Report final : gf::Component {
 
 void example() {
     Report report;
-    (*report.details).perform_click();   // report.showing and visited() are now true
+    (*report.details).perform_click();   // report.showing and visited.read() are now true
 }
 }  // namespace doc_example_LinkLabel_1
 
@@ -2061,8 +2092,8 @@ namespace doc_example_ListBox_1 {
 void example() {
     std::shared_ptr<gf::ListBox> languages =
         gf::make_control<gf::ListBox>(gf::StableId("options.languages"));
-    (*languages).set_items({"English", "French", "German", "Italian"});
-    (*languages).set_selection_mode(gf::ListSelectionMode::multiple_extended);
+    (*languages).items = {"English", "French", "German", "Italian"};
+    (*languages).selection_mode = gf::ListSelectionMode::multiple_extended;
     (*languages).select_index(1U);         // French, which becomes the anchor
     (*languages).select_index(3U, true);   // French through Italian
     // (*languages).selected_indices() is now {1, 2, 3}
@@ -2077,14 +2108,14 @@ struct LocationPicker final : gf::Component {
     std::size_t opened = 0;
 
     LocationPicker() {
-        (*list).set_items({"Desktop", "Documents", "Downloads"});
+        (*list).items = {"Desktop", "Documents", "Downloads"};
         (*list).set_item_stable_ids({"desktop", "documents", "downloads"});
         gf::on((*list).selection_changed(), *this, &LocationPicker::on_selection);
         gf::on((*list).item_activated(), *this, &LocationPicker::on_open);
     }
     void on_selection(const gf::ListSelectionChange& change) {
         status = change.current.empty() ? std::string("Nothing selected")
-                                        : (*list).items()[change.current.front()];
+                                        : (*list).items[change.current.front()];
     }
     void on_open(std::size_t index) { opened = index; }
 };
@@ -2233,7 +2264,7 @@ void example() {
     std::shared_ptr<gf::MaterialPanel> hero =
         gf::make_control<gf::MaterialPanel>(gf::StableId("welcome.hero"));
     (*hero).set_requested_bounds({16.0, 16.0, 320.0, 120.0});
-    (*hero).set_material(banner);
+    (*hero).material = banner;
     std::shared_ptr<gf::Label> title =
         gf::make_control<gf::Label>(gf::StableId("welcome.hero.title"), "Welcome");
     (*title).set_requested_bounds({16.0, 16.0, 200.0, 28.0});
@@ -2366,9 +2397,10 @@ void example() {
     pixel.row_bytes = 64U;
     pixel.pixels.assign(64U * 16U, std::byte{0xFF});
     gf::NotifyIcon icon(window);
-    icon.set_icon({pixel});
-    icon.set_text("Radio: FM 98.1");
-    const gf::HostServiceStatus status = icon.set_visible(true);
+    icon.icon = std::vector<gf::HostImage>{pixel};
+    icon.text = "Radio: FM 98.1";
+    icon.visible = true;
+    const gf::HostServiceStatus status = icon.status();
     if (!status.accepted()) {
         // Without a host, status.error is gf::HostServiceError::unsupported.
     }
@@ -2380,8 +2412,8 @@ void example() {
     std::shared_ptr<gf::NumericUpDown> zoom =
         gf::make_control<gf::NumericUpDown>(gf::StableId("view.zoom"));
     (*zoom).set_range(25.0, 400.0);
-    (*zoom).set_increment(25.0);
-    (*zoom).set_value(100.0);   // the editor shows "100"
+    (*zoom).increment = 25.0;
+    (*zoom).value = 100.0;   // the editor shows "100"
 }
 }  // namespace doc_example_NumericUpDown_1
 
@@ -2393,8 +2425,8 @@ struct PageSetup final : gf::Component {
 
     PageSetup() {
         (*margin).set_range(0.0, 3.0);
-        (*margin).set_increment(0.25);
-        (*margin).set_decimal_places(2U);
+        (*margin).increment = 0.25;
+        (*margin).decimal_places = 2U;
         gf::on((*margin).value_changed(), *this, &PageSetup::on_margin);
     }
     void on_margin(double value) { inches = value; }
@@ -2402,7 +2434,7 @@ struct PageSetup final : gf::Component {
 
 void example() {
     PageSetup setup;
-    (*setup.margin).set_value(1.25);   // the editor shows "1.25"
+    (*setup.margin).value = 1.25;   // the editor shows "1.25"
     (*setup.margin).set_requested_bounds({0.0, 0.0, 120.0, 28.0});
     gf::Window window(setup.margin, {120.0, 28.0});
     window.perform_layout();
@@ -2439,7 +2471,7 @@ struct FileTable final : gf::Component {
                            .alignment = gf::ObjectColumnAlignment::right});
         rows.push_back(row("budget", "Budget.ods", "12 KB"));
         rows.push_back(row("agenda", "Agenda.txt", "1 KB"));
-        (*view).set_view_mode(gf::ObjectViewMode::details);
+        (*view).view_mode = gf::ObjectViewMode::details;
         (*view).set_details_model(columns, rows);
         gf::on((*view).sort_requested(), *this, &FileTable::on_sort);
     }
@@ -2460,7 +2492,7 @@ struct FileTable final : gf::Component {
 void example() {
     FileTable table;
     table.on_sort({{"name"}, gf::ObjectSortDirection::ascending});
-    // (*table.view).details_sort() now shows Name, ascending
+    // (*table.view).details_sort.read() now shows Name, ascending
 }
 }  // namespace doc_example_ObjectView_2
 
@@ -2469,9 +2501,9 @@ void example() {
     std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
     gf::Window window(root, {320.0, 200.0});
     gf::OpenFileDialog dialog;
-    dialog.set_title("Open recordings");
-    dialog.set_filter("Recordings|*.wav;*.flac|All files|*.*");
-    dialog.set_multiselect(true);
+    dialog.title = "Open recordings";
+    dialog.filter = "Recordings|*.wav;*.flac|All files|*.*";
+    dialog.multiselect = true;
     const gf::DialogResult result = dialog.show_dialog(window);
     if (result == gf::DialogResult::ok) {
         for (const std::string& path : dialog.file_names()) {
@@ -2540,7 +2572,7 @@ void example() {
     }
     std::shared_ptr<gf::PageStrip> strip =
         gf::make_control<gf::PageStrip>(gf::StableId("settings.tabs"), pages);
-    (*strip).set_activation(gf::PageStripActivation::manual);
+    (*strip).activation = gf::PageStripActivation::manual;
     static_cast<void>((*strip).select_relative(1, gf::PageSelectionCause::programmatic));
     // pages.selected_page() is now "settings.1", titled "&Advanced".
 }
@@ -2637,12 +2669,12 @@ void example() {
     std::shared_ptr<gf::PictureBox> preview =
         gf::make_control<gf::PictureBox>(gf::StableId("preview"));
     (*preview).set_requested_bounds({0.0, 0.0, 100.0, 100.0});
-    (*preview).set_size_mode(gf::PictureBoxSizeMode::zoom);
+    (*preview).size_mode = gf::PictureBoxSizeMode::zoom;
     (*preview).accessible_name = "Preview";
     gf::Window window(preview, gf::Size{100.0, 100.0});
     const std::vector<std::byte> pixels(4U * 2U * 4U, std::byte{0xff});   // 4 x 2, white
     const gf::ImageLoadResult loaded = window.load_bgra32_premultiplied(4U, 2U, 16U, pixels);
-    (*preview).set_image(loaded.image);
+    (*preview).image = loaded.image;
     window.perform_layout();
     // (*preview).image_bounds() is now {0, 25, 100, 50}
 }
@@ -2665,9 +2697,11 @@ void example() {
     std::shared_ptr<gf::ProgressBar> busy =
         gf::make_control<gf::ProgressBar>(gf::StableId("sync.busy"));
     (*busy).accessible_name = "Synchronizing";
-    (*busy).set_visual_style(gf::ProgressBarVisualStyle::marquee);
+    (*busy).visual_style = gf::ProgressBarVisualStyle::marquee;
     gf::Window window(busy, gf::Size{160.0, 20.0});   // the band now animates
-    (*busy).set_animation_paused(true);               // it stops, keeping its phase
+    gf::MotionPolicy policy = (*busy).motion_policy.read();
+    policy.paused = true;
+    (*busy).motion_policy = policy;                   // it stops, keeping its phase
 }
 }  // namespace doc_example_ProgressBar_2
 
@@ -2757,7 +2791,7 @@ void example() {
     FileSheet file;
     std::shared_ptr<gf::ComboBox> opens =
         std::dynamic_pointer_cast<gf::ComboBox>((*file.sheet).editor("file.opens"));
-    if (opens) (*opens).set_selected_index(1U);   // opens_with is "Image Laboratory"
+    if (opens) (*opens).selected_index = std::size_t{1U};   // opens_with is "Image Laboratory"
 }
 }  // namespace doc_example_PropertyList_2
 
@@ -2794,8 +2828,8 @@ void example() {
         gf::make_control<gf::RadioButton>(gf::StableId("print.landscape"), "&Landscape");
     (*orientation).add_child(portrait);
     (*orientation).add_child(landscape);
-    (*portrait).set_checked(true);
-    (*landscape).set_checked(true);   // portrait is unchecked first
+    (*portrait).checked = true;
+    (*landscape).checked = true;   // portrait is unchecked first
 }
 }  // namespace doc_example_RadioButton_1
 
@@ -2813,10 +2847,10 @@ struct PrintOptions final : gf::Component {
     bool landscape_page = false;
 
     PrintOptions() {
-        (*portrait).set_group_name("orientation");
-        (*landscape).set_group_name("orientation");
-        (*colour).set_group_name("ink");
-        (*mono).set_group_name("ink");
+        (*portrait).group_name = "orientation";
+        (*landscape).group_name = "orientation";
+        (*colour).group_name = "ink";
+        (*mono).group_name = "ink";
         (*panel).add_child(portrait);
         (*panel).add_child(landscape);
         (*panel).add_child(colour);
@@ -2828,8 +2862,8 @@ struct PrintOptions final : gf::Component {
 
 void example() {
     PrintOptions options;
-    (*options.portrait).set_checked(true);
-    (*options.colour).set_checked(true);   // another group: portrait stays checked
+    (*options.portrait).checked = true;
+    (*options.colour).checked = true;   // another group: portrait stays checked
     (*options.landscape).perform_click();  // unchecks portrait; landscape_page is true
 }
 }  // namespace doc_example_RadioButton_2
@@ -2843,7 +2877,7 @@ void example() {
         gf::make_control<gf::ProgressBar>(gf::StableId("mixer.meter"));
     (*slider).bind(volume);      // the slider shows 40
     (*meter).bind(volume);       // and so does the meter
-    (*slider).set_value(65.0);   // volume and the meter are now 65
+    (*slider).value = 65.0;   // volume and the meter are now 65
 }
 }  // namespace doc_example_RangeControl_1
 
@@ -2852,8 +2886,8 @@ void example() {
     std::shared_ptr<gf::ProgressBar> copied =
         gf::make_control<gf::ProgressBar>(gf::StableId("copy.progress"));
     (*copied).set_range(0.0, 250.0);
-    (*copied).set_value(100.0);   // normalized_value() is 0.4
-    (*copied).set_maximum(50.0);  // the value is clamped to 50
+    (*copied).value = 100.0;   // normalized_value() is 0.4
+    (*copied).maximum = 50.0;  // the value is clamped to 50
 }
 }  // namespace doc_example_RangeControl_2
 
@@ -2864,8 +2898,8 @@ void example() {
     std::shared_ptr<gf::RasterCanvas> canvas =
         gf::make_control<gf::RasterCanvas>(gf::StableId("paint.canvas"));
     (*canvas).set_requested_bounds({0.0, 0.0, 256.0, 256.0});
-    (*canvas).set_zoom(4.0);
-    (*canvas).set_bitmap(document);
+    (*canvas).zoom = 4.0;
+    (*canvas).bitmap = document;
     gf::Window window(canvas, gf::Size{256.0, 256.0});   // uploads the bitmap
     window.perform_layout();
 
@@ -2882,15 +2916,15 @@ public:
     explicit PencilCanvas(gf::StableId id) : gf::RasterCanvas(std::move(id)) {}
 
     void on_pointer(gf::PointerEvent& event) override {
-        if (event.action != gf::PointerAction::down || !bitmap()) return;
+        if (event.action != gf::PointerAction::down || !bitmap.read()) return;
         const gui_drawing::PointF at =
             client_to_bitmap(point_from_window(event.position));
         if (at.x < 0.0 || at.y < 0.0 ||
-            at.x >= static_cast<double>((*bitmap()).width()) ||
-            at.y >= static_cast<double>((*bitmap()).height())) {
+            at.x >= static_cast<double>((*bitmap.read()).width()) ||
+            at.y >= static_cast<double>((*bitmap.read()).height())) {
             return;
         }
-        (*bitmap()).set_pixel(static_cast<std::uint32_t>(at.x),
+        (*bitmap.read()).set_pixel(static_cast<std::uint32_t>(at.x),
                               static_cast<std::uint32_t>(at.y),
                               gui_drawing::Color::from_rgb(0, 0, 0));
         static_cast<void>(synchronize_bitmap());
@@ -2902,8 +2936,8 @@ void example() {
     std::shared_ptr<PencilCanvas> canvas =
         gf::make_control<PencilCanvas>(gf::StableId("sketch.canvas"));
     (*canvas).set_requested_bounds({0.0, 0.0, 128.0, 128.0});
-    (*canvas).set_zoom(4.0);
-    (*canvas).set_bitmap(std::make_shared<gui_drawing::Bitmap>(32U, 32U));
+    (*canvas).zoom = 4.0;
+    (*canvas).bitmap = std::make_shared<gui_drawing::Bitmap>(32U, 32U);
     gf::Window window(canvas, gf::Size{128.0, 128.0});
     window.perform_layout();
 
@@ -2958,12 +2992,12 @@ namespace doc_example_ReviewCard_1 {
 void example() {
     std::shared_ptr<gf::ReviewCard> card =
         gf::make_control<gf::ReviewCard>(gf::StableId("review.render"));
-    (*card).set_record(gf::ReviewRecord{
+    (*card).record = gf::ReviewRecord{
         .key = "render-pipeline",
         .title = "Render pipeline",
         .summary = "Painting records renderer-neutral commands before host replay.",
         .verdict = "Measured, partial",
-        .disposition = gf::ReviewDisposition::pending});
+        .disposition = gf::ReviewDisposition::pending};
     // (*card).visual_status() is now gf::ControlVisualStatus::pending
 }
 }  // namespace doc_example_ReviewCard_1
@@ -2975,16 +3009,16 @@ struct Reviews final : gf::Component {
     std::string opened;
 
     Reviews() {
-        (*card).set_record(gf::ReviewRecord{.key = "fonts",
+        (*card).record = gf::ReviewRecord{.key = "fonts",
                                             .title = "Bundled fonts",
                                             .summary = "Control faces ship with the library.",
                                             .verdict = "Accepted",
-                                            .disposition = gf::ReviewDisposition::accepted});
-        (*card).set_interactive(true);
-        (*card).set_selection_behavior(gf::CardSelectionBehavior::select_on_activation);
+                                            .disposition = gf::ReviewDisposition::accepted};
+        (*card).interactive = true;
+        (*card).selection_behavior = gf::CardSelectionBehavior::select_on_activation;
         gf::on((*card).activated(), *this, &Reviews::on_open);
     }
-    void on_open() { opened = (*card).record().key; }
+    void on_open() { opened = (*card).record.read().key; }
 };
 
 void example() {
@@ -3012,7 +3046,7 @@ void example() {
     home.groups.push_back(std::move(clipboard));
     home.reduction_order = {{.group = "clipboard"}};
     (*ribbon).set_tabs({std::move(home)});
-    (*ribbon).set_document_minimum_height(120.0);
+    (*ribbon).document_minimum_height = 120.0;
 }
 }  // namespace doc_example_Ribbon_1
 
@@ -3022,8 +3056,8 @@ void example() {
         std::make_shared<gf::ColorCommand>(std::make_shared<gf::Command>("doc.colour", "Font colour"));
     std::shared_ptr<gf::RibbonColorPicker> picker =
         gf::make_control<gf::RibbonColorPicker>(gf::StableId("doc.colour-picker"));
-    (*picker).set_text("Font &colour");
-    (*picker).set_command(command);
+    (*picker).text = "Font &colour";
+    (*picker).command = command;
 }
 }  // namespace doc_example_RibbonColorPicker_1
 
@@ -3034,7 +3068,7 @@ void example() {
     std::shared_ptr<gf::RibbonFontControl> font =
         gf::make_control<gf::RibbonFontControl>(gf::StableId("doc.font-control"));
     (*font).set_families({"Portsmouth Rapids", "Carlito"});
-    (*font).set_command(command);
+    (*font).command = command;
 }
 }  // namespace doc_example_RibbonFontControl_1
 
@@ -3048,8 +3082,8 @@ void example() {
                          {{"style.title", "Title", {}, "headings"},
                           {"style.heading", "Heading 1", {}, "headings"}});
     (*gallery).set_column_range(2U, 6U);
-    (*gallery).set_columns(4U);
-    (*gallery).set_command(command);
+    (*gallery).columns = 4U;
+    (*gallery).command = command;
 }
 }  // namespace doc_example_RibbonGallery_1
 
@@ -3084,7 +3118,7 @@ void example() {
     (*note).toggle_bold();
     std::vector<std::byte> rtf;
     const gf::RtfConversionResult saved = (*note).rtf(rtf);
-    // (*note).markdown() starts "**Draft** notes"; (*note).text() starts "Draft notes"
+    // (*note).markdown() starts "**Draft** notes"; (*note).text.read() starts "Draft notes"
 }
 }  // namespace doc_example_RichTextBox_1
 
@@ -3110,13 +3144,13 @@ void example() {
     std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
     gf::Window window(root, {320.0, 200.0});
     gf::SaveFileDialog dialog;
-    dialog.set_title("Export report");
-    dialog.set_filter("Reports|*.txt|All files|*.*");
-    dialog.set_default_ext("txt");
-    dialog.set_file_name("summary");
+    dialog.title = "Export report";
+    dialog.filter = "Reports|*.txt|All files|*.*";
+    dialog.default_ext = "txt";
+    dialog.file_name = "summary";
     const gf::DialogResult result = dialog.show_dialog(window);
     if (result == gf::DialogResult::ok) {
-        const std::string& path = dialog.file_name();
+        const std::string path = dialog.file_name.read();
         static_cast<void>(path);
     } else if (result == gf::DialogResult::none) {
         // Without a host, dialog.status().error is gf::HostServiceError::unsupported.
@@ -3166,8 +3200,8 @@ void example() {
         gf::StableId("document.vertical"), gf::Orientation::vertical);
     (*bar).set_requested_bounds({0.0, 0.0, 18.0, 240.0});
     (*bar).set_range(0.0, 800.0);    // the last 200 pixels are visible at 800
-    (*bar).set_large_change(200.0);  // one page per track click, and the thumb size
-    (*bar).set_small_change(20.0);   // one line per arrow click
+    (*bar).large_change = 200.0;  // one page per track click, and the thumb size
+    (*bar).small_change = 20.0;   // one line per arrow click
 }
 }  // namespace doc_example_ScrollBar_1
 
@@ -3188,7 +3222,7 @@ void example() {
     window.request_focus(canvas.bar);
     window.dispatch_key({gf::KeyAction::down, gf::PhysicalKey::page_down});
     // scroll reported a large increment: canvas.offset is 10
-    (*canvas.bar).set_value(0.0);   // value_changed only; canvas.offset stays 10
+    (*canvas.bar).value = 0.0;   // value_changed only; canvas.offset stays 10
 }
 }  // namespace doc_example_ScrollBar_2
 
@@ -3238,6 +3272,16 @@ void example() {
 }
 }  // namespace doc_example_ScrollableControl_2
 
+namespace doc_example_SearchField_1 {
+void example() {
+    std::shared_ptr<gf::SearchField> search = gf::make_control<gf::SearchField>(gf::StableId("mail.search"));
+    (*search).placeholder_text = std::string{"Search mail"};
+    (*search).search_delay = std::chrono::milliseconds(0);
+    (*search).text = std::string{"invoice"};
+    // outside a window, search_requested has been raised with "invoice"
+}
+}  // namespace doc_example_SearchField_1
+
 namespace doc_example_SemanticFeedback_1 {
 void example() {
     std::shared_ptr<gf::Control> root = gf::make_control<gf::Control>(gf::StableId("app"));
@@ -3275,9 +3319,9 @@ namespace doc_example_SplitContainer_1 {
 void example() {
     std::shared_ptr<gf::SplitContainer> split =
         gf::make_control<gf::SplitContainer>(gf::StableId("mail"));
-    (*split).set_first_minimum(80.0);
-    (*split).set_second_minimum(120.0);
-    (*split).set_splitter_distance(140.0);
+    (*split).first_minimum = 80.0;
+    (*split).second_minimum = 120.0;
+    (*split).splitter_distance = 140.0;
 
     std::shared_ptr<gf::Panel> folders =
         gf::make_control<gf::Panel>(gf::StableId("mail.folders"));
@@ -3295,7 +3339,7 @@ void example() {
     // The first panel is 140 wide. The second starts after the 3-pixel seam,
     // at x = 143, and is 357 wide.
 
-    (*split).set_splitter_distance(490.0);
+    (*split).splitter_distance = 490.0;
     window.perform_layout();
     // The second panel's minimum holds the distance at 377.
 }
@@ -3309,8 +3353,8 @@ struct Editor final : gf::Component {
     double inspector_start = 0.0;
 
     Editor() {
-        (*split).set_fixed_panel(gf::SplitFixedPanel::second);
-        (*split).set_collapse_panel(gf::SplitFixedPanel::second);
+        (*split).fixed_panel = gf::SplitFixedPanel::second;
+        (*split).collapse_panel = gf::SplitFixedPanel::second;
         gf::on((*split).splitter_changed(), *this, &Editor::on_split);
     }
     void on_split(const gf::SplitChangeEvent& change) {
@@ -3336,7 +3380,7 @@ void example() {
     (*folders).dock = gf::DockStyle::left;
     (*folders).set_requested_bounds({0.0, 0.0, 160.0, 0.0});
     std::shared_ptr<gf::Splitter> splitter = gf::make_control<gf::Splitter>(gf::StableId("doc.splitter"));
-    (*splitter).set_min_size(80.0);
+    (*splitter).min_size = 80.0;
     std::shared_ptr<gf::Panel> files = gf::make_control<gf::Panel>(gf::StableId("doc.files"));
     (*files).dock = gf::DockStyle::fill;
     (*root).add_child(folders);    // child order is dock order
@@ -3353,7 +3397,7 @@ void example() {
     std::shared_ptr<gf::SplitContainer> split =
         gf::make_control<gf::SplitContainer>(gf::StableId("library"));
     std::shared_ptr<gf::SplitterPanel> sources = (*split).first_panel();
-    (*sources).set_background(gf::Color::rgba(225, 235, 243));
+    (*sources).background = gf::Color::rgba(225, 235, 243);
 
     std::shared_ptr<gf::Panel> content =
         gf::make_control<gf::Panel>(gf::StableId("library.sources"));
@@ -3414,7 +3458,7 @@ void example() {
     (*general).add_child(wrap);
     (*tabs).add_page(general);    // the first page is selected
     (*tabs).add_page(advanced);
-    (*tabs).set_selected_tab(advanced);
+    (*tabs).selected_tab = advanced;
 }
 }  // namespace doc_example_TabControl_1
 
@@ -3461,7 +3505,7 @@ void example() {
     (*fonts).add_child(sample);
     (*fonts).auto_scroll = true;   // scroll the page, not the tab control
     (*tabs).add_page(fonts);
-    (*fonts).set_text("Fonts and colours");   // the tab shows the new caption
+    (*fonts).text = "Fonts and colours";   // the tab shows the new caption
 }
 }  // namespace doc_example_TabPage_1
 
@@ -3469,11 +3513,11 @@ namespace doc_example_TableLayoutPanelCompat_1 {
 void example() {
     std::shared_ptr<gf::TableLayoutPanelCompat> form =
         gf::make_control<gf::TableLayoutPanelCompat>(gf::StableId("form"));
-    (*form).set_column_count(2U);
-    (*form).set_row_count(2U);
+    (*form).column_count = 2U;
+    (*form).row_count = 2U;
     (*form).set_column_style(0U, {gf::TableSizeMode::auto_size, 0.0});
     (*form).set_column_style(1U, {gf::TableSizeMode::percent, 1.0});
-    (*form).set_track_spacing({8.0, 4.0});
+    (*form).track_spacing = {8.0, 4.0};
 
     std::shared_ptr<gf::Label> name_label =
         gf::make_control<gf::Label>(gf::StableId("form.name.label"), "Name:");
@@ -3503,9 +3547,9 @@ namespace doc_example_TableLayoutPanelCompat_2 {
 void example() {
     std::shared_ptr<gf::TableLayoutPanelCompat> grid =
         gf::make_control<gf::TableLayoutPanelCompat>(gf::StableId("grid"));
-    (*grid).set_column_count(2U);
-    (*grid).set_row_count(2U);
-    (*grid).set_grow_style(gf::TableLayoutGrowStyle::fixed_size);
+    (*grid).column_count = 2U;
+    (*grid).row_count = 2U;
+    (*grid).grow_style = gf::TableLayoutGrowStyle::fixed_size;
 
     std::shared_ptr<gf::Label> heading =
         gf::make_control<gf::Label>(gf::StableId("grid.heading"), "Totals");
@@ -3552,10 +3596,10 @@ namespace doc_example_TextBlock_1 {
 void example() {
     std::shared_ptr<gf::FlexPanel> column =
         gf::make_control<gf::FlexPanel>(gf::StableId("article"));
-    (*column).set_flex_direction(gf::FlexDirection::column);
+    (*column).flex_direction = gf::FlexDirection::column;
     std::shared_ptr<gf::TextBlock> heading = gf::make_control<gf::TextBlock>(
         gf::StableId("article.heading"), "Export settings");
-    (*heading).set_font(gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0});
+    (*heading).font = gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0};
     std::shared_ptr<gf::TextBlock> body = gf::make_control<gf::TextBlock>(
         gf::StableId("article.body"),
         "Exported files keep their names; existing files are never overwritten.");
@@ -3572,12 +3616,12 @@ namespace doc_example_TextBlock_2 {
 void example() {
     std::shared_ptr<gf::FlexPanel> row =
         gf::make_control<gf::FlexPanel>(gf::StableId("rate"));
-    (*row).set_align_items(gf::LayoutAlignment::baseline);
+    (*row).align_items = gf::LayoutAlignment::baseline;
     std::shared_ptr<gf::TextBlock> caption =
         gf::make_control<gf::TextBlock>(gf::StableId("rate.caption"), "Rate");
     std::shared_ptr<gf::TextBlock> value =
         gf::make_control<gf::TextBlock>(gf::StableId("rate.value"), "42 MB/s");
-    (*value).set_font(gf::FontSpec{gf::FontRole::content, 26.0, 400, false, 0.0});
+    (*value).font = gf::FontSpec{gf::FontRole::content, 26.0, 400, false, 0.0};
     (*row).add_child(caption);
     (*row).add_child(value);
 
@@ -3594,9 +3638,9 @@ struct Search final : gf::Component {
     std::string query;
 
     Search() {
-        (*field).set_placeholder_text("Search");
+        (*field).placeholder_text = "Search";
         (*field).accessible_name = "Search";
-        (*field).set_accepts_enter(true);
+        (*field).accepts_enter = true;
         gf::on((*field).committed(), *this, &Search::on_commit);
     }
     void on_commit(const std::string& text) { query = text; }
@@ -3616,8 +3660,8 @@ namespace doc_example_TextBox_2 {
 void example() {
     std::shared_ptr<gf::TextBox> note =
         gf::make_control<gf::TextBox>(gf::StableId("note"), "Draft");
-    (*note).set_multiline(true);
-    (*note).set_word_wrap(true);
+    (*note).multiline = true;
+    (*note).word_wrap = true;
     (*note).select_all();
     (*note).replace_selection("First line\nSecond line");
     (*note).undo();   // the text is "Draft" again, and can_redo() is true
@@ -3628,9 +3672,9 @@ namespace doc_example_TextBox_3 {
 void example() {
     std::shared_ptr<gf::TextBox> city =
         gf::make_control<gf::TextBox>(gf::StableId("address.city"));
-    (*(*city).auto_complete_custom_source()).add_range({"Calgary", "Cambridge", "Edmonton"});
-    (*city).set_auto_complete_source(gf::AutoCompleteSource::custom_source);
-    (*city).set_auto_complete_mode(gf::AutoCompleteMode::suggest_append);
+    (*(*city).auto_complete_custom_source.read()).add_range({"Calgary", "Cambridge", "Edmonton"});
+    (*city).auto_complete_source = gf::AutoCompleteSource::custom_source;
+    (*city).auto_complete_mode = gf::AutoCompleteMode::suggest_append;
     gf::Window window(city, gf::Size{240.0, 200.0});
     window.request_focus(city);
     window.dispatch_text(gf::TextInputEvent{"ca"});
@@ -3695,7 +3739,7 @@ struct StatusClock final : gf::Component {
     }
     void on_tick() {
         ++seconds;
-        (*label).set_text(std::to_string(seconds) + " s");
+        (*label).text = std::to_string(seconds) + " s";
     }
 };
 
@@ -3706,6 +3750,32 @@ void example() {
     StatusClock clock(window, status);
 }
 }  // namespace doc_example_Timer_2
+
+namespace doc_example_Toast_1 {
+void example() {
+    std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("mail"));
+    std::shared_ptr<gf::Button> archive = gf::make_control<gf::Button>(gf::StableId("mail.archive"), "Archive");
+    (*root).add_child(archive);
+    gf::Window window(root, gf::Size{640.0, 480.0});
+    gf::ToastContent content{};
+    content.message = "Message archived.";
+    content.action_text = "Undo";
+    content.severity = gf::NoticeSeverity::success;
+    std::shared_ptr<gf::Toast> toast = gf::make_control<gf::Toast>(gf::StableId("mail.archived"), std::move(content));
+    std::uint64_t id = window.show_toast(archive, toast);
+    // id is 1; the toast closes after five seconds unless dismissed sooner
+}
+}  // namespace doc_example_Toast_1
+
+namespace doc_example_ToggleSwitch_1 {
+void example() {
+    std::shared_ptr<gf::ToggleSwitch> wifi = gf::make_control<gf::ToggleSwitch>(gf::StableId("settings.wifi"), "Wi-Fi");
+    (*wifi).on_text = std::string{"On"};
+    (*wifi).off_text = std::string{"Off"};
+    (*wifi).checked = true;
+    // (*wifi).state_text() is "On"
+}
+}  // namespace doc_example_ToggleSwitch_1
 
 namespace doc_example_TokenBox_1 {
 void example() {
@@ -3813,11 +3883,11 @@ namespace doc_example_TrackBar_1 {
 void example() {
     std::shared_ptr<gf::TrackBar> level =
         gf::make_control<gf::TrackBar>(gf::StableId("mixer.level"));
-    (*level).set_orientation(gf::Orientation::vertical);
+    (*level).orientation = gf::Orientation::vertical;
     (*level).set_range(-60.0, 0.0);
-    (*level).set_large_change(6.0);
-    (*level).set_tick_frequency(6.0);   // eleven ticks, one every 6 dB
-    (*level).set_value(-12.0);
+    (*level).large_change = 6.0;
+    (*level).tick_frequency = 6.0;   // eleven ticks, one every 6 dB
+    (*level).value = -12.0;
 }
 }  // namespace doc_example_TrackBar_1
 
@@ -3843,7 +3913,7 @@ struct Mixer final : gf::Component {
 void example() {
     Mixer mixer;
     (*mixer.volume).set_requested_bounds({0.0, 0.0, 200.0, 28.0});
-    (*mixer.volume).set_value(30.0);   // level is 30, user_moves is 0
+    (*mixer.volume).value = 30.0;   // level is 30, user_moves is 0
     gf::Window window(mixer.volume, {200.0, 28.0});
     window.perform_layout();
     window.request_focus(mixer.volume);
@@ -3881,7 +3951,7 @@ void example() {
     folders.push_back({"home.documents.taxes", "Taxes", 2U});
     folders.push_back({"home.music", "Music", 1U});
     (*tree).set_items(folders);
-    (*tree).set_selected_id("home.music");
+    (*tree).selected_id = "home.music";
     (*tree).set_expanded("home.documents", true);   // Taxes is now visible
 }
 }  // namespace doc_example_TreeView_1
@@ -3911,7 +3981,7 @@ void example() {
     folders.push_back({"src", "src", 0U, true, true});
     folders.push_back({"src.core", "core", 1U});
     (*pane.tree).set_items(folders);
-    (*pane.tree).set_selected_id("src.core");   // pane.current is "src.core"
+    (*pane.tree).selected_id = "src.core";   // pane.current is "src.core"
     (*pane.tree).set_expanded("src", false);    // collapses, then pane.current is "src"
 }
 }  // namespace doc_example_TreeView_2
@@ -3924,9 +3994,9 @@ void example() {
     gf::FontSpec body;
     body.role = gf::FontRole::content;
     body.size = 14.0;
-    (*specimen).set_font(body);
-    (*specimen).set_caption("Body: content, 14 / 400");
-    (*specimen).set_wrap_text(true);
+    (*specimen).font = body;
+    (*specimen).caption = "Body: content, 14 / 400";
+    (*specimen).wrap_text = true;
     gf::Window window(specimen, gf::Size{240.0, 120.0});
 
     gf::ResolvedTextLayout layout = (*specimen).resolved_layout();
@@ -3947,7 +4017,7 @@ void example() {
     {
         gf::UpdateScope scope = window.begin_update();
         (*status).set_bounds({8.0, 8.0, 200.0, 24.0});
-        (*status).set_text("Working");
+        (*status).text = "Working";
         (*cancel).set_bounds({216.0, 6.0, 96.0, 28.0});
     }   // one layout flush here
     gf::MetricsSnapshot metrics = window.metrics_snapshot();   // metrics.flush_count == 1
@@ -4035,7 +4105,7 @@ void example() {
         gf::make_control<gf::VScrollBar>(gf::StableId("rows.vertical"));
     (*bar).set_requested_bounds({300.0, 0.0, 18.0, 240.0});
     (*bar).set_range(0.0, 88.0);     // the last 12 rows are visible at 88
-    (*bar).set_large_change(12.0);
+    (*bar).large_change = 12.0;
     (*bar).bind(first_row);          // the bar and first_row now follow each other
     first_row.set(40.0);             // the thumb moves to row 40
 }
@@ -4147,7 +4217,7 @@ void example() {
 namespace doc_example_Window_2 {
 struct ShowDone final {
     std::shared_ptr<gf::Label> status;
-    void operator()() const { (*status).set_text("Done"); }
+    void operator()() const { (*status).text = "Done"; }
 };
 
 void example() {
@@ -4275,6 +4345,7 @@ int main() {
     failures += run("AutoCompleteStringCollection example 1", &doc_example_AutoCompleteStringCollection_1::example);
     failures += run("BackgroundWorker example 1", &doc_example_BackgroundWorker_1::example);
     failures += run("BackstageView example 1", &doc_example_BackstageView_1::example);
+    failures += run("Badge example 1", &doc_example_Badge_1::example);
     failures += run("Binding example 1", &doc_example_Binding_1::example);
     failures += run("Binding example 2", &doc_example_Binding_2::example);
     failures += run("BindingContext example 1", &doc_example_BindingContext_1::example);
@@ -4338,6 +4409,7 @@ int main() {
     failures += run("DrawingSurface example 2", &doc_example_DrawingSurface_2::example);
     failures += run("DropDownButton example 1", &doc_example_DropDownButton_1::example);
     failures += run("EasingPreview example 1", &doc_example_EasingPreview_1::example);
+    failures += run("EmptyState example 1", &doc_example_EmptyState_1::example);
     failures += run("ErrorProvider example 1", &doc_example_ErrorProvider_1::example);
     failures += run("ErrorProvider example 2", &doc_example_ErrorProvider_2::example);
     failures += run("Event example 1", &doc_example_Event_1::example);
@@ -4362,6 +4434,7 @@ int main() {
     failures += run("HelpProvider example 1", &doc_example_HelpProvider_1::example);
     failures += run("ImageList example 1", &doc_example_ImageList_1::example);
     failures += run("ImageList example 2", &doc_example_ImageList_2::example);
+    failures += run("InfoBanner example 1", &doc_example_InfoBanner_1::example);
     failures += run("InstrumentRack example 1", &doc_example_InstrumentRack_1::example);
     failures += run("InstrumentRack example 2", &doc_example_InstrumentRack_2::example);
     failures += run("Label example 1", &doc_example_Label_1::example);
@@ -4426,6 +4499,7 @@ int main() {
     failures += run("ScrollBar example 2", &doc_example_ScrollBar_2::example);
     failures += run("ScrollableControl example 1", &doc_example_ScrollableControl_1::example);
     failures += run("ScrollableControl example 2", &doc_example_ScrollableControl_2::example);
+    failures += run("SearchField example 1", &doc_example_SearchField_1::example);
     failures += run("SemanticFeedback example 1", &doc_example_SemanticFeedback_1::example);
     failures += run("SemanticFeedback example 2", &doc_example_SemanticFeedback_2::example);
     failures += run("SplitContainer example 1", &doc_example_SplitContainer_1::example);
@@ -4449,6 +4523,8 @@ int main() {
     failures += run("ThreadExceptionDialog example 1", &doc_example_ThreadExceptionDialog_1::example);
     failures += run("Timer example 1", &doc_example_Timer_1::example);
     failures += run("Timer example 2", &doc_example_Timer_2::example);
+    failures += run("Toast example 1", &doc_example_Toast_1::example);
+    failures += run("ToggleSwitch example 1", &doc_example_ToggleSwitch_1::example);
     failures += run("TokenBox example 1", &doc_example_TokenBox_1::example);
     failures += run("ToolStrip example 1", &doc_example_ToolStrip_1::example);
     failures += run("ToolStripContainer example 1", &doc_example_ToolStripContainer_1::example);

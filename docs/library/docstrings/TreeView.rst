@@ -163,7 +163,7 @@ Supply a small hierarchy in preorder, then select and expand items by ID:
    folders.push_back({"home.documents.taxes", "Taxes", 2U});
    folders.push_back({"home.music", "Music", 1U});
    (*tree).set_items(folders);
-   (*tree).set_selected_id("home.music");
+   (*tree).selected_id = "home.music";
    (*tree).set_expanded("home.documents", true);   // Taxes is now visible
 
 Collapsing an item that contains the selection moves the selection to it.
@@ -195,6 +195,6 @@ An owner sees both changes, expansion first:
        folders.push_back({"src", "src", 0U, true, true});
        folders.push_back({"src.core", "core", 1U});
        (*pane.tree).set_items(folders);
-       (*pane.tree).set_selected_id("src.core");   // pane.current is "src.core"
+       (*pane.tree).selected_id = "src.core";   // pane.current is "src.core"
        (*pane.tree).set_expanded("src", false);    // collapses, then pane.current is "src"
    }

@@ -1,0 +1,84 @@
+{
+  "family": "DrawingSurface",
+  "step": "M-S8",
+  "declaring": "DrawingSurface",
+  "header": "include/gui_forms/controls/drawing_surface/drawing_surface.hpp",
+  "source": "src/controls/drawing_surface/drawing_surface.cpp",
+  "capabilities_header": "include/gui_forms/controls/drawing_surface/drawing_surface_capabilities/drawing_surface_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/semantics/types/semantic_types.hpp",
+    "gui_forms/types.hpp"
+  ],
+  "test": {
+    "type": "DrawingSurface",
+    "include": "gui_forms/controls/drawing_surface/drawing_surface.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hand": [],
+      "event": null,
+      "hooks": "generated",
+      "effects": "Dirty::hit_test | Dirty::semantics",
+      "name": "hit_test_visible",
+      "capability": "DrawingSurfaceHitTestVisible",
+      "value": "bool",
+      "comment": "Whether pointer input hits the surface (default false: it passes through to what lies beneath).",
+      "getter": "hit_test_visible",
+      "setter": "set_hit_test_visible",
+      "field": "hit_test_visible_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hand": [],
+      "event": null,
+      "hooks": "generated",
+      "effects": "Dirty::semantics",
+      "name": "semantic_role",
+      "capability": "DrawingSurfaceSemanticRole",
+      "value": "SemanticRole",
+      "initial": "SemanticRole::image",
+      "comment": "The role the surface publishes to accessibility (default image).",
+      "sample": "SemanticRole::group",
+      "getter": "semantic_role",
+      "setter": "set_semantic_role",
+      "field": "semantic_role_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hand": [],
+      "event": null,
+      "hooks": "generated",
+      "effects": "Dirty::paint",
+      "name": "background",
+      "capability": "DrawingSurfaceBackground",
+      "value": "Color",
+      "initial": "Color::rgba(0, 0, 0, 0)",
+      "comment": "The fill painted over the bounds before the paint callback (default transparent).",
+      "sample": "Color::rgba(250, 240, 200)",
+      "getter": "background",
+      "setter": "set_background",
+      "field": "background_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "paint_callback",
+      "reason": "a callback (section 4)"
+    }
+  ]
+}

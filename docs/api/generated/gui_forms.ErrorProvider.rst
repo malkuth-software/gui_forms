@@ -7,7 +7,7 @@ gui_forms::ErrorProvider
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ErrorProvider final : public Component
+.. cpp:class:: ErrorProvider final : public Component, public ErrorProviderCapabilities<ErrorProvider>
 
    ``#include <gui_forms/components/error_provider/error_provider.hpp>``
 
@@ -30,10 +30,6 @@ gui_forms::ErrorProvider
          that window's UI thread.
 
    :Properties:
-
-      **has_errors** : ``bool``, read-only
-         Whether any live control in the window currently has a nonempty error
-         from this provider.
 
       **icon_size** : ``double``, default ``16.0``
          Side of the error icon in layout units. It must be finite and from 8 to
@@ -59,10 +55,6 @@ gui_forms::ErrorProvider
          exclamation mark. An :cpp:class:`ImageId <gui_forms::ImageId>` that is not in the registry throws
          ``std::invalid_argument``.
 
-      **container_control** : ``std::shared_ptr<Control>``, read-only
-         The root control of the provider's window, or null once the window has
-         shut down.
-
       **data_source** : ``std::shared_ptr<BindingSource>``, default ``nullptr``
          The :cpp:class:`BindingSource <gui_forms::BindingSource>` whose errors are shown, held weakly. It must be alive
          and belong to the provider's window, or ``std::invalid_argument`` is
@@ -70,12 +62,20 @@ gui_forms::ErrorProvider
 
       **data_member** : ``std::string``, default ``""``
          A prefix for the record fields whose errors are shown: with
-         :cpp:func:`data_member <gui_forms::ErrorProvider::data_member>` "address", a binding to the field "city" shows the
+         :cpp:member:`data_member <gui_forms::ErrorProvider::data_member>` "address", a binding to the field "city" shows the
          record's error for "address.city", or for "city" when that is empty. The
          name is trimmed and compared ignoring ASCII case.
 
       **tag** : ``std::any``
          Application data, kept as given and never interpreted.
+
+      **has_errors** : ``bool``, read-only
+         Whether any live control in the window currently has a nonempty error
+         from this provider.
+
+      **container_control** : ``std::shared_ptr<Control>``, read-only
+         The root control of the provider's window, or null once the window has
+         shut down.
 
       **snapshot** : ``ErrorProviderSnapshot``, read-only
          An :cpp:class:`ErrorProviderSnapshot <gui_forms::ErrorProviderSnapshot>` listing every marked control with its message,
@@ -85,14 +85,14 @@ gui_forms::ErrorProvider
    :Events:
 
       **right_to_left_changed** : ``Event<bool>``
-         Raised after :cpp:func:`right_to_left <gui_forms::ErrorProvider::right_to_left>` changes, with the new value.
+         Raised after :cpp:member:`right_to_left <gui_forms::ErrorProvider::right_to_left>` changes, with the new value.
 
       **data_source_changed** : ``Event<>``
-         Raised after :cpp:func:`data_source <gui_forms::ErrorProvider::data_source>` changes, before the errors are refreshed, and
+         Raised after :cpp:member:`data_source <gui_forms::ErrorProvider::data_source>` changes, before the errors are refreshed, and
          when the source is disposed.
 
       **data_member_changed** : ``Event<const std::string&>``
-         Raised after :cpp:func:`data_member <gui_forms::ErrorProvider::data_member>` changes, with the new member.
+         Raised after :cpp:member:`data_member <gui_forms::ErrorProvider::data_member>` changes, with the new member.
 
       **error_changed** : ``Event<const ErrorProviderChange&>``
          Raised after a control's message changes, once the control's semantics
@@ -121,9 +121,9 @@ gui_forms::ErrorProvider
       * - :cpp:func:`icon_padding <gui_forms::ErrorProvider::icon_padding>`
         - The control's icon padding, 0 unless set.
       * - :cpp:func:`bind_to_data_and_errors <gui_forms::ErrorProvider::bind_to_data_and_errors>`
-        - ``bind_to_data_and_errors(source, member = {})`` sets :cpp:func:`data_member <gui_forms::ErrorProvider::data_member>` and then :cpp:func:`data_source <gui_forms::ErrorProvider::data_source>` in one call.
+        - ``bind_to_data_and_errors(source, member = {})`` sets :cpp:member:`data_member <gui_forms::ErrorProvider::data_member>` and then :cpp:member:`data_source <gui_forms::ErrorProvider::data_source>` in one call.
       * - :cpp:func:`update_binding <gui_forms::ErrorProvider::update_binding>`
-        - Recomputes the errors shown for :cpp:func:`data_source <gui_forms::ErrorProvider::data_source>`.
+        - Recomputes the errors shown for :cpp:member:`data_source <gui_forms::ErrorProvider::data_source>`.
       * - :cpp:func:`set_error <gui_forms::ErrorProvider::set_error>`
         - ``set_error(control, message)`` shows a message for a control; an empty message clears it.
       * - :cpp:func:`set_icon_alignment <gui_forms::ErrorProvider::set_icon_alignment>`
@@ -151,7 +151,7 @@ gui_forms::ErrorProvider
    providers, their messages appear in the order in which the providers were
    created.
 
-   The icon is drawn in an overlay layer above the window, sized :cpp:func:`icon_size <gui_forms::ErrorProvider::icon_size>` and
+   The icon is drawn in an overlay layer above the window, sized :cpp:member:`icon_size <gui_forms::ErrorProvider::icon_size>` and
    placed by the control's alignment and padding, kept inside the window. It
    follows the control when the control moves, is removed while the control or
    an ancestor is hidden, and returns when it is shown again. Resting the
@@ -160,7 +160,7 @@ gui_forms::ErrorProvider
    and the icon stays visible without blinking while the presentation settings
    ask for reduced motion.
 
-   With a :cpp:func:`data_source <gui_forms::ErrorProvider::data_source>`, the provider shows, for each control bound to the
+   With a :cpp:member:`data_source <gui_forms::ErrorProvider::data_source>`, the provider shows, for each control bound to the
    source, the current record's record-wide error, its error for the bound
    field and the error of a binding that failed to convert, one per line. A
    binding reports conversion failures to the provider only when its options
@@ -224,30 +224,17 @@ gui_forms::ErrorProvider
 
    .. rubric:: Properties
 
-   .. cpp:function:: bool has_errors() const noexcept
-
-      Whether any live control in the window currently has a nonempty error
-      from this provider.
-
-   .. cpp:function:: double icon_size() const noexcept
+   .. cpp:member:: double icon_size
 
       Side of the error icon in layout units. It must be finite and from 8 to
       64, or ``std::invalid_argument`` is thrown.
 
-   .. cpp:function:: void set_icon_size(double size)
-
-      Sets :cpp:func:`icon_size <gui_forms::ErrorProvider::icon_size>`; see the property's description above.
-
-   .. cpp:function:: std::chrono::milliseconds blink_rate() const noexcept
+   .. cpp:member:: std::chrono::milliseconds blink_rate
 
       Time between the icon's blink phases. It must be from 50 ms to one
       minute, or ``std::invalid_argument`` is thrown.
 
-   .. cpp:function:: void set_blink_rate(std::chrono::milliseconds rate)
-
-      Sets :cpp:func:`blink_rate <gui_forms::ErrorProvider::blink_rate>`; see the property's description above.
-
-   .. cpp:function:: ErrorBlinkStyle blink_style() const noexcept
+   .. cpp:member:: ErrorBlinkStyle blink_style
 
       When the icon blinks. :cpp:enumerator:`ErrorBlinkStyle::blink_if_different_error <gui_forms::ErrorBlinkStyle::blink_if_different_error>` blinks
       three times whenever a control's message changes, then stays visible;
@@ -255,62 +242,43 @@ gui_forms::ErrorProvider
       :cpp:enumerator:`ErrorBlinkStyle::never_blink <gui_forms::ErrorBlinkStyle::never_blink>` never blinks. Changing it restarts the
       blinking of every icon.
 
-   .. cpp:function:: void set_blink_style(ErrorBlinkStyle style)
-
-      Sets :cpp:func:`blink_style <gui_forms::ErrorProvider::blink_style>`; see the property's description above.
-
-   .. cpp:function:: bool right_to_left() const noexcept
+   .. cpp:member:: bool right_to_left
 
       Whether icon alignments are mirrored: ``top_left`` is drawn as ``top_right``,
       and so on.
 
-   .. cpp:function:: void set_right_to_left(bool value)
-
-      Sets :cpp:func:`right_to_left <gui_forms::ErrorProvider::right_to_left>`; see the property's description above.
-
-   .. cpp:function:: std::optional<ImageId> icon() const noexcept
+   .. cpp:member:: std::optional<ImageId> icon
 
       An image from the window's registry to draw instead of the built-in red
       exclamation mark. An :cpp:class:`ImageId <gui_forms::ImageId>` that is not in the registry throws
       ``std::invalid_argument``.
 
-   .. cpp:function:: void set_icon(std::optional<ImageId> icon)
-
-      Sets :cpp:func:`icon <gui_forms::ErrorProvider::icon>`; see the property's description above.
-
-   .. cpp:function:: std::shared_ptr<Control> container_control() const noexcept
-
-      The root control of the provider's window, or null once the window has
-      shut down.
-
-   .. cpp:function:: std::shared_ptr<BindingSource> data_source() const noexcept
+   .. cpp:member:: std::shared_ptr<BindingSource> data_source
 
       The :cpp:class:`BindingSource <gui_forms::BindingSource>` whose errors are shown, held weakly. It must be alive
       and belong to the provider's window, or ``std::invalid_argument`` is
       thrown. Setting the current source again refreshes the errors.
 
-   .. cpp:function:: void set_data_source(std::shared_ptr<BindingSource> source)
-
-      Sets :cpp:func:`data_source <gui_forms::ErrorProvider::data_source>`; see the property's description above.
-
-   .. cpp:function:: const std::string& data_member() const noexcept
+   .. cpp:member:: std::string data_member
 
       A prefix for the record fields whose errors are shown: with
-      :cpp:func:`data_member <gui_forms::ErrorProvider::data_member>` "address", a binding to the field "city" shows the
+      :cpp:member:`data_member <gui_forms::ErrorProvider::data_member>` "address", a binding to the field "city" shows the
       record's error for "address.city", or for "city" when that is empty. The
       name is trimmed and compared ignoring ASCII case.
 
-   .. cpp:function:: void set_data_member(std::string member)
-
-      Sets :cpp:func:`data_member <gui_forms::ErrorProvider::data_member>`; see the property's description above.
-
-   .. cpp:function:: const std::any& tag() const noexcept
+   .. cpp:member:: std::any tag
 
       Application data, kept as given and never interpreted.
 
-   .. cpp:function:: void set_tag(std::any tag)
+   .. cpp:function:: bool has_errors() const noexcept
 
-      Sets :cpp:func:`tag <gui_forms::ErrorProvider::tag>`; see the property's description above.
+      Whether any live control in the window currently has a nonempty error
+      from this provider.
+
+   .. cpp:function:: std::shared_ptr<Control> container_control() const noexcept
+
+      The root control of the provider's window, or null once the window has
+      shut down.
 
    .. cpp:function:: ErrorProviderSnapshot snapshot() const
 
@@ -323,16 +291,16 @@ gui_forms::ErrorProvider
 
    .. cpp:function:: Event<bool>& right_to_left_changed() noexcept
 
-      Raised after :cpp:func:`right_to_left <gui_forms::ErrorProvider::right_to_left>` changes, with the new value.
+      Raised after :cpp:member:`right_to_left <gui_forms::ErrorProvider::right_to_left>` changes, with the new value.
 
    .. cpp:function:: Event<>& data_source_changed() noexcept
 
-      Raised after :cpp:func:`data_source <gui_forms::ErrorProvider::data_source>` changes, before the errors are refreshed, and
+      Raised after :cpp:member:`data_source <gui_forms::ErrorProvider::data_source>` changes, before the errors are refreshed, and
       when the source is disposed.
 
    .. cpp:function:: Event<const std::string&>& data_member_changed() noexcept
 
-      Raised after :cpp:func:`data_member <gui_forms::ErrorProvider::data_member>` changes, with the new member.
+      Raised after :cpp:member:`data_member <gui_forms::ErrorProvider::data_member>` changes, with the new member.
 
    .. cpp:function:: Event<const ErrorProviderChange&>& error_changed() noexcept
 
@@ -370,12 +338,12 @@ gui_forms::ErrorProvider
 
    .. cpp:function:: void bind_to_data_and_errors(std::shared_ptr<BindingSource> source, std::string member = {})
 
-      ``bind_to_data_and_errors(source, member = {})`` sets :cpp:func:`data_member <gui_forms::ErrorProvider::data_member>` and
-      then :cpp:func:`data_source <gui_forms::ErrorProvider::data_source>` in one call.
+      ``bind_to_data_and_errors(source, member = {})`` sets :cpp:member:`data_member <gui_forms::ErrorProvider::data_member>` and
+      then :cpp:member:`data_source <gui_forms::ErrorProvider::data_source>` in one call.
 
    .. cpp:function:: void update_binding()
 
-      Recomputes the errors shown for :cpp:func:`data_source <gui_forms::ErrorProvider::data_source>`. The provider calls it
+      Recomputes the errors shown for :cpp:member:`data_source <gui_forms::ErrorProvider::data_source>`. The provider calls it
       itself when the source's list or current record changes and when a
       binding completes; call it after changing record errors that the source
       has not announced.

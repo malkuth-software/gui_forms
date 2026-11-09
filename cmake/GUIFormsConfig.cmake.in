@@ -53,15 +53,50 @@ endif()
 option(GUI_FORMS_LOCALIZABLE_LITERALS "Compile with the GUI.Forms localizable-literal Clang plugin" ON)
 set(_gui_forms_plugin
     "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_LIBDIR@/gui_forms/gui_forms_localizable@CMAKE_SHARED_MODULE_SUFFIX@")
+# clang-cl takes the plugin's driver options behind /clang:.
+set(_gui_forms_driver "")
+if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+    set(_gui_forms_driver "/clang:")
+endif()
+set(GUIForms_EFFECTS_VERIFIED FALSE)
 if(GUI_FORMS_LOCALIZABLE_LITERALS AND EXISTS "${_gui_forms_plugin}" AND TARGET GUIForms::Core)
     set(_gui_forms_clang22
         "$<AND:$<COMPILE_LANGUAGE:CXX,OBJCXX>,$<CXX_COMPILER_ID:Clang>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,22>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,23>>")
     set_property(TARGET GUIForms::Core APPEND PROPERTY INTERFACE_COMPILE_OPTIONS
-        "$<${_gui_forms_clang22}:-fplugin=${_gui_forms_plugin}>"
-        "$<${_gui_forms_clang22}:-fplugin-arg-gui_forms_localizable-root=${CMAKE_SOURCE_DIR}>")
+        "$<${_gui_forms_clang22}:${_gui_forms_driver}-fplugin=${_gui_forms_plugin}>"
+        "$<${_gui_forms_clang22}:${_gui_forms_driver}-fplugin-arg-gui_forms_localizable-root=${CMAKE_SOURCE_DIR}>")
     unset(_gui_forms_clang22)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 22
+       AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 23)
+        set(GUIForms_EFFECTS_VERIFIED TRUE)
+    endif()
 endif()
+unset(_gui_forms_driver)
 unset(_gui_forms_plugin)
+
+# A consumer's files that register effect programs
+# (docs/user/effect-verification.md). With Clang 22 and the plugin they are
+# compiled with its effect pass like every other source of the target; plain
+# cl.exe is refused (C-12: an MSVC project compiles them with clang-cl), and
+# any other compiler builds them unverified, with a warning naming them.
+function(gui_forms_verify_effects target)
+    cmake_parse_arguments(PARSE_ARGV 1 _gf "" "" "SOURCES")
+    string(JOIN ", " _gf_files ${_gf_SOURCES})
+    if(MSVC AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        message(FATAL_ERROR "GUI.Forms effects in ${target} (${_gf_files}) must be compiled with clang-cl "
+                            "(LLVM 22), not cl.exe: only Clang can load the effect pass that bounds them. "
+                            "Use the Visual Studio generator's ClangCL toolset (-T ClangCL) or set "
+                            "CMAKE_CXX_COMPILER to clang-cl.")
+    endif()
+    if(GUIForms_EFFECTS_VERIFIED)
+        return()
+    endif()
+    message(WARNING "GUI.Forms effects in ${target} (${_gf_files}) are unverified: the compiler is not "
+                    "Clang 22 with the GUI.Forms plugin. They run, labelled unverified and counted by the "
+                    "effect registry.")
+    set_property(SOURCE ${_gf_SOURCES} TARGET_DIRECTORY ${target} APPEND PROPERTY
+                 COMPILE_DEFINITIONS GUI_FORMS_EFFECTS_UNVERIFIED)
+endfunction()
 
 set(GUIForms_FONT_DIR "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_DATADIR@/GUIForms/fonts")
 

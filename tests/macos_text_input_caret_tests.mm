@@ -22,7 +22,7 @@ namespace {
 class CaretControl final : public gui_forms::Control {
 public:
     explicit CaretControl(gui_forms::StableId stable_id) : Control(std::move(stable_id)) {
-        set_focusable(true);
+        focusable = true;
     }
     [[nodiscard]] std::optional<gui_forms::Rect> text_input_caret() const override {
         return gui_forms::Rect{10.0, 4.0, 2.0, 16.0};
@@ -115,7 +115,7 @@ int main() {
     (*probe.caret_control).set_requested_bounds({40, 30, 120, 24});
     (*root).add_child(probe.caret_control);
     probe.plain_control = gui_forms::make_control<gui_forms::Control>(gui_forms::StableId("plain"));
-    (*probe.plain_control).set_focusable(true);
+    (*probe.plain_control).focusable = true;
     (*probe.plain_control).set_requested_bounds({40, 80, 120, 24});
     (*root).add_child(probe.plain_control);
     gui_forms::host::MacApplicationWindow entry{};

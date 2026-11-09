@@ -34,11 +34,25 @@ during the normal compile of every file that registers an effect (each
 Every rejection is a compiler error at the construct, followed by a note
 naming the effect.
 
-On CI, the `effect-pass` job (`.github/workflows/effect-pass.yml`) builds
-the plugin on Linux with Clang 22's development headers and runs the effect
-tests with the pass on, for pull requests that touch the effect engine, the
-plugin, the effect tests or a file that registers effects. The native jobs
-build without those headers, so their effects are unverified.
+On CI, the Linux native and sanitizer jobs install Clang 22's development
+headers (`llvm-22-dev` and `libclang-22-dev`), build the plugin and verify
+every effect; `tools/ci_build.py` configures them with
+`GUI_FORMS_EFFECT_VERIFY_REQUIRED=ON`, so a plugin that cannot be built or
+loaded fails the configure instead of leaving the effects unverified. The
+`effect-pass` job (`.github/workflows/effect-pass.yml`) also runs the pass's
+own cases on its own, for pull requests that touch the effect engine, the
+plugin, the effect tests or a file that registers effects.
+
+## Visual Studio projects: clang-cl
+
+Only Clang can load the plugin, so an MSVC project compiles its effect
+sources with clang-cl (LLVM 22): the Visual Studio generator's ClangCL
+toolset (`-T ClangCL`), or `CMAKE_CXX_COMPILER` set to `clang-cl`. The
+plugin's options then go behind `/clang:`, which the build does for you.
+Plain `cl.exe` is refused: `gui_forms_verify_effects` stops the configure
+with a message naming the target and its effect files, whatever
+`GUI_FORMS_EFFECT_VERIFY` says. The rest of the project may still use
+`cl.exe`; only the files that register effects need clang-cl.
 
 ## Turning it off
 
@@ -55,7 +69,9 @@ effects still build and run, unverified:
   counts them (`EffectRegistry::unverified_count()`).
 
 A file of your own that registers effects is listed with
-`gui_forms_verify_effects(<target> SOURCES <files>)` in the toolkit's build.
+`gui_forms_verify_effects(<target> SOURCES <files>)`, in the toolkit's build
+or, after `find_package(GUIForms)`, in your own. `GUI_FORMS_EFFECT_VERIFY_REQUIRED`
+(off by default) turns the toolkit's warning into a configure error.
 The plugin's `effects=off` argument
 (`-fplugin-arg-gui_forms_localizable-effects=off`) skips the pass for a unit
 compiled with the plugin for its literals.

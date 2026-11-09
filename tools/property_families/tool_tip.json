@@ -1,0 +1,168 @@
+{
+  "family": "ToolTip",
+  "step": "B9",
+  "declaring": "ToolTip",
+  "header": "include/gui_forms/components/tool_tip/tool_tip.hpp",
+  "source": "src/controls/tool_tip/tool_tip.cpp",
+  "capabilities_header": "include/gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp",
+  "shared": [],
+  "includes": [
+    "<chrono>"
+  ],
+  "mutation_check": null,
+  "properties": [
+    {
+      "name": "initial_delay",
+      "capability": "ToolTipInitialDelay",
+      "value": "std::chrono::milliseconds",
+      "initial": null,
+      "comment": "How long the pointer rests on a target before its tooltip shows (ToolTipSettings::initial_delay); negative throws std::invalid_argument.",
+      "getter": "initial_delay",
+      "setter": "set_initial_delay",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the window's ToolTipSettings::initial_delay; read_view and write_view go through require_access"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "reshow_delay",
+      "capability": "ToolTipReshowDelay",
+      "value": "std::chrono::milliseconds",
+      "initial": null,
+      "comment": "How long the pointer rests on the next target while a tooltip shows (ToolTipSettings::reshow_delay); negative throws std::invalid_argument.",
+      "getter": "reshow_delay",
+      "setter": "set_reshow_delay",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the window's ToolTipSettings::reshow_delay; read_view and write_view go through require_access"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "auto_pop_delay",
+      "capability": "ToolTipAutoPopDelay",
+      "value": "std::chrono::milliseconds",
+      "initial": null,
+      "comment": "How long a tooltip stays (ToolTipSettings::auto_pop_delay); negative throws std::invalid_argument.",
+      "getter": "auto_pop_delay",
+      "setter": "set_auto_pop_delay",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the window's ToolTipSettings::auto_pop_delay; read_view and write_view go through require_access"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "show_on_hover",
+      "capability": "ToolTipShowOnHover",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether a tooltip shows when the pointer rests on its target (ToolTipSettings::show_on_hover).",
+      "getter": "show_on_hover",
+      "setter": "set_show_on_hover",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the window's ToolTipSettings::show_on_hover; read_view and write_view go through require_access"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "show_on_focus",
+      "capability": "ToolTipShowOnFocus",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether a tooltip shows when its target takes the keyboard focus (ToolTipSettings::show_on_focus).",
+      "getter": "show_on_focus",
+      "setter": "set_show_on_focus",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the window's ToolTipSettings::show_on_focus; read_view and write_view go through require_access"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "show_always",
+      "capability": "ToolTipShowAlways",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether a disabled control's tooltip shows (ToolTipSettings::show_when_disabled).",
+      "getter": "show_always",
+      "setter": "set_show_always",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the window's ToolTipSettings::show_when_disabled; read_view and write_view go through require_access"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "maximum_width",
+      "capability": "ToolTipMaximumWidth",
+      "value": "double",
+      "initial": null,
+      "comment": "The widest a tooltip wraps to (ToolTipSettings::maximum_width); outside 80 to 2048 throws std::invalid_argument.",
+      "getter": "maximum_width",
+      "setter": "set_maximum_width",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the window's ToolTipSettings::maximum_width; read_view and write_view go through require_access"
+      ],
+      "effects": null,
+      "storage": "view"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "set_tool_tip(target, text)",
+      "reason": "per target; a method"
+    }
+  ]
+}

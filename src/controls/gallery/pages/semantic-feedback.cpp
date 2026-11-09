@@ -119,7 +119,7 @@ bool SemanticFeedbackPage::ensure_feedback() {
     if (feedback_) return true;
     Window* const window = (*latest_).attached_window();
     if (window == nullptr) {
-        (*latest_).set_text("SemanticFeedback needs an attached Window");
+        (*latest_).text = "SemanticFeedback needs an attached Window";
         return false;
     }
     feedback_ = std::make_unique<SemanticFeedback>(*window);
@@ -137,40 +137,43 @@ void SemanticFeedbackPage::on_announce(const int index) {
 
 void SemanticFeedbackPage::on_clear() {
     if (feedback_) (*feedback_).clear();
-    (*latest_).set_text("History cleared · no transition announced yet");
+    (*latest_).text = "History cleared · no transition announced yet";
     refresh_records();
 }
 
 void SemanticFeedbackPage::on_sound_changed(const bool enabled) {
     Window* const window = (*latest_).attached_window();
     if (window == nullptr) return;
-    PresentationSettings settings = (*window).presentation_settings();
-    settings.sound_enabled = enabled;
-    (*window).set_presentation_settings(settings);
+    // A per-window override (Part K): the application's settings still
+    // reach the window's other fields.
+    PresentationOverrides overrides{};
+    if (const PresentationOverrides* const current = (*window).presentation_overrides()) overrides = *current;
+    overrides.sound_enabled = enabled;
+    (*window).set_presentation_overrides(overrides);
 }
 
 void SemanticFeedbackPage::on_emitted(const SemanticFeedbackRecord& record) {
-    (*latest_).set_text(
+    (*latest_).text =
         std::string("feedback=") + semantic_feedback_kind_name(record.kind) +
         " · cue=" + host_sound_cue_name(record.cue) +
         " · sound " + (record.sound_enabled ? "on" : "off") +
         " · host accepted " + (record.host_accepted ? "yes" : "no") +
         " · presented " + (record.sound_presented ? "yes" : "no") +
-        " · sequence " + std::to_string(record.sequence));
+        " · sequence " + std::to_string(record.sequence);
 }
 
 void SemanticFeedbackPage::refresh_records() {
     if (!feedback_) {
-        (*accounting_).set_text("Retained 0 of " + std::to_string(retained_records) +
-                                " records · dropped 0");
-        (*trace_).set_text({});
+        (*accounting_).text = "Retained 0 of " + std::to_string(retained_records) +
+                                " records · dropped 0";
+        (*trace_).text = std::string{};
         return;
     }
-    (*accounting_).set_text(
+    (*accounting_).text =
         "Retained " + std::to_string((*feedback_).records().size()) + " of " +
         std::to_string((*feedback_).maximum_records()) + " records · dropped " +
-        std::to_string((*feedback_).dropped_record_count()));
-    (*trace_).set_text((*feedback_).trace());
+        std::to_string((*feedback_).dropped_record_count());
+    (*trace_).text = (*feedback_).trace();
 }
 
 void add_semantic_feedback(const std::shared_ptr<Surface>& page,

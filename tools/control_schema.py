@@ -190,9 +190,10 @@ def _interactions_of(record: Mapping[str, object]) -> list[Interaction]:
 
 
 _VERSION = re.compile(r"[0-9]+\.[0-9]+")
-_CASCADE_LEVELS: tuple[str, ...] = ("built_in", "user_theme", "theme_sheet", "class_rule", "stable_id_rule",
-                                    "inline_style", "important_user_theme", "important_theme_sheet",
-                                    "forced_high_contrast", "important_inline_style")
+_CASCADE_LEVELS: tuple[str, ...] = ("built_in", "base_sheet", "user_theme", "theme_sheet", "class_rule",
+                                    "stable_id_rule", "inline_style", "important_base_sheet",
+                                    "important_user_theme", "important_theme_sheet", "forced_high_contrast",
+                                    "important_inline_style")
 
 
 def _engine_findings(engine: object, vocabulary: object) -> list[str]:

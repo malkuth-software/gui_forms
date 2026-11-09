@@ -51,6 +51,50 @@ BOOL CALLBACK collect_device_monitor(HMONITOR monitor, HDC, LPRECT, LPARAM conte
     return TRUE;
 }
 
+// EnumDisplayMonitors' context for fill_logical_monitor: the records to
+// write in place and how many have been written.
+struct LogicalMonitorFill final {
+    std::vector<HostMonitor>* monitors{};
+    std::size_t count{};
+};
+
+// Writes one monitor into the next record of a LogicalMonitorFill, in
+// logical units, reusing the record's id storage: the same monitor as
+// collect_device_monitor followed by logical_monitor, allocating nothing
+// once the records exist.
+BOOL CALLBACK fill_logical_monitor(HMONITOR monitor, HDC, LPRECT, LPARAM context) {
+    LogicalMonitorFill& fill = *reinterpret_cast<LogicalMonitorFill*>(context);
+    MONITORINFOEXW info{};
+    info.cbSize = sizeof(info);
+    if (!GetMonitorInfoW(monitor, &info)) return TRUE;
+    std::vector<HostMonitor>& monitors = *fill.monitors;
+    if (fill.count == monitors.size()) monitors.emplace_back();
+    HostMonitor& value = monitors[fill.count];
+    // szDevice is at most CCHDEVICENAME (32) UTF-16 units: at most 96 UTF-8
+    // bytes.
+    char identifier[128]{};
+    const int device_length = static_cast<int>(wcsnlen(info.szDevice, CCHDEVICENAME));
+    int length = device_length == 0 ? 0
+        : WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, info.szDevice, device_length, identifier,
+                              static_cast<int>(sizeof(identifier)), nullptr, nullptr);
+    if (length <= 0) {
+        length = std::snprintf(identifier, sizeof(identifier), "win32.monitor.%llu",
+                               static_cast<unsigned long long>(reinterpret_cast<std::uintptr_t>(monitor)));
+    }
+    value.id.assign(identifier, length > 0 ? static_cast<std::size_t>(length) : 0U);
+    value.frame = {static_cast<double>(info.rcMonitor.left), static_cast<double>(info.rcMonitor.top),
+                   static_cast<double>(info.rcMonitor.right - info.rcMonitor.left),
+                   static_cast<double>(info.rcMonitor.bottom - info.rcMonitor.top)};
+    value.work_area = {static_cast<double>(info.rcWork.left), static_cast<double>(info.rcWork.top),
+                       static_cast<double>(info.rcWork.right - info.rcWork.left),
+                       static_cast<double>(info.rcWork.bottom - info.rcWork.top)};
+    value.scale = native_monitor_scale(monitor);
+    value.primary = (info.dwFlags & MONITORINFOF_PRIMARY) != 0U;
+    make_logical_monitor(value);
+    ++fill.count;
+    return TRUE;
+}
+
 // The monitors in Win32 device desktop units, as HostServices reports them.
 std::vector<HostMonitor> device_monitors() {
     std::vector<HostMonitor> monitors;
@@ -182,12 +226,17 @@ protected:
     HostServiceStatus bring_to_front_impl(HostWindowId window) override;
     HostServiceStatus destroy_window_impl(HostWindowId window) override;
     HostMonitorResult query_monitors_impl() override;
+    void query_monitors_into_impl(HostMonitorResult& result) override;
 
 public:
     // Popup windows open during the run (HostWindowKind::popup); their
     // per-pixel alpha is the transparent backdrop through DWM's blur-behind
     // with an empty region (windows_compositor.cpp).
     [[nodiscard]] bool supports_popup_windows() const noexcept override { return true; }
+    // Splash windows (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S,
+    // SPLASH_STUDY D4) are the same popup windows, never activated, topmost,
+    // and transparent to the pointer (WM_NCHITTEST answers HTTRANSPARENT).
+    [[nodiscard]] bool supports_splash_windows() const noexcept override { return true; }
 
 protected:
     HostServiceStatus show_impl(HostWindowId window) override;
@@ -283,6 +332,7 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
     description.stable_id = entry.stable_id;
     description.owner = owner_id;
     description.kind = kind;
+    if (popup.has_value()) description.transient = (*popup).kind;
     outcome.admission = admit(description);
     if (!outcome.admission.status.accepted()) {
         outcome.failure_code = 2;
@@ -309,10 +359,16 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
     const WindowsWindowStyles styles = windows_window_styles(kind, entry.tool_window, entry.options);
     const DWORD style = styles.style;
     DWORD ex_style = styles.extended;
-    const bool passive_popup = popup.has_value() && (*popup).focus == HostPopupFocus::passive;
+    const bool splash_popup = popup.has_value() && host_transient_is_splash((*popup).kind);
+    const bool passive_popup = popup.has_value() && ((*popup).focus == HostPopupFocus::passive || splash_popup);
     if (passive_popup) {
         ex_style = ex_style | WS_EX_NOACTIVATE;
         (*window_slot.state).mark_passive_popup();
+    }
+    if (splash_popup) {
+        // Above the program's popups and windows, as the host tooltip was.
+        ex_style = ex_style | WS_EX_TOPMOST;
+        (*window_slot.state).mark_splash();
     }
     const double initial_scale = query_scale(owner);
     const Size initial_size = entry.options.capture_size.has_value()
@@ -541,13 +597,20 @@ HostServiceStatus WindowsApplicationRun::destroy_window_impl(HostWindowId window
 
 HostMonitorResult WindowsApplicationRun::query_monitors_impl() {
     HostMonitorResult result;
-    const std::vector<HostMonitor> monitors = device_monitors();
-    result.monitors.reserve(monitors.size());
-    for (std::size_t index = 0U; index < monitors.size(); ++index) {
-        result.monitors.push_back(logical_monitor(monitors[index]));
-    }
-    if (result.monitors.empty()) result.status.error = HostServiceError::backend_failure;
+    query_monitors_into_impl(result);
     return result;
+}
+
+// The monitors in logical units, written into `result`'s records in place:
+// a repeated query on an unchanged set allocates nothing (a warm Splash or
+// Popup placement queries on every show).
+void WindowsApplicationRun::query_monitors_into_impl(HostMonitorResult& result) {
+    result.status = {};
+    LogicalMonitorFill fill{};
+    fill.monitors = &result.monitors;
+    EnumDisplayMonitors(nullptr, nullptr, &fill_logical_monitor, reinterpret_cast<LPARAM>(&fill));
+    result.monitors.resize(fill.count);
+    if (result.monitors.empty()) result.status.error = HostServiceError::backend_failure;
 }
 
 void WindowsHostState::report_frame_to_run() {

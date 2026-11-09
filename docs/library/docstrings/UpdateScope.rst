@@ -74,7 +74,7 @@ Several changes, one layout pass when the block ends:
    {
        gf::UpdateScope scope = window.begin_update();
        (*status).set_bounds({8.0, 8.0, 200.0, 24.0});
-       (*status).set_text("Working");
+       (*status).text = "Working";
        (*cancel).set_bounds({216.0, 6.0, 96.0, 28.0});
    }   // one layout flush here
    gf::MetricsSnapshot metrics = window.metrics_snapshot();   // metrics.flush_count == 1

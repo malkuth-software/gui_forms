@@ -14,7 +14,11 @@
 namespace gui_forms {
 
 UserControl::UserControl(StableId stable_id)
-    : ContainerControl(std::move(stable_id)) {}
+    : ContainerControl(std::move(stable_id)) {
+    // An application's own paint may read the size: the Control default
+    // (ScrollableControl clears resize_redraw for its bar-only paint).
+    Control::set_style(ControlStyles::resize_redraw, true);
+}
 
 void UserControl::on_attached_to_window() {
     attached_ = true;

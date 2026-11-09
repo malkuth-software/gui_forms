@@ -23,6 +23,12 @@ migration of a declaring class's properties onto capabilities:
     python3 -B tools/property_codemod.py audit CONFIG...
         Lists parameters and locals named after a property (the rule: no
         parameter shares a property's name) in the family's sources.
+    python3 -B tools/property_codemod.py selftest
+        Runs the header field deletion over
+        tools/property_codemod_fixtures/field_initializers.hpp (initializers
+        holding `;`, quotes and nested braces) and compares the result with
+        field_initializers.expected.hpp; then checks that generation refuses
+        a header whose migrated field survives.
     python3 -B tools/property_codemod.py tests [CONFIG...]
         Writes tests/property_family_generated_tests.cpp from every config
         with a "test" block: per property, a write stores, an equal write
@@ -33,11 +39,20 @@ Config keys are the study's (section 15.2) plus these, all optional:
              "Control"); its table is <Base>::<base_snake>_property_entries()
              with <base_snake>_property_count entries.
              "includes": headers the capabilities header includes.
+             "overrides": hand-written PropertyEntry initializers replacing
+             base entries of the same name (override_property_entries).
              "table_source": "hand" when the entries and descriptors are
              written by hand (only the capabilities header is generated).
              "test": {"type": concrete class, "include": its header}.
-  property   "prepare": C++ statements a generated prepare_write runs after
-             require_mutable and before coerce (`incoming` is the incoming value).
+             "mutation_check": the statement a generated prepare_write runs
+             first (default "require_mutable();", Control's check); null for
+             a component without one (study section 14, G7 point 4).
+  table      "binding_direction": a form binding's default direction
+             (PropertyBindingDirection; "two_way" for what the user edits).
+  property   "coerce": false only (the study's key; a coerce_<name> virtual is
+             written by hand).
+             "prepare": C++ statements a generated prepare_write runs after
+             require_mutable and before the compare (`incoming` is the incoming value).
              "written_effects": the dirty mask a generated written touches
              when it differs from the descriptor's (table.effects).
              "traits": "hand" when the value type's PropertyValueTraits are
@@ -56,18 +71,19 @@ import sys
 
 PROPERTY_KEYS = {
     "name", "capability", "value", "initial", "comment", "getter", "setter", "clear", "field", "event",
-    "on_changed", "coerce", "localizable", "table", "hooks", "storage", "effects", "thunks", "hand",
-    "comment_generated", "prepare", "written_effects", "traits", "sample",
+    "on_changed", "localizable", "table", "hooks", "storage", "effects", "thunks", "hand",
+    "comment_generated", "prepare", "written_effects", "traits", "sample", "coerce",
 }
 TOP_KEYS = {
     "family", "declaring", "header", "source", "capabilities_header", "properties", "step", "shared",
-    "not_properties", "base", "includes", "table_source", "test", "shared_header",
+    "not_properties", "base", "includes", "table_source", "test", "shared_header", "mutation_check",
+    "overrides", "extra_entries",
 }
 TABLE_KEYS = {
     "kind", "category", "description", "default", "effects", "subtree", "bindable", "browsable", "nullable",
-    "enumeration", "reset", "registry", "serialization",
+    "enumeration", "reset", "registry", "serialization", "binding_direction", "content_value",
 }
-THUNK_KEYS = {"read", "write", "reset", "should_serialize"}
+THUNK_KEYS = {"read", "write", "reset", "should_serialize", "origin"}
 SHARED_HEADER = "include/gui_forms/control/shared_capabilities/shared_capabilities.hpp"
 BEGIN = "// property_codemod begin "
 END = "// property_codemod end "
@@ -162,6 +178,10 @@ def validate(config):
             errors.append(f"{label}: storage must be 'cell' or 'view'")
         if prop.get("storage") == "view" and prop.get("hooks") == "generated":
             errors.append(f"{label}: a view's hooks are hand-written")
+        # The study's coerce key (section 15.2): only false is generated; a
+        # coerce_<name> virtual is written by hand.
+        if prop.get("coerce", False) is not False:
+            errors.append(f"{label}: coerce must be false (a coerce_<name> virtual is written by hand)")
         table = prop.get("table")
         if table is not None:
             for key in table:
@@ -261,11 +281,11 @@ HEADER_COMMENT = """
 // Each is a standard-layout struct whose only member is its property's
 // cell, taken by the declaring class as a base. A write
 // `(*control).x = value;` runs `assign`: the declaring class's
-// prepare_write hook (require_mutable first, then the value's checks and,
-// where C# lets a subclass rewrite the value, the protected virtual coerce
-// hook), the compare and store, then the written hook (the touch, side
-// effects and the change event, through the protected virtual
-// on_<property>_changed() where Windows Forms has OnXChanged). A read is
+// prepare_write hook (require_mutable first, then the value's checks), the
+// compare and store, then the written hook (the touch, side effects and the
+// change event, through the protected virtual on_<property>_changed() where
+// Windows Forms has an overridable On<Property>Changed; other properties
+// have no hook, and a subclass subscribes to their change events instead). A read is
 // `(*control).x.read()`.
 """
 
@@ -288,9 +308,15 @@ def capabilities_header(config):
         includes.append('"gui_forms/text/localizable/localizable_property.hpp"')
     if config.get("shared"):
         includes.append('"%s"' % SHARED_HEADER[len("include/"):])
-    for extra in config.get("includes") or []:
-        includes.append('"%s"' % extra)
     system = ["<cstdint>", "<optional>", "<string>", "<utility>"]
+    # An include spelled with angle brackets is a standard header.
+    for extra in config.get("includes") or []:
+        if extra.startswith("<"):
+            if extra not in system:
+                system.append(extra)
+        else:
+            includes.append('"%s"' % extra)
+    system.sort()
     out = ["#pragma once", ""]
     out += ["#include " + include for include in includes]
     out.append("")
@@ -467,6 +493,93 @@ def top_level_commas(text):
     return commas
 
 
+def statement_end(text, index, limit):
+    """The index of the `;` ending the statement at index: outside
+    brackets, braces, string and character literals and comments."""
+    while index < limit:
+        character = text[index]
+        if character in "\"'":
+            quote = character
+            index += 1
+            while index < limit and text[index] != quote:
+                if text[index] == "\\":
+                    index += 1
+                index += 1
+        elif text.startswith("//", index):
+            index = text.find("\n", index)
+            if index < 0:
+                break
+        elif text.startswith("/*", index):
+            index = text.find("*/", index) + 1
+        elif character == "(":
+            index = matching(text, index, "(", ")")
+        elif character == "[":
+            index = matching(text, index, "[", "]")
+        elif character == "{":
+            index = matching(text, index, "{", "}")
+        elif character == ";":
+            return index
+        index += 1
+    raise ValueError("statement without an end at %d" % index)
+
+
+FIELD_HEAD = r"^[ \t]*(?!return\b)[\w:<>,\*&][\w:<>, \t\*&]*?\b%s\s*(?=[{=;])"
+
+
+def field_declarations(text, field, body_open, body_close):
+    """(start, end) of each declaration of the data member `field` in the
+    class body, whole lines: its type and name at a line's start, then a
+    brace or `=` initializer (any content: literals, nested braces, `;`
+    inside quotes) or none, then the `;` and the rest of its line."""
+    pattern = re.compile(FIELD_HEAD % re.escape(field), re.M)
+    found = []
+    for match in pattern.finditer(text, body_open + 1, body_close):
+        end = statement_end(text, match.end(), body_close)
+        found.append((match.start(), line_end(text, end)))
+    return found
+
+
+def strip_comments(text):
+    """text with comments and string and character literals blanked."""
+    out = []
+    index = 0
+    while index < len(text):
+        character = text[index]
+        if character in "\"'":
+            quote = character
+            out.append(" ")
+            index += 1
+            while index < len(text) and text[index] != quote:
+                if text[index] == "\\":
+                    index += 1
+                index += 1
+            out.append(" ")
+            index += 1
+        elif text.startswith("//", index):
+            newline = text.find("\n", index)
+            index = len(text) if newline < 0 else newline
+        elif text.startswith("/*", index):
+            close = text.find("*/", index)
+            index = len(text) if close < 0 else close + 2
+        else:
+            out.append(character)
+            index += 1
+    return "".join(out)
+
+
+def remaining_fields(text, config):
+    """The migrated fields still named in the declaring class's body after
+    generation: each would be stale storage beside its cell."""
+    head, body_open, body_close = class_body(text, config["declaring"])
+    body = strip_comments(text[body_open + 1:body_close])
+    left = []
+    for prop in config["properties"]:
+        field = prop.get("field")
+        if field and prop.get("storage", "cell") == "cell" and re.search(r"\b%s\b" % re.escape(field), body):
+            left.append(field)
+    return left
+
+
 def remove_ranges(text, ranges):
     """Removes the ranges, merging overlapping ones first."""
     merged = []
@@ -484,8 +597,40 @@ def collapse_blank_lines(text):
     return re.sub(r"\n{3,}", "\n\n", text)
 
 
+def signature_keys(block):
+    """The function heads and friend declarations of a generated block, each
+    cut at its first `)` with its spacing collapsed, so `{}` against `{` and
+    `}` on two lines, or a parameter's name, does not tell them apart."""
+    keys = set()
+    # A source block's indented lines are statements of the bodies above them.
+    source = re.search(r"^[^\s/][^\n]*::\w+\(", block, re.M) is not None
+    for line in block.split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("//"):
+            continue
+        if stripped.startswith("friend "):
+            keys.add(" ".join(stripped.split()))
+            continue
+        head = re.match(r"(?:[\w:<>,&*~\[\] ]+\s)?[\w:~]+\([^)]*\)?", stripped)
+        if head is None:
+            continue
+        # A definition starts at the line's first column; a declaration is a
+        # member line of the class (one indent) that ends its statement.
+        if line[:1].isspace() and (source or not (line.startswith("    ") and not line.startswith("     ")
+                                                  and stripped.endswith((";", ",")))):
+            continue
+        if not line[:1].isspace() and "::" not in stripped.split("(", 1)[0]:
+            continue
+        keys.add(" ".join(head.group(0).split(")", 1)[0].split()))
+    return keys
+
+
 def replace_block(text, family, block, anchor_index):
-    """Replaces the generated block for `family`, or inserts it at anchor_index."""
+    """Replaces the generated block for `family`, or inserts it at anchor_index.
+
+    Refuses (ValueError) to replace a block holding a function or friend the
+    new block would not have: a hand-written hook belongs outside the
+    generated block, where regeneration leaves it alone."""
     begin = text.find(BEGIN + family + "\n")
     if begin < 0:
         begin = text.find(BEGIN + family + " ")
@@ -493,6 +638,10 @@ def replace_block(text, family, block, anchor_index):
         begin = line_start(text, begin)
         end_marker = text.index(END + family, begin)
         end = line_end(text, end_marker)
+        lost = sorted(signature_keys(text[begin:end]) - signature_keys(block))
+        if lost:
+            raise ValueError(f"{family}: the generated block holds hand-written code the generator "
+                             f"would drop; move it outside the block: " + "; ".join(lost))
         return text[:begin] + block + text[end:]
     return text[:anchor_index] + block + text[anchor_index:]
 
@@ -515,12 +664,13 @@ def header_block(config):
     family = config["family"]
     base = config.get("base", "Control")
     own = table_properties(config)
+    extra = config.get("extra_entries") or []
     lines = [f"    {BEGIN}{family} ({config['_path']}; generated, do not edit)"]
-    if config.get("table_source") != "hand" and own:
+    if config.get("table_source") != "hand" and (own or extra):
         count = f"{snake(declaring)}_property_count"
         lines += ["public:",
                   f"    // {declaring}'s property table: {base}'s entries, then its own.",
-                  f"    static constexpr std::size_t {count} = {base}::{snake(base)}_property_count + {len(own)}U;",
+                  f"    static constexpr std::size_t {count} = {base}::{snake(base)}_property_count + {len(own) + len(extra)}U;",
                   f"    [[nodiscard]] static const std::array<PropertyEntry, {count}>& "
                   f"{snake(declaring)}_property_entries() noexcept;",
                   "    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;",
@@ -529,14 +679,19 @@ def header_block(config):
     for prop in config["properties"]:
         if prop.get("on_changed"):
             virtuals.append(f"    virtual void on_{prop['name']}_changed();")
-        if prop.get("coerce"):
-            virtuals.append(f"    virtual void coerce_{prop['name']}({prop['value']}& incoming);")
     if virtuals:
         lines += ["protected:",
-                  "    // on_<property>_changed runs after a changed write's touch and raises the",
-                  "    // change event; an override calls the base. coerce_<property> runs last",
-                  "    // before the compare and may rewrite the incoming value.",
+                  "    // on_<property>_changed runs after a changed write's store and touch and",
+                  "    // raises the change event; an override calls the base. Only the",
+                  "    // properties with a Windows Forms On<Property>Changed have one.",
                   *virtuals, ""]
+    if not config["properties"]:
+        # A family of hand entries only (extra_entries) has no cells, so no
+        # capabilities, friends or hooks.
+        if lines[-1] == "":
+            lines.pop()
+        lines.append(f"    {END}{family}")
+        return "\n".join(lines) + "\n"
     lines.append("private:")
     for prop in config["properties"]:
         lines.append(f"    friend struct {capability_struct(prop)}<{declaring}>;")
@@ -580,10 +735,8 @@ def delete_members(text, config, body_open, body_close, report):
                 ranges.append((with_attached_comment(text, start), end))
                 names.append(prop[key])
         if prop.get("field") and prop.get("storage", "cell") == "cell":
-            pattern = re.compile(r"^[ \t]*(?!return\b)[\w:<>,\*&][\w:<>, \t\*&]*?\b%s\s*(?:\{[^;]*\}|=[^;]*)?;[^\n]*\n"
-                                 % re.escape(prop["field"]), re.M)
-            for match in pattern.finditer(body):
-                ranges.append((body_open + match.start(), body_open + match.end()))
+            for start, end in field_declarations(text, prop["field"], body_open, body_close):
+                ranges.append((start, end))
                 names.append(prop["field"])
         report.append(f"{prop['name']}: deleted {', '.join(names) if names else 'nothing'} in the header")
     return ranges
@@ -592,11 +745,13 @@ def delete_members(text, config, body_open, body_close, report):
 def generate_header(config, report):
     path = pathlib.Path(config["header"])
     text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
-    capabilities_include = config["capabilities_header"][len("include/"):]
-    text = add_include(text, capabilities_include)
+    cells = bool(config["properties"])
+    if cells:
+        capabilities_include = config["capabilities_header"][len("include/"):]
+        text = add_include(text, capabilities_include)
     bundle = f"{config['family']}Capabilities<{config['declaring']}>"
     head, body_open, body_close = class_body(text, config["declaring"])
-    if bundle not in head.group(0):
+    if cells and bundle not in head.group(0):
         head_text = head.group(0)
         if ":" in head_text:
             new_head = head_text[:-1].rstrip() + f", public {bundle} {{"
@@ -606,6 +761,10 @@ def generate_header(config, report):
         head, body_open, body_close = class_body(text, config["declaring"])
     ranges = delete_members(text, config, body_open, body_close, report)
     text = remove_ranges(text, ranges)
+    left = remaining_fields(text, config)
+    if left:
+        raise ValueError("%s: migrated fields still in class %s: %s"
+                         % (config["header"], config["declaring"], ", ".join(left)))
     head, body_open, body_close = class_body(text, config["declaring"])
     text = replace_block(text, config["family"], header_block(config), line_start(text, body_close))
     path.write_bytes(collapse_blank_lines(text).encode("utf-8"))
@@ -649,11 +808,23 @@ def descriptor_function(config, prop):
         lines.append("    descriptor.nullable = true;")
     if table.get("enumeration"):
         lines.append(f"    descriptor.enumeration = {table['enumeration']};")
+    if table.get("binding_direction"):
+        direction = table["binding_direction"]
+        if "::" not in direction:
+            direction = "PropertyBindingDirection::" + direction
+        lines.append(f"    descriptor.binding_direction = {direction};")
     if table.get("serialization"):
         visibility = table["serialization"]
         if "::" not in visibility:
             visibility = "PropertySerializationVisibility::" + visibility
         lines.append(f"    descriptor.serialization_visibility = {visibility};")
+    if table.get("content_value"):
+        # Content a form document may set, not presentation a theme gives.
+        lines.append("    descriptor.content_value = true;")
+    if not thunks.get("write"):
+        # The entry's write is the cell's assignment (write_cell_entry), so
+        # the form generator may assign the cell (CLOSURE P-6).
+        lines.append("    descriptor.assignable_member = true;")
     lines += ["    return descriptor;", "}", "",
               f"const PropertyDescriptor& {function}() {{",
               f"    static const PropertyDescriptor descriptor = property_table_descriptor(",
@@ -688,12 +859,15 @@ def entry_text(config, prop):
     if thunks.get("should_serialize"):
         serialize = (f"&should_serialize_member_entry<{declaring}, "
                      f"{member_argument(declaring, thunks['should_serialize'])}>")
+    origin = "nullptr"
+    if thunks.get("origin"):
+        origin = f"&origin_member_entry<{declaring}, {member_argument(declaring, thunks['origin'])}>"
     connect = "nullptr"
     if prop.get("event"):
         connect = f"&connect_event_entry<{declaring}, {member_argument(declaring, prop['event'])}>"
     describe = f"&describe_{snake(declaring)}_{prop['name']}"
     return (f"        {{{cpp_string(prop['name'])}, {describe},\n"
-            f"         {read},\n         {write},\n         {reset}, {serialize}, nullptr,\n         {connect}}},")
+            f"         {read},\n         {write},\n         {reset}, {serialize}, {origin},\n         {connect}}},")
 
 
 def generated_hooks(config, prop):
@@ -701,12 +875,13 @@ def generated_hooks(config, prop):
     member = prop["name"]
     value = prop["value"]
     statements = prop.get("prepare") or []
-    uses_value = bool(statements) or prop.get("coerce")
+    uses_value = bool(statements)
     parameter = f"{value}& incoming" if uses_value else f"{value}&"
-    lines = [f"void {declaring}::prepare_write(const decltype({member})&, {parameter}) {{", "    require_mutable();"]
+    lines = [f"void {declaring}::prepare_write(const decltype({member})&, {parameter}) {{"]
+    check = config.get("mutation_check", "require_mutable();")
+    if check:
+        lines.append("    " + check)
     lines += ["    " + statement for statement in statements]
-    if prop.get("coerce"):
-        lines.append(f"    coerce_{member}(incoming);")
     lines += ["}", "", f"void {declaring}::written(const decltype({member})&) {{"]
     mask = written_mask(prop)
     table = prop.get("table") or {}
@@ -720,7 +895,11 @@ def generated_hooks(config, prop):
     elif prop.get("event"):
         lines.append(f"    publish_change({prop['event']}, {member}.read());")
     lines += ["}", ""]
-    return "\n".join(lines) + "\n"
+    # A hook with nothing to do (a component's unchecked, untouched write) is
+    # spelled `{}` on its signature's line.
+    text = "\n".join(lines) + "\n"
+    text = re.sub(r"\) \{\n\}\n", ") {}\n", text)
+    return text
 
 
 def virtual_bodies(config, prop):
@@ -733,8 +912,6 @@ def virtual_bodies(config, prop):
                       f"    publish_change({prop['event']}, {member}.read());", "}", ""]
         else:
             lines += [f"void {declaring}::on_{member}_changed() {{}}", ""]
-    if prop.get("coerce"):
-        lines += [f"void {declaring}::coerce_{member}({prop['value']}&) {{}}", ""]
     return "\n".join(lines) + ("\n" if lines else "")
 
 
@@ -776,16 +953,33 @@ def source_block(config):
             out += descriptor_function(config, prop)
         out += "} // namespace\n\n"
     out += enum_traits_definitions(config)
-    if config.get("table_source") != "hand" and own:
+    extra = config.get("extra_entries") or []
+    if config.get("table_source") != "hand" and (own or extra):
         count = f"{snake(declaring)}_property_count"
-        entries = "\n".join(entry_text(config, prop) for prop in own)
+        # Hand-written entries for properties whose storage is not a cell of
+        # this family (a base class's cell this class alone publishes, or a
+        # compound value): their descriptors and operations are written by
+        # hand beside the generated block.
+        entries = "\n".join([entry_text(config, prop) for prop in own] +
+                            ["        " + entry + "," for entry in extra])
+        base_entries = f"{base}::{snake(base)}_property_entries()"
+        overrides = config.get("overrides") or []
+        refined = ""
+        if overrides:
+            # Hand-written entries replacing base entries of the same name in
+            # their slots (override_property_entries); their operations and
+            # descriptors are the declaring class's own, written by hand.
+            listed = "\n".join("        " + entry + "," for entry in overrides)
+            refined = (f"    static constexpr std::array<PropertyEntry, {len(overrides)}U> overrides{{{{\n"
+                       f"{listed}\n    }}}};\n")
+            base_entries = f"override_property_entries({base_entries}, overrides)"
         out += f"""const std::array<PropertyEntry, {declaring}::{count}>& {declaring}::{snake(declaring)}_property_entries() noexcept {{
-    static constexpr std::array<PropertyEntry, {len(own)}U> own{{{{
+{refined}    static constexpr std::array<PropertyEntry, {len(own) + len(extra)}U> own{{{{
 {entries}
     }}}};
     static_assert(property_names_distinct(own), "{declaring}'s property table names a property twice");
     static const std::array<PropertyEntry, {count}> entries =
-        join_property_tables({base}::{snake(base)}_property_entries(), own);
+        join_property_tables({base_entries}, own);
     return entries;
 }}
 
@@ -893,10 +1087,11 @@ def command_generate(arguments):
         path.write_bytes(shared_header(config).encode("utf-8"))
         print(f"wrote {path}")
         return 0
-    header_path = pathlib.Path(config["capabilities_header"])
-    header_path.parent.mkdir(parents=True, exist_ok=True)
-    header_path.write_bytes(capabilities_header(config).encode("utf-8"))
-    report.append(f"wrote {header_path}")
+    if config["properties"]:
+        header_path = pathlib.Path(config["capabilities_header"])
+        header_path.parent.mkdir(parents=True, exist_ok=True)
+        header_path.write_bytes(capabilities_header(config).encode("utf-8"))
+        report.append(f"wrote {header_path}")
     if config.get("table_source") != "hand" or any(p.get("hooks") == "generated" for p in config["properties"]):
         generate_header(config, report)
         generate_source(config, report)
@@ -1189,8 +1384,13 @@ def test_function(config):
     test = config["test"]
     family = config["family"]
     concrete = test["type"]
-    lines = [f"void test_{snake(family)}_properties() {{",
-             f"    std::shared_ptr<{concrete}> control = make_control<{concrete}>(StableId(\"generated.{family.lower()}\"));"]
+    # A control whose constructor needs more than its identity names the
+    # extra arguments in "arguments" and the statements declaring them in
+    # "setup".
+    arguments = "".join(", " + argument for argument in test.get("arguments", []))
+    lines = [f"void test_{snake(family)}_properties() {{"]
+    lines += ["    " + statement for statement in test.get("setup", [])]
+    lines.append(f"    std::shared_ptr<{concrete}> control = make_control<{concrete}>(StableId(\"generated.{family.lower()}\"){arguments});")
     for prop in config["properties"]:
         if prop.get("storage") == "view":
             continue
@@ -1216,11 +1416,20 @@ def test_function(config):
                       f"        expect(raises == 1, \"{label}: an equal write raises nothing\");",
                       "        static_cast<void>(token);"]
         table = prop.get("table")
-        if table is not None and not table.get("registry"):
+        if table is not None and not table.get("registry") and (prop.get("thunks") or {}).get("read"):
+            # A read thunk gives the table its own form of the value (seconds
+            # for a duration, null for none), not the cell's traits form.
+            lines += [f"        expect((*control).property_value(\"{member}\").has_value(), \"{label}: the table reads it\");"]
+        elif table is not None and not table.get("registry"):
             lines += [f"        const std::optional<BindingValue> by_name = (*control).property_value(\"{member}\");",
                       f"        expect(by_name && *by_name == PropertyValueTraits<{value}>::to_binding(sample),",
                       f"               \"{label}: the table reads the cell\");"]
         lines.append("    }")
+    # A hand entry (extra_entries) is reached by name: the table describes it.
+    for entry in config.get("extra_entries") or []:
+        name = re.match(r'\{"([a-z_0-9]+)"', entry).group(1)
+        lines.append(f"    expect((*control).property_descriptor(\"{name}\").has_value(), "
+                     f"\"{family}.{name}: the table holds the hand entry\");")
     lines += ["}", ""]
     return "\n".join(lines) + "\n"
 
@@ -1243,6 +1452,33 @@ def command_tests(arguments):
     return 0
 
 
+FIXTURES = pathlib.Path(__file__).resolve().parent / "property_codemod_fixtures"
+FIXTURE_FIELDS = ("delimiters_", "separator_", "terminator_", "groups_", "escaped_", "plain_")
+
+
+def command_selftest(arguments):
+    source = (FIXTURES / "field_initializers.hpp").read_text(encoding="utf-8")
+    expected = (FIXTURES / "field_initializers.expected.hpp").read_text(encoding="utf-8")
+    config = {"declaring": "Fixture", "header": "field_initializers.hpp",
+              "properties": [{"name": field.rstrip("_"), "field": field} for field in FIXTURE_FIELDS]}
+    failures = []
+    head, body_open, body_close = class_body(source, "Fixture")
+    report = []
+    ranges = delete_members(source, config, body_open, body_close, report)
+    result = collapse_blank_lines(remove_ranges(source, ranges))
+    if result != expected:
+        failures.append("field deletion differs from field_initializers.expected.hpp:\n" + result)
+    if remaining_fields(result, config):
+        failures.append("remaining_fields reports a deleted field")
+    if remaining_fields(source, config) != list(FIXTURE_FIELDS):
+        failures.append("remaining_fields misses a surviving field")
+    for line in failures:
+        print("FAIL " + line)
+    if not failures:
+        print("selftest: ok")
+    return 1 if failures else 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     commands = parser.add_subparsers(dest="command", required=True)
@@ -1258,11 +1494,12 @@ def main():
     rewrite.add_argument("configs", nargs="+")
     audit = commands.add_parser("audit")
     audit.add_argument("configs", nargs="+")
+    selftest = commands.add_parser("selftest")
     tests = commands.add_parser("tests")
     tests.add_argument("configs", nargs="*")
     arguments = parser.parse_args()
     handlers = {"check": command_check, "generate": command_generate, "rewrite": command_rewrite,
-                "audit": command_audit, "tests": command_tests}
+                "audit": command_audit, "tests": command_tests, "selftest": command_selftest}
     return handlers[arguments.command](arguments)
 
 

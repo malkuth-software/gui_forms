@@ -8,6 +8,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <vector>
 #include <string>
@@ -35,7 +36,7 @@ MenuStrip::MenuStrip(StableId stable_id)
     : Control(std::move(stable_id)),
       overlay_(std::make_unique<ContextMenu>(
           std::string((*this).stable_id().value()) + ".menu")) {
-    set_focusable(true);
+    focusable = true;
     cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
     // This owner retains the overlay and subscriptions. Bound handlers borrow
@@ -79,11 +80,6 @@ void MenuStrip::set_items(std::vector<MenuStripItemSpec> items) {
     apply_items(std::move(items), false);
 }
 
-void MenuStrip::set_allow_merge(bool allow) {
-    require_mutable();
-    allow_merge_ = allow;
-}
-
 void MenuStrip::apply_items(std::vector<MenuStripItemSpec> items, bool merged) {
     require_mutable();
     std::unordered_set<std::string> identities{};
@@ -114,8 +110,14 @@ void MenuStrip::apply_items(std::vector<MenuStripItemSpec> items, bool merged) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-void MenuStrip::set_selected_item_id(std::string_view stable_id) {
+std::string MenuStrip::read_view(const decltype(selected_item_id)&) const {
+    std::string id = selected_item_id_;
+    return id;
+}
+
+void MenuStrip::write_view(const decltype(selected_item_id)&, std::string incoming) {
     require_mutable();
+    const std::string_view stable_id = incoming;
     if (!stable_id.empty()) {
         bool visible = false;
         for (const MenuStripItemSpec& item : items_) {
@@ -130,26 +132,21 @@ void MenuStrip::set_selected_item_id(std::string_view stable_id) {
         }
     }
     if (selected_item_id_ == stable_id) return;
-    selected_item_id_ = stable_id;
+    selected_item_id_ = std::move(incoming);
     invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
 }
 
-void MenuStrip::set_use_mnemonic(bool value) {
+void MenuStrip::prepare_write(const decltype(item_padding)&, double& incoming) {
     require_mutable();
-    if (use_mnemonic_ == value) return;
-    use_mnemonic_ = value;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void MenuStrip::set_item_padding(double padding) {
-    require_mutable();
-    if (!std::isfinite(padding) || padding < 4.0 || padding > 64.0) {
+    if (!std::isfinite(incoming) || incoming < 4.0 || incoming > 64.0) {
         throw std::invalid_argument(
             "MenuStrip item padding must be finite and between 4 and 64");
     }
-    if (item_padding_ == padding) return;
+}
+
+// An open menu was placed for the old item extents, so it closes.
+void MenuStrip::written(const decltype(item_padding)&) {
     close();
-    item_padding_ = padding;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint |
                Dirty::hit_test | Dirty::semantics);
 }
@@ -180,15 +177,16 @@ bool MenuStrip::open(const std::size_t index, const MenuOpenMode mode) {
     return true;
 }
 
-void MenuStrip::set_font(FontSpec font) {
+void MenuStrip::prepare_write(const decltype(font)&, FontSpec& incoming) {
     require_mutable();
-    if (!valid_font_spec(font)) {
+    if (!valid_font_spec(incoming)) {
         throw std::invalid_argument("MenuStrip font specification is invalid");
     }
     set_font_from_code(true);
-    if (font_ == font) return;
+}
+
+void MenuStrip::written(const decltype(font)&) {
     close();
-    font_ = font;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint |
                Dirty::hit_test | Dirty::semantics);
 }
@@ -211,9 +209,9 @@ Size MenuStrip::measure(Size available) {
 }
 
 double MenuStrip::preferred_height() const {
-    FontSpec font = text_font(font_);
-    font.weight = std::max<std::uint16_t>(font.weight, 700U);
-    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", font);
+    FontSpec item_font = text_font(font.read());
+    item_font.weight = std::max<std::uint16_t>(item_font.weight, 700U);
+    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", item_font);
     const double text_scale = effective_text_scale();
     const double result = std::max(menu_strip_height * text_scale,
                     metrics.logical_size.height + 10.0 * text_scale);
@@ -222,7 +220,7 @@ double MenuStrip::preferred_height() const {
 
 std::vector<Rect> MenuStrip::item_bounds() const {
     std::vector<Rect> result(items_.size());
-    const FontSpec normal_font = text_font(font_);
+    const FontSpec normal_font = text_font(font.read());
     FontSpec selected_font = normal_font;
     selected_font.weight = std::max<std::uint16_t>(selected_font.weight, 700U);
     const double scale = effective_text_scale();
@@ -230,13 +228,13 @@ std::vector<Rect> MenuStrip::item_bounds() const {
     double x{};
     for (std::size_t index = 0; index < items_.size(); ++index) {
         if (!items_[index].visible) continue;
-        const std::string display = use_mnemonic_
+        const std::string display = use_mnemonic.read()
             ? menu_display_text(items_[index].text) : items_[index].text;
         const ResolvedTextLayout normal = resolve_text_layout_utf8(display, normal_font);
         const ResolvedTextLayout selected = resolve_text_layout_utf8(display, selected_font);
         const double text_width = std::max(normal.logical_size.width, selected.logical_size.width);
         const double width = std::max(42.0 * scale,
-            item_padding_ * 2.0 * scale + text_width);
+            item_padding.read() * 2.0 * scale + text_width);
         result[index] = {x, 0.0, width, height};
         x += width;
     }
@@ -341,21 +339,21 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
             plate.key = PartKey{"menu_item", items_[index].stable_id, index};
             paint_part(painter, *this, plate);
         }
-        FontSpec font = text_font(font_);
+        FontSpec item_font = text_font(font.read());
         if (active || selected) {
-            font.weight = std::max<std::uint16_t>(font.weight, 700U);
+            item_font.weight = std::max<std::uint16_t>(item_font.weight, 700U);
         }
-        const std::string text = use_mnemonic_ ? menu_display_text(items_[index].text)
+        const std::string text = use_mnemonic.read() ? menu_display_text(items_[index].text)
                                                : items_[index].text;
-        const double text_x = item.x + item_padding_ * effective_text_scale();
+        const double text_x = item.x + item_padding.read() * effective_text_scale();
         PartPaint label;
         label.family = ControlVisualRole::menu_item;
         label.role = PartRole::label;
         label.states = plate_states;
         label.text = text;
-        label.font = font;
+        label.font = item_font;
         paint_text_part_at(painter, *this, label,
-                           {text_x, item.y + std::max(font.size, item.height * 0.5 + font.size * 0.35)},
+                           {text_x, item.y + std::max(item_font.size, item.height * 0.5 + item_font.size * 0.35)},
                            std::max(0.0, item.x + item.width - text_x));
     }
     if (focused_ && !active_index_ && hot_index_) {
@@ -459,9 +457,9 @@ std::vector<SemanticNode> MenuStrip::semantic_virtual_children() const {
         node.stable_id = items_[index].stable_id;
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::menu_bar_item;
-        node.name = use_mnemonic_
+        node.name = use_mnemonic.read()
             ? menu_display_text(items_[index].text) : items_[index].text;
-        if (use_mnemonic_) node.access_key = mnemonic_access_key(items_[index].text);
+        if (use_mnemonic.read()) node.access_key = mnemonic_access_key(items_[index].text);
         node.bounds = {absolute.x + bounds[index].x, absolute.y + bounds[index].y,
                        bounds[index].width, bounds[index].height};
         node.states = SemanticState::visible | SemanticState::focusable;
@@ -507,7 +505,7 @@ bool MenuStrip::on_semantic_child_action(std::string_view id,
 }
 
 bool MenuStrip::mnemonic_matches(char32_t character) const noexcept {
-    if (!use_mnemonic_) return false;
+    if (!use_mnemonic.read()) return false;
     for (const MenuStripItemSpec& item : items_) {
         if (item.visible && item.enabled &&
             is_mnemonic(character, item.text)) return true;
@@ -550,8 +548,6 @@ void MenuStrip::on_dispose() noexcept {
     close();
     if (overlay_) (*overlay_).dispose();
 }
-
-
 
 namespace {
 
@@ -666,14 +662,14 @@ void MenuStrip::publish_realized_item_geometry(std::size_t item,
     const Rect bounds = item_bounds()[index];
     const bool emphasised = active_index_ == index ||
                             selected_item_id_ == items_[index].stable_id;
-    FontSpec font = text_font(font_);
+    FontSpec item_font = text_font(font.read());
     if (emphasised) {
-        font.weight = std::max<std::uint16_t>(font.weight, 700U);
+        item_font.weight = std::max<std::uint16_t>(item_font.weight, 700U);
     }
-    const std::string display = use_mnemonic_
+    const std::string display = use_mnemonic.read()
         ? menu_display_text(items_[index].text) : items_[index].text;
-    const double text_width = resolve_text_layout_utf8(display, font).logical_size.width;
-    const double text_x = bounds.x + item_padding_ * effective_text_scale();
+    const double text_width = resolve_text_layout_utf8(display, item_font).logical_size.width;
+    const double text_x = bounds.x + item_padding.read() * effective_text_scale();
     const Rect label{text_x, bounds.y, text_width, bounds.height};
     // The highlight on_paint lays inside the item, one unit in.
     const Rect face{bounds.x + 1.0, 1.0, std::max(0.0, bounds.width - 2.0),
@@ -732,5 +728,23 @@ void MenuStrip::append_interactions(std::vector<InteractionDeclaration>& interac
     Control::append_interactions(interactions);
     interactions.insert(interactions.end(), menu_strip_interactions.begin(), menu_strip_interactions.end());
 }
+
+// property_codemod begin MenuStrip (tools/property_families/menu_strip.json; generated, do not edit)
+
+void MenuStrip::prepare_write(const decltype(use_mnemonic)&, bool&) {
+    require_mutable();
+}
+
+void MenuStrip::written(const decltype(use_mnemonic)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void MenuStrip::prepare_write(const decltype(allow_merge)&, bool&) {
+    require_mutable();
+}
+
+void MenuStrip::written(const decltype(allow_merge)&) {}
+
+// property_codemod end MenuStrip
 
 } // namespace gui_forms

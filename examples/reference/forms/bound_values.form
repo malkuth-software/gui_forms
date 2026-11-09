@@ -1,0 +1,11 @@
+/* Three buttons whose handlers carry bound values (bound_values.cpp). */
+form settings.window {
+  text: "Bound values";
+  client-size: 360 60;
+
+  panel settings.root {
+    button back { text: "Back"; bounds: 12 12 100 32; }
+    button option { text: "Option"; bounds: 124 12 100 32; }
+    button tile { text: "Tile"; bounds: 236 12 100 32; }
+  }
+}

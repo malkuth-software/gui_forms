@@ -27,6 +27,7 @@
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/controls/backstage_view/backstage_view.hpp"
+#include "gui_forms/controls/badge/badge.hpp"
 #include "gui_forms/controls/binding_navigator/binding_navigator.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp"
@@ -34,6 +35,7 @@
 #include "gui_forms/controls/button_base/check_box/check_box.hpp"
 #include "gui_forms/controls/button_base/link_label/link_label.hpp"
 #include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
+#include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
 #include "gui_forms/controls/collections/command_bar.hpp"
 #include "gui_forms/controls/collections/expandable_sections.hpp"
@@ -44,6 +46,8 @@
 #include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
 #include "gui_forms/controls/drawing_surface/drawing_surface.hpp"
 #include "gui_forms/controls/easing_preview/easing_preview.hpp"
+#include "gui_forms/controls/empty_state/empty_state.hpp"
+#include "gui_forms/controls/info_banner/info_banner.hpp"
 #include "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp"
 #include "gui_forms/controls/label/label.hpp"
 #include "gui_forms/controls/menu_strip/menu_strip.hpp"
@@ -83,6 +87,7 @@
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
+#include "gui_forms/controls/progress_ring/progress_ring.hpp"
 #include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
 #include "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
 #include "gui_forms/controls/range_control/range_control.hpp"
@@ -109,10 +114,13 @@
 #include "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/user_control/user_control.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
+#include "gui_forms/controls/search_field/search_field.hpp"
+#include "gui_forms/controls/spinner/spinner.hpp"
 #include "gui_forms/controls/splitter/splitter.hpp"
 #include "gui_forms/controls/status_strip/status_strip.hpp"
 #include "gui_forms/controls/task_dialog/task_dialog.hpp"
 #include "gui_forms/controls/text_block/text_block.hpp"
+#include "gui_forms/controls/toast/toast.hpp"
 #include "gui_forms/controls/tool_strip/tool_strip.hpp"
 #include "gui_forms/controls/tool_strip_container/tool_strip_container.hpp"
 #include "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
@@ -128,7 +136,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 117> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 125> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button_base/button/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -136,12 +144,19 @@ inline constexpr std::array<FormCatalogEntry, 117> form_catalog{{
     {"command_bar", "CommandBar", "gui_forms/controls/collections/command_bar.hpp", &add_catalog_type<CommandBar>},
     {"text_box", "TextBox", "gui_forms/controls/panel/text_box/text_box.hpp", &add_catalog_type<TextBox>},
     {"token_box", "TokenBox", "gui_forms/controls/panel/token_box/token_box.hpp", &add_catalog_type<TokenBox>},
+    {"search_field", "SearchField", "gui_forms/controls/search_field/search_field.hpp", &add_catalog_type<SearchField>},
     {"masked_text_box", "MaskedTextBox", "gui_forms/controls/panel/masked_text_box/masked_text_box.hpp", &add_catalog_type<MaskedTextBox>},
     {"rich_text_box", "RichTextBox", "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp", &add_catalog_type<RichTextBox>},
     {"label", "Label", "gui_forms/controls/label/label.hpp", &add_catalog_type<Label>},
     {"text_block", "TextBlock", "gui_forms/controls/text_block/text_block.hpp", &add_catalog_type<TextBlock>},
+    {"badge", "Badge", "gui_forms/controls/badge/badge.hpp", &add_catalog_type<Badge>},
+    {"info_banner", "InfoBanner", "gui_forms/controls/info_banner/info_banner.hpp", &add_catalog_type<InfoBanner>},
+    {"empty_state", "EmptyState", "gui_forms/controls/empty_state/empty_state.hpp", &add_catalog_type<EmptyState>},
+    {"toast", "Toast", "gui_forms/controls/toast/toast.hpp", &add_catalog_type<Toast>},
     {"picture_box", "PictureBox", "gui_forms/controls/panel/picture_box/picture_box.hpp", &add_catalog_type<PictureBox>},
     {"progress_bar", "ProgressBar", "gui_forms/controls/range_control/progress_bar/progress_bar.hpp", &add_catalog_type<ProgressBar>},
+    {"progress_ring", "ProgressRing", "gui_forms/controls/progress_ring/progress_ring.hpp", &add_catalog_type<ProgressRing>},
+    {"spinner", "Spinner", "gui_forms/controls/spinner/spinner.hpp", &add_catalog_type<Spinner>},
     {"sweep_scope", "SweepScope", "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp", &add_catalog_type<SweepScope>},
     {"review_card", "ReviewCard", "gui_forms/controls/panel/card/review_card/review_card.hpp", &add_catalog_type<ReviewCard>},
     {"list_box", "ListBox", "gui_forms/controls/panel/list_box/list_box.hpp", &add_catalog_type<ListBox>},
@@ -157,6 +172,7 @@ inline constexpr std::array<FormCatalogEntry, 117> form_catalog{{
     {"breadcrumb_trail", "BreadcrumbTrail", "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp", &add_catalog_type<BreadcrumbTrail>},
     {"check_box", "CheckBox", "gui_forms/controls/button_base/check_box/check_box.hpp", &add_catalog_type<CheckBox>},
     {"radio_button", "RadioButton", "gui_forms/controls/button_base/radio_button/radio_button.hpp", &add_catalog_type<RadioButton>},
+    {"toggle_switch", "ToggleSwitch", "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp", &add_catalog_type<ToggleSwitch>},
     {"range_control", "RangeControl", "gui_forms/controls/range_control/range_control.hpp", &add_catalog_type<RangeControl>},
     {"track_bar", "TrackBar", "gui_forms/controls/range_control/track_bar/track_bar.hpp", &add_catalog_type<TrackBar>},
     {"numeric_up_down", "NumericUpDown", "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp", &add_catalog_type<NumericUpDown>},

@@ -51,7 +51,7 @@ dialog_result_changed
     Raised after `dialog_result` changes, including when the button becomes
     the window's cancel button. It carries the new result.
 selected_changed
-    Raised after `selected` changes, whether by a setter or by a bound
+    Raised after `selected` changes, whether by an assignment or by a bound
     command. It carries the new state. A click alone does not change
     `selected`.
 
@@ -97,7 +97,7 @@ its result to the window:
        gf::make_control<gf::Button>(gf::StableId("dialog.ok"), "OK");
    std::shared_ptr<gf::Button> cancel =
        gf::make_control<gf::Button>(gf::StableId("dialog.cancel"), "Cancel");
-   (*ok).set_dialog_result(gf::DialogResult::ok);
+   (*ok).dialog_result = gf::DialogResult::ok;
    (*ok).set_requested_bounds({8.0, 8.0, 80.0, 28.0});
    (*cancel).set_requested_bounds({96.0, 8.0, 80.0, 28.0});
    (*cancel).causes_validation = false;

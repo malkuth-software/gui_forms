@@ -7,7 +7,7 @@ gui_forms::CheckedListBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: CheckedListBox final : public ListBox
+.. cpp:class:: CheckedListBox final : public ListBox, public CheckedListBoxCapabilities<CheckedListBox>
 
    ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp>``
 
@@ -18,7 +18,7 @@ gui_forms::CheckedListBox
    selection, scrolling and keyboard behaviour of a :cpp:class:`ListBox <gui_forms::ListBox>`. A row can be
    unchecked, checked or indeterminate. By default the first click on a row
    selects it and a further click on the selected row toggles its check;
-   with :cpp:func:`check_on_click <gui_forms::CheckedListBox::check_on_click>` the first click toggles too. Space toggles the
+   with :cpp:member:`check_on_click <gui_forms::CheckedListBox::check_on_click>` the first click toggles too. Space toggles the
    active row. The check state is separate from the selection. Use a
    :cpp:class:`ListBox <gui_forms::ListBox>` when rows have no on/off state, and :cpp:class:`CheckBox <gui_forms::CheckBox>` controls for a
    few fixed options.
@@ -34,10 +34,6 @@ gui_forms::CheckedListBox
 
    :Properties:
 
-      **checked_indices** : ``std::vector<std::size_t>``, read-only
-         The indices of the rows whose state is :cpp:enumerator:`CheckState::checked <gui_forms::CheckState::checked>`, in
-         ascending order. Indeterminate rows are not included.
-
       **check_on_click** : ``bool``, default ``false``
          Whether a click on a row that is not yet selected also toggles its
          check. When false, the first click only selects the row.
@@ -46,6 +42,10 @@ gui_forms::CheckedListBox
          Side of the square check indicator in logical pixels; the row text
          starts after it. Values outside 8 to 32, or not finite, throw
          ``std::out_of_range``.
+
+      **checked_indices** : ``std::vector<std::size_t>``, read-only
+         The indices of the rows whose state is :cpp:enumerator:`CheckState::checked <gui_forms::CheckState::checked>`, in
+         ascending order. Indeterminate rows are not included.
 
       **realized_items** : ``std::vector<Item>``, read-only
 
@@ -67,11 +67,11 @@ gui_forms::CheckedListBox
 
    :Inherited:
 
-      From :cpp:class:`ListBox <gui_forms::ListBox>`: properties :cpp:func:`items <gui_forms::ListBox::items>`, :cpp:func:`selection_mode <gui_forms::ListBox::selection_mode>`, :cpp:func:`selected_indices <gui_forms::ListBox::selected_indices>`, :cpp:func:`selected_index <gui_forms::ListBox::selected_index>`, :cpp:func:`top_index <gui_forms::ListBox::top_index>`, :cpp:func:`item_height <gui_forms::ListBox::item_height>`, :cpp:func:`font <gui_forms::ListBox::font>`, :cpp:func:`parts <gui_forms::ListBox::parts>`; events :cpp:func:`selection_changed <gui_forms::ListBox::selection_changed>`, :cpp:func:`item_activated <gui_forms::ListBox::item_activated>`; methods :cpp:func:`clear_selection <gui_forms::ListBox::clear_selection>`, :cpp:func:`item_stable_id <gui_forms::ListBox::item_stable_id>`, :cpp:func:`select_index <gui_forms::ListBox::select_index>`, :cpp:func:`set_item_stable_ids <gui_forms::ListBox::set_item_stable_ids>`.
+      From :cpp:class:`ListBox <gui_forms::ListBox>`: properties :cpp:member:`items <gui_forms::ListBox::items>`, :cpp:member:`selection_mode <gui_forms::ListBox::selection_mode>`, :cpp:member:`top_index <gui_forms::ListBox::top_index>`, :cpp:member:`item_height <gui_forms::ListBox::item_height>`, :cpp:member:`font <gui_forms::ListBox::font>`, :cpp:func:`selected_indices <gui_forms::ListBox::selected_indices>`, :cpp:func:`selected_index <gui_forms::ListBox::selected_index>`, :cpp:func:`parts <gui_forms::ListBox::parts>`; events :cpp:func:`selection_changed <gui_forms::ListBox::selection_changed>`, :cpp:func:`item_activated <gui_forms::ListBox::item_activated>`; methods :cpp:func:`clear_selection <gui_forms::ListBox::clear_selection>`, :cpp:func:`item_stable_id <gui_forms::ListBox::item_stable_id>`, :cpp:func:`list_box_property_entries <gui_forms::ListBox::list_box_property_entries>`, :cpp:func:`select_index <gui_forms::ListBox::select_index>`, :cpp:func:`set_item_stable_ids <gui_forms::ListBox::set_item_stable_ids>`.
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -82,7 +82,7 @@ gui_forms::CheckedListBox
       :widths: 35 65
 
       * - :cpp:func:`add_item <gui_forms::CheckedListBox::add_item>`
-        - Appends a row, unchecked or in the given :cpp:enum:`CheckState <gui_forms::CheckState>`.
+        - Appends a row in the given :cpp:enum:`CheckState <gui_forms::CheckState>`.
       * - :cpp:func:`item_check_state <gui_forms::CheckedListBox::item_check_state>`
         - The check state of a row.
       * - :cpp:func:`item_checked <gui_forms::CheckedListBox::item_checked>`
@@ -108,7 +108,7 @@ gui_forms::CheckedListBox
    .. rubric:: Notes
 
    A primary press on a row first selects it, as in :cpp:class:`ListBox <gui_forms::ListBox>`, and then
-   toggles its check when :cpp:func:`check_on_click <gui_forms::CheckedListBox::check_on_click>` is true or the row was already
+   toggles its check when :cpp:member:`check_on_click <gui_forms::CheckedListBox::check_on_click>` is true or the row was already
    selected before the press. The toggle happens on the press, anywhere on the
    row; releasing the button on the same row then raises the inherited
    ``item_activated``. So a click that toggles raises ``selection_changed`` (if
@@ -132,7 +132,7 @@ gui_forms::CheckedListBox
       std::shared_ptr<gf::CheckedListBox> features =
           gf::make_control<gf::CheckedListBox>(gf::StableId("install.features"));
       (*features).add_item("Core files", gf::CheckState::checked);
-      (*features).add_item("Documentation");
+      (*features).add_item("Documentation", gf::CheckState::unchecked);
       (*features).add_item("Samples", gf::CheckState::indeterminate);
       (*features).toggle_item(1U);   // Documentation is now checked
       // (*features).checked_indices() is {0, 1}; Samples stays indeterminate
@@ -149,7 +149,7 @@ gui_forms::CheckedListBox
 
           FeatureRules() {
               (*features).add_item("Core files", gf::CheckState::checked);
-              (*features).add_item("Samples");
+              (*features).add_item("Samples", gf::CheckState::unchecked);
               gf::on((*features).item_checking(), *this, &FeatureRules::on_checking);
               gf::on((*features).item_check_state_changed(), *this,
                      &FeatureRules::on_checked);
@@ -178,29 +178,21 @@ gui_forms::CheckedListBox
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::vector<std::size_t> checked_indices() const
-
-      The indices of the rows whose state is :cpp:enumerator:`CheckState::checked <gui_forms::CheckState::checked>`, in
-      ascending order. Indeterminate rows are not included.
-
-   .. cpp:function:: bool check_on_click() const noexcept
+   .. cpp:member:: bool check_on_click
 
       Whether a click on a row that is not yet selected also toggles its
       check. When false, the first click only selects the row.
 
-   .. cpp:function:: void set_check_on_click(bool enabled)
-
-      Sets :cpp:func:`check_on_click <gui_forms::CheckedListBox::check_on_click>`; see the property's description above.
-
-   .. cpp:function:: double indicator_size() const noexcept
+   .. cpp:member:: double indicator_size
 
       Side of the square check indicator in logical pixels; the row text
       starts after it. Values outside 8 to 32, or not finite, throw
       ``std::out_of_range``.
 
-   .. cpp:function:: void set_indicator_size(double size)
+   .. cpp:function:: std::vector<std::size_t> checked_indices() const
 
-      Sets :cpp:func:`indicator_size <gui_forms::CheckedListBox::indicator_size>`; see the property's description above.
+      The indices of the rows whose state is :cpp:enumerator:`CheckState::checked <gui_forms::CheckState::checked>`, in
+      ascending order. Indeterminate rows are not included.
 
    .. cpp:function:: std::vector<Item> realized_items() const
 
@@ -228,8 +220,11 @@ gui_forms::CheckedListBox
 
    .. cpp:function:: void add_item(std::string item, CheckState state)
 
-      Appends a row, unchecked or in the given :cpp:enum:`CheckState <gui_forms::CheckState>`. A state that is
-      not a valid :cpp:enum:`CheckState <gui_forms::CheckState>` throws ``std::invalid_argument``.
+      Appends a row in the given :cpp:enum:`CheckState <gui_forms::CheckState>`. A state that is not a valid
+      :cpp:enum:`CheckState <gui_forms::CheckState>` throws ``std::invalid_argument``. The ``items`` edits keep
+      the check states with their rows: an insertion adds unchecked rows, an
+      erasure removes the rows' states, a replacement keeps the row's state,
+      and an assignment of every row makes every row unchecked.
 
    .. cpp:function:: CheckState item_check_state(std::size_t index) const
 
@@ -262,25 +257,6 @@ gui_forms::CheckedListBox
 
    .. rubric:: Extension points
 
-   .. cpp:function:: void set_items(std::vector<std::string> items) override
-
-      Replaces every row, as :cpp:class:`ListBox <gui_forms::ListBox>` does, and sets every row to unchecked,
-      including rows whose text did not change.
-
-   .. cpp:function:: void add_item(std::string item) override
-
-      Appends a row, unchecked or in the given :cpp:enum:`CheckState <gui_forms::CheckState>`. A state that is
-      not a valid :cpp:enum:`CheckState <gui_forms::CheckState>` throws ``std::invalid_argument``.
-
-   .. cpp:function:: void remove_item(std::size_t index) override
-
-      Removes a row together with its check state; later rows keep theirs.
-      An index outside the items throws ``std::out_of_range``.
-
-   .. cpp:function:: void clear_items() override
-
-      Removes every row and every check state.
-
    .. cpp:function:: void on_pointer(PointerEvent& event) override
 
       Handles the pointer input described under Notes. The window calls it.
@@ -305,6 +281,14 @@ gui_forms::CheckedListBox
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_items_changing(const CollectionEdit& edit) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_items_changed(const CollectionEdit& edit) noexcept override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 

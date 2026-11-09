@@ -7,7 +7,7 @@ gui_forms::RibbonGallery
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: RibbonGallery final : public Control
+.. cpp:class:: RibbonGallery final : public Control, public RibbonGalleryCapabilities<RibbonGallery>
 
    ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp>``
 
@@ -36,6 +36,31 @@ gui_forms::RibbonGallery
 
    :Properties:
 
+      **command** : ``std::shared_ptr<GalleryCommand>``
+         The :cpp:class:`GalleryCommand <gui_forms::GalleryCommand>` whose value the selection follows, which a click or
+         Enter commits and which receives previews. ``set_command`` sets it; without
+         one the gallery keeps its own selection and offers no preview.
+
+      **item_size** : ``Size``, default 48 by 48
+         Every item's image area, from 16 to 256 units a side (``std::out_of_range``
+         otherwise).
+
+      **show_labels** : ``bool``, default ``false``
+         Whether labels show under the images.
+
+      **visible_rows** : ``std::size_t``, default ``3``
+         In the ribbon: the rows shown, 1 to 8.
+
+      **columns** : ``std::size_t``, default ``8``
+         In the ribbon: the current column count, which the ribbon's scaling
+         lowers one column at a time (owner decision RB-8). ``set_columns`` outside
+         the range throws ``std::out_of_range``.
+
+      **selected_id** : ``std::optional<std::string>``
+         The selected item's ID: the command's value, or the gallery's own.
+         Assigning an ID selects without committing; an unknown ID throws
+         ``std::invalid_argument``.
+
       **form** : ``RibbonGalleryForm``, read-only
          The form, fixed at construction.
 
@@ -49,37 +74,12 @@ gui_forms::RibbonGallery
          naming an unknown category, or invalid UTF-8 throws
          ``std::invalid_argument``.
 
-      **command** : ``std::shared_ptr<GalleryCommand>``
-         The :cpp:class:`GalleryCommand <gui_forms::GalleryCommand>` whose value the selection follows, which a click or
-         Enter commits and which receives previews. :cpp:func:`set_command <gui_forms::RibbonGallery::set_command>` sets it; without
-         one the gallery keeps its own selection and offers no preview.
-
-      **selected_id** : ``std::optional<std::string>``
-         The selected item's ID: the command's value, or the gallery's own.
-         :cpp:func:`set_selected_id <gui_forms::RibbonGallery::set_selected_id>` selects without committing; an unknown ID throws
-         ``std::invalid_argument``.
-
-      **item_size** : ``Size``, default 48 by 48
-         Every item's image area, from 16 to 256 units a side (``std::out_of_range``
-         otherwise).
-
-      **show_labels** : ``bool``, default ``false``
-         Whether labels show under the images.
-
-      **visible_rows** : ``std::size_t``, default ``3``
-         In the ribbon: the rows shown, 1 to 8.
-
       **minimum_columns** : ``std::size_t``, default ``1``, read-only
          In the ribbon: the least columns. :cpp:func:`set_column_range <gui_forms::RibbonGallery::set_column_range>` sets both bounds,
          within 1 to 32, and keeps the column count inside them.
 
       **maximum_columns** : ``std::size_t``, default ``8``, read-only
          In the ribbon: the most columns.
-
-      **columns** : ``std::size_t``, default ``8``
-         In the ribbon: the current column count, which the ribbon's scaling
-         lowers one column at a time (owner decision RB-8). :cpp:func:`set_columns <gui_forms::RibbonGallery::set_columns>` outside
-         the range throws ``std::out_of_range``.
 
       **drop_down_columns** : ``std::size_t``, default ``6``, read-only
          Drop-down: the columns per row. :cpp:func:`set_drop_down_size <gui_forms::RibbonGallery::set_drop_down_size>` sets it and the rows.
@@ -212,8 +212,8 @@ gui_forms::RibbonGallery
                            {{"style.title", "Title", {}, "headings"},
                             {"style.heading", "Heading 1", {}, "headings"}});
       (*gallery).set_column_range(2U, 6U);
-      (*gallery).set_columns(4U);
-      (*gallery).set_command(command);
+      (*gallery).columns = 4U;
+      (*gallery).command = command;
 
 
    .. rubric:: Construction
@@ -222,6 +222,37 @@ gui_forms::RibbonGallery
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: std::shared_ptr<GalleryCommand> command
+
+      The :cpp:class:`GalleryCommand <gui_forms::GalleryCommand>` whose value the selection follows, which a click or
+      Enter commits and which receives previews. ``set_command`` sets it; without
+      one the gallery keeps its own selection and offers no preview.
+
+   .. cpp:member:: Size item_size
+
+      Every item's image area, from 16 to 256 units a side (``std::out_of_range``
+      otherwise).
+
+   .. cpp:member:: bool show_labels
+
+      Whether labels show under the images.
+
+   .. cpp:member:: std::size_t visible_rows
+
+      In the ribbon: the rows shown, 1 to 8.
+
+   .. cpp:member:: std::size_t columns
+
+      In the ribbon: the current column count, which the ribbon's scaling
+      lowers one column at a time (owner decision RB-8). ``set_columns`` outside
+      the range throws ``std::out_of_range``.
+
+   .. cpp:member:: std::optional<std::string> selected_id
+
+      The selected item's ID: the command's value, or the gallery's own.
+      Assigning an ID selects without committing; an unknown ID throws
+      ``std::invalid_argument``.
 
    .. cpp:function:: RibbonGalleryForm form() const noexcept
 
@@ -243,51 +274,6 @@ gui_forms::RibbonGallery
 
       Sets :cpp:func:`items <gui_forms::RibbonGallery::items>`; see the property's description above.
 
-   .. cpp:function:: std::shared_ptr<GalleryCommand> command() const noexcept
-
-      The :cpp:class:`GalleryCommand <gui_forms::GalleryCommand>` whose value the selection follows, which a click or
-      Enter commits and which receives previews. :cpp:func:`set_command <gui_forms::RibbonGallery::set_command>` sets it; without
-      one the gallery keeps its own selection and offers no preview.
-
-   .. cpp:function:: void set_command(std::shared_ptr<GalleryCommand> command)
-
-      Sets :cpp:func:`command <gui_forms::RibbonGallery::command>`; see the property's description above.
-
-   .. cpp:function:: std::optional<std::string> selected_id() const
-
-      The selected item's ID: the command's value, or the gallery's own.
-      :cpp:func:`set_selected_id <gui_forms::RibbonGallery::set_selected_id>` selects without committing; an unknown ID throws
-      ``std::invalid_argument``.
-
-   .. cpp:function:: void set_selected_id(std::optional<std::string> item_id)
-
-      Sets :cpp:func:`selected_id <gui_forms::RibbonGallery::selected_id>`; see the property's description above.
-
-   .. cpp:function:: Size item_size() const noexcept
-
-      Every item's image area, from 16 to 256 units a side (``std::out_of_range``
-      otherwise).
-
-   .. cpp:function:: void set_item_size(Size size)
-
-      Sets :cpp:func:`item_size <gui_forms::RibbonGallery::item_size>`; see the property's description above.
-
-   .. cpp:function:: bool show_labels() const noexcept
-
-      Whether labels show under the images.
-
-   .. cpp:function:: void set_show_labels(bool show)
-
-      Sets :cpp:func:`show_labels <gui_forms::RibbonGallery::show_labels>`; see the property's description above.
-
-   .. cpp:function:: std::size_t visible_rows() const noexcept
-
-      In the ribbon: the rows shown, 1 to 8.
-
-   .. cpp:function:: void set_visible_rows(std::size_t rows)
-
-      Sets :cpp:func:`visible_rows <gui_forms::RibbonGallery::visible_rows>`; see the property's description above.
-
    .. cpp:function:: std::size_t minimum_columns() const noexcept
 
       In the ribbon: the least columns. :cpp:func:`set_column_range <gui_forms::RibbonGallery::set_column_range>` sets both bounds,
@@ -296,16 +282,6 @@ gui_forms::RibbonGallery
    .. cpp:function:: std::size_t maximum_columns() const noexcept
 
       In the ribbon: the most columns.
-
-   .. cpp:function:: std::size_t columns() const noexcept
-
-      In the ribbon: the current column count, which the ribbon's scaling
-      lowers one column at a time (owner decision RB-8). :cpp:func:`set_columns <gui_forms::RibbonGallery::set_columns>` outside
-      the range throws ``std::out_of_range``.
-
-   .. cpp:function:: void set_columns(std::size_t columns)
-
-      Sets :cpp:func:`columns <gui_forms::RibbonGallery::columns>`; see the property's description above.
 
    .. cpp:function:: std::size_t drop_down_columns() const noexcept
 

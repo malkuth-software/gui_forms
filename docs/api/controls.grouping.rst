@@ -66,10 +66,32 @@ Related types
      - The panel's border: none, a line, sunken or raised (BorderStyle).
    * - :cpp:class:`Card::States <gui_forms::Card::States>`
      - Stage T1 states, as dot members; Card's parts are Panel's.
+   * - :cpp:class:`CardCapabilities <gui_forms::CardCapabilities>`
+     - Every Card capability, in the order the declaring class takes them.
+   * - :cpp:class:`CardCardLayoutCapability <gui_forms::CardCardLayoutCapability>`
+     - The padding, section gap and header and footer extents; a view.
+   * - :cpp:class:`CardInteractiveCapability <gui_forms::CardInteractiveCapability>`
+     - Whether the card takes focus, the pointer and activation.
    * - :cpp:class:`CardLayout <gui_forms::CardLayout>`
      - CardLayout defines validated logical padding, section gaps, and footer/header allocation used by Card measurement and arrangement.
+   * - :cpp:class:`CardSelectedCapability <gui_forms::CardSelectedCapability>`
+     - Whether the card is selected; a change raises selected_changed.
+   * - :cpp:class:`CardSelectionBehaviorPropertyCapability <gui_forms::CardSelectionBehaviorPropertyCapability>`
+     - Whether activation only notifies (manual, the default) or also selects or toggles the card before activated is raised.
+   * - :cpp:class:`ContainerControlAutoValidateCapability <gui_forms::ContainerControlAutoValidateCapability>`
+     - How focus changes validate the controls they leave (Windows Forms' AutoValidate); inherit takes the nearest container's policy (effective_auto_validate resolves it).
+   * - :cpp:class:`ContainerControlCapabilities <gui_forms::ContainerControlCapabilities>`
+     - Every ContainerControl capability, in the order the declaring class takes them.
    * - :cpp:class:`GroupBox::Parts <gui_forms::GroupBox::Parts>`
      - Stage T1 anatomy, as dot members: a face, the frame and the caption.
+   * - :cpp:class:`GroupBoxCapabilities <gui_forms::GroupBoxCapabilities>`
+     - Every GroupBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`GroupBoxUseMnemonicCapability <gui_forms::GroupBoxUseMnemonicCapability>`
+     - Whether an ampersand in the caption marks the access key (UseMnemonic); the access key moves the focus to the group's first focusable child.
+   * - :cpp:class:`MaterialPanelCapabilities <gui_forms::MaterialPanelCapabilities>`
+     - Every MaterialPanel capability, in the order the declaring class takes them.
+   * - :cpp:class:`MaterialPanelMaterialCapability <gui_forms::MaterialPanelMaterialCapability>`
+     - The surface recipe painted behind the content; a change repaints and raises material_changed.
    * - :cpp:class:`NavigationPane::Item <gui_forms::NavigationPane::Item>`
      -  
    * - :cpp:class:`NavigationPane::ItemStates <gui_forms::NavigationPane::ItemStates>`
@@ -80,6 +102,18 @@ Related types
      - Item system nav_overflow: an icon.
    * - :cpp:class:`NavigationPane::Parts <gui_forms::NavigationPane::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`NavigationPaneButtonCountCapability <gui_forms::NavigationPaneButtonCountCapability>`
+     - The number of large buttons the user chose; 4 by default.
+   * - :cpp:class:`NavigationPaneCapabilities <gui_forms::NavigationPaneCapabilities>`
+     - Every NavigationPane capability, in the order the declaring class takes them.
+   * - :cpp:class:`NavigationPaneCollapsedCapability <gui_forms::NavigationPaneCollapsedCapability>`
+     - Whether the pane shows only its collapsed bar.
+   * - :cpp:class:`NavigationPaneExpandedWidthCapability <gui_forms::NavigationPaneExpandedWidthCapability>`
+     - The width the pane asks for while expanded, and the overlay's width; 220 by default.
+   * - :cpp:class:`NavigationPaneFocusRegionCapability <gui_forms::NavigationPaneFocusRegionCapability>`
+     - Whether the pane registers itself as an F6 region of its window while attached (owner decision RB-17); on by default.
+   * - :cpp:class:`NavigationPaneImageListCapability <gui_forms::NavigationPaneImageListCapability>`
+     - Images for the pages' image_keys, or null.
    * - :cpp:class:`NavigationPaneOptionsRequest <gui_forms::NavigationPaneOptionsRequest>`
      - "Navigation pane options..." was chosen from the configure menu.
    * - :cpp:class:`NavigationPaneRestore <gui_forms::NavigationPaneRestore>`
@@ -112,14 +146,48 @@ Related types
      -  
    * - :cpp:class:`PageStrip::Parts <gui_forms::PageStrip::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`PageStripActivationPropertyCapability <gui_forms::PageStripActivationPropertyCapability>`
+     - Whether moving the keyboard between tabs selects (automatic, the default) or only moves the focus (manual).
+   * - :cpp:class:`PageStripCapabilities <gui_forms::PageStripCapabilities>`
+     - Every PageStrip capability, in the order the declaring class takes them.
+   * - :cpp:class:`PageStripCloseButtonsCapability <gui_forms::PageStripCloseButtonsCapability>`
+     - Which closable tabs show their close button; see PageCloseButtons.
+   * - :cpp:class:`PageStripDrawModeCapability <gui_forms::PageStripDrawModeCapability>`
+     - Content-only owner drawing (owner decision W-Q6; TabControl's OwnerDrawFixed with DrawItem): in owner_draw the strip raises draw_item_content for each painted tab's content; the plate, close button, pin, modified mark and focus cue stay painted by role.
+   * - :cpp:class:`PageStripImageListCapability <gui_forms::PageStripImageListCapability>`
+     - The images a page's ``image_key`` names, or null.
+   * - :cpp:class:`PageStripItemSizingCapability <gui_forms::PageStripItemSizingCapability>`
+     - How wide each tab is (default content); see PageItemSizing.
+   * - :cpp:class:`PageStripItemWidthsCapability <gui_forms::PageStripItemWidthsCapability>`
+     - The tab widths the sizing uses.
+   * - :cpp:class:`PageStripMnemonicsEnabledCapability <gui_forms::PageStripMnemonicsEnabledCapability>`
+     - Whether ``&`` in a title marks a mnemonic that selects the page (on for strips; the document preset turns it off, DK-38).
+   * - :cpp:class:`PageStripOverflowPropertyCapability <gui_forms::PageStripOverflowPropertyCapability>`
+     - What the strip does when its tabs do not fit (default scroll); see PageStripOverflow.
+   * - :cpp:class:`PageStripPlacementPropertyCapability <gui_forms::PageStripPlacementPropertyCapability>`
+     - The edge of its content the strip sits on (default top); see PageStripPlacement.
+   * - :cpp:class:`PageStripReorderEnabledCapability <gui_forms::PageStripReorderEnabledCapability>`
+     - Whether an unclaimed drag reorders tabs live (owner decision DK-39): off by default, the strip preset; PageView's document preset turns it on.
    * - :cpp:class:`PageView::Parts <gui_forms::PageView::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`PageViewCapabilities <gui_forms::PageViewCapabilities>`
+     - Every PageView capability, in the order the declaring class takes them.
+   * - :cpp:class:`PageViewClosePolicyPropertyCapability <gui_forms::PageViewClosePolicyPropertyCapability>`
+     - What the view does with a close request no handler took (see PageViewClosePolicy).
+   * - :cpp:class:`PageViewCtrlTabPropertyCapability <gui_forms::PageViewCtrlTabPropertyCapability>`
+     - What Ctrl+Tab and Ctrl+Shift+Tab do while focus is inside the view (see PageViewCtrlTab).
+   * - :cpp:class:`PageViewFocusRegionCapability <gui_forms::PageViewFocusRegionCapability>`
+     - Whether the view registers itself as an F6 region of its window (owner decision RB-17), off by default.
    * - :cpp:class:`PageViewOptions <gui_forms::PageViewOptions>`
      -  
    * - :cpp:class:`Panel::Parts <gui_forms::Panel::Parts>`
      - Stage T1 anatomy, as dot members: the scrollable parts, a face and an edge.
    * - :cpp:class:`PanelCapabilities <gui_forms::PanelCapabilities>`
      - Every Panel capability, in the order the declaring class takes them.
+   * - :cpp:class:`ScaledGroupBoxCapabilities <gui_forms::ScaledGroupBoxCapabilities>`
+     - Every ScaledGroupBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`ScaledGroupBoxDesignSizeCapability <gui_forms::ScaledGroupBoxDesignSizeCapability>`
+     - The coordinate space the children's design bounds are written in; it scales to the arranged size.
    * - :cpp:class:`TabControl::Item <gui_forms::TabControl::Item>`
      -  
    * - :cpp:class:`TabControl::ItemParts <gui_forms::TabControl::ItemParts>`
@@ -128,14 +196,40 @@ Related types
      -  
    * - :cpp:class:`TabControl::Parts <gui_forms::TabControl::Parts>`
      - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`TabControlAlignmentCapability <gui_forms::TabControlAlignmentCapability>`
+     - The edge the tabs sit on (Windows Forms' Alignment; default top).
+   * - :cpp:class:`TabControlAppearanceCapability <gui_forms::TabControlAppearanceCapability>`
+     - How the tabs are drawn (see TabAppearance; default normal).
    * - :cpp:class:`TabControlCancelEvent <gui_forms::TabControlCancelEvent>`
      - A page about to be left or chosen (Windows Forms' TabControlCancelEventArgs): ``page`` at ``index``.
+   * - :cpp:class:`TabControlCapabilities <gui_forms::TabControlCapabilities>`
+     - Every TabControl capability, in the order the declaring class takes them.
+   * - :cpp:class:`TabControlDrawModeCapability <gui_forms::TabControlDrawModeCapability>`
+     - Content-only owner drawing of the tabs (owner decision W-Q6; Windows Forms' DrawMode with DrawItem), the strip's: in ItemDrawMode::owner_draw draw_item_content is raised for each painted tab's icon and label, with the tab's index and its page's stable ID; the tab's plate and focus cue stay painted by role.
    * - :cpp:class:`TabControlEvent <gui_forms::TabControlEvent>`
      - A page left or chosen (Windows Forms' TabControlEventArgs).
+   * - :cpp:class:`TabControlImageListCapability <gui_forms::TabControlImageListCapability>`
+     - The images the pages' image_key and image_index name (Windows Forms' ImageList), or null; a tab shows its image before its text.
+   * - :cpp:class:`TabControlItemSizeCapability <gui_forms::TabControlItemSizeCapability>`
+     - A tab's size: its height across the row, and its width along it in TabSizeMode::fixed (default 120 by 30).
+   * - :cpp:class:`TabControlSelectedIndexCapability <gui_forms::TabControlSelectedIndexCapability>`
+     - The selected page's index, or none without pages.
+   * - :cpp:class:`TabControlSelectedTabCapability <gui_forms::TabControlSelectedTabCapability>`
+     - The selected page, or null.
+   * - :cpp:class:`TabControlSizeModeCapability <gui_forms::TabControlSizeModeCapability>`
+     - How wide each tab is (see TabSizeMode; default normal).
+   * - :cpp:class:`TabPageCapabilities <gui_forms::TabPageCapabilities>`
+     - Every TabPage capability, in the order the declaring class takes them.
+   * - :cpp:class:`TabPageImageIndexCapability <gui_forms::TabPageImageIndexCapability>`
+     - The tab's image in the TabControl's image list, by index (Windows Forms' ImageIndex).
+   * - :cpp:class:`TabPageImageKeyCapability <gui_forms::TabPageImageKeyCapability>`
+     - The tab's image in the TabControl's image list, by key (Windows Forms' ImageKey).
    * - :cpp:class:`TabSelectionChange <gui_forms::TabSelectionChange>`
      - TabSelectionChange reports previous/current tab indices and stable page identities after one accepted selection.
+   * - :cpp:class:`TextItemsCapability <gui_forms::TextItemsCapability>`
+     - An ordered list of text items edited in place (in-place collections design, owner 2026-11-07; the ListBox pilot): ``(*list).items.read()``, ``(*list).items[i]``, ``(*list).items = {...}``, ``items.insert(i, x)``, ``items.erase(i, n)``, ``items.replace(i, x)`` and ``items.clear()``.
    * - :cpp:class:`VisualRoleCapability <gui_forms::VisualRoleCapability>`
-     - The recipe family the panel paints with: window, panel or card.
+     - The recipe family the panel paints with: window, panel, card, editor (the recessed field ground of the Panel-derived editors such as NumericUpDown and TreeView), or notice (a staged InstrumentRack module).
 
 .. cpp:namespace:: gui_forms
 
@@ -182,9 +276,68 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> CardCapabilities : public CardCardLayoutCapability<Declaring>, public CardInteractiveCapability<Declaring>, public CardSelectedCapability<Declaring>, public CardSelectionBehaviorPropertyCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp>``
+
+   Every Card capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: CardLayout card_layout
+
+      The padding, section gap and header and footer extents; a view. Until written the card follows its theme's layout (effective_card_layout); a write overrides it, and reset_card_layout_to_theme returns to the theme's. Values that are not finite or are unbounded throw std::invalid_argument.
+
+   .. cpp:member:: bool interactive
+
+      Whether the card takes focus, the pointer and activation. Turning it off clears the hot, pressed and focused visuals.
+
+   .. cpp:member:: bool selected
+
+      Whether the card is selected; a change raises selected_changed. selection_behavior decides whether activation writes it.
+
+   .. cpp:member:: CardSelectionBehavior selection_behavior
+
+      Whether activation only notifies (manual, the default) or also selects or toggles the card before activated is raised. An undeclared value throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CardCardLayoutCapability
+
+   ``#include <gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp>``
+
+   The padding, section gap and header and footer extents; a view. Until written the card follows its theme's layout (effective_card_layout); a write overrides it, and reset_card_layout_to_theme returns to the theme's. Values that are not finite or are unbounded throw std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CardCardLayoutCapability& capability, CardLayout incoming)
+
+   .. cpp:function:: static CardLayout read(const CardCardLayoutCapability& capability)
+
+   .. cpp:member:: PropertyView<CardLayout, CardCardLayoutCapability<Declaring>> card_layout
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CardInteractiveCapability
+
+   ``#include <gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp>``
+
+   Whether the card takes focus, the pointer and activation. Turning it off clears the hot, pressed and focused visuals.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CardInteractiveCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, CardInteractiveCapability<Declaring>> interactive
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: CardLayout final
 
-   ``#include <gui_forms/controls/panel/card/card.hpp>``
+   ``#include <gui_forms/controls/panel/card/card_values/card_values.hpp>``
 
    CardLayout defines validated logical padding, section gaps, and footer/header allocation used by Card measurement and arrangement.
 
@@ -206,6 +359,70 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> CardSelectedCapability
+
+   ``#include <gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp>``
+
+   Whether the card is selected; a change raises selected_changed. selection_behavior decides whether activation writes it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CardSelectedCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, CardSelectedCapability<Declaring>> selected
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CardSelectionBehaviorPropertyCapability
+
+   ``#include <gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp>``
+
+   Whether activation only notifies (manual, the default) or also selects or toggles the card before activated is raised. An undeclared value throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CardSelectionBehaviorPropertyCapability& capability, CardSelectionBehavior incoming)
+
+   .. cpp:member:: PropertyCell<CardSelectionBehavior, CardSelectionBehaviorPropertyCapability<Declaring>> selection_behavior
+
+      Default: ``{CardSelectionBehavior::manual}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ContainerControlAutoValidateCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/container_control_capabilities/container_control_capabilities.hpp>``
+
+   How focus changes validate the controls they leave (Windows Forms' AutoValidate); inherit takes the nearest container's policy (effective_auto_validate resolves it). A change raises auto_validate_changed. A value outside the AutoValidate choices throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ContainerControlAutoValidateCapability& capability, AutoValidate incoming)
+
+   .. cpp:member:: PropertyCell<AutoValidate, ContainerControlAutoValidateCapability<Declaring>> auto_validate
+
+      Default: ``{AutoValidate::inherit}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ContainerControlCapabilities : public ContainerControlAutoValidateCapability<Declaring>
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/container_control_capabilities/container_control_capabilities.hpp>``
+
+   Every ContainerControl capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: AutoValidate auto_validate
+
+      How focus changes validate the controls they leave (Windows Forms' AutoValidate); inherit takes the nearest container's policy (effective_auto_validate resolves it). A change raises auto_validate_changed. A value outside the AutoValidate choices throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: GroupBox::Parts final
 
    ``#include <gui_forms/controls/panel/group_box/group_box.hpp>``
@@ -219,6 +436,81 @@ Related types
    .. cpp:member:: PartGeometry edge
 
    .. cpp:member:: PartGeometry caption
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> GroupBoxCapabilities : public TextCapability<Declaring>, public FontCapability<Declaring>, public GroupBoxUseMnemonicCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/group_box/group_box_capabilities/group_box_capabilities.hpp>``
+
+   Every GroupBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: GroupBoxCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The text the control shows (Text).
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: bool use_mnemonic
+
+      Whether an ampersand in the caption marks the access key (UseMnemonic); the access key moves the focus to the group's first focusable child.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> GroupBoxUseMnemonicCapability
+
+   ``#include <gui_forms/controls/panel/group_box/group_box_capabilities/group_box_capabilities.hpp>``
+
+   Whether an ampersand in the caption marks the access key (UseMnemonic); the access key moves the focus to the group's first focusable child.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(GroupBoxUseMnemonicCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, GroupBoxUseMnemonicCapability<Declaring>> use_mnemonic
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaterialPanelCapabilities : public MaterialPanelMaterialCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/material_panel/material_panel_capabilities/material_panel_capabilities.hpp>``
+
+   Every MaterialPanel capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: SurfaceMaterial material
+
+      The surface recipe painted behind the content; a change repaints and raises material_changed. An invalid or unbounded recipe, or an image the attached window does not hold, throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaterialPanelMaterialCapability
+
+   ``#include <gui_forms/controls/panel/material_panel/material_panel_capabilities/material_panel_capabilities.hpp>``
+
+   The surface recipe painted behind the content; a change repaints and raises material_changed. An invalid or unbounded recipe, or an image the attached window does not hold, throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaterialPanelMaterialCapability& capability, SurfaceMaterial incoming)
+
+   .. cpp:member:: PropertyCell<SurfaceMaterial, MaterialPanelMaterialCapability<Declaring>> material
 
 .. cpp:namespace:: gui_forms
 
@@ -335,6 +627,120 @@ Related types
    .. cpp:member:: PartGeometry overlay_content
 
    .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NavigationPaneButtonCountCapability
+
+   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+
+   The number of large buttons the user chose; 4 by default. A count above PageSetLimits::maximum_capacity throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NavigationPaneButtonCountCapability& capability, std::size_t incoming)
+
+   .. cpp:function:: static std::size_t read(const NavigationPaneButtonCountCapability& capability)
+
+   .. cpp:member:: PropertyView<std::size_t, NavigationPaneButtonCountCapability<Declaring>> button_count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NavigationPaneCapabilities : public NavigationPaneCollapsedCapability<Declaring>, public NavigationPaneButtonCountCapability<Declaring>, public NavigationPaneExpandedWidthCapability<Declaring>, public NavigationPaneImageListCapability<Declaring>, public NavigationPaneFocusRegionCapability<Declaring>
+
+   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+
+   Every NavigationPane capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool collapsed
+
+      Whether the pane shows only its collapsed bar. Collapsing closes the configure menu; expanding closes the overlay.
+
+   .. cpp:member:: std::size_t button_count
+
+      The number of large buttons the user chose; 4 by default. A count above PageSetLimits::maximum_capacity throws std::out_of_range.
+
+   .. cpp:member:: double expanded_width
+
+      The width the pane asks for while expanded, and the overlay's width; 220 by default. A width outside 80 to 1024 throws std::out_of_range.
+
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
+
+      Images for the pages' image_keys, or null. A disposed list or one bound to another window throws std::invalid_argument.
+
+   .. cpp:member:: bool focus_region
+
+      Whether the pane registers itself as an F6 region of its window while attached (owner decision RB-17); on by default.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NavigationPaneCollapsedCapability
+
+   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+
+   Whether the pane shows only its collapsed bar. Collapsing closes the configure menu; expanding closes the overlay.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NavigationPaneCollapsedCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const NavigationPaneCollapsedCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, NavigationPaneCollapsedCapability<Declaring>> collapsed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NavigationPaneExpandedWidthCapability
+
+   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+
+   The width the pane asks for while expanded, and the overlay's width; 220 by default. A width outside 80 to 1024 throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NavigationPaneExpandedWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, NavigationPaneExpandedWidthCapability<Declaring>> expanded_width
+
+      Default: ``{220.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NavigationPaneFocusRegionCapability
+
+   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+
+   Whether the pane registers itself as an F6 region of its window while attached (owner decision RB-17); on by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NavigationPaneFocusRegionCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, NavigationPaneFocusRegionCapability<Declaring>> focus_region
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NavigationPaneImageListCapability
+
+   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+
+   Images for the pages' image_keys, or null. A disposed list or one bound to another window throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NavigationPaneImageListCapability& capability, std::shared_ptr<ImageList> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ImageList>, NavigationPaneImageListCapability<Declaring>> image_list
 
 .. cpp:namespace:: gui_forms
 
@@ -480,7 +886,7 @@ Related types
 
 .. cpp:struct:: PageItemWidths final
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
 
    Tab widths in logical units at text scale 1. 0 < minimum <= maximum <= ``maximum_width``, and 0 < fixed <= ``maximum_width``.
 
@@ -630,6 +1036,230 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> PageStripActivationPropertyCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   Whether moving the keyboard between tabs selects (automatic, the default) or only moves the focus (manual). An invalid value throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripActivationPropertyCapability& capability, PageStripActivation incoming)
+
+   .. cpp:member:: PropertyCell<PageStripActivation, PageStripActivationPropertyCapability<Declaring>> activation
+
+      Default: ``{PageStripActivation::automatic}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripCapabilities : public PageStripPlacementPropertyCapability<Declaring>, public PageStripItemSizingCapability<Declaring>, public PageStripItemWidthsCapability<Declaring>, public PageStripActivationPropertyCapability<Declaring>, public PageStripOverflowPropertyCapability<Declaring>, public PageStripCloseButtonsCapability<Declaring>, public PageStripMnemonicsEnabledCapability<Declaring>, public PageStripReorderEnabledCapability<Declaring>, public FontCapability<Declaring>, public PageStripImageListCapability<Declaring>, public PageStripDrawModeCapability<Declaring>
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   Every PageStrip capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: PageStripCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: PageStripPlacement placement
+
+      The edge of its content the strip sits on (default top); see PageStripPlacement. An invalid placement throws std::invalid_argument.
+
+   .. cpp:member:: PageItemSizing item_sizing
+
+      How wide each tab is (default content); see PageItemSizing. An invalid sizing throws std::invalid_argument.
+
+   .. cpp:member:: PageItemWidths item_widths
+
+      The tab widths the sizing uses. Widths outside the bounds stated on PageItemWidths throw std::invalid_argument, leaving the old widths.
+
+   .. cpp:member:: PageStripActivation activation
+
+      Whether moving the keyboard between tabs selects (automatic, the default) or only moves the focus (manual). An invalid value throws std::invalid_argument.
+
+   .. cpp:member:: PageStripOverflow overflow
+
+      What the strip does when its tabs do not fit (default scroll); see PageStripOverflow. An invalid value throws std::invalid_argument.
+
+   .. cpp:member:: PageCloseButtons close_buttons
+
+      Which closable tabs show their close button; see PageCloseButtons. An invalid value throws std::invalid_argument.
+
+   .. cpp:member:: bool mnemonics_enabled
+
+      Whether ``&`` in a title marks a mnemonic that selects the page (on for strips; the document preset turns it off, DK-38). When off, a title is shown as written.
+
+   .. cpp:member:: bool reorder_enabled
+
+      Whether an unclaimed drag reorders tabs live (owner decision DK-39): off by default, the strip preset; PageView's document preset turns it on. Turning it off cancels a drag under way.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
+
+      The images a page's ``image_key`` names, or null. A disposed list or one belonging to another window throws std::invalid_argument.
+
+   .. cpp:member:: ItemDrawMode draw_mode
+
+      Content-only owner drawing (owner decision W-Q6; TabControl's OwnerDrawFixed with DrawItem): in owner_draw the strip raises draw_item_content for each painted tab's content; the plate, close button, pin, modified mark and focus cue stay painted by role. An unknown mode throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripCloseButtonsCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   Which closable tabs show their close button; see PageCloseButtons. An invalid value throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripCloseButtonsCapability& capability, PageCloseButtons incoming)
+
+   .. cpp:member:: PropertyCell<PageCloseButtons, PageStripCloseButtonsCapability<Declaring>> close_buttons
+
+      Default: ``{PageCloseButtons::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripDrawModeCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   Content-only owner drawing (owner decision W-Q6; TabControl's OwnerDrawFixed with DrawItem): in owner_draw the strip raises draw_item_content for each painted tab's content; the plate, close button, pin, modified mark and focus cue stay painted by role. An unknown mode throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripDrawModeCapability& capability, ItemDrawMode incoming)
+
+   .. cpp:member:: PropertyCell<ItemDrawMode, PageStripDrawModeCapability<Declaring>> draw_mode
+
+      Default: ``{ItemDrawMode::normal}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripImageListCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   The images a page's ``image_key`` names, or null. A disposed list or one belonging to another window throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripImageListCapability& capability, std::shared_ptr<ImageList> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ImageList>, PageStripImageListCapability<Declaring>> image_list
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripItemSizingCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   How wide each tab is (default content); see PageItemSizing. An invalid sizing throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripItemSizingCapability& capability, PageItemSizing incoming)
+
+   .. cpp:member:: PropertyCell<PageItemSizing, PageStripItemSizingCapability<Declaring>> item_sizing
+
+      Default: ``{PageItemSizing::content}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripItemWidthsCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   The tab widths the sizing uses. Widths outside the bounds stated on PageItemWidths throw std::invalid_argument, leaving the old widths.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripItemWidthsCapability& capability, PageItemWidths incoming)
+
+   .. cpp:member:: PropertyCell<PageItemWidths, PageStripItemWidthsCapability<Declaring>> item_widths
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripMnemonicsEnabledCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   Whether ``&`` in a title marks a mnemonic that selects the page (on for strips; the document preset turns it off, DK-38). When off, a title is shown as written.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripMnemonicsEnabledCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, PageStripMnemonicsEnabledCapability<Declaring>> mnemonics_enabled
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripOverflowPropertyCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   What the strip does when its tabs do not fit (default scroll); see PageStripOverflow. An invalid value throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripOverflowPropertyCapability& capability, PageStripOverflow incoming)
+
+   .. cpp:member:: PropertyCell<PageStripOverflow, PageStripOverflowPropertyCapability<Declaring>> overflow
+
+      Default: ``{PageStripOverflow::scroll}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripPlacementPropertyCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   The edge of its content the strip sits on (default top); see PageStripPlacement. An invalid placement throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripPlacementPropertyCapability& capability, PageStripPlacement incoming)
+
+   .. cpp:member:: PropertyCell<PageStripPlacement, PageStripPlacementPropertyCapability<Declaring>> placement
+
+      Default: ``{PageStripPlacement::top}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripReorderEnabledCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   Whether an unclaimed drag reorders tabs live (owner decision DK-39): off by default, the strip preset; PageView's document preset turns it on. Turning it off cancels a drag under way.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripReorderEnabledCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, PageStripReorderEnabledCapability<Declaring>> reorder_enabled
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PageView::Parts final
 
    ``#include <gui_forms/controls/pages/page_view/page_view.hpp>``
@@ -647,6 +1277,80 @@ Related types
       The selected page's content area.
 
    .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageViewCapabilities : public PageViewClosePolicyPropertyCapability<Declaring>, public PageViewCtrlTabPropertyCapability<Declaring>, public PageViewFocusRegionCapability<Declaring>
+
+   ``#include <gui_forms/controls/pages/page_view/page_view_capabilities/page_view_capabilities.hpp>``
+
+   Every PageView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: PageViewClosePolicy close_policy
+
+      What the view does with a close request no handler took (see PageViewClosePolicy). An unknown policy throws std::invalid_argument.
+
+   .. cpp:member:: PageViewCtrlTab ctrl_tab
+
+      What Ctrl+Tab and Ctrl+Shift+Tab do while focus is inside the view (see PageViewCtrlTab). An unknown policy throws std::invalid_argument.
+
+   .. cpp:member:: bool focus_region
+
+      Whether the view registers itself as an F6 region of its window (owner decision RB-17), off by default. A view nested in another region is not registered.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageViewClosePolicyPropertyCapability
+
+   ``#include <gui_forms/controls/pages/page_view/page_view_capabilities/page_view_capabilities.hpp>``
+
+   What the view does with a close request no handler took (see PageViewClosePolicy). An unknown policy throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageViewClosePolicyPropertyCapability& capability, PageViewClosePolicy incoming)
+
+   .. cpp:member:: PropertyCell<PageViewClosePolicy, PageViewClosePolicyPropertyCapability<Declaring>> close_policy
+
+      Default: ``{PageViewClosePolicy::remove_when_unhandled}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageViewCtrlTabPropertyCapability
+
+   ``#include <gui_forms/controls/pages/page_view/page_view_capabilities/page_view_capabilities.hpp>``
+
+   What Ctrl+Tab and Ctrl+Shift+Tab do while focus is inside the view (see PageViewCtrlTab). An unknown policy throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageViewCtrlTabPropertyCapability& capability, PageViewCtrlTab incoming)
+
+   .. cpp:member:: PropertyCell<PageViewCtrlTab, PageViewCtrlTabPropertyCapability<Declaring>> ctrl_tab
+
+      Default: ``{PageViewCtrlTab::select_next}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageViewFocusRegionCapability
+
+   ``#include <gui_forms/controls/pages/page_view/page_view_capabilities/page_view_capabilities.hpp>``
+
+   Whether the view registers itself as an F6 region of its window (owner decision RB-17), off by default. A view nested in another region is not registered.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageViewFocusRegionCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, PageViewFocusRegionCapability<Declaring>> focus_region
+
+      Default: ``{false}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -697,7 +1401,39 @@ Related types
 
    .. cpp:member:: ControlVisualRole visual_role
 
-      The recipe family the panel paints with: window, panel or card.
+      The recipe family the panel paints with: window, panel, card, editor (the recessed field ground of the Panel-derived editors such as NumericUpDown and TreeView), or notice (a staged InstrumentRack module).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ScaledGroupBoxCapabilities : public ScaledGroupBoxDesignSizeCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box_capabilities/scaled_group_box_capabilities.hpp>``
+
+   Every ScaledGroupBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: Size design_size
+
+      The coordinate space the children's design bounds are written in; it scales to the arranged size. Throws std::invalid_argument unless both sides are finite and positive.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ScaledGroupBoxDesignSizeCapability
+
+   ``#include <gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box_capabilities/scaled_group_box_capabilities.hpp>``
+
+   The coordinate space the children's design bounds are written in; it scales to the arranged size. Throws std::invalid_argument unless both sides are finite and positive.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ScaledGroupBoxDesignSizeCapability& capability, Size incoming)
+
+   .. cpp:member:: PropertyCell<Size, ScaledGroupBoxDesignSizeCapability<Declaring>> design_size
+
+      Default: ``{Size{1.0, 1.0}}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -755,6 +1491,40 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> TabControlAlignmentCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   The edge the tabs sit on (Windows Forms' Alignment; default top). An unknown alignment throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabControlAlignmentCapability& capability, TabAlignment incoming)
+
+   .. cpp:member:: PropertyCell<TabAlignment, TabControlAlignmentCapability<Declaring>> alignment
+
+      Default: ``{TabAlignment::top}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabControlAppearanceCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   How the tabs are drawn (see TabAppearance; default normal). An unknown appearance throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabControlAppearanceCapability& capability, TabAppearance incoming)
+
+   .. cpp:member:: PropertyCell<TabAppearance, TabControlAppearanceCapability<Declaring>> appearance
+
+      Default: ``{TabAppearance::normal}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TabControlCancelEvent final
 
    ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
@@ -770,6 +1540,66 @@ Related types
       Default: ``{TabControlAction::selecting}``.
 
    .. cpp:member:: bool cancel
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabControlCapabilities : public TabControlAlignmentCapability<Declaring>, public TabControlAppearanceCapability<Declaring>, public TabControlSizeModeCapability<Declaring>, public TabControlItemSizeCapability<Declaring>, public TabControlImageListCapability<Declaring>, public TabControlDrawModeCapability<Declaring>, public TabControlSelectedIndexCapability<Declaring>, public TabControlSelectedTabCapability<Declaring>
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   Every TabControl capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: TabAlignment alignment
+
+      The edge the tabs sit on (Windows Forms' Alignment; default top). An unknown alignment throws std::invalid_argument.
+
+   .. cpp:member:: TabAppearance appearance
+
+      How the tabs are drawn (see TabAppearance; default normal). An unknown appearance throws std::invalid_argument.
+
+   .. cpp:member:: TabSizeMode size_mode
+
+      How wide each tab is (see TabSizeMode; default normal). An unknown mode throws std::invalid_argument.
+
+   .. cpp:member:: Size item_size
+
+      A tab's size: its height across the row, and its width along it in TabSizeMode::fixed (default 120 by 30). A size that is not finite, under 24 by 18 or over 1024 by 1024 throws std::invalid_argument.
+
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
+
+      The images the pages' image_key and image_index name (Windows Forms' ImageList), or null; a tab shows its image before its text. A disposed list or one belonging to another window throws std::invalid_argument and keeps the old list.
+
+   .. cpp:member:: ItemDrawMode draw_mode
+
+      Content-only owner drawing of the tabs (owner decision W-Q6; Windows Forms' DrawMode with DrawItem), the strip's: in ItemDrawMode::owner_draw draw_item_content is raised for each painted tab's icon and label, with the tab's index and its page's stable ID; the tab's plate and focus cue stay painted by role. See PageStrip::draw_item_content.
+
+   .. cpp:member:: std::optional<std::size_t> selected_index
+
+      The selected page's index, or none without pages. A write past the end throws std::out_of_range, none throws std::invalid_argument; deselecting and selecting may cancel it (see selected_index_changed). A view onto the selected page.
+
+   .. cpp:member:: std::shared_ptr<TabPage> selected_tab
+
+      The selected page, or null. A write selects a page of this control as selected_index does; a page that is not this control's, or null, throws std::invalid_argument. A view onto the selected page.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabControlDrawModeCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   Content-only owner drawing of the tabs (owner decision W-Q6; Windows Forms' DrawMode with DrawItem), the strip's: in ItemDrawMode::owner_draw draw_item_content is raised for each painted tab's icon and label, with the tab's index and its page's stable ID; the tab's plate and focus cue stay painted by role. See PageStrip::draw_item_content.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabControlDrawModeCapability& capability, ItemDrawMode incoming)
+
+   .. cpp:function:: static ItemDrawMode read(const TabControlDrawModeCapability& capability)
+
+   .. cpp:member:: PropertyView<ItemDrawMode, TabControlDrawModeCapability<Declaring>> draw_mode
 
 .. cpp:namespace:: gui_forms
 
@@ -789,6 +1619,146 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> TabControlImageListCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   The images the pages' image_key and image_index name (Windows Forms' ImageList), or null; a tab shows its image before its text. A disposed list or one belonging to another window throws std::invalid_argument and keeps the old list.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabControlImageListCapability& capability, std::shared_ptr<ImageList> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ImageList>, TabControlImageListCapability<Declaring>> image_list
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabControlItemSizeCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   A tab's size: its height across the row, and its width along it in TabSizeMode::fixed (default 120 by 30). A size that is not finite, under 24 by 18 or over 1024 by 1024 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabControlItemSizeCapability& capability, Size incoming)
+
+   .. cpp:member:: PropertyCell<Size, TabControlItemSizeCapability<Declaring>> item_size
+
+      Default: ``{Size{120.0, 30.0}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabControlSelectedIndexCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   The selected page's index, or none without pages. A write past the end throws std::out_of_range, none throws std::invalid_argument; deselecting and selecting may cancel it (see selected_index_changed). A view onto the selected page.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabControlSelectedIndexCapability& capability, std::optional<std::size_t> incoming)
+
+   .. cpp:function:: static std::optional<std::size_t> read(const TabControlSelectedIndexCapability& capability)
+
+   .. cpp:member:: PropertyView<std::optional<std::size_t>, TabControlSelectedIndexCapability<Declaring>> selected_index
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabControlSelectedTabCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   The selected page, or null. A write selects a page of this control as selected_index does; a page that is not this control's, or null, throws std::invalid_argument. A view onto the selected page.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabControlSelectedTabCapability& capability, std::shared_ptr<TabPage> incoming)
+
+   .. cpp:function:: static std::shared_ptr<TabPage> read(const TabControlSelectedTabCapability& capability)
+
+   .. cpp:member:: PropertyView<std::shared_ptr<TabPage>, TabControlSelectedTabCapability<Declaring>> selected_tab
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabControlSizeModeCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   How wide each tab is (see TabSizeMode; default normal). An unknown mode throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabControlSizeModeCapability& capability, TabSizeMode incoming)
+
+   .. cpp:member:: PropertyCell<TabSizeMode, TabControlSizeModeCapability<Declaring>> size_mode
+
+      Default: ``{TabSizeMode::normal}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabPageCapabilities : public TextCapability<Declaring>, public TabPageImageKeyCapability<Declaring>, public TabPageImageIndexCapability<Declaring>
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page_capabilities/tab_page_capabilities.hpp>``
+
+   Every TabPage capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The text the control shows (Text).
+
+   .. cpp:member:: std::string image_key
+
+      The tab's image in the TabControl's image list, by key (Windows Forms' ImageKey). A write clears image_index, as in Windows Forms; an empty key shows no image, and so does a key the list does not have. A key that is not valid UTF-8 or is longer than 256 bytes throws std::invalid_argument.
+
+   .. cpp:member:: int image_index
+
+      The tab's image in the TabControl's image list, by index (Windows Forms' ImageIndex). A write clears image_key; -1 (the default) shows no image, and so does an index the list does not have. An index below -1 throws std::out_of_range.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabPageImageIndexCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page_capabilities/tab_page_capabilities.hpp>``
+
+   The tab's image in the TabControl's image list, by index (Windows Forms' ImageIndex). A write clears image_key; -1 (the default) shows no image, and so does an index the list does not have. An index below -1 throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabPageImageIndexCapability& capability, int incoming)
+
+   .. cpp:function:: static int read(const TabPageImageIndexCapability& capability)
+
+   .. cpp:member:: PropertyView<int, TabPageImageIndexCapability<Declaring>> image_index
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabPageImageKeyCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page_capabilities/tab_page_capabilities.hpp>``
+
+   The tab's image in the TabControl's image list, by key (Windows Forms' ImageKey). A write clears image_index, as in Windows Forms; an empty key shows no image, and so does a key the list does not have. A key that is not valid UTF-8 or is longer than 256 bytes throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabPageImageKeyCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const TabPageImageKeyCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, TabPageImageKeyCapability<Declaring>> image_key
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TabSelectionChange final
 
    ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
@@ -801,11 +1771,43 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> TextItemsCapability
+
+   ``#include <gui_forms/controls/panel/text_items_capability/text_items_capability.hpp>``
+
+   An ordered list of text items edited in place (in-place collections design, owner 2026-11-07; the ListBox pilot): ``(*list).items.read()``, ``(*list).items[i]``, ``(*list).items = {...}``, ``items.insert(i, x)``, ``items.erase(i, n)``, ``items.replace(i, x)`` and ``items.clear()``. A standard-layout struct whose only member is the cell, taken by the declaring class as a base. Each edit runs the declaring class's prepare_edit hook (it may refuse by throwing: nothing changes), the store, then its written hook. The declaring class takes the pending damage at its flush through take_dirty.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void prepare_edit(TextItemsCapability& capability, const CollectionEdit& edit, std::span<std::string> incoming)
+
+   .. cpp:function:: static void written(TextItemsCapability& capability, const CollectionEdit& edit)
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: static std::optional<std::size_t> take_dirty(TextItemsCapability& capability, std::vector<std::uint32_t>& replaced)
+
+      *Protected.*
+
+      The replaced positions below the watermark, appended to ``replaced``, and the watermark (CollectionDirty::take). For the declaring class's flush.
+
+   .. cpp:function:: template <typename Order> static void sort_items(TextItemsCapability& capability, Order order)
+
+      *Protected.*
+
+      Reorders the items in place by ``order`` and records every position written, without hooks: for a declaring class that keeps its items sorted. ``order`` must be a strict weak ordering whose equivalent items are equal, so the result does not depend on the sort's stability; std::sort allocates nothing, so this cannot fail part way.
+
+   .. cpp:member:: CollectionCell<std::string, TextItemsCapability<Declaring>> items
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> VisualRoleCapability
 
    ``#include <gui_forms/controls/panel/panel_capabilities/panel_capabilities.hpp>``
 
-   The recipe family the panel paints with: window, panel or card.
+   The recipe family the panel paints with: window, panel, card, editor (the recessed field ground of the Panel-derived editors such as NumericUpDown and TreeView), or notice (a staged InstrumentRack module).
 
 
    .. rubric:: Methods
@@ -837,7 +1839,7 @@ Enumerations
 
 .. cpp:enum-class:: CardSelectionBehavior
 
-   ``#include <gui_forms/controls/panel/card/card.hpp>``
+   ``#include <gui_forms/controls/panel/card/card_values/card_values.hpp>``
 
    .. cpp:enumerator:: manual
 
@@ -859,7 +1861,7 @@ Enumerations
 
 .. cpp:enum-class:: PageCloseButtons
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -895,7 +1897,7 @@ Enumerations
 
 .. cpp:enum-class:: PageItemSizing
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
 
    .. cpp:enumerator:: content
 
@@ -921,7 +1923,7 @@ Enumerations
 
 .. cpp:enum-class:: PageStripActivation
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
 
    .. cpp:enumerator:: automatic
 
@@ -931,7 +1933,7 @@ Enumerations
 
 .. cpp:enum-class:: PageStripOverflow
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
 
    .. cpp:enumerator:: scroll
 
@@ -941,7 +1943,7 @@ Enumerations
 
 .. cpp:enum-class:: PageStripPlacement
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
 
    .. cpp:enumerator:: top
 
@@ -955,7 +1957,7 @@ Enumerations
 
 .. cpp:enum-class:: PageViewClosePolicy
 
-   ``#include <gui_forms/controls/pages/page_view/page_view.hpp>``
+   ``#include <gui_forms/controls/pages/page_view/page_view_values/page_view_values.hpp>``
 
    .. cpp:enumerator:: remove_when_unhandled
 
@@ -965,7 +1967,7 @@ Enumerations
 
 .. cpp:enum-class:: PageViewCtrlTab
 
-   ``#include <gui_forms/controls/pages/page_view/page_view.hpp>``
+   ``#include <gui_forms/controls/pages/page_view/page_view_values/page_view_values.hpp>``
 
    .. cpp:enumerator:: select_next
 
@@ -985,7 +1987,7 @@ Enumerations
 
 .. cpp:enum-class:: TabAlignment
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_values/tab_control_values.hpp>``
 
    .. cpp:enumerator:: top
 
@@ -999,7 +2001,7 @@ Enumerations
 
 .. cpp:enum-class:: TabAppearance
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_values/tab_control_values.hpp>``
 
    .. cpp:enumerator:: normal
 
@@ -1025,7 +2027,7 @@ Enumerations
 
 .. cpp:enum-class:: TabSizeMode
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_values/tab_control_values.hpp>``
 
    .. cpp:enumerator:: normal
 

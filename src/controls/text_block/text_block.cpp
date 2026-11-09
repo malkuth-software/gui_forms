@@ -2,10 +2,9 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include "line_wrapping.hpp"
-#include "gui_forms/detail/bound_member_function.hpp"
-#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -54,211 +53,112 @@ std::shared_ptr<const PropertyEnumDescriptor> text_block_alignment_enum() {
     return value;
 }
 
+// TextBlock's fore_color entry, which replaces Control's: the resolved
+// colour, neither bindable nor nullable, as TextBlock has described it.
+PropertyDescriptor text_block_fore_color_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "fore_color";
+    descriptor.kind = BindingValueKind::color;
+    descriptor.category = "Appearance";
+    descriptor.description = "Effective text color; reset resumes inherited theme color.";
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_text_block_fore_color() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        text_block_fore_color_descriptor(), PropertyOperations{true, true, true, false});
+    return descriptor;
+}
+
 } // namespace
 
-TextBlock::TextBlock(StableId stable_id, std::string text)
-    : Control(std::move(stable_id)), text_(std::move(text)) {
-    define_bindable_property({
-        {"text", BindingValueKind::text, "Appearance",
-         "Text shown by the block; white space collapses as in CSS.",
-         BindingValue{std::string{}}, invalidation::text_content},
-        detail::BindingMemberGetter<TextBlock, std::string>(*this, &TextBlock::text_),
-        detail::ConvertedPropertySetter<TextBlock, std::string>(
-            *this, &TextBlock::set_text, BindingValueKind::text,
-            "TextBlock.Text binding requires text"),
-        detail::EventChangeConnector<const std::string&>(text_changed_), {}, {}});
-
-    PropertyDescriptor font;
-    font.name = "font";
-    font.kind = BindingValueKind::font;
-    font.category = "Appearance";
-    font.description = "Effective font; reset resumes the theme's field typography.";
-    font.invalidation_effects = invalidation::text_content;
-    font.bindable = false;
-    define_bindable_property({
-        std::move(font),
-        detail::BindingNoexceptMethodGetter<TextBlock, FontSpec>(*this, &TextBlock::font),
-        detail::DirectPropertySetter<TextBlock, FontSpec>(*this, &TextBlock::set_font), {},
-        detail::BoundMemberFunction<void (TextBlock::*)()>(*this, &TextBlock::clear_font),
-        detail::BoundMemberFunction<bool (TextBlock::*)() const noexcept>(
-            *this, &TextBlock::has_font_override),
-        detail::BoundMemberFunction<PropertyValueOrigin (TextBlock::*)() const noexcept>(
-            *this, &TextBlock::font_property_origin)});
-
-    PropertyDescriptor foreground;
-    foreground.name = "fore_color";
-    foreground.kind = BindingValueKind::color;
-    foreground.category = "Appearance";
-    foreground.description = "Effective text color; reset resumes inherited theme color.";
-    foreground.invalidation_effects = Dirty::paint | Dirty::semantics;
-    foreground.bindable = false;
-    define_bindable_property({
-        std::move(foreground),
-        detail::BindingNoexceptMethodGetter<TextBlock, Color>(*this, &TextBlock::foreground),
-        detail::DirectPropertySetter<TextBlock, Color>(*this, &TextBlock::set_foreground), {},
-        detail::BoundMemberFunction<void (TextBlock::*)()>(*this, &TextBlock::clear_foreground),
-        detail::BoundMemberFunction<bool (TextBlock::*)() const noexcept>(
-            *this, &TextBlock::has_foreground_override),
-        detail::BoundMemberFunction<PropertyValueOrigin (TextBlock::*)() const noexcept>(
-            *this, &TextBlock::foreground_property_origin)});
-
-    PropertyDescriptor alignment;
-    alignment.name = "text_align";
-    alignment.kind = BindingValueKind::enumeration;
-    alignment.category = "Appearance";
-    alignment.description =
-        "CSS text-align; start and end follow the layout direction.";
-    alignment.default_value = BindingValue{PropertyEnumValue{"text_alignment", "start", 0}};
-    alignment.invalidation_effects = Dirty::paint | Dirty::semantics;
-    alignment.bindable = false;
-    alignment.enumeration = text_block_alignment_enum();
-    define_bindable_property({
-        std::move(alignment),
-        detail::BoundMemberFunction<BindingValue (TextBlock::*)() const>(
-            *this, &TextBlock::text_align_property_value),
-        detail::BoundMemberFunction<void (TextBlock::*)(const BindingValue&)>(
-            *this, &TextBlock::set_text_align_property_value),
-        {}, {}, {}});
-
-    PropertyDescriptor line_height;
-    line_height.name = "line_height";
-    line_height.kind = BindingValueKind::number;
-    line_height.category = "Layout";
-    line_height.description =
-        "CSS line-height in logical pixels at text scale 1; zero is normal.";
-    line_height.default_value = BindingValue{0.0};
-    line_height.invalidation_effects = invalidation::text_content;
-    line_height.bindable = false;
-    define_bindable_property({
-        std::move(line_height),
-        detail::BoundMemberFunction<BindingValue (TextBlock::*)() const>(
-            *this, &TextBlock::line_height_property_value),
-        detail::BoundMemberFunction<void (TextBlock::*)(const BindingValue&)>(
-            *this, &TextBlock::set_line_height_property_value),
-        {}, {}, {}});
+TextBlock::TextBlock(StableId stable_id, std::string initial_text)
+    : Control(std::move(stable_id)) {
+    text = std::move(initial_text);
 }
 
-PropertyValueOrigin TextBlock::font_property_origin() const noexcept {
-    return has_font_override() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
-}
-
-PropertyValueOrigin TextBlock::foreground_property_origin() const noexcept {
-    return has_foreground_override() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
-}
-
-BindingValue TextBlock::text_align_property_value() const {
-    PropertyDescriptor descriptor;
-    descriptor.kind = BindingValueKind::enumeration;
-    descriptor.enumeration = text_block_alignment_enum();
-    const std::optional<BindingValue> normalized = convert_property_value(
-        BindingValue{static_cast<std::int64_t>(text_align_)}, descriptor);
-    if (!normalized) {
-        throw std::logic_error("GUI.Forms retained TextAlignment is outside its property schema");
-    }
-    return *normalized;
-}
-
-void TextBlock::set_text_align_property_value(const BindingValue& value) {
-    const PropertyEnumValue& enumerated = std::get<PropertyEnumValue>(value);
-    set_text_align(static_cast<TextAlignment>(enumerated.value));
-}
-
-BindingValue TextBlock::line_height_property_value() const {
-    const double value = line_height_ ? *line_height_ : 0.0;
-    return BindingValue{value};
-}
-
-void TextBlock::set_line_height_property_value(const BindingValue& value) {
-    const double requested = std::get<double>(value);
-    if (requested == 0.0) {
-        clear_line_height();
-        return;
-    }
-    set_line_height(requested);
-}
-
-void TextBlock::set_text(std::string text) {
-    require_mutable();
-    if (text_ == text) return;
-    text_ = std::move(text);
-    invalidate(invalidation::text_content);
-    publish_change(text_changed_, text_);
-}
-
-FontSpec TextBlock::font() const noexcept {
-    if (font_override_) return *font_override_;
+FontSpec TextBlock::resolved_font() const noexcept {
+    const std::optional<FontSpec>& own = font.read();
+    if (own) return *own;
     return effective_theme().structure().typography.field;
 }
 
-void TextBlock::set_font(FontSpec font) {
-    require_mutable();
-    if (!valid_font_spec(font)) throw std::invalid_argument("TextBlock font is invalid");
-    set_font_from_code(true);
-    if (font_override_ && *font_override_ == font) return;
-    font_override_ = font;
-    invalidate(invalidation::text_content);
-}
-
-void TextBlock::clear_font() {
-    require_mutable();
-    if (!font_override_) return;
-    font_override_.reset();
-    set_font_from_code(false);
-    invalidate(invalidation::text_content);
-}
-
 Color TextBlock::foreground() const noexcept {
-    if (foreground_override_) return *foreground_override_;
+    const std::optional<Color>& own = fore_color.read();
+    if (own) return *own;
     return effective_theme().resolve(ControlVisualRole::panel, visual_context()).text;
 }
 
-void TextBlock::set_foreground(Color color) {
-    require_mutable();
-    if (foreground_override_ && *foreground_override_ == color) return;
-    foreground_override_ = color;
-    invalidate(Dirty::paint | Dirty::semantics);
+BindingValue TextBlock::font_property_value() const {
+    const FontSpec resolved = resolved_font();
+    return BindingValue{resolved};
 }
 
-void TextBlock::clear_foreground() {
-    require_mutable();
-    if (!foreground_override_) return;
-    foreground_override_.reset();
-    invalidate(Dirty::paint | Dirty::semantics);
+void TextBlock::reset_font() {
+    font = std::nullopt;
 }
 
-void TextBlock::set_text_align(TextAlignment alignment) {
-    require_mutable();
-    switch (alignment) {
-    case TextAlignment::start:
-    case TextAlignment::end:
-    case TextAlignment::left:
-    case TextAlignment::right:
-    case TextAlignment::center:
-        // A listed alignment is stored as given, below.
-        break;
-    default:
-        throw std::invalid_argument("TextBlock text alignment is invalid");
+bool TextBlock::font_serialized() const {
+    const bool own = font.read().has_value();
+    return own;
+}
+
+PropertyValueOrigin TextBlock::font_property_origin() const noexcept {
+    return font.read().has_value() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
+}
+
+BindingValue TextBlock::fore_color_property_value() const {
+    const Color resolved = foreground();
+    return BindingValue{resolved};
+}
+
+void TextBlock::write_fore_color_property(const BindingValue& value) {
+    fore_color = std::get<Color>(value);
+}
+
+void TextBlock::reset_fore_color_property() {
+    fore_color = std::nullopt;
+}
+
+bool TextBlock::fore_color_serialized() const {
+    const bool own = fore_color.read().has_value();
+    return own;
+}
+
+PropertyValueOrigin TextBlock::fore_color_property_origin() const noexcept {
+    return fore_color.read().has_value() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
+}
+
+BindingValue TextBlock::line_height_property_value() const {
+    const std::optional<double>& own = line_height.read();
+    const double value = own ? *own : 0.0;
+    return BindingValue{value};
+}
+
+void TextBlock::write_line_height_property(const BindingValue& value) {
+    const double requested = std::get<double>(value);
+    if (requested == 0.0) {
+        line_height = std::nullopt;
+        return;
     }
-    if (text_align_ == alignment) return;
-    text_align_ = alignment;
-    invalidate(Dirty::paint | Dirty::semantics);
+    line_height = requested;
 }
 
-void TextBlock::set_line_height(double line_height) {
+// A present font must be valid; writing one records that code chose it,
+// and clearing it lets the theme's typography return.
+void TextBlock::prepare_write(const decltype(font)&, std::optional<FontSpec>& incoming) {
     require_mutable();
-    if (!std::isfinite(line_height) || line_height <= 0.0) {
-        throw std::invalid_argument("TextBlock line height must be finite and positive");
+    if (incoming && !valid_font_spec(*incoming)) {
+        throw std::invalid_argument("TextBlock font is invalid");
     }
-    if (line_height_ && *line_height_ == line_height) return;
-    line_height_ = line_height;
-    invalidate(invalidation::text_content);
+    set_font_from_code(incoming.has_value());
 }
 
-void TextBlock::clear_line_height() {
-    require_mutable();
-    if (!line_height_) return;
-    line_height_.reset();
+void TextBlock::written(const decltype(font)&) {
     invalidate(invalidation::text_content);
+    on_font_changed();
 }
 
 void TextBlock::prepare_text(Workspace& workspace) const {
@@ -266,9 +166,9 @@ void TextBlock::prepare_text(Workspace& workspace) const {
     // run of spaces, tabs and line ends becomes one space, and the text's
     // leading and trailing white space goes.
     workspace.collapsed.clear();
-    workspace.collapsed.reserve(text_.size());
+    workspace.collapsed.reserve(text.read().size());
     bool pending_space = false;
-    for (const char character : text_) {
+    for (const char character : text.read()) {
         if (collapsible_space(character)) {
             pending_space = !workspace.collapsed.empty();
             continue;
@@ -286,54 +186,55 @@ void TextBlock::prepare_text(Workspace& workspace) const {
     }
 }
 
-double TextBlock::run_width(std::string_view run, FontSpec font) const {
+double TextBlock::run_width(std::string_view run, FontSpec face) const {
     if (run.empty()) return 0.0;
-    const ResolvedTextLayout layout = resolve_text_layout_utf8(run, font);
+    const ResolvedTextLayout layout = resolve_text_layout_utf8(run, face);
     return layout.logical_size.width;
 }
 
-void TextBlock::break_lines(double width, FontSpec font, Workspace& workspace) const {
+void TextBlock::break_lines(double width, FontSpec face, Workspace& workspace) const {
     // Greedy, as CSS fills lines (line_wrapping_detail::wrap_lines_greedy,
     // which DataGridView's wrapped cells share). The collapsed text has no
     // line ends, so no break is mandatory.
-    const line_wrapping_detail::ControlRunWidth measure{this, font};
+    const line_wrapping_detail::ControlRunWidth measure{this, face};
     line_wrapping_detail::wrap_lines_greedy(std::string_view(workspace.collapsed),
                                             std::span<const LineBreakOpportunity>(workspace.opportunities), width,
                                             measure, workspace.lines);
 }
 
-double TextBlock::widest_unbreakable_run(const Workspace& workspace, FontSpec font) const {
-    const std::string_view text(workspace.collapsed);
+double TextBlock::widest_unbreakable_run(const Workspace& workspace, FontSpec face) const {
+    const std::string_view run_text(workspace.collapsed);
     double widest = 0.0;
     std::size_t begin = 0U;
-    for (std::size_t position = 1U; position <= text.size(); ++position) {
-        const bool last = position == text.size();
+    for (std::size_t position = 1U; position <= run_text.size(); ++position) {
+        const bool last = position == run_text.size();
         if (!last && !may_end_line(workspace.opportunities[position - 1U])) continue;
-        const std::size_t end = content_end(text, begin, position);
-        widest = std::max(widest, run_width(text.substr(begin, end - begin), font));
+        const std::size_t end = content_end(run_text, begin, position);
+        widest = std::max(widest, run_width(run_text.substr(begin, end - begin), face));
         begin = position;
     }
     return widest;
 }
 
-LineBoxMetrics TextBlock::line_metrics(FontSpec font) const {
+LineBoxMetrics TextBlock::line_metrics(FontSpec face) const {
     // The primary face's metrics do not depend on the text, so a space
     // resolves them; a set line height scales with the text, as the font
     // does.
-    const ResolvedTextLayout primary = resolve_text_layout_utf8(" ", font);
+    const ResolvedTextLayout primary = resolve_text_layout_utf8(" ", face);
+    const std::optional<double>& own_line_height = line_height.read();
     std::optional<double> used_line_height;
-    if (line_height_) used_line_height = *line_height_ * effective_text_scale();
+    if (own_line_height) used_line_height = *own_line_height * effective_text_scale();
     const LineBoxMetrics metrics = line_box_metrics(primary, used_line_height);
     return metrics;
 }
 
 Size TextBlock::content_size(double width, Workspace& workspace) const {
-    const FontSpec font = text_font((*this).font());
+    const FontSpec face = text_font(resolved_font());
     prepare_text(workspace);
-    break_lines(width, font, workspace);
+    break_lines(width, face, workspace);
     double widest = 0.0;
     for (const TextLine& line : workspace.lines) widest = std::max(widest, line.width);
-    const LineBoxMetrics metrics = line_metrics(font);
+    const LineBoxMetrics metrics = line_metrics(face);
     const Size measured{widest, static_cast<double>(workspace.lines.size()) * metrics.height};
     return measured;
 }
@@ -355,12 +256,12 @@ Size TextBlock::measure_intrinsic(const LayoutConstraint& constraint) {
     const Insets inset = padding.read();
     const double horizontal = inset.left + inset.right;
     const double vertical = inset.top + inset.bottom;
-    const FontSpec font = text_font((*this).font());
+    const FontSpec face = text_font(resolved_font());
     double content_width = 0.0;
     switch (constraint.width.kind) {
     case AvailableExtentKind::min_content:
         prepare_text(workspace_);
-        content_width = widest_unbreakable_run(workspace_, font);
+        content_width = widest_unbreakable_run(workspace_, face);
         break;
     case AvailableExtentKind::max_content:
     default: // Not an AvailableExtentKind: the text measures unbounded, as max-content.
@@ -386,8 +287,8 @@ std::optional<double> TextBlock::first_baseline(double width) {
     // The first line's baseline does not depend on the width; a block with
     // no text has no line box and so no baseline.
     static_cast<void>(width);
-    if (!has_visible_text(text_)) return std::nullopt;
-    const LineBoxMetrics metrics = line_metrics(text_font((*this).font()));
+    if (!has_visible_text(text.read())) return std::nullopt;
+    const LineBoxMetrics metrics = line_metrics(text_font(resolved_font()));
     const double baseline = padding.read().top + metrics.baseline;
     return baseline;
 }
@@ -396,7 +297,7 @@ std::optional<double> TextBlock::last_baseline(double width) {
     const Insets inset = padding.read();
     const Size content = content_size(std::max(0.0, width - (inset.left + inset.right)), workspace_);
     if (workspace_.lines.empty()) return std::nullopt;
-    const LineBoxMetrics metrics = line_metrics(text_font((*this).font()));
+    const LineBoxMetrics metrics = line_metrics(text_font(resolved_font()));
     const double baseline = inset.top + content.height - metrics.height + metrics.baseline;
     return baseline;
 }
@@ -404,7 +305,7 @@ std::optional<double> TextBlock::last_baseline(double width) {
 double TextBlock::line_x(const TextLine& line, double content_width) const noexcept {
     const bool right_to_left = effective_layout_direction() == LayoutDirection::right_to_left;
     const double free = content_width - line.width;
-    switch (text_align_) {
+    switch (text_align.read()) {
     case TextAlignment::start: return right_to_left ? free : 0.0;
     case TextAlignment::end: return right_to_left ? 0.0 : free;
     case TextAlignment::left: return 0.0;
@@ -419,22 +320,22 @@ void TextBlock::on_paint(Painter& painter, Rect) {
     const Insets inset = padding.read();
     const double content_width = std::max(0.0, client.width - (inset.left + inset.right));
     static_cast<void>(content_size(content_width, workspace_));
-    const FontSpec font = text_font((*this).font());
-    const LineBoxMetrics metrics = line_metrics(font);
+    const FontSpec face = text_font(resolved_font());
+    const LineBoxMetrics metrics = line_metrics(face);
     // Each line is a label part placed by its baseline, in the theme's text
     // (disabled text while disabled) or the authored foreground (T4-1).
-    const std::string_view text(workspace_.collapsed);
+    const std::string_view run_text(workspace_.collapsed);
     PartPaint part;
     part.family = ControlVisualRole::panel;
     part.role = PartRole::label;
-    part.font = font;
-    part.authored_foreground = foreground_override_;
+    part.font = face;
+    part.authored_foreground = fore_color.read();
     for (std::size_t index = 0U; index < workspace_.lines.size(); ++index) {
         const TextLine& line = workspace_.lines[index];
         const double top = inset.top + static_cast<double>(index) * metrics.height;
         const Point origin{client.x + inset.left + line_x(line, content_width),
                            snap_text_baseline(client.y + top + metrics.baseline)};
-        part.text = text.substr(line.begin_byte, line.end_byte - line.begin_byte);
+        part.text = run_text.substr(line.begin_byte, line.end_byte - line.begin_byte);
         paint_text_part_at(painter, *this, part, origin, line.width);
     }
 }
@@ -446,7 +347,7 @@ bool TextBlock::hit_test_local(Point) const {
 SemanticDescriptor TextBlock::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::static_text;
-    descriptor.name = accessible_name.read().empty() ? text_ : accessible_name.read();
+    descriptor.name = accessible_name.read().empty() ? text.read() : accessible_name.read();
     descriptor.description = accessible_description.read();
     descriptor.exposed = !descriptor.name.empty();
     return descriptor;
@@ -519,5 +420,182 @@ void TextBlock::append_interactions(std::vector<InteractionDeclaration>& interac
     interactions.insert(interactions.end(), text_block_interactions.begin(),
                         text_block_interactions.end());
 }
+
+// property_codemod begin TextBlock (tools/property_families/text_block.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor text_block_text_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "text";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Appearance";
+    descriptor.description = "Text shown by the block; white space collapses as in CSS.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = invalidation::text_content;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_text_block_text() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        text_block_text_descriptor(), PropertyOperations{true, true, false, true});
+    return descriptor;
+}
+
+PropertyDescriptor text_block_font_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "font";
+    descriptor.kind = BindingValueKind::font;
+    descriptor.category = "Appearance";
+    descriptor.description = "Effective font; reset resumes the theme's field typography.";
+    descriptor.invalidation_effects = invalidation::text_content;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_text_block_font() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        text_block_font_descriptor(), PropertyOperations{true, true, true, false});
+    return descriptor;
+}
+
+PropertyDescriptor text_block_text_align_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "text_align";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "CSS text-align; start and end follow the layout direction.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"text_alignment", "start", 0}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = text_block_alignment_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_text_block_text_align() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        text_block_text_align_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor text_block_line_height_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "line_height";
+    descriptor.kind = BindingValueKind::number;
+    descriptor.category = "Layout";
+    descriptor.description = "CSS line-height in logical pixels at text scale 1; zero is normal.";
+    descriptor.default_value = BindingValue{0.0};
+    descriptor.invalidation_effects = invalidation::text_content;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_text_block_line_height() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        text_block_line_height_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<TextAlignment>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, text_block_alignment_enum()};
+}
+
+BindingValue PropertyValueTraits<TextAlignment>::to_binding(TextAlignment value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = text_block_alignment_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+TextAlignment PropertyValueTraits<TextAlignment>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<TextAlignment>(choice.value);
+}
+
+const std::array<PropertyEntry, TextBlock::text_block_property_count>& TextBlock::text_block_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> overrides{{
+        {"fore_color", &describe_text_block_fore_color,
+         &read_member_entry<TextBlock, decltype(&TextBlock::fore_color_property_value), &TextBlock::fore_color_property_value>,
+         &write_member_entry<TextBlock, decltype(&TextBlock::write_fore_color_property), &TextBlock::write_fore_color_property>,
+         &reset_member_entry<TextBlock, decltype(&TextBlock::reset_fore_color_property), &TextBlock::reset_fore_color_property>,
+         &should_serialize_member_entry<TextBlock, decltype(&TextBlock::fore_color_serialized), &TextBlock::fore_color_serialized>,
+         &origin_member_entry<TextBlock, decltype(&TextBlock::fore_color_property_origin), &TextBlock::fore_color_property_origin>,
+         nullptr},
+    }};
+    static constexpr std::array<PropertyEntry, 4U> own{{
+        {"text", &describe_text_block_text,
+         &read_cell_entry<TextBlock, decltype(&TextBlock::text), &TextBlock::text>,
+         &write_cell_entry<TextBlock, decltype(&TextBlock::text), &TextBlock::text>,
+         nullptr, nullptr, nullptr,
+         &connect_event_entry<TextBlock, decltype(&TextBlock::text_changed_), &TextBlock::text_changed_>},
+        {"font", &describe_text_block_font,
+         &read_member_entry<TextBlock, decltype(&TextBlock::font_property_value), &TextBlock::font_property_value>,
+         &write_cell_entry<TextBlock, decltype(&TextBlock::font), &TextBlock::font>,
+         &reset_member_entry<TextBlock, decltype(&TextBlock::reset_font), &TextBlock::reset_font>, &should_serialize_member_entry<TextBlock, decltype(&TextBlock::font_serialized), &TextBlock::font_serialized>, &origin_member_entry<TextBlock, decltype(&TextBlock::font_property_origin), &TextBlock::font_property_origin>,
+         nullptr},
+        {"text_align", &describe_text_block_text_align,
+         &read_cell_entry<TextBlock, decltype(&TextBlock::text_align), &TextBlock::text_align>,
+         &write_cell_entry<TextBlock, decltype(&TextBlock::text_align), &TextBlock::text_align>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"line_height", &describe_text_block_line_height,
+         &read_member_entry<TextBlock, decltype(&TextBlock::line_height_property_value), &TextBlock::line_height_property_value>,
+         &write_member_entry<TextBlock, decltype(&TextBlock::write_line_height_property), &TextBlock::write_line_height_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "TextBlock's property table names a property twice");
+    static const std::array<PropertyEntry, text_block_property_count> entries =
+        join_property_tables(override_property_entries(Control::control_property_entries(), overrides), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> TextBlock::property_table() const noexcept {
+    const std::array<PropertyEntry, text_block_property_count>& entries = text_block_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void TextBlock::prepare_write(const decltype(text)&, std::string&) {
+    require_mutable();
+}
+
+void TextBlock::written(const decltype(text)&) {
+    invalidate(invalidation::text_content);
+    on_text_changed();
+}
+
+void TextBlock::on_text_changed() {
+    publish_change(text_changed_, text.read());
+}
+
+void TextBlock::on_font_changed() {}
+
+void TextBlock::prepare_write(const decltype(text_align)&, TextAlignment& incoming) {
+    require_mutable();
+    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(TextAlignment::center)) throw std::invalid_argument("TextBlock text alignment is invalid");
+}
+
+void TextBlock::written(const decltype(text_align)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void TextBlock::prepare_write(const decltype(line_height)&, std::optional<double>& incoming) {
+    require_mutable();
+    if (incoming && (!std::isfinite(*incoming) || *incoming <= 0.0)) throw std::invalid_argument("TextBlock line height must be finite and positive");
+}
+
+void TextBlock::written(const decltype(line_height)&) {
+    invalidate(invalidation::text_content);
+}
+
+// property_codemod end TextBlock
 
 } // namespace gui_forms

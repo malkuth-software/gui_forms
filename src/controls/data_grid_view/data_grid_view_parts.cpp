@@ -225,6 +225,7 @@ void DataGridView::prepare_write(const decltype(auto_size_columns_mode)&, DataGr
 
 void DataGridView::written(const decltype(auto_size_columns_mode)&) {
     structure_changed();
+    on_auto_size_columns_mode_changed();
 }
 
 DataGridViewAutoSizeColumnMode DataGridView::column_auto_size_mode(std::size_t column) const {
@@ -268,21 +269,76 @@ bool DataGridView::column_resizable(std::size_t column) const {
     return result;
 }
 
+bool DataGridView::sized_by_cells() const {
+    bool sized = auto_size_rows_mode.read() != DataGridViewAutoSizeRowsMode::none;
+    for (std::size_t column = 0U; column < columns_.size() && !sized; ++column) {
+        const DataGridViewAutoSizeColumnMode mode = column_auto_size_mode(column);
+        sized = measures(mode) && mode != DataGridViewAutoSizeColumnMode::column_header;
+    }
+    return sized;
+}
+
 void DataGridView::values_changed() {
     auto_size_stale_ = true;
     row_auto_size_stale_ = true;
     // A column sized by its cells may change width, and rows sized by
     // their cells height: lay the grid out again.
-    bool sized_by_cells = auto_size_rows_mode.read() != DataGridViewAutoSizeRowsMode::none;
-    for (std::size_t column = 0U; column < columns_.size() && !sized_by_cells; ++column) {
-        const DataGridViewAutoSizeColumnMode mode = column_auto_size_mode(column);
-        sized_by_cells = measures(mode) && mode != DataGridViewAutoSizeColumnMode::column_header;
-    }
-    if (sized_by_cells) {
+    if (sized_by_cells()) {
         invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     } else {
         invalidate(Dirty::paint | Dirty::semantics);
     }
+}
+
+// One cell's value changed, from any row source. Unless the cells size
+// rows or columns (values_changed lays the grid out again), the cell region
+// notes the cell: no layout, its rectangle damaged after the next layout
+// (gather_content_regions), and the semantics republished.
+void DataGridView::cell_changed(const CellKey& key) {
+    const std::optional<DataGridViewCellAddress> placed = address_of(key);
+    if (!placed || sized_by_cells()) {
+        values_changed();
+        return;
+    }
+    auto_size_stale_ = true;
+    row_auto_size_stale_ = true;
+    const ContentItemKey cell{static_cast<std::uint64_t>((*placed).row.value),
+                              static_cast<std::uint64_t>((*placed).column)};
+    cells_region_.note_item(cell, Dirty::paint | Dirty::semantics);
+}
+
+// The noted cells shown, each damaged at its final geometry within the
+// cell viewport; cells scrolled out of view or since removed damage
+// nothing. An unbound row's store also left the row marked replaced in the
+// rows collection, which no layout has taken: it is taken here, as arrange
+// would (settle_rows_damage), so it does not damage the row again later. A
+// failed damage mark drops the rest and rethrows (the region is cleared
+// either way, so its next note asks for a gather again).
+void DataGridView::gather_content_regions() {
+    const std::span<const ContentItemKey> cells = cells_region_.pending();
+    if (cells.empty()) return;
+    const GridLayout layout = grid_layout();
+    const std::size_t row_end = visible_row_end(layout);
+    try {
+        settle_rows_damage(false, layout);
+        for (const ContentItemKey& cell : cells) {
+            const bool shown = cell.major >= first_row_ && cell.major < row_end && cell.minor < columns_.size();
+            if (!shown) continue;
+            const DataGridViewRowPosition row{static_cast<std::size_t>(cell.major)};
+            const Rect bounds = cell_bounds(row, static_cast<std::size_t>(cell.minor), layout);
+            const Rect visible = Rect::intersection(bounds, layout.data);
+            if (!visible.empty()) invalidate(visible);
+        }
+    } catch (...) {
+        cells_region_.clear_pending();
+        throw;
+    }
+    cells_region_.clear_pending();
+}
+
+Dirty DataGridView::fold_content_regions() noexcept {
+    const Dirty folded = cells_region_.fold_pending();
+    return folded;
 }
 
 double DataGridView::preferred_cell_width(DataGridViewRowPosition row, std::size_t column) const {
@@ -616,6 +672,7 @@ void DataGridView::prepare_write(const decltype(auto_size_rows_mode)&, DataGridV
 void DataGridView::written(const decltype(auto_size_rows_mode)&) {
     // The index is rebuilt from the own heights, and measured again.
     rows_changed();
+    on_auto_size_rows_mode_changed();
 }
 
 void DataGridView::auto_resize_row(DataGridViewRowPosition row, DataGridViewAutoSizeRowMode mode) {
@@ -935,8 +992,8 @@ DataGridView::RowParts DataGridView::row_parts(DataGridViewRowPosition row, cons
                         header.height};
         record.row_error = visible_part(centred_square(lane, error_side), clip);
     }
-    if (row_source_ == DataGridViewRowSource::unbound && row.value < rows_.size() &&
-        !rows_[row.value].header_text.empty()) {
+    if (row_source_ == DataGridViewRowSource::unbound && row.value < rows.read().size() &&
+        !rows.read()[row.value].header_text.empty()) {
         const double start = glyph_margin * 2.0 + glyph_side;
         const Rect label{header.x + start, header.y, std::max(0.0, header.width - start - glyph_margin),
                          std::max(0.0, header.height - 1.0)};
@@ -971,12 +1028,30 @@ DataGridView::CellParts DataGridView::cell_parts(DataGridViewRowPosition row, st
 
 DataGridView::CellLayout DataGridView::cell_layout(DataGridViewRowPosition row, std::size_t column,
                                                    const GridLayout& layout) const {
+    CellLayout result = cell_layout(row, column, layout, false);
+    return result;
+}
+
+DataGridView::CellLayout DataGridView::cell_layout(DataGridViewRowPosition row, std::size_t column,
+                                                   const GridLayout& layout, bool provide_text) const {
     CellLayout result;
-    const std::uint64_t revision = structure_revision_;
-    result.content = formatted_cell(row, column);
-    // A formatting handler that changed the grid leaves no parts to lay out.
-    if (structure_revision_ != revision) return result;
-    result.content.text = shown_text(row, column, std::move(result.content.text));
+    // A provided cell's text is the region's: its value is not asked for and
+    // cell_formatting is not raised, so its style is the inherited one. A
+    // wrapped cell needs its text here, for its lines.
+    if (provide_text && column < columns_.size() && columns_[column].kind == DataGridViewColumnKind::text) {
+        DataGridViewCellStyle inherited = inherited_cell_style(row, column);
+        if (!inherited.wrap_mode.value_or(false)) {
+            result.content.style = std::move(inherited);
+            result.text_provided = true;
+        }
+    }
+    if (!result.text_provided) {
+        const std::uint64_t revision = structure_revision_;
+        result.content = formatted_cell(row, column);
+        // A formatting handler that changed the grid leaves no parts to lay out.
+        if (structure_revision_ != revision) return result;
+        result.content.text = shown_text(row, column, std::move(result.content.text));
+    }
     const DataGridViewCellStyle& style = result.content.style;
     CellParts& record = result.parts;
     const Rect clip = layout.data;
@@ -1370,7 +1445,7 @@ void DataGridView::paint_row(Painter& painter, DataGridViewRowPosition row, cons
     if (parts.row_header_label.present) {
         part.role = PartRole::label;
         part.bounds = parts.row_header_label.bounds;
-        part.text = rows_[row.value].header_text;
+        part.text = rows.read()[row.value].header_text;
         part.alignment = text_alignment(style.alignment);
         part.authored_foreground = parts.row_header_label.authored_foreground;
         paint_part(painter, *this, part);
@@ -1402,9 +1477,10 @@ namespace {
 } // namespace
 
 bool DataGridView::resolve_cell(DataGridViewRowPosition row, std::size_t column, const GridLayout& layout,
-                                Point offset, DataGridViewCellsSnapshot& into, DataGridViewCellsCell& resolved) {
+                                Point offset, CellTextSource source, DataGridViewCellsSnapshot& into,
+                                DataGridViewCellsCell& resolved) {
     const std::uint64_t revision = structure_revision_;
-    const CellLayout placed = cell_layout(row, column, layout);
+    const CellLayout placed = cell_layout(row, column, layout, source.provided);
     if (structure_revision_ != revision) return false;
     const CellParts& parts = placed.parts;
     resolved = DataGridViewCellsCell{};
@@ -1441,6 +1517,10 @@ bool DataGridView::resolve_cell(DataGridViewRowPosition row, std::size_t column,
     for (const WrappedTextLine& line : placed.lines) {
         into.lines.push_back(DataGridViewCellsTextRange{text_begin + line.begin_byte, text_begin + line.end_byte});
     }
+    // A provided cell's empty range is filled on the region's thread.
+    if (placed.text_provided) {
+        resolved.provided = DataGridViewCellsProvided{.provided = true, .row = source.row, .column = column};
+    }
     resolved.lines_box = moved_rect(placed.lines_box, offset);
     resolved.line_height = placed.line_height;
     resolved.content_box = moved_rect(placed.content_box, offset);
@@ -1463,7 +1543,7 @@ bool DataGridView::paint_cell(Painter& painter, DataGridViewRowPosition row, std
     paint_scratch_.text.clear();
     paint_scratch_.lines.clear();
     DataGridViewCellsCell resolved{};
-    if (!resolve_cell(row, column, layout, Point{}, paint_scratch_, resolved)) return false;
+    if (!resolve_cell(row, column, layout, Point{}, CellTextSource{}, paint_scratch_, resolved)) return false;
     if (!resolved.parts.cell.present) return true;
     paint_data_grid_view_cell_selection(painter, *this, resolved);
     // Owner drawing (owner decision W-Q6) replaces the content parts unless

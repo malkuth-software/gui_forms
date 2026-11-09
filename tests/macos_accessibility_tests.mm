@@ -501,12 +501,12 @@ void check_repeated_item_identities(StockControlFixture& fixture, gui_forms::Win
         report.failures.push_back("repeated identities: the right tree's docs element has another parent");
     } else {
         [right_docs setAccessibilitySelected:YES];
-        if ((*right).selected_id() != "docs" || (*left).selected_id() == "docs") {
+        if ((*right).selected_id.read() != "docs" || (*left).selected_id.read() == "docs") {
             report.failures.push_back("repeated identities: selecting the right tree's docs element did not "
                                       "select the right tree's item alone");
         }
         [left_docs setAccessibilitySelected:YES];
-        if ((*left).selected_id() != "docs") {
+        if ((*left).selected_id.read() != "docs") {
             report.failures.push_back("repeated identities: selecting the left tree's docs element did not "
                                       "select the left tree's item");
         }
@@ -602,13 +602,13 @@ void check_text_ranges(StockControlFixture& fixture, gui_forms::Window& window, 
     std::shared_ptr<gui_forms::TextBox> password =
         gui_forms::make_control<gui_forms::TextBox>(gui_forms::StableId("text.password"));
     (*single).set_requested_bounds({10.0, 10.0, 260.0, 26.0});
-    (*single).set_text(single_line_text);
+    (*single).text = single_line_text;
     (*multi).set_requested_bounds({10.0, 50.0, 260.0, 80.0});
-    (*multi).set_multiline(true);
-    (*multi).set_text(two_line_text);
+    (*multi).multiline = true;
+    (*multi).text = two_line_text;
     (*password).set_requested_bounds({10.0, 140.0, 260.0, 26.0});
-    (*password).set_use_system_password_character(true);
-    (*password).set_text("secret");
+    (*password).use_system_password_character = true;
+    (*password).text = "secret";
     (*fixture.root).add_child(single);
     (*fixture.root).add_child(multi);
     (*fixture.root).add_child(password);
@@ -727,7 +727,6 @@ void walk_and_close(void* context) {
 
 using VoidCallback = std::function<void()>;
 using ShowDialogCallback = std::function<gui_forms::HostDialogResult(const gui_forms::HostDialogRequest&)>;
-using ShowTooltipCallback = std::function<gui_forms::HostServiceStatus(const gui_forms::HostTooltipRequest&)>;
 using ReadClipboardCallback = std::function<gui_forms::HostClipboardTextResult()>;
 using WriteClipboardCallback = std::function<gui_forms::HostServiceStatus(std::string_view)>;
 
@@ -735,8 +734,8 @@ class ScheduleWalk final {
 public:
     explicit ScheduleWalk(RunState& state) noexcept : state_(state) {}
 
-    void operator()(VoidCallback, VoidCallback request_close, ShowDialogCallback, ShowTooltipCallback,
-                    VoidCallback, ReadClipboardCallback, WriteClipboardCallback) const {
+    void operator()(VoidCallback, VoidCallback request_close, ShowDialogCallback,
+                    ReadClipboardCallback, WriteClipboardCallback) const {
         state_.request_close = std::move(request_close);
         const dispatch_time_t when = dispatch_time(DISPATCH_TIME_NOW, 300 * NSEC_PER_MSEC);
         dispatch_after_f(when, dispatch_get_main_queue(), &state_, &walk_and_close);

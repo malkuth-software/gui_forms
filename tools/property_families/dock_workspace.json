@@ -1,0 +1,63 @@
+{
+  "family": "DockWorkspace",
+  "step": "M-S8",
+  "declaring": "DockWorkspace",
+  "header": "include/gui_forms/controls/docking/dock_workspace/dock_workspace.hpp",
+  "source": "src/controls/docking/dock_workspace/dock_workspace.cpp",
+  "capabilities_header": "include/gui_forms/controls/docking/dock_workspace/dock_workspace_capabilities/dock_workspace_capabilities.hpp",
+  "shared": [],
+  "mutation_check": null,
+  "includes": [
+    "gui_forms/controls/docking/dock_workspace/dock_workspace_values/dock_workspace_values.hpp"
+  ],
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hand": [],
+      "event": null,
+      "name": "close_prompt",
+      "capability": "DockWorkspaceClosePrompt",
+      "value": "DockClosePrompt",
+      "initial": "DockClosePrompt::each",
+      "comment": "How the program is asked before documents close at the user's request: one closing event per document (each, the default) or one for all (combined).",
+      "getter": "close_prompt",
+      "setter": "set_close_prompt",
+      "field": "close_prompt_",
+      "hooks": "generated",
+      "effects": null
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hand": [],
+      "event": null,
+      "name": "flyout_opening",
+      "capability": "DockWorkspaceFlyoutOpening",
+      "value": "DockFlyoutOpening",
+      "initial": "DockFlyoutOpening::hover_or_click",
+      "comment": "The workspace setting for opening an auto-hidden panel's flyout from its side tab; hover_or_click by default.",
+      "getter": "flyout_opening",
+      "setter": "set_flyout_opening",
+      "field": "flyout_opening_",
+      "hooks": "generated",
+      "effects": null
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "named_layouts",
+      "reason": "wholesale collection replacement"
+    },
+    {
+      "name": "track",
+      "reason": "set_track takes the track, the panel and the cause; a method"
+    }
+  ]
+}

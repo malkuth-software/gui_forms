@@ -417,7 +417,7 @@ struct Fixture {
     Fixture() {
         (*root).set_requested_bounds({0.0, 0.0, 200.0, 120.0});
         (*child).set_requested_bounds({10.0, 10.0, 40.0, 30.0});
-        (*child).set_focusable(true);
+        (*child).focusable = true;
         (*root).add_child(child);
         window = std::make_unique<Window>(root, Size{200.0, 120.0});
         (*window).perform_layout();
@@ -880,7 +880,7 @@ void test_topmost_hit_and_activation() {
     std::shared_ptr<ProbeControl> top =
         make_control<ProbeControl>(StableId("top"));
     (*top).set_requested_bounds({10.0, 10.0, 40.0, 30.0});
-    (*top).set_focusable(true);
+    (*top).focusable = true;
     (*fixture.root).add_child(top);
     (*fixture.window).perform_layout();
 
@@ -924,7 +924,7 @@ void test_routed_phases_and_consumed_release() {
     std::shared_ptr<ProbeControl> other =
         make_control<ProbeControl>(StableId("other"));
     (*other).set_requested_bounds({100.0, 10.0, 40.0, 30.0});
-    (*other).set_focusable(true);
+    (*other).focusable = true;
     (*fixture.root).add_child(other);
     (*fixture.window).perform_layout();
     (*fixture.window).dispatch_pointer({PointerAction::down, PointerButton::primary,

@@ -77,11 +77,11 @@ private:
         if (command_.state().generation != generation) return;
         CheckBox* const check_box = dynamic_cast<CheckBox*>(&button);
         if (check_box != nullptr && checkable) {
-            if ((*check_box).checked() != checked) (*check_box).set_checked(checked);
+            if ((*check_box).checked.read() != checked) (*check_box).checked = checked;
             return;
         }
         Button* const push_button = dynamic_cast<Button*>(&button);
-        if (push_button != nullptr) (*push_button).set_selected(checkable && checked);
+        if (push_button != nullptr) (*push_button).selected = checkable && checked;
     }
     void publish_checked(const bool checked) {
         if (!state_.connected()) return;
@@ -217,28 +217,11 @@ Size combined_content_size(TextImageRelation relation, Size text, Size image, do
 ButtonBase::ButtonBase(StableId stable_id, std::string initial_text)
     : Control(std::move(stable_id)) {
     text = std::move(initial_text);
-    set_focusable(true);
+    focusable = true;
+    // As in WinForms, a button raises no DoubleClick: each press it counts
+    // as part of a double-click is a Click of its own.
+    Control::set_style(ControlStyles::standard_double_click, false);
     cursor = CursorKind::hand;
-
-    PropertyDescriptor image;
-    image.name = "image";
-    image.kind = BindingValueKind::image;
-    image.category = "Appearance";
-    image.description = "Direct generational image resource for button content.";
-    image.default_value = BindingValue{ImageId{}};
-    image.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
-    image.bindable = false;
-    define_bindable_property({
-        std::move(image),
-        detail::BindingMemberGetter<ButtonBase, ImageId>(
-            *this, &ButtonBase::image_),
-        detail::DirectPropertySetter<ButtonBase, ImageId>(
-            *this, &ButtonBase::set_image), {},
-        detail::BoundMemberFunction<void (ButtonBase::*)()>(
-            *this, &ButtonBase::clear_image),
-        detail::BoundMemberFunction<bool (ButtonBase::*)() const noexcept>(
-            *this, &ButtonBase::should_serialize_image)});
-
 }
 
 bool ButtonBase::should_serialize_image() const noexcept {
@@ -296,21 +279,27 @@ void ButtonBase::set_connection_topology(
     invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
 }
 
-void ButtonBase::set_image(ImageId image) {
+// The image's write, as set_image was: an ID must be live in the button's
+// Window; a direct image replaces an image-list index or key.
+void ButtonBase::write_view(const decltype(image)&, ImageId incoming) {
     require_mutable();
-    if (image.value != 0U && window() != nullptr &&
-        !(*window()).image_resources().find(image)) {
+    if (incoming.value != 0U && window() != nullptr &&
+        !(*window()).image_resources().find(incoming)) {
         throw std::invalid_argument("Button image ID is not live in its Window");
     }
-    if (image_ == image && image_index_ == -1 && image_key_.empty()) return;
-    image_ = image;
+    if (image_ == incoming && image_index_ == -1 && image_key_.empty()) return;
+    image_ = incoming;
     image_index_ = -1;
     image_key_.clear();
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
+ImageId ButtonBase::read_view(const decltype(image)&) const {
+    return image_;
+}
+
 void ButtonBase::clear_image() {
-    set_image({});
+    image = ImageId{};
 }
 
 void ButtonBase::set_image_list(std::shared_ptr<ImageList> image_list) {
@@ -796,6 +785,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
     if (selected) states.insert(AnatomyState::selected);
     if (focus_cue_visible()) states.insert(AnatomyState::focus_visible);
     if (default_cue) states.insert(AnatomyState::preselect);
+    if (!effectively_enabled()) states.insert(AnatomyState::disabled);
     if (engine_drawn) {
         PartPaint face;
         face.family = role;
@@ -987,6 +977,8 @@ SemanticDescriptor ButtonBase::semantic_descriptor() const {
         descriptor.states |= SemanticState::busy;
     } else if (visual_status() == ControlVisualStatus::invalid) {
         descriptor.states |= SemanticState::invalid;
+    } else {
+        // A normal status publishes no state.
     }
     if (expanded_state.read()) {
         if (*expanded_state.read()) descriptor.states |= SemanticState::expanded;
@@ -1038,6 +1030,7 @@ PropertyDescriptor button_base_text_descriptor() {
     descriptor.description = "Text displayed by the button.";
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = invalidation::text_content;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -1056,6 +1049,7 @@ PropertyDescriptor button_base_text_alignment_descriptor() {
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
     descriptor.enumeration = content_alignment_enum();
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -1074,6 +1068,7 @@ PropertyDescriptor button_base_font_descriptor() {
     descriptor.default_value = BindingValue{FontSpec{FontRole::control, 12.0, 400, false, 0.24}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -1092,12 +1087,32 @@ PropertyDescriptor button_base_content_padding_descriptor() {
     descriptor.default_value = BindingValue{Insets{6.0, 4.0, 6.0, 4.0}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
 const PropertyDescriptor& describe_button_base_content_padding() {
     static const PropertyDescriptor descriptor = property_table_descriptor(
         button_base_content_padding_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor button_base_image_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "image";
+    descriptor.kind = BindingValueKind::image;
+    descriptor.category = "Appearance";
+    descriptor.description = "Direct generational image resource for button content.";
+    descriptor.default_value = BindingValue{ImageId{}};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_button_base_image() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        button_base_image_descriptor(), PropertyOperations{true, true, true, false});
     return descriptor;
 }
 
@@ -1123,7 +1138,7 @@ ContentAlignment PropertyValueTraits<ContentAlignment>::from_binding(const Bindi
 }
 
 const std::array<PropertyEntry, ButtonBase::button_base_property_count>& ButtonBase::button_base_property_entries() noexcept {
-    static constexpr std::array<PropertyEntry, 4U> own{{
+    static constexpr std::array<PropertyEntry, 5U> own{{
         {"text", &describe_button_base_text,
          &read_cell_entry<ButtonBase, decltype(&ButtonBase::text), &ButtonBase::text>,
          &write_cell_entry<ButtonBase, decltype(&ButtonBase::text), &ButtonBase::text>,
@@ -1144,6 +1159,11 @@ const std::array<PropertyEntry, ButtonBase::button_base_property_count>& ButtonB
          &write_cell_entry<ButtonBase, decltype(&ButtonBase::content_padding), &ButtonBase::content_padding>,
          nullptr, nullptr, nullptr,
          nullptr},
+        {"image", &describe_button_base_image,
+         &read_cell_entry<ButtonBase, decltype(&ButtonBase::image), &ButtonBase::image>,
+         &write_cell_entry<ButtonBase, decltype(&ButtonBase::image), &ButtonBase::image>,
+         &reset_member_entry<ButtonBase, decltype(&ButtonBase::clear_image), &ButtonBase::clear_image>, &should_serialize_member_entry<ButtonBase, decltype(&ButtonBase::should_serialize_image), &ButtonBase::should_serialize_image>, nullptr,
+         nullptr},
     }};
     static_assert(property_names_distinct(own), "ButtonBase's property table names a property twice");
     static const std::array<PropertyEntry, button_base_property_count> entries =
@@ -1156,9 +1176,8 @@ std::span<const PropertyEntry> ButtonBase::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
-void ButtonBase::prepare_write(const decltype(text)&, std::string& incoming) {
+void ButtonBase::prepare_write(const decltype(text)&, std::string&) {
     require_mutable();
-    coerce_text(incoming);
 }
 
 void ButtonBase::written(const decltype(text)&) {
@@ -1169,8 +1188,6 @@ void ButtonBase::written(const decltype(text)&) {
 void ButtonBase::on_text_changed() {
     publish_change(text_changed_, text.read());
 }
-
-void ButtonBase::coerce_text(std::string&) {}
 
 void ButtonBase::prepare_write(const decltype(text_alignment)&, ContentAlignment& incoming) {
     require_mutable();
@@ -1185,7 +1202,6 @@ void ButtonBase::prepare_write(const decltype(font)&, FontSpec& incoming) {
     require_mutable();
     if (!valid_font_spec(incoming)) throw std::invalid_argument("Button font specification is invalid");
     set_font_from_code(true);
-    coerce_font(incoming);
 }
 
 void ButtonBase::written(const decltype(font)&) {
@@ -1194,8 +1210,6 @@ void ButtonBase::written(const decltype(font)&) {
 }
 
 void ButtonBase::on_font_changed() {}
-
-void ButtonBase::coerce_font(FontSpec&) {}
 
 void ButtonBase::prepare_write(const decltype(content_padding)&, Insets& incoming) {
     require_mutable();
@@ -1269,5 +1283,9 @@ void ButtonBase::written(const decltype(expanded_state)&) {
 }
 
 // property_codemod end ButtonBase
+
+bool ButtonBase::clicks_primary_button_only() const noexcept {
+    return true;
+}
 
 } // namespace gui_forms

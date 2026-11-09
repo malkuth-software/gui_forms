@@ -67,10 +67,14 @@ AtkRole native_role(SemanticRole role) {
     switch (role) {
     case SemanticRole::button: return ATK_ROLE_PUSH_BUTTON;
     case SemanticRole::check_box: case SemanticRole::check_list_item: return ATK_ROLE_CHECK_BOX;
+    // ATK has no switch role; GTK publishes its switch as a toggle button.
+    case SemanticRole::toggle_switch: return ATK_ROLE_TOGGLE_BUTTON;
     case SemanticRole::radio_button: return ATK_ROLE_RADIO_BUTTON;
     case SemanticRole::toolbar: return ATK_ROLE_TOOL_BAR;
     case SemanticRole::radio_group: return ATK_ROLE_PANEL;
-    case SemanticRole::text_box: return ATK_ROLE_ENTRY;
+    // ATK has no search role: a search box is an entry, its fallback.
+    case SemanticRole::text_box:
+    case SemanticRole::search_box: return ATK_ROLE_ENTRY;
     case SemanticRole::numeric_field: return ATK_ROLE_SPIN_BUTTON;
     case SemanticRole::list: return ATK_ROLE_LIST;
     case SemanticRole::list_item: return ATK_ROLE_LIST_ITEM;
@@ -167,14 +171,15 @@ StateBits state_bits(const SemanticNode& node) {
     for (const StateMapping& mapping : state_mappings) {
         if (has_semantic_state(node.states, mapping.source)) bits |= state_bit(mapping.target);
     }
-    if (node.role == SemanticRole::text_box && !has_semantic_state(node.states, SemanticState::read_only)) {
+    const SemanticRole acting = semantic_role_fallback(node.role);
+    if (acting == SemanticRole::text_box && !has_semantic_state(node.states, SemanticState::read_only)) {
         bits |= state_bit(ATK_STATE_EDITABLE);
     }
-    if (node.role == SemanticRole::text_box) {
+    if (acting == SemanticRole::text_box) {
         bits |= state_bit(node.multiline ? ATK_STATE_MULTI_LINE : ATK_STATE_SINGLE_LINE);
     }
-    if (node.role == SemanticRole::check_box || node.role == SemanticRole::check_list_item ||
-        node.role == SemanticRole::radio_button) {
+    if (acting == SemanticRole::check_box || acting == SemanticRole::check_list_item ||
+        acting == SemanticRole::radio_button) {
         bits |= state_bit(ATK_STATE_CHECKABLE);
     }
     if (has_semantic_state(node.states, SemanticState::expanded) || has_action(node.actions, SemanticAction::expand) ||
@@ -236,8 +241,9 @@ void order_actions(const std::vector<SemanticAction>& semantic, std::vector<Sema
 unsigned interface_flags(const SemanticNode& node) {
     unsigned flags = 0U;
     if (!node.actions.empty()) flags |= action_interface;
-    if (node.numeric_value || (!node.value.empty() && node.role != SemanticRole::text_box)) flags |= value_interface;
-    if (node.role == SemanticRole::text_box) flags |= text_interface;
+    const bool text = semantic_role_fallback(node.role) == SemanticRole::text_box;
+    if (node.numeric_value || (!node.value.empty() && !text)) flags |= value_interface;
+    if (text) flags |= text_interface;
     return flags;
 }
 
@@ -250,8 +256,16 @@ const gchar* name(AtkObject* object) { return data(object).node.name.c_str(); }
 const gchar* description(AtkObject* object) { return data(object).node.description.c_str(); }
 AtkObject* parent(AtkObject* object) { return data(object).live ? data(object).parent : nullptr; }
 gint index_in_parent(AtkObject* object) { return data(object).live ? data(object).index : -1; }
-gint child_count(AtkObject* object) { return data(object).live ? static_cast<gint>(data(object).children.size()) : 0; }
+// Defined after LinuxAccessibility::Impl: publishes the window's tree the
+// first time a client asks a frame for its children (K.1: the tree is
+// built on the first client query, not when the window opens).
+void publish_on_query(AtkObject* object);
+gint child_count(AtkObject* object) {
+    publish_on_query(object);
+    return data(object).live ? static_cast<gint>(data(object).children.size()) : 0;
+}
 AtkObject* child_at(AtkObject* object, gint index) {
+    publish_on_query(object);
     const NodeData& value = data(object);
     if (!value.live || index < 0 || static_cast<std::size_t>(index) >= value.children.size()) { return nullptr; }
     return ATK_OBJECT(g_object_ref(value.children[index]));
@@ -625,6 +639,8 @@ struct LinuxAccessibility::Impl {
         NodeData& value = data(object);
         const StateBits old_states = created ? StateBits{0} : state_bits(value.node);
         const std::string old_value = value.node.value, old_name = value.node.name;
+        const SemanticNode* const published = created ? nullptr : &value.node;
+        const bool announce = semantic_announcement_due(published, node);
         const std::optional<SemanticTextSelection> old_selection = value.node.text_selection;
         std::vector<AtkObject*> previous = std::move(value.children);
         value.children.clear();
@@ -639,9 +655,10 @@ struct LinuxAccessibility::Impl {
         value.parent = parent; value.index = index;
         data(parent).children.push_back(object);
         if (!created && old_name != node.name) { g_object_notify(G_OBJECT(object), "accessible-name"); }
-        if (!created && node.role == SemanticRole::live_region && old_name != node.name && !node.name.empty()) {
-            announce_live_region(object, node.name);
-        }
+        // The rule every host shares (semantic_announcement_due): a known
+        // live region announces a new name, a new one (a toast) only when it
+        // announces on appearance.
+        if (announce) announce_live_region(object, node.name);
         if (!created && old_value != node.value) { g_object_notify(G_OBJECT(object), "accessible-value"); }
         const StateBits new_states = state_bits(value.node);
         if (!created && old_states != new_states) {
@@ -670,8 +687,10 @@ struct LinuxAccessibility::Impl {
         NodeData& frame_data = data(frame);
         std::vector<AtkObject*> previous = std::move(frame_data.children);
         frame_data.children.clear();
-        XWindowAttributes window_attributes{}; XGetWindowAttributes(display, native, &window_attributes);
-        frame_data.node.bounds = {0, 0, static_cast<double>(window_attributes.width), static_cast<double>(window_attributes.height)};
+        // The frame covers the content rectangle: the client less a declared
+        // outer band, which hits nothing (owner, 2026-11-08). The X11 host
+        // runs at scale 1, so logical units are pixels.
+        frame_data.node.bounds = (*model).content_rect();
         frame_data.node.states = SemanticState::enabled | SemanticState::visible;
         for (std::size_t i = 0; i < snapshot.roots.size(); ++i) { sync(snapshot.roots[i], frame, static_cast<int>(i), 0U); }
         announce_children(frame, previous, frame_data.children);
@@ -976,7 +995,14 @@ gint offset_at_point(AtkText* object, gint x, gint y, AtkCoordType coordinates) 
     g_object_unref(accessible);
     return result;
 }
+void publish_on_query(AtkObject* object) {
+    NodeData& value = data(object);
+    if (!value.frame || value.owner == nullptr) return;
+    LinuxAccessibility::Impl& owner = *value.owner;
+    if (owner.model == nullptr || owner.published) return;
+    owner.update();
 }
+} // namespace
 LinuxAccessibility::LinuxAccessibility(Display* display, ::Window native, Window& model, const std::string& title)
     : impl_(std::make_unique<Impl>()) {
     (*impl_).display = display; (*impl_).native = native; (*impl_).model = &model;
@@ -994,7 +1020,7 @@ LinuxAccessibility::LinuxAccessibility(Display* display, ::Window native, Window
     frame.index = static_cast<int>(data(application_root).children.size()); frame.node.name = title;
     data(application_root).children.push_back((*impl_).frame);
     g_signal_emit_by_name(application_root, "children-changed::add", frame.index, (*impl_).frame, nullptr);
-    update();
+    // No snapshot yet: the first client query publishes the tree.
 }
 LinuxAccessibility::~LinuxAccessibility() { detach(); }
 void LinuxAccessibility::set_title(const std::string& title) {
@@ -1023,7 +1049,11 @@ void LinuxAccessibility::detach() {
         atk_bridge_adaptor_cleanup(); g_object_unref(application_root); application_root = nullptr;
     }
 }
-void LinuxAccessibility::update() { (*impl_).update(); }
+void LinuxAccessibility::update() {
+    // Nothing is published, so nothing announced, until a client has asked.
+    if (!(*impl_).published) return;
+    (*impl_).update();
+}
 void accessibility_dispatch() {
     for (int i = 0; i < 16 && g_main_context_pending(nullptr); ++i) { g_main_context_iteration(nullptr, false); }
 }

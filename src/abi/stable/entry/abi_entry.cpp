@@ -100,6 +100,10 @@ constexpr gf_runtime_table runtime_table{
     .version = &runtime_version,
     .error_detail = &runtime_error_detail,
     .clear_error = &runtime_clear_error,
+    .splashscreen_show = &gui_forms::abi1::runtime_splashscreen_show,
+    .splashscreen_set_status = &gui_forms::abi1::runtime_splashscreen_set_status,
+    .splashscreen_set_progress = &gui_forms::abi1::runtime_splashscreen_set_progress,
+    .splashscreen_close = &gui_forms::abi1::runtime_splashscreen_close,
 };
 
 // The complete table for an id, or no table. Every table is a constant with
@@ -179,6 +183,14 @@ TableBytes find_table(gf_table_id table_id) noexcept {
     case GF_TABLE_SUBSURFACES:
         found.data = &gui_forms::abi1::subsurfaces_table();
         found.size = sizeof(gf_subsurfaces_table);
+        break;
+    case GF_TABLE_APPLICATION:
+        found.data = &gui_forms::abi1::application_table();
+        found.size = sizeof(gf_application_table);
+        break;
+    case GF_TABLE_RULES:
+        found.data = &gui_forms::abi1::rules_table();
+        found.size = sizeof(gf_rules_table);
         break;
 #if defined(GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT)
     case GF_TABLE_WINDOWS_PAINT_ENDPOINT:

@@ -3,6 +3,7 @@
 #include "gui_forms/component.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp"
 
 #include <memory>
 #include <string>
@@ -23,23 +24,10 @@ class Window;
 // HostServices::maximum_dialog_text_bytes; anything else throws
 // std::invalid_argument and changes nothing. The dialog is used on the UI
 // thread of the window it is shown over.
-class FolderBrowserDialog final : public Component {
+class FolderBrowserDialog final : public Component, public FolderBrowserDialogCapabilities<FolderBrowserDialog> {
 public:
     FolderBrowserDialog();
     ~FolderBrowserDialog() override;
-
-    // The text the dialog shows the user: above the tree on Windows, as the
-    // title elsewhere. Empty gives the host's own.
-    [[nodiscard]] const std::string& description() const noexcept { return description_; }
-    void set_description(std::string description);
-    // The folder the dialog starts in when no folder is selected; empty lets
-    // the host choose.
-    [[nodiscard]] const std::string& initial_directory() const noexcept { return initial_directory_; }
-    void set_initial_directory(std::string directory);
-    // The chosen folder, or empty. A folder set here before the dialog is
-    // shown is the one it starts in.
-    [[nodiscard]] const std::string& selected_path() const noexcept { return selected_path_; }
-    void set_selected_path(std::string path);
 
     // The host's answer to the last show_dialog.
     [[nodiscard]] HostServiceStatus status() const noexcept { return status_; }
@@ -60,12 +48,23 @@ private:
     // destroy the dialog: an expired observer means `this` is gone.
     struct Presence final {};
 
-    std::string description_{};
-    std::string initial_directory_{};
     std::string selected_path_{};
     HostServiceStatus status_{};
     bool showing_{};
     std::shared_ptr<Presence> presence_{std::make_shared<Presence>()};
+    // property_codemod begin FolderBrowserDialog (tools/property_families/folder_browser_dialog.json; generated, do not edit)
+private:
+    friend struct FolderBrowserDialogDescriptionCapability<FolderBrowserDialog>;
+    friend struct FolderBrowserDialogInitialDirectoryCapability<FolderBrowserDialog>;
+    friend struct FolderBrowserDialogSelectedPathCapability<FolderBrowserDialog>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(description)& cell, std::string& incoming);
+    void written(const decltype(description)& cell);
+    void prepare_write(const decltype(initial_directory)& cell, std::string& incoming);
+    void written(const decltype(initial_directory)& cell);
+    void write_view(const decltype(selected_path)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(selected_path)& cell) const;
+    // property_codemod end FolderBrowserDialog
 };
 
 } // namespace gui_forms

@@ -20,30 +20,6 @@
       "reviewed": false,
       "summary": "Constructs a Panel with authored caption text and the control-caption font policy."
     },
-    "gui_forms::GroupBox::text|const std::string &() const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the authored caption including any mnemonic marker."
-    },
-    "gui_forms::GroupBox::set_text|void (std::string)": {
-      "reviewed": false,
-      "summary": "Commits caption text and invalidates measurement, painting, and semantics only for a real change."
-    },
-    "gui_forms::GroupBox::font|FontSpec () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the explicit caption FontSpec."
-    },
-    "gui_forms::GroupBox::set_font|void (FontSpec)": {
-      "reviewed": false,
-      "summary": "Validates and commits the caption font, then invalidates size, paint, and semantics."
-    },
-    "gui_forms::GroupBox::use_mnemonic|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether ampersand mnemonic parsing and focus routing are enabled."
-    },
-    "gui_forms::GroupBox::set_use_mnemonic|void (bool)": {
-      "reviewed": false,
-      "summary": "Toggles caption mnemonic interpretation and invalidates affected retained phases."
-    },
     "gui_forms::GroupBox::on_paint|void (Painter &, Rect)": {
       "reviewed": false,
       "summary": "Paints the Panel material and a caption-aware border gap before recording the caption text."

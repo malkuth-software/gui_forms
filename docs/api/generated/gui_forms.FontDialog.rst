@@ -7,7 +7,7 @@ gui_forms::FontDialog
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: FontDialog final : public Panel
+.. cpp:class:: FontDialog final : public Panel, public FontDialogCapabilities<FontDialog>
 
    ``#include <gui_forms/controls/panel/font_dialog/font_dialog.hpp>``
 
@@ -34,9 +34,15 @@ gui_forms::FontDialog
    :Properties:
 
       **font** : ``FontSpec``, default 9-unit Carlito, regular
-         The font OK or Apply last took. :cpp:func:`set_font <gui_forms::FontDialog::set_font>` sets it and resets the
+         The font OK or Apply last took. A write sets it and resets the
          dialog's controls to it; an invalid :cpp:class:`FontSpec <gui_forms::FontSpec>` throws
          ``std::invalid_argument``. Letter spacing is kept as given.
+
+      **show_apply** : ``bool``, default ``true``
+         Whether the Apply button is shown.
+
+      **preview_text** : ``std::string``, default ``"AaBbYyZz 0123"``
+         The text the preview shows. Invalid UTF-8 throws ``std::invalid_argument``.
 
       **selection** : ``FontSpec``, read-only
          The font the dialog's controls show now: weight 400 or 700 (a set font
@@ -50,12 +56,6 @@ gui_forms::FontDialog
 
       **maximum_size** : ``double``, default ``72``, read-only
          The largest size offered.
-
-      **show_apply** : ``bool``, default ``true``
-         Whether the Apply button is shown.
-
-      **preview_text** : ``std::string_view``, default ``"AaBbYyZz 0123"``
-         The text the preview shows. Invalid UTF-8 throws ``std::invalid_argument``.
 
       **surface** : ``DialogSurface``
          How show() presents the dialog (DialogSurface; an overlay by default). With native_popup it opens in a native popup window owned by the owner's window, centred over its client area, when the run can open one; the transparent layer that holds the owner's input stays in the owner's window. Takes effect at the next show().
@@ -79,29 +79,29 @@ gui_forms::FontDialog
          The :cpp:class:`NumericUpDown <gui_forms::NumericUpDown>` of sizes, in logical units with one decimal place.
 
       **ok_button** : ``std::shared_ptr<Button>``, read-only
-         The OK button: takes the selection as :cpp:func:`font <gui_forms::FontDialog::font>` and closes.
+         The OK button: takes the selection as :cpp:member:`font <gui_forms::FontDialog::font>` and closes.
 
       **cancel_button** : ``std::shared_ptr<Button>``, read-only
-         The Cancel button: closes and keeps :cpp:func:`font <gui_forms::FontDialog::font>`.
+         The Cancel button: closes and keeps :cpp:member:`font <gui_forms::FontDialog::font>`.
 
       **apply_button** : ``std::shared_ptr<Button>``, read-only
-         The Apply button: takes the selection as :cpp:func:`font <gui_forms::FontDialog::font>` and raises :cpp:func:`apply <gui_forms::FontDialog::apply>`.
+         The Apply button: takes the selection as :cpp:member:`font <gui_forms::FontDialog::font>` and raises :cpp:func:`apply <gui_forms::FontDialog::apply>`.
 
    :Events:
 
       **apply** : ``Event<const FontSpec&>``
-         Raised by Apply, with the new :cpp:func:`font <gui_forms::FontDialog::font>`.
+         Raised by Apply, with the new :cpp:member:`font <gui_forms::FontDialog::font>`.
 
       **closed** : ``Event<const FontDialogResult&>``
          Raised after the dialog closes, with a :cpp:class:`FontDialogResult <gui_forms::FontDialogResult>`: the
-         :cpp:enum:`DialogResult <gui_forms::DialogResult>` (ok or cancel) and :cpp:func:`font <gui_forms::FontDialog::font>`. Escape, :cpp:func:`close <gui_forms::FontDialog::close>` and the owner
+         :cpp:enum:`DialogResult <gui_forms::DialogResult>` (ok or cancel) and :cpp:member:`font <gui_forms::FontDialog::font>`. Escape, :cpp:func:`close <gui_forms::FontDialog::close>` and the owner
          going away (hidden, disabled or disposed) close it as a cancel.
 
    :Inherited:
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -116,7 +116,7 @@ gui_forms::FontDialog
       * - :cpp:func:`show <gui_forms::FontDialog::show>`
         - Opens the dialog centred over the owner's window, above a layer that takes presses outside it, and holds the keyboard focus inside it until it closes.
       * - :cpp:func:`close <gui_forms::FontDialog::close>`
-        - Closes the open dialog with a :cpp:enum:`DialogResult <gui_forms::DialogResult>`; OK takes the selection as :cpp:func:`font <gui_forms::FontDialog::font>`.
+        - Closes the open dialog with a :cpp:enum:`DialogResult <gui_forms::DialogResult>`; OK takes the selection as :cpp:member:`font <gui_forms::FontDialog::font>`.
       * - :cpp:func:`set_size_range <gui_forms::FontDialog::set_size_range>`
         - Sets :cpp:func:`minimum_size <gui_forms::FontDialog::minimum_size>` and :cpp:func:`maximum_size <gui_forms::FontDialog::maximum_size>`.
 
@@ -157,7 +157,7 @@ gui_forms::FontDialog
 
       std::shared_ptr<gf::FontDialog> dialog =
           gf::make_control<gf::FontDialog>(gf::StableId("log.font"));
-      (*dialog).set_font({gf::FontRole::monospace, 11.0, 400, false});
+      (*dialog).font = gf::FontSpec{gf::FontRole::monospace, 11.0, 400, false};
       (*dialog).set_size_range(8.0, 24.0);
       const gf::FontSpec chosen = (*dialog).selection();   // 11-unit Cousine
       // (*dialog).show(owner) opens it; its closed event carries the result.
@@ -170,15 +170,19 @@ gui_forms::FontDialog
 
    .. rubric:: Properties
 
-   .. cpp:function:: FontSpec font() const noexcept
+   .. cpp:member:: FontSpec font
 
-      The font OK or Apply last took. :cpp:func:`set_font <gui_forms::FontDialog::set_font>` sets it and resets the
+      The font OK or Apply last took. A write sets it and resets the
       dialog's controls to it; an invalid :cpp:class:`FontSpec <gui_forms::FontSpec>` throws
       ``std::invalid_argument``. Letter spacing is kept as given.
 
-   .. cpp:function:: void set_font(FontSpec font)
+   .. cpp:member:: bool show_apply
 
-      Sets :cpp:func:`font <gui_forms::FontDialog::font>`; see the property's description above.
+      Whether the Apply button is shown.
+
+   .. cpp:member:: std::string preview_text
+
+      The text the preview shows. Invalid UTF-8 throws ``std::invalid_argument``.
 
    .. cpp:function:: FontSpec selection() const noexcept
 
@@ -195,22 +199,6 @@ gui_forms::FontDialog
    .. cpp:function:: double maximum_size() const noexcept
 
       The largest size offered.
-
-   .. cpp:function:: bool show_apply() const noexcept
-
-      Whether the Apply button is shown.
-
-   .. cpp:function:: void set_show_apply(bool show)
-
-      Sets :cpp:func:`show_apply <gui_forms::FontDialog::show_apply>`; see the property's description above.
-
-   .. cpp:function:: std::string_view preview_text() const noexcept
-
-      The text the preview shows. Invalid UTF-8 throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_preview_text(std::string text)
-
-      Sets :cpp:func:`preview_text <gui_forms::FontDialog::preview_text>`; see the property's description above.
 
    .. cpp:function:: DialogSurface surface() const noexcept
 
@@ -243,27 +231,27 @@ gui_forms::FontDialog
 
    .. cpp:function:: std::shared_ptr<Button> ok_button() const noexcept
 
-      The OK button: takes the selection as :cpp:func:`font <gui_forms::FontDialog::font>` and closes.
+      The OK button: takes the selection as :cpp:member:`font <gui_forms::FontDialog::font>` and closes.
 
    .. cpp:function:: std::shared_ptr<Button> cancel_button() const noexcept
 
-      The Cancel button: closes and keeps :cpp:func:`font <gui_forms::FontDialog::font>`.
+      The Cancel button: closes and keeps :cpp:member:`font <gui_forms::FontDialog::font>`.
 
    .. cpp:function:: std::shared_ptr<Button> apply_button() const noexcept
 
-      The Apply button: takes the selection as :cpp:func:`font <gui_forms::FontDialog::font>` and raises :cpp:func:`apply <gui_forms::FontDialog::apply>`.
+      The Apply button: takes the selection as :cpp:member:`font <gui_forms::FontDialog::font>` and raises :cpp:func:`apply <gui_forms::FontDialog::apply>`.
 
 
    .. rubric:: Events
 
    .. cpp:function:: Event<const FontSpec&>& apply() noexcept
 
-      Raised by Apply, with the new :cpp:func:`font <gui_forms::FontDialog::font>`.
+      Raised by Apply, with the new :cpp:member:`font <gui_forms::FontDialog::font>`.
 
    .. cpp:function:: Event<const FontDialogResult&>& closed() noexcept
 
       Raised after the dialog closes, with a :cpp:class:`FontDialogResult <gui_forms::FontDialogResult>`: the
-      :cpp:enum:`DialogResult <gui_forms::DialogResult>` (ok or cancel) and :cpp:func:`font <gui_forms::FontDialog::font>`. Escape, :cpp:func:`close <gui_forms::FontDialog::close>` and the owner
+      :cpp:enum:`DialogResult <gui_forms::DialogResult>` (ok or cancel) and :cpp:member:`font <gui_forms::FontDialog::font>`. Escape, :cpp:func:`close <gui_forms::FontDialog::close>` and the owner
       going away (hidden, disabled or disposed) close it as a cancel.
 
 
@@ -278,14 +266,14 @@ gui_forms::FontDialog
 
       Opens the dialog centred over the owner's window, above a layer that
       takes presses outside it, and holds the keyboard focus inside it until it
-      closes. The controls start from :cpp:func:`font <gui_forms::FontDialog::font>`. Returns false when the owner is
+      closes. The controls start from :cpp:member:`font <gui_forms::FontDialog::font>`. Returns false when the owner is
       not attached or the dialog already has a parent (it is placed in a
       layout). There is no modal loop: :cpp:func:`show <gui_forms::FontDialog::show>` returns at once.
 
    .. cpp:function:: void close(DialogResult result)
 
       Closes the open dialog with a :cpp:enum:`DialogResult <gui_forms::DialogResult>`; OK takes the selection as
-      :cpp:func:`font <gui_forms::FontDialog::font>`. Raises :cpp:func:`closed <gui_forms::FontDialog::closed>`. Does nothing when the dialog is not open.
+      :cpp:member:`font <gui_forms::FontDialog::font>`. Raises :cpp:func:`closed <gui_forms::FontDialog::closed>`. Does nothing when the dialog is not open.
 
    .. cpp:function:: void set_size_range(double minimum, double maximum)
 

@@ -443,6 +443,11 @@ HWND make_backdrop() {
 } // namespace
 
 int main() {
+    // The program's application (APP_WINDOW_RULES_DESIGN A.2): windows made
+    // from here join it, and it runs them.
+    ApplicationCreateResult created = Application::create(ApplicationConfig{});
+    if (!created) return 1;
+    Application& application = *created.application;
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     const HostCapabilities capabilities = Application::capabilities();
     if (!capabilities.supports(HostCapability::transparent_windows) ||
@@ -467,7 +472,7 @@ int main() {
     options.initial_size = Size{240.0, 160.0};
     options.non_opaque = true;
     options.ready = GateReady{};
-    const ApplicationResult result = Application::run(std::move(model), std::move(options));
+    const ApplicationResult result = application.run(std::move(model), std::move(options));
     active_gate = nullptr;
     if (gate.timer != 0U) KillTimer(nullptr, gate.timer);
     DestroyWindow(gate.backdrop);

@@ -5,11 +5,16 @@
 // contrast at scales 1 and 2, written as contact sheets with a hash
 // manifest, and with the contrast measured in pixels where text sits.
 //
-//   gui_forms_specimen_sheet --out <directory> [--repeat] [--theme gui-forms] [--light]
+//   gui_forms_specimen_sheet --out <directory> [--repeat] [--theme <gui-forms|classic|modern-flat|xp-style|windows7-style|macos-style>] [--light]
 //   gui_forms_specimen_sheet --smoke
 //
+// --page <id> draws that Gallery page whole instead (page-<presentation>-
+// <scale>x.png, light and dark at scales 1 and 2); the controls-inspection
+// page is made for it.
+//
 // The Gallery's own theme (windows-professional) is drawn unless --theme
-// names the default theme `gui-forms` (stage T4, phase 3); --light
+// names the default theme `gui-forms` (stage T4, phase 3) or a
+// familiar theme (phase 7, familiar_theme_named); --light
 // captures light only, at scales 1 and 2.
 //
 // A full run writes, under <directory>, one PNG contact sheet per
@@ -40,6 +45,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -127,6 +133,8 @@ constexpr double cell_height = 80.0;
 constexpr double label_width = 200.0;
 constexpr double gutter = 8.0;
 constexpr std::size_t rows_per_sheet = 20U;
+// Idle frames a page may take to generate its procedural patterns.
+constexpr std::size_t maximum_settle_frames = 64U;
 
 // -- colour arithmetic (WCAG 2, as src/core/theme/contrast) ----------------------
 
@@ -520,11 +528,12 @@ const Control* control_under(const Control& control, Point point) {
     return &control;
 }
 
-// 7:1 in high contrast; otherwise 3:1 for text a disabled control paints
-// (the cell's state, or a disabled control inside the specimen), 4.5:1 else.
+// None for text a disabled control paints (the cell's state, or a disabled
+// control inside the specimen): WCAG exempts inactive components (owner,
+// 2026-11-08). Otherwise 7:1 in high contrast, 4.5:1 else.
 double threshold_for(Presentation presentation, bool disabled) noexcept {
+    if (disabled) return 0.0;
     if (presentation == Presentation::high_contrast) return 7.0;
-    if (disabled) return 3.0;
     return 4.5;
 }
 
@@ -723,12 +732,72 @@ struct RunOptions final {
     bool light_only{};
     // The theme --theme names, or null for the Gallery's own.
     std::shared_ptr<const Theme> theme{};
+    // --page: the Gallery page drawn whole instead of the sheets.
+    std::string page;
 };
 
 std::string config_name(SheetConfig config) {
     std::ostringstream text;
     text << presentation_name(config.presentation) << '-' << static_cast<int>(config.scale) << 'x';
     return text.str();
+}
+
+// --page: draws the Gallery on `page` at `config` and writes the whole
+// window to `path` as a PNG. False when the raster cannot be prepared or the
+// file not written.
+// Paints the whole window into `raster`.
+void paint_whole(Window& window, render::SkiaRaster& raster) {
+    window.perform_layout();
+    const Rect whole{0.0, 0.0, window.client_size().width, window.client_size().height};
+    DamageRegion damage;
+    damage.add(whole);
+    static_cast<void>(raster.synchronize_images(window.image_resources()));
+    raster.begin_frame(damage);
+    static_cast<void>(window.paint(raster, whole));
+    raster.end_frame();
+}
+
+// Generates the procedural patterns a paint asked for. The engine makes
+// them in idle frames (E10), one per frame, and draws their grounds until
+// then, so a page painted once would show only the grounds. Bounded: a
+// page whose motion never settles keeps its grounds.
+void settle_patterns(Window& window) {
+    FrameTime now = FrameClock::now();
+    std::size_t frame = 0U;
+    while (frame < maximum_settle_frames && window.engine_parts().patterns_waiting()) {
+        static_cast<void>(window.take_damage());
+        now += std::chrono::milliseconds(16);
+        static_cast<void>(window.poll_frame_schedule(now));
+        frame = frame + 1U;
+    }
+}
+
+bool write_page(const std::filesystem::path& path, std::string_view page, SheetConfig config,
+                const std::shared_ptr<detail::BundledFontSet>& fonts) {
+    // Declared before the window, which borrows it.
+    render::SkiaRaster raster{};
+    if (!raster.resize(Size{1280.0, 820.0}, config.scale) || !raster.register_bundled_fonts(fonts)) return false;
+    std::unique_ptr<Window> owned = gallery_on(raster, page, config);
+    Window& window = *owned;
+    // resize refuses (false) the size the raster already has.
+    static_cast<void>(raster.resize(window.client_size(), config.scale));
+    paint_whole(window, raster);
+    if (window.engine_parts().patterns_waiting()) {
+        settle_patterns(window);
+        paint_whole(window, raster);
+    }
+    image::PngEncodeInput input{};
+    input.width = raster.pixel_width();
+    input.height = raster.pixel_height();
+    input.row_bytes = raster.row_bytes();
+    const std::size_t byte_count = static_cast<std::size_t>(raster.row_bytes()) * raster.pixel_height();
+    input.pixels = std::span<const std::byte>(static_cast<const std::byte*>(raster.pixels()), byte_count);
+    input.order = image::PngChannelOrder::bgra;
+    input.alpha = image::PngSourceAlpha::premultiplied;
+    std::vector<std::byte> encoded{};
+    if (!image::encode_png(input, encoded)) return false;
+    const bool written = write_file(path, encoded);
+    return written;
 }
 
 // The specimens, chosen in a light Gallery at scale 1 measured by `raster`,
@@ -776,6 +845,22 @@ int run(const RunOptions& options) {
     if (!chooser.resize(Size{1280.0, 820.0}, 1.0) || !chooser.register_bundled_fonts(fonts)) {
         std::cerr << "specimen sheet: the bundled fonts did not register\n";
         return 1;
+    }
+    if (!options.page.empty()) {
+        const std::array<Presentation, 2> page_presentations{Presentation::light, Presentation::dark};
+        const std::array<double, 2> page_scales{1.0, 2.0};
+        for (const Presentation presentation : page_presentations) {
+            if (options.light_only && presentation != Presentation::light) continue;
+            for (const double scale : page_scales) {
+                const SheetConfig config{presentation, scale, &options.theme};
+                const std::filesystem::path path = options.out / ("page-" + config_name(config) + ".png");
+                if (!write_page(path, options.page, config, fonts)) {
+                    std::cerr << "specimen sheet: could not write " << path.string() << '\n';
+                    return 1;
+                }
+            }
+        }
+        return 0;
     }
     SheetConfig chosen{};
     chosen.theme = &options.theme;
@@ -884,16 +969,23 @@ int main(int argument_count, char** arguments) {
         } else if (argument == "--theme" && index + 1 < argument_count && std::string_view(arguments[index + 1]) == "gui-forms") {
             options.theme = gui_forms_theme();
             ++index;
+        } else if (argument == "--theme" && index + 1 < argument_count &&
+                   familiar_theme_named(std::string_view(arguments[index + 1]))) {
+            options.theme = familiar_theme(*familiar_theme_named(std::string_view(arguments[index + 1])));
+            ++index;
+        } else if (argument == "--page" && index + 1 < argument_count) {
+            options.page = std::string(arguments[index + 1]);
+            ++index;
         } else if (argument == "--out" && index + 1 < argument_count) {
             options.out = std::filesystem::path(arguments[index + 1]);
             ++index;
         } else {
-            std::cerr << "usage: gui_forms_specimen_sheet (--out <directory> [--repeat] [--theme gui-forms] [--light] | --smoke)\n";
+            std::cerr << "usage: gui_forms_specimen_sheet (--out <directory> [--repeat] [--theme <gui-forms|classic|modern-flat|xp-style|windows7-style|macos-style>] [--light] [--page <id>] | --smoke)\n";
             return 2;
         }
     }
     if (!options.smoke && options.out.empty()) {
-        std::cerr << "usage: gui_forms_specimen_sheet (--out <directory> [--repeat] [--theme gui-forms] [--light] | --smoke)\n";
+        std::cerr << "usage: gui_forms_specimen_sheet (--out <directory> [--repeat] [--theme <gui-forms|classic|modern-flat|xp-style|windows7-style|macos-style>] [--light] [--page <id>] | --smoke)\n";
         return 2;
     }
     if (!options.out.empty()) std::filesystem::create_directories(options.out);

@@ -132,6 +132,9 @@ public:
     // services) is the UI thread's from its first use. The caller has
     // entered the UI thread with bind.
     void hold_binding() noexcept;
+    // Whether the library holds an object or a run: an application is made
+    // only before either (application.create).
+    [[nodiscard]] bool holds_objects() noexcept;
 
     // The control behind a live identity (GF_STATUS_INVALID_ARGUMENT for
     // zero, GF_STATUS_STALE_HANDLE for an ended one or one whose sub-surface

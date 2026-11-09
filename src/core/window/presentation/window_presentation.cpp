@@ -8,6 +8,7 @@
 #include "../../display/chunk/display_chunk.hpp"
 #include "../../display/recording_painter/recording_painter.hpp"
 #include "../../display/replay/replay_display_chunk.hpp"
+#include "../../engine/primitives/material/material_raster.hpp"
 #include "../../theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../overlay/overlay_attachment.hpp"
 
@@ -44,6 +45,24 @@ public:
     }
 private:
     std::weak_ptr<LiveSurfaceIdleWake> state_{};
+};
+
+// Posted to the window's dispatcher when a live surface's frame was
+// presented unpaired: tells the control's listener on the window's thread,
+// after the present, unless the control released it first.
+class NoticePairingMissed final {
+public:
+    NoticePairingMissed(std::weak_ptr<LiveSurfacePairingListener> listener, std::uint64_t content_tag) noexcept
+        : listener_(std::move(listener)), content_tag_(content_tag) {}
+    void operator()() const {
+        const std::shared_ptr<LiveSurfacePairingListener> listener = listener_.lock();
+        if (!listener) return;
+        (*listener).live_surface_pairing_missed(content_tag_);
+    }
+
+private:
+    std::weak_ptr<LiveSurfacePairingListener> listener_;
+    std::uint64_t content_tag_{};
 };
 
 // The window rectangle in which a live surface's newest frame may differ
@@ -121,8 +140,9 @@ std::optional<ControlSnapshot> SurfaceRoot::snapshot_control(const Control::Ptr&
     const std::unique_ptr<PaintFramebuffer> framebuffer = create_framebuffer(logical, scale);
     if (!framebuffer) return std::nullopt;
     // Record: the subtree's planes, each in order, into one command list in
-    // the subtree's own coordinates.
-    detail::RecordingPainter candidate(text_metrics_provider_);
+    // the subtree's own coordinates, its materials baked at the snapshot's
+    // scale.
+    detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale});
     std::uint64_t visited_nodes = 0;
     std::uint64_t painted_controls = 0;
     std::uint64_t consumed_invalidations = 0;
@@ -215,10 +235,32 @@ void SurfaceRoot::abandon_paint(std::uint64_t generation_before) {
     }
 }
 
+namespace {
+
+// `rect` grown outward to whole device pixels at `scale`. A painted
+// rectangle covers whole pixels, so every drawing under its clip repaints
+// each pixel it touches entirely: a part raster's composite and an
+// anti-aliased fill agree there, and no partly covered pixel blends the new
+// frame with the old one.
+Rect device_aligned(Rect rect, double scale) noexcept {
+    if (rect.empty() || !std::isfinite(scale) || scale <= 0.0) return rect;
+    const double left = std::floor(rect.x * scale) / scale;
+    const double top = std::floor(rect.y * scale) / scale;
+    const double right = std::ceil((rect.x + rect.width) * scale) / scale;
+    const double bottom = std::ceil((rect.y + rect.height) * scale) / scale;
+    const Rect aligned{left, top, right - left, bottom - top};
+    return aligned;
+}
+
+} // namespace
+
 Rect SurfaceRoot::plane_paint_bounds(std::size_t index, Rect rectangle,
                                 bool explicit_request) const {
     if (explicit_request) return rectangle;
-    const Rect plane = Rect::intersection(plane_damage_[index].bounds(), rectangle);
+    // Plane damage grows to whole device pixels like the painted rectangle
+    // it is clipped to, so no plane paints part of a pixel it covers.
+    const Rect damage = device_aligned(plane_damage_[index].bounds(), scale_);
+    const Rect plane = Rect::intersection(damage, rectangle);
     return plane;
 }
 
@@ -231,7 +273,10 @@ bool SurfaceRoot::has_plane_damage() const noexcept {
 
 bool SurfaceRoot::paint_pending() const noexcept {
     if (dirty_after_render_) return true;
-    if (control_table_.pending(detail::DirtyKind::paint) || !pending_local_damage_.empty()) return true;
+    if (control_table_.pending(detail::DirtyKind::paint) || !pending_local_damage_.empty() ||
+        !pending_content_gathers_.empty()) {
+        return true;
+    }
     const bool damaged = has_plane_damage();
     return damaged;
 }
@@ -250,16 +295,19 @@ bool nearly_touch(Rect left, Rect right) noexcept {
     return touching;
 }
 
-// Clips `input` to `window_bounds`, merges rectangles that overlap or nearly
-// touch until none do, and fills `merged`. A set larger than the damage
-// region's capacity collapses to its bounds, as DamageRegion does.
-void merge_paint_rectangles(std::span<const Rect> input, Rect window_bounds,
+// Clips `input` to `window_bounds`, each grown to whole device pixels at
+// `scale`, merges rectangles that overlap or nearly touch until none do,
+// and fills `merged`. A set larger than the damage region's capacity
+// collapses to its bounds, as DamageRegion does.
+void merge_paint_rectangles(std::span<const Rect> input, Rect window_bounds, double scale,
                             std::vector<Rect>& merged) {
     merged.clear();
     merged.reserve(input.size());
     for (std::size_t index = 0; index < input.size(); ++index) {
         const Rect clipped = Rect::intersection(input[index], window_bounds);
-        if (!clipped.empty()) merged.push_back(clipped);
+        if (clipped.empty()) continue;
+        const Rect aligned = Rect::intersection(device_aligned(clipped, scale), window_bounds);
+        merged.push_back(aligned);
     }
     bool changed = true;
     while (changed) {
@@ -361,12 +409,44 @@ void SurfaceRoot::paint_backplane_rectangle(detail::RecordingPainter& candidate,
         cleared.composite = PaintGroupComposite::copy;
         cleared.isolated = true;
         candidate.begin_group(cleared);
-        paint_surface_material(candidate, window_bounds, backplane);
+        paint_backplane_material(candidate, window_bounds, backplane);
         candidate.end_group();
     } else {
-        paint_surface_material(candidate, window_bounds, backplane);
+        paint_backplane_material(candidate, window_bounds, backplane);
     }
     candidate.restore();
+}
+
+void SurfaceRoot::paint_backplane_material(detail::RecordingPainter& candidate, const Rect window_bounds,
+                                           const SurfaceMaterial& backplane) {
+    const bool bakes = !window_bounds.empty() && valid_surface_material(backplane) && backplane.finish == 0.0 &&
+                       detail::material_painting(backplane) == detail::MaterialPainting::kernel;
+    if (!bakes) {
+        paint_surface_material(candidate, window_bounds, backplane);
+        return;
+    }
+    const std::optional<SurfaceMaterial> stripped = detail::material_as_painted(backplane);
+    const SurfaceMaterial& material = stripped ? *stripped : backplane;
+    const Size size{window_bounds.width, window_bounds.height};
+    const bool kept = backplane_baked_raster_ && *backplane_baked_material_ == material &&
+                      backplane_baked_size_ == size && (*backplane_baked_raster_).scale() == DeviceScale{scale_};
+    if (!kept) {
+        backplane_baked_raster_.reset();
+        backplane_baked_material_.reset();
+        const double outset = detail::material_raster_outset(material);
+        std::shared_ptr<const PartRaster> raster =
+            detail::bake_material_raster(material, size, DeviceScale{scale_}, outset);
+        if (!raster) {
+            paint_surface_material(candidate, window_bounds, backplane);
+            return;
+        }
+        backplane_baked_raster_ = std::move(raster);
+        backplane_baked_material_ = std::make_shared<const SurfaceMaterial>(material);
+        backplane_baked_size_ = size;
+        backplane_baked_outset_ = outset;
+    }
+    candidate.draw_baked_surface_material(window_bounds, backplane_baked_material_, backplane_baked_raster_,
+                                          backplane_baked_outset_);
 }
 
 std::size_t SurfaceRoot::covering_plane(const Rect rectangle, const bool explicit_request,
@@ -375,7 +455,8 @@ std::size_t SurfaceRoot::covering_plane(const Rect rectangle, const bool explici
         const std::size_t plane_index = index - 1U;
         // A plane paints the whole rectangle when asked to or when its
         // damage holds it (plane_paint_bounds).
-        const bool whole = explicit_request || plane_damage_[plane_index].bounds().contains(rectangle);
+        const bool whole =
+            explicit_request || device_aligned(plane_damage_[plane_index].bounds(), scale_).contains(rectangle);
         if (!whole) continue;
         path.clear();
         if (find_paint_cover(root_, rectangle, static_cast<PaintPlane>(plane_index), path)) return plane_index;
@@ -464,7 +545,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
 
     const Rect window_bounds{0.0, 0.0, client_size_.width, client_size_.height};
     std::vector<Rect>& painted = painted_rectangles_;
-    merge_paint_rectangles(rectangles, window_bounds, painted);
+    merge_paint_rectangles(rectangles, window_bounds, scale_, painted);
     if (painted.empty()) {
         return std::nullopt;
     }
@@ -497,7 +578,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
         // Application callbacks and retained chunk rebuilding record into a
         // complete candidate command list. No candidate command reaches the
         // host raster until every callback has returned successfully.
-        detail::RecordingPainter candidate(text_metrics_provider_);
+        detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale()});
         // A top-level retained surface owns an explicit backplane even when
         // its application root is a transparent layout container. Replaying
         // only children cannot erase pixels formerly occupied by an overlay
@@ -587,6 +668,10 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
                 }
             }
         }
+        // The outer band over every plane, overlays included (owner,
+        // 2026-11-08): what lies beneath it in the band shows only where
+        // its colour lets it.
+        paint_band(candidate, painted);
         const std::shared_ptr<const detail::DisplayChunk> transaction =
             candidate.finish(
             display_generation_, PaintPlane::control, window_bounds);
@@ -781,6 +866,19 @@ bool Window::require_live_surface_content(const Control::Ptr& control,
     return true;
 }
 
+bool Window::set_live_surface_pairing_listener(const Control::Ptr& control,
+                                               std::weak_ptr<LiveSurfacePairingListener> listener) {
+    require_root_thread("live-surface pairing listener");
+    if (!control) return false;
+    const LiveSurfaceRegistrationMap::iterator entry =
+        live_surface_registrations_.find((*control).runtime_id().value);
+    if (entry == live_surface_registrations_.end()) return false;
+    // The previous listener is released after the swap.
+    std::weak_ptr<LiveSurfacePairingListener> previous = std::move(listener);
+    std::swap((*entry).second.pairing_listener, previous);
+    return true;
+}
+
 void Window::set_live_surface_idle_wake_handler(std::function<void()> wake) {
     require_root_thread("live-surface idle handler");
     std::shared_ptr<detail::LiveSurfaceIdleWake> replacement{};
@@ -925,8 +1023,9 @@ Window::take_live_surface_presentations(const bool include_unchanged,
         }
 
         const Rect destination = absolute_bounds_of(*control);
-        Rect clip = Rect::intersection(
-            destination, {0.0, 0.0, client_size_.width, client_size_.height});
+        // A host-composed live frame never covers the outer band: it is
+        // clipped to the content rectangle.
+        Rect clip = Rect::intersection(destination, content_rect());
         bool valid = !destination.empty() && !clip.empty();
         for (Control::Ptr ancestor = (*control).parent();
              ancestor && valid && !clip.empty();
@@ -1007,7 +1106,18 @@ Window::take_live_surface_presentations(const bool include_unchanged,
                         (*control).runtime_id(), registration.surface,
                         destination, visible_clip, damage_limited, !content_behind});
                 }
-                if (content_behind && !clips.empty()) metrics_.record_live_unpaired_presentation();
+                if (content_behind && !clips.empty()) {
+                    metrics_.record_live_unpaired_presentation();
+                    // Told once per required tag, by a task posted to this
+                    // thread: the listener runs after this present, never
+                    // inside it (a closed dispatcher refuses the post).
+                    const bool untold = registration.required_content_tag > registration.pairing_missed_tag;
+                    if (untold && !registration.pairing_listener.expired()) {
+                        registration.pairing_missed_tag = registration.required_content_tag;
+                        static_cast<void>(dispatcher().begin_invoke(detail::NoticePairingMissed(
+                            registration.pairing_listener, registration.required_content_tag)));
+                    }
+                }
             }
             registration.sampled_epoch = snapshot.epoch;
             registration.sampled_generation = snapshot.published_generation;

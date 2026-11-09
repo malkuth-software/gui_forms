@@ -64,6 +64,40 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status splashscreen_show(const gf_splashscreen_options* options,
+                                              gf_splashscreen* splashscreen) const noexcept {
+        if (table_.struct_size < 40u || table_.splashscreen_show == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.splashscreen_show(options, splashscreen);
+        return called;
+    }
+
+    [[nodiscard]] gf_status splashscreen_set_status(gf_splashscreen splashscreen, gf_utf8_view status) const noexcept {
+        if (table_.struct_size < 48u || table_.splashscreen_set_status == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.splashscreen_set_status(splashscreen, status);
+        return called;
+    }
+
+    [[nodiscard]] gf_status splashscreen_set_progress(gf_splashscreen splashscreen, uint32_t show_progress,
+                                                      double progress) const noexcept {
+        if (table_.struct_size < 56u || table_.splashscreen_set_progress == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.splashscreen_set_progress(splashscreen, show_progress, progress);
+        return called;
+    }
+
+    [[nodiscard]] gf_status splashscreen_close(gf_splashscreen splashscreen) const noexcept {
+        if (table_.struct_size < 64u || table_.splashscreen_close == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.splashscreen_close(splashscreen);
+        return called;
+    }
+
 private:
     gf_runtime_table table_;
 };
@@ -1574,6 +1608,118 @@ public:
 
 private:
     gf_subsurfaces_table table_;
+};
+
+// gf_application_table, negotiated as GF_TABLE_APPLICATION.
+class ApplicationTable {
+public:
+    ApplicationTable() noexcept : table_{} {}
+
+    // Negotiates the table at the header's version into output; a refusal
+    // leaves output serving nothing.
+    [[nodiscard]] static gf_status negotiate(ApplicationTable& output) noexcept {
+        gf_application_table negotiated_table{};
+        const gf_status negotiated = gf_abi_get_table(GF_TABLE_APPLICATION, GF_ABI_MAJOR, GF_ABI_MINOR,
+                                                      &negotiated_table, sizeof(negotiated_table));
+        if (negotiated != GF_STATUS_OK) {
+            output = ApplicationTable{};
+            return negotiated;
+        }
+        output.table_ = negotiated_table;
+        return GF_STATUS_OK;
+    }
+
+    // A table the caller negotiated through gf_abi_get_table.
+    [[nodiscard]] static ApplicationTable adopt(const gf_application_table& adopted_table) noexcept {
+        ApplicationTable adopted;
+        adopted.table_ = adopted_table;
+        return adopted;
+    }
+
+    [[nodiscard]] const gf_application_table& c_table() const noexcept { return table_; }
+
+    [[nodiscard]] gf_status create(const gf_application_config* config, gf_theme_report* report) const noexcept {
+        if (table_.struct_size < 16u || table_.create == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.create(config, report);
+        return called;
+    }
+
+    [[nodiscard]] gf_status close(uint64_t* windows_alive) const noexcept {
+        if (table_.struct_size < 24u || table_.close == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.close(windows_alive);
+        return called;
+    }
+
+    [[nodiscard]] gf_status state(gf_application_state* state) const noexcept {
+        if (table_.struct_size < 32u || table_.state == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.state(state);
+        return called;
+    }
+
+private:
+    gf_application_table table_;
+};
+
+// gf_rules_table, negotiated as GF_TABLE_RULES.
+class RulesTable {
+public:
+    RulesTable() noexcept : table_{} {}
+
+    // Negotiates the table at the header's version into output; a refusal
+    // leaves output serving nothing.
+    [[nodiscard]] static gf_status negotiate(RulesTable& output) noexcept {
+        gf_rules_table negotiated_table{};
+        const gf_status negotiated = gf_abi_get_table(GF_TABLE_RULES, GF_ABI_MAJOR, GF_ABI_MINOR,
+                                                      &negotiated_table, sizeof(negotiated_table));
+        if (negotiated != GF_STATUS_OK) {
+            output = RulesTable{};
+            return negotiated;
+        }
+        output.table_ = negotiated_table;
+        return GF_STATUS_OK;
+    }
+
+    // A table the caller negotiated through gf_abi_get_table.
+    [[nodiscard]] static RulesTable adopt(const gf_rules_table& adopted_table) noexcept {
+        RulesTable adopted;
+        adopted.table_ = adopted_table;
+        return adopted;
+    }
+
+    [[nodiscard]] const gf_rules_table& c_table() const noexcept { return table_; }
+
+    [[nodiscard]] gf_status add(gf_object window, const gf_rule* rule, gf_rule_token* token) const noexcept {
+        if (table_.struct_size < 16u || table_.add == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.add(window, rule, token);
+        return called;
+    }
+
+    [[nodiscard]] gf_status remove(gf_rule_token token) const noexcept {
+        if (table_.struct_size < 24u || table_.remove == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.remove(token);
+        return called;
+    }
+
+    [[nodiscard]] gf_status state(gf_rule_token token, gf_rule_state* state) const noexcept {
+        if (table_.struct_size < 32u || table_.state == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.state(token, state);
+        return called;
+    }
+
+private:
+    gf_rules_table table_;
 };
 
 // gf_windows_paint_endpoint_table, negotiated as GF_TABLE_WINDOWS_PAINT_ENDPOINT.

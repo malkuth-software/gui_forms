@@ -1,0 +1,83 @@
+{
+  "family": "TabPage",
+  "step": "M-S8",
+  "declaring": "TabPage",
+  "header": "include/gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp",
+  "source": "src/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.cpp",
+  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page_capabilities/tab_page_capabilities.hpp",
+  "base": "Panel",
+  "shared": [
+    "TextCapability"
+  ],
+  "includes": [],
+  "test": {
+    "type": "TabPage",
+    "include": "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": "text",
+      "table": null,
+      "event": null,
+      "name": "text",
+      "capability": "Text",
+      "value": "std::string",
+      "hooks": "hand",
+      "hand": [
+        "written invalidates the page and its owning TabControl"
+      ],
+      "effects": "Dirty::paint | Dirty::semantics | Dirty::measure",
+      "comment": "The tab's caption (Text).",
+      "sample": "std::string{\"Options\"}",
+      "getter": "text",
+      "setter": "set_text",
+      "field": "text_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "image_key",
+      "capability": "TabPageImageKey",
+      "value": "std::string",
+      "storage": "view",
+      "field": null,
+      "hooks": "hand",
+      "hand": [
+        "a view: a write clears image_index, so an equal key still writes when an index is set"
+      ],
+      "effects": null,
+      "comment": "The tab's image in the TabControl's image list, by key (Windows Forms' ImageKey). A write clears image_index, as in Windows Forms; an empty key shows no image, and so does a key the list does not have. A key that is not valid UTF-8 or is longer than 256 bytes throws std::invalid_argument.",
+      "getter": "image_key",
+      "setter": "set_image_key"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "image_index",
+      "capability": "TabPageImageIndex",
+      "value": "int",
+      "storage": "view",
+      "field": null,
+      "hooks": "hand",
+      "hand": [
+        "a view: a write clears image_key, so an equal index still writes when a key is set"
+      ],
+      "effects": null,
+      "comment": "The tab's image in the TabControl's image list, by index (Windows Forms' ImageIndex). A write clears image_key; -1 (the default) shows no image, and so does an index the list does not have. An index below -1 throws std::out_of_range.",
+      "getter": "image_index",
+      "setter": "set_image_index"
+    }
+  ],
+  "not_properties": []
+}

@@ -3,6 +3,7 @@
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/native_popup/native_popup.hpp"
+#include "gui_forms/controls/panel/font_dialog/font_dialog_capabilities/font_dialog_capabilities.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -52,18 +53,13 @@ struct FontDialogResult final {
 // There is no modal loop: show() returns at once and closed reports the
 // result. OK takes the selection as font() and closes; Cancel closes and
 // keeps font(); Apply takes the selection as font() and raises apply.
-class FontDialog final : public Panel {
+class FontDialog final : public Panel, public FontDialogCapabilities<FontDialog> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit FontDialog(StableId stable_id);
     ~FontDialog() override;
     void initialize_control_tree();
 
-    // The font OK or Apply last took (initially 9-unit Carlito, like Windows
-    // Forms' default). set_font also resets the selection to it. An invalid
-    // FontSpec throws std::invalid_argument.
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
     // The font the dialog's controls show now. Its weight is 400 or 700,
     // italic only for a face with italics, and its size within the range.
     [[nodiscard]] FontSpec selection() const noexcept { return selection_; }
@@ -72,13 +68,6 @@ public:
     [[nodiscard]] double minimum_size() const noexcept { return minimum_size_; }
     [[nodiscard]] double maximum_size() const noexcept { return maximum_size_; }
     void set_size_range(double minimum, double maximum);
-    // Whether the Apply button is shown.
-    [[nodiscard]] bool show_apply() const noexcept { return show_apply_; }
-    void set_show_apply(bool show);
-    // The preview text, valid UTF-8 (invalid text throws
-    // std::invalid_argument).
-    [[nodiscard]] std::string_view preview_text() const noexcept { return preview_text_; }
-    void set_preview_text(std::string text);
 
     // Opens the dialog over `owner`'s window. Returns false when the owner is
     // not attached or the dialog already has a parent; true when it is open.
@@ -145,7 +134,7 @@ private:
     void show_selection();
     void fill_styles();
     [[nodiscard]] std::size_t face_index(FontRole role) const noexcept;
-    [[nodiscard]] FontSpec normalized(FontSpec font) const noexcept;
+    [[nodiscard]] FontSpec normalized(FontSpec requested) const noexcept;
     void on_face_selected(const ListSelectionChange& change);
     void on_style_selected(const ListSelectionChange& change);
     void on_size_changed(double size);
@@ -161,10 +150,8 @@ private:
     FontSpec selection_{FontRole::content, 9.0, 400, false};
     double minimum_size_{8.0};
     double maximum_size_{72.0};
-    bool show_apply_{true};
     bool open_{};
     bool synchronizing_{};
-    std::string preview_text_{"AaBbYyZz 0123"};
     std::shared_ptr<Label> face_caption_;
     std::shared_ptr<Label> style_caption_;
     std::shared_ptr<Label> size_caption_;
@@ -199,6 +186,19 @@ private:
     SubscriptionToken revocation_token_;
     Event<const FontSpec&> apply_;
     Event<const FontDialogResult&> closed_;
+    // property_codemod begin FontDialog (tools/property_families/font_dialog.json; generated, do not edit)
+private:
+    friend struct FontDialogFontCapability<FontDialog>;
+    friend struct FontDialogShowApplyCapability<FontDialog>;
+    friend struct FontDialogPreviewTextCapability<FontDialog>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(font)& cell, FontSpec incoming);
+    [[nodiscard]] FontSpec read_view(const decltype(font)& cell) const;
+    void prepare_write(const decltype(show_apply)& cell, bool& incoming);
+    void written(const decltype(show_apply)& cell);
+    void prepare_write(const decltype(preview_text)& cell, std::string& incoming);
+    void written(const decltype(preview_text)& cell);
+    // property_codemod end FontDialog
 };
 
 } // namespace gui_forms

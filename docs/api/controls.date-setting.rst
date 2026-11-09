@@ -41,6 +41,32 @@ Related types
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`DateTimePicker::States <gui_forms::DateTimePicker::States>`
      -  
+   * - :cpp:class:`DateTimePickerCapabilities <gui_forms::DateTimePickerCapabilities>`
+     - Every DateTimePicker capability, in the order the declaring class takes them.
+   * - :cpp:class:`DateTimePickerCheckedCapability <gui_forms::DateTimePickerCheckedCapability>`
+     - Whether the value is set, shown by the check box (Checked).
+   * - :cpp:class:`DateTimePickerCustomFormatCapability <gui_forms::DateTimePickerCustomFormatCapability>`
+     - The pattern used when format is custom (CustomFormat).
+   * - :cpp:class:`DateTimePickerDropDownAlignmentCapability <gui_forms::DateTimePickerDropDownAlignmentCapability>`
+     - Which edge the calendar aligns to (DropDownAlign).
+   * - :cpp:class:`DateTimePickerDroppedDownCapability <gui_forms::DateTimePickerDroppedDownCapability>`
+     - Whether the calendar is open; a view, since the calendar closes itself on commit, cancel and dismissal.
+   * - :cpp:class:`DateTimePickerFormatPropertyCapability <gui_forms::DateTimePickerFormatPropertyCapability>`
+     - Which of the format provider's patterns shows the value, or custom_format (Format).
+   * - :cpp:class:`DateTimePickerFormatProviderCapability <gui_forms::DateTimePickerFormatProviderCapability>`
+     - The month and day names and the patterns the value is shown with.
+   * - :cpp:class:`DateTimePickerMaximumCapability <gui_forms::DateTimePickerMaximumCapability>`
+     - The latest value (MaxDate).
+   * - :cpp:class:`DateTimePickerMinimumCapability <gui_forms::DateTimePickerMinimumCapability>`
+     - The earliest value (MinDate).
+   * - :cpp:class:`DateTimePickerShowCheckBoxCapability <gui_forms::DateTimePickerShowCheckBoxCapability>`
+     - Whether a check box before the value lets the user mark it as not set (ShowCheckBox).
+   * - :cpp:class:`DateTimePickerShowUpDownCapability <gui_forms::DateTimePickerShowUpDownCapability>`
+     - Whether arrows replace the calendar button (ShowUpDown); turning them on closes an open calendar.
+   * - :cpp:class:`DateTimePickerStyleCapability <gui_forms::DateTimePickerStyleCapability>`
+     - The field's colours; a view, since the theme's colours apply until it is written.
+   * - :cpp:class:`DateTimePickerValueCapability <gui_forms::DateTimePickerValueCapability>`
+     - The shown date and time (Value), within minimum and maximum; an invalid or out-of-range value throws std::out_of_range.
    * - :cpp:class:`DateTimeValue <gui_forms::DateTimeValue>`
      - DateTimeValue is DateTimePicker's timezone-free civil date/time value.
    * - :cpp:class:`FirstDayOfWeekCapability <gui_forms::FirstDayOfWeekCapability>`
@@ -213,6 +239,274 @@ Related types
    .. cpp:member:: bool closed
 
    .. cpp:member:: bool checked
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DateTimePickerCapabilities : public DateTimePickerValueCapability<Declaring>, public DateTimePickerMinimumCapability<Declaring>, public DateTimePickerMaximumCapability<Declaring>, public DateTimePickerFormatPropertyCapability<Declaring>, public DateTimePickerCustomFormatCapability<Declaring>, public DateTimePickerFormatProviderCapability<Declaring>, public DateTimePickerShowCheckBoxCapability<Declaring>, public DateTimePickerCheckedCapability<Declaring>, public DateTimePickerShowUpDownCapability<Declaring>, public DateTimePickerDroppedDownCapability<Declaring>, public DateTimePickerDropDownAlignmentCapability<Declaring>, public FontCapability<Declaring>, public DateTimePickerStyleCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+
+   Every DateTimePicker capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: DateTimePickerCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: DateTimeValue value
+
+      The shown date and time (Value), within minimum and maximum; an invalid or out-of-range value throws std::out_of_range. A change raises value_changed.
+
+   .. cpp:member:: DateTimeValue minimum
+
+      The earliest value (MinDate). A minimum after maximum moves maximum to it; value is then clamped into the range (raising value_changed) and an open calendar closes. An invalid date throws std::invalid_argument.
+
+   .. cpp:member:: DateTimeValue maximum
+
+      The latest value (MaxDate). A maximum before minimum moves minimum to it; value is then clamped into the range (raising value_changed) and an open calendar closes. An invalid date throws std::invalid_argument.
+
+   .. cpp:member:: DateTimePickerFormat format
+
+      Which of the format provider's patterns shows the value, or custom_format (Format). An undeclared format throws std::invalid_argument.
+
+   .. cpp:member:: std::string custom_format
+
+      The pattern used when format is custom (CustomFormat). Invalid UTF-8 throws std::invalid_argument.
+
+   .. cpp:member:: DateTimeFormatProvider format_provider
+
+      The month and day names and the patterns the value is shown with. An invalid provider throws std::invalid_argument; a change closes an open calendar.
+
+   .. cpp:member:: bool show_check_box
+
+      Whether a check box before the value lets the user mark it as not set (ShowCheckBox).
+
+   .. cpp:member:: bool checked
+
+      Whether the value is set, shown by the check box (Checked). A change raises checked_changed (Windows Forms raises ValueChanged).
+
+   .. cpp:member:: bool show_up_down
+
+      Whether arrows replace the calendar button (ShowUpDown); turning them on closes an open calendar.
+
+   .. cpp:member:: bool dropped_down
+
+      Whether the calendar is open; a view, since the calendar closes itself on commit, cancel and dismissal. A write opens or closes it and raises drop_down_changed.
+
+   .. cpp:member:: DateTimeDropDownAlignment drop_down_alignment
+
+      Which edge the calendar aligns to (DropDownAlign). An undeclared alignment throws std::invalid_argument.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: BasicControlStyle style
+
+      The field's colours; a view, since the theme's colours apply until it is written. A write's text colour then inks the value.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DateTimePickerCheckedCapability
+
+   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+
+   Whether the value is set, shown by the check box (Checked). A change raises checked_changed (Windows Forms raises ValueChanged).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DateTimePickerCheckedCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, DateTimePickerCheckedCapability<Declaring>> checked
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DateTimePickerCustomFormatCapability
+
+   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+
+   The pattern used when format is custom (CustomFormat). Invalid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DateTimePickerCustomFormatCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, DateTimePickerCustomFormatCapability<Declaring>> custom_format
+
+      Default: ``{"MMMM d, yyyy"}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DateTimePickerDropDownAlignmentCapability
+
+   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+
+   Which edge the calendar aligns to (DropDownAlign). An undeclared alignment throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DateTimePickerDropDownAlignmentCapability& capability, DateTimeDropDownAlignment incoming)
+
+   .. cpp:member:: PropertyCell<DateTimeDropDownAlignment, DateTimePickerDropDownAlignmentCapability<Declaring>> drop_down_alignment
+
+      Default: ``{DateTimeDropDownAlignment::left}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DateTimePickerDroppedDownCapability
+
+   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+
+   Whether the calendar is open; a view, since the calendar closes itself on commit, cancel and dismissal. A write opens or closes it and raises drop_down_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DateTimePickerDroppedDownCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const DateTimePickerDroppedDownCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, DateTimePickerDroppedDownCapability<Declaring>> dropped_down
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DateTimePickerFormatPropertyCapability
+
+   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+
+   Which of the format provider's patterns shows the value, or custom_format (Format). An undeclared format throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DateTimePickerFormatPropertyCapability& capability, DateTimePickerFormat incoming)
+
+   .. cpp:member:: PropertyCell<DateTimePickerFormat, DateTimePickerFormatPropertyCapability<Declaring>> format
+
+      Default: ``{DateTimePickerFormat::long_date}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DateTimePickerFormatProviderCapability
+
+   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+
+   The month and day names and the patterns the value is shown with. An invalid provider throws std::invalid_argument; a change closes an open calendar.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DateTimePickerFormatProviderCapability& capability, DateTimeFormatProvider incoming)
+
+   .. cpp:member:: PropertyCell<DateTimeFormatProvider, DateTimePickerFormatProviderCapability<Declaring>> format_provider
+
+      Default: ``{DateTimeFormatProvider::english_united_states()}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DateTimePickerMaximumCapability
+
+   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+
+   The latest value (MaxDate). A maximum before minimum moves minimum to it; value is then clamped into the range (raising value_changed) and an open calendar closes. An invalid date throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DateTimePickerMaximumCapability& capability, DateTimeValue incoming)
+
+   .. cpp:member:: PropertyCell<DateTimeValue, DateTimePickerMaximumCapability<Declaring>> maximum
+
+      Default: ``{DateTimeValue{9998, 12U, 31U, 23U, 59U, 59U, 999U}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DateTimePickerMinimumCapability
+
+   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+
+   The earliest value (MinDate). A minimum after maximum moves maximum to it; value is then clamped into the range (raising value_changed) and an open calendar closes. An invalid date throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DateTimePickerMinimumCapability& capability, DateTimeValue incoming)
+
+   .. cpp:member:: PropertyCell<DateTimeValue, DateTimePickerMinimumCapability<Declaring>> minimum
+
+      Default: ``{DateTimeValue{1753, 1U, 1U}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DateTimePickerShowCheckBoxCapability
+
+   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+
+   Whether a check box before the value lets the user mark it as not set (ShowCheckBox).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DateTimePickerShowCheckBoxCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, DateTimePickerShowCheckBoxCapability<Declaring>> show_check_box
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DateTimePickerShowUpDownCapability
+
+   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+
+   Whether arrows replace the calendar button (ShowUpDown); turning them on closes an open calendar.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DateTimePickerShowUpDownCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, DateTimePickerShowUpDownCapability<Declaring>> show_up_down
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DateTimePickerStyleCapability
+
+   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+
+   The field's colours; a view, since the theme's colours apply until it is written. A write's text colour then inks the value.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DateTimePickerStyleCapability& capability, BasicControlStyle incoming)
+
+   .. cpp:function:: static BasicControlStyle read(const DateTimePickerStyleCapability& capability)
+
+   .. cpp:member:: PropertyView<BasicControlStyle, DateTimePickerStyleCapability<Declaring>> style
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DateTimePickerValueCapability
+
+   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+
+   The shown date and time (Value), within minimum and maximum; an invalid or out-of-range value throws std::out_of_range. A change raises value_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DateTimePickerValueCapability& capability, DateTimeValue incoming)
+
+   .. cpp:member:: PropertyCell<DateTimeValue, DateTimePickerValueCapability<Declaring>> value
+
+      Default: ``{DateTimeValue{2000, 1U, 1U}}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -536,7 +830,7 @@ Enumerations
 
 .. cpp:enum-class:: DateTimeDropDownAlignment
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker.hpp>``
+   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_values/date_time_picker_values.hpp>``
 
    .. cpp:enumerator:: left
 
@@ -546,7 +840,7 @@ Enumerations
 
 .. cpp:enum-class:: DateTimePickerFormat
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker.hpp>``
+   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_values/date_time_picker_values.hpp>``
 
    .. cpp:enumerator:: long_date
 

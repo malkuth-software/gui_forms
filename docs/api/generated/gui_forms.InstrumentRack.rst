@@ -7,7 +7,7 @@ gui_forms::InstrumentRack
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: InstrumentRack final : public Panel
+.. cpp:class:: InstrumentRack final : public Panel, public InstrumentRackCapabilities<InstrumentRack>
 
    ``#include <gui_forms/controls/panel/instrument_rack/instrument_rack.hpp>``
 
@@ -33,17 +33,6 @@ gui_forms::InstrumentRack
 
    :Properties:
 
-      **modules** : ``std::vector<InstrumentModuleSpec>``
-         The modules as last set, updated as the user edits fields and toggles
-         modules. See :cpp:func:`set_modules <gui_forms::InstrumentRack::set_modules>` in the notes for the rules it checks.
-
-      **action_content** : ``Control::Ptr``
-         A control placed after the last module, at least the given minimum width
-         wide (170 by default) and filling the rest of its line, for buttons such
-         as "Add" and "Apply". It must not already have a parent, or
-         :cpp:func:`set_action_content <gui_forms::InstrumentRack::set_action_content>` throws ``std::invalid_argument``. Replacing it
-         disposes the previous one. There is none by default.
-
       **module_width** : ``double``
          The width of each module, never more than the rack's width. It must be
          finite and positive, or the setter throws ``std::invalid_argument``. The
@@ -58,14 +47,25 @@ gui_forms::InstrumentRack
          The space between modules and between lines. It must be finite and not
          negative, or the setter throws ``std::invalid_argument``. The default is 5.
 
-      **content_height** : ``double``, read-only
-         The height of all the lines of modules as last laid out, including the
-         padding.
-
       **scroll_offset** : ``double``
          How far the content is scrolled, clamped between 0 and :cpp:func:`content_height <gui_forms::InstrumentRack::content_height>`
          minus the visible height. A value that is not finite throws
          ``std::invalid_argument``. Replacing the modules scrolls back to the top.
+
+      **modules** : ``std::vector<InstrumentModuleSpec>``
+         The modules as last set, updated as the user edits fields and toggles
+         modules. See :cpp:func:`set_modules <gui_forms::InstrumentRack::set_modules>` in the notes for the rules it checks.
+
+      **action_content** : ``Control::Ptr``
+         A control placed after the last module, at least the given minimum width
+         wide (170 by default) and filling the rest of its line, for buttons such
+         as "Add" and "Apply". It must not already have a parent, or
+         :cpp:func:`set_action_content <gui_forms::InstrumentRack::set_action_content>` throws ``std::invalid_argument``. Replacing it
+         disposes the previous one. There is none by default.
+
+      **content_height** : ``double``, read-only
+         The height of all the lines of modules as last laid out, including the
+         padding.
 
    :Events:
 
@@ -101,7 +101,7 @@ gui_forms::InstrumentRack
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`, :cpp:func:`parts <gui_forms::Panel::parts>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -249,7 +249,7 @@ gui_forms::InstrumentRack
           Search search;
           std::shared_ptr<gf::ComboBox> value = std::dynamic_pointer_cast<gf::ComboBox>(
               (*search.rack).field_editor("search.kind", "value"));
-          if (value) (*value).set_selected_index(1U);   // kind is "Documents"
+          if (value) (*value).selected_index = std::size_t{1U};   // kind is "Documents"
       }
 
 
@@ -259,6 +259,29 @@ gui_forms::InstrumentRack
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: double module_width
+
+      The width of each module, never more than the rack's width. It must be
+      finite and positive, or the setter throws ``std::invalid_argument``. The
+      default is 210.
+
+   .. cpp:member:: double module_height
+
+      The height of each module; a module whose fields are stacked may be
+      taller. It must be finite and positive, or the setter throws
+      ``std::invalid_argument``. The default is 66.
+
+   .. cpp:member:: double rack_gap
+
+      The space between modules and between lines. It must be finite and not
+      negative, or the setter throws ``std::invalid_argument``. The default is 5.
+
+   .. cpp:member:: double scroll_offset
+
+      How far the content is scrolled, clamped between 0 and :cpp:func:`content_height <gui_forms::InstrumentRack::content_height>`
+      minus the visible height. A value that is not finite throws
+      ``std::invalid_argument``. Replacing the modules scrolls back to the top.
 
    .. cpp:function:: const std::vector<InstrumentModuleSpec>& modules() const noexcept
 
@@ -281,49 +304,10 @@ gui_forms::InstrumentRack
 
       Sets :cpp:func:`action_content <gui_forms::InstrumentRack::action_content>`; see the property's description above.
 
-   .. cpp:function:: double module_width() const noexcept
-
-      The width of each module, never more than the rack's width. It must be
-      finite and positive, or the setter throws ``std::invalid_argument``. The
-      default is 210.
-
-   .. cpp:function:: void set_module_width(double width)
-
-      Sets :cpp:func:`module_width <gui_forms::InstrumentRack::module_width>`; see the property's description above.
-
-   .. cpp:function:: double module_height() const noexcept
-
-      The height of each module; a module whose fields are stacked may be
-      taller. It must be finite and positive, or the setter throws
-      ``std::invalid_argument``. The default is 66.
-
-   .. cpp:function:: void set_module_height(double height)
-
-      Sets :cpp:func:`module_height <gui_forms::InstrumentRack::module_height>`; see the property's description above.
-
-   .. cpp:function:: double rack_gap() const noexcept
-
-      The space between modules and between lines. It must be finite and not
-      negative, or the setter throws ``std::invalid_argument``. The default is 5.
-
-   .. cpp:function:: void set_rack_gap(double gap)
-
-      Sets :cpp:func:`rack_gap <gui_forms::InstrumentRack::rack_gap>`; see the property's description above.
-
    .. cpp:function:: double content_height() const noexcept
 
       The height of all the lines of modules as last laid out, including the
       padding.
-
-   .. cpp:function:: double scroll_offset() const noexcept
-
-      How far the content is scrolled, clamped between 0 and :cpp:func:`content_height <gui_forms::InstrumentRack::content_height>`
-      minus the visible height. A value that is not finite throws
-      ``std::invalid_argument``. Replacing the modules scrolls back to the top.
-
-   .. cpp:function:: void set_scroll_offset(double offset)
-
-      Sets :cpp:func:`scroll_offset <gui_forms::InstrumentRack::scroll_offset>`; see the property's description above.
 
 
    .. rubric:: Events

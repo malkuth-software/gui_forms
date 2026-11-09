@@ -86,8 +86,22 @@ Related types
      -  
    * - :cpp:class:`BackstageView::Parts <gui_forms::BackstageView::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`BackstageViewCapabilities <gui_forms::BackstageViewCapabilities>`
+     - Every BackstageView capability, in the order the declaring class takes them.
+   * - :cpp:class:`BackstageViewColumnWidthCapability <gui_forms::BackstageViewColumnWidthCapability>`
+     - The column's width in logical units at text scale 1 (132 by default).
+   * - :cpp:class:`BackstageViewSelectedTopicCapability <gui_forms::BackstageViewSelectedTopicCapability>`
+     - The topic whose page shows, or none before the first topic exists.
    * - :cpp:class:`BindingNavigatorAddNew <gui_forms::BindingNavigatorAddNew>`
      - Raised by a BindingNavigator's add command.
+   * - :cpp:class:`BindingNavigatorBindingSourceCapability <gui_forms::BindingNavigatorBindingSourceCapability>`
+     - The source the navigator moves through, or null (Windows Forms' BindingSource).
+   * - :cpp:class:`BindingNavigatorCapabilities <gui_forms::BindingNavigatorCapabilities>`
+     - Every BindingNavigator capability, in the order the declaring class takes them.
+   * - :cpp:class:`ContextMenuCapabilities <gui_forms::ContextMenuCapabilities>`
+     - Every ContextMenu capability, in the order the declaring class takes them.
+   * - :cpp:class:`ContextMenuPreferredWidthCapability <gui_forms::ContextMenuPreferredWidthCapability>`
+     - The menu's width in logical units at text scale 1, 120 to 1024 (default 268).
    * - :cpp:class:`FontChoice <gui_forms::FontChoice>`
      - A font as a font control shows and chooses it: a family name and a size in points.
    * - :cpp:class:`GalleryPreview <gui_forms::GalleryPreview>`
@@ -104,18 +118,32 @@ Related types
      -  
    * - :cpp:class:`MenuStrip::Parts <gui_forms::MenuStrip::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`MenuStripAllowMergeCapability <gui_forms::MenuStripAllowMergeCapability>`
+     - Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips).
+   * - :cpp:class:`MenuStripCapabilities <gui_forms::MenuStripCapabilities>`
+     - Every MenuStrip capability, in the order the declaring class takes them.
    * - :cpp:class:`MenuStripInvocation <gui_forms::MenuStripInvocation>`
      - MenuStripInvocation correlates a top-level menu and exact nested item identity after accepted activation.
+   * - :cpp:class:`MenuStripItemPaddingCapability <gui_forms::MenuStripItemPaddingCapability>`
+     - The horizontal padding on each side of a top-level item's text, 4 to 64 (default 11).
    * - :cpp:class:`MenuStripItemSpec <gui_forms::MenuStripItemSpec>`
      - MenuStripItemSpec owns stable identity, mnemonic label, enabled state, and the overlay item tree for one top-level menu.
+   * - :cpp:class:`MenuStripSelectedItemIdCapability <gui_forms::MenuStripSelectedItemIdCapability>`
+     - The stable ID of the top-level item shown as selected, or empty for none; an ID that names no visible top-level item throws std::out_of_range.
+   * - :cpp:class:`MenuStripUseMnemonicCapability <gui_forms::MenuStripUseMnemonicCapability>`
+     - Whether an ampersand in an item's text marks its access key (Windows Forms' UseMnemonic; default true).
    * - :cpp:class:`QuickAccessToolbar::Parts <gui_forms::QuickAccessToolbar::Parts>`
      - Stage T1 anatomy, as dot members: ToolStrip's parts and the customize button.
+   * - :cpp:class:`QuickAccessToolbarCapabilities <gui_forms::QuickAccessToolbarCapabilities>`
+     - Every QuickAccessToolbar capability, in the order the declaring class takes them.
    * - :cpp:class:`QuickAccessToolbarCommand <gui_forms::QuickAccessToolbarCommand>`
      - One command the toolbar may show.
    * - :cpp:class:`QuickAccessToolbarCustomization <gui_forms::QuickAccessToolbarCustomization>`
      - The user showed or hid a command from the customize menu, or the application did through set_command_shown.
    * - :cpp:class:`QuickAccessToolbarPlacementChange <gui_forms::QuickAccessToolbarPlacementChange>`
      -  
+   * - :cpp:class:`QuickAccessToolbarPlacementPropertyCapability <gui_forms::QuickAccessToolbarPlacementPropertyCapability>`
+     - Where the toolbar sits (see QuickAccessToolbarPlacement).
    * - :cpp:class:`Ribbon::CommandItem <gui_forms::Ribbon::CommandItem>`
      -  
    * - :cpp:class:`Ribbon::CommandParts <gui_forms::Ribbon::CommandParts>`
@@ -134,6 +162,14 @@ Related types
      - The "tab" item system: one core tab on the tab row.
    * - :cpp:class:`Ribbon::TabStates <gui_forms::Ribbon::TabStates>`
      -  
+   * - :cpp:class:`RibbonApplicationModesCapability <gui_forms::RibbonApplicationModesCapability>`
+     - The application modes now shown (one bit per mode; mode 0 by default).
+   * - :cpp:class:`RibbonApplicationTextCapability <gui_forms::RibbonApplicationTextCapability>`
+     - The File tab's text, with an optional mnemonic.
+   * - :cpp:class:`RibbonBackstageCapability <gui_forms::RibbonBackstageCapability>`
+     - Backstage (phase 6; owner decisions 3, 26): a BackstageView the File tab opens over everything below the tab row, instead of the application menu, or null.
+   * - :cpp:class:`RibbonCapabilities <gui_forms::RibbonCapabilities>`
+     - Every Ribbon capability, in the order the declaring class takes them.
    * - :cpp:class:`RibbonColorPicker::PaletteEntry <gui_forms::RibbonColorPicker::PaletteEntry>`
      -  
    * - :cpp:class:`RibbonColorPicker::PaletteEntryParts <gui_forms::RibbonColorPicker::PaletteEntryParts>`
@@ -142,16 +178,34 @@ Related types
      -  
    * - :cpp:class:`RibbonColorPicker::Parts <gui_forms::RibbonColorPicker::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`RibbonColorPickerCapabilities <gui_forms::RibbonColorPickerCapabilities>`
+     - Every RibbonColorPicker capability, in the order the declaring class takes them.
+   * - :cpp:class:`RibbonColorPickerCommandCapability <gui_forms::RibbonColorPickerCommandCapability>`
+     - The colour command whose value the picker shows and commits, or null; without one the picker keeps its own value.
+   * - :cpp:class:`RibbonColorPickerImageCapability <gui_forms::RibbonColorPickerImageCapability>`
+     - The face's icon, over the colour bar.
+   * - :cpp:class:`RibbonColorPickerValueCapability <gui_forms::RibbonColorPickerValueCapability>`
+     - The colour shown, or none for Automatic: the command's, or the picker's own.
    * - :cpp:class:`RibbonCommandClick <gui_forms::RibbonCommandClick>`
      - A click on a button-family command (or its split face), after its Command ran.
    * - :cpp:class:`RibbonCommandSpec <gui_forms::RibbonCommandSpec>`
      - One command record.
    * - :cpp:class:`RibbonDialogLaunch <gui_forms::RibbonDialogLaunch>`
      - A click on a group's dialog launcher.
+   * - :cpp:class:`RibbonDocumentMinimumHeightCapability <gui_forms::RibbonDocumentMinimumHeightCapability>`
+     - The document area's declared minimum height in logical units (owner decision 34).
    * - :cpp:class:`RibbonDropDownInvocation <gui_forms::RibbonDropDownInvocation>`
      - A choice from a split or drop-down command's menu.
+   * - :cpp:class:`RibbonFocusRegionCapability <gui_forms::RibbonFocusRegionCapability>`
+     - Whether the ribbon adds itself to its window's F6 regions when it is attached (owner decision 17).
    * - :cpp:class:`RibbonFontControl::Parts <gui_forms::RibbonFontControl::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`RibbonFontControlCapabilities <gui_forms::RibbonFontControlCapabilities>`
+     - Every RibbonFontControl capability, in the order the declaring class takes them.
+   * - :cpp:class:`RibbonFontControlCommandCapability <gui_forms::RibbonFontControlCommandCapability>`
+     - The font command whose value the fields show and commit, or null; without one the control keeps its own value.
+   * - :cpp:class:`RibbonFontControlValueCapability <gui_forms::RibbonFontControlValueCapability>`
+     - The value shown: the command's, or the control's own.
    * - :cpp:class:`RibbonGallery::Category <gui_forms::RibbonGallery::Category>`
      -  
    * - :cpp:class:`RibbonGallery::CategoryParts <gui_forms::RibbonGallery::CategoryParts>`
@@ -164,10 +218,24 @@ Related types
      -  
    * - :cpp:class:`RibbonGallery::Parts <gui_forms::RibbonGallery::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`RibbonGalleryCapabilities <gui_forms::RibbonGalleryCapabilities>`
+     - Every RibbonGallery capability, in the order the declaring class takes them.
    * - :cpp:class:`RibbonGalleryCategory <gui_forms::RibbonGalleryCategory>`
      - One category: its items show together under the caption in the drop-down form.
+   * - :cpp:class:`RibbonGalleryColumnsCapability <gui_forms::RibbonGalleryColumnsCapability>`
+     - In-ribbon form: the current column count, kept inside the column range (owner decision RB-8: the ribbon's scaling gives up one column at a time within it).
+   * - :cpp:class:`RibbonGalleryCommandCapability <gui_forms::RibbonGalleryCommandCapability>`
+     - The value command whose value the selection follows, which a click or Enter commits and which receives previews, or null.
    * - :cpp:class:`RibbonGalleryItem <gui_forms::RibbonGalleryItem>`
      - One item: an image with an optional label shown under it.
+   * - :cpp:class:`RibbonGalleryItemSizeCapability <gui_forms::RibbonGalleryItemSizeCapability>`
+     - Every item's image area, in logical units at text scale 1.
+   * - :cpp:class:`RibbonGallerySelectedIdCapability <gui_forms::RibbonGallerySelectedIdCapability>`
+     - The selected item's ID: the command's value, or the gallery's own selection; a write selects without committing (the command's set_value) and throws std::invalid_argument for an ID the gallery does not have.
+   * - :cpp:class:`RibbonGalleryShowLabelsCapability <gui_forms::RibbonGalleryShowLabelsCapability>`
+     - Whether labels show under the images.
+   * - :cpp:class:`RibbonGalleryVisibleRowsCapability <gui_forms::RibbonGalleryVisibleRowsCapability>`
+     - In-ribbon form: the rows shown (1 to 8).
    * - :cpp:class:`RibbonGroupLayout <gui_forms::RibbonGroupLayout>`
      - One layout of a group (the WPF/MFC model, owner decision 5): the image size of each command and how many small commands stack in a column.
    * - :cpp:class:`RibbonGroupSpec <gui_forms::RibbonGroupSpec>`
@@ -176,6 +244,10 @@ Related types
      - One entry of a tab's reduction ladder: every group's state and the width, in logical units, the groups need side by side.
    * - :cpp:class:`RibbonLadderGroupState <gui_forms::RibbonLadderGroupState>`
      - One group's place in a ladder entry: its layout (an index into Ribbon::group_layouts), that layout's size, and its gallery's column count (zero without a gallery).
+   * - :cpp:class:`RibbonMinimizedCapability <gui_forms::RibbonMinimizedCapability>`
+     - Whether the command plane is hidden, leaving the tab row.
+   * - :cpp:class:`RibbonRecentCaptionCapability <gui_forms::RibbonRecentCaptionCapability>`
+     - The caption of the application menu's recent pane.
    * - :cpp:class:`RibbonRecentItem <gui_forms::RibbonRecentItem>`
      - One item of the application menu's recent pane (stage RB, phase 6): a recently used document, shown numbered under the pane's caption, with its ``description`` (a folder, say) for accessibility.
    * - :cpp:class:`RibbonRecentItemInvocation <gui_forms::RibbonRecentItemInvocation>`
@@ -184,6 +256,8 @@ Related types
      -  
    * - :cpp:class:`RibbonScalingCounters <gui_forms::RibbonScalingCounters>`
      - Structured scaling instrumentation (RIBBON_SCALING_STUDY.md §5.7).
+   * - :cpp:class:`RibbonSelectedTabCapability <gui_forms::RibbonSelectedTabCapability>`
+     - The selected tab, or none while no tab shows.
    * - :cpp:class:`RibbonState <gui_forms::RibbonState>`
      - What a ribbon window keeps between sessions: the Quick Access Toolbar's command IDs in order, its placement, and whether the ribbon is minimized.
    * - :cpp:class:`RibbonStateDiagnostic <gui_forms::RibbonStateDiagnostic>`
@@ -206,12 +280,32 @@ Related types
      -  
    * - :cpp:class:`ToolStrip::Parts <gui_forms::ToolStrip::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`ToolStripAllowMergeCapability <gui_forms::ToolStripAllowMergeCapability>`
+     - Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips).
+   * - :cpp:class:`ToolStripCapabilities <gui_forms::ToolStripCapabilities>`
+     - Every ToolStrip capability, in the order the declaring class takes them.
    * - :cpp:class:`ToolStripContainer::Parts <gui_forms::ToolStripContainer::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`ToolStripContainerBottomPanelVisibleCapability <gui_forms::ToolStripContainerBottomPanelVisibleCapability>`
+     - Whether the bottom panel shows (Windows Forms' BottomToolStripPanelVisible; default true).
+   * - :cpp:class:`ToolStripContainerCapabilities <gui_forms::ToolStripContainerCapabilities>`
+     - Every ToolStripContainer capability, in the order the declaring class takes them.
+   * - :cpp:class:`ToolStripContainerDragThresholdCapability <gui_forms::ToolStripContainerDragThresholdCapability>`
+     - How far the pointer moves from a grip press before it drags (4 units; a host may set 1 to 64).
+   * - :cpp:class:`ToolStripContainerLeftPanelVisibleCapability <gui_forms::ToolStripContainerLeftPanelVisibleCapability>`
+     - Whether the left panel shows (Windows Forms' LeftToolStripPanelVisible; default true).
+   * - :cpp:class:`ToolStripContainerRightPanelVisibleCapability <gui_forms::ToolStripContainerRightPanelVisibleCapability>`
+     - Whether the right panel shows (Windows Forms' RightToolStripPanelVisible; default true).
+   * - :cpp:class:`ToolStripContainerTopPanelVisibleCapability <gui_forms::ToolStripContainerTopPanelVisibleCapability>`
+     - Whether the top panel shows (Windows Forms' TopToolStripPanelVisible; default true).
    * - :cpp:class:`ToolStripDropDownInvocation <gui_forms::ToolStripDropDownInvocation>`
      - A choice from a drop-down or split button's menu, or from the overflow menu's copy of one.
    * - :cpp:class:`ToolStripDropTarget <gui_forms::ToolStripDropTarget>`
      - Where a dragged strip would go in the panel on ``edge``, its rows counted as they are without the dragged strip: a new row at ``row`` (0 before the first, the row count after the last), or, when ``joins_row``, the existing row ``row`` at ``position`` among its strips.
+   * - :cpp:class:`ToolStripEndReserveCapability <gui_forms::ToolStripEndReserveCapability>`
+     - For QuickAccessToolbar: logical units kept free at the strip's far end for a part the derived control paints there (its customize button); items and the overflow button sit before it.
+   * - :cpp:class:`ToolStripGripVisibleCapability <gui_forms::ToolStripGripVisibleCapability>`
+     - Whether the grip is shown at the strip's start (Windows Forms' GripStyle; default true).
    * - :cpp:class:`ToolStripItemClick <gui_forms::ToolStripItemClick>`
      - A click on an item, after any command it carries has executed.
    * - :cpp:class:`ToolStripItemFocus <gui_forms::ToolStripItemFocus>`
@@ -220,8 +314,16 @@ Related types
      - One item.
    * - :cpp:class:`ToolStripMove <gui_forms::ToolStripMove>`
      - A strip that changed place, raised after the move (by a drag, move_strip or move_strip_into_row): its edge, row and position in the row before, and after (rows counted in the panel as it is after the move).
+   * - :cpp:class:`ToolStripOrientationCapability <gui_forms::ToolStripOrientationCapability>`
+     - Horizontal strips run left to right; vertical strips run top to bottom and are as wide as their widest item.
    * - :cpp:class:`ToolStripPanel::Parts <gui_forms::ToolStripPanel::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`ToolStripPanelCapabilities <gui_forms::ToolStripPanelCapabilities>`
+     - Every ToolStripPanel capability, in the order the declaring class takes them.
+   * - :cpp:class:`ToolStripPanelEdgePropertyCapability <gui_forms::ToolStripPanelEdgePropertyCapability>`
+     - The side of the container the panel lines; changing it turns the joined strips to its orientation.
+   * - :cpp:class:`ToolStripSizingGripVisibleCapability <gui_forms::ToolStripSizingGripVisibleCapability>`
+     - Whether a sizing grip is drawn at the strip's far end (StatusStrip's SizingGrip; default false).
 
 .. cpp:namespace:: gui_forms
 
@@ -323,6 +425,59 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> BackstageViewCapabilities : public BackstageViewColumnWidthCapability<Declaring>, public BackstageViewSelectedTopicCapability<Declaring>
+
+   ``#include <gui_forms/controls/backstage_view/backstage_view_capabilities/backstage_view_capabilities.hpp>``
+
+   Every BackstageView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double column_width
+
+      The column's width in logical units at text scale 1 (132 by default). A width outside 48 to 480 throws std::invalid_argument.
+
+   .. cpp:member:: std::optional<std::size_t> selected_topic
+
+      The topic whose page shows, or none before the first topic exists. A write past the end throws std::out_of_range; an item that is not a topic, or none, throws std::invalid_argument. A view onto the view's selection.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BackstageViewColumnWidthCapability
+
+   ``#include <gui_forms/controls/backstage_view/backstage_view_capabilities/backstage_view_capabilities.hpp>``
+
+   The column's width in logical units at text scale 1 (132 by default). A width outside 48 to 480 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BackstageViewColumnWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, BackstageViewColumnWidthCapability<Declaring>> column_width
+
+      Default: ``{132.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BackstageViewSelectedTopicCapability
+
+   ``#include <gui_forms/controls/backstage_view/backstage_view_capabilities/backstage_view_capabilities.hpp>``
+
+   The topic whose page shows, or none before the first topic exists. A write past the end throws std::out_of_range; an item that is not a topic, or none, throws std::invalid_argument. A view onto the view's selection.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BackstageViewSelectedTopicCapability& capability, std::optional<std::size_t> incoming)
+
+   .. cpp:function:: static std::optional<std::size_t> read(const BackstageViewSelectedTopicCapability& capability)
+
+   .. cpp:member:: PropertyView<std::optional<std::size_t>, BackstageViewSelectedTopicCapability<Declaring>> selected_topic
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: BindingNavigatorAddNew final
 
    ``#include <gui_forms/controls/binding_navigator/binding_navigator.hpp>``
@@ -332,6 +487,70 @@ Related types
    .. cpp:member:: std::string navigator_id
 
    .. cpp:member:: std::optional<BindingRecord> record
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BindingNavigatorBindingSourceCapability
+
+   ``#include <gui_forms/controls/binding_navigator/binding_navigator_capabilities/binding_navigator_capabilities.hpp>``
+
+   The source the navigator moves through, or null (Windows Forms' BindingSource). A write subscribes to the new source's list, position and disposal and shows its position and count at once; the source's disposal clears it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BindingNavigatorBindingSourceCapability& capability, std::shared_ptr<BindingSource> incoming)
+
+   .. cpp:function:: static std::shared_ptr<BindingSource> read(const BindingNavigatorBindingSourceCapability& capability)
+
+   .. cpp:member:: PropertyView<std::shared_ptr<BindingSource>, BindingNavigatorBindingSourceCapability<Declaring>> binding_source
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BindingNavigatorCapabilities : public BindingNavigatorBindingSourceCapability<Declaring>
+
+   ``#include <gui_forms/controls/binding_navigator/binding_navigator_capabilities/binding_navigator_capabilities.hpp>``
+
+   Every BindingNavigator capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::shared_ptr<BindingSource> binding_source
+
+      The source the navigator moves through, or null (Windows Forms' BindingSource). A write subscribes to the new source's list, position and disposal and shows its position and count at once; the source's disposal clears it.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ContextMenuCapabilities : public ContextMenuPreferredWidthCapability<Declaring>
+
+   ``#include <gui_forms/components/context_menu/context_menu_capabilities/context_menu_capabilities.hpp>``
+
+   Every ContextMenu capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double preferred_width
+
+      The menu's width in logical units at text scale 1, 120 to 1024 (default 268). A change closes an open menu. A width outside that range, or not finite, throws std::invalid_argument; a disposed menu throws std::logic_error.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ContextMenuPreferredWidthCapability
+
+   ``#include <gui_forms/components/context_menu/context_menu_capabilities/context_menu_capabilities.hpp>``
+
+   The menu's width in logical units at text scale 1, 120 to 1024 (default 268). A change closes an open menu. A width outside that range, or not finite, throws std::invalid_argument; a disposed menu throws std::logic_error.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ContextMenuPreferredWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ContextMenuPreferredWidthCapability<Declaring>> preferred_width
+
+      Default: ``{268.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -468,6 +687,59 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> MenuStripAllowMergeCapability
+
+   ``#include <gui_forms/controls/menu_strip/menu_strip_capabilities/menu_strip_capabilities.hpp>``
+
+   Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MenuStripAllowMergeCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, MenuStripAllowMergeCapability<Declaring>> allow_merge
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MenuStripCapabilities : public MenuStripUseMnemonicCapability<Declaring>, public MenuStripItemPaddingCapability<Declaring>, public FontCapability<Declaring>, public MenuStripAllowMergeCapability<Declaring>, public MenuStripSelectedItemIdCapability<Declaring>
+
+   ``#include <gui_forms/controls/menu_strip/menu_strip_capabilities/menu_strip_capabilities.hpp>``
+
+   Every MenuStrip capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: MenuStripCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool use_mnemonic
+
+      Whether an ampersand in an item's text marks its access key (Windows Forms' UseMnemonic; default true).
+
+   .. cpp:member:: double item_padding
+
+      The horizontal padding on each side of a top-level item's text, 4 to 64 (default 11). A value outside that range throws std::invalid_argument and changes nothing; a change closes an open menu.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: bool allow_merge
+
+      Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
+
+   .. cpp:member:: std::string selected_item_id
+
+      The stable ID of the top-level item shown as selected, or empty for none; an ID that names no visible top-level item throws std::out_of_range. set_items clears it. A view onto the strip's selection.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: MenuStripInvocation final
 
    ``#include <gui_forms/controls/menu_strip/menu_strip.hpp>``
@@ -479,6 +751,23 @@ Related types
    .. cpp:member:: std::string top_level_id
 
    .. cpp:member:: MenuItemInvocation item
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MenuStripItemPaddingCapability
+
+   ``#include <gui_forms/controls/menu_strip/menu_strip_capabilities/menu_strip_capabilities.hpp>``
+
+   The horizontal padding on each side of a top-level item's text, 4 to 64 (default 11). A value outside that range throws std::invalid_argument and changes nothing; a change closes an open menu.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MenuStripItemPaddingCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, MenuStripItemPaddingCapability<Declaring>> item_padding
+
+      Default: ``{11.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -510,6 +799,40 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> MenuStripSelectedItemIdCapability
+
+   ``#include <gui_forms/controls/menu_strip/menu_strip_capabilities/menu_strip_capabilities.hpp>``
+
+   The stable ID of the top-level item shown as selected, or empty for none; an ID that names no visible top-level item throws std::out_of_range. set_items clears it. A view onto the strip's selection.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MenuStripSelectedItemIdCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const MenuStripSelectedItemIdCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, MenuStripSelectedItemIdCapability<Declaring>> selected_item_id
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MenuStripUseMnemonicCapability
+
+   ``#include <gui_forms/controls/menu_strip/menu_strip_capabilities/menu_strip_capabilities.hpp>``
+
+   Whether an ampersand in an item's text marks its access key (Windows Forms' UseMnemonic; default true).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MenuStripUseMnemonicCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, MenuStripUseMnemonicCapability<Declaring>> use_mnemonic
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: QuickAccessToolbar::Parts final
 
    ``#include <gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp>``
@@ -531,6 +854,21 @@ Related types
    .. cpp:member:: PartGeometry customize_glyph
 
    .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> QuickAccessToolbarCapabilities : public QuickAccessToolbarPlacementPropertyCapability<Declaring>
+
+   ``#include <gui_forms/controls/quick_access_toolbar/quick_access_toolbar_capabilities/quick_access_toolbar_capabilities.hpp>``
+
+   Every QuickAccessToolbar capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: QuickAccessToolbarPlacement placement
+
+      Where the toolbar sits (see QuickAccessToolbarPlacement). A change rebuilds the customize menu and emits placement_changed. A value outside the enumeration throws std::invalid_argument.
 
 .. cpp:namespace:: gui_forms
 
@@ -571,6 +909,23 @@ Related types
    .. cpp:member:: std::string toolbar_id
 
    .. cpp:member:: QuickAccessToolbarPlacement placement
+
+      Default: ``{QuickAccessToolbarPlacement::above_ribbon}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> QuickAccessToolbarPlacementPropertyCapability
+
+   ``#include <gui_forms/controls/quick_access_toolbar/quick_access_toolbar_capabilities/quick_access_toolbar_capabilities.hpp>``
+
+   Where the toolbar sits (see QuickAccessToolbarPlacement). A change rebuilds the customize menu and emits placement_changed. A value outside the enumeration throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(QuickAccessToolbarPlacementPropertyCapability& capability, QuickAccessToolbarPlacement incoming)
+
+   .. cpp:member:: PropertyCell<QuickAccessToolbarPlacement, QuickAccessToolbarPlacementPropertyCapability<Declaring>> placement
 
       Default: ``{QuickAccessToolbarPlacement::above_ribbon}``.
 
@@ -758,6 +1113,107 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RibbonApplicationModesCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   The application modes now shown (one bit per mode; mode 0 by default). Changing them shows the tabs and groups that share a bit; a selected tab that no longer shows gives way as a set's tab does. Zero throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonApplicationModesCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, RibbonApplicationModesCapability<Declaring>> application_modes
+
+      Default: ``{1U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonApplicationTextCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   The File tab's text, with an optional mnemonic. Text that is not valid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonApplicationTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, RibbonApplicationTextCapability<Declaring>> application_text
+
+      Default: ``{"File"}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonBackstageCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   Backstage (phase 6; owner decisions 3, 26): a BackstageView the File tab opens over everything below the tab row, instead of the application menu, or null. Escape, the File tab, another tab or a definitive command closes it and returns to the document. A view that already has a parent throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonBackstageCapability& capability, std::shared_ptr<BackstageView> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<BackstageView>, RibbonBackstageCapability<Declaring>> backstage
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>, public RibbonDocumentMinimumHeightCapability<Declaring>, public RibbonMinimizedCapability<Declaring>, public RibbonApplicationTextCapability<Declaring>, public RibbonRecentCaptionCapability<Declaring>, public RibbonBackstageCapability<Declaring>, public RibbonFocusRegionCapability<Declaring>, public FontCapability<Declaring>, public RibbonSelectedTabCapability<Declaring>
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   Every Ribbon capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: RibbonCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::uint32_t application_modes
+
+      The application modes now shown (one bit per mode; mode 0 by default). Changing them shows the tabs and groups that share a bit; a selected tab that no longer shows gives way as a set's tab does. Zero throws std::invalid_argument.
+
+   .. cpp:member:: double document_minimum_height
+
+      The document area's declared minimum height in logical units (owner decision 34). The height the ribbon's parent offers it holds the ribbon and the document area under it; the plane hides when that area would be shorter than the minimum, and shows again once it is at least the minimum plus hide_hysteresis. Zero (the default) declares none: the plane hides only when no document area would be left. A negative or non-finite height throws std::invalid_argument.
+
+   .. cpp:member:: bool minimized
+
+      Whether the command plane is hidden, leaving the tab row. A change closes the menus and the group overlay and raises minimized_changed.
+
+   .. cpp:member:: std::string application_text
+
+      The File tab's text, with an optional mnemonic. Text that is not valid UTF-8 throws std::invalid_argument.
+
+   .. cpp:member:: std::string recent_caption
+
+      The caption of the application menu's recent pane. Text that is not valid UTF-8 throws std::invalid_argument.
+
+   .. cpp:member:: std::shared_ptr<BackstageView> backstage
+
+      Backstage (phase 6; owner decisions 3, 26): a BackstageView the File tab opens over everything below the tab row, instead of the application menu, or null. Escape, the File tab, another tab or a definitive command closes it and returns to the document. A view that already has a parent throws std::invalid_argument.
+
+   .. cpp:member:: bool focus_region
+
+      Whether the ribbon adds itself to its window's F6 regions when it is attached (owner decision 17). On by default.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: std::optional<std::size_t> selected_tab
+
+      The selected tab, or none while no tab shows. A write past the end throws std::out_of_range; a tab not shown, or none, throws std::invalid_argument. The selection rules remember it as the user's choice. A view onto the ribbon's selection.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RibbonColorPicker::PaletteEntry final
 
    ``#include <gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp>``
@@ -832,6 +1288,85 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RibbonColorPickerCapabilities : public RibbonColorPickerCommandCapability<Declaring>, public RibbonColorPickerValueCapability<Declaring>, public RibbonColorPickerImageCapability<Declaring>, public TextCapability<Declaring>
+
+   ``#include <gui_forms/controls/ribbon_color_picker/ribbon_color_picker_capabilities/ribbon_color_picker_capabilities.hpp>``
+
+   Every RibbonColorPicker capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: RibbonColorPickerCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::shared_ptr<ColorCommand> command
+
+      The colour command whose value the picker shows and commits, or null; without one the picker keeps its own value.
+
+   .. cpp:member:: std::optional<Color> value
+
+      The colour shown, or none for Automatic: the command's, or the picker's own. A write goes to the command's set_value when there is one.
+
+   .. cpp:member:: ImageId image
+
+      The face's icon, over the colour bar.
+
+   .. cpp:member:: std::string text
+
+      The text the control shows (Text).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonColorPickerCommandCapability
+
+   ``#include <gui_forms/controls/ribbon_color_picker/ribbon_color_picker_capabilities/ribbon_color_picker_capabilities.hpp>``
+
+   The colour command whose value the picker shows and commits, or null; without one the picker keeps its own value.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonColorPickerCommandCapability& capability, std::shared_ptr<ColorCommand> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ColorCommand>, RibbonColorPickerCommandCapability<Declaring>> command
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonColorPickerImageCapability
+
+   ``#include <gui_forms/controls/ribbon_color_picker/ribbon_color_picker_capabilities/ribbon_color_picker_capabilities.hpp>``
+
+   The face's icon, over the colour bar.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonColorPickerImageCapability& capability, ImageId incoming)
+
+   .. cpp:member:: PropertyCell<ImageId, RibbonColorPickerImageCapability<Declaring>> image
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonColorPickerValueCapability
+
+   ``#include <gui_forms/controls/ribbon_color_picker/ribbon_color_picker_capabilities/ribbon_color_picker_capabilities.hpp>``
+
+   The colour shown, or none for Automatic: the command's, or the picker's own. A write goes to the command's set_value when there is one.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonColorPickerValueCapability& capability, std::optional<Color> incoming)
+
+   .. cpp:function:: static std::optional<Color> read(const RibbonColorPickerValueCapability& capability)
+
+   .. cpp:member:: PropertyView<std::optional<Color>, RibbonColorPickerValueCapability<Declaring>> value
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RibbonCommandClick final
 
    ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
@@ -896,6 +1431,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RibbonDocumentMinimumHeightCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   The document area's declared minimum height in logical units (owner decision 34). The height the ribbon's parent offers it holds the ribbon and the document area under it; the plane hides when that area would be shorter than the minimum, and shows again once it is at least the minimum plus hide_hysteresis. Zero (the default) declares none: the plane hides only when no document area would be left. A negative or non-finite height throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonDocumentMinimumHeightCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, RibbonDocumentMinimumHeightCapability<Declaring>> document_minimum_height
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RibbonDropDownInvocation final
 
    ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
@@ -910,6 +1462,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RibbonFocusRegionCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   Whether the ribbon adds itself to its window's F6 regions when it is attached (owner decision 17). On by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonFocusRegionCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RibbonFocusRegionCapability<Declaring>> focus_region
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RibbonFontControl::Parts final
 
    ``#include <gui_forms/controls/ribbon_font_control/ribbon_font_control.hpp>``
@@ -921,6 +1490,57 @@ Related types
    .. cpp:member:: PartGeometry family_field
 
    .. cpp:member:: PartGeometry size_field
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonFontControlCapabilities : public RibbonFontControlCommandCapability<Declaring>, public RibbonFontControlValueCapability<Declaring>
+
+   ``#include <gui_forms/controls/ribbon_font_control/ribbon_font_control_capabilities/ribbon_font_control_capabilities.hpp>``
+
+   Every RibbonFontControl capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::shared_ptr<FontCommand> command
+
+      The font command whose value the fields show and commit, or null; without one the control keeps its own value.
+
+   .. cpp:member:: FontChoice value
+
+      The value shown: the command's, or the control's own. A write sets it as the program does (the command's set_value when there is one); a value FontCommand refuses throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonFontControlCommandCapability
+
+   ``#include <gui_forms/controls/ribbon_font_control/ribbon_font_control_capabilities/ribbon_font_control_capabilities.hpp>``
+
+   The font command whose value the fields show and commit, or null; without one the control keeps its own value.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonFontControlCommandCapability& capability, std::shared_ptr<FontCommand> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<FontCommand>, RibbonFontControlCommandCapability<Declaring>> command
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonFontControlValueCapability
+
+   ``#include <gui_forms/controls/ribbon_font_control/ribbon_font_control_capabilities/ribbon_font_control_capabilities.hpp>``
+
+   The value shown: the command's, or the control's own. A write sets it as the program does (the command's set_value when there is one); a value FontCommand refuses throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonFontControlValueCapability& capability, FontChoice incoming)
+
+   .. cpp:function:: static FontChoice read(const RibbonFontControlValueCapability& capability)
+
+   .. cpp:member:: PropertyView<FontChoice, RibbonFontControlValueCapability<Declaring>> value
 
 .. cpp:namespace:: gui_forms
 
@@ -1026,6 +1646,41 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RibbonGalleryCapabilities : public RibbonGalleryCommandCapability<Declaring>, public RibbonGalleryItemSizeCapability<Declaring>, public RibbonGalleryShowLabelsCapability<Declaring>, public RibbonGalleryVisibleRowsCapability<Declaring>, public RibbonGalleryColumnsCapability<Declaring>, public RibbonGallerySelectedIdCapability<Declaring>
+
+   ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp>``
+
+   Every RibbonGallery capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::shared_ptr<GalleryCommand> command
+
+      The value command whose value the selection follows, which a click or Enter commits and which receives previews, or null. Without one the gallery keeps its own selection and offers no preview.
+
+   .. cpp:member:: Size item_size
+
+      Every item's image area, in logical units at text scale 1. A size outside 16 to 256 on either side throws std::out_of_range.
+
+   .. cpp:member:: bool show_labels
+
+      Whether labels show under the images.
+
+   .. cpp:member:: std::size_t visible_rows
+
+      In-ribbon form: the rows shown (1 to 8). A count outside that throws std::out_of_range.
+
+   .. cpp:member:: std::size_t columns
+
+      In-ribbon form: the current column count, kept inside the column range (owner decision RB-8: the ribbon's scaling gives up one column at a time within it). A count outside the range throws std::out_of_range.
+
+   .. cpp:member:: std::optional<std::string> selected_id
+
+      The selected item's ID: the command's value, or the gallery's own selection; a write selects without committing (the command's set_value) and throws std::invalid_argument for an ID the gallery does not have. A view onto the command or the gallery's own selection.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RibbonGalleryCategory final
 
    ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp>``
@@ -1035,6 +1690,38 @@ Related types
    .. cpp:member:: std::string stable_id
 
    .. cpp:member:: std::string caption
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonGalleryColumnsCapability
+
+   ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp>``
+
+   In-ribbon form: the current column count, kept inside the column range (owner decision RB-8: the ribbon's scaling gives up one column at a time within it). A count outside the range throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonGalleryColumnsCapability& capability, std::size_t incoming)
+
+   .. cpp:function:: static std::size_t read(const RibbonGalleryColumnsCapability& capability)
+
+   .. cpp:member:: PropertyView<std::size_t, RibbonGalleryColumnsCapability<Declaring>> columns
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonGalleryCommandCapability
+
+   ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp>``
+
+   The value command whose value the selection follows, which a click or Enter commits and which receives previews, or null. Without one the gallery keeps its own selection and offers no preview.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonGalleryCommandCapability& capability, std::shared_ptr<GalleryCommand> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<GalleryCommand>, RibbonGalleryCommandCapability<Declaring>> command
 
 .. cpp:namespace:: gui_forms
 
@@ -1055,6 +1742,72 @@ Related types
    .. cpp:member:: bool enabled
 
       Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonGalleryItemSizeCapability
+
+   ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp>``
+
+   Every item's image area, in logical units at text scale 1. A size outside 16 to 256 on either side throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonGalleryItemSizeCapability& capability, Size incoming)
+
+   .. cpp:member:: PropertyCell<Size, RibbonGalleryItemSizeCapability<Declaring>> item_size
+
+      Default: ``{Size{48.0, 48.0}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonGallerySelectedIdCapability
+
+   ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp>``
+
+   The selected item's ID: the command's value, or the gallery's own selection; a write selects without committing (the command's set_value) and throws std::invalid_argument for an ID the gallery does not have. A view onto the command or the gallery's own selection.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonGallerySelectedIdCapability& capability, std::optional<std::string> incoming)
+
+   .. cpp:function:: static std::optional<std::string> read(const RibbonGallerySelectedIdCapability& capability)
+
+   .. cpp:member:: PropertyView<std::optional<std::string>, RibbonGallerySelectedIdCapability<Declaring>> selected_id
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonGalleryShowLabelsCapability
+
+   ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp>``
+
+   Whether labels show under the images.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonGalleryShowLabelsCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RibbonGalleryShowLabelsCapability<Declaring>> show_labels
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonGalleryVisibleRowsCapability
+
+   ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp>``
+
+   In-ribbon form: the rows shown (1 to 8). A count outside that throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonGalleryVisibleRowsCapability& capability, std::size_t incoming)
+
+   .. cpp:member:: PropertyCell<std::size_t, RibbonGalleryVisibleRowsCapability<Declaring>> visible_rows
+
+      Default: ``{3U}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1128,6 +1881,40 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RibbonMinimizedCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   Whether the command plane is hidden, leaving the tab row. A change closes the menus and the group overlay and raises minimized_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonMinimizedCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RibbonMinimizedCapability<Declaring>> minimized
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonRecentCaptionCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   The caption of the application menu's recent pane. Text that is not valid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonRecentCaptionCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, RibbonRecentCaptionCapability<Declaring>> recent_caption
+
+      Default: ``{"Recent documents"}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RibbonRecentItem final
 
    ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
@@ -1181,6 +1968,23 @@ Related types
    .. cpp:member:: std::uint64_t ladder_lookups
 
    .. cpp:member:: std::uint64_t text_measurements
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonSelectedTabCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   The selected tab, or none while no tab shows. A write past the end throws std::out_of_range; a tab not shown, or none, throws std::invalid_argument. The selection rules remember it as the user's choice. A view onto the ribbon's selection.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonSelectedTabCapability& capability, std::optional<std::size_t> incoming)
+
+   .. cpp:function:: static std::optional<std::size_t> read(const RibbonSelectedTabCapability& capability)
+
+   .. cpp:member:: PropertyView<std::optional<std::size_t>, RibbonSelectedTabCapability<Declaring>> selected_tab
 
 .. cpp:namespace:: gui_forms
 
@@ -1376,6 +2180,63 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ToolStripAllowMergeCapability
+
+   ``#include <gui_forms/controls/tool_strip/tool_strip_capabilities/tool_strip_capabilities.hpp>``
+
+   Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripAllowMergeCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToolStripAllowMergeCapability<Declaring>> allow_merge
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripCapabilities : public ToolStripGripVisibleCapability<Declaring>, public ToolStripAllowMergeCapability<Declaring>, public FontCapability<Declaring>, public ToolStripOrientationCapability<Declaring>, public ToolStripSizingGripVisibleCapability<Declaring>, public ToolStripEndReserveCapability<Declaring>
+
+   ``#include <gui_forms/controls/tool_strip/tool_strip_capabilities/tool_strip_capabilities.hpp>``
+
+   Every ToolStrip capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ToolStripCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool grip_visible
+
+      Whether the grip is shown at the strip's start (Windows Forms' GripStyle; default true).
+
+   .. cpp:member:: bool allow_merge
+
+      Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: Orientation orientation
+
+      Horizontal strips run left to right; vertical strips run top to bottom and are as wide as their widest item. A StatusStrip stays horizontal and throws std::logic_error when set vertical; an unknown orientation throws std::invalid_argument.
+
+   .. cpp:member:: bool sizing_grip_visible
+
+      Whether a sizing grip is drawn at the strip's far end (StatusStrip's SizingGrip; default false).
+
+   .. cpp:member:: double end_reserve
+
+      For QuickAccessToolbar: logical units kept free at the strip's far end for a part the derived control paints there (its customize button); items and the overflow button sit before it. Zero by default. A width that is negative, not finite or over 64 throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ToolStripContainer::Parts final
 
    ``#include <gui_forms/controls/tool_strip_container/tool_strip_container.hpp>``
@@ -1401,6 +2262,122 @@ Related types
    .. cpp:member:: PartGeometry drag_stamp_image
 
    .. cpp:member:: PartGeometry drop_marker
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripContainerBottomPanelVisibleCapability
+
+   ``#include <gui_forms/controls/tool_strip_container/tool_strip_container_capabilities/tool_strip_container_capabilities.hpp>``
+
+   Whether the bottom panel shows (Windows Forms' BottomToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripContainerBottomPanelVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToolStripContainerBottomPanelVisibleCapability<Declaring>> bottom_panel_visible
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripContainerCapabilities : public ToolStripContainerTopPanelVisibleCapability<Declaring>, public ToolStripContainerBottomPanelVisibleCapability<Declaring>, public ToolStripContainerLeftPanelVisibleCapability<Declaring>, public ToolStripContainerRightPanelVisibleCapability<Declaring>, public ToolStripContainerDragThresholdCapability<Declaring>
+
+   ``#include <gui_forms/controls/tool_strip_container/tool_strip_container_capabilities/tool_strip_container_capabilities.hpp>``
+
+   Every ToolStripContainer capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool top_panel_visible
+
+      Whether the top panel shows (Windows Forms' TopToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+   .. cpp:member:: bool bottom_panel_visible
+
+      Whether the bottom panel shows (Windows Forms' BottomToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+   .. cpp:member:: bool left_panel_visible
+
+      Whether the left panel shows (Windows Forms' LeftToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+   .. cpp:member:: bool right_panel_visible
+
+      Whether the right panel shows (Windows Forms' RightToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+   .. cpp:member:: double drag_threshold
+
+      How far the pointer moves from a grip press before it drags (4 units; a host may set 1 to 64). A value outside that range throws std::out_of_range and changes nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripContainerDragThresholdCapability
+
+   ``#include <gui_forms/controls/tool_strip_container/tool_strip_container_capabilities/tool_strip_container_capabilities.hpp>``
+
+   How far the pointer moves from a grip press before it drags (4 units; a host may set 1 to 64). A value outside that range throws std::out_of_range and changes nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripContainerDragThresholdCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ToolStripContainerDragThresholdCapability<Declaring>> drag_threshold
+
+      Default: ``{4.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripContainerLeftPanelVisibleCapability
+
+   ``#include <gui_forms/controls/tool_strip_container/tool_strip_container_capabilities/tool_strip_container_capabilities.hpp>``
+
+   Whether the left panel shows (Windows Forms' LeftToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripContainerLeftPanelVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToolStripContainerLeftPanelVisibleCapability<Declaring>> left_panel_visible
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripContainerRightPanelVisibleCapability
+
+   ``#include <gui_forms/controls/tool_strip_container/tool_strip_container_capabilities/tool_strip_container_capabilities.hpp>``
+
+   Whether the right panel shows (Windows Forms' RightToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripContainerRightPanelVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToolStripContainerRightPanelVisibleCapability<Declaring>> right_panel_visible
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripContainerTopPanelVisibleCapability
+
+   ``#include <gui_forms/controls/tool_strip_container/tool_strip_container_capabilities/tool_strip_container_capabilities.hpp>``
+
+   Whether the top panel shows (Windows Forms' TopToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripContainerTopPanelVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToolStripContainerTopPanelVisibleCapability<Declaring>> top_panel_visible
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1435,6 +2412,40 @@ Related types
    .. cpp:member:: std::size_t position
 
    .. cpp:member:: Rect marker
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripEndReserveCapability
+
+   ``#include <gui_forms/controls/tool_strip/tool_strip_capabilities/tool_strip_capabilities.hpp>``
+
+   For QuickAccessToolbar: logical units kept free at the strip's far end for a part the derived control paints there (its customize button); items and the overflow button sit before it. Zero by default. A width that is negative, not finite or over 64 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripEndReserveCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ToolStripEndReserveCapability<Declaring>> end_reserve
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripGripVisibleCapability
+
+   ``#include <gui_forms/controls/tool_strip/tool_strip_capabilities/tool_strip_capabilities.hpp>``
+
+   Whether the grip is shown at the strip's start (Windows Forms' GripStyle; default true).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripGripVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToolStripGripVisibleCapability<Declaring>> grip_visible
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1550,6 +2561,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ToolStripOrientationCapability
+
+   ``#include <gui_forms/controls/tool_strip/tool_strip_capabilities/tool_strip_capabilities.hpp>``
+
+   Horizontal strips run left to right; vertical strips run top to bottom and are as wide as their widest item. A StatusStrip stays horizontal and throws std::logic_error when set vertical; an unknown orientation throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripOrientationCapability& capability, Orientation incoming)
+
+   .. cpp:member:: PropertyCell<Orientation, ToolStripOrientationCapability<Declaring>> orientation
+
+      Default: ``{Orientation::horizontal}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ToolStripPanel::Parts final
 
    ``#include <gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp>``
@@ -1559,6 +2587,53 @@ Related types
    .. cpp:member:: PartGeometry region
 
    .. cpp:member:: PartGeometry face
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripPanelCapabilities : public ToolStripPanelEdgePropertyCapability<Declaring>
+
+   ``#include <gui_forms/controls/tool_strip_panel/tool_strip_panel_capabilities/tool_strip_panel_capabilities.hpp>``
+
+   Every ToolStripPanel capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ToolStripPanelEdge edge
+
+      The side of the container the panel lines; changing it turns the joined strips to its orientation. An invalid edge throws std::invalid_argument, and an edge that would turn a joined StatusStrip vertical throws std::logic_error; either changes nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripPanelEdgePropertyCapability
+
+   ``#include <gui_forms/controls/tool_strip_panel/tool_strip_panel_capabilities/tool_strip_panel_capabilities.hpp>``
+
+   The side of the container the panel lines; changing it turns the joined strips to its orientation. An invalid edge throws std::invalid_argument, and an edge that would turn a joined StatusStrip vertical throws std::logic_error; either changes nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripPanelEdgePropertyCapability& capability, ToolStripPanelEdge incoming)
+
+   .. cpp:member:: PropertyCell<ToolStripPanelEdge, ToolStripPanelEdgePropertyCapability<Declaring>> edge
+
+      Default: ``{ToolStripPanelEdge::top}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripSizingGripVisibleCapability
+
+   ``#include <gui_forms/controls/tool_strip/tool_strip_capabilities/tool_strip_capabilities.hpp>``
+
+   Whether a sizing grip is drawn at the strip's far end (StatusStrip's SizingGrip; default false).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripSizingGripVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToolStripSizingGripVisibleCapability<Declaring>> sizing_grip_visible
 
 Enumerations
 ------------
@@ -1619,7 +2694,7 @@ Enumerations
 
 .. cpp:enum-class:: QuickAccessToolbarPlacement
 
-   ``#include <gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp>``
+   ``#include <gui_forms/controls/quick_access_toolbar/quick_access_toolbar_values/quick_access_toolbar_values.hpp>``
 
    .. cpp:enumerator:: above_ribbon
 
@@ -1847,7 +2922,7 @@ Enumerations
 
 .. cpp:enum-class:: ToolStripPanelEdge
 
-   ``#include <gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp>``
+   ``#include <gui_forms/controls/tool_strip_panel/tool_strip_panel_values/tool_strip_panel_values.hpp>``
 
    .. cpp:enumerator:: top
 

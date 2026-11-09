@@ -71,14 +71,6 @@
       "reviewed": false,
       "summary": "Tokenized event published after the retained enabled flag changes."
     },
-    "gui_forms::Control::tag|const std::any &() const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the application-owned `std::any` tag with exact type retention."
-    },
-    "gui_forms::Control::set_tag|void (std::any)": {
-      "reviewed": false,
-      "summary": "Stores application-owned data; it is released synchronously during disposal."
-    },
     "gui_forms::Control::parent|Ptr () const noexcept": {
       "reviewed": false,
       "summary": "Returns the weakly held parent, or null when detached from any parent."
@@ -323,14 +315,6 @@
       "reviewed": false,
       "summary": "Reports whether a layout container has collapsed this control out of effective layout."
     },
-    "gui_forms::Control::focusable|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether the control may receive focus."
-    },
-    "gui_forms::Control::set_focusable|void (bool)": {
-      "reviewed": false,
-      "summary": "Sets whether the control may receive focus."
-    },
     "gui_forms::Control::causes_validation_changed|Event<bool> &() noexcept": {
       "reviewed": false,
       "summary": "Tokenized event published after the causes-validation flag changes."
@@ -354,14 +338,6 @@
     "gui_forms::Control::set_style|void (ControlStyles, bool)": {
       "reviewed": false,
       "summary": "Sets or clears `ControlStyles` bits; clearing buffering never disables baseline coherent paint."
-    },
-    "gui_forms::Control::double_buffered|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports the retained double-buffering request."
-    },
-    "gui_forms::Control::set_double_buffered|void (bool)": {
-      "reviewed": false,
-      "summary": "Sets the retained double-buffering request."
     },
     "gui_forms::Control::set_custom_cursor|void (CursorImagesPtr, CursorKind)": {
       "reviewed": false,

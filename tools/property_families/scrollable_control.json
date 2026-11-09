@@ -26,7 +26,6 @@
       "field": "auto_scroll_",
       "event": null,
       "on_changed": false,
-      "coerce": true,
       "localizable": null,
       "table": {
         "kind": "boolean",
@@ -59,7 +58,6 @@
       "field": "auto_scroll_margin_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "size",
@@ -93,7 +91,6 @@
       "field": "auto_scroll_min_size_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "size",
@@ -127,7 +124,6 @@
       "field": null,
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "storage": "view",
       "table": {
@@ -151,10 +147,6 @@
     }
   ],
   "not_properties": [
-    {
-      "name": "set_auto_scroll_margin(double x, double y)",
-      "reason": "Windows Forms' SetAutoScrollMargin method: clamps negative components to zero"
-    },
     {
       "name": "hscroll, vscroll",
       "reason": "views of the scroll bars' visibility, kept with the bars (ScrollProperties)"

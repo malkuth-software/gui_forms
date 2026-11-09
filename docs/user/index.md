@@ -11,6 +11,7 @@ found in the [API reference](../api/index).
 install
 download
 first-window
+application-and-windows
 consume-the-sdk
 c-abi-conformance-kit
 ```
@@ -24,10 +25,16 @@ update-scopes-and-dirtiness
 layout
 painting-and-damage
 text-engine
+properties
+forms
 input-and-focus
+mouse-events
 values-commands-and-binding
+rules
 data-binding
 controls
+overlays-popups-and-splash
+themes
 theme-language
 ```
 
@@ -36,6 +43,7 @@ theme-language
 :maxdepth: 1
 
 for-windows-forms-developers
+converting-an-app
 ```
 
 ```{toctree}

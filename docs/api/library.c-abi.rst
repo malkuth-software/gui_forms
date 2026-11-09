@@ -16,6 +16,8 @@ Types
 
    * - :cpp:class:`Api <gui_forms::abi0::Api>`
      - Api negotiates ABI 0.4 once, retains the immutable function table, and translates thread-local C diagnostics into typed C++ exceptions.
+   * - :cpp:class:`ApplicationTable <gui_forms::abi::ApplicationTable>`
+     - gf_application_table, negotiated as GF_TABLE_APPLICATION.
    * - :cpp:class:`BindingsTable <gui_forms::abi::BindingsTable>`
      - gf_bindings_table, negotiated as GF_TABLE_BINDINGS.
    * - :cpp:class:`Control <gui_forms::abi0::Control>`
@@ -68,6 +70,10 @@ Types
      - gf_abi_version_info is the size-prefixed output record of the library and ABI versions.
    * - :cpp:class:`gf_api_v0 <gf_api_v0>`
      - gf_api_v0 is the size-versioned negotiated function table for generational control ownership, properties, layout/scroll, hierarchy, input, fields, dialogs/services, property proxies, callbacks, host execution, dispatch, and deterministic retirement.
+   * - :cpp:class:`gf_application_config <gf_application_config>`
+     - gf_application_config (C ABI 1.1) is what application.create makes the library's application with: the theme base, up to 16 packages compiled after it, and the presentation source.
+   * - :cpp:class:`gf_application_table <gf_application_table>`
+     -  
    * - :cpp:class:`gf_binding_arguments <gf_binding_arguments>`
      -  
    * - :cpp:class:`gf_binding_field <gf_binding_field>`
@@ -158,6 +164,14 @@ Types
      - gf_property_value is the tagged scalar/string carrier used by foreign property getters, setters, converters, and editors.
    * - :cpp:class:`gf_rect <gf_rect>`
      - gf_rect projects renderer-neutral logical rectangle geometry across the stable C ABI.
+   * - :cpp:class:`gf_rule <gf_rule>`
+     -  
+   * - :cpp:class:`gf_rule_action <gf_rule_action>`
+     -  
+   * - :cpp:class:`gf_rule_condition <gf_rule_condition>`
+     -  
+   * - :cpp:class:`gf_rules_table <gf_rules_table>`
+     -  
    * - :cpp:class:`gf_run_options <gf_run_options>`
      -  
    * - :cpp:class:`gf_runtime_table <gf_runtime_table>`
@@ -198,6 +212,8 @@ Types
      -  
    * - :cpp:class:`gf_size <gf_size>`
      - gf_size projects renderer-neutral logical dimensions across the stable C ABI.
+   * - :cpp:class:`gf_splashscreen_options <gf_splashscreen_options>`
+     - gf_splashscreen_options (C ABI 1.1) is what runtime.splashscreen_show shows: PNG artwork whose pixel size is the window's (160 to 1600 per extent), a UTF-8 status line and an optional progress in [0, 1], in fixed built-in styling (owner ruling Q-S1 (a)).
    * - :cpp:class:`gf_string_view <gf_string_view>`
      - gf_string_view is a non-owning bounded byte view; operations validate null/size and UTF-8 rules before copying.
    * - :cpp:class:`gf_subsurface_content <gf_subsurface_content>`
@@ -236,6 +252,8 @@ Types
      - gf_properties_table, negotiated as GF_TABLE_PROPERTIES.
    * - :cpp:class:`PropertyGridTable <gui_forms::abi::PropertyGridTable>`
      - gf_property_grid_table, negotiated as GF_TABLE_PROPERTY_GRID.
+   * - :cpp:class:`RulesTable <gui_forms::abi::RulesTable>`
+     - gf_rules_table, negotiated as GF_TABLE_RULES.
    * - :cpp:class:`RuntimeTable <gui_forms::abi::RuntimeTable>`
      - gf_runtime_table, negotiated as GF_TABLE_RUNTIME.
    * - :cpp:class:`SchemaTable <gui_forms::abi::SchemaTable>`
@@ -275,6 +293,41 @@ Types
    .. rubric:: Methods
 
    .. cpp:function:: void throw_last(gf_result result) const
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: ApplicationTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_application_table, negotiated as GF_TABLE_APPLICATION.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ApplicationTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_application_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(ApplicationTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static ApplicationTable adopt(const gf_application_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status create(const gf_application_config* config, gf_theme_report* report) const noexcept
+
+   .. cpp:function:: gf_status close(uint64_t* windows_alive) const noexcept
+
+   .. cpp:function:: gf_status state(gf_application_state* state) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -1259,6 +1312,45 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_application_config
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   gf_application_config (C ABI 1.1) is what application.create makes the library's application with: the theme base, up to 16 packages compiled after it, and the presentation source. With GF_PRESENTATION_SOURCE_HOST windows start from GUI.Forms' defaults and follow the host's presentation reports (a later minor may start from the host's settings read at create); with GF_PRESENTATION_SOURCE_DEFAULTS they start from explicit defaults and still follow the host's reports.
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_theme_base theme_base
+
+   .. cpp:member:: const gf_theme_package* packages
+
+   .. cpp:member:: uint64_t package_count
+
+   .. cpp:member:: gf_presentation_source presentation_source
+
+   .. cpp:member:: uint32_t reserved
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_application_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*create)(const gf_application_config* config, gf_theme_report* report)
+
+   .. cpp:member:: gf_status (*close)(uint64_t* windows_alive)
+
+   .. cpp:member:: gf_status (*state)(gf_application_state* state)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_binding_arguments
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -1775,6 +1867,14 @@ Types
 
    .. cpp:member:: gf_host_capability available
 
+   .. cpp:member:: gf_transient_surface_kind transient_surfaces
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_window_corner_shape window_corner_shapes
+
+   .. cpp:member:: uint32_t window_band_maximum_width
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gf_host_table
@@ -2140,6 +2240,89 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_rule
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_rule_flags flags
+
+   .. cpp:member:: gf_rule_trigger_kind trigger
+
+   .. cpp:member:: uint32_t physical_key
+
+   .. cpp:member:: gf_object source
+
+   .. cpp:member:: gf_utf8_view interaction
+
+   .. cpp:member:: uint64_t condition_count
+
+   .. cpp:member:: const gf_rule_condition* conditions
+
+   .. cpp:member:: uint64_t action_count
+
+   .. cpp:member:: const gf_rule_action* actions
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_rule_action
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_rule_action_kind kind
+
+   .. cpp:member:: gf_object target
+
+   .. cpp:member:: gf_utf8_view property
+
+   .. cpp:member:: const gf_value* value
+
+   .. cpp:member:: const gf_callback* callback
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_rule_condition
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_rule_condition_kind kind
+
+   .. cpp:member:: gf_object object
+
+   .. cpp:member:: uint32_t physical_key
+
+   .. cpp:member:: uint32_t modifiers
+
+   .. cpp:member:: uint32_t negated
+
+   .. cpp:member:: uint32_t reserved
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_rules_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*add)(gf_object window, const gf_rule* rule, gf_rule_token* token)
+
+   .. cpp:member:: gf_status (*remove)(gf_rule_token token)
+
+   .. cpp:member:: gf_status (*state)(gf_rule_token token, gf_rule_state* state)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_run_options
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -2166,7 +2349,7 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>``
 
-   gf_runtime_table (GF_TABLE_RUNTIME) reports the versions and copies out or clears the calling thread's error detail, from any thread.
+   gf_runtime_table (GF_TABLE_RUNTIME) reports the versions and copies out or clears the calling thread's error detail, from any thread. Since 1.1 it also shows the splashscreen before any object or window (splashscreen_show, set_status, set_progress, close), on the thread that will be the UI thread; the library's first window hands it over.
 
 
    .. rubric:: Methods
@@ -2176,6 +2359,14 @@ Types
    .. cpp:member:: gf_status (*error_detail)(gf_error_detail* detail, char* message_buffer, uint64_t message_capacity, uint64_t* message_required)
 
    .. cpp:member:: gf_status (*clear_error)(void)
+
+   .. cpp:member:: gf_status (*splashscreen_show)(const gf_splashscreen_options* options, gf_splashscreen* splashscreen)
+
+   .. cpp:member:: gf_status (*splashscreen_set_status)(gf_splashscreen splashscreen, gf_utf8_view status)
+
+   .. cpp:member:: gf_status (*splashscreen_set_progress)(gf_splashscreen splashscreen, uint32_t show_progress, double progress)
+
+   .. cpp:member:: gf_status (*splashscreen_close)(gf_splashscreen splashscreen)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2629,6 +2820,26 @@ Types
    .. cpp:member:: double width
 
    .. cpp:member:: double height
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_splashscreen_options
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   gf_splashscreen_options (C ABI 1.1) is what runtime.splashscreen_show shows: PNG artwork whose pixel size is the window's (160 to 1600 per extent), a UTF-8 status line and an optional progress in [0, 1], in fixed built-in styling (owner ruling Q-S1 (a)).
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t show_progress
+
+   .. cpp:member:: const uint8_t* artwork
+
+   .. cpp:member:: uint64_t artwork_size
+
+   .. cpp:member:: gf_utf8_view status
+
+   .. cpp:member:: double progress
 
 .. cpp:namespace:: 0
 
@@ -3153,6 +3364,41 @@ Types
 
 .. cpp:namespace:: gui_forms::abi
 
+.. cpp:class:: RulesTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_rules_table, negotiated as GF_TABLE_RULES.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: RulesTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_rules_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(RulesTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static RulesTable adopt(const gf_rules_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status add(gf_object window, const gf_rule* rule, gf_rule_token* token) const noexcept
+
+   .. cpp:function:: gf_status remove(gf_rule_token token) const noexcept
+
+   .. cpp:function:: gf_status state(gf_rule_token token, gf_rule_state* state) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
 .. cpp:class:: RuntimeTable
 
    ``#include <gui_forms/c/gf_abi.hpp>``
@@ -3185,6 +3431,14 @@ Types
    .. cpp:function:: gf_status version(gf_abi_version_info* info) const noexcept
 
    .. cpp:function:: gf_status error_detail(gf_error_detail* detail, char* message_buffer, uint64_t message_capacity, uint64_t* message_required) const noexcept
+
+   .. cpp:function:: gf_status splashscreen_show(const gf_splashscreen_options* options, gf_splashscreen* splashscreen) const noexcept
+
+   .. cpp:function:: gf_status splashscreen_set_status(gf_splashscreen splashscreen, gf_utf8_view status) const noexcept
+
+   .. cpp:function:: gf_status splashscreen_set_progress(gf_splashscreen splashscreen, uint32_t show_progress, double progress) const noexcept
+
+   .. cpp:function:: gf_status splashscreen_close(gf_splashscreen splashscreen) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 

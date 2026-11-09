@@ -121,11 +121,11 @@ struct DialogState final {
     std::error_code error;
     destination = std::filesystem::absolute(destination, error);
     if (error || !std::filesystem::is_directory(destination, error)) {
-      (*status).set_text("Choose an existing folder.");
+      (*status).text = "Choose an existing folder.";
       return;
     }
     directory = destination.lexically_normal();
-    (*location).set_text(directory.string());
+    (*location).text = directory.string();
     entries.clear();
     const std::filesystem::directory_iterator end;
     std::filesystem::directory_iterator iterator(
@@ -139,10 +139,10 @@ struct DialogState final {
         continue;
       }
       bool show = is_directory || !folder;
-      if (show && !is_directory && filter && (*filter).selected_index() &&
-          *(*filter).selected_index() < filters.size()) {
+      if (show && !is_directory && filter && (*filter).selected_index.read() &&
+          *(*filter).selected_index.read() < filters.size()) {
         const HostFileDialogFilter &selected =
-            filters[*(*filter).selected_index()];
+            filters[*(*filter).selected_index.read()];
         std::string extension = item.path().extension().string();
         if (!extension.empty())
           extension.erase(0, 1);
@@ -171,8 +171,8 @@ struct DialogState final {
     for (std::size_t i = 0; i < entries.size(); ++i)
       names.push_back(entries[i].path.filename().string() +
                       (entries[i].directory ? "/" : ""));
-    (*list).set_items(std::move(names));
-    (*status).set_text(error ? error.message() : "");
+    (*list).items = std::move(names);
+    (*status).text = error ? error.message() : "";
   }
   void activate(std::size_t index) {
     if (index >= entries.size())
@@ -180,18 +180,18 @@ struct DialogState final {
     if (entries[index].directory)
       refresh(entries[index].path);
     else {
-      (*name).set_text(entries[index].path.filename().string());
+      (*name).text = entries[index].path.filename().string();
       accept();
     }
   }
   void accept() {
     if (std::holds_alternative<HostColorDialogRequest>(request.payload)) {
-      std::string value((*name).text());
+      std::string value((*name).text.read());
       if (!value.empty() && value.front() == '#')
         value.erase(0, 1);
       if (value.size() != 6 && !(allow_alpha && value.size() == 8)) {
-        (*status).set_text(
-            "Enter six hexadecimal color digits, or eight with alpha.");
+        (*status).text =
+            "Enter six hexadecimal color digits, or eight with alpha.";
         return;
       }
       std::uint32_t parsed{};
@@ -202,7 +202,7 @@ struct DialogState final {
                            : digit >= 'A' && digit <= 'F' ? digit - 'A' + 10
                                                           : -1;
         if (number < 0) {
-          (*status).set_text("Use hexadecimal digits 0–9 and A–F.");
+          (*status).text = "Use hexadecimal digits 0–9 and A–F.";
           return;
         }
         parsed = (parsed << 4U) | static_cast<std::uint32_t>(number);
@@ -217,8 +217,8 @@ struct DialogState final {
     std::error_code error;
     std::vector<std::string> paths;
     std::filesystem::path candidate =
-        (*name).text().empty() ? directory
-                               : std::filesystem::path((*name).text());
+        (*name).text.read().empty() ? directory
+                               : std::filesystem::path((*name).text.read());
     if (candidate.is_relative())
       candidate = directory / candidate;
     candidate = candidate.lexically_normal();
@@ -229,14 +229,14 @@ struct DialogState final {
       }
       paths.push_back(candidate.string());
     } else if (folder) {
-      (*status).set_text("Choose an existing folder.");
+      (*status).text = "Choose an existing folder.";
       return;
     } else if (save) {
       if (candidate.extension().empty() && !default_extension.empty())
         candidate += default_extension.front() == '.' ? default_extension
                                                       : "." + default_extension;
       if (!std::filesystem::is_directory(candidate.parent_path(), error)) {
-        (*status).set_text("The destination folder does not exist.");
+        (*status).text = "The destination folder does not exist.";
         return;
       }
       if (confirm_overwrite && std::filesystem::exists(candidate, error)) {
@@ -264,16 +264,16 @@ struct DialogState final {
       } else if (std::filesystem::is_regular_file(candidate, error))
         paths.push_back(candidate.string());
       if (paths.empty()) {
-        (*status).set_text("Choose an existing file.");
+        (*status).text = "Choose an existing file.";
         return;
       }
     }
     HostPathDialogResult accepted{HostDialogOutcome::accepted,
                                   std::move(paths)};
     // The added "All files" is no filter of the request.
-    if (!folder && filter && (*filter).selected_index() &&
-        *(*filter).selected_index() < filters.size())
-      accepted.chosen_filter = *(*filter).selected_index();
+    if (!folder && filter && (*filter).selected_index.read() &&
+        *(*filter).selected_index.read() < filters.size())
+      accepted.chosen_filter = *(*filter).selected_index.read();
     result.payload = std::move(accepted);
     done = true;
   }
@@ -294,23 +294,22 @@ void ButtonAction::operator()(ButtonBase &) const {
   else if (action == 2)
     (*state).refresh((*state).directory.parent_path());
   else if (action == 3)
-    (*state).refresh((*(*state).location).text());
+    (*state).refresh((*(*state).location).text.read());
 }
 void ActivateFile::operator()(std::size_t index) const {
   (*state).activate(index);
 }
 void SelectFile::operator()(const ListSelectionChange &change) const {
   if (change.active_index && *change.active_index < (*state).entries.size())
-    (*(*state).name)
-        .set_text(
-            (*state).entries[*change.active_index].path.filename().string());
+    (*(*state).name).text =
+        (*state).entries[*change.active_index].path.filename().string();
 }
 void ChangeFilter::operator()(std::optional<std::size_t>) const {
   (*state).refresh((*state).directory);
 }
 void EnterName::operator()(const std::string &) const { (*state).accept(); }
 void EnterPath::operator()(const std::string &) const {
-  (*state).refresh((*(*state).location).text());
+  (*state).refresh((*(*state).location).text.read());
 }
 void DialogClose::operator()() const { (*state).done = true; }
 bool DialogHelpKey::operator()() const {
@@ -321,8 +320,8 @@ std::shared_ptr<Label> label(DialogState &state, const char *id,
                              std::string text, Rect bounds) {
   const std::shared_ptr<Label> control =
       make_control<Label>(StableId(std::string(id)), std::move(text));
-  (*control).set_font({FontRole::content, 15, 400, false});
-  (*control).set_text_wrapping(TextWrapping::word);
+  (*control).font = FontSpec{FontRole::content, 15, 400, false};
+  (*control).text_wrapping = TextWrapping::word;
   (*control).set_bounds(bounds);
   (*state.root).add_child(control);
   return control;
@@ -400,7 +399,7 @@ HostDialogResult retained_dialog(NativeWindow &owner,
     // Either option aligns the text to the right; the dialog's controls
     // have no right-to-left reading order of their own.
     if ((*message).right_align || (*message).rtl_reading)
-      (*message_label).set_alignment(HorizontalAlignment::far);
+      (*message_label).alignment = HorizontalAlignment::far;
     for (std::size_t i = 0; i < choices.size(); ++i) {
       const HostDialogChoice choice = choices[i];
       std::string name = host_dialog_choice_name(choice);
@@ -441,7 +440,7 @@ HostDialogResult retained_dialog(NativeWindow &owner,
         make_control<TextBox>(StableId("host.dialog.color"), value.str());
     (*state.name).set_bounds({20, 58, 520, 34});
     // Enter in the field accepts through EnterName.
-    (*state.name).set_accepts_enter(true);
+    (*state.name).accepts_enter = true;
     (*state.root).add_child(state.name);
     state.status = label(state, "host.dialog.status", "", {20, 102, 520, 58});
     state.accept_button =
@@ -478,7 +477,7 @@ HostDialogResult retained_dialog(NativeWindow &owner,
     state.location = make_control<TextBox>(StableId("host.dialog.location"));
     (*state.location).set_bounds({16, 16, 550, 32});
     // Enter in the location goes there (EnterPath).
-    (*state.location).set_accepts_enter(true);
+    (*state.location).accepts_enter = true;
     (*state.root).add_child(state.location);
     static_cast<void>(
         state.button("host.dialog.go", "Go", {578, 16, 56, 32}, 3));
@@ -486,15 +485,15 @@ HostDialogResult retained_dialog(NativeWindow &owner,
         state.button("host.dialog.up", "Up", {646, 16, 58, 32}, 2));
     state.list = make_control<ListBox>(StableId("host.dialog.files"));
     (*state.list).set_bounds({16, 60, 688, 340});
-    (*state.list).set_font({FontRole::content, 15, 400, false});
+    (*state.list).font = FontSpec{FontRole::content, 15, 400, false};
     if (state.multiple)
-      (*state.list).set_selection_mode(ListSelectionMode::multiple_extended);
+      (*state.list).selection_mode = ListSelectionMode::multiple_extended;
     (*state.root).add_child(state.list);
     state.name =
         make_control<TextBox>(StableId("host.dialog.filename"), suggested);
     (*state.name).set_bounds({16, 410, 688, 32});
     // Enter in the file name accepts through EnterName.
-    (*state.name).set_accepts_enter(true);
+    (*state.name).accepts_enter = true;
     (*state.root).add_child(state.name);
     state.filter = make_control<ComboBox>(StableId("host.dialog.filter"));
     (*state.filter).set_bounds({16, 452, 340, 30});
@@ -502,13 +501,12 @@ HostDialogResult retained_dialog(NativeWindow &owner,
     for (std::size_t i = 0; i < state.filters.size(); ++i)
       names.push_back(state.filters[i].label);
     names.push_back("All files");
-    (*state.filter).set_items(std::move(names));
+    (*state.filter).items = std::move(names);
     // The request's starting filter; the added "All files" follows the
     // request's own.
-    (*state.filter)
-        .set_selected_index(state.initial_filter < state.filters.size()
-                                ? state.initial_filter
-                                : 0U);
+    (*state.filter).selected_index = state.initial_filter < state.filters.size()
+                                         ? state.initial_filter
+                                         : std::size_t{0U};
     (*state.root).add_child(state.filter);
     state.status = label(state, "host.dialog.status", "", {16, 492, 450, 40});
     state.accept_button = state.button("host.dialog.accept",
@@ -541,7 +539,7 @@ HostDialogResult retained_dialog(NativeWindow &owner,
                                                     entry.options.initial_size);
   if (state.accept_button) {
     (*entry.model).set_accept_button(state.accept_button);
-    (*state.accept_button).set_default_button(true);
+    (*state.accept_button).default_button = true;
   }
   if (state.cancel_button)
     (*entry.model).set_cancel_button(state.cancel_button);

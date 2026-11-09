@@ -15,7 +15,7 @@ Parameters
 stable_id
     Identity of the control, unique within its window. Logs, automation and
     semantic actions address the control by this ID.
-text
+initial_text
     Initial text. It must be valid UTF-8, or the constructor throws
     `std::invalid_argument`. The caret starts at its end.
 
@@ -68,12 +68,12 @@ maximum_length : default ``0``
     Largest number of Unicode scalar values the user may produce; zero means
     no limit. An edit, paste or assistive-technology set-value whose result
     would exceed it is refused entirely rather than truncated. Because the
-    limit applies to the result, a longer text assigned with `set_text`
+    limit applies to the result, a longer text assigned to `text`
     refuses every edit, deletions included, until one edit brings it within
     the limit. Values above 16 Mi throw `std::out_of_range`.
 password_character : default ``U'\0'``
     Character drawn once per grapheme in place of the text; `U'\0'` shows the
-    text. It must be a single printable Unicode scalar, or the setter throws
+    text. It must be a single printable Unicode scalar, or the write throws
     `std::invalid_argument`. A multi-line box cannot be masked.
 use_system_password_character : default ``false``
     Whether to mask the text with bullets (U+2022). It takes precedence over
@@ -190,7 +190,7 @@ set_edit_filter
     Installs a filter that sees every user edit (typing, deletion, paste and
     assistive set-value, as a `TextEdit` with its `TextEditKind`) before it
     is applied, and accepts it, refuses it, or rewrites the whole text and
-    places the caret. `set_text`, undo and redo do not pass through it. A
+    places the caret. Assigning `text`, undo and redo do not pass through it. A
     filter may set the text itself only when it refuses the edit, to show a
     value it looked up (a read-only `DomainUpDown` does); an edit during whose
     filter call the text changed is abandoned whatever the verdict. The delegate does not own its target; clear
@@ -275,7 +275,7 @@ Enter or Tab with nothing to accept closes the list and does its usual
 work. Escape closes the list and puts back what the user typed,
 removing an appended completion. Pressing a row highlights it and releasing
 on it accepts it. A press outside the list closes it, keeping the text; so
-do moving the caret, losing the focus, `set_text`, undo and redo. A
+do moving the caret, losing the focus, assigning `text`, undo and redo. A
 completion belongs to the edit that produced it: one undo removes both.
 Accepting raises `text_changed` (when the text changes), then
 `auto_complete_open_changed` with `false` if the list was open, then
@@ -320,9 +320,9 @@ A search field that acts when the user presses Enter:
        std::string query;
 
        Search() {
-           (*field).set_placeholder_text("Search");
+           (*field).placeholder_text = "Search";
            (*field).accessible_name = "Search";
-           (*field).set_accepts_enter(true);
+           (*field).accepts_enter = true;
            gf::on((*field).committed(), *this, &Search::on_commit);
        }
        void on_commit(const std::string& text) { query = text; }
@@ -343,8 +343,8 @@ Edit a multi-line note. Each replacement is one undo step:
 
    std::shared_ptr<gf::TextBox> note =
        gf::make_control<gf::TextBox>(gf::StableId("note"), "Draft");
-   (*note).set_multiline(true);
-   (*note).set_word_wrap(true);
+   (*note).multiline = true;
+   (*note).word_wrap = true;
    (*note).select_all();
    (*note).replace_selection("First line\nSecond line");
    (*note).undo();   // the text is "Draft" again, and can_redo() is true
@@ -355,9 +355,9 @@ A city field that suggests from its own list and appends the first match:
 
    std::shared_ptr<gf::TextBox> city =
        gf::make_control<gf::TextBox>(gf::StableId("address.city"));
-   (*(*city).auto_complete_custom_source()).add_range({"Calgary", "Cambridge", "Edmonton"});
-   (*city).set_auto_complete_source(gf::AutoCompleteSource::custom_source);
-   (*city).set_auto_complete_mode(gf::AutoCompleteMode::suggest_append);
+   (*(*city).auto_complete_custom_source.read()).add_range({"Calgary", "Cambridge", "Edmonton"});
+   (*city).auto_complete_source = gf::AutoCompleteSource::custom_source;
+   (*city).auto_complete_mode = gf::AutoCompleteMode::suggest_append;
    gf::Window window(city, gf::Size{240.0, 200.0});
    window.request_focus(city);
    window.dispatch_text(gf::TextInputEvent{"ca"});

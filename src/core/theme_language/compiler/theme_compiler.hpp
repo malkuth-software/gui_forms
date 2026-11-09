@@ -35,6 +35,10 @@
 #include <string_view>
 #include <vector>
 
+namespace gui_forms {
+class EffectRegistry;
+} // namespace gui_forms
+
 namespace gui_forms::theme_language {
 
 // What one compilation reads besides the sheet, all borrowed for the call:
@@ -83,9 +87,23 @@ struct ThemeCompileInput final {
     // at `important_user_theme` for its `!important` declarations, its
     // selectors ordered by specificity within the level.
     bool user_theme{};
+    // A program's packages compiled onto the GUI.Forms base (selector step
+    // 1): the byte offset where the base sheet's text ends. Rules starting
+    // before it are at the base levels, as CSS's user-agent origin.
+    std::optional<std::uint32_t> base_origin_end{};
     // The host's colour hints, which env() reads when the sheet is
     // compiled (T4 theme variants); empty, every env() reads its fallback.
     SystemColourHints system_colours{};
+    // A built-in sheet (a theme's floor sheet or GUI.Forms' own light
+    // sheet): the colour authority, whose literal colours are the colours
+    // forced high contrast derives from, so they are not reported as
+    // unremappable (W201; owner, 2026-11-08, option 2). Rules before
+    // base_origin_end are the authority too. App and user sheets are not.
+    bool colour_authority{};
+    // The effects an `effect` may name (EP-3), borrowed for the call: a
+    // name it does not hold is refused (E417). Null, only the name's form
+    // is checked, and the control checks the effect when it attaches it.
+    const EffectRegistry* effects{};
 };
 
 // One stretch of an inline style's text copied into a sheet by

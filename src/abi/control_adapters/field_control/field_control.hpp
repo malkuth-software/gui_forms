@@ -37,7 +37,7 @@ public:
             kind_ == FieldControlKind::list_box ||
             kind_ == FieldControlKind::data_grid ||
             kind_ == FieldControlKind::numeric_up_down) {
-            set_focusable(true);
+            focusable = true;
         }
         if (kind_ == FieldControlKind::text_box ||
             kind_ == FieldControlKind::combo_box ||

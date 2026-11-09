@@ -137,20 +137,20 @@ void test_flow_layout_starts_at_the_right() {
                 (*third).arranged_bounds() == Rect{60.0, 20.0, 40.0, 20.0},
             "right to left, a left-to-right flow starts at the right edge");
 
-    (*flow).set_flow_direction(FlowDirection::right_to_left);
+    (*flow).flow_direction = FlowDirection::right_to_left;
     window.perform_layout();
     require((*first).arranged_bounds().x == 0.0 && (*second).arranged_bounds().x == 40.0 &&
                 (*third).arranged_bounds().x == 0.0,
             "right to left, a right-to-left flow mirrors back to the left edge");
 
-    (*flow).set_flow_direction(FlowDirection::top_down);
+    (*flow).flow_direction = FlowDirection::top_down;
     window.perform_layout();
     require((*first).arranged_bounds() == Rect{60.0, 0.0, 40.0, 20.0} &&
                 (*second).arranged_bounds() == Rect{60.0, 20.0, 40.0, 20.0} &&
                 (*third).arranged_bounds() == Rect{20.0, 0.0, 40.0, 20.0},
             "right to left, a vertical flow's columns start at the right edge");
 
-    (*flow).set_flow_direction(FlowDirection::left_to_right);
+    (*flow).flow_direction = FlowDirection::left_to_right;
     (*flow).padding = {10.0, 0.0, 0.0, 0.0};
     (*second).margin = {5.0, 0.0, 0.0, 0.0};
     window.perform_layout();
@@ -167,8 +167,8 @@ void test_flow_layout_starts_at_the_right() {
 void test_flow_scrolls_toward_the_left() {
     std::shared_ptr<FlowLayoutPanelCompat> flow = make_control<FlowLayoutPanelCompat>(StableId("direction.scroll"));
     (*flow).auto_scroll = true;
-    (*flow).set_wrap_contents(false);
-    (*flow).set_item_spacing({4.0, 4.0});
+    (*flow).wrap_contents = false;
+    (*flow).item_spacing = {4.0, 4.0};
     (*flow).layout_direction = LayoutDirection::right_to_left;
     std::vector<std::shared_ptr<Button>> items;
     for (int index = 0; index < 8; ++index) {
@@ -198,12 +198,12 @@ void test_flow_scrolls_toward_the_left() {
 void test_table_layout_starts_at_the_right() {
     std::shared_ptr<TableLayoutPanelCompat> table = make_control<TableLayoutPanelCompat>(StableId("direction.table"));
     (*table).padding = {5.0, 5.0, 5.0, 5.0};
-    (*table).set_column_count(2U);
-    (*table).set_row_count(1U);
+    (*table).column_count = 2U;
+    (*table).row_count = 1U;
     (*table).set_column_style(0U, {TableSizeMode::absolute, 40.0});
     (*table).set_column_style(1U, {TableSizeMode::absolute, 60.0});
     (*table).set_row_style(0U, {TableSizeMode::absolute, 30.0});
-    (*table).set_cell_border_style(TableCellBorderStyle::single);
+    (*table).cell_border_style = TableCellBorderStyle::single;
     std::shared_ptr<Button> first = sized_button("direction.table.first", 30.0, 20.0);
     std::shared_ptr<Button> second = sized_button("direction.table.second", 50.0, 20.0);
     (*table).add_child(first);
@@ -256,7 +256,7 @@ void test_reentrant_measure_keeps_the_outer_pass() {
 
     std::shared_ptr<TableLayoutPanelCompat> table = make_control<TableLayoutPanelCompat>(StableId("direction.reentrant.table"));
     (*table).auto_size = true;
-    (*table).set_column_count(2U);
+    (*table).column_count = 2U;
     std::shared_ptr<ReentrantMeasureControl> cell =
         make_control<ReentrantMeasureControl>(StableId("direction.reentrant.table.nested"));
     (*cell).set_requested_bounds({0.0, 0.0, 30.0, 20.0});

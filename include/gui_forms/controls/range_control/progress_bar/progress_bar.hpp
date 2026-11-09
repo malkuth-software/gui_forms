@@ -2,7 +2,9 @@
 
 #include "gui_forms/animation/animation_timer/animation_timer.hpp"
 #include "gui_forms/controls/range_control/range_control.hpp"
+#include "gui_forms/controls/range_control/progress_bar/progress_bar_values/progress_bar_values.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -13,85 +15,13 @@ namespace gui_forms {
 
 struct PresentationSettings;
 
-enum class ProgressBarVisualStyle : std::uint8_t {
-    blocks,
-    continuous,
-    marquee,
-    pulse,
-    luminance_pulse = pulse,
-    marching_stripes,
-    laser_etch,
-};
-
-enum class ProgressBarOverlayStyle : std::uint8_t {
-    none,
-    moving_stripes,
-    marching_stripes = moving_stripes,
-};
-
-struct ProgressBarAnimationAppearance final {
-    Color luminance_color{Color::rgba(255, 255, 255, 92)};
-    Color stripe_color{Color::rgba(224, 241, 252, 116)};
-    Color laser_phase_color{Color::rgba(130, 222, 247, 108)};
-    Color laser_edge_color{Color::rgba(196, 246, 255, 226)};
-    Color laser_spark_color{Color::rgba(238, 253, 255, 236)};
-    double pulse_extent{0.32};
-    double laser_edge_extent{13.0};
-    double laser_phase_pitch{10.0};
-
-    friend constexpr bool operator==(
-        const ProgressBarAnimationAppearance& left,
-        const ProgressBarAnimationAppearance& right) noexcept {
-        return left.luminance_color == right.luminance_color &&
-               left.stripe_color == right.stripe_color &&
-               left.laser_phase_color == right.laser_phase_color &&
-               left.laser_edge_color == right.laser_edge_color &&
-               left.laser_spark_color == right.laser_spark_color &&
-               left.pulse_extent == right.pulse_extent &&
-               left.laser_edge_extent == right.laser_edge_extent &&
-               left.laser_phase_pitch == right.laser_phase_pitch;
-    }
-};
-
-class ProgressBar : public RangeControl {
+class ProgressBar : public RangeControl, public ProgressBarCapabilities<ProgressBar> {
 public:
     explicit ProgressBar(StableId stable_id);
 
-    [[nodiscard]] ProgressBarVisualStyle visual_style() const noexcept {
-        return visual_style_;
-    }
-    void set_visual_style(ProgressBarVisualStyle style);
-    [[nodiscard]] ProgressBarOverlayStyle overlay_style() const noexcept {
-        return overlay_style_;
-    }
-    void set_overlay_style(ProgressBarOverlayStyle style);
-    [[nodiscard]] double stripe_width() const noexcept { return stripe_width_; }
-    void set_stripe_width(double width);
-    [[nodiscard]] const ProgressBarAnimationAppearance& animation_appearance()
-        const noexcept { return animation_appearance_; }
-    void set_animation_appearance(ProgressBarAnimationAppearance appearance);
-    [[nodiscard]] bool animation_enabled() const noexcept {
-        return animation_enabled_;
-    }
-    void set_animation_enabled(bool enabled);
-    [[nodiscard]] bool animation_paused() const noexcept {
-        return motion_policy_.paused;
-    }
-    void set_animation_paused(bool paused);
-    [[nodiscard]] bool reduced_motion() const noexcept {
-        return motion_policy_.reduced;
-    }
-    void set_reduced_motion(bool reduced);
-    void set_motion_policy(bool paused, bool reduced_motion);
-    void set_motion_policy(MotionPolicy policy);
-    [[nodiscard]] MotionPolicy motion_policy() const noexcept {
-        return motion_policy_;
-    }
+    // motion_policy (a capability view) combined with the window's
+    // reduced-motion setting: what the bar's animation obeys.
     [[nodiscard]] MotionPolicy effective_motion_policy() const noexcept;
-    [[nodiscard]] FrameInterval animation_period() const noexcept {
-        return animation_period_;
-    }
-    void set_animation_period(FrameInterval period);
     [[nodiscard]] double animation_phase() const noexcept {
         return animation_phase_;
     }
@@ -101,28 +31,6 @@ public:
     // and tests call it to step the bar.
     void advance_animation(FrameTime now);
 
-    // The effect program drawn over the bar (effect programs, design note
-    // §7), by registered name. Empty (the default) selects the visual
-    // style's own: progress_stripes for marching_stripes, progress_pulse
-    // for pulse, progress_laser for laser_etch; for the other styles, the
-    // effect the theme declares for the bar's fill part (its activity part
-    // while marquee), if any (effect_property). A name no registered
-    // progress-bar effect has, or one the load checks refuse, draws no
-    // effect (effect_selection says why). The moving-stripes overlay draws
-    // progress_stripes over any other effect.
-    [[nodiscard]] const std::string& effect() const noexcept { return effect_; }
-    void set_effect(std::string name);
-    // The seed of the bar's effects. None (the default) derives it from the
-    // bar's stable ID and the effect's name, so runs, tests and motion
-    // checksums reproduce; an application sets one for another arrangement.
-    [[nodiscard]] std::optional<std::uint64_t> effect_seed() const noexcept { return effect_seed_; }
-    void set_effect_seed(std::optional<std::uint64_t> seed);
-    // The input the bar grants its effect (none by default): with a grant
-    // the bar is hit-tested and passes the pointer, in part-local units, to
-    // an effect that declares pointer input. The bar never takes focus, so
-    // a key grant delivers nothing.
-    [[nodiscard]] EffectInputKind effect_input() const noexcept { return effect_input_; }
-    void set_effect_input(EffectInputKind input);
     // What the bar's last effect selection came to: the name asked for,
     // who asked (the application, the visual style or the theme) and the
     // load checks' verdict.
@@ -226,28 +134,20 @@ private:
     // enlistment: as with the engine's parts, only a bar that is drawn asks
     // for frames.
     void update_effect_ambient(bool painting);
-    // The effect and effect_seed properties' values (effect programs, design
-    // note section 7): text, and a nullable unsigned integer.
-    [[nodiscard]] BindingValue effect_property_value() const;
-    void set_effect_property_value(const BindingValue& value);
+    // The effect_seed property's table value: a nullable unsigned integer.
     [[nodiscard]] BindingValue effect_seed_property_value() const;
-    void set_effect_seed_property_value(const BindingValue& value);
+    void write_effect_seed_property(const BindingValue& value);
+    // The animation appearance's checks (std::invalid_argument).
+    void validate_animation_appearance(const ProgressBarAnimationAppearance& appearance) const;
+    // What a visual style or overlay change does after the store.
+    void restyle();
 
-    ProgressBarVisualStyle visual_style_{ProgressBarVisualStyle::continuous};
-    ProgressBarOverlayStyle overlay_style_{ProgressBarOverlayStyle::none};
-    ProgressBarAnimationAppearance animation_appearance_{};
-    double stripe_width_{7.0};
     // ADR-016: a paint-gated UI timer the bar stops.
     AnimationTimer animation_timer_;
     SubscriptionToken presentation_subscription_;
-    FrameInterval animation_period_{std::chrono::milliseconds(1400)};
     FrameTime last_animation_frame_{};
     double animation_phase_{};
-    bool animation_enabled_{true};
     MotionPolicy motion_policy_{};
-    std::string effect_{};
-    std::optional<std::uint64_t> effect_seed_{};
-    EffectInputKind effect_input_{EffectInputKind::none};
     // The selected effect, and the moving-stripes overlay's stripes. Each
     // owns its state; both are released with the bar.
     EffectInstance effect_instance_;
@@ -263,6 +163,46 @@ private:
     // finding them equal finds the bar no longer shown.
     std::uint64_t effect_paints_{};
     std::uint64_t effect_paints_seen_{~std::uint64_t{0}};
+    // property_codemod begin ProgressBar (tools/property_families/progress_bar.json; generated, do not edit)
+public:
+    // ProgressBar's property table: RangeControl's entries, then its own.
+    static constexpr std::size_t progress_bar_property_count = RangeControl::range_control_property_count + 4U;
+    [[nodiscard]] static const std::array<PropertyEntry, progress_bar_property_count>& progress_bar_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct ProgressBarVisualStyleChoiceCapability<ProgressBar>;
+    friend struct ProgressBarOverlayStyleChoiceCapability<ProgressBar>;
+    friend struct ProgressBarStripeWidthCapability<ProgressBar>;
+    friend struct ProgressBarAppearanceCapability<ProgressBar>;
+    friend struct ProgressBarAnimationEnabledCapability<ProgressBar>;
+    friend struct ProgressBarAnimationPeriodCapability<ProgressBar>;
+    friend struct ProgressBarEffectCapability<ProgressBar>;
+    friend struct ProgressBarEffectSeedCapability<ProgressBar>;
+    friend struct ProgressBarEffectInputCapability<ProgressBar>;
+    friend struct ProgressBarMotionPolicyCapability<ProgressBar>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(visual_style)& cell, ProgressBarVisualStyle& incoming);
+    void written(const decltype(visual_style)& cell);
+    void prepare_write(const decltype(overlay_style)& cell, ProgressBarOverlayStyle& incoming);
+    void written(const decltype(overlay_style)& cell);
+    void prepare_write(const decltype(stripe_width)& cell, double& incoming);
+    void written(const decltype(stripe_width)& cell);
+    void prepare_write(const decltype(animation_appearance)& cell, ProgressBarAnimationAppearance& incoming);
+    void written(const decltype(animation_appearance)& cell);
+    void prepare_write(const decltype(animation_enabled)& cell, bool& incoming);
+    void written(const decltype(animation_enabled)& cell);
+    void prepare_write(const decltype(animation_period)& cell, FrameInterval& incoming);
+    void written(const decltype(animation_period)& cell);
+    void prepare_write(const decltype(effect)& cell, std::string& incoming);
+    void written(const decltype(effect)& cell);
+    void prepare_write(const decltype(effect_seed)& cell, std::optional<std::uint64_t>& incoming);
+    void written(const decltype(effect_seed)& cell);
+    void prepare_write(const decltype(effect_input)& cell, EffectInputKind& incoming);
+    void written(const decltype(effect_input)& cell);
+    void write_view(const decltype(motion_policy)& cell, MotionPolicy incoming);
+    [[nodiscard]] MotionPolicy read_view(const decltype(motion_policy)& cell) const;
+    // property_codemod end ProgressBar
 };
 
 } // namespace gui_forms

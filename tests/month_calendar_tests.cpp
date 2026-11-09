@@ -10,6 +10,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -99,6 +100,65 @@ void days_and_anatomy() {
             "dated, annual and monthly bold days publish the bolded custom state");
     (*calendar).remove_annually_bolded_date({1999, 8U, 3U});
     require(!(*calendar).bolded(august(3U)) && (*calendar).bolded(august(20U)), "an annual bold date is removed by month and day");
+}
+
+// Replacing the annual and monthly bold lists: each replaces the whole list,
+// shows in the realized days at once, and an invalid date anywhere in the
+// list throws before anything changes.
+bool replace_annual(MonthCalendar& calendar, std::vector<DateTimeValue> dates) {
+    try {
+        calendar.set_annually_bolded_dates(std::move(dates));
+    } catch (const std::invalid_argument&) {
+        return false;
+    }
+    return true;
+}
+
+bool replace_monthly(MonthCalendar& calendar, std::vector<DateTimeValue> dates) {
+    try {
+        calendar.set_monthly_bolded_dates(std::move(dates));
+    } catch (const std::invalid_argument&) {
+        return false;
+    }
+    return true;
+}
+
+void bold_date_lists() {
+    std::shared_ptr<MonthCalendar> calendar = make_calendar("calendar.bold-lists");
+    Window window(calendar, {520.0, 260.0});
+    window.perform_layout();
+    (*calendar).add_annually_bolded_date({2000, 8U, 9U});
+    require(replace_annual(*calendar, {{1990, 8U, 3U}, {1991, 12U, 25U}}), "a valid annual list is taken");
+    require((*calendar).annually_bolded_dates().size() == 2U &&
+                (*calendar).annually_bolded_dates()[0] == DateTimeValue{1990, 8U, 3U} &&
+                (*calendar).annually_bolded_dates()[1] == DateTimeValue{1991, 12U, 25U},
+            "the annual list reads back as given, replacing the earlier entry");
+    const std::vector<MonthCalendar::Day> annual = (*calendar).realized_days();
+    require((*find_day(annual, august(3U))).states.bolded && !(*find_day(annual, august(9U))).states.bolded,
+            "the annual list bolds its month and day in any year, and the replaced entry no longer shows");
+
+    require(replace_monthly(*calendar, {{2001, 1U, 15U}, {1999, 3U, 30U}}), "a valid monthly list is taken");
+    require((*calendar).monthly_bolded_dates().size() == 2U &&
+                (*calendar).monthly_bolded_dates()[0] == DateTimeValue{2001, 1U, 15U},
+            "the monthly list reads back as given");
+    const std::vector<MonthCalendar::Day> monthly = (*calendar).realized_days();
+    require((*find_day(monthly, august(15U))).states.bolded && (*find_day(monthly, august(30U))).states.bolded &&
+                !(*find_day(monthly, august(16U))).states.bolded,
+            "the monthly list bolds its days in every month");
+
+    require(!replace_annual(*calendar, {{2000, 5U, 1U}, {2000, 2U, 30U}}) &&
+                (*calendar).annually_bolded_dates().size() == 2U &&
+                (*calendar).annually_bolded_dates()[0] == DateTimeValue{1990, 8U, 3U},
+            "an invalid date in an annual list throws and keeps the old list");
+    require(!replace_monthly(*calendar, {{2000, 13U, 1U}}) && (*calendar).monthly_bolded_dates().size() == 2U,
+            "an invalid date in a monthly list throws and keeps the old list");
+
+    require(replace_annual(*calendar, {}) && replace_monthly(*calendar, {}) &&
+                (*calendar).annually_bolded_dates().empty() && (*calendar).monthly_bolded_dates().empty(),
+            "empty lists clear both");
+    const std::vector<MonthCalendar::Day> cleared = (*calendar).realized_days();
+    require(!(*find_day(cleared, august(3U))).states.bolded && !(*find_day(cleared, august(15U))).states.bolded,
+            "cleared lists bold nothing");
 }
 
 void pointer_selection() {
@@ -269,6 +329,7 @@ void semantics() {
 
 int main() {
     days_and_anatomy();
+    bold_date_lists();
     pointer_selection();
     keyboard_navigation();
     range_and_months();

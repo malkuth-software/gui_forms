@@ -20,85 +20,9 @@
       "reviewed": false,
       "summary": "Constructs a non-focusable, non-hit-testable range visualization with progress semantics."
     },
-    "gui_forms::ProgressBar::visual_style|ProgressBarVisualStyle () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns continuous, segmented, or marquee presentation."
-    },
-    "gui_forms::ProgressBar::set_visual_style|void (ProgressBarVisualStyle)": {
-      "reviewed": false,
-      "summary": "Validates style, updates animation registration, and invalidates size, paint, and semantics."
-    },
-    "gui_forms::ProgressBar::overlay_style|ProgressBarOverlayStyle () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns none, solid, or striped overlay policy."
-    },
-    "gui_forms::ProgressBar::set_overlay_style|void (ProgressBarOverlayStyle)": {
-      "reviewed": false,
-      "summary": "Validates overlay vocabulary and invalidates painting."
-    },
-    "gui_forms::ProgressBar::stripe_width|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the positive logical stripe width used by compatibility overlay painting."
-    },
-    "gui_forms::ProgressBar::set_stripe_width|void (double)": {
-      "reviewed": false,
-      "summary": "Accepts a finite bounded positive width and synchronizes animation appearance."
-    },
-    "gui_forms::ProgressBar::animation_appearance|const ProgressBarAnimationAppearance &() const noexcept": {
-      "reviewed": false,
-      "summary": "Returns stripe width, gap, angle, and opacity as one value."
-    },
-    "gui_forms::ProgressBar::set_animation_appearance|void (ProgressBarAnimationAppearance)": {
-      "reviewed": false,
-      "summary": "Validates all animation geometry/opacity fields and commits them atomically."
-    },
-    "gui_forms::ProgressBar::animation_enabled|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports caller intent to animate marquee or striped presentation."
-    },
-    "gui_forms::ProgressBar::set_animation_enabled|void (bool)": {
-      "reviewed": false,
-      "summary": "Toggles animation intent and reconciles Window frame registration."
-    },
-    "gui_forms::ProgressBar::animation_paused|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether application policy currently freezes phase."
-    },
-    "gui_forms::ProgressBar::set_animation_paused|void (bool)": {
-      "reviewed": false,
-      "summary": "Toggles pause state without discarding deterministic phase."
-    },
-    "gui_forms::ProgressBar::reduced_motion|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports the local compatibility override for reduced motion."
-    },
-    "gui_forms::ProgressBar::set_reduced_motion|void (bool)": {
-      "reviewed": false,
-      "summary": "Toggles the local override and reconciles effective animation registration."
-    },
-    "gui_forms::ProgressBar::set_motion_policy|void (bool, bool)": {
-      "reviewed": false,
-      "summary": "Installs or clears an explicit policy override instead of inheriting the Window policy."
-    },
-    "gui_forms::ProgressBar::set_motion_policy|void (MotionPolicy)": {
-      "reviewed": false,
-      "summary": "Installs or clears an explicit policy override instead of inheriting the Window policy."
-    },
-    "gui_forms::ProgressBar::motion_policy|MotionPolicy () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the optional caller-authored motion-policy override."
-    },
     "gui_forms::ProgressBar::effective_motion_policy|MotionPolicy () const noexcept": {
       "reviewed": false,
       "summary": "Resolves local compatibility state, explicit override, and attached Window policy into one behavior."
-    },
-    "gui_forms::ProgressBar::animation_period|FrameInterval () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the positive duration of one animation cycle."
-    },
-    "gui_forms::ProgressBar::set_animation_period|void (FrameInterval)": {
-      "reviewed": false,
-      "summary": "Accepts a positive duration and preserves phase continuity."
     },
     "gui_forms::ProgressBar::animation_phase|double () const noexcept": {
       "reviewed": false,

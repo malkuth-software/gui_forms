@@ -56,10 +56,12 @@ void Ribbon::set_recent_items(std::vector<RibbonRecentItem> items) {
     invalidate(Dirty::semantics);
 }
 
-void Ribbon::set_recent_caption(std::string caption) {
+void Ribbon::prepare_write(const decltype(recent_caption)&, std::string& incoming) {
     require_mutable();
-    if (!validate_utf8(caption).valid()) throw std::invalid_argument("Ribbon recent caption must be valid UTF-8");
-    recent_caption_ = std::move(caption);
+    if (!validate_utf8(incoming).valid()) throw std::invalid_argument("Ribbon recent caption must be valid UTF-8");
+}
+
+void Ribbon::written(const decltype(recent_caption)&) {
     if (application_overlay_) (*application_overlay_).invalidate(Dirty::paint);
 }
 
@@ -128,15 +130,19 @@ void Ribbon::on_application_overlay_revoked() {
 
 // -- Backstage -----------------------------------------------------------------
 
-void Ribbon::set_backstage(std::shared_ptr<BackstageView> view) {
+// A changed view closes the open Backstage first; the close subscription
+// follows the cell.
+void Ribbon::prepare_write(const decltype(backstage)&, std::shared_ptr<BackstageView>& incoming) {
     require_mutable();
-    if (backstage_ == view) return;
-    if (view && (*view).parent()) throw std::invalid_argument("Ribbon Backstage view already has a parent");
+    if (backstage.read() == incoming) return;
+    if (incoming && (*incoming).parent()) throw std::invalid_argument("Ribbon Backstage view already has a parent");
     close_backstage();
     backstage_close_.disconnect();
-    backstage_ = std::move(view);
-    if (backstage_) {
-        backstage_close_ = (*backstage_).close_requested().subscribe(
+}
+
+void Ribbon::written(const decltype(backstage)&) {
+    if (backstage.read()) {
+        backstage_close_ = (*backstage.read()).close_requested().subscribe(
             *this, Delegate<>::bind<Ribbon, &Ribbon::on_backstage_close_requested>(*this));
     }
     invalidate(Dirty::semantics);
@@ -146,27 +152,27 @@ void Ribbon::set_backstage(std::shared_ptr<BackstageView> view) {
 // client's bottom edge, the full width; the tab row stays usable above it.
 void Ribbon::place_backstage() {
     Window* const window = attached_window();
-    if (window == nullptr || !backstage_) return;
+    if (window == nullptr || !backstage.read()) return;
     const Rect absolute = absolute_bounds();
     const Size client = (*window).client_size();
     const double top = std::min(client.height, absolute.y + tab_row_height());
-    (*backstage_).set_requested_bounds({0.0, top, client.width, std::max(0.0, client.height - top)});
+    (*backstage.read()).set_requested_bounds({0.0, top, client.width, std::max(0.0, client.height - top)});
 }
 
 bool Ribbon::show_backstage() {
     require_mutable();
     Window* const window = attached_window();
-    if (!backstage_ || window == nullptr || !effectively_enabled()) return false;
+    if (!backstage.read() || window == nullptr || !effectively_enabled()) return false;
     if (backstage_open_) return true;
     close_menus();
     close_group_overlay();
     place_backstage();
-    backstage_token_ = (*window).open_overlay(shared_from_this(), backstage_);
+    backstage_token_ = (*window).open_overlay(shared_from_this(), backstage.read());
     backstage_open_ = true;
     if (Event<>* closed = backstage_token_.closed_event()) {
         backstage_revoked_ = (*closed).subscribe(*this, Delegate<>::bind<Ribbon, &Ribbon::on_backstage_revoked>(*this));
     }
-    backstage_scope_ = (*window).begin_focus_scope(backstage_, backstage_);
+    backstage_scope_ = (*window).begin_focus_scope(backstage.read(), backstage.read());
     invalidate(Dirty::paint | Dirty::semantics);
     backstage_open_changed_.emit(true);
     return true;

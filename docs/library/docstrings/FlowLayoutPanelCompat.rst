@@ -103,7 +103,7 @@ after the second, so it starts the second line:
 
    std::shared_ptr<gf::FlowLayoutPanelCompat> tools =
        gf::make_control<gf::FlowLayoutPanelCompat>(gf::StableId("tools"));
-   (*tools).set_item_spacing({7.0, 9.0});
+   (*tools).item_spacing = {7.0, 9.0};
    std::shared_ptr<gf::Button> cut =
        gf::make_control<gf::Button>(gf::StableId("tools.cut"), "Cut");
    std::shared_ptr<gf::Button> copy =
@@ -130,7 +130,7 @@ Let two children share the free space of a line in the ratio 1 to 2:
 
    std::shared_ptr<gf::FlowLayoutPanelCompat> row =
        gf::make_control<gf::FlowLayoutPanelCompat>(gf::StableId("row"));
-   (*row).set_wrap_contents(false);
+   (*row).wrap_contents = false;
    std::shared_ptr<gf::Button> fixed =
        gf::make_control<gf::Button>(gf::StableId("row.fixed"), "Fixed");
    std::shared_ptr<gf::Button> narrow =

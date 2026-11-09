@@ -6,6 +6,7 @@
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/window/tool_tips/tool_tips.hpp"
+#include "gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp"
 
 #include <chrono>
 #include <functional>
@@ -29,7 +30,7 @@ class Window;
 // ToolTip set. Disposing a ToolTip clears the text it set. UI thread only;
 // every operation throws std::logic_error once the ToolTip is disposed or
 // its window is gone.
-class ToolTip final : public Component {
+class ToolTip final : public Component, public ToolTipCapabilities<ToolTip> {
 public:
     explicit ToolTip(Window& window);
     ~ToolTip() override;
@@ -45,26 +46,6 @@ public:
     bool remove_tool_tip(Control& target);
     // Clears the text this ToolTip set on every target.
     void clear();
-
-    // The window's ToolTipSettings, read and written field by field. The
-    // setters throw std::invalid_argument for a negative delay and for a
-    // width outside 80 to 2048, changing nothing.
-    [[nodiscard]] std::chrono::milliseconds initial_delay() const;
-    void set_initial_delay(std::chrono::milliseconds delay);
-    [[nodiscard]] std::chrono::milliseconds reshow_delay() const;
-    void set_reshow_delay(std::chrono::milliseconds delay);
-    [[nodiscard]] std::chrono::milliseconds auto_pop_delay() const;
-    void set_auto_pop_delay(std::chrono::milliseconds delay);
-    [[nodiscard]] bool show_on_hover() const;
-    void set_show_on_hover(bool value);
-    [[nodiscard]] bool show_on_focus() const;
-    void set_show_on_focus(bool value);
-    // Whether a disabled control's tooltip shows
-    // (ToolTipSettings::show_when_disabled).
-    [[nodiscard]] bool show_always() const;
-    void set_show_always(bool value);
-    [[nodiscard]] double maximum_width() const;
-    void set_maximum_width(double width);
 
     // Shows `target`'s tooltip at once, below it (Window::show_tool_tip),
     // for the auto-pop delay or for `duration` (zero: until hidden). Throws
@@ -100,6 +81,31 @@ private:
     TargetMap targets_;
     SubscriptionToken window_subscription_;
     Event<const ToolTipEvent&> visibility_changed_;
+    // property_codemod begin ToolTip (tools/property_families/tool_tip.json; generated, do not edit)
+private:
+    friend struct ToolTipInitialDelayCapability<ToolTip>;
+    friend struct ToolTipReshowDelayCapability<ToolTip>;
+    friend struct ToolTipAutoPopDelayCapability<ToolTip>;
+    friend struct ToolTipShowOnHoverCapability<ToolTip>;
+    friend struct ToolTipShowOnFocusCapability<ToolTip>;
+    friend struct ToolTipShowAlwaysCapability<ToolTip>;
+    friend struct ToolTipMaximumWidthCapability<ToolTip>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(initial_delay)& cell, std::chrono::milliseconds incoming);
+    [[nodiscard]] std::chrono::milliseconds read_view(const decltype(initial_delay)& cell) const;
+    void write_view(const decltype(reshow_delay)& cell, std::chrono::milliseconds incoming);
+    [[nodiscard]] std::chrono::milliseconds read_view(const decltype(reshow_delay)& cell) const;
+    void write_view(const decltype(auto_pop_delay)& cell, std::chrono::milliseconds incoming);
+    [[nodiscard]] std::chrono::milliseconds read_view(const decltype(auto_pop_delay)& cell) const;
+    void write_view(const decltype(show_on_hover)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(show_on_hover)& cell) const;
+    void write_view(const decltype(show_on_focus)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(show_on_focus)& cell) const;
+    void write_view(const decltype(show_always)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(show_always)& cell) const;
+    void write_view(const decltype(maximum_width)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(maximum_width)& cell) const;
+    // property_codemod end ToolTip
 };
 
 } // namespace gui_forms

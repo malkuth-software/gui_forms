@@ -150,7 +150,7 @@ void anatomy_and_layout() {
     require(content.y >= parts.content.bounds.y && content.height > 0.0 &&
                 content.y + content.height <= parts.content.bounds.y + parts.content.bounds.height,
             "the selected page's control fills the content area");
-    (*(*view).strip()).set_placement(PageStripPlacement::bottom);
+    (*(*view).strip()).placement = PageStripPlacement::bottom;
     window.perform_layout();
     const PageView::Parts below = (*view).parts();
     require(below.content.bounds.y == 0.0 && below.strip.bounds.y == below.content.bounds.height,
@@ -295,13 +295,13 @@ void nested_views_and_key_routing() {
     require(window.dispatch_key(key(PhysicalKey::tab, Modifier::control)) &&
                 selected_id((*inner).pages()) == "x" && selected_id((*outer).pages()) == "a",
             "Ctrl+Tab goes to the innermost view that handles it");
-    (*inner).set_ctrl_tab(PageViewCtrlTab::pass);
+    (*inner).ctrl_tab = PageViewCtrlTab::pass;
     require(window.dispatch_key(key(PhysicalKey::tab, Modifier::control)) &&
                 selected_id((*inner).pages()) == "x" && selected_id((*outer).pages()) == "b",
             "a view that passes Ctrl+Tab leaves it to the view around it");
     require(window.dispatch_key(key(PhysicalKey::tab, Modifier::control)) && selected_id((*outer).pages()) == "a",
             "the outer view's strip, now focused, still takes Ctrl+Tab");
-    (*outer).set_ctrl_tab(PageViewCtrlTab::pass);
+    (*outer).ctrl_tab = PageViewCtrlTab::pass;
     require(window.request_focus((*inner).strip()), "focus on the inner strip again");
     // Unhandled by every view, the key falls to the window's Tab traversal.
     static_cast<void>(window.dispatch_key(key(PhysicalKey::tab, Modifier::control | Modifier::shift)));
@@ -315,7 +315,7 @@ void focus_regions() {
     (*before).set_requested_bounds({0.0, 0.0, 80.0, 24.0});
     std::shared_ptr<PageView> view = make_control<PageView>(StableId("view"));
     (*view).set_requested_bounds({0.0, 40.0, 400.0, 200.0});
-    (*view).set_focus_region(true);
+    (*view).focus_region = true;
     std::shared_ptr<TextBox> box = text_box("view.box");
     require((*view).add_page(record("a", "A"), box) == PageEditStatus::applied, "added");
     (*root).add_child(before);
@@ -328,7 +328,7 @@ void focus_regions() {
     require(window.dispatch_key(key(PhysicalKey::f6)) && window.focused_control() &&
                 (window.focused_control() == (*view).strip() || window.focused_control() == box),
             "F6 moves the focus into the view");
-    (*view).set_focus_region(false);
+    (*view).focus_region = false;
     require(window.focus_regions().empty(), "turning the region off unregisters the view");
 }
 
@@ -349,7 +349,7 @@ void take_and_put_between_views() {
             "added");
     Window window(root, {600.0, 200.0});
     window.perform_layout();
-    (*moving).set_text("unsaved words");
+    (*moving).text = "unsaved words";
     PageTakeResult taken = (*left).pages().take(PageId{"doc"});
     require(taken.status == PageEditStatus::applied && !(*moving).parent(),
             "a taken page's control leaves the view and is kept by the taken page");
@@ -357,7 +357,7 @@ void take_and_put_between_views() {
     require(page_edit_succeeded((*right).pages().select(PageId{"doc"}, PageSelectionCause::programmatic)),
             "selected in the new view");
     window.perform_layout();
-    require((*right).page_content(PageId{"doc"}) == moving && (*moving).text() == "unsaved words" &&
+    require((*right).page_content(PageId{"doc"}) == moving && (*moving).text.read() == "unsaved words" &&
                 (*moving).effectively_visible() && (*right).panel_identity(PageId{"doc"}) == "right.panel.doc" &&
                 (*left).panel_identity(PageId{"doc"}).empty(),
             "the control moves to the other view with its state and shows there");

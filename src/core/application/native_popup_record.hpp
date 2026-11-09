@@ -5,6 +5,8 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
+#include <string_view>
 
 namespace gui_forms::detail {
 
@@ -38,6 +40,9 @@ public:
     [[nodiscard]] Window* model() const noexcept;
     // The popup window's identity while it is open, else invalid.
     [[nodiscard]] HostWindowId id() const noexcept;
+    // The run's handle on the popup window (inactive before bind and once
+    // the run ended); its requests report after_shutdown when it is gone.
+    [[nodiscard]] const ApplicationWindowHandle& handle() const noexcept { return window_; }
 
 private:
     ApplicationWindowHandle window_{};
@@ -59,14 +64,20 @@ struct NativePopupClosed final {
 struct NativePopupOpening final {
     // The owner window's state in the run (SurfaceRoot::application_window_).
     std::weak_ptr<ApplicationWindowState> owner{};
-    // Unique among the owner's popups for the run: the popup window's stable
-    // id is the owner's followed by "/popup." and this number.
+    // Unique among the owner's popups of this name for the run: the popup
+    // window's stable id is the owner's followed by "/", `name`, "." and
+    // this number.
     std::uint64_t serial{};
+    std::string_view name{"popup"};
     // A live detached root (validated by the caller).
     Control::Ptr content{};
     // In the owner's client area, logical units; each extent at least 1.
     Rect bounds{};
     HostPopupFocus focus{HostPopupFocus::passive};
+    // What the window is for; a Splash kind needs a passive focus.
+    HostTransientKind kind{HostTransientKind::popup};
+    // A warm transient window (TransientWindow) opens hidden.
+    bool initially_visible{true};
     std::optional<BackdropChain> backdrop{};
     // The owner's keyboard-command keys and resources (theme, fonts,
     // images), shared with the popup.
@@ -74,10 +85,33 @@ struct NativePopupOpening final {
     std::shared_ptr<ApplicationResources> resources{};
 };
 
-// Whether the owner's run can open a native popup now: none when the owner
-// is a ready window of a live run whose host opens popup windows during the
-// run, else why not (no_run or unsupported).
-[[nodiscard]] NativePopupRefusal native_popup_refusal(const std::weak_ptr<ApplicationWindowState>& owner) noexcept;
+// Whether the owner's run can open a native popup of `kind` now: none when
+// the owner is a ready window of a live run whose host opens popup windows
+// (and, for a Splash kind, Splash windows) during the run, else why not
+// (no_run or unsupported).
+[[nodiscard]] NativePopupRefusal native_popup_refusal(const std::weak_ptr<ApplicationWindowState>& owner,
+                                                      HostTransientKind kind = HostTransientKind::popup) noexcept;
+
+// The work area of the monitor under `client_point` (the owner's client
+// coordinates), in the owner's client coordinates; none when the owner is
+// not a ready window of a live run, its frame is not reported or the host
+// lists no monitor. `monitors` is the caller's storage for the table.
+[[nodiscard]] std::optional<Rect> client_work_area(const std::weak_ptr<ApplicationWindowState>& owner,
+                                                   Point client_point, HostMonitorResult& monitors);
+
+// Whether the owner's run draws its popup and Splash windows translucent
+// (HostWindowing::transient_windows_translucent): true when it does or when
+// there is no live run, false when they are opaque, with no shadow or fade.
+[[nodiscard]] bool native_popup_translucent(const std::weak_ptr<ApplicationWindowState>& owner) noexcept;
+
+// `bounds` in the owner's client area as a desktop rectangle in logical
+// units, moved the least distance that keeps it inside the work area of
+// the monitor under its origin. None when the owner is not a ready window
+// of a live run or the host does not report its frame. `monitors` is the
+// caller's storage for the monitor table, reused so that a warm show
+// allocates nothing; it holds the last query's result after.
+[[nodiscard]] std::optional<Rect> desktop_placement(const std::weak_ptr<ApplicationWindowState>& owner,
+                                                    Rect bounds, HostMonitorResult& monitors);
 
 // Opens `opening.content` in a native popup window owned by the owner
 // window: a Window model of the bounds' size, non-opaque, sharing the

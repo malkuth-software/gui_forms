@@ -165,7 +165,7 @@ std::unique_ptr<Window> make_fixture(Fixture& fixture) {
     (*fixture.number).set_requested_bounds({10.0, 130.0, 120.0, 26.0});
     (*fixture.number).set_range(0.0, 10.0);
     (*fixture.list).set_requested_bounds({240.0, 10.0, 160.0, 100.0});
-    (*fixture.list).set_items({"Alpha", "Beta", "Gamma"});
+    (*fixture.list).items = {"Alpha", "Beta", "Gamma"};
     (*fixture.tree).set_requested_bounds({240.0, 120.0, 160.0, 100.0});
     std::vector<TreeViewItem> nodes;
     nodes.push_back(TreeViewItem{"uia.tree.folder", "Folder", 0U, true, false, true, {}});
@@ -205,9 +205,9 @@ struct ReadModel final {
     ModelState* state{};
     void operator()() const {
         (*state).clicks = (*fixture).clicks;
-        (*state).checked = (*(*fixture).check).checked();
-        (*state).text = std::string((*(*fixture).text).text());
-        (*state).number = (*(*fixture).number).value();
+        (*state).checked = (*(*fixture).check).checked.read();
+        (*state).text = std::string((*(*fixture).text).text.read());
+        (*state).number = (*(*fixture).number).value.read();
         (*state).list_selection = (*(*fixture).list).selected_index();
         (*state).folder_expanded = (*(*fixture).tree).expanded("uia.tree.folder");
     }
@@ -685,8 +685,7 @@ struct HostReady final {
     std::thread* client{};
     void operator()(std::function<void()>, std::function<void()> request_close,
                     std::function<HostDialogResult(const HostDialogRequest&)>,
-                    std::function<HostServiceStatus(const HostTooltipRequest&)>,
-                    std::function<void()>, std::function<HostClipboardTextResult()>,
+                    std::function<HostClipboardTextResult()>,
                     std::function<HostServiceStatus(std::string_view)>) const {
         (*context).request_close = std::move(request_close);
         (*context).hwnd = test_support::own_gui_forms_window(fixture_title);
@@ -757,8 +756,7 @@ struct DecoyReady final {
     std::thread* waiter{};
     void operator()(std::function<void()>, std::function<void()> close,
                     std::function<HostDialogResult(const HostDialogRequest&)>,
-                    std::function<HostServiceStatus(const HostTooltipRequest&)>,
-                    std::function<void()>, std::function<HostClipboardTextResult()>,
+                    std::function<HostClipboardTextResult()>,
                     std::function<HostServiceStatus(std::string_view)>) const {
         *request_close = std::move(close);
         *waiter = std::thread(DecoyWait{done, (*window).dispatcher(), request_close});

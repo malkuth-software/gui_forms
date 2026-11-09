@@ -24,7 +24,7 @@ void require(bool condition, const char* message) {
 // header does.
 class KeepsF6 final : public Control {
 public:
-    explicit KeepsF6(StableId stable_id) : Control(std::move(stable_id)) { set_focusable(true); }
+    explicit KeepsF6(StableId stable_id) : Control(std::move(stable_id)) { focusable = true; }
     void on_key(KeyEvent& event) override {
         if (event.action == KeyAction::down && event.physical_key == PhysicalKey::f6) {
             ++kept;

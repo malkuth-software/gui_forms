@@ -1,3 +1,4 @@
+#include "native_popup/popup_standby.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/components/help_provider/help_provider.hpp"
 #include "gui_forms/window.hpp"
@@ -13,6 +14,7 @@
 #include "../scheduler/request/scheduled_frame_request.hpp"
 #include "accelerator/accelerator_attachment.hpp"
 #include "overlay/overlay_attachment.hpp"
+#include "interaction/interaction_state.hpp"
 #include "../theme/theme_compiler/control_inline_style.hpp"
 
 #include <algorithm>
@@ -168,7 +170,7 @@ struct HiddenFocus final {
 
 // Records `control` itself as a hidden control.
 void note_hidden_control(const Control::Ptr& control, const Control::Ptr& focused, HiddenFocus& hidden) {
-    if ((*control).focusable() && (*control).eligible_for_input()) hidden.focusable = true;
+    if ((*control).focusable.read() && (*control).eligible_for_input()) hidden.focusable = true;
     if (control == focused) hidden.focused = true;
 }
 
@@ -262,6 +264,7 @@ void append_semantic_nodes(const Control::Ptr& control,
     node.large_step = descriptor.large_step;
     node.text_selection = descriptor.text_selection;
     node.multiline = descriptor.multiline;
+    node.announces_on_appearance = descriptor.announces_on_appearance;
     node.tool_tip = (*control).tool_tip_text.read();
     node.bounds = (*control).absolute_bounds();
     if (!current_semantic_identity(control, expected_parent, owner)) return;
@@ -271,7 +274,7 @@ void append_semantic_nodes(const Control::Ptr& control,
     // A node is focusable when its control is, or when a control it hides
     // (one that publishes no node of its own) can take focus; it is focused
     // while focus is on its control or on such a hidden control.
-    if ((*control).focusable() || inner.focusable) node.states |= SemanticState::focusable;
+    if ((*control).focusable.read() || inner.focusable) node.states |= SemanticState::focusable;
     if (control == focused || inner.focused) node.states |= SemanticState::focused;
     node.actions = descriptor.actions;
     node.children = std::move(descendants);
@@ -357,8 +360,18 @@ void SurfaceRoot::FocusChangePublication::operator()() const {
     if (!(*control).is_alive()) return;
     if (!focused || (*root).eligible(control)) {
         (*control).invalidate(invalidation::focus);
+        if (focused) (*root).reveal_focused(control);
     } else {
         (*root).focused_.reset();
+    }
+}
+
+void SurfaceRoot::reveal_focused(const Control::Ptr& control) {
+    Control::Ptr revealed = control;
+    for (Control::Ptr ancestor = (*control).parent(); ancestor; ancestor = (*ancestor).parent()) {
+        if (!(*ancestor).is_alive() || (*ancestor).surface_root_ != this) return;
+        const bool scrolls = (*ancestor).reveal_focused_descendant(*revealed);
+        if (scrolls) revealed = ancestor;
     }
 }
 
@@ -582,7 +595,7 @@ OverlayToken SurfaceRoot::open_overlay(const Control::Ptr& owner,
     // overlay. Keep it as a separate retained root while still registering the
     // subtree with this Window for lifetime, focus, semantics, and dispatch.
     attach_subtree(overlay, {});
-    std::shared_ptr<gui_forms::detail::OverlayAttachment> attachment = std::make_shared<detail::OverlayAttachment>(*this, owner, overlay);
+    std::shared_ptr<gui_forms::detail::OverlayAttachment> attachment = std::make_shared<detail::OverlayAttachment>(*this, owner, overlay, !options.require_enabled_owner);
     overlays_.push_back(attachment);
     (*owner).own_revocable(attachment);
     return OverlayToken(std::move(attachment));
@@ -620,10 +633,11 @@ void SurfaceRoot::close_overlay(detail::OverlayAttachment& overlay) noexcept {
     }
 }
 
-void SurfaceRoot::close_overlays_for_subtree(const Control::Ptr& control) noexcept {
+void SurfaceRoot::close_overlays_for_subtree(const Control::Ptr& control, PassiveOverlays passive) noexcept {
     std::vector<std::shared_ptr<detail::OverlayAttachment>> closing;
     for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
-        if (contains_control(control, (*overlay).owner())) {
+        const bool kept = passive == PassiveOverlays::keep && (*overlay).passive();
+        if (!kept && contains_control(control, (*overlay).owner())) {
             closing.push_back(overlay);
         }
     }
@@ -645,6 +659,9 @@ Control::Ptr SurfaceRoot::hit_test(Point position) {
     for (std::uint32_t pass = 0U;
          pass < maximum_semantic_snapshot_passes; ++pass) {
         ensure_layout(true);
+        // The outer band hits nothing, overlays included (owner,
+        // 2026-11-08): a point in it reaches no control.
+        if (band_contains(position)) return {};
         const std::uint64_t generation = semantic_generation_;
         Control::Ptr target;
         ControlList overlay_roots;
@@ -713,7 +730,7 @@ void SurfaceRoot::remove_help_fallback(const detail::WindowHelpFallback& fallbac
 
 bool SurfaceRoot::request_focus(const Control::Ptr& control) {
     require_root_thread("focus mutation");
-    if (control && (!eligible(control) || !(*control).focusable_)) {
+    if (control && (!eligible(control) || !(*control).focusable.read())) {
         return false;
     }
     if (control && !focus_allowed_by_active_scope(control)) {
@@ -752,7 +769,7 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
         previous.reset();
         focused_.reset();
     }
-    if (control && (!eligible(control) || !(*control).focusable_ ||
+    if (control && (!eligible(control) || !(*control).focusable.read() ||
                     !focus_allowed_by_active_scope(control))) {
         return false;
     }
@@ -762,7 +779,7 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
             static_cast<const void*>(&(*previous).focus_observed_),
             FocusChangePublication{this, previous, false});
     }
-    if (control && eligible(control) && (*control).focusable_) {
+    if (control && eligible(control) && (*control).focusable.read()) {
         focused_ = control;
         last_focus_traversal_ = pending_focus_traversal_;
         remember_region_focus(control);
@@ -877,7 +894,7 @@ void SurfaceRoot::collect_focus_candidates(const Control::Ptr& control,
                                       ControlList& result,
                                       bool focusable_only) const {
     if (!control || !eligible(control)) return;
-    if (!focusable_only || ((*control).focusable_ && (*control).tab_stop.read())) {
+    if (!focusable_only || ((*control).focusable.read() && (*control).tab_stop.read())) {
         result.push_back(control);
     }
     ControlList children((*control).children_.begin(),
@@ -920,7 +937,7 @@ bool SurfaceRoot::move_focus_after(const Control::Ptr& origin) {
     if (found == ordered.end()) return false;
     for (ControlList::iterator current = std::next(found);
          current != ordered.end(); ++current) {
-        if ((*(*current)).focusable() && (*(*current)).tab_stop.read() &&
+        if ((*(*current)).focusable.read() && (*(*current)).tab_stop.read() &&
             request_focus(*current)) return true;
     }
     return false;
@@ -1103,7 +1120,7 @@ void SurfaceRoot::validate_children_recursive(
         bool selected = true;
         if (has_validation_constraint(
                 constraints, ValidationConstraints::selectable)) {
-            selected = (*child).focusable() &&
+            selected = (*child).focusable.read() &&
                        (*child).has_style(ControlStyles::selectable);
         }
         if (has_validation_constraint(
@@ -1213,7 +1230,7 @@ FocusScopeId SurfaceRoot::begin_focus_scope(const Control::Ptr& root,
     }
     if (preferred_focus &&
         (!contains_control(root, preferred_focus) || !eligible(preferred_focus) ||
-         !(*preferred_focus).focusable_)) {
+         !(*preferred_focus).focusable.read())) {
         throw std::invalid_argument(
             "GUI.Forms preferred focus must be an eligible focusable scope descendant");
     }
@@ -1299,7 +1316,7 @@ bool SurfaceRoot::end_focus_scope(FocusScopeId scope,
         }
 
         if (restoration_requested) {
-            if (restoration && eligible(restoration) && (*restoration).focusable_ &&
+            if (restoration && eligible(restoration) && (*restoration).focusable.read() &&
                 focus_allowed_by_active_scope(restoration)) {
                 restored = request_focus(restoration) &&
                            focused_.lock() == restoration;
@@ -1564,6 +1581,15 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
         captured_pointer_id_ = 0;
     }
     if (previous && host_services_ != nullptr) { (*host_services_).revoke_cursor_interaction(); }
+    // WinForms' MouseCaptureChanged, on the control losing the capture;
+    // after the MouseUp when a primary release ends it.
+    if (previous && previous != control && (*previous).mouse_events_) {
+        if (defer_capture_changed_) {
+            deferred_capture_changed_ = previous;
+        } else {
+            (*(*previous).mouse_events_).capture_changed.emit();
+        }
+    }
     if (revoked && previous) {
         metrics_.record_capture_revocation();
     }
@@ -1589,6 +1615,11 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
         return defer_input(DeferredInput{std::move(event)});
     }
     metrics_.record_input();
+    // The input state sees the event before any control does.
+    detail::InteractionState& interaction = interaction_state();
+    interaction.note_pointer(event);
+    const FrameTime input_time = input_now();
+    const PointerSettings& pointer_settings = presentation_settings_.pointer;
     note_engine_pointer(event);
     if (event.action == PointerAction::down &&
         event.button == PointerButton::primary) {
@@ -1609,8 +1640,10 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
                 (*previous_hover).on_pointer(leave);
                 (*previous_hover).publish_change(
                     (*previous_hover).pointer_observed_, leave);
+                if ((*previous_hover).mouse_events_) (*(*previous_hover).mouse_events_).leave.emit();
             }
             hovered_ = next_hover;
+            interaction.hover_entered(next_hover, event.position, input_time, pointer_settings);
             if (next_hover && eligible(next_hover)) {
                 PointerEvent enter = event;
                 enter.action = PointerAction::enter;
@@ -1621,7 +1654,10 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
                 set_pointer_over(*next_hover, true);
                 (*next_hover).on_pointer(enter);
                 (*next_hover).publish_change((*next_hover).pointer_observed_, enter);
+                if ((*next_hover).mouse_events_) (*(*next_hover).mouse_events_).enter.emit();
             }
+        } else {
+            interaction.hover_moved(event.position, input_time, pointer_settings);
         }
         if (tool_tips_) {
             (*tool_tips_).pointer_moved(event.position, hovered_.lock(), FrameClock::now());
@@ -1634,10 +1670,23 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
         // below as before.
         if (Control::Ptr previous_hover = hovered_.lock()) {
             set_pointer_over(*previous_hover, false);
+            if ((*previous_hover).mouse_events_ && eligible(previous_hover)) {
+                (*(*previous_hover).mouse_events_).leave.emit();
+            }
         }
         hovered_.reset();
+        interaction.hover_entered({}, event.position, input_time, pointer_settings);
         if (tool_tips_) (*tool_tips_).pointer_left();
     }
+    sync_hover_wake();
+    Control::Ptr pressed_for_release;
+    Control::Ptr target;
+    const bool handled = route_pointer(event, pressed_for_release, target);
+    raise_mouse_events(event, target, pressed_for_release);
+    return handled;
+}
+
+bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out) {
     Control::Ptr target = captured_.lock();
     if (!target) {
         target = hit_test(event.position);
@@ -1648,15 +1697,24 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
 
     // A release callback may synchronously open a modal window. Relinquish both
     // retained and platform capture before user code runs so that the modal can
-    // receive its first pointer message. Keep strong local references for this
-    // route and for the later click qualification.
-    Control::Ptr pressed_for_release;
+    // receive its first pointer message. Keep a strong reference to the
+    // pressed control for the later click qualification.
     const bool primary_release = event.action == PointerAction::up &&
         event.button == PointerButton::primary;
     if (primary_release) {
         pressed_for_release = pressed_.lock();
         pressed_.reset();
+        defer_capture_changed_ = true;
         release_pointer();
+        defer_capture_changed_ = false;
+    }
+    // The secondary and middle buttons click too (WinForms' Click on any
+    // button); their presses hold no capture.
+    const bool other_button = event.button == PointerButton::secondary || event.button == PointerButton::middle;
+    const std::size_t other_index = event.button == PointerButton::middle ? 1U : 0U;
+    if (other_button && event.action == PointerAction::up) {
+        pressed_for_release = pressed_other_[other_index].lock();
+        pressed_other_[other_index].reset();
     }
 
     const std::vector<Control::Ptr> route = route_to(target);
@@ -1680,7 +1738,7 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
 
     if (event.action == PointerAction::down &&
         event.button == PointerButton::primary) {
-        const bool accepts_press = !(*target).focusable_ || request_focus(target);
+        const bool accepts_press = !(*target).focusable.read() || request_focus(target);
         if (!accepts_press) {
             // Prevent-mode validation rejects the input transaction that
             // attempted to enter this focusable target. In particular, a
@@ -1693,8 +1751,12 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
             capture_pointer(target, event.pointer_id == 0 ? 1 : event.pointer_id);
         }
     }
+    if (other_button && event.action == PointerAction::down) {
+        pressed_other_[other_index] = target;
+    }
 
     if (eligible(target)) {
+        target_out = target;
         event.phase = EventPhase::target;
         metrics_.record_callback_emitted();
         (*target).on_pointer(event);
@@ -1714,17 +1776,130 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
             }
         }
     }
+    return event.handled;
+}
 
-    if (primary_release) {
-        Control::Ptr released_over = hit_test(event.position);
-        if (pressed_for_release && pressed_for_release == released_over &&
-            eligible(pressed_for_release)) {
-            metrics_.record_callback_emitted();
-            (*pressed_for_release).on_activate();
-            metrics_.record_activation();
+void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::Ptr& target,
+                                     const Control::Ptr& pressed_for_release) {
+    if (!target) {
+        const Control::Ptr lost_capture = deferred_capture_changed_.lock();
+        deferred_capture_changed_.reset();
+        if (lost_capture && (*lost_capture).mouse_events_) (*(*lost_capture).mouse_events_).capture_changed.emit();
+        return;
+    }
+    const bool press = event.action == PointerAction::down;
+    const bool release = event.action == PointerAction::up;
+    // WinForms' MouseEventArgs: the press's click count (the release
+    // carries the count of the press it ends), the control-relative
+    // position and the wheel delta.
+    const Rect bounds = (*target).absolute_bounds();
+    MouseEventArgs args{};
+    args.button = event.button;
+    args.clicks = press || release ? (*interaction_).last_click_count() : 0U;
+    args.location = Point{event.position.x - bounds.x, event.position.y - bounds.y};
+    args.window_position = event.position;
+    args.wheel_delta = event.wheel_delta;
+    args.modifiers = event.modifiers;
+    // The window's rules see MouseDown, MouseUp and the clicks before the
+    // control's subscribers (the owner's Q-C5); a rule that consumes one
+    // keeps it from them, and a consumed Click also from on_activate.
+    if (press) {
+        if (offer_mouse_rules(detail::MouseRuleEvent::mouse_down, *target, &args)) return;
+        if ((*target).mouse_events_) (*(*target).mouse_events_).down.emit(args);
+        return;
+    }
+    if (event.action == PointerAction::move) {
+        if ((*target).mouse_events_) (*(*target).mouse_events_).move.emit(args);
+        return;
+    }
+    if (event.action == PointerAction::wheel) {
+        if ((*target).mouse_events_) (*(*target).mouse_events_).wheel.emit(args);
+        return;
+    }
+    if (!release) return;
+    // A release over the control the same button pressed is its click, for
+    // any button as in WinForms (unless the control raises clicks for the
+    // primary button only, as ButtonBase does): Click and MouseClick, or
+    // DoubleClick and MouseDoubleClick for a press the host counted as a
+    // double-click's second on a control with standard_click and
+    // standard_double_click; then
+    // MouseUp. A primary Click is followed by on_activate.
+    const Control::Ptr released_over = hit_test(event.position);
+    const bool primary = event.button == PointerButton::primary;
+    const bool clicked = pressed_for_release && pressed_for_release == released_over &&
+                         eligible(pressed_for_release) &&
+                         (primary || !(*pressed_for_release).clicks_primary_button_only());
+    // A click handler may close and destroy this window (a dialog's OK):
+    // its lifetime record then names no window, and nothing more is raised.
+    // The record is held so it outlives the window; it is checked after
+    // every handler.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
+    if (clicked) {
+        Control& control = *pressed_for_release;
+        // As in WinForms, DoubleClick needs both StandardClick and
+        // StandardDoubleClick.
+        const bool double_clicked = args.clicks >= 2U && control.has_style(ControlStyles::standard_click) &&
+                                    control.has_style(ControlStyles::standard_double_click);
+        const bool single_clicked = !double_clicked && control.has_style(ControlStyles::standard_click);
+        if (double_clicked) {
+            const bool double_click_consumed = offer_mouse_rules(detail::MouseRuleEvent::double_click, control, nullptr);
+            if ((*lifetime).window != presenting) return;
+            if (!double_click_consumed && control.mouse_events_) {
+                (*control.mouse_events_).double_click.emit();
+                if ((*lifetime).window != presenting) return;
+            }
+            if (eligible(pressed_for_release)) {
+                const bool consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_double_click, control, &args);
+                if ((*lifetime).window != presenting) return;
+                if (!consumed && control.mouse_events_) {
+                    (*control.mouse_events_).mouse_double_click.emit(args);
+                    if ((*lifetime).window != presenting) return;
+                }
+            }
+        }
+        if (single_clicked) {
+            const bool click_consumed = offer_mouse_rules(detail::MouseRuleEvent::click, control, nullptr);
+            if ((*lifetime).window != presenting) return;
+            if (!click_consumed && control.mouse_events_) {
+                (*control.mouse_events_).click.emit();
+                if ((*lifetime).window != presenting) return;
+            }
+            if (eligible(pressed_for_release)) {
+                const bool consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_click, control, &args);
+                if ((*lifetime).window != presenting) return;
+                if (!consumed && control.mouse_events_) {
+                    (*control.mouse_events_).mouse_click.emit(args);
+                    if ((*lifetime).window != presenting) return;
+                }
+            }
+            if (!click_consumed && primary && eligible(pressed_for_release)) {
+                metrics_.record_callback_emitted();
+                metrics_.record_activation();
+                control.on_activate();
+                if ((*lifetime).window != presenting) return;
+            }
         }
     }
-    return event.handled;
+    if ((*lifetime).window != presenting) return;
+    if (eligible(target)) {
+        const bool up_consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_up, *target, &args);
+        if ((*lifetime).window != presenting) return;
+        if (!up_consumed && (*target).mouse_events_) (*(*target).mouse_events_).up.emit(args);
+    }
+    if ((*lifetime).window != presenting) return;
+    const Control::Ptr lost_capture = deferred_capture_changed_.lock();
+    deferred_capture_changed_.reset();
+    if (lost_capture && (*lost_capture).mouse_events_) (*(*lost_capture).mouse_events_).capture_changed.emit();
+}
+
+bool SurfaceRoot::offer_mouse_rules(detail::MouseRuleEvent event, Control& control, const MouseEventArgs* arguments) {
+    if (offer_mouse_rules_ == nullptr) return false;
+    // Held for the offer: a rule's action may close and destroy this window,
+    // which must not end the rule set while it evaluates.
+    const std::shared_ptr<RuleSet> rules = rules_;
+    const bool consumed = offer_mouse_rules_(*rules, event, control, arguments);
+    return consumed;
 }
 
 bool SurfaceRoot::dispatch_key(KeyEvent event) {
@@ -1734,6 +1909,10 @@ bool SurfaceRoot::dispatch_key(KeyEvent event) {
         return defer_input(DeferredInput{std::move(event)});
     }
     const bool key_down = event.action == KeyAction::down;
+    // The input state sees the key before any control does.
+    interaction_state().note_key(event, input_now());
+    // A lifted drop-down or picker's Popup window takes the key first.
+    if (forward_to_popup(event)) return true;
     const bool handled = route_key(std::move(event));
     // A key may have moved the keyboard within the focused control, or
     // shown the focus cue: the presenter looks at what focus is on again.
@@ -1745,6 +1924,18 @@ bool SurfaceRoot::route_key(KeyEvent event) {
     metrics_.record_input();
     if (event.action == KeyAction::down) {
         set_focus_cue_visible(true);
+    }
+    // The window's key rules run before the control route (the owner's
+    // Q-C5); a consuming rule ends the key. The set is held for the offer:
+    // a rule's action may close and destroy this window.
+    if (offer_key_rules_ != nullptr) {
+        const std::shared_ptr<RuleSet> rules = rules_;
+        const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+        Window* const presenting = (*lifetime).window;
+        const bool consumed = offer_key_rules_(*rules, event);
+        if (consumed) return true;
+        // A closed window routes the key no further.
+        if ((*lifetime).window != presenting) return false;
     }
     if (focus_scopes_.empty() && dispatch_accelerator(event, true)) return true;
     Control::Ptr target = focused_.lock();
@@ -1832,6 +2023,7 @@ bool SurfaceRoot::dispatch_text(TextInputEvent event) {
         return defer_input(DeferredInput{std::move(event)});
     }
     metrics_.record_input();
+    if (forward_to_popup(event)) return true;
     Control::Ptr target = focused_.lock();
     if (!target || !eligible(target)) {
         return false;
@@ -1839,6 +2031,22 @@ bool SurfaceRoot::dispatch_text(TextInputEvent event) {
     metrics_.record_callback_emitted();
     (*target).on_text_input(event);
     return event.handled;
+}
+
+bool SurfaceRoot::forward_to_popup(const KeyEvent& event) {
+    if (key_forward_standby_ == nullptr) return false;
+    Window* const model = (*key_forward_standby_).model(key_forward_slot_);
+    if (model == nullptr || model == this) return false;
+    const bool handled = (*model).dispatch_key(event);
+    return handled;
+}
+
+bool SurfaceRoot::forward_to_popup(const TextInputEvent& event) {
+    if (key_forward_standby_ == nullptr) return false;
+    Window* const model = (*key_forward_standby_).model(key_forward_slot_);
+    if (model == nullptr || model == this) return false;
+    const bool handled = (*model).dispatch_text(event);
+    return handled;
 }
 
 DeferredInputSnapshot SurfaceRoot::deferred_input_snapshot() const noexcept {
@@ -2150,6 +2358,8 @@ void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
     // So do its motion values: they jump to their ends, without listeners.
     motion_clock_.release_owner(*control);
     erase_containing_block_entries((*control).runtime_id());
+    // Its content regions' pending items go: no window gathers them now.
+    static_cast<void>((*control).fold_content_regions());
     (*control).on_detaching_from_window(*this);
     (*control).window_ = nullptr;
     (*control).surface_root_ = nullptr;
@@ -2210,6 +2420,12 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
         // The theme in effect may have changed with the window or the parent
         // (P12b).
         for (const Control::Ptr& current : controls) (*current).refresh_inline_style();
+        // Rules with ancestor compounds read the new ancestors (selector
+        // step 4): a cached font is resolved again; the subtree's paint and
+        // layout are marked below.
+        for (const Control::Ptr& current : controls) {
+            if ((*current).reads_ancestors()) static_cast<void>((*current).refresh_text_font());
+        }
         for (const Control::Ptr& current : controls) {
             notified.push_back(current);
             if ((*current).authored_surface_material_) {
@@ -2257,7 +2473,7 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
 void SurfaceRoot::detach_subtree(const Control::Ptr& control) {
     require_root_thread("visual-tree detachment");
     clear_dialog_targets_for_subtree(control);
-    close_overlays_for_subtree(control);
+    close_overlays_for_subtree(control, PassiveOverlays::close);
     close_focus_scopes_for_subtree(control);
     revoke_interaction_for_subtree(control, true);
     if ((*control).surface_root_ != this) {
@@ -2367,6 +2583,9 @@ void SurfaceRoot::revoke_interaction_for_subtree(const Control::Ptr& control,
         pressed_.reset();
         metrics_.record_press_revocation();
     }
+    for (Control::WeakPtr& other : pressed_other_) {
+        if (contains_control(control, other.lock())) other.reset();
+    }
     if (contains_control(control, hovered_.lock())) {
         forget_hover();
     }
@@ -2410,7 +2629,14 @@ void SurfaceRoot::revoke_focus_scopes_for_subtree(
 
 void SurfaceRoot::on_eligibility_changed(const Control::Ptr& control) {
     require_root_thread("eligibility mutation");
-    close_overlays_for_subtree(control);
+    close_overlays_for_subtree(control, PassiveOverlays::close);
+    close_focus_scopes_for_subtree(control);
+    revoke_interaction_for_subtree(control, true);
+}
+
+void SurfaceRoot::on_enabled_withdrawn(const Control::Ptr& control) {
+    require_root_thread("eligibility mutation");
+    close_overlays_for_subtree(control, PassiveOverlays::keep);
     close_focus_scopes_for_subtree(control);
     revoke_interaction_for_subtree(control, true);
 }
@@ -2424,6 +2650,9 @@ void SurfaceRoot::on_hit_test_transparency_changed(const Control::Ptr& control) 
     if (contains_control(control, pressed_.lock())) {
         pressed_.reset();
         metrics_.record_press_revocation();
+    }
+    for (Control::WeakPtr& other : pressed_other_) {
+        if (contains_control(control, other.lock())) other.reset();
     }
     if (contains_control(control, hovered_.lock())) forget_hover();
     if (contains_control(control, drag_target_.lock())) cancel_drag();
@@ -2533,6 +2762,36 @@ void SurfaceRoot::mark_dirty(Control& control, Dirty requested_dirty) {
         touch_paint();
     }
     if (in_layout_ || in_paint_) settle_dirty();
+}
+
+void SurfaceRoot::note_content_gather(Control& control) {
+    require_root_thread("content region mutation");
+    if (control.surface_root_ != this) {
+        throw std::invalid_argument("a content region gather requires an attached control");
+    }
+    pending_content_gathers_.push_back(control.surface_slot_);
+    metrics_.record_mutation();
+    touch_paint();
+}
+
+void SurfaceRoot::gather_content_regions() {
+    if (gathering_regions_ || pending_content_gathers_.empty()) return;
+    gathering_regions_ = true;
+    struct Reset final {
+        bool& value;
+        ~Reset() { value = false; }
+    } reset{gathering_regions_};
+    gather_slots_.clear();
+    gather_slots_.swap(pending_content_gathers_);
+    // A slot released since its note belongs to a detached control, whose
+    // regions were folded at the detach.
+    for (const detail::ControlSlot slot : gather_slots_) {
+        Control* const control = control_table_.control_at(slot);
+        if (control == nullptr) continue;
+        (*control).gather_content_regions();
+    }
+    gather_slots_.clear();
+    settle_dirty();
 }
 
 void SurfaceRoot::mark_paint_dirty(Control& control, Rect local_damage) {
@@ -2656,7 +2915,7 @@ bool SurfaceRoot::perform_semantic_action(std::string_view stable_id,
     }
     if (action == SemanticAction::focus) {
         set_focus_cue_visible(true);
-        if ((*control).focusable_) {
+        if ((*control).focusable.read()) {
             const bool focused = request_focus(control);
             return focused;
         }
@@ -2925,6 +3184,172 @@ void SurfaceRoot::damage_resized(Control& control, Rect old_bounds, Rect new_bou
     }
 }
 
+namespace {
+
+// Whether `value` logical units is a whole number of device pixels.
+bool whole_device_pixels(double value, double scale) noexcept {
+    const double device = value * scale;
+    return std::isfinite(device) && std::abs(device - std::round(device)) <= 1.0e-6;
+}
+
+bool device_aligned_rect(Rect rect, double scale) noexcept {
+    return whole_device_pixels(rect.x, scale) && whole_device_pixels(rect.y, scale) &&
+           whole_device_pixels(rect.width, scale) && whole_device_pixels(rect.height, scale);
+}
+
+} // namespace
+
+bool SurfaceRoot::opaque_fill_covers(const Control& control, Rect clip) const {
+    const std::shared_ptr<const detail::DisplayChunk>& chunk = control.display_chunk_;
+    if (!chunk || !(*chunk).opaque_cover()) return false;
+    const Rect bounds = absolute_bounds_of(control);
+    const Rect cover = *(*chunk).opaque_cover();
+    const Rect window_cover{bounds.x + cover.x, bounds.y + cover.y, cover.width, cover.height};
+    return window_cover.contains(clip);
+}
+
+bool SurfaceRoot::records_no_paint(const Control& control) const noexcept {
+    const std::shared_ptr<const detail::DisplayChunk>& chunk = control.display_chunk_;
+    const bool nothing = chunk && !has_dirty(control.dirty_, Dirty::paint) && (*chunk).commands().empty();
+    return nothing;
+}
+
+void SurfaceRoot::take_scroll_copies(std::vector<ScrollCopy>& copies) {
+    require_root_thread("scroll copy mutation");
+    copies.insert(copies.end(), scroll_copies_.begin(), scroll_copies_.end());
+    scroll_copies_.clear();
+}
+
+void SurfaceRoot::collect_overlay_paint(const Control::Ptr& control, Rect clip,
+                                        std::vector<Rect>& crossing) const {
+    if (!control || !(*control).is_alive() || !(*control).visible.read()) return;
+    const Rect bounds = visual_bounds_of(*control, (*control).effective_visual_outsets());
+    if (!Rect::intersection(bounds, clip).empty() && !records_no_paint(*control)) crossing.push_back(bounds);
+    for (const Control::Ptr& child : (*control).children_) collect_overlay_paint(child, clip, crossing);
+}
+
+bool SurfaceRoot::other_plane_crosses(const Control::Ptr& control, const Control& scroller,
+                                      Rect clip, bool beneath_covered, std::vector<Rect>& crossing) const {
+    if (!control || control.get() == &scroller || !(*control).is_alive() ||
+        (*control).surface_root_ != this || !(*control).visible.read()) {
+        return false;
+    }
+    // The backplane is composed beneath the control plane, so beneath an
+    // opaque fill covering the viewport: elsewhere it would not move with
+    // the copy. The overlay plane is composed above it and repainted.
+    const PaintPlane plane = (*control).paint_plane_;
+    if (plane != PaintPlane::control && !records_no_paint(*control)) {
+        const Rect bounds = visual_bounds_of(*control, (*control).effective_visual_outsets());
+        const bool crosses = !Rect::intersection(bounds, clip).empty();
+        if (crosses && plane == PaintPlane::overlay) crossing.push_back(bounds);
+        if (crosses && plane == PaintPlane::backplane && !beneath_covered) return true;
+    }
+    for (const Control::Ptr& child : (*control).children_) {
+        if (other_plane_crosses(child, scroller, clip, beneath_covered, crossing)) return true;
+    }
+    return false;
+}
+
+bool SurfaceRoot::request_scroll_copy(Control& scroller, Point offset) {
+    require_root_thread("scroll copy mutation");
+    // A bound on the copies one host frame applies; past it the viewport is
+    // repainted, which is no slower than the copies would have been.
+    constexpr std::size_t copy_limit = 16U;
+    if (!scroll_copies_supported_ || !in_layout_ || scroller.surface_root_ != this ||
+        scroll_translating_ != nullptr || scroll_copies_.size() >= copy_limit) {
+        return false;
+    }
+    if (!whole_device_pixels(offset.x, scale_) || !whole_device_pixels(offset.y, scale_) ||
+        offset == Point{}) {
+        return false;
+    }
+    // The visible part of the viewport: its child viewport within each
+    // ancestor's and the client area.
+    Rect clip = Rect::intersection(absolute_child_viewport_of(scroller),
+                                   {0.0, 0.0, client_size_.width, client_size_.height});
+    for (Control::Ptr ancestor = scroller.parent(); ancestor; ancestor = (*ancestor).parent()) {
+        if (!(*ancestor).is_alive() || (*ancestor).surface_root_ != this || !(*ancestor).visible.read()) {
+            return false;
+        }
+        clip = Rect::intersection(clip, absolute_child_viewport_of(*ancestor));
+    }
+    if (clip.empty() || !device_aligned_rect(clip, scale_) || std::abs(offset.x) >= clip.width ||
+        std::abs(offset.y) >= clip.height) {
+        return false;
+    }
+    // The scroller's own paint beneath its children moves with them only
+    // when it does not depend on its extent; its docked children stay put.
+    if (!keeps_pixels_on_resize(scroller)) return false;
+    for (const Control::Ptr& child : scroller.children_) {
+        if (!child || !(*child).is_alive() || !(*child).visible.read() ||
+            (*child).dock.read() == DockStyle::none) {
+            continue;
+        }
+        const Rect bounds = visual_bounds_of(*child, (*child).effective_visual_outsets());
+        if (!Rect::intersection(bounds, clip).empty()) return false;
+    }
+    // Beneath the viewport, up to the first control whose opaque fill covers
+    // it, every ancestor's paint must not depend on its extent and no earlier
+    // sibling may cross it; above it, later siblings at every level that
+    // cross it are repainted where they are and where the copy moves them.
+    // An opaque solid fill of the scroller or an ancestor that covers the
+    // viewport ends the search beneath: what that control paints over its
+    // fill inside the viewport is its children's.
+    scroll_overlay_crossings_.clear();
+    const Control* node = &scroller;
+    bool covered = opaque_fill_covers(scroller, clip);
+    for (Control::Ptr parent = scroller.parent(); parent; parent = (*parent).parent()) {
+        bool after = false;
+        for (const Control::Ptr& sibling : (*parent).children_) {
+            if (sibling.get() == node) {
+                after = true;
+                continue;
+            }
+            if (!sibling || !(*sibling).is_alive() || !(*sibling).visible.read()) continue;
+            if (!after && covered) continue;
+            const Rect bounds = visual_bounds_of(*sibling, (*sibling).effective_visual_outsets());
+            if (Rect::intersection(bounds, clip).empty()) continue;
+            // A later sibling is repainted over the viewport like an overlay;
+            // an earlier one beneath it would not move with the copy.
+            if (!after) return false;
+            scroll_overlay_crossings_.push_back(bounds);
+        }
+        if (!covered) {
+            covered = opaque_fill_covers(*parent, clip);
+            if (!covered && !keeps_pixels_on_resize(*parent)) return false;
+        }
+        node = parent.get();
+    }
+    // Other paint planes are composed before or after this one.
+    // Overlays drawn into the viewport are repainted over it, where they
+    // are and where the copy moves their pixels.
+    if (other_plane_crosses(root_, scroller, clip, covered, scroll_overlay_crossings_)) return false;
+    for (const std::shared_ptr<detail::OverlayAttachment>& overlay : overlays_) {
+        if (overlay) collect_overlay_paint((*overlay).overlay(), clip, scroll_overlay_crossings_);
+    }
+    // Accepted. The damage already pending moves with the pixels; then the
+    // band the copy exposed on each axis is damaged.
+    for (DamageRegion& plane : plane_damage_) {
+        if (plane.empty()) continue;
+        plane = damage_after_scroll_copy(plane, clip, offset);
+    }
+    scroll_copies_.push_back(ScrollCopy{clip, offset});
+    scroll_translating_ = &scroller;
+    scroll_translation_ = offset;
+    const double band_x = offset.x < 0.0 ? clip.x + clip.width + offset.x : clip.x;
+    const double band_y = offset.y < 0.0 ? clip.y + clip.height + offset.y : clip.y;
+    if (offset.x != 0.0) add_damage_all_planes(Rect{band_x, clip.y, std::abs(offset.x), clip.height});
+    if (offset.y != 0.0) add_damage_all_planes(Rect{clip.x, band_y, clip.width, std::abs(offset.y)});
+    for (const Rect crossing : scroll_overlay_crossings_) {
+        add_damage_all_planes(Rect::intersection(crossing, clip));
+        const Rect moved{crossing.x + offset.x, crossing.y + offset.y, crossing.width, crossing.height};
+        add_damage_all_planes(Rect::intersection(moved, clip));
+    }
+    scroll_overlay_crossings_.clear();
+    touch_paint();
+    return true;
+}
+
 bool SurfaceRoot::keeps_pixels_on_resize(const Control& control) const noexcept {
     if (control.paint_depends_on_size()) return false;
     if (!(control.effective_visual_outsets() == Insets{})) return false;
@@ -3125,6 +3550,7 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
         return;
     }
     if (!layout_dirty_) {
+        gather_content_regions();
         return;
     }
     if (read_barrier && update_depth_ > 0) {
@@ -3135,12 +3561,16 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
         return;
     }
 
-    if (!has_any_runnable_layout_dirty()) return;
+    if (!has_any_runnable_layout_dirty()) {
+        gather_content_regions();
+        return;
+    }
 
     metrics_.record_flush(read_barrier);
     const ShadowFrameScope shadow_frame(ShadowFrameKind::layout_pass, (*root_).stable_id().value(), std::string_view{},
                                         layout_pass_sequence_ + 1U);
     in_layout_ = true;
+    scroll_translating_ = nullptr;
     try {
         std::uint32_t pass = 0;
         do {
@@ -3148,7 +3578,10 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
             second_layout_pass_requested_ = false;
             std::uint64_t measure_visited = 0;
             std::uint64_t measured = 0;
-            measure_dirty_recursive(root_, client_size_, measure_visited, measured);
+            // The root in its slot (B.2a); overlays keep the whole client.
+            const Rect slot = root_slot();
+            const Size slot_size{slot.width, slot.height};
+            measure_dirty_recursive(root_, slot_size, measure_visited, measured);
             for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
                 if (const Control::Ptr overlay_root = (*overlay).overlay()) {
                     measure_dirty_recursive(overlay_root, client_size_, measure_visited,
@@ -3159,9 +3592,7 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
 
             std::uint64_t arrange_visited = 0;
             std::uint64_t arranged = 0;
-            arrange_dirty_recursive(
-                root_, {0.0, 0.0, client_size_.width, client_size_.height},
-                arrange_visited, arranged);
+            arrange_dirty_recursive(root_, slot, arrange_visited, arranged);
             // A tooltip below a control follows it before the overlays are
             // arranged.
             if (tool_tips_) (*tool_tips_).root_arranged();
@@ -3212,6 +3643,8 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
         in_layout_ = false;
         throw;
     }
+    // The region gathers, after layout: damage needs final geometry.
+    gather_content_regions();
 }
 
 
@@ -3326,6 +3759,15 @@ void SurfaceRoot::measure_dirty_recursive(const Control::Ptr& control,
 
 namespace {
 
+// Whether `after` is `before` moved by `offset`, within rounding.
+bool translated_by(Rect before, Rect after, Point offset) noexcept {
+    constexpr double tolerance = 1.0e-6;
+    return std::abs(after.x - (before.x + offset.x)) <= tolerance &&
+           std::abs(after.y - (before.y + offset.y)) <= tolerance &&
+           std::abs(after.width - before.width) <= tolerance &&
+           std::abs(after.height - before.height) <= tolerance;
+}
+
 // The axes along which an arranged extent changed.
 ResizeAxes resized_axes(Rect before, Rect after) noexcept {
     ResizeAxes changed = ResizeAxes::none;
@@ -3365,7 +3807,10 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
             throw;
         }
         ++callbacks;
-        if (!(*control).is_alive() || (*control).surface_root_ != this) return;
+        if (!(*control).is_alive() || (*control).surface_root_ != this) {
+            if (scroll_translating_ == control.get()) scroll_translating_ = nullptr;
+            return;
+        }
         // The resize registration (reduced M0.4): asked again whenever the
         // size changes, which costs one pass over the children that arrange
         // has just made, so no write has to keep it current. The first
@@ -3386,10 +3831,17 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
         }
         const Rect new_bounds = visual_bounds_of(
             *control, (*control).effective_visual_outsets());
+        // A scrolling child moved by its scroller's recorded copy keeps
+        // its pixels in the copy (request_scroll_copy).
+        const Control::Ptr arranged_parent = (*control).parent_.lock();
+        const bool copied = scroll_translating_ != nullptr && arranged_parent.get() == scroll_translating_ &&
+            translated_by(old_bounds, new_bounds, scroll_translation_);
         if (old_bounds != new_bounds) {
-            const bool escalate = !keeps_pixels_on_resize(*control);
-            damage_resized(*control, old_bounds, new_bounds, escalate, relaid);
-            touch_paint();
+            if (!copied) {
+                const bool escalate = !keeps_pixels_on_resize(*control);
+                damage_resized(*control, old_bounds, new_bounds, escalate, relaid);
+                touch_paint();
+            }
             (*control).publish_change((*control).arranged_bounds_changed_,
                                     new_bounds);
         }
@@ -3405,6 +3857,8 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
             child, (*child).layout_slot_.value_or((*child).requested_bounds_),
             visited_nodes, callbacks);
     }
+    // A recorded scroll copy's children are arranged.
+    if (scroll_translating_ == control.get()) scroll_translating_ = nullptr;
 }
 
 bool SurfaceRoot::has_runnable_layout_dirty(
@@ -3802,7 +4256,7 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                              (*(*control).display_chunk_).logical_bounds() != logical_bounds;
         if (rebuild) {
             (*control).clear_dirty(Dirty::paint);
-            detail::RecordingPainter recorder(text_metrics_provider_);
+            detail::RecordingPainter recorder(text_metrics_provider_, DeviceScale{scale()});
             recorder.inherit_caches((*control).display_chunk_);
             // Declared after the recorder it names, so it is destroyed
             // first and the mark never outlives it.

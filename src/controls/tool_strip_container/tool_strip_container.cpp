@@ -5,6 +5,7 @@
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/events/key_commands/key_commands.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -148,29 +149,6 @@ void ToolStripContainer::initialize_control_tree() {
     add_child(drag_layer_);
 }
 
-void ToolStripContainer::set_panel_visible(bool& flag, bool visible) {
-    require_mutable();
-    if (flag == visible) return;
-    flag = visible;
-    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void ToolStripContainer::set_top_panel_visible(bool visible) {
-    set_panel_visible(top_visible_, visible);
-}
-
-void ToolStripContainer::set_bottom_panel_visible(bool visible) {
-    set_panel_visible(bottom_visible_, visible);
-}
-
-void ToolStripContainer::set_left_panel_visible(bool visible) {
-    set_panel_visible(left_visible_, visible);
-}
-
-void ToolStripContainer::set_right_panel_visible(bool visible) {
-    set_panel_visible(right_visible_, visible);
-}
-
 // The top and bottom panels take the height their strips need across the
 // whole width; the left and right panels take the width theirs need over the
 // height between; the content panel takes what is left.
@@ -181,23 +159,23 @@ ToolStripContainer::Layout ToolStripContainer::layout_for(Size client) {
     // Each panel is offered what the panels before it left, and takes at
     // most that.
     double top = 0.0;
-    if (top_ && top_visible_) {
+    if (top_ && top_panel_visible.read()) {
         const Size wanted = (*top_).measure({width, height});
         top = std::min(height, usable(wanted.height));
     }
     double bottom = 0.0;
-    if (bottom_ && bottom_visible_) {
+    if (bottom_ && bottom_panel_visible.read()) {
         const Size wanted = (*bottom_).measure({width, height - top});
         bottom = std::min(height - top, usable(wanted.height));
     }
     const double middle = std::max(0.0, height - top - bottom);
     double left = 0.0;
-    if (left_ && left_visible_) {
+    if (left_ && left_panel_visible.read()) {
         const Size wanted = (*left_).measure({width, middle});
         left = std::min(width, usable(wanted.width));
     }
     double right = 0.0;
-    if (right_ && right_visible_) {
+    if (right_ && right_panel_visible.read()) {
         const Size wanted = (*right_).measure({width - left, middle});
         right = std::min(width - left, usable(wanted.width));
     }
@@ -216,10 +194,10 @@ void ToolStripContainer::arrange(Rect final_bounds) {
     // dispose this container or take a panel out of it.
     if (!is_alive()) return;
     const std::array<PanelPlacement, 4> panels{{
-        {.panel = top_, .bounds = placed.top, .shown = top_visible_},
-        {.panel = bottom_, .bounds = placed.bottom, .shown = bottom_visible_},
-        {.panel = left_, .bounds = placed.left, .shown = left_visible_},
-        {.panel = right_, .bounds = placed.right, .shown = right_visible_},
+        {.panel = top_, .bounds = placed.top, .shown = top_panel_visible.read()},
+        {.panel = bottom_, .bounds = placed.bottom, .shown = bottom_panel_visible.read()},
+        {.panel = left_, .bounds = placed.left, .shown = left_panel_visible.read()},
+        {.panel = right_, .bounds = placed.right, .shown = right_panel_visible.read()},
     }};
     for (const PanelPlacement& placement : panels) {
         if (!placement.panel || !is_current_layout_child(placement.panel)) continue;
@@ -251,14 +229,14 @@ const std::shared_ptr<ToolStripPanel>& ToolStripContainer::panel_on(ToolStripPan
 bool ToolStripContainer::panel_shown(ToolStripPanelEdge edge) const noexcept {
     switch (edge) {
     case ToolStripPanelEdge::bottom:
-        return bottom_visible_;
+        return bottom_panel_visible.read();
     case ToolStripPanelEdge::left:
-        return left_visible_;
+        return left_panel_visible.read();
     case ToolStripPanelEdge::right:
-        return right_visible_;
+        return right_panel_visible.read();
     case ToolStripPanelEdge::top:
     default:
-        return top_visible_;
+        return top_panel_visible.read();
     }
 }
 
@@ -386,7 +364,7 @@ std::shared_ptr<ToolStrip> ToolStripContainer::grip_strip_at(Point window_point)
         const std::shared_ptr<ToolStripPanel>& panel = panel_on(edge);
         if (!panel || !panel_shown(edge)) continue;
         for (const std::shared_ptr<ToolStrip>& strip : (*panel).strips()) {
-            if (!(*strip).visible.read() || !(*strip).grip_visible()) continue;
+            if (!(*strip).visible.read() || !(*strip).grip_visible.read()) continue;
             const Rect grip = (*strip).parts().grip.bounds;
             if (grip.empty()) continue;
             const Rect placed = (*strip).absolute_bounds();
@@ -488,14 +466,6 @@ Rect ToolStripContainer::drag_stamp() const noexcept {
     return drag_.stamp;
 }
 
-void ToolStripContainer::set_drag_threshold(double threshold) {
-    require_mutable();
-    if (!drag_gesture::valid_threshold(threshold)) {
-        throw std::out_of_range("ToolStripContainer drag threshold must lie in 1 to 64");
-    }
-    drag_threshold_ = threshold;
-}
-
 Rect ToolStripContainer::stamp_now() const {
     const Rect stamp = drag_gesture::stamp_at(drag_.source, drag_.pointer, drag_.grab, stamp_motion_.current(),
                                               effective_text_scale());
@@ -547,8 +517,8 @@ void ToolStripContainer::begin_drag() {
     drag_.stamp = drag_.source;
     drag_.picture = (*host).snapshot_control(strip, (*host).scale());
     drag_.focus_before = (*host).focused_control();
-    drag_.focusable_before = focusable();
-    set_focusable(true);
+    drag_.focusable_before = focusable.read();
+    focusable = true;
     static_cast<void>((*host).request_focus(shared_from_this()));
     (*drag_layer_).visible = true;
     stamp_motion_.jump_to(0.0);
@@ -559,7 +529,7 @@ void ToolStripContainer::begin_drag() {
 void ToolStripContainer::update_drag(Point local, Modifier modifiers) {
     if (drag_.phase == ToolStripDragPhase::armed) {
         drag_.pointer = local;
-        if (!drag_gesture::past_threshold(drag_.press, local, drag_threshold_)) return;
+        if (!drag_gesture::past_threshold(drag_.press, local, drag_threshold.read())) return;
         begin_drag();
         if (drag_.phase != ToolStripDragPhase::dragging) return;
     }
@@ -594,7 +564,7 @@ void ToolStripContainer::return_focus() noexcept {
         const Control::Ptr before = drag_.focus_before.lock();
         // Focusability first: making the container unfocusable lets go of
         // the focus in its subtree.
-        set_focusable(drag_.focusable_before);
+        focusable = drag_.focusable_before;
         bool returned = false;
         if (host != nullptr && before && (*before).attached()) returned = (*host).request_focus(before);
         if (!returned && host != nullptr && before && (*host).dispatcher_snapshot().accepting) {
@@ -1111,10 +1081,10 @@ const ControlAnatomy& ToolStripContainer::anatomy() const noexcept {
 void ToolStripContainer::publish_part_geometry(std::span<PartGeometry> geometry) const {
     Parts record;
     record.region = PartGeometry::from_bounds(client_rectangle());
-    record.top_panel = panel_geometry(top_, top_visible_);
-    record.bottom_panel = panel_geometry(bottom_, bottom_visible_);
-    record.left_panel = panel_geometry(left_, left_visible_);
-    record.right_panel = panel_geometry(right_, right_visible_);
+    record.top_panel = panel_geometry(top_, top_panel_visible.read());
+    record.bottom_panel = panel_geometry(bottom_, bottom_panel_visible.read());
+    record.left_panel = panel_geometry(left_, left_panel_visible.read());
+    record.right_panel = panel_geometry(right_, right_panel_visible.read());
     record.content_panel = panel_geometry(content_, true);
     const Rect stamp = drag_stamp();
     if (!stamp.empty()) {
@@ -1145,5 +1115,50 @@ ToolStripContainer::Parts ToolStripContainer::parts() const {
     read_parts(anatomy(), tool_strip_container_part_fields, published.parts(), record);
     return record;
 }
+
+// property_codemod begin ToolStripContainer (tools/property_families/tool_strip_container.json; generated, do not edit)
+
+void ToolStripContainer::prepare_write(const decltype(top_panel_visible)&, bool&) {
+    require_mutable();
+}
+
+void ToolStripContainer::written(const decltype(top_panel_visible)&) {
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void ToolStripContainer::prepare_write(const decltype(bottom_panel_visible)&, bool&) {
+    require_mutable();
+}
+
+void ToolStripContainer::written(const decltype(bottom_panel_visible)&) {
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void ToolStripContainer::prepare_write(const decltype(left_panel_visible)&, bool&) {
+    require_mutable();
+}
+
+void ToolStripContainer::written(const decltype(left_panel_visible)&) {
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void ToolStripContainer::prepare_write(const decltype(right_panel_visible)&, bool&) {
+    require_mutable();
+}
+
+void ToolStripContainer::written(const decltype(right_panel_visible)&) {
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void ToolStripContainer::prepare_write(const decltype(drag_threshold)&, double& incoming) {
+    require_mutable();
+    if (!drag_gesture::valid_threshold(incoming)) {
+        throw std::out_of_range("ToolStripContainer drag threshold must lie in 1 to 64");
+    }
+}
+
+void ToolStripContainer::written(const decltype(drag_threshold)&) {}
+
+// property_codemod end ToolStripContainer
 
 } // namespace gui_forms

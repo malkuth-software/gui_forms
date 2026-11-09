@@ -87,16 +87,16 @@ void plain_box_passes_enter_on() {
     std::vector<std::string> commits;
     SubscriptionToken token = (*box).committed().subscribe(RecordCommits{&commits});
     require(window.request_focus(box), "the box takes focus");
-    require(!(*box).accepts_enter(), "a box does not accept Enter by default");
+    require(!(*box).accepts_enter.read(), "a box does not accept Enter by default");
     require(press(window, PhysicalKey::enter) && (*fixture.watcher).seen.size() == 1U &&
                 (*fixture.watcher).seen[0] == Modifier::none,
             "with nothing to accept, Enter bubbles to the container");
     require(press(window, PhysicalKey::enter, Modifier::shift) && (*fixture.watcher).seen.size() == 2U &&
                 (*fixture.watcher).seen[1] == Modifier::shift,
             "Shift+Enter bubbles to the container too");
-    require(commits.empty() && (*box).text() == "draft" && window.focused_control() == box,
+    require(commits.empty() && (*box).text.read() == "draft" && window.focused_control() == box,
             "a passed-on Enter raises no committed and leaves the text and focus alone");
-    (*box).set_read_only(true);
+    (*box).read_only = true;
     require(press(window, PhysicalKey::enter) && (*fixture.watcher).seen.size() == 3U,
             "a read-only box passes Enter on");
 }
@@ -107,7 +107,7 @@ void accepting_box_takes_plain_enter() {
     Window& window = *fixture.window;
     std::vector<std::string> commits;
     SubscriptionToken token = (*box).committed().subscribe(RecordCommits{&commits});
-    (*box).set_accepts_enter(true);
+    (*box).accepts_enter = true;
     require(window.request_focus(box), "the box takes focus");
     require(press(window, PhysicalKey::enter) && commits.size() == 1U && commits[0] == "draft" &&
                 (*fixture.watcher).seen.empty(),
@@ -115,34 +115,34 @@ void accepting_box_takes_plain_enter() {
     require(press(window, PhysicalKey::enter, Modifier::shift) && commits.size() == 1U &&
                 (*fixture.watcher).seen.size() == 1U,
             "Shift+Enter is not the accepting box's: it reaches the container");
-    (*box).set_read_only(true);
+    (*box).read_only = true;
     require(press(window, PhysicalKey::enter) && commits.size() == 2U && (*fixture.watcher).seen.size() == 1U,
             "a read-only box that accepts Enter still commits");
-    (*box).set_read_only(false);
-    (*box).set_accepts_enter(false);
+    (*box).read_only = false;
+    (*box).accepts_enter = false;
     require(press(window, PhysicalKey::enter) && commits.size() == 2U && (*fixture.watcher).seen.size() == 2U,
             "turning accepts_enter off passes plain Enter on again");
 }
 
 void multiline_box_takes_enter() {
     std::shared_ptr<TextBox> box = make_control<TextBox>(StableId("enter.multiline"), "one");
-    (*box).set_multiline(true);
+    (*box).multiline = true;
     Fixture fixture = make_fixture("enter.multiline", box);
     Window& window = *fixture.window;
     std::vector<std::string> commits;
     SubscriptionToken token = (*box).committed().subscribe(RecordCommits{&commits});
     require(window.request_focus(box), "the box takes focus");
-    require(press(window, PhysicalKey::enter) && (*box).text() == "one\n" && commits.empty() &&
+    require(press(window, PhysicalKey::enter) && (*box).text.read() == "one\n" && commits.empty() &&
                 (*fixture.watcher).seen.empty(),
             "a multi-line box inserts a newline and keeps Enter, whatever accepts_enter says");
 }
 
 void suggestion_list_takes_enter() {
     std::shared_ptr<TextBox> box = make_control<TextBox>(StableId("enter.suggest"));
-    std::shared_ptr<AutoCompleteStringCollection> towns = (*box).auto_complete_custom_source();
+    std::shared_ptr<AutoCompleteStringCollection> towns = (*box).auto_complete_custom_source.read();
     (*towns).add_range({"Calgary", "California", "Cambridge"});
-    (*box).set_auto_complete_source(AutoCompleteSource::custom_source);
-    (*box).set_auto_complete_mode(AutoCompleteMode::suggest);
+    (*box).auto_complete_source = AutoCompleteSource::custom_source;
+    (*box).auto_complete_mode = AutoCompleteMode::suggest;
     Fixture fixture = make_fixture("enter.suggest", box);
     Window& window = *fixture.window;
     std::vector<std::string> commits;
@@ -150,13 +150,13 @@ void suggestion_list_takes_enter() {
     require(window.request_focus(box), "the box takes focus");
     require(type(window, "c") && (*box).auto_complete_open(), "typing opens the list");
     require(press(window, PhysicalKey::down) && press(window, PhysicalKey::enter) &&
-                (*box).text() == "Calgary" && !(*box).auto_complete_open() &&
+                (*box).text.read() == "Calgary" && !(*box).auto_complete_open() &&
                 (*fixture.watcher).seen.empty() && commits.empty(),
             "Enter accepts the highlighted suggestion and is consumed");
     require(press(window, PhysicalKey::enter) && (*fixture.watcher).seen.size() == 1U,
             "the next Enter, with nothing left to accept, bubbles");
     require(type(window, "x") && !(*box).auto_complete_open(), "text that matches nothing shows no list");
-    (*box).set_text("");
+    (*box).text = "";
     require(type(window, "c") && (*box).auto_complete_open(), "the list opens again");
     require(press(window, PhysicalKey::enter) && !(*box).auto_complete_open() &&
                 (*fixture.watcher).seen.size() == 2U,
@@ -165,7 +165,7 @@ void suggestion_list_takes_enter() {
 
 void composition_takes_enter() {
     std::shared_ptr<TextBox> box = make_control<TextBox>(StableId("enter.ime"));
-    (*box).set_accepts_enter(true);
+    (*box).accepts_enter = true;
     Fixture fixture = make_fixture("enter.ime", box);
     Window& window = *fixture.window;
     std::vector<std::string> commits;
@@ -178,30 +178,30 @@ void composition_takes_enter() {
     commit.text_utf8 = "\xE5\x8F\xAF";
     commit.replacement_start = 0;
     commit.replacement_length = 1;
-    require(window.dispatch_text(commit) && (*box).text() == "\xE5\x8F\xAF",
+    require(window.dispatch_text(commit) && (*box).text.read() == "\xE5\x8F\xAF",
             "the input method commits the composition");
     require(press(window, PhysicalKey::enter) && commits.size() == 1U && commits[0] == "\xE5\x8F\xAF",
             "after the commit, Enter commits the text");
 
     std::shared_ptr<TextBox> note = make_control<TextBox>(StableId("enter.ime.note"), "a");
-    (*note).set_multiline(true);
+    (*note).multiline = true;
     Fixture note_fixture = make_fixture("enter.ime.note", note);
     require((*note_fixture.window).request_focus(note), "the note takes focus");
     require(type(*note_fixture.window, "b", true) && press(*note_fixture.window, PhysicalKey::enter) &&
-                (*note).text() == "ab",
+                (*note).text.read() == "ab",
             "a multi-line box inserts no newline during a composition");
 }
 
 void composites_pass_enter_on() {
     std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("enter.combo"));
-    (*combo).add_item("Alpha");
-    (*combo).set_drop_down_style(ComboBoxStyle::drop_down);
+    (*combo).items.append("Alpha");
+    (*combo).drop_down_style = ComboBoxStyle::drop_down;
     Fixture combo_fixture = make_fixture("enter.combo", combo);
     require((*combo_fixture.window).request_focus((*combo).editor()), "the combo editor takes focus");
     require(press(*combo_fixture.window, PhysicalKey::enter) && (*combo_fixture.watcher).seen.size() == 1U,
             "Enter in a closed ComboBox editor bubbles");
-    (*combo).set_dropped_down(true);
-    require(press(*combo_fixture.window, PhysicalKey::enter) && !(*combo).dropped_down() &&
+    (*combo).dropped_down = true;
+    require(press(*combo_fixture.window, PhysicalKey::enter) && !(*combo).dropped_down.read() &&
                 (*combo_fixture.watcher).seen.size() == 1U,
             "Enter with the ComboBox list open closes it and is consumed");
 
@@ -226,10 +226,10 @@ void composites_pass_enter_on() {
     std::shared_ptr<TokenBox> tokens = make_control<TokenBox>(StableId("enter.tokens"));
     Fixture token_fixture = make_fixture("enter.tokens", tokens);
     require((*token_fixture.window).request_focus((*tokens).editor()), "the token editor takes focus");
-    require(!(*(*tokens).editor()).accepts_enter() && press(*token_fixture.window, PhysicalKey::enter) &&
+    require(!(*(*tokens).editor()).accepts_enter.read() && press(*token_fixture.window, PhysicalKey::enter) &&
                 (*token_fixture.watcher).seen.size() == 1U,
             "an empty TokenBox passes Enter on (W decision 6)");
-    require(type(*token_fixture.window, "one") && (*(*tokens).editor()).accepts_enter(),
+    require(type(*token_fixture.window, "one") && (*(*tokens).editor()).accepts_enter.read(),
             "with an entry the TokenBox editor accepts Enter");
     require(press(*token_fixture.window, PhysicalKey::enter) &&
                 (*tokens).tokens().size() == 1U && (*token_fixture.watcher).seen.size() == 1U,
@@ -242,7 +242,7 @@ void dialog_accept_from_text_box() {
     std::shared_ptr<Button> accept = make_control<Button>(StableId("enter.dialog.accept"), "OK");
     (*field).set_requested_bounds({4.0, 4.0, 120.0, 24.0});
     (*accept).set_requested_bounds({4.0, 36.0, 70.0, 28.0});
-    (*accept).set_dialog_result(DialogResult::ok);
+    (*accept).dialog_result = DialogResult::ok;
     (*root).add_child(field);
     (*root).add_child(accept);
     Window window(root, {240.0, 104.0});
@@ -261,7 +261,7 @@ void dialog_accept_from_text_box() {
                 window.dialog_result() == DialogResult::ok,
             "so does Shift+Enter");
     window.set_dialog_result(DialogResult::none);
-    (*field).set_accepts_enter(true);
+    (*field).accepts_enter = true;
     require(press(window, PhysicalKey::enter) && clicks == 2U && commits.size() == 1U &&
                 window.dialog_result() == DialogResult::none,
             "a field that accepts Enter commits its own edit and the dialog stays");

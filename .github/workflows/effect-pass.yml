@@ -1,8 +1,9 @@
 name: Effect pass
 # C-10 (owner, 2026-11-04): effect programs verified on Linux CI rather than
-# registered unverified. The native jobs build without LLVM's and Clang's
-# headers, so the gui_forms Clang plugin is skipped there and the built-in
-# effects run labelled unverified. This job installs Clang 22 with
+# registered unverified. Since 2026-11-08 the Linux native and sanitizer
+# jobs also install LLVM's and Clang's headers and require the plugin
+# (GUI_FORMS_EFFECT_VERIFY_REQUIRED); this lean job remains for pull requests
+# that touch only the effect engine or the plugin. It installs Clang 22 with
 # llvm-22-dev and libclang-22-dev, builds the plugin, compiles the files that
 # register effects with its effect pass (gui_forms_verify_effects: a compile
 # fails on any effect that breaks the rules or its budgets), and runs the
@@ -55,8 +56,6 @@ jobs:
       # (cmake/LocalizablePlugin.cmake), /usr/lib/llvm-22 here.
       - name: Configure the tree
         run: |
-          sh gui_forms/third_party/fetch_text_stack.sh
-          sh gui_forms/third_party/fetch_linebreak.sh
           cmake -S gui_forms -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE="$PWD/gui_forms/cmake/llvm22.cmake" \
             -DGUI_FORMS_BUILD_GALLERY=OFF -DGUI_FORMS_BUILD_TESTS=ON -DGUI_FORMS_BUILD_AUDIO=OFF \

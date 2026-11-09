@@ -9,6 +9,7 @@
 #include "gui_forms/types.hpp"
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -22,11 +23,11 @@ namespace gui_forms {
 // Each is a standard-layout struct whose only member is its property's
 // cell, taken by the declaring class as a base. A write
 // `(*control).x = value;` runs `assign`: the declaring class's
-// prepare_write hook (require_mutable first, then the value's checks and,
-// where C# lets a subclass rewrite the value, the protected virtual coerce
-// hook), the compare and store, then the written hook (the touch, side
-// effects and the change event, through the protected virtual
-// on_<property>_changed() where Windows Forms has OnXChanged). A read is
+// prepare_write hook (require_mutable first, then the value's checks), the
+// compare and store, then the written hook (the touch, side effects and the
+// change event, through the protected virtual on_<property>_changed() where
+// Windows Forms has an overridable On<Property>Changed; other properties
+// have no hook, and a subclass subscribes to their change events instead). A read is
 // `(*control).x.read()`.
 
 // How columns size themselves (AutoSizeColumnsMode).
@@ -484,6 +485,40 @@ struct DataGridViewCellsOnSubSurfaceCapability {
     }
 };
 
+// Whether unbound and bound grids show a new row after the last row (Windows Forms' new row); on by default. Turning it off cancels an edit on the new row and moves a current cell on it to the last row. A view onto the grid's flag.
+template <typename Declaring>
+struct DataGridViewAllowUserToAddRowsCapability {
+    PropertyView<bool, DataGridViewAllowUserToAddRowsCapability<Declaring>> allow_user_to_add_rows;
+
+    static void assign(DataGridViewAllowUserToAddRowsCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.allow_user_to_add_rows), std::move(incoming));
+    }
+
+    static bool read(const DataGridViewAllowUserToAddRowsCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        bool current = control.read_view(capability.allow_user_to_add_rows);
+        return current;
+    }
+};
+
+// The BindingSource the grid's rows show (data_property_name names the fields); null returns to unbound rows. Every write resets the rows and the row state, even an equal one. A view onto the grid's source.
+template <typename Declaring>
+struct DataGridViewDataSourceCapability {
+    PropertyView<std::shared_ptr<BindingSource>, DataGridViewDataSourceCapability<Declaring>> data_source;
+
+    static void assign(DataGridViewDataSourceCapability& capability, std::shared_ptr<BindingSource> incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.data_source), std::move(incoming));
+    }
+
+    static std::shared_ptr<BindingSource> read(const DataGridViewDataSourceCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::shared_ptr<BindingSource> current = control.read_view(capability.data_source);
+        return current;
+    }
+};
+
 // Every DataGridView capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapability<Declaring>,
@@ -521,7 +556,9 @@ struct DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapabili
                                   public DataGridViewSelectionModeCapability<Declaring>,
                                   public DataGridViewMultiSelectCapability<Declaring>,
                                   public DataGridViewEditModeCapability<Declaring>,
-                                  public DataGridViewCellsOnSubSurfaceCapability<Declaring> {
+                                  public DataGridViewCellsOnSubSurfaceCapability<Declaring>,
+                                  public DataGridViewAllowUserToAddRowsCapability<Declaring>,
+                                  public DataGridViewDataSourceCapability<Declaring> {
     DataGridViewCapabilities() : FontCapability<Declaring>(FontSpec{FontSpec{FontRole::content, 11.0, 400, false}}) {}
 };
 

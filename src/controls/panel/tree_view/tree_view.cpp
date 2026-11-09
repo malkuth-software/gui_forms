@@ -5,6 +5,7 @@
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <vector>
 #include <string>
@@ -23,9 +24,12 @@ using namespace collection_detail;
 TreeView::TreeView(StableId stable_id)
     : Panel(std::move(stable_id)), reveal_(std::make_unique<detail::CutOffTextRevealer>()) {
     set_paint_plane(PaintPlane::control);
-    set_background(style().paper);
+    // A field's ground: the theme's editor role, resolved per colour scheme
+    // (no colour written here, which would fix the light paper in every
+    // scheme).
+    visual_role = ControlVisualRole::editor;
     border_style = BorderStyle::sunken;
-    set_focusable(true);
+    focusable = true;
 }
 
 TreeView::~TreeView() {}
@@ -65,16 +69,19 @@ std::optional<std::size_t> TreeView::item_index(std::string_view id) const noexc
                                       std::distance(items_.begin(), found))};
 }
 
-void TreeView::set_selected_id(std::string_view id) {
+std::string TreeView::read_view(const decltype(selected_id)&) const {
+    return selected_id_;
+}
+
+void TreeView::write_view(const decltype(selected_id)&, std::string incoming) {
     require_mutable();
-    if (!id.empty() && !item_index(id)) {
+    if (!incoming.empty() && !item_index(incoming)) {
         throw std::out_of_range("TreeView selection ID is not in the model");
     }
-    const std::string next(id);
-    if (selected_id_ == next) return;
-    TreeSelectionChange change{selected_id_, next};
-    selected_id_ = next;
-    if (!next.empty()) active_id_ = next;
+    if (selected_id_ == incoming) return;
+    TreeSelectionChange change{selected_id_, incoming};
+    selected_id_ = std::move(incoming);
+    if (!selected_id_.empty()) active_id_ = selected_id_;
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(selection_changed_, change);
 }
@@ -106,34 +113,7 @@ void TreeView::set_expanded(std::string_view id, bool value) {
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
     publish_change(expansion_changed_,
                    TreeExpansionChange{item_id, value});
-    if (selected_descendant && is_alive() && item_index(item_id)) set_selected_id(item_id);
-}
-
-void TreeView::set_item_height(double height) {
-    require_mutable();
-    if (!std::isfinite(height) || height < 14.0 || height > 256.0) {
-        throw std::invalid_argument("TreeView item height must be finite and between 14 and 256");
-    }
-    if (item_height_ == height) return;
-    item_height_ = height;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void TreeView::set_indentation(double indentation) {
-    require_mutable();
-    if (!std::isfinite(indentation) || indentation < 8.0 || indentation > 96.0) {
-        throw std::invalid_argument("TreeView indentation must be finite and between 8 and 96");
-    }
-    if (indentation_ == indentation) return;
-    indentation_ = indentation;
-    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void TreeView::set_show_expanders(bool show) {
-    require_mutable();
-    if (show_expanders_ == show) return;
-    show_expanders_ = show;
-    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    if (selected_descendant && is_alive() && item_index(item_id)) selected_id = item_id;
 }
 
 void TreeView::set_top_row(std::size_t row) {
@@ -149,28 +129,22 @@ void TreeView::set_top_row(std::size_t row) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void TreeView::set_font(FontSpec font) {
+void TreeView::prepare_write(const decltype(image_list)&, std::shared_ptr<ImageList>& incoming) {
     require_mutable();
-    if (!valid_font_spec(font)) throw std::invalid_argument("TreeView font is invalid");
-    set_font_from_code(true);
-    if (font_ == font) return;
-    font_ = font;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-}
-
-void TreeView::set_image_list(std::shared_ptr<ImageList> image_list) {
-    require_mutable();
-    if (image_list && !(*image_list).is_alive()) {
+    if (incoming && !(*incoming).is_alive()) {
         throw std::invalid_argument("TreeView requires a live ImageList");
     }
-    if (image_list && window() && !(*image_list).belongs_to(*window())) {
+    if (incoming && window() && !(*incoming).belongs_to(*window())) {
         throw std::invalid_argument("TreeView and ImageList must belong to one Window");
     }
-    if (image_list_ == image_list) return;
+}
+
+// A new list replaces the subscription to the old one's changes.
+void TreeView::written(const decltype(image_list)&) {
     image_list_changed_.disconnect();
-    image_list_ = std::move(image_list);
-    if (image_list_) {
-        image_list_changed_ = (*image_list_).changed().subscribe(
+    const std::shared_ptr<ImageList>& images = image_list.read();
+    if (images) {
+        image_list_changed_ = (*images).changed().subscribe(
             *this, Delegate<const ImageListChange&>::bind<
                 TreeView, &TreeView::on_image_list_changed>(*this));
     }
@@ -183,7 +157,7 @@ void TreeView::on_image_list_changed(const ImageListChange&) {
 
 void TreeView::on_attached_to_window() {
     Panel::on_attached_to_window();
-    if (image_list_ && !(*image_list_).belongs_to(*window())) {
+    if (image_list.read() && !(*image_list.read()).belongs_to(*window())) {
         throw std::logic_error("TreeView cannot attach to a different ImageList Window");
     }
 }
@@ -206,10 +180,10 @@ void TreeView::rebuild_visible() {
 }
 
 double TreeView::text_left(const TreeViewItem& item, double row_height) const {
-    const double indent = 7.0 + static_cast<double>(item.depth) * indentation_ * effective_text_scale();
+    const double indent = 7.0 + static_cast<double>(item.depth) * indentation.read() * effective_text_scale();
     double left = indent + 14.0;
-    if (image_list_ && (*image_list_).is_alive() && !item.image_key.empty()) {
-        const Size logical = (*image_list_).image_size();
+    if (image_list.read() && (*image_list.read()).is_alive() && !item.image_key.empty()) {
+        const Size logical = (*image_list.read()).image_size();
         const double slot_height = std::min(logical.height, std::max(0.0, row_height - 4.0));
         const double slot_width = logical.height > 0.0 ? logical.width * slot_height / logical.height : 0.0;
         left += slot_width + 5.0;
@@ -227,7 +201,7 @@ void TreeView::reveal_cut_off_text(std::size_t visible_row) {
     }
     const TreeViewItem& item = items_[visible_[visible_row]];
     const Rect bounds = absolute_bounds();
-    const double row_height = item_height_ * effective_text_scale();
+    const double row_height = item_height.read() * effective_text_scale();
     const double y = 2.0 + static_cast<double>(visible_row - top_row_) * row_height;
     const double left = text_left(item, row_height);
     const double clip_right = std::max(0.0, bounds.width - 2.0);
@@ -235,7 +209,7 @@ void TreeView::reveal_cut_off_text(std::size_t visible_row) {
         conceal_cut_off_text();
         return;
     }
-    const FontSpec font = text_font(font_);
+    const FontSpec row_font = text_font(font.read());
     const bool selected = item.stable_id == selected_id_;
     // The reveal shows under the pointer, so its row is hot, as the row's
     // own plate is.
@@ -249,7 +223,7 @@ void TreeView::reveal_cut_off_text(std::size_t visible_row) {
     revealed.row = {bounds.x + left - 2.0, bounds.y + y, clip_right - left + 2.0, row_height};
     revealed.cell = {bounds.x + left, bounds.y + y, clip_right - left, row_height};
     revealed.text = item.text;
-    revealed.font = font;
+    revealed.font = row_font;
     revealed.paint = paint;
     static_cast<void>((*reveal_).reveal(shared_from_this(), std::move(revealed)));
 }
@@ -261,7 +235,7 @@ void TreeView::conceal_cut_off_text() noexcept {
 std::size_t TreeView::visible_row_count() const noexcept {
     double height = local_bounds().height;
     if (height <= 4.0) height = requested_bounds().height;
-    const double row_height = item_height_ * effective_text_scale();
+    const double row_height = item_height.read() * effective_text_scale();
     return std::max<std::size_t>(1U, static_cast<std::size_t>(
         std::floor(std::max(0.0, height - 4.0) / row_height)));
 }
@@ -269,7 +243,7 @@ std::size_t TreeView::visible_row_count() const noexcept {
 std::optional<std::size_t> TreeView::visible_row_at(Point absolute) const noexcept {
     const Rect bounds = absolute_bounds();
     if (!bounds.contains(absolute) || absolute.y < bounds.y + 2.0) return {};
-    const double row_height = item_height_ * effective_text_scale();
+    const double row_height = item_height.read() * effective_text_scale();
     const std::size_t row = top_row_ + static_cast<std::size_t>(
         std::floor((absolute.y - bounds.y - 2.0) / row_height));
     return row < visible_.size() ? std::optional<std::size_t>{row}
@@ -292,7 +266,7 @@ void TreeView::select_visible_row(std::size_t row, bool activate) {
     // item's lifetime, so nothing here reads the item after it runs.
     const std::string item_id = items_[visible_[row]].stable_id;
     active_id_ = item_id;
-    set_selected_id(item_id);
+    selected_id = item_id;
     if (row < visible_.size()) ensure_visible(row);
     if (activate && is_alive()) item_activated_.emit(item_id);
 }
@@ -310,9 +284,9 @@ void TreeView::arrange(Rect final_bounds) {
 void TreeView::on_paint(Painter& painter, Rect damage) {
     Panel::on_paint(painter, damage);
     const Rect bounds = local_bounds();
-    const FontSpec font = text_font(font_);
+    const FontSpec row_font = text_font(font.read());
     const double text_scale = effective_text_scale();
-    const double row_height = item_height_ * text_scale;
+    const double row_height = item_height.read() * text_scale;
     painter.save();
     painter.clip_rect({2.0, 2.0, std::max(0.0, bounds.width - 4.0),
                        std::max(0.0, bounds.height - 4.0)});
@@ -348,8 +322,8 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
             paint_part(painter, *this, plate);
         }
         const double indent = 7.0 + static_cast<double>(item.depth) *
-            indentation_ * text_scale;
-        if (show_expanders_ && item.expandable) {
+            indentation.read() * text_scale;
+        if (show_expanders.read() && item.expandable) {
             // A 12-unit square centred where the 8 x 4 chevron sat.
             PartPaint expander;
             expander.family = ControlVisualRole::editor;
@@ -361,7 +335,7 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
             paint_part(painter, *this, expander);
         }
         const double image_x = indent + 14.0;
-        if (image_list_ && (*image_list_).is_alive() && !item.image_key.empty()) {
+        if (image_list.read() && (*image_list.read()).is_alive() && !item.image_key.empty()) {
             const ImageVisualState state = !item.enabled
                 ? ImageVisualState::disabled
                 : selected ? ImageVisualState::selected
@@ -369,8 +343,8 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
                                       : ImageVisualState::normal;
             const double scale = window() ? (*window()).scale() : 1.0;
             const ImageListResolution resolved =
-                (*image_list_).resolve(item.image_key, state, scale);
-            const Size logical = (*image_list_).image_size();
+                (*image_list.read()).resolve(item.image_key, state, scale);
+            const Size logical = (*image_list.read()).image_size();
             const double slot_height = std::min(logical.height,
                                                 std::max(0.0, row_height - 4.0));
             const double slot_width = logical.height > 0.0
@@ -398,10 +372,10 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
         label.role = PartRole::content;
         label.states = row_states;
         label.text = item.text;
-        label.font = font;
+        label.font = row_font;
         if (overridden) label.authored_foreground = selected && focused_ ? style().highlight : style().text;
         paint_text_part_at(painter, *this, label,
-                           {content_x, y + std::max(font.size, row_height * 0.5 + 4.0)},
+                           {content_x, y + std::max(row_font.size, row_height * 0.5 + 4.0)},
                            std::max(0.0, plate_bounds.x + plate_bounds.width - content_x));
         if (active) {
             PartPaint ring;
@@ -456,8 +430,8 @@ void TreeView::on_pointer(PointerEvent& event) {
         const TreeViewItem& item = items_[visible_[*pressed_row_]];
         const double local_x = event.position.x - absolute_bounds().x;
         const double arrow_x = 7.0 + static_cast<double>(item.depth) *
-            indentation_ * effective_text_scale();
-        if (show_expanders_ && item.expandable && local_x >= arrow_x - 3.0 &&
+            indentation.read() * effective_text_scale();
+        if (show_expanders.read() && item.expandable && local_x >= arrow_x - 3.0 &&
             local_x <= arrow_x + 12.0) {
             pressed_expander_ = true;
             set_expanded(item.stable_id, !item.expanded);
@@ -566,7 +540,7 @@ std::vector<SemanticNode> TreeView::semantic_virtual_children() const {
     const std::size_t end = std::min(visible_.size(), top_row_ + visible_row_count());
     nodes.reserve(end - std::min(top_row_, end));
     const Rect tree_bounds = absolute_bounds();
-    const double row_height = item_height_ * effective_text_scale();
+    const double row_height = item_height.read() * effective_text_scale();
     for (std::size_t row = top_row_; row < end; ++row) {
         const TreeViewItem& item = items_[visible_[row]];
         SemanticNode node;
@@ -613,8 +587,6 @@ bool TreeView::on_semantic_child_action(std::string_view id,
                        action == SemanticAction::press);
     return true;
 }
-
-
 
 namespace {
 
@@ -720,11 +692,11 @@ void TreeView::publish_realized_item_geometry(std::size_t item,
                        std::max(0.0, bounds.height - 4.0)};
     const TreeViewItem& node = items_[visible_[top_row_ + item]];
     const double text_scale = effective_text_scale();
-    const double row_height = item_height_ * text_scale;
+    const double row_height = item_height.read() * text_scale;
     const double y = 2.0 + static_cast<double>(item) * row_height;
     const Rect row{2.0, y, std::max(0.0, bounds.width - 4.0), row_height};
-    const double indent = 7.0 + static_cast<double>(node.depth) * indentation_ * text_scale;
-    if (show_expanders_ && node.expandable) {
+    const double indent = 7.0 + static_cast<double>(node.depth) * indentation.read() * text_scale;
+    if (show_expanders.read() && node.expandable) {
         // The extent of the two 1.4-unit strokes on_paint draws.
         const Rect expander = node.expanded
             ? Rect{indent - 0.7, y + 8.3, 9.4, 5.4}
@@ -732,9 +704,9 @@ void TreeView::publish_realized_item_geometry(std::size_t item,
         record.expander = PartGeometry::from_bounds(Rect::intersection(expander, content));
     }
     double content_x = indent + 14.0;
-    if (image_list_ && (*image_list_).is_alive() && !node.image_key.empty()) {
+    if (image_list.read() && (*image_list.read()).is_alive() && !node.image_key.empty()) {
         // The image slot; on_paint fits the image inside it.
-        const Size logical = (*image_list_).image_size();
+        const Size logical = (*image_list.read()).image_size();
         const double slot_height = std::min(logical.height, std::max(0.0, row_height - 4.0));
         const double slot_width = logical.height > 0.0
             ? logical.width * slot_height / logical.height : 0.0;
@@ -746,7 +718,7 @@ void TreeView::publish_realized_item_geometry(std::size_t item,
         }
     }
     const double text_width =
-        resolve_text_layout_utf8(node.text, text_font(font_)).logical_size.width;
+        resolve_text_layout_utf8(node.text, text_font(font.read())).logical_size.width;
     const Rect label{content_x, y, text_width, row_height};
     record.row = PartGeometry::from_bounds(Rect::intersection(row, content));
     record.label = PartGeometry::from_bounds(Rect::intersection(Rect::intersection(label, row), content));
@@ -800,5 +772,52 @@ void TreeView::append_interactions(std::vector<InteractionDeclaration>& interact
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), tree_view_interactions.begin(), tree_view_interactions.end());
 }
+
+// property_codemod begin TreeView (tools/property_families/tree_view.json; generated, do not edit)
+
+void TreeView::prepare_write(const decltype(item_height)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 14.0 || incoming > 256.0) {
+        throw std::invalid_argument("TreeView item height must be finite and between 14 and 256");
+    }
+}
+
+void TreeView::written(const decltype(item_height)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void TreeView::prepare_write(const decltype(indentation)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 8.0 || incoming > 96.0) {
+        throw std::invalid_argument("TreeView indentation must be finite and between 8 and 96");
+    }
+}
+
+void TreeView::written(const decltype(indentation)&) {
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void TreeView::prepare_write(const decltype(show_expanders)&, bool&) {
+    require_mutable();
+}
+
+void TreeView::written(const decltype(show_expanders)&) {
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void TreeView::prepare_write(const decltype(font)&, FontSpec& incoming) {
+    require_mutable();
+    if (!valid_font_spec(incoming)) throw std::invalid_argument("TreeView font is invalid");
+    set_font_from_code(true);
+}
+
+void TreeView::written(const decltype(font)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_font_changed();
+}
+
+void TreeView::on_font_changed() {}
+
+// property_codemod end TreeView
 
 } // namespace gui_forms

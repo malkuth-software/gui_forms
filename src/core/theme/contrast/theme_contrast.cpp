@@ -18,7 +18,6 @@ constexpr std::size_t sample_count = 17U;
 using FaceSamples = std::array<Color, sample_count>;
 
 constexpr double text_minimum = 4.5;
-constexpr double disabled_text_minimum = 3.0;
 constexpr double high_contrast_text_minimum = 7.0;
 constexpr double non_text_minimum = 3.0;
 
@@ -124,18 +123,37 @@ bool sample_material(const SurfaceMaterial& material, const FaceSamples& ground,
     return true;
 }
 
-// The material's edge colour: its border, else the first per-edge border,
-// else none (the face is the boundary).
-std::optional<Color> edge_colour(const SurfaceMaterial& material) noexcept {
-    if (material.border && (*material.border).width > 0.0) return (*material.border).color;
+// The material's edge colours: its border, else each drawn single edge
+// and the keylines of a bevel (the inner ring of edges that differ: a
+// sunken well's dark inner line is its boundary as much as its outer
+// one), else none (the face is the boundary). `colours` holds at most
+// 4 + SurfaceMaterial::maximum_keylines entries. Returns the count.
+using EdgeColours = std::array<Color, 4U + SurfaceMaterial::maximum_keylines>;
+
+std::size_t edge_colours(const SurfaceMaterial& material, EdgeColours& colours) noexcept {
+    if (material.border && (*material.border).width > 0.0) {
+        colours[0] = (*material.border).color;
+        return 1U;
+    }
     const std::array<const std::optional<MaterialBorder>*, 4> edges{
         &material.border_edges.top, &material.border_edges.right,
         &material.border_edges.bottom, &material.border_edges.left,
     };
+    std::size_t count = 0U;
     for (const std::optional<MaterialBorder>* edge : edges) {
-        if (*edge && (**edge).width > 0.0) return (**edge).color;
+        if (*edge && (**edge).width > 0.0) {
+            colours[count] = (**edge).color;
+            ++count;
+        }
     }
-    return std::nullopt;
+    if (count == 0U) return count;
+    for (const MaterialKeyline& keyline : material.keylines) {
+        if (count == colours.size()) break;
+        if (keyline.width <= 0.0) continue;
+        colours[count] = keyline.color;
+        ++count;
+    }
+    return count;
 }
 
 // The worst pair of `foreground` composited over each of `backgrounds`.
@@ -186,7 +204,8 @@ bool gates_boundary(ControlVisualRole family, ControlSurfaceState state, bool se
     case ControlVisualRole::choice:
     case ControlVisualRole::editor:
     case ControlVisualRole::card:
-    case ControlVisualRole::tool_tip: return true;
+    case ControlVisualRole::tool_tip:
+    case ControlVisualRole::notice: return true;
     // A row or item is flat until it is selected, hot or pressed.
     case ControlVisualRole::selection: return selected || lit;
     case ControlVisualRole::command_button:
@@ -197,6 +216,9 @@ bool gates_boundary(ControlVisualRole family, ControlSurfaceState state, bool se
     case ControlVisualRole::progress:
     case ControlVisualRole::link:
     case ControlVisualRole::visited_link:
+    // A badge's chip is carried by its label against the chip, not by an
+    // edge against the surroundings.
+    case ControlVisualRole::badge:
     case ControlVisualRole::count: return false;
     }
     return false;
@@ -219,14 +241,18 @@ bool gates_focus(ControlVisualRole family, ControlSurfaceState state) noexcept {
     case ControlVisualRole::selection:
     case ControlVisualRole::progress:
     case ControlVisualRole::tool_tip:
+    case ControlVisualRole::notice:
+    case ControlVisualRole::badge:
     case ControlVisualRole::count: return false;
     }
     return false;
 }
 
 double text_minimum_for(ControlSurfaceState state, bool high_contrast) noexcept {
+    // A disabled control's text is exempt (ContrastVerdict::exempt), in
+    // every presentation.
+    if (state == ControlSurfaceState::disabled) return 0.0;
     if (high_contrast) return high_contrast_text_minimum;
-    if (state == ControlSurfaceState::disabled) return disabled_text_minimum;
     return text_minimum;
 }
 
@@ -238,6 +264,12 @@ ContrastRow measured_row(const ContrastRow& key, ContrastPair pair, const WorstP
     row.ratio = worst.ratio;
     row.minimum = minimum;
     row.verdict = worst.ratio >= minimum ? ContrastVerdict::pass : ContrastVerdict::fail;
+    return row;
+}
+
+// `row` as an exempt one (ContrastVerdict::exempt), its measurement kept.
+ContrastRow exempt_row(ContrastRow row) noexcept {
+    row.verdict = ContrastVerdict::exempt;
     return row;
 }
 
@@ -276,9 +308,13 @@ void measure_recipe(const ControlVisualRecipe& recipe, const ContrastRow& key, b
     FaceSamples face{};
     const bool face_known = surround_known && sample_material(recipe.material, surround, face);
     if (!face_known) {
+        if (disabled) {
+            rows.push_back(exempt_row(unmeasured_row(key, ContrastPair::text, text_floor)));
+            rows.push_back(exempt_row(unmeasured_row(key, ContrastPair::muted_text, text_floor)));
+            return;
+        }
         rows.push_back(unmeasured_row(key, ContrastPair::text, text_floor));
         rows.push_back(unmeasured_row(key, ContrastPair::muted_text, text_floor));
-        if (disabled) return;
         rows.push_back(unmeasured_row(key, ContrastPair::glyph, non_text_minimum));
         if (boundary) rows.push_back(unmeasured_row(key, ContrastPair::boundary, non_text_minimum));
         if (focus) {
@@ -287,17 +323,28 @@ void measure_recipe(const ControlVisualRecipe& recipe, const ContrastRow& key, b
         }
         return;
     }
+    if (disabled) {
+        rows.push_back(exempt_row(measured_row(key, ContrastPair::text, worst_over(recipe.text, face), text_floor)));
+        rows.push_back(
+            exempt_row(measured_row(key, ContrastPair::muted_text, worst_over(recipe.muted_text, face), text_floor)));
+        return;
+    }
     rows.push_back(measured_row(key, ContrastPair::text, worst_over(recipe.text, face), text_floor));
     rows.push_back(measured_row(key, ContrastPair::muted_text, worst_over(recipe.muted_text, face), text_floor));
-    if (disabled) return;
     rows.push_back(measured_row(key, ContrastPair::glyph, worst_over(recipe.glyph, face), non_text_minimum));
     if (boundary) {
-        const std::optional<Color> edge = edge_colour(recipe.material);
+        // A bevel (edges that differ, with its inner ring) is seen by its
+        // strongest line, its shadow side: the boundary is the best of the
+        // lines' worst pairs.
+        EdgeColours edges{};
+        const std::size_t edge_count = edge_colours(recipe.material, edges);
         WorstPair worst{};
-        if (edge) {
-            worst = worst_over(*edge, surround);
-        } else {
+        if (edge_count == 0U) {
             worst = worst_between(face, surround);
+        }
+        for (std::size_t index = 0U; index < edge_count; ++index) {
+            const WorstPair pair = worst_over(edges[index], surround);
+            if (index == 0U || pair.ratio > worst.ratio) worst = pair;
         }
         rows.push_back(measured_row(key, ContrastPair::boundary, worst, non_text_minimum));
     }
@@ -356,7 +403,7 @@ void measure_theme_contrast(const Theme& theme, std::vector<ContrastRow>& rows) 
     };
     const std::array<Presentation, 3> presentations{
         Presentation{false, false}, Presentation{false, true}, Presentation{true, false}};
-    const bool measures_dark = theme.definition().dark_variant == ThemeDarkVariant::derived;
+    const bool measures_dark = theme.definition().dark_variant != ThemeDarkVariant::none;
     const std::array<bool, 2> selections{false, true};
     for (const Presentation& presentation : presentations) {
         if (presentation.dark && !measures_dark) continue;
@@ -392,6 +439,8 @@ ContrastCounts count_contrast_verdicts(std::span<const ContrastRow> rows) noexce
             ++counts.passed;
         } else if (row.verdict == ContrastVerdict::fail) {
             ++counts.failed;
+        } else if (row.verdict == ContrastVerdict::exempt) {
+            ++counts.exempt;
         } else {
             ++counts.not_measured;
         }
@@ -416,6 +465,7 @@ std::string_view contrast_verdict_name(ContrastVerdict verdict) noexcept {
     case ContrastVerdict::pass: return "pass";
     case ContrastVerdict::fail: return "fail";
     case ContrastVerdict::not_measured: return "not_measured";
+    case ContrastVerdict::exempt: return "exempt";
     }
     return "unknown";
 }

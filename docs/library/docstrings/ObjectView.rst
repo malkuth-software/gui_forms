@@ -8,7 +8,7 @@ name, secondary text, a description and a glyph or image. In
 are divided into cells under a header that the user clicks to sort and drags
 to resize. The user selects one or several items with the pointer and
 keyboard, activates an item by double-clicking it or pressing Enter, and
-asks for a context menu with the secondary button. Only the items in view
+asks for a context menu the platform's way (the host's context request). Only the items in view
 are painted and published, and no child control is created per item. Use a
 `TreeView` for a hierarchy, a `ListBox` for plain text rows, and a
 `CorrespondenceView` for records that expand to show more detail.
@@ -40,7 +40,7 @@ details_columns
 details_sort
     The sort indicator shown in the header: a column ID and an
     `ObjectSortDirection`. An empty column ID, the default, shows no
-    indicator. `set_details_sort` changes only the indicator and never
+    indicator. Writing `details_sort` changes only the indicator and never
     reorders the items. A column that does not exist or is not sortable, or
     an invalid direction, throws `std::invalid_argument`.
 horizontal_offset : default ``0.0``
@@ -110,7 +110,7 @@ sort_requested
     `ObjectDetailsSort`: that column, descending if the column is now
     sorted ascending and ascending otherwise. The view does not sort:
     reorder the items, then publish them with `set_details_model` and the
-    accepted sort, or call `set_details_sort`.
+    accepted sort, or write `details_sort`.
 selection_changed
     Raised after the selected IDs or the primary selection change, by
     input, by a setter, or by a model replacement that removed or reordered
@@ -121,12 +121,15 @@ item_activated
     double-click on it, on Enter for the focused item, or on a semantic
     press. It carries the item ID. Disabled items are not activated.
 context_requested
-    Raised on the release of a secondary click on an item, on a secondary
-    click on the background, and on a semantic `show_menu`. It carries an
+    Raised on the host's context request (Windows' right-button release,
+    Shift+F10 or Menu key; macOS's right press, Control-click or show-menu
+    action; the Linux desktop's right press, Menu key or Shift+F10) and on
+    a semantic `show_menu`: a pointer request names the item under the
+    pointer, a keyboard request the focused item. It carries an
     `ObjectContextRequest` with the item ID, empty for the background, and
     the position to open a menu at, in window coordinates despite its name
-    `screen_position`; pass it to `ContextMenu`. A secondary press on an
-    unselected item selects it first; a background click clears the
+    `screen_position`; pass it to `ContextMenu`. A request on an
+    unselected item selects it first; one on the background clears the
     selection first.
 
 Methods
@@ -270,7 +273,7 @@ is called directly:
                               .alignment = gf::ObjectColumnAlignment::right});
            rows.push_back(row("budget", "Budget.ods", "12 KB"));
            rows.push_back(row("agenda", "Agenda.txt", "1 KB"));
-           (*view).set_view_mode(gf::ObjectViewMode::details);
+           (*view).view_mode = gf::ObjectViewMode::details;
            (*view).set_details_model(columns, rows);
            gf::on((*view).sort_requested(), *this, &FileTable::on_sort);
        }
@@ -291,5 +294,5 @@ is called directly:
    void example() {
        FileTable table;
        table.on_sort({{"name"}, gf::ObjectSortDirection::ascending});
-       // (*table.view).details_sort() now shows Name, ascending
+       // (*table.view).details_sort.read() now shows Name, ascending
    }

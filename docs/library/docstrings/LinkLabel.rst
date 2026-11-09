@@ -72,5 +72,5 @@ Show details when the link is clicked:
 
    void example() {
        Report report;
-       (*report.details).perform_click();   // report.showing and visited() are now true
+       (*report.details).perform_click();   // report.showing and visited.read() are now true
    }

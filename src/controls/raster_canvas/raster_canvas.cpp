@@ -1,6 +1,7 @@
 #include "gui_forms/controls/raster_canvas/raster_canvas.hpp"
 
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -22,16 +23,20 @@ namespace {
 } // namespace
 
 RasterCanvas::RasterCanvas(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(true);
+    focusable = true;
     tab_stop = true;
     cursor = CursorKind::crosshair;
 }
 
-void RasterCanvas::set_bitmap(std::shared_ptr<gui_drawing::Bitmap> bitmap) {
+// The bitmap is a view onto bitmap_, so disposal can drop it without a
+// write. A new bitmap drops the old tiles and, when attached, publishes
+// itself whole.
+void RasterCanvas::write_view(const decltype(bitmap)&,
+                              std::shared_ptr<gui_drawing::Bitmap> incoming) {
     require_mutable();
-    if (bitmap_ == bitmap) return;
+    if (bitmap_ == incoming) return;
     if (SurfaceRoot* owner = surface_root()) release_tiles(*owner);
-    bitmap_ = std::move(bitmap);
+    bitmap_ = std::move(incoming);
     tiles_.clear();
     presented_generation_ = 0U;
     last_resource_error_ = ImageResourceError::none;
@@ -39,14 +44,28 @@ void RasterCanvas::set_bitmap(std::shared_ptr<gui_drawing::Bitmap> bitmap) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
-void RasterCanvas::clear_bitmap() { set_bitmap({}); }
-
-void RasterCanvas::set_zoom(double zoom) {
-    set_view(zoom, view_origin_);
+std::shared_ptr<gui_drawing::Bitmap> RasterCanvas::read_view(const decltype(bitmap)&) const {
+    return bitmap_;
 }
 
-void RasterCanvas::set_view_origin(gui_drawing::PointF origin) {
-    set_view(zoom_, origin);
+void RasterCanvas::clear_bitmap() { bitmap = std::shared_ptr<gui_drawing::Bitmap>(); }
+
+// The zoom and origin are views onto zoom_ and view_origin_, written
+// through set_view.
+void RasterCanvas::write_view(const decltype(zoom)&, double incoming) {
+    set_view(incoming, view_origin_);
+}
+
+double RasterCanvas::read_view(const decltype(zoom)&) const {
+    return zoom_;
+}
+
+void RasterCanvas::write_view(const decltype(view_origin)&, gui_drawing::PointF incoming) {
+    set_view(zoom_, incoming);
+}
+
+gui_drawing::PointF RasterCanvas::read_view(const decltype(view_origin)&) const {
+    return view_origin_;
 }
 
 void RasterCanvas::set_view(double zoom, gui_drawing::PointF origin) {
@@ -63,46 +82,11 @@ void RasterCanvas::set_view(double zoom, gui_drawing::PointF origin) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void RasterCanvas::set_sampling(ImageSampling sampling) {
-    require_mutable();
-    if (sampling != ImageSampling::nearest && sampling != ImageSampling::linear) {
-        throw std::invalid_argument("canvas image sampling is outside the enum");
-    }
-    if (sampling_ == sampling) return;
-    sampling_ = sampling;
-    invalidate(Dirty::paint);
-}
-
-void RasterCanvas::set_transparency_grid(bool visible) {
-    require_mutable();
-    if (transparency_grid_ == visible) return;
-    transparency_grid_ = visible;
-    invalidate(Dirty::paint);
-}
-
-void RasterCanvas::set_canvas_background(Color color) {
-    require_mutable();
-    if (background_ == color) return;
-    background_ = color;
-    invalidate(Dirty::paint);
-}
-
 void RasterCanvas::set_transparency_colors(Color first, Color second) {
     require_mutable();
     if (transparency_first_ == first && transparency_second_ == second) return;
     transparency_first_ = first;
     transparency_second_ = second;
-    invalidate(Dirty::paint);
-}
-
-void RasterCanvas::set_transparency_cell_size(double size) {
-    require_mutable();
-    if (!std::isfinite(size) || (size != 0.0 && (size < 2.0 || size > 128.0))) {
-        throw std::invalid_argument(
-            "canvas transparency cell size must be zero or within [2, 128]");
-    }
-    if (transparency_cell_size_ == size) return;
-    transparency_cell_size_ = size;
     invalidate(Dirty::paint);
 }
 
@@ -247,7 +231,7 @@ gui_drawing::RectF RasterCanvas::visible_bitmap_bounds() const {
 }
 
 Rect RasterCanvas::damage_to_client(gui_drawing::RectI pixels) const noexcept {
-    if (sampling_ == ImageSampling::linear) {
+    if (sampling.read() == ImageSampling::linear) {
         --pixels.x;
         --pixels.y;
         pixels.width += 2;
@@ -259,9 +243,9 @@ Rect RasterCanvas::damage_to_client(gui_drawing::RectI pixels) const noexcept {
 void RasterCanvas::paint_transparency_grid(Painter& painter, Rect bounds) const {
     painter.fill_rect(bounds, transparency_first_);
     const double area = std::max(0.0, bounds.width * bounds.height);
-    const double tile = transparency_cell_size_ == 0.0
+    const double tile = transparency_cell_size.read() == 0.0
         ? std::max(8.0, std::ceil(std::sqrt(area / 2048.0)))
-        : transparency_cell_size_;
+        : transparency_cell_size.read();
     const std::int64_t columns = static_cast<std::int64_t>(
         std::ceil(bounds.width / tile));
     const std::int64_t rows = static_cast<std::int64_t>(
@@ -282,13 +266,13 @@ void RasterCanvas::paint_transparency_grid(Painter& painter, Rect bounds) const 
 
 void RasterCanvas::on_paint(Painter& painter, Rect) {
     const Rect bounds = client_rectangle();
-    painter.fill_rect(bounds, background_);
+    painter.fill_rect(bounds, canvas_background.read());
     if (!bitmap_ || tiles_.empty()) return;
     const gui_drawing::RectF visible = visible_bitmap_bounds();
     if (visible.empty()) return;
     const Rect destination{(visible.x - view_origin_.x) * zoom_,
         (visible.y - view_origin_.y) * zoom_, visible.width * zoom_, visible.height * zoom_};
-    if (transparency_grid_) paint_transparency_grid(painter, destination);
+    if (transparency_grid.read()) paint_transparency_grid(painter, destination);
     for (std::size_t index = 0; index < tiles_.size(); ++index) {
         const Tile& tile = tiles_[index];
         const Rect clip = Rect::intersection(bitmap_to_client(tile.content), destination);
@@ -297,7 +281,7 @@ void RasterCanvas::on_paint(Painter& painter, Rect) {
         painter.clip_rect(clip);
         painter.draw_image_region_sampled(tile.image,
             {0, 0, static_cast<double>(tile.storage.width), static_cast<double>(tile.storage.height)},
-            bitmap_to_client(tile.storage), sampling_, 1.0);
+            bitmap_to_client(tile.storage), sampling.read(), 1.0);
         painter.restore();
     }
 }
@@ -341,7 +325,6 @@ void RasterCanvas::on_dispose() noexcept {
     presented_generation_ = 0U;
     Control::on_dispose();
 }
-
 
 namespace {
 
@@ -414,5 +397,47 @@ RasterCanvas::States RasterCanvas::states() const {
     read_states(raster_canvas_state_fields, anatomy_states(), record);
     return record;
 }
+
+// property_codemod begin RasterCanvas (tools/property_families/raster_canvas.json; generated, do not edit)
+
+void RasterCanvas::prepare_write(const decltype(sampling)&, ImageSampling& incoming) {
+    require_mutable();
+    if (incoming != ImageSampling::nearest && incoming != ImageSampling::linear) {
+        throw std::invalid_argument("canvas image sampling is outside the enum");
+    }
+}
+
+void RasterCanvas::written(const decltype(sampling)&) {
+    invalidate(Dirty::paint);
+}
+
+void RasterCanvas::prepare_write(const decltype(transparency_grid)&, bool&) {
+    require_mutable();
+}
+
+void RasterCanvas::written(const decltype(transparency_grid)&) {
+    invalidate(Dirty::paint);
+}
+
+void RasterCanvas::prepare_write(const decltype(canvas_background)&, Color&) {
+    require_mutable();
+}
+
+void RasterCanvas::written(const decltype(canvas_background)&) {
+    invalidate(Dirty::paint);
+}
+
+void RasterCanvas::prepare_write(const decltype(transparency_cell_size)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || (incoming != 0.0 && (incoming < 2.0 || incoming > 128.0))) {
+        throw std::invalid_argument("canvas transparency cell size must be zero or within [2, 128]");
+    }
+}
+
+void RasterCanvas::written(const decltype(transparency_cell_size)&) {
+    invalidate(Dirty::paint);
+}
+
+// property_codemod end RasterCanvas
 
 } // namespace gui_forms

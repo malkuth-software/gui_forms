@@ -15,10 +15,22 @@ Labels, images, progress and review cards.
      - Read-only text that names, describes or reports something.
    * - :cpp:class:`TextBlock <gui_forms::TextBlock>`
      - Read-only text laid out as CSS lays out the text of a block, for use inside the layout panels.
+   * - :cpp:class:`Badge <gui_forms::Badge>`
+     - A small count or dot, such as the number of unread messages beside a mailbox.
+   * - :cpp:class:`InfoBanner <gui_forms::InfoBanner>`
+     - A message strip across a form or a page, such as "Changes saved" or "Connection lost; retrying".
+   * - :cpp:class:`EmptyState <gui_forms::EmptyState>`
+     - What a list, a page or a search shows when it has nothing to show, such as "No messages" in an empty mailbox.
+   * - :cpp:class:`Toast <gui_forms::Toast>`
+     - A brief notice shown for a while above the bottom of a window, such as "Message archived." with an Undo button after a deletion.
    * - :cpp:class:`PictureBox <gui_forms::PictureBox>`
      - A box that displays one image from its window's image registry.
    * - :cpp:class:`ProgressBar <gui_forms::ProgressBar>`
      - A bar that shows how far an operation has progressed.
+   * - :cpp:class:`ProgressRing <gui_forms::ProgressRing>`
+     - Circular progress indicator of forty dots: lit in proportion to value over maximum, or a turning run while indeterminate, on the window's frame clock with reduced motion honoured.
+   * - :cpp:class:`Spinner <gui_forms::Spinner>`
+     - Indeterminate busy indicator: a ring of twelve dots, three lit, turning while active on the window's frame clock; still under reduced motion; busy to assistive technology.
    * - :cpp:class:`SweepScope <gui_forms::SweepScope>`
      - A read-only scope that draws a level as a trace on a graticule.
    * - :cpp:class:`ReviewCard <gui_forms::ReviewCard>`
@@ -29,8 +41,14 @@ Labels, images, progress and review cards.
 
    generated/gui_forms.Label
    generated/gui_forms.TextBlock
+   generated/gui_forms.Badge
+   generated/gui_forms.InfoBanner
+   generated/gui_forms.EmptyState
+   generated/gui_forms.Toast
    generated/gui_forms.PictureBox
    generated/gui_forms.ProgressBar
+   generated/gui_forms.ProgressRing
+   generated/gui_forms.Spinner
    generated/gui_forms.SweepScope
    generated/gui_forms.ReviewCard
 
@@ -41,40 +59,470 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`Badge::Parts <gui_forms::Badge::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`BadgeCapabilities <gui_forms::BadgeCapabilities>`
+     - Every Badge capability, in the order the declaring class takes them.
+   * - :cpp:class:`BadgeCountCapability <gui_forms::BadgeCountCapability>`
+     - The number the badge shows in count mode; zero hides the chip unless show_zero is set.
+   * - :cpp:class:`BadgeMaximumCapability <gui_forms::BadgeMaximumCapability>`
+     - The largest count shown as it is (99 by default); a larger count shows the maximum followed by "+".
+   * - :cpp:class:`BadgeModeCapability <gui_forms::BadgeModeCapability>`
+     - Whether the badge shows a count chip or a dot without text.
+   * - :cpp:class:`BadgeShowZeroCapability <gui_forms::BadgeShowZeroCapability>`
+     - Whether a zero count still shows its chip; off by default.
+   * - :cpp:class:`EmptyState::Parts <gui_forms::EmptyState::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`EmptyStateCapabilities <gui_forms::EmptyStateCapabilities>`
+     - Every EmptyState capability, in the order the declaring class takes them.
+   * - :cpp:class:`EmptyStateDescriptionCapability <gui_forms::EmptyStateDescriptionCapability>`
+     - The line below the title that says why, or what to do next; it describes the control to assistive technology.
+   * - :cpp:class:`EmptyStateImageCapability <gui_forms::EmptyStateImageCapability>`
+     - The picture above the title, an ImageId into the window's ImageRegistry, drawn in a 48-unit square; none by default.
+   * - :cpp:class:`EmptyStateTitleCapability <gui_forms::EmptyStateTitleCapability>`
+     - The heading that says what is empty, such as "No messages"; it names the control to assistive technology.
+   * - :cpp:class:`InfoBanner::Parts <gui_forms::InfoBanner::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`InfoBannerCapabilities <gui_forms::InfoBannerCapabilities>`
+     - Every InfoBanner capability, in the order the declaring class takes them.
+   * - :cpp:class:`InfoBannerClosableCapability <gui_forms::InfoBannerClosableCapability>`
+     - Whether the banner shows a close actuator, takes focus and closes on Escape; on by default.
+   * - :cpp:class:`InfoBannerMessageCapability <gui_forms::InfoBannerMessageCapability>`
+     - The banner's message, on the line below the title; it describes the banner to assistive technology.
+   * - :cpp:class:`InfoBannerSeverityCapability <gui_forms::InfoBannerSeverityCapability>`
+     - How much the message matters: information, warning, success or error.
+   * - :cpp:class:`InfoBannerTitleCapability <gui_forms::InfoBannerTitleCapability>`
+     - The banner's title, drawn in a heavier weight before the message; it names the banner to assistive technology.
    * - :cpp:class:`Label::Parts <gui_forms::Label::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts); its states are Control's.
+   * - :cpp:class:`LabelAlignmentCapability <gui_forms::LabelAlignmentCapability>`
+     - Horizontal placement of the text: near, center or far.
+   * - :cpp:class:`LabelCapabilities <gui_forms::LabelCapabilities>`
+     - Every Label capability, in the order the declaring class takes them.
+   * - :cpp:class:`LabelFontCapability <gui_forms::LabelFontCapability>`
+     - The label's own font; empty takes the theme typography of text_style_role (resolved_font).
+   * - :cpp:class:`LabelLineSpacingCapability <gui_forms::LabelLineSpacingCapability>`
+     - The line height as a multiple of the font's; from 0.75 to 3.0 (std::invalid_argument).
+   * - :cpp:class:`LabelMaximumLinesCapability <gui_forms::LabelMaximumLinesCapability>`
+     - The most lines measured and painted; zero keeps every line.
+   * - :cpp:class:`LabelTextCaseTransformCapability <gui_forms::LabelTextCaseTransformCapability>`
+     - How the shown text is cased: none, uppercase_ascii or lowercase_ascii; the text itself is unchanged.
+   * - :cpp:class:`LabelTextStyleRoleCapability <gui_forms::LabelTextStyleRoleCapability>`
+     - The theme typography role the label takes while it has no font of its own: body, control, caption, heading, title or monospace.
+   * - :cpp:class:`LabelTextWrappingCapability <gui_forms::LabelTextWrappingCapability>`
+     - Whether the text wraps at word boundaries: no_wrap or word.
+   * - :cpp:class:`LabelUseMnemonicCapability <gui_forms::LabelUseMnemonicCapability>`
+     - Whether an ampersand in the text marks the access key (UseMnemonic).
+   * - :cpp:class:`LabelVerticalAlignmentCapability <gui_forms::LabelVerticalAlignmentCapability>`
+     - Vertical placement of the text: near, center or far.
    * - :cpp:class:`PictureBox::Parts <gui_forms::PictureBox::Parts>`
      - Stage T1 anatomy, as dot members: Panel's parts and the image.
+   * - :cpp:class:`PictureBoxCapabilities <gui_forms::PictureBoxCapabilities>`
+     - Every PictureBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`PictureBoxImageCapability <gui_forms::PictureBoxImageCapability>`
+     - The generational image resource shown (Image); an ImageId into the window's ImageRegistry.
+   * - :cpp:class:`PictureBoxImageOpacityCapability <gui_forms::PictureBoxImageOpacityCapability>`
+     - The image's opacity from zero through one; anything else, or a value that is not finite, throws std::invalid_argument.
+   * - :cpp:class:`PictureBoxSizeModePropertyCapability <gui_forms::PictureBoxSizeModePropertyCapability>`
+     - How the image is placed and scaled (SizeMode): normal, stretch_image, auto_size, center_image or zoom.
    * - :cpp:class:`ProgressBar::Parts <gui_forms::ProgressBar::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`ProgressBar::States <gui_forms::ProgressBar::States>`
      -  
    * - :cpp:class:`ProgressBarAnimationAppearance <gui_forms::ProgressBarAnimationAppearance>`
      - ProgressBarAnimationAppearance is the validated value object for stripe width, gap, angle, and opacity used by painter-neutral progress animation.
+   * - :cpp:class:`ProgressBarAnimationEnabledCapability <gui_forms::ProgressBarAnimationEnabledCapability>`
+     - Whether the bar animates; turning it off resets the phase.
+   * - :cpp:class:`ProgressBarAnimationPeriodCapability <gui_forms::ProgressBarAnimationPeriodCapability>`
+     - The period of the indeterminate motion, at least 100 milliseconds (else std::invalid_argument).
+   * - :cpp:class:`ProgressBarAppearanceCapability <gui_forms::ProgressBarAppearanceCapability>`
+     - The animation's colours and extents; each extent finite and within its range, else std::invalid_argument.
+   * - :cpp:class:`ProgressBarCapabilities <gui_forms::ProgressBarCapabilities>`
+     - Every ProgressBar capability, in the order the declaring class takes them.
+   * - :cpp:class:`ProgressBarEffectCapability <gui_forms::ProgressBarEffectCapability>`
+     - The registered effect program drawn over the bar, by name (effect programs, design note section 7); empty takes the visual style's own, or the theme's.
+   * - :cpp:class:`ProgressBarEffectInputCapability <gui_forms::ProgressBarEffectInputCapability>`
+     - The input the bar grants its effect: none, the pointer, or the pointer and keys.
+   * - :cpp:class:`ProgressBarEffectSeedCapability <gui_forms::ProgressBarEffectSeedCapability>`
+     - The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce.
+   * - :cpp:class:`ProgressBarMotionPolicyCapability <gui_forms::ProgressBarMotionPolicyCapability>`
+     - Whether the bar's animation and effects move: disabled or paused stops them, keeping the phase; reduced swaps motion for a still form.
+   * - :cpp:class:`ProgressBarOverlayStyleChoiceCapability <gui_forms::ProgressBarOverlayStyleChoiceCapability>`
+     - The overlay drawn over the bar: none or moving stripes.
+   * - :cpp:class:`ProgressBarStripeWidthCapability <gui_forms::ProgressBarStripeWidthCapability>`
+     - The stripes' width, 2 to 32 pixels (else std::invalid_argument).
+   * - :cpp:class:`ProgressBarVisualStyleChoiceCapability <gui_forms::ProgressBarVisualStyleChoiceCapability>`
+     - How the bar draws: blocks, continuous, marquee, pulse, marching stripes or laser etch.
    * - :cpp:class:`ProgressBubbles <gui_forms::ProgressBubbles>`
      - Bubbles rising in the filled length; each that reaches the top breaks into a puff of steam rising into the top outset and fading.
    * - :cpp:class:`ProgressLaser <gui_forms::ProgressLaser>`
      - The laser etch: phase bands over the fill, a glowing edge, and a burning front with flickering lobes and short sparks (ProgressBarVisualStyle:: laser_etch).
    * - :cpp:class:`ProgressPulse <gui_forms::ProgressPulse>`
      - A soft luminance band sweeping along the fill (ProgressBarVisualStyle:: pulse).
+   * - :cpp:class:`ProgressRing::Parts <gui_forms::ProgressRing::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`ProgressRingCapabilities <gui_forms::ProgressRingCapabilities>`
+     - Every ProgressRing capability, in the order the declaring class takes them.
+   * - :cpp:class:`ProgressRingIndeterminateCapability <gui_forms::ProgressRingIndeterminateCapability>`
+     - Whether the ring shows activity without an amount: a turning arc instead of the value.
+   * - :cpp:class:`ProgressRingMaximumCapability <gui_forms::ProgressRingMaximumCapability>`
+     - The value of a full ring (100 by default).
+   * - :cpp:class:`ProgressRingValueCapability <gui_forms::ProgressRingValueCapability>`
+     - The progress, from 0 to maximum; a value outside that range is drawn clamped to it.
    * - :cpp:class:`ProgressStripes <gui_forms::ProgressStripes>`
      - Marching diagonal stripes over the fill (ProgressBarVisualStyle:: marching_stripes and the moving-stripes overlay).
    * - :cpp:class:`ProgressWovenStripes <gui_forms::ProgressWovenStripes>`
      - Randomly woven stripes (owner amendment, 2026-11-02): setup chooses which stripes exist, where and in what order at random; run weaves each in as the fraction passes its threshold, and shimmers them.
+   * - :cpp:class:`ReviewCardCapabilities <gui_forms::ReviewCardCapabilities>`
+     - Every ReviewCard capability, in the order the declaring class takes them.
+   * - :cpp:class:`ReviewCardRecordCapability <gui_forms::ReviewCardRecordCapability>`
+     - The review shown: key, title, summary, verdict and disposition.
    * - :cpp:class:`ReviewRecord <gui_forms::ReviewRecord>`
      - ReviewRecord owns the stable author, timestamp, score/status, title, body, and metadata projected by ReviewCard.
    * - :cpp:class:`RisingBody <gui_forms::RisingBody>`
      - One bubble rising in the fill, or one puff of steam rising above the bar.
    * - :cpp:class:`ScopeSweep <gui_forms::ScopeSweep>`
      - The trace (a rise from the lower left to a peak above the level's place, and a fall to the right edge) and the sweep line crossing the plot once a period.
+   * - :cpp:class:`Spinner::Parts <gui_forms::Spinner::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`SpinnerActiveCapability <gui_forms::SpinnerActiveCapability>`
+     - Whether the spinner shows and turns; an inactive spinner draws nothing and reports no busy state.
+   * - :cpp:class:`SpinnerCapabilities <gui_forms::SpinnerCapabilities>`
+     - Every Spinner capability, in the order the declaring class takes them.
    * - :cpp:class:`SweepScope::Parts <gui_forms::SweepScope::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`SweepScope::States <gui_forms::SweepScope::States>`
      -  
+   * - :cpp:class:`SweepScopeCapabilities <gui_forms::SweepScopeCapabilities>`
+     - Every SweepScope capability, in the order the declaring class takes them.
+   * - :cpp:class:`SweepScopeCaptionCapability <gui_forms::SweepScopeCaptionCapability>`
+     - The words drawn before the level's percentage.
+   * - :cpp:class:`SweepScopePeriodCapability <gui_forms::SweepScopePeriodCapability>`
+     - How long the sweep takes to cross the trace once, from 0.1 to 60 seconds (std::out_of_range outside them); the table value is in seconds.
    * - :cpp:class:`TextBlock::Parts <gui_forms::TextBlock::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts); its states are Control's.
+   * - :cpp:class:`TextBlockCapabilities <gui_forms::TextBlockCapabilities>`
+     - Every TextBlock capability, in the order the declaring class takes them.
+   * - :cpp:class:`TextBlockFontCapability <gui_forms::TextBlockFontCapability>`
+     - The block's own font; empty takes the theme's field typography (resolved_font).
+   * - :cpp:class:`TextBlockLineHeightCapability <gui_forms::TextBlockLineHeightCapability>`
+     - CSS line-height as a length in logical pixels at text scale 1; empty is normal.
+   * - :cpp:class:`TextBlockTextAlignCapability <gui_forms::TextBlockTextAlignCapability>`
+     - CSS text-align; start and end follow the effective layout direction (std::invalid_argument outside the enumeration).
+   * - :cpp:class:`Toast::Parts <gui_forms::Toast::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`ToastContent <gui_forms::ToastContent>`
+     - What a Toast says, fixed when it is made: its message, the text of its action button (empty for none), its severity and whether it shows a close mark.
    * - :cpp:class:`WovenStripe <gui_forms::WovenStripe>`
      - One woven stripe: warp (along the bar) or weft (across it), where it lies, how wide, which colour and the fraction at which it weaves in.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: Badge::Parts final
+
+   ``#include <gui_forms/controls/badge/badge.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``chip`` is the drawn pill or dot and ``label`` the text inside it; both are absent while the badge is hidden, and ``label`` in dot mode.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry chip
+
+   .. cpp:member:: PartGeometry label
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BadgeCapabilities : public BadgeCountCapability<Declaring>, public BadgeMaximumCapability<Declaring>, public BadgeModeCapability<Declaring>, public BadgeShowZeroCapability<Declaring>
+
+   ``#include <gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp>``
+
+   Every Badge capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::uint32_t count
+
+      The number the badge shows in count mode; zero hides the chip unless show_zero is set.
+
+   .. cpp:member:: std::uint32_t maximum
+
+      The largest count shown as it is (99 by default); a larger count shows the maximum followed by "+". Zero throws std::invalid_argument.
+
+   .. cpp:member:: BadgeMode mode
+
+      Whether the badge shows a count chip or a dot without text.
+
+   .. cpp:member:: bool show_zero
+
+      Whether a zero count still shows its chip; off by default.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BadgeCountCapability
+
+   ``#include <gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp>``
+
+   The number the badge shows in count mode; zero hides the chip unless show_zero is set.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BadgeCountCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, BadgeCountCapability<Declaring>> count
+
+      Default: ``{0U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BadgeMaximumCapability
+
+   ``#include <gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp>``
+
+   The largest count shown as it is (99 by default); a larger count shows the maximum followed by "+". Zero throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BadgeMaximumCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, BadgeMaximumCapability<Declaring>> maximum
+
+      Default: ``{99U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BadgeModeCapability
+
+   ``#include <gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp>``
+
+   Whether the badge shows a count chip or a dot without text.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BadgeModeCapability& capability, BadgeMode incoming)
+
+   .. cpp:member:: PropertyCell<BadgeMode, BadgeModeCapability<Declaring>> mode
+
+      Default: ``{BadgeMode::count}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BadgeShowZeroCapability
+
+   ``#include <gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp>``
+
+   Whether a zero count still shows its chip; off by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BadgeShowZeroCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, BadgeShowZeroCapability<Declaring>> show_zero
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EmptyState::Parts final
+
+   ``#include <gui_forms/controls/empty_state/empty_state.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``icon`` is the picture, ``caption`` the title, ``label`` the description and ``content`` the action's slot; each is absent while it has nothing to show.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry icon
+
+   .. cpp:member:: PartGeometry caption
+
+   .. cpp:member:: PartGeometry label
+
+   .. cpp:member:: PartGeometry content
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> EmptyStateCapabilities : public EmptyStateImageCapability<Declaring>, public EmptyStateTitleCapability<Declaring>, public EmptyStateDescriptionCapability<Declaring>
+
+   ``#include <gui_forms/controls/empty_state/empty_state_capabilities/empty_state_capabilities.hpp>``
+
+   Every EmptyState capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ImageId image
+
+      The picture above the title, an ImageId into the window's ImageRegistry, drawn in a 48-unit square; none by default.
+
+   .. cpp:member:: std::string title
+
+      The heading that says what is empty, such as "No messages"; it names the control to assistive technology. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: std::string description
+
+      The line below the title that says why, or what to do next; it describes the control to assistive technology. Must be valid UTF-8 (std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> EmptyStateDescriptionCapability
+
+   ``#include <gui_forms/controls/empty_state/empty_state_capabilities/empty_state_capabilities.hpp>``
+
+   The line below the title that says why, or what to do next; it describes the control to assistive technology. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(EmptyStateDescriptionCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, EmptyStateDescriptionCapability<Declaring>> description
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> EmptyStateImageCapability
+
+   ``#include <gui_forms/controls/empty_state/empty_state_capabilities/empty_state_capabilities.hpp>``
+
+   The picture above the title, an ImageId into the window's ImageRegistry, drawn in a 48-unit square; none by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(EmptyStateImageCapability& capability, ImageId incoming)
+
+   .. cpp:member:: PropertyCell<ImageId, EmptyStateImageCapability<Declaring>> image
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> EmptyStateTitleCapability
+
+   ``#include <gui_forms/controls/empty_state/empty_state_capabilities/empty_state_capabilities.hpp>``
+
+   The heading that says what is empty, such as "No messages"; it names the control to assistive technology. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(EmptyStateTitleCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, EmptyStateTitleCapability<Declaring>> title
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: InfoBanner::Parts final
+
+   ``#include <gui_forms/controls/info_banner/info_banner.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``face`` is the notice surface, ``keyline`` the severity's rule along the start edge, ``icon`` the severity mark, ``caption`` the title, ``label`` the message, ``actuator`` the close mark (absent unless closable; hot and pressed as the pointer is) and ``content`` the action's slot (absent without an action). An empty title or message publishes no caption or label. The icon and the actuator take the glyph role, the role that draws a mark.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry face
+
+   .. cpp:member:: PartGeometry keyline
+
+   .. cpp:member:: PartGeometry icon
+
+   .. cpp:member:: PartGeometry caption
+
+   .. cpp:member:: PartGeometry label
+
+   .. cpp:member:: PartGeometry actuator
+
+   .. cpp:member:: PartGeometry content
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InfoBannerCapabilities : public InfoBannerSeverityCapability<Declaring>, public InfoBannerTitleCapability<Declaring>, public InfoBannerMessageCapability<Declaring>, public InfoBannerClosableCapability<Declaring>
+
+   ``#include <gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp>``
+
+   Every InfoBanner capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: NoticeSeverity severity
+
+      How much the message matters: information, warning, success or error. It chooses the icon, the keyline's colour and the banner's one custom state.
+
+   .. cpp:member:: std::string title
+
+      The banner's title, drawn in a heavier weight before the message; it names the banner to assistive technology. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: std::string message
+
+      The banner's message, on the line below the title; it describes the banner to assistive technology. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: bool closable
+
+      Whether the banner shows a close actuator, takes focus and closes on Escape; on by default.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InfoBannerClosableCapability
+
+   ``#include <gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp>``
+
+   Whether the banner shows a close actuator, takes focus and closes on Escape; on by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(InfoBannerClosableCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, InfoBannerClosableCapability<Declaring>> closable
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InfoBannerMessageCapability
+
+   ``#include <gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp>``
+
+   The banner's message, on the line below the title; it describes the banner to assistive technology. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(InfoBannerMessageCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, InfoBannerMessageCapability<Declaring>> message
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InfoBannerSeverityCapability
+
+   ``#include <gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp>``
+
+   How much the message matters: information, warning, success or error. It chooses the icon, the keyline's colour and the banner's one custom state.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(InfoBannerSeverityCapability& capability, NoticeSeverity incoming)
+
+   .. cpp:member:: PropertyCell<NoticeSeverity, InfoBannerSeverityCapability<Declaring>> severity
+
+      Default: ``{NoticeSeverity::information}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InfoBannerTitleCapability
+
+   ``#include <gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp>``
+
+   The banner's title, drawn in a heavier weight before the message; it names the banner to assistive technology. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(InfoBannerTitleCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, InfoBannerTitleCapability<Declaring>> title
 
 .. cpp:namespace:: gui_forms
 
@@ -87,6 +535,208 @@ Related types
    .. cpp:member:: PartGeometry region
 
    .. cpp:member:: PartGeometry label
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelAlignmentCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   Horizontal placement of the text: near, center or far.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelAlignmentCapability& capability, HorizontalAlignment incoming)
+
+   .. cpp:member:: PropertyCell<HorizontalAlignment, LabelAlignmentCapability<Declaring>> alignment
+
+      Default: ``{HorizontalAlignment::near}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelCapabilities : public TextCapability<Declaring>, public LabelFontCapability<Declaring>, public LabelAlignmentCapability<Declaring>, public LabelVerticalAlignmentCapability<Declaring>, public LabelTextWrappingCapability<Declaring>, public LabelMaximumLinesCapability<Declaring>, public LabelTextStyleRoleCapability<Declaring>, public LabelLineSpacingCapability<Declaring>, public LabelTextCaseTransformCapability<Declaring>, public LabelUseMnemonicCapability<Declaring>
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   Every Label capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The text the control shows (Text).
+
+   .. cpp:member:: std::optional<FontSpec> font
+
+      The label's own font; empty takes the theme typography of text_style_role (resolved_font). Must be a valid font specification (std::invalid_argument).
+
+   .. cpp:member:: HorizontalAlignment alignment
+
+      Horizontal placement of the text: near, center or far.
+
+   .. cpp:member:: VerticalAlignment vertical_alignment
+
+      Vertical placement of the text: near, center or far.
+
+   .. cpp:member:: TextWrapping text_wrapping
+
+      Whether the text wraps at word boundaries: no_wrap or word.
+
+   .. cpp:member:: std::uint32_t maximum_lines
+
+      The most lines measured and painted; zero keeps every line. Semantics keep the complete text. At most 4096 (std::out_of_range).
+
+   .. cpp:member:: TextStyleRole text_style_role
+
+      The theme typography role the label takes while it has no font of its own: body, control, caption, heading, title or monospace.
+
+   .. cpp:member:: double line_spacing
+
+      The line height as a multiple of the font's; from 0.75 to 3.0 (std::invalid_argument).
+
+   .. cpp:member:: TextCaseTransform text_case_transform
+
+      How the shown text is cased: none, uppercase_ascii or lowercase_ascii; the text itself is unchanged.
+
+   .. cpp:member:: bool use_mnemonic
+
+      Whether an ampersand in the text marks the access key (UseMnemonic).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelFontCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   The label's own font; empty takes the theme typography of text_style_role (resolved_font). Must be a valid font specification (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelFontCapability& capability, std::optional<FontSpec> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<FontSpec>, LabelFontCapability<Declaring>> font
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelLineSpacingCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   The line height as a multiple of the font's; from 0.75 to 3.0 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelLineSpacingCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, LabelLineSpacingCapability<Declaring>> line_spacing
+
+      Default: ``{1.25}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelMaximumLinesCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   The most lines measured and painted; zero keeps every line. Semantics keep the complete text. At most 4096 (std::out_of_range).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelMaximumLinesCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, LabelMaximumLinesCapability<Declaring>> maximum_lines
+
+      Default: ``{0U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelTextCaseTransformCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   How the shown text is cased: none, uppercase_ascii or lowercase_ascii; the text itself is unchanged.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelTextCaseTransformCapability& capability, TextCaseTransform incoming)
+
+   .. cpp:member:: PropertyCell<TextCaseTransform, LabelTextCaseTransformCapability<Declaring>> text_case_transform
+
+      Default: ``{TextCaseTransform::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelTextStyleRoleCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   The theme typography role the label takes while it has no font of its own: body, control, caption, heading, title or monospace.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelTextStyleRoleCapability& capability, TextStyleRole incoming)
+
+   .. cpp:member:: PropertyCell<TextStyleRole, LabelTextStyleRoleCapability<Declaring>> text_style_role
+
+      Default: ``{TextStyleRole::body}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelTextWrappingCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   Whether the text wraps at word boundaries: no_wrap or word.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelTextWrappingCapability& capability, TextWrapping incoming)
+
+   .. cpp:member:: PropertyCell<TextWrapping, LabelTextWrappingCapability<Declaring>> text_wrapping
+
+      Default: ``{TextWrapping::no_wrap}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelUseMnemonicCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   Whether an ampersand in the text marks the access key (UseMnemonic).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelUseMnemonicCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, LabelUseMnemonicCapability<Declaring>> use_mnemonic
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelVerticalAlignmentCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   Vertical placement of the text: near, center or far.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelVerticalAlignmentCapability& capability, VerticalAlignment incoming)
+
+   .. cpp:member:: PropertyCell<VerticalAlignment, LabelVerticalAlignmentCapability<Declaring>> vertical_alignment
+
+      Default: ``{VerticalAlignment::center}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -103,6 +753,78 @@ Related types
    .. cpp:member:: PartGeometry edge
 
    .. cpp:member:: PartGeometry image
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PictureBoxCapabilities : public PictureBoxImageCapability<Declaring>, public PictureBoxSizeModePropertyCapability<Declaring>, public PictureBoxImageOpacityCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/picture_box/picture_box_capabilities/picture_box_capabilities.hpp>``
+
+   Every PictureBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ImageId image
+
+      The generational image resource shown (Image); an ImageId into the window's ImageRegistry. A change raises image_changed. clear_image() resets it.
+
+   .. cpp:member:: PictureBoxSizeMode size_mode
+
+      How the image is placed and scaled (SizeMode): normal, stretch_image, auto_size, center_image or zoom.
+
+   .. cpp:member:: double image_opacity
+
+      The image's opacity from zero through one; anything else, or a value that is not finite, throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PictureBoxImageCapability
+
+   ``#include <gui_forms/controls/panel/picture_box/picture_box_capabilities/picture_box_capabilities.hpp>``
+
+   The generational image resource shown (Image); an ImageId into the window's ImageRegistry. A change raises image_changed. clear_image() resets it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PictureBoxImageCapability& capability, ImageId incoming)
+
+   .. cpp:member:: PropertyCell<ImageId, PictureBoxImageCapability<Declaring>> image
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PictureBoxImageOpacityCapability
+
+   ``#include <gui_forms/controls/panel/picture_box/picture_box_capabilities/picture_box_capabilities.hpp>``
+
+   The image's opacity from zero through one; anything else, or a value that is not finite, throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PictureBoxImageOpacityCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, PictureBoxImageOpacityCapability<Declaring>> image_opacity
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PictureBoxSizeModePropertyCapability
+
+   ``#include <gui_forms/controls/panel/picture_box/picture_box_capabilities/picture_box_capabilities.hpp>``
+
+   How the image is placed and scaled (SizeMode): normal, stretch_image, auto_size, center_image or zoom.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PictureBoxSizeModePropertyCapability& capability, PictureBoxSizeMode incoming)
+
+   .. cpp:member:: PropertyCell<PictureBoxSizeMode, PictureBoxSizeModePropertyCapability<Declaring>> size_mode
+
+      Default: ``{PictureBoxSizeMode::normal}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -140,7 +862,7 @@ Related types
 
 .. cpp:struct:: ProgressBarAnimationAppearance final
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar.hpp>``
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_values/progress_bar_values.hpp>``
 
    ProgressBarAnimationAppearance is the validated value object for stripe width, gap, angle, and opacity used by painter-neutral progress animation.
 
@@ -175,6 +897,227 @@ Related types
    .. cpp:member:: double laser_phase_pitch
 
       Default: ``{10.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarAnimationEnabledCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   Whether the bar animates; turning it off resets the phase.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarAnimationEnabledCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ProgressBarAnimationEnabledCapability<Declaring>> animation_enabled
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarAnimationPeriodCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   The period of the indeterminate motion, at least 100 milliseconds (else std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarAnimationPeriodCapability& capability, FrameInterval incoming)
+
+   .. cpp:member:: PropertyCell<FrameInterval, ProgressBarAnimationPeriodCapability<Declaring>> animation_period
+
+      Default: ``{std::chrono::milliseconds(1400)}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarAppearanceCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   The animation's colours and extents; each extent finite and within its range, else std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarAppearanceCapability& capability, ProgressBarAnimationAppearance incoming)
+
+   .. cpp:member:: PropertyCell<ProgressBarAnimationAppearance, ProgressBarAppearanceCapability<Declaring>> animation_appearance
+
+      Default: ``{ProgressBarAnimationAppearance{}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarCapabilities : public ProgressBarVisualStyleChoiceCapability<Declaring>, public ProgressBarOverlayStyleChoiceCapability<Declaring>, public ProgressBarStripeWidthCapability<Declaring>, public ProgressBarAppearanceCapability<Declaring>, public ProgressBarAnimationEnabledCapability<Declaring>, public ProgressBarAnimationPeriodCapability<Declaring>, public ProgressBarEffectCapability<Declaring>, public ProgressBarEffectSeedCapability<Declaring>, public ProgressBarEffectInputCapability<Declaring>, public ProgressBarMotionPolicyCapability<Declaring>
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   Every ProgressBar capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ProgressBarVisualStyle visual_style
+
+      How the bar draws: blocks, continuous, marquee, pulse, marching stripes or laser etch. A change restarts the animation phase and reselects the effects.
+
+   .. cpp:member:: ProgressBarOverlayStyle overlay_style
+
+      The overlay drawn over the bar: none or moving stripes. A change restarts the animation phase and reselects the effects.
+
+   .. cpp:member:: double stripe_width
+
+      The stripes' width, 2 to 32 pixels (else std::invalid_argument).
+
+   .. cpp:member:: ProgressBarAnimationAppearance animation_appearance
+
+      The animation's colours and extents; each extent finite and within its range, else std::invalid_argument.
+
+   .. cpp:member:: bool animation_enabled
+
+      Whether the bar animates; turning it off resets the phase.
+
+   .. cpp:member:: FrameInterval animation_period
+
+      The period of the indeterminate motion, at least 100 milliseconds (else std::invalid_argument).
+
+   .. cpp:member:: std::string effect
+
+      The registered effect program drawn over the bar, by name (effect programs, design note section 7); empty takes the visual style's own, or the theme's.
+
+   .. cpp:member:: std::optional<std::uint64_t> effect_seed
+
+      The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce. A change restarts the effects.
+
+   .. cpp:member:: EffectInputKind effect_input
+
+      The input the bar grants its effect: none, the pointer, or the pointer and keys. The bar never takes focus, so a key grant delivers nothing.
+
+   .. cpp:member:: MotionPolicy motion_policy
+
+      Whether the bar's animation and effects move: disabled or paused stops them, keeping the phase; reduced swaps motion for a still form. A view onto the bar's policy; effective_motion_policy adds the window's reduced-motion setting.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarEffectCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   The registered effect program drawn over the bar, by name (effect programs, design note section 7); empty takes the visual style's own, or the theme's.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarEffectCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, ProgressBarEffectCapability<Declaring>> effect
+
+      Default: ``{std::string{}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarEffectInputCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   The input the bar grants its effect: none, the pointer, or the pointer and keys. The bar never takes focus, so a key grant delivers nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarEffectInputCapability& capability, EffectInputKind incoming)
+
+   .. cpp:member:: PropertyCell<EffectInputKind, ProgressBarEffectInputCapability<Declaring>> effect_input
+
+      Default: ``{EffectInputKind::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarEffectSeedCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce. A change restarts the effects.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarEffectSeedCapability& capability, std::optional<std::uint64_t> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<std::uint64_t>, ProgressBarEffectSeedCapability<Declaring>> effect_seed
+
+      Default: ``{std::nullopt}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarMotionPolicyCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   Whether the bar's animation and effects move: disabled or paused stops them, keeping the phase; reduced swaps motion for a still form. A view onto the bar's policy; effective_motion_policy adds the window's reduced-motion setting.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarMotionPolicyCapability& capability, MotionPolicy incoming)
+
+   .. cpp:function:: static MotionPolicy read(const ProgressBarMotionPolicyCapability& capability)
+
+   .. cpp:member:: PropertyView<MotionPolicy, ProgressBarMotionPolicyCapability<Declaring>> motion_policy
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarOverlayStyleChoiceCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   The overlay drawn over the bar: none or moving stripes. A change restarts the animation phase and reselects the effects.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarOverlayStyleChoiceCapability& capability, ProgressBarOverlayStyle incoming)
+
+   .. cpp:member:: PropertyCell<ProgressBarOverlayStyle, ProgressBarOverlayStyleChoiceCapability<Declaring>> overlay_style
+
+      Default: ``{ProgressBarOverlayStyle::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarStripeWidthCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   The stripes' width, 2 to 32 pixels (else std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarStripeWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ProgressBarStripeWidthCapability<Declaring>> stripe_width
+
+      Default: ``{7.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarVisualStyleChoiceCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   How the bar draws: blocks, continuous, marquee, pulse, marching stripes or laser etch. A change restarts the animation phase and reselects the effects.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarVisualStyleChoiceCapability& capability, ProgressBarVisualStyle incoming)
+
+   .. cpp:member:: PropertyCell<ProgressBarVisualStyle, ProgressBarVisualStyleChoiceCapability<Declaring>> visual_style
+
+      Default: ``{ProgressBarVisualStyle::continuous}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -241,6 +1184,96 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ProgressRing::Parts final
+
+   ``#include <gui_forms/controls/progress_ring/progress_ring.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``track`` is the ring's square; ``fill`` the same square while determinate with a positive fraction, ``activity`` while indeterminate.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry track
+
+   .. cpp:member:: PartGeometry fill
+
+   .. cpp:member:: PartGeometry activity
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressRingCapabilities : public ProgressRingValueCapability<Declaring>, public ProgressRingMaximumCapability<Declaring>, public ProgressRingIndeterminateCapability<Declaring>
+
+   ``#include <gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp>``
+
+   Every ProgressRing capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double value
+
+      The progress, from 0 to maximum; a value outside that range is drawn clamped to it. Not finite throws std::invalid_argument.
+
+   .. cpp:member:: double maximum
+
+      The value of a full ring (100 by default). Not finite or not above zero throws std::invalid_argument.
+
+   .. cpp:member:: bool indeterminate
+
+      Whether the ring shows activity without an amount: a turning arc instead of the value.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressRingIndeterminateCapability
+
+   ``#include <gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp>``
+
+   Whether the ring shows activity without an amount: a turning arc instead of the value.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressRingIndeterminateCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ProgressRingIndeterminateCapability<Declaring>> indeterminate
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressRingMaximumCapability
+
+   ``#include <gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp>``
+
+   The value of a full ring (100 by default). Not finite or not above zero throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressRingMaximumCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ProgressRingMaximumCapability<Declaring>> maximum
+
+      Default: ``{100.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressRingValueCapability
+
+   ``#include <gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp>``
+
+   The progress, from 0 to maximum; a value outside that range is drawn clamped to it. Not finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressRingValueCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ProgressRingValueCapability<Declaring>> value
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: ProgressStripes final
 
    ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
@@ -285,9 +1318,39 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ReviewCardCapabilities : public ReviewCardRecordCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/card/review_card/review_card_capabilities/review_card_capabilities.hpp>``
+
+   Every ReviewCard capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ReviewRecord record
+
+      The review shown: key, title, summary, verdict and disposition. A change rewrites the three labels, the accessible name and description and the visual status, then raises record_changed. An invalid or unbounded record throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ReviewCardRecordCapability
+
+   ``#include <gui_forms/controls/panel/card/review_card/review_card_capabilities/review_card_capabilities.hpp>``
+
+   The review shown: key, title, summary, verdict and disposition. A change rewrites the three labels, the accessible name and description and the visual status, then raises record_changed. An invalid or unbounded record throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ReviewCardRecordCapability& capability, ReviewRecord incoming)
+
+   .. cpp:member:: PropertyCell<ReviewRecord, ReviewCardRecordCapability<Declaring>> record
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ReviewRecord final
 
-   ``#include <gui_forms/controls/panel/card/review_card/review_card.hpp>``
+   ``#include <gui_forms/controls/panel/card/review_card/review_card_values/review_card_values.hpp>``
 
    ReviewRecord owns the stable author, timestamp, score/status, title, body, and metadata projected by ReviewCard.
 
@@ -348,6 +1411,50 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: Spinner::Parts final
+
+   ``#include <gui_forms/controls/spinner/spinner.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``activity`` is the ring's square, present while active.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry activity
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SpinnerActiveCapability
+
+   ``#include <gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp>``
+
+   Whether the spinner shows and turns; an inactive spinner draws nothing and reports no busy state.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SpinnerActiveCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, SpinnerActiveCapability<Declaring>> active
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SpinnerCapabilities : public SpinnerActiveCapability<Declaring>
+
+   ``#include <gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp>``
+
+   Every Spinner capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool active
+
+      Whether the spinner shows and turns; an inactive spinner draws nothing and reports no busy state.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: SweepScope::Parts final
 
    ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp>``
@@ -382,6 +1489,59 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> SweepScopeCapabilities : public SweepScopeCaptionCapability<Declaring>, public SweepScopePeriodCapability<Declaring>
+
+   ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope_capabilities/sweep_scope_capabilities.hpp>``
+
+   Every SweepScope capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string caption
+
+      The words drawn before the level's percentage.
+
+   .. cpp:member:: FrameInterval sweep_period
+
+      How long the sweep takes to cross the trace once, from 0.1 to 60 seconds (std::out_of_range outside them); the table value is in seconds.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SweepScopeCaptionCapability
+
+   ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope_capabilities/sweep_scope_capabilities.hpp>``
+
+   The words drawn before the level's percentage.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SweepScopeCaptionCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, SweepScopeCaptionCapability<Declaring>> caption
+
+      Default: ``{std::string("LEVEL")}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SweepScopePeriodCapability
+
+   ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope_capabilities/sweep_scope_capabilities.hpp>``
+
+   How long the sweep takes to cross the trace once, from 0.1 to 60 seconds (std::out_of_range outside them); the table value is in seconds.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SweepScopePeriodCapability& capability, FrameInterval incoming)
+
+   .. cpp:member:: PropertyCell<FrameInterval, SweepScopePeriodCapability<Declaring>> sweep_period
+
+      Default: ``{std::chrono::microseconds(1'234'568)}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TextBlock::Parts final
 
    ``#include <gui_forms/controls/text_block/text_block.hpp>``
@@ -391,6 +1551,120 @@ Related types
    .. cpp:member:: PartGeometry region
 
    .. cpp:member:: PartGeometry text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBlockCapabilities : public TextCapability<Declaring>, public TextBlockFontCapability<Declaring>, public TextBlockTextAlignCapability<Declaring>, public TextBlockLineHeightCapability<Declaring>
+
+   ``#include <gui_forms/controls/text_block/text_block_capabilities/text_block_capabilities.hpp>``
+
+   Every TextBlock capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The text the control shows (Text).
+
+   .. cpp:member:: std::optional<FontSpec> font
+
+      The block's own font; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).
+
+   .. cpp:member:: TextAlignment text_align
+
+      CSS text-align; start and end follow the effective layout direction (std::invalid_argument outside the enumeration).
+
+   .. cpp:member:: std::optional<double> line_height
+
+      CSS line-height as a length in logical pixels at text scale 1; empty is normal. A present value must be finite and positive (std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBlockFontCapability
+
+   ``#include <gui_forms/controls/text_block/text_block_capabilities/text_block_capabilities.hpp>``
+
+   The block's own font; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBlockFontCapability& capability, std::optional<FontSpec> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<FontSpec>, TextBlockFontCapability<Declaring>> font
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBlockLineHeightCapability
+
+   ``#include <gui_forms/controls/text_block/text_block_capabilities/text_block_capabilities.hpp>``
+
+   CSS line-height as a length in logical pixels at text scale 1; empty is normal. A present value must be finite and positive (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBlockLineHeightCapability& capability, std::optional<double> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<double>, TextBlockLineHeightCapability<Declaring>> line_height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBlockTextAlignCapability
+
+   ``#include <gui_forms/controls/text_block/text_block_capabilities/text_block_capabilities.hpp>``
+
+   CSS text-align; start and end follow the effective layout direction (std::invalid_argument outside the enumeration).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBlockTextAlignCapability& capability, TextAlignment incoming)
+
+   .. cpp:member:: PropertyCell<TextAlignment, TextBlockTextAlignCapability<Declaring>> text_align
+
+      Default: ``{TextAlignment::start}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: Toast::Parts final
+
+   ``#include <gui_forms/controls/toast/toast.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``face`` is the notice surface, ``icon`` the severity mark, ``label`` the message, ``actuator`` the action button's slot (absent without one) and ``close`` the close mark (absent unless closable; hot and pressed as the pointer is). The icon and the close mark take the glyph role.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry face
+
+   .. cpp:member:: PartGeometry icon
+
+   .. cpp:member:: PartGeometry label
+
+   .. cpp:member:: PartGeometry actuator
+
+   .. cpp:member:: PartGeometry close
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ToastContent final
+
+   ``#include <gui_forms/controls/toast/toast.hpp>``
+
+   What a Toast says, fixed when it is made: its message, the text of its action button (empty for none), its severity and whether it shows a close mark.
+
+   .. cpp:member:: std::string message
+
+   .. cpp:member:: std::string action_text
+
+   .. cpp:member:: NoticeSeverity severity
+
+      Default: ``{NoticeSeverity::information}``.
+
+   .. cpp:member:: bool closable
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -415,9 +1689,19 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: BadgeMode
+
+   ``#include <gui_forms/controls/badge/badge_values/badge_values.hpp>``
+
+   .. cpp:enumerator:: count
+
+   .. cpp:enumerator:: dot
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: HorizontalAlignment
 
-   ``#include <gui_forms/controls/label/label.hpp>``
+   ``#include <gui_forms/controls/label/label_values/label_values.hpp>``
 
    .. cpp:enumerator:: near
 
@@ -427,9 +1711,23 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: NoticeSeverity
+
+   ``#include <gui_forms/controls/info_banner/notice_values/notice_values.hpp>``
+
+   .. cpp:enumerator:: information
+
+   .. cpp:enumerator:: warning
+
+   .. cpp:enumerator:: success
+
+   .. cpp:enumerator:: error
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: PictureBoxSizeMode
 
-   ``#include <gui_forms/controls/panel/picture_box/picture_box.hpp>``
+   ``#include <gui_forms/controls/panel/picture_box/picture_box_values/picture_box_values.hpp>``
 
    .. cpp:enumerator:: normal
 
@@ -445,7 +1743,7 @@ Enumerations
 
 .. cpp:enum-class:: ProgressBarOverlayStyle
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar.hpp>``
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_values/progress_bar_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -457,7 +1755,7 @@ Enumerations
 
 .. cpp:enum-class:: ProgressBarVisualStyle
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar.hpp>``
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_values/progress_bar_values.hpp>``
 
    .. cpp:enumerator:: blocks
 
@@ -477,7 +1775,7 @@ Enumerations
 
 .. cpp:enum-class:: ReviewDisposition
 
-   ``#include <gui_forms/controls/panel/card/review_card/review_card.hpp>``
+   ``#include <gui_forms/controls/panel/card/review_card/review_card_values/review_card_values.hpp>``
 
    .. cpp:enumerator:: neutral
 
@@ -495,7 +1793,7 @@ Enumerations
 
 .. cpp:enum-class:: TextCaseTransform
 
-   ``#include <gui_forms/controls/label/label.hpp>``
+   ``#include <gui_forms/controls/label/label_values/label_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -507,7 +1805,7 @@ Enumerations
 
 .. cpp:enum-class:: TextStyleRole
 
-   ``#include <gui_forms/controls/label/label.hpp>``
+   ``#include <gui_forms/controls/label/label_values/label_values.hpp>``
 
    .. cpp:enumerator:: body
 
@@ -525,7 +1823,7 @@ Enumerations
 
 .. cpp:enum-class:: TextWrapping
 
-   ``#include <gui_forms/controls/label/label.hpp>``
+   ``#include <gui_forms/controls/label/label_values/label_values.hpp>``
 
    .. cpp:enumerator:: no_wrap
 
@@ -535,7 +1833,7 @@ Enumerations
 
 .. cpp:enum-class:: VerticalAlignment
 
-   ``#include <gui_forms/controls/label/label.hpp>``
+   ``#include <gui_forms/controls/label/label_values/label_values.hpp>``
 
    .. cpp:enumerator:: near
 
@@ -545,6 +1843,14 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/info_banner/notice_values/notice_values.hpp>``
+
+.. cpp:function:: constexpr Color notice_severity_colour(NoticeSeverity severity) noexcept
+
+   A severity's colour, which InfoBanner's keyline and icon, Toast's icon and InstrumentRack's module keyline draw as an authored foreground over the notice's role, under the severity's custom state (``:state(warning)``). Mid-tone, so that each reads on a light face and a dark one; high contrast replaces it with the role's own colour. Provisional until T4's floor gives the status colours roles.
 
 .. cpp:namespace:: gui_forms
 

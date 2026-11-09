@@ -474,9 +474,9 @@ void bubbles_and_steam() {
 std::uint64_t hosted_checksum(const char* id, std::optional<std::uint64_t> seed) {
     std::shared_ptr<ProgressBar> bar = make_control<ProgressBar>(StableId(std::string_view(id)));
     (*bar).set_requested_bounds({0.0, 0.0, 200.0, 20.0});
-    (*bar).set_value(70.0);
-    (*bar).set_effect_seed(seed);
-    (*bar).set_effect("progress_woven_stripes");
+    (*bar).value = 70.0;
+    (*bar).effect_seed = seed;
+    (*bar).effect = "progress_woven_stripes";
     Window window(bar, {200.0, 40.0});
     window.perform_layout();
     RecordingPainter painter;
@@ -488,18 +488,18 @@ std::uint64_t hosted_checksum(const char* id, std::optional<std::uint64_t> seed)
 void progress_bar_hosting() {
     std::shared_ptr<ProgressBar> bar = make_control<ProgressBar>(StableId("effects.hosted"));
     (*bar).set_requested_bounds({0.0, 0.0, 200.0, 20.0});
-    (*bar).set_value(50.0);
+    (*bar).value = 50.0;
     Window window(bar, {200.0, 40.0});
     window.perform_layout();
     require((*bar).effect_instance().entry() == nullptr && !window.next_wake().has_value(),
             "a continuous bar hosts no effect and asks for no frames");
-    (*bar).set_visual_style(ProgressBarVisualStyle::laser_etch);
+    (*bar).visual_style = ProgressBarVisualStyle::laser_etch;
     require((*bar).effect_instance().entry() == &built_in("progress_laser") && !window.next_wake().has_value(),
             "the laser style hosts the laser effect, and asks for no frame before it is drawn");
     RecordingPainter drawn;
     (*bar).on_paint(drawn, {0.0, 0.0, 200.0, 20.0});
     require(window.next_wake().has_value(), "the drawn laser animates");
-    (*bar).set_effect("progress_bubbles");
+    (*bar).effect = "progress_bubbles";
     require((*bar).effect_instance().entry() == &built_in("progress_bubbles") &&
                 (*bar).visual_outsets().top == ProgressBubbles::steam_outset,
             "a named effect replaces the style's, and its steam widens the outsets");
@@ -512,16 +512,16 @@ void progress_bar_hosting() {
     }
     require((*bar).effect_instance().counters().frames == 30U && (*bar).effect_instance().counters().ticks > 0U,
             "the bar advances and draws its effect");
-    (*bar).set_reduced_motion(true);
+    (*bar).motion_policy = MotionPolicy{true, false, true};
     const std::uint64_t ticks = (*bar).effect_instance().counters().ticks;
     (*bar).advance_animation(origin + std::chrono::milliseconds(1600));
     RecordingPainter reduced;
     (*bar).on_paint(reduced, {0.0, 0.0, 200.0, 20.0});
     require((*bar).effect_instance().counters().ticks == ticks, "reduced motion draws the still pose");
-    (*bar).set_effect("no_such_effect");
+    (*bar).effect = "no_such_effect";
     require((*bar).effect_instance().entry() == nullptr && (*bar).visual_outsets() == Insets{},
             "an unknown name draws no effect");
-    (*bar).set_effect("");
+    (*bar).effect = "";
     require((*bar).effect_instance().entry() == &built_in("progress_laser"), "an empty name restores the style's");
 
     const std::uint64_t first = hosted_checksum("effects.woven", std::nullopt);
@@ -539,8 +539,8 @@ void progress_bar_hosting() {
 void progress_bar_on_the_motion_clock() {
     std::shared_ptr<ProgressBar> bar = make_control<ProgressBar>(StableId("effects.clocked"));
     (*bar).set_requested_bounds({0.0, 0.0, 200.0, 20.0});
-    (*bar).set_value(40.0);
-    (*bar).set_visual_style(ProgressBarVisualStyle::laser_etch);
+    (*bar).value = 40.0;
+    (*bar).visual_style = ProgressBarVisualStyle::laser_etch;
     Window window(bar, {200.0, 40.0});
     window.perform_layout();
     MotionClock& clock = window.motion_clock();
@@ -584,7 +584,7 @@ void progress_bar_on_the_motion_clock() {
     RecordingPainter switched_on;
     (*bar).on_paint(switched_on, {0.0, 0.0, 200.0, 20.0});
     require(clock.control_ambient(*bar), "with the ambient switch on the next paint enlists them again");
-    (*bar).set_visual_style(ProgressBarVisualStyle::continuous);
+    (*bar).visual_style = ProgressBarVisualStyle::continuous;
     require(!clock.control_ambient(*bar) && !window.next_wake().has_value(), "a style without an effect withdraws");
 }
 
@@ -593,25 +593,25 @@ void progress_bar_on_the_motion_clock() {
 void effect_properties_and_input() {
     std::shared_ptr<ProgressBar> bar = make_control<ProgressBar>(StableId("effects.properties"));
     (*bar).set_requested_bounds({0.0, 0.0, 200.0, 20.0});
-    (*bar).set_value(60.0);
+    (*bar).value = 60.0;
     Window window(bar, {200.0, 40.0});
     window.perform_layout();
     (*bar).set_property_value("effect", BindingValue{std::string("progress_bubbles")});
-    require((*bar).effect() == "progress_bubbles" && (*bar).effect_instance().entry() == &built_in("progress_bubbles"),
+    require((*bar).effect.read() == "progress_bubbles" && (*bar).effect_instance().entry() == &built_in("progress_bubbles"),
             "the effect property selects an effect by name");
     require(std::holds_alternative<std::monostate>(*(*bar).property_value("effect_seed")),
             "the effect seed is null by default");
     (*bar).set_property_value("effect_seed", BindingValue{std::uint64_t{42U}});
-    require((*bar).effect_seed() == std::optional<std::uint64_t>{42U}, "the effect_seed property sets the seed");
+    require((*bar).effect_seed.read() == std::optional<std::uint64_t>{42U}, "the effect_seed property sets the seed");
     (*bar).set_property_value("effect_seed", BindingValue{});
-    require(!(*bar).effect_seed().has_value(), "null restores the derived seed");
+    require(!(*bar).effect_seed.read().has_value(), "null restores the derived seed");
     require(!(*bar).hit_test_local({10.0, 10.0}), "without a grant the pointer passes through the bar");
     (*bar).set_property_value("effect_input", BindingValue{PropertyEnumValue{"effect_input_kind", "pointer", 1}});
-    require((*bar).effect_input() == EffectInputKind::pointer && (*bar).hit_test_local({10.0, 10.0}),
+    require((*bar).effect_input.read() == EffectInputKind::pointer && (*bar).hit_test_local({10.0, 10.0}),
             "with a pointer grant the bar takes the pointer for its effect");
 
     RecordingPainter before;
-    (*bar).set_animation_enabled(false);
+    (*bar).animation_enabled = false;
     (*bar).on_paint(before, {0.0, 0.0, 200.0, 20.0});
     PointerEvent press{};
     press.action = PointerAction::down;
@@ -621,7 +621,7 @@ void effect_properties_and_input() {
     RecordingPainter after;
     (*bar).on_paint(after, {0.0, 0.0, 200.0, 20.0});
     require(after.circles == before.circles + 1, "a granted press releases one bubble under the pointer");
-    (*bar).set_effect_input(EffectInputKind::none);
+    (*bar).effect_input = EffectInputKind::none;
     (*bar).on_pointer(press);
     RecordingPainter ignored;
     (*bar).on_paint(ignored, {0.0, 0.0, 200.0, 20.0});
@@ -671,7 +671,7 @@ std::unique_ptr<ThemeDefinition> effect_theme(std::string_view fill, std::string
 void themes_select_effects() {
     std::shared_ptr<ProgressBar> bar = make_control<ProgressBar>(StableId("effects.themed"));
     (*bar).set_requested_bounds({0.0, 0.0, 200.0, 20.0});
-    (*bar).set_value(50.0);
+    (*bar).value = 50.0;
     Window window(bar, {200.0, 40.0});
     window.set_theme(Theme::create(*effect_theme("progress_woven_stripes", "progress_pulse")));
     window.perform_layout();
@@ -689,22 +689,22 @@ void themes_select_effects() {
                     (*bar).effect_selection().outcome == EffectSelectionOutcome::unverified,
                 "a theme may not select an unverified effect: the fill draws its primitive alone");
     }
-    (*bar).set_visual_style(ProgressBarVisualStyle::laser_etch);
+    (*bar).visual_style = ProgressBarVisualStyle::laser_etch;
     require((*bar).effect_instance().entry() == &built_in("progress_laser") &&
                 (*bar).effect_selection().source == EffectSelectionSource::style,
             "the visual style's own effect comes before the theme's");
-    (*bar).set_effect("progress_bubbles");
+    (*bar).effect = "progress_bubbles";
     require((*bar).effect_instance().entry() == &built_in("progress_bubbles") &&
                 (*bar).effect_selection().source == EffectSelectionSource::application,
             "the application's effect comes first");
-    (*bar).set_effect("");
-    (*bar).set_visual_style(ProgressBarVisualStyle::marquee);
+    (*bar).effect = "";
+    (*bar).visual_style = ProgressBarVisualStyle::marquee;
     RecordingPainter marquee;
     (*bar).on_paint(marquee, {0.0, 0.0, 200.0, 20.0});
     require((*bar).effect_selection().source == EffectSelectionSource::theme &&
                 (*bar).effect_selection().name == "progress_pulse",
             "while marquee the theme's effect for the activity band applies");
-    (*bar).set_visual_style(ProgressBarVisualStyle::continuous);
+    (*bar).visual_style = ProgressBarVisualStyle::continuous;
     (*bar).add_class("calm");
     RecordingPainter calm;
     (*bar).on_paint(calm, {0.0, 0.0, 200.0, 20.0});
@@ -728,7 +728,7 @@ void themes_select_effects() {
     RecordingPainter unknown_again;
     (*unknown).on_paint(unknown_again, {0.0, 0.0, 200.0, 20.0});
     require(effect_load_diagnostics().refused == refused + 1U, "a refusal is counted once, not once per paint");
-    (*unknown).set_visual_style(ProgressBarVisualStyle::marquee);
+    (*unknown).visual_style = ProgressBarVisualStyle::marquee;
     RecordingPainter other_parent;
     (*unknown).on_paint(other_parent, {0.0, 0.0, 200.0, 20.0});
     require((*unknown).effect_selection().outcome == EffectSelectionOutcome::parent_mismatch &&
@@ -826,8 +826,8 @@ std::unique_ptr<ThemeDefinition> colour_role_theme() {
 void effects_take_colour_roles() {
     std::shared_ptr<ProgressBar> bar = make_control<ProgressBar>(StableId("effects.coloured"));
     (*bar).set_requested_bounds({0.0, 0.0, 200.0, 20.0});
-    (*bar).set_value(50.0);
-    (*bar).set_visual_style(ProgressBarVisualStyle::marching_stripes);
+    (*bar).value = 50.0;
+    (*bar).visual_style = ProgressBarVisualStyle::marching_stripes;
     Window window(bar, {200.0, 40.0});
     RecordingPainter plain;
     window.perform_layout();
@@ -871,7 +871,7 @@ void effects_take_colour_roles() {
 
     ProgressBarAnimationAppearance own{};
     own.stripe_color = Color::rgba(200, 10, 10, 120);
-    (*bar).set_animation_appearance(own);
+    (*bar).animation_appearance = own;
     RecordingPainter application;
     (*bar).on_paint(application, {0.0, 0.0, 200.0, 20.0});
     require((*bar).effect_colours().primary == own.stripe_color,

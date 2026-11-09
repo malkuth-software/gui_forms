@@ -102,7 +102,7 @@ void test_list_view_details_and_list() {
     (*root).set_requested_bounds({0.0, 0.0, 520.0, 260.0});
     std::shared_ptr<ListView> list = make_control<ListView>(StableId("reveal.list"));
     (*list).set_requested_bounds({20.0, 20.0, 300.0, 200.0});
-    (*list).set_view(ListViewView::details);
+    (*list).view = ListViewView::details;
     (*list).set_columns({{.stable_id = "name", .text = "Name", .width = 100.0},
                          {.stable_id = "size", .text = "Size", .width = 80.0}});
     (*list).set_items({{.stable_id = "long", .text = std::string(long_name), .sub_items = {"12 KB"}},
@@ -140,14 +140,14 @@ void test_list_view_details_and_list() {
     require(!revealed(window, "reveal.list").shown, "leaving the view conceals it");
 
     // The list view: the item's own text cell.
-    (*list).set_view(ListViewView::list);
+    (*list).view = ListViewView::list;
     const Rect list_item = item_bounds(window, long_name);
     hover(window, {list_item.x + 30.0, list_item.y + list_item.height * 0.5});
     const Revealed in_list = revealed(window, "reveal.list");
     require(in_list.shown && in_list.text == long_name, "the list view reveals a cut-off item too");
 
     // Other views and owner-drawn content reveal nothing.
-    (*list).set_view(ListViewView::large_icon);
+    (*list).view = ListViewView::large_icon;
     const Rect icon_item = item_bounds(window, long_name);
     hover(window, {icon_item.x + icon_item.width * 0.5, icon_item.y + icon_item.height - 6.0});
     require(!revealed(window, "reveal.list").shown, "the icon views reveal nothing");

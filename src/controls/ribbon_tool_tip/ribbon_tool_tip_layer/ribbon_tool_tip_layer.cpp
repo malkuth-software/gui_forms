@@ -5,7 +5,7 @@ namespace gui_forms {
 RibbonToolTipLayer::RibbonToolTipLayer(StableId stable_id)
     : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::overlay);
-    set_focusable(false);
+    focusable = false;
 }
 
 bool RibbonToolTipLayer::hit_test_local(Point) const {

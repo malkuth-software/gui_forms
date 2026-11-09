@@ -20,6 +20,19 @@ id
 
 Properties
 ----------
+presentation : default ``ChoiceGroupPresentation::buttons``
+    How the choices are drawn. ``buttons`` is a row of separate buttons,
+    the chosen one drawn selected. ``segmented`` is a segmented control:
+    one track (part ``track``), the items as segments inside a 2-unit
+    inset, and a selection indicator (part ``selection``) behind the
+    chosen segment; the group then carries the custom state ``segmented``.
+    Selection, keyboard and semantics are the same in both. The indicator
+    is a keyed part, so the theme's engine may move it between segments,
+    and does not when motion is reduced.
+parts
+    The published part geometry: Panel's parts, then ``track`` and
+    ``selection``, which are absent in the buttons presentation (and the
+    selection while nothing is chosen).
 items
     The choices, in display order. Empty by default. Item IDs must be
     unique and every text valid UTF-8, or `set_items` throws
@@ -42,8 +55,7 @@ Events
 changed
     Raised after `selected_index` changes, by input, by the setter, by the
     bound `Value`, or by `set_items` clearing an index that no longer
-    exists. It carries the new index. It is the `changed` event of
-    `selection`.
+    exists. It carries the new index.
 activated
     Raised when the user chooses an item: by a click, Space or Enter on it,
     its mnemonic, an arrow key, or `perform_click` on its button. It
@@ -64,8 +76,6 @@ bind
     and unbind before replacing them with fewer.
 unbind
     Ends the binding. The group keeps its current selection.
-selection
-    The group's own `Value<int>`, which holds `selected_index`.
 item
     The `Button` of the item at an index, for visual recipes, typography
     and content layout. An index outside the items throws
@@ -151,6 +161,6 @@ choice by the user raises `changed` when the selection moves, then
 
    void example() {
        ModeSwitch view;
-       (*view.modes).set_selected_index(1);     // shown is 1, choices is 0
+       (*view.modes).selected_index = 1;     // shown is 1, choices is 0
        (*view.modes).item(0).perform_click();   // shown is 0, choices is 1
    }

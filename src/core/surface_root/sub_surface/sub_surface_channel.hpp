@@ -54,6 +54,10 @@ struct SubSurfaceChannel final {
     std::weak_ptr<SubSurfaceSemanticsListener> semantics_listener{};
     std::shared_ptr<const SemanticSnapshot> semantics{};
     bool semantics_notice_pending{};
+    // Where the notice of the thread ending on its own goes
+    // (SubSurfaceThread::set_end_listener), held weakly.
+    WindowDispatcher end_dispatcher{};
+    std::weak_ptr<SubSurfaceEndListener> end_listener{};
     // The newest text input caret, in the sub-surface's coordinates.
     std::optional<Rect> text_input_caret{};
     bool stop_requested{};

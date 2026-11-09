@@ -14,9 +14,9 @@ Parameters
 ----------
 stable_id
     Identity of the scroll bar, unique within its window.
-orientation
+initial_orientation
     Whether the bar runs horizontally or vertically. It can be changed later
-    with the inherited `set_orientation`.
+    through the inherited `orientation` property.
 
 Properties
 ----------
@@ -108,8 +108,8 @@ A vertical bar for a 1000-pixel document shown 200 pixels at a time:
        gf::StableId("document.vertical"), gf::Orientation::vertical);
    (*bar).set_requested_bounds({0.0, 0.0, 18.0, 240.0});
    (*bar).set_range(0.0, 800.0);    // the last 200 pixels are visible at 800
-   (*bar).set_large_change(200.0);  // one page per track click, and the thumb size
-   (*bar).set_small_change(20.0);   // one line per arrow click
+   (*bar).large_change = 200.0;  // one page per track click, and the thumb size
+   (*bar).small_change = 20.0;   // one line per arrow click
 
 Scroll your own drawing in response to the user, through an owned handler
 on `scroll`, which reports input only:
@@ -132,5 +132,5 @@ on `scroll`, which reports input only:
        window.request_focus(canvas.bar);
        window.dispatch_key({gf::KeyAction::down, gf::PhysicalKey::page_down});
        // scroll reported a large increment: canvas.offset is 10
-       (*canvas.bar).set_value(0.0);   // value_changed only; canvas.offset stays 10
+       (*canvas.bar).value = 0.0;   // value_changed only; canvas.offset stays 10
    }

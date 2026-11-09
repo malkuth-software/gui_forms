@@ -37,4 +37,46 @@ namespace gui_forms::host::detail {
 // material); the window then grants opaque, which withdraws everything.
 [[nodiscard]] HostServiceStatus apply_windows_backdrop(HWND window, WindowBackdrop backdrop) noexcept;
 
+// Asks DWM for `window`'s corners (DWMWA_WINDOW_CORNER_PREFERENCE, build
+// 22000 and later; owner, 2026-11-08: the window outer band) and reports
+// them: Windows 11 rounds a top-level window by default at
+// windows_corner_radius logical units, and squares it on request. Before
+// build 22000 the attribute does not exist: the window is square and a
+// request to round reports square with `complied` false. While the window
+// is maximized, snapped or full screen (read_windows_window_state) DWM
+// does not round it, whatever the preference: the report is square, with
+// `complied` false only for a request to round. The host asks again on
+// each state change (HostWindowStateEvent).
+[[nodiscard]] HostWindowCornersResult apply_windows_corners(HWND window, WindowCornerPreference preference) noexcept;
+
+// The radius DWM rounds a top-level window's corners by (DWMWCP_ROUND), in
+// logical units.
+inline constexpr double windows_corner_radius = 8.0;
+
+// The native window's state as it bears on the window outer band: full
+// screen (a captionless window covering its monitor; Win32 has no
+// full-screen state of its own), maximized, and snapped. DWM leaves the
+// corners of a maximized, snapped or full-screen window square.
+struct WindowsWindowState final {
+    bool full_screen{};
+    bool maximized{};
+    bool snapped{};
+
+    [[nodiscard]] bool squares_corners() const noexcept { return full_screen || maximized || snapped; }
+
+    friend bool operator==(const WindowsWindowState& left, const WindowsWindowState& right) noexcept {
+        return left.full_screen == right.full_screen && left.maximized == right.maximized &&
+               left.snapped == right.snapped;
+    }
+};
+
+// Reads `window`'s state. A minimized window, or a null one, reads as the
+// default (none of the three). Snapped is inferred: a window that is
+// neither maximized nor full screen and whose size differs from its
+// restore rectangle's (GetWindowPlacement) was placed by a snap, which
+// keeps the restore rectangle. A size changed by the program through
+// SetWindowPos updates the restore rectangle too, so it does not read as a
+// snap.
+[[nodiscard]] WindowsWindowState read_windows_window_state(HWND window) noexcept;
+
 } // namespace gui_forms::host::detail

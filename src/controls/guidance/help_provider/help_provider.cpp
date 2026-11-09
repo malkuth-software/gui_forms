@@ -4,6 +4,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -230,17 +231,14 @@ void HelpProvider::clear() {
     entries_.clear();
 }
 
-void HelpProvider::set_help_namespace(std::string value) {
-    require_access("HelpProvider namespace mutation");
-    if (!validate_utf8(value).valid()) {
-        throw std::invalid_argument("GUI.Forms help namespace must be valid UTF-8");
-    }
-    help_namespace_ = std::move(value);
+void HelpProvider::write_view(const decltype(tag)&, std::any incoming) {
+    require_access("HelpProvider tag mutation");
+    tag_ = std::move(incoming);
 }
 
-void HelpProvider::set_tag(std::any tag_value) {
-    require_access("HelpProvider tag mutation");
-    tag_ = std::move(tag_value);
+std::any HelpProvider::read_view(const decltype(tag)&) const {
+    std::any held = tag_;
+    return held;
 }
 
 bool HelpProvider::request_help(const std::shared_ptr<Control>& target,
@@ -256,7 +254,7 @@ bool HelpProvider::request_help(const std::shared_ptr<Control>& target,
                     bounds.y + bounds.height * 0.5};
     }
     HelpRequestEvent request{
-        std::string((*target).stable_id().value()), position, help_namespace_,
+        std::string((*target).stable_id().value()), position, help_namespace.read(),
         (*entry).help_string, (*entry).keyword, (*entry).navigator,
         keyboard_initiated, false};
     ++request_count_;
@@ -272,7 +270,7 @@ bool HelpProvider::request_help(const std::shared_ptr<Control>& target,
 bool HelpProvider::offer_window_help(HelpRequestEvent& request) {
     if (!is_alive()) return false;
     HelpRequestEvent offered = request;
-    offered.help_namespace = help_namespace_;
+    offered.help_namespace = help_namespace.read();
     Window* owner = bound_window();
     const std::shared_ptr<Control> root = owner != nullptr ? (*owner).root() : nullptr;
     const Entry* entry = root ? find_entry(*root) : nullptr;
@@ -367,5 +365,18 @@ void HelpProvider::append_interactions(std::vector<InteractionDeclaration>& inte
     Component::append_interactions(interactions);
     interactions.insert(interactions.end(), help_provider_interactions.begin(), help_provider_interactions.end());
 }
+
+// property_codemod begin HelpProvider (tools/property_families/help_provider.json; generated, do not edit)
+
+void HelpProvider::prepare_write(const decltype(help_namespace)&, std::string& incoming) {
+    require_access("HelpProvider namespace mutation");
+    if (!validate_utf8(incoming).valid()) {
+        throw std::invalid_argument("GUI.Forms help namespace must be valid UTF-8");
+    }
+}
+
+void HelpProvider::written(const decltype(help_namespace)&) {}
+
+// property_codemod end HelpProvider
 
 } // namespace gui_forms

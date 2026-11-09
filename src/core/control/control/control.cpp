@@ -2,6 +2,7 @@
 
 #include "gui_forms/binding.hpp"
 #include "gui_forms/binding/value/property_collection_value/property_collection_value.hpp"
+#include "gui_forms/binding/property_link/property_link.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
@@ -22,6 +23,16 @@
 namespace gui_forms {
 
 namespace {
+
+// Every content region of `control`'s subtree folded (redraw_all), as the
+// union of their folded kinds.
+Dirty fold_subtree_regions(Control& control) noexcept {
+    Dirty folded = control.fold_content_regions();
+    for (const Control::Ptr& child : control.children()) {
+        if (child) folded |= fold_subtree_regions(*child);
+    }
+    return folded;
+}
 
 [[nodiscard]] Rect owner_decoration_box(
     const OwnerDecorationRecipe& decoration, Rect owner) noexcept {
@@ -295,6 +306,13 @@ std::shared_ptr<const PropertyEnumDescriptor> cursor_kind_property_enum() {
     return value;
 }
 
+// `descriptor`, marked assignable (PropertyDescriptor::assignable_member)
+// when `assignable`.
+PropertyDescriptor assignable_descriptor(PropertyDescriptor descriptor, bool assignable) {
+    descriptor.assignable_member = assignable;
+    return descriptor;
+}
+
 } // namespace
 
 PropertyType PropertyValueTraits<DockStyle>::type() {
@@ -409,8 +427,9 @@ void Control::set_cursor_property_value(const BindingValue& value) {
 
 BindingValue Control::classes_property_value() const {
     std::vector<BindingValue> names{};
-    names.reserve(classes_.size());
-    for (const std::string& name : classes_) names.emplace_back(name);
+    const std::vector<std::string>& current = classes.read();
+    names.reserve(current.size());
+    for (const std::string& name : current) names.emplace_back(name);
     BindingValue value{make_property_collection("String", BindingValueKind::text, std::move(names))};
     return value;
 }
@@ -424,7 +443,7 @@ void Control::set_classes_property_value(const BindingValue& value) {
     std::vector<std::string> names{};
     names.reserve(items.size());
     for (const BindingValue& item : items) names.push_back(std::get<std::string>(item));
-    set_classes(std::move(names));
+    classes = std::move(names);
 }
 
 BindingValue Control::back_color_property_value() const {
@@ -580,48 +599,6 @@ Control::Control(StableId stable_id)
       stable_id_(std::move(stable_id)) {
     // The name cell is a base, constructed before stable_id_.
     name = std::string(stable_id_.value());
-    define_bindable_property({
-        {"name", BindingValueKind::text, "Design",
-         "Stable authoring name used by inspection and generated surfaces.",
-         BindingValue{name.read()}, Dirty::semantics | Dirty::accessibility},
-        RegisteredPropertyGetter<RegisteredProperty::name>{this},
-        RegisteredPropertySetter<RegisteredProperty::name>{this},
-        RegisteredPropertyConnector<RegisteredProperty::name>{this}, {}, {}});
-
-    PropertyDescriptor bounds;
-    bounds.name = "bounds";
-    bounds.kind = BindingValueKind::rectangle;
-    bounds.category = "Layout";
-    bounds.description = "Authored logical bounds before parent layout.";
-    bounds.default_value = BindingValue{Rect{}};
-    bounds.invalidation_effects = invalidation::bounds;
-    define_structural_property(
-        std::move(bounds),
-        RegisteredPropertyGetter<RegisteredProperty::bounds>{this},
-        RegisteredPropertySetter<RegisteredProperty::bounds>{this});
-
-    PropertyDescriptor auto_scroll_offset;
-    auto_scroll_offset.name = "auto_scroll_offset";
-    auto_scroll_offset.kind = BindingValueKind::point;
-    auto_scroll_offset.category = "Layout";
-    auto_scroll_offset.description =
-        "Logical offset used when revealing this control in a scroll owner.";
-    auto_scroll_offset.default_value = BindingValue{Point{}};
-    auto_scroll_offset.invalidation_effects =
-        Dirty::semantics | Dirty::accessibility;
-    define_structural_property(
-        std::move(auto_scroll_offset),
-        RegisteredPropertyGetter<RegisteredProperty::auto_scroll_offset>{this},
-        RegisteredPropertySetter<RegisteredProperty::auto_scroll_offset>{
-            this});
-}
-
-void Control::define_structural_property(
-    PropertyDescriptor descriptor, PropertyRegistration::Getter get,
-    PropertyRegistration::Setter set) {
-    descriptor.bindable = false;
-    define_bindable_property({std::move(descriptor), std::move(get),
-                              std::move(set), {}, {}, {}});
 }
 
 // The descriptors of Control's table, as the instance registrations wrote
@@ -907,10 +884,37 @@ PropertyDescriptor Control::registered_descriptor(RegisteredProperty property) {
         accessible_description.bindable = false;
         return accessible_description;
     }
-    case RegisteredProperty::name:
-    case RegisteredProperty::bounds:
-    case RegisteredProperty::auto_scroll_offset:
-        throw std::logic_error("GUI.Forms property is an instance registration, not a table entry");
+    case RegisteredProperty::name: {
+        // The default is the stable ID, which differs per control: the
+        // entry's should_serialize and origin compare with it
+        // (name_serialized, name_origin), so the descriptor states none.
+        PropertyDescriptor descriptor{"name", BindingValueKind::text, "Design",
+                                      "Stable authoring name used by inspection and generated surfaces.",
+                                      std::nullopt, Dirty::semantics | Dirty::accessibility};
+        return descriptor;
+    }
+    case RegisteredProperty::bounds: {
+        PropertyDescriptor bounds;
+        bounds.name = "bounds";
+        bounds.kind = BindingValueKind::rectangle;
+        bounds.category = "Layout";
+        bounds.description = "Authored logical bounds before parent layout.";
+        bounds.default_value = BindingValue{Rect{}};
+        bounds.invalidation_effects = invalidation::bounds;
+        bounds.bindable = false;
+        return bounds;
+    }
+    case RegisteredProperty::auto_scroll_offset: {
+        PropertyDescriptor auto_scroll_offset;
+        auto_scroll_offset.name = "auto_scroll_offset";
+        auto_scroll_offset.kind = BindingValueKind::point;
+        auto_scroll_offset.category = "Layout";
+        auto_scroll_offset.description = "Logical offset used when revealing this control in a scroll owner.";
+        auto_scroll_offset.default_value = BindingValue{Point{}};
+        auto_scroll_offset.invalidation_effects = Dirty::semantics | Dirty::accessibility;
+        auto_scroll_offset.bindable = false;
+        return auto_scroll_offset;
+    }
     }
     throw std::logic_error("GUI.Forms registered property is unknown");
 }
@@ -919,14 +923,25 @@ template <Control::RegisteredProperty Property>
 const PropertyDescriptor& Control::describe_registered() {
     constexpr bool resettable = Property == RegisteredProperty::back_color ||
                                 Property == RegisteredProperty::fore_color;
-    constexpr bool raises_change = Property == RegisteredProperty::visible ||
+    constexpr bool raises_change = Property == RegisteredProperty::name ||
+                                   Property == RegisteredProperty::visible ||
                                    Property == RegisteredProperty::enabled ||
                                    Property == RegisteredProperty::auto_size ||
                                    Property == RegisteredProperty::causes_validation ||
                                    Property == RegisteredProperty::tool_tip_text;
-    static const PropertyDescriptor descriptor =
-        property_table_descriptor(registered_descriptor(Property), PropertyOperations{true, true, resettable,
-                                                                                      raises_change});
+    // Every table property but these four is a capability cell of its name
+    // whose setter (RegisteredPropertySetter) is the cell's assignment; these
+    // six are not: bounds and auto_scroll_offset are structural slots, and four
+    // convert through a named setter (presentation values and the cursor).
+    constexpr bool assignable = Property != RegisteredProperty::bounds &&
+                                Property != RegisteredProperty::auto_scroll_offset &&
+                                Property != RegisteredProperty::cursor &&
+                                Property != RegisteredProperty::classes &&
+                                Property != RegisteredProperty::back_color &&
+                                Property != RegisteredProperty::fore_color;
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        assignable_descriptor(registered_descriptor(Property), assignable),
+        PropertyOperations{true, true, resettable, raises_change});
     return descriptor;
 }
 
@@ -962,8 +977,34 @@ SubscriptionToken Control::connect_registered(Component& owner, Component& subsc
     return token;
 }
 
+namespace {
+
+// The name's default is the control's stable ID (the cell starts as it):
+// it serializes, and is local, only when it differs.
+bool name_serialized(const Component& owner) {
+    const Control& control = static_cast<const Control&>(owner);
+    const bool differs = control.name.read() != control.stable_id().value();
+    return differs;
+}
+
+PropertyValueOrigin name_origin(const Component& owner) {
+    const PropertyValueOrigin origin =
+        name_serialized(owner) ? PropertyValueOrigin::local : PropertyValueOrigin::defaulted;
+    return origin;
+}
+
+} // namespace
+
 const std::array<PropertyEntry, Control::control_property_count>& Control::control_property_entries() noexcept {
     static constexpr std::array<PropertyEntry, control_property_count> entries{{
+        {"name", &describe_registered<RegisteredProperty::name>, &read_registered<RegisteredProperty::name>,
+         &write_registered<RegisteredProperty::name>, nullptr, &name_serialized, &name_origin,
+         &connect_registered<RegisteredProperty::name>},
+        {"bounds", &describe_registered<RegisteredProperty::bounds>, &read_registered<RegisteredProperty::bounds>,
+         &write_registered<RegisteredProperty::bounds>, nullptr, nullptr, nullptr, nullptr},
+        {"auto_scroll_offset", &describe_registered<RegisteredProperty::auto_scroll_offset>,
+         &read_registered<RegisteredProperty::auto_scroll_offset>,
+         &write_registered<RegisteredProperty::auto_scroll_offset>, nullptr, nullptr, nullptr, nullptr},
         {"visible", &describe_registered<RegisteredProperty::visible>, &read_registered<RegisteredProperty::visible>,
          &write_registered<RegisteredProperty::visible>, nullptr, nullptr, nullptr, &connect_registered<RegisteredProperty::visible>},
         {"enabled", &describe_registered<RegisteredProperty::enabled>, &read_registered<RegisteredProperty::enabled>,
@@ -1421,9 +1462,14 @@ ControlVisualContext Control::visual_context(
     return result;
 }
 
-void Control::set_tag(std::any tag) {
+void Control::write_view(const decltype(tag)&, std::any incoming) {
     require_mutable();
-    tag_ = std::move(tag);
+    tag_ = std::move(incoming);
+}
+
+std::any Control::read_view(const decltype(tag)&) const {
+    std::any held = tag_;
+    return held;
 }
 
 namespace {
@@ -1852,6 +1898,12 @@ ControlBindingsCollection& Control::data_bindings() {
     return *data_bindings_;
 }
 
+void Control::adopt_property_link(std::unique_ptr<PropertyLink> link) {
+    require_mutable();
+    if (!link) throw std::invalid_argument("GUI.Forms cannot keep a null property link");
+    property_links_.push_back(std::move(link));
+}
+
 const ControlBindingsCollection& Control::data_bindings() const {
     require_mutable();
     if (!data_bindings_) {
@@ -1874,12 +1926,18 @@ void Control::set_style(ControlStyles style, bool enabled) {
     styles_ = static_cast<ControlStyles>(updated);
 }
 
-void Control::set_double_buffered(bool enabled) {
+void Control::write_view(const decltype(double_buffered)&, bool incoming) {
     require_mutable();
     // Keep the two historical buffering requests synchronized. They are
     // compatibility facts; coherent retained release remains unconditional.
     set_style(ControlStyles::double_buffer | ControlStyles::optimized_double_buffer,
-              enabled);
+              incoming);
+}
+
+bool Control::read_view(const decltype(double_buffered)&) const {
+    const bool buffered = has_style(ControlStyles::double_buffer) ||
+                          has_style(ControlStyles::optimized_double_buffer);
+    return buffered;
 }
 
 namespace {
@@ -2271,7 +2329,7 @@ void Control::prepare_write(const decltype(enabled)&, bool&) {
 
 void Control::written(const decltype(enabled)&) {
     if (surface_root_ && !enabled.read()) {
-        (*surface_root_).on_eligibility_changed(shared_from_this());
+        (*surface_root_).on_enabled_withdrawn(shared_from_this());
     }
     if (!is_alive()) return;
     invalidate_declared(invalidation::enabled);
@@ -2814,13 +2872,12 @@ void Control::send_to_back() {
     }
 }
 
-void Control::set_focusable(bool focusable) {
+void Control::prepare_write(const decltype(focusable)&, bool&) {
     require_mutable();
-    if (focusable_ == focusable) {
-        return;
-    }
-    focusable_ = focusable;
-    if (surface_root_ && !focusable) {
+}
+
+void Control::written(const decltype(focusable)&) {
+    if (surface_root_ && !focusable.read()) {
         (*surface_root_).on_eligibility_changed(shared_from_this());
     }
     if (!is_alive()) {
@@ -2839,32 +2896,54 @@ bool Control::perform_validation(Control* destination, bool bulk) {
     return true;
 }
 
-void Control::set_classes(std::vector<std::string> classes) {
+void Control::prepare_write(const decltype(classes)&, std::vector<std::string>& value) {
     require_mutable();
     std::vector<std::string> unique;
-    unique.reserve(classes.size());
-    for (std::string& name : classes) {
+    unique.reserve(value.size());
+    for (std::string& name : value) {
         if (!valid_style_class_name(name)) {
             throw std::invalid_argument("GUI.Forms style class names are lowercase letters, digits, '-' and '_'");
         }
         const bool repeated = std::find(unique.begin(), unique.end(), name) != unique.end();
         if (!repeated) unique.push_back(std::move(name));
     }
-    if (unique == classes_) return;
-    classes_ = std::move(unique);
-    invalidate(Dirty::style | Dirty::paint | refresh_text_font());
+    value = std::move(unique);
 }
 
-void Control::set_ceremonial(bool ceremonial) {
+void Control::written(const decltype(classes)&) {
+    invalidate(Dirty::style | Dirty::paint | refresh_text_font());
+    // A rule with ancestor compounds reads these classes from every
+    // descendant (selector step 4): they resolve again.
+    if (!children_.empty() && reads_ancestors()) restyle_descendants();
+}
+
+bool Control::reads_ancestors() const noexcept {
+    if (effective_theme().engine().rules().uses_ancestors()) return true;
+    const CompiledThemeRules* const user = surface_root_ == nullptr ? nullptr : (*surface_root_).user_theme_rules();
+    return user != nullptr && (*user).uses_ancestors();
+}
+
+void Control::restyle_descendants() {
+    // The tree is finite and acyclic, so the walk ends; each child's own
+    // font is resolved again, as the classes capability does for the control itself.
+    for (const Ptr& child : children_) {
+        (*child).invalidate(Dirty::style | Dirty::paint | (*child).refresh_text_font());
+        (*child).restyle_descendants();
+    }
+}
+
+void Control::prepare_write(const decltype(ceremonial)&, bool&) {
     require_mutable();
-    if (ceremonial_ == ceremonial) return;
-    ceremonial_ = ceremonial;
+}
+
+// The ambient effects' area cap is decided per part over the whole subtree.
+void Control::written(const decltype(ceremonial)&) {
     invalidate_subtree(Dirty::paint);
 }
 
 bool Control::on_ceremonial_surface() const noexcept {
     for (const Control* current = this; current != nullptr;) {
-        if ((*current).ceremonial_) return true;
+        if ((*current).ceremonial.read()) return true;
         const std::shared_ptr<Control> parent = (*current).parent_.lock();
         current = parent.get();
     }
@@ -2877,22 +2956,24 @@ bool Control::add_class(std::string_view name) {
         throw std::invalid_argument("GUI.Forms style class names are lowercase letters, digits, '-' and '_'");
     }
     if (has_class(name)) return false;
-    classes_.emplace_back(name);
-    invalidate(Dirty::style | Dirty::paint | refresh_text_font());
+    std::vector<std::string> next = classes.read();
+    next.emplace_back(name);
+    classes = std::move(next);
     return true;
 }
 
 bool Control::remove_class(std::string_view name) {
     require_mutable();
-    const std::vector<std::string>::iterator found = std::find(classes_.begin(), classes_.end(), name);
-    if (found == classes_.end()) return false;
-    classes_.erase(found);
-    invalidate(Dirty::style | Dirty::paint | refresh_text_font());
+    std::vector<std::string> next = classes.read();
+    const std::vector<std::string>::iterator found = std::find(next.begin(), next.end(), name);
+    if (found == next.end()) return false;
+    next.erase(found);
+    classes = std::move(next);
     return true;
 }
 
 bool Control::has_class(std::string_view name) const noexcept {
-    for (const std::string& present : classes_) {
+    for (const std::string& present : classes.read()) {
         if (present == name) return true;
     }
     return false;
@@ -3101,6 +3182,24 @@ void Control::invalidate(Rect local_damage) {
         const std::shared_ptr<gui_forms::Control> visual_parent = (*current).parent_.lock();
         current = visual_parent.get();
     }
+}
+
+void Control::redraw_all(Dirty kinds) {
+    require_mutable();
+    const Dirty folded = fold_subtree_regions(*this);
+    invalidate_subtree(kinds | folded);
+}
+
+void Control::gather_content_regions() {}
+
+Dirty Control::fold_content_regions() noexcept {
+    return Dirty::none;
+}
+
+bool Control::request_content_gather() {
+    if (surface_root_ == nullptr || initialization_depth_ != 0) return false;
+    (*surface_root_).note_content_gather(*this);
+    return true;
 }
 
 void Control::invalidate_subtree(Dirty requested_dirty) {
@@ -3421,8 +3520,24 @@ void Control::arrange(Rect final_bounds) {
     }
 
     for (const Ptr& child : retained) {
-        if (!is_current_layout_child(child) || !(*child).visible.read() ||
-            (*child).dock.read() != DockStyle::none) {
+        if (!is_current_layout_child(child) || (*child).dock.read() != DockStyle::none) {
+            continue;
+        }
+        if (!(*child).visible.read()) {
+            // A hidden child keeps the distances its bounds were written
+            // with, as in Windows Forms: its reference is taken at the
+            // parent's first sized layout, not when the child is first
+            // shown. Taken then, against a client the window had since
+            // shrunk, a child anchored to both edges kept the shortfall as
+            // overhang beyond its parent (a Gallery page first shown in a
+            // short window could not scroll its last controls into view).
+            // A degenerate client, before the parent has a size, gives no
+            // reference; an automatically sized child takes its reference
+            // from its preferred size when shown.
+            const bool sized_client = client.width > 0.0 && client.height > 0.0;
+            if (sized_client && !(*child).auto_size.read() && !(*child).anchor_reference_) {
+                (*child).anchor_reference_ = AnchorReference{(*child).requested_bounds_, client};
+            }
             continue;
         }
         Rect authored = (*child).requested_bounds_;
@@ -3757,7 +3872,7 @@ std::vector<SemanticNode> Control::semantic_virtual_children() const {
 }
 
 bool Control::on_semantic_action(SemanticAction action, std::string_view) {
-    if (action == SemanticAction::focus && surface_root_ != nullptr && focusable_) {
+    if (action == SemanticAction::focus && surface_root_ != nullptr && focusable.read()) {
         return (*surface_root_).request_focus(shared_from_this());
     }
     return false;
@@ -3776,9 +3891,23 @@ void Control::on_drag_preview(DragEvent&) {}
 void Control::on_drag(DragEvent&) {}
 void Control::on_drag_bubble(DragEvent&) {}
 void Control::on_focus_changed(bool) {}
+bool Control::reveal_focused_descendant(const Control&) { return false; }
 std::optional<Rect> Control::text_input_caret() const { return std::nullopt; }
 void Control::on_focus_cue_changed(bool) {}
 void Control::on_activate() {}
+
+void Control::on_context_menu_requested(ContextMenuRequest& request) {
+    static_cast<void>(request);
+}
+
+bool Control::clicks_primary_button_only() const noexcept {
+    return false;
+}
+
+Control::MouseEvents& Control::mouse_events() {
+    if (!mouse_events_) mouse_events_ = std::make_unique<MouseEvents>();
+    return *mouse_events_;
+}
 
 namespace {
 
@@ -4088,7 +4217,7 @@ void Control::on_dispose() noexcept {
 namespace {
 
 // The events Control adds to those of Component, in declaration order.
-constexpr std::array<InteractionDeclaration, 14> control_interactions{{
+constexpr std::array<InteractionDeclaration, 27> control_interactions{{
     {.name = "name_changed", .payload = "std::string", .mutable_payload = false},
     {.name = "visible_changed", .payload = "bool", .mutable_payload = false},
     {.name = "enabled_changed", .payload = "bool", .mutable_payload = false},
@@ -4100,6 +4229,19 @@ constexpr std::array<InteractionDeclaration, 14> control_interactions{{
     {.name = "initialization_completed", .payload = "Dirty, bool", .mutable_payload = false},
     {.name = "pointer_observed", .payload = "PointerEvent", .mutable_payload = false},
     {.name = "pointer_preview_observed", .payload = "PointerEvent", .mutable_payload = false},
+    {.name = "mouse_down", .payload = "MouseEventArgs", .mutable_payload = false},
+    {.name = "mouse_up", .payload = "MouseEventArgs", .mutable_payload = false},
+    {.name = "mouse_move", .payload = "MouseEventArgs", .mutable_payload = false},
+    {.name = "mouse_wheel", .payload = "MouseEventArgs", .mutable_payload = false},
+    {.name = "mouse_enter", .payload = "", .mutable_payload = false},
+    {.name = "mouse_hover", .payload = "", .mutable_payload = false},
+    {.name = "mouse_leave", .payload = "", .mutable_payload = false},
+    {.name = "mouse_capture_changed", .payload = "", .mutable_payload = false},
+    {.name = "click", .payload = "", .mutable_payload = false},
+    {.name = "mouse_click", .payload = "MouseEventArgs", .mutable_payload = false},
+    {.name = "double_click", .payload = "", .mutable_payload = false},
+    {.name = "mouse_double_click", .payload = "MouseEventArgs", .mutable_payload = false},
+    {.name = "context_menu_requested", .payload = "ContextMenuRequest", .mutable_payload = true},
     {.name = "focus_observed", .payload = "bool", .mutable_payload = false},
     {.name = "arranged_bounds_changed", .payload = "Rect", .mutable_payload = false},
     {.name = "help_requested", .payload = "HelpRequestEvent", .mutable_payload = true},

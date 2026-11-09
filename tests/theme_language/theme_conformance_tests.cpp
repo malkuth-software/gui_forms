@@ -25,6 +25,7 @@
 #include "../../src/core/theme_language/source_text/theme_source_text.hpp"
 #include "../../src/core/theme_language/syntax_tree/theme_syntax_tree.hpp"
 #include "../../src/core/theme_language/tokenizer/theme_tokenizer.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/gui_forms.hpp"
 
 #include <algorithm>
@@ -161,6 +162,25 @@ std::string selector_text(const RuleSelector& selector) {
     if (!selector.part.empty()) text += "part=" + selector.part + " ";
     if (selector.role) text += "role=" + std::string(part_role_name(*selector.role)) + " ";
     if (!selector.states.empty()) text += "states=" + states_text(selector.states) + " ";
+    if (!selector.family.empty()) text += "family=" + selector.family + " ";
+    for (const RuleExclusion& exclusion : selector.excluded) {
+        text += "not(";
+        if (!exclusion.control_type.empty()) text += "type=" + exclusion.control_type + " ";
+        if (!exclusion.stable_id.empty()) text += "id=" + exclusion.stable_id + " ";
+        for (const std::string& name : exclusion.classes) text += "class=" + name + " ";
+        if (!exclusion.states.empty()) text += "states=" + states_text(exclusion.states) + " ";
+        if (!exclusion.family.empty()) text += "family=" + exclusion.family + " ";
+        if (text.back() == ' ') text.pop_back();
+        text += ") ";
+    }
+    for (const RuleAncestor& ancestor : selector.ancestors) {
+        text += ancestor.combinator == AncestorCombinator::child ? "parent(" : "ancestor(";
+        if (!ancestor.control_type.empty()) text += "type=" + ancestor.control_type + " ";
+        if (!ancestor.stable_id.empty()) text += "id=" + ancestor.stable_id + " ";
+        for (const std::string& name : ancestor.classes) text += "class=" + name + " ";
+        if (text.back() == ' ') text.pop_back();
+        text += ") ";
+    }
     if (text.empty()) return "*";
     text.pop_back();
     return text;
@@ -358,8 +378,7 @@ std::string rule_text(std::size_t index, const ThemeRule& rule) {
     if (rule.specificity) {
         const RuleSpecificity& given = *rule.specificity;
         text += "  specificity " + std::to_string(given.ids) + "," + std::to_string(given.classes) + "," +
-                std::to_string(given.types) + "," + std::to_string(given.parts) + "," + std::to_string(given.states) +
-                "\n";
+                std::to_string(given.types) + "\n";
     }
     if (rule.requires_engine) {
         text += "  requires " + std::to_string((*rule.requires_engine).major) + "." +
@@ -482,7 +501,8 @@ std::string compile_text(Fixture& fixture) {
         .images = inline_form ? std::span<const theme_language::ThemeImageResource>{}
                               : std::span<const theme_language::ThemeImageResource>(images),
         .requires_engine = fixture.newer_engine ? newer : current_engine_version,
-        .form = fixture.form};
+        .form = fixture.form,
+        .effects = &built_in_effect_registry()};
     ThemeRuleSheet sheet{};
     theme_language::ThemeCompiler compiler{};
     theme_language::ThemeDiagnosticList diagnostics{};
@@ -563,6 +583,9 @@ void check_refusal_leaves_nothing(const Fixture& fixture) {
     ThemeCompileOptions options{};
     options.controls = controls;
     options.published_values = published;
+    // The registry the direct compile checks effect names against (EP-3),
+    // so an unknown effect (E417) is refused as a package too.
+    options.effects = &built_in_effect_registry();
     const ThemePackage running_package =
         package_of("running", "button::part(face) { background-image: url(\"resource:icon.check\") }");
     const ThemeCompileResult running = compile_theme_package(running_package, library, registry, options);

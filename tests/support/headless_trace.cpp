@@ -131,7 +131,7 @@ std::string canonical_lifecycle_trace() {
     (*left).set_requested_bounds({0.0, 0.0, 55.0, 80.0});
     (*right).set_requested_bounds({80.0, 0.0, 55.0, 80.0});
     (*target).set_requested_bounds({5.0, 5.0, 30.0, 20.0});
-    (*target).set_focusable(true);
+    (*target).focusable = true;
     (*left).add_child(target);
     (*root).add_child(left);
     (*root).add_child(right);

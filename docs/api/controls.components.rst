@@ -75,22 +75,74 @@ Related types
      - A factory's request: build the content of ``panel`` and store it in ``content``.
    * - :cpp:class:`DockPanelRegistration <gui_forms::DockPanelRegistration>`
      -  
+   * - :cpp:class:`DockWorkspaceCapabilities <gui_forms::DockWorkspaceCapabilities>`
+     - Every DockWorkspace capability, in the order the declaring class takes them.
+   * - :cpp:class:`DockWorkspaceClosePromptCapability <gui_forms::DockWorkspaceClosePromptCapability>`
+     - How the program is asked before documents close at the user's request: one closing event per document (each, the default) or one for all (combined).
+   * - :cpp:class:`DockWorkspaceFlyoutOpeningCapability <gui_forms::DockWorkspaceFlyoutOpeningCapability>`
+     - The workspace setting for opening an auto-hidden panel's flyout from its side tab; hover_or_click by default.
    * - :cpp:class:`ErrorIconSnapshot <gui_forms::ErrorIconSnapshot>`
      - ErrorIconSnapshot is a read-only diagnostic record for one target: stable identity, message, exact glyph bounds, target availability, overlay presentation, blink activity, and current phase visibility.
+   * - :cpp:class:`ErrorProviderBlinkRateCapability <gui_forms::ErrorProviderBlinkRateCapability>`
+     - The blink interval, 50 ms to 1 minute (std::invalid_argument otherwise).
+   * - :cpp:class:`ErrorProviderBlinkStyleCapability <gui_forms::ErrorProviderBlinkStyleCapability>`
+     - When an icon blinks (see ErrorBlinkStyle).
+   * - :cpp:class:`ErrorProviderCapabilities <gui_forms::ErrorProviderCapabilities>`
+     - Every ErrorProvider capability, in the order the declaring class takes them.
    * - :cpp:class:`ErrorProviderChange <gui_forms::ErrorProviderChange>`
      - ErrorProviderChange is the post-commit payload for a target error transition, carrying stable identity and the current message, which is empty once the error is cleared.
+   * - :cpp:class:`ErrorProviderDataMemberCapability <gui_forms::ErrorProviderDataMemberCapability>`
+     - The member of the data source whose errors the provider shows, canonicalized; empty for the source's own.
+   * - :cpp:class:`ErrorProviderDataSourceCapability <gui_forms::ErrorProviderDataSourceCapability>`
+     - The binding source whose errors the provider shows, or null; held weakly.
+   * - :cpp:class:`ErrorProviderIconCapability <gui_forms::ErrorProviderIconCapability>`
+     - The icon image, or none for the stock glyph.
+   * - :cpp:class:`ErrorProviderIconSizeCapability <gui_forms::ErrorProviderIconSizeCapability>`
+     - The icon's side in logical units, 8 to 64.
+   * - :cpp:class:`ErrorProviderRightToLeftCapability <gui_forms::ErrorProviderRightToLeftCapability>`
+     - Whether icon alignments are mirrored.
    * - :cpp:class:`ErrorProviderSnapshot <gui_forms::ErrorProviderSnapshot>`
      - ErrorProviderSnapshot is a deterministic provider diagnostic aggregate containing every mapped icon record plus authoritative live-error and presented-overlay counts.
+   * - :cpp:class:`ErrorProviderTagCapability <gui_forms::ErrorProviderTagCapability>`
+     - The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal.
+   * - :cpp:class:`HelpProviderCapabilities <gui_forms::HelpProviderCapabilities>`
+     - Every HelpProvider capability, in the order the declaring class takes them.
+   * - :cpp:class:`HelpProviderHelpNamespaceCapability <gui_forms::HelpProviderHelpNamespaceCapability>`
+     - The help file or URL the provider's keyword and navigator requests name (Windows Forms' HelpNamespace).
    * - :cpp:class:`HelpProviderSnapshot <gui_forms::HelpProviderSnapshot>`
      - HelpProviderSnapshot is a deterministic diagnostic aggregate of authored mappings, effective mappings, total requests, and handled requests.
+   * - :cpp:class:`HelpProviderTagCapability <gui_forms::HelpProviderTagCapability>`
+     - The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal.
    * - :cpp:class:`HelpRequestEvent <gui_forms::HelpRequestEvent>`
      - HelpRequestEvent is the mutable dispatch payload for policy-free help routing.
    * - :cpp:class:`ImageListChange <gui_forms::ImageListChange>`
      - ImageListChange identifies revision, mutation kind, entry index, and key affected by one retained resource mutation.
    * - :cpp:class:`ImageListResolution <gui_forms::ImageListResolution>`
      - ImageListResolution returns the exact registered ImageId plus source pixel size, chosen scale variant, revision, and stable entry identity.
+   * - :cpp:class:`NotifyIconCapabilities <gui_forms::NotifyIconCapabilities>`
+     - Every NotifyIcon capability, in the order the declaring class takes them.
    * - :cpp:class:`NotifyIconClick <gui_forms::NotifyIconClick>`
      - A click on the icon: ``button`` is primary for a click and secondary for the platform's context gesture.
+   * - :cpp:class:`NotifyIconContextMenuCapability <gui_forms::NotifyIconContextMenuCapability>`
+     - The menu shown on the icon's context gesture.
+   * - :cpp:class:`NotifyIconIconCapability <gui_forms::NotifyIconIconCapability>`
+     - The icon at one or more sizes, premultiplied BGRA8 (HostImage).
+   * - :cpp:class:`NotifyIconVisibleCapability <gui_forms::NotifyIconVisibleCapability>`
+     - Whether the application wants the icon shown.
+   * - :cpp:class:`OpenFileDialogCapabilities <gui_forms::OpenFileDialogCapabilities>`
+     - Every OpenFileDialog capability, in the order the declaring class takes them.
+   * - :cpp:class:`OpenFileDialogFileNameCapability <gui_forms::OpenFileDialogFileNameCapability>`
+     - The first chosen path, or empty.
+   * - :cpp:class:`OpenFileDialogFilterCapability <gui_forms::OpenFileDialogFilterCapability>`
+     - The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into.
+   * - :cpp:class:`OpenFileDialogFilterIndexCapability <gui_forms::OpenFileDialogFilterIndexCapability>`
+     - The filter the dialog starts with, an index into filters() (Windows Forms' FilterIndex, which counts from one; this counts from zero).
+   * - :cpp:class:`OpenFileDialogInitialDirectoryCapability <gui_forms::OpenFileDialogInitialDirectoryCapability>`
+     - The directory the dialog starts in; empty lets the host choose.
+   * - :cpp:class:`OpenFileDialogMultiselectCapability <gui_forms::OpenFileDialogMultiselectCapability>`
+     - Whether the user may choose more than one file (Windows Forms' Multiselect).
+   * - :cpp:class:`OpenFileDialogTitleCapability <gui_forms::OpenFileDialogTitleCapability>`
+     - The dialog's title; empty gives the host's own.
 
 .. cpp:namespace:: gui_forms
 
@@ -228,6 +280,59 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> DockWorkspaceCapabilities : public DockWorkspaceClosePromptCapability<Declaring>, public DockWorkspaceFlyoutOpeningCapability<Declaring>
+
+   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace_capabilities/dock_workspace_capabilities.hpp>``
+
+   Every DockWorkspace capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: DockClosePrompt close_prompt
+
+      How the program is asked before documents close at the user's request: one closing event per document (each, the default) or one for all (combined).
+
+   .. cpp:member:: DockFlyoutOpening flyout_opening
+
+      The workspace setting for opening an auto-hidden panel's flyout from its side tab; hover_or_click by default.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DockWorkspaceClosePromptCapability
+
+   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace_capabilities/dock_workspace_capabilities.hpp>``
+
+   How the program is asked before documents close at the user's request: one closing event per document (each, the default) or one for all (combined).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DockWorkspaceClosePromptCapability& capability, DockClosePrompt incoming)
+
+   .. cpp:member:: PropertyCell<DockClosePrompt, DockWorkspaceClosePromptCapability<Declaring>> close_prompt
+
+      Default: ``{DockClosePrompt::each}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DockWorkspaceFlyoutOpeningCapability
+
+   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace_capabilities/dock_workspace_capabilities.hpp>``
+
+   The workspace setting for opening an auto-hidden panel's flyout from its side tab; hover_or_click by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DockWorkspaceFlyoutOpeningCapability& capability, DockFlyoutOpening incoming)
+
+   .. cpp:member:: PropertyCell<DockFlyoutOpening, DockWorkspaceFlyoutOpeningCapability<Declaring>> flyout_opening
+
+      Default: ``{DockFlyoutOpening::hover_or_click}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ErrorIconSnapshot final
 
    ``#include <gui_forms/components/error_provider/error_provider.hpp>``
@@ -252,6 +357,83 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ErrorProviderBlinkRateCapability
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   The blink interval, 50 ms to 1 minute (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ErrorProviderBlinkRateCapability& capability, std::chrono::milliseconds incoming)
+
+   .. cpp:member:: PropertyCell<std::chrono::milliseconds, ErrorProviderBlinkRateCapability<Declaring>> blink_rate
+
+      Default: ``{std::chrono::milliseconds(250)}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ErrorProviderBlinkStyleCapability
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   When an icon blinks (see ErrorBlinkStyle). An unknown style throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ErrorProviderBlinkStyleCapability& capability, ErrorBlinkStyle incoming)
+
+   .. cpp:member:: PropertyCell<ErrorBlinkStyle, ErrorProviderBlinkStyleCapability<Declaring>> blink_style
+
+      Default: ``{ErrorBlinkStyle::blink_if_different_error}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ErrorProviderCapabilities : public ErrorProviderIconSizeCapability<Declaring>, public ErrorProviderBlinkRateCapability<Declaring>, public ErrorProviderBlinkStyleCapability<Declaring>, public ErrorProviderRightToLeftCapability<Declaring>, public ErrorProviderIconCapability<Declaring>, public ErrorProviderDataSourceCapability<Declaring>, public ErrorProviderDataMemberCapability<Declaring>, public ErrorProviderTagCapability<Declaring>
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   Every ErrorProvider capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double icon_size
+
+      The icon's side in logical units, 8 to 64. A size outside that, or not finite, throws std::invalid_argument.
+
+   .. cpp:member:: std::chrono::milliseconds blink_rate
+
+      The blink interval, 50 ms to 1 minute (std::invalid_argument otherwise).
+
+   .. cpp:member:: ErrorBlinkStyle blink_style
+
+      When an icon blinks (see ErrorBlinkStyle). An unknown style throws std::invalid_argument.
+
+   .. cpp:member:: bool right_to_left
+
+      Whether icon alignments are mirrored. A change raises right_to_left_changed.
+
+   .. cpp:member:: std::optional<ImageId> icon
+
+      The icon image, or none for the stock glyph. An image that is not live in the provider's window throws std::invalid_argument.
+
+   .. cpp:member:: std::shared_ptr<BindingSource> data_source
+
+      The binding source whose errors the provider shows, or null; held weakly. A source that is not live or belongs to another window throws std::invalid_argument. An unchanged write updates the binding.
+
+   .. cpp:member:: std::string data_member
+
+      The member of the data source whose errors the provider shows, canonicalized; empty for the source's own. A name that is not valid UTF-8 throws std::invalid_argument.
+
+   .. cpp:member:: std::any tag
+
+      The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal. A view onto the provider's std::any, which has no ==.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ErrorProviderChange final
 
    ``#include <gui_forms/components/error_provider/error_provider.hpp>``
@@ -263,6 +445,85 @@ Related types
    .. cpp:member:: std::string error
 
       The target's new message; empty when its error was cleared.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ErrorProviderDataMemberCapability
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   The member of the data source whose errors the provider shows, canonicalized; empty for the source's own. A name that is not valid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ErrorProviderDataMemberCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, ErrorProviderDataMemberCapability<Declaring>> data_member
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ErrorProviderDataSourceCapability
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   The binding source whose errors the provider shows, or null; held weakly. A source that is not live or belongs to another window throws std::invalid_argument. An unchanged write updates the binding.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ErrorProviderDataSourceCapability& capability, std::shared_ptr<BindingSource> incoming)
+
+   .. cpp:function:: static std::shared_ptr<BindingSource> read(const ErrorProviderDataSourceCapability& capability)
+
+   .. cpp:member:: PropertyView<std::shared_ptr<BindingSource>, ErrorProviderDataSourceCapability<Declaring>> data_source
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ErrorProviderIconCapability
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   The icon image, or none for the stock glyph. An image that is not live in the provider's window throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ErrorProviderIconCapability& capability, std::optional<ImageId> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<ImageId>, ErrorProviderIconCapability<Declaring>> icon
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ErrorProviderIconSizeCapability
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   The icon's side in logical units, 8 to 64. A size outside that, or not finite, throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ErrorProviderIconSizeCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ErrorProviderIconSizeCapability<Declaring>> icon_size
+
+      Default: ``{16.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ErrorProviderRightToLeftCapability
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   Whether icon alignments are mirrored. A change raises right_to_left_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ErrorProviderRightToLeftCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ErrorProviderRightToLeftCapability<Declaring>> right_to_left
 
 .. cpp:namespace:: gui_forms
 
@@ -280,6 +541,57 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ErrorProviderTagCapability
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal. A view onto the provider's std::any, which has no ==.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ErrorProviderTagCapability& capability, std::any incoming)
+
+   .. cpp:function:: static std::any read(const ErrorProviderTagCapability& capability)
+
+   .. cpp:member:: PropertyView<std::any, ErrorProviderTagCapability<Declaring>> tag
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> HelpProviderCapabilities : public HelpProviderHelpNamespaceCapability<Declaring>, public HelpProviderTagCapability<Declaring>
+
+   ``#include <gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>``
+
+   Every HelpProvider capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string help_namespace
+
+      The help file or URL the provider's keyword and navigator requests name (Windows Forms' HelpNamespace). Text that is not valid UTF-8 throws std::invalid_argument.
+
+   .. cpp:member:: std::any tag
+
+      The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal. A view onto the provider's std::any, which has no ==.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> HelpProviderHelpNamespaceCapability
+
+   ``#include <gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>``
+
+   The help file or URL the provider's keyword and navigator requests name (Windows Forms' HelpNamespace). Text that is not valid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(HelpProviderHelpNamespaceCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, HelpProviderHelpNamespaceCapability<Declaring>> help_namespace
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HelpProviderSnapshot final
 
    ``#include <gui_forms/components/help_provider/help_provider.hpp>``
@@ -293,6 +605,23 @@ Related types
    .. cpp:member:: std::uint64_t requests
 
    .. cpp:member:: std::uint64_t handled_requests
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> HelpProviderTagCapability
+
+   ``#include <gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>``
+
+   The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal. A view onto the provider's std::any, which has no ==.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(HelpProviderTagCapability& capability, std::any incoming)
+
+   .. cpp:function:: static std::any read(const HelpProviderTagCapability& capability)
+
+   .. cpp:member:: PropertyView<std::any, HelpProviderTagCapability<Declaring>> tag
 
 .. cpp:namespace:: gui_forms
 
@@ -368,6 +697,33 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> NotifyIconCapabilities : public NotifyIconIconCapability<Declaring>, public TextCapability<Declaring>, public NotifyIconVisibleCapability<Declaring>, public NotifyIconContextMenuCapability<Declaring>
+
+   ``#include <gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>``
+
+   Every NotifyIcon capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::vector<HostImage> icon
+
+      The icon at one or more sizes, premultiplied BGRA8 (HostImage). Throws std::invalid_argument for more than 8 images or an image that is malformed or larger than 256 pixels a side. A write updates a shown icon, even when unchanged. UI thread only (std::logic_error).
+
+   .. cpp:member:: std::string text
+
+      The text the control shows (Text).
+
+   .. cpp:member:: bool visible
+
+      Whether the application wants the icon shown. Every write shows or removes the icon, even when unchanged, and status() then holds the host's answer: unsupported without a host or without the notification_area capability, invalid_argument while there is no icon image. A visible icon without an image is shown once an image is set. UI thread only (std::logic_error).
+
+   .. cpp:member:: std::shared_ptr<ContextMenu> context_menu
+
+      The menu shown on the icon's context gesture. Hosts with native tray menus (notification_area_menus) show its rows natively; choosing a row executes its command and raises menu_item_invoked. Submenus are left out. Without native tray menus only click is raised. UI thread only (std::logic_error).
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: NotifyIconClick final
 
    ``#include <gui_forms/components/notify_icon/notify_icon.hpp>``
@@ -377,6 +733,182 @@ Related types
    .. cpp:member:: PointerButton button
 
       Default: ``{PointerButton::primary}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NotifyIconContextMenuCapability
+
+   ``#include <gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>``
+
+   The menu shown on the icon's context gesture. Hosts with native tray menus (notification_area_menus) show its rows natively; choosing a row executes its command and raises menu_item_invoked. Submenus are left out. Without native tray menus only click is raised. UI thread only (std::logic_error).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NotifyIconContextMenuCapability& capability, std::shared_ptr<ContextMenu> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ContextMenu>, NotifyIconContextMenuCapability<Declaring>> context_menu
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NotifyIconIconCapability
+
+   ``#include <gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>``
+
+   The icon at one or more sizes, premultiplied BGRA8 (HostImage). Throws std::invalid_argument for more than 8 images or an image that is malformed or larger than 256 pixels a side. A write updates a shown icon, even when unchanged. UI thread only (std::logic_error).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NotifyIconIconCapability& capability, std::vector<HostImage> incoming)
+
+   .. cpp:function:: static std::vector<HostImage> read(const NotifyIconIconCapability& capability)
+
+   .. cpp:member:: PropertyView<std::vector<HostImage>, NotifyIconIconCapability<Declaring>> icon
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NotifyIconVisibleCapability
+
+   ``#include <gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>``
+
+   Whether the application wants the icon shown. Every write shows or removes the icon, even when unchanged, and status() then holds the host's answer: unsupported without a host or without the notification_area capability, invalid_argument while there is no icon image. A visible icon without an image is shown once an image is set. UI thread only (std::logic_error).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NotifyIconVisibleCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const NotifyIconVisibleCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, NotifyIconVisibleCapability<Declaring>> visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogCapabilities : public OpenFileDialogTitleCapability<Declaring>, public OpenFileDialogInitialDirectoryCapability<Declaring>, public OpenFileDialogFilterCapability<Declaring>, public OpenFileDialogFilterIndexCapability<Declaring>, public OpenFileDialogMultiselectCapability<Declaring>, public OpenFileDialogFileNameCapability<Declaring>
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   Every OpenFileDialog capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string title
+
+      The dialog's title; empty gives the host's own. Valid UTF-8 without NUL (std::invalid_argument).
+
+   .. cpp:member:: std::string initial_directory
+
+      The directory the dialog starts in; empty lets the host choose. Valid UTF-8 without NUL (std::invalid_argument).
+
+   .. cpp:member:: std::string filter
+
+      The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
+
+   .. cpp:member:: std::size_t filter_index
+
+      The filter the dialog starts with, an index into filters() (Windows Forms' FilterIndex, which counts from one; this counts from zero). After the user accepts it is the filter they had selected, where the host tells; an index past the filters starts the dialog on the first.
+
+   .. cpp:member:: bool multiselect
+
+      Whether the user may choose more than one file (Windows Forms' Multiselect).
+
+   .. cpp:member:: std::string file_name
+
+      The first chosen path, or empty. Before the dialog is shown, a name set here is the one the dialog suggests; writing it makes the chosen paths this one name (none for an empty name). Valid UTF-8 without NUL (std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogFileNameCapability
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   The first chosen path, or empty. Before the dialog is shown, a name set here is the one the dialog suggests; writing it makes the chosen paths this one name (none for an empty name). Valid UTF-8 without NUL (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(OpenFileDialogFileNameCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const OpenFileDialogFileNameCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, OpenFileDialogFileNameCapability<Declaring>> file_name
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogFilterCapability
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(OpenFileDialogFilterCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, OpenFileDialogFilterCapability<Declaring>> filter
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogFilterIndexCapability
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   The filter the dialog starts with, an index into filters() (Windows Forms' FilterIndex, which counts from one; this counts from zero). After the user accepts it is the filter they had selected, where the host tells; an index past the filters starts the dialog on the first.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(OpenFileDialogFilterIndexCapability& capability, std::size_t incoming)
+
+   .. cpp:member:: PropertyCell<std::size_t, OpenFileDialogFilterIndexCapability<Declaring>> filter_index
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogInitialDirectoryCapability
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   The directory the dialog starts in; empty lets the host choose. Valid UTF-8 without NUL (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(OpenFileDialogInitialDirectoryCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, OpenFileDialogInitialDirectoryCapability<Declaring>> initial_directory
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogMultiselectCapability
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   Whether the user may choose more than one file (Windows Forms' Multiselect).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(OpenFileDialogMultiselectCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, OpenFileDialogMultiselectCapability<Declaring>> multiselect
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogTitleCapability
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   The dialog's title; empty gives the host's own. Valid UTF-8 without NUL (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(OpenFileDialogTitleCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, OpenFileDialogTitleCapability<Declaring>> title
 
 Enumerations
 ------------
@@ -443,7 +975,7 @@ Enumerations
 
 .. cpp:enum-class:: DockClosePrompt
 
-   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace.hpp>``
+   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace_values/dock_workspace_values.hpp>``
 
    .. cpp:enumerator:: each
 
@@ -453,7 +985,7 @@ Enumerations
 
 .. cpp:enum-class:: DockFlyoutOpening
 
-   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace.hpp>``
+   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace_values/dock_workspace_values.hpp>``
 
    .. cpp:enumerator:: hover_or_click
 
@@ -463,7 +995,7 @@ Enumerations
 
 .. cpp:enum-class:: ErrorBlinkStyle
 
-   ``#include <gui_forms/components/error_provider/error_provider.hpp>``
+   ``#include <gui_forms/components/error_provider/error_provider_values/error_provider_values.hpp>``
 
    .. cpp:enumerator:: blink_if_different_error
 

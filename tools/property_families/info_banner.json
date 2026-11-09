@@ -1,0 +1,160 @@
+{
+  "family": "InfoBanner",
+  "step": "W-4",
+  "declaring": "InfoBanner",
+  "header": "include/gui_forms/controls/info_banner/info_banner.hpp",
+  "source": "src/controls/info_banner/info_banner.cpp",
+  "capabilities_header": "include/gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/info_banner/notice_values/notice_values.hpp"
+  ],
+  "properties": [
+    {
+      "name": "severity",
+      "capability": "InfoBannerSeverity",
+      "value": "NoticeSeverity",
+      "initial": "NoticeSeverity::information",
+      "comment": "How much the message matters: information, warning, success or error. It chooses the icon, the keyline's colour and the banner's one custom state.",
+      "getter": "severity",
+      "setter": "set_severity",
+      "clear": null,
+      "field": "severity_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "How much the message matters.",
+        "default": "BindingValue{PropertyEnumValue{\"notice_severity\", \"information\", 0}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "notice_severity_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "sample": "NoticeSeverity::warning"
+    },
+    {
+      "name": "title",
+      "capability": "InfoBannerTitle",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The banner's title, drawn in a heavier weight before the message; it names the banner to assistive technology. Must be valid UTF-8 (std::invalid_argument).",
+      "getter": "title",
+      "setter": "set_title",
+      "clear": null,
+      "field": "title_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "title",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The banner's title.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!validate_utf8(incoming).valid()) {",
+        "    throw std::invalid_argument(\"InfoBanner title must be valid UTF-8\");",
+        "}"
+      ],
+      "sample": "std::string{\"Sample\"}"
+    },
+    {
+      "name": "message",
+      "capability": "InfoBannerMessage",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The banner's message, on the line below the title; it describes the banner to assistive technology. Must be valid UTF-8 (std::invalid_argument).",
+      "getter": "message",
+      "setter": "set_message",
+      "clear": null,
+      "field": "message_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "message",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The banner's message.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!validate_utf8(incoming).valid()) {",
+        "    throw std::invalid_argument(\"InfoBanner message must be valid UTF-8\");",
+        "}"
+      ],
+      "sample": "std::string{\"Sample\"}"
+    },
+    {
+      "name": "closable",
+      "capability": "InfoBannerClosable",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the banner shows a close actuator, takes focus and closes on Escape; on by default.",
+      "getter": "closable",
+      "setter": "set_closable",
+      "clear": null,
+      "field": "closable_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether the banner can be closed by the user.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "the written hook also sets focusability and drops the actuator's hot and pressed visuals"
+      ]
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "action",
+      "reason": "an owned child slot; set_action returns the detached predecessor"
+    }
+  ],
+  "test": {
+    "type": "InfoBanner",
+    "include": "gui_forms/controls/info_banner/info_banner.hpp"
+  }
+}

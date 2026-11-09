@@ -66,29 +66,29 @@ const HostFolderDialogRequest* folder_request(const HostDialogRequest& request) 
 
 void settings() {
     FolderBrowserDialog dialog;
-    require(dialog.description().empty() && dialog.initial_directory().empty() && dialog.selected_path().empty() &&
+    require(dialog.description.read().empty() && dialog.initial_directory.read().empty() && dialog.selected_path.read().empty() &&
                 dialog.status().accepted(),
             "a new dialog has the defaults");
-    dialog.set_description("Choose where the exports go");
-    dialog.set_initial_directory("/srv");
-    dialog.set_selected_path("/srv/exports");
+    dialog.description = "Choose where the exports go";
+    dialog.initial_directory = "/srv";
+    dialog.selected_path = "/srv/exports";
     bool refused = false;
     try {
-        dialog.set_selected_path(std::string("a\0b", 3U));
+        dialog.selected_path = std::string("a\0b", 3U);
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && dialog.selected_path() == "/srv/exports", "a path holding NUL is refused");
+    require(refused && dialog.selected_path.read() == "/srv/exports", "a path holding NUL is refused");
     refused = false;
     try {
-        dialog.set_description(std::string("Bad \xFF"));
+        dialog.description = std::string("Bad \xFF");
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && dialog.description() == "Choose where the exports go",
+    require(refused && dialog.description.read() == "Choose where the exports go",
             "an invalid description throws and keeps the old one");
     dialog.reset();
-    require(dialog.description().empty() && dialog.initial_directory().empty() && dialog.selected_path().empty(),
+    require(dialog.description.read().empty() && dialog.initial_directory.read().empty() && dialog.selected_path.read().empty(),
             "reset restores the defaults");
 }
 
@@ -96,9 +96,9 @@ void without_host() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("folder.unhosted"));
     Window window(root, {320.0, 200.0});
     FolderBrowserDialog dialog;
-    dialog.set_selected_path("/tmp/kept");
+    dialog.selected_path = "/tmp/kept";
     require(dialog.show_dialog(window) == DialogResult::none &&
-                dialog.status().error == HostServiceError::unsupported && dialog.selected_path() == "/tmp/kept",
+                dialog.status().error == HostServiceError::unsupported && dialog.selected_path.read() == "/tmp/kept",
             "without a host the dialog is not shown and the folder stays");
 }
 
@@ -111,18 +111,18 @@ void shown_through_host() {
     services.set_dialog_handler(ScriptedDialogs{&script});
 
     FolderBrowserDialog dialog;
-    dialog.set_description("Choose where the exports go");
-    dialog.set_initial_directory("/srv");
+    dialog.description = "Choose where the exports go";
+    dialog.initial_directory = "/srv";
     script.answers.push_back(accepted("/srv/exports"));
     require(dialog.show_dialog(window) == DialogResult::ok && dialog.status().accepted() &&
-                dialog.selected_path() == "/srv/exports",
+                dialog.selected_path.read() == "/srv/exports",
             "an accepted dialog returns ok and takes the folder");
     const HostFolderDialogRequest* const first = folder_request(script.requests[0]);
     require(first != nullptr && script.requests[0].request_id != 0U && script.requests[0].owner_id == "folder.root" &&
                 (*first).title == "Choose where the exports go" && (*first).initial_directory == "/srv",
             "the request carries the description and starts in the initial directory");
 
-    require(dialog.show_dialog(window) == DialogResult::cancel && dialog.selected_path() == "/srv/exports",
+    require(dialog.show_dialog(window) == DialogResult::cancel && dialog.selected_path.read() == "/srv/exports",
             "a cancelled dialog keeps the folder");
     const HostFolderDialogRequest* const second = folder_request(script.requests[1]);
     require(second != nullptr && (*second).initial_directory == "/srv/exports" &&
@@ -131,7 +131,7 @@ void shown_through_host() {
 
     script.error = HostServiceError::backend_failure;
     require(dialog.show_dialog(window) == DialogResult::none &&
-                dialog.status().error == HostServiceError::backend_failure && dialog.selected_path() == "/srv/exports",
+                dialog.status().error == HostServiceError::backend_failure && dialog.selected_path.read() == "/srv/exports",
             "a host failure returns none with the host's answer");
     script.error = HostServiceError::none;
     require(services.snapshot().modal_depth == 0U, "no dialog is left on the modal stack");
@@ -187,11 +187,11 @@ void ended_while_showing() {
 
     services.set_dialog_handler(EndingDialogs{&dialog, &window, &reentry_refused, 2});
     require((*dialog).show_dialog(window) == DialogResult::ok && reentry_refused &&
-                (*dialog).selected_path() == "/tmp/late",
+                (*dialog).selected_path.read() == "/tmp/late",
             "showing a dialog that is already showing is refused");
 
     services.set_dialog_handler(EndingDialogs{&dialog, &window, &reentry_refused, 1});
-    require((*dialog).show_dialog(window) == DialogResult::cancel && (*dialog).selected_path() == "/tmp/late",
+    require((*dialog).show_dialog(window) == DialogResult::cancel && (*dialog).selected_path.read() == "/tmp/late",
             "a dialog disposed while showing returns cancel and takes nothing");
 
     dialog = std::make_shared<FolderBrowserDialog>();

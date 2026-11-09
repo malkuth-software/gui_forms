@@ -1,0 +1,44 @@
+{
+  "family": "ContextMenu",
+  "step": "M-S8",
+  "declaring": "ContextMenu",
+  "header": "include/gui_forms/components/context_menu/context_menu.hpp",
+  "source": "src/controls/menu/context_menu/context_menu.cpp",
+  "capabilities_header": "include/gui_forms/components/context_menu/context_menu_capabilities/context_menu_capabilities.hpp",
+  "shared": [],
+  "includes": [],
+  "mutation_check": null,
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "preferred_width",
+      "capability": "ContextMenuPreferredWidth",
+      "value": "double",
+      "initial": "268.0",
+      "hooks": "hand",
+      "hand": [
+        "prepare closes an open menu before a change"
+      ],
+      "effects": null,
+      "comment": "The menu's width in logical units at text scale 1, 120 to 1024 (default 268). A change closes an open menu. A width outside that range, or not finite, throws std::invalid_argument; a disposed menu throws std::logic_error.",
+      "getter": "preferred_width",
+      "setter": "set_preferred_width",
+      "field": "preferred_width_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "items",
+      "reason": "wholesale collection replacement (section 4)"
+    },
+    {
+      "name": "root_navigation_handler, outside_pointer_handler",
+      "reason": "callbacks and handlers (section 4)"
+    }
+  ]
+}

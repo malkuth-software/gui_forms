@@ -48,8 +48,10 @@ Related types
      - The colour schemes a theme has variants for (T4 theme variants): a theme sheet declares them with ``:root { color-scheme: light dark }``, a definition built in code sets them.
    * - :cpp:class:`ControlAvailabilityChange <gui_forms::ControlAvailabilityChange>`
      - ControlAvailabilityChange carries authoritative runtime/stable identity and effective visibility/enabled state after retained lifecycle change.
+   * - :cpp:class:`ControlLookup <gui_forms::ControlLookup>`
+     - What SurfaceRoot::control found: the one control with the ID, or why there is none (then ``control`` is null).
    * - :cpp:class:`ControlSnapshot <gui_forms::ControlSnapshot>`
-     - A control subtree's picture (Window::snapshot_control): the registered image, the logical size it covers and its pixels per logical unit.
+     -  
    * - :cpp:class:`DeferredInputSnapshot <gui_forms::DeferredInputSnapshot>`
      - DeferredInputSnapshot preserves the route, transformed event, and target identity required to resume deferred input safely.
    * - :cpp:class:`DialogKeySnapshot <gui_forms::DialogKeySnapshot>`
@@ -76,8 +78,16 @@ Related types
      - FramePollResult reports deadline, motion-clock, UI-timer, coalescing, callback-fault, reentrancy, damage, occlusion, and next-wake outcomes for one host poll.
    * - :cpp:class:`FrameRequestToken <gui_forms::FrameRequestToken>`
      - FrameRequestToken is move-only revocable ownership of one Window frame request, with destruction providing deterministic cancellation.
+   * - :cpp:class:`HeldKey <gui_forms::HeldKey>`
+     - One held physical key (a USB HID usage, PhysicalKey) and when it went down, in the window's input time (InputTimeSource).
+   * - :cpp:class:`InputTimeSource <gui_forms::InputTimeSource>`
+     - Where the window's input state reads the time of an input event (a held key's press time, the start of a hover).
+   * - :cpp:class:`InteractionSnapshot <gui_forms::InteractionSnapshot>`
+     - The state at the moment of the copy.
    * - :cpp:class:`KeyGesture <gui_forms::KeyGesture>`
      - KeyGesture is exact portable physical-key plus modifier identity used for deterministic accelerator comparison.
+   * - :cpp:class:`LiveSurfacePairingListener <gui_forms::LiveSurfacePairingListener>`
+     - Told that a live surface's frame was presented unpaired: older than the content tag its control required (Window::require_live_surface_content), once per required tag.
    * - :cpp:class:`LiveSurfacePresentation <gui_forms::LiveSurfacePresentation>`
      - LiveSurfacePresentation is one immutable host-consumption record coupling a retained control identity and surface to stable destination geometry and an overlay-safe clip fragment.
    * - :cpp:class:`NativePopupOptions <gui_forms::NativePopupOptions>`
@@ -94,16 +104,24 @@ Related types
      - PaintReceipt proves that one complete retained transaction replayed into a host backing surface at a specific content revision and surface epoch.
    * - :cpp:class:`PointerCaptureChange <gui_forms::PointerCaptureChange>`
      - PointerCaptureChange carries capture state, runtime/stable control identity, and pointer identity to host services.
+   * - :cpp:class:`PointerSettings <gui_forms::PointerSettings>`
+     - The pointer settings controls and the window read (the WinForms SystemInformation values), from the host where its platform offers them.
+   * - :cpp:class:`PopupLift <gui_forms::PopupLift>`
+     - A drop-down's list or a picker's panel lifted out of its owner window into the owner's warm Popup window (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S, drop-downs and pickers are Popups before 0.5), where it may extend past the owner's edges onto the desktop.
    * - :cpp:class:`PresentationAvailability <gui_forms::PresentationAvailability>`
      - The record a window publishes: the host's declaration and the live paint-lease snapshot.
    * - :cpp:class:`PresentationDeclaration <gui_forms::PresentationDeclaration>`
      - What a host declares when it attaches a window.
    * - :cpp:class:`PresentationExtensions <gui_forms::PresentationExtensions>`
      -  
+   * - :cpp:class:`PresentationOverrides <gui_forms::PresentationOverrides>`
+     - The presentation fields one window overrides (APP_WINDOW_RULES_DESIGN A.2): each set field wins over the window's own settings, which come from its application or its host; an unset field follows them.
    * - :cpp:class:`PresentationSettings <gui_forms::PresentationSettings>`
      - PresentationSettings keeps logical text scaling, contrast, motion, and sound preferences independent from device scale and native host mechanics.
    * - :cpp:class:`PresentedArea <gui_forms::PresentedArea>`
      - The screen area one presentation copied (stage DP): device pixels, the rectangles they were copied in, and the time spent only copying them (pixel conversion and the native copy, not painting).
+   * - :cpp:class:`ScrollCopy <gui_forms::ScrollCopy>`
+     - A scroll copy (SurfaceRoot::take_scroll_copies): the host moves the pixels it holds inside ``clip`` by ``offset``, both in window coordinates and whole device pixels, before painting the damage taken with it.
    * - :cpp:class:`ShadowFrame <gui_forms::ShadowFrame>`
      - One frame.
    * - :cpp:class:`ShadowFrameScope <gui_forms::ShadowFrameScope>`
@@ -118,6 +136,8 @@ Related types
      - The host's system colours, as hints a theme may read with ``env(system-accent, <fallback>)`` and ``env(system-highlight, <fallback>)`` (T4 theme variants, owner 2026-11-04): the accent colour and the text selection colour.
    * - :cpp:class:`ThemeFallback <gui_forms::ThemeFallback>`
      - Presentation preferences are logical UI policy and remain independent from the native/device pixel scale.
+   * - :cpp:class:`ToastDismissal <gui_forms::ToastDismissal>`
+     - A window's toast closed: ``id`` is the one show_toast returned.
    * - :cpp:class:`ToolTipEvent <gui_forms::ToolTipEvent>`
      - ToolTipEvent is the immutable publication payload for a tooltip visibility transition.
    * - :cpp:class:`ToolTipRequest <gui_forms::ToolTipRequest>`
@@ -126,8 +146,18 @@ Related types
      - How a window's one tooltip presenter behaves (owner, 2026-10-28).
    * - :cpp:class:`ValidationSnapshot <gui_forms::ValidationSnapshot>`
      - ValidationSnapshot reports attempts, outcomes, focus blocks, reentrancy rejection, bulk visits, and active transaction state.
+   * - :cpp:class:`WindowBandAppearance <gui_forms::WindowBandAppearance>`
+     -  
+   * - :cpp:class:`WindowBandOptions <gui_forms::WindowBandOptions>`
+     - A window's band declaration (Window::declare_band).
+   * - :cpp:class:`WindowBandSnapshot <gui_forms::WindowBandSnapshot>`
+     - A window's band as it stands (Window::band_snapshot): whether it is declared and reserved, the reserved width (snapped, logical units), the colours the strips draw now, and the corners it follows.
+   * - :cpp:class:`WindowCornerReport <gui_forms::WindowCornerReport>`
+     - The host's report of the window's corners, in reply to its preference (HostServices::apply_window_corners).
    * - :cpp:class:`WindowDispatcher <gui_forms::WindowDispatcher>`
      - A window's dispatcher, reachable from any thread for as long as the caller holds this handle, whatever happens to the window.
+   * - :cpp:class:`WindowOverrides <gui_forms::WindowOverrides>`
+     - What one window overrides of what it would otherwise read from its owner (APP_WINDOW_RULES_DESIGN K.1): its application, or for a popup or floating window the window that opened it, which shares its table.
 
 .. cpp:namespace:: gui_forms
 
@@ -321,11 +351,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: ControlSnapshot final
+.. cpp:struct:: ControlLookup final
 
    ``#include <gui_forms/surface_root/surface_root.hpp>``
 
-   A control subtree's picture (Window::snapshot_control): the registered image, the logical size it covers and its pixels per logical unit.
+   What SurfaceRoot::control found: the one control with the ID, or why there is none (then ``control`` is null).
+
+   .. cpp:member:: ControlLookupError error
+
+      Default: ``{ControlLookupError::none}``.
+
+   .. cpp:member:: Control::Ptr control
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ControlSnapshot final
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    .. cpp:member:: ImageId image
 
@@ -666,6 +708,75 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HeldKey final
+
+   ``#include <gui_forms/window/interaction/interaction_snapshot.hpp>``
+
+   One held physical key (a USB HID usage, PhysicalKey) and when it went down, in the window's input time (InputTimeSource).
+
+   .. cpp:member:: std::uint32_t physical_key
+
+   .. cpp:member:: FrameTime pressed_at
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: InputTimeSource
+
+   ``#include <gui_forms/window/interaction/interaction_snapshot.hpp>``
+
+   Where the window's input state reads the time of an input event (a held key's press time, the start of a hover). Steady-clock time unless a source is installed: tests install one so that times are theirs. Its times must be in the same domain as the times the window is polled with (SurfaceRoot::poll_frame_schedule), which wakes a pending hover.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual FrameTime now() const noexcept = 0
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: InteractionSnapshot final
+
+   ``#include <gui_forms/window/interaction/interaction_snapshot.hpp>``
+
+   The state at the moment of the copy. The four controls are read from the window's own registries (focus, capture, press and hover), not kept a second time; a zero RuntimeId means none. The pointer fields hold the last pointer event the window dispatched; ``pointer_inside`` turns false on the pointer's leave, and ``last_click_count`` is the click count the host reported for the last press. A window that has dispatched no input reports empty input fields.
+
+   .. cpp:member:: std::vector<HeldKey> held_keys
+
+      in press order
+
+   .. cpp:member:: std::uint32_t untracked_key_presses
+
+   .. cpp:member:: Modifier modifiers
+
+      Default: ``{Modifier::none}``.
+
+   .. cpp:member:: Point pointer_position
+
+   .. cpp:member:: bool pointer_inside
+
+   .. cpp:member:: bool primary_down
+
+   .. cpp:member:: bool secondary_down
+
+   .. cpp:member:: bool middle_down
+
+   .. cpp:member:: std::uint32_t last_click_count
+
+   .. cpp:member:: RuntimeId focused
+
+   .. cpp:member:: RuntimeId captured
+
+   .. cpp:member:: RuntimeId pressed
+
+   .. cpp:member:: RuntimeId hovered
+
+   .. cpp:member:: bool hover_raised
+
+      Whether MouseHover was raised on the hovered control since the pointer entered it, and whether the window's hover timer is armed.
+
+   .. cpp:member:: bool hover_pending
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: KeyGesture final
 
    ``#include <gui_forms/surface_root/surface_root.hpp>``
@@ -677,6 +788,19 @@ Related types
    .. cpp:member:: Modifier modifiers
 
       Default: ``{Modifier::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: LiveSurfacePairingListener
+
+   ``#include <gui_forms/window/window.hpp>``
+
+   Told that a live surface's frame was presented unpaired: older than the content tag its control required (Window::require_live_surface_content), once per required tag. Called on the window's thread only, through the window's dispatcher, never inside the present path that found it; a listener the control released first receives nothing.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual void live_surface_pairing_missed(std::uint64_t content_tag) = 0
 
 .. cpp:namespace:: gui_forms
 
@@ -890,6 +1014,79 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PointerSettings final
+
+   ``#include <gui_forms/window/presentation/input_settings.hpp>``
+
+   The pointer settings controls and the window read (the WinForms SystemInformation values), from the host where its platform offers them. GUI.Forms recognizes no gestures: controls compare a press's movement against the drag rectangle in their MouseMove and start a drag themselves. - drag_width, drag_height: the rectangle, centred on the press, the pointer must leave before a drag starts (SystemInformation.DragSize; Windows SM_CXDRAG/SM_CYDRAG, X11 XSettings Net/DndDragThreshold; macOS offers none, so its host leaves the default). - hover_milliseconds, hover_width, hover_height: how long the pointer must rest within the hover rectangle before a control raises MouseHover (SystemInformation.MouseHoverTime and MouseHoverSize). - native_hover: the host reports hover itself (HostHoverEvent, Windows WM_MOUSEHOVER); the window's own hover timer then stays off.
+
+   .. cpp:member:: double drag_width
+
+      Default: ``{default_drag_size}``.
+
+   .. cpp:member:: double drag_height
+
+      Default: ``{default_drag_size}``.
+
+   .. cpp:member:: SettingOrigin drag_origin
+
+      Default: ``{SettingOrigin::default_value}``.
+
+   .. cpp:member:: std::uint32_t hover_milliseconds
+
+      Default: ``{default_hover_milliseconds}``.
+
+   .. cpp:member:: double hover_width
+
+      Default: ``{default_hover_size}``.
+
+   .. cpp:member:: double hover_height
+
+      Default: ``{default_hover_size}``.
+
+   .. cpp:member:: SettingOrigin hover_origin
+
+      Default: ``{SettingOrigin::default_value}``.
+
+   .. cpp:member:: bool native_hover
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: PopupLift final
+
+   ``#include <gui_forms/window/native_popup/popup_lift.hpp>``
+
+   A drop-down's list or a picker's panel lifted out of its owner window into the owner's warm Popup window (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S, drop-downs and pickers are Popups before 0.5), where it may extend past the owner's edges onto the desktop. The control keeps its overlay layer in the owner (it takes outside clicks and holds the owner's focus) and lifts only the content: lift shows ``content`` in Window::picker_popup_window_slot at ``face``, framed with room for the theme's overlay shadow when the Popup is translucent, gives it the Popup's focus and forwards the owner's keys and text to it (Window::forward_input_to_popup_window). Keys it leaves unhandled (Escape) reach the owner's layer as before. release hides the Popup, takes the content out (detached again) and ends the forwarding; the destructor releases. One lift per object; a second lift replaces the first. UI thread only, on the owner window's thread.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: PopupLift() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool lifted() const noexcept
+
+   .. cpp:function:: Window* host() const noexcept
+
+      The window the content shows in while lifted (the Popup's model), or null.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: bool lift(Window& window, const Control::Ptr& content, Rect face, PopupLiftInput input = PopupLiftInput::forwarded)
+
+      Shows ``content`` (a live control with no parent and in no window) in ``window``'s picker Popup at ``face``, the content's bounds in the window's client coordinates (which may reach past the client area; the Popup is kept inside the monitor's work area). False, changing nothing, when the run has no Popup windows or the host refuses: the caller then shows the content in its overlay layer.
+
+   .. cpp:function:: bool move(Rect face)
+
+      Moves the lifted content to ``face``; false when nothing is lifted.
+
+   .. cpp:function:: void release() noexcept
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PresentationAvailability final
 
    ``#include <gui_forms/window/presentation/presentation_types.hpp>``
@@ -943,6 +1140,35 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PresentationOverrides final
+
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+
+   The presentation fields one window overrides (APP_WINDOW_RULES_DESIGN A.2): each set field wins over the window's own settings, which come from its application or its host; an unset field follows them. The double-click interval and the pointer settings are the host's alone and have no override.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool empty() const noexcept
+
+      Whether no field is set.
+
+   .. cpp:member:: std::optional<double> text_scale
+
+   .. cpp:member:: std::optional<bool> high_contrast
+
+   .. cpp:member:: std::optional<bool> reduced_motion
+
+   .. cpp:member:: std::optional<bool> sound_enabled
+
+   .. cpp:member:: std::optional<bool> ambient_motion
+
+   .. cpp:member:: std::optional<bool> reduced_transparency
+
+   .. cpp:member:: std::optional<ColourScheme> colour_scheme
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PresentationSettings final
 
    ``#include <gui_forms/window/presentation/presentation_types.hpp>``
@@ -977,6 +1203,10 @@ Related types
 
       Default: ``{SettingOrigin::default_value}``.
 
+   .. cpp:member:: PointerSettings pointer
+
+      The drag and hover rectangles and the hover time (PointerSettings), from the host where it reports them (HostInputSettingsEvent), otherwise the Windows-like defaults. Like the double-click interval they are the host's alone.
+
    .. cpp:member:: ColourScheme colour_scheme
 
       The preferred colour scheme (EC3). A change re-resolves every part: a theme's rules may hold for one scheme only. Default: ``{ColourScheme::light}``.
@@ -994,6 +1224,18 @@ Related types
    .. cpp:member:: std::uint64_t rectangles
 
    .. cpp:member:: std::uint64_t copy_nanoseconds
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ScrollCopy final
+
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+
+   A scroll copy (SurfaceRoot::take_scroll_copies): the host moves the pixels it holds inside ``clip`` by ``offset``, both in window coordinates and whole device pixels, before painting the damage taken with it. Pixels moved from outside the clip are never needed: the damage covers what the copy exposed.
+
+   .. cpp:member:: Rect clip
+
+   .. cpp:member:: Point offset
 
 .. cpp:namespace:: gui_forms
 
@@ -1135,6 +1377,20 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ToastDismissal final
+
+   ``#include <gui_forms/window/toasts/toasts.hpp>``
+
+   A window's toast closed: ``id`` is the one show_toast returned.
+
+   .. cpp:member:: std::uint64_t id
+
+   .. cpp:member:: ToastDismissReason reason
+
+      Default: ``{ToastDismissReason::hidden}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ToolTipEvent final
 
    ``#include <gui_forms/window/tool_tips/tool_tips.hpp>``
@@ -1235,6 +1491,88 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: WindowBandAppearance final
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   .. cpp:member:: WindowBandState state
+
+      Default: ``{WindowBandState::rest}``.
+
+   .. cpp:member:: std::optional<Color> rest_colour
+
+      The application's colours, each replacing the theme's while set. Ignored under high contrast, where the band takes the high-contrast palette.
+
+   .. cpp:member:: std::optional<Color> lit_colour
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowBandOptions final
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   A window's band declaration (Window::declare_band).
+
+   .. cpp:member:: double width
+
+      The width asked for, in logical units, before it is snapped to whole device pixels: 0 takes the theme's ``band-width``, or one logical unit where the theme declares none. Finite, from 0 to maximum_band_width.
+
+   .. cpp:member:: WindowBandFullScreen full_screen
+
+      Default: ``{WindowBandFullScreen::stays}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowBandSnapshot final
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   A window's band as it stands (Window::band_snapshot): whether it is declared and reserved, the reserved width (snapped, logical units), the colours the strips draw now, and the corners it follows.
+
+   .. cpp:member:: bool declared
+
+   .. cpp:member:: bool reserved
+
+      Declared and not hidden by full screen.
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: WindowBandOptions options
+
+   .. cpp:member:: WindowBandAppearance appearance
+
+   .. cpp:member:: Color drawn
+
+      The colour the strips draw now (the flash phase included). Default: ``{Color::rgba(0, 0, 0, 0)}``.
+
+   .. cpp:member:: bool flashing
+
+      Whether a flash is running now (not stilled).
+
+   .. cpp:member:: WindowCornerReport corners
+
+   .. cpp:member:: std::uint64_t flash_changes
+
+      The flash phase changes the strips have been damaged for, counted from the window's creation.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowCornerReport final
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   The host's report of the window's corners, in reply to its preference (HostServices::apply_window_corners). ``radius`` is in logical units, and meaningful only for ``rounded``. ``complied`` is false when the platform could not do as asked (it rounds regardless, or cannot round), so the band follows ``shape``, not the preference.
+
+   .. cpp:member:: WindowCornerShape shape
+
+      Default: ``{WindowCornerShape::unknown}``.
+
+   .. cpp:member:: double radius
+
+   .. cpp:member:: bool complied
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: WindowDispatcher final
 
    ``#include <gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp>``
@@ -1266,6 +1604,33 @@ Related types
 
       Runs ``callback`` on the window's UI thread and waits for it: inline on the UI thread, marshalled from any other through the host's wake. The result is completed when it ran and window_gone when the window was gone first or closed while the work waited; the callback did not run then. An exception the callback throws is rethrown here, as Window::invoke does. A live window with no running host (no wake handler) throws std::logic_error, as Window::invoke does.
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowOverrides final
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+   What one window overrides of what it would otherwise read from its owner (APP_WINDOW_RULES_DESIGN K.1): its application, or for a popup or floating window the window that opened it, which shares its table. A window with no override stores none: SurfaceRoot holds a null pointer until the first, which allocates this record; clearing the last releases it. A read is one branch: the field when set, else the owner's.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool empty() const noexcept
+
+      Whether nothing is overridden.
+
+   .. cpp:member:: PresentationOverrides presentation
+
+      Presentation fields that win over the window's own settings.
+
+   .. cpp:member:: std::shared_ptr<const Theme> theme
+
+      A theme for this window alone (immutable, shared by reference); null shows its resources' theme.
+
+   .. cpp:member:: std::shared_ptr<KeyBindings> key_bindings
+
+      The window's own keyboard-command table, or one it was given to share (set_key_bindings); null reads the owner's.
+
 Enumerations
 ------------
 
@@ -1290,6 +1655,18 @@ Enumerations
    .. cpp:enumerator:: light
 
    .. cpp:enumerator:: dark
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ControlLookupError
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: empty_id
+
+   .. cpp:enumerator:: not_found
 
 .. cpp:namespace:: gui_forms
 
@@ -1439,6 +1816,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: PopupLiftInput
+
+   ``#include <gui_forms/window/native_popup/popup_lift.hpp>``
+
+   .. cpp:enumerator:: forwarded
+
+   .. cpp:enumerator:: kept_by_owner
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: SettingOrigin
 
    ``#include <gui_forms/window/presentation/input_settings.hpp>``
@@ -1492,6 +1879,70 @@ Enumerations
    .. cpp:enumerator:: revoked
 
    .. cpp:enumerator:: stale
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ToastDismissReason
+
+   ``#include <gui_forms/window/toasts/toasts.hpp>``
+
+   .. cpp:enumerator:: timed_out
+
+   .. cpp:enumerator:: closed
+
+   .. cpp:enumerator:: action
+
+   .. cpp:enumerator:: replaced
+
+   .. cpp:enumerator:: hidden
+
+   .. cpp:enumerator:: owner_gone
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WindowBandFullScreen
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   .. cpp:enumerator:: stays
+
+   .. cpp:enumerator:: hides
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WindowBandState
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   .. cpp:enumerator:: rest
+
+   .. cpp:enumerator:: lit
+
+   .. cpp:enumerator:: flashing
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WindowCornerPreference
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   .. cpp:enumerator:: system
+
+   .. cpp:enumerator:: square
+
+   .. cpp:enumerator:: round
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WindowCornerShape
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   .. cpp:enumerator:: unknown
+
+   .. cpp:enumerator:: square
+
+   .. cpp:enumerator:: rounded
 
 Functions, constants and aliases
 --------------------------------
@@ -1658,6 +2109,50 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/window/band/window_band.hpp>``
+
+.. cpp:function:: bool window_band_options_valid(const WindowBandOptions& options) noexcept
+
+   Whether ``options`` is a declaration the window accepts: a finite width from 0 to maximum_band_width and a known full-screen choice.
+
+.. cpp:function:: bool window_band_appearance_valid(const WindowBandAppearance& appearance) noexcept
+
+   Whether ``appearance`` names a known state.
+
+.. cpp:function:: double snapped_band_width(double width, double scale) noexcept
+
+   ``width`` logical units snapped to whole device pixels at ``scale``: the nearest whole number of device pixels, at least one, back in logical units (study section 2.2), so content inside the band keeps landing on the device grid. 0 for a width that is not positive and finite or a scale that is not.
+
+.. cpp:function:: const char* window_corner_preference_name(WindowCornerPreference preference) noexcept
+
+.. cpp:function:: const char* window_corner_shape_name(WindowCornerShape shape) noexcept
+
+.. cpp:var:: constexpr double maximum_band_width
+
+   The widest band a window or a theme may ask for, in logical units. Value: ``32.0``.
+
+.. cpp:var:: constexpr unsigned maximum_band_flash_transitions
+
+   The flash limiter (study section 5, WCAG 2.3.1): at most this many luminance transitions a second, whatever the theme or the application asks: a flashing band changes colour once every half second. Value: ``2U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/window/interaction/interaction_snapshot.hpp>``
+
+.. cpp:var:: constexpr std::size_t maximum_held_keys
+
+   The most physical keys a window tracks as held at once. A key pressed while this many are held is not tracked (InteractionSnapshot:: untracked_key_presses counts them); its release is ignored. Value: ``16U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/window/native_popup/popup_lift.hpp>``
+
+.. cpp:function:: std::optional<Rect> drop_down_popup_face(Window& window, Rect anchor, Size size, double preferred_x)
+
+   The face, in ``window``'s client coordinates, of a drop-down of ``size`` hung from ``anchor`` (client coordinates) at ``preferred_x``, against the work area of the monitor under the anchor's lower left corner: under the anchor, or above it when it would overrun the area's bottom, and moved and cut to stay inside the area. None when the run has no Popup windows or cannot say the work area; the caller then places the drop-down in its client. UI thread.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/window/presentation/colour_scheme.hpp>``
 
 .. cpp:function:: constexpr std::string_view colour_scheme_name(ColourScheme scheme) noexcept
@@ -1665,6 +2160,10 @@ Functions, constants and aliases
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/window/presentation/input_settings.hpp>``
+
+.. cpp:function:: bool valid_pointer_settings(const PointerSettings& settings) noexcept
+
+   Whether every value lies in its range (each rectangle side finite and between 0 and maximum_pointer_distance, the hover time between 1 and maximum_hover_milliseconds) and every origin is in its enum.
 
 .. cpp:var:: constexpr std::uint32_t default_double_click_milliseconds
 
@@ -1674,10 +2173,46 @@ Functions, constants and aliases
 
    Value: ``5000U``.
 
+.. cpp:var:: constexpr double default_drag_size
+
+   The pointer settings' Windows-like defaults (owner's mouse-event rule, 2026-11-08), used only where the host reports none: Windows' own defaults for SM_CXDRAG, SM_CYDRAG, SPI_GETMOUSEHOVERTIME and the hover rectangle. Distances in logical pixels, durations perceptual, in milliseconds. Value: ``4.0``.
+
+.. cpp:var:: constexpr std::uint32_t default_hover_milliseconds
+
+   Value: ``400U``.
+
+.. cpp:var:: constexpr double default_hover_size
+
+   Value: ``4.0``.
+
+.. cpp:var:: constexpr double maximum_pointer_distance
+
+   The largest drag or hover rectangle side and hover time a window takes. Value: ``64.0``.
+
+.. cpp:var:: constexpr std::uint32_t maximum_hover_milliseconds
+
+   Value: ``10000U``.
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/window/presentation/presentation_types.hpp>``
 
+.. cpp:function:: void validate_presentation_settings(const PresentationSettings& settings)
+
+   Throws std::invalid_argument for settings no window takes: a text scale outside 0.5 to 4.0 or not finite, a double-click interval outside 1 to maximum_double_click_milliseconds, pointer settings that are not valid_pointer_settings, or an origin or scheme outside its enum.
+
+.. cpp:function:: PresentationSettings overridden_presentation(PresentationSettings settings, const PresentationOverrides& overrides) noexcept
+
+   ``settings`` with each field ``overrides`` sets replaced.
+
 .. cpp:var:: constexpr std::uint32_t paint_contract_version
 
    The presentation availability record (stage DP; notes:planning/ PAINT_PIPELINE_AVAILABILITY.md, M11h-P4 / M12-P4). The baseline contract (coherent latest-state presentation: mutation may outpace rendering and rendering may outpace presentation, with no unbounded queue and no incomplete frame visible) is reported as a version, never as a capability: a host that cannot meet it fails attachment. Only optional extensions are reported as available or not, and only truthfully. Version 2 (2026-10-13) adds damage-preserving partial present to the contract: the host presents the bounded rectangle set it paints, not their union. Value: ``2U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/window/toasts/toasts.hpp>``
+
+.. cpp:var:: constexpr std::chrono::milliseconds default_toast_duration
+
+   How long a toast stays unless the call says otherwise. Value: ``{5000}``.

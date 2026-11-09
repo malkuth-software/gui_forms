@@ -93,8 +93,8 @@ private:
 
 void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> root = make_control<TableLayoutPanelCompat>(StableId("root"));
-    (*root).set_column_count(1U);
-    (*root).set_row_count(1U);
+    (*root).column_count = 1U;
+    (*root).row_count = 1U;
     (*root).set_column_style(0U, {TableSizeMode::percent, 1.0});
     (*root).set_row_style(0U, {TableSizeMode::percent, 1.0});
     std::shared_ptr<gui_forms::Button> owner = make_control<Button>(StableId("owner"), "Open context menu");
@@ -119,8 +119,8 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     std::shared_ptr<gui_forms::Command> icons = std::make_shared<Command>("view.icons", "Icons");
 
     ContextMenu menu("object.context");
-    menu.set_preferred_width(180.0);
-    require(menu.preferred_width() == 180.0,
+    menu.preferred_width = 180.0;
+    require(menu.preferred_width.read() == 180.0,
             "ContextMenu must retain an explicit preferred overlay width");
     menu.set_items({
         {"open", MenuItemKind::command, open},
@@ -209,7 +209,7 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
             "menu semantics must publish menu/item/check and availability facts");
     const bool operation_check_2 = static_cast<bool>(delete_row);
     require(operation_check_2, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
-    const bool operation_check_3 = !(*delete_row).focusable();
+    const bool operation_check_3 = !(*delete_row).focusable.read();
     require(operation_check_3, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
     const bool operation_check_4 = !(*delete_row).cursor.read();
     require(operation_check_4, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
@@ -286,7 +286,7 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     require(operation_check_28, "submenu with no actionable descendant must explain and enforce its disabled state");
     const bool operation_check_29 = static_cast<bool>(disabled_submenu_row);
     require(operation_check_29, "submenu with no actionable descendant must explain and enforce its disabled state");
-    const bool operation_check_30 = !(*disabled_submenu_row).focusable();
+    const bool operation_check_30 = !(*disabled_submenu_row).focusable.read();
     require(operation_check_30, "submenu with no actionable descendant must explain and enforce its disabled state");
     const bool operation_check_31 = !(*disabled_submenu_row).cursor.read();
     require(operation_check_31, "submenu with no actionable descendant must explain and enforce its disabled state");
@@ -421,14 +421,14 @@ void test_item_ids_follow_the_stable_id_segment_rule() {
 
 void test_menu_strip_retained_switching_commands_and_semantics() {
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> root = make_control<TableLayoutPanelCompat>(StableId("menustrip.root"));
-    (*root).set_column_count(1U);
-    (*root).set_row_count(2U);
+    (*root).column_count = 1U;
+    (*root).row_count = 2U;
     (*root).set_column_style(0U, {TableSizeMode::percent, 1.0});
     (*root).set_row_style(0U, {TableSizeMode::absolute, 24.0});
     (*root).set_row_style(1U, {TableSizeMode::percent, 1.0});
     std::shared_ptr<gui_forms::MenuStrip> strip = make_control<MenuStrip>(StableId("menustrip"));
-    (*strip).set_item_padding(18.0);
-    require((*strip).item_padding() == 18.0,
+    (*strip).item_padding = 18.0;
+    require((*strip).item_padding.read() == 18.0,
             "MenuStrip must retain explicit top-level item padding");
     std::shared_ptr<gui_forms::Panel> content = make_control<Panel>(StableId("menustrip.content"));
     (*root).add_child(strip);
@@ -448,8 +448,8 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
             {"view.details", MenuItemKind::radio, details},
         }},
     });
-    (*strip).set_selected_item_id("menustrip.view");
-    require((*strip).selected_item_id() == "menustrip.view",
+    (*strip).selected_item_id = std::string("menustrip.view");
+    require((*strip).selected_item_id.read() == "menustrip.view",
             "MenuStrip must retain one selected command category independently of overlay state");
     Window window(root, {420.0, 240.0});
 
@@ -570,14 +570,14 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
             {"view.icons", MenuItemKind::radio, icons},
         }},
     });
-    require((*strip).selected_item_id() == "menustrip.view",
+    require((*strip).selected_item_id.read() == "menustrip.view",
             "MenuStrip model replacement must retain a still-visible selected stable identity");
     (*strip).set_items({
         {"menustrip.file", "File", {
             {"file.open", MenuItemKind::command, open},
         }},
     });
-    require((*strip).selected_item_id().empty(),
+    require((*strip).selected_item_id.read().empty(),
             "MenuStrip model replacement must clear a selected identity that no longer exists");
     bool hidden_selection_rejected{};
     try {
@@ -586,7 +586,7 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
                 {"file.open", MenuItemKind::command, open},
             }, true, false},
         });
-        (*strip).set_selected_item_id("menustrip.file");
+        (*strip).selected_item_id = std::string("menustrip.file");
     } catch (const std::out_of_range&) {
         hidden_selection_rejected = true;
     }
@@ -660,7 +660,7 @@ void test_menu_mnemonics_strip_markers_and_overlay_activation() {
     const bool operation_check_76 = !overlay.is_open();
     require(operation_check_76, "an active overlay mnemonic must execute through shared command authority");
 
-    (*strip).set_use_mnemonic(false);
+    (*strip).use_mnemonic = false;
     const bool operation_check_77 = !window.dispatch_key(alt_f);
     require(operation_check_77, "UseMnemonic false must leave the ampersand literal and revoke activation");
 }
@@ -767,18 +767,18 @@ void test_menu_font_controls_geometry_paint_and_hit_testing() {
         {"font.first", "First", {{"first.open", MenuItemKind::command, command}}},
         {"font.second", "Second", {{"second.open", MenuItemKind::command, command}}},
     });
-    require((*strip).font() == FontSpec{FontRole::control, 10.5, 400, false, 0.12},
+    require((*strip).font.read() == FontSpec{FontRole::control, 10.5, 400, false, 0.12},
             "menu font must retain its existing default");
     Window window(strip, {600.0, 80.0});
     window.set_text_metrics_provider(&metrics);
     window.perform_layout();
     const double old_width = (*strip).semantic_virtual_children().front().bounds.width;
     const FontSpec chosen{FontRole::content, 20.0, 800, true, 1.0};
-    (*strip).set_font(chosen);
-    (*strip).set_selected_item_id("font.first");
+    (*strip).font = chosen;
+    (*strip).selected_item_id = std::string("font.first");
     window.perform_layout();
     const std::vector<SemanticNode> nodes = (*strip).semantic_virtual_children();
-    require((*strip).font() == chosen && nodes.front().bounds.width == 127.0 &&
+    require((*strip).font.read() == chosen && nodes.front().bounds.width == 127.0 &&
                 nodes.front().bounds.width > old_width &&
                 (*strip).measure({600.0, 100.0}).height == 40.0,
             "menu measurement and semantic bounds must use the chosen font metrics");
@@ -804,17 +804,17 @@ void test_menu_font_controls_geometry_paint_and_hit_testing() {
         FontSpec malformed = chosen;
         malformed.size = size;
         bool rejected{};
-        try { (*strip).set_font(malformed); }
+        try { (*strip).font = malformed; }
         catch (const std::invalid_argument&) { rejected = true; }
-        require(rejected && (*strip).font() == chosen,
+        require(rejected && (*strip).font.read() == chosen,
                 "invalid menu font sizes must preserve the previous typography");
     }
     FontSpec malformed = chosen;
     malformed.letter_spacing = std::numeric_limits<double>::quiet_NaN();
     bool rejected{};
-    try { (*strip).set_font(malformed); }
+    try { (*strip).font = malformed; }
     catch (const std::invalid_argument&) { rejected = true; }
-    require(rejected && (*strip).font() == chosen,
+    require(rejected && (*strip).font.read() == chosen,
             "invalid menu tracking must be rejected without mutation");
 }
 

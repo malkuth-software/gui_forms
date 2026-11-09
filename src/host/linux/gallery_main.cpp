@@ -9,6 +9,9 @@
 #include <utility>
 
 int main(int argc, char** argv) {
+    // The program's application before anything else (APP_WINDOW_RULES_DESIGN
+    // A.5): the Gallery window joins it and takes the theme it sets.
+    const std::unique_ptr<gui_forms::Application> application = gui_forms::gallery::create_gallery_application();
     const std::optional<gui_forms::demo::ProgramOptions> program =
         gui_forms::demo::parse_program_options(argc, argv);
     if (!program) return 2;

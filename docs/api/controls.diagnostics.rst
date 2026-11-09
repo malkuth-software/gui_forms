@@ -42,6 +42,16 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`EasingPreview::States <gui_forms::EasingPreview::States>`
      -  
+   * - :cpp:class:`EasingPreviewCapabilities <gui_forms::EasingPreviewCapabilities>`
+     - Every EasingPreview capability, in the order the declaring class takes them.
+   * - :cpp:class:`EasingPreviewMarkerSizeCapability <gui_forms::EasingPreviewMarkerSizeCapability>`
+     - The markers' size, 4 to 48 pixels (else std::invalid_argument).
+   * - :cpp:class:`EasingPreviewMotionPolicyCapability <gui_forms::EasingPreviewMotionPolicyCapability>`
+     - Whether the preview moves; a change pauses or resumes a started timeline.
+   * - :cpp:class:`EasingPreviewSpecificationCapability <gui_forms::EasingPreviewSpecificationCapability>`
+     - The animation the tracks show; a started preview restarts from it.
+   * - :cpp:class:`EasingPreviewTitleCapability <gui_forms::EasingPreviewTitleCapability>`
+     - The heading painted above the tracks.
    * - :cpp:class:`EasingPreviewTrack <gui_forms::EasingPreviewTrack>`
      - EasingPreviewTrack is one caller-authored easing comparison row: exact curve, label, and marker color.
    * - :cpp:class:`Metrics <gui_forms::Metrics>`
@@ -52,10 +62,26 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`MetricsView::States <gui_forms::MetricsView::States>`
      -  
+   * - :cpp:class:`MetricsViewAccentWidthCapability <gui_forms::MetricsViewAccentWidthCapability>`
+     - The width of the accent bar at the leading edge, 1 to 32 (default 5).
+   * - :cpp:class:`MetricsViewCapabilities <gui_forms::MetricsViewCapabilities>`
+     - Every MetricsView capability, in the order the declaring class takes them.
+   * - :cpp:class:`MetricsViewTitleCapability <gui_forms::MetricsViewTitleCapability>`
+     - The heading painted above the metrics; it is also the accessible name.
    * - :cpp:class:`TypographySpecimen::Parts <gui_forms::TypographySpecimen::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`TypographySpecimen::States <gui_forms::TypographySpecimen::States>`
      -  
+   * - :cpp:class:`TypographySpecimenCapabilities <gui_forms::TypographySpecimenCapabilities>`
+     - Every TypographySpecimen capability, in the order the declaring class takes them.
+   * - :cpp:class:`TypographySpecimenCaptionCapability <gui_forms::TypographySpecimenCaptionCapability>`
+     - The line under the run that names its font.
+   * - :cpp:class:`TypographySpecimenDiagnosticsVisibleCapability <gui_forms::TypographySpecimenDiagnosticsVisibleCapability>`
+     - Whether the line box, baseline and provider status are drawn.
+   * - :cpp:class:`TypographySpecimenFontCapability <gui_forms::TypographySpecimenFontCapability>`
+     - The FontSpec the run is committed with; must be valid (std::invalid_argument).
+   * - :cpp:class:`TypographySpecimenWrapTextCapability <gui_forms::TypographySpecimenWrapTextCapability>`
+     - Whether the run wraps at the specimen's width.
    * - :cpp:class:`VisualControlInspection <gui_forms::VisualControlInspection>`
      -  
    * - :cpp:class:`VisualControlLayoutSnapshot <gui_forms::VisualControlLayoutSnapshot>`
@@ -70,10 +96,18 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`VisualInspectorOverlay::States <gui_forms::VisualInspectorOverlay::States>`
      -  
+   * - :cpp:class:`VisualInspectorOverlayCapabilities <gui_forms::VisualInspectorOverlayCapabilities>`
+     - Every VisualInspectorOverlay capability, in the order the declaring class takes them.
+   * - :cpp:class:`VisualInspectorOverlayTargetStableIdCapability <gui_forms::VisualInspectorOverlayTargetStableIdCapability>`
+     - The stable ID of the control the overlay outlines; empty for none.
    * - :cpp:class:`VisualInspectorView::Parts <gui_forms::VisualInspectorView::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`VisualInspectorView::States <gui_forms::VisualInspectorView::States>`
      -  
+   * - :cpp:class:`VisualInspectorViewCapabilities <gui_forms::VisualInspectorViewCapabilities>`
+     - Every VisualInspectorView capability, in the order the declaring class takes them.
+   * - :cpp:class:`VisualInspectorViewTargetStableIdCapability <gui_forms::VisualInspectorViewTargetStableIdCapability>`
+     - The stable ID of the control the view inspects; empty for none.
    * - :cpp:class:`VisualPaintOperationSnapshot <gui_forms::VisualPaintOperationSnapshot>`
      - One immutable, backend-neutral record from the last committed display chunk.
 
@@ -108,6 +142,101 @@ Related types
    .. cpp:member:: bool focused
 
    .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> EasingPreviewCapabilities : public EasingPreviewTitleCapability<Declaring>, public EasingPreviewSpecificationCapability<Declaring>, public EasingPreviewMotionPolicyCapability<Declaring>, public EasingPreviewMarkerSizeCapability<Declaring>
+
+   ``#include <gui_forms/controls/easing_preview/easing_preview_capabilities/easing_preview_capabilities.hpp>``
+
+   Every EasingPreview capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string title
+
+      The heading painted above the tracks.
+
+   .. cpp:member:: AnimationSpec specification
+
+      The animation the tracks show; a started preview restarts from it. A view onto the preview's timeline.
+
+   .. cpp:member:: MotionPolicy motion_policy
+
+      Whether the preview moves; a change pauses or resumes a started timeline. A view onto the preview's policy.
+
+   .. cpp:member:: double marker_size
+
+      The markers' size, 4 to 48 pixels (else std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> EasingPreviewMarkerSizeCapability
+
+   ``#include <gui_forms/controls/easing_preview/easing_preview_capabilities/easing_preview_capabilities.hpp>``
+
+   The markers' size, 4 to 48 pixels (else std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(EasingPreviewMarkerSizeCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, EasingPreviewMarkerSizeCapability<Declaring>> marker_size
+
+      Default: ``{14.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> EasingPreviewMotionPolicyCapability
+
+   ``#include <gui_forms/controls/easing_preview/easing_preview_capabilities/easing_preview_capabilities.hpp>``
+
+   Whether the preview moves; a change pauses or resumes a started timeline. A view onto the preview's policy.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(EasingPreviewMotionPolicyCapability& capability, MotionPolicy incoming)
+
+   .. cpp:function:: static MotionPolicy read(const EasingPreviewMotionPolicyCapability& capability)
+
+   .. cpp:member:: PropertyView<MotionPolicy, EasingPreviewMotionPolicyCapability<Declaring>> motion_policy
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> EasingPreviewSpecificationCapability
+
+   ``#include <gui_forms/controls/easing_preview/easing_preview_capabilities/easing_preview_capabilities.hpp>``
+
+   The animation the tracks show; a started preview restarts from it. A view onto the preview's timeline.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(EasingPreviewSpecificationCapability& capability, AnimationSpec incoming)
+
+   .. cpp:function:: static AnimationSpec read(const EasingPreviewSpecificationCapability& capability)
+
+   .. cpp:member:: PropertyView<AnimationSpec, EasingPreviewSpecificationCapability<Declaring>> specification
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> EasingPreviewTitleCapability
+
+   ``#include <gui_forms/controls/easing_preview/easing_preview_capabilities/easing_preview_capabilities.hpp>``
+
+   The heading painted above the tracks.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(EasingPreviewTitleCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, EasingPreviewTitleCapability<Declaring>> title
+
+      Default: ``{std::string("Animation timeline and easing")}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -678,6 +807,57 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> MetricsViewAccentWidthCapability
+
+   ``#include <gui_forms/controls/metrics_view/metrics_view_capabilities/metrics_view_capabilities.hpp>``
+
+   The width of the accent bar at the leading edge, 1 to 32 (default 5). A value outside that range throws std::invalid_argument and changes nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MetricsViewAccentWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, MetricsViewAccentWidthCapability<Declaring>> accent_width
+
+      Default: ``{5.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MetricsViewCapabilities : public MetricsViewTitleCapability<Declaring>, public MetricsViewAccentWidthCapability<Declaring>
+
+   ``#include <gui_forms/controls/metrics_view/metrics_view_capabilities/metrics_view_capabilities.hpp>``
+
+   Every MetricsView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string title
+
+      The heading painted above the metrics; it is also the accessible name.
+
+   .. cpp:member:: double accent_width
+
+      The width of the accent bar at the leading edge, 1 to 32 (default 5). A value outside that range throws std::invalid_argument and changes nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MetricsViewTitleCapability
+
+   ``#include <gui_forms/controls/metrics_view/metrics_view_capabilities/metrics_view_capabilities.hpp>``
+
+   The heading painted above the metrics; it is also the accessible name.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MetricsViewTitleCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, MetricsViewTitleCapability<Declaring>> title
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TypographySpecimen::Parts final
 
    ``#include <gui_forms/controls/typography_specimen/typography_specimen.hpp>``
@@ -707,6 +887,103 @@ Related types
    .. cpp:member:: bool focused
 
    .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TypographySpecimenCapabilities : public TextCapability<Declaring>, public TypographySpecimenFontCapability<Declaring>, public TypographySpecimenCaptionCapability<Declaring>, public TypographySpecimenDiagnosticsVisibleCapability<Declaring>, public TypographySpecimenWrapTextCapability<Declaring>
+
+   ``#include <gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp>``
+
+   Every TypographySpecimen capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The text the control shows (Text).
+
+   .. cpp:member:: FontSpec font
+
+      The FontSpec the run is committed with; must be valid (std::invalid_argument).
+
+   .. cpp:member:: std::string caption
+
+      The line under the run that names its font.
+
+   .. cpp:member:: bool diagnostics_visible
+
+      Whether the line box, baseline and provider status are drawn.
+
+   .. cpp:member:: bool wrap_text
+
+      Whether the run wraps at the specimen's width.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TypographySpecimenCaptionCapability
+
+   ``#include <gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp>``
+
+   The line under the run that names its font.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TypographySpecimenCaptionCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, TypographySpecimenCaptionCapability<Declaring>> caption
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TypographySpecimenDiagnosticsVisibleCapability
+
+   ``#include <gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp>``
+
+   Whether the line box, baseline and provider status are drawn.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TypographySpecimenDiagnosticsVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TypographySpecimenDiagnosticsVisibleCapability<Declaring>> diagnostics_visible
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TypographySpecimenFontCapability
+
+   ``#include <gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp>``
+
+   The FontSpec the run is committed with; must be valid (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TypographySpecimenFontCapability& capability, FontSpec incoming)
+
+   .. cpp:member:: PropertyCell<FontSpec, TypographySpecimenFontCapability<Declaring>> font
+
+      Default: ``{FontSpec{FontRole::content, 12.0, 400, false}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TypographySpecimenWrapTextCapability
+
+   ``#include <gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp>``
+
+   Whether the run wraps at the specimen's width.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TypographySpecimenWrapTextCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TypographySpecimenWrapTextCapability<Declaring>> wrap_text
+
+      Default: ``{false}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -966,6 +1243,38 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> VisualInspectorOverlayCapabilities : public VisualInspectorOverlayTargetStableIdCapability<Declaring>
+
+   ``#include <gui_forms/controls/visual_inspector_view/visual_inspector_overlay_capabilities/visual_inspector_overlay_capabilities.hpp>``
+
+   Every VisualInspectorOverlay capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string target_stable_id
+
+      The stable ID of the control the overlay outlines; empty for none.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> VisualInspectorOverlayTargetStableIdCapability
+
+   ``#include <gui_forms/controls/visual_inspector_view/visual_inspector_overlay_capabilities/visual_inspector_overlay_capabilities.hpp>``
+
+   The stable ID of the control the overlay outlines; empty for none.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(VisualInspectorOverlayTargetStableIdCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, VisualInspectorOverlayTargetStableIdCapability<Declaring>> target_stable_id
+
+      Default: ``{std::string{}}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: VisualInspectorView::Parts final
 
    ``#include <gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp>``
@@ -997,6 +1306,38 @@ Related types
    .. cpp:member:: bool focused
 
    .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> VisualInspectorViewCapabilities : public VisualInspectorViewTargetStableIdCapability<Declaring>
+
+   ``#include <gui_forms/controls/visual_inspector_view/visual_inspector_view_capabilities/visual_inspector_view_capabilities.hpp>``
+
+   Every VisualInspectorView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string target_stable_id
+
+      The stable ID of the control the view inspects; empty for none.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> VisualInspectorViewTargetStableIdCapability
+
+   ``#include <gui_forms/controls/visual_inspector_view/visual_inspector_view_capabilities/visual_inspector_view_capabilities.hpp>``
+
+   The stable ID of the control the view inspects; empty for none.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(VisualInspectorViewTargetStableIdCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, VisualInspectorViewTargetStableIdCapability<Declaring>> target_stable_id
+
+      Default: ``{std::string{}}``.
 
 .. cpp:namespace:: gui_forms
 

@@ -7,17 +7,17 @@ gui_forms::NumericUpDown
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: NumericUpDown final : public Panel
+.. cpp:class:: NumericUpDown final : public Panel, public NumericUpDownCapabilities<NumericUpDown>
 
    ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp>``
 
    A text field for a number, with up and down buttons that step it.
 
-   A numeric up-down shows its :cpp:func:`value <gui_forms::NumericUpDown::value>` in an :cpp:func:`editor <gui_forms::NumericUpDown::editor>` text box beside a pair of
+   A numeric up-down shows its :cpp:member:`value <gui_forms::NumericUpDown::value>` in an :cpp:func:`editor <gui_forms::NumericUpDown::editor>` text box beside a pair of
    spin buttons. The user types a number, clicks the upper or lower button,
    presses Up or Down, or turns the mouse wheel; every step adds or subtracts
-   :cpp:func:`increment <gui_forms::NumericUpDown::increment>` and stays within :cpp:func:`minimum <gui_forms::NumericUpDown::minimum>` and :cpp:func:`maximum <gui_forms::NumericUpDown::maximum>`. The value can be shown
-   with a fixed number of :cpp:func:`decimal_places <gui_forms::NumericUpDown::decimal_places>` or in :cpp:func:`hexadecimal <gui_forms::NumericUpDown::hexadecimal>`. Use a
+   :cpp:member:`increment <gui_forms::NumericUpDown::increment>` and stays within :cpp:member:`minimum <gui_forms::NumericUpDown::minimum>` and :cpp:member:`maximum <gui_forms::NumericUpDown::maximum>`. The value can be shown
+   with a fixed number of :cpp:member:`decimal_places <gui_forms::NumericUpDown::decimal_places>` or in :cpp:member:`hexadecimal <gui_forms::NumericUpDown::hexadecimal>`. Use a
    :cpp:class:`TrackBar <gui_forms::TrackBar>` instead when the position within the range matters more than the
    exact number.
 
@@ -32,17 +32,23 @@ gui_forms::NumericUpDown
 
    :Properties:
 
-      **minimum** : ``double``, default ``0``, read-only
-         The lowest value. Set it together with :cpp:func:`maximum <gui_forms::NumericUpDown::maximum>` through :cpp:func:`set_range <gui_forms::NumericUpDown::set_range>`.
-
-      **maximum** : ``double``, default ``100``, read-only
-         The highest value. Set it together with :cpp:func:`minimum <gui_forms::NumericUpDown::minimum>` through :cpp:func:`set_range <gui_forms::NumericUpDown::set_range>`.
-
       **value** : ``double``, default ``0``
-         The current number. :cpp:func:`set_value <gui_forms::NumericUpDown::set_value>` does not clamp: a value outside the
+         The current number. A write does not clamp: a value outside the
          range, or one that is not finite, throws ``std::out_of_range``. The value
-         keeps its full precision; :cpp:func:`decimal_places <gui_forms::NumericUpDown::decimal_places>` and :cpp:func:`hexadecimal <gui_forms::NumericUpDown::hexadecimal>` only change
+         keeps its full precision; :cpp:member:`decimal_places <gui_forms::NumericUpDown::decimal_places>` and :cpp:member:`hexadecimal <gui_forms::NumericUpDown::hexadecimal>` only change
          how it is shown.
+
+      **minimum** : ``double``, default ``0``
+         The lowest value. A minimum above :cpp:member:`maximum <gui_forms::NumericUpDown::maximum>` raises :cpp:member:`maximum <gui_forms::NumericUpDown::maximum>` to it, and
+         a value below the new minimum is clamped into the range, raising
+         :cpp:func:`value_changed <gui_forms::NumericUpDown::value_changed>`. A number that is not finite throws
+         ``std::invalid_argument``.
+
+      **maximum** : ``double``, default ``100``
+         The highest value. A maximum below :cpp:member:`minimum <gui_forms::NumericUpDown::minimum>` lowers :cpp:member:`minimum <gui_forms::NumericUpDown::minimum>` to it, and
+         a value above the new maximum is clamped into the range, raising
+         :cpp:func:`value_changed <gui_forms::NumericUpDown::value_changed>`. A number that is not finite throws
+         ``std::invalid_argument``.
 
       **increment** : ``double``, default ``1``
          The amount one step adds or subtracts. It must be finite and greater than
@@ -51,13 +57,13 @@ gui_forms::NumericUpDown
       **decimal_places** : ``std::uint8_t``, default ``0``
          How many digits are shown after the decimal point, from 0 to 12; a larger
          number throws ``std::invalid_argument``. Setting a nonzero number turns
-         :cpp:func:`hexadecimal <gui_forms::NumericUpDown::hexadecimal>` off.
+         :cpp:member:`hexadecimal <gui_forms::NumericUpDown::hexadecimal>` off.
 
       **hexadecimal** : ``bool``, default ``false``
          Whether the value is shown as an upper-case hexadecimal whole number,
          and typed text is read as hexadecimal. The shown number is the value
          rounded to the nearest whole number. Turning it on sets
-         :cpp:func:`decimal_places <gui_forms::NumericUpDown::decimal_places>` to 0.
+         :cpp:member:`decimal_places <gui_forms::NumericUpDown::decimal_places>` to 0.
 
       **button_width** : ``double``, default ``18``
          The width of the spin buttons, from 12 to 64; a width outside that range,
@@ -74,7 +80,7 @@ gui_forms::NumericUpDown
    :Events:
 
       **value_changed** : ``Event<double>``
-         Raised after :cpp:func:`value <gui_forms::NumericUpDown::value>` changes, whatever the cause: a setter, a range
+         Raised after :cpp:member:`value <gui_forms::NumericUpDown::value>` changes, whatever the cause: a setter, a range
          change that clamps the value, a step, or typing. It carries the new
          value.
 
@@ -82,7 +88,7 @@ gui_forms::NumericUpDown
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -94,8 +100,10 @@ gui_forms::NumericUpDown
 
       * - :cpp:func:`initialize_control_tree <gui_forms::NumericUpDown::initialize_control_tree>`
         - Creates the editor and the spin buttons.
+      * - :cpp:func:`numeric_up_down_property_entries <gui_forms::NumericUpDown::numeric_up_down_property_entries>`
+        -  
       * - :cpp:func:`set_range <gui_forms::NumericUpDown::set_range>`
-        - Sets :cpp:func:`minimum <gui_forms::NumericUpDown::minimum>` and :cpp:func:`maximum <gui_forms::NumericUpDown::maximum>` together.
+        - Sets :cpp:member:`minimum <gui_forms::NumericUpDown::minimum>` and :cpp:member:`maximum <gui_forms::NumericUpDown::maximum>` together.
 
    .. seealso::
 
@@ -123,7 +131,7 @@ gui_forms::NumericUpDown
    value shown rounded, such as 1.2345 with two decimal places, becomes the
    rounded number 1.23 when the user presses Enter.
 
-   Up and Down step by :cpp:func:`increment <gui_forms::NumericUpDown::increment>` even while the editor has focus. A click on
+   Up and Down step by :cpp:member:`increment <gui_forms::NumericUpDown::increment>` even while the editor has focus. A click on
    the upper half of the spin buttons steps up and a click on the lower half
    steps down; the buttons do not repeat while held. Turning the mouse wheel
    up anywhere over the control steps up, and turning it down steps down. A
@@ -153,8 +161,8 @@ gui_forms::NumericUpDown
       std::shared_ptr<gf::NumericUpDown> zoom =
           gf::make_control<gf::NumericUpDown>(gf::StableId("view.zoom"));
       (*zoom).set_range(25.0, 400.0);
-      (*zoom).set_increment(25.0);
-      (*zoom).set_value(100.0);   // the editor shows "100"
+      (*zoom).increment = 25.0;
+      (*zoom).value = 100.0;   // the editor shows "100"
 
    Show two decimal places and follow the value from an owner. The Up key steps
    the value while the editor has focus:
@@ -168,8 +176,8 @@ gui_forms::NumericUpDown
 
           PageSetup() {
               (*margin).set_range(0.0, 3.0);
-              (*margin).set_increment(0.25);
-              (*margin).set_decimal_places(2U);
+              (*margin).increment = 0.25;
+              (*margin).decimal_places = 2U;
               gf::on((*margin).value_changed(), *this, &PageSetup::on_margin);
           }
           void on_margin(double value) { inches = value; }
@@ -177,7 +185,7 @@ gui_forms::NumericUpDown
 
       void example() {
           PageSetup setup;
-          (*setup.margin).set_value(1.25);   // the editor shows "1.25"
+          (*setup.margin).value = 1.25;   // the editor shows "1.25"
           (*setup.margin).set_requested_bounds({0.0, 0.0, 120.0, 28.0});
           gf::Window window(setup.margin, {120.0, 28.0});
           window.perform_layout();
@@ -194,63 +202,49 @@ gui_forms::NumericUpDown
 
    .. rubric:: Properties
 
-   .. cpp:function:: double minimum() const noexcept
+   .. cpp:member:: double value
 
-      The lowest value. Set it together with :cpp:func:`maximum <gui_forms::NumericUpDown::maximum>` through :cpp:func:`set_range <gui_forms::NumericUpDown::set_range>`.
-
-   .. cpp:function:: double maximum() const noexcept
-
-      The highest value. Set it together with :cpp:func:`minimum <gui_forms::NumericUpDown::minimum>` through :cpp:func:`set_range <gui_forms::NumericUpDown::set_range>`.
-
-   .. cpp:function:: double value() const noexcept
-
-      The current number. :cpp:func:`set_value <gui_forms::NumericUpDown::set_value>` does not clamp: a value outside the
+      The current number. A write does not clamp: a value outside the
       range, or one that is not finite, throws ``std::out_of_range``. The value
-      keeps its full precision; :cpp:func:`decimal_places <gui_forms::NumericUpDown::decimal_places>` and :cpp:func:`hexadecimal <gui_forms::NumericUpDown::hexadecimal>` only change
+      keeps its full precision; :cpp:member:`decimal_places <gui_forms::NumericUpDown::decimal_places>` and :cpp:member:`hexadecimal <gui_forms::NumericUpDown::hexadecimal>` only change
       how it is shown.
 
-   .. cpp:function:: void set_value(double value)
+   .. cpp:member:: double minimum
 
-      Sets :cpp:func:`value <gui_forms::NumericUpDown::value>`; see the property's description above.
+      The lowest value. A minimum above :cpp:member:`maximum <gui_forms::NumericUpDown::maximum>` raises :cpp:member:`maximum <gui_forms::NumericUpDown::maximum>` to it, and
+      a value below the new minimum is clamped into the range, raising
+      :cpp:func:`value_changed <gui_forms::NumericUpDown::value_changed>`. A number that is not finite throws
+      ``std::invalid_argument``.
 
-   .. cpp:function:: double increment() const noexcept
+   .. cpp:member:: double maximum
+
+      The highest value. A maximum below :cpp:member:`minimum <gui_forms::NumericUpDown::minimum>` lowers :cpp:member:`minimum <gui_forms::NumericUpDown::minimum>` to it, and
+      a value above the new maximum is clamped into the range, raising
+      :cpp:func:`value_changed <gui_forms::NumericUpDown::value_changed>`. A number that is not finite throws
+      ``std::invalid_argument``.
+
+   .. cpp:member:: double increment
 
       The amount one step adds or subtracts. It must be finite and greater than
       zero, or the setter throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_increment(double increment)
-
-      Sets :cpp:func:`increment <gui_forms::NumericUpDown::increment>`; see the property's description above.
-
-   .. cpp:function:: std::uint8_t decimal_places() const noexcept
+   .. cpp:member:: std::uint8_t decimal_places
 
       How many digits are shown after the decimal point, from 0 to 12; a larger
       number throws ``std::invalid_argument``. Setting a nonzero number turns
-      :cpp:func:`hexadecimal <gui_forms::NumericUpDown::hexadecimal>` off.
+      :cpp:member:`hexadecimal <gui_forms::NumericUpDown::hexadecimal>` off.
 
-   .. cpp:function:: void set_decimal_places(std::uint8_t places)
-
-      Sets :cpp:func:`decimal_places <gui_forms::NumericUpDown::decimal_places>`; see the property's description above.
-
-   .. cpp:function:: bool hexadecimal() const noexcept
+   .. cpp:member:: bool hexadecimal
 
       Whether the value is shown as an upper-case hexadecimal whole number,
       and typed text is read as hexadecimal. The shown number is the value
       rounded to the nearest whole number. Turning it on sets
-      :cpp:func:`decimal_places <gui_forms::NumericUpDown::decimal_places>` to 0.
+      :cpp:member:`decimal_places <gui_forms::NumericUpDown::decimal_places>` to 0.
 
-   .. cpp:function:: void set_hexadecimal(bool hexadecimal)
-
-      Sets :cpp:func:`hexadecimal <gui_forms::NumericUpDown::hexadecimal>`; see the property's description above.
-
-   .. cpp:function:: double button_width() const noexcept
+   .. cpp:member:: double button_width
 
       The width of the spin buttons, from 12 to 64; a width outside that range,
       or one that is not finite, throws ``std::out_of_range``.
-
-   .. cpp:function:: void set_button_width(double width)
-
-      Sets :cpp:func:`button_width <gui_forms::NumericUpDown::button_width>`; see the property's description above.
 
    .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
 
@@ -266,7 +260,7 @@ gui_forms::NumericUpDown
 
    .. cpp:function:: Event<double>& value_changed() noexcept
 
-      Raised after :cpp:func:`value <gui_forms::NumericUpDown::value>` changes, whatever the cause: a setter, a range
+      Raised after :cpp:member:`value <gui_forms::NumericUpDown::value>` changes, whatever the cause: a setter, a range
       change that clamps the value, a step, or typing. It carries the new
       value.
 
@@ -278,10 +272,12 @@ gui_forms::NumericUpDown
       Creates the editor and the spin buttons. ``make_control`` calls it; do not
       call it yourself.
 
-   .. cpp:function:: void set_range(double minimum, double maximum)
+   .. cpp:function:: static const std::array<PropertyEntry, numeric_up_down_property_count>& numeric_up_down_property_entries() noexcept
 
-      Sets :cpp:func:`minimum <gui_forms::NumericUpDown::minimum>` and :cpp:func:`maximum <gui_forms::NumericUpDown::maximum>` together. Both must be finite and :cpp:func:`minimum <gui_forms::NumericUpDown::minimum>`
-      may not exceed :cpp:func:`maximum <gui_forms::NumericUpDown::maximum>`, or it throws ``std::invalid_argument``; a range
+   .. cpp:function:: void set_range(double lowest, double highest)
+
+      Sets :cpp:member:`minimum <gui_forms::NumericUpDown::minimum>` and :cpp:member:`maximum <gui_forms::NumericUpDown::maximum>` together. Both must be finite and :cpp:member:`minimum <gui_forms::NumericUpDown::minimum>`
+      may not exceed :cpp:member:`maximum <gui_forms::NumericUpDown::maximum>`, or it throws ``std::invalid_argument``; a range
       of a single number is allowed. A value outside the new range is clamped
       into it and :cpp:func:`value_changed <gui_forms::NumericUpDown::value_changed>` is raised.
 
@@ -290,13 +286,17 @@ gui_forms::NumericUpDown
 
    .. cpp:function:: void arrange(Rect final_bounds) override
 
+   .. cpp:function:: void on_paint_overlay(Painter& painter, Rect local_damage) override
+
+      The scroll bars, then the spin column's halves as this control's arrow and glyph parts.
+
    .. cpp:function:: void on_key_preview(KeyEvent& event) override
 
    .. cpp:function:: void on_pointer_preview(PointerEvent& event) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
-   .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value) override
+   .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value_text) override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
@@ -310,6 +310,18 @@ gui_forms::NumericUpDown
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:function:: virtual void on_value_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+   .. cpp:member:: constexpr std::size_t numeric_up_down_property_count
+
+      NumericUpDown's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.

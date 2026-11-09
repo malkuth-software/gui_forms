@@ -1,0 +1,280 @@
+{
+  "family": "MaskedTextBox",
+  "step": "B3",
+  "declaring": "MaskedTextBox",
+  "header": "include/gui_forms/controls/panel/masked_text_box/masked_text_box.hpp",
+  "source": "src/controls/panel/masked_text_box/masked_text_box.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.hpp"
+  ],
+  "properties": [
+    {
+      "name": "mask",
+      "capability": "MaskedTextBoxMask",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The mask (Mask); a view onto the provider. A new mask keeps as much of the text as it takes (the assigned characters, without prompts or literals, placed again from the first position), or starts empty, and raises mask_changed. Throws std::invalid_argument for an invalid mask (MaskedTextProvider).",
+      "getter": "mask",
+      "setter": "set_mask",
+      "clear": null,
+      "field": null,
+      "event": "mask_changed_",
+      "on_changed": true,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto provider_: write_view replaces the provider with this box's settings, keeps what text it can and raises mask_changed"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "culture",
+      "capability": "MaskedTextBoxCulture",
+      "value": "MaskCulture",
+      "initial": null,
+      "comment": "The culture whose separators and currency symbol the mask's placeholders show (Culture); a view onto the provider. A change keeps as much of the text as the mask takes.",
+      "getter": "culture",
+      "setter": "set_culture",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto provider_: write_view replaces the provider and keeps what text it can"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "text_mask_format",
+      "capability": "MaskedTextBoxTextMaskFormat",
+      "value": "MaskTextFormat",
+      "initial": "MaskTextFormat::include_literals",
+      "comment": "What text includes (TextMaskFormat): literals, prompts, both or neither. A change raises text_changed when text changes; an unknown format throws std::invalid_argument.",
+      "getter": "text_mask_format",
+      "setter": "set_text_mask_format",
+      "clear": null,
+      "field": "text_mask_format_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare refuses an unknown format; written publishes the text if it changed"
+      ],
+      "effects": null,
+      "sample": "MaskTextFormat::exclude_prompt_and_literals"
+    },
+    {
+      "name": "prompt_character",
+      "capability": "MaskedTextBoxPromptCharacter",
+      "value": "char32_t",
+      "initial": null,
+      "comment": "The character shown in each unassigned position (PromptChar); a view onto the provider, which refuses an unusable character (std::invalid_argument).",
+      "getter": "prompt_character",
+      "setter": "set_prompt_character",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto provider_: write_view redisplays the provider"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "allow_prompt_as_input",
+      "capability": "MaskedTextBoxAllowPromptAsInput",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the prompt character is accepted as input (AllowPromptAsInput); a view onto the provider.",
+      "getter": "allow_prompt_as_input",
+      "setter": "set_allow_prompt_as_input",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto provider_"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "ascii_only",
+      "capability": "MaskedTextBoxAsciiOnly",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether letter positions take only ASCII letters (AsciiOnly); a view onto the provider.",
+      "getter": "ascii_only",
+      "setter": "set_ascii_only",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto provider_"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "skip_literals",
+      "capability": "MaskedTextBoxSkipLiterals",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether input matching a literal passes over it (SkipLiterals); a view onto the provider.",
+      "getter": "skip_literals",
+      "setter": "set_skip_literals",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto provider_"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "reset_on_prompt",
+      "capability": "MaskedTextBoxResetOnPrompt",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether typing the prompt character clears the position (ResetOnPrompt); a view onto the provider.",
+      "getter": "reset_on_prompt",
+      "setter": "set_reset_on_prompt",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto provider_"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "reset_on_space",
+      "capability": "MaskedTextBoxResetOnSpace",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether typing a space clears the position (ResetOnSpace); a view onto the provider.",
+      "getter": "reset_on_space",
+      "setter": "set_reset_on_space",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto provider_"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "reject_input_on_first_failure",
+      "capability": "MaskedTextBoxRejectInputOnFirstFailure",
+      "value": "bool",
+      "initial": null,
+      "comment": "With it off (the default), a paste keeps the characters the mask takes and reports each one it drops; with it on, one refused character refuses the whole paste (RejectInputOnFirstFailure).",
+      "getter": "reject_input_on_first_failure",
+      "setter": "set_reject_input_on_first_failure",
+      "clear": null,
+      "field": "reject_input_on_first_failure_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null
+    },
+    {
+      "name": "overwrite_mode",
+      "capability": "MaskedTextBoxOverwriteMode",
+      "value": "bool",
+      "initial": null,
+      "comment": "Typing overwrites the character at the caret instead of inserting before it (IsOverwriteMode). The Insert key toggles it. A change raises overwrite_mode_changed.",
+      "getter": "overwrite_mode",
+      "setter": "set_overwrite_mode",
+      "clear": null,
+      "field": "overwrite_mode_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written raises overwrite_mode_changed"
+      ],
+      "effects": null
+    },
+    {
+      "name": "read_only",
+      "capability": "MaskedTextBoxReadOnly",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the user may select and copy the text but not change it (ReadOnly); the editor follows.",
+      "getter": "read_only",
+      "setter": "set_read_only",
+      "clear": null,
+      "field": "read_only_",
+      "event": null,
+      "on_changed": true,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written sets the editor's read_only and invalidates paint and semantics"
+      ],
+      "effects": null
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "text / set_text",
+      "reason": "set_text reports a MaskEditResult and raises mask_input_rejected instead of throwing: an expected alternative, not a value write; the text is derived from the provider (G2)"
+    },
+    {
+      "name": "set_validator",
+      "reason": "a delegate, not a value"
+    },
+    {
+      "name": "clear",
+      "reason": "an operation on the provider"
+    }
+  ],
+  "test": {
+    "type": "MaskedTextBox",
+    "include": "gui_forms/controls/panel/masked_text_box/masked_text_box.hpp"
+  }
+}

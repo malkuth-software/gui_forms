@@ -16,7 +16,6 @@ public:
 
 private:
     void mount_document(const std::shared_ptr<Surface>& body);
-    void fill_pictures();
     void fill_primitives();
 
     // Owns the document's controls; the shell's page body holds them too once
@@ -27,7 +26,6 @@ private:
 ImagesPage::ImagesPage(const std::shared_ptr<Surface>& body) {
     document_.initialize_component(*this);
     mount_document(body);
-    fill_pictures();
     fill_primitives();
 }
 
@@ -49,21 +47,6 @@ void ImagesPage::mount_document(const std::shared_ptr<Surface>& body) {
     }
 }
 
-void ImagesPage::fill_pictures() {
-    // The test cards' grounds alternate across the sizing modes.
-    const std::array<std::shared_ptr<PictureBox>, 5> modes{
-        document_.gallery_images_picture_0, document_.gallery_images_picture_1, document_.gallery_images_picture_2,
-        document_.gallery_images_picture_3, document_.gallery_images_picture_4};
-    for (std::size_t index = 0; index < modes.size(); ++index) {
-        (*modes[index]).set_background(index % 2U == 0U ? Color::rgba(244, 247, 249) : Color::rgba(226, 234, 240));
-    }
-    const std::array<std::shared_ptr<PictureBox>, 3> opacities{
-        document_.gallery_images_opacity_0, document_.gallery_images_opacity_1, document_.gallery_images_opacity_2};
-    for (const std::shared_ptr<PictureBox>& picture : opacities) {
-        (*picture).set_background(Color::rgba(230, 236, 241));
-    }
-}
-
 void ImagesPage::fill_primitives() {
     (*document_.gallery_images_drawing_board).set_paint_callback(DrawingEffectsPaint());
 
@@ -76,9 +59,9 @@ void ImagesPage::fill_primitives() {
                                    gui_drawing::Color::from_rgb(211U, 121U, 42U));
     }
     RasterCanvas& raster = *document_.gallery_images_raster_canvas;
-    raster.set_bitmap(std::move(raster_bitmap));
-    raster.set_zoom(6.0);
-    raster.set_transparency_cell_size(8.0);
+    raster.bitmap = std::move(raster_bitmap);
+    raster.zoom = 6.0;
+    raster.transparency_cell_size = 8.0;
 }
 
 void add_images_and_drawing(const std::shared_ptr<Surface>& page,

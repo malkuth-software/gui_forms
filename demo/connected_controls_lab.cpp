@@ -41,8 +41,8 @@ std::shared_ptr<Label> label(std::string id, std::string text, FontSpec font,
                              const Color color) {
     std::shared_ptr<Label> result = make_control<Label>(
         StableId(std::move(id)), std::move(text));
-    (*result).set_font(font);
-    (*result).set_foreground(color);
+    (*result).font = font;
+    (*result).fore_color = color;
     return result;
 }
 
@@ -179,10 +179,10 @@ struct SelectTarget final {
 
     void operator()(ButtonBase&) const {
         if (const std::shared_ptr<VisualInspectorView> strong = view.lock()) {
-            (*strong).set_target_stable_id(target);
+            (*strong).target_stable_id = target;
         }
         if (const std::shared_ptr<VisualInspectorOverlay> strong = overlay.lock()) {
-            (*strong).set_target_stable_id(target);
+            (*strong).target_stable_id = target;
         }
     }
 };
@@ -265,7 +265,7 @@ std::unique_ptr<Window> make_connected_controls_lab() {
         "connected-controls.two.primary", "Move", {24.0, 181.0, 142.0, 42.0}, root);
     std::shared_ptr<DropDownButton> two_split = segment<DropDownButton>(
         "connected-controls.two.split", "Copy", {166.0, 181.0, 164.0, 42.0}, root);
-    (*two_split).set_drop_down_mode(DropDownButtonMode::split);
+    (*two_split).drop_down_mode = DropDownButtonMode::split;
     const std::array<std::shared_ptr<ButtonBase>, 2U> two_group{
         two_primary, two_split};
     connect_button_group(two_group, ConnectedControlAxis::horizontal);
@@ -276,11 +276,11 @@ std::unique_ptr<Window> make_connected_controls_lab() {
         {24.0, 239.0, 410.0, 20.0});
     std::shared_ptr<Button> three_default = segment<Button>(
         "connected-controls.three.default", "Default", {24.0, 262.0, 130.0, 42.0}, root);
-    (*three_default).set_default_button(true);
+    (*three_default).default_button = true;
     std::shared_ptr<CheckBox> three_checked = segment<CheckBox>(
         "connected-controls.three.checked", "Checked", {154.0, 262.0, 132.0, 42.0}, root);
-    (*three_checked).set_appearance(CheckBoxAppearance::button);
-    (*three_checked).set_checked(true);
+    (*three_checked).appearance = CheckBoxAppearance::button;
+    (*three_checked).checked = true;
     std::shared_ptr<Button> three_disabled = segment<Button>(
         "connected-controls.three.disabled", "Disabled", {286.0, 262.0, 138.0, 42.0}, root);
     (*three_disabled).enabled = false;
@@ -298,14 +298,14 @@ std::unique_ptr<Window> make_connected_controls_lab() {
             "connected-controls.five." + std::to_string(index),
             std::array<const char*, 4U>{"Cut", "Copy", "Paste", "Delete"}[index],
             {24.0 + static_cast<double>(index) * 112.0, 343.0, 112.0, 42.0}, root);
-        if (index == 1U) (*item).set_selected(true);
+        if (index == 1U) (*item).selected = true;
         if (index == 2U) (*item).enabled = false;
         if (index == 3U) (*item).set_visual_status(ControlVisualStatus::pending);
         five_group[index] = item;
     }
     std::shared_ptr<DropDownButton> five_menu = segment<DropDownButton>(
         "connected-controls.five.menu", "More", {472.0, 343.0, 128.0, 42.0}, root);
-    (*five_menu).set_drop_down_mode(DropDownButtonMode::menu);
+    (*five_menu).drop_down_mode = DropDownButtonMode::menu;
     five_group[4] = five_menu;
     connect_button_group(five_group, ConnectedControlAxis::horizontal);
 
@@ -319,7 +319,7 @@ std::unique_ptr<Window> make_connected_controls_lab() {
             "connected-controls.vertical." + std::to_string(index),
             std::array<const char*, 3U>{"Details", "List", "Icons"}[index],
             {642.0, 101.0 + static_cast<double>(index) * 44.0, 170.0, 44.0}, root);
-        if (index == 2U) (*item).set_selected(true);
+        if (index == 2U) (*item).selected = true;
         vertical_group[index] = item;
     }
     connect_button_group(vertical_group, ConnectedControlAxis::vertical);
@@ -378,7 +378,7 @@ std::unique_ptr<Window> make_connected_controls_lab() {
         std::shared_ptr<Button> selector = segment<Button>(
             "connected-controls.target." + std::to_string(index),
             targets[index].first, {x, y, 132.0, 30.0}, root);
-        (*selector).set_visual_style(ButtonVisualStyle::command);
+        (*selector).visual_style = ButtonVisualStyle::command;
         (*root).retain((*selector).clicked().subscribe(
             *root, SelectTarget{inspector, overlay, targets[index].second}));
     }

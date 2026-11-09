@@ -137,10 +137,10 @@ page_drag_started
     (unless the owner has already taken it) and does nothing more with the
     press; it never reorders.
 page_context_menu_requested
-    Raised when a secondary click is released over the tab it pressed (at
-    the pointer, selecting nothing) or Shift+F10 or the context-menu key is
-    pressed on the keyboard's tab (at the tab's corner on the content's side
-    where reading starts).
+    Raised on the host's context request: a pointer request over a tab asks
+    for that tab's menu (at the pointer, selecting nothing), and a keyboard
+    request for the keyboard's tab's (at the tab's corner on the content's
+    side where reading starts).
     The strip shows no menu of its own; a handler that shows one sets
     ``handled``.
 page_double_clicked
@@ -294,6 +294,6 @@ A settings strip whose arrow keys only move the focus, Space selecting:
    }
    std::shared_ptr<gf::PageStrip> strip =
        gf::make_control<gf::PageStrip>(gf::StableId("settings.tabs"), pages);
-   (*strip).set_activation(gf::PageStripActivation::manual);
+   (*strip).activation = gf::PageStripActivation::manual;
    static_cast<void>((*strip).select_relative(1, gf::PageSelectionCause::programmatic));
    // pages.selected_page() is now "settings.1", titled "&Advanced".

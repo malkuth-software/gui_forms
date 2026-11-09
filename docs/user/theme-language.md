@@ -18,11 +18,40 @@ sheets it imports (imported sheets first, as in CSS) and returns either a
 
 The sheets compile onto a built-in theme, whose recipes stand wherever they
 set nothing: `windows-professional` unless `ThemeCompileOptions::base` is
-`ThemeCompileBase::gui_forms`. Onto GUI.Forms' own theme (`gui-forms`), its
+`ThemeBase::gui_forms`. Onto GUI.Forms' own theme (`gui-forms`), its
 light sheet comes first in the cascade, so the package's rules override it
 and may read its colour roles, and its dark variant is derived by rule: the
 package's colours are written in light terms and darken by the same rule in
 a dark window, so a package on `gui-forms` writes no dark values of its own.
+
+The built-in themes are themselves sheets. `gui-forms` draws its control
+families from a floor sheet (`gui_forms_floor_sheet()`) of `:family()`
+blocks, read once into its recipes when the theme is first built. The
+familiar themes are made the same way: `familiar_theme(FamiliarTheme)`
+returns `classic` (Windows 2000 bevels), `modern-flat`, `xp-style` (Luna-like),
+`windows7-style` (Aero-like, opaque until glass arrives), each light only,
+or `macos-style` (macOS-like, light and dark: its dark colour scheme
+resolves a second floor sheet, `familiar_theme_dark_floor_sheet()`, as an
+authored dark variant), with high contrast derived as for every theme.
+Each follows its visual reference wherever the engine can express it:
+7.css (https://khang-nd.github.io/7.css/) for `windows7-style`, XP.css
+(https://botoxparty.github.io/XP.css/) for `xp-style`, Windows 2000's
+standard colour scheme and frame controls for `classic`, and Puppertino (https://puppertino.com/) for
+`macos-style`. A reference value that an enabled control would
+draw below the contrast gate is changed to meet it, and each sheet's
+comment names it. Disabled text and disabled controls' boundaries are
+exempt from the gate, as WCAG exempts inactive components, so every theme
+keeps its disabled colours. They are themes a window may
+show (`SurfaceRoot::set_theme`, or `ApplicationResources::set_theme` for every window), not bases a package compiles onto.
+
+An application's theme is the base and its packages in order:
+`compile_theme_packages` (and `ApplicationResources::compile_theme_packages`)
+compiles `ThemeCompileOptions::base`, then each package with its imports, as
+one cascade, so a later package overrides an earlier one and may read its
+colour roles. The theme is named after the last package; with no packages it
+is the base alone. While no application is current, windows show the process
+default, `default_compiled_theme()`, the base `default_theme_base` names,
+built once.
 
 - An **error** refuses the whole theme. Nothing of it is installed; the theme
   in use stays in use, and the images the refused compilation loaded are
@@ -35,7 +64,22 @@ there is one, and one detail argument.
 
 The theme in effect for a control is its own override
 (`Control::set_theme_override`), else its window's, else the program's
-(`ApplicationResources::set_theme`), else the built-in default theme.
+(`ApplicationResources::set_theme`), else the built-in default theme
+(GUI.Forms' own from 0.5).
+
+Every compiled rule keeps where it was written (`ThemeRule::provenance`):
+its layer (`ThemeLayer`: built-in, library pack, project theme, user
+theme, inline code), the pack that wrote it (its name and the SHA-256 of
+its manifest) and the file, line and column of its first token in its own
+sheet. GUI.Forms' base sheet and the packages a program's packages import
+are library packs; the program's packages are the project theme. An editor
+asks where each resolved field came from with
+`CompiledThemeRules::resolve_provenance` (a part's primitive parameters,
+material fields and recipe fields) or `Theme::provenance` (a control's
+recipe): the winning rule's layer, cascade level, selector, specificity,
+source and colour origin, or the built-in recipe where no rule set the
+field; in forced high contrast the fields the engine's pass draws are its
+own. Paint never computes provenance.
 
 ## Sheets
 
@@ -58,8 +102,13 @@ per rule, 32 levels of nesting and 4 KiB strings.
 
 ## Selectors
 
-A selector is one compound selector naming one part of one control. There
-are no combinators.
+A selector is a compound selector naming one part of one control, after
+at most eight ancestor compounds joined by the descendant combinator
+(whitespace) or the child combinator (`>`): `#settings .row > button`. An
+ancestor compound names only a control type, a stable ID and classes (or
+`*`), so a rule changes only when an ancestor's type, ID or classes do, or
+a control moves; the control's subtree is then resolved again. Ancestors
+more than 256 levels up are not matched.
 
 | Form | Example |
 |---|---|
@@ -71,20 +120,36 @@ are no combinators.
 | part role | `::role(face)` |
 | state | `:hover` `:active` `:focus` `:focus-visible` `:checked` `:indeterminate` `:disabled` `:enabled` `:read-only` `:invalid` `:open` `:default`, and every other published state as `:state(drag-proximate)` |
 | either of | `button:is(:hover, :focus-visible)::part(face)` (at most 32 arguments) |
+| either of, counting nothing | `button:where(.primary, #save)` |
+| none of | `button:not(.primary, :hover)`: compounds of types, stable IDs, classes, states and families, not nested |
+| family | `:family(accent-button)`, a control visual family: the parts a control draws for that family (`window`, `panel`, `card`, `button`, `accent-button`, `command-button`, `choice`, `editor`, `menu-item`, `selection`, `progress`, `tool-tip`, `link`, `visited-link`) |
 | selector list | `button, check-box { ... }` |
 | surface | `window`, `popup`, with the surface root's classes and stable ID: `window#settings`, `popup.alert` |
 
-`:not()`, `:where()`, `:has()`, attribute selectors, combinators and `&`
-are errors. An unknown control type, part, state or pseudo-class is a
-warning that drops the rule. Specificity counts stable IDs, then classes,
-control types, parts and states.
+`:has()`, `:nth-*()`, attribute selectors, the sibling combinators `+`
+and `~`, a combinator inside a group, and `&` are errors, as are a
+`:not()` inside a `:not()` and a part, role or surface in one. An unknown control type, part, state or pseudo-class is a
+warning that drops the rule. Specificity is CSS's: stable IDs, then
+classes and states (pseudo-classes) together, then control types and parts
+(the part's name and role, as pseudo-elements). `:family()` counts as a
+pseudo-class, `:is()` and `:not()` as their most specific argument and
+`:where()` as nothing. So `button:hover` beats `.primary`, as in CSS.
+A control's fonts are resolved for no family, so a font property in a
+`:family()` rule is a warning that drops it.
+
+A package compiled onto the GUI.Forms base (`ThemeBase::gui_forms`) sits
+above the base sheet as CSS's author origin sits above the user-agent
+origin: every rule of the package beats every rule of the base, whatever
+the specificity, and the base's `!important` declarations lose to the
+package's. The base alone is the program's own sheet.
 
 `window` and `popup` select a surface, not a control: a top-level window,
 an owned window or a floating panel in its own window is a `window`; a
 native popup window (an alert-like owned window, such as a task dialog's or
 a font dialog's panel) is a `popup`. Menus, drop-downs and tooltips are
-overlays: GUI.Forms draws them in the surface's own pixels, so ordinary
-control rules style them and they take no backdrop. Their classes and stable ID
+their owner's controls, painted by the owner whether they show as overlays
+or in Popup and Splash windows, so ordinary control rules style them and
+they take no backdrop. Their classes and stable ID
 are the surface root control's. A surface selector takes no control type,
 part, role or state, and a surface rule holds `backdrop` alone (any other
 property is a warning). A surface selector counts as a control type in
@@ -147,14 +212,24 @@ only material fields selects the `material` primitive.
 
 | Area | Properties |
 |---|---|
-| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` forms, images), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position` |
-| borders | `border`, `border-<edge>`, `border-width`, `border-color`, `border-style` (`solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`), `border-radius` (1 to 4 values), `border-image`, `outline`, `outline-style` (`auto`, `solid`, `dotted`, `none`), `outline-offset`, `shape` |
+| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` forms, images, `pattern()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position` |
+| borders | `border`, `border-<edge>`, `border-width`, `border-color`, `border-style` (`solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`), `border-radius` (1 to 4 values), `border-image`, `outline`, `outline-style` (`auto`, `solid`, `dotted`, `none`), `outline-offset`, `default-outline: <width> <colour>` (the default button's second perimeter, on a control), `keylines` (`none`, or one or two comma-separated rings of one to four colours in box order: lines one unit wide, the first ring one unit inside the border and the second inside it), `shape` |
 | shadows and light | `box-shadow` (up to 4, `inset` admitted), `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
 | filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` |
 | presentation | `opacity`, `scale`, `translate` |
-| effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; the control checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
-| text | `color`, `font: <role>` (`ui`, `field`, `caption`, `heading`, `title`, `monospace`) |
+| effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; given the effect registry (`ThemeCompileOptions::effects`, `ApplicationThemeConfig::effects`, usually `built_in_effect_registry()`), a name it does not hold refuses the theme with E417 at the name; the control also checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
+| text | `color`, `muted-color` and `glyph-color` (the recipe's secondary text and glyph colours, on a control or a named part, such as `group-box::part(caption)`; not on a role), `font: <role>` (`ui`, `field`, `caption`, `heading`, `title`, `monospace`) |
 | fonts | `font-family` (`control`, `content`, `monospace`), `font-size` (4px to 96px, or em of the control's own size), `font-weight` (`normal`, `bold`, 100 to 900), `font-style` (`normal`, `italic`), `letter-spacing` (`normal`, px or em) |
+
+`pattern(<name>, <ground>, <figure> [, <tile>])` is a built-in procedural
+pattern in two colours: `checker` (a checkerboard; its default 2px tile is a
+50% dither of logical pixels, as a Windows scroll track), `felt`,
+`wood-grain`, `paper-fibre`, `pinstripe` and `brushed-metal`. The tile is a
+length from 2px to 256px (by default 2px for the checker, 4px for the
+pinstripe and 64px for the rest). The engine generates the pattern for each
+display scale in an idle frame and draws the ground until it is ready; a
+pattern layer takes no position, size or repetition. For example,
+`background: pattern(checker, #d4d0c8, #ffffff)`.
 
 `reflection` mirrors the part's finished face (its fills, borders, glows,
 filters and mask; not its text), or with `backplane` the window's backplane
@@ -206,6 +281,25 @@ change and when its scale changes; changing the root's classes later takes
 effect at the next of these. An application that sets its own chain keeps
 it. `popup` rules are compiled and held: they apply once native popup
 windows exist.
+
+The window outer band, a thin strip along the edges of a top-level window's
+client area that the program declares with `Window::declare_band`, takes its
+look from `window` rules. `band-width` is one length (0 to 32px; the
+window's own width wins, and the band is snapped to whole device pixels),
+`band-color` its rest colour (transparent by default, so a resting band shows
+the window's base), `band-lit-color` its lit colour (the window's focus-ring
+colour by default) and `band-effect` `none` or `flash` (a lit band flashes,
+at most twice a second). Each property comes from the last matching rule
+that sets it. A CSS-wide keyword is an error. In any other rule, including
+`popup` rules, a band property is warning W111 (`band_not_on_window`) and is
+dropped. Under forced high contrast the band draws the high-contrast
+palette's focus colour, solid and unflashing; reduced motion and turned-off
+ambient motion still a flash at its lit colour. For example,
+`window { band-width: 2px; band-lit-color: #c0392b; band-effect: flash }`.
+In 0.5 the band is a steady colour or the built-in flash only. Effect
+programs and textures on the band are planned after 0.5 (owner ruling,
+2026-11-08). The band never takes a resize-edge role: a frameless window
+stays frameless.
 
 `clip-path`, `rotate`, `transform`, text
 decoration and spacing, and layout properties (`width`, `margin`, ...) are

@@ -291,6 +291,7 @@ PropertyDescriptor panel_border_style_descriptor() {
     descriptor.invalidation_effects = Dirty::paint;
     descriptor.bindable = false;
     descriptor.enumeration = border_style_enum();
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -351,7 +352,7 @@ void Panel::written(const decltype(border_style)&) {
 
 void Panel::prepare_write(const decltype(visual_role)&, ControlVisualRole& incoming) {
     require_mutable();
-    if (incoming != ControlVisualRole::window && incoming != ControlVisualRole::panel && incoming != ControlVisualRole::card) throw std::invalid_argument("panel visual role must be window, panel, or card");
+    if (incoming != ControlVisualRole::window && incoming != ControlVisualRole::panel && incoming != ControlVisualRole::card && incoming != ControlVisualRole::editor && incoming != ControlVisualRole::notice) throw std::invalid_argument("panel visual role must be window, panel, card, editor, or notice");
 }
 
 void Panel::written(const decltype(visual_role)&) {

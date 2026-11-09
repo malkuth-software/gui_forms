@@ -3,12 +3,21 @@
 
 #include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/host/cursor_interaction/cursor_interaction.hpp"
+#include "gui_forms/window/band/window_band.hpp"
 
 #include <chrono>
 #include <optional>
 #include <thread>
 
 namespace gui_forms {
+
+// A corner request's outcome (HostServices::apply_window_corners): the
+// status, and what the window's corners are afterwards, which the window's
+// band follows. A refused or failed request reports unknown corners.
+struct HostWindowCornersResult final {
+    HostServiceStatus status{};
+    WindowCornerReport report{};
+};
 
 // Portable host-to-platform service seam. The base class owns thread,
 // capability, UTF-8, size, accounting, modal-depth, and shutdown policy so
@@ -119,6 +128,13 @@ public:
     // needs transparent_windows, and the two materials window_backdrops. A
     // refused or failed request leaves the native window as it was.
     [[nodiscard]] HostServiceStatus apply_window_backdrop(WindowBackdrop backdrop);
+    // Asks the platform to shape the window's corners (capability
+    // window_corners) and reports what they are afterwards. Refused as
+    // unsupported, with unknown corners, without the capability; refused as
+    // invalid_argument for a value outside the enumeration. A platform that
+    // cannot comply (it rounds regardless, or cannot round) reports its
+    // actual corners with `complied` false.
+    [[nodiscard]] HostWindowCornersResult apply_window_corners(WindowCornerPreference preference);
     void shutdown() noexcept;
 
     [[nodiscard]] HostServicesSnapshot snapshot() const;
@@ -167,6 +183,10 @@ protected:
     // default accepts `opaque`, which needs nothing native, and refuses the
     // rest as unsupported.
     [[nodiscard]] virtual HostServiceStatus apply_window_backdrop_impl(WindowBackdrop backdrop);
+    // Called with a known preference when the host advertises
+    // window_corners. The default refuses as unsupported with unknown
+    // corners.
+    [[nodiscard]] virtual HostWindowCornersResult apply_window_corners_impl(WindowCornerPreference preference);
     // Adapters report native tray events here, on the UI thread. Events for
     // identities that are not live are dropped.
     void publish_tray_icon_event(const HostTrayIconEvent& event);

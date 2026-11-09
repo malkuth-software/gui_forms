@@ -79,6 +79,11 @@ gui_forms::ButtonBase
          to the accessibility tree. Setting a different value raises
          :cpp:func:`expanded_changed <gui_forms::ButtonBase::expanded_changed>`.
 
+      **image** : ``ImageId``, default ``ImageId{}``
+         An image from the window's image registry, drawn with the caption. Setting
+         it clears :cpp:func:`image_index <gui_forms::ButtonBase::image_index>` and :cpp:func:`image_key <gui_forms::ButtonBase::image_key>`. While the control is in a window,
+         an ID that is not live in that window throws ``std::invalid_argument``.
+
       **command_connected** : ``bool``, read-only
          Whether a :cpp:class:`Command <gui_forms::Command>` is currently bound with ``bind``.
 
@@ -99,11 +104,6 @@ gui_forms::ButtonBase
          at least 2 and the index below it, or the setter throws
          ``std::invalid_argument``.
 
-      **image** : ``ImageId``, default ``ImageId{}``
-         An image from the window's image registry, drawn with the caption. Setting
-         it clears :cpp:func:`image_index <gui_forms::ButtonBase::image_index>` and :cpp:func:`image_key <gui_forms::ButtonBase::image_key>`. While the control is in a window,
-         an ID that is not live in that window throws ``std::invalid_argument``.
-
       **image_list** : ``std::shared_ptr<ImageList>``, default ``nullptr``
          An :cpp:class:`ImageList <gui_forms::ImageList>` from which :cpp:func:`image_index <gui_forms::ButtonBase::image_index>` or :cpp:func:`image_key <gui_forms::ButtonBase::image_key>` picks the image.
          The list must be live and belong to the control's window; the button then
@@ -111,12 +111,12 @@ gui_forms::ButtonBase
          changes.
 
       **image_index** : ``int``, default ``-1``
-         Index into :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`, or -1 for none. Setting it clears :cpp:func:`image <gui_forms::ButtonBase::image>` and
+         Index into :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`, or -1 for none. Setting it clears :cpp:member:`image <gui_forms::ButtonBase::image>` and
          :cpp:func:`image_key <gui_forms::ButtonBase::image_key>`. Values below -1, or past the end of the list, throw
          ``std::out_of_range``.
 
       **image_key** : ``std::string``, default ``""``
-         Key into :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`. Setting it clears :cpp:func:`image <gui_forms::ButtonBase::image>` and :cpp:func:`image_index <gui_forms::ButtonBase::image_index>`. The
+         Key into :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`. Setting it clears :cpp:member:`image <gui_forms::ButtonBase::image>` and :cpp:func:`image_index <gui_forms::ButtonBase::image_index>`. The
          key must be valid UTF-8 of at most 256 bytes.
 
       **pressed_visual** : ``bool``, read-only
@@ -168,7 +168,7 @@ gui_forms::ButtonBase
       * - :cpp:func:`clear_visual_recipes <gui_forms::ButtonBase::clear_visual_recipes>`
         - Returns to the theme's recipe.
       * - :cpp:func:`clear_image <gui_forms::ButtonBase::clear_image>`
-        - Removes the direct :cpp:func:`image <gui_forms::ButtonBase::image>`.
+        - Removes the direct :cpp:member:`image <gui_forms::ButtonBase::image>`.
       * - :cpp:func:`perform_click <gui_forms::ButtonBase::perform_click>`
         - Activates the control as a mnemonic would.
       * - :cpp:func:`button_base_property_entries <gui_forms::ButtonBase::button_base_property_entries>`
@@ -326,6 +326,12 @@ gui_forms::ButtonBase
       to the accessibility tree. Setting a different value raises
       :cpp:func:`expanded_changed <gui_forms::ButtonBase::expanded_changed>`.
 
+   .. cpp:member:: ImageId image
+
+      An image from the window's image registry, drawn with the caption. Setting
+      it clears :cpp:func:`image_index <gui_forms::ButtonBase::image_index>` and :cpp:func:`image_key <gui_forms::ButtonBase::image_key>`. While the control is in a window,
+      an ID that is not live in that window throws ``std::invalid_argument``.
+
    .. cpp:function:: bool command_connected() const noexcept
 
       Whether a :cpp:class:`Command <gui_forms::Command>` is currently bound with ``bind``.
@@ -356,16 +362,6 @@ gui_forms::ButtonBase
 
       Sets :cpp:func:`connection_topology <gui_forms::ButtonBase::connection_topology>`; see the property's description above.
 
-   .. cpp:function:: ImageId image() const noexcept
-
-      An image from the window's image registry, drawn with the caption. Setting
-      it clears :cpp:func:`image_index <gui_forms::ButtonBase::image_index>` and :cpp:func:`image_key <gui_forms::ButtonBase::image_key>`. While the control is in a window,
-      an ID that is not live in that window throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_image(ImageId image)
-
-      Sets :cpp:func:`image <gui_forms::ButtonBase::image>`; see the property's description above.
-
    .. cpp:function:: std::shared_ptr<ImageList> image_list() const noexcept
 
       An :cpp:class:`ImageList <gui_forms::ImageList>` from which :cpp:func:`image_index <gui_forms::ButtonBase::image_index>` or :cpp:func:`image_key <gui_forms::ButtonBase::image_key>` picks the image.
@@ -379,7 +375,7 @@ gui_forms::ButtonBase
 
    .. cpp:function:: int image_index() const noexcept
 
-      Index into :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`, or -1 for none. Setting it clears :cpp:func:`image <gui_forms::ButtonBase::image>` and
+      Index into :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`, or -1 for none. Setting it clears :cpp:member:`image <gui_forms::ButtonBase::image>` and
       :cpp:func:`image_key <gui_forms::ButtonBase::image_key>`. Values below -1, or past the end of the list, throw
       ``std::out_of_range``.
 
@@ -389,7 +385,7 @@ gui_forms::ButtonBase
 
    .. cpp:function:: const std::string& image_key() const noexcept
 
-      Key into :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`. Setting it clears :cpp:func:`image <gui_forms::ButtonBase::image>` and :cpp:func:`image_index <gui_forms::ButtonBase::image_index>`. The
+      Key into :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`. Setting it clears :cpp:member:`image <gui_forms::ButtonBase::image>` and :cpp:func:`image_index <gui_forms::ButtonBase::image_index>`. The
       key must be valid UTF-8 of at most 256 bytes.
 
    .. cpp:function:: void set_image_key(std::string image_key)
@@ -446,7 +442,7 @@ gui_forms::ButtonBase
 
    .. cpp:function:: void clear_image()
 
-      Removes the direct :cpp:func:`image <gui_forms::ButtonBase::image>`.
+      Removes the direct :cpp:member:`image <gui_forms::ButtonBase::image>`.
 
    .. cpp:function:: bool perform_click()
 
@@ -488,6 +484,10 @@ gui_forms::ButtonBase
    .. cpp:function:: void on_pointer(PointerEvent& event) override
 
    .. cpp:function:: void on_key(KeyEvent& event) override
+
+   .. cpp:function:: bool clicks_primary_button_only() const noexcept override
+
+      As in WinForms, a button clicks for the primary button only.
 
    .. cpp:function:: void on_focus_changed(bool focused) override
 
@@ -597,20 +597,12 @@ gui_forms::ButtonBase
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's touch and raises the change event; an override calls the base. coerce_<property> runs last before the compare and may rewrite the incoming value.
-
-   .. cpp:function:: virtual void coerce_text(std::string& incoming)
-
-      *Protected.*
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
 
    .. cpp:function:: virtual void on_font_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void coerce_font(FontSpec& incoming)
-
-      *Protected.*
-
    .. cpp:member:: constexpr std::size_t button_base_property_count
 
-      ButtonBase's property table: Control's entries, then its own. Default: ``Control::control_property_count + 4U``.
+      ButtonBase's property table: Control's entries, then its own. Default: ``Control::control_property_count + 5U``.

@@ -44,7 +44,10 @@ bool class_character(char character) noexcept {
 }
 
 bool authored(CascadeLevel level) noexcept {
-    const bool authored_level = level == CascadeLevel::theme_sheet || level == CascadeLevel::class_rule ||
+    // The base levels hold the GUI.Forms base sheet under a program's
+    // packages (selector step 1); they are a program theme's too.
+    const bool base = level == CascadeLevel::base_sheet || level == CascadeLevel::important_base_sheet;
+    const bool authored_level = base || level == CascadeLevel::theme_sheet || level == CascadeLevel::class_rule ||
                                 level == CascadeLevel::stable_id_rule || level == CascadeLevel::inline_style ||
                                 level == CascadeLevel::important_theme_sheet ||
                                 level == CascadeLevel::important_inline_style;
@@ -83,6 +86,20 @@ std::optional<RuleDiagnosticKind> selector_defect(const ThemeRule& rule, bool ow
     }
     for (const AnatomyState state : selector.states) {
         if (static_cast<std::size_t>(state) >= anatomy_state_count) return RuleDiagnosticKind::selector_invalid;
+    }
+    if (selector.ancestors.size() > maximum_rule_ancestors) return RuleDiagnosticKind::selector_invalid;
+    for (const RuleAncestor& ancestor : selector.ancestors) {
+        for (const std::string& name : ancestor.classes) {
+            if (!valid_style_class_name(name)) return RuleDiagnosticKind::selector_invalid;
+        }
+    }
+    for (const RuleExclusion& exclusion : selector.excluded) {
+        for (const std::string& name : exclusion.classes) {
+            if (!valid_style_class_name(name)) return RuleDiagnosticKind::selector_invalid;
+        }
+        for (const AnatomyState state : exclusion.states) {
+            if (static_cast<std::size_t>(state) >= anatomy_state_count) return RuleDiagnosticKind::selector_invalid;
+        }
     }
     if (selector.role && static_cast<std::size_t>(*selector.role) >= part_role_count) {
         return RuleDiagnosticKind::selector_invalid;
@@ -173,16 +190,34 @@ std::uint64_t declared_input_bits(const PrimitiveDescriptor& descriptor) noexcep
 std::string_view cascade_level_name(CascadeLevel level) noexcept {
     switch (level) {
     case CascadeLevel::built_in: return "built_in";
+    case CascadeLevel::base_sheet: return "base_sheet";
     case CascadeLevel::user_theme: return "user_theme";
     case CascadeLevel::theme_sheet: return "theme_sheet";
     case CascadeLevel::class_rule: return "class_rule";
     case CascadeLevel::stable_id_rule: return "stable_id_rule";
     case CascadeLevel::inline_style: return "inline_style";
+    case CascadeLevel::important_base_sheet: return "important_base_sheet";
     case CascadeLevel::important_user_theme: return "important_user_theme";
     case CascadeLevel::important_theme_sheet: return "important_theme_sheet";
     case CascadeLevel::forced_high_contrast: return "forced_high_contrast";
     case CascadeLevel::important_inline_style: return "important_inline_style";
     case CascadeLevel::count: return {};
+    }
+    return {};
+}
+
+std::string_view theme_layer_name(ThemeLayer layer) noexcept {
+    switch (layer) {
+    case ThemeLayer::built_in: return "built_in";
+    case ThemeLayer::library_pack: return "library_pack";
+    case ThemeLayer::project_theme: return "project_theme";
+    case ThemeLayer::user_theme: return "user_theme";
+    case ThemeLayer::inline_code: return "inline_code";
+    case ThemeLayer::forced_high_contrast: return "forced_high_contrast";
+    case ThemeLayer::fallback_theme: return "fallback_theme";
+    case ThemeLayer::count:
+    // A value outside the layers names none: the one fallback.
+    default: break;
     }
     return {};
 }
@@ -196,18 +231,85 @@ bool valid_style_class_name(std::string_view name) noexcept {
     return true;
 }
 
+namespace {
+
+// What one `:not()` argument counts, as a compound selector would.
+RuleSpecificity exclusion_specificity(const RuleExclusion& exclusion) noexcept {
+    RuleSpecificity result{};
+    result.ids = exclusion.stable_id.empty() ? 0U : 1U;
+    const std::size_t family = exclusion.family.empty() ? 0U : 1U;
+    result.classes = static_cast<std::uint32_t>(exclusion.classes.size() + exclusion.states.size() + family);
+    result.types = exclusion.control_type.empty() ? 0U : 1U;
+    return result;
+}
+
+} // namespace
+
 RuleSpecificity rule_specificity(const RuleSelector& selector) noexcept {
     RuleSpecificity result{};
     result.ids = selector.stable_id.empty() ? 0U : 1U;
-    result.classes = static_cast<std::uint32_t>(selector.classes.size());
-    // A surface selector counts as a type selector, as CSS's `window` would.
+    // Each class, each state and the family, as CSS counts classes and
+    // pseudo-classes.
+    const std::size_t family = selector.family.empty() ? 0U : 1U;
+    result.classes = static_cast<std::uint32_t>(selector.classes.size() + selector.states.size() + family);
+    // A surface selector counts as a type selector, as CSS's `window` would;
+    // the part's name and role each as a pseudo-element.
     const bool typed = !selector.control_type.empty() || selector.surface != SurfaceKind::none;
-    result.types = typed ? 1U : 0U;
+    const std::uint32_t type = typed ? 1U : 0U;
     const std::uint32_t named = selector.part.empty() ? 0U : 1U;
     const std::uint32_t role = selector.role ? 1U : 0U;
-    result.parts = named + role;
-    result.states = static_cast<std::uint32_t>(selector.states.size());
+    result.types = type + named + role;
+    // CSS: a `:not()` counts as its most specific argument. The selector's
+    // exclusions are one `:not()`'s arguments (the lowering merges them).
+    RuleSpecificity most{};
+    for (const RuleExclusion& exclusion : selector.excluded) {
+        const RuleSpecificity counted = exclusion_specificity(exclusion);
+        if (most < counted) most = counted;
+    }
+    result.ids += most.ids;
+    result.classes += most.classes;
+    result.types += most.types;
+    // Each ancestor compound counts as CSS counts every compound.
+    for (const RuleAncestor& ancestor : selector.ancestors) {
+        result.ids += ancestor.stable_id.empty() ? 0U : 1U;
+        result.classes += static_cast<std::uint32_t>(ancestor.classes.size());
+        result.types += ancestor.control_type.empty() ? 0U : 1U;
+    }
     return result;
+}
+
+namespace {
+
+// FNV-1a over a key's prefix and text, for the ancestor Bloom filter.
+std::uint64_t ancestor_key_hash(std::string_view prefix, std::string_view key) noexcept {
+    std::uint64_t hash = 14695981039346656037ULL;
+    for (const char character : prefix) {
+        hash ^= static_cast<std::uint8_t>(character);
+        hash *= 1099511628211ULL;
+    }
+    for (const char character : key) {
+        hash ^= static_cast<std::uint8_t>(character);
+        hash *= 1099511628211ULL;
+    }
+    return hash;
+}
+
+} // namespace
+
+void AncestorBloom::add(std::string_view prefix, std::string_view key) noexcept {
+    // Two bits a key, from the hash's two halves: 256 bits in 4 words.
+    const std::uint64_t hash = ancestor_key_hash(prefix, key);
+    const std::uint64_t first = hash & 255U;
+    const std::uint64_t second = (hash >> 32U) & 255U;
+    bits[first >> 6U] |= std::uint64_t{1} << (first & 63U);
+    bits[second >> 6U] |= std::uint64_t{1} << (second & 63U);
+}
+
+bool AncestorBloom::holds(const AncestorBloom& needed) const noexcept {
+    for (std::size_t word = 0U; word < bits.size(); ++word) {
+        if ((bits[word] & needed.bits[word]) != needed.bits[word]) return false;
+    }
+    return true;
 }
 
 namespace {
@@ -268,6 +370,7 @@ std::string_view rule_diagnostic_name(RuleDiagnosticKind kind) noexcept {
     case RuleDiagnosticKind::expression_reads_colour: return "expression_reads_colour";
     case RuleDiagnosticKind::rule_empty: return "rule_empty";
     case RuleDiagnosticKind::backdrop_invalid: return "backdrop_invalid";
+    case RuleDiagnosticKind::band_invalid: return "band_invalid";
     case RuleDiagnosticKind::transition_property_unknown: return "transition_property_unknown";
     case RuleDiagnosticKind::transition_property_not_animated: return "transition_property_not_animated";
     case RuleDiagnosticKind::transition_invalid: return "transition_invalid";
@@ -496,7 +599,7 @@ double sized_length(BoxLength length, double side) noexcept {
 void size_image(const MaterialImageSize& size, Size box, MaterialFillLayer& layer) noexcept {
     const Size pixels = layer.image_pixel_size;
     switch (size.sizing) {
-    case MaterialImageSizing::natural: return;
+    case MaterialImageSizing::natural: return; // The image's own size: nothing to change.
     case MaterialImageSizing::stretch: layer.image_mode = MaterialImageMode::stretch; return;
     case MaterialImageSizing::width:
         layer.image_scale = pixels.width / sized_length(size.length, box.width);
@@ -970,6 +1073,7 @@ void walk_material_lengths(MaterialDeclaration& declaration, LengthWalk& walk) {
 void walk_recipe_lengths(RecipeDeclaration& declaration, LengthWalk& walk) {
     const RecipeField field = declaration.field;
     if (field == RecipeField::outline_width || field == RecipeField::outline_offset) walk.visit(declaration.number);
+    if (field == RecipeField::default_outline_width) walk.visit(declaration.number);
     if (field == RecipeField::font_size || field == RecipeField::letter_spacing) walk.visit(declaration.number);
     if (field != RecipeField::text_shadow) return;
     walk.visit(declaration.shadow_offset.x);
@@ -1375,8 +1479,16 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         compiled.specificity = rule.specificity ? *rule.specificity : rule_specificity(rule.selector);
         compiled.order = index;
         compiled.source_position = rule.source_position;
+        compiled.provenance = rule.provenance;
+        if (engine_table) compiled.provenance.layer = ThemeLayer::built_in;
         compiled.selector = rule.selector;
         for (const AnatomyState state : rule.selector.states) compiled.states.insert(state);
+        for (const RuleAncestor& ancestor : rule.selector.ancestors) {
+            if (!ancestor.control_type.empty()) compiled.ancestor_keys.add({}, ancestor.control_type);
+            if (!ancestor.stable_id.empty()) compiled.ancestor_keys.add("#", ancestor.stable_id);
+            for (const std::string& name : ancestor.classes) compiled.ancestor_keys.add(".", name);
+        }
+        if (!rule.selector.ancestors.empty()) result.uses_ancestors_ = true;
         // The primitive first, so that the parameters can be checked against
         // its declarations.
         for (const RuleDeclaration& declaration : rule.declarations) {
@@ -1496,6 +1608,7 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         add_materials(result.diagnostics_, index, rule, compiled);
         add_recipe_fields(result.diagnostics_, index, rule, compiled);
         add_backdrop(result.diagnostics_, index, rule, compiled);
+        add_band(result.diagnostics_, index, rule, compiled);
         if (!add_scoped(result.diagnostics_, index, rule, result, compiled)) continue;
         if (!add_reads(result.diagnostics_, index, rule, result, compiled)) continue;
         const bool declares = compiled.selects || !compiled.parameters.empty() || !compiled.transitions.empty() ||
@@ -1503,7 +1616,8 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
                               compiled.effect.has_value() || compiled.effect_primary.has_value() ||
                               compiled.effect_secondary.has_value() ||
                               !compiled.materials.empty() || !compiled.recipe_fields.empty() ||
-                              !compiled.scoped_definitions.empty() || compiled.backdrop.has_value();
+                              !compiled.scoped_definitions.empty() || compiled.backdrop.has_value() ||
+                              compiled.band.has_value();
         // A rule of definitions no condition reads declares nothing the
         // cascade uses, and is dropped without a diagnostic.
         if (!declares && !rule.scoped_definitions.empty()) continue;
@@ -1680,15 +1794,19 @@ bool in_range(double value, double minimum, double maximum) noexcept {
 
 constexpr std::array<std::string_view, recipe_field_count> recipe_field_names{
     "text",        "outline_style", "outline_colour", "outline_width",  "outline_offset", "text_shadow",
-    "font_family", "font_size",     "font_weight",    "font_style",     "letter_spacing",
+    "font_family", "font_size",     "font_weight",    "font_style",     "letter_spacing", "muted_text",
+    "glyph",       "default_outline_width", "default_outline_colour",
 };
 
 } // namespace
 
 ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     switch (field) {
-    case RecipeField::text: return ColourPosition::text;
-    case RecipeField::outline_colour: return ColourPosition::edge;
+    case RecipeField::text:
+    case RecipeField::muted_text:
+    case RecipeField::glyph: return ColourPosition::text;
+    case RecipeField::outline_colour:
+    case RecipeField::default_outline_colour: return ColourPosition::edge;
     case RecipeField::outline_style:
     case RecipeField::outline_width:
     case RecipeField::outline_offset:
@@ -1698,6 +1816,7 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     case RecipeField::font_weight:
     case RecipeField::font_style:
     case RecipeField::letter_spacing:
+    case RecipeField::default_outline_width:
     case RecipeField::count:
     default: return ColourPosition::none;
     }
@@ -1712,13 +1831,17 @@ std::string_view recipe_field_name(RecipeField field) noexcept {
 bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept {
     switch (declaration.field) {
     case RecipeField::text:
-    case RecipeField::outline_colour: return true;
+    case RecipeField::outline_colour:
+    case RecipeField::muted_text:
+    case RecipeField::glyph:
+    case RecipeField::default_outline_colour: return true;
     case RecipeField::outline_style:
         return declaration.outline_style == RecipeOutlineStyle::ring ||
                declaration.outline_style == RecipeOutlineStyle::solid ||
                declaration.outline_style == RecipeOutlineStyle::dotted ||
                declaration.outline_style == RecipeOutlineStyle::none;
-    case RecipeField::outline_width: return in_range(declaration.number, 0.0, maximum_recipe_outline_width);
+    case RecipeField::outline_width:
+    case RecipeField::default_outline_width: return in_range(declaration.number, 0.0, maximum_recipe_outline_width);
     case RecipeField::outline_offset:
         return in_range(declaration.number, -maximum_recipe_outline_offset, maximum_recipe_outline_offset);
     case RecipeField::text_shadow: {
@@ -1762,7 +1885,7 @@ bool backdrop_declaration_valid(const BackdropDeclaration& backdrop) noexcept {
         case BackdropStepKind::saturate:
             if (step.amount < 0.0 || step.amount > maximum_backdrop_saturation) return false;
             break;
-        case BackdropStepKind::tint: break;
+        case BackdropStepKind::tint: break; // Any colour tints.
         default: return false;
         }
     }
@@ -1781,11 +1904,34 @@ void CompiledThemeRules::add_backdrop(std::vector<RuleDiagnostic>& diagnostics, 
     compiled.backdrop = rule.backdrop;
 }
 
+bool band_declaration_valid(const BandDeclaration& band) noexcept {
+    if (band.width) {
+        const double width = *band.width;
+        if (!std::isfinite(width) || width < 0.0 || width > maximum_theme_band_width) return false;
+    }
+    if (band.effect && *band.effect != BandEffect::none && *band.effect != BandEffect::flash) return false;
+    return true;
+}
+
+void CompiledThemeRules::add_band(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
+                                  const ThemeRule& rule, CompiledRule& compiled) {
+    if (!rule.band) return;
+    // Only a window has a band: a popup is not a window's frame.
+    const bool on_window = rule.selector.surface == SurfaceKind::window;
+    if (!on_window || (*rule.band).empty() || !band_declaration_valid(*rule.band)) {
+        diagnostics.push_back(diagnostic(RuleDiagnosticKind::band_invalid, index, rule, "band"));
+        return;
+    }
+    compiled.band = rule.band;
+}
+
 void CompiledThemeRules::add_recipe_fields(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
                                            const ThemeRule& rule, CompiledRule& compiled) {
     // The recipe's fields are the control's: a selector naming a part or a
-    // role sets none.
-    const bool on_part = !rule.selector.part.empty() || rule.selector.role.has_value();
+    // role sets none, except the text colours on a named part (its text,
+    // muted text and glyphs: Theme::resolve with the part's name).
+    const bool on_role = rule.selector.role.has_value();
+    const bool on_named_part = !rule.selector.part.empty() && !on_role;
     std::array<bool, recipe_field_count> declared{};
     for (const RecipeDeclaration& declaration : rule.recipe_fields) {
         const std::size_t position = static_cast<std::size_t>(declaration.field);
@@ -1794,7 +1940,9 @@ void CompiledThemeRules::add_recipe_fields(std::vector<RuleDiagnostic>& diagnost
             diagnostics.push_back(diagnostic(RuleDiagnosticKind::recipe_field_invalid, index, rule, {}));
             continue;
         }
-        if (on_part) {
+        const bool text_colour = declaration.field == RecipeField::text ||
+                                 declaration.field == RecipeField::muted_text || declaration.field == RecipeField::glyph;
+        if (on_role || (on_named_part && !text_colour)) {
             diagnostics.push_back(diagnostic(RuleDiagnosticKind::recipe_field_on_part, index, rule, name));
             continue;
         }
@@ -1982,6 +2130,7 @@ CompiledThemeRules::CompiledThemeRules(const CompiledThemeRules& other)
       recipe_fields_set_(other.recipe_fields_set_),
       inline_style_(other.inline_style_),
       user_theme_(other.user_theme_),
+      uses_ancestors_(other.uses_ancestors_),
       scoped_names_(other.scoped_names_),
       read_names_(other.read_names_),
       theme_serial_(other.theme_serial_),
@@ -1998,6 +2147,7 @@ CompiledThemeRules& CompiledThemeRules::operator=(const CompiledThemeRules& othe
     recipe_fields_set_ = other.recipe_fields_set_;
     inline_style_ = other.inline_style_;
     user_theme_ = other.user_theme_;
+    uses_ancestors_ = other.uses_ancestors_;
     scoped_names_ = other.scoped_names_;
     read_names_ = other.read_names_;
     theme_serial_ = other.theme_serial_;
@@ -2153,6 +2303,97 @@ bool CompiledThemeRules::matches(const CompiledRule& rule, const PartFacts& fact
     const std::uint64_t needed = rule.states.standard_bits();
     if ((facts.states.standard_bits() & needed) != needed) return false;
     for (const std::string& name : selector.classes) {
+        bool present = false;
+        for (const std::string& held : facts.classes) {
+            if (held == name) present = true;
+        }
+        if (!present) return false;
+    }
+    if (!selector.family.empty() && selector.family != facts.family) return false;
+    for (const RuleExclusion& exclusion : selector.excluded) {
+        if (exclusion_matches(exclusion, facts)) return false;
+    }
+    if (!selector.ancestors.empty() && !ancestors_match(rule, facts)) return false;
+    return true;
+}
+
+namespace {
+
+// Whether one ancestor compound matches one ancestor control.
+bool ancestor_matches(const RuleAncestor& ancestor, const AncestorFacts& facts) noexcept {
+    if (!ancestor.control_type.empty() && ancestor.control_type != facts.control_type) return false;
+    if (!ancestor.stable_id.empty() && ancestor.stable_id != facts.stable_id) return false;
+    for (const std::string& name : ancestor.classes) {
+        bool present = false;
+        for (const std::string& held : facts.classes) {
+            if (held == name) present = true;
+        }
+        if (!present) return false;
+    }
+    return true;
+}
+
+// A set of ancestor positions, one bit each, below maximum_ancestor_depth.
+using AncestorPositions = std::array<std::uint64_t, maximum_ancestor_depth / 64U>;
+
+bool position_held(const AncestorPositions& positions, std::size_t position) noexcept {
+    return (positions[position >> 6U] >> (position & 63U) & 1U) != 0U;
+}
+
+void hold_position(AncestorPositions& positions, std::size_t position) noexcept {
+    positions[position >> 6U] |= std::uint64_t{1} << (position & 63U);
+}
+
+} // namespace
+
+// Matched from the farthest compound to the nearest, one set of positions
+// a compound: `reach` holds the positions where a compound matches with
+// every farther one matched beyond it. A child combinator needs the
+// farther compound at the next position; a descendant one at any farther
+// position, so the farthest held position decides it. The work is the
+// compounds times the depth, with no backtracking.
+bool CompiledThemeRules::ancestors_match(const CompiledRule& rule, const PartFacts& facts) noexcept {
+    if (!facts.ancestor_bloom.holds(rule.ancestor_keys)) return false;
+    const std::vector<RuleAncestor>& ancestors = rule.selector.ancestors;
+    const std::size_t depth = std::min(facts.ancestors.size(), maximum_ancestor_depth);
+    if (depth == 0U) return false;
+    AncestorPositions reach{};
+    // The farthest compound alone.
+    const std::size_t farthest = ancestors.size() - 1U;
+    for (std::size_t position = 0U; position < depth; ++position) {
+        if (ancestor_matches(ancestors[farthest], facts.ancestors[position])) hold_position(reach, position);
+    }
+    for (std::size_t index = farthest; index > 0U; --index) {
+        // The compound nearer than `index`, related to it by its combinator.
+        const RuleAncestor& nearer = ancestors[index - 1U];
+        const bool child = ancestors[index].combinator == AncestorCombinator::child;
+        AncestorPositions next{};
+        // Whether `reach` holds a position beyond `position`, walked from
+        // the farthest position down.
+        bool beyond = false;
+        for (std::size_t step = depth; step > 0U; --step) {
+            const std::size_t position = step - 1U;
+            const bool linked = child ? position + 1U < depth && position_held(reach, position + 1U) : beyond;
+            if (linked && ancestor_matches(nearer, facts.ancestors[position])) hold_position(next, position);
+            if (position_held(reach, position)) beyond = true;
+        }
+        reach = next;
+    }
+    if (ancestors.front().combinator == AncestorCombinator::child) return position_held(reach, 0U);
+    for (const std::uint64_t word : reach) {
+        if (word != 0U) return true;
+    }
+    return false;
+}
+
+bool CompiledThemeRules::exclusion_matches(const RuleExclusion& exclusion, const PartFacts& facts) noexcept {
+    if (!exclusion.control_type.empty() && exclusion.control_type != facts.control_type) return false;
+    if (!exclusion.stable_id.empty() && exclusion.stable_id != facts.stable_id) return false;
+    if (!exclusion.family.empty() && exclusion.family != facts.family) return false;
+    for (const AnatomyState state : exclusion.states) {
+        if (!facts.states.contains(state)) return false;
+    }
+    for (const std::string& name : exclusion.classes) {
         bool present = false;
         for (const std::string& held : facts.classes) {
             if (held == name) present = true;
@@ -2390,6 +2631,76 @@ CompiledThemeRules::RecipeResolution CompiledThemeRules::resolve_recipe_fields(c
     return result;
 }
 
+CompiledThemeRules::FieldProvenance CompiledThemeRules::field_provenance(const CompiledRule& rule,
+                                                                        ColourOrigin origin) noexcept {
+    FieldProvenance result{};
+    result.authored = true;
+    result.level = rule.level;
+    result.source = &rule.provenance;
+    result.selector = &rule.selector;
+    result.specificity = rule.specificity;
+    result.origin = origin;
+    // The level names the layer where it is one of its own: the built-in
+    // table, a user theme, inline code and forced high contrast; the sheet
+    // levels take the layer the compiler recorded.
+    switch (rule.level) {
+    case CascadeLevel::built_in: result.layer = ThemeLayer::built_in; break;
+    case CascadeLevel::user_theme:
+    case CascadeLevel::important_user_theme: result.layer = ThemeLayer::user_theme; break;
+    case CascadeLevel::inline_style:
+    case CascadeLevel::important_inline_style: result.layer = ThemeLayer::inline_code; break;
+    case CascadeLevel::forced_high_contrast: result.layer = ThemeLayer::forced_high_contrast; break;
+    case CascadeLevel::base_sheet:
+    case CascadeLevel::theme_sheet:
+    case CascadeLevel::class_rule:
+    case CascadeLevel::stable_id_rule:
+    case CascadeLevel::important_base_sheet:
+    case CascadeLevel::important_theme_sheet:
+    case CascadeLevel::count:
+    default: result.layer = rule.provenance.layer; break;
+    }
+    return result;
+}
+
+void CompiledThemeRules::resolve_provenance(const PartFacts& facts, PartProvenance& result) const noexcept {
+    result = PartProvenance{};
+    ScopedWinners winners{};
+    resolve_scoped(facts, winners);
+    // The primitive's winner first, as resolve() finds it: the last
+    // matching rule that selects, rules being in ascending precedence.
+    const CompiledRule* winner = nullptr;
+    RuleWalk choosing(*this, facts, true, &winners);
+    for (const CompiledRule* next = choosing.next(); next != nullptr; next = choosing.next()) {
+        if ((*next).selects && matches(*next, facts)) winner = next;
+    }
+    const EnginePrimitive* primitive = nullptr;
+    if (winner != nullptr && (*winner).primitive != nullptr &&
+        paints_role((*(*winner).primitive).descriptor(), facts.role)) {
+        primitive = (*winner).primitive;
+        result.parameter_count = default_parameters((*primitive).descriptor()).count;
+    }
+    // Then every field: the last matching declaration of each wins, a
+    // parameter only from the rules selecting the chosen primitive.
+    RuleWalk walk(*this, facts, true, &winners);
+    for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
+        const CompiledRule& rule = *next;
+        const bool parameters = primitive != nullptr && rule.primitive == primitive;
+        const bool declares = parameters || !rule.materials.empty() || !rule.recipe_fields.empty();
+        if (!declares || !matches(rule, facts)) continue;
+        for (const MaterialDeclaration& declaration : rule.materials) {
+            result.materials[static_cast<std::size_t>(declaration.field)] = field_provenance(rule, declaration.origin);
+        }
+        for (const RecipeDeclaration& declaration : rule.recipe_fields) {
+            const std::size_t position = static_cast<std::size_t>(declaration.field);
+            result.recipe_fields[position] = field_provenance(rule, declaration.origin);
+        }
+        if (!parameters) continue;
+        for (const CompiledDeclaration& declaration : rule.parameters) {
+            result.parameters[declaration.parameter] = field_provenance(rule, declaration.origin);
+        }
+    }
+}
+
 const BackdropDeclaration* CompiledThemeRules::resolve_backdrop(const PartFacts& facts) const noexcept {
     // Only a surface rule holds a backdrop (add_backdrop). Rules are walked
     // in ascending precedence, so the last match wins.
@@ -2404,6 +2715,26 @@ const BackdropDeclaration* CompiledThemeRules::resolve_backdrop(const PartFacts&
         winner = &*rule.backdrop;
     }
     return winner;
+}
+
+BandDeclaration CompiledThemeRules::resolve_band(const PartFacts& facts) const noexcept {
+    // Only a window rule holds a band (add_band). Rules are walked in
+    // ascending precedence, so each field's last setter wins.
+    BandDeclaration merged{};
+    if (facts.surface != SurfaceKind::window) return merged;
+    ScopedWinners winners{};
+    resolve_scoped(facts, winners);
+    RuleWalk walk(*this, facts, false, &winners);
+    for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
+        const CompiledRule& rule = *next;
+        if (!rule.band || !matches(rule, facts)) continue;
+        const BandDeclaration& band = *rule.band;
+        if (band.width) merged.width = band.width;
+        if (band.rest_colour) merged.rest_colour = band.rest_colour;
+        if (band.lit_colour) merged.lit_colour = band.lit_colour;
+        if (band.effect) merged.effect = band.effect;
+    }
+    return merged;
 }
 
 void CompiledThemeRules::resolve_primitive(const PartFacts& facts, const ScopedWinners& winners,

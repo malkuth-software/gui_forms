@@ -62,8 +62,8 @@ enum class FormEditOutcome : std::uint8_t {
                                                  const FormSchema& schema,
                                                  theme_language::ThemeDiagnosticList& diagnostics);
 
-// Writes `property` (kebab-case, as a document spells it, `on-` handlers
-// included) of the object `object_id` as `value`, the value's text as a
+// Writes `property` (kebab-case, as a document spells it; a binding is a
+// value, `bind(...)`) of the object `object_id` as `value`, the value's text as a
 // document writes it. A written property's value bytes are replaced; an
 // unwritten one is added after the object's last declaration, or first in
 // its block.

@@ -6,13 +6,13 @@
 // child whose constraint is unchanged answers from its cache.
 
 #include "gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include "../../scrollable_anatomy.hpp"
 #include "../layout_style_property.hpp"
 #include "../out_of_flow.hpp"
 
 #include "gui_forms/binding/property_table/property_table.hpp"
-#include "gui_forms/detail/bound_member_function.hpp"
 
 #include <algorithm>
 #include <array>
@@ -227,9 +227,7 @@ bool item_style_serialized(const Component& container, const Control& child) {
 
 } // namespace
 
-FlexPanel::FlexPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {
-    register_panel_properties();
-}
+FlexPanel::FlexPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {}
 
 std::span<const ChildPropertyEntry> FlexPanel::child_property_table() const noexcept {
     static constexpr std::array<ChildPropertyEntry, 1U> entries{{
@@ -239,30 +237,16 @@ std::span<const ChildPropertyEntry> FlexPanel::child_property_table() const noex
     return std::span<const ChildPropertyEntry>(entries);
 }
 
-void FlexPanel::register_panel_properties() {
-    PropertyDescriptor style_descriptor{"style", BindingValueKind::text, "Layout",
-                                        "The flex container's settings as a CSS inline style: flex-direction, "
-                                        "flex-wrap, justify-content, align-content, align-items and the gaps.",
-                                        BindingValue{std::string{}}, invalidation::bounds};
-    style_descriptor.bindable = false;
-    define_bindable_property({std::move(style_descriptor),
-                              detail::BoundMemberFunction<BindingValue (FlexPanel::*)() const>(
-                                  *this, &FlexPanel::style_property),
-                              detail::BoundMemberFunction<void (FlexPanel::*)(const BindingValue&)>(
-                                  *this, &FlexPanel::set_style_property),
-                              {}, {}, {}});
-}
-
 BindingValue FlexPanel::style_property() const {
     const LayoutStyle base{};
     LayoutStyle style = base;
-    style.flex.direction = direction_;
-    style.flex.wrap = wrap_;
-    style.alignment.justify_content = justify_content_;
-    style.alignment.align_content = align_content_;
-    style.alignment.align_items = align_items_;
-    style.row_gap = row_gap_;
-    style.column_gap = column_gap_;
+    style.flex.direction = flex_direction.read();
+    style.flex.wrap = flex_wrap.read();
+    style.alignment.justify_content = justify_content.read();
+    style.alignment.align_content = align_content.read();
+    style.alignment.align_items = align_items.read();
+    style.row_gap = row_gap.read();
+    style.column_gap = column_gap.read();
     std::string text = layout_style_property::describe(style, base);
     return BindingValue{std::move(text)};
 }
@@ -291,79 +275,13 @@ void FlexPanel::set_style_property(const BindingValue& value) {
                           admitted_items_alignment(read.alignment.align_items) && admitted_gap(read.row_gap) &&
                           admitted_gap(read.column_gap);
     if (!admitted) throw std::invalid_argument("FlexPanel.style holds a value flex containers do not admit");
-    set_flex_direction(read.flex.direction);
-    set_flex_wrap(read.flex.wrap);
-    set_justify_content(read.alignment.justify_content);
-    set_align_content(read.alignment.align_content);
-    set_align_items(read.alignment.align_items);
-    set_row_gap(read.row_gap);
-    set_column_gap(read.column_gap);
-}
-
-void FlexPanel::set_flex_direction(FlexDirection direction) {
-    require_mutable();
-    if (direction > FlexDirection::column_reverse) {
-        throw std::invalid_argument("FlexPanel flex direction is unknown");
-    }
-    if (direction_ == direction) return;
-    direction_ = direction;
-    invalidate(invalidation::bounds);
-}
-
-void FlexPanel::set_flex_wrap(FlexWrap wrap) {
-    require_mutable();
-    if (wrap > FlexWrap::wrap_reverse) throw std::invalid_argument("FlexPanel flex wrap is unknown");
-    if (wrap_ == wrap) return;
-    wrap_ = wrap;
-    invalidate(invalidation::bounds);
-}
-
-void FlexPanel::set_justify_content(LayoutAlignment alignment) {
-    require_mutable();
-    if (!admitted_content_alignment(alignment) || alignment > LayoutAlignment::space_evenly) {
-        throw std::invalid_argument("FlexPanel justify-content admits no such value");
-    }
-    if (justify_content_ == alignment) return;
-    justify_content_ = alignment;
-    invalidate(invalidation::bounds);
-}
-
-void FlexPanel::set_align_content(LayoutAlignment alignment) {
-    require_mutable();
-    if (!admitted_content_alignment(alignment) || alignment > LayoutAlignment::space_evenly) {
-        throw std::invalid_argument("FlexPanel align-content admits no such value");
-    }
-    if (align_content_ == alignment) return;
-    align_content_ = alignment;
-    invalidate(invalidation::bounds);
-}
-
-void FlexPanel::set_align_items(LayoutAlignment alignment) {
-    require_mutable();
-    if (!admitted_items_alignment(alignment)) {
-        throw std::invalid_argument("FlexPanel align-items admits no such value");
-    }
-    if (align_items_ == alignment) return;
-    align_items_ = alignment;
-    invalidate(invalidation::bounds);
-}
-
-void FlexPanel::set_row_gap(LengthPercentage gap) {
-    require_mutable();
-    if (!admitted_gap(gap)) throw std::invalid_argument("FlexPanel row gap must be finite and nonnegative");
-    if (row_gap_ == gap) return;
-    row_gap_ = gap;
-    invalidate(invalidation::bounds);
-}
-
-void FlexPanel::set_column_gap(LengthPercentage gap) {
-    require_mutable();
-    if (!admitted_gap(gap)) {
-        throw std::invalid_argument("FlexPanel column gap must be finite and nonnegative");
-    }
-    if (column_gap_ == gap) return;
-    column_gap_ = gap;
-    invalidate(invalidation::bounds);
+    flex_direction = read.flex.direction;
+    flex_wrap = read.flex.wrap;
+    justify_content = read.alignment.justify_content;
+    align_content = read.alignment.align_content;
+    align_items = read.alignment.align_items;
+    row_gap = read.row_gap;
+    column_gap = read.column_gap;
 }
 
 void FlexPanel::set_item_layout(const Control& child, const FlexItemLayout& layout) {
@@ -433,13 +351,13 @@ void FlexPanel::gather_children() {
 
 FlexContainerInput FlexPanel::container_input(const SolveRequest& request) const noexcept {
     FlexContainerInput container{};
-    container.direction = direction_;
-    container.wrap = wrap_;
-    container.justify_content = justify_content_;
-    container.align_content = align_content_;
-    container.align_items = align_items_;
-    container.row_gap = resolve_length_percentage(row_gap_, request.height);
-    container.column_gap = resolve_length_percentage(column_gap_, request.width);
+    container.direction = flex_direction.read();
+    container.wrap = flex_wrap.read();
+    container.justify_content = justify_content.read();
+    container.align_content = align_content.read();
+    container.align_items = align_items.read();
+    container.row_gap = resolve_length_percentage(row_gap.read(), request.height);
+    container.column_gap = resolve_length_percentage(column_gap.read(), request.width);
     container.width = request.width;
     container.height = request.height;
     const LayoutDirection direction = effective_layout_direction();
@@ -452,7 +370,7 @@ void FlexPanel::resolve_item_inputs(const SolveRequest& request) {
     const std::size_t count = children_.size();
     inputs_.resize(count);
     contents_.resize(count);
-    const bool horizontal = horizontal_main(direction_);
+    const bool horizontal = horizontal_main(flex_direction.read());
     const FlexAvailableExtent& main_basis = horizontal ? request.width : request.height;
     const FlexAvailableExtent& cross_basis = horizontal ? request.height : request.width;
     for (std::size_t index = 0U; index < count; ++index) {
@@ -488,7 +406,7 @@ void FlexPanel::resolve_item_inputs(const SolveRequest& request) {
 
         input.definite_cross = definite_size(cross_size, cross_basis);
         const double definite_cross = input.definite_cross ? definite_size_value(cross_size, cross_basis) : 0.0;
-        const LayoutAlignment self = layout.align_self == LayoutAlignment::automatic ? align_items_ : layout.align_self;
+        const LayoutAlignment self = layout.align_self == LayoutAlignment::automatic ? align_items.read() : layout.align_self;
         const bool stretched = (self == LayoutAlignment::normal || self == LayoutAlignment::stretch) &&
                                !layout.auto_margin.top && !layout.auto_margin.bottom &&
                                !layout.auto_margin.left && !layout.auto_margin.right;
@@ -560,7 +478,7 @@ void FlexPanel::resolve_item_inputs(const SolveRequest& request) {
 void FlexPanel::measure_item_crosses(const SolveRequest& request, const FlexLayoutWorkspace& workspace) {
     const std::size_t count = children_.size();
     crosses_.resize(count);
-    const bool horizontal = horizontal_main(direction_);
+    const bool horizontal = horizontal_main(flex_direction.read());
     const FlexAvailableExtent& cross_basis = horizontal ? request.height : request.width;
     const std::span<const FlexItemResult> results = workspace.items();
     for (std::size_t index = 0U; index < count; ++index) {
@@ -648,7 +566,7 @@ Size FlexPanel::solve(const SolveRequest& request, FlexLayoutWorkspace& workspac
     if (!is_alive()) return {};
     static_cast<void>(place_flex_items(container, inputs_, crosses_, workspace));
     if (request.assign) publish_slots(workspace, Size{request.width.extent, request.height.extent});
-    const bool horizontal = horizontal_main(direction_);
+    const bool horizontal = horizontal_main(flex_direction.read());
     const FlexAvailableExtent& main_space = horizontal ? request.width : request.height;
     const FlexAvailableExtent& cross_space = horizontal ? request.height : request.width;
     const double main = main_space.definite ? main_space.extent : workspace.content_main();
@@ -659,9 +577,9 @@ Size FlexPanel::solve(const SolveRequest& request, FlexLayoutWorkspace& workspac
 
 double FlexPanel::intrinsic_content_width(bool minimum) {
     gather_children();
-    const bool horizontal = horizontal_main(direction_);
+    const bool horizontal = horizontal_main(flex_direction.read());
     const FlexAvailableExtent indefinite{};
-    const double gap = resolve_length_percentage(column_gap_, indefinite);
+    const double gap = resolve_length_percentage(column_gap.read(), indefinite);
     double sum = 0.0;
     double largest = 0.0;
     std::size_t counted = 0U;
@@ -692,7 +610,7 @@ double FlexPanel::intrinsic_content_width(bool minimum) {
     // A row lays its items side by side (a wrapping row's narrowest is its
     // widest item); a column's width is its widest item.
     if (!horizontal) return largest;
-    if (minimum && wrap_ != FlexWrap::nowrap) return largest;
+    if (minimum && flex_wrap.read() != FlexWrap::nowrap) return largest;
     const double gaps = gap * static_cast<double>(counted - 1U);
     return sum + gaps;
 }
@@ -849,5 +767,115 @@ SemanticDescriptor FlexPanel::semantic_descriptor() const {
 const ControlAnatomy& FlexPanel::anatomy() const noexcept {
     return flex_panel_anatomy;
 }
+
+namespace {
+
+// The container settings as one CSS inline style text: a hand table entry
+// (extra_entries) over the panel's settings.
+PropertyDescriptor flex_panel_style_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "style";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Layout";
+    descriptor.description = "The flex container's settings as a CSS inline style: flex-direction, flex-wrap, justify-content, align-content, align-items and the gaps.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_flex_panel_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        flex_panel_style_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+// property_codemod begin FlexPanel (tools/property_families/flex_panel.json; generated, do not edit)
+
+const std::array<PropertyEntry, FlexPanel::flex_panel_property_count>& FlexPanel::flex_panel_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"style", &describe_flex_panel_style,
+         &read_member_entry<FlexPanel, decltype(&FlexPanel::style_property), &FlexPanel::style_property>,
+         &write_member_entry<FlexPanel, decltype(&FlexPanel::set_style_property), &FlexPanel::set_style_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "FlexPanel's property table names a property twice");
+    static const std::array<PropertyEntry, flex_panel_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> FlexPanel::property_table() const noexcept {
+    const std::array<PropertyEntry, flex_panel_property_count>& entries = flex_panel_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void FlexPanel::prepare_write(const decltype(flex_direction)&, FlexDirection& incoming) {
+    require_mutable();
+    if (incoming > FlexDirection::column_reverse) throw std::invalid_argument("FlexPanel flex direction is unknown");
+}
+
+void FlexPanel::written(const decltype(flex_direction)&) {
+    invalidate(invalidation::bounds);
+}
+
+void FlexPanel::prepare_write(const decltype(flex_wrap)&, FlexWrap& incoming) {
+    require_mutable();
+    if (incoming > FlexWrap::wrap_reverse) throw std::invalid_argument("FlexPanel flex wrap is unknown");
+}
+
+void FlexPanel::written(const decltype(flex_wrap)&) {
+    invalidate(invalidation::bounds);
+}
+
+void FlexPanel::prepare_write(const decltype(justify_content)&, LayoutAlignment& incoming) {
+    require_mutable();
+    if (!admitted_content_alignment(incoming) || incoming > LayoutAlignment::space_evenly) throw std::invalid_argument("FlexPanel justify-content admits no such value");
+}
+
+void FlexPanel::written(const decltype(justify_content)&) {
+    invalidate(invalidation::bounds);
+}
+
+void FlexPanel::prepare_write(const decltype(align_content)&, LayoutAlignment& incoming) {
+    require_mutable();
+    if (!admitted_content_alignment(incoming) || incoming > LayoutAlignment::space_evenly) throw std::invalid_argument("FlexPanel align-content admits no such value");
+}
+
+void FlexPanel::written(const decltype(align_content)&) {
+    invalidate(invalidation::bounds);
+}
+
+void FlexPanel::prepare_write(const decltype(align_items)&, LayoutAlignment& incoming) {
+    require_mutable();
+    if (!admitted_items_alignment(incoming)) throw std::invalid_argument("FlexPanel align-items admits no such value");
+}
+
+void FlexPanel::written(const decltype(align_items)&) {
+    invalidate(invalidation::bounds);
+}
+
+void FlexPanel::prepare_write(const decltype(row_gap)&, LengthPercentage& incoming) {
+    require_mutable();
+    if (!admitted_gap(incoming)) throw std::invalid_argument("FlexPanel row gap must be finite and nonnegative");
+}
+
+void FlexPanel::written(const decltype(row_gap)&) {
+    invalidate(invalidation::bounds);
+}
+
+void FlexPanel::prepare_write(const decltype(column_gap)&, LengthPercentage& incoming) {
+    require_mutable();
+    if (!admitted_gap(incoming)) throw std::invalid_argument("FlexPanel column gap must be finite and nonnegative");
+}
+
+void FlexPanel::written(const decltype(column_gap)&) {
+    invalidate(invalidation::bounds);
+}
+
+// property_codemod end FlexPanel
 
 } // namespace gui_forms

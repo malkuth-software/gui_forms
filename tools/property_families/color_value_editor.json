@@ -1,0 +1,64 @@
+{
+  "family": "ColorValueEditor",
+  "step": "B8",
+  "declaring": "ColorValueEditor",
+  "header": "include/gui_forms/controls/panel/color_value_editor/color_value_editor.hpp",
+  "source": "src/controls/panel/color_value_editor/color_value_editor.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/color_value_editor/color_value_editor_capabilities/color_value_editor_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [
+    "gui_forms/types.hpp"
+  ],
+  "properties": [
+    {
+      "name": "value",
+      "capability": "ColorValueEditorValue",
+      "value": "Color",
+      "initial": null,
+      "comment": "The edited colour; a view, since committing the text moves it and an equal write still restores the text and the normal status. A write raises no event.",
+      "getter": "value",
+      "setter": "set_value",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto value_, which a text commit moves; write_view resynchronizes the text even when the colour is unchanged"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "swatch_width",
+      "capability": "ColorValueEditorSwatchWidth",
+      "value": "double",
+      "initial": "30.0",
+      "comment": "The width of the colour swatch before the text, 12 to 96 (std::invalid_argument otherwise).",
+      "getter": "swatch_width",
+      "setter": "set_swatch_width",
+      "clear": null,
+      "field": "swatch_width_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::layout | Dirty::paint | Dirty::hit_test",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 12.0 || incoming > 96.0) {",
+        "    throw std::invalid_argument(\"color editor swatch width must be within [12, 96]\");",
+        "}"
+      ],
+      "sample": "40.0"
+    }
+  ],
+  "test": {
+    "type": "ColorValueEditor",
+    "include": "gui_forms/controls/panel/color_value_editor/color_value_editor.hpp"
+  }
+}

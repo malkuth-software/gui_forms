@@ -1,10 +1,10 @@
 #include "gui_forms/controls/button_base/check_box/check_box.hpp"
-#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "../choice_indicator_property.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -37,7 +37,7 @@ void CheckBox::bind(Value<bool>& model) {
     const Control::Ptr retained = weak_from_this().lock();
     std::unique_ptr<detail::ScalarBinding<CheckBox, bool>> binding =
         std::make_unique<detail::ScalarBinding<CheckBox, bool>>(
-            *this, model, checked_changed_, &CheckBox::checked, &CheckBox::set_checked);
+            *this, model, checked_changed_, &CheckBox::bound_checked, &CheckBox::write_bound_checked);
     // Retire the old model before the initial model-wins publication.
     unbind_command();
     value_binding_ = std::move(binding);
@@ -50,144 +50,74 @@ CheckBox::CheckBox(StableId stable_id, std::string text)
     : ButtonBase(std::move(stable_id), std::move(text)) {
     text_alignment = ContentAlignment::middle_left;
     image_alignment = ContentAlignment::middle_left;
-    define_bindable_property({
-        {"checked", BindingValueKind::boolean, "Behavior",
-         "Whether the check box is in a checked state.", BindingValue{false},
-         Dirty::paint | Dirty::semantics},
-        detail::BindingNoexceptMethodGetter<CheckBox, bool>(
-            *this, &CheckBox::checked),
-        detail::ConvertedPropertySetter<CheckBox, bool>(
-            *this, &CheckBox::set_checked, BindingValueKind::boolean,
-            "CheckBox.Checked binding requires Boolean"),
-        detail::EventChangeConnector<bool>(checked_changed_), {}, {}});
-
-    PropertyDescriptor check_state;
-    check_state.name = "check_state";
-    check_state.kind = BindingValueKind::enumeration;
-    check_state.category = "Behavior";
-    check_state.description = "Unchecked, checked or indeterminate; checked follows it.";
-    check_state.default_value = BindingValue{PropertyEnumValue{"check_state", "unchecked", 0}};
-    check_state.invalidation_effects = Dirty::paint | Dirty::semantics;
-    check_state.bindable = false;
-    check_state.enumeration = check_state_enum();
-    define_bindable_property({
-        std::move(check_state),
-        detail::EnumerationPropertyGetter<CheckBox, CheckState>(*this, &CheckBox::check_state,
-                                                                check_state_enum()),
-        detail::EnumerationPropertySetter<CheckBox, CheckState>(*this, &CheckBox::set_check_state),
-        detail::EventChangeConnector<CheckState>(check_state_changed_), {}, {}});
-
-    PropertyDescriptor indicator_style;
-    indicator_style.name = "indicator_style";
-    indicator_style.kind = BindingValueKind::enumeration;
-    indicator_style.category = "Appearance";
-    indicator_style.description = "How the check mark draws: classic, modern or toggle.";
-    indicator_style.default_value = BindingValue{PropertyEnumValue{"indicator_style", "classic", 0}};
-    indicator_style.invalidation_effects = Dirty::paint | Dirty::semantics;
-    indicator_style.bindable = false;
-    indicator_style.enumeration = button_base_detail::choice_indicator_style_enum();
-    define_bindable_property({
-        std::move(indicator_style),
-        detail::EnumerationPropertyGetter<CheckBox, ChoiceIndicatorStyle>(
-            *this, &CheckBox::indicator_style, button_base_detail::choice_indicator_style_enum()),
-        detail::EnumerationPropertySetter<CheckBox, ChoiceIndicatorStyle>(*this, &CheckBox::set_indicator_style),
-        {}, {}, {}});
-
-    // A document writes three_state before an indeterminate check_state:
-    // properties apply in document order.
-    PropertyDescriptor three_state;
-    three_state.name = "three_state";
-    three_state.kind = BindingValueKind::boolean;
-    three_state.category = "Behavior";
-    three_state.description = "Whether the box also takes the indeterminate state; clearing it clears that state.";
-    three_state.default_value = BindingValue{false};
-    three_state.invalidation_effects = Dirty::paint | Dirty::semantics;
-    three_state.bindable = false;
-    define_bindable_property({
-        std::move(three_state),
-        detail::BindingNoexceptMethodGetter<CheckBox, bool>(*this, &CheckBox::three_state),
-        detail::DirectPropertySetter<CheckBox, bool>(*this, &CheckBox::set_three_state), {}, {}, {}});
+    // The user changes `checked`, so a form binding writes it back by
+    // default; a document writes three_state before an indeterminate
+    // check_state, since properties apply in document order.
 }
 
-void CheckBox::set_check_state(CheckState state) {
+bool CheckBox::bound_checked() const noexcept {
+    return check_state_ == CheckState::checked;
+}
+
+void CheckBox::write_bound_checked(bool value) {
+    checked = value;
+}
+
+// The check state's write, in set_check_state's order: validate, coerce
+// indeterminate to checked unless three_state, let a bound Value refuse,
+// store, then raise check_state_changed and (when it changed) checked_changed.
+void CheckBox::write_view(const decltype(check_state)&, CheckState incoming) {
     require_mutable();
     const Control::Ptr retained = weak_from_this().lock();
-    if (state != CheckState::unchecked && state != CheckState::checked &&
-        state != CheckState::indeterminate) {
+    if (incoming != CheckState::unchecked && incoming != CheckState::checked &&
+        incoming != CheckState::indeterminate) {
         throw std::invalid_argument("invalid check state");
     }
-    if (!three_state_ && state == CheckState::indeterminate) {
-        state = CheckState::checked;
+    if (!three_state.read() && incoming == CheckState::indeterminate) {
+        incoming = CheckState::checked;
     }
-    if (check_state_ == state) {
+    if (check_state_ == incoming) {
         return;
     }
-    if (value_binding_) (*value_binding_).validate_update(state == CheckState::checked);
+    if (value_binding_) (*value_binding_).validate_update(incoming == CheckState::checked);
     if (!is_alive()) return;
-    const bool previous_checked = checked();
-    check_state_ = state;
+    const bool previous_checked = check_state_ == CheckState::checked;
+    check_state_ = incoming;
     invalidate(Dirty::paint | Dirty::semantics);
-    publish_change(check_state_changed_, check_state_);
+    on_check_state_changed();
     if (!is_alive()) {
         return;
     }
-    if (previous_checked != checked()) {
-        publish_change(checked_changed_, checked());
+    const bool now_checked = check_state_ == CheckState::checked;
+    if (previous_checked != now_checked) {
+        on_checked_changed();
     }
 }
 
-void CheckBox::set_checked(bool checked_value) {
-    set_check_state(checked_value ? CheckState::checked : CheckState::unchecked);
+CheckState CheckBox::read_view(const decltype(check_state)&) const {
+    return check_state_;
 }
 
-void CheckBox::set_three_state(bool enabled_value) {
+void CheckBox::write_view(const decltype(checked)&, bool incoming) {
+    check_state = incoming ? CheckState::checked : CheckState::unchecked;
+}
+
+bool CheckBox::read_view(const decltype(checked)&) const {
+    return check_state_ == CheckState::checked;
+}
+
+void CheckBox::prepare_write(const decltype(three_state)&, bool&) {
     require_mutable();
-    if (three_state_ == enabled_value) {
-        return;
-    }
-    three_state_ = enabled_value;
-    if (!three_state_ && check_state_ == CheckState::indeterminate) {
-        set_check_state(CheckState::checked);
+}
+
+// Clearing three_state turns an indeterminate box checked (which
+// invalidates and raises the events); otherwise only semantics change.
+void CheckBox::written(const decltype(three_state)&) {
+    if (!three_state.read() && check_state_ == CheckState::indeterminate) {
+        check_state = CheckState::checked;
         return;
     }
     invalidate(Dirty::semantics);
-}
-
-void CheckBox::set_auto_check(bool enabled_value) {
-    require_mutable();
-    if (auto_check_ == enabled_value) {
-        return;
-    }
-    auto_check_ = enabled_value;
-    invalidate(Dirty::semantics);
-}
-
-void CheckBox::set_appearance(const CheckBoxAppearance appearance_value) {
-    require_mutable();
-    if (appearance_value != CheckBoxAppearance::normal &&
-        appearance_value != CheckBoxAppearance::button) {
-        throw std::invalid_argument("invalid CheckBox appearance");
-    }
-    if (appearance_ == appearance_value) return;
-    appearance_ = appearance_value;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-}
-
-void CheckBox::set_indicator_style(ChoiceIndicatorStyle style_value) {
-    require_mutable();
-    switch (style_value) {
-    case ChoiceIndicatorStyle::classic:
-    case ChoiceIndicatorStyle::modern:
-    case ChoiceIndicatorStyle::toggle:
-        break;
-    default:
-        throw std::invalid_argument("CheckBox indicator style is invalid");
-    }
-    if (indicator_style_ == style_value) {
-        return;
-    }
-    indicator_style_ = style_value;
-    invalidate(Dirty::paint | Dirty::semantics);
 }
 
 namespace {
@@ -282,10 +212,10 @@ const ControlAnatomy& CheckBox::anatomy() const noexcept {
 
 void CheckBox::publish_part_geometry(std::span<PartGeometry> geometry) const {
     Parts record;
-    if (appearance_ == CheckBoxAppearance::button) {
+    if (appearance.read() == CheckBoxAppearance::button) {
         // The button appearance is a push button whose selection is the
         // check state; it has a face and no well or indicator.
-        const ButtonBase::Parts base = push_button_parts(checked(), false);
+        const ButtonBase::Parts base = push_button_parts(checked.read(), false);
         record.region = base.region;
         record.face = base.face;
         record.icon = base.icon;
@@ -295,14 +225,14 @@ void CheckBox::publish_part_geometry(std::span<PartGeometry> geometry) const {
         return;
     }
     const Rect bounds = local_bounds();
-    const Rect box = check_box_well(bounds, indicator_style_);
-    const PartMark mark_kind = check_box_mark(indicator_style_, check_state_);
-    const Rect mark = check_box_mark_bounds(box, mark_kind, checked());
+    const Rect box = check_box_well(bounds, indicator_style.read());
+    const PartMark mark_kind = check_box_mark(indicator_style.read(), check_state_);
+    const Rect mark = check_box_mark_bounds(box, mark_kind, checked.read());
     const Rect content_face{box.x + box.width + 1.0, 0.0,
                             std::max(0.0, bounds.width - box.x - box.width - 1.0),
                             bounds.height};
     const ContentLayout layout =
-        published_content_layout(content_face, checked(), false);
+        published_content_layout(content_face, checked.read(), false);
     record.region = PartGeometry::from_bounds(bounds);
     record.well = PartGeometry::from_bounds(box);
     record.indicator = PartGeometry::from_bounds(mark);
@@ -322,6 +252,8 @@ AnatomyStateSet CheckBox::anatomy_states() const {
         states.insert(AnatomyState::checked);
     } else if (check_state_ == CheckState::indeterminate) {
         states.insert(AnatomyState::indeterminate);
+    } else {
+        // Unchecked adds no state.
     }
     return states;
 }
@@ -346,12 +278,12 @@ CheckBox::States CheckBox::states() const {
 // disabled check box keeps the theme's disabled text.
 void CheckBox::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
-    if (appearance_ == CheckBoxAppearance::button) {
+    if (appearance.read() == CheckBoxAppearance::button) {
         paint_themed_button(painter, bounds, ControlVisualRole::button, false,
-                            false, checked());
+                            false, checked.read());
         return;
     }
-    const Rect box = check_box_well(bounds, indicator_style_);
+    const Rect box = check_box_well(bounds, indicator_style.read());
     const AnatomyStateSet states = anatomy_states();
     std::optional<Color> ground{};
     std::optional<Color> ink{};
@@ -365,17 +297,22 @@ void CheckBox::on_paint(Painter& painter, Rect) {
     well.role = PartRole::well;
     well.bounds = box;
     well.states = states;
-    well.corner_radius = indicator_style_ == ChoiceIndicatorStyle::toggle ? 7.5 : 2.0;
+    // A box well takes the theme's choice corners up to 2 px (square in a
+    // theme with square wells); a toggle is a pill.
+    const ControlVisualContext context = part_visual_context(*this, states);
+    const double theme_radius = effective_theme().resolve(ControlVisualRole::choice, context).material.corner_radius;
+    const double box_radius = std::min(2.0, theme_radius);
+    well.corner_radius = indicator_style.read() == ChoiceIndicatorStyle::toggle ? 7.5 : box_radius;
     well.authored_background = ground;
     well.key = PartKey{"well", {}, {}};
     paint_part(painter, *this, well);
-    const PartMark mark = check_box_mark(indicator_style_, check_state_);
+    const PartMark mark = check_box_mark(indicator_style.read(), check_state_);
     if (mark != PartMark::none) {
         PartPaint indicator;
         indicator.family = ControlVisualRole::choice;
         indicator.role = PartRole::indicator;
         indicator.mark = mark;
-        indicator.bounds = check_box_mark_bounds(box, mark, checked());
+        indicator.bounds = check_box_mark_bounds(box, mark, checked.read());
         indicator.states = states;
         indicator.authored_foreground = ink;
         indicator.key = PartKey{"indicator", {}, {}};
@@ -387,7 +324,7 @@ void CheckBox::on_paint(Painter& painter, Rect) {
     content_ink.family = ControlVisualRole::choice;
     content_ink.states = states;
     content_ink.authored = ink;
-    paint_button_content(painter, content, display_text(), content_ink, {}, checked());
+    paint_button_content(painter, content, display_text(), content_ink, {}, checked.read());
     PartPaint focus;
     focus.family = ControlVisualRole::choice;
     focus.role = PartRole::focus;
@@ -399,8 +336,8 @@ void CheckBox::on_paint(Painter& painter, Rect) {
 
 Insets CheckBox::visual_outsets() const noexcept {
     const ControlVisualContext context = visual_context(
-        hovered_visual(), pressed_visual(), checked(), focus_cue_visible());
-    if (appearance_ == CheckBoxAppearance::button) {
+        hovered_visual(), pressed_visual(), checked.read(), focus_cue_visible());
+    if (appearance.read() == CheckBoxAppearance::button) {
         return resolved_visual_outsets(ControlVisualRole::button, context);
     }
     return surface_material_visual_outsets(
@@ -409,14 +346,14 @@ Insets CheckBox::visual_outsets() const noexcept {
 
 void CheckBox::on_activate() {
     const Control::Ptr retained = weak_from_this().lock();
-    if (auto_check_) {
+    if (auto_check.read()) {
         CheckState next = CheckState::unchecked;
         if (check_state_ == CheckState::unchecked) {
             next = CheckState::checked;
-        } else if (check_state_ == CheckState::checked && three_state_) {
+        } else if (check_state_ == CheckState::checked && three_state.read()) {
             next = CheckState::indeterminate;
         }
-        set_check_state(next);
+        check_state = next;
         if (!is_alive()) {
             return;
         }
@@ -449,5 +386,200 @@ void CheckBox::append_interactions(std::vector<InteractionDeclaration>& interact
     ButtonBase::append_interactions(interactions);
     interactions.insert(interactions.end(), check_box_interactions.begin(), check_box_interactions.end());
 }
+
+// property_codemod begin CheckBox (tools/property_families/check_box.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor check_box_check_state_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "check_state";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Behavior";
+    descriptor.description = "Unchecked, checked or indeterminate; checked follows it.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"check_state", "unchecked", 0}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = check_state_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_check_box_check_state() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        check_box_check_state_descriptor(), PropertyOperations{true, true, false, true});
+    return descriptor;
+}
+
+PropertyDescriptor check_box_checked_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "checked";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Whether the check box is in a checked state.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.binding_direction = PropertyBindingDirection::two_way;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_check_box_checked() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        check_box_checked_descriptor(), PropertyOperations{true, true, false, true});
+    return descriptor;
+}
+
+PropertyDescriptor check_box_three_state_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "three_state";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Whether the box also takes the indeterminate state; clearing it clears that state.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_check_box_three_state() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        check_box_three_state_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor check_box_indicator_style_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "indicator_style";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "How the check mark draws: classic, modern or toggle.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"indicator_style", "classic", 0}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = button_base_detail::choice_indicator_style_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_check_box_indicator_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        check_box_indicator_style_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<CheckState>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, check_state_enum()};
+}
+
+BindingValue PropertyValueTraits<CheckState>::to_binding(CheckState value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = check_state_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+CheckState PropertyValueTraits<CheckState>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<CheckState>(choice.value);
+}
+
+PropertyType PropertyValueTraits<ChoiceIndicatorStyle>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, button_base_detail::choice_indicator_style_enum()};
+}
+
+BindingValue PropertyValueTraits<ChoiceIndicatorStyle>::to_binding(ChoiceIndicatorStyle value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = button_base_detail::choice_indicator_style_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+ChoiceIndicatorStyle PropertyValueTraits<ChoiceIndicatorStyle>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<ChoiceIndicatorStyle>(choice.value);
+}
+
+const std::array<PropertyEntry, CheckBox::check_box_property_count>& CheckBox::check_box_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 4U> own{{
+        {"check_state", &describe_check_box_check_state,
+         &read_cell_entry<CheckBox, decltype(&CheckBox::check_state), &CheckBox::check_state>,
+         &write_cell_entry<CheckBox, decltype(&CheckBox::check_state), &CheckBox::check_state>,
+         nullptr, nullptr, nullptr,
+         &connect_event_entry<CheckBox, decltype(&CheckBox::check_state_changed_), &CheckBox::check_state_changed_>},
+        {"checked", &describe_check_box_checked,
+         &read_cell_entry<CheckBox, decltype(&CheckBox::checked), &CheckBox::checked>,
+         &write_cell_entry<CheckBox, decltype(&CheckBox::checked), &CheckBox::checked>,
+         nullptr, nullptr, nullptr,
+         &connect_event_entry<CheckBox, decltype(&CheckBox::checked_changed_), &CheckBox::checked_changed_>},
+        {"three_state", &describe_check_box_three_state,
+         &read_cell_entry<CheckBox, decltype(&CheckBox::three_state), &CheckBox::three_state>,
+         &write_cell_entry<CheckBox, decltype(&CheckBox::three_state), &CheckBox::three_state>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"indicator_style", &describe_check_box_indicator_style,
+         &read_cell_entry<CheckBox, decltype(&CheckBox::indicator_style), &CheckBox::indicator_style>,
+         &write_cell_entry<CheckBox, decltype(&CheckBox::indicator_style), &CheckBox::indicator_style>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "CheckBox's property table names a property twice");
+    static const std::array<PropertyEntry, check_box_property_count> entries =
+        join_property_tables(ButtonBase::button_base_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> CheckBox::property_table() const noexcept {
+    const std::array<PropertyEntry, check_box_property_count>& entries = check_box_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void CheckBox::on_check_state_changed() {
+    publish_change(check_state_changed_, check_state.read());
+}
+
+void CheckBox::on_checked_changed() {
+    publish_change(checked_changed_, checked.read());
+}
+
+void CheckBox::prepare_write(const decltype(auto_check)&, bool&) {
+    require_mutable();
+}
+
+void CheckBox::written(const decltype(auto_check)&) {
+    invalidate(Dirty::semantics);
+}
+
+void CheckBox::prepare_write(const decltype(appearance)&, CheckBoxAppearance& incoming) {
+    require_mutable();
+    if (incoming != CheckBoxAppearance::normal && incoming != CheckBoxAppearance::button) throw std::invalid_argument("invalid CheckBox appearance");
+}
+
+void CheckBox::written(const decltype(appearance)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_appearance_changed();
+}
+
+void CheckBox::on_appearance_changed() {}
+
+void CheckBox::prepare_write(const decltype(indicator_style)&, ChoiceIndicatorStyle& incoming) {
+    require_mutable();
+    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(ChoiceIndicatorStyle::toggle)) throw std::invalid_argument("CheckBox indicator style is invalid");
+}
+
+void CheckBox::written(const decltype(indicator_style)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+// property_codemod end CheckBox
 
 } // namespace gui_forms

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/controls/range_control/range_control.hpp"
+#include "gui_forms/controls/range_control/scroll_bar/scroll_bar_capabilities/scroll_bar_capabilities.hpp"
 
 #include <cstdint>
 #include <span>
@@ -17,25 +18,10 @@ enum class ScrollBarPart : std::uint8_t {
     thumb,
 };
 
-class ScrollBar : public RangeControl {
+class ScrollBar : public RangeControl, public ScrollBarCapabilities<ScrollBar> {
 public:
     explicit ScrollBar(StableId stable_id,
-                       Orientation orientation = Orientation::vertical);
-
-    [[nodiscard]] double button_extent() const noexcept { return button_extent_; }
-    void set_button_extent(double extent);
-    [[nodiscard]] double minimum_thumb_extent() const noexcept {
-        return minimum_thumb_extent_;
-    }
-    void set_minimum_thumb_extent(double extent);
-    [[nodiscard]] FrameInterval initial_repeat_delay() const noexcept {
-        return initial_repeat_delay_;
-    }
-    void set_initial_repeat_delay(FrameInterval delay);
-    [[nodiscard]] FrameInterval repeat_interval() const noexcept {
-        return repeat_interval_;
-    }
-    void set_repeat_interval(FrameInterval interval);
+                       Orientation initial_orientation = Orientation::vertical);
 
     [[nodiscard]] Rect decrement_button_bounds() const noexcept;
     [[nodiscard]] Rect increment_button_bounds() const noexcept;
@@ -91,10 +77,8 @@ private:
     // when the track no longer lies under the pointer or the step is refused.
     void repeat_step();
 
-    // One arrow button: its actuator part, pressed while it is the pressed
-    // part, and its arrow mark.
-    void paint_button(Painter& painter, Rect button, ScrollBarPart part,
-                      bool incrementing, AnatomyStateSet states);
+    // Moves the hover onto `part` (none: off the bar), repainting on change.
+    void set_hot_part(ScrollBarPart part);
     [[nodiscard]] double axis_coordinate(Point local_point) const noexcept;
     [[nodiscard]] double value_from_thumb_coordinate(double coordinate) const noexcept;
     bool apply_part(ScrollBarPart part);
@@ -102,18 +86,40 @@ private:
     void stop_interaction() noexcept;
 
     ScrollBarPart pressed_part_{ScrollBarPart::none};
+    // The part under the pointer (none off the bar), which alone shows hot.
+    ScrollBarPart hot_part_{ScrollBarPart::none};
     Point repeat_pointer_{};
     double thumb_drag_offset_{};
-    double button_extent_{17.0};
-    double minimum_thumb_extent_{18.0};
-    FrameInterval initial_repeat_delay_{std::chrono::milliseconds(400)};
-    FrameInterval repeat_interval_{std::chrono::milliseconds(60)};
-    // Repeats the pressed part: first after initial_repeat_delay_, then
-    // every repeat_interval_, until release. Each repeat's value change
+    // Repeats the pressed part: first after initial_repeat_delay, then
+    // every repeat_interval, until release. Each repeat's value change
     // damages the bar.
     FrameRequestToken repeat_frames_;
     bool focused_{};
     bool tracking_thumb_{};
+    // The arrow buttons' extent on a bar `axis` long (the theme may draw none).
+    [[nodiscard]] double arrow_extent(double axis) const noexcept;
+    // property_codemod begin ScrollBar (tools/property_families/scroll_bar.json; generated, do not edit)
+public:
+    // ScrollBar's property table: RangeControl's entries, then its own.
+    static constexpr std::size_t scroll_bar_property_count = RangeControl::range_control_property_count + 1U;
+    [[nodiscard]] static const std::array<PropertyEntry, scroll_bar_property_count>& scroll_bar_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct ScrollBarButtonExtentCapability<ScrollBar>;
+    friend struct ScrollBarMinimumThumbExtentCapability<ScrollBar>;
+    friend struct ScrollBarInitialRepeatDelayCapability<ScrollBar>;
+    friend struct ScrollBarRepeatIntervalCapability<ScrollBar>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(button_extent)& cell, double& incoming);
+    void written(const decltype(button_extent)& cell);
+    void prepare_write(const decltype(minimum_thumb_extent)& cell, double& incoming);
+    void written(const decltype(minimum_thumb_extent)& cell);
+    void prepare_write(const decltype(initial_repeat_delay)& cell, FrameInterval& incoming);
+    void written(const decltype(initial_repeat_delay)& cell);
+    void prepare_write(const decltype(repeat_interval)& cell, FrameInterval& incoming);
+    void written(const decltype(repeat_interval)& cell);
+    // property_codemod end ScrollBar
 };
 
 } // namespace gui_forms

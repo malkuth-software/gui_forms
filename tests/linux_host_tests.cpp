@@ -30,7 +30,7 @@ void require(bool condition, const char *message) {
 struct Root final : Control {
   explicit Root(StableId id) : Control(std::move(id)) {
     allow_drop = true;
-    set_focusable(true);
+    focusable = true;
   }
   unsigned keys{};
   bool dropped{};

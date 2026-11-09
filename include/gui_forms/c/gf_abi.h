@@ -109,6 +109,8 @@ typedef uint32_t gf_table_id;
 #define GF_TABLE_CUSTOM_CONTROLS 15u
 #define GF_TABLE_BINDINGS 16u
 #define GF_TABLE_SUBSURFACES 17u
+#define GF_TABLE_APPLICATION 18u
+#define GF_TABLE_RULES 19u
 /* Platform extension tables have ids from 0x100. A library has one only on
  * its platform, and reports it as a host capability; elsewhere
  * gf_abi_get_table gives GF_STATUS_NOT_FOUND. */
@@ -161,9 +163,49 @@ typedef struct gf_error_detail {
 } gf_error_detail;
 
 /*
+ * The splashscreen (since 1.1; C++ Splashscreen, APP_WINDOW_RULES_DESIGN
+ * Part S): a borderless window centred on the primary monitor, taking no
+ * input, shown while the program loads, before any object or window and
+ * before GF_TABLE_APPLICATION's create. It is the program's artwork plus one
+ * status line and an optional progress bar in fixed built-in styling, with
+ * no colours or geometry of the program's (owner ruling Q-S1 (a)). It
+ * closes when the library's first window is ready (the handover), or at
+ * splashscreen_close. One shows at a time.
+ */
+typedef uint64_t gf_splashscreen;
+
+/* The most bytes of one splashscreen status line. */
+#define GF_SPLASHSCREEN_MAXIMUM_STATUS_BYTES 512u
+/* The artwork's least and greatest extent, in pixels. */
+#define GF_SPLASHSCREEN_MINIMUM_EXTENT 160u
+#define GF_SPLASHSCREEN_MAXIMUM_EXTENT 1600u
+
+/*
+ * What a splashscreen shows. An input record: struct_size at least the 1.1
+ * size. artwork holds artwork_size bytes of a PNG file whose pixel size,
+ * one logical unit per pixel, is the window's size (each extent from
+ * GF_SPLASHSCREEN_MINIMUM_EXTENT to _MAXIMUM_EXTENT); the status and the
+ * bar are drawn over its bottom edge. status is UTF-8, at most
+ * GF_SPLASHSCREEN_MAXIMUM_STATUS_BYTES. With show_progress non-zero a bar
+ * shows progress, in [0, 1]. Everything is copied during the call.
+ */
+typedef struct gf_splashscreen_options {
+    uint32_t struct_size;
+    uint32_t show_progress;
+    const uint8_t* artwork;
+    uint64_t artwork_size;
+    gf_utf8_view status;
+    double progress;
+} gf_splashscreen_options;
+
+/*
  * GF_TABLE_RUNTIME: version and error detail. Its functions may be called
  * from any thread, and they never record a failure of their own, so reading
- * the detail does not replace it.
+ * the detail does not replace it. The splashscreen functions (since 1.1)
+ * are the exception to the threads rule: they run on the thread that shows
+ * the splashscreen, which should be the thread that will be the UI thread,
+ * and may be called before the library has a UI thread; another thread is
+ * refused with GF_STATUS_WRONG_THREAD.
  */
 typedef struct gf_runtime_table {
     uint32_t struct_size;
@@ -183,6 +225,42 @@ typedef struct gf_runtime_table {
                                       uint64_t* message_required);
     /* Forgets the calling thread's last failure. */
     gf_status (GF_CALL* clear_error)(void);
+    /*
+     * Since 1.1. Shows the splashscreen of options and presents its first
+     * frame before it returns; splashscreen receives its handle, valid until
+     * splashscreen_close. GF_STATUS_INVALID_ARGUMENT for a record smaller
+     * than the 1.1 size, a null splashscreen, artwork that is not a PNG file
+     * or has an extent out of range, a status that is not UTF-8 or too long,
+     * or a progress outside [0, 1] with show_progress; GF_STATUS_INVALID_STATE
+     * while another splashscreen's handle is open (shown, or handed over and
+     * not yet closed); GF_STATUS_UNSUPPORTED_CAPABILITY when the host has no
+     * splashscreen (no display, a host without
+     * GF_TRANSIENT_SURFACE_SPLASHSCREEN) or could not present it. Nothing
+     * shows after a failure, and the program goes on without one.
+     */
+    gf_status (GF_CALL* splashscreen_show)(const gf_splashscreen_options* options, gf_splashscreen* splashscreen);
+    /*
+     * Since 1.1. Replaces the status line and presents the frame at once.
+     * After the handover it accepts and presents nothing.
+     * GF_STATUS_STALE_HANDLE for a handle that is not the current
+     * splashscreen's; GF_STATUS_INVALID_ARGUMENT, changing nothing, for text
+     * that is not UTF-8 or too long; GF_STATUS_UNSUPPORTED_CAPABILITY when
+     * the frame could not be presented.
+     */
+    gf_status (GF_CALL* splashscreen_set_status)(gf_splashscreen splashscreen, gf_utf8_view status);
+    /*
+     * Since 1.1. Shows the bar at progress, in [0, 1], or hides it when
+     * show_progress is zero (progress is then ignored), and presents the
+     * frame at once; as set_status otherwise.
+     */
+    gf_status (GF_CALL* splashscreen_set_progress)(gf_splashscreen splashscreen, uint32_t show_progress,
+                                                   double progress);
+    /*
+     * Since 1.1. Closes the splashscreen's window if it still shows and ends
+     * its handle; another may be shown after. GF_STATUS_STALE_HANDLE for a
+     * handle that is not the current splashscreen's.
+     */
+    gf_status (GF_CALL* splashscreen_close)(gf_splashscreen splashscreen);
 } gf_runtime_table;
 
 /*
@@ -1145,13 +1223,62 @@ typedef uint64_t gf_host_capability;
 #define GF_HOST_CAPABILITY_PRESENTATION_PREFERENCES 2147483648ull
 /* The library has GF_TABLE_WINDOWS_PAINT_ENDPOINT (Windows only). */
 #define GF_HOST_CAPABILITY_WINDOWS_PAINT_ENDPOINT 4294967296ull
+/* Since 1.1: transient surfaces, the host's own windows for tooltips and
+ * the splashscreen (Splash: no input) and for menus, drop-downs and pickers
+ * (Popup: input through the owner window). Which kinds, and whether they
+ * are translucent, is gf_host_capabilities.transient_surfaces. Without it
+ * each kind is shown inside its owner window instead. */
+#define GF_HOST_CAPABILITY_TRANSIENT_SURFACES 8589934592ull
+/* Since 1.1: the host shapes a window's corners and reports them; the
+ * window outer band follows the report (a rounded band where the host
+ * rounds). Which shapes it may give is
+ * gf_host_capabilities.window_corner_shapes. Without it a window's corners
+ * are square to the band. Windows 11 (DWM) today. */
+#define GF_HOST_CAPABILITY_WINDOW_CORNERS 17179869184ull
+/* Since 1.1: the host reports the native window's state: full screen, and
+ * the maximize, snap and restore changes that can reshape its corners. A
+ * window outer band declared to hide in full screen hides only where the
+ * host reports it. Windows, macOS and X11. */
+#define GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS 34359738368ull
 
-/* The host's report. An output record. protocol_version is the host
- * protocol's revision; available is a set of gf_host_capability bits. */
+/* gf_window_corner_shape (since 1.1): the corner shapes a host may give a
+ * window, one bit each. A window's corners at a given moment follow its
+ * state: Windows squares a maximized, snapped or full-screen window's. */
+typedef uint32_t gf_window_corner_shape;
+#define GF_WINDOW_CORNER_SHAPE_SQUARE 1u
+#define GF_WINDOW_CORNER_SHAPE_ROUNDED 2u
+
+/* gf_transient_surface_kind (since 1.1): the transient surfaces a host
+ * opens, one bit each, and how they are drawn. */
+typedef uint32_t gf_transient_surface_kind;
+#define GF_TRANSIENT_SURFACE_TOOLTIP 1u
+#define GF_TRANSIENT_SURFACE_SPLASHSCREEN 2u
+#define GF_TRANSIENT_SURFACE_POPUP 4u
+/* Drawn with per-pixel alpha: the library's shadow and fade around them. */
+#define GF_TRANSIENT_SURFACE_TRANSLUCENT 8u
+/* May be drawn opaque, with no shadow or fade, as the desktop decides while
+ * the program runs (X11 without a compositing manager). Reported with
+ * TRANSLUCENT when the host draws either way. */
+#define GF_TRANSIENT_SURFACE_OPAQUE 16u
+
+/* The host's report. An output record (struct_size at least the 1.0 size,
+ * 16; a smaller record receives the fields that fit it). protocol_version
+ * is the host protocol's revision; available is a set of
+ * gf_host_capability bits. Since 1.1, transient_surfaces is a set of
+ * gf_transient_surface_kind bits, zero without
+ * GF_HOST_CAPABILITY_TRANSIENT_SURFACES; reserved is zero;
+ * window_corner_shapes is a set of gf_window_corner_shape bits, zero
+ * without GF_HOST_CAPABILITY_WINDOW_CORNERS; window_band_maximum_width is
+ * the widest window outer band, in logical units, a window may declare (a
+ * limit of the library, the same on every host). */
 typedef struct gf_host_capabilities {
     uint32_t struct_size;
     uint32_t protocol_version;
     gf_host_capability available;
+    gf_transient_surface_kind transient_surfaces;
+    uint32_t reserved;
+    gf_window_corner_shape window_corner_shapes;
+    uint32_t window_band_maximum_width;
 } gf_host_capabilities;
 
 /* gf_pointer_cursor: the pointer's shape over the running window. */
@@ -1884,6 +2011,291 @@ typedef struct gf_subsurfaces_table {
      * empty in every other state. UI thread. */
     gf_status (GF_CALL* failure)(gf_object host, char* buffer, uint64_t capacity, uint64_t* required);
 } gf_subsurfaces_table;
+
+/*
+ * GF_TABLE_APPLICATION (since 1.1): the application the library's windows
+ * share (C++ Application::create; APP_WINDOW_RULES_DESIGN Part A). A
+ * program may make one at a time, before the library's first object: create
+ * compiles its theme, the base sheet and then the packages in order, once,
+ * and every window takes that theme and the presentation defaults. A
+ * program that never calls create gets the process default, as before:
+ * the built-in theme and GUI.Forms' presentation defaults. GF_TABLE_THEMES
+ * still holds the one theme: a later load or reset replaces the
+ * application's.
+ *
+ * create runs on the calling thread, which becomes the UI thread (as the
+ * first create of an object does); close and state run on the UI thread.
+ */
+
+/* gf_theme_base: the sheet an application's theme starts from, before its
+ * packages. */
+typedef uint32_t gf_theme_base;
+/* The Windows Professional sheet, the process default's base. */
+#define GF_THEME_BASE_WINDOWS_PROFESSIONAL 0u
+/* The library's own GUI.Forms sheet. */
+#define GF_THEME_BASE_GUI_FORMS 1u
+
+/* gf_presentation_source: how an application's windows take their
+ * presentation (text scale, high contrast, reduced motion and transparency,
+ * sound, ambient motion, double-click interval). With either source a
+ * window follows the presentation its host reports once the host reports
+ * it; the sources differ in what a window starts from. */
+typedef uint32_t gf_presentation_source;
+/* Start from GUI.Forms' defaults and follow the host's reports. A later
+ * minor may start from the host's settings as read when the application is
+ * made, where the host can report them before a window exists. */
+#define GF_PRESENTATION_SOURCE_HOST 0u
+/* Start from explicit defaults, GUI.Forms' presentation defaults as this
+ * library defines them, and follow the host's reports. */
+#define GF_PRESENTATION_SOURCE_DEFAULTS 1u
+
+/* The most theme packages one application compiles; more are refused by
+ * the compile (finding E601), as a repeated package name is. */
+#define GF_APPLICATION_MAXIMUM_THEME_PACKAGES 16u
+
+/*
+ * What an application is made with. An input record: struct_size at least
+ * the 1.1 size, reserved zero. packages lists package_count packages
+ * (packages may be null when the count is zero), compiled after the base
+ * in that order, each with its
+ * @import closure among the installed packages (themes.install). The
+ * packages and their bytes are read during create only. With the default
+ * base (WINDOWS_PROFESSIONAL) and no packages the theme is the built-in
+ * one, not compiled again.
+ */
+typedef struct gf_application_config {
+    uint32_t struct_size;
+    gf_theme_base theme_base;
+    const gf_theme_package* packages;
+    uint64_t package_count;
+    gf_presentation_source presentation_source;
+    uint32_t reserved;
+} gf_application_config;
+
+/* gf_application_state: whether the library has an application. */
+typedef uint32_t gf_application_state;
+/* No application: create has not been called, or the application was
+ * closed. Windows use the process default. */
+#define GF_APPLICATION_STATE_NONE 0u
+/* The application is current. */
+#define GF_APPLICATION_STATE_CURRENT 1u
+
+typedef struct gf_application_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* Makes the application from config and makes it current. report (an
+     * output record) receives the theme compile's outcome: APPLIED, with
+     * any warnings among the findings, or REFUSED, with nothing made; the
+     * findings replace the held ones either way (themes.diagnostic_at,
+     * diagnostic_text). GF_STATUS_INVALID_STATE, making nothing and
+     * leaving the findings, while an application is current or while the
+     * library holds objects made without one; GF_STATUS_INVALID_ARGUMENT
+     * for an unknown base or source, a non-zero reserved field, or
+     * packages null with a non-zero count. More packages than the maximum
+     * or a repeated package name is a refused compile (E601), not a failed
+     * call. */
+    gf_status (GF_CALL* create)(const gf_application_config* config, gf_theme_report* report);
+    /* Ends the application's time as current. windows_alive receives the
+     * number of its windows still alive. GF_STATUS_INVALID_STATE, changing
+     * nothing, while any is; once closed, the theme is the built-in one
+     * again (as themes.reset), windows made afterwards use the process
+     * default and create may make another application. Closing
+     * with no application accepts and does nothing. */
+    gf_status (GF_CALL* close)(uint64_t* windows_alive);
+    /* Whether an application is current. */
+    gf_status (GF_CALL* state)(gf_application_state* state);
+} gf_application_table;
+
+/*
+ * GF_TABLE_RULES (since 1.1): a window's rules (notes:planning
+ * APP_WINDOW_RULES_DESIGN Part C), as C++ RuleSet keeps them. A rule has one
+ * trigger, zero or more conditions that must all hold, and one or more
+ * actions run in order. The vocabulary is closed: the trigger, condition
+ * and action kinds below are the whole of it.
+ *
+ * Evaluation. For one occurrence of a trigger a window's rules on it are
+ * evaluated in the order they were added; each whose conditions all hold
+ * fires. A firing rule with GF_RULE_FLAGS_CONSUME stops the rules added
+ * after it and the occurrence's default route: a key then reaches no
+ * control and no key command (key rules see a key before the focused
+ * control), and a context-menu request reaches none of the control's
+ * ancestors. Control-event rules run when the control raises the event.
+ * A rule added while an occurrence is evaluated is first evaluated by the
+ * next one.
+ *
+ * Lifetime. A window's rules end with it. A rule naming an object (its
+ * trigger's source, a condition's object, an action's target) is disarmed
+ * when that object is disposed or destroyed; its token then reads
+ * GF_RULE_STATE_STALE. Each token add gives is freed by remove, which also
+ * ends the rule when it is still armed; a freed token gives
+ * GF_STATUS_STALE_HANDLE. An action's callback is released once the library
+ * will not call it again: after its rule ends, at the latest when its
+ * window is destroyed, on the UI thread. Every function is UI thread only.
+ */
+
+/* gf_rule_trigger_kind: what a rule fires on. */
+typedef uint32_t gf_rule_trigger_kind;
+/* A key's press (not the platform's auto-repeat), its release, its
+ * auto-repeat (the platform's own); physical_key names it. */
+#define GF_RULE_TRIGGER_KEY_PRESSED 1u
+#define GF_RULE_TRIGGER_KEY_RELEASED 2u
+#define GF_RULE_TRIGGER_KEY_REPEAT 3u
+/* The WinForms mouse events of the control source. */
+#define GF_RULE_TRIGGER_MOUSE_DOWN 4u
+#define GF_RULE_TRIGGER_MOUSE_UP 5u
+#define GF_RULE_TRIGGER_CLICK 6u
+#define GF_RULE_TRIGGER_MOUSE_CLICK 7u
+#define GF_RULE_TRIGGER_DOUBLE_CLICK 8u
+#define GF_RULE_TRIGGER_MOUSE_DOUBLE_CLICK 9u
+#define GF_RULE_TRIGGER_CONTEXT_MENU_REQUESTED 10u
+#define GF_RULE_TRIGGER_MOUSE_ENTER 11u
+#define GF_RULE_TRIGGER_MOUSE_HOVER 12u
+#define GF_RULE_TRIGGER_MOUSE_LEAVE 13u
+#define GF_RULE_TRIGGER_MOUSE_CAPTURE_CHANGED 14u
+/* The control source gained or lost the keyboard focus. */
+#define GF_RULE_TRIGGER_FOCUS_GAINED 15u
+#define GF_RULE_TRIGGER_FOCUS_LOST 16u
+/* Any interaction source's type raises, by its schema name
+ * (schema.interaction_at), in interaction. */
+#define GF_RULE_TRIGGER_INTERACTION 17u
+/* The command source was executed. */
+#define GF_RULE_TRIGGER_COMMAND_EXECUTED 18u
+
+/* gf_rule_condition_kind: a level read when the trigger occurs. */
+typedef uint32_t gf_rule_condition_kind;
+/* The key physical_key is held. */
+#define GF_RULE_CONDITION_KEY_DOWN 1u
+/* The held modifiers are exactly modifiers (GF_RULE_MODIFIER_*). */
+#define GF_RULE_CONDITION_MODIFIERS 2u
+/* The pointer is over the control object or one of its descendants. */
+#define GF_RULE_CONDITION_HOVERING 3u
+/* The control object is the window's pressed control. */
+#define GF_RULE_CONDITION_PRESSED 4u
+/* The control object has the keyboard focus. */
+#define GF_RULE_CONDITION_FOCUSED 5u
+/* The control object or one of its descendants has the keyboard focus. */
+#define GF_RULE_CONDITION_FOCUS_WITHIN 6u
+/* The control object is effectively enabled; effectively visible. */
+#define GF_RULE_CONDITION_ENABLED 7u
+#define GF_RULE_CONDITION_VISIBLE 8u
+/* The window is the active window. */
+#define GF_RULE_CONDITION_WINDOW_ACTIVE 9u
+
+/* The modifiers GF_RULE_CONDITION_MODIFIERS names, combined as flags. */
+#define GF_RULE_MODIFIER_SHIFT 1u
+#define GF_RULE_MODIFIER_CONTROL 2u
+#define GF_RULE_MODIFIER_ALT 4u
+#define GF_RULE_MODIFIER_META 8u
+
+/* gf_rule_action_kind: what a firing rule does. */
+typedef uint32_t gf_rule_action_kind;
+/* Calls callback with sender the trigger's source (zero for a key
+ * trigger), the trigger kind's name ("key_pressed", "click", ...) as name,
+ * and no payload. */
+#define GF_RULE_ACTION_CALLBACK 1u
+/* Executes the command target through the window's command route. */
+#define GF_RULE_ACTION_INVOKE 2u
+/* Writes value to target's property, as properties.set does. */
+#define GF_RULE_ACTION_SET 3u
+/* Writes the opposite of target's boolean property. */
+#define GF_RULE_ACTION_TOGGLE 4u
+/* Gives the control target the keyboard focus. */
+#define GF_RULE_ACTION_FOCUS 5u
+
+/* gf_rule_flags: how a rule fires. */
+typedef uint32_t gf_rule_flags;
+/* A firing ends the occurrence: later rules and the default route. */
+#define GF_RULE_FLAGS_CONSUME 1u
+
+/* gf_rule_state: where a rule is. */
+typedef uint32_t gf_rule_state;
+/* It fires. */
+#define GF_RULE_STATE_ARMED 1u
+/* Ended by remove (not reported: remove frees the token). */
+#define GF_RULE_STATE_REVOKED 2u
+/* An object it names was disposed or destroyed, or its window has gone. */
+#define GF_RULE_STATE_STALE 3u
+
+/* A rule's token: the same encoding as gf_object, in its own space. */
+typedef uint64_t gf_rule_token;
+
+/*
+ * A condition. The caller sets struct_size to sizeof(gf_rule_condition);
+ * object is the control the control conditions read, physical_key
+ * KEY_DOWN's key (a USB HID usage), modifiers MODIFIERS' set. negated is 1
+ * for a condition that holds when its level does not, else 0. Fields a kind
+ * does not read are zero; reserved is zero.
+ */
+typedef struct gf_rule_condition {
+    uint32_t struct_size;
+    gf_rule_condition_kind kind;
+    gf_object object;
+    uint32_t physical_key;
+    uint32_t modifiers;
+    uint32_t negated;
+    uint32_t reserved;
+} gf_rule_condition;
+
+/*
+ * An action. The caller sets struct_size to sizeof(gf_rule_action). target
+ * is INVOKE's command, SET's and TOGGLE's object and FOCUS's control;
+ * property names SET's and TOGGLE's property; value is SET's value (any
+ * kind but a collection; its text is copied); callback is CALLBACK's (the
+ * library takes it only when add returns GF_STATUS_OK). Fields a kind does
+ * not read are zero.
+ */
+typedef struct gf_rule_action {
+    uint32_t struct_size;
+    gf_rule_action_kind kind;
+    gf_object target;
+    gf_utf8_view property;
+    const gf_value* value;
+    const gf_callback* callback;
+} gf_rule_action;
+
+/*
+ * A rule. The caller sets struct_size to sizeof(gf_rule). trigger is its
+ * kind; physical_key names a key trigger's key, source the control of a
+ * control trigger or an interaction trigger (any object, for INTERACTION)
+ * or the command of COMMAND_EXECUTED, and interaction INTERACTION's schema
+ * name. conditions holds condition_count conditions (at most 8) and actions
+ * action_count actions (1 to 8); add copies them. Fields a kind does not
+ * read are zero.
+ */
+typedef struct gf_rule {
+    uint32_t struct_size;
+    gf_rule_flags flags;
+    gf_rule_trigger_kind trigger;
+    uint32_t physical_key;
+    gf_object source;
+    gf_utf8_view interaction;
+    uint64_t condition_count;
+    const gf_rule_condition* conditions;
+    uint64_t action_count;
+    const gf_rule_action* actions;
+} gf_rule;
+
+typedef struct gf_rules_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* Arms rule on window (from windows.create; created or running) and
+     * writes its token. GF_STATUS_INVALID_ARGUMENT for a malformed record
+     * (an unknown kind or flag, a missing key, object, property or
+     * callback, a collection value, nonzero reserved fields),
+     * GF_STATUS_WRONG_HANDLE_KIND when window is not a window or an object
+     * is not of the kind its field names, GF_STATUS_DISPOSED for a disposed
+     * window or object, GF_STATUS_NOT_FOUND for an interaction the
+     * source's type does not raise or a property the target lacks,
+     * GF_STATUS_INVALID_STATE when an armed rule has the same trigger and
+     * set of conditions, GF_STATUS_LIMIT_EXCEEDED past 8 conditions, 8
+     * actions, 1024 rules on the window or 4096 tokens not freed. A refused
+     * add changes nothing and leaves *token as it was. */
+    gf_status (GF_CALL* add)(gf_object window, const gf_rule* rule, gf_rule_token* token);
+    /* Ends token's rule when it is armed and frees the token. */
+    gf_status (GF_CALL* remove)(gf_rule_token token);
+    /* token's rule: GF_RULE_STATE_ARMED or GF_RULE_STATE_STALE. */
+    gf_status (GF_CALL* state)(gf_rule_token token, gf_rule_state* state);
+} gf_rules_table;
 
 /*
  * GF_TABLE_WINDOWS_PAINT_ENDPOINT (Windows only; host capability

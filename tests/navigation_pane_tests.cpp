@@ -149,7 +149,7 @@ void layout_and_content() {
             "NavigationPane publishes a valid anatomy with its two item systems");
     require(pane.committed_arranged_bounds().width == 220.0 && pane.committed_arranged_bounds().height == 420.0,
             "a pane docked left takes its expanded width and the full height");
-    require(pane.button_count() == 4U && pane.visible_button_count() == 4U, "four large buttons by default");
+    require(pane.button_count.read() == 4U && pane.visible_button_count() == 4U, "four large buttons by default");
     const std::vector<NavigationPane::Item> items = pane.realized_items();
     require(items.size() == 6U, "every page is a large button or an icon");
     for (std::size_t index = 0; index < 4U; ++index) {
@@ -221,7 +221,7 @@ void grip_steps() {
     std::vector<NavigationPaneState> states;
     SubscriptionToken token = pane.state_changed().subscribe(RecordState{&states});
 
-    require(pane.show_more_buttons() && pane.visible_button_count() == 5U && pane.button_count() == 5U,
+    require(pane.show_more_buttons() && pane.visible_button_count() == 5U && pane.button_count.read() == 5U,
             "show more buttons adds one large button");
     require(states.size() == 1U && states.back().button_count == 5U, "the step reports the new state");
     SemanticSnapshot grip_snapshot = window.semantic_snapshot();
@@ -276,18 +276,18 @@ void grip_steps() {
             "with no large buttons every page is an icon");
 
     // Height limits the count; the choice is kept.
-    pane.set_button_count(6U);
+    pane.button_count = 6U;
     window.resize({640.0, 230.0});
     window.perform_layout();
-    require(pane.button_count() == 6U && pane.visible_button_count() == 4U,
+    require(pane.button_count.read() == 6U && pane.visible_button_count() == 4U,
             "a short pane shows the large buttons that fit and keeps the chosen count");
     bool refused = false;
     try {
-        pane.set_button_count(PageSetLimits::maximum_capacity + 1U);
+        pane.button_count = PageSetLimits::maximum_capacity + 1U;
     } catch (const std::out_of_range&) {
         refused = true;
     }
-    require(refused && pane.button_count() == 6U, "a count past the set's capacity is refused");
+    require(refused && pane.button_count.read() == 6U, "a count past the set's capacity is refused");
 }
 
 void hidden_pages_and_menu() {
@@ -345,8 +345,8 @@ void hidden_pages_and_menu() {
 
     // Pages that fit nowhere are listed too.
     window.resize({640.0, 420.0});
-    pane.set_expanded_width(80.0);
-    pane.set_button_count(0U);
+    pane.expanded_width = 80.0;
+    pane.button_count = 0U;
     window.perform_layout();
     const std::size_t realized = pane.realized_items().size();
     require(realized < 6U, "a narrow strip holds fewer icons than pages");
@@ -367,7 +367,7 @@ void collapse_and_overlay() {
     require(!pane.open_overlay(), "an expanded pane has no overlay");
     click(window, centre(pane.parts().collapse_button.bounds));
     window.perform_layout();
-    require(pane.collapsed() && states.size() == 1U && states.back().collapsed, "the collapse button collapses the pane");
+    require(pane.collapsed.read() && states.size() == 1U && states.back().collapsed, "the collapse button collapses the pane");
     require(pane.committed_arranged_bounds().width == 32.0, "a collapsed pane is a narrow bar");
     NavigationPane::Parts parts = pane.parts();
     require(parts.collapsed_bar.present && parts.collapsed_label.present && parts.collapse_button.present &&
@@ -438,7 +438,7 @@ void collapse_and_overlay() {
 
     // Expanding closes the overlay.
     require(pane.open_overlay(), "the overlay opens again");
-    require(window.perform_semantic_action("nav.collapse", SemanticAction::press) && !pane.collapsed() &&
+    require(window.perform_semantic_action("nav.collapse", SemanticAction::press) && !pane.collapsed.read() &&
                 !pane.overlay_open(),
             "expanding closes the overlay");
     window.perform_layout();
@@ -508,7 +508,7 @@ void keyboard_and_semantics() {
                 (*pane.pages().selected_page()).value == "tasks",
             "a tab's select action selects its page");
     require(!window.perform_semantic_action("nav.tab.absent", SemanticAction::select), "an unknown tab is refused");
-    require(window.perform_semantic_action("nav.collapse", SemanticAction::collapse) && pane.collapsed(),
+    require(window.perform_semantic_action("nav.collapse", SemanticAction::collapse) && pane.collapsed.read(),
             "the collapse action collapses the pane");
 
     // F6 registration.
@@ -522,8 +522,8 @@ void state_round_trip() {
     Window& window = *(*fixture).window;
     require(pane.pages().move(PageId{"notes"}, PagePosition{0U}) == PageEditStatus::applied, "a page moves to the front");
     require(pane.set_page_hidden(PageId{"tasks"}, true), "a page is hidden");
-    pane.set_button_count(2U);
-    pane.set_collapsed(true);
+    pane.button_count = 2U;
+    pane.collapsed = true;
     const NavigationPaneState saved = pane.state();
     require(saved.collapsed && saved.button_count == 2U && saved.hidden_pages.size() == 1U &&
                 saved.hidden_pages[0].value == "tasks" && saved.page_order.size() == 6U &&
@@ -556,7 +556,7 @@ void state_round_trip() {
     require(refused && restored.state() == saved, "a repeated identity is refused and changes nothing");
 
     // The framework never saves: the state is only what the program reads.
-    pane.set_collapsed(false);
+    pane.collapsed = false;
     window.perform_layout();
     require(pane.state() != saved && !pane.state().collapsed, "the state follows the pane");
 }
@@ -611,11 +611,11 @@ void refusals() {
     require(!(*pane).open_overlay() && !(*pane).show_configure_menu(), "a detached pane opens nothing");
     bool threw = false;
     try {
-        (*pane).set_expanded_width(10.0);
+        (*pane).expanded_width = 10.0;
     } catch (const std::out_of_range&) {
         threw = true;
     }
-    require(threw && (*pane).expanded_width() == 220.0, "an expanded width below 80 is refused");
+    require(threw && (*pane).expanded_width.read() == 220.0, "an expanded width below 80 is refused");
     threw = false;
     try {
         static_cast<void>((*pane).show_configure_menu(static_cast<MenuOpenMode>(9)));

@@ -25,13 +25,13 @@ void test_catalog_pages_resolve_and_headers_describe_pages() {
                 "every page must have a navigation row");
         const std::shared_ptr<Label> title =
             std::dynamic_pointer_cast<Label>(window.find(surface_id + ".title"));
-        require(title != nullptr && (*title).text() == page.title,
+        require(title != nullptr && (*title).text.read() == page.title,
                 "every page header must carry the page title");
         const std::size_t listed = gallery::catalog_entries_on_page(page.id);
         if (listed == 0U) {
             const std::shared_ptr<Label> summary =
                 std::dynamic_pointer_cast<Label>(window.find(surface_id + ".summary"));
-            require(summary != nullptr && !(*summary).text().empty(),
+            require(summary != nullptr && !(*summary).text.read().empty(),
                     "a page no registry record names must state what it demonstrates");
             continue;
         }
@@ -40,7 +40,7 @@ void test_catalog_pages_resolve_and_headers_describe_pages() {
             const std::shared_ptr<Label> control_line = std::dynamic_pointer_cast<Label>(
                 window.find(surface_id + ".control." + std::to_string(line)));
             require(control_line != nullptr &&
-                        (*control_line).text().find(" · WinForms: ") != std::string::npos,
+                        (*control_line).text.read().find(" · WinForms: ") != std::string::npos,
                     "every page header must list each demonstrated control as a "
                     "Type · header · WinForms line");
         }

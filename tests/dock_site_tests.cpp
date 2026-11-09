@@ -299,9 +299,9 @@ void anatomy_and_parts() {
     const std::shared_ptr<PageView> right_view = site.stack_view(stacks[2]);
     const std::shared_ptr<PageView> document_view = site.stack_view(stacks[1]);
     require(left_view && right_view && document_view && (*(*left_view).strip()).visible.read() &&
-                (*(*left_view).strip()).placement() == PageStripPlacement::bottom &&
+                (*(*left_view).strip()).placement.read() == PageStripPlacement::bottom &&
                 !(*(*right_view).strip()).visible.read() && (*(*document_view).strip()).visible.read() &&
-                (*(*document_view).strip()).placement() == PageStripPlacement::top,
+                (*(*document_view).strip()).placement.read() == PageStripPlacement::top,
             "tool tabs show at the bottom of a stack of two; a lone tool panel has none; documents show tabs on top");
     require(near((*right_view).parts().content.bounds.height, (*right_view).client_rectangle().height),
             "a stack without tabs gives its whole height to the content");
@@ -453,11 +453,11 @@ void seam_keyboard_and_pointer() {
     require(near((*left).client_rectangle().width, 200.0), "the seam stands at the value set");
     bool threw = false;
     try {
-        site.set_keyboard_increment(0.5);
+        site.keyboard_increment = 0.5;
     } catch (const std::out_of_range&) {
         threw = true;
     }
-    require(threw && near(site.keyboard_increment(), 8.0), "a keyboard increment below 1 is refused");
+    require(threw && near(site.keyboard_increment.read(), 8.0), "a keyboard increment below 1 is refused");
 }
 
 // -- minimums, collapse and the maximized document area ------------------------
@@ -742,18 +742,17 @@ void rebound_docking_keys() {
             "the rebound chord activates the next document");
     window.rebind_key_command(KeyCommand::cycle_forward, {{PhysicalKey::q, Modifier::alt}, {}});
     require(key(window, PhysicalKey::q, Modifier::alt) && site.navigator_open() &&
-                (*site.navigator()).release_modifier() == Modifier::alt,
+                (*site.navigator()).release_modifier.read() == Modifier::alt,
             "a rebound cycle_forward opens the navigator, committed by releasing Alt");
     require(key_up(window, PhysicalKey::q, Modifier::none) && !site.navigator_open() &&
                 active_is(workspace, "doc.second", "doc.second"),
             "releasing Alt activates the current row");
-    window.rebind_key_command(KeyCommand::position_menu, {});
-    window.rebind_key_command(KeyCommand::context_menu, {{PhysicalKey::m, Modifier::control | Modifier::shift}, {}});
+    window.rebind_key_command(KeyCommand::position_menu, {{PhysicalKey::m, Modifier::control | Modifier::shift}, {}});
     static_cast<void>(key(window, PhysicalKey::minus, Modifier::alt));
     require(!site.position_menu_open(),
-            "an unbound position_menu leaves Alt+Hyphen alone");
+            "a rebound position_menu leaves Alt+Hyphen alone");
     require(key(window, PhysicalKey::m, Modifier::control | Modifier::shift) && site.position_menu_open(),
-            "the rebound context_menu opens the position menu");
+            "the rebound position_menu opens the position menu");
     site.close_position_menu();
 }
 
@@ -798,11 +797,13 @@ void position_menu() {
     window.perform_layout();
     require((*workspace.layout().find_node(stack_of(workspace, "properties"))).kind == DockNodeKind::tool_stack,
             "Properties is a tool stack again");
-    // Shift+F10 opens the menu too; the context-menu key as well.
+    // A keyboard context request (the host's Shift+F10 or Menu key) opens
+    // it too; the keys themselves are the host's, not the core's.
     site.close_position_menu();
-    require(key(window, PhysicalKey::f10, Modifier::shift) && site.position_menu_open(), "Shift+F10 opens it");
-    site.close_position_menu();
-    require(key(window, PhysicalKey::context_menu) && site.position_menu_open(), "the context-menu key opens it");
+    require(!key(window, PhysicalKey::f10, Modifier::shift) && !site.position_menu_open(),
+            "Shift+F10 itself is no core key");
+    require(window.dispatch_context_request(ContextRequestOrigin::keyboard, Point{}) && site.position_menu_open(),
+            "a keyboard context request opens it");
     site.close_position_menu();
     // The caption's close button hides the panel.
     window.perform_layout();
@@ -922,7 +923,7 @@ void lifetime_and_refusals() {
             "an empty navigator chooses nothing");
     threw = false;
     try {
-        (*navigator).set_release_modifier(Modifier::shift);
+        (*navigator).release_modifier = Modifier::shift;
     } catch (const std::invalid_argument&) {
         threw = true;
     }
@@ -1024,7 +1025,7 @@ void close_each_and_combined() {
         ClosingJournal journal{};
         journal.workspace = &workspace;
         const SubscriptionToken token = workspace.document_closing().subscribe(RecordClosing{&journal});
-        require(workspace.close_prompt() == DockClosePrompt::each, "documents are asked about one by one by default");
+        require(workspace.close_prompt.read() == DockClosePrompt::each, "documents are asked about one by one by default");
         require(workspace.close_all_documents() == DockCloseOutcome::closed, "Close All Documents closes");
         require(journal.asked.size() == 2U && asked_is(journal, 0U, {"doc.first"}) &&
                     asked_is(journal, 1U, {"doc.second"}) && journal.causes[0] == DockCloseCause::all_documents,
@@ -1041,7 +1042,7 @@ void close_each_and_combined() {
         ClosingJournal journal{};
         journal.workspace = &workspace;
         const SubscriptionToken token = workspace.document_closing().subscribe(RecordClosing{&journal});
-        workspace.set_close_prompt(DockClosePrompt::combined);
+        workspace.close_prompt = DockClosePrompt::combined;
         require(workspace.close_all_documents() == DockCloseOutcome::closed && journal.asked.size() == 1U &&
                     asked_is(journal, 0U, {"doc.first", "doc.second"}),
                 "a combined prompt asks about every document at once");
@@ -1063,12 +1064,12 @@ void cancel_closes_nothing() {
     require(workspace.layout().generation() == before && docked(workspace, "doc.first") &&
                 docked(workspace, "doc.second") && !workspace.close_pending(),
             "nothing closed: the first document, already allowed, stays too");
-    workspace.set_close_prompt(DockClosePrompt::combined);
+    workspace.close_prompt = DockClosePrompt::combined;
     require(workspace.close_all_documents() == DockCloseOutcome::cancelled &&
                 workspace.layout().generation() == before,
             "a cancelled combined prompt leaves the layout unchanged");
     // The position menu's Close asks too, and a cancel counts as not run.
-    workspace.set_close_prompt(DockClosePrompt::each);
+    workspace.close_prompt = DockClosePrompt::each;
     require(!site.run_position_command(DockPanelId("doc.second"), DockPositionCommand::close) &&
                 docked(workspace, "doc.second") && journal.causes.back() == DockCloseCause::document,
             "Close on a document asks first and a cancel keeps it");

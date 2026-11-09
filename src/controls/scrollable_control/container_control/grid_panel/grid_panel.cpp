@@ -9,12 +9,11 @@
 // its height.
 
 #include "gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include "../../scrollable_anatomy.hpp"
 #include "../layout_style_property.hpp"
 #include "../out_of_flow.hpp"
-
-#include "gui_forms/detail/bound_member_function.hpp"
 
 #include "gui_forms/binding/property_table/property_table.hpp"
 
@@ -307,12 +306,18 @@ void set_number_line(GridLine& line, GridLineKind kind, std::uint32_t number) {
 
 // The child properties GridPanel provides (study 10.9): two views of one
 // placement.
+PropertyDescriptor area_descriptor() {
+    PropertyDescriptor descriptor{"area", BindingValueKind::text, "Layout",
+                                  "The span the child is placed into by name; empty when it is not placed by area.",
+                                  BindingValue{std::string{}}, invalidation::bounds};
+    // The write is the child view's assignment (generated forms assign it).
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
 const PropertyDescriptor& describe_area() {
-    static const PropertyDescriptor descriptor = property_table_descriptor(
-        PropertyDescriptor{"area", BindingValueKind::text, "Layout",
-                           "The span the child is placed into by name; empty when it is not placed by area.",
-                           BindingValue{std::string{}}, invalidation::bounds},
-        PropertyOperations{true, true, true, false});
+    static const PropertyDescriptor descriptor =
+        property_table_descriptor(area_descriptor(), PropertyOperations{true, true, true, false});
     return descriptor;
 }
 
@@ -465,24 +470,7 @@ constexpr ControlAnatomy grid_panel_anatomy{
 
 } // namespace
 
-GridPanel::GridPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {
-    register_panel_properties();
-}
-
-void GridPanel::register_panel_properties() {
-    PropertyDescriptor style_descriptor{"style", BindingValueKind::text, "Layout",
-                                        "The grid's container settings as a CSS inline style: grid-template-columns "
-                                        "and -rows, grid-auto-flow, grid-auto-columns and -rows, the content and "
-                                        "item alignments and the gaps. Spans are span blocks.",
-                                        BindingValue{std::string{}}, invalidation::bounds};
-    style_descriptor.bindable = false;
-    define_bindable_property({std::move(style_descriptor),
-                              detail::BoundMemberFunction<BindingValue (GridPanel::*)() const>(
-                                  *this, &GridPanel::style_property),
-                              detail::BoundMemberFunction<void (GridPanel::*)(const BindingValue&)>(
-                                  *this, &GridPanel::set_style_property),
-                              {}, {}, {}});
-}
+GridPanel::GridPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {}
 
 BindingValue GridPanel::style_property() const {
     const LayoutStyle base{};
@@ -492,12 +480,12 @@ BindingValue GridPanel::style_property() const {
     style.grid.auto_flow = style_.auto_flow;
     style.grid.auto_columns = style_.auto_columns;
     style.grid.auto_rows = style_.auto_rows;
-    style.alignment.justify_content = justify_content_;
-    style.alignment.align_content = align_content_;
-    style.alignment.justify_items = justify_items_;
-    style.alignment.align_items = align_items_;
-    style.row_gap = row_gap_;
-    style.column_gap = column_gap_;
+    style.alignment.justify_content = justify_content.read();
+    style.alignment.align_content = align_content.read();
+    style.alignment.justify_items = justify_items.read();
+    style.alignment.align_items = align_items.read();
+    style.row_gap = row_gap.read();
+    style.column_gap = column_gap.read();
     std::string text = layout_style_property::describe(style, base);
     return BindingValue{std::move(text)};
 }
@@ -535,17 +523,17 @@ void GridPanel::set_style_property(const BindingValue& value) {
                           admitted_items_alignment(read.alignment.align_items) && admitted_length(read.row_gap) &&
                           admitted_length(read.column_gap);
     if (!admitted) throw std::invalid_argument("GridPanel.style holds a value grids do not admit");
-    set_template_columns(grid.template_columns);
-    set_template_rows(grid.template_rows);
-    set_auto_flow(grid.auto_flow);
-    set_auto_columns(grid.auto_columns);
-    set_auto_rows(grid.auto_rows);
-    set_justify_content(read.alignment.justify_content);
-    set_align_content(read.alignment.align_content);
-    set_justify_items(read.alignment.justify_items);
-    set_align_items(read.alignment.align_items);
-    set_row_gap(read.row_gap);
-    set_column_gap(read.column_gap);
+    template_columns = grid.template_columns;
+    template_rows = grid.template_rows;
+    auto_flow = grid.auto_flow;
+    auto_columns = grid.auto_columns;
+    auto_rows = grid.auto_rows;
+    justify_content = read.alignment.justify_content;
+    align_content = read.alignment.align_content;
+    justify_items = read.alignment.justify_items;
+    align_items = read.alignment.align_items;
+    row_gap = read.row_gap;
+    column_gap = read.column_gap;
 }
 
 const std::array<ChildPropertyEntry, GridPanel::grid_child_property_count>&
@@ -817,24 +805,34 @@ void GridPanel::child_leaving(const Control& child) noexcept {
     items_.erase(child.runtime_id().value);
 }
 
-void GridPanel::set_template_columns(const GridTrackList& tracks) {
+void GridPanel::write_view(const decltype(template_columns)&, GridTrackList incoming) {
     require_mutable();
-    if (!admitted_track_list(tracks)) {
+    if (!admitted_track_list(incoming)) {
         throw std::invalid_argument("GridPanel template columns hold a track list grids do not admit");
     }
-    if (style_.template_columns == tracks) return;
-    style_.template_columns = tracks;
+    if (style_.template_columns == incoming) return;
+    style_.template_columns = std::move(incoming);
     invalidate(invalidation::bounds);
 }
 
-void GridPanel::set_template_rows(const GridTrackList& tracks) {
+GridTrackList GridPanel::read_view(const decltype(template_columns)&) const {
+    GridTrackList tracks = style_.template_columns;
+    return tracks;
+}
+
+void GridPanel::write_view(const decltype(template_rows)&, GridTrackList incoming) {
     require_mutable();
-    if (!admitted_track_list(tracks)) {
+    if (!admitted_track_list(incoming)) {
         throw std::invalid_argument("GridPanel template rows hold a track list grids do not admit");
     }
-    if (style_.template_rows == tracks) return;
-    style_.template_rows = tracks;
+    if (style_.template_rows == incoming) return;
+    style_.template_rows = std::move(incoming);
     invalidate(invalidation::bounds);
+}
+
+GridTrackList GridPanel::read_view(const decltype(template_rows)&) const {
+    GridTrackList tracks = style_.template_rows;
+    return tracks;
 }
 
 void GridPanel::set_template_areas(const GridTemplateAreas& areas) {
@@ -856,90 +854,46 @@ void GridPanel::set_template_areas(const GridTemplateAreas& areas) {
     adopt_spans(std::move(candidate));
 }
 
-void GridPanel::set_auto_flow(GridAutoFlow flow) {
+void GridPanel::write_view(const decltype(auto_flow)&, GridAutoFlow incoming) {
     require_mutable();
-    if (flow > GridAutoFlow::column_dense) throw std::invalid_argument("GridPanel auto flow is unknown");
-    if (style_.auto_flow == flow) return;
-    style_.auto_flow = flow;
+    if (incoming > GridAutoFlow::column_dense) throw std::invalid_argument("GridPanel auto flow is unknown");
+    if (style_.auto_flow == incoming) return;
+    style_.auto_flow = incoming;
     invalidate(invalidation::bounds);
 }
 
-void GridPanel::set_auto_columns(std::span<const GridTrackSize> sizes) {
+GridAutoFlow GridPanel::read_view(const decltype(auto_flow)&) const {
+    return style_.auto_flow;
+}
+
+void GridPanel::write_view(const decltype(auto_columns)&, std::vector<GridTrackSize> incoming) {
     require_mutable();
-    if (sizes.empty() || sizes.size() > maximum_grid_tracks || !admitted_track_sizes(sizes)) {
+    if (incoming.empty() || incoming.size() > maximum_grid_tracks || !admitted_track_sizes(incoming)) {
         throw std::invalid_argument("GridPanel auto columns need one to 10000 admitted track sizes");
     }
-    if (std::equal(sizes.begin(), sizes.end(), style_.auto_columns.begin(), style_.auto_columns.end())) return;
-    style_.auto_columns.assign(sizes.begin(), sizes.end());
+    if (style_.auto_columns == incoming) return;
+    style_.auto_columns = std::move(incoming);
     invalidate(invalidation::bounds);
 }
 
-void GridPanel::set_auto_rows(std::span<const GridTrackSize> sizes) {
+std::vector<GridTrackSize> GridPanel::read_view(const decltype(auto_columns)&) const {
+    std::vector<GridTrackSize> sizes = style_.auto_columns;
+    return sizes;
+}
+
+void GridPanel::write_view(const decltype(auto_rows)&, std::vector<GridTrackSize> incoming) {
     require_mutable();
-    if (sizes.empty() || sizes.size() > maximum_grid_tracks || !admitted_track_sizes(sizes)) {
+    if (incoming.empty() || incoming.size() > maximum_grid_tracks || !admitted_track_sizes(incoming)) {
         throw std::invalid_argument("GridPanel auto rows need one to 10000 admitted track sizes");
     }
-    if (std::equal(sizes.begin(), sizes.end(), style_.auto_rows.begin(), style_.auto_rows.end())) return;
-    style_.auto_rows.assign(sizes.begin(), sizes.end());
+    if (style_.auto_rows == incoming) return;
+    style_.auto_rows = std::move(incoming);
     invalidate(invalidation::bounds);
 }
 
-void GridPanel::set_justify_content(LayoutAlignment alignment) {
-    require_mutable();
-    if (!admitted_content_alignment(alignment)) {
-        throw std::invalid_argument("GridPanel justify-content admits no such value");
-    }
-    if (justify_content_ == alignment) return;
-    justify_content_ = alignment;
-    invalidate(invalidation::bounds);
-}
-
-void GridPanel::set_align_content(LayoutAlignment alignment) {
-    require_mutable();
-    if (!admitted_content_alignment(alignment)) {
-        throw std::invalid_argument("GridPanel align-content admits no such value");
-    }
-    if (align_content_ == alignment) return;
-    align_content_ = alignment;
-    invalidate(invalidation::bounds);
-}
-
-void GridPanel::set_justify_items(LayoutAlignment alignment) {
-    require_mutable();
-    if (!admitted_items_alignment(alignment)) {
-        throw std::invalid_argument("GridPanel justify-items admits no such value");
-    }
-    if (justify_items_ == alignment) return;
-    justify_items_ = alignment;
-    invalidate(invalidation::bounds);
-}
-
-void GridPanel::set_align_items(LayoutAlignment alignment) {
-    require_mutable();
-    if (!admitted_items_alignment(alignment)) {
-        throw std::invalid_argument("GridPanel align-items admits no such value");
-    }
-    if (align_items_ == alignment) return;
-    align_items_ = alignment;
-    invalidate(invalidation::bounds);
-}
-
-void GridPanel::set_row_gap(LengthPercentage gap) {
-    require_mutable();
-    if (!admitted_length(gap)) throw std::invalid_argument("GridPanel row gap must be finite and nonnegative");
-    if (row_gap_ == gap) return;
-    row_gap_ = gap;
-    invalidate(invalidation::bounds);
-}
-
-void GridPanel::set_column_gap(LengthPercentage gap) {
-    require_mutable();
-    if (!admitted_length(gap)) {
-        throw std::invalid_argument("GridPanel column gap must be finite and nonnegative");
-    }
-    if (column_gap_ == gap) return;
-    column_gap_ = gap;
-    invalidate(invalidation::bounds);
+std::vector<GridTrackSize> GridPanel::read_view(const decltype(auto_rows)&) const {
+    std::vector<GridTrackSize> sizes = style_.auto_rows;
+    return sizes;
 }
 
 void GridPanel::set_item_layout(const Control& child, const GridItemLayout& layout) {
@@ -1012,12 +966,12 @@ void GridPanel::gather_children() {
 
 GridContainerInput GridPanel::container_input(const SolveRequest& request) const noexcept {
     GridContainerInput container{};
-    container.justify_content = justify_content_;
-    container.align_content = align_content_;
-    container.justify_items = justify_items_;
-    container.align_items = align_items_;
-    container.column_gap = resolve_gap(column_gap_, request.width);
-    container.row_gap = resolve_gap(row_gap_, request.height);
+    container.justify_content = justify_content.read();
+    container.align_content = align_content.read();
+    container.justify_items = justify_items.read();
+    container.align_items = align_items.read();
+    container.column_gap = resolve_gap(column_gap.read(), request.width);
+    container.row_gap = resolve_gap(row_gap.read(), request.height);
     container.width = request.width;
     container.height = request.height;
     const LayoutDirection direction = effective_layout_direction();
@@ -1079,7 +1033,7 @@ void GridPanel::measure_column_contributions(const SolveRequest& request, const 
         const bool definite_width = plain_length(layout.width);
         // Fixed columns ignore contributions, and a stretched item takes
         // its area whatever its content: nothing to measure.
-        if (fixed && !definite_width && stretched_width(layout, justify_items_)) continue;
+        if (fixed && !definite_width && stretched_width(layout, justify_items.read())) continue;
 
         const Insets margin = child.margin.read();
         const double margins = (layout.auto_margin.left ? 0.0 : margin.left) +
@@ -1387,5 +1341,106 @@ SemanticDescriptor GridPanel::semantic_descriptor() const {
 const ControlAnatomy& GridPanel::anatomy() const noexcept {
     return grid_panel_anatomy;
 }
+
+namespace {
+
+// The container settings as one CSS inline style text: a hand table entry
+// (extra_entries) over the panel's settings.
+PropertyDescriptor grid_panel_style_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "style";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Layout";
+    descriptor.description = "The grid's container settings as a CSS inline style: grid-template-columns and -rows, grid-auto-flow, grid-auto-columns and -rows, the content and item alignments and the gaps. Spans are span blocks.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_grid_panel_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        grid_panel_style_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+// property_codemod begin GridPanel (tools/property_families/grid_panel.json; generated, do not edit)
+
+const std::array<PropertyEntry, GridPanel::grid_panel_property_count>& GridPanel::grid_panel_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"style", &describe_grid_panel_style,
+         &read_member_entry<GridPanel, decltype(&GridPanel::style_property), &GridPanel::style_property>,
+         &write_member_entry<GridPanel, decltype(&GridPanel::set_style_property), &GridPanel::set_style_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "GridPanel's property table names a property twice");
+    static const std::array<PropertyEntry, grid_panel_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> GridPanel::property_table() const noexcept {
+    const std::array<PropertyEntry, grid_panel_property_count>& entries = grid_panel_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void GridPanel::prepare_write(const decltype(justify_content)&, LayoutAlignment& incoming) {
+    require_mutable();
+    if (!admitted_content_alignment(incoming)) throw std::invalid_argument("GridPanel justify-content admits no such value");
+}
+
+void GridPanel::written(const decltype(justify_content)&) {
+    invalidate(invalidation::bounds);
+}
+
+void GridPanel::prepare_write(const decltype(align_content)&, LayoutAlignment& incoming) {
+    require_mutable();
+    if (!admitted_content_alignment(incoming)) throw std::invalid_argument("GridPanel align-content admits no such value");
+}
+
+void GridPanel::written(const decltype(align_content)&) {
+    invalidate(invalidation::bounds);
+}
+
+void GridPanel::prepare_write(const decltype(justify_items)&, LayoutAlignment& incoming) {
+    require_mutable();
+    if (!admitted_items_alignment(incoming)) throw std::invalid_argument("GridPanel justify-items admits no such value");
+}
+
+void GridPanel::written(const decltype(justify_items)&) {
+    invalidate(invalidation::bounds);
+}
+
+void GridPanel::prepare_write(const decltype(align_items)&, LayoutAlignment& incoming) {
+    require_mutable();
+    if (!admitted_items_alignment(incoming)) throw std::invalid_argument("GridPanel align-items admits no such value");
+}
+
+void GridPanel::written(const decltype(align_items)&) {
+    invalidate(invalidation::bounds);
+}
+
+void GridPanel::prepare_write(const decltype(row_gap)&, LengthPercentage& incoming) {
+    require_mutable();
+    if (!admitted_length(incoming)) throw std::invalid_argument("GridPanel row gap must be finite and nonnegative");
+}
+
+void GridPanel::written(const decltype(row_gap)&) {
+    invalidate(invalidation::bounds);
+}
+
+void GridPanel::prepare_write(const decltype(column_gap)&, LengthPercentage& incoming) {
+    require_mutable();
+    if (!admitted_length(incoming)) throw std::invalid_argument("GridPanel column gap must be finite and nonnegative");
+}
+
+void GridPanel::written(const decltype(column_gap)&) {
+    invalidate(invalidation::bounds);
+}
+
+// property_codemod end GridPanel
 
 } // namespace gui_forms

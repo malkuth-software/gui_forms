@@ -50,20 +50,52 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`AnchoredOverlayLayerCapabilities <gui_forms::AnchoredOverlayLayerCapabilities>`
+     - Every AnchoredOverlayLayer capability, in the order the declaring class takes them.
+   * - :cpp:class:`AnchoredOverlayLayerDismissOnClickAwayCapability <gui_forms::AnchoredOverlayLayerDismissOnClickAwayCapability>`
+     - Whether a press outside the content raises dismiss_requested(click_away).
+   * - :cpp:class:`AnchoredOverlayLayerDismissOnEscapeCapability <gui_forms::AnchoredOverlayLayerDismissOnEscapeCapability>`
+     - Whether Escape raises dismiss_requested(escape_key).
+   * - :cpp:class:`AnchoredOverlayLayerPlacementCapability <gui_forms::AnchoredOverlayLayerPlacementCapability>`
+     - The overlay's preferred size, alignment, side, gap, margin and flip rule; resolved against the anchor on every arrangement (resolved_placement).
    * - :cpp:class:`AnchoredOverlayPlacement <gui_forms::AnchoredOverlayPlacement>`
      - AnchoredOverlayPlacement is the caller-authored geometry policy for preferred size, horizontal alignment, preferred vertical side, gap, viewport margin, and optional vertical flipping.
    * - :cpp:class:`AnchoredOverlayPlacementResult <gui_forms::AnchoredOverlayPlacementResult>`
      - AnchoredOverlayPlacementResult is the exact output of placement resolution: client-relative bounds plus whether the overlay moved above its anchor or had either dimension clamped.
    * - :cpp:class:`BundledFontFace <gui_forms::BundledFontFace>`
      - One face GUI.Forms bundles for a FontRole, as every host registers it: its family name, what the role is for, and whether it has italic faces.
+   * - :cpp:class:`ColorDialogAllowAlphaCapability <gui_forms::ColorDialogAllowAlphaCapability>`
+     - Whether the user may choose a translucent color.
+   * - :cpp:class:`ColorDialogCapabilities <gui_forms::ColorDialogCapabilities>`
+     - Every ColorDialog capability, in the order the declaring class takes them.
+   * - :cpp:class:`ColorDialogColorCapability <gui_forms::ColorDialogColorCapability>`
+     - The chosen color, and before the dialog is shown the one it starts with (Windows Forms' Color; opaque black by default).
+   * - :cpp:class:`ColorDialogTitleCapability <gui_forms::ColorDialogTitleCapability>`
+     - The dialog's title; empty gives the host's own.
    * - :cpp:class:`FileDialogFilterParse <gui_forms::FileDialogFilterParse>`
      - The result of parsing a filter string: the host filters in order, or the first error with no filters.
    * - :cpp:class:`FileDialogOk <gui_forms::FileDialogOk>`
      - Raised by a file dialog after the user accepts and before the dialog takes the names (Windows Forms' FileOk).
+   * - :cpp:class:`FolderBrowserDialogCapabilities <gui_forms::FolderBrowserDialogCapabilities>`
+     - Every FolderBrowserDialog capability, in the order the declaring class takes them.
+   * - :cpp:class:`FolderBrowserDialogDescriptionCapability <gui_forms::FolderBrowserDialogDescriptionCapability>`
+     - The text the dialog shows the user: above the tree on Windows, as the title elsewhere.
+   * - :cpp:class:`FolderBrowserDialogInitialDirectoryCapability <gui_forms::FolderBrowserDialogInitialDirectoryCapability>`
+     - The folder the dialog starts in when no folder is selected; empty lets the host choose.
+   * - :cpp:class:`FolderBrowserDialogSelectedPathCapability <gui_forms::FolderBrowserDialogSelectedPathCapability>`
+     - The chosen folder, or empty.
    * - :cpp:class:`FontDialog::Parts <gui_forms::FontDialog::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`FontDialogCapabilities <gui_forms::FontDialogCapabilities>`
+     - Every FontDialog capability, in the order the declaring class takes them.
+   * - :cpp:class:`FontDialogFontCapability <gui_forms::FontDialogFontCapability>`
+     - The font OK or Apply last took (initially 9-unit Carlito, like Windows Forms' default); not the dialog's own text font (G1).
+   * - :cpp:class:`FontDialogPreviewTextCapability <gui_forms::FontDialogPreviewTextCapability>`
+     - The preview text; invalid UTF-8 throws std::invalid_argument.
    * - :cpp:class:`FontDialogResult <gui_forms::FontDialogResult>`
      - How a FontDialog closed, and the font it holds then.
+   * - :cpp:class:`FontDialogShowApplyCapability <gui_forms::FontDialogShowApplyCapability>`
+     - Whether the Apply button is shown.
    * - :cpp:class:`MessageBoxClosed <gui_forms::MessageBoxClosed>`
      - A message box that closed: the button the user chose, as Windows Forms' DialogResult (none for a Yes/No box the host closed without a choice).
    * - :cpp:class:`MessageBoxRefused <gui_forms::MessageBoxRefused>`
@@ -72,18 +104,48 @@ Related types
      - The arguments of Windows Forms' MessageBox.Show: the message, the caption in the title bar, the buttons, the icon, the default button and the options.
    * - :cpp:class:`MessageBoxResult <gui_forms::MessageBoxResult>`
      - What show_message_box returns: either the box closed, with the chosen button, or it was not shown, with the reason.
+   * - :cpp:class:`RibbonToolTipAutoPopDelayCapability <gui_forms::RibbonToolTipAutoPopDelayCapability>`
+     - How long a tooltip stays without input; zero keeps it until the pointer leaves or focus moves.
+   * - :cpp:class:`RibbonToolTipCapabilities <gui_forms::RibbonToolTipCapabilities>`
+     - Every RibbonToolTip capability, in the order the declaring class takes them.
    * - :cpp:class:`RibbonToolTipContent <gui_forms::RibbonToolTipContent>`
      - What an enhanced tooltip shows (owner decision RB-13, E3-2): a title, a description, the shortcut, an image, the reason a disabled command is unavailable, and a help topic F1 opens while the tooltip shows.
    * - :cpp:class:`RibbonToolTipEvent <gui_forms::RibbonToolTipEvent>`
      - The tooltip opened or closed.
+   * - :cpp:class:`RibbonToolTipHelpLineTextCapability <gui_forms::RibbonToolTipHelpLineTextCapability>`
+     - The line a tooltip with a help topic shows under a rule.
    * - :cpp:class:`RibbonToolTipHelpRequest <gui_forms::RibbonToolTipHelpRequest>`
      - F1 was pressed while a tooltip with a help topic showed.
+   * - :cpp:class:`RibbonToolTipInitialDelayCapability <gui_forms::RibbonToolTipInitialDelayCapability>`
+     - How long the pointer rests before a tooltip shows.
+   * - :cpp:class:`SaveFileDialogAddExtensionCapability <gui_forms::SaveFileDialogAddExtensionCapability>`
+     - Whether a chosen name without an extension is given one (Windows Forms' AddExtension; on by default): the chosen filter's first extension, unless that filter is any file, else default_ext.
+   * - :cpp:class:`SaveFileDialogCapabilities <gui_forms::SaveFileDialogCapabilities>`
+     - Every SaveFileDialog capability, in the order the declaring class takes them.
+   * - :cpp:class:`SaveFileDialogDefaultExtCapability <gui_forms::SaveFileDialogDefaultExtCapability>`
+     - The extension a chosen name without one is given, without its dot (Windows Forms' DefaultExt; a leading dot is removed when set).
+   * - :cpp:class:`SaveFileDialogFileNameCapability <gui_forms::SaveFileDialogFileNameCapability>`
+     - The first chosen path, or empty.
+   * - :cpp:class:`SaveFileDialogFilterCapability <gui_forms::SaveFileDialogFilterCapability>`
+     - The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into.
+   * - :cpp:class:`SaveFileDialogFilterIndexCapability <gui_forms::SaveFileDialogFilterIndexCapability>`
+     - The filter the dialog starts with, an index into filters() (Windows Forms' FilterIndex, which counts from one; this counts from zero).
+   * - :cpp:class:`SaveFileDialogInitialDirectoryCapability <gui_forms::SaveFileDialogInitialDirectoryCapability>`
+     - The directory the dialog starts in; empty lets the host choose.
+   * - :cpp:class:`SaveFileDialogOverwritePromptCapability <gui_forms::SaveFileDialogOverwritePromptCapability>`
+     - Whether the host asks before the user chooses a file that exists (Windows Forms' OverwritePrompt; on by default).
+   * - :cpp:class:`SaveFileDialogTitleCapability <gui_forms::SaveFileDialogTitleCapability>`
+     - The dialog's title; empty gives the host's own.
    * - :cpp:class:`TaskDialog::Parts <gui_forms::TaskDialog::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`TaskDialogButton <gui_forms::TaskDialogButton>`
      - One command button.
    * - :cpp:class:`TaskDialogButtonClick <gui_forms::TaskDialogButtonClick>`
      - A click on a button, before the dialog closes.
+   * - :cpp:class:`TaskDialogCapabilities <gui_forms::TaskDialogCapabilities>`
+     - Every TaskDialog capability, in the order the declaring class takes them.
+   * - :cpp:class:`TaskDialogExpandedCapability <gui_forms::TaskDialogExpandedCapability>`
+     - Whether the page's expanded information shows (Windows Forms' TaskDialogExpander.Expanded); a view onto the page's expander.
    * - :cpp:class:`TaskDialogExpander <gui_forms::TaskDialogExpander>`
      - Expanded information, shown below the text while expanded.
    * - :cpp:class:`TaskDialogPage <gui_forms::TaskDialogPage>`
@@ -94,8 +156,98 @@ Related types
      - One radio button; at most one of a page's radio buttons is checked.
    * - :cpp:class:`TaskDialogResult <gui_forms::TaskDialogResult>`
      - How a dialog closed: the button that closed it (the cancel button's ID, or "cancel", for Escape and a dialog revoked by its window), and the state of the verification check box and the radio buttons at that moment.
+   * - :cpp:class:`TaskDialogVerificationCheckedCapability <gui_forms::TaskDialogVerificationCheckedCapability>`
+     - The verification check box's state (Windows Forms' TaskDialogVerificationCheckBox.Checked); a view onto the page.
    * - :cpp:class:`ThreadExceptionReport <gui_forms::ThreadExceptionReport>`
      - What a ThreadExceptionDialog reports.
+   * - :cpp:class:`ToolTipAutoPopDelayCapability <gui_forms::ToolTipAutoPopDelayCapability>`
+     - How long a tooltip stays (ToolTipSettings::auto_pop_delay); negative throws std::invalid_argument.
+   * - :cpp:class:`ToolTipCapabilities <gui_forms::ToolTipCapabilities>`
+     - Every ToolTip capability, in the order the declaring class takes them.
+   * - :cpp:class:`ToolTipInitialDelayCapability <gui_forms::ToolTipInitialDelayCapability>`
+     - How long the pointer rests on a target before its tooltip shows (ToolTipSettings::initial_delay); negative throws std::invalid_argument.
+   * - :cpp:class:`ToolTipMaximumWidthCapability <gui_forms::ToolTipMaximumWidthCapability>`
+     - The widest a tooltip wraps to (ToolTipSettings::maximum_width); outside 80 to 2048 throws std::invalid_argument.
+   * - :cpp:class:`ToolTipReshowDelayCapability <gui_forms::ToolTipReshowDelayCapability>`
+     - How long the pointer rests on the next target while a tooltip shows (ToolTipSettings::reshow_delay); negative throws std::invalid_argument.
+   * - :cpp:class:`ToolTipShowAlwaysCapability <gui_forms::ToolTipShowAlwaysCapability>`
+     - Whether a disabled control's tooltip shows (ToolTipSettings::show_when_disabled).
+   * - :cpp:class:`ToolTipShowOnFocusCapability <gui_forms::ToolTipShowOnFocusCapability>`
+     - Whether a tooltip shows when its target takes the keyboard focus (ToolTipSettings::show_on_focus).
+   * - :cpp:class:`ToolTipShowOnHoverCapability <gui_forms::ToolTipShowOnHoverCapability>`
+     - Whether a tooltip shows when the pointer rests on its target (ToolTipSettings::show_on_hover).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AnchoredOverlayLayerCapabilities : public AnchoredOverlayLayerPlacementCapability<Declaring>, public AnchoredOverlayLayerDismissOnClickAwayCapability<Declaring>, public AnchoredOverlayLayerDismissOnEscapeCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer_capabilities/anchored_overlay_layer_capabilities.hpp>``
+
+   Every AnchoredOverlayLayer capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: AnchoredOverlayPlacement placement
+
+      The overlay's preferred size, alignment, side, gap, margin and flip rule; resolved against the anchor on every arrangement (resolved_placement). An invalid placement throws std::invalid_argument.
+
+   .. cpp:member:: bool dismiss_on_click_away
+
+      Whether a press outside the content raises dismiss_requested(click_away). The layer only reports it; the owner closes the overlay.
+
+   .. cpp:member:: bool dismiss_on_escape
+
+      Whether Escape raises dismiss_requested(escape_key). The layer only reports it; the owner closes the overlay.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AnchoredOverlayLayerDismissOnClickAwayCapability
+
+   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer_capabilities/anchored_overlay_layer_capabilities.hpp>``
+
+   Whether a press outside the content raises dismiss_requested(click_away). The layer only reports it; the owner closes the overlay.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AnchoredOverlayLayerDismissOnClickAwayCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, AnchoredOverlayLayerDismissOnClickAwayCapability<Declaring>> dismiss_on_click_away
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AnchoredOverlayLayerDismissOnEscapeCapability
+
+   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer_capabilities/anchored_overlay_layer_capabilities.hpp>``
+
+   Whether Escape raises dismiss_requested(escape_key). The layer only reports it; the owner closes the overlay.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AnchoredOverlayLayerDismissOnEscapeCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, AnchoredOverlayLayerDismissOnEscapeCapability<Declaring>> dismiss_on_escape
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AnchoredOverlayLayerPlacementCapability
+
+   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer_capabilities/anchored_overlay_layer_capabilities.hpp>``
+
+   The overlay's preferred size, alignment, side, gap, margin and flip rule; resolved against the anchor on every arrangement (resolved_placement). An invalid placement throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AnchoredOverlayLayerPlacementCapability& capability, AnchoredOverlayPlacement incoming)
+
+   .. cpp:member:: PropertyCell<AnchoredOverlayPlacement, AnchoredOverlayLayerPlacementCapability<Declaring>> placement
 
 .. cpp:namespace:: gui_forms
 
@@ -157,6 +309,76 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ColorDialogAllowAlphaCapability
+
+   ``#include <gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp>``
+
+   Whether the user may choose a translucent color. Off by default, as in Windows Forms, where every chosen color is opaque: the dialog then takes the chosen color as opaque whatever the host returns.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ColorDialogAllowAlphaCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ColorDialogAllowAlphaCapability<Declaring>> allow_alpha
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ColorDialogCapabilities : public ColorDialogTitleCapability<Declaring>, public ColorDialogColorCapability<Declaring>, public ColorDialogAllowAlphaCapability<Declaring>
+
+   ``#include <gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp>``
+
+   Every ColorDialog capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string title
+
+      The dialog's title; empty gives the host's own. Windows Forms' dialog has none; the hosts that title their dialog use it. Must be valid UTF-8 without NUL (std::invalid_argument).
+
+   .. cpp:member:: Color color
+
+      The chosen color, and before the dialog is shown the one it starts with (Windows Forms' Color; opaque black by default). An accepted show_dialog writes it.
+
+   .. cpp:member:: bool allow_alpha
+
+      Whether the user may choose a translucent color. Off by default, as in Windows Forms, where every chosen color is opaque: the dialog then takes the chosen color as opaque whatever the host returns.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ColorDialogColorCapability
+
+   ``#include <gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp>``
+
+   The chosen color, and before the dialog is shown the one it starts with (Windows Forms' Color; opaque black by default). An accepted show_dialog writes it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ColorDialogColorCapability& capability, Color incoming)
+
+   .. cpp:member:: PropertyCell<Color, ColorDialogColorCapability<Declaring>> color
+
+      Default: ``{Color::rgba(0U, 0U, 0U, 255U)}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ColorDialogTitleCapability
+
+   ``#include <gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp>``
+
+   The dialog's title; empty gives the host's own. Windows Forms' dialog has none; the hosts that title their dialog use it. Must be valid UTF-8 without NUL (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ColorDialogTitleCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, ColorDialogTitleCapability<Declaring>> title
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: FileDialogFilterParse final
 
    ``#include <gui_forms/components/file_dialog_types/file_dialog_types.hpp>``
@@ -183,6 +405,76 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> FolderBrowserDialogCapabilities : public FolderBrowserDialogDescriptionCapability<Declaring>, public FolderBrowserDialogInitialDirectoryCapability<Declaring>, public FolderBrowserDialogSelectedPathCapability<Declaring>
+
+   ``#include <gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp>``
+
+   Every FolderBrowserDialog capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string description
+
+      The text the dialog shows the user: above the tree on Windows, as the title elsewhere. Empty gives the host's own. Valid UTF-8 without NUL (std::invalid_argument).
+
+   .. cpp:member:: std::string initial_directory
+
+      The folder the dialog starts in when no folder is selected; empty lets the host choose. Valid UTF-8 without NUL (std::invalid_argument).
+
+   .. cpp:member:: std::string selected_path
+
+      The chosen folder, or empty. A folder set here before the dialog is shown is the one it starts in; an accepted show_dialog moves it. Valid UTF-8 without NUL (std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FolderBrowserDialogDescriptionCapability
+
+   ``#include <gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp>``
+
+   The text the dialog shows the user: above the tree on Windows, as the title elsewhere. Empty gives the host's own. Valid UTF-8 without NUL (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FolderBrowserDialogDescriptionCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, FolderBrowserDialogDescriptionCapability<Declaring>> description
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FolderBrowserDialogInitialDirectoryCapability
+
+   ``#include <gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp>``
+
+   The folder the dialog starts in when no folder is selected; empty lets the host choose. Valid UTF-8 without NUL (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FolderBrowserDialogInitialDirectoryCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, FolderBrowserDialogInitialDirectoryCapability<Declaring>> initial_directory
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FolderBrowserDialogSelectedPathCapability
+
+   ``#include <gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp>``
+
+   The chosen folder, or empty. A folder set here before the dialog is shown is the one it starts in; an accepted show_dialog moves it. Valid UTF-8 without NUL (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FolderBrowserDialogSelectedPathCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const FolderBrowserDialogSelectedPathCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, FolderBrowserDialogSelectedPathCapability<Declaring>> selected_path
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: FontDialog::Parts final
 
    ``#include <gui_forms/controls/panel/font_dialog/font_dialog.hpp>``
@@ -201,6 +493,63 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> FontDialogCapabilities : public FontDialogFontCapability<Declaring>, public FontDialogShowApplyCapability<Declaring>, public FontDialogPreviewTextCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/font_dialog/font_dialog_capabilities/font_dialog_capabilities.hpp>``
+
+   Every FontDialog capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: FontSpec font
+
+      The font OK or Apply last took (initially 9-unit Carlito, like Windows Forms' default); not the dialog's own text font (G1). A view, since OK and Apply move it. A write also resets the selection to it and marks the font as set from code; an invalid FontSpec throws std::invalid_argument.
+
+   .. cpp:member:: bool show_apply
+
+      Whether the Apply button is shown.
+
+   .. cpp:member:: std::string preview_text
+
+      The preview text; invalid UTF-8 throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FontDialogFontCapability
+
+   ``#include <gui_forms/controls/panel/font_dialog/font_dialog_capabilities/font_dialog_capabilities.hpp>``
+
+   The font OK or Apply last took (initially 9-unit Carlito, like Windows Forms' default); not the dialog's own text font (G1). A view, since OK and Apply move it. A write also resets the selection to it and marks the font as set from code; an invalid FontSpec throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FontDialogFontCapability& capability, FontSpec incoming)
+
+   .. cpp:function:: static FontSpec read(const FontDialogFontCapability& capability)
+
+   .. cpp:member:: PropertyView<FontSpec, FontDialogFontCapability<Declaring>> font
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FontDialogPreviewTextCapability
+
+   ``#include <gui_forms/controls/panel/font_dialog/font_dialog_capabilities/font_dialog_capabilities.hpp>``
+
+   The preview text; invalid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FontDialogPreviewTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, FontDialogPreviewTextCapability<Declaring>> preview_text
+
+      Default: ``{"AaBbYyZz 0123"}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: FontDialogResult final
 
    ``#include <gui_forms/controls/panel/font_dialog/font_dialog.hpp>``
@@ -212,6 +561,23 @@ Related types
       Default: ``{DialogResult::none}``.
 
    .. cpp:member:: FontSpec font
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FontDialogShowApplyCapability
+
+   ``#include <gui_forms/controls/panel/font_dialog/font_dialog_capabilities/font_dialog_capabilities.hpp>``
+
+   Whether the Apply button is shown.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FontDialogShowApplyCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, FontDialogShowApplyCapability<Declaring>> show_apply
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -303,6 +669,46 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RibbonToolTipAutoPopDelayCapability
+
+   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>``
+
+   How long a tooltip stays without input; zero keeps it until the pointer leaves or focus moves. A negative delay throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonToolTipAutoPopDelayCapability& capability, std::chrono::milliseconds incoming)
+
+   .. cpp:member:: PropertyCell<std::chrono::milliseconds, RibbonToolTipAutoPopDelayCapability<Declaring>> auto_pop_delay
+
+      Default: ``{std::chrono::milliseconds(10000)}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonToolTipCapabilities : public RibbonToolTipInitialDelayCapability<Declaring>, public RibbonToolTipAutoPopDelayCapability<Declaring>, public RibbonToolTipHelpLineTextCapability<Declaring>
+
+   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>``
+
+   Every RibbonToolTip capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::chrono::milliseconds initial_delay
+
+      How long the pointer rests before a tooltip shows. A negative delay throws std::invalid_argument.
+
+   .. cpp:member:: std::chrono::milliseconds auto_pop_delay
+
+      How long a tooltip stays without input; zero keeps it until the pointer leaves or focus moves. A negative delay throws std::invalid_argument.
+
+   .. cpp:member:: std::string help_line_text
+
+      The line a tooltip with a help topic shows under a rule. Text that is not valid UTF-8 throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RibbonToolTipContent final
 
    ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp>``
@@ -345,6 +751,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RibbonToolTipHelpLineTextCapability
+
+   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>``
+
+   The line a tooltip with a help topic shows under a rule. Text that is not valid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonToolTipHelpLineTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, RibbonToolTipHelpLineTextCapability<Declaring>> help_line_text
+
+      Default: ``{"Press F1 for more help."}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RibbonToolTipHelpRequest final
 
    ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp>``
@@ -356,6 +779,192 @@ Related types
    .. cpp:member:: std::string item_id
 
    .. cpp:member:: std::string help_topic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonToolTipInitialDelayCapability
+
+   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>``
+
+   How long the pointer rests before a tooltip shows. A negative delay throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonToolTipInitialDelayCapability& capability, std::chrono::milliseconds incoming)
+
+   .. cpp:member:: PropertyCell<std::chrono::milliseconds, RibbonToolTipInitialDelayCapability<Declaring>> initial_delay
+
+      Default: ``{std::chrono::milliseconds(500)}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SaveFileDialogAddExtensionCapability
+
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+
+   Whether a chosen name without an extension is given one (Windows Forms' AddExtension; on by default): the chosen filter's first extension, unless that filter is any file, else default_ext.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SaveFileDialogAddExtensionCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, SaveFileDialogAddExtensionCapability<Declaring>> add_extension
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SaveFileDialogCapabilities : public SaveFileDialogTitleCapability<Declaring>, public SaveFileDialogInitialDirectoryCapability<Declaring>, public SaveFileDialogFilterCapability<Declaring>, public SaveFileDialogFilterIndexCapability<Declaring>, public SaveFileDialogDefaultExtCapability<Declaring>, public SaveFileDialogAddExtensionCapability<Declaring>, public SaveFileDialogOverwritePromptCapability<Declaring>, public SaveFileDialogFileNameCapability<Declaring>
+
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+
+   Every SaveFileDialog capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string title
+
+      The dialog's title; empty gives the host's own. Valid UTF-8 without NUL (std::invalid_argument).
+
+   .. cpp:member:: std::string initial_directory
+
+      The directory the dialog starts in; empty lets the host choose. Valid UTF-8 without NUL (std::invalid_argument).
+
+   .. cpp:member:: std::string filter
+
+      The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
+
+   .. cpp:member:: std::size_t filter_index
+
+      The filter the dialog starts with, an index into filters() (Windows Forms' FilterIndex, which counts from one; this counts from zero). After the user accepts it is the filter they had selected, where the host tells; an index past the filters starts the dialog on the first.
+
+   .. cpp:member:: std::string default_ext
+
+      The extension a chosen name without one is given, without its dot (Windows Forms' DefaultExt; a leading dot is removed when set). An extension holding a wildcard, a path separator or a character Windows forbids in a name, or text that is not UTF-8 without NUL, throws std::invalid_argument.
+
+   .. cpp:member:: bool add_extension
+
+      Whether a chosen name without an extension is given one (Windows Forms' AddExtension; on by default): the chosen filter's first extension, unless that filter is any file, else default_ext.
+
+   .. cpp:member:: bool overwrite_prompt
+
+      Whether the host asks before the user chooses a file that exists (Windows Forms' OverwritePrompt; on by default).
+
+   .. cpp:member:: std::string file_name
+
+      The first chosen path, or empty. Before the dialog is shown, a name set here is the one the dialog suggests; writing it makes the chosen paths this one name (none for an empty name). Valid UTF-8 without NUL (std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SaveFileDialogDefaultExtCapability
+
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+
+   The extension a chosen name without one is given, without its dot (Windows Forms' DefaultExt; a leading dot is removed when set). An extension holding a wildcard, a path separator or a character Windows forbids in a name, or text that is not UTF-8 without NUL, throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SaveFileDialogDefaultExtCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, SaveFileDialogDefaultExtCapability<Declaring>> default_ext
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SaveFileDialogFileNameCapability
+
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+
+   The first chosen path, or empty. Before the dialog is shown, a name set here is the one the dialog suggests; writing it makes the chosen paths this one name (none for an empty name). Valid UTF-8 without NUL (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SaveFileDialogFileNameCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const SaveFileDialogFileNameCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, SaveFileDialogFileNameCapability<Declaring>> file_name
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SaveFileDialogFilterCapability
+
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+
+   The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SaveFileDialogFilterCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, SaveFileDialogFilterCapability<Declaring>> filter
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SaveFileDialogFilterIndexCapability
+
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+
+   The filter the dialog starts with, an index into filters() (Windows Forms' FilterIndex, which counts from one; this counts from zero). After the user accepts it is the filter they had selected, where the host tells; an index past the filters starts the dialog on the first.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SaveFileDialogFilterIndexCapability& capability, std::size_t incoming)
+
+   .. cpp:member:: PropertyCell<std::size_t, SaveFileDialogFilterIndexCapability<Declaring>> filter_index
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SaveFileDialogInitialDirectoryCapability
+
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+
+   The directory the dialog starts in; empty lets the host choose. Valid UTF-8 without NUL (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SaveFileDialogInitialDirectoryCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, SaveFileDialogInitialDirectoryCapability<Declaring>> initial_directory
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SaveFileDialogOverwritePromptCapability
+
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+
+   Whether the host asks before the user chooses a file that exists (Windows Forms' OverwritePrompt; on by default).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SaveFileDialogOverwritePromptCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, SaveFileDialogOverwritePromptCapability<Declaring>> overwrite_prompt
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SaveFileDialogTitleCapability
+
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+
+   The dialog's title; empty gives the host's own. Valid UTF-8 without NUL (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SaveFileDialogTitleCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, SaveFileDialogTitleCapability<Declaring>> title
 
 .. cpp:namespace:: gui_forms
 
@@ -452,6 +1061,42 @@ Related types
    .. cpp:member:: std::string button_id
 
    .. cpp:member:: bool keep_open
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TaskDialogCapabilities : public TaskDialogExpandedCapability<Declaring>, public TaskDialogVerificationCheckedCapability<Declaring>
+
+   ``#include <gui_forms/controls/task_dialog/task_dialog_capabilities/task_dialog_capabilities.hpp>``
+
+   Every TaskDialog capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool expanded
+
+      Whether the page's expanded information shows (Windows Forms' TaskDialogExpander.Expanded); a view onto the page's expander. A change re-lays out the dialog and raises expanded_changed; a write to a page without an expander does nothing and reads false.
+
+   .. cpp:member:: bool verification_checked
+
+      The verification check box's state (Windows Forms' TaskDialogVerificationCheckBox.Checked); a view onto the page. While the check box exists a write goes through it and raises verification_changed; before it does, a write only stores the page's state.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TaskDialogExpandedCapability
+
+   ``#include <gui_forms/controls/task_dialog/task_dialog_capabilities/task_dialog_capabilities.hpp>``
+
+   Whether the page's expanded information shows (Windows Forms' TaskDialogExpander.Expanded); a view onto the page's expander. A change re-lays out the dialog and raises expanded_changed; a write to a page without an expander does nothing and reads false.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TaskDialogExpandedCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const TaskDialogExpandedCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, TaskDialogExpandedCapability<Declaring>> expanded
 
 .. cpp:namespace:: gui_forms
 
@@ -569,6 +1214,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> TaskDialogVerificationCheckedCapability
+
+   ``#include <gui_forms/controls/task_dialog/task_dialog_capabilities/task_dialog_capabilities.hpp>``
+
+   The verification check box's state (Windows Forms' TaskDialogVerificationCheckBox.Checked); a view onto the page. While the check box exists a write goes through it and raises verification_changed; before it does, a write only stores the page's state.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TaskDialogVerificationCheckedCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const TaskDialogVerificationCheckedCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, TaskDialogVerificationCheckedCapability<Declaring>> verification_checked
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ThreadExceptionReport final
 
    ``#include <gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp>``
@@ -582,6 +1244,164 @@ Related types
    .. cpp:member:: std::string details
 
    .. cpp:member:: bool warning
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolTipAutoPopDelayCapability
+
+   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>``
+
+   How long a tooltip stays (ToolTipSettings::auto_pop_delay); negative throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolTipAutoPopDelayCapability& capability, std::chrono::milliseconds incoming)
+
+   .. cpp:function:: static std::chrono::milliseconds read(const ToolTipAutoPopDelayCapability& capability)
+
+   .. cpp:member:: PropertyView<std::chrono::milliseconds, ToolTipAutoPopDelayCapability<Declaring>> auto_pop_delay
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolTipCapabilities : public ToolTipInitialDelayCapability<Declaring>, public ToolTipReshowDelayCapability<Declaring>, public ToolTipAutoPopDelayCapability<Declaring>, public ToolTipShowOnHoverCapability<Declaring>, public ToolTipShowOnFocusCapability<Declaring>, public ToolTipShowAlwaysCapability<Declaring>, public ToolTipMaximumWidthCapability<Declaring>
+
+   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>``
+
+   Every ToolTip capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::chrono::milliseconds initial_delay
+
+      How long the pointer rests on a target before its tooltip shows (ToolTipSettings::initial_delay); negative throws std::invalid_argument.
+
+   .. cpp:member:: std::chrono::milliseconds reshow_delay
+
+      How long the pointer rests on the next target while a tooltip shows (ToolTipSettings::reshow_delay); negative throws std::invalid_argument.
+
+   .. cpp:member:: std::chrono::milliseconds auto_pop_delay
+
+      How long a tooltip stays (ToolTipSettings::auto_pop_delay); negative throws std::invalid_argument.
+
+   .. cpp:member:: bool show_on_hover
+
+      Whether a tooltip shows when the pointer rests on its target (ToolTipSettings::show_on_hover).
+
+   .. cpp:member:: bool show_on_focus
+
+      Whether a tooltip shows when its target takes the keyboard focus (ToolTipSettings::show_on_focus).
+
+   .. cpp:member:: bool show_always
+
+      Whether a disabled control's tooltip shows (ToolTipSettings::show_when_disabled).
+
+   .. cpp:member:: double maximum_width
+
+      The widest a tooltip wraps to (ToolTipSettings::maximum_width); outside 80 to 2048 throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolTipInitialDelayCapability
+
+   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>``
+
+   How long the pointer rests on a target before its tooltip shows (ToolTipSettings::initial_delay); negative throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolTipInitialDelayCapability& capability, std::chrono::milliseconds incoming)
+
+   .. cpp:function:: static std::chrono::milliseconds read(const ToolTipInitialDelayCapability& capability)
+
+   .. cpp:member:: PropertyView<std::chrono::milliseconds, ToolTipInitialDelayCapability<Declaring>> initial_delay
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolTipMaximumWidthCapability
+
+   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>``
+
+   The widest a tooltip wraps to (ToolTipSettings::maximum_width); outside 80 to 2048 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolTipMaximumWidthCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const ToolTipMaximumWidthCapability& capability)
+
+   .. cpp:member:: PropertyView<double, ToolTipMaximumWidthCapability<Declaring>> maximum_width
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolTipReshowDelayCapability
+
+   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>``
+
+   How long the pointer rests on the next target while a tooltip shows (ToolTipSettings::reshow_delay); negative throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolTipReshowDelayCapability& capability, std::chrono::milliseconds incoming)
+
+   .. cpp:function:: static std::chrono::milliseconds read(const ToolTipReshowDelayCapability& capability)
+
+   .. cpp:member:: PropertyView<std::chrono::milliseconds, ToolTipReshowDelayCapability<Declaring>> reshow_delay
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolTipShowAlwaysCapability
+
+   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>``
+
+   Whether a disabled control's tooltip shows (ToolTipSettings::show_when_disabled).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolTipShowAlwaysCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const ToolTipShowAlwaysCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, ToolTipShowAlwaysCapability<Declaring>> show_always
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolTipShowOnFocusCapability
+
+   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>``
+
+   Whether a tooltip shows when its target takes the keyboard focus (ToolTipSettings::show_on_focus).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolTipShowOnFocusCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const ToolTipShowOnFocusCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, ToolTipShowOnFocusCapability<Declaring>> show_on_focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolTipShowOnHoverCapability
+
+   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>``
+
+   Whether a tooltip shows when the pointer rests on its target (ToolTipSettings::show_on_hover).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolTipShowOnHoverCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const ToolTipShowOnHoverCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, ToolTipShowOnHoverCapability<Declaring>> show_on_hover
 
 Enumerations
 ------------

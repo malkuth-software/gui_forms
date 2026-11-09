@@ -18,6 +18,7 @@
 
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/controls/menu_strip/menu_strip_capabilities/menu_strip_capabilities.hpp"
 
 namespace gui_forms {
 
@@ -49,7 +50,7 @@ struct MenuStripInvocation final {
 // active menu is presented by ContextMenu as a separate window overlay root.
 // Pointer, keyboard, and semantic activation converge on the same shared
 // Command instances contained by MenuItemSpec.
-class MenuStrip final : public Control {
+class MenuStrip final : public Control, public MenuStripCapabilities<MenuStrip> {
 public:
     explicit MenuStrip(StableId stable_id);
     ~MenuStrip() override;
@@ -58,23 +59,9 @@ public:
         return items_;
     }
     void set_items(std::vector<MenuStripItemSpec> items);
-    [[nodiscard]] bool use_mnemonic() const noexcept { return use_mnemonic_; }
-    void set_use_mnemonic(bool value);
-    [[nodiscard]] double item_padding() const noexcept { return item_padding_; }
-    void set_item_padding(double padding);
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
-    // Whether the strip takes part in merging, as source or target
-    // (Windows Forms' AllowMerge; merge_strips). On by default.
-    [[nodiscard]] bool allow_merge() const noexcept { return allow_merge_; }
-    void set_allow_merge(bool allow);
     [[nodiscard]] std::optional<std::size_t> active_index() const noexcept {
         return active_index_;
     }
-    [[nodiscard]] std::string_view selected_item_id() const noexcept {
-        return selected_item_id_;
-    }
-    void set_selected_item_id(std::string_view stable_id);
     // Unknown modes throw invalid_argument before reusing or replacing an overlay.
     bool open(const std::size_t index, const MenuOpenMode mode = MenuOpenMode::keyboard);
     void close() noexcept;
@@ -164,16 +151,31 @@ private:
     std::string selected_item_id_{};
     bool focused_{};
     bool switching_{};
-    bool use_mnemonic_{true};
-    bool allow_merge_{true};
     // The merges into this strip, oldest first; none until the first.
     std::unique_ptr<detail::MenuStripMergeHistory> merge_history_{};
-    double item_padding_{11.0};
-    FontSpec font_{FontRole::control, 10.5, 400, false, 0.12};
     SubscriptionToken overlay_invoked_{};
     SubscriptionToken overlay_changed_{};
     Event<const MenuStripInvocation&> item_invoked_{};
     Event<std::optional<std::size_t>> open_changed_{};
+    // property_codemod begin MenuStrip (tools/property_families/menu_strip.json; generated, do not edit)
+private:
+    friend struct MenuStripUseMnemonicCapability<MenuStrip>;
+    friend struct MenuStripItemPaddingCapability<MenuStrip>;
+    friend struct FontCapability<MenuStrip>;
+    friend struct MenuStripAllowMergeCapability<MenuStrip>;
+    friend struct MenuStripSelectedItemIdCapability<MenuStrip>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(use_mnemonic)& cell, bool& incoming);
+    void written(const decltype(use_mnemonic)& cell);
+    void prepare_write(const decltype(item_padding)& cell, double& incoming);
+    void written(const decltype(item_padding)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    void prepare_write(const decltype(allow_merge)& cell, bool& incoming);
+    void written(const decltype(allow_merge)& cell);
+    void write_view(const decltype(selected_item_id)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(selected_item_id)& cell) const;
+    // property_codemod end MenuStrip
 };
 
 } // namespace gui_forms

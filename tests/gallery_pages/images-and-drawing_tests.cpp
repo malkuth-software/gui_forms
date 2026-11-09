@@ -7,7 +7,7 @@ void test_images_and_drawing(gui_forms::Window& window) {
     std::shared_ptr<gui_forms::PictureBox> picture = std::dynamic_pointer_cast<PictureBox>(
         window.find("gallery.images.picture.4"));
     require(picture && (*picture).has_valid_image() &&
-                (*picture).size_mode() == PictureBoxSizeMode::zoom &&
+                (*picture).size_mode.read() == PictureBoxSizeMode::zoom &&
                 (*picture).image_size() == Size{128.0, 80.0},
             "gallery image page must use the public PictureBox and image registry");
     const std::string image_semantics = window.semantic_snapshot().to_json();

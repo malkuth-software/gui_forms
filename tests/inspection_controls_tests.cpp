@@ -404,7 +404,7 @@ public:
         const std::optional<double> converted = binding_value_to_number(value);
         if (!retained || !converted) return;
         *synchronizing_ = true;
-        (*retained).set_value(*converted);
+        (*retained).value = *converted;
         *synchronizing_ = false;
     }
 
@@ -457,9 +457,9 @@ std::optional<PropertyEditorBinding> create_percent_stepper(
     std::shared_ptr<NumericUpDown> editor = make_control<NumericUpDown>(
         StableId(request.stable_id));
     (*editor).set_range(0.0, 1.0);
-    (*editor).set_increment(0.05);
-    (*editor).set_decimal_places(2U);
-    (*editor).set_value(*number);
+    (*editor).increment = 0.05;
+    (*editor).decimal_places = 2U;
+    (*editor).value = *number;
     std::shared_ptr<bool> synchronizing = std::make_shared<bool>(false);
     PropertyEditorBinding binding;
     binding.control = editor;
@@ -494,11 +494,11 @@ void test_grouped_editors_commit_cancel_validation_and_semantics() {
     (*name).select_all();
     require(window.dispatch_text({"discard me"}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
-                (*name).text() == "Facade Final.png" &&
+                (*name).text.read() == "Facade Final.png" &&
                 (*properties).value("inspection.name") == "Facade Final.png",
             "Escape must restore the last committed text property value");
 
-    (*handler).set_selected_index(1U);
+    (*handler).selected_index = 1U;
     require((*properties).value("inspection.handler") == "Image Laboratory" &&
                 commit_trace.ends_with(
                     "inspection.handler=Image Laboratory;"),
@@ -551,11 +551,11 @@ void test_scrolling_responsive_layout_and_validation_bounds() {
     require((*properties).content_height() > 120.0,
             "constrained PropertyList fixture must require its one scroll plane");
     require((*properties).header_content() == preview &&
-                (*properties).header_height() == 72.0,
+                (*properties).header_height.read() == 72.0,
             "preview/header content must participate in the PropertyList scroll owner");
-    (*properties).set_scroll_offset(10000.0);
-    require((*properties).scroll_offset() > 0.0 &&
-                (*properties).scroll_offset() <=
+    (*properties).scroll_offset = 10000.0;
+    require((*properties).scroll_offset.read() > 0.0 &&
+                (*properties).scroll_offset.read() <=
                     (*properties).content_height() - 120.0,
             "PropertyList scrolling must clamp to its content extent");
     const Control::Ptr name = (*properties).editor("inspection.name");
@@ -661,14 +661,14 @@ void test_property_origins_and_metadata_driven_property_grid() {
                 changes.back().origin == PropertyValueOrigin::local,
             "committing a PropertyGrid text editor must use the target's registered setter and event");
 
-    (*checked).set_checked(true);
-    require((*target).checked() && changes.back().property_name == "checked" &&
+    (*checked).checked = true;
+    require((*target).checked.read() && changes.back().property_name == "checked" &&
                 std::get<bool>(changes.back().current_value),
             "Boolean PropertyGrid edits must use a retained CheckBox and commit immediately");
 
     (*target).text = "Programmatic update";
     text = std::dynamic_pointer_cast<TextBox>((*grid).editor("Text"));
-    require(text && (*text).text() == "Programmatic update" &&
+    require(text && (*text).text.read() == "Programmatic update" &&
                 changes.back().property_name == "text",
             "truthful target change notifications must refresh the live editor without rebuilding the grid");
 
@@ -747,7 +747,7 @@ void test_property_origins_and_metadata_driven_property_grid() {
                     PropertyValueOrigin::local,
             "non-browsable policy must not erase truthful local value authorship");
 
-    (*grid).set_property_sort(PropertySort::alphabetical);
+    (*grid).property_sort = PropertySort::alphabetical;
     require((*(*grid).property_list()).groups().size() == 1U &&
                 (*(*grid).property_list()).groups().front().title == "PROPERTIES" &&
                 (*grid).editor("Checked") != nullptr,
@@ -760,7 +760,7 @@ void test_property_origins_and_metadata_driven_property_grid() {
                 (*inherited).property_value_origin("ForeColor") ==
                     PropertyValueOrigin::inherited,
             "effective Label appearance must identify inherited rather than fabricated default authorship");
-    (*inherited).set_font({FontRole::content, 14.0, 600, false});
+    (*inherited).font = FontSpec{FontRole::content, 14.0, 600, false};
     require((*inherited).property_value_origin("Font") ==
                 PropertyValueOrigin::local &&
                 (*inherited).reset_property("Font") &&
@@ -781,7 +781,7 @@ void test_property_origins_and_metadata_driven_property_grid() {
                                         replacement_target));
     require((*switching_grid).try_set_property_value(
                 "Text", BindingValue{std::string("after")}) &&
-                (*switched_target).text() == "after" &&
+                (*switched_target).text.read() == "after" &&
                 (*switching_grid).selected_object() == replacement_target &&
                 (*switching_grid).editor("Checked") != nullptr,
             "a target callback may replace PropertyGrid selection without allowing the retiring edit to touch stale projection maps");
@@ -797,7 +797,7 @@ void test_property_origins_and_metadata_driven_property_grid() {
             DisposeWeakPropertyGrid(weak_callback_grid));
     require((*callback_grid).try_set_property_value(
                 "Text", BindingValue{std::string("after")}) &&
-                (*callback_target).text() == "after" &&
+                (*callback_target).text.read() == "after" &&
                 (*callback_grid).is_disposed(),
             "target change callbacks may dispose the PropertyGrid without stale editor access");
 
@@ -828,8 +828,8 @@ void test_instance_owned_converter_and_editor_registries() {
         StableId("inspection.services.target"));
     std::shared_ptr<gui_forms::PropertyGrid> grid = make_control<PropertyGrid>(StableId("inspection.services.grid"));
     (*grid).set_requested_bounds({0.0, 0.0, 420.0, 180.0});
-    (*grid).set_converter_registry(converters);
-    (*grid).set_editor_registry(editors);
+    (*grid).converter_registry = converters;
+    (*grid).editor_registry = editors;
     (*root).add_child(target);
     (*root).add_child(grid);
     (*grid).set_selected_object(target);
@@ -842,13 +842,13 @@ void test_instance_owned_converter_and_editor_registries() {
     const std::shared_ptr<gui_forms::NumericUpDown> editor = std::dynamic_pointer_cast<NumericUpDown>(
         (*grid).editor("Level"));
     require(parsed && std::get<double>(*parsed) == 0.75 && editor &&
-                (*editor).maximum() == 1.0 && (*editor).value() == 0.25 &&
+                (*editor).maximum.read() == 1.0 && (*editor).value.read() == 0.25 &&
                 (*(*grid).property_list()).value(
                     "inspection.services.grid.property.level") ==
                     "25.000000%",
             "descriptor service names must resolve through the supplied converter and editor registries");
-    (*editor).set_value(0.75);
-    require((*target).level() == 0.75 && (*editor).value() == 0.75 &&
+    (*editor).value = 0.75;
+    require((*target).level() == 0.75 && (*editor).value.read() == 0.75 &&
                 (*(*grid).property_list()).value(
                     "inspection.services.grid.property.level") ==
                     "75.000000%",
@@ -888,7 +888,7 @@ void test_nullable_standard_values_culture_and_nested_services() {
     std::shared_ptr<gui_forms::PropertyGrid> grid = make_control<PropertyGrid>(
         StableId("inspection.nullable.grid"));
     (*grid).set_requested_bounds({0.0, 0.0, 440.0, 260.0});
-    (*grid).set_converter_registry(converters);
+    (*grid).converter_registry = converters;
     (*root).add_child(target);
     (*root).add_child(grid);
     (*grid).set_selected_object(target);
@@ -900,15 +900,15 @@ void test_nullable_standard_values_culture_and_nested_services() {
         (*grid).selected_descriptor("Settings.Threshold");
     std::shared_ptr<gui_forms::ComboBox> choice = std::dynamic_pointer_cast<ComboBox>((*grid).editor("Ratio"));
     require(ratio_descriptor && (*ratio_descriptor).nullable && choice &&
-                (*choice).items().size() == 3U &&
-                (*choice).items().front() == "(none)" &&
+                (*choice).items.read().size() == 3U &&
+                (*choice).items.read().front() == "(none)" &&
                 threshold_descriptor &&
                 (*threshold_descriptor).converter_name == "percent" &&
                 (*(*grid).property_list()).value(
                     "inspection.nullable.grid.property.settings.threshold") ==
                     "50.000000%",
             "PropertyGrid must retain payload schema for null values and project member-specific converter identities");
-    (*choice).set_selected_index(1U);
+    (*choice).selected_index = 1U;
     require((*target).ratio() == BindingValue{1.5} &&
                 (*grid).try_set_property_value(
                     "Ratio", BindingValue{std::monostate{}}) &&
@@ -966,23 +966,23 @@ void test_default_flags_and_color_property_editors() {
 
     std::shared_ptr<gui_forms::FlagsValueEditor> flags = std::dynamic_pointer_cast<FlagsValueEditor>(
         (*grid).editor("Anchor"));
-    require(flags && (*flags).value().name == "top, left" &&
+    require(flags && (*flags).value.read().name == "top, left" &&
                 (*flags).semantic_descriptor().role == SemanticRole::combo_box,
             "the default enum editor service must project flags through a retained multi-choice editor");
-    (*flags).set_overlay_width(286.0);
-    require((*flags).overlay_width() == 286.0,
+    (*flags).overlay_width = 286.0;
+    require((*flags).overlay_width.read() == 286.0,
             "flags editor overlay width must retain caller customization");
-    (*flags).set_dropped_down(true);
+    (*flags).dropped_down = true;
     std::shared_ptr<gui_forms::CheckedListBox> choices = std::dynamic_pointer_cast<CheckedListBox>(window.find(
         std::string((*flags).stable_id().value()) + ".overlay.list"));
-    require(choices && (*choices).items().size() == 5U &&
+    require(choices && (*choices).items.read().size() == 5U &&
                 (*choices).item_checked(1U) && (*choices).item_checked(3U),
             "the flags overlay must expose zero and each independent bit with synchronized checks");
     (*choices).set_item_checked(4U, true);
     require(has_anchor((*target).anchor.read(), AnchorStyles::right) &&
-                (*flags).value().name == "top, left, right",
+                (*flags).value.read().name == "top, left, right",
             "checking a flags row must immediately commit the typed enum through PropertyGrid");
-    (*flags).set_dropped_down(false);
+    (*flags).dropped_down = false;
     require(!window.find(std::string((*flags).stable_id().value()) +
                          ".overlay.list"),
             "closing a flags editor must synchronously unregister its overlay subtree");
@@ -991,10 +991,10 @@ void test_default_flags_and_color_property_editors() {
         (*grid).editor("ForeColor"));
     require(color != nullptr,
             "the default color service must create a retained color editor");
-    (*color).set_swatch_width(42.0);
+    (*color).swatch_width = 42.0;
     require((*color).editor() &&
-                (*color).swatch_width() == 42.0 &&
-                (*(*color).editor()).text() ==
+                (*color).swatch_width.read() == 42.0 &&
+                (*(*color).editor()).text.read() ==
                     ColorValueEditor::format_value((*target).foreground()),
             "the default color service must provide canonical text and a retained swatch editor");
     std::vector<PropertyGridEditError> failures;
@@ -1007,7 +1007,7 @@ void test_default_flags_and_color_property_editors() {
     require(window.dispatch_text({"#2A6FB4CC"}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
                 (*target).foreground() == Color::rgba(42, 111, 180, 204) &&
-                (*color).value() == (*target).foreground(),
+                (*color).value.read() == (*target).foreground(),
             "a valid color commit must preserve alpha and use the target's typed setter");
     const Color retained = (*target).foreground();
     (*(*color).editor()).select_all();
@@ -1019,7 +1019,7 @@ void test_default_flags_and_color_property_editors() {
                 (*color).visual_status() == ControlVisualStatus::invalid,
             "invalid color input must preserve retained state and publish exact inline failure feedback");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
-                (*(*color).editor()).text() == "#2A6FB4CC" &&
+                (*(*color).editor()).text.read() == "#2A6FB4CC" &&
                 (*color).visual_status() == ControlVisualStatus::normal,
             "cancelling a failed color edit must restore its last committed canonical value");
     static_cast<void>(failed);
@@ -1060,9 +1060,9 @@ void test_recursive_object_and_collection_projection_and_mutation() {
                 (*grid).try_set_property_value(
                     "Settings.Modes[1]", BindingValue{std::string("NFM")}) &&
                 (*std::dynamic_pointer_cast<TextBox>(
-                    (*grid).editor("Settings.Endpoint.Host"))).text() == "radio.lan" &&
+                    (*grid).editor("Settings.Endpoint.Host"))).text.read() == "radio.lan" &&
                 (*std::dynamic_pointer_cast<TextBox>(
-                    (*grid).editor("Settings.Endpoint.Port"))).text() == "6000" &&
+                    (*grid).editor("Settings.Endpoint.Port"))).text.read() == "6000" &&
                 changed_paths == std::vector<std::string>{
                     "settings.endpoint.host", "settings.endpoint.port",
                     "settings.modes[1]"},
@@ -1079,7 +1079,7 @@ void test_recursive_object_and_collection_projection_and_mutation() {
                 (*grid).property_expanded("Settings.Modes") == true &&
                 (*grid).move_collection_item("Settings.Modes", 3U, 0U) &&
                 (*std::dynamic_pointer_cast<TextBox>(
-                    (*grid).editor("Settings.Modes[0]"))).text() == "WFM" &&
+                    (*grid).editor("Settings.Modes[0]"))).text.read() == "WFM" &&
                 (*grid).remove_collection_item("Settings.Modes", 2U) &&
                 (*grid).editor("Settings.Modes[3]") == nullptr &&
                 !(*grid).remove_collection_item("Settings.Modes", 99U),
@@ -1088,9 +1088,9 @@ void test_recursive_object_and_collection_projection_and_mutation() {
     require((*grid).reset_property("Settings") &&
                 (*grid).property_expanded("Settings.Endpoint") == true &&
                 (*std::dynamic_pointer_cast<TextBox>(
-                    (*grid).editor("Settings.Endpoint.Host"))).text() == "localhost" &&
+                    (*grid).editor("Settings.Endpoint.Host"))).text.read() == "localhost" &&
                 (*std::dynamic_pointer_cast<TextBox>(
-                    (*grid).editor("Settings.Modes[1]"))).text() == "FM" &&
+                    (*grid).editor("Settings.Modes[1]"))).text.read() == "FM" &&
                 (*grid).selected_origin("Settings.Modes[1]") ==
                     PropertyValueOrigin::defaulted,
             "resetting a nested owner must restore its structurally equal default while retaining independent view expansion state");
@@ -1101,12 +1101,12 @@ void test_property_typography_preserves_editors_and_updates_geometry() {
     const std::shared_ptr<PropertyList> properties = make_properties();
     Window window(properties, {440.0, 500.0});
     window.perform_layout();
-    require((*properties).font() == FontSpec{FontRole::content, 9.5, 400, false} &&
-                (*properties).row_height() == 29.0,
+    require((*properties).font.read() == FontSpec{FontRole::content, 9.5, 400, false} &&
+                (*properties).row_height.read() == 29.0,
             "property list must retain its existing font and row defaults");
     const std::shared_ptr<TextBox> name = std::dynamic_pointer_cast<TextBox>(
         (*properties).editor("inspection.name"));
-    require(name && (*name).font().size == 10.0,
+    require(name && (*name).font.read().size == 10.0,
             "default property editor typography must remain unchanged");
     require(window.request_focus(name), "property editor must accept focus");
     (*name).select_all();
@@ -1114,37 +1114,37 @@ void test_property_typography_preserves_editors_and_updates_geometry() {
     (*name).select(Utf8Offset(2U), Utf8Offset(7U));
     const TextSelection selection = (*name).selection();
     const double old_height = (*properties).content_height();
-    (*properties).set_row_height(40.0);
+    (*properties).row_height = 40.0;
     window.perform_layout();
-    require((*properties).row_height() == 40.0 &&
+    require((*properties).row_height.read() == 40.0 &&
                 (*properties).content_height() == old_height + 44.0,
             "four property rows must reflect the explicit row-height increase");
 
     const std::shared_ptr<NumericUpDown> numeric = make_control<NumericUpDown>(
         StableId("font.numeric"));
-    (*numeric).set_value(42.0);
+    (*numeric).value = 42.0;
     require((*properties).replace_editor("inspection.location", numeric),
             "numeric replacement editor must attach");
     const std::shared_ptr<TextBox> numeric_text = (*numeric).editor();
-    (*numeric_text).set_text("-");
+    (*numeric_text).text = "-";
     (*numeric_text).select_all();
     const TextSelection numeric_selection = (*numeric_text).selection();
     std::uint64_t changes{};
     SubscriptionToken changed = (*properties).value_changed().subscribe(
         callbacks::IncrementCounter<std::uint64_t, const PropertyValueChange&>(changes));
     const FontSpec chosen{FontRole::content, 17.0, 500, true, 0.5};
-    (*properties).set_font(chosen);
+    (*properties).font = chosen;
     window.perform_layout();
-    require((*properties).font() == chosen && (*name).font() == chosen &&
-                (*numeric_text).font() == chosen &&
+    require((*properties).font.read() == chosen && (*name).font.read() == chosen &&
+                (*numeric_text).font.read() == chosen &&
                 (*properties).editor("inspection.name") == name &&
                 (*properties).editor("inspection.location") == numeric,
             "font updates must reach text and numeric editors without replacing them");
-    require((*name).text() == "Uncommitted name" && (*name).selection() == selection &&
+    require((*name).text.read() == "Uncommitted name" && (*name).selection() == selection &&
                 (*name).can_undo() && window.focused_control() == name &&
-                (*numeric_text).text() == "-" &&
+                (*numeric_text).text.read() == "-" &&
                 (*numeric_text).selection() == numeric_selection &&
-                (*numeric).value() == 42.0 && changes == 0U,
+                (*numeric).value.read() == 42.0 && changes == 0U,
             "typography changes must preserve draft, selection, focus, undo and numeric value without publishing edits");
     test_support::TypographyPainter painter;
     (*properties).on_paint(painter, {0.0, 0.0, 440.0, 500.0});
@@ -1157,19 +1157,19 @@ void test_property_typography_preserves_editors_and_updates_geometry() {
     require(kind && (*kind).bounds.height == 40.0,
             "property semantic row bounds must agree with row-height geometry");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
-                (*name).text() == "Facade Study.png",
+                (*name).text.read() == "Facade Study.png",
             "font changes must retain the original text commit/cancel subscription");
 
     const std::shared_ptr<NumericUpDown> later_numeric = make_control<NumericUpDown>(
         StableId("font.later.numeric"));
     require((*properties).replace_editor("inspection.location", later_numeric) &&
-                (*(*later_numeric).editor()).font() == chosen,
+                (*(*later_numeric).editor()).font.read() == chosen,
             "future replacement numeric editors must inherit the selected font");
     const std::vector<PropertyGroupSpec> groups = (*properties).groups();
     (*properties).set_groups(groups);
     const std::shared_ptr<TextBox> future = std::dynamic_pointer_cast<TextBox>(
         (*properties).editor("inspection.name"));
-    require(future && (*future).font() == chosen,
+    require(future && (*future).font.read() == chosen,
             "future stock text editors must inherit the selected font");
 
     const double invalid[] = {0.0, -1.0, std::numeric_limits<double>::infinity(),
@@ -1178,22 +1178,22 @@ void test_property_typography_preserves_editors_and_updates_geometry() {
         bool font_rejected{};
         FontSpec malformed = chosen;
         malformed.size = metric;
-        try { (*properties).set_font(malformed); }
+        try { (*properties).font = malformed; }
         catch (const std::invalid_argument&) { font_rejected = true; }
         bool height_rejected{};
-        try { (*properties).set_row_height(metric); }
+        try { (*properties).row_height = metric; }
         catch (const std::invalid_argument&) { height_rejected = true; }
-        require(font_rejected && height_rejected && (*properties).font() == chosen &&
-                    (*properties).row_height() == 40.0,
+        require(font_rejected && height_rejected && (*properties).font.read() == chosen &&
+                    (*properties).row_height.read() == 40.0,
                 "invalid property font and row metrics must be rejected without mutation");
     }
     FontSpec malformed = chosen;
     malformed.letter_spacing = std::numeric_limits<double>::quiet_NaN();
     bool tracking_rejected{};
-    try { (*properties).set_font(malformed); }
+    try { (*properties).font = malformed; }
     catch (const std::invalid_argument&) { tracking_rejected = true; }
     bool height_rejected{};
-    try { (*properties).set_row_height(4097.0); }
+    try { (*properties).row_height = 4097.0; }
     catch (const std::invalid_argument&) { height_rejected = true; }
     require(tracking_rejected && height_rejected,
             "property typography must reject invalid tracking and excessive row height");
@@ -1212,19 +1212,19 @@ BindingValue text_list(std::initializer_list<const char*> items) {
 
 void test_flags_editor_form_properties() {
     std::shared_ptr<FlagsValueEditor> empty = make_control<FlagsValueEditor>(StableId("flags.empty"));
-    require((*empty).descriptor().choices.empty() && (*empty).value().name.empty(),
+    require((*empty).descriptor.read().choices.empty() && (*empty).value.read().name.empty(),
             "an unwritten flags editor holds no flags");
 
     std::shared_ptr<FlagsValueEditor> flags = make_control<FlagsValueEditor>(StableId("flags.form"));
     (*flags).set_property_value("checked_flags", text_list({"Top", "Left"}));
-    require((*flags).descriptor().choices.empty(), "checked flags wait for the flag names");
+    require((*flags).descriptor.read().choices.empty(), "checked flags wait for the flag names");
     (*flags).set_property_value("flag_names", text_list({"Top", "Left", "Right", "Bottom"}));
     (*flags).set_property_value("none_name", BindingValue{std::string("None")});
     (*flags).set_property_value("enumeration_name", BindingValue{std::string("Edges")});
     const PropertyEnumDescriptor expected{
         "Edges", {{"None", 0}, {"Top", 1}, {"Left", 2}, {"Right", 4}, {"Bottom", 8}}, true};
-    require((*flags).descriptor() == expected, "the form properties describe the enumeration");
-    require((*flags).value() == PropertyEnumValue{"Edges", "Top, Left", 3}, "the checked flags are the value");
+    require((*flags).descriptor.read() == expected, "the form properties describe the enumeration");
+    require((*flags).value.read() == PropertyEnumValue{"Edges", "Top, Left", 3}, "the checked flags are the value");
     require((*flags).property_value("checked_flags") == text_list({"Top", "Left"}) &&
                 (*flags).property_value("flag_names") == text_list({"Top", "Left", "Right", "Bottom"}) &&
                 (*flags).property_value("none_name") == BindingValue{std::string("None")} &&
@@ -1236,8 +1236,47 @@ void test_flags_editor_form_properties() {
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && (*flags).value() == PropertyEnumValue{"Edges", "Top, Left", 3},
+    require(refused && (*flags).value.read() == PropertyEnumValue{"Edges", "Top, Left", 3},
             "a checked name that is no flag's is refused and changes nothing");
+}
+
+// set_group_expanded: the group's expanded flag reads back through
+// groups(), a collapsed group hides its editors and shortens the content,
+// one group_changed is published per actual change, and an unknown group
+// is refused without an event.
+void test_group_expansion() {
+    std::shared_ptr<PropertyList> properties = make_properties();
+    Window window(properties, {288.0, 260.0});
+    window.perform_layout();
+    std::vector<PropertyGroupChange> changes;
+    SubscriptionToken observed = (*properties).group_changed().subscribe(
+        callbacks::PushBack<std::vector<PropertyGroupChange>, const PropertyGroupChange&>(changes));
+    const Control::Ptr name = (*properties).editor("inspection.name");
+    const double expanded_height = (*properties).content_height();
+    require(name && (*name).visible.read() && (*properties).groups()[1].expanded,
+            "the fixture starts with its groups expanded");
+
+    require((*properties).set_group_expanded("inspection.editable", false),
+            "collapsing a known group is accepted");
+    window.perform_layout();
+    require(!(*properties).groups()[1].expanded && (*properties).groups()[0].expanded,
+            "only the named group collapses");
+    require(!(*name).visible.read() && (*properties).content_height() < expanded_height,
+            "a collapsed group hides its editors and shortens the content");
+    require(changes.size() == 1U && changes[0].group_id == "inspection.editable" && !changes[0].expanded,
+            "collapsing publishes one group change");
+
+    require((*properties).set_group_expanded("inspection.editable", false) && changes.size() == 1U,
+            "collapsing a collapsed group is accepted without an event");
+    require(!(*properties).set_group_expanded("inspection.nowhere", false) && changes.size() == 1U &&
+                (*properties).groups()[0].expanded,
+            "an unknown group is refused and nothing changes");
+
+    require((*properties).set_group_expanded("inspection.editable", true), "expanding again is accepted");
+    window.perform_layout();
+    require((*name).visible.read() && (*properties).content_height() == expanded_height &&
+                changes.size() == 2U && changes[1].expanded,
+            "expanding restores the editors and the content height and publishes again");
 }
 
 int main() {
@@ -1253,6 +1292,7 @@ int main() {
         test_recursive_object_and_collection_projection_and_mutation();
         test_property_typography_preserves_editors_and_updates_geometry();
         test_flags_editor_form_properties();
+        test_group_expansion();
         std::cout << "gui_forms_inspection_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

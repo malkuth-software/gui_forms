@@ -5,6 +5,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/components/context_menu/context_menu_capabilities/context_menu_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -91,7 +92,7 @@ inline constexpr std::size_t maximum_menu_items = 1024U;
 // presentations, while MenuItemSpec identities and bound Command instances are
 // stable application state. Click-away/Escape revoke the overlay and restore the
 // invoker's focus scope deterministically.
-class ContextMenu final : public Component {
+class ContextMenu final : public Component, public ContextMenuCapabilities<ContextMenu> {
 public:
     explicit ContextMenu(std::string stable_id);
     ~ContextMenu() override;
@@ -103,10 +104,6 @@ public:
         return items_;
     }
     void set_items(std::vector<MenuItemSpec> items);
-    [[nodiscard]] double preferred_width() const noexcept {
-        return preferred_width_;
-    }
-    void set_preferred_width(double width);
 
     // Unknown modes throw invalid_argument without closing an existing overlay.
     void show(const Control::Ptr& owner, const Point window_position,
@@ -133,10 +130,16 @@ private:
 
     std::string stable_id_;
     std::vector<MenuItemSpec> items_;
-    double preferred_width_{268.0};
     std::unique_ptr<Impl> impl_;
     Event<const MenuItemInvocation&> item_invoked_;
     Event<bool> open_changed_;
+    // property_codemod begin ContextMenu (tools/property_families/context_menu.json; generated, do not edit)
+private:
+    friend struct ContextMenuPreferredWidthCapability<ContextMenu>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(preferred_width)& cell, double& incoming);
+    void written(const decltype(preferred_width)& cell);
+    // property_codemod end ContextMenu
 };
 
 } // namespace gui_forms

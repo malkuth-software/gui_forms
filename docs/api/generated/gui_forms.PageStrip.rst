@@ -7,7 +7,7 @@ gui_forms::PageStrip
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: PageStrip : public Control
+.. cpp:class:: PageStrip : public Control, public PageStripCapabilities<PageStrip>
 
    ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
 
@@ -39,9 +39,6 @@ gui_forms::PageStrip
 
    :Properties:
 
-      **page_set** : ``PageSet*``, read-only
-         The bound set, or null after :cpp:func:`release_page_set <gui_forms::PageStrip::release_page_set>`.
-
       **placement** : ``PageStripPlacement``, default ``PageStripPlacement::top``
          The edge of the content the strip sits on: top, bottom, left or right.
          The tabs touch that edge, and the selected tab's seam lies along it. A
@@ -58,7 +55,7 @@ gui_forms::PageStrip
          ``fill`` shares the row's width equally, within the minimum and maximum.
 
       **item_widths** : ``PageItemWidths``, default minimum ``40``, maximum ``240``, fixed ``120``
-         The tab widths in logical units at text scale 1. :cpp:func:`set_item_widths <gui_forms::PageStrip::set_item_widths>`
+         The tab widths in logical units at text scale 1. ``set_item_widths``
          throws ``std::invalid_argument`` unless 0 < minimum <= maximum <= 1024 and
          0 < fixed <= 1024, and keeps the old widths.
 
@@ -98,7 +95,7 @@ gui_forms::PageStrip
 
       **image_list** : ``std::shared_ptr<ImageList>``
          The images that pages' image keys name; a tab whose key is in the list
-         shows the image before its label. :cpp:func:`set_image_list <gui_forms::PageStrip::set_image_list>` throws
+         shows the image before its label. ``set_image_list`` throws
          ``std::invalid_argument`` for a disposed list or one that belongs to
          another window.
 
@@ -106,6 +103,9 @@ gui_forms::PageStrip
          With ``ItemDrawMode::owner_draw`` the application draws the tabs'
          content: see :cpp:func:`draw_item_content <gui_forms::PageStrip::draw_item_content>`. Throws ``std::invalid_argument`` for an
          unknown mode.
+
+      **page_set** : ``PageSet*``, read-only
+         The bound set, or null after :cpp:func:`release_page_set <gui_forms::PageStrip::release_page_set>`.
 
       **overflowing** : ``bool``, read-only
          Whether the tabs do not all fit, so the scroll and list buttons (under
@@ -183,10 +183,10 @@ gui_forms::PageStrip
          press; it never reorders.
 
       **page_context_menu_requested** : ``Event<PageContextMenuRequest&>``
-         Raised when a secondary click is released over the tab it pressed (at
-         the pointer, selecting nothing) or Shift+F10 or the context-menu key is
-         pressed on the keyboard's tab (at the tab's corner on the content's side
-         where reading starts).
+         Raised on the host's context request: a pointer request over a tab asks
+         for that tab's menu (at the pointer, selecting nothing), and a keyboard
+         request for the keyboard's tab's (at the tab's corner on the content's
+         side where reading starts).
          The strip shows no menu of its own; a handler that shows one sets
          ``handled``.
 
@@ -265,7 +265,7 @@ gui_forms::PageStrip
 
    Dragging. A press on a tab arms a drag; past the threshold the strip raises
    :cpp:func:`page_drag_started <gui_forms::PageStrip::page_drag_started>`. A claimed drag belongs to the claimant. Otherwise,
-   with :cpp:func:`reorder_enabled <gui_forms::PageStrip::reorder_enabled>`, the tab follows the pointer within the visible run
+   with :cpp:member:`reorder_enabled <gui_forms::PageStrip::reorder_enabled>`, the tab follows the pointer within the visible run
    of its group (the pinned tabs or the ordinary ones), carrying the tab state
    ``captured``, and takes the place of the furthest tab of the group whose
    middle its own middle has reached; the release moves the page there with
@@ -275,7 +275,7 @@ gui_forms::PageStrip
    the selected page shown after the front run does not slide.
 
    Document features. A closable tab shows its close button by the
-   :cpp:func:`close_buttons <gui_forms::PageStrip::close_buttons>` rule, with a plate while the pointer is on it; pressing it
+   :cpp:member:`close_buttons <gui_forms::PageStrip::close_buttons>` rule, with a plate while the pointer is on it; pressing it
    selects nothing and the request is raised on the release over the same
    button. A modified page shows a dot in the close button's place, replaced by
    the close button while the tab is hot. After a close by the pointer (the
@@ -342,7 +342,7 @@ gui_forms::PageStrip
       }
       std::shared_ptr<gf::PageStrip> strip =
           gf::make_control<gf::PageStrip>(gf::StableId("settings.tabs"), pages);
-      (*strip).set_activation(gf::PageStripActivation::manual);
+      (*strip).activation = gf::PageStripActivation::manual;
       static_cast<void>((*strip).select_relative(1, gf::PageSelectionCause::programmatic));
       // pages.selected_page() is now "settings.1", titled "&Advanced".
 
@@ -356,11 +356,7 @@ gui_forms::PageStrip
 
    .. rubric:: Properties
 
-   .. cpp:function:: PageSet* page_set() const noexcept
-
-      The bound set, or null after :cpp:func:`release_page_set <gui_forms::PageStrip::release_page_set>`.
-
-   .. cpp:function:: PageStripPlacement placement() const noexcept
+   .. cpp:member:: PageStripPlacement placement
 
       The edge of the content the strip sits on: top, bottom, left or right.
       The tabs touch that edge, and the selected tab's seam lies along it. A
@@ -371,41 +367,25 @@ gui_forms::PageStrip
       the icon is at the bottom and the close button at the top. Up and Down
       move between the tabs of a side strip.
 
-   .. cpp:function:: void set_placement(PageStripPlacement placement)
-
-      Sets :cpp:func:`placement <gui_forms::PageStrip::placement>`; see the property's description above.
-
-   .. cpp:function:: PageItemSizing item_sizing() const noexcept
+   .. cpp:member:: PageItemSizing item_sizing
 
       ``content`` sizes each tab to its icon and label plus padding, within the
       minimum and maximum widths; ``fixed`` gives every tab the fixed width;
       ``fill`` shares the row's width equally, within the minimum and maximum.
 
-   .. cpp:function:: void set_item_sizing(PageItemSizing sizing)
+   .. cpp:member:: PageItemWidths item_widths
 
-      Sets :cpp:func:`item_sizing <gui_forms::PageStrip::item_sizing>`; see the property's description above.
-
-   .. cpp:function:: const PageItemWidths& item_widths() const noexcept
-
-      The tab widths in logical units at text scale 1. :cpp:func:`set_item_widths <gui_forms::PageStrip::set_item_widths>`
+      The tab widths in logical units at text scale 1. ``set_item_widths``
       throws ``std::invalid_argument`` unless 0 < minimum <= maximum <= 1024 and
       0 < fixed <= 1024, and keeps the old widths.
 
-   .. cpp:function:: void set_item_widths(PageItemWidths widths)
-
-      Sets :cpp:func:`item_widths <gui_forms::PageStrip::item_widths>`; see the property's description above.
-
-   .. cpp:function:: PageStripActivation activation() const noexcept
+   .. cpp:member:: PageStripActivation activation
 
       Whether the arrow keys, Home and End select the tab they move to
       (automatic) or only move the keyboard's position, Space or Enter then
       selecting it (manual, for pages that are slow to show).
 
-   .. cpp:function:: void set_activation(PageStripActivation activation)
-
-      Sets :cpp:func:`activation <gui_forms::PageStrip::activation>`; see the property's description above.
-
-   .. cpp:function:: PageStripOverflow overflow() const noexcept
+   .. cpp:member:: PageStripOverflow overflow
 
       What the strip does when its tabs do not fit. ``scroll``: scroll back,
       scroll forward and list buttons at the end, the tabs keeping their
@@ -415,70 +395,46 @@ gui_forms::PageStrip
       button showing their count and a down arrow. Pinned tabs never shrink
       and are never hidden.
 
-   .. cpp:function:: void set_overflow(PageStripOverflow overflow)
-
-      Sets :cpp:func:`overflow <gui_forms::PageStrip::overflow>`; see the property's description above.
-
-   .. cpp:function:: PageCloseButtons close_buttons() const noexcept
+   .. cpp:member:: PageCloseButtons close_buttons
 
       Which closable tabs show their close button: ``none``,
       ``selected_and_hot`` (the selected tab and the tab under the pointer) or
       ``all``. Unless ``none``, space for the button is reserved after the
       label of every closable tab, so widths do not change when it appears.
 
-   .. cpp:function:: void set_close_buttons(PageCloseButtons buttons)
-
-      Sets :cpp:func:`close_buttons <gui_forms::PageStrip::close_buttons>`; see the property's description above.
-
-   .. cpp:function:: bool mnemonics_enabled() const noexcept
+   .. cpp:member:: bool mnemonics_enabled
 
       Whether ``&`` in a title marks a mnemonic: Alt and the letter select the
       page and focus its tab, and the marker is not shown. When off, titles are
       shown exactly as written.
 
-   .. cpp:function:: void set_mnemonics_enabled(bool enabled)
-
-      Sets :cpp:func:`mnemonics_enabled <gui_forms::PageStrip::mnemonics_enabled>`; see the property's description above.
-
-   .. cpp:function:: bool reorder_enabled() const noexcept
+   .. cpp:member:: bool reorder_enabled
 
       Whether an unclaimed drag of a tab reorders it live within its group:
       the dragged tab follows the pointer and the tabs it passes slide aside.
       :cpp:class:`PageView <gui_forms::PageView>`'s document preset turns it on. Turning it off ends a drag
       under way with nothing moved.
 
-   .. cpp:function:: void set_reorder_enabled(bool enabled)
-
-      Sets :cpp:func:`reorder_enabled <gui_forms::PageStrip::reorder_enabled>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
+   .. cpp:member:: FontSpec font
 
       The tab label font.
 
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::PageStrip::font>`; see the property's description above.
-
-   .. cpp:function:: std::shared_ptr<ImageList> image_list() const noexcept
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
 
       The images that pages' image keys name; a tab whose key is in the list
-      shows the image before its label. :cpp:func:`set_image_list <gui_forms::PageStrip::set_image_list>` throws
+      shows the image before its label. ``set_image_list`` throws
       ``std::invalid_argument`` for a disposed list or one that belongs to
       another window.
 
-   .. cpp:function:: void set_image_list(std::shared_ptr<ImageList> image_list)
-
-      Sets :cpp:func:`image_list <gui_forms::PageStrip::image_list>`; see the property's description above.
-
-   .. cpp:function:: ItemDrawMode draw_mode() const noexcept
+   .. cpp:member:: ItemDrawMode draw_mode
 
       With ``ItemDrawMode::owner_draw`` the application draws the tabs'
       content: see :cpp:func:`draw_item_content <gui_forms::PageStrip::draw_item_content>`. Throws ``std::invalid_argument`` for an
       unknown mode.
 
-   .. cpp:function:: void set_draw_mode(ItemDrawMode mode)
+   .. cpp:function:: PageSet* page_set() const noexcept
 
-      Sets :cpp:func:`draw_mode <gui_forms::PageStrip::draw_mode>`; see the property's description above.
+      The bound set, or null after :cpp:func:`release_page_set <gui_forms::PageStrip::release_page_set>`.
 
    .. cpp:function:: bool overflowing() const
 
@@ -573,10 +529,10 @@ gui_forms::PageStrip
 
    .. cpp:function:: Event<PageContextMenuRequest&>& page_context_menu_requested() noexcept
 
-      Raised when a secondary click is released over the tab it pressed (at
-      the pointer, selecting nothing) or Shift+F10 or the context-menu key is
-      pressed on the keyboard's tab (at the tab's corner on the content's side
-      where reading starts).
+      Raised on the host's context request: a pointer request over a tab asks
+      for that tab's menu (at the pointer, selecting nothing), and a keyboard
+      request for the keyboard's tab's (at the tab's corner on the content's
+      side where reading starts).
       The strip shows no menu of its own; a handler that shows one sets
       ``handled``.
 
@@ -678,6 +634,8 @@ gui_forms::PageStrip
    .. cpp:function:: void on_pointer(PointerEvent& event) override
 
    .. cpp:function:: void on_key(KeyEvent& event) override
+
+   .. cpp:function:: void on_context_menu_requested(ContextMenuRequest& request) override
 
    .. cpp:function:: void on_focus_changed(bool focused) override
 

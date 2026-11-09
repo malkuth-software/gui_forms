@@ -34,7 +34,7 @@ public:
           maximum_(maximum), provider_(std::move(provider)),
           display_year_(selected.year), display_month_(selected.month) {
         set_paint_plane(PaintPlane::overlay);
-        set_focusable(true);
+        focusable = true;
     }
 
     [[nodiscard]] Event<DateTimeValue>& committed() noexcept { return committed_; }

@@ -75,6 +75,29 @@ public:
                                                 ControlVisualContext context) const;
     [[nodiscard]] ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role,
                                                 ControlVisualContext context, AnatomyStateSet states) const;
+    // As above for the control's part named `part` (a key's part name):
+    // rules naming that part also match, so a part's own text colours
+    // (`::part(caption) { color }`) stand over the control's. An empty name
+    // is the form above.
+    [[nodiscard]] ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role,
+                                                ControlVisualContext context, AnatomyStateSet states,
+                                                std::string_view part) const;
+    // As above with the rules of `control_type` (an anatomy control id;
+    // PartPaint::control_type) in place of the control's own type; an empty
+    // type is the form above.
+    [[nodiscard]] ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role,
+                                                ControlVisualContext context, AnatomyStateSet states,
+                                                std::string_view part, std::string_view control_type) const;
+    // Where each field of `control`'s recipe in `role` and `context` came
+    // from (T4 cascade spec, item 5), for an editor's query: the facts
+    // resolve() reads, through CompiledThemeRules::resolve_provenance,
+    // into `result`, its parameters left unset (a recipe has no
+    // primitive). In forced high contrast the fields the engine's pass
+    // draws are at forced_high_contrast in its layer, unauthored. Paint
+    // never calls it; the borrows in `result` stay valid while this theme,
+    // the control's inline style and its window's user theme live.
+    void provenance(const Control& control, ControlVisualRole role, ControlVisualContext context,
+                    CompiledThemeRules::PartProvenance& result) const;
     // `control`'s primary text font (T4 fonts): `own`, the font it holds,
     // with the font fields (RecipeField::font_family to letter_spacing) of
     // the theme's rules matching it at rest in place: no part, the region
@@ -100,6 +123,12 @@ public:
     // declares one or the winner is `none`. `popup` rules are not read here:
     // they wait for native popup windows (stage T5).
     [[nodiscard]] std::optional<BackdropChain> window_backdrop_chain(const Window& window) const noexcept;
+    // The band the rules selecting `window` declare (`window { band-width:
+    // ...; band-color: ...; band-lit-color: ...; band-effect: ... }`; owner,
+    // 2026-11-08): each field from the last matching rule that sets it,
+    // among the theme's and the user theme's rules, matched as
+    // window_backdrop_chain matches. Empty where no rule sets one.
+    [[nodiscard]] BandDeclaration window_band(const Window& window) const noexcept;
     [[nodiscard]] const ThemeDefinition& definition() const noexcept {
         return definition_;
     }

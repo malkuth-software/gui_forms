@@ -27,8 +27,8 @@ from ci_build_steps import (BUILT_EVERYTHING, BUILT_NOTHING, BUILT_SELECTED, DEB
                             changed_tests_listing, configure_tree, ctest_selection, debug_info_mode, run,
                             sanitizer_options, selected_test_targets, test_listing, write_build_record)
 import native_tests
-from toolkit_configure import (HOST_OPTION_NAMES, fetch_line_break, fetch_text_stack,  # noqa: F401
-                               host_options, prepare_host, toolkit_options)
+from toolkit_configure import (HOST_OPTION_NAMES, host_options, prepare_host,  # noqa: F401
+                               toolkit_options)
 
 ROOT: Path = Path(__file__).resolve().parents[2]
 
@@ -145,6 +145,11 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         options.append(f'-DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_MINIAUDIO={miniaudio}')
     prepare_host(ROOT / 'gui_forms', True)
     options.extend(host_options(host))
+    if host == 'linux' and os.environ.get('GITHUB_ACTIONS') == 'true':
+        # C-10: the Linux CI image has LLVM's and Clang's development headers
+        # (template_harness projects/gui_forms.toml), so effects are verified
+        # there; a skipped plugin fails the configure.
+        options.append('-DGUI_FORMS_EFFECT_VERIFY_REQUIRED=ON')
     timeout: str = '120'
     if sanitize:
         sanitizer_cmake: list[str]

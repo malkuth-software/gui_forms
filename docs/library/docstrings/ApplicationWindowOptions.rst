@@ -86,6 +86,9 @@ This needs a native host, so it is compiled but not run:
    };
 
    void example() {
+       gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+       if (!created) return;
+       gf::Application& application = *created.application;
        bool unsaved_changes = false;
        std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("notes"));
        gf::ApplicationWindowOptions options;
@@ -93,7 +96,7 @@ This needs a native host, so it is compiled but not run:
        options.initial_size = {800.0, 600.0};
        options.ready = ShowDocumentTitle{};
        options.closing = ConfirmClose{&unsaved_changes};
-       gf::ApplicationResult result = gf::Application::run(
+       gf::ApplicationResult result = application.run(
            std::make_unique<gf::Window>(root, gf::Size{800.0, 600.0}), std::move(options));
        static_cast<void>(result);
    }

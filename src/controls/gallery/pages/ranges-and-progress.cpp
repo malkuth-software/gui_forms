@@ -72,9 +72,9 @@ private:
             document_.gallery_ranges_progress_0, document_.gallery_ranges_progress_1,
             document_.gallery_ranges_progress_2, document_.gallery_ranges_progress_3,
             document_.gallery_ranges_progress_4, document_.gallery_ranges_progress_5};
-        (*bars[3]).set_animation_period(std::chrono::milliseconds(2400));
-        (*bars[4]).set_animation_period(std::chrono::milliseconds(850));
-        (*bars[5]).set_animation_period(std::chrono::milliseconds(1250));
+        (*bars[3]).animation_period = std::chrono::milliseconds(2400);
+        (*bars[4]).animation_period = std::chrono::milliseconds(850);
+        (*bars[5]).animation_period = std::chrono::milliseconds(1250);
         for (std::size_t index = 0; index < bars.size(); ++index) {
             (*bars[index]).bind(level_);
             // The shell's motion policy (pause, reduced motion) still reaches
@@ -98,7 +98,7 @@ private:
     }
 
     void publish_status() {
-        if (shared_) (*shared_).set_text(level_text_ + input_text_);
+        if (shared_) (*shared_).text = level_text_ + input_text_;
     }
 
     [[nodiscard]] static std::string source_name(const int source) {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/inspection/inspection_types.hpp"
+#include "gui_forms/controls/panel/color_value_editor/color_value_editor_capabilities/color_value_editor_capabilities.hpp"
 
 #include <memory>
 #include <optional>
@@ -10,26 +11,22 @@
 
 namespace gui_forms {
 
-class ColorValueEditor final : public Panel {
+class ColorValueEditor final : public Panel, public ColorValueEditorCapabilities<ColorValueEditor> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
-    explicit ColorValueEditor(StableId stable_id, Color value = {});
+    explicit ColorValueEditor(StableId stable_id, Color initial_value = {});
     void initialize_control_tree();
 
-    [[nodiscard]] Color value() const noexcept { return value_; }
-    void set_value(Color value);
     [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept {
         return editor_;
     }
-    [[nodiscard]] double swatch_width() const noexcept { return swatch_width_; }
-    void set_swatch_width(double width);
     [[nodiscard]] Event<Color>& value_changed() noexcept {
         return value_changed_;
     }
     [[nodiscard]] Event<const PropertyEditorInputError&>& edit_failed() noexcept {
         return edit_failed_;
     }
-    [[nodiscard]] static std::string format_value(Color value);
+    [[nodiscard]] static std::string format_value(Color colour);
     [[nodiscard]] static std::optional<Color> parse_value(std::string_view text);
 
     [[nodiscard]] Size measure(Size available) override;
@@ -64,7 +61,7 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
-    static std::optional<std::uint8_t> parse_nibble(char value) noexcept;
+    static std::optional<std::uint8_t> parse_nibble(char digit) noexcept;
     void commit_text(const std::string& text);
     void commit(std::string_view text);
     void cancel();
@@ -73,10 +70,19 @@ private:
     std::shared_ptr<TextBox> editor_;
     SubscriptionToken committed_;
     SubscriptionToken cancelled_;
-    double swatch_width_{30.0};
     bool synchronizing_{};
     Event<Color> value_changed_;
     Event<const PropertyEditorInputError&> edit_failed_;
+    // property_codemod begin ColorValueEditor (tools/property_families/color_value_editor.json; generated, do not edit)
+private:
+    friend struct ColorValueEditorValueCapability<ColorValueEditor>;
+    friend struct ColorValueEditorSwatchWidthCapability<ColorValueEditor>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(value)& cell, Color incoming);
+    [[nodiscard]] Color read_view(const decltype(value)& cell) const;
+    void prepare_write(const decltype(swatch_width)& cell, double& incoming);
+    void written(const decltype(swatch_width)& cell);
+    // property_codemod end ColorValueEditor
 };
 
 } // namespace gui_forms

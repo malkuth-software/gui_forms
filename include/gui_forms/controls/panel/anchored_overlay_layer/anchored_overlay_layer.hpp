@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_placement/anchored_overlay_placement.hpp"
+#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer_capabilities/anchored_overlay_layer_capabilities.hpp"
 
 namespace gui_forms {
 enum class OverlayDismissReason : std::uint8_t {
@@ -19,10 +20,10 @@ enum class OverlayDismissReason : std::uint8_t {
 // click-away and Escape dismissal requests. Overlay lifetime and focus scope stay
 // with Window, allowing product composites to implement staged Escape behavior
 // without duplicating overlay hit testing or edge avoidance.
-class AnchoredOverlayLayer final : public Panel {
+class AnchoredOverlayLayer final : public Panel, public AnchoredOverlayLayerCapabilities<AnchoredOverlayLayer> {
 public:
     AnchoredOverlayLayer(StableId stable_id, Control::Ptr anchor,
-                       AnchoredOverlayPlacement placement = {});
+                       AnchoredOverlayPlacement initial_placement = {});
 
     [[nodiscard]] Control::Ptr anchor() const noexcept { return anchor_.lock(); }
     void set_anchor(Control::Ptr anchor);
@@ -33,21 +34,9 @@ public:
     // is the layer's content) calls this when its overlay closes: otherwise
     // the owner and its layer would hold each other and never be freed.
     void clear_content();
-    [[nodiscard]] AnchoredOverlayPlacement placement() const noexcept {
-        return placement_;
-    }
-    void set_placement(AnchoredOverlayPlacement placement);
     [[nodiscard]] AnchoredOverlayPlacementResult resolved_placement() const noexcept {
         return resolved_;
     }
-    [[nodiscard]] bool dismiss_on_click_away() const noexcept {
-        return dismiss_on_click_away_;
-    }
-    void set_dismiss_on_click_away(bool enabled);
-    [[nodiscard]] bool dismiss_on_escape() const noexcept {
-        return dismiss_on_escape_;
-    }
-    void set_dismiss_on_escape(bool enabled);
     [[nodiscard]] Event<OverlayDismissReason>& dismiss_requested() noexcept {
         return dismiss_requested_;
     }
@@ -68,11 +57,21 @@ private:
 
     Control::WeakPtr anchor_;
     Control::Ptr content_;
-    AnchoredOverlayPlacement placement_;
     AnchoredOverlayPlacementResult resolved_;
-    bool dismiss_on_click_away_{true};
-    bool dismiss_on_escape_{true};
     Event<OverlayDismissReason> dismiss_requested_;
+    // property_codemod begin AnchoredOverlayLayer (tools/property_families/anchored_overlay_layer.json; generated, do not edit)
+private:
+    friend struct AnchoredOverlayLayerPlacementCapability<AnchoredOverlayLayer>;
+    friend struct AnchoredOverlayLayerDismissOnClickAwayCapability<AnchoredOverlayLayer>;
+    friend struct AnchoredOverlayLayerDismissOnEscapeCapability<AnchoredOverlayLayer>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(placement)& cell, AnchoredOverlayPlacement& incoming);
+    void written(const decltype(placement)& cell);
+    void prepare_write(const decltype(dismiss_on_click_away)& cell, bool& incoming);
+    void written(const decltype(dismiss_on_click_away)& cell);
+    void prepare_write(const decltype(dismiss_on_escape)& cell, bool& incoming);
+    void written(const decltype(dismiss_on_escape)& cell);
+    // property_codemod end AnchoredOverlayLayer
 };
 
 } // namespace gui_forms

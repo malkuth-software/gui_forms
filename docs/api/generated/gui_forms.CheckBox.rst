@@ -7,13 +7,13 @@ gui_forms::CheckBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: CheckBox : public ButtonBase
+.. cpp:class:: CheckBox : public ButtonBase, public CheckBoxCapabilities<CheckBox>
 
    ``#include <gui_forms/controls/button_base/check_box/check_box.hpp>``
 
    A box with a caption that the user checks and unchecks.
 
-   A check box presents an independent on/off choice, or with :cpp:func:`three_state <gui_forms::CheckBox::three_state>` a
+   A check box presents an independent on/off choice, or with :cpp:member:`three_state <gui_forms::CheckBox::three_state>` a
    third "indeterminate" value for mixed selections. Clicking it, pressing Space
    or Enter while it has focus, or pressing its mnemonic advances its state and
    then raises ``clicked``. Use a :cpp:class:`RadioButton <gui_forms::RadioButton>` or a :cpp:class:`ChoiceGroup <gui_forms::ChoiceGroup>` instead when the
@@ -36,12 +36,12 @@ gui_forms::CheckBox
 
       **check_state** : ``CheckState``, default ``CheckState::unchecked``
          The full state, including :cpp:enumerator:`CheckState::indeterminate <gui_forms::CheckState::indeterminate>`. When
-         :cpp:func:`three_state <gui_forms::CheckBox::three_state>` is false, setting ``indeterminate`` stores :cpp:func:`checked <gui_forms::CheckBox::checked>`
+         :cpp:member:`three_state <gui_forms::CheckBox::three_state>` is false, setting ``indeterminate`` stores :cpp:member:`checked <gui_forms::CheckBox::checked>`
          instead.
 
       **checked** : ``bool``, default ``false``
          Whether the box is checked. Setting it is the same as setting
-         :cpp:func:`check_state <gui_forms::CheckBox::check_state>` to :cpp:enumerator:`CheckState::checked <gui_forms::CheckState::checked>` or :cpp:enumerator:`CheckState::unchecked <gui_forms::CheckState::unchecked>`.
+         :cpp:member:`check_state <gui_forms::CheckBox::check_state>` to :cpp:enumerator:`CheckState::checked <gui_forms::CheckState::checked>` or :cpp:enumerator:`CheckState::unchecked <gui_forms::CheckState::unchecked>`.
 
       **three_state** : ``bool``, default ``false``
          Whether activation cycles through unchecked, checked and indeterminate.
@@ -57,7 +57,7 @@ gui_forms::CheckBox
          accessibility role, state and input behaviour stay those of a check box.
 
       **indicator_style** : ``ChoiceIndicatorStyle``, default ``ChoiceIndicatorStyle::classic``
-         The indicator drawn for :cpp:func:`appearance <gui_forms::CheckBox::appearance>` ``normal``: a classic box, a modern
+         The indicator drawn for :cpp:member:`appearance <gui_forms::CheckBox::appearance>` ``normal``: a classic box, a modern
          box or a toggle switch.
 
       **parts** : ``Parts``, read-only
@@ -67,17 +67,17 @@ gui_forms::CheckBox
    :Events:
 
       **check_state_changed** : ``Event<CheckState>``
-         Raised after :cpp:func:`check_state <gui_forms::CheckBox::check_state>` changes, whether by input or by a setter. It
+         Raised after :cpp:member:`check_state <gui_forms::CheckBox::check_state>` changes, whether by input or by a setter. It
          carries the new state.
 
       **checked_changed** : ``Event<bool>``
-         Raised after :cpp:func:`checked <gui_forms::CheckBox::checked>` changes, immediately after :cpp:func:`check_state_changed <gui_forms::CheckBox::check_state_changed>`.
+         Raised after :cpp:member:`checked <gui_forms::CheckBox::checked>` changes, immediately after :cpp:func:`check_state_changed <gui_forms::CheckBox::check_state_changed>`.
          A change between checked and indeterminate raises only
          :cpp:func:`check_state_changed <gui_forms::CheckBox::check_state_changed>`.
 
    :Inherited:
 
-      From :cpp:class:`ButtonBase <gui_forms::ButtonBase>`: properties :cpp:member:`text <gui_forms::ButtonBase::text>`, :cpp:member:`text_alignment <gui_forms::ButtonBase::text_alignment>`, :cpp:member:`font <gui_forms::ButtonBase::font>`, :cpp:member:`content_padding <gui_forms::ButtonBase::content_padding>`, :cpp:member:`text_line_spacing <gui_forms::ButtonBase::text_line_spacing>`, :cpp:member:`image_alignment <gui_forms::ButtonBase::image_alignment>`, :cpp:member:`text_image_relation <gui_forms::ButtonBase::text_image_relation>`, :cpp:member:`image_gap <gui_forms::ButtonBase::image_gap>`, :cpp:member:`use_mnemonic <gui_forms::ButtonBase::use_mnemonic>`, :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>`, :cpp:func:`command_connected <gui_forms::ButtonBase::command_connected>`, :cpp:func:`style <gui_forms::ButtonBase::style>`, :cpp:func:`has_style_override <gui_forms::ButtonBase::has_style_override>`, :cpp:func:`visual_recipes_override <gui_forms::ButtonBase::visual_recipes_override>`, :cpp:func:`connection_topology <gui_forms::ButtonBase::connection_topology>`, :cpp:func:`image <gui_forms::ButtonBase::image>`, :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`, :cpp:func:`image_index <gui_forms::ButtonBase::image_index>`, :cpp:func:`image_key <gui_forms::ButtonBase::image_key>`, :cpp:func:`pressed_visual <gui_forms::ButtonBase::pressed_visual>`, :cpp:func:`focused_visual <gui_forms::ButtonBase::focused_visual>`, :cpp:func:`focus_cue_visible <gui_forms::ButtonBase::focus_cue_visible>`, :cpp:func:`hovered_visual <gui_forms::ButtonBase::hovered_visual>`; events :cpp:func:`expanded_changed <gui_forms::ButtonBase::expanded_changed>`, :cpp:func:`clicked <gui_forms::ButtonBase::clicked>`, :cpp:func:`text_changed <gui_forms::ButtonBase::text_changed>`; methods :cpp:func:`button_base_property_entries <gui_forms::ButtonBase::button_base_property_entries>`, :cpp:func:`clear_image <gui_forms::ButtonBase::clear_image>`, :cpp:func:`clear_style <gui_forms::ButtonBase::clear_style>`, :cpp:func:`clear_visual_recipes <gui_forms::ButtonBase::clear_visual_recipes>`, :cpp:func:`perform_click <gui_forms::ButtonBase::perform_click>`, :cpp:func:`set_visual_recipes <gui_forms::ButtonBase::set_visual_recipes>`, :cpp:func:`unbind_command <gui_forms::ButtonBase::unbind_command>`.
+      From :cpp:class:`ButtonBase <gui_forms::ButtonBase>`: properties :cpp:member:`text <gui_forms::ButtonBase::text>`, :cpp:member:`text_alignment <gui_forms::ButtonBase::text_alignment>`, :cpp:member:`font <gui_forms::ButtonBase::font>`, :cpp:member:`content_padding <gui_forms::ButtonBase::content_padding>`, :cpp:member:`text_line_spacing <gui_forms::ButtonBase::text_line_spacing>`, :cpp:member:`image_alignment <gui_forms::ButtonBase::image_alignment>`, :cpp:member:`text_image_relation <gui_forms::ButtonBase::text_image_relation>`, :cpp:member:`image_gap <gui_forms::ButtonBase::image_gap>`, :cpp:member:`use_mnemonic <gui_forms::ButtonBase::use_mnemonic>`, :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>`, :cpp:member:`image <gui_forms::ButtonBase::image>`, :cpp:func:`command_connected <gui_forms::ButtonBase::command_connected>`, :cpp:func:`style <gui_forms::ButtonBase::style>`, :cpp:func:`has_style_override <gui_forms::ButtonBase::has_style_override>`, :cpp:func:`visual_recipes_override <gui_forms::ButtonBase::visual_recipes_override>`, :cpp:func:`connection_topology <gui_forms::ButtonBase::connection_topology>`, :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`, :cpp:func:`image_index <gui_forms::ButtonBase::image_index>`, :cpp:func:`image_key <gui_forms::ButtonBase::image_key>`, :cpp:func:`pressed_visual <gui_forms::ButtonBase::pressed_visual>`, :cpp:func:`focused_visual <gui_forms::ButtonBase::focused_visual>`, :cpp:func:`focus_cue_visible <gui_forms::ButtonBase::focus_cue_visible>`, :cpp:func:`hovered_visual <gui_forms::ButtonBase::hovered_visual>`; events :cpp:func:`expanded_changed <gui_forms::ButtonBase::expanded_changed>`, :cpp:func:`clicked <gui_forms::ButtonBase::clicked>`, :cpp:func:`text_changed <gui_forms::ButtonBase::text_changed>`; methods :cpp:func:`button_base_property_entries <gui_forms::ButtonBase::button_base_property_entries>`, :cpp:func:`clear_image <gui_forms::ButtonBase::clear_image>`, :cpp:func:`clear_style <gui_forms::ButtonBase::clear_style>`, :cpp:func:`clear_visual_recipes <gui_forms::ButtonBase::clear_visual_recipes>`, :cpp:func:`perform_click <gui_forms::ButtonBase::perform_click>`, :cpp:func:`set_visual_recipes <gui_forms::ButtonBase::set_visual_recipes>`, :cpp:func:`unbind_command <gui_forms::ButtonBase::unbind_command>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -88,9 +88,11 @@ gui_forms::CheckBox
       :widths: 35 65
 
       * - :cpp:func:`bind <gui_forms::CheckBox::bind>`
-        - ``bind(Value<bool>&)`` keeps :cpp:func:`checked <gui_forms::CheckBox::checked>` and the value in step.
+        - ``bind(Value<bool>&)`` keeps :cpp:member:`checked <gui_forms::CheckBox::checked>` and the value in step.
       * - :cpp:func:`unbind <gui_forms::CheckBox::unbind>`
         - Ends the value binding.
+      * - :cpp:func:`check_box_property_entries <gui_forms::CheckBox::check_box_property_entries>`
+        -  
 
    .. seealso::
 
@@ -108,7 +110,7 @@ gui_forms::CheckBox
    ``clicked``. Setting the current state again raises nothing.
 
    The control publishes the accessibility role ``check_box``, with the value
-   :cpp:func:`checked <gui_forms::CheckBox::checked>`, ``unchecked`` or ``mixed`` and the state ``checkable``. With
+   :cpp:member:`checked <gui_forms::CheckBox::checked>`, ``unchecked`` or ``mixed`` and the state ``checkable``. With
    ``use_mnemonic``, the character after the ``&`` in its text is its access key.
 
    .. rubric:: Examples
@@ -140,7 +142,7 @@ gui_forms::CheckBox
 
       void example() {
           Options options;
-          (*options.wrap).set_checked(true);   // options.wrapping is now true
+          (*options.wrap).checked = true;   // options.wrapping is now true
       }
 
 
@@ -151,61 +153,37 @@ gui_forms::CheckBox
 
    .. rubric:: Properties
 
-   .. cpp:function:: CheckState check_state() const noexcept
+   .. cpp:member:: CheckState check_state
 
       The full state, including :cpp:enumerator:`CheckState::indeterminate <gui_forms::CheckState::indeterminate>`. When
-      :cpp:func:`three_state <gui_forms::CheckBox::three_state>` is false, setting ``indeterminate`` stores :cpp:func:`checked <gui_forms::CheckBox::checked>`
+      :cpp:member:`three_state <gui_forms::CheckBox::three_state>` is false, setting ``indeterminate`` stores :cpp:member:`checked <gui_forms::CheckBox::checked>`
       instead.
 
-   .. cpp:function:: void set_check_state(CheckState state)
-
-      Sets :cpp:func:`check_state <gui_forms::CheckBox::check_state>`; see the property's description above.
-
-   .. cpp:function:: bool checked() const noexcept
+   .. cpp:member:: bool checked
 
       Whether the box is checked. Setting it is the same as setting
-      :cpp:func:`check_state <gui_forms::CheckBox::check_state>` to :cpp:enumerator:`CheckState::checked <gui_forms::CheckState::checked>` or :cpp:enumerator:`CheckState::unchecked <gui_forms::CheckState::unchecked>`.
+      :cpp:member:`check_state <gui_forms::CheckBox::check_state>` to :cpp:enumerator:`CheckState::checked <gui_forms::CheckState::checked>` or :cpp:enumerator:`CheckState::unchecked <gui_forms::CheckState::unchecked>`.
 
-   .. cpp:function:: void set_checked(bool checked)
-
-      Sets :cpp:func:`checked <gui_forms::CheckBox::checked>`; see the property's description above.
-
-   .. cpp:function:: bool three_state() const noexcept
+   .. cpp:member:: bool three_state
 
       Whether activation cycles through unchecked, checked and indeterminate.
       Turning it off while the box is indeterminate changes the state to
       checked.
 
-   .. cpp:function:: void set_three_state(bool enabled)
-
-      Sets :cpp:func:`three_state <gui_forms::CheckBox::three_state>`; see the property's description above.
-
-   .. cpp:function:: bool auto_check() const noexcept
+   .. cpp:member:: bool auto_check
 
       Whether activation changes the state. When false, a click only raises
       ``clicked``, and the application sets the state itself.
 
-   .. cpp:function:: void set_auto_check(bool enabled)
-
-      Sets :cpp:func:`auto_check <gui_forms::CheckBox::auto_check>`; see the property's description above.
-
-   .. cpp:function:: CheckBoxAppearance appearance() const noexcept
+   .. cpp:member:: CheckBoxAppearance appearance
 
       :cpp:enumerator:`CheckBoxAppearance::button <gui_forms::CheckBoxAppearance::button>` draws the control as a toggle button. The
       accessibility role, state and input behaviour stay those of a check box.
 
-   .. cpp:function:: void set_appearance(CheckBoxAppearance appearance)
+   .. cpp:member:: ChoiceIndicatorStyle indicator_style
 
-      Sets :cpp:func:`appearance <gui_forms::CheckBox::appearance>`; see the property's description above.
-
-   .. cpp:function:: ChoiceIndicatorStyle indicator_style() const noexcept
-
-      The indicator drawn for :cpp:func:`appearance <gui_forms::CheckBox::appearance>` ``normal``: a classic box, a modern
+      The indicator drawn for :cpp:member:`appearance <gui_forms::CheckBox::appearance>` ``normal``: a classic box, a modern
       box or a toggle switch.
-
-   .. cpp:function:: void set_indicator_style(ChoiceIndicatorStyle style)
-
-      Sets :cpp:func:`indicator_style <gui_forms::CheckBox::indicator_style>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 
@@ -216,12 +194,12 @@ gui_forms::CheckBox
 
    .. cpp:function:: Event<CheckState>& check_state_changed() noexcept
 
-      Raised after :cpp:func:`check_state <gui_forms::CheckBox::check_state>` changes, whether by input or by a setter. It
+      Raised after :cpp:member:`check_state <gui_forms::CheckBox::check_state>` changes, whether by input or by a setter. It
       carries the new state.
 
    .. cpp:function:: Event<bool>& checked_changed() noexcept
 
-      Raised after :cpp:func:`checked <gui_forms::CheckBox::checked>` changes, immediately after :cpp:func:`check_state_changed <gui_forms::CheckBox::check_state_changed>`.
+      Raised after :cpp:member:`checked <gui_forms::CheckBox::checked>` changes, immediately after :cpp:func:`check_state_changed <gui_forms::CheckBox::check_state_changed>`.
       A change between checked and indeterminate raises only
       :cpp:func:`check_state_changed <gui_forms::CheckBox::check_state_changed>`.
 
@@ -230,7 +208,7 @@ gui_forms::CheckBox
 
    .. cpp:function:: void bind(Value<bool>& model)
 
-      ``bind(Value<bool>&)`` keeps :cpp:func:`checked <gui_forms::CheckBox::checked>` and the value in step. The value
+      ``bind(Value<bool>&)`` keeps :cpp:member:`checked <gui_forms::CheckBox::checked>` and the value in step. The value
       wins when the binding starts, so the box first takes the value's state;
       after that a click updates the value and a change to the value updates
       the box. ``bind(Command&)`` connects the box to a command instead, which
@@ -240,12 +218,14 @@ gui_forms::CheckBox
 
       Ends the value binding. The box keeps its current state.
 
+   .. cpp:function:: static const std::array<PropertyEntry, check_box_property_count>& check_box_property_entries() noexcept
+
 
    .. rubric:: Extension points
 
    .. cpp:function:: void bind(Command& command) override
 
-      ``bind(Value<bool>&)`` keeps :cpp:func:`checked <gui_forms::CheckBox::checked>` and the value in step. The value
+      ``bind(Value<bool>&)`` keeps :cpp:member:`checked <gui_forms::CheckBox::checked>` and the value in step. The value
       wins when the binding starts, so the box first takes the value's state;
       after that a click updates the value and a change to the value updates
       the box. ``bind(Command&)`` connects the box to a command instead, which
@@ -270,3 +250,23 @@ gui_forms::CheckBox
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:function:: virtual void on_check_state_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
+   .. cpp:function:: virtual void on_checked_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_appearance_changed()
+
+      *Protected.*
+
+   .. cpp:member:: constexpr std::size_t check_box_property_count
+
+      CheckBox's property table: ButtonBase's entries, then its own. Default: ``ButtonBase::button_base_property_count + 4U``.

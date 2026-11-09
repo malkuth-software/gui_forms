@@ -7,7 +7,7 @@ gui_forms::ScaledPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ScaledPanel : public Panel
+.. cpp:class:: ScaledPanel : public Panel, public ScaledPanelCapabilities<ScaledPanel>
 
    ``#include <gui_forms/controls/panel/scaled_panel/scaled_panel.hpp>``
 
@@ -29,7 +29,7 @@ gui_forms::ScaledPanel
       **stable_id** : ``StableId``
          Identity of the panel, unique within its window.
 
-      **design_size** : ``Size``, default ``{1.0, 1.0}``
+      **initial_design_size** : ``Size``, default ``{1.0, 1.0}``
          The width and height of the design space, by default 1 by 1. Both must
          be finite and positive, or the constructor throws
          ``std::invalid_argument``.
@@ -44,7 +44,7 @@ gui_forms::ScaledPanel
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`, :cpp:func:`parts <gui_forms::Panel::parts>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -58,6 +58,8 @@ gui_forms::ScaledPanel
         - ``add_at(child, design_bounds)`` adds ``child`` to the panel and gives it a rectangle in design coordinates.
       * - :cpp:func:`design_bounds <gui_forms::ScaledPanel::design_bounds>`
         - The design rectangle of ``child``, or no value if it has none.
+      * - :cpp:func:`scaled_panel_property_entries <gui_forms::ScaledPanel::scaled_panel_property_entries>`
+        -  
       * - :cpp:func:`set_design_bounds <gui_forms::ScaledPanel::set_design_bounds>`
         - Moves or resizes an existing child in design coordinates.
 
@@ -112,19 +114,15 @@ gui_forms::ScaledPanel
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit ScaledPanel(StableId stable_id, Size design_size = {1.0, 1.0})
+   .. cpp:function:: explicit ScaledPanel(StableId stable_id, Size initial_design_size = {1.0, 1.0})
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: Size design_size() const noexcept
+   .. cpp:member:: Size design_size
 
       The width and height of the design space. Both must be finite and
       positive, or ``std::invalid_argument`` is thrown.
-
-   .. cpp:function:: void set_design_size(Size size)
-
-      Sets :cpp:func:`design_size <gui_forms::ScaledPanel::design_size>`; see the property's description above.
 
 
    .. rubric:: Methods
@@ -142,6 +140,8 @@ gui_forms::ScaledPanel
       The design rectangle of ``child``, or no value if it has none. The
       rectangles of removed children are discarded at the next layout.
 
+   .. cpp:function:: static const std::array<PropertyEntry, scaled_panel_property_count>& scaled_panel_property_entries() noexcept
+
    .. cpp:function:: void set_design_bounds(const Control& child, Rect design_bounds)
 
       Moves or resizes an existing child in design coordinates. Invalid bounds
@@ -155,3 +155,9 @@ gui_forms::ScaledPanel
    .. cpp:function:: void arrange(Rect final_bounds) override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t scaled_panel_property_count
+
+      ScaledPanel's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.

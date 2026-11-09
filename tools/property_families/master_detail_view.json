@@ -1,0 +1,78 @@
+{
+  "family": "MasterDetailView",
+  "step": "M-S8",
+  "declaring": "MasterDetailView",
+  "header": "include/gui_forms/controls/container/master_detail_view/master_detail_view.hpp",
+  "source": "src/controls/container/master_detail_view/master_detail_view.cpp",
+  "capabilities_header": "include/gui_forms/controls/container/master_detail_view/master_detail_view_capabilities/master_detail_view_capabilities.hpp",
+  "base": "ContainerControl",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/container/master_detail_view/master_detail_view_values/master_detail_view_values.hpp"
+  ],
+  "test": {
+    "type": "MasterDetailView",
+    "include": "gui_forms/controls/container/master_detail_view/master_detail_view.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [],
+      "hooks": "generated",
+      "name": "display_mode",
+      "capability": "MasterDetailViewDisplayMode",
+      "value": "MasterDetailDisplayMode",
+      "initial": "MasterDetailDisplayMode::automatic",
+      "comment": "The requested presentation: automatic (side by side above the layout's compact threshold, else one role at a time), side_by_side, master_only or detail_only; effective_display_mode is the one in use. An unknown mode throws std::invalid_argument and changes nothing.",
+      "getter": "display_mode",
+      "setter": "set_display_mode",
+      "field": "display_mode_",
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "prepare": [
+        "switch (incoming) {",
+        "case MasterDetailDisplayMode::automatic:",
+        "case MasterDetailDisplayMode::side_by_side:",
+        "case MasterDetailDisplayMode::master_only:",
+        "case MasterDetailDisplayMode::detail_only:",
+        "    break;",
+        "default:",
+        "    throw std::invalid_argument(\"master/detail display mode is invalid\");",
+        "}"
+      ],
+      "sample": "MasterDetailDisplayMode::detail_only"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [],
+      "hooks": "generated",
+      "name": "compact_detail_visible",
+      "capability": "MasterDetailViewCompactDetailVisible",
+      "value": "bool",
+      "comment": "In a compact automatic presentation, whether the detail role is shown instead of the master; show_master and show_detail write it.",
+      "getter": "compact_detail_visible",
+      "setter": "set_compact_detail_visible",
+      "field": "compact_detail_visible_",
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "master_detail_layout",
+      "reason": "an optional override over the theme's layout (reset_master_detail_layout_to_theme, uses_theme_layout, effective_master_detail_layout), as Panel's background; stays a method until an override capability"
+    },
+    {
+      "name": "master, detail",
+      "reason": "structural slots (set_master and set_detail return the replaced control)"
+    }
+  ]
+}

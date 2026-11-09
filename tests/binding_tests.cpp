@@ -207,7 +207,7 @@ public:
         : editor_(editor), order_(order) {}
 
     void operator()(std::ptrdiff_t value) const {
-        require((*editor_).text() == "Beta",
+        require((*editor_).text.read() == "Beta",
                 "binding propagation must precede public PositionChanged");
         order_.push_back("position:" + std::to_string(value));
     }
@@ -264,7 +264,7 @@ public:
     void operator()(BindingCompleteEvent& event) const {
         if (event.context == BindingCompleteContext::control_update &&
             event.state == BindingCompleteState::success) {
-            observed_ = (*combo_).selected_index() == 2U;
+            observed_ = (*combo_).selected_index.read() == 2U;
         }
     }
 
@@ -284,7 +284,7 @@ public:
         if (event.binding == binding_.get() &&
             event.context == BindingCompleteContext::control_update &&
             event.state == BindingCompleteState::success) {
-            observed_ = (*combo_).selected_index() == 2U;
+            observed_ = (*combo_).selected_index.read() == 2U;
         }
     }
 
@@ -464,21 +464,21 @@ void test_property_metadata_defaults_reset_and_serialization() {
         "Text", observer,
         callbacks::IncrementCounter<std::size_t>(text_changes));
     (*editor).set_property_value("text", std::uint64_t{42});
-    require((*editor).text() == "42" && (*editor).reset_property("TEXT") &&
-                (*editor).text().empty() &&
+    require((*editor).text.read() == "42" && (*editor).reset_property("TEXT") &&
+                (*editor).text.read().empty() &&
                 !(*editor).should_serialize_property("Text") &&
                 changed.connected() && text_changes == 2U,
             "generic mutation, reset, and tokenized observation must use the real typed control property path");
 
     std::shared_ptr<gui_forms::TrackBar> range = make_control<TrackBar>(StableId("property.range"));
-    (*range).set_value(25.0);
+    (*range).value = 25.0;
     bool invalid_value_rejected = false;
     try {
         (*range).set_property_value("Value", std::string("not-a-number"));
     } catch (const std::invalid_argument&) {
         invalid_value_rejected = true;
     }
-    require(invalid_value_rejected && (*range).value() == 25.0,
+    require(invalid_value_rejected && (*range).value.read() == 25.0,
             "failed generic conversion must leave the retained property unchanged");
 
     const std::vector<std::string> names = (*editor).bindable_property_names();
@@ -629,7 +629,7 @@ void test_property_mutation_initialization_thread_and_lifetime_guards() {
     require(completions.size() == 1U && completions.front().second &&
                 has_dirty(completions.front().first, Dirty::measure) &&
                 has_dirty(completions.front().first, Dirty::paint) &&
-                (*editor).text() == "batched" && !(*editor).visible.read(),
+                (*editor).text.read() == "batched" && !(*editor).visible.read(),
             "the final EndInit must publish one union of real setter effects");
 
     bool query_rejected = false;
@@ -637,7 +637,7 @@ void test_property_mutation_initialization_thread_and_lifetime_guards() {
     std::thread worker(
         PropertyAccessWorker(editor, query_rejected, mutation_rejected));
     worker.join();
-    require(query_rejected && mutation_rejected && (*editor).text() == "batched",
+    require(query_rejected && mutation_rejected && (*editor).text.read() == "batched",
             "attached generic property reads and writes must enforce UI-thread ownership");
 
     (*editor).dispose();
@@ -661,7 +661,7 @@ void test_property_mutation_initialization_thread_and_lifetime_guards() {
 
 void test_visual_property_values_drive_stock_controls() {
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("property.label"), "Metadata");
-    const FontSpec inherited_font = (*label).font();
+    const FontSpec inherited_font = (*label).resolved_font();
     const Color inherited_color = (*label).foreground();
     require((*(*label).property_descriptor("Font")).kind ==
                 BindingValueKind::font &&
@@ -674,12 +674,12 @@ void test_visual_property_values_drive_stock_controls() {
     const Color authored_color = Color::rgba(12, 34, 56, 220);
     (*label).set_property_value("Font", authored);
     (*label).set_property_value("ForeColor", authored_color);
-    require((*label).font() == authored && (*label).foreground() == authored_color &&
+    require((*label).resolved_font() == authored && (*label).foreground() == authored_color &&
                 (*label).should_serialize_property("Font") &&
                 (*label).should_serialize_property("ForeColor") &&
                 (*label).reset_property("Font") &&
                 (*label).reset_property("ForeColor") &&
-                (*label).font() == inherited_font &&
+                (*label).resolved_font() == inherited_font &&
                 (*label).foreground() == inherited_color,
             "font and color overrides must reset to live theme inheritance rather than a copied fallback");
 
@@ -692,9 +692,9 @@ void test_visual_property_values_drive_stock_controls() {
     (*picture).set_property_value("Image", std::uint64_t{42});
     (*picture).set_property_value("SizeMode", std::string("Zoom"));
     (*picture).set_property_value("ImageOpacity", 0.375);
-    require((*picture).image() == ImageId{42} &&
-                (*picture).size_mode() == PictureBoxSizeMode::zoom &&
-                (*picture).image_opacity() == 0.375 && image_changes == 1U &&
+    require((*picture).image.read() == ImageId{42} &&
+                (*picture).size_mode.read() == PictureBoxSizeMode::zoom &&
+                (*picture).image_opacity.read() == 0.375 && image_changes == 1U &&
                 (*picture).should_serialize_property("Image") &&
                 (*picture).should_serialize_property("SizeMode") &&
                 changed.connected(),
@@ -702,9 +702,9 @@ void test_visual_property_values_drive_stock_controls() {
     require((*picture).reset_property("Image") &&
                 (*picture).reset_property("SizeMode") &&
                 (*picture).reset_property("ImageOpacity") &&
-                (*picture).image() == ImageId{} &&
-                (*picture).size_mode() == PictureBoxSizeMode::normal &&
-                (*picture).image_opacity() == 1.0 && image_changes == 2U,
+                (*picture).image.read() == ImageId{} &&
+                (*picture).size_mode.read() == PictureBoxSizeMode::normal &&
+                (*picture).image_opacity.read() == 1.0 && image_changes == 2U,
             "visual resource properties must have deterministic default reset behavior");
 
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("property.visual.root"));
@@ -716,18 +716,18 @@ void test_visual_property_values_drive_stock_controls() {
     });
     const std::shared_ptr<Binding> image_binding = (*picture).data_bindings().add(
         "Image", source, "image");
-    require(image_binding && (*picture).image() == ImageId{77},
+    require(image_binding && (*picture).image.read() == ImageId{77},
             "Binding must use descriptor-aware unsigned-to-ImageId conversion rather than scalar-only conversion");
 
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("property.button"), "Run");
     (*button).set_property_value("Font", authored);
     (*button).set_property_value("Image", ImageId{7});
-    require((*button).font.read() == authored && (*button).image() == ImageId{7} &&
+    require((*button).font.read() == authored && (*button).image.read() == ImageId{7} &&
                 (*button).reset_property("Font") &&
                 (*button).reset_property("Image") &&
                 (*button).font.read() ==
                     FontSpec{FontRole::control, 12.0, 400, false, 0.24} &&
-                (*button).image() == ImageId{},
+                (*button).image.read() == ImageId{},
             "button visual values must use the same compound default/reset center");
     static_cast<void>(image_binding);
 }
@@ -746,13 +746,13 @@ void test_multi_control_two_way_currency_and_event_order() {
     const std::shared_ptr<Binding> label = (*fixture.caption).data_bindings().add(
         "Text", fixture.source, "Name");
     require(text && check && range && label &&
-                (*fixture.editor).text() == "Alpha" && (*fixture.enabled).checked() &&
-                (*fixture.gain).value() == 24.0 && (*fixture.caption).text() == "Alpha",
+                (*fixture.editor).text.read() == "Alpha" && (*fixture.enabled).checked.read() &&
+                (*fixture.gain).value.read() == 24.0 && (*fixture.caption).text.read() == "Alpha",
             "adding stock bindings must immediately project the current record into every control kind");
 
-    (*fixture.editor).set_text("Alpha edited");
-    (*fixture.enabled).set_checked(false);
-    (*fixture.gain).set_value(31.0);
+    (*fixture.editor).text = "Alpha edited";
+    (*fixture.enabled).checked = false;
+    (*fixture.gain).value = 31.0;
     require((*fixture.source).current_field("name") ==
                 std::optional<BindingValue>{std::string("Alpha edited")} &&
                 (*fixture.source).current_field("enabled") ==
@@ -775,8 +775,8 @@ void test_multi_control_two_way_currency_and_event_order() {
                 order, "item"));
     require((*fixture.source).currency_manager().set_position(1) &&
                 (*(*fixture.source).currency_manager().current()).stable_id ==
-                    "record.beta" && (*fixture.editor).text() == "Beta" &&
-                !(*fixture.enabled).checked() && (*fixture.gain).value() == 72.0 &&
+                    "record.beta" && (*fixture.editor).text.read() == "Beta" &&
+                !(*fixture.enabled).checked.read() && (*fixture.gain).value.read() == 72.0 &&
                 order == std::vector<std::string>{
                     "position:1", "current", "item"},
             "currency movement must update controls then emit the chosen deterministic event order");
@@ -791,7 +791,7 @@ void test_update_modes_suspension_and_explicit_transfers() {
     validation.data_source_update_mode = DataSourceUpdateMode::on_validation;
     const std::shared_ptr<Binding> binding = (*fixture.editor).data_bindings().add(
         "Text", fixture.source, "Name", validation);
-    (*fixture.editor).set_text("pending");
+    (*fixture.editor).text = "pending";
     require((*fixture.source).current_field("name") ==
                 std::optional<BindingValue>{std::string("Alpha")},
             "OnValidation must retain an editor-side pending value");
@@ -802,12 +802,12 @@ void test_update_modes_suspension_and_explicit_transfers() {
     (*fixture.source).currency_manager().suspend_binding();
     (*fixture.source).set_current_field("name", std::string("suspended"));
     (*fixture.source).set_current_field("name", std::string("coalesced"));
-    require((*fixture.editor).text() == "pending" &&
+    require((*fixture.editor).text.read() == "pending" &&
                 (*fixture.source).snapshot().suspended_mutations == 2U &&
                 (*fixture.source).currency_manager().binding_suspended(),
             "SuspendBinding must retain logical mutations without pushing controls");
     (*fixture.source).currency_manager().resume_binding();
-    require((*fixture.editor).text() == "coalesced" &&
+    require((*fixture.editor).text.read() == "coalesced" &&
                 !(*fixture.source).binding_suspended(),
             "ResumeBinding must publish one current reset after suspended mutations");
 
@@ -817,11 +817,11 @@ void test_update_modes_suspension_and_explicit_transfers() {
     never.data_source_update_mode = DataSourceUpdateMode::never;
     const std::shared_ptr<Binding> never_binding = (*never_fixture.editor).data_bindings().add(
         "Text", never_fixture.source, "Name", never);
-    require((*never_fixture.editor).text().empty(),
+    require((*never_fixture.editor).text.read().empty(),
             "ControlUpdateMode.Never must suppress the initial automatic read");
-    require((*never_binding).read_value() && (*never_fixture.editor).text() == "Alpha",
+    require((*never_binding).read_value() && (*never_fixture.editor).text.read() == "Alpha",
             "ReadValue must remain an explicit transfer under Never");
-    (*never_fixture.editor).set_text("manual");
+    (*never_fixture.editor).text = "manual";
     require((*never_fixture.source).current_field("name") ==
                 std::optional<BindingValue>{std::string("Alpha")} &&
                 (*never_binding).write_value() &&
@@ -843,7 +843,7 @@ void test_format_parse_failure_rollback_and_completion() {
     options.data_source_update_mode = DataSourceUpdateMode::on_property_changed;
     const std::shared_ptr<Binding> binding = (*editor).data_bindings().add(
         "Text", source, "Amount", options);
-    require((*editor).text() == "12.50",
+    require((*editor).text.read() == "12.50",
             "invariant fixed formatting must project numeric data into text");
 
     std::vector<BindingCompleteState> completions;
@@ -853,7 +853,7 @@ void test_format_parse_failure_rollback_and_completion() {
     SubscriptionToken data_error = (*source).data_error().subscribe(
         callbacks::PushBack<std::vector<std::string>,
                             const std::string&>(errors));
-    (*editor).set_text("not-a-number");
+    (*editor).text = "not-a-number";
     require((*source).current_field("amount") ==
                 std::optional<BindingValue>{12.5} &&
                 !completions.empty() &&
@@ -863,7 +863,7 @@ void test_format_parse_failure_rollback_and_completion() {
 
     SubscriptionToken parser =
         (*binding).parse().subscribe(ParseDollarAmount());
-    (*editor).set_text("$13.25");
+    (*editor).text = "$13.25";
     require((*source).current_field("amount") ==
                 std::optional<BindingValue>{13.25},
             "a handled Parse event must provide a typed source value without reflection");
@@ -894,10 +894,10 @@ void test_number_formats_and_their_text() {
     whole.format_string = "N0";
     const std::shared_ptr<Binding> count_binding = (*count).data_bindings().add(
         "Text", source, "Count", whole);
-    require((*amount).text() == "1,234.50" && (*count).text() == "9,007,199,254,740,993",
+    require((*amount).text.read() == "1,234.50" && (*count).text.read() == "9,007,199,254,740,993",
             "N formats group the digits, an integer's from its exact value");
-    (*amount).set_text("2,000.25");
-    (*count).set_text("12,345");
+    (*amount).text = "2,000.25";
+    (*count).text = "12,345";
     require((*source).current_field("amount") == std::optional<BindingValue>{2000.25} &&
                 (*source).current_field("count") == std::optional<BindingValue>{std::int64_t{12345}},
             "grouped text goes back as the number it shows");
@@ -997,7 +997,7 @@ void test_choice_numeric_defaults_manager_transfer_and_completion_order() {
     std::shared_ptr<gui_forms::ComboBox> combo = make_control<ComboBox>(StableId("advanced.combo"));
     std::shared_ptr<gui_forms::NumericUpDown> numeric = make_control<NumericUpDown>(StableId("advanced.numeric"));
     std::shared_ptr<gui_forms::TextBox> deferred = make_control<TextBox>(StableId("advanced.deferred"));
-    (*combo).set_items({"Local", "Archive", "Plugins"});
+    (*combo).items = {"Local", "Archive", "Plugins"};
     (*root).add_child(combo);
     (*root).add_child(numeric);
     (*root).add_child(deferred);
@@ -1017,7 +1017,7 @@ void test_choice_numeric_defaults_manager_transfer_and_completion_order() {
         "SelectedIndex", source, "choice", formatted_immediate);
     const std::shared_ptr<Binding> amount = (*numeric).data_bindings().add(
         "Value", source, "amount", formatted_immediate);
-    require((*combo).selected_index() == 1U && (*numeric).value() == 42.0,
+    require((*combo).selected_index.read() == 1U && (*numeric).value.read() == 42.0,
             "ComboBox.SelectedIndex and NumericUpDown.Value must be stock bindable properties");
 
     bool binding_saw_committed_control = false;
@@ -1038,7 +1038,7 @@ void test_choice_numeric_defaults_manager_transfer_and_completion_order() {
         (*amount).binding_complete().subscribe(
             ObserveCommittedSourceAmount(
                 source, source_was_committed_before_completion));
-    (*numeric).set_value(64.0);
+    (*numeric).value = 64.0;
     require(source_was_committed_before_completion,
             "data-source BindingComplete must observe the already committed retained record");
 
@@ -1046,7 +1046,7 @@ void test_choice_numeric_defaults_manager_transfer_and_completion_order() {
         DataSourceUpdateMode::on_property_changed);
     const std::shared_ptr<Binding> defaulted = (*deferred).data_bindings().add(
         "Text", source, "name");
-    (*deferred).set_text("Default immediate");
+    (*deferred).text = "Default immediate";
     require((*source).current_field("name") ==
                 std::optional<BindingValue>{std::string("Default immediate")},
             "the no-options Add overload must use the collection default update mode");
@@ -1058,7 +1058,7 @@ void test_choice_numeric_defaults_manager_transfer_and_completion_order() {
     (*deferred).data_bindings().clear();
     const std::shared_ptr<Binding> validation = (*deferred).data_bindings().add(
         "Text", source, "name", explicit_validation);
-    (*deferred).set_text("Still pending");
+    (*deferred).text = "Still pending";
     require((*source).current_field("name") ==
                 std::optional<BindingValue>{std::string("Default immediate")},
             "an explicit OnValidation option must not be overwritten by the collection default");
@@ -1067,9 +1067,9 @@ void test_choice_numeric_defaults_manager_transfer_and_completion_order() {
                     std::optional<BindingValue>{std::string("Still pending")},
             "CurrencyManager.PullData must transfer every live target into its source");
     (*source).set_current_field("name", std::string("Pushed"));
-    (*deferred).set_text("Local pending");
+    (*deferred).text = "Local pending";
     require((*source).currency_manager().push_data() &&
-                (*deferred).text() == "Pushed",
+                (*deferred).text.read() == "Pushed",
             "CurrencyManager.PushData must refresh every live target from retained currency");
 
     BindingContext context(window);

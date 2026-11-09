@@ -40,7 +40,7 @@ void test_responsive_layouts(gui_forms::Window& window) {
                 show_master && inspector && navigation && arrange,
             "responsive page must expose every specimen by stable id");
     relayout(window);
-    require((*width).value() == 894.0 &&
+    require((*width).value.read() == 894.0 &&
                 (*tracks).layout_snapshot().resolution.collapse_order.empty() &&
                 !(*shelf).layout_snapshot().overflow_actuator_visible &&
                 (*more).layout_collapsed() &&
@@ -54,12 +54,12 @@ void test_responsive_layouts(gui_forms::Window& window) {
         std::dynamic_pointer_cast<Label>(window.find("gallery.responsive.shelf.status"));
     click(window, window.find("gallery.responsive.shelf.selection.bar.item.2"));
     require(shelf_status &&
-                (*shelf_status).text().find("Selection · Copy invoked") != std::string::npos,
+                (*shelf_status).text.read().find("Selection · Copy invoked") != std::string::npos,
             "a CommandBar item inside an overflow group must invoke through the page owner");
 
     // Narrowing the bound Value is a state change: the slider follows and the
     // containers collapse by authored priority on the next layout.
-    (*width).set_value(600.0);
+    (*width).value = 600.0;
     relayout(window);
     const ResponsiveLayoutSnapshot mid = (*tracks).layout_snapshot();
     const CommandOverflowSnapshot mid_shelf = (*shelf).layout_snapshot();
@@ -74,7 +74,7 @@ void test_responsive_layouts(gui_forms::Window& window) {
                 (*show_detail).enabled.read() && !(*show_master).enabled.read(),
             "a 600 px stage must collapse the lowest-priority track and group and go compact");
     click(window, more);
-    require((*shelf_status).text().find("gallery.responsive.shelf.arrange") != std::string::npos,
+    require((*shelf_status).text.read().find("gallery.responsive.shelf.arrange") != std::string::npos,
             "the overflow actuator must let the page compose the collapsed group ids");
 
     // Protecting a track is a bound Value<bool>; the panel then collapses the
@@ -97,7 +97,7 @@ void test_responsive_layouts(gui_forms::Window& window) {
                 !(*show_detail).enabled.read() && (*show_master).enabled.read() &&
                 (*(*view).detail()).effectively_visible() &&
                 !(*(*view).master()).effectively_visible() &&
-                view_status && (*view_status).text().find("detail only") != std::string::npos,
+                view_status && (*view_status).text.read().find("detail only") != std::string::npos,
             "Show detail must switch the compact presentation and re-enable Show master");
     click(window, show_master);
     relayout(window);
@@ -111,7 +111,7 @@ void test_responsive_layouts(gui_forms::Window& window) {
         std::dynamic_pointer_cast<Label>(window.find("gallery.responsive.scroll.status"));
     click(window, window.find("gallery.responsive.scroll.next"));
     require((*scroller).scroll_position().x == 240.0 && scroll_status &&
-                (*scroll_status).text().find("Scroll · x 240") != std::string::npos,
+                (*scroll_status).text.read().find("Scroll · x 240") != std::string::npos,
             "the scroll command must page the viewport and publish a Scroll event");
     click(window, window.find("gallery.responsive.scroll.previous"));
     require((*scroller).scroll_position().x == 0.0,
@@ -124,7 +124,7 @@ void test_responsive_layouts(gui_forms::Window& window) {
                 semantics.find("Column scroller specimen") != std::string::npos,
             "every responsive specimen must publish its named group semantics");
 
-    (*width).set_value(894.0);
+    (*width).value = 894.0;
     relayout(window);
     require((*tracks).layout_snapshot().resolution.collapse_order.empty() &&
                 !(*shelf).layout_snapshot().overflow_actuator_visible &&

@@ -1,0 +1,67 @@
+{
+  "family": "TaskDialog",
+  "step": "B9",
+  "declaring": "TaskDialog",
+  "header": "include/gui_forms/controls/task_dialog/task_dialog.hpp",
+  "source": "src/controls/task_dialog/task_dialog.cpp",
+  "capabilities_header": "include/gui_forms/controls/task_dialog/task_dialog_capabilities/task_dialog_capabilities.hpp",
+  "shared": [],
+  "properties": [
+    {
+      "name": "expanded",
+      "capability": "TaskDialogExpanded",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the page's expanded information shows (Windows Forms' TaskDialogExpander.Expanded); a view onto the page's expander. A change re-lays out the dialog and raises expanded_changed; a write to a page without an expander does nothing and reads false.",
+      "getter": "expanded",
+      "setter": "set_expanded",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "effects": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto page_.expander: write_view updates the expander button and the expanded text, invalidates the dialog and its layer, and raises expanded_changed"
+      ],
+      "storage": "view"
+    },
+    {
+      "name": "verification_checked",
+      "capability": "TaskDialogVerificationChecked",
+      "value": "bool",
+      "initial": null,
+      "comment": "The verification check box's state (Windows Forms' TaskDialogVerificationCheckBox.Checked); a view onto the page. While the check box exists a write goes through it and raises verification_changed; before it does, a write only stores the page's state.",
+      "getter": "verification_checked",
+      "setter": "set_verification_checked",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "effects": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto page_.verification_checked, written through the check box while it exists"
+      ],
+      "storage": "view"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "set_page(page)",
+      "reason": "replaces the whole page (navigation)"
+    },
+    {
+      "name": "set_progress_value(value)",
+      "reason": "page-scoped: its only storage is the page's optional progress bar, a write without one is dropped and nothing reads it back (Windows Forms puts Value on TaskDialogProgressBar)"
+    },
+    {
+      "name": "surface",
+      "reason": "a presentation choice read at the next show(), set noexcept without a touch"
+    }
+  ]
+}

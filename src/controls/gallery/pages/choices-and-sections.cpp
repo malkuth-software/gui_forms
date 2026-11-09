@@ -24,6 +24,7 @@ public:
         build_sections();
         build_state();
         build_cards();
+        build_switches();
         on(ring_.changed(), *this, &ChoicesPage::ring_changed);
         on((*ring_row_).activated(), *this, &ChoicesPage::ring_activated);
         on((*sections_).toggled(), *this, &ChoicesPage::section_toggled);
@@ -73,8 +74,8 @@ private:
     [[nodiscard]] static std::shared_ptr<Label> section_body(std::string id, std::string text,
                                                              const double height) {
         std::shared_ptr<Label> body = label(std::move(id), std::move(text), 11.0, 400, ink);
-        (*body).set_text_wrapping(TextWrapping::word);
-        (*body).set_vertical_alignment(VerticalAlignment::near);
+        (*body).text_wrapping = TextWrapping::word;
+        (*body).vertical_alignment = VerticalAlignment::near;
         (*body).set_requested_bounds({0.0, 0.0, 0.0, height});
         return body;
     }
@@ -112,14 +113,31 @@ private:
         toggle.bind(model);
     }
 
+    // The switches report through the group's status line.
+    void build_switches() {
+        (*document_.gallery_choices_switches).set_style(page_style());
+        on((*document_.gallery_choices_switches_auto_deploy).checked_changed(), *this,
+           &ChoicesPage::switch_changed);
+        on((*document_.gallery_choices_switches_notify).checked_changed(), *this, &ChoicesPage::switch_changed);
+    }
+
+    // Serves both switches: the handler reads them, so it ignores the value.
+    void switch_changed(bool) {
+        const bool deploy = (*document_.gallery_choices_switches_auto_deploy).checked.read();
+        const bool notify = (*document_.gallery_choices_switches_notify).checked.read();
+        std::string report = deploy ? "Automatic deployment is on" : "Automatic deployment is off";
+        if (notify) report += " · reviewers are notified";
+        (*document_.gallery_choices_switches_status).text = report;
+    }
+
     void build_cards() {
-        (*card_).set_interactive(true);
-        (*card_).set_selection_behavior(CardSelectionBehavior::select_on_activation);
+        (*card_).interactive = true;
+        (*card_).selection_behavior = CardSelectionBehavior::select_on_activation;
         static_cast<void>((*card_).set_header(
             label("gallery.choices.card.title", "Rollout plan", 12.0, 700, shell_blue_dark)));
         card_body_ = label("gallery.choices.card.body", "", 11.0, 400, ink);
-        (*card_body_).set_text_wrapping(TextWrapping::word);
-        (*card_body_).set_vertical_alignment(VerticalAlignment::near);
+        (*card_body_).text_wrapping = TextWrapping::word;
+        (*card_body_).vertical_alignment = VerticalAlignment::near;
         static_cast<void>((*card_).set_body(card_body_));
         card_footer_ = label("gallery.choices.card.footer", "Click or press Space to select",
                              10.0, 600, muted);
@@ -129,12 +147,12 @@ private:
     // State: every change of the ring, from either ChoiceGroup or a setter.
     void ring_changed(const int index) {
         const std::string name = ring_name(index);
-        (*ring_status_).set_text("Ring " + name + " (index " + std::to_string(index) +
-                                 ") · user activations: " + std::to_string(activations_));
-        (*card_body_).set_text(index == 0 ? "Canary: 5 % of hosts for one hour, then review."
+        (*ring_status_).text = "Ring " + name + " (index " + std::to_string(index) +
+                                 ") · user activations: " + std::to_string(activations_);
+        (*card_body_).text = index == 0 ? "Canary: 5 % of hosts for one hour, then review."
                                : index == 1 ? "Staged: one region at a time, an hour each."
                                : index == 2 ? "Full: every host at once; rollback armed."
-                                            : "No ring chosen.");
+                                            : "No ring chosen.";
         ReviewRecord record;
         record.key = "ring." + name;
         record.title = "Review: " + name;
@@ -155,7 +173,7 @@ private:
             record.verdict = "NO RING";
             record.disposition = ReviewDisposition::neutral;
         }
-        (*review_).set_record(std::move(record));
+        (*review_).record = std::move(record);
     }
 
     // Input: only the user's activation of the labelled row.
@@ -168,8 +186,8 @@ private:
         const std::size_t position = static_cast<std::size_t>(index);
         const std::string name = position < section_names.size()
             ? std::string(section_names[position]) : std::string("Section");
-        (*sections_status_).set_text(name + (expanded ? " open" : " closed") +
-                                     " · headers, Space and the toggles share one state");
+        (*sections_status_).text = name + (expanded ? " open" : " closed") +
+                                     " · headers, Space and the toggles share one state";
     }
 
     // Selection changes before activation is published; both project the
@@ -186,7 +204,7 @@ private:
             ? std::string("Click or press Space to select")
             : "activated " + std::to_string(card_activations_) +
                   (card_activations_ == 1 ? " time" : " times");
-        (*card_footer_).set_text((*card_).selected() ? "Selected · " + activations : activations);
+        (*card_footer_).text = (*card_).selected.read() ? "Selected · " + activations : activations;
     }
 
     [[nodiscard]] static std::string ring_name(const int index) {

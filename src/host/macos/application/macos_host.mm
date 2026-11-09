@@ -14,6 +14,7 @@
 #include "../../../core/damage/device_damage/device_damage.hpp"
 #include "../../../render/skia/raster/skia_raster.hpp"
 #include "../../../core/host/frame_capture/frame_capture.hpp"
+#include "../../../core/application/splashscreen_surface.hpp"
 #include "../compositor/macos_compositor.hpp"
 #include "../../posix/fonts/sealed_pages_posix.hpp"
 
@@ -52,6 +53,8 @@ using gui_forms::HostCloseReason;
 using gui_forms::HostCloseRequest;
 using gui_forms::HostClipboardTextResult;
 using gui_forms::HostClosedEvent;
+using gui_forms::HostContextRequestEvent;
+using gui_forms::ContextRequestOrigin;
 using gui_forms::HostDispatchResult;
 using gui_forms::HostDialogChoice;
 using gui_forms::HostDialogOutcome;
@@ -82,7 +85,6 @@ using gui_forms::HostSoundCueRequest;
 using gui_forms::HostServices;
 using gui_forms::HostSession;
 using gui_forms::HostShutdownEvent;
-using gui_forms::HostTooltipRequest;
 using gui_forms::KeyAction;
 using gui_forms::KeyEvent;
 using gui_forms::LiveSurfacePresentation;
@@ -92,6 +94,7 @@ using GFPoint = gui_forms::Point;
 using gui_forms::PointerAction;
 using gui_forms::PointerButton;
 using gui_forms::PointerEvent;
+using gui_forms::WheelDeltaUnit;
 using gui_forms::SemanticAction;
 using gui_forms::SemanticNode;
 using gui_forms::SemanticOrientation;
@@ -734,12 +737,16 @@ NSString* native_accessibility_role(SemanticRole role) {
     case SemanticRole::group: return NSAccessibilityGroupRole;
     case SemanticRole::static_text: return NSAccessibilityStaticTextRole;
     case SemanticRole::button: return NSAccessibilityButtonRole;
-    case SemanticRole::check_box: return NSAccessibilityCheckBoxRole;
+    // A switch is a check box with AppKit's switch subrole.
+    case SemanticRole::check_box:
+    case SemanticRole::toggle_switch: return NSAccessibilityCheckBoxRole;
     case SemanticRole::radio_button: return NSAccessibilityRadioButtonRole;
     case SemanticRole::toolbar: return NSAccessibilityToolbarRole;
     case SemanticRole::radio_group: return NSAccessibilityRadioGroupRole;
     case SemanticRole::link: return NSAccessibilityLinkRole;
+    // A search box is a text field with AppKit's search-field subrole.
     case SemanticRole::text_box:
+    case SemanticRole::search_box:
     case SemanticRole::numeric_field: return NSAccessibilityTextFieldRole;
     case SemanticRole::list: return NSAccessibilityListRole;
     case SemanticRole::list_item: return NSAccessibilityRowRole;
@@ -865,13 +872,26 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     SkiaRaster _raster;
     BOOL _rasterHasContent;
     DamageRegion _pendingDamage;
+    // Scroll copies taken from the model and not yet applied to the raster,
+    // in order (SurfaceRoot::take_scroll_copies); scratch for the take; the
+    // clips of copies the current draw applied, damaged again if its frame
+    // is not presented.
+    std::vector<gui_forms::ScrollCopy> _pendingCopies;
+    std::vector<gui_forms::ScrollCopy> _takenCopies;
+    std::vector<GFRect> _appliedCopyClips;
     NSMutableAttributedString* _markedText;
     NSRange _selectedRange;
     NSTrackingArea* _trackingArea;
     dispatch_source_t _wakeSource;
+    // The sRGB colour space every present tags the raster with: immutable,
+    // made once per view instead of once per draw, released in dealloc.
+    CGColorSpaceRef _presentColorSpace;
     std::unique_ptr<MacDisplayLinkTrace> _displayTrace;
     CADisplayLink* _displayLink;
     BOOL _hostOccluded;
+    // The full-screen state the session last accepted (notifyWindowState).
+    BOOL _windowStateReported;
+    BOOL _reportedFullScreen;
     std::vector<LiveSurfacePresentation> _pendingLivePresentations;
     // Objective-C++ constructs these vectors empty with the view. Reuse storage
     // across ticks; immutable leases survive producer reconfiguration until
@@ -897,8 +917,6 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     // The surface epoch of the receipt the raster's front presents; 0 before
     // the first presented frame.
     std::uint64_t _frontSurfaceEpoch;
-    NSPanel* _tooltipPanel;
-    NSTimer* _tooltipTimer;
     std::uint64_t _lastSemanticGeneration;
     // The key the cached accessibility children were built under; read only
     // while _semanticAccessibilityChildren is not nil.
@@ -939,6 +957,9 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
         _semanticAccessibilityElementsByStableId;
     BOOL _transparentFullSizeContent;
     std::vector<std::string> _windowDragRegionIds;
+    // A Control-click is AppKit's context-menu request, not a press: its
+    // drags and release are not dispatched either.
+    BOOL _controlClickInProgress;
     // Portable frame capture (capture_path host option). Completed once,
     // after the first presented frame whose dirty rect covers the view.
     std::string _frameCapturePath;
@@ -961,6 +982,7 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 - (void)notifyActivation:(BOOL)active;
 - (void)notifyOcclusion:(BOOL)occluded;
 - (void)notifyScaleChanged;
+- (void)notifyWindowState;
 - (void)notifyDisplaysChanged;
 - (void)screenParametersChanged:(NSNotification*)notification;
 // Stage T5: the accessibility display options changed (reduce
@@ -972,6 +994,7 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 // Called once, when the window is made.
 - (NSView*)hostContentView;
 - (void)collectDamage;
+- (void)takeScrollCopies;
 - (void)drainPostedWork;
 - (void)armWakeTimer;
 - (void)scheduledWake;
@@ -988,9 +1011,6 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 - (HostDialogResult)showHostDialog:(const HostDialogRequest&)request;
 - (HostClipboardTextResult)readHostClipboard;
 - (HostServiceStatus)writeHostClipboard:(std::string_view)text;
-- (HostServiceStatus)showHostTooltip:(const HostTooltipRequest&)request;
-- (void)hideHostTooltip;
-- (void)tooltipTimerFired:(NSTimer*)timer;
 - (DragEvent)dragEventFor:(id<NSDraggingInfo>)sender action:(DragAction)action;
 - (std::string)metricsJSON;
 - (std::string)hostJSON;
@@ -1009,6 +1029,12 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
                      stableId:(const std::string&)stableId
                         value:(NSString*)value;
 - (id)semanticAccessibilityElementForStableId:(NSString*)stableId;
+// macOS's own keyboard context request (owner's ruling, 2026-11-08): the
+// accessibility show-menu action (NSAccessibilityShowMenuAction, VoiceOver
+// VO+Shift+M) on an element with no menu of its own, reported to the
+// window as a keyboard HostContextRequestEvent after the element's control
+// took focus. Returns whether a control handled it.
+- (BOOL)dispatchKeyboardContextRequest;
 // The text queries of owner decision A-T1 for the control `control`
 // (Window::semantic_text_layout and Window::set_semantic_text_selection).
 // Each returns NO when the window has gone or the control refuses.
@@ -1095,7 +1121,8 @@ static void announce_live_region(GUIFormsView* owner, const std::string& text) {
 
 // Whether `node` publishes text ranges.
 static bool publishes_text_ranges(const SemanticNode& node) noexcept {
-    const bool text = node.role == SemanticRole::text_box && node.text_selection.has_value() &&
+    const bool text = gui_forms::semantic_role_fallback(node.role) == SemanticRole::text_box &&
+                      node.text_selection.has_value() &&
                       node.runtime_id != 0U && !gui_forms::is_virtual_semantic_runtime_id(node.runtime_id) &&
                       !gui_forms::has_semantic_state(node.states, SemanticState::protected_content);
     return text;
@@ -1312,14 +1339,14 @@ static bool contains_live_region(const SemanticNode& node) {
 }
 
 // A live region whose name changed to a new, non-empty announcement posts
-// it (a new element announces nothing, as on the other hosts).
+// it (semantic_announcement_due, the rule every host shares; a new element
+// announces only when it announces on appearance, reconcile_accessibility_element).
 // A text node whose value or selection changed posts it, as AppKit's text
 // views do.
 - (void)updateWithNode:(const SemanticNode&)node
                  owner:(GUIFormsView*)owner
                 parent:(id)parent {
-    const bool announce = node.role == SemanticRole::live_region && !node.name.empty() &&
-                          node.name != _node.name;
+    const bool announce = gui_forms::semantic_announcement_due(&_node, node);
     const bool text = publishes_text_ranges(node) && publishes_text_ranges(_node);
     const bool value_changed = text && node.value != _node.value;
     const bool selection_changed = text && node.text_selection != _node.text_selection;
@@ -1385,8 +1412,11 @@ static bool contains_live_region(const SemanticNode& node) {
 // ARIA tab panels with this one. A tab is a radio button with AppKit's
 // tab-button subrole, as NSTabView's tabs are.
 // A tree item is an outline row; a dialog, a status bar and a live region
-// carry WebKit's subroles for them.
+// carry WebKit's subroles for them. A switch and a search box carry
+// AppKit's own.
 - (NSString*)accessibilitySubrole {
+    if (_node.role == SemanticRole::toggle_switch) return NSAccessibilitySwitchSubrole;
+    if (_node.role == SemanticRole::search_box) return NSAccessibilitySearchFieldSubrole;
     if (_node.role == SemanticRole::tab_panel) return @"AXTabPanel";
     if (_node.role == SemanticRole::tab) return NSAccessibilityTabButtonSubrole;
     if (_node.role == SemanticRole::tree_item) return NSAccessibilityOutlineRowSubrole;
@@ -1452,9 +1482,10 @@ static bool contains_live_region(const SemanticNode& node) {
     return @[ close ];
 }
 - (id)accessibilityValue {
-    if (_node.role == SemanticRole::check_box ||
-        _node.role == SemanticRole::check_list_item ||
-        _node.role == SemanticRole::radio_button) {
+    const SemanticRole acting = gui_forms::semantic_role_fallback(_node.role);
+    if (acting == SemanticRole::check_box ||
+        acting == SemanticRole::check_list_item ||
+        acting == SemanticRole::radio_button) {
         if (gui_forms::has_semantic_state(_node.states, SemanticState::mixed)) {
             return @2;
         }
@@ -1498,10 +1529,18 @@ static bool contains_live_region(const SemanticNode& node) {
 }
 - (BOOL)accessibilityPerformShowMenu {
     if (_owner == nil) return NO;
-    const SemanticAction action = semantic_has_action(_node, SemanticAction::show_menu)
-        ? SemanticAction::show_menu : SemanticAction::expand;
-    if (!semantic_has_action(_node, action)) return NO;
-    return [self performNodeAction:action value:nil];
+    if (semantic_has_action(_node, SemanticAction::show_menu)) {
+        return [self performNodeAction:SemanticAction::show_menu value:nil];
+    }
+    if (semantic_has_action(_node, SemanticAction::expand)) {
+        return [self performNodeAction:SemanticAction::expand value:nil];
+    }
+    // No menu of the element's own: the show-menu action is macOS's
+    // keyboard context request for the element's control, which takes
+    // focus first so that the request reaches it.
+    if (!semantic_has_action(_node, SemanticAction::focus)) return NO;
+    if (![self performNodeAction:SemanticAction::focus value:nil]) return NO;
+    return [_owner dispatchKeyboardContextRequest];
 }
 - (BOOL)accessibilityPerformIncrement {
     if (_owner == nil || !semantic_has_action(_node, SemanticAction::increment)) return NO;
@@ -1689,7 +1728,8 @@ static bool contains_live_region(const SemanticNode& node) {
     }
     if (selector == @selector(accessibilityPerformShowMenu)) {
         return semantic_has_action(_node, SemanticAction::show_menu) ||
-               semantic_has_action(_node, SemanticAction::expand);
+               semantic_has_action(_node, SemanticAction::expand) ||
+               semantic_has_action(_node, SemanticAction::focus);
     }
     if (selector == @selector(accessibilityPerformIncrement)) {
         return semantic_has_action(_node, SemanticAction::increment);
@@ -1763,6 +1803,9 @@ static GUIFormsAccessibilityElement* reconcile_accessibility_element(
                                                               parent:parent
                                                              control:control
                                                         virtualChild:child_identity];
+        // A new live region that announces on appearance (a toast) is
+        // spoken as it appears.
+        if (gui_forms::semantic_announcement_due(nullptr, node)) announce_live_region(owner, node.name);
     } else {
         [element updateWithNode:node owner:owner parent:parent];
     }
@@ -1919,6 +1962,7 @@ void post_perform_close(NSWindow* window) {
         _selectedRange = NSMakeRange(NSNotFound, 0);
         _displayLink = nil;
         _hostOccluded = NO;
+        _presentColorSpace = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
         _wakeSource = dispatch_source_create(
             DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
         // The source owns its context; its finalizer deletes it.
@@ -1931,6 +1975,9 @@ void post_perform_close(NSWindow* window) {
                                   DISPATCH_TIME_FOREVER, 0);
         (*_model).set_dispatch_wake_handler(DrainPostedWorkWake(self));
         (*_model).set_paint_wake_handler(CollectDamageWake(self));
+        // The raster keeps its pixels between draws, so a scroll's pixels
+        // can be moved instead of repainted (drawRetainedRect:).
+        (*_model).set_scroll_copies_supported(true);
         (*_model).set_live_surface_idle_wake_handler(CollectDamageWake(self));
         [self setWantsLayer:NO];
         [self registerForDraggedTypes:@[
@@ -1978,6 +2025,7 @@ void post_perform_close(NSWindow* window) {
     [self notifyOcclusion:_initialHostOccluded];
     [self notifyDisplaysChanged];
     [self reportCompositorState];
+    [self notifyWindowState];
     [self collectDamage];
     [self startDisplayLinkIfNeeded];
     return YES;
@@ -2124,6 +2172,31 @@ void post_perform_close(NSWindow* window) {
     static_cast<void>([self dispatchHostPayload:HostScaleEvent{scale}
                                timestampNanoseconds:host_now_nanoseconds()]);
     [self collectDamage];
+}
+
+// Reports the native window's full-screen state (HostWindowStateEvent;
+// owner, 2026-11-08: the window outer band) after attach and when AppKit
+// enters or leaves full screen. macOS reports no corners (no
+// window_corners), so the session's corner request changes nothing here.
+// A refused report is tried again on the next change.
+- (void)notifyWindowState {
+    if (_hostAttached == NO || self.window == nil) return;
+    const BOOL fullScreen = ([self.window styleMask] & NSWindowStyleMaskFullScreen) != 0 ? YES : NO;
+    if (_windowStateReported == YES && _reportedFullScreen == fullScreen) return;
+    const HostDispatchResult reported = [self dispatchHostPayload:gui_forms::HostWindowStateEvent{fullScreen == YES}
+                                              timestampNanoseconds:host_now_nanoseconds()];
+    if (!reported.accepted()) return;
+    _windowStateReported = YES;
+    _reportedFullScreen = fullScreen;
+    [self collectDamage];
+}
+
+// The surface's own element covers the content rectangle: a declared window
+// outer band lies outside it (owner, 2026-11-08), as it lies outside every
+// hit test.
+- (NSRect)accessibilityFrame {
+    if (!_model) return [super accessibilityFrame];
+    return [self accessibilityFrameForSemanticBounds:(*_model).content_rect()];
 }
 
 - (void)notifyDisplaysChanged {
@@ -2300,7 +2373,10 @@ void post_perform_close(NSWindow* window) {
         dispatch_source_cancel(_wakeSource);
         _wakeSource = nil;
     }
-    [self hideHostTooltip];
+    if (_presentColorSpace != nullptr) {
+        CGColorSpaceRelease(_presentColorSpace);
+        _presentColorSpace = nullptr;
+    }
     if (_hostSession != nullptr) {
         (*_hostSession).shutdown();
         _hostSession.reset();
@@ -2321,7 +2397,6 @@ void post_perform_close(NSWindow* window) {
         return {{HostServiceError::after_shutdown}, request.request_id,
                 HostPathDialogResult{}};
     }
-    [self hideHostTooltip];
     return (*_hostServices).show_dialog(request);
 }
 
@@ -2335,87 +2410,6 @@ void post_perform_close(NSWindow* window) {
 - (HostServiceStatus)writeHostClipboard:(std::string_view)text {
     if (_hostServices == nullptr) return {HostServiceError::after_shutdown};
     return (*_hostServices).write_clipboard_text(text);
-}
-
-- (HostServiceStatus)showHostTooltip:(const HostTooltipRequest&)request {
-    [self hideHostTooltip];
-    if (request.text.empty()) return {};
-    NSString* text = native_string(request.text);
-    if (text == nil) return {HostServiceError::invalid_utf8};
-    NSFont* font = [NSFont fontWithName:@"Lucida Grande" size:12.0];
-    if (font == nil) font = [NSFont systemFontOfSize:12.0];
-    NSDictionary* attributes = @{NSFontAttributeName: font};
-    const NSRect measured = [text boundingRectWithSize:NSMakeSize(360.0, CGFLOAT_MAX)
-                                               options:NSStringDrawingUsesLineFragmentOrigin |
-                                                       NSStringDrawingUsesFontLeading
-                                            attributes:attributes];
-    const CGFloat width = std::clamp(std::ceil(measured.size.width) + 16.0,
-                                     40.0, 376.0);
-    const CGFloat height = std::max(24.0, std::ceil(measured.size.height) + 10.0);
-    NSTextField* label = [[NSTextField alloc]
-        initWithFrame:NSMakeRect(8.0, 5.0, width - 16.0, height - 10.0)];
-    label.stringValue = text;
-    label.font = font;
-    label.textColor = [NSColor colorWithSRGBRed:31.0 / 255.0
-                                          green:37.0 / 255.0
-                                           blue:44.0 / 255.0 alpha:1.0];
-    label.bordered = NO;
-    label.editable = NO;
-    label.selectable = NO;
-    label.drawsBackground = NO;
-    label.lineBreakMode = NSLineBreakByWordWrapping;
-    label.usesSingleLineMode = NO;
-    NSPanel* panel = [[NSPanel alloc]
-        initWithContentRect:NSMakeRect(0.0, 0.0, width, height)
-                  styleMask:NSWindowStyleMaskBorderless |
-                            NSWindowStyleMaskNonactivatingPanel
-                    backing:NSBackingStoreBuffered defer:NO];
-    panel.releasedWhenClosed = NO;
-    panel.opaque = YES;
-    panel.backgroundColor = [NSColor colorWithSRGBRed:1.0 green:1.0
-                                                 blue:240.0 / 255.0 alpha:1.0];
-    panel.hasShadow = YES;
-    panel.level = NSStatusWindowLevel;
-    panel.ignoresMouseEvents = YES;
-    panel.contentView = label;
-    NSPoint anchor = [self convertPoint:NSMakePoint(request.anchor.x,
-                                                    request.anchor.y)
-                                  toView:nil];
-    anchor = [self.window convertPointToScreen:anchor];
-    NSRect work = self.window.screen.visibleFrame;
-    CGFloat x = std::clamp(anchor.x, NSMinX(work),
-                           std::max(NSMinX(work), NSMaxX(work) - width));
-    CGFloat y = std::clamp(anchor.y - height, NSMinY(work),
-                           std::max(NSMinY(work), NSMaxY(work) - height));
-    [panel setFrameOrigin:NSMakePoint(x, y)];
-    [self.window addChildWindow:panel ordered:NSWindowAbove];
-    [panel orderFrontRegardless];
-    _tooltipPanel = panel;
-    if (request.duration_milliseconds != 0U) {
-        // The timer retains its target until it fires or is invalidated, as
-        // the block it replaces retained the view.
-        _tooltipTimer = [NSTimer scheduledTimerWithTimeInterval:request.duration_milliseconds / 1000.0
-                                                         target:self
-                                                       selector:@selector(tooltipTimerFired:)
-                                                       userInfo:nil
-                                                        repeats:NO];
-    }
-    return {};
-}
-
-- (void)tooltipTimerFired:(NSTimer*)timer {
-    static_cast<void>(timer);
-    [self hideHostTooltip];
-}
-
-- (void)hideHostTooltip {
-    [_tooltipTimer invalidate];
-    _tooltipTimer = nil;
-    if (_tooltipPanel != nil) {
-        [self.window removeChildWindow:_tooltipPanel];
-        [_tooltipPanel orderOut:nil];
-        _tooltipPanel = nil;
-    }
 }
 
 - (void)setFrameSize:(NSSize)newSize {
@@ -2440,6 +2434,22 @@ void post_perform_close(NSWindow* window) {
                                                 userInfo:nil];
     [self addTrackingArea:_trackingArea];
     [super updateTrackingAreas];
+}
+
+// Takes the scroll copies the model recorded with the damage just taken.
+// The damage this view still holds moves with each copy's pixels; the copy's
+// clip is asked of AppKit, which copies the raster there after the draw.
+- (void)takeScrollCopies {
+    _takenCopies.clear();
+    (*_model).take_scroll_copies(_takenCopies);
+    for (const gui_forms::ScrollCopy& copy : _takenCopies) {
+        if (!_pendingDamage.empty()) {
+            _pendingDamage = gui_forms::damage_after_scroll_copy(_pendingDamage, copy.clip, copy.offset);
+        }
+        _pendingCopies.push_back(copy);
+        [self setNeedsDisplayInRect:NSMakeRect(copy.clip.x, copy.clip.y, copy.clip.width, copy.clip.height)];
+    }
+    _takenCopies.clear();
 }
 
 - (void)collectDamage {
@@ -2471,6 +2481,7 @@ void post_perform_close(NSWindow* window) {
         DamageRegion damage = (*_model).take_damage();
         const double scale =
             self.window == nil ? 1.0 : self.window.backingScaleFactor;
+        [self takeScrollCopies];
         for (GFRect rect : damage.rectangles()) {
             rect = gui_forms::detail::align_damage_outward(rect, scale);
             _pendingDamage.add(rect);
@@ -2620,6 +2631,7 @@ void post_perform_close(NSWindow* window) {
         // it into this flush so the overlay is retained-painted over the new
         // frame together with the live copy, not one wake later.
         const DamageRegion beneathOverlays = (*_model).take_damage();
+        [self takeScrollCopies];
         for (GFRect rect : beneathOverlays.rectangles()) {
             rect = gui_forms::detail::align_damage_outward(rect, scale);
             _pendingDamage.add(rect);
@@ -2805,6 +2817,8 @@ void post_perform_close(NSWindow* window) {
         _raster.end_frame();
         _liveFrames.clear();
         _liveRegionLost = YES;
+        for (const GFRect clip : _appliedCopyClips) _pendingDamage.add(clip);
+        _appliedCopyClips.clear();
 #if defined(GUI_FORMS_PREPARED_TEXT)
         _raster.abort_prepared_frame();
 #endif
@@ -2813,6 +2827,8 @@ void post_perform_close(NSWindow* window) {
         _raster.end_frame();
         _liveFrames.clear();
         _liveRegionLost = YES;
+        for (const GFRect clip : _appliedCopyClips) _pendingDamage.add(clip);
+        _appliedCopyClips.clear();
 #if defined(GUI_FORMS_PREPARED_TEXT)
         _raster.abort_prepared_frame();
 #endif
@@ -2867,6 +2883,13 @@ void post_perform_close(NSWindow* window) {
     // in the model's current surface epoch.
     const bool frontHeld = gui_forms::detail::front_held(reuse);
     const bool reusableRaster = frontHeld && _hostOccluded == NO;
+    // Scroll copies move pixels of a raster that still holds the last
+    // presentation; otherwise their clips are repainted.
+    if (!reusableRaster && !_pendingCopies.empty()) {
+        for (const gui_forms::ScrollCopy& copy : _pendingCopies) _pendingDamage.add(copy.clip);
+        _pendingCopies.clear();
+    }
+    const bool copiesPending = !_pendingCopies.empty();
     // While hidden the model declines to paint. AppKit's rectangles then ask
     // for a copy (an exposure or a snapshot); kept as retained damage, they
     // would be repainted by the first visible frame. Live frames still
@@ -2874,7 +2897,8 @@ void post_perform_close(NSWindow* window) {
     const bool occludedCopy = frontHeld && _hostOccluded == YES && _pendingLivePresentations.empty();
     // Copying only a presentation region needs a raster that still holds the
     // previous presentation of that placement.
-    const bool regionsUsable = reusableRaster && _liveRegionLost == NO;
+    // A scroll copy can move a live surface's previous pixels: copy whole clips.
+    const bool regionsUsable = reusableRaster && _liveRegionLost == NO && !copiesPending;
     _liveFrames.clear();
     _opaqueLiveClips.clear();
     _liveFrameSources.clear();
@@ -2949,7 +2973,7 @@ void post_perform_close(NSWindow* window) {
     // scale change, a reallocated backing or a discarded candidate fails the
     // predicate and repaints.
     const bool copyOnly = gui_forms::detail::copy_only_draw(
-        reuse, !_pendingDamage.empty(), !_pendingLivePresentations.empty());
+        reuse, !_pendingDamage.empty() || copiesPending, !_pendingLivePresentations.empty());
     if (copyOnly) _uncoveredDamage.clear();
     if (reusableRaster && !copyOnly) {
         // Paint the gathered set, not AppKit's coalesced request: outside the
@@ -3035,6 +3059,30 @@ void post_perform_close(NSWindow* window) {
 #else
     if (frameReady) _raster.begin_frame(frameDamage);
 #endif
+    // The scroll copies move the begun frame's pixels before its damage is
+    // painted. A frame not begun repaints their clips later; a copy the
+    // raster refuses (it cannot, after the model checked the alignment)
+    // drops this frame and repaints the clips in the next.
+    _appliedCopyClips.clear();
+    if (!_pendingCopies.empty()) {
+        bool applied = frameReady;
+        for (const gui_forms::ScrollCopy& copy : _pendingCopies) {
+            if (applied) applied = _raster.scroll_copy(copy.clip, copy.offset);
+            _appliedCopyClips.push_back(copy.clip);
+        }
+        _pendingCopies.clear();
+        if (!applied) {
+            for (const GFRect clip : _appliedCopyClips) _pendingDamage.add(clip);
+            if (frameReady) {
+                _raster.end_frame();
+                frameReady = false;
+                for (const GFRect clip : _appliedCopyClips) {
+                    [self setNeedsDisplayInRect:NSMakeRect(clip.x, clip.y, clip.width, clip.height)];
+                }
+            }
+            _appliedCopyClips.clear();
+        }
+    }
     _lastFrameDamageBoundsArea = frameDamage.bounds().area();
     const std::chrono::steady_clock::time_point preparedAt =
         std::chrono::steady_clock::now();
@@ -3088,6 +3136,11 @@ void post_perform_close(NSWindow* window) {
         receipt.reset();
     }
 #endif
+    // A frame that moved pixels and was not presented repaints the clips.
+    if (!receipt) {
+        for (const GFRect clip : _appliedCopyClips) _pendingDamage.add(clip);
+    }
+    _appliedCopyClips.clear();
     _liveFrameGenerations.clear();
     _liveFrameGenerations.reserve(_liveFrames.size());
     for (const gui_forms::LiveSurfaceFrame& frame : _liveFrames) {
@@ -3123,7 +3176,7 @@ void post_perform_close(NSWindow* window) {
             std::chrono::steady_clock::now();
         CGDataProviderRef provider = CGDataProviderCreateWithData(
             nullptr, pixels, _raster.byte_size(), nullptr);
-        CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+        CGColorSpaceRef colorSpace = _presentColorSpace;
         // An opaque window presents opaque pixels, as the other hosts do: the
         // frame's alpha reaches the window server only while a non-opaque
         // backdrop is granted (stage T5).
@@ -3170,7 +3223,6 @@ void post_perform_close(NSWindow* window) {
         const std::chrono::steady_clock::time_point releaseStarted =
             std::chrono::steady_clock::now();
         if (image != nullptr) CGImageRelease(image);
-        CGColorSpaceRelease(colorSpace);
         CGDataProviderRelease(provider);
         const std::chrono::steady_clock::time_point releaseEnded =
             std::chrono::steady_clock::now();
@@ -3332,6 +3384,11 @@ void post_perform_close(NSWindow* window) {
 
 - (void)mouseDown:(NSEvent*)event {
     [self.window makeFirstResponder:self];
+    if ((event.modifierFlags & NSEventModifierFlagControl) != 0) {
+        _controlClickInProgress = YES;
+        static_cast<void>([self menuForEvent:event]);
+        return;
+    }
     if (event.buttonNumber == 0 && !_windowDragRegionIds.empty() && _model) {
         const GFPoint point = [self modelPointForEvent:event];
         const gui_forms::WindowChromeHit hit =
@@ -3346,11 +3403,42 @@ void post_perform_close(NSWindow* window) {
 }
 
 - (void)mouseUp:(NSEvent*)event {
+    if (_controlClickInProgress) {
+        _controlClickInProgress = NO;
+        return;
+    }
     [self dispatchPointerEvent:event action:PointerAction::up];
 }
 
 - (void)rightMouseDown:(NSEvent*)event {
     [self dispatchPointerEvent:event action:PointerAction::down];
+    // NSView's own rightMouseDown: asks menuForEvent: for the menu, which
+    // reports the context request (owner's mouse-event rule).
+    [super rightMouseDown:event];
+}
+
+// AppKit's context-menu request: the right button's press, or a
+// Control-click, reported to the window as a pointer HostContextRequestEvent.
+// GUI.Forms shows its own menus, so AppKit is given none.
+- (NSMenu*)menuForEvent:(NSEvent*)event {
+    if (!_model) return nil;
+    HostContextRequestEvent request{};
+    request.origin = ContextRequestOrigin::pointer;
+    request.position = [self modelPointForEvent:event];
+    static_cast<void>([self dispatchHostPayload:std::move(request)
+                               timestampNanoseconds:host_event_nanoseconds(event)]);
+    [self collectDamage];
+    return nil;
+}
+
+- (BOOL)dispatchKeyboardContextRequest {
+    if (!_model) return NO;
+    HostContextRequestEvent request{};
+    request.origin = ContextRequestOrigin::keyboard;
+    const HostDispatchResult result = [self dispatchHostPayload:std::move(request)
+                                           timestampNanoseconds:host_now_nanoseconds()];
+    [self collectDamage];
+    return result.handled;
 }
 
 - (void)rightMouseUp:(NSEvent*)event {
@@ -3370,6 +3458,7 @@ void post_perform_close(NSWindow* window) {
 }
 
 - (void)mouseDragged:(NSEvent*)event {
+    if (_controlClickInProgress) return;
     [self dispatchPointerEvent:event action:PointerAction::move];
 }
 
@@ -3385,7 +3474,12 @@ void post_perform_close(NSWindow* window) {
     PointerEvent input;
     input.action = PointerAction::wheel;
     input.position = [self modelPointForEvent:event];
+    // A trackpad or smooth-scrolling mouse reports precise deltas in points
+    // (logical pixels), its momentum phase included, scrolled exactly; a
+    // detented wheel reports lines, possibly fractional where AppKit
+    // accelerates them. Every event is dispatched: none is coalesced.
     input.wheel_delta = GFPoint{event.scrollingDeltaX, event.scrollingDeltaY};
+    input.wheel_unit = event.hasPreciseScrollingDeltas ? WheelDeltaUnit::pixels : WheelDeltaUnit::lines;
     input.modifiers = modifiers_for(event.modifierFlags);
     input.pointer_id = 1;
     static_cast<void>([self dispatchHostPayload:std::move(input)
@@ -3816,6 +3910,12 @@ void finish_run(MacRunEnd& end) {
 - (void)windowDidChangeBackingProperties:(NSNotification*)notification {
     [_view notifyScaleChanged];
 }
+- (void)windowDidEnterFullScreen:(NSNotification*)notification {
+    [_view notifyWindowState];
+}
+- (void)windowDidExitFullScreen:(NSNotification*)notification {
+    [_view notifyWindowState];
+}
 - (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window {
     if (!_stopsApplicationOnClose) return gui_forms::host::MacTerminationClose::not_ending;
     // windowShouldClose: rather than performClose:, which beeps and does
@@ -3879,6 +3979,8 @@ void finish_run(MacRunEnd& end) {
 
 @implementation GUIFormsPopupPanel
 - (instancetype)initWithContentRect:(NSRect)contentRect takesFocus:(BOOL)takesFocus {
+    // A Splash (no input) is made with takesFocus NO and then told to
+    // ignore the mouse (MacApplicationRun::open).
     const NSWindowStyleMask style = NSWindowStyleMaskBorderless | NSWindowStyleMaskNonactivatingPanel;
     self = [super initWithContentRect:contentRect styleMask:style backing:NSBackingStoreBuffered defer:NO];
     if (self != nil) _takesFocus = takesFocus;
@@ -3936,7 +4038,9 @@ HostCapabilities macos_capabilities() {
                 HostCapability::transparent_windows |
                 HostCapability::window_backdrops |
                 HostCapability::compositor_notifications |
-                HostCapability::presentation_preferences,
+                HostCapability::presentation_preferences |
+                HostCapability::transient_surfaces |
+                HostCapability::window_state_reports,
             macos_key_map()};
 }
 
@@ -4132,29 +4236,6 @@ private:
     GUIFormsView* view_;
 };
 
-class ShowNativeTooltip final {
-public:
-    explicit ShowNativeTooltip(GUIFormsView* view) noexcept : view_(view) {}
-
-    HostServiceStatus operator()(const HostTooltipRequest& request) const
-    {
-        return [view_ showHostTooltip:request];
-    }
-
-private:
-    GUIFormsView* view_;
-};
-
-class HideNativeTooltip final {
-public:
-    explicit HideNativeTooltip(GUIFormsView* view) noexcept : view_(view) {}
-
-    void operator()() const { [view_ hideHostTooltip]; }
-
-private:
-    GUIFormsView* view_;
-};
-
 class ReadNativeClipboard final {
 public:
     explicit ReadNativeClipboard(GUIFormsView* view) noexcept : view_(view) {}
@@ -4313,8 +4394,6 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
                 DispatchAndCollectWake(view, dispatchPending),
                 RequestNativeClose(nativeWindow),
                 ShowNativeDialog(view),
-                ShowNativeTooltip(view),
-                HideNativeTooltip(view),
                 ReadNativeClipboard(view),
                 WriteNativeClipboard(view));
         }
@@ -4354,3 +4433,5 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
 #include "macos_application_run.inc"
 
 } // namespace gui_forms::host
+
+#include "macos_splashscreen.inc"

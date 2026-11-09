@@ -21,29 +21,29 @@ void test_dialogs_and_host_services(gui_forms::Window& window,
     }
 
     click(window, window.find("gallery.host.message.2"));
-    require((*status).text().find("Accepted · MessageBox Yes") != std::string::npos,
+    require((*status).text.read().find("Accepted · MessageBox Yes") != std::string::npos,
             "message dialog must publish its typed accepted choice");
     click(window, window.find("gallery.host.dialog.1"));
-    require((*status).text().find("2 paths · /tmp/alpha.txt") != std::string::npos,
+    require((*status).text.read().find("2 paths · /tmp/alpha.txt") != std::string::npos,
             "multi-open must retain all accepted paths through the portable result");
     cancel_save = true;
     click(window, window.find("gallery.host.dialog.2"));
-    require((*status).text().find("Cancelled · preserved: 2 paths · /tmp/alpha.txt") !=
+    require((*status).text.read().find("Cancelled · preserved: 2 paths · /tmp/alpha.txt") !=
                 std::string::npos,
             "dialog cancellation must not overwrite the last accepted value");
     click(window, window.find("gallery.host.dialog.4"));
-    require((*status).text().find("#315F89FF") != std::string::npos,
+    require((*status).text.read().find("#315F89FF") != std::string::npos,
             "color dialog must publish an exact typed RGBA result");
 
-    const std::string clipboard_probe((*editor).text());
+    const std::string clipboard_probe((*editor).text.read());
     click(window, window.find("gallery.host.service.0"));
-    (*editor).set_text("locally replaced");
+    (*editor).text = "locally replaced";
     click(window, window.find("gallery.host.service.1"));
-    require((*editor).text() == clipboard_probe &&
-                (*status).text().find("text restored") != std::string::npos,
+    require((*editor).text.read() == clipboard_probe &&
+                (*status).text.read().find("text restored") != std::string::npos,
             "clipboard write/read must round-trip UTF-8 through HostServices");
     click(window, window.find("gallery.host.service.2"));
-    require((*status).text().find("headless.primary") != std::string::npos,
+    require((*status).text.read().find("headless.primary") != std::string::npos,
             "monitor inspection must identify the primary host monitor and scale");
     click(window, window.find("gallery.host.service.3"));
     require(services.sound_trace().find("sound=operation_complete") !=
@@ -68,12 +68,12 @@ void test_dialogs_and_host_services(gui_forms::Window& window,
             "the font button opens the in-window dialog");
     (*(*dialog).face_list()).select_index(2U);
     require((*(*dialog).ok_button()).perform_click() && !(*dialog).is_open() &&
-                (*sample).font().role == FontRole::monospace && window.focus_scope_depth() == 0U,
+                (*sample).resolved_font().role == FontRole::monospace && window.focus_scope_depth() == 0U,
             "OK restyles the sample and closes the dialog");
 
     // Open file goes through the OpenFileDialog component.
     click(window, window.find("gallery.host.dialog.0"));
-    require((*status).text().find("1 path · /tmp/alpha.txt") != std::string::npos &&
+    require((*status).text.read().find("1 path · /tmp/alpha.txt") != std::string::npos &&
                 services.snapshot().dialog_requests == 5U &&
                 services.dialog_trace().find("dialog=open_file") != std::string::npos,
             "the OpenFileDialog specimen publishes its one accepted path");
@@ -81,13 +81,13 @@ void test_dialogs_and_host_services(gui_forms::Window& window,
     // Save file goes through the SaveFileDialog component.
     cancel_save = false;
     click(window, window.find("gallery.host.dialog.2"));
-    require((*status).text().find("1 path · /tmp/gui-forms-evidence.txt") != std::string::npos &&
+    require((*status).text.read().find("1 path · /tmp/gui-forms-evidence.txt") != std::string::npos &&
                 services.snapshot().dialog_requests == 6U,
             "the SaveFileDialog specimen publishes its accepted path");
 
     // Choose folder goes through the FolderBrowserDialog component.
     click(window, window.find("gallery.host.dialog.3"));
-    require((*status).text().find("1 path · /tmp/evidence") != std::string::npos &&
+    require((*status).text.read().find("1 path · /tmp/evidence") != std::string::npos &&
                 services.snapshot().dialog_requests == 7U,
             "the FolderBrowserDialog specimen publishes its chosen folder");
     // The button sits below the fold of the test window, so it is clicked
@@ -99,14 +99,14 @@ void test_dialogs_and_host_services(gui_forms::Window& window,
         window.find("gallery.host.exception-dialog.dialog"));
     require(exception_dialog && (*exception_dialog).shown() &&
                 (*exception_dialog).page().text == "The evidence index is out of date." &&
-                (*status).text().find("ThreadExceptionDialog shown") != std::string::npos,
+                (*status).text.read().find("ThreadExceptionDialog shown") != std::string::npos,
             "the exception button reports the caught exception in a ThreadExceptionDialog");
     require((*exception_dialog).click("quit") && !(*exception_dialog).shown() &&
-                (*status).text().find("closed with Quit") != std::string::npos,
+                (*status).text.read().find("closed with Quit") != std::string::npos,
             "Quit closes the exception dialog and the Gallery keeps running");
     require((*exception_button).perform_click(), "the exception button is clicked again");
     static_cast<void>(window.dispatch_key({KeyAction::down, PhysicalKey::escape}));
-    require(!(*exception_dialog).shown() && (*status).text().find("closed with Continue") != std::string::npos,
+    require(!(*exception_dialog).shown() && (*status).text.read().find("closed with Continue") != std::string::npos,
             "Escape continues past the exception");
 }
 

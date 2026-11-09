@@ -1,7 +1,9 @@
 #include "gui_forms/application.hpp"
 #include "../../core/application/application_state.hpp"
+#include "../../core/application/splashscreen_surface.hpp"
 
 #include <atomic>
+#include <optional>
 #include <utility>
 
 #if defined(GUI_FORMS_APPLICATION_MACOS)
@@ -94,8 +96,7 @@ struct HostReady final {
     std::shared_ptr<WindowBridge> bridge{};
     void operator()(std::function<void()> wake, std::function<void()> request_close,
                     std::function<HostDialogResult(const HostDialogRequest&)>,
-                    std::function<HostServiceStatus(const HostTooltipRequest&)>,
-                    std::function<void()>, std::function<HostClipboardTextResult()>,
+                    std::function<HostClipboardTextResult()>,
                     std::function<HostServiceStatus(std::string_view)>) const noexcept {
         (*(*bridge).state).request_close = std::move(request_close);
         (*bridge).host_ready = true;
@@ -231,7 +232,7 @@ NativeWindow prepare_one(ApplicationWindow& source, BridgeScope& scope,
     entry.model = std::move(source.model);
     // One key map for the application's windows, floating ones included
     // (owner decision DK-44).
-    (*entry.model).set_key_bindings(Application::key_bindings());
+    (*entry.model).set_key_bindings((*run).key_bindings);
     entry.options.title = (*bridge).options.title;
     entry.options.initial_size = (*bridge).options.initial_size;
     entry.options.minimum_size = (*bridge).options.minimum_size;
@@ -279,6 +280,10 @@ HostServiceError runtime_entry_refusal(const ApplicationWindow& entry, const Hos
     // A host that opens no popup windows refuses a popup before any native
     // request (HostWindowing::supports_popup_windows).
     if (entry.popup.has_value() && !windowing.supports_popup_windows()) return HostServiceError::unsupported;
+    if (entry.popup.has_value() && host_transient_is_splash((*entry.popup).kind) &&
+        !windowing.supports_splash_windows()) {
+        return HostServiceError::unsupported;
+    }
     std::optional<HostWindowId> owner{};
     if (!entry.owner_id.empty()) {
         owner = windowing.find(entry.owner_id);
@@ -353,6 +358,22 @@ struct WindowingEnded final {
 };
 }
 
+// The platform half of the splashscreen: validated and checked against the
+// one that shows before the host is asked for a window.
+SplashscreenResult Splashscreen::show(SplashscreenOptions options) {
+    SplashscreenResult checked = Splashscreen::show_on(options, nullptr);
+    if (checked.error != SplashscreenError::unsupported) return checked;
+    // Valid here: show_on checked the artwork before refusing the null surface.
+    const std::optional<Size> size = detail::splashscreen_size(options);
+    std::unique_ptr<detail::SplashscreenSurface> surface{};
+#if defined(GUI_FORMS_APPLICATION_MACOS) || defined(GUI_FORMS_APPLICATION_WINDOWS) || \
+    defined(GUI_FORMS_APPLICATION_LINUX)
+    if (size.has_value()) surface = host::open_platform_splashscreen(*size);
+#endif
+    SplashscreenResult result = Splashscreen::show_on(std::move(options), std::move(surface));
+    return result;
+}
+
 HostCapabilities Application::capabilities() {
 #if defined(GUI_FORMS_APPLICATION_MACOS)
     const HostCapabilities result = host::macos_capabilities();
@@ -394,6 +415,7 @@ ApplicationResult Application::run(std::vector<ApplicationWindow> windows) {
     const std::shared_ptr<CallbackFailure> failure = std::make_shared<CallbackFailure>();
     const std::shared_ptr<detail::ApplicationRunState> run_state =
         std::make_shared<detail::ApplicationRunState>();
+    (*run_state).key_bindings = key_bindings_;
 #if defined(GUI_FORMS_APPLICATION_MACOS)
     std::vector<host::MacApplicationWindow> native{};
     prepare(windows, bridges, failure, run_state, native);

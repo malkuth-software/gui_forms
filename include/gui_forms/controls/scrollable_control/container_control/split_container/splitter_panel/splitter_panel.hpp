@@ -1,20 +1,16 @@
 #pragma once
 
 #include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel_capabilities/splitter_panel_capabilities.hpp"
 
 #include <span>
 
 namespace gui_forms {
 
-class SplitterPanel final : public ContainerControl {
+class SplitterPanel final : public ContainerControl, public SplitterPanelCapabilities<SplitterPanel> {
 public:
     explicit SplitterPanel(StableId stable_id);
 
-    // A SplitterPanel is the allocated pane surface, not merely an invisible
-    // child owner. Painting the background from its committed bounds keeps the
-    // visual allocation truthful while the splitter is moving.
-    [[nodiscard]] Color background() const noexcept { return background_; }
-    void set_background(Color color);
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members: the scrollable parts and the face.
@@ -28,7 +24,13 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
-    Color background_{Color::rgba(0, 0, 0, 0)};
+    // property_codemod begin SplitterPanel (tools/property_families/splitter_panel.json; generated, do not edit)
+private:
+    friend struct SplitterPanelBackgroundCapability<SplitterPanel>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(background)& cell, Color& incoming);
+    void written(const decltype(background)& cell);
+    // property_codemod end SplitterPanel
 };
 
 } // namespace gui_forms

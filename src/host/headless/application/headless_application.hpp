@@ -48,6 +48,16 @@ public:
     HeadlessWindowing(HeadlessApplication& application, HostCapabilities capabilities);
     // The headless host opens native popups (stage T5, phase (a)).
     [[nodiscard]] bool supports_popup_windows() const noexcept override;
+    // True by default; tests turn it off to see the overlay fallback.
+    [[nodiscard]] bool supports_splash_windows() const noexcept override;
+    void set_splash_windows(bool supported) noexcept { splash_windows_ = supported; }
+    // Popup windows, true by default; tests turn them off to see menus fall
+    // back to overlays.
+    void set_popup_windows(bool supported) noexcept { popup_windows_ = supported; }
+    // Translucent transient windows, true by default; tests turn it off to
+    // see the opaque path of an X11 run without a compositing manager.
+    [[nodiscard]] bool transient_windows_translucent() const noexcept override;
+    void set_transient_windows_translucent(bool translucent) noexcept { translucent_ = translucent; }
 
     // Replaces the simulated monitors (desktop logical units). An empty
     // list is ignored.
@@ -68,6 +78,10 @@ public:
 
     [[nodiscard]] const std::string& trace() const noexcept { return trace_; }
     void clear_trace() noexcept { trace_.clear(); }
+    // Whether showing, hiding, framing and raising a window append to the
+    // trace (on by default). An allocation count of those operations turns
+    // it off: each line is formatted on the heap.
+    void set_tracing(bool tracing) noexcept { tracing_ = tracing; }
     void note(std::string_view line);
     // Native state, for assertions. Empty for an unknown window.
     [[nodiscard]] std::optional<Rect> native_content(HostWindowId window) const;
@@ -95,6 +109,7 @@ protected:
     [[nodiscard]] HostServiceStatus bring_to_front_impl(HostWindowId window) override;
     [[nodiscard]] HostServiceStatus destroy_window_impl(HostWindowId window) override;
     [[nodiscard]] HostMonitorResult query_monitors_impl() override;
+    void query_monitors_into_impl(HostMonitorResult& result) override;
     [[nodiscard]] HostServiceStatus show_impl(HostWindowId window) override;
     [[nodiscard]] HostServiceStatus hide_impl(HostWindowId window) override;
 
@@ -128,6 +143,10 @@ private:
     std::vector<NativeWindow> natives_;
     std::vector<HostWindowId> order_;
     std::string trace_;
+    bool tracing_{true};
+    bool splash_windows_{true};
+    bool popup_windows_{true};
+    bool translucent_{true};
 };
 
 // A deterministic multi-window application for tests: Application::run's

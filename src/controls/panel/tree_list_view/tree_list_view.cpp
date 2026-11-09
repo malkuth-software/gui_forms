@@ -136,7 +136,7 @@ std::string cell_identity(std::string_view node_id, std::string_view column_id) 
 } // namespace
 
 TreeListView::TreeListView(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(true);
+    focusable = true;
     set_paint_plane(PaintPlane::control);
     rebuild_structure();
 }
@@ -148,8 +148,8 @@ void TreeListView::initialize_control_tree() {
     vertical_bar_ = make_control<VScrollBar>(StableId(prefix + ".vertical-scroll-bar"));
     horizontal_bar_ = make_control<HScrollBar>(StableId(prefix + ".horizontal-scroll-bar"));
     // The bars scroll with the pointer; the keyboard scrolls the view itself.
-    (*vertical_bar_).set_focusable(false);
-    (*horizontal_bar_).set_focusable(false);
+    (*vertical_bar_).focusable = false;
+    (*horizontal_bar_).focusable = false;
     add_child(vertical_bar_);
     add_child(horizontal_bar_);
     vertical_scrolled_ = (*vertical_bar_).value_changed().subscribe(
@@ -917,9 +917,9 @@ void TreeListView::sync_scroll_bars(const Layout& placed) {
     if (!placed.vertical_bar.empty() && maximum_row > 0.0) {
         VScrollBar& bar = *vertical_bar_;
         bar.set_range(0.0, maximum_row);
-        bar.set_small_change(1.0);
-        bar.set_large_change(static_cast<double>(placed.page_rows));
-        bar.set_value(std::clamp(static_cast<double>(placed.top_row), 0.0, maximum_row));
+        bar.small_change = 1.0;
+        bar.large_change = static_cast<double>(placed.page_rows);
+        bar.value = std::clamp(static_cast<double>(placed.top_row), 0.0, maximum_row);
     }
     if (!placed.horizontal_bar.empty()) {
         const double visible = placed.viewport.width / placed.scale;
@@ -927,9 +927,9 @@ void TreeListView::sync_scroll_bars(const Layout& placed) {
         if (maximum_offset > 0.0) {
             HScrollBar& bar = *horizontal_bar_;
             bar.set_range(0.0, maximum_offset);
-            bar.set_small_change(horizontal_key_step);
-            bar.set_large_change(std::max(1.0, visible));
-            bar.set_value(std::clamp(placed.horizontal_offset, 0.0, maximum_offset));
+            bar.small_change = horizontal_key_step;
+            bar.large_change = std::max(1.0, visible);
+            bar.value = std::clamp(placed.horizontal_offset, 0.0, maximum_offset);
         }
     }
     synchronizing_scroll_ = false;
@@ -2011,7 +2011,10 @@ void TreeListView::prepare_write(const decltype(font)&, FontSpec& incoming) {
 
 void TreeListView::written(const decltype(font)&) {
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    on_font_changed();
 }
+
+void TreeListView::on_font_changed() {}
 
 // property_codemod end TreeListView
 

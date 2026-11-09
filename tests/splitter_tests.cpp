@@ -111,7 +111,7 @@ bool throws_invalid(Action action) {
 struct SetMinSize final {
     Splitter* splitter{};
     double value{};
-    void operator()() const { (*splitter).set_min_size(value); }
+    void operator()() const { (*splitter).min_size = value; }
 };
 
 struct SetPosition final {

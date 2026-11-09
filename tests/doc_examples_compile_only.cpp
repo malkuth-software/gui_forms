@@ -25,6 +25,9 @@ struct Greeter final : gf::Component {
 };
 
 void example() {
+    gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+    if (!created) return;
+    gf::Application& application = *created.application;
     Greeter greeter;
     std::unique_ptr<gf::Window> window =
         std::make_unique<gf::Window>(greeter.root, gf::Size{480.0, 140.0});
@@ -32,7 +35,7 @@ void example() {
     options.title = "Greeter";
     options.initial_size = {480.0, 140.0};
     options.minimum_size = {320.0, 140.0};
-    gf::ApplicationResult result = gf::Application::run(std::move(window), std::move(options));
+    gf::ApplicationResult result = application.run(std::move(window), std::move(options));
     if (!result.accepted()) {
         std::fprintf(stderr, "run failed: %d\n", static_cast<int>(result.error));
     }
@@ -70,11 +73,14 @@ struct KeepHandle final {
 };
 
 void example() {
+    gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+    if (!created) return;
+    gf::Application& application = *created.application;
     Editor editor;
     gf::ApplicationWindowOptions options;
     options.title = "Editor";
     options.ready = KeepHandle{&editor};
-    gf::ApplicationResult result = gf::Application::run(
+    gf::ApplicationResult result = application.run(
         std::make_unique<gf::Window>(editor.root, gf::Size{640.0, 480.0}), std::move(options));
     static_cast<void>(result);
 }
@@ -94,6 +100,9 @@ struct ShowDocumentTitle final {
 };
 
 void example() {
+    gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+    if (!created) return;
+    gf::Application& application = *created.application;
     bool unsaved_changes = false;
     std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("notes"));
     gf::ApplicationWindowOptions options;
@@ -101,7 +110,7 @@ void example() {
     options.initial_size = {800.0, 600.0};
     options.ready = ShowDocumentTitle{};
     options.closing = ConfirmClose{&unsaved_changes};
-    gf::ApplicationResult result = gf::Application::run(
+    gf::ApplicationResult result = application.run(
         std::make_unique<gf::Window>(root, gf::Size{800.0, 600.0}), std::move(options));
     static_cast<void>(result);
 }
@@ -135,10 +144,13 @@ struct OpenPalette final {
 };
 
 void example() {
+    gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+    if (!created) return;
+    gf::Application& application = *created.application;
     gf::ApplicationWindowOptions options;
     options.title = "Editor";
     options.ready = OpenPalette{};
-    gf::ApplicationResult result = gf::Application::run(
+    gf::ApplicationResult result = application.run(
         std::make_unique<gf::Window>(gf::make_control<gf::Panel>(gf::StableId("editor")),
                                      gf::Size{640.0, 480.0}),
         std::move(options));

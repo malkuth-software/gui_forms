@@ -11,15 +11,56 @@ gui_forms::Application
 
    ``#include <gui_forms/application/application.hpp>``
 
-   The entry point that presents windows on the platform's native host.
+   The application: what every window shares, and the entry point that presents windows on the platform's native host.
 
-   ``Application::run`` takes one or more retained :cpp:class:`Window <gui_forms::Window>` models, gives each a
-   native window, pumps native events until the primary window closes and then
-   returns an :cpp:class:`ApplicationResult <gui_forms::ApplicationResult>`. It is the C++ counterpart of Windows Forms'
-   ``Application.Run``. The class has only static members and cannot be
-   constructed. Link ``GUIForms::Application``, which contains the one native host
-   the SDK was built with; renderer-free programs and tests use :cpp:class:`Window <gui_forms::Window>`
-   directly and need no host.
+   A program makes one with ``Application::create`` before its windows. The result
+   owns the application, or refuses with nothing made. While it lives it is the
+   current application (``Application::current``). Every top-level :cpp:class:`Window <gui_forms::Window>` made on
+   its thread joins it: the window shares its resources (the image registry and
+   the theme, compiled once by :cpp:func:`create <gui_forms::Application::create>`), starts from its presentation defaults
+   and follows its tooltip switch. Popups, dialogs, menus and tooltips open from a
+   window and take that window's configuration. Without an application, which is
+   how tests and renderer-free programs work, a window makes its own resources
+   with the built-in theme.
+
+   :cpp:func:`run <gui_forms::Application::run>` takes one or more retained :cpp:class:`Window <gui_forms::Window>` models, gives each a native window,
+   pumps native events until the primary window closes and then returns an
+   :cpp:class:`ApplicationResult <gui_forms::ApplicationResult>`. It is the C++ counterpart of Windows Forms'
+   ``Application.Run``. Link ``GUIForms::Application``, which contains the one native
+   host the SDK was built with, for :cpp:func:`run <gui_forms::Application::run>` and :cpp:func:`capabilities <gui_forms::Application::capabilities>`; the rest is part of
+   ``GUIForms::Core``.
+
+   :Properties:
+
+      **closed** : ``bool``, read-only
+         Whether :cpp:func:`close <gui_forms::Application::close>` has run.
+
+      **window_count** : ``std::size_t``, read-only
+         The windows that joined the application and are alive.
+
+      **resources** : ``std::shared_ptr<ApplicationResources>``, read-only
+         The resources every joined window shares, unless it was made with its
+         own.
+
+      **presentation_settings** : ``PresentationSettings``
+         The presentation every joined window takes as its own: the configured
+         defaults (``ApplicationConfig::presentation``), then the host's reports.
+         :cpp:func:`set_presentation_settings <gui_forms::Application::set_presentation_settings>` changes it and gives it to every joined
+         window in the order they joined; each keeps its overrides
+         (``Window::set_presentation_overrides``) and raises
+         ``presentation_changed`` when its settings in force change. Invalid
+         settings throw ``std::invalid_argument`` and change nothing.
+
+      **key_bindings** : ``std::shared_ptr<KeyBindings>``, read-only
+         The application's one set of keyboard-command keys (owner decision
+         DK-44). :cpp:func:`run <gui_forms::Application::run>` gives it to every window it runs, so a rebinding in any
+         window holds in all.
+
+      **tool_tips_shown** : ``bool``, default ``true``
+         The program's tooltip switch (:cpp:func:`set_tool_tips_shown <gui_forms::Application::set_tool_tips_shown>`): whether tooltips
+         show in every joined window whose own switch is unset
+         (``Window::set_tool_tips_shown``). A tooltip that already shows stays
+         until it closes. Any thread.
 
    .. rubric:: Methods
 
@@ -27,20 +68,22 @@ gui_forms::Application
       :class: autosummary longtable
       :widths: 35 65
 
+      * - :cpp:func:`create <gui_forms::Application::create>`
+        - ``create(ApplicationConfig)`` compiles the configured theme into fresh resources and registers the application as current: first the base (``ApplicationThemeConfig::base``), then the program's packages in order (``compile_theme_packages``), with imports from ``ApplicationThemeConfig::library`` and the stock anatomies plus ``ApplicationThemeConfig::controls``.
+      * - :cpp:func:`current <gui_forms::Application::current>`
+        - The current application, or null.
+      * - :cpp:func:`close <gui_forms::Application::close>`
+        - Ends the application's time as current, before it is destroyed.
       * - :cpp:func:`validate <gui_forms::Application::validate>`
         - Checks a set of windows against the rules :cpp:func:`run <gui_forms::Application::run>` applies, without presenting anything, and returns the first problem as an :cpp:class:`ApplicationResult <gui_forms::ApplicationResult>`.
       * - :cpp:func:`capabilities <gui_forms::Application::capabilities>`
         - The capability record of the linked native host: its name and the services it offers, such as dialogs, clipboard and cursors.
-      * - :cpp:func:`key_bindings <gui_forms::Application::key_bindings>`
-        - The application's one set of keyboard-command keys (owner decision DK-44): :cpp:func:`run <gui_forms::Application::run>` gives it to every window it runs, before the host attaches, so the host seeds it once and a rebinding in any window holds in all.
-      * - :cpp:func:`tool_tips_shown <gui_forms::Application::tool_tips_shown>`
-        -  
       * - :cpp:func:`run <gui_forms::Application::run>`
         - ``run(std::unique_ptr<Window>, ApplicationWindowOptions)`` presents one window, with the stable ID ``"main"``.
       * - :cpp:func:`shutdown <gui_forms::Application::shutdown>`
         - Ends the rendering library once per process: it frees stx_skia's caches and singletons.
-      * - :cpp:func:`set_tool_tips_shown <gui_forms::Application::set_tool_tips_shown>`
-        - The program's tooltip switch (owner, 2026-10-28): whether tooltips show in every window whose own switch is unset (Window::set_tool_tips_shown).
+      * - :cpp:func:`set_theme <gui_forms::Application::set_theme>`
+        - Replaces the program's theme of every joined window: the shared resources' first, which every window sharing them follows, then each joined window's own resources.
 
    .. seealso::
 
@@ -54,7 +97,10 @@ gui_forms::Application
          One entry of a multi-window run.
 
       :cpp:class:`ApplicationResult <gui_forms::ApplicationResult>`
-         What ``run``, ``validate`` and ``shutdown`` return.
+         What ``run``, ``close``, ``validate`` and ``shutdown`` return.
+
+      :cpp:class:`ApplicationConfig <gui_forms::ApplicationConfig>`
+         The theme, presentation defaults and image quotas an application is made with.
 
       :cpp:class:`Window <gui_forms::Window>`
          The retained model each native window presents.
@@ -81,6 +127,8 @@ gui_forms::Application
      ``ApplicationResult::native_exit_code``.
    - :cpp:enumerator:`ApplicationError::after_shutdown <gui_forms::ApplicationError::after_shutdown>`: :cpp:func:`shutdown <gui_forms::Application::shutdown>` has already run in this
      process.
+   - :cpp:enumerator:`ApplicationError::windows_alive <gui_forms::ApplicationError::windows_alive>`: from :cpp:func:`close <gui_forms::Application::close>`, while a window that
+     joined the application lives.
 
    The rules :cpp:func:`validate <gui_forms::Application::validate>` checks: between 1 and 64 windows; every stable ID
    nonempty, unique, at most 1024 bytes of valid UTF-8 without NUL; an owner ID,
@@ -94,7 +142,7 @@ gui_forms::Application
 
    For each window the callbacks run in this order: ``wake_ready``, then ``ready``
    once the native window and its services exist and before it is first shown,
-   then input and painting, then ``closing`` for each close request, and ``closed``
+   then input and painting, then ``closing`` for each close request, and :cpp:func:`closed <gui_forms::Application::closed>`
    once it has closed. All of them run on the thread that called :cpp:func:`run <gui_forms::Application::run>`.
 
    .. rubric:: Examples
@@ -117,6 +165,9 @@ gui_forms::Application
       };
 
       void example() {
+          gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+          if (!created) return;
+          gf::Application& application = *created.application;
           Greeter greeter;
           std::unique_ptr<gf::Window> window =
               std::make_unique<gf::Window>(greeter.root, gf::Size{480.0, 140.0});
@@ -124,7 +175,7 @@ gui_forms::Application
           options.title = "Greeter";
           options.initial_size = {480.0, 140.0};
           options.minimum_size = {320.0, 140.0};
-          gf::ApplicationResult result = gf::Application::run(std::move(window), std::move(options));
+          gf::ApplicationResult result = application.run(std::move(window), std::move(options));
           if (!result.accepted()) {
               std::fprintf(stderr, "run failed: %d\n", static_cast<int>(result.error));
           }
@@ -136,7 +187,86 @@ gui_forms::Application
       }
 
 
+   .. rubric:: Properties
+
+   .. cpp:function:: bool closed() const noexcept
+
+      Whether :cpp:func:`close <gui_forms::Application::close>` has run.
+
+   .. cpp:function:: std::size_t window_count() const noexcept
+
+      The windows that joined the application and are alive.
+
+   .. cpp:function:: const std::shared_ptr<ApplicationResources>& resources() const noexcept
+
+      The resources every joined window shares, unless it was made with its
+      own.
+
+   .. cpp:function:: const PresentationSettings& presentation_settings() const noexcept
+
+      The presentation every joined window takes as its own: the configured
+      defaults (``ApplicationConfig::presentation``), then the host's reports.
+      :cpp:func:`set_presentation_settings <gui_forms::Application::set_presentation_settings>` changes it and gives it to every joined
+      window in the order they joined; each keeps its overrides
+      (``Window::set_presentation_overrides``) and raises
+      ``presentation_changed`` when its settings in force change. Invalid
+      settings throw ``std::invalid_argument`` and change nothing.
+
+   .. cpp:function:: void set_presentation_settings(PresentationSettings settings)
+
+      Sets :cpp:func:`presentation_settings <gui_forms::Application::presentation_settings>`; see the property's description above.
+
+   .. cpp:function:: const std::shared_ptr<KeyBindings>& key_bindings() const noexcept
+
+      The application's one set of keyboard-command keys (owner decision
+      DK-44). :cpp:func:`run <gui_forms::Application::run>` gives it to every window it runs, so a rebinding in any
+      window holds in all.
+
+   .. cpp:function:: bool tool_tips_shown() const noexcept
+
+      The program's tooltip switch (:cpp:func:`set_tool_tips_shown <gui_forms::Application::set_tool_tips_shown>`): whether tooltips
+      show in every joined window whose own switch is unset
+      (``Window::set_tool_tips_shown``). A tooltip that already shows stays
+      until it closes. Any thread.
+
+   .. cpp:function:: void set_tool_tips_shown(bool shown) noexcept
+
+      Sets :cpp:func:`tool_tips_shown <gui_forms::Application::tool_tips_shown>`; see the property's description above.
+
+
    .. rubric:: Methods
+
+   .. cpp:function:: static ApplicationCreateResult create(ApplicationConfig config)
+
+      ``create(ApplicationConfig)`` compiles the configured theme into fresh
+      resources and registers the application as current: first the base
+      (``ApplicationThemeConfig::base``), then the program's packages in order
+      (``compile_theme_packages``), with imports from
+      ``ApplicationThemeConfig::library`` and the stock anatomies plus
+      ``ApplicationThemeConfig::controls``. With no packages and the default
+      base, the application takes the process default theme
+      (``default_compiled_theme``) without compiling it again. It returns an
+      :cpp:class:`ApplicationCreateResult <gui_forms::ApplicationCreateResult>` holding the application and the compile's
+      warnings in ``findings``. Refused, with nothing made: ``already_exists``
+      while another application is current; ``theme_refused`` when the compile
+      refuses the theme (duplicate package names and more than
+      ``maximum_theme_packages`` included), with its diagnostics in
+      ``findings``.
+
+   .. cpp:function:: static Application* current() noexcept
+
+      The current application, or null. Any thread may ask, but use the
+      application only on its own thread.
+
+   .. cpp:function:: ApplicationResult close()
+
+      Ends the application's time as current, before it is destroyed. While a
+      window that joined it lives, :cpp:func:`close <gui_forms::Application::close>` is refused with ``windows_alive``
+      and changes nothing. After it, :cpp:func:`create <gui_forms::Application::create>` may make another application,
+      and windows made from then on do not join this one. Calling it again
+      does nothing. Destroying an application that still has windows reports
+      them on stderr; they keep the resources they share and read nothing
+      more from it.
 
    .. cpp:function:: static ApplicationResult validate(const std::vector<ApplicationWindow>& windows)
 
@@ -151,13 +281,7 @@ gui_forms::Application
       without a native host reports the name ``"unsupported"`` and no
       capabilities.
 
-   .. cpp:function:: static const std::shared_ptr<KeyBindings>& key_bindings()
-
-      The application's one set of keyboard-command keys (owner decision DK-44): :cpp:func:`run <gui_forms::Application::run>` gives it to every window it runs, before the host attaches, so the host seeds it once and a rebinding in any window holds in all. Made on first use; lives as long as the process. UI thread only.
-
-   .. cpp:function:: static bool tool_tips_shown() noexcept
-
-   .. cpp:function:: static ApplicationResult run(std::unique_ptr<Window> window, ApplicationWindowOptions options = {})
+   .. cpp:function:: ApplicationResult run(std::unique_ptr<Window> window, ApplicationWindowOptions options = {})
 
       ``run(std::unique_ptr<Window>, ApplicationWindowOptions)`` presents one
       window, with the stable ID ``"main"``. ``run(std::vector<ApplicationWindow>)``
@@ -166,7 +290,7 @@ gui_forms::Application
       window has closed. The window models are consumed even when :cpp:func:`run <gui_forms::Application::run>`
       fails.
 
-   .. cpp:function:: static ApplicationResult run(std::vector<ApplicationWindow> windows)
+   .. cpp:function:: ApplicationResult run(std::vector<ApplicationWindow> windows)
 
       ``run(std::unique_ptr<Window>, ApplicationWindowOptions)`` presents one
       window, with the stable ID ``"main"``. ``run(std::vector<ApplicationWindow>)``
@@ -187,9 +311,13 @@ gui_forms::Application
       it, a crash included, and lose nothing: the library holds only process
       memory, which the operating system reclaims.
 
-   .. cpp:function:: static void set_tool_tips_shown(bool shown) noexcept
+   .. cpp:function:: void set_theme(std::shared_ptr<const Theme> theme)
 
-      The program's tooltip switch (owner, 2026-10-28): whether tooltips show in every window whose own switch is unset (Window::set_tool_tips_shown). On by default. A window reads it when a tooltip would show, so a tooltip that already shows stays until it closes. Any thread.
+      Replaces the program's theme of every joined window: the shared
+      resources' first, which every window sharing them follows, then each
+      joined window's own resources. Null and the refusals of
+      ``ApplicationResources::set_theme`` throw ``std::invalid_argument``; a
+      refusal by the shared resources changes nothing.
 
    .. cpp:member:: constexpr std::size_t maximum_windows
 

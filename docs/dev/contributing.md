@@ -163,6 +163,7 @@ repository, listed under [Architecture decisions](decisions).
 ## Licence
 
 GUI.Forms is MIT licensed. Bundled fonts carry their own licences in
-`assets/fonts/`; third-party sources keep theirs under `third_party/` and
-are installed under `share/licenses/`. A contribution is accepted under the
+`assets/fonts/`; third-party sources live in the stx repository (pinned in
+`stx.lock`), keep their licences there, and are installed under
+`share/licenses/`. A contribution is accepted under the
 project licence.

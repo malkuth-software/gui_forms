@@ -191,7 +191,8 @@ bool has_action(const SemanticNode& node, SemanticAction action) noexcept {
 }
 
 bool is_check_role(SemanticRole role) noexcept {
-    const bool check = role == SemanticRole::check_box || role == SemanticRole::check_list_item;
+    const SemanticRole acting = semantic_role_fallback(role);
+    const bool check = acting == SemanticRole::check_box || acting == SemanticRole::check_list_item;
     return check;
 }
 
@@ -252,6 +253,8 @@ CONTROLTYPEID expected_control_type(SemanticRole role) noexcept {
     case SemanticRole::status_bar: return UIA_StatusBarControlTypeId;
     case SemanticRole::live_region: return UIA_GroupControlTypeId;
     case SemanticRole::meter: return UIA_ProgressBarControlTypeId;
+    case SemanticRole::toggle_switch: return UIA_ButtonControlTypeId;
+    case SemanticRole::search_box: return UIA_EditControlTypeId;
     case SemanticRole::count: return UIA_GroupControlTypeId;
     }
     return UIA_GroupControlTypeId;
@@ -302,10 +305,12 @@ ExpectedPatterns expected_patterns(const SemanticNode& node) noexcept {
     }
     patterns.range_value = node.numeric_value.has_value();
     patterns.value = !node.numeric_value.has_value() &&
-                     (has_action(node, SemanticAction::set_value) || node.role == SemanticRole::text_box);
+                     (has_action(node, SemanticAction::set_value) ||
+                      semantic_role_fallback(node.role) == SemanticRole::text_box);
     patterns.grid = node.row_count.has_value() && node.column_count.has_value();
     patterns.grid_item = node.row_index.has_value() && node.column_index.has_value();
-    patterns.text = node.role == SemanticRole::text_box && node.text_selection.has_value() &&
+    patterns.text = semantic_role_fallback(node.role) == SemanticRole::text_box &&
+                    node.text_selection.has_value() &&
                     !has_semantic_state(node.states, SemanticState::protected_content);
     patterns.expand_collapse = has_action(node, SemanticAction::expand) ||
                                has_action(node, SemanticAction::collapse) ||
@@ -1624,8 +1629,8 @@ struct BeginAction final {
                 Delegate<ButtonBase&>::bind<ClickCounter, &ClickCounter::clicked>(out.clicks));
         }
         const std::shared_ptr<RibbonColorPicker> picker = std::dynamic_pointer_cast<RibbonColorPicker>(control);
-        if (picker && (*picker).command()) {
-            const std::shared_ptr<Command>& command = (*(*picker).command()).command();
+        if (picker && (*picker).command.read()) {
+            const std::shared_ptr<Command>& command = (*(*picker).command.read()).command();
             out.invocation_subscription = (*command).invoked().subscribe(
                 Delegate<const CommandInvocation&>::bind<InvocationCounter, &InvocationCounter::invoked>(
                     out.invocations));
@@ -2173,8 +2178,7 @@ struct HostReady final {
     std::thread* client{};
     void operator()(std::function<void()>, std::function<void()> request_close,
                     std::function<HostDialogResult(const HostDialogRequest&)>,
-                    std::function<HostServiceStatus(const HostTooltipRequest&)>,
-                    std::function<void()>, std::function<HostClipboardTextResult()>,
+                    std::function<HostClipboardTextResult()>,
                     std::function<HostServiceStatus(std::string_view)>) const {
         (*run).request_close = std::move(request_close);
         (*run).dispatcher = (*(*run).window).dispatcher();

@@ -130,6 +130,9 @@ LONG msaa_role(SemanticRole role) noexcept {
     case SemanticRole::live_region: return ROLE_SYSTEM_GROUPING;
     // MSAA has no meter role; a meter reads as a progress bar.
     case SemanticRole::meter: return ROLE_SYSTEM_PROGRESSBAR;
+    // MSAA has neither: each reads as its fallback.
+    case SemanticRole::toggle_switch: return ROLE_SYSTEM_CHECKBUTTON;
+    case SemanticRole::search_box: return ROLE_SYSTEM_TEXT;
     case SemanticRole::count: return ROLE_SYSTEM_GROUPING;
     }
     return ROLE_SYSTEM_GROUPING;

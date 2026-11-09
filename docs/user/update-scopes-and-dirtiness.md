@@ -22,16 +22,16 @@ property changes in a row do not cause ten layout passes.
 | `accessibility` | its native accessibility publication refreshed |
 
 `Dirty::layout` is `measure | arrange`. The `invalidation` namespace names the
-combinations setters actually use: `invalidation::bounds` is measure, arrange,
+combinations property writes actually use: `invalidation::bounds` is measure, arrange,
 paint, hit test, semantics and accessibility; `invalidation::enabled` is paint,
 hit test, semantics and accessibility; `invalidation::text_content` adds `text`
-to the bounds set; `invalidation::paint_only` is paint alone. Stock setters
+to the bounds set; `invalidation::paint_only` is paint alone. Stock properties
 pick the narrowest correct set.
 
 ## Three ways to invalidate
 
 `invalidate(Dirty)`
-: Marks this control and the path to the root. This is what setters call.
+: Marks this control and the path to the root. This is what property writes call.
 
 `invalidate_subtree(Dirty)`
 : Marks every descendant too. Use it when a change to this control changes
@@ -65,8 +65,8 @@ Always obtain a scope from `begin_update()`: a default-constructed
 ```cpp
 {
     gf::UpdateScope scope = window.begin_update();
-    (*status).set_text("Working…");
-    (*progress).set_value(0.0);
+    (*status).text = "Working…";
+    (*progress).value = 0.0;
     (*cancel).enabled = true;
 }   // one layout pass, one damage publication
 ```

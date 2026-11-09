@@ -47,7 +47,7 @@ gf_status GF_CALL text_editing_select(gf_object object, std::uint64_t anchor, st
         }
         Utf8Offset anchor_offset;
         Utf8Offset caret_offset;
-        if (!text_offset(anchor, (*box).text(), anchor_offset) || !text_offset(caret, (*box).text(), caret_offset)) {
+        if (!text_offset(anchor, (*box).text.read(), anchor_offset) || !text_offset(caret, (*box).text.read(), caret_offset)) {
             return fail(GF_STATUS_INVALID_ARGUMENT, select_slot, "a selection lies within the text");
         }
         // TextBox::select refuses a position inside a grapheme cluster
@@ -93,11 +93,11 @@ gf_status GF_CALL text_editing_grapheme_boundary(gf_object object, std::uint64_t
             return entered;
         }
         Utf8Offset offset;
-        if (!text_offset(position, (*box).text(), offset)) {
+        if (!text_offset(position, (*box).text.read(), offset)) {
             return fail(GF_STATUS_INVALID_ARGUMENT, grapheme_boundary_slot, "the position lies within the text");
         }
         // A store of the box's text segments it as the box does.
-        const TextStore store((*box).text());
+        const TextStore store((*box).text.read());
         if (!store.is_grapheme_boundary(offset)) {
             return fail(GF_STATUS_INVALID_ARGUMENT, grapheme_boundary_slot,
                         "the position is not a grapheme boundary");
@@ -132,7 +132,7 @@ gf_status GF_CALL text_editing_replace_range(gf_object object, std::uint64_t sta
         if (read != GF_STATUS_OK) {
             return read;
         }
-        const std::size_t size = (*box).text().size();
+        const std::size_t size = (*box).text.read().size();
         if (start > size || length > size - start) {
             return fail(GF_STATUS_INVALID_ARGUMENT, replace_range_slot, "the range lies within the text");
         }

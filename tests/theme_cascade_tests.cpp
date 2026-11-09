@@ -159,8 +159,8 @@ void specificity_and_ties() {
     many.part = "face";
     many.states.push_back(AnatomyState::hot);
     const RuleSpecificity counted = rule_specificity(many);
-    require(counted.classes == 2U && counted.parts == 2U && counted.states == 1U && counted.ids == 0U,
-            "the part's name and role count one each, and each state one");
+    require(counted.classes == 3U && counted.types == 2U && counted.ids == 0U,
+            "each class and state counts in the class column, the part's name and role one each as types");
     require(rule_specificity(by_class("a")) < rule_specificity(by_id("x")) && rule_specificity(by_type()) <
                                                                                 rule_specificity(by_class("a")),
             "an ID outranks any number of classes, a class outranks a type");
@@ -180,12 +180,13 @@ void specificity_and_ties() {
     require(amplitude_of(rules.resolve(face_of("x", none))) == 0.4, "among equals, the later rule wins");
 
     // A given specificity (EC2) stands in for the selector's: the type rule
-    // given a class and a type beats the later class rule with a state, and
+    // given two classes and a type beats the later class rule with a state
+    // (two in the class column, as CSS counts a pseudo-class), and
     // a class rule may then carry no class of its own.
     ThemeRuleSheet given{};
     ThemeRule lifted = rule("lifted", CascadeLevel::class_rule, by_type(), bulge(0.3));
     RuleSpecificity of_class{};
-    of_class.classes = 1U;
+    of_class.classes = 2U;
     of_class.types = 1U;
     lifted.specificity = of_class;
     given.rules.push_back(lifted);
@@ -356,21 +357,21 @@ void newer_engine_rules_fall_back() {
 void style_classes() {
     std::shared_ptr<Control> control = make_control<Control>(StableId("styled"));
     std::vector<std::string> initial{"loud", "wide", "loud"};
-    (*control).set_classes(initial);
-    require((*control).classes().size() == 2U && (*control).has_class("loud") && (*control).has_class("wide"),
+    (*control).classes = initial;
+    require((*control).classes.read().size() == 2U && (*control).has_class("loud") && (*control).has_class("wide"),
             "classes are kept once each, in order");
-    require(!(*control).add_class("loud") && (*control).add_class("tall") && (*control).classes().back() == "tall",
+    require(!(*control).add_class("loud") && (*control).add_class("tall") && (*control).classes.read().back() == "tall",
             "add_class adds a class once");
     require((*control).remove_class("wide") && !(*control).remove_class("wide") && !(*control).has_class("wide"),
             "remove_class removes it");
     bool refused = false;
     try {
         std::vector<std::string> bad{"fine", "Not Fine"};
-        (*control).set_classes(bad);
+        (*control).classes = bad;
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && (*control).classes().size() == 2U && (*control).has_class("tall"),
+    require(refused && (*control).classes.read().size() == 2U && (*control).has_class("tall"),
             "an invalid class name is refused and changes nothing");
     require(valid_style_class_name("a-b_c1") && !valid_style_class_name("1a") && !valid_style_class_name("") &&
                 !valid_style_class_name(std::string(65U, 'a')),
@@ -543,8 +544,104 @@ void surface_rules() {
             "a surface selector counts as a type");
 }
 
+// A family and a `:not()` (selector step 2): the family rule matches only
+// parts resolved for that family, and an exclusion keeps a rule off every
+// part it matches.
+void families_and_exclusions() {
+    ThemeRuleSheet sheet{};
+    sheet.rules.push_back(rule("type", CascadeLevel::theme_sheet, by_type(), bulge(0.1)));
+    RuleSelector accent = by_type();
+    accent.family = "accent_button";
+    sheet.rules.push_back(rule("accent", CascadeLevel::theme_sheet, accent, bulge(0.5)));
+    RuleSelector quiet_not_hot = by_type();
+    RuleExclusion hot{};
+    hot.states.push_back(AnatomyState::hot);
+    RuleExclusion loud{};
+    loud.classes.push_back("loud");
+    quiet_not_hot.excluded.push_back(hot);
+    quiet_not_hot.excluded.push_back(loud);
+    sheet.rules.push_back(rule("calm", CascadeLevel::theme_sheet, quiet_not_hot, bulge(0.3)));
+    const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
+    require(rules.diagnostics().empty(), "family and exclusion rules compile");
+    const std::vector<std::string> none{};
+    const std::vector<std::string> loud_class{"loud"};
+    AnatomyStateSet hot_states{};
+    hot_states.insert(AnatomyState::hot);
+    CompiledThemeRules::PartFacts plain = face_of("x", none);
+    require(amplitude_of(rules.resolve(plain)) == 0.3, "no exclusion matches: the calm rule");
+    require(amplitude_of(rules.resolve(face_of("x", loud_class))) == 0.1, "the class excludes the calm rule");
+    require(amplitude_of(rules.resolve(face_of("x", none, hot_states))) == 0.1, "the state excludes it too");
+    CompiledThemeRules::PartFacts accented = face_of("x", loud_class);
+    accented.family = "accent_button";
+    require(amplitude_of(rules.resolve(accented)) == 0.5, "the family rule for the accent family");
+    accented.family = "button";
+    require(amplitude_of(rules.resolve(accented)) == 0.1, "and not for another family");
+    require(rule_specificity(quiet_not_hot).classes == 1U && rule_specificity(accent).classes == 1U,
+            "an exclusion counts its most specific argument, a family as a pseudo-class");
+}
+
+// Ancestor compounds (selector step 4): `.panel button` and
+// `#form > .row > button`, matched against the part's ancestor chain.
+void ancestor_compounds() {
+    ThemeRuleSheet sheet{};
+    sheet.rules.push_back(rule("type", CascadeLevel::theme_sheet, by_type(), bulge(0.1)));
+    RuleSelector in_panel = by_type();
+    RuleAncestor panel{};
+    panel.classes.push_back("panel");
+    in_panel.ancestors.push_back(panel);
+    sheet.rules.push_back(rule("in panel", CascadeLevel::theme_sheet, in_panel, bulge(0.4)));
+    RuleSelector in_row = by_type();
+    RuleAncestor row{};
+    row.classes.push_back("row");
+    row.combinator = AncestorCombinator::child;
+    RuleAncestor form{};
+    form.stable_id = "form";
+    form.combinator = AncestorCombinator::child;
+    in_row.ancestors.push_back(row);
+    in_row.ancestors.push_back(form);
+    sheet.rules.push_back(rule("in row", CascadeLevel::theme_sheet, in_row, bulge(0.7)));
+    const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
+    require(rules.diagnostics().empty() && rules.uses_ancestors(), "ancestor rules compile and are reported");
+    const std::vector<std::string> none{};
+    const std::vector<std::string> panel_class{"panel"};
+    const std::vector<std::string> row_class{"row"};
+    // Builds the facts for a chain of (stable ID, classes), parent first.
+    std::vector<AncestorFacts> chain{};
+    AncestorFacts parent_row{};
+    parent_row.stable_id = "r";
+    parent_row.classes = row_class;
+    AncestorFacts grand_form{};
+    grand_form.stable_id = "form";
+    grand_form.classes = none;
+    AncestorFacts outer_panel{};
+    outer_panel.stable_id = "p";
+    outer_panel.classes = panel_class;
+    chain.push_back(parent_row);
+    chain.push_back(grand_form);
+    chain.push_back(outer_panel);
+    CompiledThemeRules::PartFacts facts = face_of("x", none);
+    facts.ancestors = chain;
+    for (const AncestorFacts& ancestor : chain) {
+        if (!ancestor.stable_id.empty()) facts.ancestor_bloom.add("#", ancestor.stable_id);
+        for (const std::string& name : ancestor.classes) facts.ancestor_bloom.add(".", name);
+    }
+    require(amplitude_of(rules.resolve(facts)) == 0.7, "the child chain #form > .row > the part matches");
+    // Swap the row and the form: the child chain breaks, the descendant
+    // rule still holds.
+    chain[0] = grand_form;
+    chain[1] = parent_row;
+    facts.ancestors = chain;
+    require(amplitude_of(rules.resolve(facts)) == 0.4, "a broken child chain falls to the descendant rule");
+    CompiledThemeRules::PartFacts bare = face_of("x", none);
+    require(amplitude_of(rules.resolve(bare)) == 0.1, "no ancestors: only the type rule");
+    require(rule_specificity(in_row).ids == 1U && rule_specificity(in_row).classes == 1U,
+            "ancestor compounds count");
+}
+
 int main() {
     levels_in_order();
+    families_and_exclusions();
+    ancestor_compounds();
     specificity_and_ties();
     invalid_rules_are_dropped();
     budgets_refuse_unbounded_costs();

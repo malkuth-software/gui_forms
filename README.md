@@ -15,40 +15,61 @@ platform ([ADR-004](https://github.com/malkuth-software/notes/blob/gui_forms/dec
 
 ## First window
 
+A form document says which controls exist; the build turns it into a window
+class whose controls are typed members, bound to a model when it is made:
+
+```text
+/* forms/greeter.form */
+form greeter.window {
+  text: "First window";
+  client-size: 480 140;
+  panel greeter.root {
+    label greeter.status { text: "Ready."; bounds: 24 24 432 32; }
+    button greeter.run { text: "Run"; bounds: 24 72 120 36; command: bind(run); }
+  }
+}
+```
+
 ```cpp
+// gui_forms_add_form(greeter forms/greeter.form CLASS GreeterWindow NAMESPACE greeter
+//                    MODEL greeter::GreeterModel MODEL_HEADER greeter_model.hpp)
+#include "greeter_form.hpp"   // generated
+#include "greeter_model.hpp"  // struct GreeterModel { gui_forms::Command run{"greeter.run", "Run"}; };
+
 #include <gui_forms/application.hpp>
-#include <gui_forms/basic_controls.hpp>
 #include <gui_forms/component.hpp>
+#include <gui_forms/event.hpp>
 
 #include <memory>
 
 namespace gf = gui_forms;
 
-struct Greeter final : gf::Component {
-    std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("root"));
-    std::shared_ptr<gf::Label> status = gf::make_control<gf::Label>(gf::StableId("status"), "Ready.");
-    std::shared_ptr<gf::Button> run = gf::make_control<gf::Button>(gf::StableId("run"), "Run");
-    Greeter() {
-        (*status).set_bounds({24.0, 24.0, 432.0, 32.0});
-        (*run).set_bounds({24.0, 72.0, 120.0, 36.0});
-        (*root).add_child(status);
-        (*root).add_child(run);
-        gf::on((*run).clicked(), *this, &Greeter::on_run); // owned: revoked with Greeter
+class Greeter final : public gf::Component {
+public:
+    Greeter(greeter::GreeterWindow& window, greeter::GreeterModel& model) : window_(window) {
+        gf::on(model.run.invoked(), *this, &Greeter::on_run); // owned: revoked with Greeter
     }
-    void on_run() { (*status).set_text("Clicked."); }
+
+private:
+    void on_run() { (*window_.greeter_status).text = "Clicked."; }   // a property write
+    greeter::GreeterWindow& window_;
 };
 
 int main() {
-    Greeter greeter{};
-    std::unique_ptr<gf::Window> window = std::make_unique<gf::Window>(greeter.root, gf::Size{480.0, 140.0});
-    return gf::Application::run(std::move(window),
-        {.title = "First window", .initial_size = {480.0, 140.0},
-         .minimum_size = {320.0, 140.0}}).accepted() ? 0 : 1;
+    gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+    if (!created) return 1;
+    greeter::GreeterModel model{};
+    std::unique_ptr<greeter::GreeterWindow> window =
+        std::make_unique<greeter::GreeterWindow>(*created.application, model);
+    Greeter greeter(*window, model);
+    const gf::ApplicationResult result = (*created.application).run(std::move(window));
+    return result.accepted() ? 0 : 1;
 }
 ```
 
-Controls are created once with a `StableId`, the tree owns them, mutation is
-imperative, and painting uses accumulated damage bounds. The longer walkthrough is
+Controls have stable IDs, the window owns them, a property write is
+synchronous and marks only what it touches, and painting uses the accumulated
+damage. The longer walkthrough is
 in [Your first window](https://gui-forms.readthedocs.io/user/first-window.html).
 
 ![GUI.Forms Gallery on macOS](docs/images/gallery-macos.png)
@@ -119,14 +140,21 @@ Every stock control, grouped by function; the table is generated from
 | [`LinkLabel`](https://gui-forms.readthedocs.io/api/generated/gui_forms.LinkLabel.html) |  | Command presented as underlined link text with retained visited state and link semantics. |
 | [`MaskedTextBox`](https://gui-forms.readthedocs.io/api/generated/gui_forms.MaskedTextBox.html) | Text editing | Text box that takes input through a mask (digits, letters, literals, case shifts, culture separators); refused input is reported with its position and reason. |
 | [`RichTextBox`](https://gui-forms.readthedocs.io/api/generated/gui_forms.RichTextBox.html) |  | Rich text field whose document is markdown, shown styled in place with its markup dimmed, edited like a multiline text box, formatted from a control bar, and read and written as RTF. |
+| [`SearchField`](https://gui-forms.readthedocs.io/api/generated/gui_forms.SearchField.html) |  | Query field: a search mark, an inner TextBox, a clear mark and a busy strip; raises search_requested after typing pauses or on Enter; a search box to assistive technology. |
 | [`TextBox`](https://gui-forms.readthedocs.io/api/generated/gui_forms.TextBox.html) |  | Single- or multiline Unicode editor with directional selection, clipboard and history commands, password projection, bounded input length, suggest and append auto-complete, and ordered text/selection events. |
 | [`TokenBox`](https://gui-forms.readthedocs.io/api/generated/gui_forms.TokenBox.html) |  | Text entry whose accepted entries (Enter, a delimiter or an accepted completion) become removable tokens with stable identities, with keyboard selection and removal, a close glyph per token and suggestions from auto-complete. |
-| [`Label`](https://gui-forms.readthedocs.io/api/generated/gui_forms.Label.html) | Information display | Noninteractive text primitive with inherited typography roles, alignment, word wrapping, a bounded line count, and mnemonics. |
+| [`Badge`](https://gui-forms.readthedocs.io/api/generated/gui_forms.Badge.html) | Information display | Small count or dot: the count, or its maximum and + past it, in an accent pill; a zero count hides unless show_zero; dot mode marks something new without a number. |
+| [`EmptyState`](https://gui-forms.readthedocs.io/api/generated/gui_forms.EmptyState.html) |  | What a list, page or search shows when it has nothing: a picture, a title, a description and an optional action in a centred column; a group to assistive technology. |
+| [`InfoBanner`](https://gui-forms.readthedocs.io/api/generated/gui_forms.InfoBanner.html) |  | Message strip across a form or page: a severity icon and keyline, a title and a message, an optional action and a close actuator; a live region to assistive technology. |
+| [`Label`](https://gui-forms.readthedocs.io/api/generated/gui_forms.Label.html) |  | Noninteractive text primitive with inherited typography roles, alignment, word wrapping, a bounded line count, and mnemonics. |
 | [`PictureBox`](https://gui-forms.readthedocs.io/api/generated/gui_forms.PictureBox.html) |  | Noninteractive image presenter over Window-owned generational image resources with the five PictureBoxSizeMode policies and bounded opacity. |
 | [`ProgressBar`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ProgressBar.html) |  | Noninteractive range visualization with continuous, segmented, and marquee modes whose motion follows the Window frame scheduler and reduced-motion policy. |
+| [`ProgressRing`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ProgressRing.html) |  | Circular progress indicator of forty dots: lit in proportion to value over maximum, or a turning run while indeterminate, on the window's frame clock with reduced motion honoured. |
 | [`ReviewCard`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ReviewCard.html) |  | Typed review projection over Card that owns title, body, and verdict labels and projects pending/rejected state through ordinary Card laws. |
+| [`Spinner`](https://gui-forms.readthedocs.io/api/generated/gui_forms.Spinner.html) |  | Indeterminate busy indicator: a ring of twelve dots, three lit, turning while active on the window's frame clock; still under reduced motion; busy to assistive technology. |
 | [`SweepScope`](https://gui-forms.readthedocs.io/api/generated/gui_forms.SweepScope.html) |  | Read-only level scope from the instruments package: the level drawn as a trace on a graticule, crossed by a sweep line that is a verified effect program on the window's motion clock. |
 | [`TextBlock`](https://gui-forms.readthedocs.io/api/generated/gui_forms.TextBlock.html) |  | CSS text leaf for the layout panels: white space collapsing, UAX #14 line breaking, line-height: normal or a set line height, text-align in both directions, no inset, and first and last baselines for flex, grid and block alignment. |
+| [`Toast`](https://gui-forms.readthedocs.io/api/generated/gui_forms.Toast.html) |  | Brief notice above the bottom of a window: a severity mark, a message, an optional action and a close mark, shown by Window::show_toast for a while; a live region to assistive technology. |
 | [`BreadcrumbTrail`](https://gui-forms.readthedocs.io/api/generated/gui_forms.BreadcrumbTrail.html) | Selection from a list | Location instrument whose logical path segments are virtual semantic children and whose exact-path TextBox occupies the row only while editing. |
 | [`CheckedListBox`](https://gui-forms.readthedocs.io/api/generated/gui_forms.CheckedListBox.html) |  | ListBox with an independently retained three-state check model, cancellable pre-change events, and optional check-on-click. |
 | [`ChoiceGroup`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ChoiceGroup.html) |  | Row of retained item buttons that selects exactly one ChoiceItem and exposes the selection as a bindable Value. |
@@ -148,6 +176,7 @@ Every stock control, grouped by function; the table is generated from
 | [`PropertyList`](https://gui-forms.readthedocs.io/api/generated/gui_forms.PropertyList.html) |  | Settings surface over caller-authored stable groups and rows that owns stock or replacement child editors, reset buttons, and one vertical scroll plane. |
 | [`RadioButton`](https://gui-forms.readthedocs.io/api/generated/gui_forms.RadioButton.html) |  | Retained checked state with container-scoped named exclusion groups, optional automatic checking, and radio semantics. |
 | [`RangeControl`](https://gui-forms.readthedocs.io/api/generated/gui_forms.RangeControl.html) |  | Nonvisual retained authority for ordered bounds, a constrained value, small/large changes, and orientation that TrackBar, ProgressBar, and ScrollBar specialize. |
+| [`ToggleSwitch`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ToggleSwitch.html) |  | On/off switch for a setting that takes effect at once: a rounded track and thumb, a label and optional state text; a switch to assistive technology. |
 | [`TrackBar`](https://gui-forms.readthedocs.io/api/generated/gui_forms.TrackBar.html) |  | Slider over RangeControl with bounded tick frequency, absolute pointer positioning, keyboard movement, and slider semantics. |
 | [`DateTimePicker`](https://gui-forms.readthedocs.io/api/generated/gui_forms.DateTimePicker.html) | Date setting | Civil date/time field with validated bounds, four formatting policies, optional check state, and calendar or spin presentation. |
 | [`MonthCalendar`](https://gui-forms.readthedocs.io/api/generated/gui_forms.MonthCalendar.html) |  | One or more month pages for selecting a date or a run of dates, with a date range, today marker, bold dates, week numbers and keyboard navigation. |
@@ -246,8 +275,8 @@ platform specific.
 ## Build from source
 
 Prerequisites: CMake 3.25+, Ninja, LLVM 22.1 (selected by
-[`cmake/llvm22.cmake`](cmake/llvm22.cmake)) and Python 3.12+. Native builds
-require an explicit `sh third_party/fetch_text_stack.sh` before configuration.
+[`cmake/llvm22.cmake`](cmake/llvm22.cmake)) and Python 3.12+. Configuring fetches the stx checkout pinned in
+[`stx.lock`](stx.lock), which carries the CPU renderer and every third-party source.
 Follow [Install](https://gui-forms.readthedocs.io/user/install.html) for the platform-specific renderer,
 host and dependency preparation. CI reuses tested trees and publishes a
 compiler cache per platform; see

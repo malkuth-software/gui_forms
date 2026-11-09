@@ -7,12 +7,14 @@
 // a good swap preserves them too.
 
 #include "../../src/core/theme_language/package/theme_manifest.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/gui_forms.hpp"
 
 #include <array>
 #include <cstddef>
 #include <iostream>
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -315,7 +317,7 @@ void test_atomic_swap() {
     if (refused.succeeded()) window.set_theme(refused.theme());
     require(&window.theme() == running, "a refused theme leaves the running theme");
     require(window.focused_control() == edit && window.captured_control() == pad &&
-                (*edit).selected_text() == "world" && (*edit).text() == "hello world",
+                (*edit).selected_text() == "world" && (*edit).text.read() == "hello world",
             "and the focus, capture, selection and edit");
 
     const ThemeCompileResult good =
@@ -324,7 +326,7 @@ void test_atomic_swap() {
     if (good.succeeded()) window.set_theme(good.theme());
     require(window.theme().id() == "second", "a good theme replaces it");
     require(window.focused_control() == edit && window.captured_control() == pad &&
-                (*edit).selected_text() == "world" && (*edit).text() == "hello world",
+                (*edit).selected_text() == "world" && (*edit).text.read() == "hello world",
             "keeping the focus, capture, selection and edit");
     const ResolvedControlRecipe recipe = resolved(window.theme(), *pad);
     require(recipe.recipe().focus_width == 4.0, "and its rules apply");
@@ -333,7 +335,7 @@ void test_atomic_swap() {
 } // namespace
 
 // The base theme (T4 phase 6): unset, a package compiles onto
-// windows-professional as before; with ThemeCompileBase::gui_forms, onto
+// windows-professional as before; with ThemeBase::gui_forms, onto
 // GUI.Forms' own theme, its light sheet first in the cascade, and a
 // diagnostic in the package's sheet is still named for that sheet's line.
 void test_base_theme() {
@@ -352,7 +354,7 @@ void test_base_theme() {
     stock.push_back(controls[0]);
     ThemeCompileOptions onto = options();
     onto.controls = stock;
-    onto.base = ThemeCompileBase::gui_forms;
+    onto.base = ThemeBase::gui_forms;
     const ThemeCompileResult based =
         compile_theme_package(package("based", "#pad { outline: 3px solid }"), library, images, onto);
     require(based.succeeded() && based.diagnostics().empty(), "a package compiles onto gui-forms");
@@ -376,8 +378,187 @@ void test_base_theme() {
             "a refusal over gui-forms still names the package's sheet and line");
 }
 
+// An application's theme (APP_WINDOW_RULES_DESIGN.md section A): the base,
+// then the packages in order as one cascade, the later overriding, under
+// the last package's id; no package gives the base alone; two of one name
+// are refused; a finding names its own package's sheet. The process
+// default is built once.
+void test_application_theme() {
+    ImageRegistry images{};
+    const ThemeLibrary library{};
+    std::vector<ControlAnatomy> stock(stock_control_anatomies().begin(), stock_control_anatomies().end());
+    stock.push_back(controls[0]);
+    ThemeCompileOptions onto = options();
+    onto.controls = stock;
+    onto.base = ThemeBase::gui_forms;
+    const std::array<ThemePackage, 2> layered{
+        {package("first", "#pad { outline: 3px solid }"), package("second", "#pad { outline: 5px solid }")}};
+    const ThemeCompileResult both = compile_theme_packages(layered, library, images, onto);
+    require(both.succeeded() && both.diagnostics().empty(), "two packages compile onto gui-forms");
+    if (both.succeeded()) {
+        require((*both.theme()).id() == "second" &&
+                    (*both.theme()).definition().dark_variant == ThemeDarkVariant::derived,
+                "the theme is named after the last package, on gui-forms' recipes");
+        const std::shared_ptr<Pad> pad = make_control<Pad>(StableId("pad"));
+        const ResolvedControlRecipe recipe = resolved(*both.theme(), *pad);
+        require(recipe.recipe().focus_width == 5.0, "the later package overrides");
+        // The base sheet is CSS's user-agent origin under the packages
+        // (selector step 1): its rules at the base levels, theirs above.
+        const std::vector<ThemeRule>& rules = (*both.theme()).definition().rules.rules;
+        std::size_t base_rules = 0U;
+        for (const ThemeRule& rule : rules) {
+            if (rule.level == CascadeLevel::base_sheet || rule.level == CascadeLevel::important_base_sheet) ++base_rules;
+        }
+        require(base_rules > 0U && !rules.empty() && rules.back().level == CascadeLevel::theme_sheet,
+                "the base's rules at the base levels, the packages' at the sheet's");
+    }
+    const ThemeCompileResult alone = compile_theme_packages(std::span<const ThemePackage>{}, library, images, onto);
+    require(alone.succeeded() && alone.diagnostics().empty() && (*alone.theme()).id() == "gui-forms",
+            "no package gives gui-forms alone");
+    if (alone.succeeded()) {
+        bool own = true;
+        for (const ThemeRule& rule : (*alone.theme()).definition().rules.rules) {
+            if (rule.level == CascadeLevel::base_sheet || rule.level == CascadeLevel::important_base_sheet) own = false;
+        }
+        require(own, "alone, the base is the program's own sheet");
+    }
+    const ThemeCompileResult plain =
+        compile_theme_packages(std::span<const ThemePackage>{}, library, images, options());
+    require(plain.succeeded() && (*plain.theme()).id() == (*default_theme()).id() &&
+                (*plain.theme()).definition().dark_variant == ThemeDarkVariant::none,
+            "no package onto windows-professional gives it alone");
+    const std::array<ThemePackage, 2> twice{{package("same", "#pad {}"), package("same", "#pad {}")}};
+    const ThemeCompileResult doubled = compile_theme_packages(twice, library, images, onto);
+    require(!doubled.succeeded() && has(doubled, "E601", "same/theme.json", 0U, "listed twice"),
+            "two packages of one name are refused");
+    const std::array<ThemePackage, 2> faulty{
+        {package("first", "#pad {}"), package("second", "#pad {}\n#pad { opacity: 2 }")}};
+    const ThemeCompileResult refused = compile_theme_packages(faulty, library, images, onto);
+    require(!refused.succeeded() && has(refused, "E403", "second/theme.theme.css", 2U, ""),
+            "a refusal names its own package's sheet and line");
+    const std::shared_ptr<const Theme> process = default_compiled_theme();
+    require(process != nullptr && process == default_compiled_theme() && (*process).id() == (*default_theme()).id(),
+            "the process default is built once, from the default base");
+}
+
+// Effect names against the registry (EP-3): given ThemeCompileOptions::
+// effects, a package naming an effect the registry does not hold is refused
+// with E417 at the name, in its own sheet, on either seam; a held name
+// compiles; without a registry, only the name's form is checked.
+void test_effect_names() {
+    ImageRegistry images{};
+    const ThemeLibrary library{};
+    ThemeCompileOptions checked = options();
+    checked.effects = &built_in_effect_registry();
+    const ThemeCompileResult unknown =
+        compile_theme_package(package("fx", "#pad {}\n#pad { effect: wobble-band }"), library, images, checked);
+    require(!unknown.succeeded() && unknown.theme() == nullptr &&
+                has(unknown, "E417", "fx/theme.theme.css", 2U, "wobble-band"),
+            "an effect the registry does not hold refuses the package with E417 at its line");
+    bool at_name = false;
+    for (const ThemeCompileDiagnostic& diagnostic : unknown.diagnostics()) {
+        if (diagnostic.code == "E417") at_name = diagnostic.column == 16U && diagnostic.name == "effect_unknown";
+    }
+    require(at_name, "E417 is at the effect's name, named effect_unknown");
+
+    const ThemeCompileResult known =
+        compile_theme_package(package("fx", "#pad { effect: progress-pulse }"), library, images, checked);
+    require(known.succeeded() && known.diagnostics().empty(), "an effect the registry holds compiles");
+
+    const ThemeCompileResult unchecked =
+        compile_theme_package(package("fx", "#pad { effect: wobble-band }"), library, images, options());
+    require(unchecked.succeeded(), "without a registry, a well-formed effect name compiles");
+
+    std::vector<ControlAnatomy> stock(stock_control_anatomies().begin(), stock_control_anatomies().end());
+    stock.push_back(controls[0]);
+    ThemeCompileOptions onto = checked;
+    onto.controls = stock;
+    onto.base = ThemeBase::gui_forms;
+    const std::array<ThemePackage, 2> layered{
+        {package("first", "#pad { effect: progress-pulse }"), package("second", "#pad { effect: wobble-band }")}};
+    const ThemeCompileResult layers = compile_theme_packages(layered, library, images, onto);
+    require(!layers.succeeded() && has(layers, "E417", "second/theme.theme.css", 1U, "wobble-band"),
+            "the application seam refuses the package naming the unknown effect");
+}
+
+// Provenance per field (T4 cascade spec, item 5): each rule of a closure
+// compiled onto gui-forms is placed in its own sheet with its layer, its
+// pack and the pack's manifest hash; a control's recipe fields name the
+// rule that won each, and an unset field is the built-in recipe's.
+void test_provenance() {
+    ImageRegistry images{};
+    ThemeLibrary library{};
+    const ThemePackage base = package("base", "#pad { outline: 1px solid }\n#pad { color: #a01010 }");
+    require(library.install(base).empty(), "the imported package is installed");
+    const ThemePackage top = package("top", "@import \"base\";\n\n#pad { outline: 2px solid }",
+                                     Extras{.pins = {{"base", hex_of(base.manifest)}}});
+    std::vector<ControlAnatomy> stock(stock_control_anatomies().begin(), stock_control_anatomies().end());
+    stock.push_back(controls[0]);
+    ThemeCompileOptions onto = options();
+    onto.controls = stock;
+    onto.base = ThemeBase::gui_forms;
+    const std::array<ThemePackage, 1> programs{{top}};
+    const ThemeCompileResult result = compile_theme_packages(programs, library, images, onto);
+    require(result.succeeded(), "the closure compiles onto gui-forms");
+    if (!result.succeeded()) return;
+    const Theme& theme = *result.theme();
+    bool gui_forms_placed = false;
+    bool base_placed = false;
+    bool top_placed = false;
+    for (const ThemeRule& rule : theme.definition().rules.rules) {
+        const RuleProvenance& provenance = rule.provenance;
+        if (provenance.pack == "gui-forms") {
+            gui_forms_placed = provenance.file == "gui-forms/light.css" &&
+                               provenance.layer == ThemeLayer::library_pack && provenance.pack_hash.empty() &&
+                               provenance.line >= 1U;
+        }
+        if (provenance.pack == "base" && provenance.line == 2U) {
+            base_placed = provenance.file == "base/theme.theme.css" && provenance.layer == ThemeLayer::library_pack &&
+                          provenance.pack_hash == hex_of(base.manifest) && provenance.column >= 1U;
+        }
+        if (provenance.pack == "top") {
+            top_placed = provenance.file == "top/theme.theme.css" && provenance.layer == ThemeLayer::project_theme &&
+                         provenance.line == 3U;
+        }
+    }
+    require(gui_forms_placed, "the base sheet's rules are a library pack's, in gui-forms/light.css");
+    require(base_placed, "an imported package's rule is a library pack's, at its own line, with its hash");
+    require(top_placed, "the program's package is the project theme, at its own line");
+    const std::shared_ptr<Pad> pad = make_control<Pad>(StableId("pad"));
+    CompiledThemeRules::PartProvenance fields{};
+    theme.provenance(*pad, ControlVisualRole::button, ControlVisualContext{}, fields);
+    const CompiledThemeRules::FieldProvenance& width =
+        fields.recipe_fields[static_cast<std::size_t>(RecipeField::outline_width)];
+    require(width.authored && width.layer == ThemeLayer::project_theme && width.source != nullptr &&
+                (*width.source).pack == "top" && width.selector != nullptr && (*width.selector).stable_id == "pad",
+            "the outline width is the program's rule");
+    const CompiledThemeRules::FieldProvenance& text =
+        fields.recipe_fields[static_cast<std::size_t>(RecipeField::text)];
+    require(text.authored && text.layer == ThemeLayer::library_pack && text.source != nullptr &&
+                (*text.source).pack == "base" && (*text.source).line == 2U &&
+                text.origin.source == ColourSource::literal,
+            "the text colour is the imported pack's literal");
+    const CompiledThemeRules::FieldProvenance& glyph =
+        fields.recipe_fields[static_cast<std::size_t>(RecipeField::glyph)];
+    require(!glyph.authored || glyph.layer == ThemeLayer::library_pack,
+            "a field no package sets is the built-in recipe's or the base sheet's");
+    require(fields.parameter_count == 0U, "a recipe has no primitive parameters");
+    ControlVisualContext forced{};
+    forced.high_contrast = true;
+    theme.provenance(*pad, ControlVisualRole::button, forced, fields);
+    const CompiledThemeRules::FieldProvenance& pass =
+        fields.recipe_fields[static_cast<std::size_t>(RecipeField::text)];
+    require(!pass.authored && pass.layer == ThemeLayer::forced_high_contrast,
+            "in forced high contrast the pass draws the text colour");
+    require(theme_layer_name(ThemeLayer::inline_code) == "inline_code" && theme_layer_name(ThemeLayer::count).empty(),
+            "the layers are named");
+}
+
 int main() {
+    test_provenance();
     test_base_theme();
+    test_application_theme();
+    test_effect_names();
     test_one_package();
     test_published_values();
     test_resources();

@@ -15,6 +15,8 @@ Text entry.
      - An editable text field: one line by default, or a plain-text document with ``multiline``.
    * - :cpp:class:`TokenBox <gui_forms::TokenBox>`
      - A text field that turns each accepted entry into a removable token.
+   * - :cpp:class:`SearchField <gui_forms::SearchField>`
+     - A text field for a query, such as the search box above a list of messages.
    * - :cpp:class:`MaskedTextBox <gui_forms::MaskedTextBox>`
      - A text box that takes input through a mask.
    * - :cpp:class:`RichTextBox <gui_forms::RichTextBox>`
@@ -29,6 +31,7 @@ Text entry.
 
    generated/gui_forms.TextBox
    generated/gui_forms.TokenBox
+   generated/gui_forms.SearchField
    generated/gui_forms.MaskedTextBox
    generated/gui_forms.RichTextBox
    generated/gui_forms.AutoCompleteStringCollection
@@ -51,6 +54,32 @@ Related types
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`MaskedTextBox::States <gui_forms::MaskedTextBox::States>`
      -  
+   * - :cpp:class:`MaskedTextBoxAllowPromptAsInputCapability <gui_forms::MaskedTextBoxAllowPromptAsInputCapability>`
+     - Whether the prompt character is accepted as input (AllowPromptAsInput); a view onto the provider.
+   * - :cpp:class:`MaskedTextBoxAsciiOnlyCapability <gui_forms::MaskedTextBoxAsciiOnlyCapability>`
+     - Whether letter positions take only ASCII letters (AsciiOnly); a view onto the provider.
+   * - :cpp:class:`MaskedTextBoxCapabilities <gui_forms::MaskedTextBoxCapabilities>`
+     - Every MaskedTextBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`MaskedTextBoxCultureCapability <gui_forms::MaskedTextBoxCultureCapability>`
+     - The culture whose separators and currency symbol the mask's placeholders show (Culture); a view onto the provider.
+   * - :cpp:class:`MaskedTextBoxMaskCapability <gui_forms::MaskedTextBoxMaskCapability>`
+     - The mask (Mask); a view onto the provider.
+   * - :cpp:class:`MaskedTextBoxOverwriteModeCapability <gui_forms::MaskedTextBoxOverwriteModeCapability>`
+     - Typing overwrites the character at the caret instead of inserting before it (IsOverwriteMode).
+   * - :cpp:class:`MaskedTextBoxPromptCharacterCapability <gui_forms::MaskedTextBoxPromptCharacterCapability>`
+     - The character shown in each unassigned position (PromptChar); a view onto the provider, which refuses an unusable character (std::invalid_argument).
+   * - :cpp:class:`MaskedTextBoxReadOnlyCapability <gui_forms::MaskedTextBoxReadOnlyCapability>`
+     - Whether the user may select and copy the text but not change it (ReadOnly); the editor follows.
+   * - :cpp:class:`MaskedTextBoxRejectInputOnFirstFailureCapability <gui_forms::MaskedTextBoxRejectInputOnFirstFailureCapability>`
+     - With it off (the default), a paste keeps the characters the mask takes and reports each one it drops; with it on, one refused character refuses the whole paste (RejectInputOnFirstFailure).
+   * - :cpp:class:`MaskedTextBoxResetOnPromptCapability <gui_forms::MaskedTextBoxResetOnPromptCapability>`
+     - Whether typing the prompt character clears the position (ResetOnPrompt); a view onto the provider.
+   * - :cpp:class:`MaskedTextBoxResetOnSpaceCapability <gui_forms::MaskedTextBoxResetOnSpaceCapability>`
+     - Whether typing a space clears the position (ResetOnSpace); a view onto the provider.
+   * - :cpp:class:`MaskedTextBoxSkipLiteralsCapability <gui_forms::MaskedTextBoxSkipLiteralsCapability>`
+     - Whether input matching a literal passes over it (SkipLiterals); a view onto the provider.
+   * - :cpp:class:`MaskedTextBoxTextMaskFormatCapability <gui_forms::MaskedTextBoxTextMaskFormatCapability>`
+     - What text includes (TextMaskFormat): literals, prompts, both or neither.
    * - :cpp:class:`MaskInputRejection <gui_forms::MaskInputRejection>`
      - Input the mask refused: the position the character was tested at, why, and the refused text (one character typed, or the whole value offered).
    * - :cpp:class:`MaskValidation <gui_forms::MaskValidation>`
@@ -65,12 +94,70 @@ Related types
      - Stage T1 anatomy, as dot members: TextBox's parts and the bar.
    * - :cpp:class:`RichTextBox::States <gui_forms::RichTextBox::States>`
      -  
+   * - :cpp:class:`RichTextBoxAcceptsTabCapability <gui_forms::RichTextBoxAcceptsTabCapability>`
+     - Whether Tab inserts a tab (AcceptsTab); off (the default), Tab moves the focus.
+   * - :cpp:class:`RichTextBoxCapabilities <gui_forms::RichTextBoxCapabilities>`
+     - Every RichTextBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`RichTextBoxControlBarVisibleCapability <gui_forms::RichTextBoxControlBarVisibleCapability>`
+     - Whether the control bar is shown (the default).
+   * - :cpp:class:`RichTextBoxReadOnlyCapability <gui_forms::RichTextBoxReadOnlyCapability>`
+     - Whether the user may select and copy but not change the document (ReadOnly); a view onto the editing engine.
+   * - :cpp:class:`RichTextBoxTextCapability <gui_forms::RichTextBoxTextCapability>`
+     - The plain text (Text): the source's blocks with the markup removed, joined by line feeds (markdown_plain_text); a view onto the parsed document.
+   * - :cpp:class:`RichTextBoxWordWrapCapability <gui_forms::RichTextBoxWordWrapCapability>`
+     - Lines wrap at the box's width (WordWrap, the default); without wrapping a line is one row and the box scrolls horizontally.
    * - :cpp:class:`RichTextFormat <gui_forms::RichTextFormat>`
      - The markdown formatting at a RichTextBox's selection, as its control bar shows it.
+   * - :cpp:class:`SearchField::Parts <gui_forms::SearchField::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`SearchFieldBusyCapability <gui_forms::SearchFieldBusyCapability>`
+     - Whether a search is running; the field shows an activity strip along its bottom and is busy to assistive technology.
+   * - :cpp:class:`SearchFieldCapabilities <gui_forms::SearchFieldCapabilities>`
+     - Every SearchField capability, in the order the declaring class takes them.
+   * - :cpp:class:`SearchFieldPlaceholderTextCapability <gui_forms::SearchFieldPlaceholderTextCapability>`
+     - The hint the empty field shows, such as "Search": a view onto the inner editor's placeholder (see TextBox).
+   * - :cpp:class:`SearchFieldSearchDelayCapability <gui_forms::SearchFieldSearchDelayCapability>`
+     - How long typing must pause before search_requested is raised, 300 ms by default; zero raises it at each change.
+   * - :cpp:class:`SearchFieldTextCapability <gui_forms::SearchFieldTextCapability>`
+     - The query: a view onto the inner editor's text (see TextBox).
    * - :cpp:class:`TextBox::Parts <gui_forms::TextBox::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`TextBox::States <gui_forms::TextBox::States>`
      -  
+   * - :cpp:class:`TextBoxAcceptsEnterCapability <gui_forms::TextBoxAcceptsEnterCapability>`
+     - In a single-line box Enter is the box's own only while it has something to accept: an open suggestion list or appended completion, or an input-method composition; otherwise Enter goes on to the containers and the window's accept button.
+   * - :cpp:class:`TextBoxAcceptsEscapeCapability <gui_forms::TextBoxAcceptsEscapeCapability>`
+     - Escape is the box's own only while it has something to cancel: an open suggestion list or appended completion, an input-method composition or a selection drag; otherwise Escape goes on to the containers, menus and the window's cancel button.
+   * - :cpp:class:`TextBoxAcceptsTabCapability <gui_forms::TextBoxAcceptsTabCapability>`
+     - Whether Tab inserts a tab in a multiline box (AcceptsTab) instead of moving the focus.
+   * - :cpp:class:`TextBoxAutoCompleteCaseSensitiveCapability <gui_forms::TextBoxAutoCompleteCaseSensitiveCapability>`
+     - Whether completion matches ASCII case exactly; off by default.
+   * - :cpp:class:`TextBoxAutoCompleteCustomSourceCapability <gui_forms::TextBoxAutoCompleteCustomSourceCapability>`
+     - The candidates for AutoCompleteSource::custom_source (AutoCompleteCustomSource).
+   * - :cpp:class:`TextBoxAutoCompleteModeCapability <gui_forms::TextBoxAutoCompleteModeCapability>`
+     - How completions are offered (AutoCompleteMode): none, suggest (a list under the box), append (the rest of the first match, selected) or both.
+   * - :cpp:class:`TextBoxAutoCompleteSourceCapability <gui_forms::TextBoxAutoCompleteSourceCapability>`
+     - Where completion candidates come from (AutoCompleteSource).
+   * - :cpp:class:`TextBoxCapabilities <gui_forms::TextBoxCapabilities>`
+     - Every TextBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`TextBoxMaximumLengthCapability <gui_forms::TextBoxMaximumLengthCapability>`
+     - The most Unicode scalars a user edit, a paste or a semantic set-value may leave (MaxLength); zero admits any text that fits the store.
+   * - :cpp:class:`TextBoxMultilineCapability <gui_forms::TextBoxMultilineCapability>`
+     - Opt-in plain-text document editing (Multiline).
+   * - :cpp:class:`TextBoxNewlineSequenceCapability <gui_forms::TextBoxNewlineSequenceCapability>`
+     - What Enter inserts in a multiline box: LF (the default), CR or CRLF; anything else throws std::invalid_argument.
+   * - :cpp:class:`TextBoxPasswordCharacterCapability <gui_forms::TextBoxPasswordCharacterCapability>`
+     - The character shown for each character of the text (PasswordChar); U'\0' for none.
+   * - :cpp:class:`TextBoxPlaceholderTextCapability <gui_forms::TextBoxPlaceholderTextCapability>`
+     - The hint shown in the empty field.
+   * - :cpp:class:`TextBoxReadOnlyCapability <gui_forms::TextBoxReadOnlyCapability>`
+     - Whether the user may select and copy the text but not change it (ReadOnly); a view onto the editing engine.
+   * - :cpp:class:`TextBoxTextCapability <gui_forms::TextBoxTextCapability>`
+     - The edited text (Text); a view onto the editing engine.
+   * - :cpp:class:`TextBoxUseSystemPasswordCharacterCapability <gui_forms::TextBoxUseSystemPasswordCharacterCapability>`
+     - Whether the text is masked with the system's password character (UseSystemPasswordChar).
+   * - :cpp:class:`TextBoxWordWrapCapability <gui_forms::TextBoxWordWrapCapability>`
+     - Whether a multiline box wraps its lines at the box's width (WordWrap); a wrapped document overflows only vertically.
    * - :cpp:class:`TextEdit <gui_forms::TextEdit>`
      - One user edit, offered to the edit filter before the TextBox changes anything: replace [start, end) of text() with ``replacement``.
    * - :cpp:class:`TextMatchRange <gui_forms::TextMatchRange>`
@@ -205,6 +292,263 @@ Related types
    .. cpp:member:: bool invalid
 
    .. cpp:member:: bool pending
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxAllowPromptAsInputCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   Whether the prompt character is accepted as input (AllowPromptAsInput); a view onto the provider.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxAllowPromptAsInputCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const MaskedTextBoxAllowPromptAsInputCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, MaskedTextBoxAllowPromptAsInputCapability<Declaring>> allow_prompt_as_input
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxAsciiOnlyCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   Whether letter positions take only ASCII letters (AsciiOnly); a view onto the provider.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxAsciiOnlyCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const MaskedTextBoxAsciiOnlyCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, MaskedTextBoxAsciiOnlyCapability<Declaring>> ascii_only
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxCapabilities : public MaskedTextBoxMaskCapability<Declaring>, public MaskedTextBoxCultureCapability<Declaring>, public MaskedTextBoxTextMaskFormatCapability<Declaring>, public MaskedTextBoxPromptCharacterCapability<Declaring>, public MaskedTextBoxAllowPromptAsInputCapability<Declaring>, public MaskedTextBoxAsciiOnlyCapability<Declaring>, public MaskedTextBoxSkipLiteralsCapability<Declaring>, public MaskedTextBoxResetOnPromptCapability<Declaring>, public MaskedTextBoxResetOnSpaceCapability<Declaring>, public MaskedTextBoxRejectInputOnFirstFailureCapability<Declaring>, public MaskedTextBoxOverwriteModeCapability<Declaring>, public MaskedTextBoxReadOnlyCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   Every MaskedTextBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string mask
+
+      The mask (Mask); a view onto the provider. A new mask keeps as much of the text as it takes (the assigned characters, without prompts or literals, placed again from the first position), or starts empty, and raises mask_changed. Throws std::invalid_argument for an invalid mask (MaskedTextProvider).
+
+   .. cpp:member:: MaskCulture culture
+
+      The culture whose separators and currency symbol the mask's placeholders show (Culture); a view onto the provider. A change keeps as much of the text as the mask takes.
+
+   .. cpp:member:: MaskTextFormat text_mask_format
+
+      What text includes (TextMaskFormat): literals, prompts, both or neither. A change raises text_changed when text changes; an unknown format throws std::invalid_argument.
+
+   .. cpp:member:: char32_t prompt_character
+
+      The character shown in each unassigned position (PromptChar); a view onto the provider, which refuses an unusable character (std::invalid_argument).
+
+   .. cpp:member:: bool allow_prompt_as_input
+
+      Whether the prompt character is accepted as input (AllowPromptAsInput); a view onto the provider.
+
+   .. cpp:member:: bool ascii_only
+
+      Whether letter positions take only ASCII letters (AsciiOnly); a view onto the provider.
+
+   .. cpp:member:: bool skip_literals
+
+      Whether input matching a literal passes over it (SkipLiterals); a view onto the provider.
+
+   .. cpp:member:: bool reset_on_prompt
+
+      Whether typing the prompt character clears the position (ResetOnPrompt); a view onto the provider.
+
+   .. cpp:member:: bool reset_on_space
+
+      Whether typing a space clears the position (ResetOnSpace); a view onto the provider.
+
+   .. cpp:member:: bool reject_input_on_first_failure
+
+      With it off (the default), a paste keeps the characters the mask takes and reports each one it drops; with it on, one refused character refuses the whole paste (RejectInputOnFirstFailure).
+
+   .. cpp:member:: bool overwrite_mode
+
+      Typing overwrites the character at the caret instead of inserting before it (IsOverwriteMode). The Insert key toggles it. A change raises overwrite_mode_changed.
+
+   .. cpp:member:: bool read_only
+
+      Whether the user may select and copy the text but not change it (ReadOnly); the editor follows.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxCultureCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   The culture whose separators and currency symbol the mask's placeholders show (Culture); a view onto the provider. A change keeps as much of the text as the mask takes.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxCultureCapability& capability, MaskCulture incoming)
+
+   .. cpp:function:: static MaskCulture read(const MaskedTextBoxCultureCapability& capability)
+
+   .. cpp:member:: PropertyView<MaskCulture, MaskedTextBoxCultureCapability<Declaring>> culture
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxMaskCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   The mask (Mask); a view onto the provider. A new mask keeps as much of the text as it takes (the assigned characters, without prompts or literals, placed again from the first position), or starts empty, and raises mask_changed. Throws std::invalid_argument for an invalid mask (MaskedTextProvider).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxMaskCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const MaskedTextBoxMaskCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, MaskedTextBoxMaskCapability<Declaring>> mask
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxOverwriteModeCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   Typing overwrites the character at the caret instead of inserting before it (IsOverwriteMode). The Insert key toggles it. A change raises overwrite_mode_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxOverwriteModeCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, MaskedTextBoxOverwriteModeCapability<Declaring>> overwrite_mode
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxPromptCharacterCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   The character shown in each unassigned position (PromptChar); a view onto the provider, which refuses an unusable character (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxPromptCharacterCapability& capability, char32_t incoming)
+
+   .. cpp:function:: static char32_t read(const MaskedTextBoxPromptCharacterCapability& capability)
+
+   .. cpp:member:: PropertyView<char32_t, MaskedTextBoxPromptCharacterCapability<Declaring>> prompt_character
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxReadOnlyCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   Whether the user may select and copy the text but not change it (ReadOnly); the editor follows.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxReadOnlyCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, MaskedTextBoxReadOnlyCapability<Declaring>> read_only
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxRejectInputOnFirstFailureCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   With it off (the default), a paste keeps the characters the mask takes and reports each one it drops; with it on, one refused character refuses the whole paste (RejectInputOnFirstFailure).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxRejectInputOnFirstFailureCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, MaskedTextBoxRejectInputOnFirstFailureCapability<Declaring>> reject_input_on_first_failure
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxResetOnPromptCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   Whether typing the prompt character clears the position (ResetOnPrompt); a view onto the provider.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxResetOnPromptCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const MaskedTextBoxResetOnPromptCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, MaskedTextBoxResetOnPromptCapability<Declaring>> reset_on_prompt
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxResetOnSpaceCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   Whether typing a space clears the position (ResetOnSpace); a view onto the provider.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxResetOnSpaceCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const MaskedTextBoxResetOnSpaceCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, MaskedTextBoxResetOnSpaceCapability<Declaring>> reset_on_space
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxSkipLiteralsCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   Whether input matching a literal passes over it (SkipLiterals); a view onto the provider.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxSkipLiteralsCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const MaskedTextBoxSkipLiteralsCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, MaskedTextBoxSkipLiteralsCapability<Declaring>> skip_literals
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxTextMaskFormatCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   What text includes (TextMaskFormat): literals, prompts, both or neither. A change raises text_changed when text changes; an unknown format throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxTextMaskFormatCapability& capability, MaskTextFormat incoming)
+
+   .. cpp:member:: PropertyCell<MaskTextFormat, MaskedTextBoxTextMaskFormatCapability<Declaring>> text_mask_format
+
+      Default: ``{MaskTextFormat::include_literals}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -346,6 +690,129 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RichTextBoxAcceptsTabCapability
+
+   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+
+   Whether Tab inserts a tab (AcceptsTab); off (the default), Tab moves the focus.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RichTextBoxAcceptsTabCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RichTextBoxAcceptsTabCapability<Declaring>> accepts_tab
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RichTextBoxCapabilities : public RichTextBoxTextCapability<Declaring>, public RichTextBoxReadOnlyCapability<Declaring>, public RichTextBoxWordWrapCapability<Declaring>, public RichTextBoxAcceptsTabCapability<Declaring>, public RichTextBoxControlBarVisibleCapability<Declaring>, public FontCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+
+   Every RichTextBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: RichTextBoxCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The plain text (Text): the source's blocks with the markup removed, joined by line feeds (markdown_plain_text); a view onto the parsed document. A write replaces the document with markdown that reads back as that text (punctuation escaped, each line feed a hard line break; leading white space on a line and trailing line feeds are not kept), clears the history and raises content_changed, text_changed when the plain text changes, then selection_changed. Throws std::invalid_argument for invalid UTF-8 and std::length_error past maximum_bytes.
+
+   .. cpp:member:: bool read_only
+
+      Whether the user may select and copy but not change the document (ReadOnly); a view onto the editing engine.
+
+   .. cpp:member:: bool word_wrap
+
+      Lines wrap at the box's width (WordWrap, the default); without wrapping a line is one row and the box scrolls horizontally.
+
+   .. cpp:member:: bool accepts_tab
+
+      Whether Tab inserts a tab (AcceptsTab); off (the default), Tab moves the focus.
+
+   .. cpp:member:: bool control_bar_visible
+
+      Whether the control bar is shown (the default). Its keys work without it. A change closes the heading menu.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RichTextBoxControlBarVisibleCapability
+
+   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+
+   Whether the control bar is shown (the default). Its keys work without it. A change closes the heading menu.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RichTextBoxControlBarVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RichTextBoxControlBarVisibleCapability<Declaring>> control_bar_visible
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RichTextBoxReadOnlyCapability
+
+   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+
+   Whether the user may select and copy but not change the document (ReadOnly); a view onto the editing engine.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RichTextBoxReadOnlyCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const RichTextBoxReadOnlyCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, RichTextBoxReadOnlyCapability<Declaring>> read_only
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RichTextBoxTextCapability
+
+   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+
+   The plain text (Text): the source's blocks with the markup removed, joined by line feeds (markdown_plain_text); a view onto the parsed document. A write replaces the document with markdown that reads back as that text (punctuation escaped, each line feed a hard line break; leading white space on a line and trailing line feeds are not kept), clears the history and raises content_changed, text_changed when the plain text changes, then selection_changed. Throws std::invalid_argument for invalid UTF-8 and std::length_error past maximum_bytes.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RichTextBoxTextCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const RichTextBoxTextCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, RichTextBoxTextCapability<Declaring>> text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RichTextBoxWordWrapCapability
+
+   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+
+   Lines wrap at the box's width (WordWrap, the default); without wrapping a line is one row and the box scrolls horizontally.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RichTextBoxWordWrapCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RichTextBoxWordWrapCapability<Declaring>> word_wrap
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RichTextFormat final
 
    ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box.hpp>``
@@ -381,6 +848,121 @@ Related types
       Default: ``{RichTextFormatState::off}``.
 
    .. cpp:member:: std::size_t heading_level
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SearchField::Parts final
+
+   ``#include <gui_forms/controls/search_field/search_field.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``well`` is the field's ground, ``icon`` the search mark, ``content`` the inner editor's slot, ``actuator`` the clear mark (absent while the field is empty; hot and pressed as the pointer is), ``activity`` the busy strip (absent unless busy) and ``focus`` the cue shown while the editor has the keyboard focus.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry well
+
+   .. cpp:member:: PartGeometry icon
+
+   .. cpp:member:: PartGeometry content
+
+   .. cpp:member:: PartGeometry actuator
+
+   .. cpp:member:: PartGeometry activity
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SearchFieldBusyCapability
+
+   ``#include <gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp>``
+
+   Whether a search is running; the field shows an activity strip along its bottom and is busy to assistive technology. The application sets and clears it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SearchFieldBusyCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, SearchFieldBusyCapability<Declaring>> busy
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SearchFieldCapabilities : public SearchFieldTextCapability<Declaring>, public SearchFieldPlaceholderTextCapability<Declaring>, public SearchFieldSearchDelayCapability<Declaring>, public SearchFieldBusyCapability<Declaring>
+
+   ``#include <gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp>``
+
+   Every SearchField capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The query: a view onto the inner editor's text (see TextBox). A change raises text_changed and, after search_delay, search_requested.
+
+   .. cpp:member:: std::string placeholder_text
+
+      The hint the empty field shows, such as "Search": a view onto the inner editor's placeholder (see TextBox).
+
+   .. cpp:member:: std::chrono::milliseconds search_delay
+
+      How long typing must pause before search_requested is raised, 300 ms by default; zero raises it at each change. Negative or over 10 s throws std::invalid_argument. A change applies to the next edit.
+
+   .. cpp:member:: bool busy
+
+      Whether a search is running; the field shows an activity strip along its bottom and is busy to assistive technology. The application sets and clears it.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SearchFieldPlaceholderTextCapability
+
+   ``#include <gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp>``
+
+   The hint the empty field shows, such as "Search": a view onto the inner editor's placeholder (see TextBox).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SearchFieldPlaceholderTextCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const SearchFieldPlaceholderTextCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, SearchFieldPlaceholderTextCapability<Declaring>> placeholder_text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SearchFieldSearchDelayCapability
+
+   ``#include <gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp>``
+
+   How long typing must pause before search_requested is raised, 300 ms by default; zero raises it at each change. Negative or over 10 s throws std::invalid_argument. A change applies to the next edit.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SearchFieldSearchDelayCapability& capability, std::chrono::milliseconds incoming)
+
+   .. cpp:member:: PropertyCell<std::chrono::milliseconds, SearchFieldSearchDelayCapability<Declaring>> search_delay
+
+      Default: ``{std::chrono::milliseconds(300)}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SearchFieldTextCapability
+
+   ``#include <gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp>``
+
+   The query: a view onto the inner editor's text (see TextBox). A change raises text_changed and, after search_delay, search_requested.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SearchFieldTextCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const SearchFieldTextCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, SearchFieldTextCapability<Declaring>> text
 
 .. cpp:namespace:: gui_forms
 
@@ -429,6 +1011,344 @@ Related types
    .. cpp:member:: bool invalid
 
    .. cpp:member:: bool pending
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxAcceptsEnterCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   In a single-line box Enter is the box's own only while it has something to accept: an open suggestion list or appended completion, or an input-method composition; otherwise Enter goes on to the containers and the window's accept button. A box that is an edit session (a search field, an in-place editor) opts in with accepts_enter: plain Enter with nothing else to accept then raises committed() and stops there. Off by default. A multi-line box always takes Enter to insert newline_sequence.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxAcceptsEnterCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TextBoxAcceptsEnterCapability<Declaring>> accepts_enter
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxAcceptsEscapeCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   Escape is the box's own only while it has something to cancel: an open suggestion list or appended completion, an input-method composition or a selection drag; otherwise Escape goes on to the containers, menus and the window's cancel button. A box that is an edit session opts in with accepts_escape: plain Escape with nothing else to cancel then raises cancelled() and stops there. Off by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxAcceptsEscapeCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TextBoxAcceptsEscapeCapability<Declaring>> accepts_escape
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxAcceptsTabCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   Whether Tab inserts a tab in a multiline box (AcceptsTab) instead of moving the focus.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxAcceptsTabCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TextBoxAcceptsTabCapability<Declaring>> accepts_tab
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxAutoCompleteCaseSensitiveCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   Whether completion matches ASCII case exactly; off by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxAutoCompleteCaseSensitiveCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TextBoxAutoCompleteCaseSensitiveCapability<Declaring>> auto_complete_case_sensitive
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxAutoCompleteCustomSourceCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   The candidates for AutoCompleteSource::custom_source (AutoCompleteCustomSource). Never null: a new box owns an empty collection. Assigning one shares it (see AutoCompleteStringCollection); null throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxAutoCompleteCustomSourceCapability& capability, std::shared_ptr<AutoCompleteStringCollection> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<AutoCompleteStringCollection>, TextBoxAutoCompleteCustomSourceCapability<Declaring>> auto_complete_custom_source
+
+      Default: ``{std::make_shared<AutoCompleteStringCollection>()}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxAutoCompleteModeCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   How completions are offered (AutoCompleteMode): none, suggest (a list under the box), append (the rest of the first match, selected) or both. Auto-complete acts only in a single-line, unmasked, writable box with no edit filter; otherwise the settings are kept and do nothing. Matching is by prefix, ignoring ASCII case unless auto_complete_case_sensitive.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxAutoCompleteModeCapability& capability, AutoCompleteMode incoming)
+
+   .. cpp:member:: PropertyCell<AutoCompleteMode, TextBoxAutoCompleteModeCapability<Declaring>> auto_complete_mode
+
+      Default: ``{AutoCompleteMode::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxAutoCompleteSourceCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   Where completion candidates come from (AutoCompleteSource). list_items throws std::invalid_argument: a TextBox has no list (an editable ComboBox offers its items through its own setting).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxAutoCompleteSourceCapability& capability, AutoCompleteSource incoming)
+
+   .. cpp:member:: PropertyCell<AutoCompleteSource, TextBoxAutoCompleteSourceCapability<Declaring>> auto_complete_source
+
+      Default: ``{AutoCompleteSource::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxCapabilities : public TextBoxTextCapability<Declaring>, public TextBoxPlaceholderTextCapability<Declaring>, public TextBoxReadOnlyCapability<Declaring>, public TextBoxMultilineCapability<Declaring>, public TextBoxWordWrapCapability<Declaring>, public TextBoxNewlineSequenceCapability<Declaring>, public TextBoxAcceptsTabCapability<Declaring>, public TextBoxAcceptsEnterCapability<Declaring>, public TextBoxAcceptsEscapeCapability<Declaring>, public TextBoxMaximumLengthCapability<Declaring>, public TextBoxPasswordCharacterCapability<Declaring>, public TextBoxUseSystemPasswordCharacterCapability<Declaring>, public FontCapability<Declaring>, public TextBoxAutoCompleteModeCapability<Declaring>, public TextBoxAutoCompleteSourceCapability<Declaring>, public TextBoxAutoCompleteCustomSourceCapability<Declaring>, public TextBoxAutoCompleteCaseSensitiveCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   Every TextBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: TextBoxCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The edited text (Text); a view onto the editing engine. A write ends any completion and composition, starts a new history, scrolls to the start and raises text_changed, then selection_changed. A multiline box refuses invalid UTF-8, more than 1 MiB or a line over 4096 bytes (std::invalid_argument). maximum_length does not truncate a written value.
+
+   .. cpp:member:: std::string placeholder_text
+
+      The hint shown in the empty field. Without one, the field's tooltip (Control::field_hint_text) shows there in the same light grey while the field has focus. Throws std::invalid_argument for invalid UTF-8.
+
+   .. cpp:member:: bool read_only
+
+      Whether the user may select and copy the text but not change it (ReadOnly); a view onto the editing engine. A change ends any completion.
+
+   .. cpp:member:: bool multiline
+
+      Opt-in plain-text document editing (Multiline). Stored line endings are preserved; Enter inserts newline_sequence, and Tab is separately opt-in (accepts_tab). Turning it on throws std::invalid_argument for a password box or a text multiline editing refuses.
+
+   .. cpp:member:: bool word_wrap
+
+      Whether a multiline box wraps its lines at the box's width (WordWrap); a wrapped document overflows only vertically.
+
+   .. cpp:member:: std::string newline_sequence
+
+      What Enter inserts in a multiline box: LF (the default), CR or CRLF; anything else throws std::invalid_argument.
+
+   .. cpp:member:: bool accepts_tab
+
+      Whether Tab inserts a tab in a multiline box (AcceptsTab) instead of moving the focus.
+
+   .. cpp:member:: bool accepts_enter
+
+      In a single-line box Enter is the box's own only while it has something to accept: an open suggestion list or appended completion, or an input-method composition; otherwise Enter goes on to the containers and the window's accept button. A box that is an edit session (a search field, an in-place editor) opts in with accepts_enter: plain Enter with nothing else to accept then raises committed() and stops there. Off by default. A multi-line box always takes Enter to insert newline_sequence.
+
+   .. cpp:member:: bool accepts_escape
+
+      Escape is the box's own only while it has something to cancel: an open suggestion list or appended completion, an input-method composition or a selection drag; otherwise Escape goes on to the containers, menus and the window's cancel button. A box that is an edit session opts in with accepts_escape: plain Escape with nothing else to cancel then raises cancelled() and stops there. Off by default.
+
+   .. cpp:member:: std::size_t maximum_length
+
+      The most Unicode scalars a user edit, a paste or a semantic set-value may leave (MaxLength); zero admits any text that fits the store. A write does not truncate the text. A view onto the editing engine; more than 16 Mi throws std::out_of_range.
+
+   .. cpp:member:: char32_t password_character
+
+      The character shown for each character of the text (PasswordChar); U'\0' for none. Throws std::invalid_argument in a multiline box or for anything but one printable Unicode scalar.
+
+   .. cpp:member:: bool use_system_password_character
+
+      Whether the text is masked with the system's password character (UseSystemPasswordChar). Throws std::invalid_argument when turned on in a multiline box.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: AutoCompleteMode auto_complete_mode
+
+      How completions are offered (AutoCompleteMode): none, suggest (a list under the box), append (the rest of the first match, selected) or both. Auto-complete acts only in a single-line, unmasked, writable box with no edit filter; otherwise the settings are kept and do nothing. Matching is by prefix, ignoring ASCII case unless auto_complete_case_sensitive.
+
+   .. cpp:member:: AutoCompleteSource auto_complete_source
+
+      Where completion candidates come from (AutoCompleteSource). list_items throws std::invalid_argument: a TextBox has no list (an editable ComboBox offers its items through its own setting).
+
+   .. cpp:member:: std::shared_ptr<AutoCompleteStringCollection> auto_complete_custom_source
+
+      The candidates for AutoCompleteSource::custom_source (AutoCompleteCustomSource). Never null: a new box owns an empty collection. Assigning one shares it (see AutoCompleteStringCollection); null throws std::invalid_argument.
+
+   .. cpp:member:: bool auto_complete_case_sensitive
+
+      Whether completion matches ASCII case exactly; off by default.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxMaximumLengthCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   The most Unicode scalars a user edit, a paste or a semantic set-value may leave (MaxLength); zero admits any text that fits the store. A write does not truncate the text. A view onto the editing engine; more than 16 Mi throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxMaximumLengthCapability& capability, std::size_t incoming)
+
+   .. cpp:function:: static std::size_t read(const TextBoxMaximumLengthCapability& capability)
+
+   .. cpp:member:: PropertyView<std::size_t, TextBoxMaximumLengthCapability<Declaring>> maximum_length
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxMultilineCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   Opt-in plain-text document editing (Multiline). Stored line endings are preserved; Enter inserts newline_sequence, and Tab is separately opt-in (accepts_tab). Turning it on throws std::invalid_argument for a password box or a text multiline editing refuses.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxMultilineCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TextBoxMultilineCapability<Declaring>> multiline
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxNewlineSequenceCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   What Enter inserts in a multiline box: LF (the default), CR or CRLF; anything else throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxNewlineSequenceCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, TextBoxNewlineSequenceCapability<Declaring>> newline_sequence
+
+      Default: ``{std::string{"\n"}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxPasswordCharacterCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   The character shown for each character of the text (PasswordChar); U'\0' for none. Throws std::invalid_argument in a multiline box or for anything but one printable Unicode scalar.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxPasswordCharacterCapability& capability, char32_t incoming)
+
+   .. cpp:member:: PropertyCell<char32_t, TextBoxPasswordCharacterCapability<Declaring>> password_character
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxPlaceholderTextCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   The hint shown in the empty field. Without one, the field's tooltip (Control::field_hint_text) shows there in the same light grey while the field has focus. Throws std::invalid_argument for invalid UTF-8.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxPlaceholderTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, TextBoxPlaceholderTextCapability<Declaring>> placeholder_text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxReadOnlyCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   Whether the user may select and copy the text but not change it (ReadOnly); a view onto the editing engine. A change ends any completion.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxReadOnlyCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const TextBoxReadOnlyCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, TextBoxReadOnlyCapability<Declaring>> read_only
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxTextCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   The edited text (Text); a view onto the editing engine. A write ends any completion and composition, starts a new history, scrolls to the start and raises text_changed, then selection_changed. A multiline box refuses invalid UTF-8, more than 1 MiB or a line over 4096 bytes (std::invalid_argument). maximum_length does not truncate a written value.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxTextCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const TextBoxTextCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, TextBoxTextCapability<Declaring>> text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxUseSystemPasswordCharacterCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   Whether the text is masked with the system's password character (UseSystemPasswordChar). Throws std::invalid_argument when turned on in a multiline box.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxUseSystemPasswordCharacterCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TextBoxUseSystemPasswordCharacterCapability<Declaring>> use_system_password_character
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxWordWrapCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   Whether a multiline box wraps its lines at the box's width (WordWrap); a wrapped document overflows only vertically.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxWordWrapCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TextBoxWordWrapCapability<Declaring>> word_wrap
 
 .. cpp:namespace:: gui_forms
 
@@ -890,3 +1810,15 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_auto_complete_suggestions
 
    The most candidates a suggestion list shows; later matches are dropped. Value: ``256U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/search_field/search_field.hpp>``
+
+.. cpp:var:: constexpr FrameInterval busy_sweep_period
+
+   A text field for a query (W-4): a well holding the search mark, an inner TextBox (made after construction and owned as the only child), a clear mark while there is text, and an activity strip along the bottom while ``busy``. The strip is an ambient effect on the window's motion clock: a segment runs along it once per busy_sweep_period while the field is drawn. Under reduced motion, with ambient motion off or in an occluded window it is a still strip the field's width. Each change of the text raises text_changed and, once typing has paused for search_delay (on the window's frame schedule; at once outside a window or with a zero delay), search_requested with the query. Enter raises search_requested at once. Escape, or the clear mark, empties a field that has text: that raises cleared, then search_requested with the empty query. Escape in an empty field goes on to the containers and the window's cancel button. To assistive technology it is one search_box node (hosts without a mapping publish a text box) whose value is the query, busy while ``busy``: it carries the editor's selection and its text layout and selection requests reach the editor, which is not published separately (coordinator ruling). The editor takes the keyboard focus, which the node reports. One sweep of the busy strip's segment, and the segment's share of the strip's width. Value: ``std::chrono::milliseconds(1200)``.
+
+.. cpp:var:: constexpr double busy_segment_share
+
+   Value: ``0.3``.

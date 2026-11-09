@@ -59,6 +59,7 @@ scaled-panel gallery.timing.document {
       bounds: 22 164 564 24;
     }
     scaled-panel gallery.timing.motion {
+      classes: "canvas-mist";
       design-size: 294 170;
       border-style: line;
       bounds: 612 38 294 170;
@@ -68,6 +69,7 @@ scaled-panel gallery.timing.document {
         bounds: 14 8 266 24;
       }
       panel gallery.timing.motion.rule {
+        classes: "rule-line";
         bounds: 14 84 266 1;
       }
       button gallery.timing.motion.target {

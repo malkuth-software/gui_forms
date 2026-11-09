@@ -85,10 +85,10 @@ std::string order(const PageSet& pages) {
 // Four fixed 100-unit tabs at x = 2, 102, 202, 302 in a 600 by 26 strip.
 std::shared_ptr<PageStrip> fixed_strip(PageSet& pages) {
     std::shared_ptr<PageStrip> strip = make_control<PageStrip>(StableId("strip"), pages);
-    (*strip).set_item_sizing(PageItemSizing::fixed);
+    (*strip).item_sizing = PageItemSizing::fixed;
     PageItemWidths widths{};
     widths.fixed = 100.0;
-    (*strip).set_item_widths(widths);
+    (*strip).item_widths = widths;
     return strip;
 }
 
@@ -173,7 +173,7 @@ void fake_docking_session_claims_drags() {
     PageSet pages{};
     add_pages(pages, 4U);
     std::shared_ptr<PageStrip> strip = fixed_strip(pages);
-    (*strip).set_reorder_enabled(true);
+    (*strip).reorder_enabled = true;
     (*strip).set_requested_bounds({0.0, 0.0, 600.0, 26.0});
     (*root).add_child(strip);
     std::shared_ptr<Panel> site = make_control<Panel>(StableId("site"));
@@ -222,7 +222,7 @@ void live_slide_and_commit() {
     PageSet pages{};
     add_pages(pages, 4U);
     std::shared_ptr<PageStrip> strip = fixed_strip(pages);
-    (*strip).set_reorder_enabled(true);
+    (*strip).reorder_enabled = true;
     Window window(strip, {600.0, 26.0});
     window.perform_layout();
     std::size_t changes = 0U;
@@ -258,7 +258,7 @@ void escape_restores_the_order() {
     PageSet pages{};
     add_pages(pages, 4U);
     std::shared_ptr<PageStrip> strip = fixed_strip(pages);
-    (*strip).set_reorder_enabled(true);
+    (*strip).reorder_enabled = true;
     Window window(strip, {600.0, 26.0});
     window.perform_layout();
     std::size_t changes = 0U;
@@ -280,7 +280,7 @@ void escape_restores_the_order() {
     press(window, {52.0, 13.0});
     move_to(window, {300.0, 13.0});
     require((*strip).dragged_page().has_value(), "a second drag slides");
-    (*strip).set_reorder_enabled(false);
+    (*strip).reorder_enabled = false;
     require(!(*strip).dragged_page(), "turning reordering off ends the drag");
     release(window, {300.0, 13.0});
     require(order(pages) == "p0 p1 p2 p3" && changes == 0U, "nothing moved");
@@ -290,7 +290,7 @@ void pinned_boundary_holds_while_dragging() {
     PageSet pages(PageSetOptions{PageSelectionFallback::neighbour, true, PageSetLimits::default_capacity});
     add_pages(pages, 4U, 2U);
     std::shared_ptr<PageStrip> strip = fixed_strip(pages);
-    (*strip).set_reorder_enabled(true);
+    (*strip).reorder_enabled = true;
     Window window(strip, {600.0, 26.0});
     window.perform_layout();
     require(order(pages) == "p0 p1 p2 p3" && pages.pinned_count() == 2U, "two pages are pinned");
@@ -314,7 +314,7 @@ void reorder_by_view_preset() {
     PageSet pages{};
     add_pages(pages, 3U);
     std::shared_ptr<PageStrip> strip = fixed_strip(pages);
-    require(!(*strip).reorder_enabled(), "reordering is off by default");
+    require(!(*strip).reorder_enabled.read(), "reordering is off by default");
     Window window(strip, {600.0, 26.0});
     window.perform_layout();
     std::vector<PageDragStart> starts;
@@ -328,7 +328,7 @@ void reorder_by_view_preset() {
     PageViewOptions options{};
     options.preset = PageViewPreset::document;
     std::shared_ptr<PageView> documents = make_control<PageView>(StableId("documents"), options);
-    require(!(*(*plain).strip()).reorder_enabled() && (*(*documents).strip()).reorder_enabled(),
+    require(!(*(*plain).strip()).reorder_enabled.read() && (*(*documents).strip()).reorder_enabled.read(),
             "the strip preset does not reorder; the document preset does");
 }
 
@@ -384,7 +384,7 @@ void context_menu_and_double_click() {
     PageSet pages{};
     add_pages(pages, 4U);
     std::shared_ptr<PageStrip> strip = fixed_strip(pages);
-    (*strip).set_close_buttons(PageCloseButtons::selected_and_hot);
+    (*strip).close_buttons = PageCloseButtons::selected_and_hot;
     Window window(strip, {600.0, 26.0});
     window.perform_layout();
     std::vector<PageContextMenuRequest> menus;
@@ -394,17 +394,18 @@ void context_menu_and_double_click() {
     const Point second{152.0, 13.0};
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::secondary, second}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::secondary, second}));
+    require(menus.empty(), "a secondary click alone asks nothing: the host's context request does");
+    require(window.dispatch_context_request(ContextRequestOrigin::pointer, second),
+            "a pointer context request over a tab is taken");
     require(menus.size() == 1U && menus[0].page.value == "p1" && menus[0].cause == PageContextMenuCause::pointer &&
                 menus[0].anchor == second && (*pages.selected_page()).value == "p0",
-            "a secondary click asks once for its tab's menu, at the pointer, selecting nothing");
-    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::secondary, second}));
-    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::secondary, {252.0, 13.0}}));
-    require(menus.size() == 1U, "a secondary press and release on different tabs ask nothing");
+            "a pointer context request asks once for its tab's menu, at the pointer, selecting nothing");
     require(window.request_focus(strip), "the strip takes focus");
-    require(window.dispatch_key(key(PhysicalKey::f10, Modifier::shift)), "Shift+F10 is taken");
+    require(window.dispatch_context_request(ContextRequestOrigin::keyboard, Point{}),
+            "a keyboard context request is taken");
     require(menus.size() == 2U && menus[1].page.value == "p0" && menus[1].cause == PageContextMenuCause::keyboard &&
                 near(menus[1].anchor.x, 2.0) && near(menus[1].anchor.y, 26.0),
-            "Shift+F10 asks for the keyboard's tab's menu at its corner by the content");
+            "a keyboard request asks for the keyboard's tab's menu at its corner by the content");
 
     PointerEvent first_press{PointerAction::down, PointerButton::primary, {252.0, 13.0}};
     static_cast<void>(window.dispatch_pointer(first_press));
@@ -431,7 +432,7 @@ void context_menu_and_double_click() {
             "a double click on the close button is a close, not a double click on the tab");
 }
 
-// Shift+F10 on a tab the scroll buttons moved out of view scrolls it back
+// A keyboard context request on a tab the scroll buttons moved out of view scrolls it back
 // and anchors its menu at its corner by the content.
 void keyboard_menu_on_a_scrolled_out_tab() {
     PageSet pages{};
@@ -446,7 +447,8 @@ void keyboard_menu_on_a_scrolled_out_tab() {
     window.perform_layout();
     const std::vector<PageId> before = (*strip).visible_pages();
     require(!before.empty() && before.front().value != "p0", "the keyboard's tab p0 is scrolled out of view");
-    require(window.dispatch_key(key(PhysicalKey::f10, Modifier::shift)), "Shift+F10 is taken");
+    require(window.dispatch_context_request(ContextRequestOrigin::keyboard, Point{}),
+            "a keyboard context request is taken");
     window.perform_layout();
     const std::vector<PageId> after = (*strip).visible_pages();
     require(!after.empty() && after.front().value == "p0", "the tab is scrolled back into view");

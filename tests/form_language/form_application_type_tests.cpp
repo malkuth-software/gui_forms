@@ -1,7 +1,7 @@
 // Form documents in a CMake build (stage FD, phase FD6.1). Gate: a header
 // gui_forms_add_form generated at build time compiles and makes the
 // document's application type, as the application's own class, with its
-// base type's properties and handlers; add_application_type refuses
+// base type's properties and its bindings; add_application_type refuses
 // malformed descriptions and leaves the schema unchanged.
 
 #include "../../tools/form_compiler/form_catalog.hpp"
@@ -30,14 +30,25 @@ void require(bool condition, std::string_view message) {
     }
 }
 
+// The owner of note_dialog.form: the source its binding names, and a count
+// of the command's invocations.
 class NoteOwner final {
 public:
-    void close(gui_forms::ButtonBase& button) {
-        static_cast<void>(button);
+    NoteOwner() {
+        using Invoked = gui_forms::Delegate<const gui_forms::CommandInvocation&>;
+        closed_ = close_.invoked().subscribe(Invoked::bind<NoteOwner, &NoteOwner::count_close>(*this));
+    }
+
+    void count_close(const gui_forms::CommandInvocation& invocation) {
+        static_cast<void>(invocation);
         ++close_calls;
     }
 
+    gui_forms::Command close_{};
     int close_calls{};
+
+private:
+    gui_forms::SubscriptionToken closed_{};
 };
 
 void test_generated_application_type() {
@@ -52,7 +63,7 @@ void test_generated_application_type() {
             "generated: the application type in the tree");
     gui_forms::Window window(form.root_control(), gui_forms::Size{200.0, 100.0});
     static_cast<void>((*form.notes_card_close).perform_click());
-    require(owner.close_calls == 1, "generated: the handler in the application type's subtree");
+    require(owner.close_calls == 1, "generated: the binding in the application type's subtree");
 }
 
 // Whether adding `description` throws std::invalid_argument and leaves

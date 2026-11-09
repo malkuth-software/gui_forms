@@ -198,7 +198,7 @@ void status_strip() {
                     600.0 - 12.0 - 60.0,
             "a spring label pushes the items after it to the end");
     require((*status).overflow_item_ids().empty(), "a status strip never overflows");
-    (*status).set_sizing_grip(false);
+    (*status).sizing_grip_visible = false;
     require(!(*status).parts().sizing_grip.present, "the sizing grip can be hidden");
     require((*status).semantic_descriptor().role == SemanticRole::status_bar, "a status strip is a status bar");
 }
@@ -235,7 +235,7 @@ void hosted_controls() {
     const std::shared_ptr<ProgressBar> load = (*strip).progress_bar("load");
     require(zoom && find && load && (*strip).children().size() == 3U,
             "each hosted item owns one child control of its kind");
-    require((*zoom).items().size() == 3U && (*zoom).accessible_name.read() == "Zoom" &&
+    require((*zoom).items.read().size() == 3U && (*zoom).accessible_name.read() == "Zoom" &&
                 (*zoom).stable_id().value() == "strip.zoom",
             "a combo box takes its choices and name from the item, and its ID from the strip and item");
     const std::vector<ToolStrip::Item> items = (*strip).realized_items();
@@ -251,8 +251,8 @@ void hosted_controls() {
             "a text box item takes its width from the item");
     require(progress != nullptr && (*progress).parts.item_progress_bar.present,
             "a progress bar item publishes its hosted part");
-    (*load).set_value(40.0);
-    require((*(*strip).progress_bar("load")).value() == 40.0, "the application drives the hosted control");
+    (*load).value = 40.0;
+    require((*(*strip).progress_bar("load")).value.read() == 40.0, "the application drives the hosted control");
 
     const Point inside = centre((*text).parts.item_text_box.bounds);
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, inside}));
@@ -262,14 +262,14 @@ void hosted_controls() {
     const std::vector<SemanticNode> children = (*strip).semantic_virtual_children();
     require(children.size() == 2U, "hosted controls describe themselves, not as virtual children");
 
-    (*find).set_text("needle");
+    (*find).text = "needle";
     std::vector<ToolStripItemSpec> next = hosted_items();
     next[1].choices = {"Fit"};
     next[3].kind = ToolStripItemKind::text_box;
     (*strip).set_items(std::move(next));
-    require((*strip).text_box("find") == find && (*find).text() == "needle",
+    require((*strip).text_box("find") == find && (*find).text.read() == "needle",
             "set_items keeps a hosted control of the same ID and kind, with its state");
-    require((*(*strip).combo_box("zoom")).items().size() == 1U, "set_items updates a combo box's choices");
+    require((*(*strip).combo_box("zoom")).items.read().size() == 1U, "set_items updates a combo box's choices");
     require((*strip).text_box("load") != nullptr && (*strip).children().size() == 3U,
             "an item that changes kind gets a new control and the old one is removed");
 

@@ -54,6 +54,7 @@ class ErrorProvider;
 class HelpProvider;
 class Binding;
 class ControlBindingsCollection;
+class PropertyLink;
 struct HelpRequestEvent;
 
 namespace detail {
@@ -348,10 +349,6 @@ public:
     [[nodiscard]] Event<bool>& enabled_changed() noexcept {
         return enabled_changed_;
     }
-    // Application-owned metadata/lifetime anchor. Tag is deliberately inert:
-    // assigning it does not imply rendering, layout, semantics, or binding.
-    [[nodiscard]] const std::any& tag() const noexcept { return tag_; }
-    void set_tag(std::any tag);
     [[nodiscard]] Ptr parent() const noexcept { return parent_.lock(); }
     [[nodiscard]] std::span<const Ptr> children() const noexcept { return children_; }
     [[nodiscard]] bool attached() const noexcept { return surface_root_ != nullptr; }
@@ -550,8 +547,6 @@ public:
     [[nodiscard]] bool layout_collapsed() const noexcept {
         return layout_collapsed_;
     }
-    [[nodiscard]] bool focusable() const noexcept { return focusable_; }
-    void set_focusable(bool focusable);
     [[nodiscard]] Event<bool>& causes_validation_changed() noexcept {
         return causes_validation_changed_;
     }
@@ -569,20 +564,10 @@ public:
         return (styles_ & style) == style;
     }
     void set_style(ControlStyles style, bool enabled);
-    [[nodiscard]] bool double_buffered() const noexcept {
-        return has_style(ControlStyles::double_buffer) ||
-               has_style(ControlStyles::optimized_double_buffer);
-    }
-    void set_double_buffered(bool enabled);
-    // Style classes (T2 plan, E4): names a theme's class rules select, in
-    // the order they were added, without duplicates. A class name is 1 to 64
-    // characters of lowercase ASCII letters, digits, '-' and '_', starting
-    // with a letter (valid_style_class_name). Changing the classes repaints
-    // the control. set_classes throws std::invalid_argument for an invalid
-    // name and then changes nothing; it drops repeated names.
-    [[nodiscard]] std::span<const std::string> classes() const noexcept { return classes_; }
-    void set_classes(std::vector<std::string> classes);
-    // Adds or removes one class; false when the class was already there (or
+    // tag, focusable, double_buffered (a view over the two buffering style
+    // bits) and classes (style classes, T2 plan E4; valid_style_class_name)
+    // are capabilities (control_capabilities.hpp).
+    // Adds or removes one style class; false when the class was already there (or
     // absent). An invalid name throws std::invalid_argument.
     bool add_class(std::string_view name);
     bool remove_class(std::string_view name);
@@ -613,15 +598,9 @@ public:
     // Its compiled rules (CompiledThemeRules::compile_inline), or null
     // without one; the cascade reads them for this control alone.
     [[nodiscard]] const CompiledThemeRules* inline_style_rules() const noexcept;
-    // Whether the application marks this control's surface ceremonial (T2
-    // GIVEN B3-1; design language §10): an installer's or a first run's
-    // world. On it, and on its descendants, the theme engine's ambient
-    // effects may cover more than 10 % of the window; everywhere else the
-    // everyday cap holds. A theme never sets it. Changing it repaints the
-    // control and its descendants.
-    [[nodiscard]] bool ceremonial() const noexcept { return ceremonial_; }
-    void set_ceremonial(bool ceremonial);
-    // Whether this control or one of its ancestors is marked ceremonial.
+    // Whether this control or one of its ancestors is marked ceremonial
+    // (the ceremonial capability: T2 GIVEN B3-1; design language §10, an
+    // installer's or a first run's world).
     [[nodiscard]] bool on_ceremonial_surface() const noexcept;
     // A stock assignment clears the image override. Null images select fallback.
     void set_custom_cursor(CursorImagesPtr images, CursorKind fallback = CursorKind::arrow);
@@ -686,6 +665,12 @@ public:
     void invalidate(Rect local_damage);
     void invalidate_subtree(Dirty dirty);
     void invalidate_declared(Dirty declared_effects);
+    // A redraw of this control and everything in it (property-capabilities
+    // study, decision 10): folds every content region of the subtree at
+    // once (fold_content_regions), drawing nothing for their pending items,
+    // then marks the subtree with `kinds` and the folded kinds. Use it
+    // where the whole control moves or changes look (a scroll, a theme).
+    void redraw_all(Dirty kinds);
 
     void begin_init();
     void end_init();
@@ -705,6 +690,36 @@ public:
     [[nodiscard]] Event<const PointerEvent&>& pointer_preview_observed() noexcept {
         return pointer_preview_observed_;
     }
+    // The WinForms mouse events (owner's mouse-event rule, 2026-11-08). The
+    // window raises them on the UI thread in WinForms' order: MouseDown,
+    // then on the release over the control the same button pressed Click
+    // and MouseClick (or, for a press the host counted as the second of a
+    // double-click on a control with ControlStyles::standard_double_click,
+    // DoubleClick and MouseDoubleClick), then MouseUp. Both need
+    // ControlStyles::standard_click, as in WinForms; a primary Click is
+    // followed by on_activate.
+    // MouseEnter, MouseHover (once per entry, after the pointer rests within
+    // the hover rectangle for the hover time) and MouseLeave follow the
+    // pointer; MouseCaptureChanged is raised on the control losing the
+    // capture. The events are kept in a record made by the first accessor
+    // called, so a control nobody listens to stores none.
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_down() { return mouse_events().down; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_up() { return mouse_events().up; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_move() { return mouse_events().move; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_wheel() { return mouse_events().wheel; }
+    [[nodiscard]] Event<>& mouse_enter() { return mouse_events().enter; }
+    [[nodiscard]] Event<>& mouse_hover() { return mouse_events().hover; }
+    [[nodiscard]] Event<>& mouse_leave() { return mouse_events().leave; }
+    [[nodiscard]] Event<>& mouse_capture_changed() { return mouse_events().capture_changed; }
+    [[nodiscard]] Event<>& click() { return mouse_events().click; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_click() { return mouse_events().mouse_click; }
+    [[nodiscard]] Event<>& double_click() { return mouse_events().double_click; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_double_click() {
+        return mouse_events().mouse_double_click;
+    }
+    [[nodiscard]] Event<ContextMenuRequest&>& context_menu_requested() {
+        return mouse_events().context_menu_requested;
+    }
     [[nodiscard]] Event<bool>& focus_observed() noexcept {
         return focus_observed_;
     }
@@ -716,9 +731,14 @@ public:
     }
     [[nodiscard]] ControlBindingsCollection& data_bindings();
     [[nodiscard]] const ControlBindingsCollection& data_bindings() const;
+    // Keeps `link`, a form binding's link of one of this control's
+    // properties to its source (form_binding.hpp), for the control's life:
+    // destroying the control ends it (owner ruling FD-6 R4). A null link is
+    // std::invalid_argument. UI thread.
+    void adopt_property_link(std::unique_ptr<PropertyLink> link);
     // Control's own table (its capabilities' entries); a derived type joins
     // it first (join_property_tables) and returns the joined table.
-    static constexpr std::size_t control_property_count = 25U;
+    static constexpr std::size_t control_property_count = 28U;
     [[nodiscard]] static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
     // The properties below are the instance registry's
@@ -811,6 +831,16 @@ public:
     // child anyway). The nearest ancestor escalating a kind takes it, at
     // the settle. Constant per type. The default escalates nothing.
     [[nodiscard]] virtual Dirty child_touch_escalation() const noexcept;
+    // Content regions (property-capabilities study, decision 10). A control
+    // owning ContentRegion members overrides both. gather_content_regions
+    // runs after the window's layout when one of its regions asked for it:
+    // it turns each region's pending items into damage at their final
+    // geometry (invalidate with a rectangle) and clears them.
+    // fold_content_regions returns the union of every region's folded kinds
+    // (ContentRegion::fold_pending), drawing nothing; redraw_all and the
+    // control's detach call it. The defaults do nothing.
+    virtual void gather_content_regions();
+    [[nodiscard]] virtual Dirty fold_content_regions() noexcept;
     // Whether this container's arrange asks each child the content
     // questions its algorithm needs (min-content, max-content, a height at
     // a definite width) rather than the at-most question the window's
@@ -912,6 +942,13 @@ public:
     virtual void on_drag(DragEvent& event);
     virtual void on_drag_bubble(DragEvent& event);
     virtual void on_focus_changed(bool focused);
+    // Focus moved to `descendant`, a control inside this one: the window
+    // calls this on each ancestor of a newly focused control, innermost
+    // first, after the focused control's on_focus_changed (Windows Forms'
+    // ScrollControlIntoView on activation). Return true when this control
+    // scrolls its content to reveal `descendant`; the ancestors above then
+    // reveal this control instead. The default reveals nothing: false.
+    virtual bool reveal_focused_descendant(const Control& descendant);
     // Where an input method places its composition and candidate windows
     // while this control has focus: the caret's box, in local coordinates.
     // The base returns none, and SurfaceRoot::text_input_caret then uses a
@@ -921,6 +958,16 @@ public:
     // focus. Controls with bounded focus-cue presentation may retarget here.
     virtual void on_focus_cue_changed(bool visible);
     virtual void on_activate();
+    // A context menu was asked for on this control (ContextMenuRequest),
+    // before the control's ContextMenuRequested subscribers. A control that
+    // shows its own menu sets `request.handled`, which also stops the
+    // request reaching its ancestors. The base does nothing.
+    virtual void on_context_menu_requested(ContextMenuRequest& request);
+    // Whether Click, MouseClick, DoubleClick and MouseDoubleClick are raised
+    // for the primary button only. The base answers false: as in WinForms, a
+    // release of any button over the control it pressed is a click.
+    // ButtonBase answers true.
+    [[nodiscard]] virtual bool clicks_primary_button_only() const noexcept;
 
     // Anatomy (stage T1). A control type opts in by overriding anatomy(),
     // publish_part_geometry() and anatomy_states() together; the defaults
@@ -1163,6 +1210,12 @@ private:
     // primary font, and returns Dirty::layout where it resolves differently
     // now (a font is a layout input), else Dirty::none.
     [[nodiscard]] Dirty refresh_text_font() noexcept;
+    // Whether the control's theme or its window's user theme has rules with
+    // ancestor compounds (CompiledThemeRules::uses_ancestors).
+    [[nodiscard]] bool reads_ancestors() const noexcept;
+    // Invalidates every descendant's style, paint and font, after a change
+    // to this control's classes that rules with ancestor compounds read.
+    void restyle_descendants();
     // P12b: compiles again, against `theme`, each inline style of this
     // subtree that defines custom properties and was compiled against
     // another theme, appending each to `restyles` uninstalled; a control
@@ -1183,6 +1236,11 @@ private:
     void refresh_inline_style();
     friend class Window;
     friend class SurfaceRoot;
+    friend class ContentRegion;
+    // A content region's first pending item since its last gather: asks the
+    // window to gather this control's regions after its next layout. False,
+    // asking nothing, while detached or initializing.
+    [[nodiscard]] bool request_content_gather();
     // The property capabilities (study section 14) reach the hooks below.
     friend struct NameCapability<Control>;
     friend struct VisibleCapability<Control>;
@@ -1209,6 +1267,11 @@ private:
     friend struct HitTestTransparentCapability<Control>;
     friend struct AccessibleNameCapability<Control>;
     friend struct AccessibleDescriptionCapability<Control>;
+    friend struct CeremonialCapability<Control>;
+    friend struct TagCapability<Control>;
+    friend struct FocusableCapability<Control>;
+    friend struct DoubleBufferedCapability<Control>;
+    friend struct ClassesCapability<Control>;
     // The capabilities' hooks, one pair per property, chosen by the cell's
     // type: prepare_write runs before the compare (require_mutable first,
     // then the value's checks; it may adjust the value), written after the
@@ -1266,6 +1329,16 @@ private:
     void written(const decltype(accessible_name)& cell);
     void prepare_write(const decltype(accessible_description)& cell, std::string& value);
     void written(const decltype(accessible_description)& cell);
+    void prepare_write(const decltype(ceremonial)& cell, bool& value);
+    void written(const decltype(ceremonial)& cell);
+    void write_view(const decltype(tag)& cell, std::any incoming);
+    [[nodiscard]] std::any read_view(const decltype(tag)& cell) const;
+    void prepare_write(const decltype(focusable)& cell, bool& value);
+    void written(const decltype(focusable)& cell);
+    void write_view(const decltype(double_buffered)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(double_buffered)& cell) const;
+    void prepare_write(const decltype(classes)& cell, std::vector<std::string>& value);
+    void written(const decltype(classes)& cell);
     friend class ContainerControl;
     // Reports an opaque engine face's cover (report_opaque_cover).
     friend void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part);
@@ -1308,9 +1381,6 @@ private:
         const SurfaceMaterial& material) const;
     void publish_change(const void* event_key,
                         std::function<void()> publication);
-    void define_structural_property(PropertyDescriptor descriptor,
-                                    PropertyRegistration::Getter get,
-                                    PropertyRegistration::Setter set);
     [[nodiscard]] static bool tab_order_less(const Ptr& left,
                                              const Ptr& right) noexcept;
     static void collect_tab_order_controls(const Control& owner,
@@ -1330,7 +1400,7 @@ private:
     [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor>
         layout_direction_property_enum();
     // The classes property: a collection of text, one item per class in
-    // order. Setting it refuses an invalid name as set_classes does.
+    // order. Setting it refuses an invalid name as the classes capability does.
     [[nodiscard]] BindingValue classes_property_value() const;
     void set_classes_property_value(const BindingValue& value);
     // The cursor property: "inherit" (no cursor of its own) or a kind.
@@ -1397,7 +1467,6 @@ private:
     std::shared_ptr<const detail::DisplayChunk> display_chunk_;
     Insets last_painted_visual_outsets_{};
     bool layout_collapsed_{};
-    bool focusable_{};
     // Whether this is its window's hovered control, the one the pointer was
     // last over (stage T4, hot states). Only the window sets it, before the
     // control sees the enter or leave; base_anatomy_states reports it as
@@ -1409,11 +1478,10 @@ private:
     ControlStyles styles_{ControlStyles::user_paint |
                           ControlStyles::resize_redraw |
                           ControlStyles::standard_click |
+                          ControlStyles::standard_double_click |
                           ControlStyles::selectable |
                           ControlStyles::all_painting_in_one_pass};
-    std::vector<std::string> classes_;
     std::shared_ptr<const detail::ControlInlineStyle> inline_style_;
-    bool ceremonial_{};
     CursorImagesPtr cursor_images_;
     std::shared_ptr<const Theme> theme_override_;
     std::optional<SurfaceMaterial> authored_surface_material_;
@@ -1422,7 +1490,7 @@ private:
     // The primary text font last resolved (text_font), and what it was
     // resolved against: valid while the theme, the window's media facts,
     // the user theme's and the inline style's rules and `own` are the same.
-    // The classes are not compared: set_classes drops it (refresh_text_font).
+    // The classes are not compared: a classes write drops it (refresh_text_font).
     struct TextFontCache final {
         bool valid{};
         FontSpec own{};
@@ -1466,11 +1534,33 @@ private:
     Event<> validated_;
     Event<const PointerEvent&> pointer_observed_;
     Event<const PointerEvent&> pointer_preview_observed_;
+    // The WinForms mouse events (mouse_down and the rest), made on first
+    // access; null while nobody has asked for one.
+    struct MouseEvents final {
+        Event<const MouseEventArgs&> down;
+        Event<const MouseEventArgs&> up;
+        Event<const MouseEventArgs&> move;
+        Event<const MouseEventArgs&> wheel;
+        Event<> enter;
+        Event<> hover;
+        Event<> leave;
+        Event<> capture_changed;
+        Event<> click;
+        Event<const MouseEventArgs&> mouse_click;
+        Event<> double_click;
+        Event<const MouseEventArgs&> mouse_double_click;
+        Event<ContextMenuRequest&> context_menu_requested;
+    };
+    MouseEvents& mouse_events();
+    std::unique_ptr<MouseEvents> mouse_events_{};
     Event<bool> focus_observed_;
     Event<Rect> arranged_bounds_changed_;
     Event<HelpRequestEvent&> help_requested_;
     BindablePropertyMap bindable_properties_;
     mutable std::unique_ptr<ControlBindingsCollection> data_bindings_;
+    // The form bindings' links, in the order they were made. Declared after
+    // the events they subscribe to, so they end first.
+    std::vector<std::unique_ptr<PropertyLink>> property_links_;
     Dirty pending_initialization_dirty_{Dirty::none};
     std::uint64_t initialization_depth_{};
     bool pending_initialization_subtree_{};

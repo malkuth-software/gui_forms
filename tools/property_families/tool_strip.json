@@ -1,0 +1,160 @@
+{
+  "family": "ToolStrip",
+  "step": "M-S8",
+  "declaring": "ToolStrip",
+  "header": "include/gui_forms/controls/tool_strip/tool_strip.hpp",
+  "source": "src/controls/tool_strip/tool_strip.cpp",
+  "capabilities_header": "include/gui_forms/controls/tool_strip/tool_strip_capabilities/tool_strip_capabilities.hpp",
+  "base": "Control",
+  "shared": [
+    "FontCapability"
+  ],
+  "includes": [
+    "gui_forms/controls/range_control/range_control.hpp",
+    "gui_forms/types.hpp"
+  ],
+  "test": {
+    "type": "ToolStrip",
+    "include": "gui_forms/controls/tool_strip/tool_strip.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [],
+      "hooks": "generated",
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "name": "grip_visible",
+      "capability": "ToolStripGripVisible",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the grip is shown at the strip's start (Windows Forms' GripStyle; default true).",
+      "getter": "grip_visible",
+      "setter": "set_grip_visible",
+      "field": "grip_visible_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [],
+      "hooks": "generated",
+      "effects": null,
+      "name": "allow_merge",
+      "capability": "ToolStripAllowMerge",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.",
+      "getter": "allow_merge",
+      "setter": "set_allow_merge",
+      "field": "allow_merge_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [],
+      "hooks": "generated",
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::control, 10.5, 400, false, 0.12",
+      "comment": "The font of the items' text. A write marks the font as set from code; an invalid specification throws std::invalid_argument.",
+      "prepare": [
+        "if (!valid_font_spec(incoming)) throw std::invalid_argument(\"ToolStrip font specification is invalid\");",
+        "set_font_from_code(true);"
+      ],
+      "sample": "FontSpec{FontRole::control, 12.0, 700, false}",
+      "getter": "font",
+      "setter": "set_font",
+      "field": "font_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "written closes an open drop-down before invalidating"
+      ],
+      "hooks": "hand",
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "name": "orientation",
+      "capability": "ToolStripOrientation",
+      "value": "Orientation",
+      "initial": "Orientation::horizontal",
+      "comment": "Horizontal strips run left to right; vertical strips run top to bottom and are as wide as their widest item. A StatusStrip stays horizontal and throws std::logic_error when set vertical; an unknown orientation throws std::invalid_argument.",
+      "sample": "Orientation::vertical",
+      "getter": "orientation",
+      "setter": "set_orientation",
+      "field": "orientation_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [],
+      "hooks": "generated",
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "name": "sizing_grip_visible",
+      "capability": "ToolStripSizingGripVisible",
+      "value": "bool",
+      "comment": "Whether a sizing grip is drawn at the strip's far end (StatusStrip's SizingGrip; default false).",
+      "getter": "sizing_grip_visible",
+      "setter": "set_sizing_grip_visible",
+      "field": "sizing_grip_visible_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "written closes an open drop-down before invalidating"
+      ],
+      "hooks": "hand",
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "name": "end_reserve",
+      "capability": "ToolStripEndReserve",
+      "value": "double",
+      "initial": "0.0",
+      "comment": "For QuickAccessToolbar: logical units kept free at the strip's far end for a part the derived control paints there (its customize button); items and the overflow button sit before it. Zero by default. A width that is negative, not finite or over 64 throws std::invalid_argument.",
+      "sample": "24.0",
+      "getter": "end_reserve",
+      "setter": "set_end_reserve",
+      "field": "end_reserve_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "items",
+      "reason": "wholesale collection replacement"
+    },
+    {
+      "name": "item_text, item_checked",
+      "reason": "per-item operations"
+    },
+    {
+      "name": "hot",
+      "reason": "run-time interaction state"
+    }
+  ]
+}

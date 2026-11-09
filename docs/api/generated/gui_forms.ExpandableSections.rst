@@ -7,7 +7,7 @@ gui_forms::ExpandableSections
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ExpandableSections final : public Panel
+.. cpp:class:: ExpandableSections final : public Panel, public ExpandableSectionsCapabilities<ExpandableSections>
 
    ``#include <gui_forms/controls/collections/expandable_sections.hpp>``
 
@@ -32,6 +32,11 @@ gui_forms::ExpandableSections
 
    :Properties:
 
+      **single_open** : ``bool``, default ``false``
+         Whether at most one section is open at a time. Turning it on closes
+         every open section after the first, raising :cpp:func:`toggled <gui_forms::ExpandableSections::toggled>` for each; at a
+         replacement the first open section wins.
+
       **items** : ``std::span<const SectionItem>``
          The sections as :cpp:class:`SectionItem <gui_forms::SectionItem>` records: a section ID, a label, the
          content control, and an optional borrowed :cpp:class:`Value <gui_forms::Value>` holding the expanded
@@ -46,11 +51,6 @@ gui_forms::ExpandableSections
          takes its state from its :cpp:class:`Value <gui_forms::Value>`. No :cpp:func:`toggled <gui_forms::ExpandableSections::toggled>` events are raised during
          the replacement.
 
-      **single_open** : ``bool``, default ``false``
-         Whether at most one section is open at a time. Turning it on closes
-         every open section after the first, raising :cpp:func:`toggled <gui_forms::ExpandableSections::toggled>` for each; at a
-         replacement the first open section wins.
-
    :Events:
 
       **toggled** : ``Event<int, bool>``
@@ -64,7 +64,7 @@ gui_forms::ExpandableSections
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`, :cpp:func:`parts <gui_forms::Panel::parts>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -130,7 +130,7 @@ gui_forms::ExpandableSections
       (*sharing).set_requested_bounds({0.0, 0.0, 0.0, 40.0});
 
       gf::Value<bool> general_open(true);
-      (*inspector).set_single_open(true);
+      (*inspector).single_open = true;
       (*inspector).set_items({
           {.id = 1, .label = "&General", .content = general, .expanded = &general_open},
           {.id = 2, .label = "&Sharing", .content = sharing},
@@ -171,6 +171,12 @@ gui_forms::ExpandableSections
 
    .. rubric:: Properties
 
+   .. cpp:member:: bool single_open
+
+      Whether at most one section is open at a time. Turning it on closes
+      every open section after the first, raising :cpp:func:`toggled <gui_forms::ExpandableSections::toggled>` for each; at a
+      replacement the first open section wins.
+
    .. cpp:function:: std::span<const SectionItem> items() const noexcept
 
       The sections as :cpp:class:`SectionItem <gui_forms::SectionItem>` records: a section ID, a label, the
@@ -189,16 +195,6 @@ gui_forms::ExpandableSections
    .. cpp:function:: void set_items(std::vector<SectionItem> items)
 
       Sets :cpp:func:`items <gui_forms::ExpandableSections::items>`; see the property's description above.
-
-   .. cpp:function:: bool single_open() const noexcept
-
-      Whether at most one section is open at a time. Turning it on closes
-      every open section after the first, raising :cpp:func:`toggled <gui_forms::ExpandableSections::toggled>` for each; at a
-      replacement the first open section wins.
-
-   .. cpp:function:: void set_single_open(bool enabled)
-
-      Sets :cpp:func:`single_open <gui_forms::ExpandableSections::single_open>`; see the property's description above.
 
 
    .. rubric:: Events

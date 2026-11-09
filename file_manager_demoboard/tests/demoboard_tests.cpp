@@ -149,6 +149,10 @@ void secondary_click(gui_forms::Window& window, gui_forms::Point point) {
                 window.dispatch_pointer({gui_forms::PointerAction::up,
                                          gui_forms::PointerButton::secondary, point}),
             "secondary click must be handled by the object collection");
+    // The host's context request follows the release, as Windows'
+    // WM_CONTEXTMENU does.
+    require(window.dispatch_context_request(gui_forms::ContextRequestOrigin::pointer, point),
+            "the pointer context request must be handled by the object collection");
 }
 
 struct CountSmokeClose final {
@@ -277,20 +281,20 @@ int main() {
     std::shared_ptr<gui_forms::ListBox> completions = std::dynamic_pointer_cast<gui_forms::ListBox>(
         (*product).find("fm.path.matrix.completions"));
     require(path_editor && completions && (*path_editor).visible.read() &&
-                (*path_editor).text() == "/Users/quentin/Work/Projects/" &&
+                (*path_editor).text.read() == "/Users/quentin/Work/Projects/" &&
                 (*path_editor).selection().empty() &&
-                (*path_editor).selection().caret.value() == (*path_editor).text().size() &&
+                (*path_editor).selection().caret.value() == (*path_editor).text.read().size() &&
                 (*product).focused_control() == path_editor,
             "open tail must become the real public TextBox in place with caret at end");
-    (*path_editor).set_text("$PROJECTS/N");
+    (*path_editor).text = "$PROJECTS/N";
     const gui_forms::DispatcherSnapshot completion_dispatch =
         (*product).dispatcher_snapshot();
     require(completion_dispatch.pending == 1U &&
                 completion_dispatch.cancelled >= 1U,
             "a newer path query must cancel the prior deferred completion generation");
     static_cast<void>((*product).drain_posted_work());
-    require((*completions).items().size() == 1U &&
-                (*completions).items().front() ==
+    require((*completions).items.read().size() == 1U &&
+                (*completions).items.read().front() ==
                     "/Users/quentin/Work/Projects/North Shore/" &&
                 (*completions).item_stable_id(0U) ==
                     "fm.path.matrix.completion.north-shore" &&
@@ -302,7 +306,7 @@ int main() {
                 (*product).focused_control() == path_editor &&
                 (*product).dispatch_key({gui_forms::KeyAction::down,
                                        gui_forms::PhysicalKey::tab}) &&
-                (*path_editor).text() ==
+                (*path_editor).text.read() ==
                     "/Users/quentin/Work/Projects/North Shore/" &&
                 (*product).focused_control() == path_editor,
             "completion navigation and Tab acceptance must leave text focus in the editor");
@@ -311,7 +315,7 @@ int main() {
                 !(*product).find("fm.path.matrix") &&
                 (*terminal).expanded_state.read() == false &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.title.text"))).text().find("North Shore") !=
+                    (*product).find("fm.title.text"))).text.read().find("North Shore") !=
                     std::string::npos,
             "Enter on a valid completion must close once and navigate atomically");
     (*std::dynamic_pointer_cast<gui_forms::Button>(
@@ -325,7 +329,7 @@ int main() {
     static_cast<void>((*product).drain_posted_work());
     path_editor = std::dynamic_pointer_cast<gui_forms::TextBox>(
         (*product).find("fm.path.matrix.editor"));
-    (*path_editor).set_text("$UNKNOWN/Projects");
+    (*path_editor).text = "$UNKNOWN/Projects";
     require((*product).dispatch_key({gui_forms::KeyAction::down,
                                    gui_forms::PhysicalKey::enter}) &&
                 (*product).find("fm.path.matrix") &&
@@ -333,7 +337,7 @@ int main() {
                     (*product).find("fm.path.matrix.resolution"))
                         ).accessible_description.read().starts_with("Error:") &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.status.authority"))).text().find(
+                    (*product).find("fm.status.authority"))).text.read().find(
                         "Unknown variable") != std::string::npos,
             "invalid path must remain editing with visible and semantic explanation");
     require((*product).dispatch_key({gui_forms::KeyAction::down,
@@ -388,11 +392,11 @@ int main() {
                 (*search_surface).visible.read() && !(*folder_surface).visible.read() &&
                 (*search_results).items().size() == 7U &&
                 (*search_results).children().empty() &&
-                (*search_results).compact_height() == 45.0 &&
-                (*search_results).expanded_height() == 126.0 &&
-                (*search_results).selected_id() ==
+                (*search_results).compact_height.read() == 45.0 &&
+                (*search_results).expanded_height.read() == 126.0 &&
+                (*search_results).selected_id.read() ==
                     "fm.result.result-invoice-text" &&
-                (*search_results).pinned_id() ==
+                (*search_results).pinned_id.read() ==
                     "fm.result.result-invoice-text" &&
                 (*search_results).expanded("fm.result.result-invoice-text"),
             "Search must expose seven virtual correspondences with one exact default pin");
@@ -466,7 +470,7 @@ int main() {
                 gui_forms::SemanticAction::press) &&
                 (*search_surface).visible.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*search_product).find("fm.status.authority"))).text().find(
+                    (*search_product).find("fm.status.authority"))).text.read().find(
                         "source volume unavailable") != std::string::npos,
             "unavailable result activation must fail in place with an honest reason");
     require((*search_product).request_focus(search_results) &&
@@ -478,20 +482,20 @@ int main() {
                     "fm.result.result-invoice-pdf" &&
                 (*search_product).dispatch_key({gui_forms::KeyAction::down,
                                               gui_forms::PhysicalKey::space}) &&
-                (*search_results).pinned_id() ==
+                (*search_results).pinned_id.read() ==
                     "fm.result.result-invoice-pdf",
             "Search keyboard focus and Space pinning must be independent and deterministic");
     require((*search_product).dispatch_key({gui_forms::KeyAction::down,
                                           gui_forms::PhysicalKey::enter}) &&
                 (*folder_surface).visible.read() && !(*search_surface).visible.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*search_product).find("fm.title.text"))).text().ends_with(
+                    (*search_product).find("fm.title.text"))).text.read().ends_with(
                         "Orchard Study") &&
                 (*std::dynamic_pointer_cast<gui_forms::ObjectView>(
-                    (*search_product).find("fm.folder.objects"))).selected_id() ==
+                    (*search_product).find("fm.folder.objects"))).selected_id.read() ==
                     "fm.object.search-invoice-pdf" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*search_product).find("fm.selection.object-name"))).text() ==
+                    (*search_product).find("fm.selection.object-name"))).text.read() ==
                     "Invoice 0428.pdf",
             "Enter must activate a Search result through normal Folder navigation");
 
@@ -499,11 +503,11 @@ int main() {
     const std::shared_ptr<gui_forms::TextBox> search_editor = std::dynamic_pointer_cast<gui_forms::TextBox>(
         (*debounced_search).find("fm.search.editor"));
     require(search_editor != nullptr, "Search requires the public navigation TextBox");
-    (*search_editor).set_text("invoice");
-    (*search_editor).set_text("invoice quartz");
+    (*search_editor).text = "invoice";
+    (*search_editor).text = "invoice quartz";
     require(!(*(*debounced_search).find("fm.search.surface")).visible.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*debounced_search).find("fm.status.authority"))).text().find(
+                    (*debounced_search).find("fm.status.authority"))).text.read().find(
                         "Search pending") != std::string::npos,
             "Search edits must remain deferred until the latest debounce generation");
     static_cast<void>((*debounced_search).poll_frame_schedule(
@@ -512,10 +516,10 @@ int main() {
     require((*(*debounced_search).find("fm.search.surface")).visible.read() &&
                 !(*(*debounced_search).find("fm.workspace.content-selection")).visible.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*debounced_search).find("fm.status.summary"))).text() ==
+                    (*debounced_search).find("fm.status.summary"))).text.read() ==
                     "5 of 7 results shown · 1 unavailable source" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*debounced_search).find("fm.status.authority"))).text() ==
+                    (*debounced_search).find("fm.status.authority"))).text.read() ==
                     "Local navigation ready · result generation 86",
             "only the latest debounced query may project the Search surface");
     (*debounced_search).resize({1800, 1050});
@@ -554,7 +558,7 @@ int main() {
     require(criteria_rack && criteria_objects && criteria_apply &&
                 criteria_progress && (*criteria_rack).modules().size() == 3U &&
                 (*criteria_objects).items().size() == 31U &&
-                (*criteria_objects).selected_id() ==
+                (*criteria_objects).selected_id.read() ==
                     "fm.object.obj-facade-study" &&
                 (*(*criteria_product).find("fm.workspace.content-selection")).visible.read() &&
                 !(*(*criteria_product).find("fm.folder.objects")).visible.read() &&
@@ -577,7 +581,7 @@ int main() {
             "Criteria controls and staged meaning must be exposed without hidden Folder semantics");
     require((*criteria_product).perform_semantic_action(
                 "fm.criteria.apply", gui_forms::SemanticAction::press) &&
-                (*criteria_progress).animation_enabled() &&
+                (*criteria_progress).animation_enabled.read() &&
                 !(*criteria_apply).enabled.read(),
             "Apply must enter one explicit pending state and reject duplicate activation");
     const gui_forms::FrameTime apply_clock = gui_forms::FrameClock::now() +
@@ -586,22 +590,22 @@ int main() {
         static_cast<void>((*criteria_product).poll_frame_schedule(
             apply_clock + std::chrono::milliseconds(100 * step)));
     }
-    require(!(*criteria_progress).animation_enabled() &&
-                (*criteria_progress).value() == 100.0 &&
+    require(!(*criteria_progress).animation_enabled.read() &&
+                (*criteria_progress).value.read() == 100.0 &&
                 (*criteria_objects).items().size() == 5U &&
-                (*criteria_objects).selected_id() ==
+                (*criteria_objects).selected_id.read() ==
                     "fm.object.obj-facade-study" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*criteria_product).find("fm.status.summary"))).text() ==
+                    (*criteria_product).find("fm.status.summary"))).text.read() ==
                     "5 objects · 3 criteria applied" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*criteria_product).find("fm.criteria.console.title"))).text().find(
+                    (*criteria_product).find("fm.criteria.console.title"))).text.read().find(
                         "0 STAGED") != std::string::npos &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*criteria_product).find("fm.criteria.results.summary"))).text().starts_with(
+                    (*criteria_product).find("fm.criteria.results.summary"))).text.read().starts_with(
                         "5 OBJECTS") &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*criteria_product).find("fm.status.authority"))).text() ==
+                    (*criteria_product).find("fm.status.authority"))).text.read() ==
                     "Local navigation ready · index 87 current",
             "Apply must complete deterministically while preserving surviving selection");
 
@@ -613,11 +617,11 @@ int main() {
     const std::shared_ptr<gui_forms::ComboBox> kind_value = std::dynamic_pointer_cast<gui_forms::ComboBox>(
         (*criteria_edit).find("fm.criteria.module.criteria-kind-images.value"));
     require(edit_rack && kind_value, "Criteria live editor projection is absent");
-    (*kind_value).set_selected_index(1U);
+    (*kind_value).selected_index = 1U;
     require((*edit_rack).modules()[0].state ==
                 gui_forms::InstrumentModuleState::live &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*criteria_edit).find("fm.status.authority"))).text().find(
+                    (*criteria_edit).find("fm.status.authority"))).text.read().find(
                         "Live criterion committed") != std::string::npos,
             "cheap choice edits must update the live projection immediately");
     require((*criteria_edit).perform_semantic_action(
@@ -686,7 +690,7 @@ int main() {
         const std::string card_id = std::string("fm.palette.") + palette_id;
         const std::shared_ptr<gui_forms::Card> card = std::dynamic_pointer_cast<gui_forms::Card>(
             (*palette_product).find(card_id));
-        require(card && (*card).interactive() &&
+        require(card && (*card).interactive.read() &&
                     (*palette_product).find(card_id + ".title") &&
                     (*palette_product).find(card_id + ".swatch") &&
                     (*palette_product).find(card_id + ".state"),
@@ -700,16 +704,16 @@ int main() {
         (*palette_product).semantic_snapshot();
     const gui_forms::SemanticNode* sapphire_semantic = find_semantic(
         palette_semantics.roots, "fm.palette.sapphire");
-    require(sapphire_card && cobalt_card && (*sapphire_card).selected() &&
-                !(*cobalt_card).selected() && sapphire_semantic &&
+    require(sapphire_card && cobalt_card && (*sapphire_card).selected.read() &&
+                !(*cobalt_card).selected.read() && sapphire_semantic &&
                 gui_forms::has_semantic_state(
                     (*sapphire_semantic).states, gui_forms::SemanticState::selected),
             "Sapphire must begin as the visibly and semantically selected recipe");
     require((*palette_product).perform_semantic_action(
                 "fm.palette.cobalt", gui_forms::SemanticAction::press) &&
-                (*cobalt_card).selected() && !(*sapphire_card).selected() &&
+                (*cobalt_card).selected.read() && !(*sapphire_card).selected.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*palette_product).find("fm.status.summary"))).text().find(
+                    (*palette_product).find("fm.status.summary"))).text.read().find(
                         "Cobalt atmosphere") != std::string::npos,
             "palette activation must atomically move one selection and publish its status");
     (*palette_product).resize({1800.0, 1050.0});
@@ -745,18 +749,18 @@ int main() {
     for (const char* decision_id : decision_ids) {
         const std::shared_ptr<gui_forms::Card> card = std::dynamic_pointer_cast<gui_forms::Card>(
             (*dna_product).find(std::string("fm.dna.") + decision_id));
-        require(card && (*card).interactive() && (*card).header() && (*card).body() &&
+        require(card && (*card).interactive.read() && (*card).header() && (*card).body() &&
                     (*card).footer(),
                 "every DNA decision must be a retained interactive public Card");
     }
     require((*dna_product).perform_semantic_action(
                 "fm.dna.material", gui_forms::SemanticAction::press) &&
                 (*std::dynamic_pointer_cast<gui_forms::Card>(
-                    (*dna_product).find("fm.dna.material"))).selected() &&
+                    (*dna_product).find("fm.dna.material"))).selected.read() &&
                 !(*std::dynamic_pointer_cast<gui_forms::Card>(
-                    (*dna_product).find("fm.dna.surface"))).selected() &&
+                    (*dna_product).find("fm.dna.surface"))).selected.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*dna_product).find("fm.review.dna.heading"))).text() ==
+                    (*dna_product).find("fm.review.dna.heading"))).text.read() ==
                     "House material authority",
             "DNA activation must move selection and project the chosen record");
     (*dna_product).resize({680.0, 650.0});
@@ -830,9 +834,9 @@ int main() {
 
     require((*property_list).header_content() ==
                 (*product).find("fm.selection.summary") &&
-                (*property_list).header_height() == 212.0 &&
+                (*property_list).header_height.read() == 212.0 &&
                 (*property_list).content_height() >
-                    (*property_list).header_height() &&
+                    (*property_list).header_height.read() &&
                 (*property_name).parent() == property_list &&
                 (*(*property_list).header_content()).parent() == property_list,
             "Selection preview and grouped properties must share one owned scroll plane");
@@ -846,26 +850,26 @@ int main() {
             "duplicate session rename Enter commit must be handled");
     const gui_forms::EventStatistics rename_commit_statistics =
         (*property_list).value_committed().statistics();
-    require((*property_name).text() == "Facade Study.png",
+    require((*property_name).text.read() == "Facade Study.png",
             std::string("duplicate session rename must restore the previous editor value; actual: ") +
-                std::string((*property_name).text()) + "; model: " +
+                std::string((*property_name).text.read()) + "; model: " +
                 (*property_list).value("fm.property.name").value_or("<missing>") +
                 "; accessible: " + (*property_name).accessible_description.read() +
                 "; status: " + (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.status.authority"))).text() +
+                    (*product).find("fm.status.authority"))).text.read() +
                 "; connected/emitted/disconnected: " +
                 std::to_string(rename_commit_statistics.subscriptions_connected) + "/" +
                 std::to_string(rename_commit_statistics.callbacks_emitted) + "/" +
                 std::to_string(rename_commit_statistics.subscriptions_disconnected) +
                 "; selection count/id: " +
                 std::to_string((*objects).selected_ids().size()) + "/" +
-                std::string((*objects).selected_id()));
+                std::string((*objects).selected_id.read()));
     require((*property_name).accessible_description.read().find("already exists") !=
                 std::string::npos,
             "duplicate session rename must publish inline accessible validation; actual: " +
                 (*property_name).accessible_description.read());
     require((*std::dynamic_pointer_cast<gui_forms::Label>(
-                (*product).find("fm.status.authority"))).text().find(
+                (*product).find("fm.status.authority"))).text.read().find(
                 "rename rejected") != std::string::npos,
             "duplicate session rename must publish status authority rejection");
     (*property_name).select_all();
@@ -879,33 +883,33 @@ int main() {
                              is_renamed_facade_study) !=
                     (*objects).items().end() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.selection.object-name"))).text() ==
+                    (*product).find("fm.selection.object-name"))).text.read() ==
                     "Facade Final.png",
             "valid session rename must update one coherent object/property projection");
-    (*property_handler).set_selected_index(1U);
+    (*property_handler).selected_index = 1U;
     require((*property_list).value("fm.property.handler") == "Image Laboratory" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.status.authority"))).text().find(
+                    (*product).find("fm.status.authority"))).text.read().find(
                     "handler committed") != std::string::npos,
             "choice property must commit through the shared PropertyList model");
     (*preview_disclosure).perform_click();
-    require(!(*preview).visible.read() && (*property_list).header_height() == 34.0 &&
+    require(!(*preview).visible.read() && (*property_list).header_height.read() == 34.0 &&
                 (*preview_disclosure).text.read() == "▶",
             "preview disclosure must collapse retained header content without replacing it");
     (*preview_disclosure).perform_click();
-    require((*preview).visible.read() && (*property_list).header_height() == 212.0 &&
+    require((*preview).visible.read() && (*property_list).header_height.read() == 212.0 &&
                 (*preview_disclosure).text.read() == "▼" &&
                 (*property_list).header_content() ==
                     (*product).find("fm.selection.summary"),
             "preview disclosure must restore the same retained header subtree");
-    (*selection_split).set_splitter_distance(0.0);
+    (*selection_split).splitter_distance = 0.0;
     (*product).perform_layout();
     require((*(*selection_split).second_panel()).arranged_bounds().width <= 420.01 &&
                 std::abs((*property_list).committed_arranged_bounds().width -
                          (*(*selection_split).second_panel()).arranged_bounds().width) <
                     0.01,
             "widening Selection must stop at its useful content extent and fill it");
-    (*selection_split).set_splitter_distance(935.0);
+    (*selection_split).splitter_distance = 935.0;
     (*product).perform_layout();
     const double inspector_extent =
         (*(*selection_split).second_panel()).arranged_bounds().width;
@@ -927,7 +931,7 @@ int main() {
                                        gui_forms::PhysicalKey::f2}) &&
                 (*product).focused_control() == property_name &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.status.authority"))).text().find(
+                    (*product).find("fm.status.authority"))).text.read().find(
                     "Rename active") != std::string::npos,
             "F2 must route from the object field into the retained Name editor");
     require((*product).dispatch_key({gui_forms::KeyAction::down,
@@ -946,17 +950,17 @@ int main() {
             "Selection properties must expose reusable property grid/group semantics");
 
     (*view_command).perform_click();
-    require((*objects).view_mode() == gui_forms::ObjectViewMode::details &&
+    require((*objects).view_mode.read() == gui_forms::ObjectViewMode::details &&
                 (*std::dynamic_pointer_cast<gui_forms::Button>(
                     (*product).find("fm.status.view"))).text.read() == "Details  ▼" &&
-                (*objects).selected_id() == "fm.object.obj-facade-study",
+                (*objects).selected_id.read() == "fm.object.obj-facade-study",
             "shared view command did not preserve selection across presentations");
     require((*objects).on_semantic_child_action(
                 "fm.object.obj-file-manager", gui_forms::SemanticAction::select, {}) &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.selection.object-name"))).text() == "File Manager" &&
+                    (*product).find("fm.selection.object-name"))).text.read() == "File Manager" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.status.summary"))).text().find("1.3G") !=
+                    (*product).find("fm.status.summary"))).text.read().find("1.3G") !=
                     std::string::npos,
             "object selection did not update the shared Selection/status projection");
     (*objects).set_selected_ids({"fm.object.obj-file-manager",
@@ -964,16 +968,16 @@ int main() {
                               "fm.object.obj-file-manager");
     require((*objects).selected_ids().size() == 2U &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.selection.object-name"))).text() ==
+                    (*product).find("fm.selection.object-name"))).text.read() ==
                     "2 objects selected" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.status.summary"))).text().starts_with(
+                    (*product).find("fm.status.summary"))).text.read().starts_with(
                     "2 selected"),
             "multi-selection did not project one coherent Selection/status state");
     (*sort_command).perform_click();
     require((*objects).items().front().stable_id ==
                 "fm.object.obj-delivery-archive" &&
-                (*objects).selected_id() == "fm.object.obj-file-manager" &&
+                (*objects).selected_id.read() == "fm.object.obj-file-manager" &&
                 (*objects).selected_ids().size() == 2U &&
                 (*sort_command).text.read() == "Sort Z→A  ▼",
             "shared sort command did not preserve the stable selection set");
@@ -999,7 +1003,7 @@ int main() {
             (*product).find("fm.status.authority"));
     if (context_overlay_after_enter || (*product).focus_scope_depth() != 0U ||
         context_focus_after_enter != property_list || !context_authority_after_enter ||
-        (*context_authority_after_enter).text().find("properties active") ==
+        (*context_authority_after_enter).text.read().find("properties active") ==
             std::string::npos) {
         throw std::runtime_error(
             "object context post-Enter mismatch: overlay=" +
@@ -1011,7 +1015,7 @@ int main() {
                  : std::string("<none>")) +
             " authority=" +
             (context_authority_after_enter
-                 ? (*context_authority_after_enter).text()
+                 ? (*context_authority_after_enter).text.read()
                  : std::string("<missing>")));
     }
 
@@ -1024,9 +1028,9 @@ int main() {
     require((*product).dispatch_key({gui_forms::KeyAction::down,
                                    gui_forms::PhysicalKey::enter}) &&
                 (*objects).items().size() == 15U &&
-                (*objects).selected_id() == "fm.object.session-new-folder-1" &&
+                (*objects).selected_id.read() == "fm.object.session-new-folder-1" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.selection.object-name"))).text() == "New Folder",
+                    (*product).find("fm.selection.object-name"))).text.read() == "New Folder",
             "background New folder must create and project a session-only fixture");
 
     secondary_click(*product,
@@ -1052,12 +1056,12 @@ int main() {
     require((*tree).on_semantic_child_action(
                 "fm.tree.node.reference", gui_forms::SemanticAction::select, {}) &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.status.authority"))).text().find("reference") !=
+                    (*product).find("fm.status.authority"))).text.read().find("reference") !=
                     std::string::npos,
             "tree selection did not publish deterministic fixture navigation state");
     require((*objects).items().size() == 3U &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.title.text"))).text() ==
+                    (*product).find("fm.title.text"))).text.read() ==
                     "File Manager  ·  Reference" &&
                 (*std::dynamic_pointer_cast<gui_forms::Button>(
                     (*product).find("fm.nav.back"))).enabled.read() &&
@@ -1070,7 +1074,7 @@ int main() {
                                        gui_forms::Modifier::alt}) &&
                 (*objects).items().size() == 14U &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.title.text"))).text().ends_with("Projects") &&
+                    (*product).find("fm.title.text"))).text.read().ends_with("Projects") &&
                 (*std::dynamic_pointer_cast<gui_forms::Button>(
                     (*product).find("fm.nav.forward"))).enabled.read(),
             "Alt+Left did not restore the exact retained Projects history entry");
@@ -1079,7 +1083,7 @@ int main() {
                                    gui_forms::Modifier::alt}) &&
                 (*objects).items().size() == 3U &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.title.text"))).text().ends_with("Reference"),
+                    (*product).find("fm.title.text"))).text.read().ends_with("Reference"),
             "Alt+Right did not restore the forward location entry");
     require((*product).dispatch_key({gui_forms::KeyAction::down,
                                    gui_forms::PhysicalKey::up,
@@ -1087,7 +1091,7 @@ int main() {
                 (*objects).items().size() == 3U &&
                 (*objects).items().front().name == "Projects" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.title.text"))).text().ends_with("Work") &&
+                    (*product).find("fm.title.text"))).text.read().ends_with("Work") &&
                 !(*std::dynamic_pointer_cast<gui_forms::Button>(
                     (*product).find("fm.nav.forward"))).enabled.read(),
             "Alt+Up did not navigate to the parent and clear the forward branch");
@@ -1100,7 +1104,7 @@ int main() {
                 (*product).dispatch_key({gui_forms::KeyAction::down,
                                        gui_forms::PhysicalKey::enter}) &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.status.authority"))).text().find(
+                    (*product).find("fm.status.authority"))).text.read().find(
                     "Native GUI.Forms dogfood") != std::string::npos,
             "application menu semantic path did not execute its shared command");
 
@@ -1238,54 +1242,54 @@ int main() {
         (*controller).find("demo.accommodation.sound"));
     const std::shared_ptr<gui_forms::CheckBox> reduced_motion = std::dynamic_pointer_cast<gui_forms::CheckBox>(
         (*controller).find("demo.accommodation.reduced-motion"));
-    require(sound && (*sound).checked(),
+    require(sound && (*sound).checked.read(),
             "controller semantic-sound policy toggle is absent");
-    require(reduced_motion && !(*reduced_motion).checked(),
+    require(reduced_motion && !(*reduced_motion).checked.read(),
             "controller reduced-motion policy toggle is absent");
-    (*surface_choice).set_selected_index(1U);
+    (*surface_choice).selected_index = 1U;
     require((*(*responsive).find("fm.search.surface")).visible.read() &&
                 !(*(*responsive).find("fm.workspace.content-selection")).visible.read(),
             "controller Search choice must reach the public product-surface transition");
-    (*surface_choice).set_selected_index(2U);
+    (*surface_choice).selected_index = 2U;
     require((*(*responsive).find("fm.criteria.surface")).visible.read() &&
                 (*(*responsive).find("fm.workspace.content-selection")).visible.read() &&
                 !(*(*responsive).find("fm.folder.objects")).visible.read(),
             "controller Criteria choice must reach the public retained surface transition");
-    (*surface_choice).set_selected_index(3U);
+    (*surface_choice).selected_index = 3U;
     require((*(*responsive).find("fm.review.palettes")).visible.read() &&
                 !(*(*responsive).find("fm.workspace.content-selection")).visible.read() &&
                 !(*(*responsive).find("fm.search.surface")).visible.read() &&
                 !(*(*responsive).find("fm.criteria.surface")).visible.read(),
             "controller Palettes choice must reach the public Card laboratory");
-    (*surface_choice).set_selected_index(6U);
+    (*surface_choice).selected_index = 6U;
     require((*(*responsive).find("fm.review.dna")).visible.read() &&
                 !(*(*responsive).find("fm.review.palettes")).visible.read() &&
                 !(*(*responsive).find("fm.workspace.content-selection")).visible.read(),
             "controller DNA choice must reach the public MasterDetail laboratory");
-    (*surface_choice).set_selected_index(0U);
+    (*surface_choice).selected_index = 0U;
     require(!(*(*responsive).find("fm.search.surface")).visible.read() &&
                 !(*(*responsive).find("fm.review.palettes")).visible.read() &&
                 !(*(*responsive).find("fm.review.dna")).visible.read() &&
                 (*(*responsive).find("fm.workspace.content-selection")).visible.read(),
             "controller Folder choice must restore the retained Folder projection");
-    (*text_scale).set_selected_index(4U);
+    (*text_scale).selected_index = 4U;
     require((*responsive).presentation_settings().text_scale == 2.25,
             "controller text-scale selector did not reach the product presentation contract");
-    (*text_scale).set_selected_index(0U);
+    (*text_scale).selected_index = 0U;
     require((*responsive).presentation_settings().text_scale == 1.0,
             "controller did not restore the product to 100% text");
     const gui_forms::SemanticSnapshot semantic_before_sound_toggle =
         (*responsive).semantic_snapshot();
-    (*sound).set_checked(false);
+    (*sound).checked = false;
     require(!(*responsive).presentation_settings().sound_enabled &&
                 (*responsive).semantic_snapshot().node_count ==
                     semantic_before_sound_toggle.node_count,
             "sounds-off must preserve the product semantic state");
-    (*sound).set_checked(true);
-    (*reduced_motion).set_checked(true);
+    (*sound).checked = true;
+    (*reduced_motion).checked = true;
     require((*responsive).presentation_settings().reduced_motion,
             "controller reduced-motion toggle did not reach the product presentation contract");
-    (*reduced_motion).set_checked(false);
+    (*reduced_motion).checked = false;
 
     require_smoke_verdict();
 

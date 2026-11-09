@@ -12,6 +12,8 @@
 #include <cmath>
 #include <cstdio>
 #include <memory>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -123,7 +125,9 @@ struct PageContext final {
     std::size_t selected_page{};
     // Registry-driven shell state: page ids and titles in navigation order,
     // the index of the page whose UI Timer runs while shown, and the
-    // compiled-DML context so page selection is observable in GalleryModel.
+    // Gallery's context (its model and window) so page selection is
+    // observable in GalleryModel. The shell's root Tag owns this context,
+    // and this context owns the Gallery's.
     std::vector<std::string_view> page_ids;
     std::vector<std::string_view> page_titles;
     std::size_t timing_page{static_cast<std::size_t>(-1)};
@@ -140,25 +144,25 @@ struct PageContext final {
         if (!status) return;
         const MotionPolicy policy = motion_policy();
         if (!policy.enabled) {
-            (*status).set_text("Motion disabled · zero animation wakeups");
+            (*status).text = "Motion disabled · zero animation wakeups";
         } else if (policy.paused && policy.reduced) {
-            (*status).set_text(
-                "Reduced motion + paused · phase retained · zero animation wakeups");
+            (*status).text =
+                "Reduced motion + paused · phase retained · zero animation wakeups";
         } else if (policy.paused) {
-            (*status).set_text("Motion paused · phase retained · zero animation wakeups");
+            (*status).text = "Motion paused · phase retained · zero animation wakeups";
         } else if (policy.reduced) {
-            (*status).set_text(
-                "Reduced motion · low cadence · limited excursion · animation active");
+            (*status).text =
+                "Reduced motion · low cadence · limited excursion · animation active";
         } else {
-            (*status).set_text("Full motion · continuous retained animation active");
+            (*status).text = "Full motion · continuous retained animation active";
         }
     }
 
     void apply_motion_policy() {
         const MotionPolicy policy = motion_policy();
-        if (easing) (*easing).set_motion_policy(policy);
+        if (easing) (*easing).motion_policy = policy;
         for (const std::shared_ptr<gui_forms::ProgressBar>& progress : animated_progress) {
-            (*progress).set_motion_policy(policy);
+            (*progress).motion_policy = policy;
         }
         if (motion_pause) {
             (*motion_pause).enabled = live_motion;
@@ -167,6 +171,27 @@ struct PageContext final {
                                                                  : "Pause motion";
         }
         update_motion_status();
+    }
+
+    // The shell's rule actions (build_gallery_shell arms them on the
+    // window's rules). A navigation row's click shows its page.
+    static void navigation_clicked(PageContext& context, const RuleFiring& firing) {
+        for (std::size_t index = 0; index < context.navigation.size(); ++index) {
+            const Control* const row = context.navigation[index].get();
+            if (row == firing.control) {
+                context.select_page(index);
+                return;
+            }
+        }
+    }
+
+    // The model's live-motion switch changed (gallery.status.live writes it
+    // through its binding).
+    static void live_motion_changed(PageContext& context, const RuleFiring& firing) {
+        static_cast<void>(firing);
+        if (!context.compiled) return;
+        context.live_motion = (*context.compiled).model.live_motion.get();
+        context.apply_motion_policy();
     }
 
     void select_page(std::size_t index) {
@@ -188,8 +213,8 @@ struct PageContext final {
             if (selected_page == timing_page) (*ui_timer).start();
             else if ((*ui_timer).enabled()) (*ui_timer).stop();
         }
-        (*status).set_text(std::string(page_titles[index]) +
-                         "  ·  public GUI.Forms behavior  ·  CPU retained renderer");
+        (*status).text = std::string(page_titles[index]) +
+                         "  ·  public GUI.Forms behavior  ·  CPU retained renderer";
         if (compiled) {
             static_cast<void>((*compiled).model.select_page(page_ids[index]));
             (*compiled).synchronize(std::string(navigation_id_prefix) +
@@ -202,9 +227,9 @@ inline std::shared_ptr<Label> label(std::string id, std::string text,
                              double size = 12.0, int weight = 400,
                              Color color = ink) {
     std::shared_ptr<gui_forms::Label> control = make_control<Label>(StableId(std::move(id)), std::move(text));
-    (*control).set_font({FontRole::content, size,
-                       static_cast<std::uint16_t>(weight), false});
-    (*control).set_foreground(color);
+    (*control).font = FontSpec{FontRole::content, size,
+                       static_cast<std::uint16_t>(weight), false};
+    (*control).fore_color = color;
     return control;
 }
 
@@ -212,10 +237,38 @@ inline std::shared_ptr<LayoutGroup> group(std::string id, std::string title,
                                    Size design_size) {
     std::shared_ptr<gui_forms::ScaledGroupBox> control = make_control<LayoutGroup>(StableId(std::move(id)),
                                              std::move(title), design_size);
-    (*control).set_background(paper);
+    static_cast<void>((*control).add_class("paper"));
     (*control).set_style(page_style());
-    (*control).set_font({FontRole::control, 12.0, 700, false, 0.24});
+    (*control).font = FontSpec{FontRole::control, 12.0, 700, false, 0.24};
     return control;
+}
+
+// Moves the children of a form document's root, a declared boundary only,
+// into the shell's page body in document order; each keeps its authored
+// bounds as its design slot there. The copy of the child list keeps the
+// iteration valid while the root shrinks. The root is left empty.
+inline void mount_form_children(Control& root, Surface& body) {
+    const std::vector<Control::Ptr> children(root.children().begin(), root.children().end());
+    for (const Control::Ptr& child : children) {
+        Control::Ptr moved = root.remove_child((*child).runtime_id());
+        body.add_child(std::move(moved));
+    }
+}
+
+// Adds `child`, a control a form document cannot make (it needs a
+// constructor argument such as a workspace or a page set), to `group` at
+// `design_bounds`, and moves it in front of `successor`, a child of the
+// group, so that the page keeps the child order (and so the paint, dock
+// and tab order) of the page it replaces. Throws std::logic_error when
+// `successor` is not the group's child, leaving `child` added last.
+inline void insert_before(ScaledGroupBox& group, Control::Ptr child, Rect design_bounds,
+                          const Control& successor) {
+    const RuntimeId id = (*child).runtime_id();
+    group.add_at(std::move(child), design_bounds);
+    const std::optional<std::size_t> index = group.child_index(successor.runtime_id());
+    if (!index || !group.set_child_index(id, *index)) {
+        throw std::logic_error("insert_before: the successor is not the group's child");
+    }
 }
 
 inline DateTimeFormatProvider french_date_provider() {

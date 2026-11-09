@@ -117,6 +117,9 @@ enum class PropertyClass : std::uint8_t {
     // `backdrop`: a window's or popup's backdrop chain (owner decision
     // 2026-11-04).
     backdrop,
+    // `band-width`, `band-color`, `band-lit-color` and `band-effect`: a
+    // window's outer band (owner, 2026-11-08).
+    band,
     // A material property (P6b): its fields are lowered by the material
     // lowering.
     material,
@@ -143,6 +146,9 @@ enum class PropertyClass : std::uint8_t {
     if (name == effect_property) return PropertyClass::effect;
     if (name == "effect-primary" || name == "effect-secondary") return PropertyClass::effect_colour;
     if (name == "backdrop") return PropertyClass::backdrop;
+    if (name == "band-width" || name == "band-color" || name == "band-lit-color" || name == "band-effect") {
+        return PropertyClass::band;
+    }
     if (material_property(name)) return PropertyClass::material;
     if (transition_property(name)) return PropertyClass::transition;
     if (animation_property(name)) return PropertyClass::animation;
@@ -393,6 +399,9 @@ private:
     // Whether a node is an inline style's, in a theme compiled for it
     // (ThemeCompileInput::inline_definitions_from).
     [[nodiscard]] bool in_inline_segment(std::size_t node_index) const noexcept;
+    // Whether a rule's node is the base sheet's, in a program compiled onto
+    // the GUI.Forms base (ThemeCompileInput::base_origin_end).
+    [[nodiscard]] bool in_base_origin(std::size_t node_index) const noexcept;
     // The number a definition declared at `declaration` goes by (P12b):
     // an inline style's from inline_definition_base, a theme's its node.
     [[nodiscard]] std::uint32_t definition_number(std::uint32_t declaration) const noexcept;
@@ -472,6 +481,12 @@ private:
     // (a pair's foreground unless its side is named).
     [[nodiscard]] bool lower_effect_colour(const SyntaxNode& node);
     [[nodiscard]] bool lower_backdrop(const SyntaxNode& node);
+    // `band-width` (one length: px, or a unitless 0, from 0 to
+    // maximum_theme_band_width), `band-color` and `band-lit-color` (one
+    // colour) and `band-effect` (`none` or `flash`), into band_. In a rule
+    // that selects anything but windows the declaration is dropped
+    // (band_not_on_window); a CSS-wide keyword or another form refuses it.
+    [[nodiscard]] bool lower_band(const SyntaxNode& node);
     // One backdrop function of value_ at `function` into `step`; false
     // after an error.
     [[nodiscard]] bool read_backdrop_step(std::size_t function, BackdropStepKind kind, BackdropStep& step);
@@ -518,13 +533,23 @@ private:
     // Whether a selector of the rule names a part or a role: the recipe's
     // fields are the control's (P6f).
     [[nodiscard]] bool rule_selects_part() const noexcept;
+    [[nodiscard]] bool rule_names_parts_only() const noexcept;
     [[nodiscard]] bool rule_has_states() const noexcept;
+    // Whether a selector of the rule names a family, its own or a `:not()`
+    // argument's (a control's fonts are resolved for no family).
+    [[nodiscard]] bool rule_has_family() const noexcept;
     // Whether any of the rule's selectors names a window or popup, and
-    // whether all of them do.
+    // whether all of them do; and whether all of them name a window.
     [[nodiscard]] bool rule_selects_surface() const noexcept;
     [[nodiscard]] bool rule_selects_only_surfaces() const noexcept;
+    [[nodiscard]] bool rule_selects_only_windows() const noexcept;
     // The lowered declarations as a rule for each selector (EmittedRule).
     [[nodiscard]] bool emit_rule(const EmittedRule& emitted, std::uint32_t at);
+    // Where the rule being lowered, whose first token is `token`, was
+    // written (ThemeRule::provenance): this source's file, the token's
+    // line, column and offset, and its layer. A package compiler places a
+    // closure's rules in their own sheets afterwards.
+    [[nodiscard]] RuleProvenance rule_provenance(std::uint32_t token);
 
     // Substitutes and reads the declaration's value into value_, the
     // parameters being parameter_names_; false after an error.
@@ -584,6 +609,8 @@ private:
     std::optional<ColourRoleSide> bare_side_{};
     // The backdrop the rule being lowered declares, or none.
     std::optional<BackdropDeclaration> backdrop_{};
+    // The band the rule being lowered declares, or none.
+    std::optional<BandDeclaration> band_{};
     // The roles the rule being lowered read, one bit a role.
     std::uint32_t rule_roles_read_{};
     // Whether a declaration whose var() reads a name no definition of which
@@ -596,6 +623,9 @@ private:
     // compiled for it (P12b), 0 for none.
     std::uint32_t source_position_{};
     std::uint32_t segment_node_{};
+    // The first style rule node after the base sheet, with base_origin_end;
+    // every node before it is the base's.
+    std::uint32_t base_node_{};
     // Whether the sheet names a custom property at all: only then can an
     // inline style's definitions vary its rules, and only then are its
     // rules given their source positions (P12b).
@@ -660,6 +690,15 @@ CompileOutcome CompilePass::run() {
             if (all[index].kind != SyntaxNodeKind::style_rule) continue;
             const ByteOffset at = tokens_.tokens[all[index].tokens.first.value].offset;
             if (at.value >= *input_.inline_definitions_from) segment_node_ = index;
+        }
+    }
+    base_node_ = static_cast<std::uint32_t>(tree_.nodes.size());
+    if (input_.base_origin_end) {
+        const std::vector<SyntaxNode>& all = tree_.nodes;
+        for (std::uint32_t index = 1U; index < all.size() && base_node_ == all.size(); ++index) {
+            if (all[index].kind != SyntaxNodeKind::style_rule) continue;
+            const ByteOffset at = tokens_.tokens[all[index].tokens.first.value].offset;
+            if (at.value >= *input_.base_origin_end) base_node_ = index;
         }
     }
     motion_.keyframes.clear();
@@ -977,6 +1016,10 @@ bool CompilePass::in_inline_segment(std::size_t node_index) const noexcept {
     return segment_node_ != 0U && node_index >= segment_node_;
 }
 
+bool CompilePass::in_base_origin(std::size_t node_index) const noexcept {
+    return input_.base_origin_end.has_value() && node_index < base_node_;
+}
+
 std::uint32_t CompilePass::definition_number(std::uint32_t declaration) const noexcept {
     // An inline style numbers its own definitions by their nodes; written
     // after a theme, its first rule's node stands for its own first rule's
@@ -1110,9 +1153,13 @@ bool CompilePass::emit_definitions(std::span<const LoweredSelector> selectors, b
             rule.level = important ? CascadeLevel::important_inline_style : CascadeLevel::inline_style;
         }
         if (input_.user_theme) rule.level = important ? CascadeLevel::important_user_theme : CascadeLevel::user_theme;
+        if (in_base_origin(source_position_)) {
+            rule.level = important ? CascadeLevel::important_base_sheet : CascadeLevel::base_sheet;
+        }
         if (!(selector.specificity == rule_specificity(selector.selector))) rule.specificity = selector.specificity;
         rule.scoped_definitions = definitions;
         rule.source_position = positions_ ? source_position_ : 0U;
+        rule.provenance = rule_provenance(at);
         sheet_.rules.push_back(std::move(rule));
     }
     return true;
@@ -1929,6 +1976,7 @@ bool CompilePass::lower_declarations(std::size_t rule_index, bool important, con
     materials_.clear();
     recipe_fields_.clear();
     backdrop_.reset();
+    band_.reset();
     clear_written_transitions(motion_.written);
     clear_written_animations(motion_.animations_written);
     for (std::size_t child = rule_index + 1U; child < end; child = tree_.nodes[child].subtree_end.value) {
@@ -1939,9 +1987,11 @@ bool CompilePass::lower_declarations(std::size_t rule_index, bool important, con
         fold_ascii(token_text(property), folded_);
         const PropertyClass kind = classify(folded_);
         if (kind == PropertyClass::custom || kind == PropertyClass::primitive) continue;
-        // A window or popup rule holds its backdrop alone (owner decision
-        // 2026-11-04): its surface has no part a control property styles.
-        if (kind != PropertyClass::backdrop && rule_selects_surface()) {
+        // A window or popup rule holds its backdrop and a window's band
+        // alone (owner decisions 2026-11-04 and 2026-11-08): its surface
+        // has no part a control property styles.
+        const bool surface_property = kind == PropertyClass::backdrop || kind == PropertyClass::band;
+        if (!surface_property && rule_selects_surface()) {
             report(DiagnosticCode::property_not_admitted, property, property_ + " on a window or popup");
             continue;
         }
@@ -2038,6 +2088,7 @@ bool CompilePass::lower_declaration(const SyntaxNode& node, PropertyClass kind, 
     case PropertyClass::effect: return lower_effect(node);
     case PropertyClass::effect_colour: return lower_effect_colour(node);
     case PropertyClass::backdrop: return lower_backdrop(node);
+    case PropertyClass::band: return lower_band(node);
     case PropertyClass::transition: return lower_transition(node);
     case PropertyClass::animation: return lower_animation(node);
     case PropertyClass::later:
@@ -2406,15 +2457,20 @@ bool CompilePass::lower_effect(const SyntaxNode& node) {
         if (!keyword_of(first, "an effect's name")) return false;
         fold_ascii(first.text, folded_);
         if (folded_ != effect_none_name) {
-            // The registry is the control's: the rules check the name's
-            // form only, and the control checks the effect when it
-            // attaches it.
+            // The name's form first; then, given a registry, the effect
+            // itself (EP-3). Without one, the control checks the effect
+            // when it attaches it.
             name = registered_name_from_kebab(folded_);
             if (!effect_name_valid(name)) {
                 const DiagnosticCode code =
                     newer_engine_ ? DiagnosticCode::keyword_from_newer_engine : DiagnosticCode::keyword_unknown;
                 report(code, first.token, clipped_theme_detail(first.text));
                 return newer_engine_;
+            }
+            const EffectRegistry* const effects = input_.effects;
+            if (effects != nullptr && (*effects).find(name) == nullptr) {
+                report(DiagnosticCode::effect_unknown, first.token, clipped_theme_detail(first.text));
+                return false;
             }
         }
     }
@@ -2520,6 +2576,76 @@ bool CompilePass::lower_backdrop(const SyntaxNode& node) {
     return true;
 }
 
+bool CompilePass::lower_band(const SyntaxNode& node) {
+    const std::uint32_t property = node.tokens.first.value;
+    if (!rule_selects_only_windows()) {
+        report(DiagnosticCode::band_not_on_window, property, property_);
+        return true;
+    }
+    // folded_ holds the property's name, which classify() found; reading
+    // the value may reuse it.
+    const std::string name = folded_;
+    parameter_names_.clear();
+    // role(<pair>) gives its background: the band is laid as a fill.
+    bare_side_ = ColourRoleSide::background;
+    const bool read = read_value(node);
+    bare_side_.reset();
+    if (!read) return false;
+    const ValueComponent& first = value_.components[0];
+    if (wide_keyword() != WideKeyword::none) {
+        report(DiagnosticCode::value_form_not_admitted, first.token, clipped_theme_detail(first.text));
+        return false;
+    }
+    if (value_.components.size() != 1U) {
+        report(DiagnosticCode::value_form_not_admitted, value_.components[1].token,
+               "a band property takes one value");
+        return false;
+    }
+    if (first.kind == ValueComponentKind::expression) {
+        report(DiagnosticCode::value_form_not_admitted, first.token, "an expression that reads inputs");
+        return false;
+    }
+    BandDeclaration band = band_.value_or(BandDeclaration{});
+    if (name == "band-width") {
+        const bool number = first.kind == ValueComponentKind::number;
+        const bool unitless_zero = number && first.unit == ValueUnit::none && first.number == 0.0;
+        const bool pixels = number && (first.unit == ValueUnit::px || unitless_zero);
+        if (!pixels) {
+            report(DiagnosticCode::value_wrong_kind, first.token, "band-width takes one length");
+            return false;
+        }
+        const double width = first.number;
+        if (!(width >= 0.0 && width <= maximum_theme_band_width)) {
+            report(DiagnosticCode::value_out_of_range, first.token,
+                   "a band-width from 0 to " + std::to_string(static_cast<int>(maximum_theme_band_width)) + "px");
+            return false;
+        }
+        band.width = width;
+    } else if (name == "band-effect") {
+        const bool keyword = first.kind == ValueComponentKind::keyword;
+        std::optional<BandEffect> effect{};
+        if (keyword && equals_ascii_folded(first.text, "none")) effect = BandEffect::none;
+        if (keyword && equals_ascii_folded(first.text, "flash")) effect = BandEffect::flash;
+        if (!effect) {
+            report(DiagnosticCode::value_wrong_kind, first.token, "none or flash");
+            return false;
+        }
+        band.effect = effect;
+    } else {
+        if (first.kind != ValueComponentKind::colour) {
+            report(DiagnosticCode::value_wrong_kind, first.token, "a colour");
+            return false;
+        }
+        if (name == "band-color") {
+            band.rest_colour = first.colour;
+        } else {
+            band.lit_colour = first.colour;
+        }
+    }
+    band_ = band;
+    return true;
+}
+
 bool CompilePass::read_backdrop_step(std::size_t function, BackdropStepKind kind, BackdropStep& step) {
     const ValueComponent& written = value_.components[function];
     // The function's arguments: its children, each a component or a
@@ -2621,12 +2747,17 @@ bool CompilePass::read_backdrop_step(std::size_t function, BackdropStepKind kind
 // A material property's fields (P6b), or the recipe's (P6f): its CSS-wide
 // `initial` resets each field it sets; any other value is lowered by the
 // material lowering. A recipe property in a rule naming a part or a role
-// is dropped with a warning, since the recipe's fields are the control's.
+// is dropped with a warning, since the recipe's fields are the control's;
+// the text colours (`color`, `muted-color`, `glyph-color`) are admitted on
+// a named part, whose text and marks they colour.
 bool CompilePass::lower_material(const SyntaxNode& node) {
     // folded_ holds the property's name, which classify() found listed.
     const MaterialProperty property = *material_property(folded_);
     const bool recipe = recipe_property(property);
-    if (recipe && rule_selects_part()) {
+    const bool text_colour = property == MaterialProperty::color || property == MaterialProperty::muted_color ||
+                             property == MaterialProperty::glyph_color;
+    const bool on_named_part = text_colour && rule_names_parts_only();
+    if (recipe && rule_selects_part() && !on_named_part) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_ + " on a part or a role");
         return true;
     }
@@ -2634,6 +2765,11 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
     // layout: the font longhands are the control's at rest (T4 fonts).
     if (font_property_of(property) && rule_has_states()) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_ + " in a state rule");
+        return true;
+    }
+    // A control's fonts are resolved once for the control, for no family.
+    if (font_property_of(property) && rule_has_family()) {
+        report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_ + " in a :family() rule");
         return true;
     }
     parameter_names_.clear();
@@ -2712,7 +2848,8 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
         if (position == ColourPosition::text || position == ColourPosition::edge) unremappable = true;
         add_recipe_field(declaration);
     }
-    if (unremappable && origin.source == ColourSource::literal) {
+    const bool authority = input_.colour_authority || in_base_origin(source_position_);
+    if (unremappable && origin.source == ColourSource::literal && !authority) {
         report(DiagnosticCode::literal_colour_unremappable, literal, clipped_theme_detail(token_text(literal)));
     }
     return true;
@@ -3267,6 +3404,19 @@ void CompilePass::add_recipe_field(const RecipeDeclaration& declaration) {
 bool CompilePass::rule_has_states() const noexcept {
     for (const LoweredSelector& lowered : lowered_selectors_) {
         if (!lowered.selector.states.empty()) return true;
+        for (const RuleExclusion& exclusion : lowered.selector.excluded) {
+            if (!exclusion.states.empty()) return true;
+        }
+    }
+    return false;
+}
+
+bool CompilePass::rule_has_family() const noexcept {
+    for (const LoweredSelector& lowered : lowered_selectors_) {
+        if (!lowered.selector.family.empty()) return true;
+        for (const RuleExclusion& exclusion : lowered.selector.excluded) {
+            if (!exclusion.family.empty()) return true;
+        }
     }
     return false;
 }
@@ -3285,11 +3435,27 @@ bool CompilePass::rule_selects_only_surfaces() const noexcept {
     return !lowered_selectors_.empty();
 }
 
+bool CompilePass::rule_selects_only_windows() const noexcept {
+    for (const LoweredSelector& lowered : lowered_selectors_) {
+        if (lowered.selector.surface != SurfaceKind::window) return false;
+    }
+    return !lowered_selectors_.empty();
+}
+
 bool CompilePass::rule_selects_part() const noexcept {
     for (const LoweredSelector& lowered : lowered_selectors_) {
         if (!lowered.selector.part.empty() || lowered.selector.role.has_value()) return true;
     }
     return false;
+}
+
+// Whether every selector of the rule names a part (not a role alone).
+bool CompilePass::rule_names_parts_only() const noexcept {
+    if (lowered_selectors_.empty()) return false;
+    for (const LoweredSelector& lowered : lowered_selectors_) {
+        if (lowered.selector.part.empty()) return false;
+    }
+    return true;
 }
 
 void CompilePass::add_material(MaterialDeclaration declaration) {
@@ -3334,16 +3500,18 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     lowered.materials = materials_;
     lowered.recipe_fields = recipe_fields_;
     lowered.backdrop = backdrop_;
+    lowered.band = band_;
     lowered.scoped_conditions = variations_.copy_conditions;
     // An inline style's own rules (P12b: alone, or lowered after a theme)
     // are not the theme's readers.
     const bool style_rule = input_.form == ThemeSheetForm::inline_style || in_inline_segment(source_position_);
     if (!style_rule) lowered.reads = variations_.read_names;
     lowered.source_position = positions_ && !style_rule ? source_position_ : 0U;
+    lowered.provenance = rule_provenance(at);
     // A borrowed selection alone declares nothing of the rule's own.
     const std::size_t owned = emitted.borrowed ? selections : 0U;
     if (lowered.declarations.size() == owned && lowered.transitions.empty() && lowered.materials.empty() &&
-        lowered.recipe_fields.empty() && !lowered.ambient && !lowered.backdrop) {
+        lowered.recipe_fields.empty() && !lowered.ambient && !lowered.backdrop && !lowered.band) {
         return true;
     }
     std::size_t bytes = lowered_record_bytes + lowered.label.size();
@@ -3352,6 +3520,7 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     for (const PropertyTransition& transition : lowered.transitions) bytes += transition_bytes(transition);
     bytes += lowered.recipe_fields.size() * lowered_record_bytes;
     if (lowered.backdrop) bytes += lowered_record_bytes;
+    if (lowered.band) bytes += lowered_record_bytes;
     for (const ScopedCondition& condition : lowered.scoped_conditions) {
         bytes += lowered_record_bytes + condition.name.size();
     }
@@ -3372,6 +3541,9 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
         }
         if (input_.user_theme) {
             rule.level = emitted.important ? CascadeLevel::important_user_theme : CascadeLevel::user_theme;
+        }
+        if (in_base_origin(source_position_)) {
+            rule.level = emitted.important ? CascadeLevel::important_base_sheet : CascadeLevel::base_sheet;
         }
         // A given specificity only where CSS's differs from the engine's
         // own count of the selector (EC2: an `:is()` argument's).
@@ -3496,6 +3668,29 @@ std::string_view CompilePass::range_text(TokenRange range) const noexcept {
     const std::size_t end = static_cast<std::size_t>(last.offset.value) + last.length.value;
     const std::string_view text = input_.source.text.substr(first.offset.value, end - first.offset.value);
     return text;
+}
+
+RuleProvenance CompilePass::rule_provenance(std::uint32_t token) {
+    RuleProvenance result{};
+    result.file = std::string(input_.source.file);
+    if (token < tokens_.tokens.size()) {
+        const SourcePosition position = cursor_.locate(tokens_.tokens[token].offset);
+        result.line = position.line.value;
+        result.column = position.column.value;
+        result.offset = position.offset.value;
+    }
+    const bool inline_style = input_.form == ThemeSheetForm::inline_style;
+    if (input_.user_theme) {
+        result.layer = ThemeLayer::user_theme;
+    } else if (inline_style || in_inline_segment(source_position_)) {
+        result.layer = ThemeLayer::inline_code;
+        result.setter = "set_inline_style";
+    } else if (in_base_origin(source_position_)) {
+        result.layer = ThemeLayer::library_pack;
+    } else {
+        result.layer = ThemeLayer::project_theme;
+    }
+    return result;
 }
 
 void CompilePass::report(DiagnosticCode code, std::uint32_t token, std::string detail) {

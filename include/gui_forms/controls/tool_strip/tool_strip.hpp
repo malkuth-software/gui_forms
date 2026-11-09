@@ -8,6 +8,7 @@
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/controls/tool_strip/tool_strip_capabilities/tool_strip_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -131,7 +132,7 @@ struct ToolStripDropDownInvocation final {
 // move to an overflow menu opened from the overflow button at the strip's
 // end. A strip is laid out horizontally, or vertically (top to bottom) for
 // the left and right panels of a ToolStripContainer.
-class ToolStrip : public Control {
+class ToolStrip : public Control, public ToolStripCapabilities<ToolStrip> {
 public:
     explicit ToolStrip(StableId stable_id);
     ~ToolStrip() override;
@@ -156,20 +157,6 @@ public:
     // has one. Throws std::out_of_range for an unknown ID.
     [[nodiscard]] bool item_checked(std::string_view item_id) const;
     void set_item_checked(std::string_view item_id, bool checked);
-    // Whether the grip is shown at the strip's start.
-    [[nodiscard]] bool grip_visible() const noexcept { return grip_visible_; }
-    void set_grip_visible(bool visible);
-    // Whether the strip takes part in merging, as source or target
-    // (Windows Forms' AllowMerge; merge_strips). On by default.
-    [[nodiscard]] bool allow_merge() const noexcept { return allow_merge_; }
-    void set_allow_merge(bool allow);
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
-    // Horizontal strips run left to right; vertical strips run top to bottom
-    // and are as wide as their widest item. A StatusStrip stays horizontal
-    // and throws std::logic_error when set vertical.
-    [[nodiscard]] Orientation orientation() const noexcept { return orientation_; }
-    void set_orientation(Orientation orientation);
 
     // Opens a drop-down or split button's menu, or closes any open menu.
     bool show_drop_down(std::string_view item_id, MenuOpenMode mode = MenuOpenMode::keyboard);
@@ -277,14 +264,6 @@ protected:
     [[nodiscard]] Layout layout() const;
     [[nodiscard]] Layout layout_for(Rect surface) const;
     [[nodiscard]] bool status_layout() const noexcept { return status_layout_; }
-    void set_sizing_grip_visible(bool visible);
-    [[nodiscard]] bool sizing_grip_visible() const noexcept { return sizing_grip_visible_; }
-    // For QuickAccessToolbar: logical units kept free at the strip's far end
-    // for a part the derived control paints there (its customize button).
-    // Items and the overflow button sit before it. Zero by default. Throws
-    // std::invalid_argument for a width that is negative, not finite or
-    // over 64.
-    void set_end_reserve(double logical_width);
     // Checks items before set_items changes anything. ToolStrip accepts every
     // valid item; a derived strip that admits fewer kinds throws
     // std::invalid_argument for the others.
@@ -352,13 +331,7 @@ private:
     ItemZone pressed_zone_{ItemZone::none};
     bool overflow_hot_{};
     bool focused_{};
-    bool grip_visible_{true};
-    Orientation orientation_{Orientation::horizontal};
     bool status_layout_{};
-    bool sizing_grip_visible_{};
-    FontSpec font_{FontRole::control, 10.5, 400, false, 0.12};
-    double end_reserve_{};
-    bool allow_merge_{true};
     // The merges into this strip, oldest first; none until the first.
     std::unique_ptr<detail::ToolStripMergeHistory> merge_history_{};
     SubscriptionToken overlay_invoked_{};
@@ -369,6 +342,28 @@ private:
     Event<const ToolStripItemClick&> item_clicked_{};
     Event<const ToolStripDropDownInvocation&> drop_down_item_invoked_{};
     Event<const ToolStripItemFocus&> item_focus_changed_{};
+    // property_codemod begin ToolStrip (tools/property_families/tool_strip.json; generated, do not edit)
+private:
+    friend struct ToolStripGripVisibleCapability<ToolStrip>;
+    friend struct ToolStripAllowMergeCapability<ToolStrip>;
+    friend struct FontCapability<ToolStrip>;
+    friend struct ToolStripOrientationCapability<ToolStrip>;
+    friend struct ToolStripSizingGripVisibleCapability<ToolStrip>;
+    friend struct ToolStripEndReserveCapability<ToolStrip>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(grip_visible)& cell, bool& incoming);
+    void written(const decltype(grip_visible)& cell);
+    void prepare_write(const decltype(allow_merge)& cell, bool& incoming);
+    void written(const decltype(allow_merge)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    void prepare_write(const decltype(orientation)& cell, Orientation& incoming);
+    void written(const decltype(orientation)& cell);
+    void prepare_write(const decltype(sizing_grip_visible)& cell, bool& incoming);
+    void written(const decltype(sizing_grip_visible)& cell);
+    void prepare_write(const decltype(end_reserve)& cell, double& incoming);
+    void written(const decltype(end_reserve)& cell);
+    // property_codemod end ToolStrip
 };
 
 } // namespace gui_forms

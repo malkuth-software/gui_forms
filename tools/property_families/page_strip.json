@@ -1,0 +1,280 @@
+{
+  "family": "PageStrip",
+  "step": "M-S8",
+  "declaring": "PageStrip",
+  "header": "include/gui_forms/controls/pages/page_strip/page_strip.hpp",
+  "source": "src/controls/pages/page_strip/page_strip.cpp",
+  "capabilities_header": "include/gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp",
+  "base": "Control",
+  "shared": [
+    "FontCapability"
+  ],
+  "includes": [
+    "gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp",
+    "gui_forms/image_list.hpp",
+    "gui_forms/theme/owner_draw/owner_draw.hpp",
+    "gui_forms/types.hpp",
+    "<memory>"
+  ],
+  "test": {
+    "type": "PageStrip",
+    "include": "gui_forms/controls/pages/page_strip/page_strip.hpp",
+    "setup": [
+      "PageSet pages{};"
+    ],
+    "arguments": [
+      "pages"
+    ]
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "written bumps the settings revision (thawing frozen widths) and invalidates"
+      ],
+      "hooks": "hand",
+      "effects": null,
+      "name": "placement",
+      "capability": "PageStripPlacementProperty",
+      "value": "PageStripPlacement",
+      "initial": "PageStripPlacement::top",
+      "comment": "The edge of its content the strip sits on (default top); see PageStripPlacement. An invalid placement throws std::invalid_argument.",
+      "sample": "PageStripPlacement::left",
+      "getter": "placement",
+      "setter": "set_placement",
+      "field": "placement_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "written bumps the settings revision (thawing frozen widths) and invalidates"
+      ],
+      "hooks": "hand",
+      "effects": null,
+      "name": "item_sizing",
+      "capability": "PageStripItemSizing",
+      "value": "PageItemSizing",
+      "initial": "PageItemSizing::content",
+      "comment": "How wide each tab is (default content); see PageItemSizing. An invalid sizing throws std::invalid_argument.",
+      "sample": "PageItemSizing::fixed",
+      "getter": "item_sizing",
+      "setter": "set_item_sizing",
+      "field": "item_sizing_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "written bumps the settings revision (thawing frozen widths) and invalidates"
+      ],
+      "hooks": "hand",
+      "effects": null,
+      "name": "item_widths",
+      "capability": "PageStripItemWidths",
+      "value": "PageItemWidths",
+      "comment": "The tab widths the sizing uses. Widths outside the bounds stated on PageItemWidths throw std::invalid_argument, leaving the old widths.",
+      "sample": "PageItemWidths{60.0, 200.0, 100.0}",
+      "getter": "item_widths",
+      "setter": "set_item_widths",
+      "field": "item_widths_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "written puts the keyboard on the selection under automatic activation before invalidating"
+      ],
+      "hooks": "hand",
+      "effects": null,
+      "name": "activation",
+      "capability": "PageStripActivationProperty",
+      "value": "PageStripActivation",
+      "initial": "PageStripActivation::automatic",
+      "comment": "Whether moving the keyboard between tabs selects (automatic, the default) or only moves the focus (manual). An invalid value throws std::invalid_argument.",
+      "sample": "PageStripActivation::manual",
+      "getter": "activation",
+      "setter": "set_activation",
+      "field": "activation_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "written scrolls back to the first tab, closes the page list and bumps the settings"
+      ],
+      "hooks": "hand",
+      "effects": null,
+      "name": "overflow",
+      "capability": "PageStripOverflowProperty",
+      "value": "PageStripOverflow",
+      "initial": "PageStripOverflow::scroll",
+      "comment": "What the strip does when its tabs do not fit (default scroll); see PageStripOverflow. An invalid value throws std::invalid_argument.",
+      "sample": "PageStripOverflow::shrink_then_list",
+      "getter": "overflow",
+      "setter": "set_overflow",
+      "field": "overflow_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "written bumps the settings revision (thawing frozen widths) and invalidates"
+      ],
+      "hooks": "hand",
+      "effects": null,
+      "name": "close_buttons",
+      "capability": "PageStripCloseButtons",
+      "value": "PageCloseButtons",
+      "initial": "PageCloseButtons::none",
+      "comment": "Which closable tabs show their close button; see PageCloseButtons. An invalid value throws std::invalid_argument.",
+      "sample": "PageCloseButtons::all",
+      "getter": "close_buttons",
+      "setter": "set_close_buttons",
+      "field": "close_buttons_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "written bumps the settings revision (thawing frozen widths) and invalidates"
+      ],
+      "hooks": "hand",
+      "effects": null,
+      "name": "mnemonics_enabled",
+      "capability": "PageStripMnemonicsEnabled",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether `&` in a title marks a mnemonic that selects the page (on for strips; the document preset turns it off, DK-38). When off, a title is shown as written.",
+      "getter": "mnemonics_enabled",
+      "setter": "set_mnemonics_enabled",
+      "field": "mnemonics_enabled_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "written cancels a drag under way when turned off"
+      ],
+      "hooks": "hand",
+      "effects": null,
+      "name": "reorder_enabled",
+      "capability": "PageStripReorderEnabled",
+      "value": "bool",
+      "comment": "Whether an unclaimed drag reorders tabs live (owner decision DK-39): off by default, the strip preset; PageView's document preset turns it on. Turning it off cancels a drag under way.",
+      "getter": "reorder_enabled",
+      "setter": "set_reorder_enabled",
+      "field": "reorder_enabled_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "shared FontCapability<PageStrip>; written thaws the frozen widths, bumps the settings revision and invalidates the layout"
+      ],
+      "hooks": "hand",
+      "effects": null,
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::control, 10.5, 400, false, 0.12",
+      "comment": "The font of the tab labels. A write marks the font as set from code; an invalid specification throws std::invalid_argument.",
+      "sample": "FontSpec{FontRole::control, 12.0, 700, false}",
+      "getter": "font",
+      "setter": "set_font",
+      "field": "font_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "written moves the change subscription to the new list and bumps the settings"
+      ],
+      "hooks": "hand",
+      "effects": null,
+      "name": "image_list",
+      "capability": "PageStripImageList",
+      "value": "std::shared_ptr<ImageList>",
+      "comment": "The images a page's `image_key` names, or null. A disposed list or one belonging to another window throws std::invalid_argument.",
+      "getter": "image_list",
+      "setter": "set_image_list",
+      "field": "image_list_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [],
+      "hooks": "generated",
+      "effects": "Dirty::paint",
+      "name": "draw_mode",
+      "capability": "PageStripDrawMode",
+      "value": "ItemDrawMode",
+      "initial": "ItemDrawMode::normal",
+      "comment": "Content-only owner drawing (owner decision W-Q6; TabControl's OwnerDrawFixed with DrawItem): in owner_draw the strip raises draw_item_content for each painted tab's content; the plate, close button, pin, modified mark and focus cue stay painted by role. An unknown mode throws std::invalid_argument.",
+      "prepare": [
+        "if (incoming != ItemDrawMode::normal && incoming != ItemDrawMode::owner_draw) {",
+        "    throw std::invalid_argument(\"PageStrip draw mode is invalid\");",
+        "}"
+      ],
+      "sample": "ItemDrawMode::owner_draw",
+      "getter": "draw_mode",
+      "setter": "set_draw_mode",
+      "field": "draw_mode_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "hot",
+      "reason": "run-time interaction state"
+    },
+    {
+      "name": "page_set",
+      "reason": "structural binding, released by release_page_set"
+    }
+  ]
+}

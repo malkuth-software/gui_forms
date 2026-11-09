@@ -57,15 +57,11 @@ export CC=clang CXX=clang++ OBJCXX=clang++
 
 ## Configure, build, install
 
-Run all commands from the repository root. Fetch the text sources before
-configuring any native build; CMake stops if they are absent:
-
-```sh
-sh third_party/fetch_text_stack.sh
-sh third_party/fetch_linebreak.sh
-```
-
-Then use the configure command for your platform.
+Run all commands from the repository root. Configuring fetches the stx
+checkout pinned in `stx.lock`, which holds the CPU renderer and every
+third-party source; pass `-DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<path>` to
+use a local stx checkout at that commit instead. Use the configure command for
+your platform.
 
 macOS (with `GUI_FORMS_LLVM_RUNTIME` set as above):
 
@@ -102,9 +98,9 @@ ctest --test-dir build --output-on-failure
 cmake --install build
 ```
 
-The CPU renderer, `stx_skia/`, builds with the tree. HarfBuzz and FreeType
-come from the explicit text fetch above. SheenBidi is vendored; libunibreak is needed only for the optional
-development text-mask profile. Linux native tests need an X11 display;
+The CPU renderer, `stx_skia/`, builds with the tree from the stx checkout,
+as do HarfBuzz, FreeType, SheenBidi and MD4C; libunibreak (also in stx) is
+needed only for the optional development text-mask profile. Linux native tests need an X11 display;
 use `xvfb-run -a ctest --test-dir build --output-on-failure` on a headless runner.
 
 Pass the absolute path to the same `cmake/llvm22.cmake` to every consumer
@@ -189,9 +185,7 @@ holds one directory, `gui-forms-sdk-<version>/`, containing:
 
   | Path | Source | Pinned in |
   |---|---|---|
-  | `third_party/harfbuzz/` | HarfBuzz (without its `test/` and `perf/` data, which no GUI.Forms build reads) | `third_party/fetch_text_stack.sh` |
-  | `third_party/freetype/` | FreeType | `third_party/fetch_text_stack.sh` |
-  | `third_party/libunibreak/` | libunibreak | `third_party/fetch_linebreak.sh` |
+  | `stx/` | the stx repository: `stx_skia/`, the stx libraries and every third-party source (HarfBuzz without `test/` and `perf/`, FreeType, libunibreak, MD4C, SheenBidi, the Unicode data) | `stx.lock` |
   | `third_party/miniaudio/` | miniaudio | `cmake/Audio.cmake` |
 
 - `SDK_MANIFEST.json`, which names the build entry point (`"build":
@@ -215,8 +209,8 @@ python3 tools/build_sdk.py --target <platform> --prefix "$HOME/gui-forms-sdk"
 `linux-arm64`. Only the platform of the machine running the build is
 accepted until per-target cross-compile toolchains exist.
 
-`build_sdk.py` runs the target's own preparation (the pinned text sources,
-unless the source SDK archive already holds them). It then configures the toolkit with
+`build_sdk.py` runs the target's own preparation and points the configure
+step at the archive's `stx/` checkout. It then configures the toolkit with
 the options CI uses, minus the tests and the demonstration programs, builds
 it with `--jobs` jobs in `--work` (default `.build/sdk-<platform>`), and
 installs it into `--prefix`. The [Prerequisites](#prerequisites) still apply,
@@ -249,8 +243,8 @@ out as well.
 |---|---|---|
 | The LLVM 22.1.8 source tarball, digest pinned in `tools/macos_runtime_manifest.py` | macOS, once | github.com/llvm/llvm-project releases, by `tools/build_macos_runtimes.py`, to build the macOS 14 runtime |
 
-The CPU renderer, `stx_skia/`, is part of the source tree, so nothing is
-downloaded for it. On every platform the toolchain itself (LLVM 22.1, CMake,
+The CPU renderer, `stx_skia/`, and the text stack are in the archive's
+`stx/` checkout, so nothing is downloaded for them. On every platform the toolchain itself (LLVM 22.1, CMake,
 Ninja, Git and Python) is installed as in [Prerequisites](#prerequisites),
 not shipped.
 

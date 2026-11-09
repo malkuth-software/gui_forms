@@ -7,14 +7,14 @@ gui_forms::Label
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: Label : public Control
+.. cpp:class:: Label : public Control, public LabelCapabilities<Label>
 
    ``#include <gui_forms/controls/label/label.hpp>``
 
    Read-only text that names, describes or reports something.
 
    A label displays text on one line, or wrapped at words to its width, in the
-   theme's typography for its :cpp:func:`text_style_role <gui_forms::Label::text_style_role>`. It never takes focus, and
+   theme's typography for its :cpp:member:`text_style_role <gui_forms::Label::text_style_role>`. It never takes focus, and
    pointer input passes through it to the control underneath. A mnemonic in the
    text moves focus to the next control in tab order, so a label such as
    ``"&Name:"`` placed before a :cpp:class:`TextBox <gui_forms::TextBox>` gives the field an Alt+N shortcut. Use a
@@ -29,7 +29,7 @@ gui_forms::Label
          Identity of the control, unique within its window. Logs, automation and
          semantic actions address the control by this ID.
 
-      **text** : ``std::string``, default ``{}``
+      **initial_text** : ``std::string``, default ``{}``
          Text to display. ``&`` marks the next character as the mnemonic; write
          ``&&`` for a literal ampersand. A ``\n`` starts a new line.
 
@@ -39,25 +39,12 @@ gui_forms::Label
          The text, including any ``&`` mnemonic marker. Setting a different value
          raises :cpp:func:`text_changed <gui_forms::Label::text_changed>`.
 
-      **font** : ``FontSpec``
-         The font in use: the one given to :cpp:func:`set_font <gui_forms::Label::set_font>`, or else the theme's font
-         for :cpp:func:`text_style_role <gui_forms::Label::text_style_role>`. It is scaled by the window's text scale. An invalid
-         specification throws ``std::invalid_argument``; :cpp:func:`clear_font <gui_forms::Label::clear_font>` returns to the
-         theme's font.
-
-      **has_font_override** : ``bool``, read-only
-         Reports whether a caller-owned FontSpec supersedes Theme typography.
-
-      **text_style_role** : ``TextStyleRole``, default ``TextStyleRole::body``
-         Which theme font the label uses when no font is set: body, control,
-         caption, heading, title or monospace.
-
-      **foreground** : ``Color``
-         The text colour: the one given to :cpp:func:`set_foreground <gui_forms::Label::set_foreground>`, or else the theme's
-         text colour. :cpp:func:`clear_foreground <gui_forms::Label::clear_foreground>` returns to the theme's colour.
-
-      **has_foreground_override** : ``bool``, read-only
-         Reports whether a caller-owned text color is active.
+      **font** : ``std::optional<FontSpec>``, default empty
+         The label's own font. While empty, the label uses the theme's font for
+         :cpp:member:`text_style_role <gui_forms::Label::text_style_role>`; :cpp:func:`resolved_font <gui_forms::Label::resolved_font>` reports the font in use. It is scaled
+         by the window's text scale. An invalid specification throws
+         ``std::invalid_argument``; writing ``std::nullopt`` returns to the theme's
+         font.
 
       **alignment** : ``HorizontalAlignment``, default ``HorizontalAlignment::near``
          Horizontal position of each line: near (left), center or far (right).
@@ -71,28 +58,41 @@ gui_forms::Label
          without spaces such as Chinese or Japanese, breaks between characters.
          Explicit line breaks are kept either way.
 
+      **maximum_lines** : ``std::uint32_t``, default ``0``
+         Largest number of lines to measure and draw; zero keeps every line. The
+         accessible name still holds the whole text. Values above 4096 throw
+         ``std::out_of_range``.
+
+      **text_style_role** : ``TextStyleRole``, default ``TextStyleRole::body``
+         Which theme font the label uses when no font is set: body, control,
+         caption, heading, title or monospace.
+
       **line_spacing** : ``double``, default ``1.25``
          Line height as a multiple of the font size, between 0.75 and 3.0; other
          values throw ``std::invalid_argument``.
 
       **text_case_transform** : ``TextCaseTransform``, default ``TextCaseTransform::none``
-         Draws ASCII letters in upper or lower case without changing :cpp:func:`text <gui_forms::Label::text>`.
-
-      **maximum_lines** : ``std::size_t``, default ``0``
-         Largest number of lines to measure and draw; zero keeps every line. The
-         accessible name still holds the whole text. Values above 4096 throw
-         ``std::out_of_range``.
+         Draws ASCII letters in upper or lower case without changing :cpp:member:`text <gui_forms::Label::text>`.
 
       **use_mnemonic** : ``bool``, default ``true``
-         Whether ``&`` in :cpp:func:`text <gui_forms::Label::text>` marks a mnemonic. When false the ampersand is drawn
+         Whether ``&`` in :cpp:member:`text <gui_forms::Label::text>` marks a mnemonic. When false the ampersand is drawn
          and Alt shortcuts are ignored.
+
+      **resolved_font** : ``FontSpec``, read-only
+         The font in use: :cpp:member:`font <gui_forms::Label::font>` when set, or else the theme's font for
+         :cpp:member:`text_style_role <gui_forms::Label::text_style_role>`, before the window's text scale.
+
+      **foreground** : ``Color``, read-only
+         The text colour in use: :cpp:class:`Control <gui_forms::Control>`'s ``fore_color`` cell when set, or else
+         the theme's text colour. Writing ``std::nullopt`` to ``fore_color`` returns
+         to the theme's colour.
 
       **parts** : ``Parts``, read-only
 
    :Events:
 
       **text_changed** : ``Event<const std::string&>``
-         Raised after :cpp:func:`text <gui_forms::Label::text>` changes. It carries the new text.
+         Raised after :cpp:member:`text <gui_forms::Label::text>` changes. It carries the new text.
 
    :Inherited:
 
@@ -104,10 +104,8 @@ gui_forms::Label
       :class: autosummary longtable
       :widths: 35 65
 
-      * - :cpp:func:`clear_font <gui_forms::Label::clear_font>`
-        - Removes the font given to :cpp:func:`set_font <gui_forms::Label::set_font>`, so the label follows the theme.
-      * - :cpp:func:`clear_foreground <gui_forms::Label::clear_foreground>`
-        - Removes the colour given to :cpp:func:`set_foreground <gui_forms::Label::set_foreground>`, so the label follows the theme.
+      * - :cpp:func:`label_property_entries <gui_forms::Label::label_property_entries>`
+        -  
 
    .. seealso::
 
@@ -135,7 +133,7 @@ gui_forms::Label
 
    The control publishes the accessibility role ``static_text``. Its name is the
    accessible name, or else the text without the mnemonic marker and without
-   :cpp:func:`text_case_transform <gui_forms::Label::text_case_transform>`. The character after the mnemonic marker is its access
+   :cpp:member:`text_case_transform <gui_forms::Label::text_case_transform>`. The character after the mnemonic marker is its access
    key. A label with an empty name is not exposed.
 
    .. rubric:: Examples
@@ -165,123 +163,82 @@ gui_forms::Label
       std::shared_ptr<gf::Label> note = gf::make_control<gf::Label>(
           gf::StableId("export.note"),
           "Exported files keep their names; existing files are never overwritten.");
-      (*note).set_text_style_role(gf::TextStyleRole::caption);
-      (*note).set_text_wrapping(gf::TextWrapping::word);
-      (*note).set_maximum_lines(2U);
+      (*note).text_style_role = gf::TextStyleRole::caption;
+      (*note).text_wrapping = gf::TextWrapping::word;
+      (*note).maximum_lines = 2U;
       (*note).set_requested_bounds({0.0, 0.0, 180.0, 0.0});   // fixed width, measured height
 
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit Label(StableId stable_id, std::string text = {})
+   .. cpp:function:: explicit Label(StableId stable_id, std::string initial_text = {})
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& text() const noexcept
+   .. cpp:member:: std::string text
 
       The text, including any ``&`` mnemonic marker. Setting a different value
       raises :cpp:func:`text_changed <gui_forms::Label::text_changed>`.
 
-   .. cpp:function:: virtual void set_text(std::string text)
+   .. cpp:member:: std::optional<FontSpec> font
 
-      Sets :cpp:func:`text <gui_forms::Label::text>`; see the property's description above.
+      The label's own font. While empty, the label uses the theme's font for
+      :cpp:member:`text_style_role <gui_forms::Label::text_style_role>`; :cpp:func:`resolved_font <gui_forms::Label::resolved_font>` reports the font in use. It is scaled
+      by the window's text scale. An invalid specification throws
+      ``std::invalid_argument``; writing ``std::nullopt`` returns to the theme's
+      font.
 
-   .. cpp:function:: FontSpec font() const noexcept
-
-      The font in use: the one given to :cpp:func:`set_font <gui_forms::Label::set_font>`, or else the theme's font
-      for :cpp:func:`text_style_role <gui_forms::Label::text_style_role>`. It is scaled by the window's text scale. An invalid
-      specification throws ``std::invalid_argument``; :cpp:func:`clear_font <gui_forms::Label::clear_font>` returns to the
-      theme's font.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::Label::font>`; see the property's description above.
-
-   .. cpp:function:: bool has_font_override() const noexcept
-
-   .. cpp:function:: TextStyleRole text_style_role() const noexcept
-
-      Which theme font the label uses when no font is set: body, control,
-      caption, heading, title or monospace.
-
-   .. cpp:function:: void set_text_style_role(TextStyleRole role)
-
-      Sets :cpp:func:`text_style_role <gui_forms::Label::text_style_role>`; see the property's description above.
-
-   .. cpp:function:: Color foreground() const
-
-      The text colour: the one given to :cpp:func:`set_foreground <gui_forms::Label::set_foreground>`, or else the theme's
-      text colour. :cpp:func:`clear_foreground <gui_forms::Label::clear_foreground>` returns to the theme's colour.
-
-   .. cpp:function:: void set_foreground(Color color)
-
-      Sets :cpp:func:`foreground <gui_forms::Label::foreground>`; see the property's description above.
-
-   .. cpp:function:: bool has_foreground_override() const noexcept
-
-   .. cpp:function:: HorizontalAlignment alignment() const noexcept
+   .. cpp:member:: HorizontalAlignment alignment
 
       Horizontal position of each line: near (left), center or far (right).
 
-   .. cpp:function:: void set_alignment(HorizontalAlignment alignment)
-
-      Sets :cpp:func:`alignment <gui_forms::Label::alignment>`; see the property's description above.
-
-   .. cpp:function:: VerticalAlignment vertical_alignment() const noexcept
+   .. cpp:member:: VerticalAlignment vertical_alignment
 
       Vertical position of the block of lines within the label.
 
-   .. cpp:function:: void set_vertical_alignment(VerticalAlignment alignment)
-
-      Sets :cpp:func:`vertical_alignment <gui_forms::Label::vertical_alignment>`; see the property's description above.
-
-   .. cpp:function:: TextWrapping text_wrapping() const noexcept
+   .. cpp:member:: TextWrapping text_wrapping
 
       :cpp:enumerator:`TextWrapping::word <gui_forms::TextWrapping::word>` wraps lines at spaces to fit the label's width, and
       collapses runs of spaces to one. A word wider than the label, and text
       without spaces such as Chinese or Japanese, breaks between characters.
       Explicit line breaks are kept either way.
 
-   .. cpp:function:: void set_text_wrapping(TextWrapping wrapping)
-
-      Sets :cpp:func:`text_wrapping <gui_forms::Label::text_wrapping>`; see the property's description above.
-
-   .. cpp:function:: double line_spacing() const noexcept
-
-      Line height as a multiple of the font size, between 0.75 and 3.0; other
-      values throw ``std::invalid_argument``.
-
-   .. cpp:function:: void set_line_spacing(double spacing)
-
-      Sets :cpp:func:`line_spacing <gui_forms::Label::line_spacing>`; see the property's description above.
-
-   .. cpp:function:: TextCaseTransform text_case_transform() const noexcept
-
-      Draws ASCII letters in upper or lower case without changing :cpp:func:`text <gui_forms::Label::text>`.
-
-   .. cpp:function:: void set_text_case_transform(TextCaseTransform transform)
-
-      Sets :cpp:func:`text_case_transform <gui_forms::Label::text_case_transform>`; see the property's description above.
-
-   .. cpp:function:: std::size_t maximum_lines() const noexcept
+   .. cpp:member:: std::uint32_t maximum_lines
 
       Largest number of lines to measure and draw; zero keeps every line. The
       accessible name still holds the whole text. Values above 4096 throw
       ``std::out_of_range``.
 
-   .. cpp:function:: void set_maximum_lines(std::size_t maximum_lines)
+   .. cpp:member:: TextStyleRole text_style_role
 
-      Sets :cpp:func:`maximum_lines <gui_forms::Label::maximum_lines>`; see the property's description above.
+      Which theme font the label uses when no font is set: body, control,
+      caption, heading, title or monospace.
 
-   .. cpp:function:: bool use_mnemonic() const noexcept
+   .. cpp:member:: double line_spacing
 
-      Whether ``&`` in :cpp:func:`text <gui_forms::Label::text>` marks a mnemonic. When false the ampersand is drawn
+      Line height as a multiple of the font size, between 0.75 and 3.0; other
+      values throw ``std::invalid_argument``.
+
+   .. cpp:member:: TextCaseTransform text_case_transform
+
+      Draws ASCII letters in upper or lower case without changing :cpp:member:`text <gui_forms::Label::text>`.
+
+   .. cpp:member:: bool use_mnemonic
+
+      Whether ``&`` in :cpp:member:`text <gui_forms::Label::text>` marks a mnemonic. When false the ampersand is drawn
       and Alt shortcuts are ignored.
 
-   .. cpp:function:: void set_use_mnemonic(bool value)
+   .. cpp:function:: FontSpec resolved_font() const noexcept
 
-      Sets :cpp:func:`use_mnemonic <gui_forms::Label::use_mnemonic>`; see the property's description above.
+      The font in use: :cpp:member:`font <gui_forms::Label::font>` when set, or else the theme's font for
+      :cpp:member:`text_style_role <gui_forms::Label::text_style_role>`, before the window's text scale.
+
+   .. cpp:function:: Color foreground() const
+
+      The text colour in use: :cpp:class:`Control <gui_forms::Control>`'s ``fore_color`` cell when set, or else
+      the theme's text colour. Writing ``std::nullopt`` to ``fore_color`` returns
+      to the theme's colour.
 
    .. cpp:function:: Parts parts() const
 
@@ -290,19 +247,12 @@ gui_forms::Label
 
    .. cpp:function:: Event<const std::string&>& text_changed() noexcept
 
-      Raised after :cpp:func:`text <gui_forms::Label::text>` changes. It carries the new text.
+      Raised after :cpp:member:`text <gui_forms::Label::text>` changes. It carries the new text.
 
 
    .. rubric:: Methods
 
-   .. cpp:function:: void clear_font()
-
-      Removes the font given to :cpp:func:`set_font <gui_forms::Label::set_font>`, so the label follows the theme.
-
-   .. cpp:function:: void clear_foreground()
-
-      Removes the colour given to :cpp:func:`set_foreground <gui_forms::Label::set_foreground>`, so the label follows the
-      theme.
+   .. cpp:function:: static const std::array<PropertyEntry, label_property_count>& label_property_entries() noexcept
 
 
    .. rubric:: Extension points
@@ -331,11 +281,11 @@ gui_forms::Label
 
       *Protected.*
 
-   .. cpp:function:: void paint_label_text(Painter& painter, std::string_view text) const
+   .. cpp:function:: void paint_label_text(Painter& painter, std::string_view shown) const
 
       *Protected.*
 
-   .. cpp:function:: TextLayout layout_label_text(std::string_view text, Painter* painter) const
+   .. cpp:function:: TextLayout layout_label_text(std::string_view shown, Painter* painter) const
 
       *Protected.*
 
@@ -344,3 +294,23 @@ gui_forms::Label
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:function:: virtual void on_text_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
+   .. cpp:function:: virtual void on_font_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_alignment_changed()
+
+      *Protected.*
+
+   .. cpp:member:: constexpr std::size_t label_property_count
+
+      Label's property table: Control's entries, then its own. Default: ``Control::control_property_count + 6U``.

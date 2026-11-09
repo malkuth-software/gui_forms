@@ -7,7 +7,7 @@ gui_forms::TabPage
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: TabPage final : public Panel
+.. cpp:class:: TabPage final : public Panel, public TabPageCapabilities<TabPage>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp>``
 
@@ -26,8 +26,8 @@ gui_forms::TabPage
          Identity of the page, unique within its window. The page's tab is
          published to accessibility as ``<stable_id>.tab``.
 
-      **text** : ``std::string``, default ``{}``
-         The caption on the page's tab.
+      **initial_text** : ``std::string``, default ``{}``
+         The caption on the page's tab at construction.
 
    :Properties:
 
@@ -37,13 +37,13 @@ gui_forms::TabPage
 
       **image_key** : ``std::string``, default empty
          The key of the tab's image in the tab control's ``image_list``. Setting it
-         clears :cpp:func:`image_index <gui_forms::TabPage::image_index>`. An empty key, or one the list does not have, shows
+         clears :cpp:member:`image_index <gui_forms::TabPage::image_index>`. An empty key, or one the list does not have, shows
          no image. Throws ``std::invalid_argument`` for a key that is not valid
          UTF-8 or is longer than 256 bytes.
 
       **image_index** : ``int``, default ``-1``
          The index of the tab's image in the tab control's ``image_list``, used
-         while :cpp:func:`image_key <gui_forms::TabPage::image_key>` is empty; setting it clears :cpp:func:`image_key <gui_forms::TabPage::image_key>`. ``-1``, or an
+         while :cpp:member:`image_key <gui_forms::TabPage::image_key>` is empty; setting it clears :cpp:member:`image_key <gui_forms::TabPage::image_key>`. ``-1``, or an
          index past the list's end, shows no image. Throws ``std::out_of_range``
          below ``-1``.
 
@@ -51,7 +51,7 @@ gui_forms::TabPage
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`, :cpp:func:`parts <gui_forms::Panel::parts>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -96,46 +96,34 @@ gui_forms::TabPage
       (*fonts).add_child(sample);
       (*fonts).auto_scroll = true;   // scroll the page, not the tab control
       (*tabs).add_page(fonts);
-      (*fonts).set_text("Fonts and colours");   // the tab shows the new caption
+      (*fonts).text = "Fonts and colours";   // the tab shows the new caption
 
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit TabPage(StableId stable_id, std::string text = {})
+   .. cpp:function:: explicit TabPage(StableId stable_id, std::string initial_text = {})
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& text() const noexcept
+   .. cpp:member:: std::string text
 
       The caption on the page's tab, drawn exactly as written, and the page's
       accessible name unless you set one. Setting it repaints the tab strip.
 
-   .. cpp:function:: void set_text(std::string text)
-
-      Sets :cpp:func:`text <gui_forms::TabPage::text>`; see the property's description above.
-
-   .. cpp:function:: const std::string& image_key() const noexcept
+   .. cpp:member:: std::string image_key
 
       The key of the tab's image in the tab control's ``image_list``. Setting it
-      clears :cpp:func:`image_index <gui_forms::TabPage::image_index>`. An empty key, or one the list does not have, shows
+      clears :cpp:member:`image_index <gui_forms::TabPage::image_index>`. An empty key, or one the list does not have, shows
       no image. Throws ``std::invalid_argument`` for a key that is not valid
       UTF-8 or is longer than 256 bytes.
 
-   .. cpp:function:: void set_image_key(std::string image_key)
-
-      Sets :cpp:func:`image_key <gui_forms::TabPage::image_key>`; see the property's description above.
-
-   .. cpp:function:: int image_index() const noexcept
+   .. cpp:member:: int image_index
 
       The index of the tab's image in the tab control's ``image_list``, used
-      while :cpp:func:`image_key <gui_forms::TabPage::image_key>` is empty; setting it clears :cpp:func:`image_key <gui_forms::TabPage::image_key>`. ``-1``, or an
+      while :cpp:member:`image_key <gui_forms::TabPage::image_key>` is empty; setting it clears :cpp:member:`image_key <gui_forms::TabPage::image_key>`. ``-1``, or an
       index past the list's end, shows no image. Throws ``std::out_of_range``
       below ``-1``.
-
-   .. cpp:function:: void set_image_index(int image_index)
-
-      Sets :cpp:func:`image_index <gui_forms::TabPage::image_index>`; see the property's description above.
 
 
    .. rubric:: Extension points

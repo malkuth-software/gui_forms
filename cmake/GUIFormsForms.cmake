@@ -11,12 +11,19 @@
 #                directory as a private include directory and the header as a
 #                source, so the header is generated before the target builds.
 #   <document>   the .form file, relative to the current source directory.
-#   CLASS        the generated class template's name.
+#   CLASS        the generated class's name (a class template's without DERIVED).
 #   NAMESPACE    its namespace (`a::b`); the global namespace when omitted.
 #   OUTPUT       the header's path; default <binary dir>/gui_forms_forms/<stem>_form.hpp.
 #   TYPES        application types the document may name, each
 #                "<name>,<C++ class>,<registry base type>,<header>" (see the
 #                compiler's --type).
+#   DERIVED      generate the class deriving from the root's type (stage B):
+#                a gui_forms::Window subclass for a form root, a subclass of
+#                the root control's type otherwise, instead of the document
+#                class template over an owner.
+#   MODEL        the model a derived class binds (`a::Type`); implies DERIVED.
+#                Required when the document binds.
+#   MODEL_HEADER the header declaring MODEL, included by the generated one.
 # The header is regenerated when the document or the compiler changes; the
 # compiler writes it only when its bytes change.
 
@@ -25,7 +32,7 @@ if(COMMAND gui_forms_add_form)
 endif()
 
 function(gui_forms_add_form target document)
-    cmake_parse_arguments(PARSE_ARGV 2 FORM "" "CLASS;NAMESPACE;OUTPUT" "TYPES")
+    cmake_parse_arguments(PARSE_ARGV 2 FORM "DERIVED" "CLASS;NAMESPACE;OUTPUT;MODEL;MODEL_HEADER" "TYPES")
     if(FORM_UNPARSED_ARGUMENTS)
         message(FATAL_ERROR "gui_forms_add_form: unknown arguments ${FORM_UNPARSED_ARGUMENTS}")
     endif()
@@ -47,6 +54,15 @@ function(gui_forms_add_form target document)
     set(arguments "${source}" --class "${FORM_CLASS}" --output "${output}")
     if(FORM_NAMESPACE)
         list(APPEND arguments --namespace "${FORM_NAMESPACE}")
+    endif()
+    if(FORM_DERIVED)
+        list(APPEND arguments --derived)
+    endif()
+    if(FORM_MODEL)
+        list(APPEND arguments --model "${FORM_MODEL}")
+    endif()
+    if(FORM_MODEL_HEADER)
+        list(APPEND arguments --model-header "${FORM_MODEL_HEADER}")
     endif()
     foreach(type IN LISTS FORM_TYPES)
         list(APPEND arguments --type "${type}")

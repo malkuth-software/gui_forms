@@ -7,7 +7,7 @@ gui_forms::RadioButton
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: RadioButton : public ButtonBase
+.. cpp:class:: RadioButton : public ButtonBase, public RadioButtonCapabilities<RadioButton>
 
    ``#include <gui_forms/controls/button_base/radio_button/radio_button.hpp>``
 
@@ -17,7 +17,7 @@ gui_forms::RadioButton
    such as a page orientation. Clicking it, pressing Space or Enter while it
    has focus, or pressing its mnemonic checks it and unchecks the other radio
    buttons of its group, then raises ``clicked``. A group is every radio button
-   with the same parent and the same :cpp:func:`group_name <gui_forms::RadioButton::group_name>`; give the buttons of a
+   with the same parent and the same :cpp:member:`group_name <gui_forms::RadioButton::group_name>`; give the buttons of a
    second group in the same container another name. Use a :cpp:class:`ChoiceGroup <gui_forms::ChoiceGroup>` for a
    row of choices bound to a :cpp:class:`Value <gui_forms::Value>` with arrow-key navigation, and a
    :cpp:class:`CheckBox <gui_forms::CheckBox>` for an independent on/off option.
@@ -51,7 +51,7 @@ gui_forms::RadioButton
 
       **auto_check** : ``bool``, default ``true``
          Whether activation checks the button. When false, a click only raises
-         ``clicked``, and the application sets :cpp:func:`checked <gui_forms::RadioButton::checked>` itself.
+         ``clicked``, and the application sets :cpp:member:`checked <gui_forms::RadioButton::checked>` itself.
 
       **indicator_style** : ``ChoiceIndicatorStyle``, default ``ChoiceIndicatorStyle::classic``
          The indicator drawn beside the caption. :cpp:enumerator:`ChoiceIndicatorStyle::toggle <gui_forms::ChoiceIndicatorStyle::toggle>`
@@ -66,15 +66,24 @@ gui_forms::RadioButton
    :Events:
 
       **checked_changed** : ``Event<bool>``
-         Raised after :cpp:func:`checked <gui_forms::RadioButton::checked>` changes, whether by input, by the setter or by a
+         Raised after :cpp:member:`checked <gui_forms::RadioButton::checked>` changes, whether by input, by the setter or by a
          sibling being checked. It carries the new state. When a button is
          checked, the sibling it unchecks raises :cpp:func:`checked_changed <gui_forms::RadioButton::checked_changed>` first.
 
    :Inherited:
 
-      From :cpp:class:`ButtonBase <gui_forms::ButtonBase>`: properties :cpp:member:`text <gui_forms::ButtonBase::text>`, :cpp:member:`text_alignment <gui_forms::ButtonBase::text_alignment>`, :cpp:member:`font <gui_forms::ButtonBase::font>`, :cpp:member:`content_padding <gui_forms::ButtonBase::content_padding>`, :cpp:member:`text_line_spacing <gui_forms::ButtonBase::text_line_spacing>`, :cpp:member:`image_alignment <gui_forms::ButtonBase::image_alignment>`, :cpp:member:`text_image_relation <gui_forms::ButtonBase::text_image_relation>`, :cpp:member:`image_gap <gui_forms::ButtonBase::image_gap>`, :cpp:member:`use_mnemonic <gui_forms::ButtonBase::use_mnemonic>`, :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>`, :cpp:func:`command_connected <gui_forms::ButtonBase::command_connected>`, :cpp:func:`style <gui_forms::ButtonBase::style>`, :cpp:func:`has_style_override <gui_forms::ButtonBase::has_style_override>`, :cpp:func:`visual_recipes_override <gui_forms::ButtonBase::visual_recipes_override>`, :cpp:func:`connection_topology <gui_forms::ButtonBase::connection_topology>`, :cpp:func:`image <gui_forms::ButtonBase::image>`, :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`, :cpp:func:`image_index <gui_forms::ButtonBase::image_index>`, :cpp:func:`image_key <gui_forms::ButtonBase::image_key>`, :cpp:func:`pressed_visual <gui_forms::ButtonBase::pressed_visual>`, :cpp:func:`focused_visual <gui_forms::ButtonBase::focused_visual>`, :cpp:func:`focus_cue_visible <gui_forms::ButtonBase::focus_cue_visible>`, :cpp:func:`hovered_visual <gui_forms::ButtonBase::hovered_visual>`; events :cpp:func:`expanded_changed <gui_forms::ButtonBase::expanded_changed>`, :cpp:func:`clicked <gui_forms::ButtonBase::clicked>`, :cpp:func:`text_changed <gui_forms::ButtonBase::text_changed>`; methods :cpp:func:`button_base_property_entries <gui_forms::ButtonBase::button_base_property_entries>`, :cpp:func:`clear_image <gui_forms::ButtonBase::clear_image>`, :cpp:func:`clear_style <gui_forms::ButtonBase::clear_style>`, :cpp:func:`clear_visual_recipes <gui_forms::ButtonBase::clear_visual_recipes>`, :cpp:func:`perform_click <gui_forms::ButtonBase::perform_click>`, :cpp:func:`set_visual_recipes <gui_forms::ButtonBase::set_visual_recipes>`, :cpp:func:`unbind_command <gui_forms::ButtonBase::unbind_command>`.
+      From :cpp:class:`ButtonBase <gui_forms::ButtonBase>`: properties :cpp:member:`text <gui_forms::ButtonBase::text>`, :cpp:member:`text_alignment <gui_forms::ButtonBase::text_alignment>`, :cpp:member:`font <gui_forms::ButtonBase::font>`, :cpp:member:`content_padding <gui_forms::ButtonBase::content_padding>`, :cpp:member:`text_line_spacing <gui_forms::ButtonBase::text_line_spacing>`, :cpp:member:`image_alignment <gui_forms::ButtonBase::image_alignment>`, :cpp:member:`text_image_relation <gui_forms::ButtonBase::text_image_relation>`, :cpp:member:`image_gap <gui_forms::ButtonBase::image_gap>`, :cpp:member:`use_mnemonic <gui_forms::ButtonBase::use_mnemonic>`, :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>`, :cpp:member:`image <gui_forms::ButtonBase::image>`, :cpp:func:`command_connected <gui_forms::ButtonBase::command_connected>`, :cpp:func:`style <gui_forms::ButtonBase::style>`, :cpp:func:`has_style_override <gui_forms::ButtonBase::has_style_override>`, :cpp:func:`visual_recipes_override <gui_forms::ButtonBase::visual_recipes_override>`, :cpp:func:`connection_topology <gui_forms::ButtonBase::connection_topology>`, :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`, :cpp:func:`image_index <gui_forms::ButtonBase::image_index>`, :cpp:func:`image_key <gui_forms::ButtonBase::image_key>`, :cpp:func:`pressed_visual <gui_forms::ButtonBase::pressed_visual>`, :cpp:func:`focused_visual <gui_forms::ButtonBase::focused_visual>`, :cpp:func:`focus_cue_visible <gui_forms::ButtonBase::focus_cue_visible>`, :cpp:func:`hovered_visual <gui_forms::ButtonBase::hovered_visual>`; events :cpp:func:`expanded_changed <gui_forms::ButtonBase::expanded_changed>`, :cpp:func:`clicked <gui_forms::ButtonBase::clicked>`, :cpp:func:`text_changed <gui_forms::ButtonBase::text_changed>`; methods :cpp:func:`button_base_property_entries <gui_forms::ButtonBase::button_base_property_entries>`, :cpp:func:`clear_image <gui_forms::ButtonBase::clear_image>`, :cpp:func:`clear_style <gui_forms::ButtonBase::clear_style>`, :cpp:func:`clear_visual_recipes <gui_forms::ButtonBase::clear_visual_recipes>`, :cpp:func:`perform_click <gui_forms::ButtonBase::perform_click>`, :cpp:func:`set_visual_recipes <gui_forms::ButtonBase::set_visual_recipes>`, :cpp:func:`unbind_command <gui_forms::ButtonBase::unbind_command>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
+
+   .. rubric:: Methods
+
+   .. list-table::
+      :class: autosummary longtable
+      :widths: 35 65
+
+      * - :cpp:func:`radio_button_property_entries <gui_forms::RadioButton::radio_button_property_entries>`
+        -  
 
    .. seealso::
 
@@ -95,7 +104,7 @@ gui_forms::RadioButton
    button that is already checked raises only ``clicked``. A setter never raises
    ``clicked``, and setting the current state again raises nothing.
 
-   Exclusion happens only when a button is checked or its :cpp:func:`group_name <gui_forms::RadioButton::group_name>`
+   Exclusion happens only when a button is checked or its :cpp:member:`group_name <gui_forms::RadioButton::group_name>`
    changes. Adding a checked button to a container that already holds a
    checked button of the same group leaves both checked, and a button without
    a parent excludes nothing.
@@ -121,10 +130,10 @@ gui_forms::RadioButton
           gf::make_control<gf::RadioButton>(gf::StableId("print.landscape"), "&Landscape");
       (*orientation).add_child(portrait);
       (*orientation).add_child(landscape);
-      (*portrait).set_checked(true);
-      (*landscape).set_checked(true);   // portrait is unchecked first
+      (*portrait).checked = true;
+      (*landscape).checked = true;   // portrait is unchecked first
 
-   Keep two groups in one panel apart with :cpp:func:`group_name <gui_forms::RadioButton::group_name>`, and react to one
+   Keep two groups in one panel apart with :cpp:member:`group_name <gui_forms::RadioButton::group_name>`, and react to one
    button with an owned handler:
 
    .. code-block:: cpp
@@ -142,10 +151,10 @@ gui_forms::RadioButton
           bool landscape_page = false;
 
           PrintOptions() {
-              (*portrait).set_group_name("orientation");
-              (*landscape).set_group_name("orientation");
-              (*colour).set_group_name("ink");
-              (*mono).set_group_name("ink");
+              (*portrait).group_name = "orientation";
+              (*landscape).group_name = "orientation";
+              (*colour).group_name = "ink";
+              (*mono).group_name = "ink";
               (*panel).add_child(portrait);
               (*panel).add_child(landscape);
               (*panel).add_child(colour);
@@ -157,8 +166,8 @@ gui_forms::RadioButton
 
       void example() {
           PrintOptions options;
-          (*options.portrait).set_checked(true);
-          (*options.colour).set_checked(true);   // another group: portrait stays checked
+          (*options.portrait).checked = true;
+          (*options.colour).checked = true;   // another group: portrait stays checked
           (*options.landscape).perform_click();  // unchecks portrait; landscape_page is true
       }
 
@@ -170,47 +179,31 @@ gui_forms::RadioButton
 
    .. rubric:: Properties
 
-   .. cpp:function:: bool checked() const noexcept
+   .. cpp:member:: bool checked
 
       Whether the button is checked. Setting it to true first unchecks any
       checked sibling in the same group, then checks this button; setting it
       to false unchecks only this button and checks no other. Also available
       to bindings as the ``Checked`` property.
 
-   .. cpp:function:: void set_checked(bool checked)
-
-      Sets :cpp:func:`checked <gui_forms::RadioButton::checked>`; see the property's description above.
-
-   .. cpp:function:: const std::string& group_name() const noexcept
+   .. cpp:member:: std::string group_name
 
       The name of the button's group among its siblings. Buttons with the
       same parent and the same name exclude each other; the default empty
       name groups all unnamed radio buttons of a container. Moving a checked
       button into a group with another checked button unchecks the other.
 
-   .. cpp:function:: void set_group_name(std::string name)
-
-      Sets :cpp:func:`group_name <gui_forms::RadioButton::group_name>`; see the property's description above.
-
-   .. cpp:function:: bool auto_check() const noexcept
+   .. cpp:member:: bool auto_check
 
       Whether activation checks the button. When false, a click only raises
-      ``clicked``, and the application sets :cpp:func:`checked <gui_forms::RadioButton::checked>` itself.
+      ``clicked``, and the application sets :cpp:member:`checked <gui_forms::RadioButton::checked>` itself.
 
-   .. cpp:function:: void set_auto_check(bool enabled)
-
-      Sets :cpp:func:`auto_check <gui_forms::RadioButton::auto_check>`; see the property's description above.
-
-   .. cpp:function:: ChoiceIndicatorStyle indicator_style() const noexcept
+   .. cpp:member:: ChoiceIndicatorStyle indicator_style
 
       The indicator drawn beside the caption. :cpp:enumerator:`ChoiceIndicatorStyle::toggle <gui_forms::ChoiceIndicatorStyle::toggle>`
       draws a switch instead of the round indicator. ``modern`` draws the
       checked indicator in the accent colour, but only for a button given its
       own style with ``set_style``; under the theme it looks like ``classic``.
-
-   .. cpp:function:: void set_indicator_style(ChoiceIndicatorStyle style)
-
-      Sets :cpp:func:`indicator_style <gui_forms::RadioButton::indicator_style>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 
@@ -221,9 +214,14 @@ gui_forms::RadioButton
 
    .. cpp:function:: Event<bool>& checked_changed() noexcept
 
-      Raised after :cpp:func:`checked <gui_forms::RadioButton::checked>` changes, whether by input, by the setter or by a
+      Raised after :cpp:member:`checked <gui_forms::RadioButton::checked>` changes, whether by input, by the setter or by a
       sibling being checked. It carries the new state. When a button is
       checked, the sibling it unchecks raises :cpp:func:`checked_changed <gui_forms::RadioButton::checked_changed>` first.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static const std::array<PropertyEntry, radio_button_property_count>& radio_button_property_entries() noexcept
 
 
    .. rubric:: Extension points
@@ -234,14 +232,14 @@ gui_forms::RadioButton
 
    .. cpp:function:: void on_activate() override
 
-      Checks the button when :cpp:func:`auto_check <gui_forms::RadioButton::auto_check>` is true and it is not already
+      Checks the button when :cpp:member:`auto_check <gui_forms::RadioButton::auto_check>` is true and it is not already
       checked, then raises ``clicked``. A click, Space or Enter, the mnemonic,
       a semantic press and ``perform_click`` all end here.
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
       Publishes the role ``radio_button``, with the value ``selected`` or
-      ``not selected`` and, when checked, the states :cpp:func:`checked <gui_forms::RadioButton::checked>` and
+      ``not selected`` and, when checked, the states :cpp:member:`checked <gui_forms::RadioButton::checked>` and
       ``selected``.
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
@@ -255,3 +253,15 @@ gui_forms::RadioButton
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:function:: virtual void on_checked_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
+   .. cpp:member:: constexpr std::size_t radio_button_property_count
+
+      RadioButton's property table: ButtonBase's entries, then its own. Default: ``ButtonBase::button_base_property_count + 3U``.

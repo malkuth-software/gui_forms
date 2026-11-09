@@ -997,7 +997,8 @@ bool refines(const ThemeRule& refining, const ThemeRule& host) noexcept {
     if (refining.level != host.level || refining.specificity != host.specificity) return false;
     if (!(refining.media == host.media)) return false;
     if (left.control_type != right.control_type || left.stable_id != right.stable_id ||
-        left.classes != right.classes || left.part != right.part || left.role != right.role) {
+        left.classes != right.classes || left.part != right.part || left.role != right.role ||
+        left.family != right.family || !(left.excluded == right.excluded)) {
         return false;
     }
     if (left.states.size() <= right.states.size()) return false;
@@ -1210,11 +1211,11 @@ bool add_loops(const KeyframesDefinition& definition, const AnimationSettings& s
 }
 
 // Whether `rule` declares nothing: no value, no scoped custom property
-// definition (P12) and no backdrop.
+// definition (P12), no backdrop and no band.
 bool rule_empty(const ThemeRule& rule) noexcept {
     const bool empty = rule.declarations.empty() && rule.transitions.empty() && !rule.ambient.has_value() &&
                        rule.materials.empty() && rule.recipe_fields.empty() && rule.scoped_definitions.empty() &&
-                       !rule.backdrop.has_value();
+                       !rule.backdrop.has_value() && !rule.band.has_value();
     return empty;
 }
 
