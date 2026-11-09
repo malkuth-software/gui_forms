@@ -2340,6 +2340,16 @@ struct SetDisplayIndexPastEnd final {
     void operator()() const { (*grid).set_column_display_index(0U, DataGridViewDisplayIndex{9U}); }
 };
 
+struct SetCurrentToHidden final {
+    DataGridView* grid{};
+    void operator()() const { static_cast<void>((*grid).set_current_cell(cell_at(0U, 1U))); }
+};
+
+struct SetVisiblePastEnd final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).set_column_visible(9U, false); }
+};
+
 struct InsertColumnPastEnd final {
     DataGridView* grid{};
     void operator()() const { (*grid).insert_column(9U, {.name = "late"}); }
@@ -2361,6 +2371,67 @@ std::vector<std::size_t> display_order(const DataGridView& grid) {
         order.push_back(grid.column_at_display_index(DataGridViewDisplayIndex{display}));
     }
     return order;
+}
+
+void column_visibility() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.visible");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require((*grid).columns()[1].visible, "columns are shown by default");
+    (*grid).set_column_visible(1U, false);
+    window.perform_layout();
+    const std::vector<DataGridView::Column> columns = (*grid).realized_columns();
+    require(columns.size() == 3U && columns[0].index == 0U && columns[1].index == 2U && columns[2].index == 3U,
+            "a hidden column is not realized");
+    const Rect first = columns[0].parts.column_header.bounds;
+    require(columns[1].parts.column_header.bounds.x == first.x + first.width,
+            "the column after a hidden one takes its place");
+    require(display_order(*grid) == std::vector<std::size_t>{0U, 1U, 2U, 3U} &&
+                !(*grid).columns()[1].visible,
+            "a hidden column keeps its display index");
+    const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
+    require(nodes[1].role == SemanticRole::column_header && nodes[1].column_index == 2U,
+            "column headers count only shown columns");
+    const std::vector<DataGridView::Cell> cells = (*grid).realized_cells();
+    const DataGridView::Cell* const shown = find_cell(cells, 0U, 2U);
+    require(shown != nullptr && (*shown).parts.cell.bounds.x == first.x + first.width,
+            "cells after a hidden column are laid out in its place");
+
+    require(window.request_focus(grid) && (*grid).current_cell() == cell_at(0U, 0U),
+            "focus makes the first shown cell current");
+    require(key(window, PhysicalKey::right) && (*grid).current_cell() == cell_at(0U, 2U),
+            "Right passes over a hidden column");
+    require(key(window, PhysicalKey::left) && (*grid).current_cell() == cell_at(0U, 0U) &&
+                key(window, PhysicalKey::tab) && (*grid).current_cell() == cell_at(0U, 2U),
+            "Left and Tab pass over a hidden column");
+    require(key(window, PhysicalKey::left, Modifier::shift) && (*grid).is_cell_selected(row_at(0U), 0U) &&
+                (*grid).is_cell_selected(row_at(0U), 2U) && !(*grid).is_cell_selected(row_at(0U), 1U),
+            "a range leaves a hidden column's cells out");
+    (*grid).multi_select = true;
+    (*grid).select_all();
+    require(!(*grid).is_cell_selected(row_at(1U), 1U) && (*grid).is_cell_selected(row_at(1U), 3U),
+            "select_all leaves a hidden column's cells out");
+    require(throws<std::logic_error>(SetCurrentToHidden{grid.get()}), "a hidden cell cannot be made current");
+    require(throws<std::out_of_range>(SetVisiblePastEnd{grid.get()}), "an unknown column is refused");
+
+    require((*grid).set_current_cell(cell_at(0U, 2U)), "the current cell moves to a shown column");
+    (*grid).set_column_visible(2U, false);
+    require((*grid).current_cell() == cell_at(0U, 3U), "hiding the current column moves to the next shown one");
+    (*grid).set_column_visible(3U, false);
+    require((*grid).current_cell() == cell_at(0U, 0U), "past the last shown column it moves to the one before");
+    (*grid).set_column_visible(0U, false);
+    window.perform_layout();
+    require(!(*grid).current_cell() && (*grid).realized_columns().empty(),
+            "with no column shown there is no current cell and nothing realized");
+    require(!key(window, PhysicalKey::right), "keys move nothing with no column shown");
+    for (std::size_t column = 0U; column < 4U; ++column) (*grid).set_column_visible(column, true);
+    window.perform_layout();
+    require((*grid).realized_columns().size() == 4U, "shown again, every column is realized");
+
+    (*grid).add_column({.name = "secret", .header_text = "Secret", .visible = false});
+    window.perform_layout();
+    require((*grid).realized_columns().size() == 4U && !(*grid).columns()[4].visible,
+            "a column added hidden is not realized");
 }
 
 void column_order() {
@@ -3219,6 +3290,7 @@ int main() {
     wrapped_cells();
     column_auto_sizing();
     column_order();
+    column_visibility();
     row_height_index();
     row_heights();
     row_resizing();

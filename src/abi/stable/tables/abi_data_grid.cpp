@@ -133,9 +133,6 @@ gf_status read_column(const gf_data_grid_column* record, SlotIdentity slot, Data
         return fail(GF_STATUS_INVALID_ARGUMENT, slot,
                     "a column has at least the 1.1 size, reserved zero, a known kind and read_only and hidden 0 or 1");
     }
-    if ((*record).hidden == 1U) {
-        return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, slot, "this library has no hidden data grid columns yet");
-    }
     const gf_value_kind value_kind = (*record).value_kind;
     if (value_kind != GF_VALUE_KIND_NULL && (value_kind < GF_VALUE_KIND_BOOLEAN || value_kind > GF_VALUE_KIND_TEXT)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot,
@@ -168,6 +165,7 @@ gf_status read_column(const gf_data_grid_column* record, SlotIdentity slot, Data
     made.value_kind = value_kind == GF_VALUE_KIND_NULL ? BindingValueKind::text
                                                         : static_cast<BindingValueKind>(value_kind);
     made.read_only = (*record).read_only == 1U;
+    made.visible = (*record).hidden == 0U;
     made.width = (*record).width == 0.0 ? default_column_width : (*record).width;
     made.minimum_width = (*record).minimum_width == 0.0 ? default_minimum_width : (*record).minimum_width;
     made.items.reserve(static_cast<std::size_t>((*record).item_count));
@@ -371,7 +369,7 @@ gf_status GF_CALL data_grid_column_at(gf_object grid, std::uint64_t index, gf_da
         complete.kind = static_cast<gf_data_grid_column_kind>(held.kind);
         complete.value_kind = static_cast<gf_value_kind>(held.value_kind);
         complete.read_only = held.read_only ? 1U : 0U;
-        complete.hidden = 0U;
+        complete.hidden = held.visible ? 0U : 1U;
         complete.width = held.width;
         complete.minimum_width = held.minimum_width;
         complete.items = nullptr;
@@ -563,11 +561,7 @@ gf_status GF_CALL data_grid_set_column_hidden(gf_object grid, std::uint64_t colu
         if (present != GF_STATUS_OK) {
             return present;
         }
-        if (hidden == 1U) {
-            return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, set_column_hidden_slot,
-                        "this library has no hidden data grid columns yet");
-        }
-        // Every column is shown: hiding none changes nothing.
+        (*typed).set_column_visible(static_cast<std::size_t>(column), hidden == 0U);
         return GF_STATUS_OK;
     } catch (...) {
         return fail_with_current_exception(set_column_hidden_slot);

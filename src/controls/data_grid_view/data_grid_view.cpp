@@ -966,6 +966,7 @@ void DataGridView::reset_display_order() {
         display_order_[column] = column;
         display_indices_[column] = column;
     }
+    refresh_shown_order();
 }
 
 void DataGridView::append_display_column() {
@@ -973,6 +974,7 @@ void DataGridView::append_display_column() {
     const std::size_t column = columns_.size() - 1U;
     display_order_.push_back(column);
     display_indices_.push_back(display_order_.size() - 1U);
+    refresh_shown_order();
 }
 
 void DataGridView::remove_display_column(std::size_t column) {
@@ -987,6 +989,7 @@ void DataGridView::remove_display_column(std::size_t column) {
     for (std::size_t position = 0U; position < display_order_.size(); ++position) {
         display_indices_[display_order_[position]] = position;
     }
+    refresh_shown_order();
 }
 
 void DataGridView::insert_display_column(std::size_t column) {
@@ -1001,6 +1004,22 @@ void DataGridView::insert_display_column(std::size_t column) {
     for (std::size_t position = 0U; position < display_order_.size(); ++position) {
         display_indices_[display_order_[position]] = position;
     }
+    refresh_shown_order();
+}
+
+void DataGridView::refresh_shown_order() {
+    shown_order_.clear();
+    shown_order_.reserve(display_order_.size());
+    shown_indices_.resize(columns_.size());
+    for (const std::size_t column : display_order_) {
+        shown_indices_[column] = shown_order_.size();
+        if (columns_[column].visible) shown_order_.push_back(column);
+    }
+}
+
+double DataGridView::shown_width(std::size_t column) const noexcept {
+    if (column >= columns_.size() || !columns_[column].visible) return 0.0;
+    return columns_[column].width;
 }
 
 DataGridViewDisplayIndex DataGridView::column_display_index(std::size_t column) const {
@@ -1038,6 +1057,7 @@ void DataGridView::set_column_display_index(std::size_t column, DataGridViewDisp
         display_indices_[display_order_[position]] = position;
         moved.push_back(display_order_[position]);
     }
+    refresh_shown_order();
     structure_changed();
     for (const std::size_t changed : moved) {
         if (!is_alive()) return;
@@ -1096,6 +1116,32 @@ void DataGridView::set_column_read_only(std::size_t column, bool column_read_onl
     if (column_read_only && editing_ && current_ && (*current_).column == column) cancel_edit();
     columns_[column].read_only = column_read_only;
     invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void DataGridView::set_column_visible(std::size_t column, bool column_visible) {
+    require_mutable();
+    if (column >= columns_.size()) throw std::out_of_range("DataGridView column is past the end");
+    if (columns_[column].visible == column_visible) return;
+    const bool current_hidden = !column_visible && current_ && (*current_).column == column;
+    if (current_hidden && editing_) cancel_edit();
+    columns_[column].visible = column_visible;
+    refresh_shown_order();
+    structure_changed();
+    if (!current_hidden || !is_alive()) return;
+    // The current cell leaves the hidden column for a shown one in its row:
+    // the next in display order, else the one before.
+    const std::optional<DataGridViewCellAddress> current = current_cell();
+    if (!current) return;
+    if (shown_order_.empty()) {
+        if (!validate_row_change(std::nullopt)) return;
+        anchor_.reset();
+        apply_current(std::nullopt, current_.has_value());
+        return;
+    }
+    const std::size_t next = shown_indices_[column];
+    const std::size_t shown = next < shown_order_.size() ? next : shown_order_.size() - 1U;
+    const DataGridViewCellAddress target{(*current).row, shown_order_[shown]};
+    static_cast<void>(move_current(target, SelectionGesture::replace));
 }
 
 // -- rows --------------------------------------------------------------------
@@ -1857,11 +1903,11 @@ void DataGridView::scroll_into_view(DataGridViewCellAddress cell) {
     }
     // Columns in logical units at text scale 1, in display order.
     double left = 0.0;
-    const std::size_t display = cell.column < display_indices_.size() ? display_indices_[cell.column] : 0U;
+    const std::size_t display = cell.column < shown_indices_.size() ? shown_indices_[cell.column] : 0U;
     for (std::size_t position = 0; position < display; ++position) {
-        left += columns_[display_order_[position]].width;
+        left += shown_width(shown_order_[position]);
     }
-    const double right = left + (cell.column < columns_.size() ? columns_[cell.column].width : 0.0);
+    const double right = left + shown_width(cell.column);
     const double viewport = layout.data.width / layout.scale;
     if (left < horizontal_offset_) {
         horizontal_offset_ = left;
@@ -2023,14 +2069,18 @@ void DataGridView::select_range(DataGridViewCellAddress from, DataGridViewCellAd
         return;
     }
     // The columns between the two, as they are shown.
-    const std::size_t from_display = display_indices_[from.column];
-    const std::size_t to_display = display_indices_[to.column];
+    // A hidden end counts as the shown column after it, clamped to the
+    // last shown column; with no column shown nothing is selected.
+    if (shown_order_.empty()) return;
+    const std::size_t last_shown = shown_order_.size() - 1U;
+    const std::size_t from_display = std::min(shown_indices_[from.column], last_shown);
+    const std::size_t to_display = std::min(shown_indices_[to.column], last_shown);
     const std::size_t first_display = std::min(from_display, to_display);
     const std::size_t last_display = std::max(from_display, to_display);
     for (std::size_t position = first_row; position <= last_row; ++position) {
         const std::string row_id = row_id_text(DataGridViewRowPosition{position});
         for (std::size_t display = first_display; display <= last_display; ++display) {
-            insert_selected_cell(row_id, display_order_[display]);
+            insert_selected_cell(row_id, shown_order_[display]);
         }
     }
 }
@@ -2128,6 +2178,7 @@ void DataGridView::apply_current(std::optional<CellKey> cell, bool validated) {
 
 bool DataGridView::move_current(DataGridViewCellAddress target, SelectionGesture gesture) {
     if (target.row.value >= row_count() || target.column >= columns_.size()) return false;
+    if (!columns_[target.column].visible) return false;
     const CellKey target_key = key_of(target);
     if (editing_ && !(current_ && *current_ == target_key) && !end_edit()) return false;
     if (!is_alive() || !validate_row_change(target_key)) return false;
@@ -2221,6 +2272,9 @@ bool DataGridView::set_current_cell(std::optional<DataGridViewCellAddress> cell)
     require_mutable();
     require_settled_current();
     if (cell) require_cell((*cell).row, (*cell).column);
+    if (cell && !columns_[(*cell).column].visible) {
+        throw std::logic_error("DataGridView current cell cannot be in a hidden column");
+    }
     if (!cell) {
         if (editing_ && !end_edit()) return false;
         if (!validate_row_change(std::nullopt)) return false;
@@ -2335,10 +2389,10 @@ void DataGridView::select_all() {
     if (!multi_select.read()) return;
     const std::uint64_t before = selection_revision_;
     const std::size_t count = row_count();
-    if (count == 0U || columns_.empty()) return;
+    if (count == 0U || shown_order_.empty()) return;
     clear_selection_state();
-    const DataGridViewCellAddress first{DataGridViewRowPosition{0U}, display_order_.front()};
-    const DataGridViewCellAddress last{DataGridViewRowPosition{count - 1U}, display_order_.back()};
+    const DataGridViewCellAddress first{DataGridViewRowPosition{0U}, shown_order_.front()};
+    const DataGridViewCellAddress last{DataGridViewRowPosition{count - 1U}, shown_order_.back()};
     select_range(first, last);
     publish_selection(before);
 }
@@ -3654,16 +3708,16 @@ void DataGridView::on_key(KeyEvent& event) {
 
 bool DataGridView::tab_key(bool backward) {
     const std::size_t count = row_count();
-    const std::size_t columns = columns_.size();
+    const std::size_t columns = shown_order_.size();
     if (count == 0U || columns == 0U) return false;
     const std::optional<DataGridViewCellAddress> current = current_cell();
     if (!current) {
-        const DataGridViewCellAddress first{DataGridViewRowPosition{0U}, display_order_.front()};
+        const DataGridViewCellAddress first{DataGridViewRowPosition{0U}, shown_order_.front()};
         const bool moved = move_current(first, SelectionGesture::replace);
         return moved;
     }
     DataGridViewRowPosition row = (*current).row;
-    std::size_t display = display_indices_[(*current).column];
+    std::size_t display = std::min(shown_indices_[(*current).column], columns - 1U);
     if (backward) {
         if (display > 0U) {
             --display;
@@ -3685,14 +3739,14 @@ bool DataGridView::tab_key(bool backward) {
             return false;
         }
     }
-    const DataGridViewCellAddress next{row, display_order_[display]};
+    const DataGridViewCellAddress next{row, shown_order_[display]};
     static_cast<void>(move_current(next, SelectionGesture::replace));
     return true;
 }
 
 bool DataGridView::navigation_key(KeyEvent& event) {
     const std::size_t count = row_count();
-    const std::size_t columns = columns_.size();
+    const std::size_t columns = shown_order_.size();
     if (count == 0U || columns == 0U) return false;
     const std::uint32_t key = event.physical_key;
     const bool control = has_modifier(event.modifiers, Modifier::control);
@@ -3700,12 +3754,12 @@ bool DataGridView::navigation_key(KeyEvent& event) {
     const bool full_row = selection_mode.read() == DataGridViewSelectionMode::full_row_select;
     const std::optional<DataGridViewCellAddress> current = current_cell();
     const DataGridViewCellAddress from =
-        current ? *current : DataGridViewCellAddress{DataGridViewRowPosition{first_row_}, display_order_.front()};
+        current ? *current : DataGridViewCellAddress{DataGridViewRowPosition{first_row_}, shown_order_.front()};
     const std::size_t row = from.row.value;
     const std::size_t last_row = count - 1U;
     // Columns move by display index: the first, previous, next and last
     // as they are shown.
-    const std::size_t display = display_indices_[from.column];
+    const std::size_t display = std::min(shown_indices_[from.column], columns - 1U);
     const std::size_t last_display = columns - 1U;
     const std::size_t page = std::max<std::size_t>(1U, fully_visible_rows(grid_layout()));
     DataGridViewRowPosition target_row = from.row;
@@ -3745,7 +3799,7 @@ bool DataGridView::navigation_key(KeyEvent& event) {
     } else {
         return false;
     }
-    const DataGridViewCellAddress target{target_row, display_order_[target_display]};
+    const DataGridViewCellAddress target{target_row, shown_order_[target_display]};
     const SelectionGesture gesture = shift ? SelectionGesture::extend : SelectionGesture::replace;
     static_cast<void>(move_current(target, gesture));
     return true;
@@ -3797,8 +3851,8 @@ void DataGridView::on_window_focus_moved(const FocusedControlChange& change) {
 
 void DataGridView::on_focus_changed(bool focused) {
     focused_ = focused;
-    if (focused_ && !current_ && row_count() > 0U && !columns_.empty()) {
-        const DataGridViewCellAddress first{DataGridViewRowPosition{first_row_}, display_order_.front()};
+    if (focused_ && !current_ && row_count() > 0U && !shown_order_.empty()) {
+        const DataGridViewCellAddress first{DataGridViewRowPosition{first_row_}, shown_order_.front()};
         static_cast<void>(move_current(first, SelectionGesture::replace));
     }
     invalidate(Dirty::paint | Dirty::semantics);
@@ -3859,11 +3913,12 @@ std::string DataGridView::row_header_prefix() const {
 }
 
 bool DataGridView::click_row_header(DataGridViewRowPosition row, SelectionGesture gesture) {
-    const std::size_t column = current_ ? (*current_).column : display_order_.front();
+    if (shown_order_.empty()) return false;
+    const std::size_t column = current_ ? (*current_).column : shown_order_.front();
     if (!move_current({row, column}, gesture)) return false;
     if (selection_mode.read() == DataGridViewSelectionMode::cell_select && gesture == SelectionGesture::replace) {
         const std::uint64_t before = selection_revision_;
-        select_range({row, display_order_.front()}, {row, display_order_.back()});
+        select_range({row, shown_order_.front()}, {row, shown_order_.back()});
         publish_selection(before);
     }
     return true;
@@ -3910,7 +3965,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
     const std::size_t display_end = visible_display_end(layout);
     if (column_headers_visible.read()) {
         for (std::size_t display = first_display; display < display_end; ++display) {
-            const std::size_t column = display_order_[display];
+            const std::size_t column = shown_order_[display];
             const ColumnParts placed = column_parts(column, layout);
             SemanticNode node{};
             node.stable_id = column_stable_id(column);
@@ -3970,7 +4025,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             row_node.children.push_back(std::move(header));
         }
         for (std::size_t display = first_display; display < display_end; ++display) {
-            const std::size_t column = display_order_[display];
+            const std::size_t column = shown_order_[display];
             const DataGridViewColumn& definition = columns_[column];
             const CellParts placed = cell_parts(row, column, layout);
             SemanticNode cell{};
@@ -4122,7 +4177,154 @@ bool DataGridView::on_semantic_child_action(std::string_view id, SemanticAction 
     return false;
 }
 
+namespace {
+
+// The DataGridViewSelectionMode enumeration, numbered as declared, for the
+// selection_mode table entry. Static storage; any thread may read it.
+std::shared_ptr<const PropertyEnumDescriptor> data_grid_view_selection_mode_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "data_grid_view_selection_mode", {{"cell_select", 0}, {"full_row_select", 1}}, false});
+    return value;
+}
+
+} // namespace
+
 // property_codemod begin DataGridView (tools/property_families/data_grid_view.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor data_grid_view_read_only_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "read_only";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Whether no cell can be edited.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_data_grid_view_read_only() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        data_grid_view_read_only_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor data_grid_view_selection_mode_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "selection_mode";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Behavior";
+    descriptor.description = "Whether selection takes cells or full rows.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"data_grid_view_selection_mode", "cell_select", 0}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = data_grid_view_selection_mode_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_data_grid_view_selection_mode() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        data_grid_view_selection_mode_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor data_grid_view_multi_select_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "multi_select";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Whether more than one cell or row may be selected.";
+    descriptor.default_value = BindingValue{true};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_data_grid_view_multi_select() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        data_grid_view_multi_select_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor data_grid_view_allow_user_to_add_rows_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "allow_user_to_add_rows";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Whether the grid shows a new row after the last row.";
+    descriptor.default_value = BindingValue{true};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_data_grid_view_allow_user_to_add_rows() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        data_grid_view_allow_user_to_add_rows_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<DataGridViewSelectionMode>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, data_grid_view_selection_mode_enum()};
+}
+
+BindingValue PropertyValueTraits<DataGridViewSelectionMode>::to_binding(DataGridViewSelectionMode value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = data_grid_view_selection_mode_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+DataGridViewSelectionMode PropertyValueTraits<DataGridViewSelectionMode>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<DataGridViewSelectionMode>(choice.value);
+}
+
+const std::array<PropertyEntry, DataGridView::data_grid_view_property_count>& DataGridView::data_grid_view_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 4U> own{{
+        {"read_only", &describe_data_grid_view_read_only,
+         &read_cell_entry<DataGridView, decltype(&DataGridView::read_only), &DataGridView::read_only>,
+         &write_cell_entry<DataGridView, decltype(&DataGridView::read_only), &DataGridView::read_only>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"selection_mode", &describe_data_grid_view_selection_mode,
+         &read_cell_entry<DataGridView, decltype(&DataGridView::selection_mode), &DataGridView::selection_mode>,
+         &write_cell_entry<DataGridView, decltype(&DataGridView::selection_mode), &DataGridView::selection_mode>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"multi_select", &describe_data_grid_view_multi_select,
+         &read_cell_entry<DataGridView, decltype(&DataGridView::multi_select), &DataGridView::multi_select>,
+         &write_cell_entry<DataGridView, decltype(&DataGridView::multi_select), &DataGridView::multi_select>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"allow_user_to_add_rows", &describe_data_grid_view_allow_user_to_add_rows,
+         &read_cell_entry<DataGridView, decltype(&DataGridView::allow_user_to_add_rows), &DataGridView::allow_user_to_add_rows>,
+         &write_cell_entry<DataGridView, decltype(&DataGridView::allow_user_to_add_rows), &DataGridView::allow_user_to_add_rows>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "DataGridView's property table names a property twice");
+    static const std::array<PropertyEntry, data_grid_view_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> DataGridView::property_table() const noexcept {
+    const std::array<PropertyEntry, data_grid_view_property_count>& entries = data_grid_view_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
 
 void DataGridView::on_auto_size_columns_mode_changed() {}
 

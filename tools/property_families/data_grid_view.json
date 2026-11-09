@@ -601,7 +601,20 @@
       "event": null,
       "on_changed": true,
       "localizable": null,
-      "table": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether no cell can be edited.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
       "hooks": "hand",
       "hand": [
         "prepare cancels an edit when the grid becomes read-only"
@@ -677,7 +690,20 @@
       "event": null,
       "on_changed": false,
       "localizable": null,
-      "table": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Behavior",
+        "description": "Whether selection takes cells or full rows.",
+        "default": "BindingValue{PropertyEnumValue{\"data_grid_view_selection_mode\", \"cell_select\", 0}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "data_grid_view_selection_mode_enum()",
+        "reset": null,
+        "registry": false
+      },
       "hooks": "hand",
       "hand": [
         "written reduces the selection to the current cell and publishes the selection change"
@@ -697,7 +723,20 @@
       "event": null,
       "on_changed": true,
       "localizable": null,
-      "table": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether more than one cell or row may be selected.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
       "hooks": "hand",
       "hand": [
         "written, when turned off, reduces a larger selection to the current cell and publishes it"
@@ -758,7 +797,20 @@
       "event": null,
       "on_changed": false,
       "localizable": null,
-      "table": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether the grid shows a new row after the last row.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
       "hooks": "hand",
       "sample": "false",
       "storage": "view",

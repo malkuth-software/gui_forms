@@ -100,8 +100,18 @@ static void columns(gf_kit* kit, gf_object grid) {
                   "a repeated column name is refused");
     gf_data_grid_column hidden = column_record("hidden", "Hidden", GF_DATA_GRID_COLUMN_KIND_TEXT);
     hidden.hidden = 1u;
-    gf_kit_status(kit, (*kit).data_grid.insert_column(grid, 0u, &hidden), GF_STATUS_UNSUPPORTED_CAPABILITY,
-                  "a hidden column is not supported yet");
+    gf_kit_status(kit, (*kit).data_grid.insert_column(grid, 0u, &hidden), GF_STATUS_OK, "insert a hidden column");
+    {
+        gf_data_grid_column held;
+        memset(&held, 0, sizeof(held));
+        held.struct_size = (uint32_t)sizeof(held);
+        char held_text[32];
+        uint64_t held_required = 0u;
+        gf_kit_status(kit, (*kit).data_grid.column_at(grid, 0u, &held, held_text, sizeof(held_text), &held_required),
+                      GF_STATUS_OK, "read the hidden column");
+        gf_kit_check(kit, held.hidden == 1u, "a column inserted hidden reads back hidden");
+    }
+    gf_kit_status(kit, (*kit).data_grid.remove_column(grid, 0u), GF_STATUS_OK, "remove the hidden column");
     gf_data_grid_column wrong = column_record("wrong", "Wrong", 9u);
     gf_kit_status(kit, (*kit).data_grid.insert_column(grid, 0u, &wrong), GF_STATUS_INVALID_ARGUMENT,
                   "an unknown column kind is refused");
@@ -151,8 +161,13 @@ static void columns(gf_kit* kit, gf_object grid) {
     gf_kit_status(kit, (*kit).data_grid.set_column_read_only(grid, 1u, 2u), GF_STATUS_INVALID_ARGUMENT,
                   "read_only is 0 or 1");
     gf_kit_status(kit, (*kit).data_grid.set_column_hidden(grid, 1u, 0u), GF_STATUS_OK, "a shown column stays shown");
-    gf_kit_status(kit, (*kit).data_grid.set_column_hidden(grid, 1u, 1u), GF_STATUS_UNSUPPORTED_CAPABILITY,
-                  "hiding a column is not supported yet");
+    gf_kit_status(kit, (*kit).data_grid.set_column_hidden(grid, 1u, 1u), GF_STATUS_OK, "hide a column");
+    gf_kit_status(kit, (*kit).data_grid.column_at(grid, 1u, &read, text, sizeof(text), &required), GF_STATUS_OK,
+                  "read the hidden column");
+    gf_kit_check(kit, read.hidden == 1u, "a hidden column reads back hidden");
+    gf_kit_status(kit, (*kit).data_grid.set_column_hidden(grid, 1u, 0u), GF_STATUS_OK, "show it again");
+    gf_kit_status(kit, (*kit).data_grid.set_column_hidden(grid, 1u, 2u), GF_STATUS_INVALID_ARGUMENT,
+                  "hidden is 0 or 1");
     gf_kit_status(kit, (*kit).data_grid.set_column_width(grid, 7u, 90.0), GF_STATUS_NOT_FOUND,
                   "a setting of a column past the columns is not found");
     gf_kit_status(kit, (*kit).data_grid.column_at(grid, 1u, &read, text, sizeof(text), &required), GF_STATUS_OK,
@@ -346,6 +361,87 @@ static void selection_and_edit(gf_kit* kit, gf_object grid) {
     }
 }
 
+static void set_boolean(gf_kit* kit, gf_object grid, const char* name, uint32_t value, const char* what) {
+    gf_value written;
+    memset(&written, 0, sizeof(written));
+    written.struct_size = (uint32_t)sizeof(written);
+    written.kind = GF_VALUE_KIND_BOOLEAN;
+    written.boolean = value;
+    gf_kit_status(kit, (*kit).properties.set(grid, gf_kit_text(name), &written), GF_STATUS_OK, what);
+}
+
+static int boolean_is(gf_kit* kit, gf_object grid, const char* name, uint32_t expected) {
+    gf_value got;
+    memset(&got, 0, sizeof(got));
+    got.struct_size = (uint32_t)sizeof(got);
+    char text[8];
+    uint64_t required = 0u;
+    if ((*kit).properties.get(grid, gf_kit_text(name), &got, text, sizeof(text), &required) != GF_STATUS_OK) {
+        return 0;
+    }
+    return got.kind == GF_VALUE_KIND_BOOLEAN && got.boolean == expected;
+}
+
+/* The grid's own settings are schema properties. Leaves the new row off,
+ * so the row counts after this are exact. */
+static void settings(gf_kit* kit, gf_object grid) {
+    gf_kit_check(kit, boolean_is(kit, grid, "multi_select", 1u) && boolean_is(kit, grid, "read_only", 0u) &&
+                          boolean_is(kit, grid, "allow_user_to_add_rows", 1u),
+                 "the settings read their defaults");
+    set_boolean(kit, grid, "multi_select", 0u, "turn multi_select off");
+    gf_kit_check(kit, boolean_is(kit, grid, "multi_select", 0u), "multi_select reads back off");
+    set_boolean(kit, grid, "multi_select", 1u, "turn multi_select on");
+    set_boolean(kit, grid, "read_only", 1u, "make the grid read-only");
+    gf_kit_check(kit, boolean_is(kit, grid, "read_only", 1u), "read_only reads back on");
+    set_boolean(kit, grid, "read_only", 0u, "make the grid editable");
+    set_boolean(kit, grid, "allow_user_to_add_rows", 0u, "hide the new row");
+    gf_kit_check(kit, boolean_is(kit, grid, "allow_user_to_add_rows", 0u), "allow_user_to_add_rows reads back off");
+
+    gf_value mode;
+    memset(&mode, 0, sizeof(mode));
+    mode.struct_size = (uint32_t)sizeof(mode);
+    mode.kind = GF_VALUE_KIND_ENUMERATION;
+    mode.signed_integer = 1;
+    gf_kit_status(kit, (*kit).properties.set(grid, gf_kit_text("selection_mode"), &mode), GF_STATUS_OK,
+                  "select full rows");
+    gf_value got;
+    memset(&got, 0, sizeof(got));
+    got.struct_size = (uint32_t)sizeof(got);
+    char text[32];
+    uint64_t required = 0u;
+    gf_kit_status(kit, (*kit).properties.get(grid, gf_kit_text("selection_mode"), &got, text, sizeof(text), &required),
+                  GF_STATUS_OK, "read the selection mode");
+    gf_kit_check(kit, got.kind == GF_VALUE_KIND_ENUMERATION && got.signed_integer == 1,
+                 "the selection mode reads back full_row_select");
+    mode.signed_integer = 7;
+    gf_kit_status(kit, (*kit).properties.set(grid, gf_kit_text("selection_mode"), &mode), GF_STATUS_INVALID_ARGUMENT,
+                  "a selection mode outside the enumeration is refused");
+    mode.signed_integer = 0;
+    gf_kit_status(kit, (*kit).properties.set(grid, gf_kit_text("selection_mode"), &mode), GF_STATUS_OK,
+                  "select cells again");
+}
+
+/* A hidden column cannot hold the current cell; hiding the current one
+ * moves it on. Rows alpha and bravo exist; four columns are shown. */
+static void hidden_columns(gf_kit* kit, gf_object grid) {
+    uint32_t moved = 9u;
+    gf_kit_status(kit, (*kit).data_grid.set_current_cell(grid, gf_kit_text("bravo"), 0u, &moved), GF_STATUS_OK,
+                  "make bravo's first cell current");
+    gf_kit_status(kit, (*kit).data_grid.set_column_hidden(grid, 1u, 1u), GF_STATUS_OK, "hide the second column");
+    gf_kit_status(kit, (*kit).data_grid.set_current_cell(grid, gf_kit_text("bravo"), 1u, &moved),
+                  GF_STATUS_INVALID_STATE, "a cell in a hidden column cannot be current");
+    gf_kit_status(kit, (*kit).data_grid.set_column_hidden(grid, 0u, 1u), GF_STATUS_OK,
+                  "hide the current cell's column");
+    uint32_t present = 9u;
+    uint64_t row = 9u;
+    uint64_t column = 9u;
+    gf_kit_status(kit, (*kit).data_grid.current_cell(grid, &present, &row, &column), GF_STATUS_OK,
+                  "read the moved current cell");
+    gf_kit_check(kit, present == 1u && column == 2u, "the current cell moves to the next shown column");
+    gf_kit_status(kit, (*kit).data_grid.set_column_hidden(grid, 0u, 0u), GF_STATUS_OK, "show the first column");
+    gf_kit_status(kit, (*kit).data_grid.set_column_hidden(grid, 1u, 0u), GF_STATUS_OK, "show the second column");
+}
+
 void gf_kit_data_grid(gf_kit* kit) {
     const gf_object grid = gf_kit_create(kit, "data_grid_view", "kit.grid");
     gf_object window = 0u;
@@ -355,10 +451,12 @@ void gf_kit_data_grid(gf_kit* kit) {
     gf_kit_status(kit, (*kit).data_grid.column_count(label, &count), GF_STATUS_WRONG_HANDLE_KIND,
                   "a label is not a data grid view");
 
+    settings(kit, grid);
     columns(kit, grid);
     rows(kit, grid);
     cells(kit, grid);
     selection_and_edit(kit, grid);
+    hidden_columns(kit, grid);
 
     gf_kit_status(kit, (*kit).data_grid.remove_column(grid, 3u), GF_STATUS_OK, "remove a column");
     gf_kit_status(kit, (*kit).data_grid.remove_column(grid, 3u), GF_STATUS_NOT_FOUND,

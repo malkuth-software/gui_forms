@@ -688,6 +688,9 @@ void test_data_grid_view_properties() {
         const bool sample = true;
         (*control).read_only = sample;
         expect((*control).read_only.read() == sample, "DataGridView.read_only: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("read_only");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "DataGridView.read_only: the table reads the cell");
     }
     {
         const bool sample = false;
@@ -708,11 +711,17 @@ void test_data_grid_view_properties() {
         const DataGridViewSelectionMode sample = DataGridViewSelectionMode::full_row_select;
         (*control).selection_mode = sample;
         expect((*control).selection_mode.read() == sample, "DataGridView.selection_mode: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("selection_mode");
+        expect(by_name && *by_name == PropertyValueTraits<DataGridViewSelectionMode>::to_binding(sample),
+               "DataGridView.selection_mode: the table reads the cell");
     }
     {
         const bool sample = false;
         (*control).multi_select = sample;
         expect((*control).multi_select.read() == sample, "DataGridView.multi_select: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("multi_select");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "DataGridView.multi_select: the table reads the cell");
     }
     {
         const DataGridViewEditMode sample = DataGridViewEditMode::edit_on_enter;

@@ -103,7 +103,7 @@ bool DataGridView::send_cells_snapshot(const GridLayout& layout, const Parts& gr
         // The cells' own extent, where an authored background leaves the
         // theme's ground (as on_paint paints it on the UI thread).
         const Rect last =
-            cell_bounds(DataGridViewRowPosition{row_end - 1U}, display_order_[display_end - 1U], layout);
+            cell_bounds(DataGridViewRowPosition{row_end - 1U}, shown_order_[display_end - 1U], layout);
         const Rect extent{layout.data.x, layout.data.y, last.x + last.width - layout.data.x,
                           last.y + last.height - layout.data.y};
         const Rect inside = Rect::intersection(extent, layout.data);
@@ -124,7 +124,7 @@ bool DataGridView::send_cells_snapshot(const GridLayout& layout, const Parts& gr
         }
         for (std::size_t display = first_display; display < display_end; ++display) {
             DataGridViewCellsCell cell{};
-            if (!resolve_cell(row, display_order_[display], layout, offset, source, snapshot, cell)) return false;
+            if (!resolve_cell(row, shown_order_[display], layout, offset, source, snapshot, cell)) return false;
             snapshot.cells.push_back(cell);
         }
     }

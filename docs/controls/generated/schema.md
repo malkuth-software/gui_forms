@@ -1047,7 +1047,7 @@ Item system `column`:
 
 Item states: `hot`, `pressed`, `captured`. Application-defined: `sorted_ascending`, `sorted_descending`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `allow_user_to_add_rows` (boolean), `multi_select` (boolean), `read_only` (boolean), `selection_mode` (enumeration).
 
 | Interaction | Payload |
 |---|---|

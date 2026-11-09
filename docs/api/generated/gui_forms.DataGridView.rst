@@ -521,6 +521,8 @@ gui_forms::DataGridView
         - Marks the edit in progress dirty or clean, raising current_cell_dirty_state_changed when that changes; ignored when no edit is in progress.
       * - :cpp:func:`close_drop_down <gui_forms::DataGridView::close_drop_down>`
         - Closes a combo box cell's choices, ending its edit.
+      * - :cpp:func:`data_grid_view_property_entries <gui_forms::DataGridView::data_grid_view_property_entries>`
+        -  
       * - :cpp:func:`set_column_header_text <gui_forms::DataGridView::set_column_header_text>`
         - A column's header text (Windows Forms' HeaderText).
       * - :cpp:func:`set_column_width <gui_forms::DataGridView::set_column_width>`
@@ -533,6 +535,8 @@ gui_forms::DataGridView
         - Shows an ascending or descending sort glyph on a column header, or none.
       * - :cpp:func:`set_column_read_only <gui_forms::DataGridView::set_column_read_only>`
         - Makes a column's cells read-only, ending an edit in that column.
+      * - :cpp:func:`set_column_visible <gui_forms::DataGridView::set_column_visible>`
+        - Shows or hides a column (DataGridViewColumn::visible).
       * - :cpp:func:`set_link_visited <gui_forms::DataGridView::set_link_visited>`
         - Marks a link cell's link visited or not and repaints it; the same refusals as :cpp:func:`link_visited <gui_forms::DataGridView::link_visited>`.
       * - :cpp:func:`set_cell_value <gui_forms::DataGridView::set_cell_value>`
@@ -1596,6 +1600,8 @@ gui_forms::DataGridView
 
       Closes a combo box cell's choices, ending its edit.
 
+   .. cpp:function:: static const std::array<PropertyEntry, data_grid_view_property_count>& data_grid_view_property_entries() noexcept
+
    .. cpp:function:: void set_column_header_text(std::size_t column, std::string text)
 
       A column's header text (Windows Forms' HeaderText). Throws std::out_of_range for an unknown column and std::invalid_argument for invalid UTF-8.
@@ -1620,6 +1626,10 @@ gui_forms::DataGridView
    .. cpp:function:: void set_column_read_only(std::size_t column, bool column_read_only)
 
       Makes a column's cells read-only, ending an edit in that column.
+
+   .. cpp:function:: void set_column_visible(std::size_t column, bool column_visible)
+
+      Shows or hides a column (DataGridViewColumn::visible). Hiding the current cell's column cancels any edit in it and moves the current cell to the next shown column of its row in display order (the previous one past the last), or clears it when no column is shown; a row validation handler that refuses the clear keeps the current cell where it was. Throws std::out_of_range for an unknown column.
 
    .. cpp:function:: void set_link_visited(DataGridViewRowPosition row, std::size_t column, bool visited)
 
@@ -1778,6 +1788,8 @@ gui_forms::DataGridView
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
    .. cpp:function:: virtual void on_auto_size_columns_mode_changed()
 
       *Protected.*
@@ -1875,3 +1887,7 @@ gui_forms::DataGridView
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+   .. cpp:member:: constexpr std::size_t data_grid_view_property_count
+
+      DataGridView's property table: Control's entries, then its own. Default: ``Control::control_property_count + 4U``.

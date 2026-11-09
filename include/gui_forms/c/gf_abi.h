@@ -2353,8 +2353,9 @@ typedef uint32_t gf_data_grid_column_kind;
  * (unique in the grid, not empty, without '.'); header_text the header's
  * text; kind its cells' kind; value_kind the kind a committed text edit
  * converts to (BOOLEAN, SIGNED, UNSIGNED, NUMBER or TEXT; NULL takes TEXT);
- * read_only 0 or 1; hidden 0 (this library has no hidden columns yet:
- * hidden 1 gives GF_STATUS_UNSUPPORTED_CAPABILITY); width and
+ * read_only 0 or 1; hidden 0 or 1 (a hidden column keeps its place,
+ * width and values, but is not laid out, painted, hit, moved to by keys,
+ * included in selection ranges or published); width and
  * minimum_width in logical units (zero takes the defaults, 100 and 20; a
  * width is at least the minimum, the minimum at least 1);
  * data_property_name the binding source field the column shows (may be
@@ -2437,8 +2438,10 @@ typedef struct gf_data_grid_table {
      * it; GF_STATUS_NOT_FOUND past the columns. A width below the column's
      * minimum gives GF_STATUS_INVALID_ARGUMENT; an auto-sized column takes
      * its automatic width again at the next layout. Making a column
-     * read-only discards an edit in it. set_column_hidden takes 0 only, as
-     * the record's hidden does. */
+     * read-only discards an edit in it. Hiding the current cell's column
+     * discards an edit in it and moves the current cell to the next shown
+     * column of its row (the previous one past the last), or clears it when
+     * no column is shown. */
     gf_status (GF_CALL* set_column_header_text)(gf_object grid, uint64_t column, gf_utf8_view text);
     gf_status (GF_CALL* set_column_width)(gf_object grid, uint64_t column, double width);
     gf_status (GF_CALL* set_column_read_only)(gf_object grid, uint64_t column, uint32_t read_only);
@@ -2512,7 +2515,10 @@ typedef struct gf_data_grid_table {
     /* Moves the current cell to row_id's row and column (an empty row_id
      * for none), committing any edit first, and selects it alone. moved
      * receives 0, changing nothing, when the edit or the row's validation
-     * refuses. */
+     * refuses. A cell in a hidden column gives GF_STATUS_INVALID_STATE.
+     * The grid's own settings are schema properties (properties.set and
+     * get): read_only, selection_mode (cell_select or full_row_select),
+     * multi_select and allow_user_to_add_rows. */
     gf_status (GF_CALL* set_current_cell)(gf_object grid, gf_utf8_view row_id, uint64_t column, uint32_t* moved);
     /* The selected rows' positions in order (full-row selections, or in
      * cell mode the rows whose every cell is selected) into the caller's
