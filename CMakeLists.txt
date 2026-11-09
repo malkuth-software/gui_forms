@@ -316,6 +316,7 @@ add_library(gui_forms_core STATIC
     src/core/document_view/document_view_state.cpp
     src/core/pages/page_set/page_set.cpp
     src/core/events/key_commands/key_commands.cpp
+    src/core/events/key_events/key_events.cpp
     src/core/text_shaping/validation/text_shaping_validation.cpp
     src/core/text/unicode/unicode_grapheme.cpp
     src/core/typography/resolution/typography_resolution.cpp
@@ -3610,6 +3611,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_mouse_events_tests tests/mouse_events_tests.cpp)
     target_link_libraries(gui_forms_mouse_events_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_mouse_events_tests COMMAND gui_forms_mouse_events_tests)
+    add_executable(gui_forms_key_events_tests tests/key_events_tests.cpp)
+    target_link_libraries(gui_forms_key_events_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_key_events_tests COMMAND gui_forms_key_events_tests)
     add_executable(gui_forms_mouse_event_order_tests tests/mouse_event_order_tests.cpp)
     target_link_libraries(gui_forms_mouse_event_order_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_mouse_event_order_tests COMMAND gui_forms_mouse_event_order_tests)

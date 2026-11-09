@@ -3112,6 +3112,8 @@ Types
 
    .. cpp:member:: gf_status (*request_help)(gf_object window, uint32_t* handled)
 
+   .. cpp:member:: gf_status (*key_state)(gf_object window, uint32_t physical_key, uint32_t* down)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -3772,3 +3774,5 @@ Types
    .. cpp:function:: gf_status interaction_at(uint64_t interaction, gf_schema_interaction* record) const noexcept
 
    .. cpp:function:: gf_status request_help(gf_object window, uint32_t* handled) const noexcept
+
+   .. cpp:function:: gf_status key_state(gf_object window, uint32_t physical_key, uint32_t* down) const noexcept

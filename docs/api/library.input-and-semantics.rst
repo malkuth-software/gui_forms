@@ -36,14 +36,22 @@ Types
      - One key with the exact modifiers held: Ctrl+F4 is {PhysicalKey::f4, Modifier::control}.
    * - :cpp:class:`KeyEvent <gui_forms::KeyEvent>`
      - KeyEvent carries logical/physical key identity, modifier and repeat state, key direction, and mutable handled state through preview/target/bubble routing.
+   * - :cpp:class:`KeyEventArgs <gui_forms::KeyEventArgs>`
+     - One key down or up as Windows Forms' KeyEventArgs gives it.
    * - :cpp:class:`KeyMap <gui_forms::KeyMap>`
      - One binding per KeyCommand: a value, copied whole.
+   * - :cpp:class:`KeyPressEventArgs <gui_forms::KeyPressEventArgs>`
+     - Windows Forms' KeyPressEventArgs for committed text input: text is what the input produced (UTF-8; one character for a typed key, several for a committed composition or a paste the host sends as text), key_char its one Unicode scalar value when it holds exactly one, else zero.
+   * - :cpp:class:`KeyStateChange <gui_forms::KeyStateChange>`
+     - A physical key going down or up, raw: raised once per press and once per release (never for an auto-repeat), before any route can consume the key and whatever control has the focus, so that a game can keep key state without text input or focus in the way.
    * - :cpp:class:`MouseEventArgs <gui_forms::MouseEventArgs>`
      - One mouse event as WinForms' MouseEventArgs gives it: the button (none for a move or wheel without one), the click count the host reported for the press (1, 2 for the second press of a double-click, and so on; 0 for a move or wheel), the position in the control's own coordinates and in the window's, the wheel delta (logical pixels, positive away from the user and to the right) and the modifiers held.
    * - :cpp:class:`PhysicalKey <gui_forms::PhysicalKey>`
      - PhysicalKey preserves host-independent scan position, extended-key state, and location for shortcut and compatibility logic.
    * - :cpp:class:`PointerEvent <gui_forms::PointerEvent>`
      - PointerEvent is the mutable routed pointer record: device phase, window/local coordinates, buttons, modifiers, wheel deltas, click count, capture request, and handled state.
+   * - :cpp:class:`PreviewKeyDownEventArgs <gui_forms::PreviewKeyDownEventArgs>`
+     - Windows Forms' PreviewKeyDownEventArgs: raised on the focused control before anything else sees a key down.
    * - :cpp:class:`SemanticDescriptor <gui_forms::SemanticDescriptor>`
      - SemanticDescriptor is a control-authored accessibility recipe: role, labels, optional numeric range, state bits, actions, exposure, and descendant policy.
    * - :cpp:class:`SemanticNode <gui_forms::SemanticNode>`
@@ -306,6 +314,36 @@ Types
 
    .. cpp:member:: bool handled
 
+   .. cpp:member:: std::uint32_t scan_code
+
+      The host's own hardware code for the key, carried to KeyEventArgs for applications that want it: a Windows scan code (0xE000 added for an extended key), an X11 keycode, an AppKit keyCode; zero when the host gives none. Portable behaviour reads physical_key only.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: KeyEventArgs final
+
+   ``#include <gui_forms/events/key_events/key_events.hpp>``
+
+   One key down or up as Windows Forms' KeyEventArgs gives it. key_code is the Windows Forms Keys code (Windows virtual-key numbering, the same on every host: key_code_from_physical_key), physical_key the USB HID usage the host reported (PhysicalKey), scan_code the host's own hardware code (a Windows scan code, 0xE000 added for an extended key; an X11 keycode; an AppKit keyCode; zero when the host gave none or the key was released by deactivation). repeat marks an auto-repeated down. A handler sets handled to end the key's route; suppress_key_press also drops the text the key produces (it implies handled).
+
+   .. cpp:member:: std::uint32_t key_code
+
+   .. cpp:member:: std::uint32_t physical_key
+
+   .. cpp:member:: std::uint32_t scan_code
+
+   .. cpp:member:: Modifier modifiers
+
+      Default: ``{Modifier::none}``.
+
+   .. cpp:member:: bool repeat
+
+   .. cpp:member:: bool released_by_deactivation
+
+   .. cpp:member:: bool handled
+
+   .. cpp:member:: bool suppress_key_press
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: KeyMap final
@@ -328,6 +366,42 @@ Types
    .. cpp:function:: void set_binding(KeyCommand command, KeyBinding binding)
 
       Throws std::invalid_argument for a command outside the enumeration, or a chord with modifier bits outside shift, control, alt and meta, or an empty chord with modifiers; the map is then unchanged.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: KeyPressEventArgs final
+
+   ``#include <gui_forms/events/key_events/key_events.hpp>``
+
+   Windows Forms' KeyPressEventArgs for committed text input: text is what the input produced (UTF-8; one character for a typed key, several for a committed composition or a paste the host sends as text), key_char its one Unicode scalar value when it holds exactly one, else zero. A handler sets handled to keep the text from the control.
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: std::uint32_t key_char
+
+   .. cpp:member:: bool handled
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: KeyStateChange final
+
+   ``#include <gui_forms/events/key_events/key_events.hpp>``
+
+   A physical key going down or up, raw: raised once per press and once per release (never for an auto-repeat), before any route can consume the key and whatever control has the focus, so that a game can keep key state without text input or focus in the way. down is false for a release; released_by_deactivation marks the releases the window makes when it loses activation (the host's own key-up never arrives then).
+
+   .. cpp:member:: std::uint32_t key_code
+
+   .. cpp:member:: std::uint32_t physical_key
+
+   .. cpp:member:: std::uint32_t scan_code
+
+   .. cpp:member:: Modifier modifiers
+
+      Default: ``{Modifier::none}``.
+
+   .. cpp:member:: bool down
+
+   .. cpp:member:: bool released_by_deactivation
 
 .. cpp:namespace:: gui_forms
 
@@ -601,9 +675,33 @@ Types
 
       Default: ``0xE0U``.
 
+   .. cpp:member:: constexpr std::uint32_t left_shift
+
+      Default: ``0xE1U``.
+
+   .. cpp:member:: constexpr std::uint32_t left_alt
+
+      Default: ``0xE2U``.
+
+   .. cpp:member:: constexpr std::uint32_t left_meta
+
+      Default: ``0xE3U``.
+
    .. cpp:member:: constexpr std::uint32_t right_control
 
       Default: ``0xE4U``.
+
+   .. cpp:member:: constexpr std::uint32_t right_shift
+
+      Default: ``0xE5U``.
+
+   .. cpp:member:: constexpr std::uint32_t right_alt
+
+      Default: ``0xE6U``.
+
+   .. cpp:member:: constexpr std::uint32_t right_meta
+
+      Default: ``0xE7U``.
 
 .. cpp:namespace:: gui_forms
 
@@ -644,6 +742,26 @@ Types
    .. cpp:member:: WheelDeltaUnit wheel_unit
 
       The unit of wheel_delta (a wheel event's only). Default: ``{WheelDeltaUnit::lines}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PreviewKeyDownEventArgs final
+
+   ``#include <gui_forms/events/key_events/key_events.hpp>``
+
+   Windows Forms' PreviewKeyDownEventArgs: raised on the focused control before anything else sees a key down. A handler sets is_input_key to keep the key from dialog processing (Tab, Enter, Escape, mnemonics), so that the control receives it as an ordinary key.
+
+   .. cpp:member:: std::uint32_t key_code
+
+   .. cpp:member:: std::uint32_t physical_key
+
+   .. cpp:member:: Modifier modifiers
+
+      Default: ``{Modifier::none}``.
+
+   .. cpp:member:: bool repeat
+
+   .. cpp:member:: bool is_input_key
 
 .. cpp:namespace:: gui_forms
 
@@ -1300,6 +1418,18 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t key_command_count
 
    Value: ``static_cast<std::size_t>(KeyCommand::count)``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/events/key_events/key_events.hpp>``
+
+.. cpp:function:: std::uint32_t key_code_from_physical_key(std::uint32_t physical_key) noexcept
+
+   The Windows Forms Keys code of a physical key (a USB HID usage): the key's code on a US layout, the same on every host. The modifier keys give the side-less codes Windows Forms reports in KeyDown (ShiftKey 0x10, ControlKey 0x11, Menu 0x12; the Windows keys 0x5B and 0x5C). Zero for a usage with no Keys code.
+
+.. cpp:function:: std::uint32_t single_key_char(const std::string& text) noexcept
+
+   The single Unicode scalar value UTF-8 ``text`` holds, or zero when it holds none, more than one, or is not valid UTF-8.
 
 .. cpp:namespace:: gui_forms
 

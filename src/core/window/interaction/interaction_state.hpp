@@ -30,7 +30,12 @@ public:
 
     // Raw tracking, before any control sees the event.
     void note_pointer(const PointerEvent& event) noexcept;
-    void note_key(const KeyEvent& event, FrameTime now) noexcept;
+    // note_key returns whether the key's held state changed: a first down
+    // (not an auto-repeat, not past maximum_held_keys) or the release of a
+    // held key.
+    bool note_key(const KeyEvent& event, FrameTime now) noexcept;
+    // Whether physical key `physical_key` is held.
+    [[nodiscard]] bool holds(std::uint32_t physical_key) const noexcept;
 
     // Hover (MouseHover, raised once per entry): the hovered control became
     // `control` (null when none) with the pointer at `position`.
@@ -51,6 +56,9 @@ public:
     // The window lost its activation: keys and buttons are no longer known
     // to be down.
     void deactivated() noexcept;
+    // Copies the held keys into `released`, in press order, and returns
+    // their count; deactivated then forgets them.
+    std::size_t copy_held_keys(std::array<HeldKey, maximum_held_keys>& released) const noexcept;
 
     // The click count the host reported for the last press: a release's
     // MouseEventArgs carries the count of the press it ends.

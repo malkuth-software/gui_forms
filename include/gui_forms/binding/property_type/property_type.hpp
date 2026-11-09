@@ -69,6 +69,19 @@ struct PropertyValueTraits<std::int64_t> {
 };
 
 template <>
+struct PropertyValueTraits<std::uint8_t> {
+    static PropertyType type() { return PropertyType{BindingValueKind::unsigned_integer, false, nullptr}; }
+    static BindingValue to_binding(std::uint8_t value) { return BindingValue{std::uint64_t{value}}; }
+    static std::uint8_t from_binding(const BindingValue& value) {
+        const std::uint64_t wide = std::get<std::uint64_t>(value);
+        if (wide > std::numeric_limits<std::uint8_t>::max()) {
+            throw std::invalid_argument("GUI.Forms property value is outside uint8");
+        }
+        return static_cast<std::uint8_t>(wide);
+    }
+};
+
+template <>
 struct PropertyValueTraits<std::uint32_t> {
     static PropertyType type() { return PropertyType{BindingValueKind::unsigned_integer, false, nullptr}; }
     static BindingValue to_binding(std::uint32_t value) { return BindingValue{std::uint64_t{value}}; }

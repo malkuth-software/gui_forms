@@ -610,8 +610,13 @@ void SurfaceRoot::set_active(bool active) {
     if (active_ == active) return;
     if (!active && host_services_ != nullptr) { (*host_services_).revoke_cursor_interaction(); }
     // Keys and buttons released while the window was inactive never reach
-    // it: forget them.
-    if (!active && interaction_) (*interaction_).deactivated();
+    // it: forget them, raising the held keys' releases (key_events.hpp).
+    if (!active && interaction_) {
+        const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+        Window* const presenting = (*lifetime).window;
+        release_held_keys();
+        if ((*lifetime).window != presenting) return;
+    }
     active_ = active;
     // The window's backplane material follows activation (E9-B).
     damage_backplane_readers(nullptr);

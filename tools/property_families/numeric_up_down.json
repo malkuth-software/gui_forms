@@ -56,7 +56,20 @@
       "event": null,
       "on_changed": false,
       "localizable": null,
-      "table": null,
+      "table": {
+        "kind": "number",
+        "category": "Data",
+        "description": "The lowest value; a minimum above the maximum raises the maximum to it, and the value is clamped into the range.",
+        "default": "BindingValue{0.0}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
       "hooks": "hand",
       "hand": [
         "prepare refuses a value that is not finite; written raises maximum to it when needed, clamps value and invalidates"
@@ -77,7 +90,20 @@
       "event": null,
       "on_changed": false,
       "localizable": null,
-      "table": null,
+      "table": {
+        "kind": "number",
+        "category": "Data",
+        "description": "The highest value; a maximum below the minimum lowers the minimum to it, and the value is clamped into the range.",
+        "default": "BindingValue{100.0}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
       "hooks": "hand",
       "hand": [
         "prepare refuses a value that is not finite; written lowers minimum to it when needed, clamps value and invalidates"
@@ -98,7 +124,20 @@
       "event": null,
       "on_changed": false,
       "localizable": null,
-      "table": null,
+      "table": {
+        "kind": "number",
+        "category": "Data",
+        "description": "How far one step moves the value; finite and positive.",
+        "default": "BindingValue{1.0}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
       "hooks": "generated",
       "hand": [],
       "effects": null,
@@ -122,7 +161,20 @@
       "event": null,
       "on_changed": false,
       "localizable": null,
-      "table": null,
+      "table": {
+        "kind": "unsigned_integer",
+        "category": "Data",
+        "description": "Decimal places the editor shows, at most 12; any turn hexadecimal off.",
+        "default": "BindingValue{std::uint64_t{0U}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
       "hooks": "hand",
       "hand": [
         "prepare refuses more than 12; written turns hexadecimal off, then shows the value"
@@ -178,7 +230,7 @@
   "not_properties": [
     {
       "name": "set_range",
-      "reason": "writes minimum then maximum together; kept as a method"
+      "reason": "writes minimum then maximum together, refusing an unordered pair (std::invalid_argument); kept as a method beside the minimum and maximum properties, whose writes in either order reach the same range"
     }
   ],
   "test": {

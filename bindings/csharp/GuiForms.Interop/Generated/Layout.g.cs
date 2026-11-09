@@ -255,7 +255,7 @@ public static unsafe class Layout
         {
             gf_windows_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_windows_table size", sizeof(gf_windows_table), 56);
+            failures += expect(output, "gf_windows_table size", sizeof(gf_windows_table), 64);
             failures += expect(output, "gf_windows_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_windows_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_windows_table.run offset", (long)((byte*)&value.run - start), 8);
@@ -264,6 +264,7 @@ public static unsafe class Layout
             failures += expect(output, "gf_windows_table.interaction_count offset", (long)((byte*)&value.interaction_count - start), 32);
             failures += expect(output, "gf_windows_table.interaction_at offset", (long)((byte*)&value.interaction_at - start), 40);
             failures += expect(output, "gf_windows_table.request_help offset", (long)((byte*)&value.request_help - start), 48);
+            failures += expect(output, "gf_windows_table.key_state offset", (long)((byte*)&value.key_state - start), 56);
         }
         {
             gf_schema_type value = default;

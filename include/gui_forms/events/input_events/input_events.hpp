@@ -92,6 +92,11 @@ struct KeyEvent {
     EventPhase phase{EventPhase::target};
     bool repeat{};
     bool handled{};
+    // The host's own hardware code for the key, carried to KeyEventArgs
+    // for applications that want it: a Windows scan code (0xE000 added for
+    // an extended key), an X11 keycode, an AppKit keyCode; zero when the
+    // host gives none. Portable behaviour reads physical_key only.
+    std::uint32_t scan_code{};
 };
 
 // USB HID usage IDs are the normalized physical-key vocabulary at the host
@@ -160,7 +165,13 @@ struct PhysicalKey final {
     // the virtual key code a PC keyboard's key reports there (0x6E).
     static constexpr std::uint32_t context_menu = 0x65U;
     static constexpr std::uint32_t left_control = 0xE0U;
+    static constexpr std::uint32_t left_shift = 0xE1U;
+    static constexpr std::uint32_t left_alt = 0xE2U;
+    static constexpr std::uint32_t left_meta = 0xE3U;
     static constexpr std::uint32_t right_control = 0xE4U;
+    static constexpr std::uint32_t right_shift = 0xE5U;
+    static constexpr std::uint32_t right_alt = 0xE6U;
+    static constexpr std::uint32_t right_meta = 0xE7U;
 };
 
 struct TextInputEvent {

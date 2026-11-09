@@ -324,4 +324,4 @@ gui_forms::NumericUpDown
 
    .. cpp:member:: constexpr std::size_t numeric_up_down_property_count
 
-      NumericUpDown's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.
+      NumericUpDown's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 5U``.

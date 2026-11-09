@@ -11,8 +11,10 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -787,6 +789,59 @@ void test_numeric_up_down_property_capabilities() {
     static_cast<void>(changed);
 }
 
+// The schema properties minimum, maximum, increment and decimal_places
+// (the ABI and .form set them by name): a table write runs the capability's
+// hooks, so the bounds move each other and clamp the value, and writes in
+// either order reach the same range.
+void test_numeric_up_down_schema_properties() {
+    std::shared_ptr<gui_forms::NumericUpDown> numeric = make_control<NumericUpDown>(StableId("input.numeric.schema"));
+    const std::span<const PropertyEntry> table = (*numeric).property_table();
+    int found = 0;
+    for (const PropertyEntry& entry : table) {
+        const std::string_view name = entry.name;
+        if (name == "minimum" || name == "maximum" || name == "increment" || name == "decimal_places") ++found;
+    }
+    require(found == 4, "minimum, maximum, increment and decimal_places are in the property table");
+
+    (*numeric).value = 40.0;
+    (*numeric).set_property_value("minimum", BindingValue{-20.0});
+    (*numeric).set_property_value("maximum", BindingValue{30.0});
+    require((*numeric).minimum.read() == -20.0 && (*numeric).maximum.read() == 30.0 &&
+                (*numeric).value.read() == 30.0,
+            "a table write of maximum clamps the value");
+    (*numeric).set_property_value("maximum", BindingValue{-40.0});
+    (*numeric).set_property_value("minimum", BindingValue{-50.0});
+    require((*numeric).minimum.read() == -50.0 && (*numeric).maximum.read() == -40.0 &&
+                (*numeric).value.read() == -40.0,
+            "maximum written first, below minimum, lowers it; minimum then reaches its own value");
+    std::shared_ptr<gui_forms::NumericUpDown> reversed = make_control<NumericUpDown>(StableId("input.numeric.reversed"));
+    (*reversed).set_property_value("minimum", BindingValue{-50.0});
+    (*reversed).set_property_value("maximum", BindingValue{-40.0});
+    require((*reversed).minimum.read() == -50.0 && (*reversed).maximum.read() == -40.0,
+            "the other order reaches the same range");
+
+    (*numeric).set_property_value("increment", BindingValue{0.25});
+    (*numeric).set_property_value("decimal_places", BindingValue{std::uint64_t{3U}});
+    require((*numeric).increment.read() == 0.25 && (*numeric).decimal_places.read() == 3U,
+            "increment and decimal_places are written by name");
+    const std::optional<BindingValue> places = (*numeric).property_value("decimal_places");
+    require(places && *places == BindingValue{std::uint64_t{3U}}, "decimal_places reads as an unsigned integer");
+    bool refused = false;
+    try {
+        (*numeric).set_property_value("decimal_places", BindingValue{std::uint64_t{13U}});
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*numeric).decimal_places.read() == 3U, "more than 12 decimal places is refused by name too");
+    refused = false;
+    try {
+        (*numeric).set_property_value("increment", BindingValue{-1.0});
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*numeric).increment.read() == 0.25, "a negative increment is refused by name too");
+}
+
 void test_list_box_property_capabilities() {
     std::shared_ptr<FontCountingListBox> list = make_control<FontCountingListBox>(StableId("input.list.caps"));
     (*list).items = {"one", "two", "three", "four"};
@@ -917,6 +972,7 @@ int main() {
         test_list_box_model_stable_item_ids();
         test_text_box_property_capabilities();
         test_numeric_up_down_property_capabilities();
+        test_numeric_up_down_schema_properties();
         test_list_box_property_capabilities();
         test_combo_box_property_capabilities();
         std::cout << "gui_forms_input_controls_tests: all tests passed\n";

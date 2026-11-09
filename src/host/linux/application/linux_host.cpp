@@ -525,6 +525,65 @@ std::uint32_t key_usage(KeySym key) {
     return 0x37U;
   case XK_slash:
     return 0x38U;
+  // The modifiers with their sides, the lock keys and the keypad (key
+  // input for games and Windows Forms KeyDown, 0.5).
+  case XK_Shift_L:
+    return PhysicalKey::left_shift;
+  case XK_Shift_R:
+    return PhysicalKey::right_shift;
+  case XK_Control_L:
+    return PhysicalKey::left_control;
+  case XK_Control_R:
+    return PhysicalKey::right_control;
+  case XK_Alt_L:
+  case XK_Meta_L:
+    return PhysicalKey::left_alt;
+  case XK_Alt_R:
+  case XK_Meta_R:
+  case XK_ISO_Level3_Shift:
+    return PhysicalKey::right_alt;
+  case XK_Super_L:
+    return PhysicalKey::left_meta;
+  case XK_Super_R:
+    return PhysicalKey::right_meta;
+  case XK_Caps_Lock:
+    return 0x39U;
+  case XK_Print:
+    return 0x46U;
+  case XK_Scroll_Lock:
+    return 0x47U;
+  case XK_Pause:
+    return 0x48U;
+  case XK_Num_Lock:
+    return 0x53U;
+  case XK_KP_Divide:
+    return 0x54U;
+  case XK_KP_Multiply:
+    return 0x55U;
+  case XK_KP_Insert:
+    return 0x62U;
+  case XK_KP_Delete:
+    return 0x63U;
+  case XK_KP_End:
+    return 0x59U;
+  case XK_KP_Down:
+    return 0x5AU;
+  case XK_KP_Page_Down:
+    return 0x5BU;
+  case XK_KP_Left:
+    return 0x5CU;
+  case XK_KP_Begin:
+    return 0x5DU;
+  case XK_KP_Right:
+    return 0x5EU;
+  case XK_KP_Home:
+    return 0x5FU;
+  case XK_KP_Up:
+    return 0x60U;
+  case XK_KP_Page_Up:
+    return 0x61U;
+  case XK_less:
+    return 0x64U;
   default:
     return 0U;
   }
@@ -1214,6 +1273,7 @@ void NativeWindow::event(XEvent &event) {
                            : 0;
     if (key.physical_key == 0)
       key.physical_key = key_usage(symbol);
+    key.scan_code = event.xkey.keycode;
     key.modifiers = modifiers(event.xkey.state);
     const HostDispatchResult result = dispatch(key);
     // The Menu key and Shift+F10 the window left unhandled ask for a

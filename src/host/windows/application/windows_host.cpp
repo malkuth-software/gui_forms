@@ -2672,7 +2672,8 @@ private:
     bool key(KeyAction action, WPARAM wparam, LPARAM lparam) {
         KeyEvent event;
         event.action = action;
-        event.physical_key = detail::physical_key_from_virtual_key(wparam);
+        event.physical_key = detail::physical_key_from_key_message(wparam, lparam);
+        event.scan_code = detail::scan_code_from_key_message(lparam);
         event.modifiers = modifiers();
         event.repeat = action == KeyAction::down && (lparam & (1LL << 30)) != 0;
         const HostDispatchResult result = dispatch(std::move(event));
