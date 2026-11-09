@@ -1696,6 +1696,35 @@ Color inherited_text(const Control& control, Color fallback) {
     return fallback;
 }
 
+// The part metrics and shape `fields` sets (RecipeField::block_size on),
+// over `metrics`, in place.
+void apply_part_metrics(const CompiledThemeRules::RecipeResolution& fields, ControlPartMetrics& metrics) noexcept {
+    const RecipeDeclaration* const block = set_recipe_field(fields, RecipeField::block_size);
+    if (block != nullptr) metrics.block_size = (*block).number;
+    const RecipeDeclaration* const minimum = set_recipe_field(fields, RecipeField::minimum_inline_size);
+    if (minimum != nullptr) metrics.minimum_inline_size = (*minimum).number;
+    const RecipeDeclaration* const padding = set_recipe_field(fields, RecipeField::padding_inline);
+    if (padding != nullptr) metrics.padding_inline = (*padding).number;
+    const RecipeDeclaration* const gap = set_recipe_field(fields, RecipeField::gap);
+    if (gap != nullptr) metrics.gap = (*gap).number;
+    const RecipeDeclaration* const start = set_recipe_field(fields, RecipeField::margin_block_start);
+    if (start != nullptr) metrics.margin_block_start = (*start).number;
+    const RecipeDeclaration* const end = set_recipe_field(fields, RecipeField::margin_block_end);
+    if (end != nullptr) metrics.margin_block_end = (*end).number;
+    const RecipeDeclaration* const taper = set_recipe_field(fields, RecipeField::taper);
+    if (taper != nullptr) metrics.taper = (*taper).number;
+    const RecipeDeclaration* const taper_colour = set_recipe_field(fields, RecipeField::taper_colour);
+    if (taper_colour != nullptr) metrics.taper_colour = (*taper_colour).colour;
+    const RecipeDeclaration* const flare = set_recipe_field(fields, RecipeField::flare);
+    if (flare != nullptr) metrics.flare = (*flare).number;
+    const RecipeDeclaration* const flare_colour = set_recipe_field(fields, RecipeField::flare_colour);
+    if (flare_colour != nullptr) metrics.flare_colour = (*flare_colour).colour;
+    const RecipeDeclaration* const shadow_width = set_recipe_field(fields, RecipeField::edge_shadow_width);
+    if (shadow_width != nullptr) metrics.edge_shadow_width = (*shadow_width).number;
+    const RecipeDeclaration* const shadow_colour = set_recipe_field(fields, RecipeField::edge_shadow_colour);
+    if (shadow_colour != nullptr) metrics.edge_shadow_colour = (*shadow_colour).colour;
+}
+
 // The recipe fields `fields` sets, over `recipe` (the floor's copy), in
 // place. The outline's style comes first: a ring has no offset, and no
 // outline no width.
@@ -1739,6 +1768,7 @@ void apply_recipe_fields(const CompiledThemeRules::RecipeResolution& fields, Con
     if (width != nullptr && !no_outline) recipe.focus_width = (*width).number;
     const RecipeDeclaration* const offset = set_recipe_field(fields, RecipeField::outline_offset);
     if (offset != nullptr && recipe.authored_focus_outline) recipe.focus_offset = (*offset).number;
+    apply_part_metrics(fields, recipe.part_metrics);
     const RecipeDeclaration* const shadow = set_recipe_field(fields, RecipeField::text_shadow);
     if (shadow == nullptr) return;
     if (!(*shadow).shadowed) {
@@ -1827,6 +1857,12 @@ void Theme::provenance(const Control& control, ControlVisualRole role, ControlVi
 }
 
 ResolvedFont Theme::resolve_font(const Control& control, FontSpec own) const noexcept {
+    const ResolvedFont result = resolve_font(control, own, {}, visual_context_states(ControlVisualContext{}));
+    return result;
+}
+
+ResolvedFont Theme::resolve_font(const Control& control, FontSpec own, std::string_view part,
+                                 AnatomyStateSet states) const noexcept {
     ResolvedFont result{};
     result.font = own;
     CompiledThemeRules::PartFacts facts{};
@@ -1834,7 +1870,8 @@ ResolvedFont Theme::resolve_font(const Control& control, FontSpec own) const noe
     facts.stable_id = control.stable_id().value();
     facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
-    facts.states = visual_context_states(ControlVisualContext{});
+    facts.part = part;
+    facts.states = states;
     const Window* const window = control.attached_window();
     if (window != nullptr) facts.media = window_media_facts(*window);
     if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
@@ -1985,6 +2022,12 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
         fields.fields[static_cast<std::size_t>(RecipeField::muted_text)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::glyph)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::default_outline_colour)] = nullptr;
+        // Forced high contrast draws no edge shadow, and the tapered edge and
+        // lip in the pass's colours.
+        fields.fields[static_cast<std::size_t>(RecipeField::edge_shadow_width)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::edge_shadow_colour)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::taper_colour)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::flare_colour)] = nullptr;
         bool any = false;
         for (const RecipeDeclaration* field : fields.fields) any = any || field != nullptr;
         fields.authored = any;
