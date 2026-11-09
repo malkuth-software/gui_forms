@@ -86,6 +86,17 @@ struct Schema final {
 [[nodiscard]] std::size_t find_catalog_type(std::string_view name);
 [[nodiscard]] std::string_view catalog_type_id(std::size_t index);
 [[nodiscard]] Component::Ptr create_catalog_type(std::size_t index, StableId stable_id);
+// The window type (windows.create's object, since 1.1): listed after the
+// registry's types, with Window's chrome properties and its interactions.
+// objects.create does not make it.
+inline constexpr std::string_view window_type_id = "window";
+// Whether name, in any spelling, names the window type. Throws what
+// find_catalog_type throws.
+[[nodiscard]] bool names_window_type(std::string_view name);
+// The schema index of the type named in any spelling of its id: a registry
+// type's, the window type's (catalog_type_count()), or a value past every
+// type when none is.
+[[nodiscard]] std::size_t find_schema_type(std::string_view name);
 // The schema type id of object: a control's nearest schema type (its
 // anatomy's), a component's exact type; empty for a component of a type
 // the schema does not list.

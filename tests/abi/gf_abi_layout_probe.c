@@ -175,7 +175,7 @@ GF_LAYOUT_ASSERT(offsetof(gf_owned_window_options, owner) == 40, "gf_owned_windo
 GF_LAYOUT_ASSERT(offsetof(gf_owned_window_options, ready) == 48, "gf_owned_window_options.ready offset");
 GF_LAYOUT_ASSERT(offsetof(gf_owned_window_options, closing) == 56, "gf_owned_window_options.closing offset");
 GF_LAYOUT_ASSERT(offsetof(gf_owned_window_options, closed) == 64, "gf_owned_window_options.closed offset");
-GF_LAYOUT_ASSERT(sizeof(gf_windows_table) == 72, "gf_windows_table size");
+GF_LAYOUT_ASSERT(sizeof(gf_windows_table) == 80, "gf_windows_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_table, struct_size) == 0, "gf_windows_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_table, abi_minor) == 4, "gf_windows_table.abi_minor offset");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_table, run) == 8, "gf_windows_table.run offset");
@@ -186,6 +186,7 @@ GF_LAYOUT_ASSERT(offsetof(gf_windows_table, interaction_at) == 40, "gf_windows_t
 GF_LAYOUT_ASSERT(offsetof(gf_windows_table, request_help) == 48, "gf_windows_table.request_help offset");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_table, show_modal) == 56, "gf_windows_table.show_modal offset");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_table, show_owned) == 64, "gf_windows_table.show_owned offset");
+GF_LAYOUT_ASSERT(offsetof(gf_windows_table, window_properties) == 72, "gf_windows_table.window_properties offset");
 GF_LAYOUT_ASSERT(sizeof(gf_schema_type) == 88, "gf_schema_type size");
 GF_LAYOUT_ASSERT(offsetof(gf_schema_type, struct_size) == 0, "gf_schema_type.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_schema_type, kind) == 4, "gf_schema_type.kind offset");

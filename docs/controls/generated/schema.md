@@ -3321,3 +3321,15 @@ Interactions beyond every control's: none.
 | Interaction | Payload |
 |---|---|
 | `collection_changed` | `BindingContextChange` |
+
+## `window` (Window, component)
+
+| Interaction | Payload |
+|---|---|
+| `active_changed` | `bool` |
+| `backdrop_changed` | `WindowBackdropGrant` |
+| `dialog_result_changed` | `DialogResult` |
+| `focused_control_changed` | `FocusedControlChange` |
+| `help_requested` | `HelpRequestEvent`, by reference |
+| `presentation_changed` | `PresentationSettings` |
+| `theme_changed` | `Theme` |

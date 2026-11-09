@@ -170,6 +170,19 @@ void window_slots(const ObjectsTable& objects, const WindowsTable& windows) {
     require(without_modal.show_modal(root.get(), &owned, &result) == GF_STATUS_UNSUPPORTED_VERSION &&
                 without_modal.show_owned(root.get(), &owned) == GF_STATUS_UNSUPPORTED_VERSION,
             "a table without the modal slots serves neither");
+
+    // Window properties (since 1.1): nothing supported before the run, and
+    // not served by a table that ends before the slot.
+    gf_window_property_flags supported = 99u;
+    gf_window_property_flags applied = 99u;
+    require(windows.window_properties(window.get(), &supported, &applied) == GF_STATUS_OK && supported == 0u &&
+                applied == 0u,
+            "window_properties before the run");
+    gf_windows_table before_properties = windows.c_table();
+    before_properties.struct_size = static_cast<std::uint32_t>(offsetof(gf_windows_table, window_properties));
+    const WindowsTable without_properties = WindowsTable::adopt(before_properties);
+    require(without_properties.window_properties(window.get(), &supported, &applied) == GF_STATUS_UNSUPPORTED_VERSION,
+            "a table without window_properties does not serve it");
 }
 
 } // namespace

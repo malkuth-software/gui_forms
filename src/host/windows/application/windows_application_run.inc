@@ -436,7 +436,7 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
     window_created(id, initially_visible);
     if (initially_visible && !floating) {
         const bool activates = kind != HostWindowKind::tool && !passive_popup;
-        ShowWindow(window, activates ? SW_SHOWNORMAL : SW_SHOWNOACTIVATE);
+        state.show_with(activates ? SW_SHOWNORMAL : SW_SHOWNOACTIVATE);
         UpdateWindow(window);
     }
     if (close_after_launch) PostMessageW(window, WM_CLOSE, 0, 0);

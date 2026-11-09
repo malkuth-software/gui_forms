@@ -229,8 +229,8 @@ gf_status GF_CALL schema_find_type(gf_utf8_view name, std::uint64_t* type) noexc
         if (entered != GF_STATUS_OK) {
             return entered;
         }
-        const std::size_t found = find_catalog_type(text);
-        if (found == (*built).types.size()) {
+        const std::size_t found = find_schema_type(text);
+        if (found >= (*built).types.size()) {
             return fail(GF_STATUS_NOT_FOUND, find_type_slot, "the schema has no type of that name");
         }
         *type = found;

@@ -215,6 +215,8 @@ HostSession::HostSession(Window& window,
         // The window's corners as the host makes them, which its band
         // follows (owner, 2026-11-08).
         window.apply_corner_preference();
+        // Every chrome property the program wrote before the host came.
+        window.apply_window_chrome(WindowChromeFields{WindowChromeFields::all_bits});
         capture_observation_ = window.pointer_capture_changed().subscribe(
             Delegate<const PointerCaptureChange&>::bind<
                 HostSession, &HostSession::observe_pointer_capture>(*this));

@@ -36,6 +36,7 @@ constexpr SlotIdentity interaction_at_slot{GF_TABLE_WINDOWS, 4U};
 constexpr SlotIdentity request_help_slot{GF_TABLE_WINDOWS, 5U};
 constexpr SlotIdentity show_modal_slot{GF_TABLE_WINDOWS, 6U};
 constexpr SlotIdentity show_owned_slot{GF_TABLE_WINDOWS, 7U};
+constexpr SlotIdentity window_properties_slot{GF_TABLE_WINDOWS, 8U};
 
 // The 1.0 size of gf_run_options: a caller passes at least this much.
 constexpr std::uint32_t run_options_size_1_0 = 64U;
@@ -793,6 +794,50 @@ gf_status GF_CALL windows_request_help(gf_object window, std::uint32_t* handled)
     }
 }
 
+// Window properties (since 1.1): what the window's host applies.
+gf_status report_window_properties(gf_object window, gf_window_property_flags* supported,
+                                   gf_window_property_flags* applied) {
+    const gf_status entered = registry().enter_ui(window_properties_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Component::Ptr object;
+    const gf_status found = registry().find_component(window, window_properties_slot, object);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    const std::shared_ptr<WindowHandle> handle = std::dynamic_pointer_cast<WindowHandle>(object);
+    if (handle == nullptr) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, window_properties_slot, "window_properties takes a window");
+    }
+    const Window* const held = (*handle).window();
+    if (!(*handle).is_alive() || held == nullptr) {
+        return fail(GF_STATUS_DISPOSED, window_properties_slot, "the window has been disposed or has closed");
+    }
+    // WindowChromeField's bits are GF_WINDOW_PROPERTY_*'s.
+    if (supported != nullptr) *supported = (*held).supported_chrome().bits;
+    if (applied != nullptr) *applied = (*held).applied_chrome().bits;
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL windows_window_properties(gf_object window, gf_window_property_flags* supported,
+                                            gf_window_property_flags* applied) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(window_properties_slot.table_id, window_properties_slot.slot_index);
+        const gf_status reported = report_window_properties(window, supported, applied);
+        return reported;
+    } catch (...) {
+        return fail_with_current_exception(window_properties_slot);
+    }
+}
+
+static_assert(static_cast<std::uint32_t>(WindowChromeField::text) == GF_WINDOW_PROPERTY_TEXT &&
+                  static_cast<std::uint32_t>(WindowChromeField::show_in_taskbar) ==
+                      GF_WINDOW_PROPERTY_SHOW_IN_TASKBAR &&
+                  static_cast<std::uint32_t>(WindowChromeField::minimum_size) == GF_WINDOW_PROPERTY_MINIMUM_SIZE &&
+                  WindowChromeFields::all_bits == 4095U,
+              "the chrome fields are the ABI's window property bits");
+
 constexpr gf_windows_table table{
     .struct_size = sizeof(gf_windows_table),
     .abi_minor = GF_ABI_MINOR,
@@ -804,6 +849,7 @@ constexpr gf_windows_table table{
     .request_help = &windows_request_help,
     .show_modal = &windows_show_modal,
     .show_owned = &windows_show_owned,
+    .window_properties = &windows_window_properties,
 };
 
 } // namespace

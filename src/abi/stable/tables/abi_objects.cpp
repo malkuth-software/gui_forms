@@ -92,6 +92,9 @@ gf_status read_type_and_id(gf_utf8_view type_name, gf_utf8_view stable_id, SlotI
     }
     type = find_catalog_type(type_text);
     if (type == catalog_type_count()) {
+        if (names_window_type(type_text)) {
+            return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, slot, "a window is made by windows.create");
+        }
         return fail(GF_STATUS_NOT_FOUND, slot, "the schema has no type of that name");
     }
     return GF_STATUS_OK;

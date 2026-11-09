@@ -9722,6 +9722,20 @@
       "interactions": [
         {"name": "collection_changed", "payload": "BindingContextChange", "mutable_payload": false}
       ]
+    },
+    {
+      "id": "window",
+      "type": "Window",
+      "kind": "component",
+      "interactions": [
+        {"name": "active_changed", "payload": "bool", "mutable_payload": false},
+        {"name": "backdrop_changed", "payload": "WindowBackdropGrant", "mutable_payload": false},
+        {"name": "dialog_result_changed", "payload": "DialogResult", "mutable_payload": false},
+        {"name": "focused_control_changed", "payload": "FocusedControlChange", "mutable_payload": false},
+        {"name": "help_requested", "payload": "HelpRequestEvent", "mutable_payload": true},
+        {"name": "presentation_changed", "payload": "PresentationSettings", "mutable_payload": false},
+        {"name": "theme_changed", "payload": "Theme", "mutable_payload": false}
+      ]
     }
   ]
 }

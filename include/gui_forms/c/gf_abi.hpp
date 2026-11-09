@@ -524,6 +524,14 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status window_properties(gf_object window, gf_window_property_flags* supported, gf_window_property_flags* applied) const noexcept {
+        if (table_.struct_size < 80u || table_.window_properties == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.window_properties(window, supported, applied);
+        return called;
+    }
+
 private:
     gf_windows_table table_;
 };

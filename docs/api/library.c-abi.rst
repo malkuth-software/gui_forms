@@ -3170,6 +3170,8 @@ Types
 
    .. cpp:member:: gf_status (*show_owned)(gf_object root, const gf_owned_window_options* options)
 
+   .. cpp:member:: gf_status (*window_properties)(gf_object window, gf_window_property_flags* supported, gf_window_property_flags* applied)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -3838,3 +3840,5 @@ Types
    .. cpp:function:: gf_status show_modal(gf_object root, const gf_owned_window_options* options, gf_dialog_result_code* result) const noexcept
 
    .. cpp:function:: gf_status show_owned(gf_object root, const gf_owned_window_options* options) const noexcept
+
+   .. cpp:function:: gf_status window_properties(gf_object window, gf_window_property_flags* supported, gf_window_property_flags* applied) const noexcept

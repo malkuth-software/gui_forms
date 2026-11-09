@@ -94,6 +94,10 @@ void gf_kit_window_handle(gf_kit* kit);
  * need no window; gf_kit_modal runs one. */
 void gf_kit_modal_refusals(gf_kit* kit);
 void gf_kit_modal(gf_kit* kit);
+/* A window's properties (since 1.1): the refusals and values need no run;
+ * gf_kit_window_properties runs one. */
+void gf_kit_window_properties_refusals(gf_kit* kit);
+void gf_kit_window_properties(gf_kit* kit);
 void gf_kit_window_events(gf_kit* kit);
 void gf_kit_themes(gf_kit* kit);
 void gf_kit_proxies(gf_kit* kit);

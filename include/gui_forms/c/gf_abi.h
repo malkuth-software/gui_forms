@@ -762,6 +762,22 @@ typedef uint32_t gf_dialog_result_code;
 #define GF_DIALOG_RESULT_TRY_AGAIN 10u
 #define GF_DIALOG_RESULT_CONTINUE 11u
 
+/* gf_window_property_flags: the window properties (schema type "window",
+ * since 1.1), one bit each, as window_properties reports them. */
+typedef uint32_t gf_window_property_flags;
+#define GF_WINDOW_PROPERTY_TEXT 1u
+#define GF_WINDOW_PROPERTY_ICON 2u
+#define GF_WINDOW_PROPERTY_FORM_BORDER_STYLE 4u
+#define GF_WINDOW_PROPERTY_MINIMIZE_BOX 8u
+#define GF_WINDOW_PROPERTY_MAXIMIZE_BOX 16u
+#define GF_WINDOW_PROPERTY_CONTROL_BOX 32u
+#define GF_WINDOW_PROPERTY_WINDOW_STATE 64u
+#define GF_WINDOW_PROPERTY_TOP_MOST 128u
+#define GF_WINDOW_PROPERTY_OPACITY 256u
+#define GF_WINDOW_PROPERTY_START_POSITION 512u
+#define GF_WINDOW_PROPERTY_SHOW_IN_TASKBAR 1024u
+#define GF_WINDOW_PROPERTY_MINIMUM_SIZE 2048u
+
 /*
  * GF_TABLE_WINDOWS: one window at a time, on the platform's host.
  *
@@ -791,6 +807,21 @@ typedef uint32_t gf_dialog_result_code;
  * among open windows ("main" is the running window's). request_close
  * closes them too. They share the library's theme, images and published
  * values as they stand when the window opens.
+ *
+ * A window has properties (since 1.1), Form's for the native window: text
+ * (the title; until written, the run's options.title), icon (an image from
+ * themes.load_image, or none), form_border_style, minimize_box,
+ * maximize_box, control_box, window_state (the program's request, not a
+ * report of the native state), top_most, opacity (0 to 1), start_position
+ * (applies before the window is first shown), show_in_taskbar and
+ * minimum_size (the client area's, zero on a side for the window's own).
+ * The schema's "window" type lists them with their kinds and choices;
+ * properties.get, set and reset take their names on a window from create,
+ * before and during its run. A refused value is GF_STATUS_INVALID_ARGUMENT
+ * and changes nothing. A written property reaches the host when the run
+ * starts and at once during it, where the host applies that property;
+ * window_properties reports which it does (a host without a taskbar or a
+ * window icon reports those unsupported).
  */
 typedef struct gf_windows_table {
     uint32_t struct_size;
@@ -852,6 +883,14 @@ typedef struct gf_windows_table {
      * closing or the run ending. The same refusals as show_modal, without
      * the depth limit. */
     gf_status (GF_CALL* show_owned)(gf_object root, const gf_owned_window_options* options);
+    /* The window properties window's host applies (since 1.1): supported
+     * receives the GF_WINDOW_PROPERTY_* bits of those the host honours, 0
+     * before the window runs; applied the bits of the written properties
+     * the host applied when each was last sent. Either output may be null.
+     * UI thread. GF_STATUS_WRONG_HANDLE_KIND for an object that is not a
+     * window; GF_STATUS_DISPOSED once the window is gone. */
+    gf_status (GF_CALL* window_properties)(gf_object window, gf_window_property_flags* supported,
+                                           gf_window_property_flags* applied);
 } gf_windows_table;
 
 /* gf_schema_kind: what a schema type is. A control is created and placed in

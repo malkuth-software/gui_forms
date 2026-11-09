@@ -3,14 +3,17 @@
 #include "abi_schema.hpp"
 
 #include "abi_schema_catalog.hpp"
+#include "../windows/abi_window_properties.hpp"
 
 #include "gui_forms/anatomy.hpp"
 #include "gui_forms/semantics.hpp"
 #include "gui_forms/theme.hpp"
 
 #include <memory>
+#include <span>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace gui_forms::abi1 {
 namespace {
@@ -153,13 +156,48 @@ SchemaType type_of(const SchemaCatalogEntry& entry) {
     return type;
 }
 
+// The window type: a component whose properties are Window's chrome
+// properties and whose interactions are the ones every window raises.
+SchemaType window_type() {
+    SchemaType type;
+    type.id = window_type_id;
+    type.type_name = "Window";
+    type.kind = GF_SCHEMA_KIND_COMPONENT;
+    const std::span<const WindowPropertyEntry> chrome = window_properties();
+    type.properties.reserve(chrome.size());
+    for (const WindowPropertyEntry& entry : chrome) {
+        SchemaProperty property;
+        property.name = std::string(entry.name);
+        property.kind = entry.kind;
+        property.category = std::string(entry.category);
+        property.enumeration = std::string(entry.enumeration);
+        property.choices.reserve(entry.choices.size());
+        for (const WindowPropertyChoice& choice : entry.choices) {
+            property.choices.push_back(SchemaChoice{std::string(choice.name), choice.value});
+        }
+        property.flags = GF_SCHEMA_PROPERTY_FLAGS_READABLE | GF_SCHEMA_PROPERTY_FLAGS_WRITABLE;
+        property.serialization = GF_SCHEMA_SERIALIZATION_VISIBLE;
+        type.properties.push_back(std::move(property));
+    }
+    std::vector<InteractionDeclaration> interactions;
+    Window::append_interactions(interactions);
+    type.interactions.reserve(interactions.size());
+    for (const InteractionDeclaration& declaration : interactions) {
+        type.interactions.push_back(SchemaInteraction{std::string(declaration.name),
+                                                      std::string(declaration.payload),
+                                                      declaration.mutable_payload});
+    }
+    return type;
+}
+
 std::unique_ptr<Schema> build_schema() {
     std::unique_ptr<Schema> built = std::make_unique<Schema>();
     build_vocabularies(*built);
-    (*built).types.reserve(schema_catalog.size());
+    (*built).types.reserve(schema_catalog.size() + 1U);
     for (const SchemaCatalogEntry& entry : schema_catalog) {
         (*built).types.push_back(type_of(entry));
     }
+    (*built).types.push_back(window_type());
     (*built).primitives = builtin_primitive_registry().primitives();
     return built;
 }
@@ -211,6 +249,20 @@ std::size_t find_catalog_type(std::string_view name) {
         }
     }
     return schema_catalog.size();
+}
+
+bool names_window_type(std::string_view name) {
+    const std::string id = registered_name(name);
+    const bool window = id == window_type_id;
+    return window;
+}
+
+std::size_t find_schema_type(std::string_view name) {
+    const std::size_t found = find_catalog_type(name);
+    if (found != schema_catalog.size()) return found;
+    if (names_window_type(name)) return schema_catalog.size();
+    const std::size_t none = schema_catalog.size() + 1U;
+    return none;
 }
 
 std::string_view catalog_type_id(std::size_t index) {

@@ -104,6 +104,7 @@ add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/tables/abi_windows.cpp
     src/abi/stable/values/abi_values.cpp
     src/abi/stable/windows/abi_window_handle.cpp
+    src/abi/stable/windows/abi_window_properties.cpp
 )
 target_link_libraries(gui_forms_abi_objects PRIVATE gui_forms_application)
 target_include_directories(gui_forms_abi_objects PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -199,6 +200,7 @@ add_library(gui_forms_abi_conformance_kit STATIC
     tests/abi/conformance/gf_conformance_families.c
     tests/abi/conformance/gf_conformance_kit.c
     tests/abi/conformance/gf_conformance_modal.c
+    tests/abi/conformance/gf_conformance_window_properties.c
     tests/abi/conformance/gf_conformance_ownership.c
     tests/abi/conformance/gf_conformance_proxies.c
     tests/abi/conformance/gf_conformance_schema.c

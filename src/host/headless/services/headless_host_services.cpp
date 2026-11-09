@@ -204,6 +204,26 @@ HostWindowCornersResult HeadlessHostServices::apply_window_corners_impl(WindowCo
     return result;
 }
 
+HostWindowChromeResult HeadlessHostServices::apply_window_chrome_impl(const WindowChrome& chrome,
+                                                                     WindowChromeFields fields) {
+    ++chrome_requests_;
+    if (fields.contains(WindowChromeField::text)) native_chrome_.text = chrome.text;
+    if (fields.contains(WindowChromeField::icon)) native_chrome_.icon = chrome.icon;
+    if (fields.contains(WindowChromeField::form_border_style)) native_chrome_.form_border_style = chrome.form_border_style;
+    if (fields.contains(WindowChromeField::minimize_box)) native_chrome_.minimize_box = chrome.minimize_box;
+    if (fields.contains(WindowChromeField::maximize_box)) native_chrome_.maximize_box = chrome.maximize_box;
+    if (fields.contains(WindowChromeField::control_box)) native_chrome_.control_box = chrome.control_box;
+    if (fields.contains(WindowChromeField::window_state)) native_chrome_.window_state = chrome.window_state;
+    if (fields.contains(WindowChromeField::top_most)) native_chrome_.top_most = chrome.top_most;
+    if (fields.contains(WindowChromeField::opacity)) native_chrome_.opacity = chrome.opacity;
+    if (fields.contains(WindowChromeField::start_position)) native_chrome_.start_position = chrome.start_position;
+    if (fields.contains(WindowChromeField::show_in_taskbar)) native_chrome_.show_in_taskbar = chrome.show_in_taskbar;
+    if (fields.contains(WindowChromeField::minimum_size)) native_chrome_.minimum_size = chrome.minimum_size;
+    HostWindowChromeResult result{};
+    result.applied = fields;
+    return result;
+}
+
 HostServiceStatus HeadlessHostServices::apply_window_backdrop_impl(WindowBackdrop backdrop) {
     HostServiceStatus status{};
     // Opaque never fails (the HostServices contract).

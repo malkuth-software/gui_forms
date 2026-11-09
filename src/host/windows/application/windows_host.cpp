@@ -1389,7 +1389,21 @@ public:
         window_id_ = window;
     }
     [[nodiscard]] HWND native_window() const noexcept { return hwnd_; }
-    [[nodiscard]] Size minimum_size() const noexcept { return options_.minimum_size; }
+    // The client area's least size: Window's MinimumSize where a side is
+    // written non-zero, else the size the window opened with.
+    [[nodiscard]] Size minimum_size() const noexcept {
+        const Size chrome = services_.chrome_minimum_size();
+        const Size minimum{chrome.width > 0.0 ? chrome.width : options_.minimum_size.width,
+                           chrome.height > 0.0 ? chrome.height : options_.minimum_size.height};
+        return minimum;
+    }
+    // Shows the window with `ordinary`, or with the state Window's
+    // WindowState asked for while it was hidden.
+    void show_with(int ordinary) noexcept {
+        if (hwnd_ == nullptr || closed_) return;
+        const int command = services_.show_command(ordinary);
+        ShowWindow(hwnd_, command);
+    }
     // Full screen, maximized and minimized windows refuse frame requests, as
     // they refuse client size requests.
     [[nodiscard]] bool frame_fixed() const noexcept {
@@ -1416,7 +1430,7 @@ public:
     void hidden_on_close_to_run() noexcept;
     // Shows without activating, for the floating policy.
     void show_without_activation() noexcept {
-        if (hwnd_ != nullptr && !closed_) ShowWindow(hwnd_, SW_SHOWNOACTIVATE);
+        show_with(SW_SHOWNOACTIVATE);
     }
     void hide_for_policy() noexcept { hide_window(); }
 
@@ -1784,7 +1798,7 @@ private:
     }
 
     void show_window() noexcept {
-        if (hwnd_ != nullptr && !closed_) ShowWindow(hwnd_, SW_SHOW);
+        show_with(SW_SHOW);
     }
 
     void toggle_full_screen() noexcept {
@@ -1816,8 +1830,8 @@ private:
     // ordinary resize event (deferred while a host callback is running).
     HostServiceStatus request_client_size(const Size client_size) {
         if (hwnd_ == nullptr || closed_) return {HostServiceError::after_shutdown};
-        if (client_size.width < options_.minimum_size.width ||
-            client_size.height < options_.minimum_size.height) {
+        const Size minimum = minimum_size();
+        if (client_size.width < minimum.width || client_size.height < minimum.height) {
             return {HostServiceError::invalid_argument};
         }
         if (full_screen_ || IsZoomed(hwnd_) || IsIconic(hwnd_)) {
@@ -2726,16 +2740,17 @@ private:
 
     void minimum_size(MINMAXINFO* info) const {
         if (info == nullptr) return;
+        const Size minimum = minimum_size();
         RECT rect{0, 0,
-                  static_cast<LONG>(std::ceil(options_.minimum_size.width * scale_)),
-                  static_cast<LONG>(std::ceil(options_.minimum_size.height * scale_))};
+                  static_cast<LONG>(std::ceil(minimum.width * scale_)),
+                  static_cast<LONG>(std::ceil(minimum.height * scale_))};
         adjust_client_frame(rect, static_cast<DWORD>(GetWindowLongPtrW(hwnd_, GWL_STYLE)),
             static_cast<DWORD>(GetWindowLongPtrW(hwnd_, GWL_EXSTYLE)), scale_);
         // A side of 0 sets no minimum there: the system's own minimum
         // tracking size, already in `info`, stays (Windows Forms' empty
         // MinimumSize).
-        if (options_.minimum_size.width > 0.0) (*info).ptMinTrackSize.x = rect.right - rect.left;
-        if (options_.minimum_size.height > 0.0) (*info).ptMinTrackSize.y = rect.bottom - rect.top;
+        if (minimum.width > 0.0) (*info).ptMinTrackSize.x = rect.right - rect.left;
+        if (minimum.height > 0.0) (*info).ptMinTrackSize.y = rect.bottom - rect.top;
     }
 
     LRESULT close() {
@@ -3300,7 +3315,7 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
         if (SUCCEEDED(com_status)) CoUninitialize();
         return 5;
     }
-    ShowWindow(window, SW_SHOWNORMAL);
+    state.show_with(SW_SHOWNORMAL);
     UpdateWindow(window);
     if (options.close_after_launch_for_testing) {
         PostMessageW(window, WM_CLOSE, 0, 0);
@@ -3476,7 +3491,7 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
             // A floating window is shown by the floating policy.
             (*run).window_created(slot.id, visible);
             if (visible && !slot.floating) {
-                ShowWindow(window, windows[listed].tool_window ? SW_SHOWNOACTIVATE : SW_SHOWNORMAL);
+                (*slot.state).show_with(windows[listed].tool_window ? SW_SHOWNOACTIVATE : SW_SHOWNORMAL);
                 UpdateWindow(window);
             }
             if (windows[listed].options.close_after_launch_for_testing) {
