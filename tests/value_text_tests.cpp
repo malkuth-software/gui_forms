@@ -8,11 +8,13 @@
 #include "gui_forms/gui_forms.hpp"
 #include "../src/controls/range_control/value_bar/value_text.hpp"
 
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -178,6 +180,16 @@ void test_format() {
     // precision).
     format_value_text(0.25, ValueUnit::percent, 0, text);
     require(parse_value_text(text, ValueUnit::percent).value == 0.25, "the shown text parses back");
+    // The span form writes the same text without allocating, and nothing
+    // into a buffer too short for it.
+    std::array<char, 8> small{};
+    const std::size_t written = format_value_text(1.5, ValueUnit::length, 2, std::span<char>(small));
+    require(std::string_view(small.data(), written) == "1.50 m", "the span form writes the text");
+    std::array<char, 4> tiny{};
+    require(format_value_text(1.5, ValueUnit::length, 2, std::span<char>(tiny)) == 0U, "too short writes nothing");
+    std::array<char, gui_forms::value_text::maximum_formatted_value_bytes> widest{};
+    require(format_value_text(-1.0e308, ValueUnit::length, 12, std::span<char>(widest)) > 309U,
+            "the bound holds the widest value");
 }
 
 void test_formats() {

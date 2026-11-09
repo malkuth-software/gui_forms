@@ -95,6 +95,7 @@
 #include "gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp"
 #include "gui_forms/controls/range_control/scroll_bar/v_scroll_bar/v_scroll_bar.hpp"
 #include "gui_forms/controls/range_control/track_bar/track_bar.hpp"
+#include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
 #include "gui_forms/controls/raster_canvas/raster_canvas.hpp"
 #include "gui_forms/controls/ribbon/ribbon.hpp"
 #include "gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp"
@@ -136,7 +137,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 125> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 126> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button_base/button/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -175,6 +176,7 @@ inline constexpr std::array<FormCatalogEntry, 125> form_catalog{{
     {"toggle_switch", "ToggleSwitch", "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp", &add_catalog_type<ToggleSwitch>},
     {"range_control", "RangeControl", "gui_forms/controls/range_control/range_control.hpp", &add_catalog_type<RangeControl>},
     {"track_bar", "TrackBar", "gui_forms/controls/range_control/track_bar/track_bar.hpp", &add_catalog_type<TrackBar>},
+    {"value_bar", "ValueBar", "gui_forms/controls/range_control/value_bar/value_bar.hpp", &add_catalog_type<ValueBar>},
     {"numeric_up_down", "NumericUpDown", "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp", &add_catalog_type<NumericUpDown>},
     {"domain_up_down", "DomainUpDown", "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp", &add_catalog_type<DomainUpDown>},
     {"color_value_editor", "ColorValueEditor", "gui_forms/controls/panel/color_value_editor/color_value_editor.hpp", &add_catalog_type<ColorValueEditor>},

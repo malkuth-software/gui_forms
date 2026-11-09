@@ -65,6 +65,7 @@
 #include "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
 #include "gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp"
 #include "gui_forms/controls/range_control/track_bar/track_bar.hpp"
+#include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
 #include "gui_forms/controls/raster_canvas/raster_canvas.hpp"
 #include "gui_forms/controls/ribbon/ribbon.hpp"
 #include "gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp"
@@ -2564,6 +2565,82 @@ void test_typography_specimen_properties() {
     }
 }
 
+void test_value_bar_properties() {
+    std::shared_ptr<ValueBar> control = make_control<ValueBar>(StableId("generated.valuebar"));
+    {
+        const std::optional<double> sample = std::optional<double>{10.0};
+        (*control).soft_minimum = sample;
+        expect((*control).soft_minimum.read() == sample, "ValueBar.soft_minimum: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("soft_minimum");
+        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+               "ValueBar.soft_minimum: the table reads the cell");
+    }
+    {
+        const std::optional<double> sample = std::optional<double>{90.0};
+        (*control).soft_maximum = sample;
+        expect((*control).soft_maximum.read() == sample, "ValueBar.soft_maximum: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("soft_maximum");
+        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+               "ValueBar.soft_maximum: the table reads the cell");
+    }
+    {
+        const std::optional<double> sample = std::optional<double>{5.0};
+        (*control).snap_step = sample;
+        expect((*control).snap_step.read() == sample, "ValueBar.snap_step: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("snap_step");
+        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+               "ValueBar.snap_step: the table reads the cell");
+    }
+    {
+        const std::int32_t sample = 0;
+        (*control).precision = sample;
+        expect((*control).precision.read() == sample, "ValueBar.precision: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("precision");
+        expect(by_name && *by_name == PropertyValueTraits<std::int32_t>::to_binding(sample),
+               "ValueBar.precision: the table reads the cell");
+    }
+    {
+        const ValueUnit sample = ValueUnit::percent;
+        (*control).unit = sample;
+        expect((*control).unit.read() == sample, "ValueBar.unit: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("unit");
+        expect(by_name && *by_name == PropertyValueTraits<ValueUnit>::to_binding(sample),
+               "ValueBar.unit: the table reads the cell");
+    }
+    {
+        const double sample = 1.0;
+        (*control).default_value = sample;
+        expect((*control).default_value.read() == sample, "ValueBar.default_value: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("default_value");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "ValueBar.default_value: the table reads the cell");
+    }
+    {
+        const ValueBarStyle sample = ValueBarStyle::field;
+        (*control).presentation = sample;
+        expect((*control).presentation.read() == sample, "ValueBar.presentation: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("presentation");
+        expect(by_name && *by_name == PropertyValueTraits<ValueBarStyle>::to_binding(sample),
+               "ValueBar.presentation: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string("Samples");
+        (*control).label = sample;
+        expect((*control).label.read() == sample, "ValueBar.label: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("label");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "ValueBar.label: the table reads the cell");
+    }
+    {
+        const std::optional<double> sample = std::optional<double>{0.5};
+        (*control).scrub_rate = sample;
+        expect((*control).scrub_rate.read() == sample, "ValueBar.scrub_rate: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("scrub_rate");
+        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+               "ValueBar.scrub_rate: the table reads the cell");
+    }
+}
+
 void test_visual_inspector_overlay_properties() {
     std::shared_ptr<VisualInspectorOverlay> control = make_control<VisualInspectorOverlay>(StableId("generated.visualinspectoroverlay"));
     {
@@ -2681,6 +2758,7 @@ int main() {
     test_tree_list_view_properties();
     test_tree_view_properties();
     test_typography_specimen_properties();
+    test_value_bar_properties();
     test_visual_inspector_overlay_properties();
     test_visual_inspector_view_properties();
     std::cout << "generated property tests passed\n";

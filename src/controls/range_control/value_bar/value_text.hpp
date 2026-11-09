@@ -38,6 +38,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -54,9 +55,18 @@ struct ValueTextResult final {
 // Parses and evaluates `text` in `unit`.
 [[nodiscard]] ValueTextResult parse_value_text(std::string_view text, ValueUnit unit) noexcept;
 
-// Replaces `out` with `value` in `unit`'s display unit: fixed, `precision`
+// The longest formatted value: a double in fixed notation (309 digits),
+// its sign, point and maximum_value_bar_precision decimals, a space and the
+// longest display suffix.
+inline constexpr std::size_t maximum_formatted_value_bytes = 368U;
+
+// Writes `value` in `unit`'s display unit into `out`: fixed, `precision`
 // decimals (clamped to 0..maximum_value_bar_precision), never "-0", then the
-// display suffix. Locale-independent (std::to_chars).
+// display suffix. Locale-independent (std::to_chars); allocates nothing.
+// Returns the length written, or 0 (writing nothing) when `out` is too
+// short; maximum_formatted_value_bytes always suffices.
+std::size_t format_value_text(double value, ValueUnit unit, std::int32_t precision, std::span<char> out) noexcept;
+// As above, replacing `out`.
 void format_value_text(double value, ValueUnit unit, std::int32_t precision, std::string& out);
 
 } // namespace gui_forms::value_text

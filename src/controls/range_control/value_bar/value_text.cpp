@@ -504,7 +504,7 @@ ValueTextResult parse_value_text(std::string_view text, ValueUnit unit) noexcept
     return result;
 }
 
-void format_value_text(double value, ValueUnit unit, std::int32_t precision, std::string& out) {
+std::size_t format_value_text(double value, ValueUnit unit, std::int32_t precision, std::span<char> out) noexcept {
     const UnitFormat& format = unit_format(unit);
     const std::int32_t decimals = std::clamp(precision, std::int32_t{0}, maximum_value_bar_precision);
     const double shown = value / format.display.factor;
@@ -515,7 +515,7 @@ void format_value_text(double value, ValueUnit unit, std::int32_t precision, std
     char* const last = digits.data() + digits.size();
     std::to_chars_result written = std::to_chars(first, last, shown, std::chars_format::fixed, decimals);
     if (written.ec != std::errc{}) written = std::to_chars(first, last, shown, std::chars_format::general);
-    std::size_t length = written.ec == std::errc{} ? static_cast<std::size_t>(written.ptr - first) : 0U;
+    const std::size_t length = written.ec == std::errc{} ? static_cast<std::size_t>(written.ptr - first) : 0U;
     // A negative value that rounds to zero shows as zero, not "-0.00".
     std::size_t begin = 0U;
     if (length > 1U && digits[0] == '-') {
@@ -525,10 +525,29 @@ void format_value_text(double value, ValueUnit unit, std::int32_t precision, std
         }
         if (zero) begin = 1U;
     }
-    out.assign(digits.data() + begin, length - begin);
-    if (format.display.suffix.empty()) return;
-    if (format.space_before_suffix) out.push_back(' ');
-    out.append(format.display.suffix);
+    const std::size_t separator = format.display.suffix.empty() || !format.space_before_suffix ? 0U : 1U;
+    const std::size_t needed = length - begin + separator + format.display.suffix.size();
+    if (needed > out.size()) return 0U;
+    std::size_t at = 0U;
+    for (std::size_t index = begin; index < length; ++index) {
+        out[at] = digits[index];
+        ++at;
+    }
+    if (separator != 0U) {
+        out[at] = ' ';
+        ++at;
+    }
+    for (const char character : format.display.suffix) {
+        out[at] = character;
+        ++at;
+    }
+    return at;
+}
+
+void format_value_text(double value, ValueUnit unit, std::int32_t precision, std::string& out) {
+    std::array<char, maximum_formatted_value_bytes> text{};
+    const std::size_t length = format_value_text(value, unit, precision, std::span<char>(text));
+    out.assign(text.data(), length);
 }
 
 } // namespace value_text
