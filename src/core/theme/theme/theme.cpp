@@ -2056,6 +2056,28 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     if (context.dark && definition().dark_variant == ThemeDarkVariant::derived) {
         for (const RecipeDeclaration*& field : fields.fields) {
             if (field == nullptr || (*field).initial || (*field).inherit || (*field).current_colour) continue;
+            // A part's shape colours (the folder edge's keyline, its shadow
+            // and the lip) lie beside the face and darken with it: the
+            // keyline as a dark outer edge, the shadow as a shade and the
+            // lip as the face. Each keeps its alpha.
+            const RecipeField shape_field = (*field).field;
+            const bool shape_colour = shape_field == RecipeField::taper_colour ||
+                                      shape_field == RecipeField::edge_shadow_colour ||
+                                      shape_field == RecipeField::flare_colour;
+            if (shape_colour) {
+                const Color light = (*field).colour;
+                detail::DarkColourClass shape_class = detail::DarkColourClass::shade;
+                if (shape_field == RecipeField::taper_colour) shape_class = detail::DarkColourClass::deep_line;
+                Color dark = detail::dark_colour(light, shape_class);
+                if (shape_field == RecipeField::flare_colour) {
+                    dark = detail::dark_parameter_colour(light, (*field).origin, role);
+                }
+                scaled.push_back(*field);
+                RecipeDeclaration& darkened = scaled.back();
+                darkened.colour = Color::rgba(dark.red, dark.green, dark.blue, light.alpha);
+                field = &darkened;
+                continue;
+            }
             if (recipe_field_colour_position((*field).field) != ColourPosition::text) continue;
             const Color light = (*field).colour;
             const Color dark = detail::dark_parameter_colour(light, (*field).origin, role);

@@ -556,6 +556,8 @@ void test_dark_tab_ink() {
     const int ink_sum = static_cast<int>(ink.red) + static_cast<int>(ink.green) + static_cast<int>(ink.blue);
     require(ink_sum > 3 * 128, "the selected tab's ink is light in dark");
     require(painter.text_colours[*file] == Color::rgba(0xff, 0xff, 0xff), "the File tab's white label stays white");
+    require(!painter.lined(keyline) && !painter.lines.empty() && painter.gradients > 0U,
+            "in dark the folder edge's keyline darkens with the face, and the shadow still falls");
 }
 
 } // namespace
