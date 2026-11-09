@@ -513,6 +513,7 @@ ribbon::part(tab-rail) {
   height: 27px;
 }
 ribbon::part(tab) {
+  border-radius: 4px 4px 0 0;
   gap: 0;
   margin-top: 3px;
 }
@@ -542,6 +543,31 @@ ribbon::part(command-plane) {
   background: linear-gradient(to bottom, #e8f2ff, #cadefb 28%, #a5c4f1 62%, #769fdf);
   border: none;
   box-shadow: inset 0 1px 0 #ffffff, inset 0 -1px 0 #496c9f;
+}
+
+/* The Ribbon's groups (rendering reference §5; design language §11 item
+   4): captions in #485B70 beneath thin etched dividers, a shade line with
+   a white line beside it, fading out at both ends. */
+ribbon::part(group-caption) {
+  color: #485b70;
+}
+ribbon::part(group-divider) {
+  background: linear-gradient(to bottom, rgb(99 132 178 / 0%), #6384b2 50%, rgb(99 132 178 / 0%));
+  border: none;
+  box-shadow: 1px 0 0 rgb(255 255 255 / 60%);
+}
+
+/* Backstage (RB decision 26): the column of commands and topics in the
+   command plane's blue, set apart from the white page, as the owner's
+   note on Office 2010 asks. */
+backstage-view::part(column) {
+  background: linear-gradient(to bottom, #e8f2ff, #cadefb);
+  border: none;
+  box-shadow: inset -1px 0 0 #6384b2;
+}
+backstage-view::part(page) {
+  background: #ffffff;
+  border: none;
 }
 
 /* The command plane: near-white deepening toward Plan Paint's royale blue

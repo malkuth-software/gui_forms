@@ -1291,7 +1291,7 @@ void Ribbon::on_paint(Painter& painter, Rect) {
 }
 
 // One tab: its face, keyed by the tab, with the shape its state's rules give
-// it (PartShape: a folder taper, the lip where the selected tab meets the
+// it (PartProfile: a folder taper, the lip where the selected tab meets the
 // plane, a soft shadow beyond its trailing edge; none in the stock themes),
 // its label in its state's font (defect 6), and its focus cue. A contextual
 // tab's face carries its set's tint (owner decision 25). `part` carries the
@@ -1309,17 +1309,17 @@ void Ribbon::paint_tab(Painter& painter, PartPaint& part, const Layout& placed, 
     const ControlPartMetrics metrics = part_metrics("tab", ControlVisualRole::menu_item, states);
     const bool shaped = metrics.taper > 0.0 || metrics.flare > 0.0 || metrics.edge_shadow_width > 0.0;
     if (shaped) {
-        PartShape shape;
-        shape.taper = metrics.taper * effective_text_scale();
-        shape.taper_colour = metrics.taper_colour;
-        shape.flare = metrics.flare * effective_text_scale();
-        shape.flare_colour = metrics.flare_colour.value_or(Color::rgba(0, 0, 0, 0));
-        shape.edge_shadow = metrics.edge_shadow_width * effective_text_scale();
-        shape.edge_shadow_colour = metrics.edge_shadow_colour;
-        part.shape = shape;
+        PartProfile profile;
+        profile.taper = metrics.taper * effective_text_scale();
+        profile.taper_colour = metrics.taper_colour;
+        profile.flare = metrics.flare * effective_text_scale();
+        profile.flare_colour = metrics.flare_colour.value_or(Color::rgba(0, 0, 0, 0));
+        profile.edge_shadow = metrics.edge_shadow_width * effective_text_scale();
+        profile.edge_shadow_colour = metrics.edge_shadow_colour;
+        part.profile = profile;
     }
     paint_part(painter, *this, part);
-    part.shape.reset();
+    part.profile.reset();
     part.accent.reset();
     const std::string label = parse_mnemonic_text(tabs_[tab].text).display_text;
     part.role = PartRole::label;

@@ -2756,14 +2756,32 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
     const bool recipe = recipe_property(property);
     const bool text_colour = property == MaterialProperty::color || property == MaterialProperty::muted_color ||
                              property == MaterialProperty::glyph_color;
-    const bool on_named_part = text_colour && rule_names_parts_only();
+    // A part's metrics and shape (`height`, `gap`, `taper` and the rest) are
+    // a named part's own, read by the control that lays the part out and
+    // paints it, in any of its states (look integration); on a control or a
+    // role they are not admitted, as CSS layout properties are not.
+    const bool part_field = property == MaterialProperty::height || property == MaterialProperty::min_width ||
+                            property == MaterialProperty::padding_inline || property == MaterialProperty::gap ||
+                            property == MaterialProperty::margin_top || property == MaterialProperty::margin_bottom ||
+                            property == MaterialProperty::taper || property == MaterialProperty::flare ||
+                            property == MaterialProperty::edge_shadow;
+    const bool named_part = rule_names_parts_only();
+    if (part_field && !named_part) {
+        report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_);
+        return true;
+    }
+    // A named part's font is its own too (Theme::resolve_font with the part).
+    const bool on_named_part = (text_colour || part_field || font_property_of(property)) && named_part;
     if (recipe && rule_selects_part() && !on_named_part) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_ + " on a part or a role");
         return true;
     }
     // A font is a layout input, and a control's states change without a
-    // layout: the font longhands are the control's at rest (T4 fonts).
-    if (font_property_of(property) && rule_has_states()) {
+    // layout: the font longhands are the control's at rest (T4 fonts). A
+    // named part's font may follow its states (a selected tab's label): the
+    // control resolves it per part and state (Theme::resolve_font) and lays
+    // the part out for the widest of them.
+    if (font_property_of(property) && rule_has_states() && !named_part) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_ + " in a state rule");
         return true;
     }
