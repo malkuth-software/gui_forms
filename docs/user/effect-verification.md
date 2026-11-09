@@ -31,6 +31,13 @@ during the normal compile of every file that registers an effect (each
   registry looks the record up when the effect is registered: an effect is
   `verified` only when the pass really ran on it.
 
+Signal programs (`gui_forms/plots/signal_program/signal_program.hpp`, the
+generated data that feeds plots) are checked the same way in each file that
+registers one (each `make_signal_entry<P>()`): `P::run(frame, sink)` under the
+same rules and state checks, bounded against the declared
+`operations_per_sample` times `signal_sink_capacity`, and recorded as
+`signal:<name>`.
+
 Every rejection is a compiler error at the construct, followed by a note
 naming the effect.
 

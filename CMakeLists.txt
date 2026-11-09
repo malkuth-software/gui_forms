@@ -796,6 +796,10 @@ target_include_directories(gui_forms_plot_primitives PUBLIC
 )
 target_link_libraries(gui_forms_plot_primitives PUBLIC gui_forms_core)
 set_target_properties(gui_forms_plot_primitives PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# The signal programs, verified by the plugin's effect pass like the effect
+# programs (make_signal_entry; cmake/LocalizablePlugin.cmake).
+gui_forms_verify_effects(gui_forms_plot_primitives
+    SOURCES src/plots/signal_program/signal_program.cpp)
 
 add_library(gui_forms_controls STATIC
     src/controls/basic/basic_control_rendering.cpp
@@ -2978,7 +2982,8 @@ if(GUI_FORMS_BUILD_TESTS)
     if(GUI_FORMS_EFFECTS_VERIFIED)
         set(_gf_effect_cases
             passes while_loop unbounded_for loop_variable_written recursion virtual_call function_pointer
-            allocation global_write cmath_call opaque_call pointer_state oversized_state over_budget unverified)
+            allocation global_write cmath_call opaque_call pointer_state oversized_state over_budget unverified
+            signal_passes signal_over_budget signal_cmath_call)
         foreach(_gf_case IN LISTS _gf_effect_cases)
             set(_gf_case_target gui_forms_effect_case_${_gf_case})
             add_library(${_gf_case_target} OBJECT EXCLUDE_FROM_ALL tests/effect_pass/${_gf_case}.cpp)
@@ -4105,6 +4110,9 @@ if(GUI_FORMS_BUILD_TESTS)
     # tables and display traces, and the envelope's pixel-identity proof.
     add_executable(gui_forms_plot_primitives_tests tests/plot_primitives_tests.cpp)
     target_link_libraries(gui_forms_plot_primitives_tests PRIVATE gui_forms_plot_primitives)
+    if(GUI_FORMS_EFFECTS_VERIFIED)
+        target_compile_definitions(gui_forms_plot_primitives_tests PRIVATE GUI_FORMS_EFFECT_TEST_VERIFIED)
+    endif()
     add_test(NAME gui_forms_plot_primitives_tests COMMAND gui_forms_plot_primitives_tests)
     add_executable(gui_forms_plot_decimation_raster_tests tests/plot_decimation_raster_tests.cpp)
     target_link_libraries(gui_forms_plot_decimation_raster_tests PRIVATE gui_forms_plot_primitives)

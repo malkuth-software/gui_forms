@@ -7,7 +7,8 @@ name: Effect pass
 # llvm-22-dev and libclang-22-dev, builds the plugin, compiles the files that
 # register effects with its effect pass (gui_forms_verify_effects: a compile
 # fails on any effect that breaks the rules or its budgets), and runs the
-# effect tests: the pass's cases (tests/effect_pass) and
+# effect tests: the pass's cases (tests/effect_pass), the signal programs'
+# records (gui_forms_plot_primitives_tests) and
 # gui_forms_effect_program_tests, which then requires every built-in effect
 # to be verified with bounds inside its budgets.
 #
@@ -22,9 +23,12 @@ on:
       - 'include/gui_forms/engine/effect*/**'
       - 'src/controls/**/*_effects.cpp'
       - 'include/gui_forms/controls/**/*_effects.hpp'
+      - 'src/plots/signal_program/**'
+      - 'include/gui_forms/plots/signal_program/**'
       - 'tools/localizable_plugin/**'
       - 'tests/effect_pass/**'
       - 'tests/effect_program_tests.cpp'
+      - 'tests/plot_primitives_tests.cpp'
       - 'cmake/LocalizablePlugin.cmake'
       - 'cmake/check_effect_pass.cmake'
       - '.github/workflows/effect-pass.yml'
@@ -74,6 +78,6 @@ jobs:
             exit 1
           fi
       - name: Build the effect targets with the effect pass
-        run: cmake --build build --parallel 4 --target gui_forms_effect_program_tests
+        run: cmake --build build --parallel 4 --target gui_forms_effect_program_tests gui_forms_plot_primitives_tests
       - name: Run the effect tests
-        run: ctest --test-dir build --output-on-failure -R '^gui_forms_effect_(program_tests|pass_)'
+        run: ctest --test-dir build --output-on-failure -R '^gui_forms_(effect_(program_tests|pass_)|plot_primitives_tests$)'
