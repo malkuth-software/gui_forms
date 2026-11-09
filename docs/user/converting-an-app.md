@@ -175,7 +175,7 @@ The generated window is an ordinary `Window` model, so a test links
 example_app::GreeterModel model{};
 example_app::GreeterWindow window(model);
 example_app::Greeter greeter(window, model);
-(*window.example_name).set_text("Ada");
+(*window.example_name).text = "Ada";
 (*window.example_greet).perform_click();
 ```
 

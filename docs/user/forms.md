@@ -58,11 +58,40 @@ sheets:
 - **Classes.** `classes: "field wide";` gives an object the classes a theme
   selects (`.field`).
 
-A document is refused before anything is built when it is wrong. That covers
-an unknown type or property, a duplicate stable ID, a value of the wrong
-kind, a colour or font property (E813, which belongs in the theme), and an
-`on-` handler reference (E816: attach behaviour from program code). Each
-diagnostic carries its code, the file, the line and the column.
+- **Layout declarations.** The CSS layout panels (`flex-panel`,
+  `grid-panel`, `block-panel`) take their container declarations as their
+  `style` property, and each child its `item-style`:
+  `style: "grid-template-columns: 1fr 2fr; column-gap: 6px";`. These are
+  geometry only, never colour or type.
+
+## Refusals
+
+A document is refused before anything is built when it is wrong, and every
+defect found is reported together. Each diagnostic carries its code, the
+file, the line and the column. A refused document generates nothing.
+
+| Code | Refused |
+|---|---|
+| E801 `form_root_invalid` | a top level that is not exactly one object |
+| E802 `form_type_unknown` | a type the form schema does not list |
+| E803 `form_identity_repeated` | one stable ID on two objects |
+| E804 `form_property_unknown` | a property the type does not list |
+| E805 `form_property_read_only` | a property a document may not set |
+| E806 `form_member_repeated` | a property written twice in one block |
+| E807 `form_value_invalid` | a value the property's kind does not admit, or that the property refuses |
+| E809 `form_children_not_admitted` | a child object inside a type that holds no children |
+| E810 `form_style_block` | a style block inside an object: the look belongs to the theme, reached by `classes` |
+| E812 `form_generation_refused` | something the C++ generator cannot spell: a type without a C++ name, a stable ID that is no member name or clashes with another, a reserved source spelling, or a binding without `MODEL` |
+| E813 `form_presentation_property` | a colour or font property: it belongs in the theme |
+| E814 `form_span_conflict` | grid spans that overlap or repeat a name, a span past the grid's limit or over a placed child, an `area` naming no span, a `cell` inside a span |
+| E815 `form_escape_invalid` | a string escape the language does not admit |
+| E816 `form_handler_removed` | an `on-<interaction>:` handler reference: attach behaviour from program code |
+| E817 `form_binding_invalid` | a malformed `bind(...)`, or a binding on a property that is not bindable |
+| E818 `form_binding_option_invalid` | an unknown, repeated or misplaced binding option, such as two way on a one-way property |
+| E999 `not_yet_built` | a form reserved for a later phase, such as `convert <name>` |
+
+E808 is retired. E811 and E819 belong to loading a document at run time,
+which is not public in 0.5.
 
 ## The window is the form
 
