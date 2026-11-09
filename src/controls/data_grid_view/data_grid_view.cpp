@@ -914,6 +914,48 @@ void DataGridView::remove_column_at(std::size_t column) {
     structure_changed();
 }
 
+void DataGridView::insert_column(std::size_t column, DataGridViewColumn inserted) {
+    require_mutable();
+    require_not_sorting();
+    if (column > columns_.size()) throw std::out_of_range("DataGridView column insertion is past the end");
+    validate_column(inserted);
+    if (column_index(inserted.name)) {
+        throw std::invalid_argument("DataGridView column names must be unique");
+    }
+    // Validated: from here nothing refuses. The row state is keyed by column
+    // index, which the insertion shifts.
+    reset_row_state();
+    const std::ptrdiff_t offset = static_cast<std::ptrdiff_t>(column);
+    columns_.insert(columns_.begin() + offset, std::move(inserted));
+    insert_display_column(column);
+    mark_all_rows(*this);
+    for (DataGridViewRow& row : row_elements(*this)) {
+        // A row shorter than the insertion point is padded by the resize.
+        if (row.cells.size() >= column) row.cells.insert(row.cells.begin() + offset, BindingValue{});
+        row.cells.resize(columns_.size());
+    }
+    new_row_.cells.clear();
+    new_row_.cells.resize(columns_.size());
+    hot_column_.reset();
+    pressed_column_.reset();
+    resizing_column_.reset();
+    end_column_order();
+    structure_changed();
+}
+
+void DataGridView::set_column_header_text(std::size_t column, std::string text) {
+    require_mutable();
+    if (column >= columns_.size()) throw std::out_of_range("DataGridView column is past the end");
+    if (!validate_utf8(text).valid()) {
+        throw std::invalid_argument("DataGridView column header text requires valid UTF-8");
+    }
+    if (columns_[column].header_text == text) return;
+    columns_[column].header_text = std::move(text);
+    // A header-sized column measures its header again.
+    auto_size_stale_ = true;
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics);
+}
+
 // -- column order ------------------------------------------------------------
 
 void DataGridView::reset_display_order() {
@@ -941,6 +983,20 @@ void DataGridView::remove_display_column(std::size_t column) {
     for (std::size_t& index : display_order_) {
         if (index > column) --index;
     }
+    display_indices_.resize(display_order_.size());
+    for (std::size_t position = 0U; position < display_order_.size(); ++position) {
+        display_indices_[display_order_[position]] = position;
+    }
+}
+
+void DataGridView::insert_display_column(std::size_t column) {
+    // Renumber the columns from the inserted index, which rose by one, then
+    // place the new column at display index `column` (the last, past it).
+    for (std::size_t& index : display_order_) {
+        if (index >= column) ++index;
+    }
+    const std::size_t display = column < display_order_.size() ? column : display_order_.size();
+    display_order_.insert(display_order_.begin() + static_cast<std::ptrdiff_t>(display), column);
     display_indices_.resize(display_order_.size());
     for (std::size_t position = 0U; position < display_order_.size(); ++position) {
         display_indices_[display_order_[position]] = position;

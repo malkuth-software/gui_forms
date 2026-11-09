@@ -331,6 +331,20 @@ public:
     void add_column(DataGridViewColumn column);
     // Throws std::out_of_range for an index past the end.
     void remove_column_at(std::size_t column);
+    // Inserts a column at an index, at most the column count (the count
+    // appends, as add_column does). The columns from that index on move up
+    // one index, unbound rows' values move with their columns and the new
+    // column's cells start empty; in display order the new column takes
+    // display index `column` (the last, past it) and the columns from there
+    // move up one. As remove_column_at, it ends any edit and clears the
+    // selection, the current cell and what the grid keeps by row ID and
+    // column index (error text, styles, visited links, a sort). Throws as
+    // add_column does, and std::out_of_range for an index past the count.
+    void insert_column(std::size_t column, DataGridViewColumn inserted);
+    // A column's header text (Windows Forms' HeaderText). Throws
+    // std::out_of_range for an unknown column and std::invalid_argument for
+    // invalid UTF-8.
+    void set_column_header_text(std::size_t column, std::string text);
     [[nodiscard]] std::optional<std::size_t> column_index(std::string_view name) const noexcept;
     // Throws std::out_of_range for an unknown column and std::invalid_argument
     // for a width that is not finite or below the column's minimum. An
@@ -1128,6 +1142,7 @@ private:
     void reset_display_order();
     void append_display_column();
     void remove_display_column(std::size_t column);
+    void insert_display_column(std::size_t column);
     [[nodiscard]] DataGridViewDisplayIndex order_target_at(double x, const GridLayout& layout) const;
     void end_column_order();
     // The row height index, rebuilt first when the rows changed since it

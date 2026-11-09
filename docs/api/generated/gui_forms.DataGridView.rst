@@ -431,6 +431,8 @@ gui_forms::DataGridView
         -  
       * - :cpp:func:`remove_column_at <gui_forms::DataGridView::remove_column_at>`
         - Throws std::out_of_range for an index past the end.
+      * - :cpp:func:`insert_column <gui_forms::DataGridView::insert_column>`
+        - Inserts a column at an index, at most the column count (the count appends, as add_column does).
       * - :cpp:func:`column_index <gui_forms::DataGridView::column_index>`
         - The position of the column with a name, or none.
       * - :cpp:func:`column_auto_size_mode <gui_forms::DataGridView::column_auto_size_mode>`
@@ -519,6 +521,8 @@ gui_forms::DataGridView
         - Marks the edit in progress dirty or clean, raising current_cell_dirty_state_changed when that changes; ignored when no edit is in progress.
       * - :cpp:func:`close_drop_down <gui_forms::DataGridView::close_drop_down>`
         - Closes a combo box cell's choices, ending its edit.
+      * - :cpp:func:`set_column_header_text <gui_forms::DataGridView::set_column_header_text>`
+        - A column's header text (Windows Forms' HeaderText).
       * - :cpp:func:`set_column_width <gui_forms::DataGridView::set_column_width>`
         - Sets a column's width; an unknown column throws ``std::out_of_range`` and a width below the column's minimum ``std::invalid_argument``.
       * - :cpp:func:`set_column_auto_size_mode <gui_forms::DataGridView::set_column_auto_size_mode>`
@@ -1370,6 +1374,10 @@ gui_forms::DataGridView
 
       Throws std::out_of_range for an index past the end.
 
+   .. cpp:function:: void insert_column(std::size_t column, DataGridViewColumn inserted)
+
+      Inserts a column at an index, at most the column count (the count appends, as add_column does). The columns from that index on move up one index, unbound rows' values move with their columns and the new column's cells start empty; in display order the new column takes display index ``column`` (the last, past it) and the columns from there move up one. As remove_column_at, it ends any edit and clears the selection, the current cell and what the grid keeps by row ID and column index (error text, styles, visited links, a sort). Throws as add_column does, and std::out_of_range for an index past the count.
+
    .. cpp:function:: std::optional<std::size_t> column_index(std::string_view name) const noexcept
 
       The position of the column with a name, or none.
@@ -1587,6 +1595,10 @@ gui_forms::DataGridView
    .. cpp:function:: void close_drop_down() noexcept
 
       Closes a combo box cell's choices, ending its edit.
+
+   .. cpp:function:: void set_column_header_text(std::size_t column, std::string text)
+
+      A column's header text (Windows Forms' HeaderText). Throws std::out_of_range for an unknown column and std::invalid_argument for invalid UTF-8.
 
    .. cpp:function:: void set_column_width(std::size_t column, double width)
 

@@ -2340,6 +2340,21 @@ struct SetDisplayIndexPastEnd final {
     void operator()() const { (*grid).set_column_display_index(0U, DataGridViewDisplayIndex{9U}); }
 };
 
+struct InsertColumnPastEnd final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).insert_column(9U, {.name = "late"}); }
+};
+
+struct InsertDuplicateColumn final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).insert_column(0U, {.name = "name"}); }
+};
+
+struct SetInvalidHeaderText final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).set_column_header_text(0U, std::string("Ã")); }
+};
+
 std::vector<std::size_t> display_order(const DataGridView& grid) {
     std::vector<std::size_t> order;
     for (std::size_t display = 0U; display < grid.columns().size(); ++display) {
@@ -2401,6 +2416,35 @@ void column_order() {
     require(display_order(*grid) == std::vector<std::size_t>{1U, 0U, 2U, 3U}, "an added column goes last");
     (*grid).set_columns(sample_columns());
     require(display_order(*grid) == std::vector<std::size_t>{0U, 1U, 2U, 3U}, "setting the columns resets the order");
+
+    // insert_column: values move with their columns, the display order
+    // makes room at the inserted index.
+    (*grid).set_column_display_index(3U, DataGridViewDisplayIndex{0U});
+    require(display_order(*grid) == std::vector<std::size_t>{3U, 0U, 1U, 2U}, "the last column is shown first");
+    (*grid).insert_column(1U, {.name = "frequency", .header_text = "Frequency"});
+    require((*grid).columns().size() == 5U && (*grid).columns()[1].name == "frequency" &&
+                (*grid).column_index("active") == std::optional<std::size_t>{2U},
+            "an inserted column takes its index and the later columns move up one");
+    require(display_order(*grid) == std::vector<std::size_t>{4U, 1U, 0U, 2U, 3U},
+            "an inserted column takes its display index and the others are renumbered");
+    require((*grid).cell_value(row_at(0U), 0U) == BindingValue{std::string("Alpha")} &&
+                (*grid).cell_value(row_at(0U), 1U) == BindingValue{} &&
+                (*grid).cell_value(row_at(0U), 2U) == BindingValue{true} &&
+                (*grid).cell_value(row_at(0U), 3U) == BindingValue{std::string("FM")},
+            "unbound values move with their columns and the new column starts empty");
+    (*grid).insert_column(5U, {.name = "tail", .header_text = "Tail"});
+    require((*grid).column_index("tail") == std::optional<std::size_t>{5U} &&
+                (*grid).column_display_index(5U) == DataGridViewDisplayIndex{5U},
+            "an insertion at the count appends");
+    require(throws<std::out_of_range>(InsertColumnPastEnd{grid.get()}), "an insertion past the count is refused");
+    require(throws<std::invalid_argument>(InsertDuplicateColumn{grid.get()}) && (*grid).columns().size() == 6U,
+            "a repeated name is refused and changes nothing");
+    (*grid).set_column_header_text(1U, "MHz");
+    require((*grid).columns()[1].header_text == "MHz", "a header text is set in place");
+    require(throws<std::invalid_argument>(SetInvalidHeaderText{grid.get()}) &&
+                (*grid).columns()[0].header_text == "Name",
+            "a header text that is not UTF-8 is refused");
+    (*grid).set_columns(sample_columns());
 
     std::shared_ptr<DataGridView> dragged = make_grid("grid.order.drag");
     Window drag_window(dragged, {360.0, 160.0});
