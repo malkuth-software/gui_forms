@@ -252,6 +252,8 @@ Types
      - A part's running transitions (E7; T2 plan, "How motion is driven").
    * - :cpp:class:`PartPaint <gui_forms::PartPaint>`
      -  
+   * - :cpp:class:`PartProfile <gui_forms::PartProfile>`
+     - One part to paint, in the control's local coordinates.
    * - :cpp:class:`PartRaster <gui_forms::PartRaster>`
      - One part's pixels as the engine keeps them (T2 plan, PartRaster): premultiplied BGRA8 in device pixels, in PartRasterView's layout, made for one display scale.
    * - :cpp:class:`PartRasterRequest <gui_forms::PartRasterRequest>`
@@ -266,8 +268,6 @@ Types
      - Which record a handle names: a slot of the table and the slot's generation when the record was made.
    * - :cpp:class:`PartShape <gui_forms::PartShape>`
      -  
-   * - :cpp:class:`PartShape <gui_forms::PartShape>`
-     - One part to paint, in the control's local coordinates.
    * - :cpp:class:`PartTransitionChannel <gui_forms::PartTransitionChannel>`
      - One property's transition on a part (E7): an engine property or the parameter at ``parameter``, the machine and the state of it the part was last painted in (state none when the part's states matched none), and the property's motion value, made the first time the part is painted with the transition.
    * - :cpp:class:`Point <gui_forms::Point>`
@@ -3782,9 +3782,9 @@ Types
 
       A pointed face (design language §8.5; owner decision 2026-11-02): the surface's trailing end is a nose this many units long, its tip at the middle of the right edge, as a raised breadcrumb segment's. Only surface roles read it; none is a rectangle. Hit testing uses the same shape (pointed_face_contains).
 
-   .. cpp:member:: std::optional<PartShape> shape
+   .. cpp:member:: std::optional<PartProfile> profile
 
-      The part's shape beside its rectangle (PartShape), or none. Only surface roles read it; a pointed face ignores it.
+      The part's shape beside its rectangle (PartProfile), or none. Only surface roles read it; a pointed face ignores it.
 
    .. cpp:member:: PartFrame frame
 
@@ -3819,6 +3819,26 @@ Types
    .. cpp:member:: std::optional<Size> measured_text
 
       The text's measurement in ``font``, when the caller has already made it (paint_text_part_at does), so the text is not measured again; none otherwise. A cache, not vocabulary: it changes nothing drawn, and a caller that sets it must have measured exactly ``text`` in ``font``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PartProfile final
+
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+
+   One part to paint, in the control's local coordinates. ``text``, ``image`` and ``mark`` are read only by roles that show them (label, caption and content; icon and image; glyph and indicator). ``text`` is borrowed for the call. ``font`` is an effective font (Control::effective_font). ``corner_radius``, when set, gives a surface part its shape; the theme (T4) will own shapes, so a control sets it only where today's recipe has no shape for the part. ``orientation`` and ``alignment`` are read with ``text``; ``dock_region`` only by the dock_shape mark. A part's profile beside its rectangle (look integration; the T4 rendering reference's tab stack and the owner's Plan Paint tab look), as a theme sets it on the part (ControlPartMetrics) and the control passes it on: - ``taper``: the trailing (right) edge leans in by this many units at the part's top, a file-folder tab's edge, drawn as a line in ``taper_colour`` when it has one; - ``flare``: the bottom corners flare outward by this many units in a concave lip of ``flare_colour``, where a selected tab meets the plane; - ``edge_shadow``: a soft shadow beyond the trailing edge, following its taper, falling off from ``edge_shadow_colour`` to clear over this many units. A tapered part is cut to its shape, its outer shadows with it; the edge shadow then draws its cast. Each is bounded: the taper by the part's width, the flare by its height, all by maximum_part_shape.
+
+   .. cpp:member:: double taper
+
+   .. cpp:member:: std::optional<Color> taper_colour
+
+   .. cpp:member:: double flare
+
+   .. cpp:member:: Color flare_colour
+
+   .. cpp:member:: double edge_shadow
+
+   .. cpp:member:: Color edge_shadow_colour
 
 .. cpp:namespace:: gui_forms
 
@@ -3945,26 +3965,6 @@ Types
       A rounded rectangle whose corners differ (E9.6): when ``per_corner`` is set, ``corners`` replaces ``corner_radius``, each clamped to half the shorter side. Other kinds ignore both.
 
    .. cpp:member:: PartCornerRadii corners
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: PartShape final
-
-   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
-
-   One part to paint, in the control's local coordinates. ``text``, ``image`` and ``mark`` are read only by roles that show them (label, caption and content; icon and image; glyph and indicator). ``text`` is borrowed for the call. ``font`` is an effective font (Control::effective_font). ``corner_radius``, when set, gives a surface part its shape; the theme (T4) will own shapes, so a control sets it only where today's recipe has no shape for the part. ``orientation`` and ``alignment`` are read with ``text``; ``dock_region`` only by the dock_shape mark. A part's shape beside its rectangle (look integration; the T4 rendering reference's tab stack and the owner's Plan Paint tab look), as a theme sets it on the part (ControlPartMetrics) and the control passes it on: - ``taper``: the trailing (right) edge leans in by this many units at the part's top, a file-folder tab's edge, drawn as a line in ``taper_colour`` when it has one; - ``flare``: the bottom corners flare outward by this many units in a concave lip of ``flare_colour``, where a selected tab meets the plane; - ``edge_shadow``: a soft shadow beyond the trailing edge, following its taper, falling off from ``edge_shadow_colour`` to clear over this many units. A tapered part is cut to its shape, its outer shadows with it; the edge shadow then draws its cast. Each is bounded: the taper by the part's width, the flare by its height, all by maximum_part_shape.
-
-   .. cpp:member:: double taper
-
-   .. cpp:member:: std::optional<Color> taper_colour
-
-   .. cpp:member:: double flare
-
-   .. cpp:member:: Color flare_colour
-
-   .. cpp:member:: double edge_shadow
-
-   .. cpp:member:: Color edge_shadow_colour
 
 .. cpp:namespace:: gui_forms
 

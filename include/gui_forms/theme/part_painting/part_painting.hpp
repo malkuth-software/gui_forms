@@ -88,7 +88,7 @@ inline constexpr std::size_t part_mark_count = static_cast<std::size_t>(PartMark
 // the order they were admitted in.
 inline constexpr std::array<std::string_view, 8> part_value_names{
     {"accent_index", "text_orientation", "dock_region", "content_color", "authored_color",
-     "text_tone", "pointed_face", "part_shape"}};
+     "text_tone", "pointed_face", "part_profile"}};
 
 enum class PartTextAlignment : std::uint8_t { start, center, end };
 
@@ -108,15 +108,7 @@ enum class PartFrame : std::uint8_t { drawn, none };
 // tab.
 enum class DockShapeRegion : std::uint8_t { top, bottom, left, right, tab_into };
 
-// One part to paint, in the control's local coordinates. `text`, `image` and
-// `mark` are read only by roles that show them (label, caption and content;
-// icon and image; glyph and indicator). `text` is borrowed for the call. `font` is an
-// effective font (Control::effective_font). `corner_radius`, when set, gives
-// a surface part its shape; the theme (T4) will own shapes, so a control sets
-// it only where today's recipe has no shape for the part. `orientation` and
-// `alignment` are read with `text`; `dock_region` only by the dock_shape
-// mark.
-// A part's shape beside its rectangle (look integration; the T4 rendering
+// A part's profile beside its rectangle (look integration; the T4 rendering
 // reference's tab stack and the owner's Plan Paint tab look), as a theme
 // sets it on the part (ControlPartMetrics) and the control passes it on:
 // - `taper`: the trailing (right) edge leans in by this many units at the
@@ -130,7 +122,7 @@ enum class DockShapeRegion : std::uint8_t { top, bottom, left, right, tab_into }
 // A tapered part is cut to its shape, its outer shadows with it; the edge
 // shadow then draws its cast. Each is bounded: the taper by the part's
 // width, the flare by its height, all by maximum_part_shape.
-struct PartShape final {
+struct PartProfile final {
     double taper{};
     std::optional<Color> taper_colour{};
     double flare{};
@@ -139,6 +131,14 @@ struct PartShape final {
     Color edge_shadow_colour{};
 };
 
+// One part to paint, in the control's local coordinates. `text`, `image` and
+// `mark` are read only by roles that show them (label, caption and content;
+// icon and image; glyph and indicator). `text` is borrowed for the call. `font` is an
+// effective font (Control::effective_font). `corner_radius`, when set, gives
+// a surface part its shape; the theme (T4) will own shapes, so a control sets
+// it only where today's recipe has no shape for the part. `orientation` and
+// `alignment` are read with `text`; `dock_region` only by the dock_shape
+// mark.
 struct PartPaint final {
     PartRole role{PartRole::region};
     Rect bounds{};
@@ -168,9 +168,9 @@ struct PartPaint final {
     // surface roles read it; none is a rectangle. Hit testing uses the same
     // shape (pointed_face_contains).
     std::optional<double> point{};
-    // The part's shape beside its rectangle (PartShape), or none. Only
+    // The part's profile beside its rectangle (PartProfile), or none. Only
     // surface roles read it; a pointed face ignores it.
-    std::optional<PartShape> shape{};
+    std::optional<PartProfile> profile{};
     // Whether the part draws its frame. A surface part with frame none is
     // its material's ground: the material's border and per-edge borders are
     // left out, and its fills, keylines, shadows and shape are kept. It is

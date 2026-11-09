@@ -823,37 +823,37 @@ void paint_pointed_part(Painter& painter, const Control& control, const PartPain
 // The strips a shaped part's taper, lip and edge shadow are cut into, each
 // a rectangle, so the shape is a bounded staircase (as the pointed face's
 // nose is).
-constexpr std::size_t part_shape_strips = 12U;
+constexpr std::size_t part_profile_strips = 12U;
 
-// Whether `part` carries a shape that draws anything.
-bool shaped(const PartPaint& part) noexcept {
-    if (!part.shape || part.point || !surface_role(part.role)) return false;
-    const PartShape& shape = *part.shape;
-    const bool any = shape.taper > 0.0 || shape.flare > 0.0 || shape.edge_shadow > 0.0;
+// Whether `part` carries a profile that draws anything.
+bool profiled(const PartPaint& part) noexcept {
+    if (!part.profile || part.point || !surface_role(part.role)) return false;
+    const PartProfile& profile = *part.profile;
+    const bool any = profile.taper > 0.0 || profile.flare > 0.0 || profile.edge_shadow > 0.0;
     return any;
 }
 
-// A shaped part (PartPaint::shape), in order: the edge shadow beyond the
+// A profiled part (PartPaint::profile), in order: the edge shadow beyond the
 // trailing edge, the part itself (cut to its taper: once clipped to its
 // body and once to each strip of the taper), the tapered edge's line, and
 // the lip at its bottom corners. The trailing edge at height y runs from
 // `right - taper` at the top to `right` at the bottom.
-void paint_shaped_part(Painter& painter, const Control& control, const PartPaint& part) {
-    const PartShape& shape = *part.shape;
+void paint_profiled_part(Painter& painter, const Control& control, const PartPaint& part) {
+    const PartProfile& profile = *part.profile;
     PartPaint whole = part;
-    whole.shape.reset();
+    whole.profile.reset();
     const Rect bounds = part.bounds;
     const double right = bounds.x + bounds.width;
     const double bottom = bounds.y + bounds.height;
-    const double taper = std::clamp(shape.taper, 0.0, std::min(bounds.width, maximum_part_shape));
-    const double flare = std::clamp(shape.flare, 0.0, std::min(bounds.height, maximum_part_shape));
-    const double falloff = std::clamp(shape.edge_shadow, 0.0, maximum_part_shape);
-    const double strip_height = bounds.height / static_cast<double>(part_shape_strips);
+    const double taper = std::clamp(profile.taper, 0.0, std::min(bounds.width, maximum_part_shape));
+    const double flare = std::clamp(profile.flare, 0.0, std::min(bounds.height, maximum_part_shape));
+    const double falloff = std::clamp(profile.edge_shadow, 0.0, maximum_part_shape);
+    const double strip_height = bounds.height / static_cast<double>(part_profile_strips);
     if (falloff > 0.0) {
-        const Color clear = Color::rgba(shape.edge_shadow_colour.red, shape.edge_shadow_colour.green,
-                                        shape.edge_shadow_colour.blue, 0);
-        const std::array<GradientStop, 2> stops{GradientStop{0.0, shape.edge_shadow_colour}, GradientStop{1.0, clear}};
-        for (std::size_t strip = 0U; strip < part_shape_strips; ++strip) {
+        const Color clear = Color::rgba(profile.edge_shadow_colour.red, profile.edge_shadow_colour.green,
+                                        profile.edge_shadow_colour.blue, 0);
+        const std::array<GradientStop, 2> stops{GradientStop{0.0, profile.edge_shadow_colour}, GradientStop{1.0, clear}};
+        for (std::size_t strip = 0U; strip < part_profile_strips; ++strip) {
             const double top = bounds.y + strip_height * static_cast<double>(strip);
             const double middle = top + strip_height * 0.5;
             const double edge = right - taper * (1.0 - (middle - bounds.y) / bounds.height);
@@ -869,7 +869,7 @@ void paint_shaped_part(Painter& painter, const Control& control, const PartPaint
         painter.clip_rect({bounds.x, bounds.y, bounds.width - taper, bounds.height});
         paint_part(painter, control, whole);
         painter.restore();
-        for (std::size_t strip = 0U; strip < part_shape_strips; ++strip) {
+        for (std::size_t strip = 0U; strip < part_profile_strips; ++strip) {
             const double top = bounds.y + strip_height * static_cast<double>(strip);
             const double middle = top + strip_height * 0.5;
             const double edge = right - taper * (1.0 - (middle - bounds.y) / bounds.height);
@@ -879,21 +879,21 @@ void paint_shaped_part(Painter& painter, const Control& control, const PartPaint
             paint_part(painter, control, whole);
             painter.restore();
         }
-        if (shape.taper_colour && part.frame != PartFrame::none) {
-            painter.draw_line({shoulder - 0.5, bounds.y + 0.5}, {right - 0.5, bottom}, *shape.taper_colour, 1.0);
+        if (profile.taper_colour && part.frame != PartFrame::none) {
+            painter.draw_line({shoulder - 0.5, bounds.y + 0.5}, {right - 0.5, bottom}, *profile.taper_colour, 1.0);
         }
     }
     if (flare <= 0.0) return;
     // The lip: a concave quarter at each bottom corner, flat where it meets
     // what lies below the part.
-    const double lip_strip = flare / static_cast<double>(part_shape_strips);
-    for (std::size_t strip = 0U; strip < part_shape_strips; ++strip) {
+    const double lip_strip = flare / static_cast<double>(part_profile_strips);
+    for (std::size_t strip = 0U; strip < part_profile_strips; ++strip) {
         const double top = bottom - flare + lip_strip * static_cast<double>(strip);
         const double depth = (top + lip_strip * 0.5) - (bottom - flare);
         const double reach = flare - std::sqrt(std::max(0.0, flare * flare - depth * depth));
         if (reach <= 0.0) continue;
-        painter.fill_rect({bounds.x - reach, top, reach, lip_strip}, shape.flare_colour);
-        painter.fill_rect({right, top, reach, lip_strip}, shape.flare_colour);
+        painter.fill_rect({bounds.x - reach, top, reach, lip_strip}, profile.flare_colour);
+        painter.fill_rect({right, top, reach, lip_strip}, profile.flare_colour);
     }
 }
 
@@ -943,8 +943,8 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
         paint_pointed_part(painter, control, part, length);
         return;
     }
-    if (shaped(part) && paintable(part.bounds)) {
-        paint_shaped_part(painter, control, part);
+    if (profiled(part) && paintable(part.bounds)) {
+        paint_profiled_part(painter, control, part);
         return;
     }
     const Theme& theme = control.effective_theme();

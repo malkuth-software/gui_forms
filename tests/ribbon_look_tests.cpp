@@ -8,7 +8,7 @@
 // disabled state and, optionally, selection on release; the shapes (folder
 // taper, lip, edge shadow) paint where a theme turns them on; Plan Paint's
 // package compiles with them; and the default theme draws the rendering
-// reference's tab row.
+// reference's tab row and sets Backstage's column apart from its page.
 
 #include "../src/core/theme_language/package/theme_manifest.hpp"
 #include "gui_forms/gui_forms.hpp"
@@ -124,10 +124,15 @@ std::shared_ptr<const Theme> theme_from_sheet(std::string_view text, std::string
     ThemeCompileOptions options{};
     options.controls = stock_control_anatomies();
     const ThemeCompileResult result = compile_theme_package(look_package(text), library, images, options);
-    require(result.succeeded() && result.diagnostics().empty(), name);
+    // A literal colour warns that a derived variant cannot remap it (W201);
+    // any other finding fails the sheet.
+    bool clean = result.succeeded();
     for (const ThemeCompileDiagnostic& diagnostic : result.diagnostics()) {
+        if (diagnostic.code == "W201") continue;
+        clean = false;
         std::cerr << "  " << diagnostic.code << " " << diagnostic.name << '\n';
     }
+    require(clean, name);
     std::shared_ptr<const Theme> theme = result.theme();
     return theme;
 }
@@ -176,10 +181,10 @@ constexpr Color shadow_ink = Color::rgba(24, 56, 97);
 // naming them.
 void test_parts_are_keyed() {
     const std::shared_ptr<const Theme> theme = theme_from_sheet(
-        "ribbon::part(tab-rail) { background-color: #93add0; }\n"
-        "ribbon::part(tab):state(selected) { background-color: #e8f2ff; }\n"
+        "ribbon::part(tab-rail) { background: #93add0; border: none; box-shadow: none; }\n"
+        "ribbon::part(tab):state(selected) { background: #e8f2ff; border: none; box-shadow: none; }\n"
         "ribbon::part(tab-label):state(selected) { color: #173f79; }\n"
-        "ribbon::part(command-plane) { background-color: #cadefb; }\n",
+        "ribbon::part(command-plane) { background: #cadefb; border: none; box-shadow: none; }\n",
         "the keyed-parts sheet compiles cleanly");
     std::shared_ptr<Ribbon> ribbon = ribbon_with(two_tabs());
     (*ribbon).set_theme_override(theme);
@@ -473,6 +478,34 @@ void test_default_theme_row() {
     require(home && painter.text_colours[*home] == selected_ink, "the selected label is the reference's ink");
 }
 
+// RB decision 26: in the default theme Backstage's column takes the
+// command plane's blue against the white page.
+void test_backstage_column() {
+    std::shared_ptr<BackstageView> view = make_control<BackstageView>(StableId("backstage"));
+    BackstageItemSpec topic{};
+    topic.stable_id = "info";
+    topic.kind = BackstageItemKind::topic;
+    topic.text = "Info";
+    topic.page = make_control<Panel>(StableId("backstage.info"));
+    (*view).set_items({topic});
+    (*view).set_theme_override(gui_forms_theme());
+    Window window(view, {600.0, 400.0});
+    window.perform_layout();
+    LookPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 600.0, 400.0}));
+    // The column's gradient runs from #E8F2FF to #CADEFB: its raster's
+    // centre lies between the two.
+    bool column_blue = false;
+    for (const Color& fill : painter.fills) {
+        const bool red = fill.red >= 0xcaU && fill.red <= 0xe8U;
+        const bool green = fill.green >= 0xdeU && fill.green <= 0xf2U;
+        const bool blue = fill.blue >= 0xfbU;
+        if (red && green && blue && fill.alpha == 0xffU) column_blue = true;
+    }
+    require(column_blue, "the column takes the plane's blue");
+    require(painter.filled(Color::rgba(0xff, 0xff, 0xff)), "the page is white");
+}
+
 } // namespace
 
 int main() {
@@ -485,6 +518,7 @@ int main() {
     test_width_refusals();
     test_plan_paint_package();
     test_default_theme_row();
+    test_backstage_column();
     if (failures != 0) {
         std::cerr << failures << " ribbon look check(s) failed\n";
         return 1;
