@@ -6,7 +6,9 @@
 
 #include "ribbon_geometry.hpp"
 
+#include "gui_forms/engine/theme_engine/theme_engine.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -196,6 +198,11 @@ Ribbon::ScalingKey Ribbon::current_scaling_key() const {
     const Window* const host = attached_window();
     key.provider = host != nullptr ? (*host).text_metrics_provider() : nullptr;
     key.font = font.read();
+    if (host != nullptr) {
+        key.media = window_media_facts(*host);
+        key.user_rules = (*host).user_theme_rules();
+    }
+    key.inline_rules = inline_style_rules();
     return key;
 }
 
@@ -209,18 +216,58 @@ void Ribbon::refresh_scaling_key() const {
     for (TabScaling& scaling : scaling_) scaling.built = false;
 }
 
+// The tab row's metrics: the theme's where its rules set them (look
+// integration, Plan Paint defect 5), else the ribbon's own; each scaled by
+// the text scale. A tab is as wide as its authored width, or as its label
+// at the wider of its resting and selected fonts plus the padding, so that
+// selecting a tab never moves the others; then at least the theme's
+// minimum width.
 const Ribbon::RowMetrics& Ribbon::row_metrics() const {
     refresh_scaling_key();
     if (row_metrics_.built) return row_metrics_;
     const double scale = effective_text_scale();
-    const double padding = tab_padding * scale * 2.0;
+    AnatomyStateSet selected;
+    selected.insert(AnatomyState::selected);
+    const ControlPartMetrics rail = part_metrics("tab_rail", ControlVisualRole::panel, {});
+    const ControlPartMetrics plane = part_metrics("command_plane", ControlVisualRole::panel, {});
+    const ControlPartMetrics application = part_metrics("application_button", ControlVisualRole::accent_button, {});
+    const ControlPartMetrics rest = part_metrics("tab", ControlVisualRole::menu_item, {});
+    const ControlPartMetrics chosen = part_metrics("tab", ControlVisualRole::menu_item, selected);
+    const double row = std::max(1.0, rail.block_size.value_or(tab_row_extent)) * scale;
+    const double rows = row_extent * static_cast<double>(rows_per_column);
+    const double stock_plane = plane_top_padding + rows + caption_extent + plane_bottom_padding;
+    row_metrics_.row_height = row;
+    row_metrics_.plane_height = std::max(1.0, plane.block_size.value_or(stock_plane)) * scale;
+    row_metrics_.padding = rest.padding_inline.value_or(tab_padding) * scale;
+    row_metrics_.application_padding = application.padding_inline.value_or(tab_padding) * scale;
+    row_metrics_.gap = rest.gap.value_or(tab_gap) * scale;
+    // A top margin leaves at least one unit of the tab; a bottom margin
+    // may be negative, running the tab below the rail into the plane.
+    const double highest = std::max(0.0, row - 1.0);
+    row_metrics_.application_margins.top = std::clamp(application.margin_block_start.value_or(0.0) * scale, 0.0, highest);
+    row_metrics_.application_margins.bottom = application.margin_block_end.value_or(0.0) * scale;
+    row_metrics_.rest.top = std::clamp(rest.margin_block_start.value_or(0.0) * scale, 0.0, highest);
+    row_metrics_.rest.bottom = rest.margin_block_end.value_or(0.0) * scale;
+    row_metrics_.selected.top = std::clamp(chosen.margin_block_start.value_or(0.0) * scale, 0.0, highest);
+    row_metrics_.selected.bottom = chosen.margin_block_end.value_or(0.0) * scale;
+    const double application_minimum = application.minimum_inline_size.value_or(application_minimum_width) * scale;
     const double application_width = text_width(parse_mnemonic_text(application_text.read()).display_text);
-    row_metrics_.application = std::max(application_minimum_width * scale, application_width + padding);
+    row_metrics_.application =
+        std::max(application_minimum, application_width + row_metrics_.application_padding * 2.0);
+    const double tab_minimum = rest.minimum_inline_size.value_or(0.0) * scale;
     row_metrics_.tabs.clear();
     row_metrics_.tabs.reserve(tabs_.size());
     for (const RibbonTabSpec& tab : tabs_) {
-        const double label = text_width(parse_mnemonic_text(tab.text).display_text);
-        row_metrics_.tabs.push_back(label + padding);
+        double width = 0.0;
+        if (tab.width) {
+            width = *tab.width * scale;
+        } else {
+            const std::string label = parse_mnemonic_text(tab.text).display_text;
+            const double resting = tab_label_width(label, {});
+            const double raised = tab_label_width(label, selected);
+            width = std::max(resting, raised) + row_metrics_.padding * 2.0;
+        }
+        row_metrics_.tabs.push_back(std::max(width, tab_minimum));
     }
     row_metrics_.built = true;
     return row_metrics_;
@@ -550,22 +597,27 @@ Ribbon::Layout Ribbon::layout() const {
 }
 
 Ribbon::Layout Ribbon::layout_for(Rect client) const {
-    const double scale = effective_text_scale();
     const RowMetrics& row_widths = row_metrics();
     Layout placed;
-    const double row = tab_row_height();
+    const double row = row_widths.row_height;
     placed.tab_rail = {client.x, client.y, client.width, row};
-    placed.application = {client.x, client.y, row_widths.application, row};
-    double x = client.x + row_widths.application + tab_gap * scale;
+    const TabMargins file = row_widths.application_margins;
+    placed.application = {client.x, client.y + file.top, row_widths.application,
+                          std::max(1.0, row - file.top - file.bottom)};
+    double x = client.x + row_widths.application + row_widths.gap;
     placed.tabs.reserve(tabs_.size());
+    // A tab's top and bottom follow its state's margins: the selected tab
+    // stands taller than the rest and may run into the plane (RENDERING_
+    // REFERENCE §4).
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
         if (!shown(tab)) {
             placed.tabs.push_back(Rect{});
             continue;
         }
         const double width = row_widths.tabs[tab];
-        placed.tabs.push_back({x, client.y, width, row});
-        x += width + tab_gap * scale;
+        const TabMargins margins = selected_tab_ == tab ? row_widths.selected : row_widths.rest;
+        placed.tabs.push_back({x, client.y + margins.top, width, std::max(1.0, row - margins.top - margins.bottom)});
+        x += width + row_widths.gap;
     }
     if (!selected_tab_) return placed;
     reset_layout_groups(placed);

@@ -30,7 +30,7 @@ Marks: `check`, `indeterminate`, `radio_dot`, `toggle_knob`, `arrow_up`, `arrow_
 
 Engine inputs: `pointer_x`, `pointer_y`, `time_in_state`, `display_scale`, `text_scale`.
 
-Values: `accent_index`, `text_orientation`, `dock_region`, `content_color`, `authored_color`, `text_tone`, `pointed_face`.
+Values: `accent_index`, `text_orientation`, `dock_region`, `content_color`, `authored_color`, `text_tone`, `pointed_face`, `part_shape`.
 
 Recipe families: `window`, `panel`, `card`, `button`, `accent_button`, `command_button`, `choice`, `editor`, `menu_item`, `selection`, `progress`, `tool_tip`, `link`, `visited_link`, `notice`, `badge`.
 
@@ -2883,7 +2883,7 @@ Item system `tab`:
 | `tab_label` | label |  |  |
 | `tab_focus` | focus |  |  |
 
-Item states: `hot`, `selected`, `focus_visible`.
+Item states: `hot`, `selected`, `focus_visible`, `disabled`.
 
 Item system `group`:
 

@@ -481,7 +481,7 @@ constexpr std::string_view light_sheet = R"css(/* gui-forms: the default theme's
    corners only, where an inset shadow follows the radius and a keyline
    does not; elsewhere it is 16 or less (T4 phase 4). The tab's ink is its
    family's recipe text (a part takes no `color`). */
-tab-control::part(tab), page-strip::part(tab) {
+tab-control::part(tab), page-strip::part(tab), ribbon::part(tab) {
   background-color: #9bb6da;
   background-image: linear-gradient(to bottom, rgb(255 255 255 / 49%) 1px, transparent 1px),
     linear-gradient(to bottom, rgb(34 70 116 / 15%), rgb(34 70 116 / 0%) 72%);
@@ -489,13 +489,59 @@ tab-control::part(tab), page-strip::part(tab) {
   border-radius: 4px;
   box-shadow: inset -1px 0 0 #496c9f, inset -2px 0 0 #d1e0f5, 3px 1px 2px rgb(24 56 97 / 22%), 2px 0 0 #496c9f;
 }
-tab-control::part(tab):hover, page-strip::part(tab):hover {
+tab-control::part(tab):hover, page-strip::part(tab):hover, ribbon::part(tab):hover {
   background-color: #acc6e7;
 }
-tab-control::part(tab):state(selected), page-strip::part(tab):state(selected) {
+tab-control::part(tab):state(selected), page-strip::part(tab):state(selected),
+ribbon::part(tab):state(selected) {
   background-color: #e8f2ff;
   background-image: linear-gradient(to bottom, #ffffff 1px, transparent 1px),
     linear-gradient(to bottom, rgb(255 255 255 / 57%), rgb(255 255 255 / 0%) 72%);
+}
+
+/* The Ribbon's tab row (rendering reference §4; design language §11 item
+   4): a flat #93ADD0 rail 27 units high; the tabs abut, each three units
+   below the rail's top, the selected one standing to the top and running
+   one unit into the plane over its top line, so that it joins the plane;
+   its label bold in #173F79 and a little larger. File is the blue
+   gradient tab with white ink. No folder taper, lip or edge shadow: no
+   study calls for them in the default (an application's package may turn
+   them on). */
+ribbon::part(tab-rail) {
+  background: #93add0;
+  border: none;
+  height: 27px;
+}
+ribbon::part(tab) {
+  gap: 0;
+  margin-top: 3px;
+}
+ribbon::part(tab):state(selected) {
+  margin-top: 0;
+  margin-bottom: -1px;
+}
+ribbon::part(tab-label):state(selected) {
+  color: #173f79;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+ribbon::part(application-button) {
+  background: linear-gradient(to bottom, #528be0, #173f88);
+  border: none;
+  border-radius: 4px 4px 0 0;
+  margin-top: 3px;
+}
+ribbon::part(application-label) {
+  color: #ffffff;
+}
+
+/* The Ribbon's command plane (rendering reference §5): Plan Paint's
+   #E8F2FF, #CADEFB, #A5C4F1 and #769FDF, a white top line and a shade
+   line at its foot. */
+ribbon::part(command-plane) {
+  background: linear-gradient(to bottom, #e8f2ff, #cadefb 28%, #a5c4f1 62%, #769fdf);
+  border: none;
+  box-shadow: inset 0 1px 0 #ffffff, inset 0 -1px 0 #496c9f;
 }
 
 /* The command plane: near-white deepening toward Plan Paint's royale blue

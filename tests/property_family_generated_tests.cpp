@@ -1886,6 +1886,11 @@ void test_ribbon_properties() {
         (*control).font = sample;
         expect((*control).font.read() == sample, "Ribbon.font: a write stores");
     }
+    {
+        const bool sample = true;
+        (*control).tabs_activate_on_release = sample;
+        expect((*control).tabs_activate_on_release.read() == sample, "Ribbon.tabs_activate_on_release: a write stores");
+    }
 }
 
 void test_ribbon_color_picker_properties() {
