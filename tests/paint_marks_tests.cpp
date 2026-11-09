@@ -2,7 +2,8 @@
 // P7; NODE_ENGINE_AND_VALUE_BAR_STUDY 1A, pieces C1, C7, C9, C17): their
 // value helpers, their recording and replay as one display command each
 // (display-trace cases: every call is written as text with its arguments and
-// compared exactly), and the base painter's fallbacks.
+// compared exactly), the base painter's fallbacks, and the part primitives
+// composed from them (paint_recipes.hpp: C2, C3, C4).
 #include "gui_forms/gui_forms.hpp"
 #include "../src/core/display/recording_painter/recording_painter.hpp"
 #include "../src/core/display/replay/replay_display_chunk.hpp"
@@ -43,6 +44,12 @@ public:
     void restore() override { out << "restore\n"; }
     void translate(Point offset) override { out << "translate " << point(offset) << '\n'; }
     void clip_rect(Rect rect) override { out << "clip_rect " << box(rect) << '\n'; }
+    void clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii) override {
+        out << "clip_rounded_rect_corners " << box(rect) << ' ' << corners(radii) << '\n';
+    }
+    void stroke_rounded_rect(Rect rect, double radius, Color color, double width) override {
+        out << "stroke_rounded_rect " << box(rect) << ' ' << radius << ' ' << colour(color) << ' ' << width << '\n';
+    }
     void fill_rect(Rect rect, Color color) override { out << "fill_rect " << box(rect) << ' ' << colour(color) << '\n'; }
     void stroke_rect(Rect rect, Color color, double width) override {
         out << "stroke_rect " << box(rect) << ' ' << colour(color) << ' ' << width << '\n';
@@ -471,6 +478,100 @@ void test_fallback_patterns() {
             "a fallback conic gradient fills wedges inside its rectangle");
 }
 
+void test_proportion_and_masked_fill() {
+    const Rect track{10.0, 20.0, 100.0, 10.0};
+    require(proportion_rect(track, 0.25, FillDirection::left_to_right) == (Rect{10.0, 20.0, 25.0, 10.0}) &&
+                proportion_rect(track, 0.25, FillDirection::right_to_left) == (Rect{85.0, 20.0, 25.0, 10.0}) &&
+                proportion_rect(track, 0.5, FillDirection::bottom_to_top) == (Rect{10.0, 25.0, 100.0, 5.0}) &&
+                proportion_rect(track, 2.0, FillDirection::top_to_bottom) == track,
+            "a proportion must cover its share of the track from the named edge, clamped to the track");
+    require(proportion_rect(track, not_a_number, FillDirection::left_to_right).empty(), "NaN must cover nothing");
+
+    TracePainter trace;
+    const PaintCornerRadii radii{5.0, 5.0, 5.0, 5.0};
+    paint_masked_fill(trace, track, radii, 0.25, FillDirection::left_to_right, ink);
+    paint_masked_fill(trace, track, radii, 0.0, FillDirection::left_to_right, ink);
+    const std::string expected = "save\n"
+                                 "clip_rounded_rect_corners 10,20,100,10 5/5/5/5\n"
+                                 "fill_rect 10,20,25,10 #10.20.30.255\n"
+                                 "restore\n";
+    require(trace.out.str() == expected,
+            "a masked fill must clip to the track's rounded shape, and an empty one draw nothing");
+}
+
+void test_contrast_rule() {
+    require(std::abs(wcag_contrast_ratio(Color::rgba(0, 0, 0), Color::rgba(255, 255, 255)) - 21.0) < 1e-9,
+            "black on white is 21:1");
+    const Color light = Color::rgba(255, 255, 255);
+    const Color dark = Color::rgba(0, 0, 0);
+    require(contrasting_text_color(Color::rgba(20, 40, 140), light, dark) == light,
+            "a dark fill takes the light text");
+    require(contrasting_text_color(Color::rgba(250, 220, 60), light, dark) == dark,
+            "a light fill takes the dark text");
+}
+
+void test_text_over_fill_uses_complementary_clips() {
+    TracePainter trace;
+    const FontSpec font{};
+    paint_text_over_fill(trace, Rect{0.0, 0.0, 100.0, 20.0}, Rect{0.0, 0.0, 40.0, 20.0}, Point{30.0, 14.0}, "42 %",
+                         font, ink, paper);
+    const std::string expected = "save\n"
+                                 "clip_rect 0,0,40,20\n"
+                                 "draw_text 30,14 \"42 %\" #240.240.240.255\n"
+                                 "restore\n"
+                                 "save\n"
+                                 "clip_rect 40,0,60,20\n"
+                                 "draw_text 30,14 \"42 %\" #10.20.30.255\n"
+                                 "restore\n";
+    const std::string observed = trace.out.str();
+    if (observed != expected) std::cerr << "observed trace:\n" << observed;
+    require(observed == expected, "text over a fill must be drawn once on each side of the fill's edge");
+
+    TracePainter middle;
+    paint_text_over_fill(middle, Rect{0.0, 0.0, 100.0, 20.0}, Rect{20.0, 5.0, 40.0, 10.0}, Point{0.0, 14.0}, "x",
+                         font, ink, paper);
+    const std::string clips = middle.out.str();
+    std::size_t bands = 0U;
+    for (std::size_t at = clips.find("clip_rect "); at != std::string::npos; at = clips.find("clip_rect ", at + 1U)) {
+        bands = bands + 1U;
+    }
+    require(bands == 5U, "a fill inside the track leaves four bands around it");
+
+    TracePainter empty;
+    paint_text_over_fill(empty, Rect{0.0, 0.0, 100.0, 20.0}, Rect{}, Point{0.0, 14.0}, "x", font, ink, paper);
+    require(empty.out.str() == "save\nclip_rect 0,0,100,20\ndraw_text 0,14 \"x\" #10.20.30.255\nrestore\n",
+            "with no fill the text is drawn once in the track colour");
+}
+
+void test_joined_segments() {
+    require(joined_segment_position(0U, 1U) == JoinedSegmentPosition::only &&
+                joined_segment_position(0U, 3U) == JoinedSegmentPosition::first &&
+                joined_segment_position(1U, 3U) == JoinedSegmentPosition::middle &&
+                joined_segment_position(2U, 3U) == JoinedSegmentPosition::last,
+            "positions must follow the index in the group");
+    const PaintCornerRadii column_first = joined_segment_radii(JoinedSegmentPosition::first, JoinAxis::column, 3.0);
+    require(column_first == (PaintCornerRadii{3.0, 3.0, 0.0, 0.0}), "a column's first segment rounds its top");
+
+    TracePainter trace;
+    const std::array<Rect, 3> segments{
+        {Rect{0.0, 0.0, 20.0, 10.0}, Rect{20.0, 0.0, 20.0, 10.0}, Rect{40.0, 0.0, 20.0, 10.0}}};
+    const std::array<Color, 3> faces{{paper, ink, paper}};
+    JoinedSegmentsStyle style{};
+    style.radius = 4.0;
+    style.edge = ink;
+    style.seam = ink;
+    paint_joined_segments(trace, segments, faces, JoinAxis::row, style);
+    const std::string expected = "fill_rounded_rect_corners 0,0,20,10 4/0/0/4 #240.240.240.255\n"
+                                 "fill_rounded_rect_corners 20,0,20,10 0/0/0/0 #10.20.30.255\n"
+                                 "fill_rounded_rect_corners 40,0,20,10 0/4/4/0 #240.240.240.255\n"
+                                 "draw_line 20,0 20,10 #10.20.30.255 1\n"
+                                 "draw_line 40,0 40,10 #10.20.30.255 1\n"
+                                 "stroke_rounded_rect 0,0,60,10 4 #10.20.30.255 1\n";
+    const std::string observed = trace.out.str();
+    if (observed != expected) std::cerr << "observed trace:\n" << observed;
+    require(observed == expected, "a joined row rounds only its ends and draws one seam per neighbour pair");
+}
+
 void test_operation_names() {
     require(std::string_view(visual_paint_operation_name(VisualPaintOperation::stroke_polyline)) == "stroke_polyline" &&
                 std::string_view(visual_paint_operation_name(VisualPaintOperation::fill_grid_pattern)) ==
@@ -491,6 +592,10 @@ int main() {
         test_fallback_fills();
         test_fallback_markers();
         test_fallback_patterns();
+        test_proportion_and_masked_fill();
+        test_contrast_rule();
+        test_text_over_fill_uses_complementary_clips();
+        test_joined_segments();
         test_operation_names();
         std::cout << "gui_forms_paint_marks_tests: all tests passed\n";
         return EXIT_SUCCESS;
