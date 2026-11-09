@@ -27,6 +27,10 @@ on:
         description: Install and package a new Windows toolchain when none is published for the harness's windows_toolchain.json
         type: boolean
         default: false
+      docs_only:
+        description: A documentation-only pull request (tools/ci_docs_only.py) builds nothing
+        type: boolean
+        default: false
 permissions:
   contents: read
   actions: read
@@ -34,7 +38,10 @@ jobs:
   # tools/ci_reuse.py finds a producer's job by this name: the calling job is
   # named "native (<runner>, <platform>, <shell>)", so the job reads
   # "native (<runner>, <platform>, <shell>) / build".
+  # A documentation-only pull request skips this job, which then reports
+  # success under its usual check name without building (native.yml, changes).
   build:
+    if: ${{ !inputs.docs_only }}
     runs-on: ${{ inputs.runner }}
     # A cold Windows build that also packages a new toolchain needs headroom.
     # A change to the compile flags makes every platform cold at once: the
