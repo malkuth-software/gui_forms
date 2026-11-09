@@ -77,7 +77,7 @@ void test_input_and_rules(gui_forms::Window& window) {
     // The log keeps its history: a dozen more clicks append, the first
     // lines stay, and the view scrolls so the newest line is its bottom
     // row (a top index at the newest line showed that line alone).
-    for (std::size_t round = 0U; round < 12U; ++round) click(window, target);
+    for (std::size_t round = 0U; round < 12U; ++round) press(window, center(target), Modifier::none, 1U);
     window.perform_layout();
     const std::size_t lines = (*log).items.read().size();
     require(lines > 40U && find_line(*log, "MouseDown · primary ×1") == down,
