@@ -193,6 +193,8 @@ public:
     PyramidOutcome extend(const Source& source, std::size_t previous_size) noexcept;
 
     [[nodiscard]] std::size_t size() const noexcept { return size_; }
+    // The elements reserve() made room for.
+    [[nodiscard]] std::size_t capacity() const noexcept { return capacity_; }
     [[nodiscard]] std::size_t level_count() const noexcept { return level_count_; }
     // Buckets at `level` (level 0 holds size()/pyramid_base whole buckets).
     [[nodiscard]] std::size_t bucket_count(std::size_t level) const noexcept;

@@ -180,6 +180,15 @@ void test_lease_and_borrowed_views() {
     view.offset_bytes = offsetof(Record, level);
     require(validate_series_view(view) == SeriesViewCheck::valid, "a struct-of-fields view validates");
     require(series_view_at(view, ElementIndex{2U}) == 3.5F, "a view reads its strided element");
+    SeriesView<double> times{};
+    times.data = view.data;
+    times.count = records.size();
+    times.stride_bytes = sizeof(Record);
+    times.offset_bytes = offsetof(Record, time);
+    ViewSamples<double, float> paired{};
+    paired.xs = times;
+    paired.ys = view;
+    require(paired.size() == 3U && paired.x(1U) == 1.0 && paired.y(1U) == 2.5, "two views read as samples");
     SeriesView<double> narrow{};
     narrow.data = view.data;
     narrow.count = 2U;

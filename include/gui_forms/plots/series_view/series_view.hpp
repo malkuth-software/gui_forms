@@ -77,6 +77,26 @@ template <SeriesElement Element>
     return element;
 }
 
+// x and y from two borrowed views, read as a decimation source
+// (decimation.hpp's ColumnSamples for owned columns): read only under a
+// pin (SeriesPin) of each view's lease.
+template <SeriesElement XElement, SeriesElement YElement>
+struct ViewSamples final {
+    SeriesView<XElement> xs{};
+    SeriesView<YElement> ys{};
+
+    [[nodiscard]] std::size_t size() const noexcept {
+        const std::size_t result = xs.count < ys.count ? xs.count : ys.count;
+        return result;
+    }
+    [[nodiscard]] double x(std::size_t index) const noexcept {
+        return series_value(series_view_at(xs, ElementIndex{index}));
+    }
+    [[nodiscard]] double y(std::size_t index) const noexcept {
+        return series_value(series_view_at(ys, ElementIndex{index}));
+    }
+};
+
 // The lease's shared state, between the owner's SeriesLease and the
 // readers' handles.
 class SeriesLeaseState final {

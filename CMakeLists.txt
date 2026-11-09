@@ -966,6 +966,13 @@ add_library(gui_forms_controls STATIC
     src/controls/range_control/progress_bar/progress_bar.cpp
     src/controls/instruments/sweep_scope/sweep_scope.cpp
     src/controls/instruments/sweep_scope/sweep_scope_effects.cpp
+    src/controls/instruments/sparkline/sparkline.cpp
+    src/controls/plots/plot_axis_item/plot_axis_item.cpp
+    src/controls/plots/plot_series_item/plot_series_item.cpp
+    src/controls/plots/plot_annotation_item/plot_annotation_item.cpp
+    src/controls/plots/plot_view/plot_engine.cpp
+    src/controls/plots/plot_view/plot_view.cpp
+    src/controls/plots/plot_view/plot_view_live.cpp
     src/controls/built_in_effect_registry/built_in_effect_registry.cpp
     src/controls/range_control/scroll_bar/scroll_bar.cpp
     src/controls/range_control/scroll_bar/h_scroll_bar/h_scroll_bar.cpp
@@ -981,7 +988,9 @@ target_include_directories(gui_forms_controls PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_link_libraries(gui_forms_controls PUBLIC gui_forms_core gui_drawing_core)
+# The plots package's controls (PlotView, its items, Sparkline) draw through
+# the public plot primitives.
+target_link_libraries(gui_forms_controls PUBLIC gui_forms_core gui_drawing_core gui_forms_plot_primitives)
 set_target_properties(gui_forms_controls gui_forms_host_headless PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 # The files that register effect programs, verified by the plugin's effect
@@ -3628,6 +3637,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_sweep_scope_tests tests/sweep_scope_tests.cpp)
     target_link_libraries(gui_forms_sweep_scope_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_sweep_scope_tests COMMAND gui_forms_sweep_scope_tests)
+    add_executable(gui_forms_plot_view_tests tests/plot_view_tests.cpp)
+    target_link_libraries(gui_forms_plot_view_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_plot_view_tests COMMAND gui_forms_plot_view_tests)
     add_executable(gui_forms_event_payload_lifetime_tests tests/event_payload_lifetime_tests.cpp)
     target_link_libraries(gui_forms_event_payload_lifetime_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_event_payload_lifetime_tests COMMAND gui_forms_event_payload_lifetime_tests)

@@ -1,0 +1,185 @@
+{
+  "family": "PlotView",
+  "step": "PL-1",
+  "declaring": "PlotView",
+  "header": "include/gui_forms/controls/plots/plot_view/plot_view.hpp",
+  "source": "src/controls/plots/plot_view/plot_view.cpp",
+  "capabilities_header": "include/gui_forms/controls/plots/plot_view/plot_view_capabilities/plot_view_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/plots/plot_values/plot_values.hpp"
+  ],
+  "properties": [
+    {
+      "name": "title",
+      "capability": "PlotViewTitle",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The words drawn above the plot, and its accessible name by default.",
+      "getter": "title",
+      "setter": "set_title",
+      "clear": null,
+      "field": "title_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The words drawn above the plot.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written lays out again (the title band) and repaints"
+      ],
+      "sample": "std::string(\"Load\")"
+    },
+    {
+      "name": "live",
+      "capability": "PlotViewLive",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the plot draws on its own sub-surface, paced by its frame pacer and fed by its series' ring channels (owner ruling 4a). Off draws on the window's thread.",
+      "getter": "live",
+      "setter": "set_live",
+      "clear": null,
+      "field": "live_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether the plot draws on its own sub-surface.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written makes or removes the sub-surface host"
+      ],
+      "sample": "true"
+    },
+    {
+      "name": "show_legend",
+      "capability": "PlotViewShowLegend",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the legend is drawn (when a series has a label).",
+      "getter": "show_legend",
+      "setter": "set_show_legend",
+      "clear": null,
+      "field": "show_legend_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether the legend is drawn.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written repaints"
+      ],
+      "sample": "false"
+    },
+    {
+      "name": "show_grid",
+      "capability": "PlotViewShowGrid",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the major and minor grid lines are drawn.",
+      "getter": "show_grid",
+      "setter": "set_show_grid",
+      "clear": null,
+      "field": "show_grid_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether the grid is drawn.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written repaints"
+      ],
+      "sample": "false"
+    },
+    {
+      "name": "crosshair",
+      "capability": "PlotViewCrosshair",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether a crosshair follows the pointer over the plot, with its coordinates.",
+      "getter": "crosshair",
+      "setter": "set_crosshair",
+      "clear": null,
+      "field": "crosshair_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether a crosshair follows the pointer.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written repaints"
+      ],
+      "sample": "true"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "PlotView",
+    "include": "gui_forms/controls/plots/plot_view/plot_view.hpp"
+  }
+}

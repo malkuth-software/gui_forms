@@ -1,0 +1,218 @@
+{
+  "family": "PlotSeriesItem",
+  "step": "PL-1",
+  "declaring": "PlotSeriesItem",
+  "header": "include/gui_forms/controls/plots/plot_series_item/plot_series_item.hpp",
+  "source": "src/controls/plots/plot_series_item/plot_series_item.cpp",
+  "capabilities_header": "include/gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/plots/plot_values/plot_values.hpp"
+  ],
+  "properties": [
+    {
+      "name": "kind",
+      "capability": "PlotSeriesItemKind",
+      "value": "PlotSeriesKind",
+      "initial": "PlotSeriesKind::line",
+      "comment": "What the series draws: line, stairs, scatter, shaded, bars or stems.",
+      "getter": "kind",
+      "setter": "set_kind",
+      "clear": null,
+      "field": "kind_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "What the series draws.",
+        "default": "BindingValue{PropertyEnumValue{\"plot_series_kind\", \"line\", 0}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "plot_series_kind_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written tells the owning PlotView, which lays out and repaints"
+      ],
+      "sample": "PlotSeriesKind::scatter"
+    },
+    {
+      "name": "label",
+      "capability": "PlotSeriesItemLabel",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The series' name in the legend and to assistive technology.",
+      "getter": "label",
+      "setter": "set_label",
+      "clear": null,
+      "field": "label_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The series' name in the legend.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written tells the owning PlotView, which lays out and repaints"
+      ],
+      "sample": "std::string(\"Load\")"
+    },
+    {
+      "name": "source",
+      "capability": "PlotSeriesItemSource",
+      "value": "std::string",
+      "initial": null,
+      "comment": "A signal program declaration, `signal(sine, frequency 2Hz, amplitude 1)` (plots::parse_signal_source); empty for data written in C++. A declaration that does not parse throws std::invalid_argument.",
+      "getter": "source",
+      "setter": "set_source",
+      "clear": null,
+      "field": "source_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "text",
+        "category": "Data",
+        "description": "A signal program declaration, or empty.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written tells the owning PlotView, which lays out and repaints"
+      ],
+      "sample": "std::string(\"signal(sine, frequency 2Hz)\")"
+    },
+    {
+      "name": "hidden",
+      "capability": "PlotSeriesItemHidden",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the series is left out of the plot (its legend entry stays, dimmed); clicking the entry toggles it.",
+      "getter": "hidden",
+      "setter": "set_hidden",
+      "clear": null,
+      "field": "hidden_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether the series is hidden.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written tells the owning PlotView, which lays out and repaints"
+      ],
+      "sample": "true"
+    },
+    {
+      "name": "x_axis",
+      "capability": "PlotSeriesItemXAxis",
+      "value": "std::uint32_t",
+      "initial": "0U",
+      "comment": "The horizontal axis the series is drawn against, by position among the plot's horizontal axes (past the last: the first).",
+      "getter": "x_axis",
+      "setter": "set_x_axis",
+      "clear": null,
+      "field": "x_axis_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "unsigned_integer",
+        "category": "Layout",
+        "description": "The horizontal axis's position.",
+        "default": "BindingValue{std::uint64_t{0U}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written tells the owning PlotView, which lays out and repaints"
+      ],
+      "sample": "std::uint32_t{1U}"
+    },
+    {
+      "name": "y_axis",
+      "capability": "PlotSeriesItemYAxis",
+      "value": "std::uint32_t",
+      "initial": "0U",
+      "comment": "The vertical axis the series is drawn against, by position among the plot's vertical axes (past the last: the first).",
+      "getter": "y_axis",
+      "setter": "set_y_axis",
+      "clear": null,
+      "field": "y_axis_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "unsigned_integer",
+        "category": "Layout",
+        "description": "The vertical axis's position.",
+        "default": "BindingValue{std::uint64_t{0U}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written tells the owning PlotView, which lays out and repaints"
+      ],
+      "sample": "std::uint32_t{1U}"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "PlotSeriesItem",
+    "include": "gui_forms/controls/plots/plot_series_item/plot_series_item.hpp"
+  }
+}
