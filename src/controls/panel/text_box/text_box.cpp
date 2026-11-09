@@ -603,6 +603,7 @@ void TextBox::reveal_multiline_caret() {
     const double width = std::max(1.0, viewport.width);
     const double height = std::max(1.0, viewport.height);
     Point offset = scroll_offset();
+    const bool glide = std::exchange(glide_next_reveal_, false);
     if (reveal_pending_) {
         const std::size_t row = caret_line();
         const double x = multiline_boundary_x(row, (*editing_).selection().caret);
@@ -612,6 +613,12 @@ void TextBox::reveal_multiline_caret() {
         if (x < offset.x) offset.x = x;
         if (x > offset.x + width - 1.0) offset.x = x - width + 1.0;
         reveal_pending_ = false;
+        // A paging key's reveal glides; with reduced motion it lands at once.
+        if (glide && auto_scroll.read()) {
+            if (word_wrap.read()) offset.x = 0.0;
+            glide_to(offset);
+            return;
+        }
     }
     set_multiline_scroll(offset);
 }
@@ -1030,6 +1037,8 @@ void TextBox::on_key(KeyEvent& event) {
         }
         set_selection(extend ? TextSelection{(*editing_).selection().anchor, next} : TextSelection{next, next});
         if (!home_end) preferred_x_ = goal;
+        glide_next_reveal_ = event.physical_key == PhysicalKey::page_up ||
+                             event.physical_key == PhysicalKey::page_down;
         event.handled = true;
         return;
     }

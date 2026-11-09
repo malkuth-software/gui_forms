@@ -9,7 +9,6 @@
 #include <array>
 #include <algorithm>
 #include <cmath>
-#include <cstdio>
 #include <limits>
 #include <numeric>
 #include <stdexcept>
@@ -24,7 +23,9 @@ using namespace scrolling_detail;
 ScrollableControl::ScrollableControl(StableId stable_id)
     : Control(std::move(stable_id)),
       horizontal_scroll_(*this, ScrollOrientation::horizontal),
-      vertical_scroll_(*this, ScrollOrientation::vertical) {
+      vertical_scroll_(*this, ScrollOrientation::vertical),
+      horizontal_glide_(*this, MotionCurve::follow()),
+      vertical_glide_(*this, MotionCurve::follow()) {
     // A scrollable control paints only its scroll bars and their corner, at
     // its right and bottom edges, and update_scrollbars repaints those when
     // its viewport or content changes; the rest is its children's. So a
@@ -32,6 +33,9 @@ ScrollableControl::ScrollableControl(StableId stable_id)
     // exposed or vacated (resize R-8). A derived type whose own paint
     // depends on its size sets resize_redraw again.
     Control::set_style(ControlStyles::resize_redraw, false);
+    // Each glide's step moves its axis; the step's scroll invalidates.
+    horizontal_glide_.set_listener(MotionListener::bind<ScrollableControl, &ScrollableControl::glide_stepped>(*this));
+    vertical_glide_.set_listener(MotionListener::bind<ScrollableControl, &ScrollableControl::glide_stepped>(*this));
 }
 
 void ScrollableControl::validate_size(Size size, const char* message) {
@@ -59,6 +63,7 @@ void ScrollableControl::written(const decltype(auto_scroll)&) {
     if (auto_scroll.read()) {
         scroll_state_ |= scroll_state_auto_scrolling;
     } else {
+        stop_glides();
         scroll_state_ &= ~scroll_state_auto_scrolling;
         scroll_position_ = {};
         horizontal_scroll_.value_ = horizontal_scroll_.minimum_;
@@ -308,6 +313,7 @@ void ScrollableControl::invalidate_scroll_bar_strips(Rect previous_viewport) {
 
 void ScrollableControl::adjust_scrollbars(bool display_scrollbars) {
     if (!display_scrollbars) {
+        stop_glides();
         const Point previous_position = scroll_position_;
         horizontal_scroll_.visible_ = false;
         vertical_scroll_.visible_ = false;
@@ -366,7 +372,6 @@ void ScrollableControl::arrange(Rect final_bounds) {
     const bool unchanged = previous_viewport == viewport_rectangle_ &&
         previous_bounds.width == arranged.width && previous_bounds.height == arranged.height;
     bool copied = unchanged && moved == Point{};
-    std::fprintf(stderr, "scroll-arrange unchanged=%d moved %g %g\n", unchanged ? 1 : 0, moved.x, moved.y);
     if (unchanged && !copied && surface_root() != nullptr) {
         copied = (*surface_root()).request_scroll_copy(*this, moved);
     }
@@ -421,7 +426,6 @@ bool ScrollableControl::apply_axis_value(ScrollOrientation orientation,
     const bool copy = scroll_copies_children() && (vscroll() || hscroll());
     if (copy) scroll_copy_pending_ = true;
     else effects |= Dirty::paint;
-    std::fprintf(stderr, "scroll-apply copy=%d arranged=%d sr=%d\n", copy ? 1 : 0, copy_arranged_ ? 1 : 0, surface_root() != nullptr ? 1 : 0);
     invalidate(effects);
     if (copy) invalidate_scroll_bar_strips(viewport_rectangle_);
     on_scroll_position_changed();
@@ -434,9 +438,9 @@ bool ScrollableControl::scroll_to(Point position, ScrollEventType type,
     if (!std::isfinite(position.x) || !std::isfinite(position.y)) {
         throw std::invalid_argument("scroll position must be finite");
     }
-    const bool horizontal = apply_axis_value(
+    const bool horizontal = apply_axis_input(
         ScrollOrientation::horizontal, position.x, type, notify);
-    const bool vertical = apply_axis_value(
+    const bool vertical = apply_axis_input(
         ScrollOrientation::vertical, position.y, type, notify);
     return horizontal || vertical;
 }
@@ -448,13 +452,109 @@ bool ScrollableControl::scroll_by(Point delta,
     if (!std::isfinite(delta.x) || !std::isfinite(delta.y)) {
         throw std::invalid_argument("scroll delta must be finite");
     }
-    const bool horizontal = apply_axis_value(
+    const bool horizontal = apply_axis_input(
         ScrollOrientation::horizontal, scroll_position_.x + delta.x,
         horizontal_type, notify);
-    const bool vertical = apply_axis_value(
+    const bool vertical = apply_axis_input(
         ScrollOrientation::vertical, scroll_position_.y + delta.y,
         vertical_type, notify);
     return horizontal || vertical;
+}
+
+bool ScrollableControl::apply_axis_input(ScrollOrientation orientation,
+                                         double value,
+                                         ScrollEventType type,
+                                         bool notify) {
+    validate_axis_value(value, "scroll position must be finite");
+    const ScrollProperties& axis = orientation == ScrollOrientation::horizontal
+        ? horizontal_scroll_ : vertical_scroll_;
+    const double next = std::clamp(
+        value, axis.minimum_, maximum_offset(orientation));
+    // A write of the position the axis already stands at (a text box
+    // restating its offset on paint) leaves a smooth scroll moving.
+    if (std::abs(next - axis.value_) > comparison_epsilon) stop_glide(orientation);
+    const bool changed = apply_axis_value(orientation, value, type, notify);
+    return changed;
+}
+
+double ScrollableControl::glide_base(ScrollOrientation orientation) const noexcept {
+    const bool horizontal = orientation == ScrollOrientation::horizontal;
+    const MotionValue& glide = horizontal ? horizontal_glide_ : vertical_glide_;
+    if (!glide.settled()) return glide.target();
+    const double position = horizontal ? horizontal_scroll_.value_ : vertical_scroll_.value_;
+    return position;
+}
+
+void ScrollableControl::stop_glide(ScrollOrientation orientation) noexcept {
+    MotionValue& glide = orientation == ScrollOrientation::horizontal
+        ? horizontal_glide_ : vertical_glide_;
+    if (!glide.settled()) glide.finish();
+}
+
+void ScrollableControl::stop_glides() noexcept {
+    stop_glide(ScrollOrientation::horizontal);
+    stop_glide(ScrollOrientation::vertical);
+}
+
+bool ScrollableControl::glide_axis(ScrollOrientation orientation,
+                                   double target,
+                                   ScrollEventType type,
+                                   bool notify) {
+    require_mutable();
+    validate_axis_value(target, "scroll position must be finite");
+    const bool horizontal = orientation == ScrollOrientation::horizontal;
+    const ScrollProperties& axis = horizontal ? horizontal_scroll_ : vertical_scroll_;
+    MotionValue& glide = horizontal ? horizontal_glide_ : vertical_glide_;
+    const double position = axis.value_;
+    const double clamped = std::clamp(
+        target, axis.minimum_, maximum_offset(orientation));
+    if (std::abs(clamped - glide_base(orientation)) <= comparison_epsilon) return false;
+    // A settled glide starts from where the position stands now (it may
+    // have moved by other means since the last glide settled).
+    if (glide.settled()) glide.jump_to(position);
+    const MotionStart started = glide.animate_to(clamped);
+    if (started == MotionStart::refused || started == MotionStart::unchanged) return false;
+    if (started != MotionStart::started) {
+        // Reduced motion, an occluded window or no window: the glide stands
+        // at its target and the position moves there at once.
+        const bool moved = apply_axis_value(orientation, clamped, type, notify);
+        return moved;
+    }
+    if (notify) {
+        scroll_state_ |= scroll_state_user_has_scrolled;
+        notify_scroll(orientation, type, position, clamped);
+    }
+    return true;
+}
+
+void ScrollableControl::glide_stepped(const MotionStep& step) {
+    if (!is_alive()) return;
+    const ScrollOrientation orientation = step.value == &horizontal_glide_
+        ? ScrollOrientation::horizontal : ScrollOrientation::vertical;
+    static_cast<void>(apply_axis_value(orientation, step.current,
+                                       ScrollEventType::thumb_track, false));
+}
+
+void ScrollableControl::glide_to(Point target) {
+    if (!std::isfinite(target.x) || !std::isfinite(target.y)) {
+        throw std::invalid_argument("scroll position must be finite");
+    }
+    static_cast<void>(glide_axis(ScrollOrientation::horizontal, target.x,
+                                 ScrollEventType::thumb_position, false));
+    static_cast<void>(glide_axis(ScrollOrientation::vertical, target.y,
+                                 ScrollEventType::thumb_position, false));
+}
+
+Point ScrollableControl::scroll_target() const noexcept {
+    const Point target{
+        horizontal_glide_.settled() ? scroll_position_.x : horizontal_glide_.target(),
+        vertical_glide_.settled() ? scroll_position_.y : vertical_glide_.target()};
+    return target;
+}
+
+bool ScrollableControl::scrolling_smoothly() const noexcept {
+    const bool moving = !horizontal_glide_.settled() || !vertical_glide_.settled();
+    return moving;
 }
 
 void ScrollableControl::set_display_rect_location(Point location) {
@@ -633,7 +733,7 @@ bool ScrollableControl::handle_scroll_pointer(PointerEvent& event) {
                 : local.y - dragging_origin_.y;
             const double next = dragging_start_value_ + movement *
                 maximum_offset(*dragging_orientation_) / travel;
-            static_cast<void>(apply_axis_value(*dragging_orientation_, next,
+            static_cast<void>(apply_axis_input(*dragging_orientation_, next,
                                                ScrollEventType::thumb_track,
                                                true));
             event.handled = true;
@@ -669,13 +769,18 @@ bool ScrollableControl::handle_scroll_pointer(PointerEvent& event) {
     }
     if (part == ScrollPart::horizontal_thumb ||
         part == ScrollPart::vertical_thumb) {
+        // The thumb is direct manipulation: it takes the axis from a
+        // smooth scroll where the position stands.
+        stop_glide(orientation);
         dragging_orientation_ = orientation;
         dragging_pointer_id_ = event.pointer_id == 0U ? 1U : event.pointer_id;
         dragging_origin_ = local;
         dragging_start_value_ = axis.value_;
         set_pointer_capture(true);
     } else {
-        double next = axis.value_;
+        // A press while the axis glides steps on from its target, so that
+        // quick presses add up.
+        double next = glide_base(orientation);
         ScrollEventType type = ScrollEventType::small_increment;
         if (part == ScrollPart::horizontal_first ||
             part == ScrollPart::vertical_first) {
@@ -693,7 +798,7 @@ bool ScrollableControl::handle_scroll_pointer(PointerEvent& event) {
             next += axis.large_change();
             type = ScrollEventType::large_increment;
         }
-        static_cast<void>(apply_axis_value(orientation, next, type, true));
+        static_cast<void>(glide_axis(orientation, next, type, true));
     }
     event.handled = true;
     return true;
@@ -703,27 +808,27 @@ bool ScrollableControl::handle_wheel(PointerEvent& event) {
     if (event.action != PointerAction::wheel || event.handled) return false;
     const double vertical_delta = -normalize_wheel_delta(event.wheel_delta.y, event.wheel_unit);
     const double horizontal_delta = -normalize_wheel_delta(event.wheel_delta.x, event.wheel_unit);
+    // Every wheel delta, a detented line or a precise device's pixels,
+    // adds to the axis's glide target: a stream of small precise deltas
+    // keeps retargeting one glide, which settles shortly after the stream
+    // ends.
     bool changed{};
     if (vertical_scroll_.visible_ && vertical_scroll_.enabled_ &&
         vertical_delta != 0.0) {
-        changed = apply_axis_value(
-            ScrollOrientation::vertical,
-            scroll_position_.y + vertical_delta,
-            vertical_delta < 0.0 ? ScrollEventType::small_decrement
-                                 : ScrollEventType::small_increment,
-            false);
+        const ScrollEventType type = vertical_delta < 0.0
+            ? ScrollEventType::small_decrement : ScrollEventType::small_increment;
+        changed = glide_axis(ScrollOrientation::vertical,
+                             glide_base(ScrollOrientation::vertical) + vertical_delta, type, false);
     }
     if (!changed && horizontal_scroll_.visible_ &&
         horizontal_scroll_.enabled_) {
         const double delta = horizontal_delta != 0.0
             ? horizontal_delta : vertical_delta;
         if (delta != 0.0) {
-            changed = apply_axis_value(
-                ScrollOrientation::horizontal,
-                scroll_position_.x + delta,
-                delta < 0.0 ? ScrollEventType::small_decrement
-                            : ScrollEventType::small_increment,
-                false);
+            const ScrollEventType type = delta < 0.0
+                ? ScrollEventType::small_decrement : ScrollEventType::small_increment;
+            changed = glide_axis(ScrollOrientation::horizontal,
+                                 glide_base(ScrollOrientation::horizontal) + delta, type, false);
         }
     }
     if (changed) event.handled = true;
@@ -757,6 +862,8 @@ void ScrollableControl::axis_properties_changed(
     const Point previous_position = scroll_position_;
     ScrollProperties& axis = orientation == ScrollOrientation::horizontal
         ? horizontal_scroll_ : vertical_scroll_;
+    // An authored change of the axis ends its smooth scroll.
+    stop_glide(orientation);
     if (position_changed) {
         axis.value_ = std::clamp(axis.value_, axis.minimum_,
                                  axis.maximum_position());
@@ -903,7 +1010,7 @@ bool ScrollableControl::on_semantic_child_action(
     } else {
         return false;
     }
-    static_cast<void>(apply_axis_value(*orientation, next, type, true));
+    static_cast<void>(apply_axis_input(*orientation, next, type, true));
     return true;
 }
 

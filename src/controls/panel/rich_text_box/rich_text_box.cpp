@@ -418,6 +418,7 @@ bool RichTextBox::vertical_key(const KeyEvent& event, bool extend, bool command)
     }
     set_selection(extend ? TextSelection{selection.anchor, next} : TextSelection{next, next});
     if (!home_end) preferred_x_ = goal;
+    glide_next_reveal_ = page;
     return true;
 }
 

@@ -1,6 +1,7 @@
 #include "gui_forms/gui_forms.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -33,6 +34,32 @@ private:
 
 bool near(double left, double right) {
     return std::abs(left - right) < 0.0001;
+}
+
+// The motion clock's time, set by the test, so that no smooth-scroll test
+// depends on the host's clock. Declared before the window whose clock
+// borrows it, so it outlives the installation.
+class ManualTime final : public MotionTimeSource {
+public:
+    [[nodiscard]] FrameTime now() const noexcept override { return time; }
+    FrameTime time{std::chrono::seconds(1000)};
+};
+
+// Advances the test's time by `step` and polls the window there.
+void advance(Window& window, ManualTime& time, std::chrono::milliseconds step) {
+    time.time += step;
+    static_cast<void>(window.poll_frame_schedule(time.time));
+}
+
+// Advances frame by frame (at the clock's 16 ms cadence) for `frames`.
+void advance_frames(Window& window, ManualTime& time, int frames) {
+    for (int frame = 0; frame < frames; ++frame) advance(window, time, std::chrono::milliseconds(16));
+}
+
+void reduce_motion(Window& window) {
+    PresentationSettings settings = window.presentation_settings();
+    settings.reduced_motion = true;
+    window.set_presentation_settings(settings);
 }
 
 void test_control_family_and_manual_axis_contract() {
@@ -139,6 +166,10 @@ void test_scroll_gestures_events_semantics_and_state() {
     (*panel).add_child(content);
     (*panel).auto_scroll = true;
     Window window(panel, {100.0, 100.0});
+    // Reduced motion: wheel and bar input move the position at once, so the
+    // positions below are read right after each input (the smooth scroll
+    // is tested by test_wheel_glides_on_the_motion_clock).
+    reduce_motion(window);
     window.perform_layout();
 
     std::size_t notifications{};
@@ -264,6 +295,7 @@ void test_scroll_bar_press_and_hold_repeats_on_a_ui_timer() {
     static_cast<void>(window.dispatch_pointer(release));
     require(!window.next_wake().has_value() && near((*bar).value.read(), 3.0),
             "release must stop the repeat timer");
+}
 
 // A host that keeps its pixels (scroll copies on): a scroll that only moves
 // the viewport's children by whole device pixels records one copy and
@@ -347,6 +379,111 @@ void test_damage_moves_with_a_scroll_copy() {
             "a rectangle crossing the clip keeps its outside share");
 }
 
+// A panel 100 high over content 1000 high: the vertical axis scrolls 0..900.
+struct GlideFixture final {
+    ManualTime time{};
+    std::shared_ptr<gui_forms::Panel> panel = make_control<Panel>(StableId("glide.panel"));
+    std::shared_ptr<gui_forms::Control> content = make_control<Control>(StableId("glide.content"));
+    Window window{panel, {100.0, 100.0}};
+    GlideFixture() {
+        (*content).set_requested_bounds({0.0, 0.0, 40.0, 1000.0});
+        (*panel).add_child(content);
+        (*panel).auto_scroll = true;
+        window.motion_clock().set_time_source(&time);
+        window.perform_layout();
+    }
+    bool wheel(double lines, WheelDeltaUnit unit = WheelDeltaUnit::lines) {
+        PointerEvent event;
+        event.action = PointerAction::wheel;
+        event.position = {20.0, 20.0};
+        event.wheel_delta = {0.0, lines};
+        event.wheel_unit = unit;
+        const bool handled = window.dispatch_pointer(event);
+        return handled;
+    }
+};
+
+// Smooth scrolling: a wheel line moves the target at once and the position
+// over the next frames, a fixed fraction of the gap per frame; a second
+// line before it settles adds to the target; the glide settles exactly on
+// the target and the clock then holds no frame request.
+void test_wheel_glides_on_the_motion_clock() {
+    GlideFixture f{};
+    require(f.wheel(-1.0) && near((*f.panel).scroll_position().y, 0.0) &&
+                (*f.panel).scrolling_smoothly() && near((*f.panel).scroll_target().y, 48.0) &&
+                f.window.motion_clock().armed(),
+            "a wheel line must set the target and leave the position to the motion clock");
+    advance(f.window, f.time, std::chrono::milliseconds(32));
+    const double first = (*f.panel).scroll_position().y;
+    // follow: the gap shrinks by e each 75 ms, so after 32 ms at most
+    // 1 - e^(-32/75), about 35 %, of 48 has been covered.
+    require(first > 0.0 && first < 48.0 * 0.4,
+            "a glide must move part of the way per frame, bounded by its curve");
+    require(f.wheel(-1.0) && near((*f.panel).scroll_target().y, 96.0),
+            "a second line while gliding must add to the target, not to the position");
+    advance_frames(f.window, f.time, 60);
+    require((*f.panel).scroll_position().y == 96.0 && !(*f.panel).scrolling_smoothly() &&
+                !f.window.motion_clock().armed(),
+            "a glide must settle exactly on its target and release the frame request");
+
+    // A precise device's pixels add to the target the same way.
+    require(f.wheel(-2.5, WheelDeltaUnit::pixels) && near((*f.panel).scroll_target().y, 98.5),
+            "a precise delta must add its exact pixels to the target");
+    advance_frames(f.window, f.time, 60);
+    require(near((*f.panel).scroll_position().y, 98.5), "a precise glide settles on its exact pixels");
+
+    // At the end of the range the target clamps; a line past it is not
+    // handled, so an enclosing scroller may take it.
+    require(f.wheel(-2000.0, WheelDeltaUnit::pixels) && near((*f.panel).scroll_target().y, 900.0), "the target clamps to the range");
+    advance_frames(f.window, f.time, 60);
+    require(!f.wheel(-1.0) && !(*f.panel).scrolling_smoothly(),
+            "a line past the end must not be handled or start a glide");
+}
+
+// The bars' arrows glide and raise one Scroll event at the press, carrying
+// the target; programmatic scrolls and the thumb are immediate and stop
+// the glide; reduced motion makes every input immediate.
+void test_bar_glides_and_immediate_input_stops_it() {
+    GlideFixture f{};
+    std::size_t notifications{};
+    ScrollEvent last;
+    SubscriptionToken token = (*f.panel).scroll().subscribe(ObserveScrollEvent(notifications, last));
+    const double small = (*f.panel).vertical_scroll().small_change();
+    PointerEvent press;
+    press.action = PointerAction::down;
+    press.button = PointerButton::primary;
+    press.position = {92.0, 95.0};
+    require(f.window.dispatch_pointer(press) && notifications == 1U &&
+                last.type == ScrollEventType::small_increment && near(last.new_value, small) &&
+                near((*f.panel).scroll_position().y, 0.0) && (*f.panel).scrolling_smoothly(),
+            "an arrow press must raise one Scroll event with the target and glide there");
+    PointerEvent release = press;
+    release.action = PointerAction::up;
+    static_cast<void>(f.window.dispatch_pointer(release));
+    advance_frames(f.window, f.time, 60);
+    require(near((*f.panel).scroll_position().y, small) && notifications == 1U,
+            "the glide's frames must raise no further Scroll events");
+
+    require(f.wheel(-1.0) && (*f.panel).scrolling_smoothly(), "a glide is under way");
+    require((*f.panel).scroll_to({0.0, 300.0}) && !(*f.panel).scrolling_smoothly() &&
+                near((*f.panel).scroll_position().y, 300.0),
+            "a programmatic scroll must land at once and stop the glide");
+    advance_frames(f.window, f.time, 10);
+    require(near((*f.panel).scroll_position().y, 300.0), "a stopped glide must not move the position again");
+
+    require(f.wheel(-1.0) && (*f.panel).scrolling_smoothly(), "a second glide is under way");
+    static_cast<void>((*f.panel).scroll_to((*f.panel).scroll_position()));
+    require((*f.panel).scrolling_smoothly(),
+            "restating the current position (a text box on paint) must leave the glide moving");
+
+    reduce_motion(f.window);
+    require(!(*f.panel).scrolling_smoothly() && !f.window.motion_clock().armed(),
+            "turning reduced motion on must finish the glide");
+    const double settled = (*f.panel).scroll_position().y;
+    require(f.wheel(-1.0) && near((*f.panel).scroll_position().y, settled + 48.0) &&
+                !(*f.panel).scrolling_smoothly() && !f.window.motion_clock().armed(),
+            "under reduced motion a wheel line must move the position at once");
+    static_cast<void>(token);
 }
 
 int main() {
@@ -358,6 +495,8 @@ int main() {
         test_scroll_bar_press_and_hold_repeats_on_a_ui_timer();
         test_scroll_copies_damage_only_the_exposed_band();
         test_damage_moves_with_a_scroll_copy();
+        test_wheel_glides_on_the_motion_clock();
+        test_bar_glides_and_immediate_input_stops_it();
         std::cout << "gui_forms_scrollable_control_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

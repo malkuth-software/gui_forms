@@ -97,7 +97,7 @@ void ScrollProperties::set_value(double value) {
         value_ = value;
         return;
     }
-    static_cast<void>((*owner_).apply_axis_value(
+    static_cast<void>((*owner_).apply_axis_input(
         orientation_, value, ScrollEventType::thumb_position, false));
 }
 

@@ -57,15 +57,12 @@ struct ProgramOptions final {
     double scale_hint{};
     std::string page;
     std::string backdrop;
-    // --scroll-profile <path>: the scroll measurement (demo/scroll_profile.hpp).
-    std::string scroll_profile_path;
 };
 
 inline void print_program_usage(const char* program) {
     std::fprintf(stderr,
                  "usage: %s [--automation] [--smoke-test] [--capture <path.png>] "
-                 "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>] "
-                 "[--scroll-profile <path>]\n",
+                 "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>]\n",
                  program != nullptr && *program != '\0' ? program : "gui-forms-demo");
 }
 
@@ -121,7 +118,7 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
         }
         const bool wants_value = argument == "--capture" || argument == "--size" ||
                                  argument == "--scale" || argument == "--page" ||
-                                 argument == "--backdrop" || argument == "--scroll-profile";
+                                 argument == "--backdrop";
         if (!wants_value) {
             print_program_usage(program);
             return std::nullopt;
@@ -143,12 +140,6 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
                 return std::nullopt;
             }
             options.page = std::string(value);
-        } else if (argument == "--scroll-profile") {
-            if (value.empty()) {
-                print_program_usage(program);
-                return std::nullopt;
-            }
-            options.scroll_profile_path = std::string(value);
         } else if (argument == "--backdrop") {
             if (value.empty()) {
                 print_program_usage(program);

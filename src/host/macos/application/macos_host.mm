@@ -2460,11 +2460,6 @@ void post_perform_close(NSWindow* window) {
         }
         [self startDisplayLinkIfNeeded];
         [self armWakeTimer];
-        if (getenv("GF_SYNC_DISPLAY") != nullptr) {
-            const BOOL wanted = self.needsDisplay;
-            [self displayIfNeeded];
-            std::fprintf(stderr, "sync-display wanted=%d visible=%d key=%d occl=%lu\n", wanted ? 1 : 0, self.window.visible ? 1 : 0, self.window.keyWindow ? 1 : 0, static_cast<unsigned long>(self.window.occlusionState));
-        }
     } catch (const std::exception& error) {
         [self recordNativeCallbackFault:"collect-damage" message:error.what()];
     } catch (...) {

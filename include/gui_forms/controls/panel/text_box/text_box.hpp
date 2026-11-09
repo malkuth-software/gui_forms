@@ -347,6 +347,9 @@ private:
     double layout_text_scale_{};
     double horizontal_offset_{};
     bool reveal_pending_{true};
+    // A paging key moved the caret: the next caret reveal scrolls smoothly
+    // (ScrollableControl::glide_to) instead of at once. Taken by that reveal.
+    bool glide_next_reveal_{};
     bool caret_upstream_{};
     bool next_upstream_{};
     double vertical_offset_{};

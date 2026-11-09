@@ -1,7 +1,6 @@
 #include "macos_host.hpp"
 #include "gallery.hpp"
 #include "program_options.hpp"
-#include "scroll_profile.hpp"
 
 #include <cstdio>
 #include <memory>
@@ -28,9 +27,6 @@ int main(int argc, char** argv) {
     }
     const std::shared_ptr<gui_forms::demo::SmokeTest> smoke =
         gui_forms::demo::arm_smoke_test(*program, options, *window);
-    const std::shared_ptr<gui_forms::demo::ScrollProfile> profile =
-        gui_forms::demo::arm_scroll_profile(*program, options, *window);
-    const int exit_code = gui_forms::demo::smoke_test_result(
+    return gui_forms::demo::smoke_test_result(
         smoke, gui_forms::host::run_macos(std::move(window), std::move(options)));
-    return gui_forms::demo::scroll_profile_result(profile, exit_code);
 }

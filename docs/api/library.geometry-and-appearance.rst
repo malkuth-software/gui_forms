@@ -8058,6 +8058,14 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/types/damage_region/damage_region.hpp>``
+
+.. cpp:function:: DamageRegion damage_after_scroll_copy(const DamageRegion& damage, Rect clip, Point offset)
+
+   The damage ``damage`` becomes once a scroll copy moved the pixels inside ``clip`` by ``offset`` (window coordinates): a rectangle's share inside the clip moves with its pixels and is cut to the clip; its share outside the clip stays where it was. The pixels the copy exposed are not included.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/types/paint_types/paint_types.hpp>``
 
 .. cpp:function:: bool valid_gradient_stops(std::span<const GradientStop> stops) noexcept

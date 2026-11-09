@@ -96,6 +96,12 @@ gui_forms::ScrollableControl
          A copy of the whole scrolling state: mode, position, margin, minimum
          size, display and viewport rectangles, and both axes.
 
+      **scroll_target** : ``Point``, read-only
+         Smooth scrolling (0.5 scroll fine-tuning). Wheel input, the scroll bars' arrows and track, and a derived control's paging keys (glide_to) move the position toward a target on the window's motion clock rather than at once: each frame the position covers a fixed fraction of the remaining gap (MotionCurve::follow, about 63 % per 75 ms) and settles on the target within half a device pixel. A further step while one moves adds to the target, not to the position. With reduced motion, an occluded window or no window, the position moves at once. scroll_to, scroll_by, the scroll properties' set_value, a thumb drag and accessibility actions stay immediate and stop the smooth scroll on each axis they move. Where the position is going on each axis: the smooth scroll's target while one moves, else the position itself.
+
+      **scrolling_smoothly** : ``bool``, read-only
+         Whether a smooth scroll moves on either axis.
+
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
@@ -334,6 +340,14 @@ gui_forms::ScrollableControl
       A copy of the whole scrolling state: mode, position, margin, minimum
       size, display and viewport rectangles, and both axes.
 
+   .. cpp:function:: Point scroll_target() const noexcept
+
+      Smooth scrolling (0.5 scroll fine-tuning). Wheel input, the scroll bars' arrows and track, and a derived control's paging keys (glide_to) move the position toward a target on the window's motion clock rather than at once: each frame the position covers a fixed fraction of the remaining gap (MotionCurve::follow, about 63 % per 75 ms) and settles on the target within half a device pixel. A further step while one moves adds to the target, not to the position. With reduced motion, an occluded window or no window, the position moves at once. scroll_to, scroll_by, the scroll properties' set_value, a thumb drag and accessibility actions stay immediate and stop the smooth scroll on each axis they move. Where the position is going on each axis: the smooth scroll's target while one moves, else the position itself.
+
+   .. cpp:function:: bool scrolling_smoothly() const noexcept
+
+      Whether a smooth scroll moves on either axis.
+
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
@@ -439,6 +453,12 @@ gui_forms::ScrollableControl
       For container authors. Called after the position changes for any
       reason, including clamping during layout. It raises no event.
 
+   .. cpp:function:: virtual bool paints_scrolled_content() const noexcept
+
+      *Protected.*
+
+      True for a control that paints content of its own at the scroll position (a text box's lines), which a copy of its children's pixels would not move: its scrolls repaint the viewport. False by default: the scroll position moves only the children this class arranges.
+
    .. cpp:function:: virtual void on_auto_scroll_changed(Point previous_position)
 
       *Protected.*
@@ -464,6 +484,12 @@ gui_forms::ScrollableControl
    .. cpp:function:: void set_display_rect_location(Point location)
 
       *Protected.*
+
+   .. cpp:function:: void glide_to(Point target)
+
+      *Protected.*
+
+      A smooth scroll toward ``target`` (see scroll_target), clamped to each visible axis's range, for input a derived control turns into a scroll (a text box's PageDown reveal). Raises no Scroll event.
 
    .. cpp:function:: void on_paint_overlay(Painter& painter, Rect local_damage) override
 

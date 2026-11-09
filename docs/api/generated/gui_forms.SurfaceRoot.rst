@@ -163,6 +163,8 @@ gui_forms::SurfaceRoot
       **paint_lease_snapshot** : ``PaintLeaseSnapshot``, read-only
          Returns revision, epoch, lease, wake, deferral, and receipt counters plus current lease state.
 
+      **scroll_copies_supported** : ``bool``
+
       **needs_frame** : ``bool``, read-only
          Whether painting is pending.
 
@@ -421,6 +423,10 @@ gui_forms::SurfaceRoot
         - Preferred host release.
       * - :cpp:func:`take_damage <gui_forms::SurfaceRoot::take_damage>`
         - Runs pending layout, then returns and clears the accumulated damage of every paint plane.
+      * - :cpp:func:`take_scroll_copies <gui_forms::SurfaceRoot::take_scroll_copies>`
+        - Appends the copies recorded since the last take to ``copies``, in the order recorded, and forgets them.
+      * - :cpp:func:`request_scroll_copy <gui_forms::SurfaceRoot::request_scroll_copy>`
+        - Called by ``scroller``'s arrange, inside the layout pass, after it moved its scrolling children by ``offset`` (whole device pixels) and nothing else changed in its child viewport.
       * - :cpp:func:`schedule_paint <gui_forms::SurfaceRoot::schedule_paint>`
         -  
       * - :cpp:func:`schedule_ui_timer <gui_forms::SurfaceRoot::schedule_ui_timer>`
@@ -761,6 +767,12 @@ gui_forms::SurfaceRoot
       Sets :cpp:func:`key_bindings <gui_forms::SurfaceRoot::key_bindings>`; see the property's description above.
 
    .. cpp:function:: PaintLeaseSnapshot paint_lease_snapshot() const noexcept
+
+   .. cpp:function:: bool scroll_copies_supported() const noexcept
+
+   .. cpp:function:: void set_scroll_copies_supported(bool supported) noexcept
+
+      Scroll copies (ScrollCopy). A host that can move the pixels it holds turns them on; then a scroll that only translates a viewport's children by whole device pixels damages the band it exposed and records a copy instead of damaging the viewport. take_damage commits the layout that records them; take them after it and apply them, in order, before painting that damage: the damage already taken (and any the host still holds) is moved with each copy (damage_after_scroll_copy). A host that cannot apply a copy damages its clip instead. Off by default.
 
    .. cpp:function:: bool needs_frame() const noexcept
 
@@ -1185,6 +1197,14 @@ gui_forms::SurfaceRoot
 
       Runs pending layout, then returns and clears the accumulated damage of
       every paint plane.
+
+   .. cpp:function:: void take_scroll_copies(std::vector<ScrollCopy>& copies)
+
+      Appends the copies recorded since the last take to ``copies``, in the order recorded, and forgets them.
+
+   .. cpp:function:: bool request_scroll_copy(Control& scroller, Point offset)
+
+      Called by ``scroller``'s arrange, inside the layout pass, after it moved its scrolling children by ``offset`` (whole device pixels) and nothing else changed in its child viewport. Returns true when the copy is recorded: the damage already pending in the viewport is moved by ``offset``, the exposed band is damaged, and the children's moves by exactly ``offset`` in this pass damage nothing; controls drawn over the viewport (later siblings, overlays) are damaged where they are and where the copy moved their pixels. False when the pixels beneath the viewport would not move with it (an earlier sibling or a backplane control crosses it, or an ancestor's paint depends on its size, below the first opaque fill covering it), the viewport or offset is not device-aligned, or copies are off; the caller then repaints its viewport.
 
    .. cpp:function:: FrameRequestToken schedule_paint(const Control::Ptr& control, FrameTime deadline)
 

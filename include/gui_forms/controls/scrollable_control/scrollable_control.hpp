@@ -2,6 +2,7 @@
 
 #include "gui_forms/controls/scrollable_control/scroll_properties/scroll_properties.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp"
+#include "gui_forms/engine/motion_value/motion_value.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -61,6 +62,23 @@ public:
         return scroll_event_revision_;
     }
     [[nodiscard]] ScrollSnapshot scroll_snapshot() const noexcept;
+    // Smooth scrolling (0.5 scroll fine-tuning). Wheel input, the scroll
+    // bars' arrows and track, and a derived control's paging keys
+    // (glide_to) move the position toward a target on the window's motion
+    // clock rather than at once: each frame the position covers a fixed
+    // fraction of the remaining gap (MotionCurve::follow, about 63 % per
+    // 75 ms) and settles on the target within half a device pixel. A further
+    // step while one moves adds to the target, not to the position. With
+    // reduced motion, an occluded window or no window, the position moves
+    // at once. scroll_to, scroll_by, the scroll properties' set_value, a
+    // thumb drag and accessibility actions stay immediate and stop the
+    // smooth scroll on each axis they move.
+    //
+    // Where the position is going on each axis: the smooth scroll's target
+    // while one moves, else the position itself.
+    [[nodiscard]] Point scroll_target() const noexcept;
+    // Whether a smooth scroll moves on either axis.
+    [[nodiscard]] bool scrolling_smoothly() const noexcept;
 
     bool scroll_to(Point position,
                    ScrollEventType type = ScrollEventType::thumb_position,
@@ -130,6 +148,10 @@ protected:
     virtual void adjust_scrollbars(bool display_scrollbars);
     [[nodiscard]] virtual Point scroll_to_control(const Control& control) const;
     void set_display_rect_location(Point location);
+    // A smooth scroll toward `target` (see scroll_target), clamped to each
+    // visible axis's range, for input a derived control turns into a scroll
+    // (a text box's PageDown reveal). Raises no Scroll event.
+    void glide_to(Point target);
     void on_paint_overlay(Painter& painter, Rect local_damage) override;
     [[nodiscard]] Rect child_viewport_rectangle() const noexcept override {
         return effective_viewport_rectangle();
@@ -175,6 +197,29 @@ private:
     bool handle_scroll_pointer(PointerEvent& event);
     bool apply_axis_value(ScrollOrientation orientation, double value,
                           ScrollEventType type, bool notify);
+    // apply_axis_value for an immediate scroll: stops the axis's smooth
+    // scroll first when the position will change.
+    bool apply_axis_input(ScrollOrientation orientation, double value,
+                          ScrollEventType type, bool notify);
+    // Starts or retargets the axis's smooth scroll toward `target`, clamped
+    // to the axis's range. Returns false, changing nothing, when the target
+    // is where the axis is already going. With `notify`, one Scroll event
+    // of `type` reports the move from the position to the target when it
+    // starts (the position follows over the next frames), and the
+    // user-scrolled state is set. When the clock moves nothing (reduced
+    // motion, occluded, detached) the position moves at once, the event
+    // after it as apply_axis_value raises it.
+    bool glide_axis(ScrollOrientation orientation, double target,
+                    ScrollEventType type, bool notify);
+    // Where a further step on the axis adds to: its target while it moves.
+    [[nodiscard]] double glide_base(ScrollOrientation orientation) const noexcept;
+    // Ends the axis's smooth scroll where the position stands. Never fails.
+    void stop_glide(ScrollOrientation orientation) noexcept;
+    void stop_glides() noexcept;
+    // The motion clock's step of either glide: moves the axis's position
+    // to the glide's value (a silent scroll; the event was raised at the
+    // start).
+    void glide_stepped(const MotionStep& step);
     void notify_scroll(ScrollOrientation orientation, ScrollEventType type,
                        double old_value, double new_value);
     void paint_axis(Painter& painter, ScrollOrientation orientation,
@@ -218,6 +263,13 @@ private:
     bool copy_arranged_{};
     [[nodiscard]] Point device_scroll_position() const noexcept;
     [[nodiscard]] bool scroll_copies_children() const noexcept;
+    // The smooth scroll on each axis, in logical units of scroll position.
+    // Owned here and naming this control as their owner; the clock's
+    // records of them end with them. Settled whenever no smooth scroll
+    // moves; a settled glide's value is not kept in step with the position
+    // (glide_axis jumps it to the position before starting).
+    MotionValue horizontal_glide_;
+    MotionValue vertical_glide_;
     // property_codemod begin ScrollableControl (tools/property_families/scrollable_control.json; generated, do not edit)
 public:
     // ScrollableControl's property table: Control's entries, then its own.

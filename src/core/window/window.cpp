@@ -3244,11 +3244,11 @@ bool SurfaceRoot::request_scroll_copy(Control& scroller, Point offset) {
     constexpr std::size_t copy_limit = 16U;
     if (!scroll_copies_supported_ || !in_layout_ || scroller.surface_root_ != this ||
         scroll_translating_ != nullptr || scroll_copies_.size() >= copy_limit) {
-        std::fprintf(stderr, "scroll-copy-refused %d sup=%d lay=%d scale=%g\n", 11, scroll_copies_supported_ ? 1 : 0, in_layout_ ? 1 : 0, scale_); return false;
+        return false;
     }
     if (!whole_device_pixels(offset.x, scale_) || !whole_device_pixels(offset.y, scale_) ||
         offset == Point{}) {
-        std::fprintf(stderr, "scroll-copy-refused %d sup=%d lay=%d scale=%g\n", 12, scroll_copies_supported_ ? 1 : 0, in_layout_ ? 1 : 0, scale_); return false;
+        return false;
     }
     // The visible part of the viewport: its child viewport within each
     // ancestor's and the client area.
@@ -3256,24 +3256,24 @@ bool SurfaceRoot::request_scroll_copy(Control& scroller, Point offset) {
                                    {0.0, 0.0, client_size_.width, client_size_.height});
     for (Control::Ptr ancestor = scroller.parent(); ancestor; ancestor = (*ancestor).parent()) {
         if (!(*ancestor).is_alive() || (*ancestor).surface_root_ != this || !(*ancestor).visible.read()) {
-            std::fprintf(stderr, "scroll-copy-refused %d sup=%d lay=%d scale=%g\n", 13, scroll_copies_supported_ ? 1 : 0, in_layout_ ? 1 : 0, scale_); return false;
+            return false;
         }
         clip = Rect::intersection(clip, absolute_child_viewport_of(*ancestor));
     }
     if (clip.empty() || !device_aligned_rect(clip, scale_) || std::abs(offset.x) >= clip.width ||
         std::abs(offset.y) >= clip.height) {
-        std::fprintf(stderr, "scroll-copy-refused %d sup=%d lay=%d scale=%g\n", 14, scroll_copies_supported_ ? 1 : 0, in_layout_ ? 1 : 0, scale_); return false;
+        return false;
     }
     // The scroller's own paint beneath its children moves with them only
     // when it does not depend on its extent; its docked children stay put.
-    if (!keeps_pixels_on_resize(scroller)) { std::fprintf(stderr, "scroll-copy-refused %d\n", 1); return false; }
+    if (!keeps_pixels_on_resize(scroller)) return false;
     for (const Control::Ptr& child : scroller.children_) {
         if (!child || !(*child).is_alive() || !(*child).visible.read() ||
             (*child).dock.read() == DockStyle::none) {
             continue;
         }
         const Rect bounds = visual_bounds_of(*child, (*child).effective_visual_outsets());
-        if (!Rect::intersection(bounds, clip).empty()) { std::fprintf(stderr, "scroll-copy-refused %d\n", 2); return false; }
+        if (!Rect::intersection(bounds, clip).empty()) return false;
     }
     // Beneath the viewport, up to the first control whose opaque fill covers
     // it, every ancestor's paint must not depend on its extent and no earlier
@@ -3310,7 +3310,7 @@ bool SurfaceRoot::request_scroll_copy(Control& scroller, Point offset) {
     // Other paint planes are composed before or after this one.
     // Overlays drawn into the viewport are repainted over it, where they
     // are and where the copy moves their pixels.
-    if (other_plane_crosses(root_, scroller, clip, covered, scroll_overlay_crossings_)) { std::fprintf(stderr, "scroll-copy-refused %d\n", 5); return false; }
+    if (other_plane_crosses(root_, scroller, clip, covered, scroll_overlay_crossings_)) return false;
     for (const std::shared_ptr<detail::OverlayAttachment>& overlay : overlays_) {
         if (overlay) collect_overlay_paint((*overlay).overlay(), clip, scroll_overlay_crossings_);
     }
