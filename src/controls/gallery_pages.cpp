@@ -122,7 +122,6 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
     // the window, so a resize moves or resizes only the docked parts it
     // reaches and repaints only what changed (resize R-8).
     Panel& root = *window.gallery_shell;
-    root.set_background(canvas);
     root.set_tag(context);
 
     // The Gallery's own pages leave their declared boundary for their
@@ -149,7 +148,6 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
     // The paper is the sidebar's first child, so it paints beneath the rows;
     // sized to the content below.
     Panel& sidebar_paper = *window.gallery_sidebar_paper;
-    sidebar_paper.set_background(Color::rgba(220, 229, 237));
     double navigation_y = 8.0;
     std::string_view current_group;
     std::size_t group_index = 0;
@@ -186,12 +184,9 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
     sidebar_paper.set_bounds({0.0, 0.0, 206.0, std::max(sidebar_height, navigation_y + 8.0)});
     sidebar.auto_scroll_min_size = {206.0, navigation_y + 8.0};
 
-    (*window.gallery_status).set_background(Color::rgba(225, 232, 238));
-
     // The page area: each page's viewport is anchored to all four edges,
     // keeping its 20-unit left margin.
     const std::shared_ptr<gui_forms::Panel> content = window.gallery_content;
-    (*content).set_background(canvas);
     for (std::size_t index = 0; index < order.size(); ++index) {
         const GalleryPageSpec& spec = *order[index].page;
         const std::string surface_id =
@@ -220,7 +215,8 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
         (*viewport).anchor = AnchorStyles::top | AnchorStyles::bottom | AnchorStyles::left | AnchorStyles::right;
         std::shared_ptr<gui_forms::ScaledPanel> page = make_control<Surface>(
             StableId(surface_id), Size{1000.0, strip_height + 660.0});
-        (*page).set_background(canvas);
+        // The shell canvas is a theme class: a familiar theme shows its window face.
+        static_cast<void>((*page).add_class("shell-canvas"));
         (*viewport).add_child(page);
         std::shared_ptr<Label> title = label(surface_id + ".title", std::string(spec.title),
                                              15.0, 700, shell_blue_dark);
@@ -242,7 +238,7 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
         std::shared_ptr<gui_forms::ScaledPanel> body = make_control<Surface>(
             StableId(std::string(body_id_prefix) + std::string(spec.id)),
             Size{1000.0, 660.0});
-        (*body).set_background(canvas);
+        static_cast<void>((*body).add_class("shell-canvas"));
         (*page).add_at(body, {0.0, strip_height, 1000.0, 660.0});
         populate_page_body(spec.id, body, context, form_pages);
         // The body is as tall as its content (at least 660): content placed
