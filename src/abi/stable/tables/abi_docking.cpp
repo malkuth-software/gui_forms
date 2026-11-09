@@ -7,6 +7,7 @@
 #include "../registry/abi_registry.hpp"
 
 #include "gui_forms/application/application.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/docking.hpp"
@@ -244,8 +245,12 @@ gf_status read_descriptor(const gf_dock_panel* record, SlotIdentity slot, DockPa
     if (read != GF_STATUS_OK) {
         return read;
     }
-    if (id.empty()) {
-        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a panel id is not empty");
+    // A panel id names its page in a stack's page set, so it is spelled as
+    // a stable id (lowercase segments joined by '.' or single '-').
+    if (id.empty() || !valid_stable_id(id)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot,
+                    "a panel id is a stable id: '.'-separated segments of lowercase ASCII letters and digits joined by "
+                    "single '-'");
     }
     const gf_dock_allowed allowed = (*record).allowed;
     DockPanelDescriptor made{};
@@ -689,7 +694,9 @@ gf_status GF_CALL docking_attach_windows(gf_object workspace) noexcept {
         if (!window.active()) {
             return fail(GF_STATUS_INVALID_STATE, attach_windows_slot, "the window is not ready yet");
         }
-        const std::string main_id = (*typed).stable_id() + ".main";
+        // The running window's stable id is "main" (Application::run's id),
+        // which the floating windows name as their owner.
+        const std::string main_id = "main";
         if (!(*typed).attach_windows(std::move(window), main_id)) {
             return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, attach_windows_slot,
                         "the host has no runtime windows, or the workspace refused the window");

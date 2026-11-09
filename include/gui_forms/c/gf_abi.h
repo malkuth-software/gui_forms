@@ -3066,8 +3066,10 @@ typedef struct gf_dock_location {
 typedef struct gf_docking_table {
     uint32_t struct_size;
     uint32_t abi_minor;
-    /* Registers a panel (gf_dock_panel). The id must be new: an id
-     * registered before gives GF_STATUS_INVALID_ARGUMENT. Registering does
+    /* Registers a panel (gf_dock_panel). The id is a stable id
+     * ('.'-separated segments of lowercase ASCII letters and digits joined
+     * by single '-') and must be new: another spelling, or an id
+     * registered before, gives GF_STATUS_INVALID_ARGUMENT. Registering does
      * not place the panel; a SHOW edit does. */
     gf_status (GF_CALL* register_panel)(gf_object workspace, const gf_dock_panel* panel);
     /* Sets the control a registered panel shows the next time its content

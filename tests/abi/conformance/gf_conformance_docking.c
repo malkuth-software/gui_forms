@@ -70,6 +70,9 @@ static void registering(gf_kit* kit, gf_object workspace, gf_object first, gf_ob
     gf_dock_panel empty = panel_record("", "Empty", GF_DOCK_PANEL_KIND_TOOL, 0u);
     gf_kit_status(kit, (*kit).docking.register_panel(workspace, &empty), GF_STATUS_INVALID_ARGUMENT,
                   "an empty id is refused");
+    gf_dock_panel spelled = panel_record("radioToolWindow", "Radio", GF_DOCK_PANEL_KIND_TOOL, 0u);
+    gf_kit_status(kit, (*kit).docking.register_panel(workspace, &spelled), GF_STATUS_INVALID_ARGUMENT,
+                  "an id that is not a stable id is refused");
     gf_dock_panel wrong = panel_record("wrong", "Wrong", GF_DOCK_PANEL_KIND_TOOL, 0u);
     wrong.default_ratio = 1.5;
     gf_kit_status(kit, (*kit).docking.register_panel(workspace, &wrong), GF_STATUS_INVALID_ARGUMENT,
