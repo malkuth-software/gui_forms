@@ -2,6 +2,7 @@
 #include "gui_forms/paint_framebuffer.hpp"
 #include "gui_forms/prepared_text/types/prepared_text_types.hpp"
 #include "../../theme/theme/material_layers.hpp"
+#include "painter_support.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -14,35 +15,6 @@ PreparedTextPaintResult Painter::draw_prepared_text(const PreparedTextLayout&, c
     return {};
 }
 namespace {
-
-std::uint8_t interpolate_channel(std::uint8_t left, std::uint8_t right,
-                                 double amount) noexcept {
-    return static_cast<std::uint8_t>(std::lround(
-        static_cast<double>(left) +
-        (static_cast<double>(right) - static_cast<double>(left)) * amount));
-}
-
-Color interpolate(Color first, Color second, double amount) noexcept {
-    amount = std::clamp(amount, 0.0, 1.0);
-    return Color::rgba(interpolate_channel(first.red, second.red, amount),
-                       interpolate_channel(first.green, second.green, amount),
-                       interpolate_channel(first.blue, second.blue, amount),
-                       interpolate_channel(first.alpha, second.alpha, amount));
-}
-
-Color sample_gradient(std::span<const GradientStop> stops, double offset) noexcept {
-    if (stops.empty()) return {};
-    offset = std::clamp(offset, 0.0, 1.0);
-    for (std::size_t index = 1U; index < stops.size(); ++index) {
-        if (offset <= stops[index].offset) {
-            const double width = stops[index].offset - stops[index - 1U].offset;
-            const double local = width <= 0.0
-                ? 1.0 : (offset - stops[index - 1U].offset) / width;
-            return interpolate(stops[index - 1U].color, stops[index].color, local);
-        }
-    }
-    return stops.back().color;
-}
 
 double clamped_radius(Rect rect, double radius) noexcept {
     return std::clamp(radius, 0.0,
@@ -115,7 +87,7 @@ void Painter::fill_linear_gradient(Rect rect, Point start, Point end,
     for (unsigned slice = 0; slice < slices; ++slice) {
         const double first = static_cast<double>(slice) / slices;
         const double next = static_cast<double>(slice + 1U) / slices;
-        const Color color = sample_gradient(stops, (first + next) * 0.5);
+        const Color color = detail::sample_gradient(stops, (first + next) * 0.5);
         if (horizontal) {
             fill_rect({rect.x + rect.width * first, rect.y,
                        rect.width * (next - first), rect.height}, color);
@@ -154,7 +126,7 @@ void Painter::fill_radial_gradient(Rect rect, Point center, Size radii,
         fill_rounded_rect(
             {center.x - width * 0.5, center.y - height * 0.5, width, height},
             std::min(width, height) * 0.5,
-            sample_gradient(stops, amount));
+            detail::sample_gradient(stops, amount));
     }
     restore();
 }

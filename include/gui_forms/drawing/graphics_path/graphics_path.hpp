@@ -54,6 +54,13 @@ public:
     void add_polygon(std::span<const PointF> points);
     void add_rectangle(RectF rectangle);
     void add_ellipse(RectF bounds);
+    // One closed figure: `rectangle` with each corner rounded by its own
+    // radius (held to half the shorter side), clockwise from the end of the
+    // top-left corner. Each rounded corner is a cubic Bezier quarter (the
+    // standard 0.5523 approximation, within 0.03 % of the radius of a
+    // circle); a corner of radius 0 is square. Joined segments round only
+    // a row's outer ends this way.
+    void add_rounded_rectangle(RectF rectangle, CornerRadii radii);
     void add_arc(RectF bounds, double start_angle, double sweep_angle);
     void add_pie(RectF bounds, double start_angle, double sweep_angle);
     void add_path(const GraphicsPath& path, bool connect);

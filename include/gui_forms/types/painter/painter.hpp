@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_marks/paint_marks.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/typography.hpp"
 
@@ -84,6 +85,9 @@ struct PaintGroup final {
 // under a save), and the refusal is counted.
 inline constexpr std::size_t maximum_paint_group_depth = 4;
 
+// The most cells Painter::fill_checker draws one by one.
+inline constexpr std::size_t maximum_checker_cells = 65536U;
+
 class Painter : public TextMetricsProvider {
 public:
     virtual ~Painter() = default;
@@ -152,6 +156,64 @@ public:
                                        Point offset, double blur_radius,
                                        double spread, Color color);
     virtual void draw_line(Point from, Point to, Color color, double width) = 0;
+    // Batched marks (IMGUI_IMPLOT_STUDY P7). Each draws a whole caller-owned
+    // span as one command: the painter reads the span during the call only
+    // and allocates nothing per element; a recording copies the span once.
+    // Invalid styles, and points or rectangles that are not finite where a
+    // call says so, draw nothing. The base implementations are a minimal
+    // painter's fallbacks built from draw_line, fill_rect and the other
+    // primitives (solid strokes, square joins, no anti-aliasing of their
+    // own); the recording and Skia painters draw them exactly.
+    //
+    // An open polyline through `points`, joined and capped by `style`. A
+    // point whose coordinate is NaN breaks the line (a gap): each run of
+    // finite points between breaks is stroked on its own, and a run of one
+    // point draws nothing. An infinite coordinate is refused (the call draws
+    // nothing).
+    virtual void stroke_polyline(std::span<const Point> points, const StrokeStyle& style);
+    // A closed polygon through `points` (at least 3, all finite), filled by
+    // `rule`.
+    virtual void fill_polygon(std::span<const Point> points, Color color, PolygonFillRule rule);
+    // The area between two polylines sampled at the same positions (a
+    // plot's shaded band, area or stacked area): `upper` and `lower` hold
+    // the same count, at least 2, all finite; the band's outline runs along
+    // `upper` and back along `lower`, filled nonzero. A constant baseline
+    // is a `lower` of equal points.
+    virtual void fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color);
+    // Each rectangle filled in one colour (bars, histogram bins). Empty or
+    // non-finite rectangles are skipped.
+    virtual void fill_rects(std::span<const Rect> rects, Color color);
+    // Each rectangle filled in its own colour: `colors` holds one per
+    // rectangle (heatmap cells drawn as rectangles). Mismatched counts draw
+    // nothing.
+    virtual void fill_rects_each(std::span<const Rect> rects, std::span<const Color> colors);
+    // Independent segments with `style`'s caps and dashes and no joins
+    // (error bars, stems, ticks, grid lines). Segments with a non-finite end
+    // are skipped.
+    virtual void stroke_segments(std::span<const PaintSegment> segments, const StrokeStyle& style);
+    // A marker centred on each point (scatter, line markers, decorators).
+    // Points with a non-finite coordinate are skipped.
+    virtual void draw_markers(std::span<const Point> centers, const MarkerStyle& style);
+    // A conic (sweep) gradient over `rect` (piece C9: a hue wheel): the
+    // colour at a point is the stops' colour at the angle about `center`,
+    // measured clockwise (y down) from `start_degrees` (0 along +x), one
+    // full turn from offset 0 to offset 1. Stops as valid_gradient_stops
+    // says; the base implementation fills 90 wedges in the stops' colours.
+    virtual void fill_conic_gradient(Rect rect, Point center, double start_degrees,
+                                     std::span<const GradientStop> stops);
+    // `rect` filled with a checkerboard (piece C7). A cell narrower than one
+    // unit, or a rectangle holding more than maximum_checker_cells cells,
+    // fills the rectangle with the average of the two colours instead.
+    virtual void fill_checker(Rect rect, const CheckerPattern& pattern);
+    // The grid lines of `pattern` that cross `rect`, clipped to it (piece
+    // C17). Refused patterns (valid_grid_pattern) draw nothing.
+    virtual void fill_grid_pattern(Rect rect, const GridPattern& pattern);
+    // A rounded rectangle with each corner rounded by its own radius
+    // (piece C1; joined segments round only a row's outer ends). The base
+    // implementation fills under clip_rounded_rect_corners; the stroke's
+    // draws stroke_rounded_rect with the largest radius.
+    virtual void fill_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color);
+    virtual void stroke_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color, double width);
     virtual void draw_text_utf8(Point origin,
                                 std::string_view text,
                                 FontSpec font,

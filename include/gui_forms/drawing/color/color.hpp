@@ -141,6 +141,12 @@ struct OklchGamutMapping final {
 };
 
 [[nodiscard]] LinearSrgb srgb_to_linear(Color color);
+// The WCAG 2 contrast ratio of two colours' sRGB channels, from 1 (equal) to
+// 21 (black and white). Alpha is ignored; an empty colour counts as black.
+[[nodiscard]] double contrast_ratio(Color first, Color second);
+// The contrast rule for text over a fill: of `light` and `dark`, the one
+// with the greater contrast ratio against `background` (dark on a tie).
+[[nodiscard]] Color contrasting_text_color(Color background, Color light, Color dark);
 [[nodiscard]] SrgbConversion linear_to_srgb(LinearSrgb color);
 [[nodiscard]] XyzD65 linear_srgb_to_xyz_d65(LinearSrgb color);
 [[nodiscard]] LinearSrgb xyz_d65_to_linear_srgb(XyzD65 color);

@@ -258,6 +258,9 @@ add_library(gui_forms_core STATIC
     src/core/binding/binding_context/binding_context.cpp
     src/core/types/damage_region/damage_region.cpp
     src/core/types/painter/painter.cpp
+    src/core/types/painter/painter_marks.cpp
+    src/core/types/paint_marks/paint_marks.cpp
+    src/core/types/paint_recipes/paint_recipes.cpp
     src/core/types/rect/rect.cpp
     src/core/theme/theme/theme.cpp
     src/core/theme/contrast/theme_contrast.cpp
@@ -328,6 +331,7 @@ add_library(gui_forms_core STATIC
     src/core/layout/flex_solver/flex_solver.cpp
     src/core/layout/grid_solver/grid_solver.cpp
     src/core/layout/grid_span/grid_span.cpp
+    src/core/layout/radial_layout/radial_layout.cpp
     src/core/layout/block_flow_solver/block_flow_solver.cpp
     src/core/layout/positioning/positioning.cpp
     src/core/layout/diagnostics/layout_diagnostics.cpp
@@ -689,6 +693,8 @@ add_custom_command(
 # raster adapter so consumers can use its value/resource semantics alone.
 add_library(gui_drawing_core STATIC
     src/core/drawing/bitmap/bitmap.cpp
+    src/core/drawing/brush/checker_brush.cpp
+    src/core/drawing/brush/conic_gradient_brush.cpp
     src/core/drawing/brush/hatch_brush.cpp
     src/core/drawing/brush/linear_gradient_brush.cpp
     src/core/drawing/brush/path_gradient_brush.cpp
@@ -4146,6 +4152,12 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_display_chunk_tests PRIVATE gui_forms_controls gui_forms_core)
     add_test(NAME gui_forms_display_chunk_tests COMMAND gui_forms_display_chunk_tests)
 
+    add_executable(gui_forms_paint_marks_tests
+        tests/paint_marks_tests.cpp
+    )
+    target_link_libraries(gui_forms_paint_marks_tests PRIVATE gui_forms_controls gui_forms_core)
+    add_test(NAME gui_forms_paint_marks_tests COMMAND gui_forms_paint_marks_tests)
+
     add_executable(gui_forms_frame_scheduler_tests
         tests/frame_scheduler_tests.cpp
     )
@@ -4897,6 +4909,10 @@ if(GUI_FORMS_BUILD_TESTS)
         add_executable(gui_forms_skia_edge_snapping_tests tests/skia_edge_snapping_tests.cpp)
         target_link_libraries(gui_forms_skia_edge_snapping_tests PRIVATE gui_forms_skia)
         add_test(NAME gui_forms_skia_edge_snapping_tests COMMAND gui_forms_skia_edge_snapping_tests)
+
+        add_executable(gui_forms_paint_marks_raster_tests tests/paint_marks_raster_tests.cpp)
+        target_link_libraries(gui_forms_paint_marks_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_paint_marks_raster_tests COMMAND gui_forms_paint_marks_raster_tests)
 
         add_executable(gui_forms_skia_damage_edge_tests tests/skia_damage_edge_tests.cpp)
         target_link_libraries(gui_forms_skia_damage_edge_tests PRIVATE gui_forms_skia)

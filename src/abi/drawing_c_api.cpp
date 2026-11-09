@@ -901,6 +901,109 @@ gd_result set_image_remap_table(gd_handle handle,
         &gui_drawing::ImageAttributes::set_remap_table, native);
 }
 
+// The batched marks and their companions (the drawing-primitives append).
+
+[[nodiscard]] gui_drawing::CornerRadii radii_from_c(gd_corner_radii radii) {
+    return {radii.top_left, radii.top_right, radii.bottom_right, radii.bottom_left};
+}
+
+// Copies a caller's point array once; the count is already bounded.
+[[nodiscard]] std::vector<gui_drawing::PointF> points_from_c(const gd_point* points, std::uint64_t count) {
+    std::vector<gui_drawing::PointF> native;
+    native.reserve(static_cast<std::size_t>(count));
+    for (std::uint64_t index = 0; index < count; ++index) native.push_back(point_from_c(points[index]));
+    return native;
+}
+
+gd_result set_pen_line_join(gui_drawing::Pen& pen, std::uint32_t join, double miter_limit) {
+    pen.set_line_join(static_cast<gui_drawing::LineJoin>(join), miter_limit);
+    return GD_OK;
+}
+
+gd_result set_pen_line_cap(gui_drawing::Pen& pen, std::uint32_t cap) {
+    pen.set_line_cap(static_cast<gui_drawing::LineCap>(cap));
+    return GD_OK;
+}
+
+gd_result draw_recorder_lines(gui_drawing::GraphicsRecorder& graphics, gui_drawing::Pen& stroke,
+                              const std::vector<gui_drawing::PointF>& points) {
+    graphics.draw_lines(stroke, points);
+    return GD_OK;
+}
+
+gd_result draw_recorder_line_segments(gui_drawing::GraphicsRecorder& graphics, gui_drawing::Pen& stroke,
+                                      const std::vector<gui_drawing::PointF>& points) {
+    graphics.draw_line_segments(stroke, points);
+    return GD_OK;
+}
+
+gd_result fill_recorder_rectangles(gui_drawing::GraphicsRecorder& graphics, gui_drawing::Brush& fill,
+                                   const std::vector<gui_drawing::RectF>& rects) {
+    graphics.fill_rectangles(fill, rects);
+    return GD_OK;
+}
+
+gd_result draw_recorder_markers(gui_drawing::GraphicsRecorder& graphics,
+                                const std::vector<gui_drawing::PointF>& centers,
+                                const gui_drawing::MarkerStyle& style) {
+    graphics.draw_markers(centers, style);
+    return GD_OK;
+}
+
+gd_result fill_recorder_grid(gui_drawing::GraphicsRecorder& graphics, gd_rect rect,
+                             const gui_drawing::GridPatternStyle& grid) {
+    graphics.fill_grid_pattern(rect_from_c(rect), grid);
+    return GD_OK;
+}
+
+gd_result fill_recorder_proportion(gui_drawing::GraphicsRecorder& graphics, gui_drawing::Brush& fill,
+                                   gd_rect track, gd_corner_radii radii, double proportion,
+                                   std::uint32_t direction) {
+    graphics.fill_proportion(fill, rect_from_c(track), radii_from_c(radii), proportion,
+                             static_cast<gui_drawing::FillDirection>(direction));
+    return GD_OK;
+}
+
+// The on-fill colour arrives as a value; its brush lives for this call on
+// the calling thread, which owns every object the call touches.
+gd_result draw_recorder_string_over_fill(gui_drawing::GraphicsRecorder& graphics, gui_drawing::Font& font,
+                                         gui_drawing::SolidBrush& brush, gui_drawing::StringFormat& format,
+                                         const std::string& text, gd_color on_fill_color, gd_point origin,
+                                         gd_rect fill) {
+    const gui_drawing::SolidBrush on_fill(color_from_c(on_fill_color));
+    graphics.draw_string_over_fill(text, font, brush, on_fill, point_from_c(origin), format, rect_from_c(fill));
+    return GD_OK;
+}
+
+gd_result add_path_rounded_rectangle(gui_drawing::GraphicsPath& path, gd_rect rectangle, gd_corner_radii radii) {
+    path.add_rounded_rectangle(rect_from_c(rectangle), radii_from_c(radii));
+    return GD_OK;
+}
+
+gd_result create_conic_gradient_brush(gd_point center, double start_angle, gd_color first, gd_color second,
+                                      gd_handle* output) {
+    return registry().create<gui_drawing::ConicGradientBrush>(GD_OBJECT_CONIC_GRADIENT_BRUSH, output,
+                                                              point_from_c(center), start_angle,
+                                                              color_from_c(first), color_from_c(second));
+}
+
+gd_result create_checker_brush(double cell_size, gd_color first, gd_color second, gd_handle* output) {
+    return registry().create<gui_drawing::CheckerBrush>(GD_OBJECT_CHECKER_BRUSH, output, cell_size,
+                                                        color_from_c(first), color_from_c(second));
+}
+
+gd_result read_contrast_ratio(gd_color first, gd_color second, double* ratio) {
+    *ratio = gui_drawing::contrast_ratio(color_from_c(first), color_from_c(second));
+    return GD_OK;
+}
+
+gd_result choose_contrasting_text_color(gd_color background, gd_color light, gd_color dark, gd_color* chosen) {
+    const gui_drawing::Color native =
+        gui_drawing::contrasting_text_color(color_from_c(background), color_from_c(light), color_from_c(dark));
+    *chosen = color_to_c(native);
+    return GD_OK;
+}
+
 gd_result create_hatch_brush(std::uint32_t style, gd_color foreground,
                              gd_color background, gd_handle* output) {
     return registry().create<gui_drawing::HatchBrush>(
@@ -934,6 +1037,13 @@ gd_result apply_linear_gradient_interpolation(
     return GD_OK;
 }
 
+gd_result apply_conic_gradient_interpolation(
+    gui_drawing::ConicGradientBrush& brush,
+    const gui_drawing::ColorBlend& blend) {
+    brush.set_interpolation_colors(blend);
+    return GD_OK;
+}
+
 gd_result apply_path_gradient_interpolation(
     gui_drawing::PathGradientBrush& brush,
     const gui_drawing::ColorBlend& blend) {
@@ -955,6 +1065,10 @@ gd_result apply_gradient_interpolation(gd_handle handle,
     if (kind == GD_OBJECT_LINEAR_GRADIENT_BRUSH) {
         return registry().with<gui_drawing::LinearGradientBrush>(
             handle, kind, &apply_linear_gradient_interpolation, blend);
+    }
+    if (kind == GD_OBJECT_CONIC_GRADIENT_BRUSH) {
+        return registry().with<gui_drawing::ConicGradientBrush>(
+            handle, kind, &apply_conic_gradient_interpolation, blend);
     }
     return registry().with<gui_drawing::PathGradientBrush>(
         handle, kind, &apply_path_gradient_interpolation, blend);
@@ -2133,8 +2247,164 @@ gd_result api_bitmap_release_hdc(gd_handle handle, std::uint64_t lease_token) {
     return registry().release(handle);
 }
 
+// A caller array of `count` elements, the batch bounds checked before any
+// element is read.
+[[nodiscard]] bool bounded_batch(const void* elements, std::uint64_t count, std::uint64_t minimum) noexcept {
+    return elements != nullptr && count >= minimum &&
+           count <= gui_drawing::GraphicsRecorder::maximum_batch_elements;
+}
+
+gd_result api_pen_set_line_join(gd_handle handle, std::uint32_t join, double miter_limit) {
+    if (join > GD_LINE_JOIN_ROUND) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "line join is outside the declared enum");
+    }
+    return registry().with<gui_drawing::Pen>(handle, GD_OBJECT_PEN, &set_pen_line_join, join, miter_limit);
+}
+
+gd_result api_pen_set_line_cap(gd_handle handle, std::uint32_t cap) {
+    if (cap > GD_LINE_CAP_ROUND) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "line cap is outside the declared enum");
+    }
+    return registry().with<gui_drawing::Pen>(handle, GD_OBJECT_PEN, &set_pen_line_cap, cap);
+}
+
+gd_result draw_recorder_lines_from_c(gd_handle recorder, gd_handle pen, const gd_point* points,
+                                     std::uint64_t count, bool pairs) {
+    const std::vector<gui_drawing::PointF> native = points_from_c(points, count);
+    if (pairs) {
+        return registry().with_two<gui_drawing::GraphicsRecorder, gui_drawing::Pen>(
+            recorder, GD_OBJECT_RECORDER, pen, GD_OBJECT_PEN, &draw_recorder_line_segments, native);
+    }
+    return registry().with_two<gui_drawing::GraphicsRecorder, gui_drawing::Pen>(
+        recorder, GD_OBJECT_RECORDER, pen, GD_OBJECT_PEN, &draw_recorder_lines, native);
+}
+
+gd_result api_recorder_draw_lines(gd_handle recorder, gd_handle pen, const gd_point* points,
+                                  std::uint64_t count) {
+    if (!bounded_batch(points, count, 2U)) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "polyline requires 2 or more bounded points");
+    }
+    return translate(&draw_recorder_lines_from_c, recorder, pen, points, count, false);
+}
+
+gd_result api_recorder_draw_line_segments(gd_handle recorder, gd_handle pen, const gd_point* points,
+                                          std::uint64_t count) {
+    if (!bounded_batch(points, count, 2U) || count % 2U != 0U) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "line segments require bounded points in pairs");
+    }
+    return translate(&draw_recorder_lines_from_c, recorder, pen, points, count, true);
+}
+
+gd_result fill_recorder_rectangles_from_c(gd_handle recorder, gd_handle brush, const gd_rect* rects,
+                                          std::uint64_t count) {
+    std::vector<gui_drawing::RectF> native;
+    native.reserve(static_cast<std::size_t>(count));
+    for (std::uint64_t index = 0; index < count; ++index) native.push_back(rect_from_c(rects[index]));
+    return registry().with_two<gui_drawing::GraphicsRecorder, gui_drawing::Brush>(
+        recorder, GD_OBJECT_RECORDER, brush, 0U, &fill_recorder_rectangles, native);
+}
+
+gd_result api_recorder_fill_rectangles(gd_handle recorder, gd_handle brush, const gd_rect* rects,
+                                       std::uint64_t count) {
+    if (!bounded_batch(rects, count, 1U)) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "fill rectangles requires 1 or more bounded rectangles");
+    }
+    return translate(&fill_recorder_rectangles_from_c, recorder, brush, rects, count);
+}
+
+gd_result draw_recorder_markers_from_c(gd_handle recorder, const gd_point* centers, std::uint64_t count,
+                                       const gd_marker_style* style) {
+    gui_drawing::MarkerStyle native;
+    native.shape = static_cast<gui_drawing::MarkerShape>((*style).shape);
+    native.size = (*style).size;
+    native.fill = color_from_c((*style).fill);
+    native.edge = color_from_c((*style).edge);
+    native.edge_width = (*style).edge_width;
+    const std::vector<gui_drawing::PointF> native_centers = points_from_c(centers, count);
+    return registry().with<gui_drawing::GraphicsRecorder>(recorder, GD_OBJECT_RECORDER, &draw_recorder_markers,
+                                                          native_centers, native);
+}
+
+gd_result api_recorder_draw_markers(gd_handle recorder, const gd_point* centers, std::uint64_t count,
+                                    const gd_marker_style* style) {
+    if (!bounded_batch(centers, count, 1U) || style == nullptr || (*style).shape > GD_MARKER_ASTERISK) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "markers require bounded centres and a declared shape");
+    }
+    return translate(&draw_recorder_markers_from_c, recorder, centers, count, style);
+}
+
+gd_result api_conic_gradient_brush_create(gd_point center, double start_angle, gd_color first,
+                                          gd_color second, gd_handle* output) {
+    return translate(&create_conic_gradient_brush, center, start_angle, first, second, output);
+}
+
+gd_result api_conic_gradient_set_interpolation(gd_handle handle, const gd_color* colors,
+                                               const double* positions, std::uint64_t count) {
+    return set_gradient_interpolation(handle, GD_OBJECT_CONIC_GRADIENT_BRUSH, colors, positions, count);
+}
+
+gd_result api_checker_brush_create(double cell_size, gd_color first, gd_color second, gd_handle* output) {
+    return translate(&create_checker_brush, cell_size, first, second, output);
+}
+
+gd_result fill_recorder_grid_from_c(gd_handle recorder, gd_rect rect, const gd_grid_pattern* grid) {
+    gui_drawing::GridPatternStyle native;
+    native.origin = point_from_c((*grid).origin);
+    native.spacing = (*grid).spacing;
+    native.major_every = (*grid).major_every;
+    native.minor = color_from_c((*grid).minor);
+    native.major = color_from_c((*grid).major);
+    native.line_width = (*grid).line_width;
+    return registry().with<gui_drawing::GraphicsRecorder>(recorder, GD_OBJECT_RECORDER, &fill_recorder_grid, rect,
+                                                          native);
+}
+
+gd_result api_recorder_fill_grid_pattern(gd_handle recorder, gd_rect rect, const gd_grid_pattern* grid) {
+    if (grid == nullptr) return fail(GD_ERROR_INVALID_ARGUMENT, "grid fill requires a grid");
+    return translate(&fill_recorder_grid_from_c, recorder, rect, grid);
+}
+
+gd_result api_recorder_fill_proportion(gd_handle recorder, gd_handle brush, gd_rect track, gd_corner_radii radii,
+                                       double proportion, std::uint32_t direction) {
+    if (direction > GD_FILL_TOP_TO_BOTTOM) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "fill direction is outside the declared enum");
+    }
+    return registry().with_two<gui_drawing::GraphicsRecorder, gui_drawing::Brush>(
+        recorder, GD_OBJECT_RECORDER, brush, 0U, &fill_recorder_proportion, track, radii, proportion, direction);
+}
+
+gd_result draw_recorder_string_over_fill_from_c(gd_handle recorder, gd_string_view text, gd_handle font,
+                                                gd_handle brush, gd_color on_fill_color, gd_point origin,
+                                                gd_handle format, gd_rect fill) {
+    const std::string native_text = string_from_c(text, "draw string text");
+    return registry().with_text_objects(recorder, font, brush, format, &draw_recorder_string_over_fill,
+                                        native_text, on_fill_color, origin, fill);
+}
+
+gd_result api_recorder_draw_string_over_fill(gd_handle recorder, gd_string_view text, gd_handle font,
+                                             gd_handle brush, gd_color on_fill_color, gd_point origin,
+                                             gd_handle format, gd_rect fill) {
+    return translate(&draw_recorder_string_over_fill_from_c, recorder, text, font, brush, on_fill_color, origin,
+                     format, fill);
+}
+
+gd_result api_contrast_ratio(gd_color first, gd_color second, double* ratio) {
+    if (ratio == nullptr) return fail(GD_ERROR_INVALID_ARGUMENT, "contrast ratio requires output");
+    return translate(&read_contrast_ratio, first, second, ratio);
+}
+
+gd_result api_contrasting_text_color(gd_color background, gd_color light, gd_color dark, gd_color* chosen) {
+    if (chosen == nullptr) return fail(GD_ERROR_INVALID_ARGUMENT, "contrasting text colour requires output");
+    return translate(&choose_contrasting_text_color, background, light, dark, chosen);
+}
+
+gd_result api_graphics_path_add_rounded_rectangle(gd_handle handle, gd_rect rectangle, gd_corner_radii radii) {
+    return registry().with<gui_drawing::GraphicsPath>(handle, GD_OBJECT_GRAPHICS_PATH, &add_path_rounded_rectangle,
+                                                      rectangle, radii);
+}
+
 const gd_api_v0 api_table{
-    sizeof(gd_api_v0), GD_ABI_VERSION_0_2,
+    sizeof(gd_api_v0), GD_ABI_VERSION_0_3,
     &api_last_error, &api_retain, &api_release, &api_dispose,
     &api_object_state, &api_object_kind,
     &api_solid_brush_create, &api_pen_create, &api_pen_set_width,
@@ -2193,6 +2463,15 @@ const gd_api_v0 api_table{
     &api_native_surface_refresh,
     &api_native_surface_publish_retained,
     &api_font_resolve,
+    &api_pen_set_line_join, &api_pen_set_line_cap,
+    &api_recorder_draw_lines, &api_recorder_fill_rectangles,
+    &api_recorder_draw_line_segments, &api_recorder_draw_markers,
+    &api_conic_gradient_brush_create, &api_conic_gradient_set_interpolation,
+    &api_checker_brush_create,
+    &api_recorder_fill_grid_pattern, &api_recorder_fill_proportion,
+    &api_recorder_draw_string_over_fill,
+    &api_contrast_ratio, &api_contrasting_text_color,
+    &api_graphics_path_add_rounded_rectangle,
 };
 
 } // namespace
@@ -2204,13 +2483,19 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
                     "drawing ABI negotiation requires a size-prefixed table");
     }
     if (requested_version != GD_ABI_VERSION_0_1 &&
-        requested_version != GD_ABI_VERSION_0_2) {
+        requested_version != GD_ABI_VERSION_0_2 &&
+        requested_version != GD_ABI_VERSION_0_3) {
         return fail(GD_ERROR_UNSUPPORTED_VERSION,
                     "requested GUI.Drawing ABI version is unsupported");
     }
     const std::uint32_t caller_size = (*table).struct_size;
-    const std::size_t available = requested_version == GD_ABI_VERSION_0_1
-        ? offsetof(gd_api_v0, bitmap_edit_begin) : sizeof(api_table);
+    // Each version's table is the prefix it introduced.
+    std::size_t available = sizeof(api_table);
+    if (requested_version == GD_ABI_VERSION_0_1) {
+        available = offsetof(gd_api_v0, bitmap_edit_begin);
+    } else if (requested_version == GD_ABI_VERSION_0_2) {
+        available = offsetof(gd_api_v0, pen_set_line_join);
+    }
     const std::size_t copied = std::min<std::size_t>(caller_size, available);
     std::memcpy(table, &api_table, copied);
     (*table).struct_size = static_cast<std::uint32_t>(available);

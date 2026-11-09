@@ -12,6 +12,7 @@
 #include "include/core/SkPath.h"
 #include "include/core/SkPathBuilder.h"
 #include "include/core/SkPixmap.h"
+#include "include/core/SkRRect.h"
 #include "include/core/SkSamplingOptions.h"
 #include "include/core/SkSurface.h"
 #include "include/effects/SkColorMatrixFilter.h"
@@ -19,6 +20,7 @@
 #include "include/effects/SkGradient.h"
 
 #include "../../../core/image/png_pixels.hpp"
+#include "../../../core/types/paint_marks/grid_lines.hpp"
 #include "../../../core/image/png_writer.hpp"
 #include "../../../core/text/composite/text_composite.hpp"
 #include "../../text/glyph_run/glyph_run_raster.hpp"
@@ -298,6 +300,24 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
     return {};
 }
 
+[[nodiscard]] SkPaint::Join to_sk_join(LineJoin join) noexcept {
+    switch (join) {
+    case LineJoin::miter: return SkPaint::kMiter_Join;
+    case LineJoin::bevel: return SkPaint::kBevel_Join;
+    case LineJoin::round: return SkPaint::kRound_Join;
+    }
+    return SkPaint::kMiter_Join;
+}
+
+[[nodiscard]] SkPaint::Cap to_sk_cap(LineCap cap) noexcept {
+    switch (cap) {
+    case LineCap::flat: return SkPaint::kButt_Cap;
+    case LineCap::square: return SkPaint::kSquare_Cap;
+    case LineCap::round: return SkPaint::kRound_Cap;
+    }
+    return SkPaint::kButt_Cap;
+}
+
 // Configures paint to stroke with pen. False when stx_skia refuses the pen's
 // dash pattern (an entry that overflows float, for example); the command must
 // then fail rather than draw a solid line.
@@ -307,6 +327,9 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
     paint.setColor(to_sk_color(pen.color));
     paint.setStyle(SkPaint::kStroke_Style);
     paint.setStrokeWidth(static_cast<SkScalar>(pen.width));
+    paint.setStrokeJoin(to_sk_join(pen.join));
+    paint.setStrokeMiter(static_cast<SkScalar>(pen.miter_limit));
+    paint.setStrokeCap(to_sk_cap(pen.cap));
     std::vector<SkScalar> pattern;
     if (pen.dash_style == DashStyle::custom) {
         pattern.reserve(pen.dash_pattern.size());
@@ -406,6 +429,23 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
         }
         return true;
     }
+    if (brush.kind == BrushKind::checker) {
+        // Two by two cells, scaled to the cell size in the recorder's
+        // coordinates, with a `primary` cell's corner at the origin.
+        if (!(brush.cell_size > 0.0)) return false;
+        const SkPMColor first = SkPreMultiplyColor(to_sk_color(brush.primary));
+        const SkPMColor second = SkPreMultiplyColor(to_sk_color(brush.secondary));
+        const std::array<SkPMColor, 4> cells{first, second, second, first};
+        const SkImageInfo info = SkImageInfo::MakeN32Premul(2, 2);
+        sk_sp<SkData> data = SkData::MakeWithCopy(cells.data(), sizeof(cells));
+        sk_sp<SkImage> image = SkImages::RasterFromData(info, std::move(data), 2U * sizeof(SkPMColor));
+        if (!image) return false;
+        const SkScalar cell = static_cast<SkScalar>(brush.cell_size);
+        const SkMatrix local = SkMatrix::Scale(cell, cell);
+        paint.setShader((*image).makeShader(SkTileMode::kRepeat, SkTileMode::kRepeat,
+                                            SkSamplingOptions(SkFilterMode::kNearest), local));
+        return true;
+    }
     if (brush.kind == BrushKind::texture) {
         if (!brush.image.has_pixels()) {
             paint.setColor(SK_ColorTRANSPARENT);
@@ -447,6 +487,16 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
         SkSpan<const float>(positions.data(), positions.size()),
         tile_mode(brush.wrap_mode), SkColorSpace::MakeSRGB());
     const SkGradient gradient(gradient_colors, SkGradient::Interpolation{});
+    if (brush.kind == BrushKind::conic_gradient) {
+        // One full turn clockwise (y down) from the start angle.
+        const double start = std::fmod(brush.angle, 360.0);
+        SkGradientShaderResult made = SkShaders::SweepGradient(
+            {static_cast<SkScalar>(brush.center.x), static_cast<SkScalar>(brush.center.y)},
+            static_cast<SkScalar>(start), static_cast<SkScalar>(start + 360.0), gradient);
+        if (made.rejection != SkGradientRejection::kNone) return false;
+        paint.setShader(std::move(made.shader));
+        return true;
+    }
     if (brush.kind == BrushKind::linear_gradient) {
         constexpr double degrees_to_radians = 0.017453292519943295769;
         const double radians = brush.angle * degrees_to_radians;
@@ -481,6 +531,154 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
     if (made.rejection != SkGradientRejection::kNone) return false;
     paint.setShader(std::move(made.shader));
     return true;
+}
+
+[[nodiscard]] SkPoint to_sk_point(PointF point) noexcept {
+    return SkPoint{static_cast<SkScalar>(point.x), static_cast<SkScalar>(point.y)};
+}
+
+// A path through every point in order (draw_lines) or one contour per pair
+// (draw_line_segments).
+[[nodiscard]] SkPath batch_line_path(const std::vector<PointF>& points, bool pairs) {
+    SkPathBuilder builder;
+    builder.incReserve(static_cast<int>(points.size()));
+    const std::size_t step = pairs ? 2U : points.size();
+    for (std::size_t start = 0U; start + 1U < points.size(); start += step) {
+        builder.moveTo(to_sk_point(points[start]));
+        const std::size_t end = std::min(start + step, points.size());
+        for (std::size_t index = start + 1U; index < end; ++index) builder.lineTo(to_sk_point(points[index]));
+    }
+    return builder.detach();
+}
+
+[[nodiscard]] bool marker_is_stroked(MarkerShape shape) noexcept {
+    return shape == MarkerShape::cross || shape == MarkerShape::plus || shape == MarkerShape::asterisk;
+}
+
+// The marker centred on the origin, built once per draw_markers command
+// from the GUI.Forms marker geometry (whose shapes share this order).
+[[nodiscard]] SkPath marker_path(const MarkerStyle& style) {
+    SkPathBuilder builder;
+    const double half = style.size * 0.5;
+    if (style.shape == MarkerShape::circle) {
+        builder.addOval(SkRect::MakeLTRB(static_cast<SkScalar>(-half), static_cast<SkScalar>(-half),
+                                         static_cast<SkScalar>(half), static_cast<SkScalar>(half)));
+        return builder.detach();
+    }
+    const gui_forms::MarkerShape shape = static_cast<gui_forms::MarkerShape>(style.shape);
+    std::array<gui_forms::Point, gui_forms::maximum_marker_vertices> outline{};
+    const std::size_t vertex_count = gui_forms::marker_outline(shape, gui_forms::Point{}, style.size, outline);
+    if (vertex_count != 0U) {
+        builder.moveTo(static_cast<SkScalar>(outline[0].x), static_cast<SkScalar>(outline[0].y));
+        for (std::size_t index = 1U; index < vertex_count; ++index) {
+            builder.lineTo(static_cast<SkScalar>(outline[index].x), static_cast<SkScalar>(outline[index].y));
+        }
+        builder.close();
+        return builder.detach();
+    }
+    std::array<gui_forms::PaintSegment, gui_forms::maximum_marker_lines> lines{};
+    const std::size_t line_count = gui_forms::marker_lines(shape, gui_forms::Point{}, style.size, lines);
+    for (std::size_t index = 0U; index < line_count; ++index) {
+        builder.moveTo(static_cast<SkScalar>(lines[index].from.x), static_cast<SkScalar>(lines[index].from.y));
+        builder.lineTo(static_cast<SkScalar>(lines[index].to.x), static_cast<SkScalar>(lines[index].to.y));
+    }
+    return builder.detach();
+}
+
+// Every marker's fill, then every marker's edge, so a later marker's fill
+// never covers an earlier one's edge differently from the Painter fallback.
+void draw_marker_batch(SkCanvas& canvas, const DrawingCommand& command) {
+    const MarkerStyle& style = command.marker;
+    const SkPath shape = marker_path(style);
+    const bool stroked = marker_is_stroked(style.shape);
+    SkPaint fill;
+    configure_paint(fill, command.state);
+    fill.setStyle(SkPaint::kFill_Style);
+    fill.setColor(to_sk_color(style.fill));
+    SkPaint edge;
+    configure_paint(edge, command.state);
+    edge.setStyle(SkPaint::kStroke_Style);
+    edge.setColor(to_sk_color(style.edge));
+    edge.setStrokeWidth(static_cast<SkScalar>(style.edge_width));
+    const bool draws_fill = !stroked && SkColorGetA(fill.getColor()) != 0U;
+    const bool draws_edge = style.edge_width > 0.0 && SkColorGetA(edge.getColor()) != 0U;
+    if (draws_fill) {
+        for (const PointF center : command.points) {
+            canvas.drawPath(shape.makeOffset(static_cast<SkScalar>(center.x), static_cast<SkScalar>(center.y)),
+                            fill);
+        }
+    }
+    if (draws_edge) {
+        for (const PointF center : command.points) {
+            canvas.drawPath(shape.makeOffset(static_cast<SkScalar>(center.x), static_cast<SkScalar>(center.y)),
+                            edge);
+        }
+    }
+}
+
+// The lines of one axis whose majority (`majors`) matches, as rectangles
+// `line_width` wide across `area`.
+void draw_grid_lines(SkCanvas& canvas, const SkPaint& paint, const RectF& area, const GridPatternStyle& grid,
+                     bool vertical, bool majors) {
+    const double half = grid.line_width * 0.5;
+    const double low = vertical ? area.x : area.y;
+    const double high = vertical ? area.right() : area.bottom();
+    const double origin = vertical ? grid.origin.x : grid.origin.y;
+    const gui_forms::detail::GridLineRange range =
+        gui_forms::detail::grid_line_range(low, high, origin, grid.spacing, half);
+    for (std::int64_t index = range.first; index < range.first + range.count; ++index) {
+        if (gui_forms::detail::grid_line_is_major(index, grid.major_every) != majors) continue;
+        const double centre = origin + static_cast<double>(index) * grid.spacing;
+        const RectF line = vertical ? RectF{centre - half, area.y, grid.line_width, area.height}
+                                    : RectF{area.x, centre - half, area.width, grid.line_width};
+        canvas.drawRect(to_sk_rect(line), paint);
+    }
+}
+
+// Minor lines under major ones, all clipped to the command's rectangle.
+void draw_grid(SkCanvas& canvas, const DrawingCommand& command) {
+    const GridPatternStyle& grid = command.grid;
+    SkPaint minor;
+    configure_paint(minor, command.state);
+    minor.setColor(to_sk_color(grid.minor));
+    SkPaint major;
+    configure_paint(major, command.state);
+    major.setColor(to_sk_color(grid.major));
+    canvas.save();
+    canvas.clipRect(to_sk_rect(command.rect), SkClipOp::kIntersect, false);
+    draw_grid_lines(canvas, minor, command.rect, grid, true, false);
+    draw_grid_lines(canvas, minor, command.rect, grid, false, false);
+    draw_grid_lines(canvas, major, command.rect, grid, true, true);
+    draw_grid_lines(canvas, major, command.rect, grid, false, true);
+    canvas.restore();
+}
+
+// The part of the track a proportion covers from the direction's edge.
+[[nodiscard]] RectF proportion_part(RectF track, double proportion, FillDirection direction) noexcept {
+    const double across = track.width * proportion;
+    const double up = track.height * proportion;
+    switch (direction) {
+    case FillDirection::left_to_right: return RectF{track.x, track.y, across, track.height};
+    case FillDirection::right_to_left: return RectF{track.right() - across, track.y, across, track.height};
+    case FillDirection::bottom_to_top: return RectF{track.x, track.bottom() - up, track.width, up};
+    case FillDirection::top_to_bottom: return RectF{track.x, track.y, track.width, up};
+    }
+    return RectF{};
+}
+
+[[nodiscard]] SkRRect track_shape(RectF track, const CornerRadii& radii) {
+    const SkScalar limit = static_cast<SkScalar>(std::min(track.width, track.height) * 0.5);
+    const SkScalar top_left = std::min(static_cast<SkScalar>(radii.top_left), limit);
+    const SkScalar top_right = std::min(static_cast<SkScalar>(radii.top_right), limit);
+    const SkScalar bottom_right = std::min(static_cast<SkScalar>(radii.bottom_right), limit);
+    const SkScalar bottom_left = std::min(static_cast<SkScalar>(radii.bottom_left), limit);
+    // Skia's corner order: upper left, upper right, lower right, lower left.
+    const std::array<SkVector, 4> corners{SkVector{top_left, top_left}, SkVector{top_right, top_right},
+                                          SkVector{bottom_right, bottom_right},
+                                          SkVector{bottom_left, bottom_left}};
+    SkRRect shape;
+    shape.setRectRadii(to_sk_rect(track), corners.data());
+    return shape;
 }
 
 class BitmapUnlock final {
@@ -1069,6 +1267,37 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
                                       to_sk_rect(command.rect),
                                       sampling_for(command.state), &paint,
                                       SkCanvas::kStrict_SrcRectConstraint);
+                break;
+            }
+            case CommandKind::draw_lines:
+            case CommandKind::draw_line_segments:
+                if (!configure_pen(paint, command.pen, command.state)) {
+                    return {RasterError::invalid_argument, executed};
+                }
+                (*canvas).drawPath(batch_line_path(command.points,
+                                                   command.kind == CommandKind::draw_line_segments),
+                                   paint);
+                break;
+            case CommandKind::fill_rectangles:
+                if (!configure_brush(paint, command.brush, command.state)) {
+                    return {RasterError::invalid_argument, executed};
+                }
+                for (const RectF& rect : command.rects) (*canvas).drawRect(to_sk_rect(rect), paint);
+                break;
+            case CommandKind::draw_markers:
+                draw_marker_batch(*canvas, command);
+                break;
+            case CommandKind::fill_grid_pattern:
+                draw_grid(*canvas, command);
+                break;
+            case CommandKind::fill_proportion: {
+                if (!configure_brush(paint, command.brush, command.state)) {
+                    return {RasterError::invalid_argument, executed};
+                }
+                const RectF part = proportion_part(command.rect, command.scalar, command.direction);
+                if (part.empty() || command.rect.empty()) break;
+                (*canvas).clipRRect(track_shape(command.rect, command.radii), SkClipOp::kIntersect, true);
+                (*canvas).drawRect(to_sk_rect(part), paint);
                 break;
             }
             default:

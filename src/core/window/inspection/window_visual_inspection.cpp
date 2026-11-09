@@ -55,6 +55,19 @@ VisualPaintOperation public_operation(detail::DisplayOperation operation) {
         return VisualPaintOperation::draw_part_raster;
     case Private::begin_group: return VisualPaintOperation::begin_group;
     case Private::end_group: return VisualPaintOperation::end_group;
+    case Private::stroke_polyline: return VisualPaintOperation::stroke_polyline;
+    case Private::fill_polygon: return VisualPaintOperation::fill_polygon;
+    case Private::fill_band: return VisualPaintOperation::fill_band;
+    case Private::fill_rects:
+    case Private::fill_rects_each:
+        return VisualPaintOperation::fill_rects;
+    case Private::stroke_segments: return VisualPaintOperation::stroke_segments;
+    case Private::draw_markers: return VisualPaintOperation::draw_markers;
+    case Private::fill_conic_gradient: return VisualPaintOperation::fill_conic_gradient;
+    case Private::fill_checker: return VisualPaintOperation::fill_checker;
+    case Private::fill_grid_pattern: return VisualPaintOperation::fill_grid_pattern;
+    case Private::fill_rounded_rect_corners: return VisualPaintOperation::fill_rounded_rect_corners;
+    case Private::stroke_rounded_rect_corners: return VisualPaintOperation::stroke_rounded_rect_corners;
     }
     throw std::logic_error("GUI.Forms display operation has no inspection spelling");
 }
@@ -81,6 +94,11 @@ VisualPaintOperationSnapshot inspect_operation(
     result.image_sampling = command.image_sampling;
     result.text_byte_count = command.text.size();
     result.text_orientation = command.text_orientation;
+    if (command.marks) {
+        const detail::DisplayMarks& marks = *command.marks;
+        const std::size_t listed = marks.points.size() + marks.rects.size() + marks.segments.size();
+        result.element_count = listed;
+    }
     if (include_text) result.text = command.text;
     if (command.operation == detail::DisplayOperation::draw_prepared_text &&
         command.prepared_text && (*command.prepared_text).input) {

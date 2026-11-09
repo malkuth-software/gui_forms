@@ -108,6 +108,8 @@ Related types
      - One application-defined finite state, as written in ``:state(name)``.
    * - :cpp:class:`CustomStateIndex <gui_forms::CustomStateIndex>`
      - Position of an application-defined state in its control type's declaration list.
+   * - :cpp:class:`DirectionRingStyle <gui_forms::DirectionRingStyle>`
+     - The direction ring: an annulus between ``inner_radius`` and ``outer_radius`` (finite, 0 <= inner < outer) about the layout's centre in ``track``, with the picked item's sector of it in ``pick``.
    * - :cpp:class:`DockCapability <gui_forms::DockCapability>`
      - The parent edge the control docks to (Dock).
    * - :cpp:class:`DoubleBufferedCapability <gui_forms::DoubleBufferedCapability>`
@@ -240,6 +242,12 @@ Related types
      - Storage for one control's published part geometry: ``count`` live records, one per declared part, in declaration order.
    * - :cpp:class:`PartIndex <gui_forms::PartIndex>`
      - Position of a part in its control type's declaration list.
+   * - :cpp:class:`RadialLayout <gui_forms::RadialLayout>`
+     -  
+   * - :cpp:class:`RadialPick <gui_forms::RadialPick>`
+     - What a pointer picks: nothing within ``dead_zone`` of the centre (or for a layout that is not valid, or a point or dead zone that is not finite), otherwise the item whose sector holds the pointer's direction.
+   * - :cpp:class:`RadialSlot <gui_forms::RadialSlot>`
+     - One placed item: its box, its anchor and direction, and the sector of directions that picks it, from ``sweep_start`` to ``sweep_start + sweep`` degrees (sweep = 360 / count, centred on the direction).
    * - :cpp:class:`RuntimeId <gui_forms::RuntimeId>`
      - RuntimeId is the monotonic process-local identity used for exact retained instances and child operations.
    * - :cpp:class:`SizeValue <gui_forms::SizeValue>`
@@ -1164,6 +1172,22 @@ Related types
    Position of an application-defined state in its control type's declaration list.
 
    .. cpp:member:: std::uint8_t value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DirectionRingStyle final
+
+   ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>``
+
+   The direction ring: an annulus between ``inner_radius`` and ``outer_radius`` (finite, 0 <= inner < outer) about the layout's centre in ``track``, with the picked item's sector of it in ``pick``.
+
+   .. cpp:member:: double inner_radius
+
+   .. cpp:member:: double outer_radius
+
+   .. cpp:member:: Color track
+
+   .. cpp:member:: Color pick
 
 .. cpp:namespace:: gui_forms
 
@@ -2448,6 +2472,66 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: RadialLayout final
+
+   ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>``
+
+   .. cpp:member:: Point center
+
+   .. cpp:member:: double radius
+
+      From the centre to each anchor; finite and positive.
+
+   .. cpp:member:: Size item_size
+
+      Each item's box; finite and non-negative.
+
+   .. cpp:member:: double start_degrees
+
+      The first item's direction; finite. The rest follow clockwise. Default: ``{-90.0}``.
+
+   .. cpp:member:: std::uint32_t count
+
+      1 to maximum_radial_items.
+
+   .. cpp:member:: RadialItemAlignment alignment
+
+      Default: ``{RadialItemAlignment::centred}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RadialPick final
+
+   ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>``
+
+   What a pointer picks: nothing within ``dead_zone`` of the centre (or for a layout that is not valid, or a point or dead zone that is not finite), otherwise the item whose sector holds the pointer's direction. A direction on a boundary picks the item clockwise of it.
+
+   .. cpp:member:: bool picked
+
+   .. cpp:member:: std::uint32_t index
+
+   .. cpp:member:: double direction_degrees
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RadialSlot final
+
+   ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>``
+
+   One placed item: its box, its anchor and direction, and the sector of directions that picks it, from ``sweep_start`` to ``sweep_start + sweep`` degrees (sweep = 360 / count, centred on the direction).
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: Point anchor
+
+   .. cpp:member:: double direction_degrees
+
+   .. cpp:member:: double sweep_start
+
+   .. cpp:member:: double sweep
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RuntimeId
 
    ``#include <gui_forms/control/control/control.hpp>``
@@ -3384,6 +3468,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: RadialItemAlignment
+
+   ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>``
+
+   .. cpp:enumerator:: centred
+
+   .. cpp:enumerator:: outward
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ResizeAxes
 
    ``#include <gui_forms/layout/resize_axes/resize_axes.hpp>``
@@ -3788,6 +3882,30 @@ Functions, constants and aliases
 .. cpp:var:: constexpr AutoLengthPercentage automatic_inset
 
    The inset ``auto``, every side's default. Value: ``{true, {}}``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/layout/radial_layout/radial_layout.hpp>``
+
+.. cpp:function:: bool valid_radial_layout(const RadialLayout& layout) noexcept
+
+.. cpp:function:: std::size_t place_radial_items(const RadialLayout& layout, std::span<RadialSlot> slots) noexcept
+
+   Fills the first ``layout.count`` entries of ``slots`` and returns that count; 0, writing nothing, when the layout is not valid or ``slots`` is shorter.
+
+.. cpp:function:: RadialPick pick_radial_item(const RadialLayout& layout, Point pointer, double dead_zone) noexcept
+
+.. cpp:function:: void paint_direction_ring(Painter& painter, const RadialLayout& layout, const RadialPick& pick, const DirectionRingStyle& style)
+
+   Paints the ring: the track as one round stroke, then, when ``pick`` picked an item, its sector as one polygon (the whole annulus for a one-item layout, as a second round stroke). An invalid layout or style paints nothing.
+
+.. cpp:var:: constexpr std::size_t maximum_radial_items
+
+   The most items one radial layout places (a pie of more stops being pickable by direction alone). Value: ``16U``.
+
+.. cpp:var:: constexpr std::size_t maximum_ring_arc_steps
+
+   The most arc steps one sector's outline takes (6 degrees each, so a sector of a two-item pie, half a turn, takes 30). Value: ``30U``.
 
 .. cpp:namespace:: gui_forms
 

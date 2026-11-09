@@ -57,6 +57,17 @@ inline constexpr std::size_t maximum_effect_input_events = 8U;
 inline constexpr std::size_t maximum_effect_gradient_stops = 6U;
 // The largest state any effect may declare, in bytes.
 inline constexpr std::size_t maximum_effect_state_bytes = 16384U;
+// The drawing vocabulary's version, which an effect names in
+// EffectDeclaration::engine_version: 1 is the design note's first list
+// (fills, strokes, gradients, soft dots and streaks); 2 adds the batched
+// marks (polylines with joins, caps and dashes on a phase, polygons, bands,
+// rectangle batches, segments, markers), the conic gradient and the
+// checkerboard. A registry refuses an effect that names a later version.
+inline constexpr std::uint32_t current_effect_vocabulary_version = 2U;
+// The most elements one batched vocabulary call draws (EffectPoints,
+// EffectRects, EffectSegments); each call's declared fixed cost covers
+// this many.
+inline constexpr std::size_t maximum_effect_batch = 32U;
 
 // At most Capacity passes: `count` clamped to Capacity. The only loop shape,
 // with std::array and EffectArray, whose bound the plugin knows.
@@ -383,7 +394,8 @@ struct EffectCost final {
 struct EffectDeclaration final {
     // Registered (snake_case) name, as themes and applications write it.
     std::string_view name{};
-    // The engine version that introduced the effect.
+    // The vocabulary version the effect draws with, 1 to
+    // current_effect_vocabulary_version.
     std::uint32_t engine_version{1U};
     EffectTimeModel time_model{EffectTimeModel::ambient};
     EffectCost cost{};

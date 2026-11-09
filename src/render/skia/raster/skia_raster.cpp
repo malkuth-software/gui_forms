@@ -33,6 +33,7 @@
 #include "include/core/SkRRect.h"
 #include "include/core/SkStream.h"
 #include "include/core/SkSurface.h"
+#include "include/effects/SkDashPathEffect.h"
 #include "include/effects/SkShaderMaskFilter.h"
 #include "include/effects/SkGradient.h"
 
@@ -2086,6 +2087,285 @@ void SkiaRaster::fill_image_pattern(
         SkTileMode::kRepeat, SkTileMode::kRepeat,
         SkSamplingOptions(SkFilterMode::kLinear), local));
     (*canvas).drawRect(to_sk_rect(destination), paint);
+}
+
+namespace {
+
+SkPoint to_sk_point(Point point) noexcept {
+    return SkPoint::Make(static_cast<SkScalar>(point.x), static_cast<SkScalar>(point.y));
+}
+
+bool finite_mark_point(Point point) noexcept {
+    return std::isfinite(point.x) && std::isfinite(point.y);
+}
+
+SkPaint::Join to_sk_join(StrokeJoin join) noexcept {
+    switch (join) {
+    case StrokeJoin::miter: return SkPaint::kMiter_Join;
+    case StrokeJoin::round: return SkPaint::kRound_Join;
+    case StrokeJoin::bevel: return SkPaint::kBevel_Join;
+    }
+    return SkPaint::kMiter_Join;
+}
+
+SkPaint::Cap to_sk_cap(StrokeCap cap) noexcept {
+    switch (cap) {
+    case StrokeCap::butt: return SkPaint::kButt_Cap;
+    case StrokeCap::round: return SkPaint::kRound_Cap;
+    case StrokeCap::square: return SkPaint::kSquare_Cap;
+    }
+    return SkPaint::kButt_Cap;
+}
+
+// Configures `paint` to stroke as `style` says (validated). False when
+// stx_skia refuses the dash pattern; the call then draws nothing rather than
+// a solid line.
+bool configure_mark_stroke(SkPaint& paint, const StrokeStyle& style) {
+    paint = make_paint(style.color);
+    paint.setStyle(SkPaint::kStroke_Style);
+    paint.setStrokeWidth(static_cast<SkScalar>(style.width));
+    paint.setStrokeJoin(to_sk_join(style.join));
+    paint.setStrokeMiter(static_cast<SkScalar>(style.miter_limit));
+    paint.setStrokeCap(to_sk_cap(style.cap));
+    if (style.dash_count == 0U) return true;
+    std::array<SkScalar, maximum_dash_intervals> intervals{};
+    for (std::size_t index = 0U; index < style.dash_count; ++index) {
+        intervals[index] = static_cast<SkScalar>(style.dashes[index]);
+    }
+    SkDashPathEffectResult made = SkDashPathEffect::Make(
+        SkSpan<const SkScalar>(intervals.data(), style.dash_count), static_cast<SkScalar>(style.dash_phase));
+    if (made.rejection != SkDashRejection::kNone) return false;
+    paint.setPathEffect(std::move(made.effect));
+    return true;
+}
+
+// The marker shape at the origin, built once per draw_markers call.
+SkPath marker_path(const MarkerStyle& style) {
+    SkPathBuilder builder;
+    const double half = style.size * 0.5;
+    if (style.shape == MarkerShape::circle) {
+        builder.addOval(SkRect::MakeLTRB(static_cast<SkScalar>(-half), static_cast<SkScalar>(-half),
+                                         static_cast<SkScalar>(half), static_cast<SkScalar>(half)));
+        return builder.detach();
+    }
+    std::array<Point, maximum_marker_vertices> outline{};
+    const std::size_t vertex_count = marker_outline(style.shape, Point{}, style.size, outline);
+    if (vertex_count != 0U) {
+        builder.moveTo(to_sk_point(outline[0]));
+        for (std::size_t index = 1U; index < vertex_count; ++index) builder.lineTo(to_sk_point(outline[index]));
+        builder.close();
+        return builder.detach();
+    }
+    std::array<PaintSegment, maximum_marker_lines> lines{};
+    const std::size_t line_count = marker_lines(style.shape, Point{}, style.size, lines);
+    for (std::size_t index = 0U; index < line_count; ++index) {
+        builder.moveTo(to_sk_point(lines[index].from));
+        builder.lineTo(to_sk_point(lines[index].to));
+    }
+    return builder.detach();
+}
+
+bool marker_is_stroked(MarkerShape shape) noexcept {
+    return shape == MarkerShape::cross || shape == MarkerShape::plus || shape == MarkerShape::asterisk;
+}
+
+// The point count a path builder reserves for a batch, held within int.
+int reserved_points(std::size_t count) noexcept {
+    constexpr std::size_t limit = std::size_t{1} << 24U;
+    const std::size_t bounded = std::min(count, limit);
+    return static_cast<int>(bounded);
+}
+
+} // namespace
+
+void SkiaRaster::stroke_polyline(std::span<const Point> points, const StrokeStyle& style) {
+    SkCanvas* canvas = (*impl_).canvas();
+    if (canvas == nullptr || points.size() < 2U || !valid_stroke_style(style)) return;
+    for (const Point point : points) {
+        if (std::isinf(point.x) || std::isinf(point.y)) return;
+    }
+    SkPaint paint;
+    if (!configure_mark_stroke(paint, style)) return;
+    // Each run of finite points is one contour; a NaN starts the next.
+    SkPathBuilder builder;
+    builder.incReserve(reserved_points(points.size()));
+    bool in_run = false;
+    for (const Point point : points) {
+        if (!finite_mark_point(point)) {
+            in_run = false;
+            continue;
+        }
+        if (in_run) {
+            builder.lineTo(to_sk_point(point));
+        } else {
+            builder.moveTo(to_sk_point(point));
+        }
+        in_run = true;
+    }
+    (*canvas).drawPath(builder.detach(), paint);
+}
+
+void SkiaRaster::fill_polygon(std::span<const Point> points, Color color, PolygonFillRule rule) {
+    SkCanvas* canvas = (*impl_).canvas();
+    const bool known_rule = rule == PolygonFillRule::nonzero || rule == PolygonFillRule::even_odd;
+    if (canvas == nullptr || !known_rule || points.size() < 3U) return;
+    for (const Point point : points) {
+        if (!finite_mark_point(point)) return;
+    }
+    SkPathBuilder builder(rule == PolygonFillRule::even_odd ? SkPathFillType::kEvenOdd : SkPathFillType::kWinding);
+    builder.incReserve(reserved_points(points.size()));
+    builder.moveTo(to_sk_point(points[0]));
+    for (std::size_t index = 1U; index < points.size(); ++index) builder.lineTo(to_sk_point(points[index]));
+    builder.close();
+    (*canvas).drawPath(builder.detach(), make_paint(color));
+}
+
+void SkiaRaster::fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color) {
+    SkCanvas* canvas = (*impl_).canvas();
+    if (canvas == nullptr || upper.size() < 2U || upper.size() != lower.size()) return;
+    for (std::size_t index = 0U; index < upper.size(); ++index) {
+        if (!finite_mark_point(upper[index]) || !finite_mark_point(lower[index])) return;
+    }
+    SkPathBuilder builder(SkPathFillType::kWinding);
+    builder.incReserve(reserved_points(upper.size() * 2U));
+    builder.moveTo(to_sk_point(upper[0]));
+    for (std::size_t index = 1U; index < upper.size(); ++index) builder.lineTo(to_sk_point(upper[index]));
+    for (std::size_t index = lower.size(); index > 0U; --index) builder.lineTo(to_sk_point(lower[index - 1U]));
+    builder.close();
+    (*canvas).drawPath(builder.detach(), make_paint(color));
+}
+
+void SkiaRaster::stroke_segments(std::span<const PaintSegment> segments, const StrokeStyle& style) {
+    SkCanvas* canvas = (*impl_).canvas();
+    if (canvas == nullptr || segments.empty() || !valid_stroke_style(style)) return;
+    SkPaint paint;
+    if (!configure_mark_stroke(paint, style)) return;
+    // One contour per segment: caps end each, dashes start again on each.
+    SkPathBuilder builder;
+    builder.incReserve(reserved_points(segments.size() * 2U));
+    for (const PaintSegment segment : segments) {
+        if (!finite_mark_point(segment.from) || !finite_mark_point(segment.to)) continue;
+        builder.moveTo(to_sk_point(segment.from));
+        builder.lineTo(to_sk_point(segment.to));
+    }
+    (*canvas).drawPath(builder.detach(), paint);
+}
+
+void SkiaRaster::draw_markers(std::span<const Point> centers, const MarkerStyle& style) {
+    SkCanvas* canvas = (*impl_).canvas();
+    if (canvas == nullptr || centers.empty() || !valid_marker_style(style)) return;
+    const bool stroked = marker_is_stroked(style.shape);
+    const bool draw_fill = !stroked && style.fill.alpha != 0U;
+    const bool draw_edge = style.edge.alpha != 0U && style.edge_width > 0.0;
+    if (!draw_fill && !draw_edge) return;
+    const SkPath shape = marker_path(style);
+    SkPaint fill = make_paint(style.fill);
+    SkPaint edge = make_paint(style.edge);
+    edge.setStyle(SkPaint::kStroke_Style);
+    edge.setStrokeWidth(static_cast<SkScalar>(style.edge_width));
+    // A transparent paint draws nothing visible; each marker is its fill
+    // then its edge, so a later marker covers an earlier one whole.
+    if (!draw_fill) fill.setColor(SK_ColorTRANSPARENT);
+    if (!draw_edge) edge.setColor(SK_ColorTRANSPARENT);
+    for (const Point center : centers) {
+        if (!finite_mark_point(center)) continue;
+        (*canvas).save();
+        (*canvas).translate(static_cast<SkScalar>(center.x), static_cast<SkScalar>(center.y));
+        (*canvas).drawPath(shape, fill);
+        (*canvas).drawPath(shape, edge);
+        (*canvas).restore();
+    }
+}
+
+void SkiaRaster::fill_conic_gradient(Rect rect, Point center, double start_degrees,
+                                     std::span<const GradientStop> stops) {
+    SkCanvas* canvas = (*impl_).canvas();
+    if (canvas == nullptr || rect.empty() || !rect.finite() || !finite_mark_point(center) ||
+        !std::isfinite(start_degrees) || !valid_gradient_stops(stops)) {
+        return;
+    }
+    // One full turn from the start angle; the sweep runs clockwise from +x
+    // in y-down coordinates, as the painter contract does.
+    const double start = std::fmod(start_degrees, 360.0);
+    const SkGradientData data = to_sk_gradient(stops);
+    SkGradientShaderResult made = SkShaders::SweepGradient(to_sk_point(center), static_cast<SkScalar>(start),
+                                                           static_cast<SkScalar>(start + 360.0),
+                                                           make_sk_gradient(data));
+    if (made.rejection != SkGradientRejection::kNone) return;
+    SkPaint paint;
+    paint.setAntiAlias(true);
+    paint.setShader(std::move(made.shader));
+    const SkRect box = snapped_box((*impl_).snap_transform_of(*canvas), rect, paint);
+    (*canvas).drawRect(box, paint);
+}
+
+void SkiaRaster::fill_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color) {
+    SkCanvas* canvas = (*impl_).canvas();
+    if (canvas == nullptr || rect.empty()) return;
+    // As fill_rounded_rect: the bounds snap in device space and the corners
+    // keep their antialiasing.
+    const SnapTransform transform = (*impl_).snap_transform_of(*canvas);
+    SkRect device{};
+    if (!snapped_device_rect(transform, rect, device)) {
+        (*canvas).drawRRect(to_sk_rrect_corners(rect, radii), make_paint(color));
+        return;
+    }
+    const double limit = std::max(0.0, std::min(rect.width, rect.height) * 0.5);
+    const std::array<double, 4> written{radii.top_left, radii.top_right, radii.bottom_right, radii.bottom_left};
+    std::array<SkVector, 4> corners{};
+    for (std::size_t index = 0U; index < corners.size(); ++index) {
+        corners[index] = device_radii(transform, std::clamp(written[index], 0.0, limit), device);
+    }
+    SkRRect shape;
+    shape.setRectRadii(device, corners.data());
+    (*canvas).save();
+    (*canvas).resetMatrix();
+    (*canvas).drawRRect(shape, make_paint(color));
+    (*canvas).restore();
+}
+
+void SkiaRaster::stroke_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color, double width) {
+    SkCanvas* canvas = (*impl_).canvas();
+    if (canvas == nullptr || rect.empty() || !std::isfinite(width) || width <= 0.0) return;
+    // The ring between the snapped outer and inner bounds, as
+    // stroke_rounded_rect draws it; a square corner stays square on both
+    // sides, a rounded one grows by half the width outside and shrinks by
+    // it inside.
+    const double half = width * 0.5;
+    const SnapTransform transform = (*impl_).snap_transform_of(*canvas);
+    SkRect outer{};
+    SkRect inner{};
+    const bool snapped = snapped_device_rect(transform, outset_rect(rect, half), outer) &&
+                         snapped_device_rect(transform, outset_rect(rect, -half), inner);
+    SkPaint paint = make_paint(color);
+    if (!snapped) {
+        paint.setStyle(SkPaint::kStroke_Style);
+        paint.setStrokeWidth(static_cast<SkScalar>(width));
+        (*canvas).drawRRect(to_sk_rrect_corners(rect, radii), paint);
+        return;
+    }
+    const double limit = std::max(0.0, std::min(rect.width, rect.height) * 0.5);
+    const std::array<double, 4> written{radii.top_left, radii.top_right, radii.bottom_right, radii.bottom_left};
+    std::array<SkVector, 4> outer_corners{};
+    std::array<SkVector, 4> inner_corners{};
+    for (std::size_t index = 0U; index < outer_corners.size(); ++index) {
+        const double bounded = std::clamp(written[index], 0.0, limit);
+        const double outside = bounded > 0.0 ? bounded + half : 0.0;
+        outer_corners[index] = device_radii(transform, outside, outer);
+        inner_corners[index] = device_radii(transform, std::max(0.0, bounded - half), inner);
+    }
+    SkRRect outer_shape;
+    outer_shape.setRectRadii(outer, outer_corners.data());
+    (*canvas).save();
+    (*canvas).resetMatrix();
+    if (inner.isEmpty()) {
+        (*canvas).drawRRect(outer_shape, paint);
+    } else {
+        SkRRect inner_shape;
+        inner_shape.setRectRadii(inner, inner_corners.data());
+        (*canvas).drawDRRect(outer_shape, inner_shape, paint);
+    }
+    (*canvas).restore();
 }
 
 void shutdown_skia_library() {

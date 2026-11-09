@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <span>
 
 namespace gui_forms {
@@ -26,6 +27,51 @@ std::span<const GradientStop> live_stops(const EffectGradient& gradient) noexcep
     if (gradient.count < 2U || gradient.count > gradient.stops.size()) return {};
     const std::span<const GradientStop> stops(gradient.stops.data(), gradient.count);
     return stops;
+}
+
+// The live elements of a batch, or none when its count is past its
+// capacity or below `minimum`.
+template <typename Item>
+std::span<const Item> live_batch(const EffectArray<Item, maximum_effect_batch>& batch, std::size_t minimum) noexcept {
+    if (batch.count < minimum || batch.count > batch.items.size()) return {};
+    const std::span<const Item> items(batch.items.data(), batch.count);
+    return items;
+}
+
+// The smallest rectangle holding every point, or a rectangle that is not
+// finite when a point is not.
+Rect points_bounds(std::span<const Point> points) noexcept {
+    double left = points.front().x;
+    double top = points.front().y;
+    double right = left;
+    double bottom = top;
+    for (const Point point : points) {
+        left = std::min(left, point.x);
+        top = std::min(top, point.y);
+        right = std::max(right, point.x);
+        bottom = std::max(bottom, point.y);
+    }
+    bool finite = true;
+    for (const Point point : points) finite = finite && finite_point(point);
+    const double poisoned = finite ? 0.0 : std::numeric_limits<double>::quiet_NaN();
+    const Rect bounds{left + poisoned, top, right - left, bottom - top};
+    return bounds;
+}
+
+// `bounds` grown by `margin` on every side.
+Rect grown(Rect bounds, double margin) noexcept {
+    const Rect result{bounds.x - margin, bounds.y - margin, bounds.width + margin * 2.0,
+                      bounds.height + margin * 2.0};
+    return result;
+}
+
+// The summed length of a polyline's edges.
+double polyline_length(std::span<const Point> points) noexcept {
+    double length = 0.0;
+    for (std::size_t index = 1U; index < points.size(); ++index) {
+        length = length + std::hypot(points[index].x - points[index - 1U].x, points[index].y - points[index - 1U].y);
+    }
+    return length;
 }
 
 } // namespace
@@ -72,6 +118,11 @@ bool EffectCanvas::charge(Rect bounds, double coverage, std::uint32_t per_pixel)
     }
     meter_.charged = meter_.charged + cost;
     return true;
+}
+
+void EffectCanvas::refuse() noexcept {
+    meter_.calls = meter_.calls + 1U;
+    meter_.refused = meter_.refused + 1U;
 }
 
 void EffectCanvas::fill_rect(Rect rect, Color color) noexcept {
@@ -165,6 +216,112 @@ void EffectCanvas::streak(Point head, Point tail, double width, Color color) noe
     const Rect dot{head.x - width, head.y - width, width * 2.0, width * 2.0};
     const std::array<GradientStop, 2> stops{{{0.0, color}, {1.0, faded(color, 0.0)}}};
     painter_.fill_radial_gradient(dot, head, {width, width}, stops);
+}
+
+void EffectCanvas::stroke_polyline(const EffectPoints& points, const StrokeStyle& style) noexcept {
+    const std::span<const Point> live = live_batch(points, 2U);
+    if (live.empty() || !valid_stroke_style(style)) {
+        refuse();
+        return;
+    }
+    // A miter can reach `miter_limit` half widths past a joint.
+    const double reach = style.width * 0.5 * std::max(1.0, style.miter_limit);
+    const double coverage = (polyline_length(live) + style.width * static_cast<double>(live.size())) * style.width;
+    if (!charge(grown(points_bounds(live), reach), coverage, 2U)) return;
+    painter_.stroke_polyline(live, style);
+}
+
+void EffectCanvas::fill_polygon(const EffectPoints& points, Color color, PolygonFillRule rule) noexcept {
+    const std::span<const Point> live = live_batch(points, 3U);
+    const bool known_rule = rule == PolygonFillRule::nonzero || rule == PolygonFillRule::even_odd;
+    if (live.empty() || !known_rule) {
+        refuse();
+        return;
+    }
+    const Rect bounds = points_bounds(live);
+    if (!charge(bounds, bounds.area(), 2U)) return;
+    painter_.fill_polygon(live, color, rule);
+}
+
+void EffectCanvas::fill_band(const EffectPoints& upper, const EffectPoints& lower, Color color) noexcept {
+    const std::span<const Point> top = live_batch(upper, 2U);
+    const std::span<const Point> bottom = live_batch(lower, 2U);
+    if (top.empty() || top.size() != bottom.size()) {
+        refuse();
+        return;
+    }
+    const Rect bounds = Rect::united(points_bounds(top), points_bounds(bottom));
+    if (!charge(bounds, bounds.area(), 2U)) return;
+    painter_.fill_band(top, bottom, color);
+}
+
+void EffectCanvas::fill_rects(const EffectRects& rects, Color color) noexcept {
+    const std::span<const Rect> live = live_batch(rects, 1U);
+    if (live.empty()) {
+        refuse();
+        return;
+    }
+    Rect bounds = live.front();
+    double coverage = 0.0;
+    for (const Rect rect : live) {
+        bounds = Rect::united(bounds, rect);
+        coverage = coverage + std::abs(rect.area());
+    }
+    if (!charge(bounds, coverage, 1U)) return;
+    painter_.fill_rects(live, color);
+}
+
+void EffectCanvas::stroke_segments(const EffectSegments& segments, const StrokeStyle& style) noexcept {
+    const std::span<const PaintSegment> live = live_batch(segments, 1U);
+    if (live.empty() || !valid_stroke_style(style)) {
+        refuse();
+        return;
+    }
+    // The bounds of every end, and the length the strokes cover.
+    std::array<Point, 2U * maximum_effect_batch> ends{};
+    double length = 0.0;
+    for (std::size_t index = 0U; index < live.size(); ++index) {
+        ends[2U * index] = live[index].from;
+        ends[2U * index + 1U] = live[index].to;
+        length = length + std::hypot(live[index].to.x - live[index].from.x, live[index].to.y - live[index].from.y);
+    }
+    const std::span<const Point> points(ends.data(), 2U * live.size());
+    const double coverage = (length + style.width * static_cast<double>(live.size())) * style.width;
+    if (!charge(grown(points_bounds(points), style.width), coverage, 2U)) return;
+    painter_.stroke_segments(live, style);
+}
+
+void EffectCanvas::draw_markers(const EffectPoints& centers, const MarkerStyle& style) noexcept {
+    const std::span<const Point> live = live_batch(centers, 1U);
+    if (live.empty() || !valid_marker_style(style)) {
+        refuse();
+        return;
+    }
+    const double extent = style.size + style.edge_width;
+    const double coverage = extent * extent * static_cast<double>(live.size());
+    if (!charge(grown(points_bounds(live), extent * 0.5), coverage, 3U)) return;
+    painter_.draw_markers(live, style);
+}
+
+void EffectCanvas::fill_conic_gradient(Rect rect, Point center, double start_degrees,
+                                       const EffectGradient& gradient) noexcept {
+    const std::span<const GradientStop> stops = live_stops(gradient);
+    if (stops.empty() || !finite_point(center) || !std::isfinite(start_degrees)) {
+        refuse();
+        return;
+    }
+    if (!charge(rect, rect.area(), 4U)) return;
+    painter_.fill_conic_gradient(rect, center, start_degrees, stops);
+}
+
+void EffectCanvas::fill_checker(Rect rect, const CheckerPattern& pattern) noexcept {
+    const bool cell = std::isfinite(pattern.cell) && pattern.cell > 0.0 && finite_point(pattern.anchor);
+    if (!cell) {
+        refuse();
+        return;
+    }
+    if (!charge(rect, rect.area(), 2U)) return;
+    painter_.fill_checker(rect, pattern);
 }
 
 void EffectCanvas::save() noexcept {

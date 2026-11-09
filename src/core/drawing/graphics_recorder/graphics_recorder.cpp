@@ -283,6 +283,174 @@ void GraphicsRecorder::draw_image(const Bitmap& image, RectF destination,
     append(std::move(command));
 }
 
+namespace {
+
+void require_batch_count(std::size_t count, std::size_t minimum, std::string_view field) {
+    if (count < minimum || count > GraphicsRecorder::maximum_batch_elements) {
+        throw std::invalid_argument(std::string(field) + " count is outside its bounds");
+    }
+}
+
+// The largest device extent draw_string_over_fill bands reach without a clip.
+constexpr double unclipped_extent = 1073741824.0;
+
+} // namespace
+
+void GraphicsRecorder::draw_lines(const Pen& pen, std::span<const PointF> points) {
+    require_recordable();
+    require_batch_count(points.size(), 2U, "polyline point");
+    for (const PointF point : points) require_finite(point, "polyline point");
+    DrawingCommand command;
+    command.kind = CommandKind::draw_lines;
+    command.state = state_;
+    command.pen = pen.snapshot();
+    command.points.assign(points.begin(), points.end());
+    append(std::move(command));
+}
+
+void GraphicsRecorder::fill_rectangles(const Brush& brush, std::span<const RectF> rects) {
+    require_recordable();
+    require_batch_count(rects.size(), 1U, "fill rectangles");
+    for (const RectF rect : rects) require_finite(rect, "fill rectangles entry");
+    DrawingCommand command;
+    command.kind = CommandKind::fill_rectangles;
+    command.state = state_;
+    command.brush = brush.snapshot();
+    command.color = command.brush.primary;
+    command.rects.assign(rects.begin(), rects.end());
+    append(std::move(command));
+}
+
+void GraphicsRecorder::draw_line_segments(const Pen& pen, std::span<const PointF> points) {
+    require_recordable();
+    require_batch_count(points.size(), 2U, "line segment point");
+    if (points.size() % 2U != 0U) throw std::invalid_argument("line segments take their points in pairs");
+    for (const PointF point : points) require_finite(point, "line segment point");
+    DrawingCommand command;
+    command.kind = CommandKind::draw_line_segments;
+    command.state = state_;
+    command.pen = pen.snapshot();
+    command.points.assign(points.begin(), points.end());
+    append(std::move(command));
+}
+
+void GraphicsRecorder::draw_markers(std::span<const PointF> centers, const MarkerStyle& style) {
+    require_recordable();
+    require_batch_count(centers.size(), 1U, "marker center");
+    require_enum(style.shape, 9U, "marker shape");
+    require_finite(style.size, "marker size");
+    require_finite(style.edge_width, "marker edge width");
+    if (style.size <= 0.0 || style.edge_width < 0.0) {
+        throw std::invalid_argument("marker size must be positive and its edge width non-negative");
+    }
+    for (const PointF center : centers) require_finite(center, "marker center");
+    DrawingCommand command;
+    command.kind = CommandKind::draw_markers;
+    command.state = state_;
+    command.marker = style;
+    command.points.assign(centers.begin(), centers.end());
+    append(std::move(command));
+}
+
+void GraphicsRecorder::fill_grid_pattern(RectF rect, const GridPatternStyle& style) {
+    require_recordable();
+    require_finite(rect, "grid rectangle");
+    require_finite(style.origin, "grid origin");
+    require_finite(style.spacing, "grid spacing");
+    require_finite(style.line_width, "grid line width");
+    if (style.spacing < 2.0 || style.major_every == 0U || style.line_width <= 0.0) {
+        throw std::invalid_argument("grid spacing must be at least 2, majors every 1 or more, width positive");
+    }
+    constexpr double maximum_lines = 65536.0;
+    if (rect.width / style.spacing > maximum_lines || rect.height / style.spacing > maximum_lines) {
+        throw std::invalid_argument("grid would cross more than 65536 lines");
+    }
+    DrawingCommand command;
+    command.kind = CommandKind::fill_grid_pattern;
+    command.state = state_;
+    command.rect = rect;
+    command.grid = style;
+    append(std::move(command));
+}
+
+void GraphicsRecorder::fill_proportion(const Brush& brush, RectF track, CornerRadii radii, double proportion,
+                                       FillDirection direction) {
+    require_recordable();
+    require_finite(track, "proportion track");
+    require_finite(proportion, "proportion");
+    require_enum(direction, 3U, "fill direction");
+    const std::array<double, 4> given{radii.top_left, radii.top_right, radii.bottom_right, radii.bottom_left};
+    for (const double radius : given) {
+        require_finite(radius, "track corner radius");
+        if (radius < 0.0) throw std::invalid_argument("track corner radii may not be negative");
+    }
+    DrawingCommand command;
+    command.kind = CommandKind::fill_proportion;
+    command.state = state_;
+    command.rect = track;
+    command.radii = radii;
+    command.scalar = std::clamp(proportion, 0.0, 1.0);
+    command.direction = direction;
+    command.brush = brush.snapshot();
+    command.color = command.brush.primary;
+    append(std::move(command));
+}
+
+void GraphicsRecorder::draw_string_over_fill(std::string_view utf8, const Font& font, const SolidBrush& brush,
+                                             const SolidBrush& on_fill_brush, PointF origin,
+                                             const StringFormat& format, RectF fill) {
+    require_recordable();
+    require_finite(origin, "text origin");
+    require_finite(fill, "text fill");
+    if (utf8.size() > maximum_text_bytes || !valid_utf8(utf8)) {
+        throw std::invalid_argument("drawn text must be bounded valid UTF-8");
+    }
+    if (state_.transform.m12() != 0.0 || state_.transform.m21() != 0.0) {
+        throw std::invalid_argument("text over a fill needs a scale and translation transform");
+    }
+    constexpr std::size_t most_commands = 5U;
+    if (commands_.size() > maximum_commands - most_commands) {
+        throw std::length_error("GUI.Drawing command limit exceeded");
+    }
+    // Every part in device space, within the clip in force (or a bound far
+    // beyond any surface when there is none).
+    const RectF base = state_.clip ? *state_.clip
+                                   : RectF{-unclipped_extent, -unclipped_extent, unclipped_extent * 2.0,
+                                           unclipped_extent * 2.0};
+    const RectF covered = RectF::intersection(base, state_.transform.transform_bounds(fill));
+    std::array<RectF, 5> parts{};
+    std::array<Color, 5> colours{};
+    std::size_t part_count = 0U;
+    if (covered.empty()) {
+        parts[0] = base;
+        colours[0] = brush.color();
+        part_count = 1U;
+    } else {
+        parts = {covered,
+                 RectF{base.x, base.y, base.width, covered.y - base.y},
+                 RectF{base.x, covered.bottom(), base.width, base.bottom() - covered.bottom()},
+                 RectF{base.x, covered.y, covered.x - base.x, covered.height},
+                 RectF{covered.right(), covered.y, base.right() - covered.right(), covered.height}};
+        colours = {on_fill_brush.color(), brush.color(), brush.color(), brush.color(), brush.color()};
+        part_count = parts.size();
+    }
+    const FontSnapshot font_snapshot = font.snapshot();
+    const StringFormatSnapshot format_snapshot = format.snapshot();
+    for (std::size_t index = 0U; index < part_count; ++index) {
+        if (parts[index].empty()) continue;
+        DrawingCommand command;
+        command.kind = CommandKind::draw_string;
+        command.state = state_;
+        command.state.clip = parts[index];
+        command.first = origin;
+        command.color = colours[index];
+        command.font = font_snapshot;
+        command.format = format_snapshot;
+        command.text.assign(utf8);
+        append(std::move(command));
+    }
+}
+
 void GraphicsRecorder::close() {
     require_alive();
     closed_ = true;
@@ -300,6 +468,30 @@ std::span<const DrawingCommand> GraphicsRecorder::commands() const {
 }
 
 namespace {
+
+std::string rects_text(std::span<const RectF> rects) {
+    std::string result;
+    for (std::size_t index = 0; index < rects.size(); ++index) {
+        if (index != 0U) result += ";";
+        result += rect_text(rects[index]);
+    }
+    return result;
+}
+
+std::string marker_text(const MarkerStyle& marker) {
+    return std::to_string(static_cast<unsigned>(marker.shape)) + "," + number(marker.size) + "," +
+           color_text(marker.fill) + "," + color_text(marker.edge) + "," + number(marker.edge_width);
+}
+
+std::string grid_text(const GridPatternStyle& grid) {
+    return point_text(grid.origin) + "," + number(grid.spacing) + "," + std::to_string(grid.major_every) + "," +
+           color_text(grid.minor) + "," + color_text(grid.major) + "," + number(grid.line_width);
+}
+
+std::string radii_text(const CornerRadii& radii) {
+    return number(radii.top_left) + "," + number(radii.top_right) + "," + number(radii.bottom_right) + "," +
+           number(radii.bottom_left);
+}
 
 // The fields of one command's trace entry that its kind carries.
 void append_command_fields(const DrawingCommand& command, std::string& trace) {
@@ -374,6 +566,25 @@ void append_command_fields(const DrawingCommand& command, std::string& trace) {
                  "|source=" + point_text(command.first) + "," +
                  point_text(command.second) +
                  "|attributes=" + image_attributes_text(command.image_attributes);
+        return;
+    case CommandKind::draw_lines:
+    case CommandKind::draw_line_segments:
+        trace += "|points=" + points_text(command.points) + "|pen=" + pen_text(command.pen);
+        return;
+    case CommandKind::fill_rectangles:
+        trace += "|rects=" + rects_text(command.rects) + "|brush=" + brush_text(command.brush);
+        return;
+    case CommandKind::draw_markers:
+        trace += "|centers=" + points_text(command.points) + "|marker=" + marker_text(command.marker);
+        return;
+    case CommandKind::fill_grid_pattern:
+        trace += "|rect=" + rect_text(command.rect) + "|grid=" + grid_text(command.grid);
+        return;
+    case CommandKind::fill_proportion:
+        trace += "|track=" + rect_text(command.rect) + "|radii=" + radii_text(command.radii) +
+                 "|proportion=" + number(command.scalar) +
+                 "|direction=" + std::to_string(static_cast<unsigned>(command.direction)) +
+                 "|brush=" + brush_text(command.brush);
         return;
     case CommandKind::set_transform:
     case CommandKind::reset_clip:
