@@ -499,6 +499,20 @@ bool Application::tool_tips_shown() const noexcept {
     return shown;
 }
 
+bool Application::request_open_files(std::vector<std::string> paths) {
+    if (paths.empty() || paths.size() > maximum_pending_open_files - pending_open_files_.size()) return false;
+    pending_open_files_.reserve(pending_open_files_.size() + paths.size());
+    for (std::string& path : paths) pending_open_files_.push_back(std::move(path));
+    open_files_requested_.emit();
+    return true;
+}
+
+std::vector<std::string> Application::take_open_files() {
+    std::vector<std::string> taken{};
+    taken.swap(pending_open_files_);
+    return taken;
+}
+
 ApplicationResult Application::validate(const std::vector<ApplicationWindow>& windows) {
     if (windows.empty() || windows.size() > maximum_windows) {
         ApplicationResult counted{ApplicationError::invalid_argument};

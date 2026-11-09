@@ -365,6 +365,15 @@ struct WindowingEnded final {
     std::shared_ptr<detail::ApplicationRunState> run{};
     void operator()() const noexcept { detail::detach_run_windowing(*run); }
 };
+
+// The host's open-files requests (macOS Finder), handed to the running
+// application. The application outlives its run.
+struct OpenFilesRequested final {
+    Application* application{};
+    void operator()(std::vector<std::string> paths) const {
+        static_cast<void>((*application).request_open_files(std::move(paths)));
+    }
+};
 }
 
 // The platform half of the splashscreen: validated and checked against the
@@ -432,6 +441,7 @@ ApplicationResult Application::run(std::vector<ApplicationWindow> windows) {
     application.windowing_ready =
         WindowingReady<host::MacApplicationWindow>{&bridges, failure, run_state};
     application.windowing_ended = WindowingEnded{run_state};
+    application.open_files = OpenFilesRequested{this};
     result.native_exit_code = host::run_macos_application(std::move(native), std::move(application));
 #elif defined(GUI_FORMS_APPLICATION_WINDOWS)
     std::vector<host::WindowsApplicationWindow> native{};

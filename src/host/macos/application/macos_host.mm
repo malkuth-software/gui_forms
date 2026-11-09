@@ -3985,19 +3985,51 @@ void finish_run(MacRunEnd& end) {
 // once rather than deferred with NSTerminateLater.
 // After a quit, the process ends inside terminate: with status 0: the run's
 // own exit code and the program's code after the run do not apply.
+//
+// It also takes the system's requests to open files (application:openURLs:,
+// which AppKit sends instead of application:openFiles: when implemented) and
+// hands their paths to the run's open_files callback.
 @interface GUIFormsTerminationDelegate : NSObject <NSApplicationDelegate> {
     // Observing: the run function owns it and clears this delegate before
     // it returns.
     gui_forms::host::MacRunEnd* _end;
+    // Observing: the run's MacApplicationOptions::open_files, which outlives
+    // the delegate's time as NSApp's delegate; null for a run without one.
+    const std::function<void(std::vector<std::string>)>* _openFiles;
 }
 - (instancetype)initWithEnd:(gui_forms::host::MacRunEnd*)end;
+- (instancetype)initWithEnd:(gui_forms::host::MacRunEnd*)end
+                  openFiles:(const std::function<void(std::vector<std::string>)>*)openFiles;
 @end
 
 @implementation GUIFormsTerminationDelegate
 - (instancetype)initWithEnd:(gui_forms::host::MacRunEnd*)end {
-    self = [super init];
-    if (self != nil) _end = end;
+    self = [self initWithEnd:end openFiles:nullptr];
     return self;
+}
+- (instancetype)initWithEnd:(gui_forms::host::MacRunEnd*)end
+                  openFiles:(const std::function<void(std::vector<std::string>)>*)openFiles {
+    self = [super init];
+    if (self != nil) {
+        _end = end;
+        _openFiles = openFiles;
+    }
+    return self;
+}
+- (void)application:(NSApplication*)application openURLs:(NSArray<NSURL*>*)urls {
+    static_cast<void>(application);
+    if (_openFiles == nullptr || !(*_openFiles)) return;
+    std::vector<std::string> paths{};
+    paths.reserve(static_cast<std::size_t>([urls count]));
+    for (NSURL* url in urls) {
+        if (![url isFileURL]) continue;
+        // The file system's own spelling of the path, in UTF-8 on macOS.
+        const char* path = [url fileSystemRepresentation];
+        if (path == nullptr) continue;
+        paths.emplace_back(path);
+    }
+    if (paths.empty()) return;
+    (*_openFiles)(std::move(paths));
 }
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)sender {
     for (NSWindow* window in [sender windows]) {
