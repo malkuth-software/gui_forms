@@ -96,6 +96,8 @@ void gf_kit_proxies(gf_kit* kit);
 void gf_kit_families(gf_kit* kit);
 void gf_kit_custom(gf_kit* kit);
 void gf_kit_bindings(gf_kit* kit);
+/* A binding source over windows.run's root, from its ready callback. */
+void gf_kit_bindings_running(gf_kit* kit);
 /* Runs a window with a threaded sub-surface. */
 void gf_kit_subsurfaces(gf_kit* kit);
 void gf_kit_application(gf_kit* kit);

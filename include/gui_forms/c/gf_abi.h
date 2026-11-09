@@ -508,7 +508,11 @@ typedef struct gf_create_choice {
  * - background_worker, binding_context, binding_source, error_provider,
  *   help_provider, image_list, notify_icon, ribbon_tool_tip,
  *   semantic_feedback, timer, tool_tip: the window (windows.create) it
- *   binds to.
+ *   binds to, or (since 1.1) a control in a window, which binds it to that
+ *   control's window: windows.run's root, or a control of its tree, during
+ *   the run (from its ready callback, say), or a created window's root
+ *   before its run. A control in no window gives
+ *   GF_STATUS_WRONG_HANDLE_KIND.
  * A flags_value_editor takes no owner but an enumeration: its name, its
  * choices (1 to GF_CREATE_MAXIMUM_CHOICES, distinct non-empty names) and
  * value, its current value; objects.create also makes one, empty until its
@@ -1828,7 +1832,8 @@ typedef struct gf_custom_controls_table {
 
 /*
  * GF_TABLE_BINDINGS: data binding, as C++ binds: a binding_source (made
- * with create_with over a window) holds records of named fields and a
+ * with create_with over a window, or over a control in a running window)
+ * holds records of named fields and a
  * current position; a binding ties one property of a control to one field
  * of a source's current record (Control::data_bindings().add). A source is
  * filled and moved here; a binding's options are fixed when it is made.

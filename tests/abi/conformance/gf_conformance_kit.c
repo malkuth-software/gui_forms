@@ -196,6 +196,7 @@ uint32_t gf_conformance_run(FILE* out, gf_conformance_flags flags) {
             gf_kit_splashscreen(&kit);
             gf_kit_window(&kit);
             gf_kit_window_handle(&kit);
+            gf_kit_bindings_running(&kit);
             gf_kit_subsurfaces(&kit);
         }
     }
