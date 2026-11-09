@@ -401,6 +401,41 @@ gd_result present_surface(std::uintptr_t destination, std::uint32_t kind,
     return GD_OK;
 }
 
+// Alpha through an HDC lease. GDI writes colour and clears the alpha byte of
+// every pixel it touches; it leaves untouched pixels alone. Before the lease
+// each fully transparent pixel (premultiplied: alpha 0, colour 0) is marked
+// with alpha 1, so after it a pixel with alpha 0 is one GDI wrote and becomes
+// opaque whatever its colour, black included (no colour key), and a pixel
+// still holding the mark with colour 0 returns to transparent. Cost: a pixel
+// that held alpha 1 with colour 0 before the lease (1/255 black) also reads
+// as transparent afterwards. Both passes cover byte_count bytes of BGRA8.
+namespace {
+
+void mark_untouched_alpha(std::uint8_t* pixels, std::size_t byte_count) noexcept {
+    for (std::size_t offset = 0; offset < byte_count; offset += 4U) {
+        if (pixels[offset + 3U] == 0U) {
+            pixels[offset] = 0U;
+            pixels[offset + 1U] = 0U;
+            pixels[offset + 2U] = 0U;
+            pixels[offset + 3U] = 1U;
+        }
+    }
+}
+
+void resolve_written_alpha(std::uint8_t* pixels, std::size_t byte_count) noexcept {
+    for (std::size_t offset = 0; offset < byte_count; offset += 4U) {
+        const std::uint8_t alpha = pixels[offset + 3U];
+        if (alpha == 0U) {
+            pixels[offset + 3U] = 255U;
+        } else if (alpha == 1U && pixels[offset] == 0U && pixels[offset + 1U] == 0U &&
+                   pixels[offset + 2U] == 0U) {
+            pixels[offset + 3U] = 0U;
+        }
+    }
+}
+
+} // namespace
+
 gd_result acquire_hdc(Bitmap& bitmap, std::uintptr_t& output,
                       std::uint64_t& lease_token) {
     const ImageSnapshot snapshot = bitmap.snapshot();
@@ -419,6 +454,7 @@ gd_result acquire_hdc(Bitmap& bitmap, std::uintptr_t& output,
         throw std::runtime_error("bitmap-backed HDC creation failed");
     }
     std::memcpy(pixels, snapshot.pixels().data(), snapshot.pixels().size());
+    mark_untouched_alpha(static_cast<std::uint8_t*>(pixels), snapshot.pixels().size());
     std::scoped_lock lock(lease_mutex);
     const std::uint64_t token = next_lease++;
     if (token == 0U) {
@@ -471,12 +507,7 @@ gd_result release_hdc(Bitmap& bitmap, std::uint64_t lease_token) {
             DeleteObject(lease.dib);
         }
     } cleanup{lease};
-    std::uint8_t* pixels = static_cast<std::uint8_t*>(lease.pixels);
-    for (std::size_t offset = 0; offset < lease.byte_count; offset += 4U) {
-        if (pixels[offset + 3U] == 0U &&
-            (pixels[offset] != 0U || pixels[offset + 1U] != 0U ||
-             pixels[offset + 2U] != 0U)) pixels[offset + 3U] = 255U;
-    }
+    resolve_written_alpha(static_cast<std::uint8_t*>(lease.pixels), lease.byte_count);
     // The DIB and the bitmap are both BGRA8.
     BitmapLockView lock = bitmap.lock(BitmapLockMode::write);
     std::memcpy(lock.writable_data, lease.pixels, lease.byte_count);
