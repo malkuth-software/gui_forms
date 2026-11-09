@@ -699,7 +699,8 @@ struct InstrumentRack::Impl final {
 
 InstrumentRack::InstrumentRack(StableId stable_id)
     : Panel(std::move(stable_id)), impl_(std::make_unique<Impl>(*this)) {
-    set_background(Color::rgba(242, 247, 250));
+    // The theme's panel ground, resolved per colour scheme (no colour
+    // written here, which would fix a light grey in every scheme).
     border_style = BorderStyle::none;
     padding = Insets{};
     accessible_name = "Editing instrument rack";

@@ -16,7 +16,10 @@ TabPage::TabPage(StableId stable_id, std::string initial_text)
     // The page's tooltip shows over its tab header only, never over the
     // page's body (owner, 2026-10-28).
     set_tool_tip_presentation(ToolTipPresentation::owner_item);
-    set_background(Color::rgba(255, 255, 255));
+    // No ground of its own: the owning TabControl's display (the card role)
+    // shows through, in the window's colour scheme; a white page fixed the
+    // light card in every scheme.
+    set_background(Color::rgba(0, 0, 0, 0));
     // No border of its own, as Windows Forms' TabPage.BorderStyle (None):
     // the owning TabControl paints the display's frame (sweep defect D13:
     // a square line over the display's rounded card left corner notches).

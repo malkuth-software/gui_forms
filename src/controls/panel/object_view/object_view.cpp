@@ -254,7 +254,10 @@ void paint_complete_name_inspection(Painter& painter, const Control& control,
 using namespace collection_detail;
 ObjectView::ObjectView(StableId stable_id) : Panel(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
-    set_background(style().paper);
+    // A field's ground: the theme's editor role, resolved per colour scheme
+    // (no colour written here, which would fix the light paper in every
+    // scheme).
+    visual_role = ControlVisualRole::editor;
     set_focusable(true);
 }
 

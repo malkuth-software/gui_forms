@@ -20,7 +20,10 @@ namespace gui_forms {
 using namespace date_time_detail;
 
 DateTimePicker::DateTimePicker(StableId stable_id) : Panel(std::move(stable_id)) {
-    set_background(style_.paper);
+    // A field's ground: the theme's editor role, resolved per colour scheme
+    // (no colour written here, which would fix the light paper in every
+    // scheme).
+    visual_role = ControlVisualRole::editor;
     border_style = BorderStyle::sunken;
     set_focusable(true);
 }

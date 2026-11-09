@@ -20,7 +20,10 @@ namespace gui_forms {
 NumericUpDown::NumericUpDown(StableId stable_id) : Panel(std::move(stable_id)) {
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
     border_style = BorderStyle::line;
-    set_background(style().paper);
+    // A field's ground: the theme's editor role, resolved per colour scheme
+    // (no colour written here, which would fix the light paper in every
+    // scheme).
+    visual_role = ControlVisualRole::editor;
 }
 
 void NumericUpDown::EditorChangeCallback::operator()(

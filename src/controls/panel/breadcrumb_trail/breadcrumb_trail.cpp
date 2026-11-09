@@ -45,7 +45,10 @@ BreadcrumbTrail::BreadcrumbTrail(StableId stable_id,
     overflow_stable_id_ = prefix + ".overflow";
     edit_stable_id_ = prefix + ".edit";
     set_paint_plane(PaintPlane::control);
-    set_background(style().paper);
+    // A field's ground: the theme's editor role, resolved per colour scheme
+    // (no colour written here, which would fix the light paper in every
+    // scheme).
+    visual_role = ControlVisualRole::editor;
     border_style = BorderStyle::sunken;
     set_focusable(true);
 }

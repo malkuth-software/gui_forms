@@ -100,6 +100,60 @@ void set_scheme(Window& window, ColourScheme scheme) {
     window.set_presentation_settings(settings);
 }
 
+// The sum of a colour's channels: a dark ground's is the smaller.
+unsigned brightness(Color colour) noexcept {
+    const unsigned sum = static_cast<unsigned>(colour.red) + static_cast<unsigned>(colour.green) +
+                         static_cast<unsigned>(colour.blue);
+    return sum;
+}
+
+// One stock control whose ground is checked, with its name for messages.
+struct GroundCase final {
+    std::string name{};
+    std::shared_ptr<Panel> control{};
+};
+
+// T4 defect: controls that wrote the light theme's paper (or another light
+// colour) as their background at construction stayed light in a dark
+// window. Each ground is now the theme's role, so it resolves per scheme:
+// no background override, a different ground in dark, and a darker one.
+// A tab page has a transparent ground over its TabControl's display.
+void test_control_grounds_follow_scheme() {
+    std::vector<GroundCase> cases{};
+    cases.push_back({"NumericUpDown", make_control<NumericUpDown>(StableId("ground.numeric"))});
+    cases.push_back({"DomainUpDown", make_control<DomainUpDown>(StableId("ground.domain"))});
+    cases.push_back({"TreeView", make_control<TreeView>(StableId("ground.tree"))});
+    cases.push_back({"BreadcrumbTrail", make_control<BreadcrumbTrail>(StableId("ground.breadcrumb"))});
+    cases.push_back({"ObjectView", make_control<ObjectView>(StableId("ground.objects"))});
+    cases.push_back({"CorrespondenceView", make_control<CorrespondenceView>(StableId("ground.correspondence"))});
+    cases.push_back({"DateTimePicker", make_control<DateTimePicker>(StableId("ground.date"))});
+    cases.push_back({"PictureBox", make_control<PictureBox>(StableId("ground.picture"))});
+    cases.push_back({"PropertyGrid", make_control<PropertyGrid>(StableId("ground.property-grid"))});
+    cases.push_back({"PropertyList", make_control<PropertyList>(StableId("ground.property-list"))});
+    cases.push_back({"InstrumentRack", make_control<InstrumentRack>(StableId("ground.rack"))});
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("ground.root"));
+    for (const GroundCase& entry : cases) (*root).add_child(entry.control);
+    const std::shared_ptr<TabPage> page = make_control<TabPage>(StableId("ground.page"), "Page");
+    (*root).add_child(page);
+    Window window(root, Size{400.0, 300.0});
+    window.set_theme(gui_forms_theme());
+    set_scheme(window, ColourScheme::light);
+    std::vector<Color> light{};
+    light.reserve(cases.size());
+    for (const GroundCase& entry : cases) {
+        require(!(*entry.control).has_background_override(), entry.name + ": no colour written at construction");
+        light.push_back((*entry.control).background());
+    }
+    set_scheme(window, ColourScheme::dark);
+    require(!window.theme_fallback() && window.theme().id() == "gui-forms", "the dark variant is shown");
+    for (std::size_t index = 0U; index < cases.size(); ++index) {
+        const Color dark = (*cases[index].control).background();
+        require(dark != light[index], cases[index].name + ": the ground changes with the scheme");
+        require(brightness(dark) < brightness(light[index]), cases[index].name + ": the dark ground is darker");
+    }
+    require((*page).background().alpha == 0U, "a tab page's ground is transparent over the display");
+}
+
 void test_declaring_schemes() {
     const Compilation both = compile(":root { color-scheme: light dark }");
     require(both.outcome == CompileOutcome::compiled && both.diagnostics.empty(), "light dark compiles cleanly");
@@ -369,6 +423,7 @@ void test_window_backdrop() {
 } // namespace
 
 int main() {
+    test_control_grounds_follow_scheme();
     test_declaring_schemes();
     test_dark_rules_without_variant();
     test_theme_supports();

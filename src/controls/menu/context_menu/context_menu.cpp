@@ -131,7 +131,9 @@ struct ContextMenu::Impl final {
             : Panel(std::move(id)), impl_(impl), depth_(depth) {
             set_focusable(true);
             set_paint_plane(PaintPlane::overlay);
-            set_background(Color::rgba(250, 253, 255));
+            // The theme's card role, an overlay surface resolved per
+            // colour scheme, not a fixed light colour.
+            visual_role = ControlVisualRole::card;
             border_style = BorderStyle::line;
         }
 
