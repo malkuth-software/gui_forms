@@ -21,6 +21,9 @@ struct ApplicationWindowState final {
     std::function<void()> toggle_full_screen{};
     std::function<HostServiceStatus(std::string_view)> set_title{};
     std::function<HostServiceStatus(Size)> request_client_size{};
+    // Gives the window's model its last focused control back
+    // (SurfaceRoot::restore_focus), as a modal window over it ends.
+    std::function<void()> restore_focus{};
     // Invoked by the run's frame router for this window's frame reports.
     std::function<void(const HostWindowFrameEvent&)> frame_changed{};
 };

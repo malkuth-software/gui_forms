@@ -217,6 +217,7 @@ void revoke_window_state(ApplicationWindowState& state) noexcept {
     state.toggle_full_screen = {};
     state.set_title = {};
     state.request_client_size = {};
+    state.restore_focus = {};
     state.frame_changed = {};
 }
 
@@ -726,6 +727,21 @@ struct ModalDialogResultChanged final {
 };
 } // namespace
 
+namespace {
+// After a modal window over it closed: the owner's last focused control
+// takes focus back in the model. The host has reactivated the owner
+// natively (run_modal_impl), which restores it too when the activation is
+// reported; this covers a host or test that reports no activation.
+void restore_owner_focus(const detail::ApplicationRunState& run, std::string_view owner_id) {
+    for (std::size_t index = 0U; index < run.windows.size(); ++index) {
+        const std::shared_ptr<detail::ApplicationWindowState> state = run.windows[index].state.lock();
+        if (!state || (*state).closed || (*state).stable_id != owner_id) continue;
+        if ((*state).restore_focus) (*state).restore_focus();
+        return;
+    }
+}
+} // namespace
+
 ApplicationModalResult ApplicationWindows::show_modal(ApplicationWindow&& window) const {
     ApplicationModalResult result;
     const std::shared_ptr<detail::ApplicationRunState> run = live_run(run_, result.status);
@@ -749,6 +765,7 @@ ApplicationModalResult ApplicationWindows::show_modal(ApplicationWindow&& window
     // the event weakly).
     const std::shared_ptr<ModalOutcome> outcome = std::make_shared<ModalOutcome>();
     (*outcome).dialog_result = (*window.model).dialog_result();
+    const std::string owner_id = window.owner_id;
     SubscriptionToken subscription =
         (*window.model).dialog_result_changed().subscribe(ModalDialogResultChanged{outcome});
     const ApplicationWindowOpenResult opened = open_window(std::move(window));
@@ -772,6 +789,7 @@ ApplicationModalResult ApplicationWindows::show_modal(ApplicationWindow&& window
         }
     }
     subscription.disconnect();
+    if (!(*run).closed) restore_owner_focus(*run, owner_id);
     result.dialog_result = (*outcome).dialog_result == DialogResult::none
         ? DialogResult::cancel : (*outcome).dialog_result;
     return result;

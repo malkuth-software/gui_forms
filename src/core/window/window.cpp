@@ -781,6 +781,8 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
     }
     if (control && eligible(control) && (*control).focusable.read()) {
         focused_ = control;
+        // Focus that moved on is not given back to a withdrawn control.
+        withdrawn_focus_.reset();
         last_focus_traversal_ = pending_focus_traversal_;
         remember_region_focus(control);
         (*control).publish_change(
@@ -2627,8 +2629,43 @@ void SurfaceRoot::revoke_focus_scopes_for_subtree(
     }
 }
 
+Control::Ptr SurfaceRoot::restore_focus() {
+    require_root_thread("focus restore");
+    const Control::Ptr focused = focused_.lock();
+    if (focused && eligible(focused)) return focused;
+    const Control::Ptr withdrawn = withdrawn_focus_.lock();
+    if (!withdrawn || !(*withdrawn).is_alive() || (*withdrawn).surface_root_ != this) {
+        withdrawn_focus_.reset();
+        return focused_.lock();
+    }
+    // Still disabled or hidden: kept for a later restore.
+    if (!eligible(withdrawn) || !(*withdrawn).focusable.read()) return focused_.lock();
+    const bool moved = request_focus(withdrawn);
+    if (moved) withdrawn_focus_.reset();
+    const Control::Ptr current = focused_.lock();
+    return current;
+}
+
+void SurfaceRoot::remember_withdrawn_focus(const Control::Ptr& control) {
+    // Only the window's own withdrawal (its root disabled or hidden, as
+    // Form.Enabled = false) is remembered: a control inside the window that
+    // is disabled loses focus for good, as in Windows Forms.
+    if (control != root_) return;
+    const Control::Ptr focused = focused_.lock();
+    if (focused) withdrawn_focus_ = focused;
+}
+
+void SurfaceRoot::on_eligibility_restored(const Control::Ptr& control) {
+    require_root_thread("eligibility mutation");
+    if (focused_.lock()) return;
+    const Control::Ptr withdrawn = withdrawn_focus_.lock();
+    if (!withdrawn || !contains_control(control, withdrawn)) return;
+    static_cast<void>(restore_focus());
+}
+
 void SurfaceRoot::on_eligibility_changed(const Control::Ptr& control) {
     require_root_thread("eligibility mutation");
+    remember_withdrawn_focus(control);
     close_overlays_for_subtree(control, PassiveOverlays::close);
     close_focus_scopes_for_subtree(control);
     revoke_interaction_for_subtree(control, true);
@@ -2636,6 +2673,7 @@ void SurfaceRoot::on_eligibility_changed(const Control::Ptr& control) {
 
 void SurfaceRoot::on_enabled_withdrawn(const Control::Ptr& control) {
     require_root_thread("eligibility mutation");
+    remember_withdrawn_focus(control);
     close_overlays_for_subtree(control, PassiveOverlays::keep);
     close_focus_scopes_for_subtree(control);
     revoke_interaction_for_subtree(control, true);

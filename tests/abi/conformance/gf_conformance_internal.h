@@ -98,6 +98,10 @@ void gf_kit_modal(gf_kit* kit);
  * gf_kit_window_properties runs one. */
 void gf_kit_window_properties_refusals(gf_kit* kit);
 void gf_kit_window_properties(gf_kit* kit);
+/* Keyboard focus (since 1.1): the refusals and focus restore need no run;
+ * gf_kit_focus runs a root. */
+void gf_kit_focus_refusals(gf_kit* kit);
+void gf_kit_focus(gf_kit* kit);
 void gf_kit_window_events(gf_kit* kit);
 void gf_kit_themes(gf_kit* kit);
 void gf_kit_proxies(gf_kit* kit);

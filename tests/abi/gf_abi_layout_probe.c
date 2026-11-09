@@ -175,7 +175,7 @@ GF_LAYOUT_ASSERT(offsetof(gf_owned_window_options, owner) == 40, "gf_owned_windo
 GF_LAYOUT_ASSERT(offsetof(gf_owned_window_options, ready) == 48, "gf_owned_window_options.ready offset");
 GF_LAYOUT_ASSERT(offsetof(gf_owned_window_options, closing) == 56, "gf_owned_window_options.closing offset");
 GF_LAYOUT_ASSERT(offsetof(gf_owned_window_options, closed) == 64, "gf_owned_window_options.closed offset");
-GF_LAYOUT_ASSERT(sizeof(gf_windows_table) == 80, "gf_windows_table size");
+GF_LAYOUT_ASSERT(sizeof(gf_windows_table) == 88, "gf_windows_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_table, struct_size) == 0, "gf_windows_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_table, abi_minor) == 4, "gf_windows_table.abi_minor offset");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_table, run) == 8, "gf_windows_table.run offset");
@@ -187,6 +187,7 @@ GF_LAYOUT_ASSERT(offsetof(gf_windows_table, request_help) == 48, "gf_windows_tab
 GF_LAYOUT_ASSERT(offsetof(gf_windows_table, show_modal) == 56, "gf_windows_table.show_modal offset");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_table, show_owned) == 64, "gf_windows_table.show_owned offset");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_table, window_properties) == 72, "gf_windows_table.window_properties offset");
+GF_LAYOUT_ASSERT(offsetof(gf_windows_table, focused_control) == 80, "gf_windows_table.focused_control offset");
 GF_LAYOUT_ASSERT(sizeof(gf_schema_type) == 88, "gf_schema_type size");
 GF_LAYOUT_ASSERT(offsetof(gf_schema_type, struct_size) == 0, "gf_schema_type.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_schema_type, kind) == 4, "gf_schema_type.kind offset");
@@ -435,7 +436,7 @@ GF_LAYOUT_ASSERT(offsetof(gf_scroll_snapshot, event_type) == 224, "gf_scroll_sna
 GF_LAYOUT_ASSERT(offsetof(gf_scroll_snapshot, event_orientation) == 228, "gf_scroll_snapshot.event_orientation offset");
 GF_LAYOUT_ASSERT(offsetof(gf_scroll_snapshot, event_old_value) == 232, "gf_scroll_snapshot.event_old_value offset");
 GF_LAYOUT_ASSERT(offsetof(gf_scroll_snapshot, event_new_value) == 240, "gf_scroll_snapshot.event_new_value offset");
-GF_LAYOUT_ASSERT(sizeof(gf_controls_table) == 96, "gf_controls_table size");
+GF_LAYOUT_ASSERT(sizeof(gf_controls_table) == 112, "gf_controls_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_controls_table, struct_size) == 0, "gf_controls_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_controls_table, abi_minor) == 4, "gf_controls_table.abi_minor offset");
 GF_LAYOUT_ASSERT(offsetof(gf_controls_table, suspend_layout) == 8, "gf_controls_table.suspend_layout offset");
@@ -449,6 +450,8 @@ GF_LAYOUT_ASSERT(offsetof(gf_controls_table, scroll_state) == 64, "gf_controls_t
 GF_LAYOUT_ASSERT(offsetof(gf_controls_table, set_scroll_axis) == 72, "gf_controls_table.set_scroll_axis offset");
 GF_LAYOUT_ASSERT(offsetof(gf_controls_table, scroll_into_view) == 80, "gf_controls_table.scroll_into_view offset");
 GF_LAYOUT_ASSERT(offsetof(gf_controls_table, invalidate) == 88, "gf_controls_table.invalidate offset");
+GF_LAYOUT_ASSERT(offsetof(gf_controls_table, focus) == 96, "gf_controls_table.focus offset");
+GF_LAYOUT_ASSERT(offsetof(gf_controls_table, focus_state) == 104, "gf_controls_table.focus_state offset");
 GF_LAYOUT_ASSERT(sizeof(gf_text_editing_table) == 64, "gf_text_editing_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_text_editing_table, struct_size) == 0, "gf_text_editing_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_text_editing_table, abi_minor) == 4, "gf_text_editing_table.abi_minor offset");

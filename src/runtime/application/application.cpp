@@ -143,6 +143,14 @@ struct TitleReady final {
         (*(*bridge).state).set_title = std::move(update);
     }
 };
+// The model while its window is open; nothing once it has closed.
+struct RestoreFocus final {
+    std::shared_ptr<WindowBridge> bridge{};
+    void operator()() const {
+        if ((*(*bridge).state).closed || (*bridge).model == nullptr) return;
+        static_cast<void>((*(*bridge).model).restore_focus());
+    }
+};
 struct ClientSizeReady final {
     std::shared_ptr<WindowBridge> bridge{};
     void operator()(std::function<HostServiceStatus(Size)> request) const noexcept {
@@ -221,6 +229,7 @@ NativeWindow prepare_one(ApplicationWindow& source, BridgeScope& scope,
     state.stable_id = source.stable_id;
     state.run = run;
     if ((*bridge).options.frame_changed) state.frame_changed = FrameChanged{bridge};
+    state.restore_focus = RestoreFocus{bridge};
     if (primary) (*failure).primary = (*bridge).state;
     scope.windows.push_back(bridge);
     NativeWindow entry{};

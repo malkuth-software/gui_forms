@@ -460,6 +460,8 @@ gui_forms::SurfaceRoot
         - The frontmost control eligible for input at a point in window coordinates, searching open overlays first, or null.
       * - :cpp:func:`request_focus <gui_forms::SurfaceRoot::request_focus>`
         - Moves keyboard focus to a control, or clears it with null.
+      * - :cpp:func:`restore_focus <gui_forms::SurfaceRoot::restore_focus>`
+        - Gives the window's last focused control its focus back: keeps the focused control when there is one; otherwise refocuses the control whose focus was taken when the window's root was disabled or hidden (a disabled window, Form.Enabled = false), once it can take focus again.
       * - :cpp:func:`text_input_caret <gui_forms::SurfaceRoot::text_input_caret>`
         - The box an input method places its windows by, in this root's coordinates: the focused control's Control::text_input_caret, or a one-unit-wide box at its left edge when it names none; none without an eligible focused control.
       * - :cpp:func:`rules <gui_forms::SurfaceRoot::rules>`
@@ -1262,6 +1264,10 @@ gui_forms::SurfaceRoot
       if the control is not focusable or not eligible for input, lies outside
       the active focus scope, or validation of the control losing focus
       refused the move.
+
+   .. cpp:function:: Control::Ptr restore_focus()
+
+      Gives the window's last focused control its focus back: keeps the focused control when there is one; otherwise refocuses the control whose focus was taken when the window's root was disabled or hidden (a disabled window, Form.Enabled = false), once it can take focus again. Runs when the window becomes active again (after a modal window over it closes, or the platform reactivates it) and when a disabled or hidden control is enabled or shown again; programs may call it too. Returns the focused control afterwards, or null. Root thread only.
 
    .. cpp:function:: std::optional<Rect> text_input_caret()
 

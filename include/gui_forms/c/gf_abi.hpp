@@ -532,6 +532,14 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status focused_control(gf_object window_or_root, gf_object* control) const noexcept {
+        if (table_.struct_size < 88u || table_.focused_control == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.focused_control(window_or_root, control);
+        return called;
+    }
+
 private:
     gf_windows_table table_;
 };
@@ -1138,6 +1146,22 @@ public:
             return GF_STATUS_UNSUPPORTED_VERSION;
         }
         const gf_status called = table_.invalidate(object, damage);
+        return called;
+    }
+
+    [[nodiscard]] gf_status focus(gf_object object, uint32_t* focused) const noexcept {
+        if (table_.struct_size < 104u || table_.focus == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.focus(object, focused);
+        return called;
+    }
+
+    [[nodiscard]] gf_status focus_state(gf_object object, uint32_t* focused, uint32_t* contains_focus) const noexcept {
+        if (table_.struct_size < 112u || table_.focus_state == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.focus_state(object, focused, contains_focus);
         return called;
     }
 

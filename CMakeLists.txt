@@ -3916,6 +3916,13 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_window_chrome_tests
              COMMAND gui_forms_window_chrome_tests)
 
+    add_executable(gui_forms_focus_restore_tests
+        tests/focus_restore_tests.cpp
+    )
+    target_link_libraries(gui_forms_focus_restore_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_focus_restore_tests
+             COMMAND gui_forms_focus_restore_tests)
+
     add_executable(gui_forms_layout_direction_tests
         tests/layout_direction_tests.cpp
     )

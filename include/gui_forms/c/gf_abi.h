@@ -891,6 +891,17 @@ typedef struct gf_windows_table {
      * window; GF_STATUS_DISPOSED once the window is gone. */
     gf_status (GF_CALL* window_properties)(gf_object window, gf_window_property_flags* supported,
                                            gf_window_property_flags* applied);
+    /* The focused control of a window (since 1.1): window_or_root is a
+     * window from create, or a control in a window (a root passed to run,
+     * a root of a show_modal or show_owned window, or any control under
+     * one). control receives a new reference to the window's focused
+     * control, which the caller releases, or zero when none has focus.
+     * When a modal window closes, or a disabled window's root is enabled
+     * again, the window's last focused control takes focus back. UI
+     * thread. GF_STATUS_INVALID_STATE for a control not in a window;
+     * GF_STATUS_DISPOSED for a window that has been disposed or whose run
+     * has ended. */
+    gf_status (GF_CALL* focused_control)(gf_object window_or_root, gf_object* control);
 } gf_windows_table;
 
 /* gf_schema_kind: what a schema type is. A control is created and placed in
@@ -1744,6 +1755,22 @@ typedef struct gf_controls_table {
      * callback then runs (GF_TABLE_CUSTOM_CONTROLS). A damage rectangle
      * that is not finite, or has a negative size, gives INVALID_ARGUMENT. */
     gf_status (GF_CALL* invalidate)(gf_object object, const gf_logical_rect* damage);
+    /* Gives the control keyboard focus, as Control.Focus and Select do
+     * (since 1.1): it becomes its window's focused control, the one its
+     * window gives the keyboard to while active. focused receives 1 when
+     * the window is active, so the control has the keyboard now, and 0
+     * when it is not (focus is taken when the window is next activated);
+     * it may be null. GF_STATUS_INVALID_STATE, changing nothing, for a
+     * control not in a window, disabled or hidden (or under a disabled or
+     * hidden ancestor), not focusable (its focusable property), outside the
+     * window's open focus scope (a dialog or overlay), or whose window's
+     * validation kept focus where it was. UI thread. */
+    gf_status (GF_CALL* focus)(gf_object object, uint32_t* focused);
+    /* Whether the control is its window's focused control (Focused), and
+     * whether it or a descendant is (ContainsFocus), as 0 or 1 (since 1.1).
+     * A control not in a window has neither. Either output may be null. UI
+     * thread. */
+    gf_status (GF_CALL* focus_state)(gf_object object, uint32_t* focused, uint32_t* contains_focus);
 } gf_controls_table;
 
 /*

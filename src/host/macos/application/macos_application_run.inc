@@ -443,6 +443,7 @@ HostServiceStatus MacApplicationRun::run_modal_impl(gui_forms::HostWindowId wind
     MacRunSlot* found = slot(window);
     if (found == nullptr) return {HostServiceError::after_shutdown};
     NSWindow* modalWindow = (*found).window;
+    const std::optional<gui_forms::HostWindowId> owner_id = owner(window);
     const gui_forms::HostWindowId main_window = primary();
     // AppKit's modal session refuses key and mouse events to the
     // application's other windows; posted work, damage collection and
@@ -461,6 +462,14 @@ HostServiceStatus MacApplicationRun::run_modal_impl(gui_forms::HostWindowId wind
                                                dequeue:NO]);
     }
     [NSApp endModalSession:session];
+    // The owner becomes key again with its raster view first responder; its
+    // activation gives its last focused control focus again
+    // (SurfaceRoot::restore_focus).
+    MacRunSlot* const owner_slot = owner_id.has_value() ? slot(*owner_id) : nullptr;
+    if (owner_slot != nullptr && (*owner_slot).window.visible) {
+        [(*owner_slot).window makeKeyAndOrderFront:nil];
+        [(*owner_slot).window makeFirstResponder:(*owner_slot).view];
+    }
     // Releases that waited for the nested loop to end (reclaim).
     schedule_reclaim();
     return {};

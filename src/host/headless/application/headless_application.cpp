@@ -35,6 +35,11 @@ struct HeadlessRequestClose final {
     HostWindowId window{};
     void operator()() const;
 };
+struct HeadlessRestoreFocus final {
+    HeadlessApplication* application{};
+    HostWindowId window{};
+    void operator()() const;
+};
 struct HeadlessTitle final {
     HeadlessWindowing* windowing{};
     HostWindowId window{};
@@ -70,6 +75,11 @@ struct HeadlessApplicationAccess final {
         const HostServiceStatus status = application.resize(window, client_size);
         return status;
     }
+    static void restore_focus(HeadlessApplication& application, HostWindowId window) {
+        HeadlessApplication::WindowEntry* const found = application.entry(window);
+        if (found == nullptr || !(*found).model) return;
+        static_cast<void>((*(*found).model).restore_focus());
+    }
 };
 
 namespace {
@@ -78,6 +88,9 @@ void HeadlessShow::operator()() const {
 }
 void HeadlessRequestClose::operator()() const {
     HeadlessApplicationAccess::request_close(*application, window);
+}
+void HeadlessRestoreFocus::operator()() const {
+    HeadlessApplicationAccess::restore_focus(*application, window);
 }
 HostServiceStatus HeadlessClientSize::operator()(Size client_size) const {
     const HostServiceStatus status =
@@ -659,6 +672,7 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     }
     state.set_title = HeadlessTitle{&windowing_, window.id};
     state.request_client_size = HeadlessClientSize{this, window.id};
+    state.restore_focus = HeadlessRestoreFocus{this, window.id};
     state.frame_changed = window.options.frame_changed;
     entries_.push_back(std::move(created));
 

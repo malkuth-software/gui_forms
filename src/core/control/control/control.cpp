@@ -2317,6 +2317,9 @@ void Control::written(const decltype(visible)&) {
     if (surface_root_) (*surface_root_).publish_control_availability(*this);
     if (!is_alive()) return;
     on_visible_changed();
+    if (is_alive() && surface_root_ && visible.read()) {
+        (*surface_root_).on_eligibility_restored(shared_from_this());
+    }
 }
 
 void Control::on_visible_changed() {
@@ -2336,6 +2339,9 @@ void Control::written(const decltype(enabled)&) {
     if (surface_root_) (*surface_root_).publish_control_availability(*this);
     if (!is_alive()) return;
     on_enabled_changed();
+    if (is_alive() && surface_root_ && enabled.read()) {
+        (*surface_root_).on_eligibility_restored(shared_from_this());
+    }
 }
 
 void Control::on_enabled_changed() {

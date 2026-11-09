@@ -463,6 +463,11 @@ enum class ModalTurnAction : std::uint8_t {
     // The first turn shows a second modal window over the first, whose own
     // first turn closes it; the second turn closes the first.
     nest,
+    // The first turn disables the owner (its focus is taken), makes its
+    // focused control unfocusable, enables the owner again (nothing can
+    // take focus back yet) and makes the control focusable again; the
+    // second turn closes the modal window, whose end gives focus back.
+    owner_focus,
 };
 
 struct ModalTurnScript final {
@@ -503,6 +508,22 @@ bool ModalTurnScript::operator()(HostWindowId window) const {
         return true;
     case ModalTurnAction::quit:
         return false;
+    case ModalTurnAction::owner_focus:
+        if (*turns == 1) {
+            Window& owner = *app.model(main_id);
+            const Control::Ptr root = owner.root();
+            const Control::Ptr field = owner.find("main.field");
+            (*root).enabled = false;
+            *trace += owner.focused_control() ? "focused " : "unfocused ";
+            (*field).focusable = false;
+            (*root).enabled = true;
+            *trace += owner.focused_control() ? "focused " : "unfocused ";
+            (*field).focusable = true;
+            *trace += owner.focused_control() ? "focused\n" : "unfocused\n";
+            return true;
+        }
+        app.simulate_user_close(window);
+        return true;
     case ModalTurnAction::nest:
         if (*turns == 1) {
             app.windowing().set_modal_turn(InnerModalTurn{application, trace});
@@ -593,6 +614,26 @@ void test_modal_windows() {
     const ApplicationModalResult nested = windows.show_modal(std::move(fourth));
     require(nested.status.accepted() && nested.dialog_result == DialogResult::cancel, "nest: wrong result");
     require(trace == "inner turn depth=2\ninner result=2\n", "nested modal loop wrong");
+    application.reclaim();
+
+    // The owner's last focused control takes focus back when the modal
+    // window over it ends, even when the owner's own re-enable could not
+    // give it back.
+    Window& owner = *application.model(main.id());
+    const Control::Ptr field = make_control<Control>(StableId("main.field"));
+    (*field).focusable = true;
+    (*owner.root()).add_child(field);
+    require(owner.request_focus(field) && owner.focused_control() == field, "the owner's field took no focus");
+    turns = 0;
+    trace.clear();
+    ApplicationWindow fifth = make_entry("modal", "main");
+    script.model = fifth.model.get();
+    script.action = ModalTurnAction::owner_focus;
+    application.windowing().set_modal_turn(script);
+    const ApplicationModalResult refocused = windows.show_modal(std::move(fifth));
+    require(refocused.status.accepted(), "owner focus: show_modal refused");
+    require(trace == "unfocused unfocused unfocused\n", "owner focus: the turn's focus steps wrong");
+    require(owner.focused_control() == field, "the modal window's end did not give the owner its focus back");
     application.reclaim();
 
     // Refusals: no owner, a popup, a floating window.

@@ -714,7 +714,12 @@ HostServiceStatus WindowsApplicationRun::run_modal_impl(HostWindowId window) {
     }
     if (owner_id.has_value() && !quit) {
         const HWND owner_native = native(*owner_id);
-        if (owner_native != nullptr) SetActiveWindow(owner_native);
+        if (owner_native != nullptr) {
+            SetActiveWindow(owner_native);
+            // The keyboard goes back to the owner, whose WM_ACTIVATE gives
+            // its last focused control focus again (SurfaceRoot::restore_focus).
+            SetFocus(owner_native);
+        }
     }
     // The quit belongs to the outer loop: post it again for it to take.
     if (quit && quit_message.message == WM_QUIT) {

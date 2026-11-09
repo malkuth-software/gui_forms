@@ -781,6 +781,16 @@ public:
     [[nodiscard]] Control::Ptr hit_test(Point position);
     bool request_focus(const Control::Ptr& control);
     [[nodiscard]] Control::Ptr focused_control() const noexcept { return focused_.lock(); }
+    // Gives the window's last focused control its focus back: keeps the
+    // focused control when there is one; otherwise refocuses the control
+    // whose focus was taken when the window's root was disabled or hidden
+    // (a disabled window, Form.Enabled = false), once it can take focus
+    // again. Runs when the window becomes active again (after a modal
+    // window over it closes, or the platform reactivates it) and when a
+    // disabled or hidden control is enabled or shown again; programs may
+    // call it too. Returns the focused control afterwards, or null. Root
+    // thread only.
+    Control::Ptr restore_focus();
     // The box an input method places its windows by, in this root's
     // coordinates: the focused control's Control::text_input_caret, or a
     // one-unit-wide box at its left edge when it names none; none without
@@ -1633,6 +1643,12 @@ private:
     // As on_eligibility_changed, for a control just disabled: its passive
     // overlays stay open.
     void on_enabled_withdrawn(const Control::Ptr& control);
+    // `control` was just enabled or shown: focus the root's withdrawal took
+    // from inside it comes back (restore_focus) if nothing holds focus.
+    void on_eligibility_restored(const Control::Ptr& control);
+    // Remembers the focused control when the root's withdrawal (disable or
+    // hide) is about to take its focus.
+    void remember_withdrawn_focus(const Control::Ptr& control);
     void on_hit_test_transparency_changed(const Control::Ptr& control);
     void publish_control_availability(Control& control);
     void register_subtree(const Control::Ptr& control);
@@ -1953,6 +1969,9 @@ private:
     bool active_{true};
     StableIdMap stable_ids_;
     Control::WeakPtr focused_;
+    // The control whose focus a disable or hide took (restore_focus); empty
+    // once focus moves elsewhere or it is given back. Observes only.
+    Control::WeakPtr withdrawn_focus_;
     // Whether Tab past the last tab stop (or Shift+Tab before the first)
     // wraps around. A sub-surface does not wrap: the key goes back to its
     // parent, whose traversal moves focus past the host (design note

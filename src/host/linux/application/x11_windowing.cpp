@@ -356,6 +356,7 @@ HostServiceStatus X11Windowing::run_modal_impl(HostWindowId window) {
     held.modal = true;
     blocked.push_back(candidate);
   }
+  const std::optional<HostWindowId> owner_id = owner(window);
   // The outer loop ends when the primary window closes; the nested loop
   // ends then too, so the outer one sees it.
   const HostWindowId main_window = primary();
@@ -366,6 +367,14 @@ HostServiceStatus X11Windowing::run_modal_impl(HostWindowId window) {
   }
   for (std::size_t i = 0; i < blocked.size(); ++i)
     (*blocked[i]).modal = false;
+  // The keyboard goes back to a shown owner; its FocusIn reactivates it,
+  // which gives its last focused control focus again
+  // (SurfaceRoot::restore_focus).
+  NativeWindow *const owner_native = owner_id.has_value() ? native(*owner_id) : nullptr;
+  if (owner_native != nullptr && !(*owner_native).closed && (*owner_native).visible) {
+    XSetInputFocus(runtime_.display, (*owner_native).xid, RevertToParent, CurrentTime);
+    XFlush(runtime_.display);
+  }
   return {};
 }
 

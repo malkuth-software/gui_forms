@@ -37,6 +37,7 @@ constexpr SlotIdentity request_help_slot{GF_TABLE_WINDOWS, 5U};
 constexpr SlotIdentity show_modal_slot{GF_TABLE_WINDOWS, 6U};
 constexpr SlotIdentity show_owned_slot{GF_TABLE_WINDOWS, 7U};
 constexpr SlotIdentity window_properties_slot{GF_TABLE_WINDOWS, 8U};
+constexpr SlotIdentity focused_control_slot{GF_TABLE_WINDOWS, 9U};
 
 // The 1.0 size of gf_run_options: a caller passes at least this much.
 constexpr std::uint32_t run_options_size_1_0 = 64U;
@@ -831,6 +832,60 @@ gf_status GF_CALL windows_window_properties(gf_object window, gf_window_property
     }
 }
 
+// The focused control of a window from create, or of the window a control
+// is in (a run's root, an owned or modal window's root, or any control).
+gf_status report_focused_control(gf_object window_or_root, gf_object* control) {
+    if (control == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, focused_control_slot, "focused_control needs a control output");
+    }
+    const gf_status entered = registry().enter_ui(focused_control_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Component::Ptr object;
+    const gf_status found = registry().find_component(window_or_root, focused_control_slot, object);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    const SurfaceRoot* window = nullptr;
+    const std::shared_ptr<WindowHandle> handle = std::dynamic_pointer_cast<WindowHandle>(object);
+    if (handle != nullptr) {
+        if (!(*handle).is_alive() || (*handle).window() == nullptr) {
+            return fail(GF_STATUS_DISPOSED, focused_control_slot, "the window has been disposed or has closed");
+        }
+        window = (*handle).window();
+    } else {
+        const Control::Ptr in_window = std::dynamic_pointer_cast<Control>(object);
+        if (!in_window) {
+            return fail(GF_STATUS_WRONG_HANDLE_KIND, focused_control_slot,
+                        "focused_control takes a window or a control in one");
+        }
+        if (!(*in_window).is_alive()) {
+            return fail(GF_STATUS_DISPOSED, focused_control_slot, "the object has been disposed");
+        }
+        window = (*in_window).attached_surface_root();
+        if (window == nullptr) {
+            return fail(GF_STATUS_INVALID_STATE, focused_control_slot, "the control is not in a window");
+        }
+    }
+    const Control::Ptr focused = (*window).focused_control();
+    // The reference is made before the output is written: a failed
+    // allocation leaves the output as it was.
+    const gf_object made = focused ? registry().add_reference(focused) : gf_object{0U};
+    *control = made;
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL windows_focused_control(gf_object window_or_root, gf_object* control) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(focused_control_slot.table_id, focused_control_slot.slot_index);
+        const gf_status reported = report_focused_control(window_or_root, control);
+        return reported;
+    } catch (...) {
+        return fail_with_current_exception(focused_control_slot);
+    }
+}
+
 static_assert(static_cast<std::uint32_t>(WindowChromeField::text) == GF_WINDOW_PROPERTY_TEXT &&
                   static_cast<std::uint32_t>(WindowChromeField::show_in_taskbar) ==
                       GF_WINDOW_PROPERTY_SHOW_IN_TASKBAR &&
@@ -850,6 +905,7 @@ constexpr gf_windows_table table{
     .show_modal = &windows_show_modal,
     .show_owned = &windows_show_owned,
     .window_properties = &windows_window_properties,
+    .focused_control = &windows_focused_control,
 };
 
 } // namespace

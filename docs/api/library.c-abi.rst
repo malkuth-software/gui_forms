@@ -494,6 +494,10 @@ Types
 
    .. cpp:function:: gf_status invalidate(gf_object object, const gf_logical_rect* damage) const noexcept
 
+   .. cpp:function:: gf_status focus(gf_object object, uint32_t* focused) const noexcept
+
+   .. cpp:function:: gf_status focus_state(gf_object object, uint32_t* focused, uint32_t* contains_focus) const noexcept
+
    .. cpp:function:: gf_status set_pointer_capture(gf_object object, uint32_t captured) const noexcept
 
    .. cpp:function:: gf_status set_scroll_axis(gf_object object, gf_scroll_orientation orientation, const gf_scroll_axis* axis) const noexcept
@@ -1521,6 +1525,10 @@ Types
    .. cpp:member:: gf_status (*scroll_into_view)(gf_object object, gf_object child)
 
    .. cpp:member:: gf_status (*invalidate)(gf_object object, const gf_logical_rect* damage)
+
+   .. cpp:member:: gf_status (*focus)(gf_object object, uint32_t* focused)
+
+   .. cpp:member:: gf_status (*focus_state)(gf_object object, uint32_t* focused, uint32_t* contains_focus)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3172,6 +3180,8 @@ Types
 
    .. cpp:member:: gf_status (*window_properties)(gf_object window, gf_window_property_flags* supported, gf_window_property_flags* applied)
 
+   .. cpp:member:: gf_status (*focused_control)(gf_object window_or_root, gf_object* control)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -3842,3 +3852,5 @@ Types
    .. cpp:function:: gf_status show_owned(gf_object root, const gf_owned_window_options* options) const noexcept
 
    .. cpp:function:: gf_status window_properties(gf_object window, gf_window_property_flags* supported, gf_window_property_flags* applied) const noexcept
+
+   .. cpp:function:: gf_status focused_control(gf_object window_or_root, gf_object* control) const noexcept
