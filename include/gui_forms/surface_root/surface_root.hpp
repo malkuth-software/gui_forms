@@ -812,6 +812,25 @@ public:
     // Handlers run while the box is open: they may open other windows but
     // cannot close the box.
     [[nodiscard]] Event<HelpRequestEvent&>& help_requested() noexcept { return help_requested_; }
+    // The window's key events (key_events.hpp gives the order). key_down,
+    // key_up and key_press reach the window before the focused control
+    // (Windows Forms' KeyPreview, always on for a subscriber); a handler
+    // that sets handled keeps the key or text from the control.
+    // key_state_changed is the raw press and release of each physical key,
+    // once each (no auto-repeats), before anything can consume the key and
+    // whatever has the focus, with the releases the window makes when it
+    // loses activation. All run on the UI thread; a handler may close the
+    // window, which ends the key's route.
+    [[nodiscard]] Event<KeyEventArgs&>& key_down() noexcept { return key_down_; }
+    [[nodiscard]] Event<KeyPressEventArgs&>& key_press() noexcept { return key_press_; }
+    [[nodiscard]] Event<const KeyStateChange&>& key_state_changed() noexcept { return key_state_changed_; }
+    [[nodiscard]] Event<KeyEventArgs&>& key_up() noexcept { return key_up_; }
+    // Whether physical key `physical_key` (a USB HID usage, PhysicalKey) is
+    // down now, as the window has seen it: pressed and not yet released,
+    // nor released by the window losing activation. At most
+    // maximum_held_keys keys are tracked at once (InteractionSnapshot
+    // counts the presses past that). UI thread.
+    [[nodiscard]] bool is_key_down(std::uint32_t physical_key) const noexcept;
     // The interactions a window raises, by the name of their event accessor,
     // appended in declaration order: the window events the C ABI subscribes
     // by name (stage C, tools/abi_event_catalog.py). Window is not a
@@ -1290,8 +1309,20 @@ private:
     // dispatch_key's routing, after the paint-lease check.
     bool route_key(KeyEvent event);
     // What the window does with a key no control on `route` handled at the
-    // target or bubble phase: accelerators, dialog keys, Tab and F6.
-    bool finish_unhandled_key(const KeyEvent& event);
+    // target or bubble phase: accelerators, dialog keys, Tab and F6. With
+    // `input_key` (a preview_key_down handler set is_input_key) only the
+    // accelerators: the key is the control's, not a dialog key.
+    bool finish_unhandled_key(const KeyEvent& event, bool input_key);
+    // Raises key_down or key_up (by event.action) on the window, then
+    // returns whether a handler handled it; `closed` is set when a handler
+    // closed the window. suppress_key_press is remembered for the text.
+    bool raise_window_key(const KeyEvent& event, bool& closed);
+    // The same on `control`, the focused control.
+    bool raise_control_key(Control& control, const KeyEvent& event, bool& closed);
+    // The window lost activation: forgets the held keys and raises their
+    // releases (key_state_changed, then key_up on the window and on the
+    // focused control), each with released_by_deactivation.
+    void release_held_keys();
     // A key `from` forwarded elsewhere and got back unhandled (a sub-surface's
     // key return, design note section 4): bubbles from `from`'s parent up,
     // then finish_unhandled_key. False, doing nothing, when `from` is no
@@ -2027,6 +2058,13 @@ private:
     Event<const PointerCaptureChange&> pointer_capture_changed_;
     Event<const FocusedControlChange&> focused_control_changed_;
     Event<HelpRequestEvent&> help_requested_;
+    Event<KeyEventArgs&> key_down_;
+    Event<KeyPressEventArgs&> key_press_;
+    Event<const KeyStateChange&> key_state_changed_;
+    Event<KeyEventArgs&> key_up_;
+    // A key_down handler set suppress_key_press: the next committed text
+    // is dropped. Cleared by that text and by the next key down.
+    bool suppress_key_text_{};
     // The window's HelpProviders' fallbacks, in creation order; each
     // provider removes its own on disposal.
     std::vector<detail::WindowHelpFallback*> help_fallbacks_;

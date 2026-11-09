@@ -474,6 +474,15 @@ gui_forms::Control
          Raised when a :cpp:class:`HelpProvider <gui_forms::HelpProvider>` requests help for this control. Set
          ``handled`` on the event to stop the provider's own event.
 
+      **preview_key_down** : ``Event<PreviewKeyDownEventArgs&>``
+         The Windows Forms key events (key_events.hpp gives their order): PreviewKeyDown and KeyDown/KeyUp on the focused control for each key, KeyPress for the committed text a key produces. A handler that sets handled ends the key's route; is_input_key keeps a key from dialog processing; suppress_key_press drops the key's text. Kept, like the mouse events, in a record made by the first accessor called.
+
+      **key_down** : ``Event<KeyEventArgs&>``
+
+      **key_press** : ``Event<KeyPressEventArgs&>``
+
+      **key_up** : ``Event<KeyEventArgs&>``
+
    :Inherited:
 
       It also has every member of :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
@@ -1293,6 +1302,16 @@ gui_forms::Control
 
       Raised when a :cpp:class:`HelpProvider <gui_forms::HelpProvider>` requests help for this control. Set
       ``handled`` on the event to stop the provider's own event.
+
+   .. cpp:function:: Event<PreviewKeyDownEventArgs&>& preview_key_down()
+
+      The Windows Forms key events (key_events.hpp gives their order): PreviewKeyDown and KeyDown/KeyUp on the focused control for each key, KeyPress for the committed text a key produces. A handler that sets handled ends the key's route; is_input_key keeps a key from dialog processing; suppress_key_press drops the key's text. Kept, like the mouse events, in a record made by the first accessor called.
+
+   .. cpp:function:: Event<KeyEventArgs&>& key_down()
+
+   .. cpp:function:: Event<KeyPressEventArgs&>& key_press()
+
+   .. cpp:function:: Event<KeyEventArgs&>& key_up()
 
 
    .. rubric:: Methods

@@ -14,7 +14,7 @@ reference* marks a payload the handler receives by mutable reference.
 
 Every control also has these properties: `accessible_description`, `accessible_name`, `align_self`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `back_color`, `bounds`, `causes_validation`, `classes`, `cursor`, `dock`, `enabled`, `fore_color`, `hit_test_transparent`, `justify_self`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
 
-Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `mouse_down`, `mouse_up`, `mouse_move`, `mouse_wheel`, `mouse_enter`, `mouse_hover`, `mouse_leave`, `mouse_capture_changed`, `click`, `mouse_click`, `double_click`, `mouse_double_click`, `context_menu_requested`, `focus_observed`, `arranged_bounds_changed`, `help_requested`.
+Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `mouse_down`, `mouse_up`, `mouse_move`, `mouse_wheel`, `mouse_enter`, `mouse_hover`, `mouse_leave`, `mouse_capture_changed`, `click`, `mouse_click`, `double_click`, `mouse_double_click`, `context_menu_requested`, `focus_observed`, `arranged_bounds_changed`, `help_requested`, `preview_key_down`, `key_down`, `key_press`, `key_up`.
 
 ## Vocabulary
 
@@ -1294,7 +1294,7 @@ Properties beyond every control's: `maximum` (number), `minimum` (number), `tick
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `invalid`, `pending`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `value` (number).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `decimal_places` (unsigned_integer), `increment` (number), `maximum` (number), `minimum` (number), `value` (number).
 
 | Interaction | Payload |
 |---|---|

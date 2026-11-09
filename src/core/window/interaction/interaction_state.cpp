@@ -37,30 +37,48 @@ void InteractionState::note_pointer(const PointerEvent& event) noexcept {
     if (event.button == PointerButton::middle) middle_down_ = down;
 }
 
-void InteractionState::note_key(const KeyEvent& event, FrameTime now) noexcept {
+bool InteractionState::note_key(const KeyEvent& event, FrameTime now) noexcept {
     modifiers_ = event.modifiers;
+    // A key the host could not name is not tracked.
+    if (event.physical_key == 0U) return false;
     std::size_t index = 0U;
     while (index < held_key_count_ && held_keys_[index].physical_key != event.physical_key) {
         ++index;
     }
     const bool held = index < held_key_count_;
     if (event.action == KeyAction::down) {
-        if (held || event.repeat) return;
+        if (held || event.repeat) return false;
         if (held_key_count_ == held_keys_.size()) {
             ++untracked_key_presses_;
-            return;
+            return false;
         }
         held_keys_[held_key_count_] = HeldKey{event.physical_key, now};
         ++held_key_count_;
-        return;
+        return true;
     }
-    if (!held) return;
+    if (!held) return false;
     // Keep press order: close the gap.
     for (std::size_t later = index + 1U; later < held_key_count_; ++later) {
         held_keys_[later - 1U] = held_keys_[later];
     }
     --held_key_count_;
     held_keys_[held_key_count_] = HeldKey{};
+    return true;
+}
+
+bool InteractionState::holds(std::uint32_t physical_key) const noexcept {
+    if (physical_key == 0U) return false;
+    for (std::size_t index = 0U; index < held_key_count_; ++index) {
+        if (held_keys_[index].physical_key == physical_key) return true;
+    }
+    return false;
+}
+
+std::size_t InteractionState::copy_held_keys(std::array<HeldKey, maximum_held_keys>& released) const noexcept {
+    for (std::size_t index = 0U; index < held_key_count_; ++index) {
+        released[index] = held_keys_[index];
+    }
+    return held_key_count_;
 }
 
 void InteractionState::hover_entered(const Control::Ptr& control, Point position, FrameTime now,

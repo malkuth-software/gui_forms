@@ -91,7 +91,7 @@ private:
     // property_codemod begin NumericUpDown (tools/property_families/numeric_up_down.json; generated, do not edit)
 public:
     // NumericUpDown's property table: Panel's entries, then its own.
-    static constexpr std::size_t numeric_up_down_property_count = Panel::panel_property_count + 1U;
+    static constexpr std::size_t numeric_up_down_property_count = Panel::panel_property_count + 5U;
     [[nodiscard]] static const std::array<PropertyEntry, numeric_up_down_property_count>& numeric_up_down_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 

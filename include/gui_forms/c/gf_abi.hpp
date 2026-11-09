@@ -508,6 +508,14 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status key_state(gf_object window, uint32_t physical_key, uint32_t* down) const noexcept {
+        if (table_.struct_size < 64u || table_.key_state == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.key_state(window, physical_key, down);
+        return called;
+    }
+
 private:
     gf_windows_table table_;
 };

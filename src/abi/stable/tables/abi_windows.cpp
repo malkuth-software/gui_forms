@@ -32,6 +32,7 @@ constexpr SlotIdentity create_slot{GF_TABLE_WINDOWS, 2U};
 constexpr SlotIdentity interaction_count_slot{GF_TABLE_WINDOWS, 3U};
 constexpr SlotIdentity interaction_at_slot{GF_TABLE_WINDOWS, 4U};
 constexpr SlotIdentity request_help_slot{GF_TABLE_WINDOWS, 5U};
+constexpr SlotIdentity key_state_slot{GF_TABLE_WINDOWS, 6U};
 
 // The 1.0 size of gf_run_options: a caller passes at least this much.
 constexpr std::uint32_t run_options_size_1_0 = 64U;
@@ -432,6 +433,43 @@ gf_status GF_CALL windows_request_help(gf_object window, std::uint32_t* handled)
     }
 }
 
+// Whether a created or running window holds physical_key down.
+gf_status read_key_state(gf_object window, std::uint32_t physical_key, std::uint32_t* down) {
+    if (down == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, key_state_slot, "key_state needs a down output");
+    }
+    const gf_status entered = registry().enter_ui(key_state_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Component::Ptr object;
+    const gf_status found = registry().find_component(window, key_state_slot, object);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    const std::shared_ptr<WindowHandle> handle = std::dynamic_pointer_cast<WindowHandle>(object);
+    if (handle == nullptr) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, key_state_slot, "key_state takes a window");
+    }
+    Window* const held = (*handle).window();
+    if (!(*handle).is_alive() || held == nullptr) {
+        return fail(GF_STATUS_DISPOSED, key_state_slot, "the window has been disposed or has closed");
+    }
+    const bool pressed = (*held).is_key_down(physical_key);
+    *down = pressed ? 1U : 0U;
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL windows_key_state(gf_object window, std::uint32_t physical_key, std::uint32_t* down) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(key_state_slot.table_id, key_state_slot.slot_index);
+        const gf_status read = read_key_state(window, physical_key, down);
+        return read;
+    } catch (...) {
+        return fail_with_current_exception(key_state_slot);
+    }
+}
+
 constexpr gf_windows_table table{
     .struct_size = sizeof(gf_windows_table),
     .abi_minor = GF_ABI_MINOR,
@@ -441,6 +479,7 @@ constexpr gf_windows_table table{
     .interaction_count = &windows_interaction_count,
     .interaction_at = &windows_interaction_at,
     .request_help = &windows_request_help,
+    .key_state = &windows_key_state,
 };
 
 } // namespace

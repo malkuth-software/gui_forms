@@ -347,6 +347,15 @@ gui_forms::SurfaceRoot
          Handlers run while the box is open: they may open other windows but
          cannot close it.
 
+      **key_down** : ``Event<KeyEventArgs&>``
+         The window's key events (key_events.hpp gives the order). key_down, key_up and key_press reach the window before the focused control (Windows Forms' KeyPreview, always on for a subscriber); a handler that sets handled keeps the key or text from the control. key_state_changed is the raw press and release of each physical key, once each (no auto-repeats), before anything can consume the key and whatever has the focus, with the releases the window makes when it loses activation. All run on the UI thread; a handler may close the window, which ends the key's route.
+
+      **key_press** : ``Event<KeyPressEventArgs&>``
+
+      **key_state_changed** : ``Event<const KeyStateChange&>``
+
+      **key_up** : ``Event<KeyEventArgs&>``
+
       **dialog_result_changed** : ``Event<DialogResult>``
          Raised after :cpp:func:`dialog_result <gui_forms::SurfaceRoot::dialog_result>` changes, with the new result.
 
@@ -464,6 +473,8 @@ gui_forms::SurfaceRoot
         - The box an input method places its windows by, in this root's coordinates: the focused control's Control::text_input_caret, or a one-unit-wide box at its left edge when it names none; none without an eligible focused control.
       * - :cpp:func:`rules <gui_forms::SurfaceRoot::rules>`
         - The window's rules (gui_forms/rules.hpp; notes:planning APP_WINDOW_RULES_DESIGN Part C), made on first use; the window owns them and they end with it.
+      * - :cpp:func:`is_key_down <gui_forms::SurfaceRoot::is_key_down>`
+        - Whether physical key ``physical_key`` (a USB HID usage, PhysicalKey) is down now, as the window has seen it: pressed and not yet released, nor released by the window losing activation.
       * - :cpp:func:`append_interactions <gui_forms::SurfaceRoot::append_interactions>`
         - The interactions a window raises, by the name of their event accessor, appended in declaration order: the window events the C ABI subscribes by name (stage C, tools/abi_event_catalog.py).
       * - :cpp:func:`request_help <gui_forms::SurfaceRoot::request_help>`
@@ -1010,6 +1021,16 @@ gui_forms::SurfaceRoot
       Handlers run while the box is open: they may open other windows but
       cannot close it.
 
+   .. cpp:function:: Event<KeyEventArgs&>& key_down() noexcept
+
+      The window's key events (key_events.hpp gives the order). key_down, key_up and key_press reach the window before the focused control (Windows Forms' KeyPreview, always on for a subscriber); a handler that sets handled keeps the key or text from the control. key_state_changed is the raw press and release of each physical key, once each (no auto-repeats), before anything can consume the key and whatever has the focus, with the releases the window makes when it loses activation. All run on the UI thread; a handler may close the window, which ends the key's route.
+
+   .. cpp:function:: Event<KeyPressEventArgs&>& key_press() noexcept
+
+   .. cpp:function:: Event<const KeyStateChange&>& key_state_changed() noexcept
+
+   .. cpp:function:: Event<KeyEventArgs&>& key_up() noexcept
+
    .. cpp:function:: Event<DialogResult>& dialog_result_changed() noexcept
 
       Raised after :cpp:func:`dialog_result <gui_forms::SurfaceRoot::dialog_result>` changes, with the new result.
@@ -1270,6 +1291,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: RuleSet& rules()
 
       The window's rules (gui_forms/rules.hpp; notes:planning APP_WINDOW_RULES_DESIGN Part C), made on first use; the window owns them and they end with it. Key rules see each key before the control route. Root thread only. Defined with the rules, in gui_forms_controls.
+
+   .. cpp:function:: bool is_key_down(std::uint32_t physical_key) const noexcept
+
+      Whether physical key ``physical_key`` (a USB HID usage, PhysicalKey) is down now, as the window has seen it: pressed and not yet released, nor released by the window losing activation. At most maximum_held_keys keys are tracked at once (InteractionSnapshot counts the presses past that). UI thread.
 
    .. cpp:function:: static void append_interactions(std::vector<InteractionDeclaration>& interactions)
 

@@ -729,6 +729,16 @@ public:
     [[nodiscard]] Event<HelpRequestEvent&>& help_requested() noexcept {
         return help_requested_;
     }
+    // The Windows Forms key events (key_events.hpp gives their order):
+    // PreviewKeyDown and KeyDown/KeyUp on the focused control for each key,
+    // KeyPress for the committed text a key produces. A handler that sets
+    // handled ends the key's route; is_input_key keeps a key from dialog
+    // processing; suppress_key_press drops the key's text. Kept, like the
+    // mouse events, in a record made by the first accessor called.
+    [[nodiscard]] Event<PreviewKeyDownEventArgs&>& preview_key_down() { return key_events().preview_key_down; }
+    [[nodiscard]] Event<KeyEventArgs&>& key_down() { return key_events().key_down; }
+    [[nodiscard]] Event<KeyPressEventArgs&>& key_press() { return key_events().key_press; }
+    [[nodiscard]] Event<KeyEventArgs&>& key_up() { return key_events().key_up; }
     [[nodiscard]] ControlBindingsCollection& data_bindings();
     [[nodiscard]] const ControlBindingsCollection& data_bindings() const;
     // Keeps `link`, a form binding's link of one of this control's
@@ -1553,6 +1563,16 @@ private:
     };
     MouseEvents& mouse_events();
     std::unique_ptr<MouseEvents> mouse_events_{};
+    // The Windows Forms key events, made on first access; null while
+    // nobody has asked for one.
+    struct KeyEvents final {
+        Event<PreviewKeyDownEventArgs&> preview_key_down;
+        Event<KeyEventArgs&> key_down;
+        Event<KeyPressEventArgs&> key_press;
+        Event<KeyEventArgs&> key_up;
+    };
+    KeyEvents& key_events();
+    std::unique_ptr<KeyEvents> key_events_{};
     Event<bool> focus_observed_;
     Event<Rect> arranged_bounds_changed_;
     Event<HelpRequestEvent&> help_requested_;
