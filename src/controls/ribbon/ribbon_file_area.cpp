@@ -89,6 +89,7 @@ bool Ribbon::show_application_overlay(MenuOpenMode mode) {
     (*application_overlay_).set_origin(
         {absolute.x + placed.application.x, absolute.y + placed.application.y + placed.application.height});
     (*application_overlay_).reset(mode == MenuOpenMode::keyboard);
+    sync_overlay_themes();
     application_overlay_token_ = (*window).open_overlay(self, application_overlay_);
     application_overlay_open_ = true;
     if (Event<>* closed = application_overlay_token_.closed_event()) {
@@ -167,6 +168,7 @@ bool Ribbon::show_backstage() {
     close_menus();
     close_group_overlay();
     place_backstage();
+    sync_backstage_theme();
     backstage_token_ = (*window).open_overlay(shared_from_this(), backstage.read());
     backstage_open_ = true;
     if (Event<>* closed = backstage_token_.closed_event()) {
@@ -191,6 +193,7 @@ void Ribbon::close_backstage() noexcept {
     backstage_scope_ = {};
     backstage_revoked_.disconnect();
     backstage_token_.disconnect();
+    release_backstage_theme();
     if (!is_alive()) return;
     try {
         invalidate(Dirty::paint | Dirty::semantics);

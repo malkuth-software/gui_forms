@@ -5,6 +5,7 @@
 // with contextual tabs present.
 
 #include "gui_forms/gui_forms.hpp"
+#include "support/theme_definition_heap.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -220,6 +221,30 @@ void accents() {
     require(*(*second.ribbon).tab_set_accent("table") == first_table, "a returning set keeps its accent when free");
 }
 
+// The sets' accents follow the window's theme: a one-colour ramp gives every
+// shown set that colour, and a wider ramp gives them different ones again.
+void accents_follow_theme() {
+    Fixture fixture = make_fixture();
+    Ribbon& ribbon = *fixture.ribbon;
+    Window& window = *fixture.window;
+    ribbon.set_tab_set_availability("picture", RibbonTabSetAvailability::available);
+    ribbon.set_tab_set_availability("table", RibbonTabSetAvailability::available);
+    window.perform_layout();
+    require(!(*ribbon.tab_set_accent("picture") == *ribbon.tab_set_accent("table")),
+            "shown sets take different accents");
+    const std::unique_ptr<ThemeDefinition> held = test_support::professional_definition();
+    (*held).id = "one-accent";
+    (*held).accent_ramp = {Color::rgba(200, 40, 40)};
+    window.set_theme(Theme::create(*held));
+    window.perform_layout();
+    require((*ribbon.tab_set_accent("picture")).value == 0U && (*ribbon.tab_set_accent("table")).value == 0U,
+            "on a one-colour ramp every shown set takes that colour");
+    window.set_theme(default_theme());
+    window.perform_layout();
+    require(!(*ribbon.tab_set_accent("picture") == *ribbon.tab_set_accent("table")),
+            "a wider ramp gives the shown sets different accents again");
+}
+
 void modes() {
     std::vector<RibbonTabSpec> tabs;
     tabs.push_back(tab("home", "&Home", {}, 0x1U));
@@ -428,6 +453,7 @@ void scaling_with_contextual_tabs() {
 int main() {
     availability_and_selection_rules();
     accents();
+    accents_follow_theme();
     modes();
     semantics_and_keyboard();
     plane_expand_collapse();

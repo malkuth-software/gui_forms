@@ -494,9 +494,11 @@ private:
 
     // A Ribbon over the same Commands (stage RB, phases 1 and 5): Home with a
     // launcher, a large split, small commands and a toggle; Insert with
-    // hosted controls; the File tab's application menu; and a contextual
-    // Picture Tools set (Format), made available so that its tint shows on
-    // the tab and, when selected, on the plane.
+    // hosted controls, its text and number fields labelled at their left and,
+    // in the one-row Spacing group, above; Palette, a panel tab whose body is
+    // the page's own control; the File tab's application menu; and a
+    // contextual Picture Tools set (Format), made available so that its tint
+    // shows on the tab and, when selected, on the plane.
     void build_ribbon() {
         const std::shared_ptr<Ribbon>& ribbon = document_.gallery_commands_ribbon_bar;
         std::vector<RibbonTabSpec> tabs;
@@ -532,7 +534,17 @@ private:
                                  .text = "Matches"});
         find.commands.push_back({.stable_id = "ribbon.case", .kind = RibbonCommandKind::check_box,
                                  .text = "Match case"});
+        RibbonGroupSpec spacing{.stable_id = "ribbon.spacing", .caption = "Spacing"};
+        spacing.commands.push_back({.stable_id = "ribbon.indent", .kind = RibbonCommandKind::numeric_up_down,
+                                    .text = "Indent"});
+        spacing.layouts = {RibbonGroupLayout{.size = RibbonGroupSize::large, .command_sizes = {}, .rows = 1U}};
         insert.groups.push_back(std::move(find));
+        insert.groups.push_back(std::move(spacing));
+        // The panel tab's body: the application's control, sized to the plane.
+        std::shared_ptr<Label> palette =
+            label("gallery.commands.ribbon.palette",
+                  "Palette · a panel tab: the application's own control fills the command plane", 11.0, 400, muted);
+        RibbonTabSpec palette_tab{.stable_id = "ribbon.palette", .text = "&Palette", .panel = palette};
         RibbonTabSpec format{.stable_id = "ribbon.format", .text = "Format", .tab_set = "ribbon.picture"};
         RibbonGroupSpec arrange{.stable_id = "ribbon.arrange", .caption = "Arrange"};
         arrange.commands.push_back({.stable_id = "ribbon.format.about", .command = about_});
@@ -541,6 +553,7 @@ private:
         format.groups.push_back(std::move(arrange));
         tabs.push_back(std::move(home));
         tabs.push_back(std::move(insert));
+        tabs.push_back(std::move(palette_tab));
         tabs.push_back(std::move(format));
         (*ribbon).set_tabs(std::move(tabs), {{"ribbon.picture", "Picture Tools"}});
         (*ribbon).set_tab_set_availability("ribbon.picture", RibbonTabSetAvailability::available);

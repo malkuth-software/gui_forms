@@ -736,6 +736,14 @@ gui_forms::Ribbon
 
       *Protected.*
 
+   .. cpp:function:: void on_attached_to_window() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_detached_from_window() noexcept override
+
+      *Protected.*
+
    .. cpp:function:: void on_dispose() noexcept override
 
       *Protected.*

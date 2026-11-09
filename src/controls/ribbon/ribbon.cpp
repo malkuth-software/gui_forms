@@ -102,6 +102,124 @@ void Ribbon::on_attachment_committed() noexcept {
     }
 }
 
+// -- theme following ----------------------------------------------------------
+
+// The ribbon follows its window's theme: a new application theme, a colour
+// scheme change (light or dark, which may switch to GUI.Forms' own theme)
+// and the presentation settings each rebuild what was measured or chosen
+// against the old theme. The window raises theme_changed after
+// presentation_changed; both land in follow_theme, which is idempotent.
+void Ribbon::on_attached_to_window() {
+    Control::on_attached_to_window();
+    Window* const host = attached_window();
+    if (host == nullptr) return;
+    theme_subscription_ = (*host).theme_changed().subscribe(
+        *this, Delegate<const Theme&>::bind<Ribbon, &Ribbon::on_window_theme_changed>(*this));
+    presentation_subscription_ = (*host).presentation_changed().subscribe(
+        *this, Delegate<const PresentationSettings&>::bind<Ribbon, &Ribbon::on_presentation_changed>(*this));
+    follow_theme();
+}
+
+void Ribbon::on_detached_from_window() noexcept {
+    theme_subscription_.disconnect();
+    presentation_subscription_.disconnect();
+    Control::on_detached_from_window();
+}
+
+void Ribbon::on_window_theme_changed(const Theme&) {
+    follow_theme();
+}
+
+// Only a colour scheme change, or one that changes the theme in effect, is
+// followed; text scale and the rest reach the caches through ScalingKey.
+void Ribbon::on_presentation_changed(const PresentationSettings& settings) {
+    if (settings.colour_scheme == followed_scheme_ && &effective_theme() == followed_theme_) return;
+    follow_theme();
+}
+
+// Empties the scaling caches (a variant may share its Theme object yet
+// measure differently), gives the contextual sets their accents again from
+// the new ramp (each keeping its colour while the ramp allows), carries the
+// ribbon's theme to its overlays, and invalidates every view.
+void Ribbon::follow_theme() {
+    followed_theme_ = &effective_theme();
+    const Window* const host = attached_window();
+    if (host != nullptr) followed_scheme_ = (*host).presentation_settings().colour_scheme;
+    scaling_key_ = ScalingKey{};
+    for (TabSetState& state : set_states_) {
+        if (!state.accent) continue;
+        state.last_accent = state.accent;
+        state.accent.reset();
+    }
+    refresh_accents();
+    sync_overlay_themes();
+    invalidate_views(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+// The group overlay's layer and the application menu are overlay roots,
+// which take the window's theme; they take the ribbon's own theme instead:
+// the nearest override on the ribbon or an ancestor, or none. An override
+// the overlay's inline styles do not compile against is refused, and the
+// overlay keeps the window's theme.
+void Ribbon::sync_overlay_themes() {
+    const std::shared_ptr<const Theme> theme = nearest_theme_override();
+    const std::array<Control*, 2> overlays{group_layer_.get(), application_overlay_.get()};
+    for (Control* const overlay : overlays) {
+        if (overlay == nullptr) continue;
+        try {
+            if (theme) {
+                (*overlay).set_theme_override(theme);
+            } else {
+                (*overlay).clear_theme_override();
+            }
+        } catch (const std::invalid_argument&) {
+        }
+    }
+    if (backstage_open_) sync_backstage_theme();
+}
+
+// The nearest theme override on the ribbon or an ancestor, or none. Drop-down
+// menus find the same through ContextMenu, from the ribbon as their invoker.
+std::shared_ptr<const Theme> Ribbon::nearest_theme_override() const {
+    std::shared_ptr<const Theme> theme{};
+    std::shared_ptr<const Control> ancestor = shared_from_this();
+    while (ancestor && !theme) {
+        theme = (*ancestor).theme_override();
+        ancestor = (*ancestor).parent();
+    }
+    return theme;
+}
+
+// Backstage, an overlay root, takes the ribbon's theme as the other overlays
+// do, but it is the application's control: an override the application set
+// on it stays, and the ribbon's own is taken back when Backstage closes.
+void Ribbon::sync_backstage_theme() {
+    const std::shared_ptr<BackstageView> view = backstage.read();
+    if (!view) return;
+    const std::shared_ptr<const Theme> own = (*view).theme_override();
+    if (own && own != backstage_theme_) return;
+    const std::shared_ptr<const Theme> theme = nearest_theme_override();
+    try {
+        if (theme) {
+            (*view).set_theme_override(theme);
+        } else if (own) {
+            (*view).clear_theme_override();
+        }
+        backstage_theme_ = theme;
+    } catch (const std::invalid_argument&) {
+    }
+}
+
+void Ribbon::release_backstage_theme() noexcept {
+    const std::shared_ptr<const Theme> given = std::move(backstage_theme_);
+    const std::shared_ptr<BackstageView> view = backstage.read();
+    if (!given || !view || (*view).theme_override() != given) return;
+    try {
+        (*view).clear_theme_override();
+    } catch (...) {
+    }
+}
+
 void Ribbon::prepare_write(const decltype(focus_region)&, bool&) {
     require_mutable();
 }
@@ -189,8 +307,11 @@ void validate_command(const RibbonCommandSpec& command, std::unordered_set<std::
     if (has_menu(command.kind) != !command.drop_down.empty()) {
         throw std::invalid_argument("Ribbon split and drop-down commands require a menu, and others have none");
     }
-    if (!command.show_label && (command.size != RibbonCommandSize::small || command.image.value == 0U ||
-                                hosted(command.kind))) {
+    // A text or number field may be unlabelled; another hosted command has
+    // no label part to leave out.
+    const bool unlabelled_field = labelled_field_kind(command.kind) && !command.show_label;
+    if (!command.show_label && !unlabelled_field &&
+        (command.size != RibbonCommandSize::small || command.image.value == 0U || hosted(command.kind))) {
         throw std::invalid_argument("Ribbon icon-only commands must be small and have an image");
     }
     if (command.kind != RibbonCommandKind::combo_box && !command.choices.empty()) {
@@ -253,6 +374,16 @@ Ribbon::PreparedTabs Ribbon::prepare_tabs(const std::vector<RibbonTabSpec>& tabs
         if (tab.groups.size() > maximum_groups_per_tab) {
             throw std::invalid_argument("Ribbon tab has more groups than maximum_groups_per_tab");
         }
+        if (tab.panel) {
+            if (!tab.groups.empty() || !tab.reduction_order.empty()) {
+                throw std::invalid_argument("Ribbon panel tabs have no groups and no reduction order");
+            }
+            const Control::Ptr parent = (*tab.panel).parent();
+            const bool ours = !parent || parent.get() == this;
+            if (!ours || tab.panel.get() == this || !authored.insert(tab.panel.get()).second) {
+                throw std::invalid_argument("Ribbon tab panels must be used once and not owned elsewhere");
+            }
+        }
         prepared.layouts[tab_index].reserve(tab.groups.size());
         for (const RibbonGroupSpec& group : tab.groups) {
             if (!valid_stable_id(group.stable_id) ||
@@ -283,6 +414,9 @@ Ribbon::PreparedTabs Ribbon::prepare_tabs(const std::vector<RibbonTabSpec>& tabs
 Ribbon::HostedCarryOver Ribbon::take_hosted_controls() {
     HostedCarryOver carried;
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
+        // A panel tab's control is the application's, kept by identity.
+        const Control::Ptr& panel = tabs_[tab].panel;
+        if (panel && (*panel).parent().get() == this) carried.authored.push_back(panel);
         for (std::size_t group = 0; group < tabs_[tab].groups.size(); ++group) {
             for (std::size_t command = 0; command < tabs_[tab].groups[group].commands.size(); ++command) {
                 CommandRecord& record = records_[tab][group][command];
@@ -328,6 +462,15 @@ void Ribbon::rebuild_records(HostedCarryOver& carried) {
     records_.clear();
     records_.resize(tabs_.size());
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
+        const Control::Ptr& panel = tabs_[tab].panel;
+        if (panel) {
+            for (Control::Ptr& old : carried.authored) {
+                if (old.get() != panel.get()) continue;
+                old.reset();
+                break;
+            }
+            if ((*panel).parent().get() != this) add_child(panel);
+        }
         records_[tab].resize(tabs_[tab].groups.size());
         for (std::size_t group = 0; group < tabs_[tab].groups.size(); ++group) {
             const std::vector<RibbonCommandSpec>& commands = tabs_[tab].groups[group].commands;
@@ -729,11 +872,14 @@ void Ribbon::arrange(Rect final_bounds) {
                 const Control::Ptr& control = records_[tab][group][command].hosted;
                 if (!control || !is_current_layout_child(control)) continue;
                 Rect bounds{};
-                if (selected_tab_ == tab) bounds = Rect::intersection(placed.commands[group][command], placed.groups_area);
+                const RibbonCommandSpec& spec = tabs_[tab].groups[group].commands[command];
+                if (selected_tab_ == tab) {
+                    const Rect field = split_field(spec, placed.commands[group][command]).field;
+                    bounds = Rect::intersection(field, placed.groups_area);
+                }
                 set_child_layout_collapsed(control, bounds.empty());
                 if (bounds.empty()) continue;
                 set_child_layout(control, bounds);
-                const RibbonCommandSpec& spec = tabs_[tab].groups[group].commands[command];
                 if (spec.kind != RibbonCommandKind::gallery) continue;
                 RibbonGallery& gallery = *spec.gallery;
                 const std::size_t columns =
@@ -741,6 +887,15 @@ void Ribbon::arrange(Rect final_bounds) {
                 gallery.columns = columns;
             }
         }
+    }
+    // A panel tab's control fills the command plane while its tab is
+    // selected and the plane shows; it is collapsed otherwise.
+    for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
+        const Control::Ptr& panel = tabs_[tab].panel;
+        if (!panel || !is_current_layout_child(panel)) continue;
+        const Rect bounds = selected_tab_ == tab ? placed.plane : Rect{};
+        set_child_layout_collapsed(panel, bounds.empty());
+        if (!bounds.empty()) set_child_layout(panel, bounds);
     }
 }
 
@@ -849,7 +1004,10 @@ Ribbon::CommandParts Ribbon::command_parts(const Layout& placed, CommandAddress 
     const Rect clip = Rect::intersection(placed.groups[address.group], placed.groups_area);
     const Rect visible = Rect::intersection(bounds, clip);
     if (hosted(spec.kind)) {
-        const PartGeometry control = PartGeometry::from_bounds(visible);
+        // A labelled field publishes its label part beside its control.
+        const FieldSplit split = split_field(spec, bounds);
+        parts.command_label = PartGeometry::from_bounds(Rect::intersection(split.label, visible));
+        const PartGeometry control = PartGeometry::from_bounds(Rect::intersection(split.field, visible));
         if (spec.kind == RibbonCommandKind::combo_box) parts.command_combo_box = control;
         if (spec.kind == RibbonCommandKind::numeric_up_down) parts.command_numeric_up_down = control;
         if (spec.kind == RibbonCommandKind::check_box) parts.command_check_box = control;
@@ -1168,6 +1326,16 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
             const RibbonCommandSpec& spec = groups[group].commands[command];
             const CommandAddress address{group, command};
             const CommandParts command_part = command_parts(placed, address);
+            // A labelled field paints its label; its control paints itself.
+            if (hosted(spec.kind) && command_part.command_label.present) {
+                part.family = ControlVisualRole::menu_item;
+                part.role = PartRole::label;
+                part.states = command_states(address);
+                part.bounds = command_part.command_label.bounds;
+                part.text = command_text(spec);
+                paint_part(painter, *this, part);
+                part.text = {};
+            }
             if (hosted(spec.kind) || !command_part.command_face.present) continue;
             const AnatomyStateSet states = command_states(address);
             // A split's face and arrow press apart, as ToolStrip's do.
@@ -1379,7 +1547,15 @@ void Ribbon::press(const Hit& hit, PointerEvent& event) {
         invalidate(Dirty::paint);
     } else if (hit.kind == Hit::Kind::command) {
         const RibbonCommandSpec* const spec = selected_command(hit.command);
-        if (spec == nullptr || hosted((*spec).kind) || !command_enabled(*spec)) return;
+        if (spec == nullptr || !command_enabled(*spec)) return;
+        // A press on a field's label focuses its field, as a form label does.
+        if (hosted((*spec).kind)) {
+            const Control::Ptr& field = records_[*selected_tab_][hit.command.group][hit.command.command].hosted;
+            if (field && field_labelled(*spec) && window() != nullptr) {
+                static_cast<void>((*window()).request_focus(field));
+            }
+            return;
+        }
         const bool opens = (*spec).kind == RibbonCommandKind::drop_down ||
                            ((*spec).kind == RibbonCommandKind::split && hit.zone == CommandZone::arrow);
         if (opens) {
@@ -1903,6 +2079,7 @@ bool Ribbon::show_group_overlay(std::string_view group_id, MenuOpenMode mode) {
     placement.horizontal_alignment = OverlayHorizontalAlignment::near;
     placement.vertical_preference = OverlayVerticalPreference::below;
     placement.gap = overlay_gap;
+    sync_overlay_themes();
     (*group_layer_).set_anchor(self);
     (*group_layer_).placement = placement;
     (*group_overlay_).set_anchor_x(absolute.x + placed.groups[group].x);
