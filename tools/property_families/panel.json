@@ -46,7 +46,7 @@
       "capability": "VisualRole",
       "value": "ControlVisualRole",
       "initial": "ControlVisualRole::panel",
-      "comment": "The recipe family the panel paints with: window, panel or card.",
+      "comment": "The recipe family the panel paints with: window, panel, card, or editor (the recessed field ground of the Panel-derived editors such as NumericUpDown and TreeView).",
       "getter": "visual_role",
       "setter": "set_visual_role",
       "clear": null,
@@ -58,7 +58,7 @@
       "effects": "Dirty::style | Dirty::paint | Dirty::semantics",
       "hooks": "generated",
       "prepare": [
-        "if (incoming != ControlVisualRole::window && incoming != ControlVisualRole::panel && incoming != ControlVisualRole::card) throw std::invalid_argument(\"panel visual role must be window, panel, or card\");"
+        "if (incoming != ControlVisualRole::window && incoming != ControlVisualRole::panel && incoming != ControlVisualRole::card && incoming != ControlVisualRole::editor) throw std::invalid_argument(\"panel visual role must be window, panel, card, or editor\");"
       ],
       "sample": "ControlVisualRole::card"
     }
