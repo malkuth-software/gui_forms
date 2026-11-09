@@ -274,6 +274,36 @@ action also focuses the host. Editable text inside a sub-surface publishes
 its value and selection but no text layout, so hosts offer no text ranges
 there.
 
+## Capturing a window
+
+`window.capture_window()` returns the whole window as it presents itself: the
+backplane, every paint plane of the content, the in-surface overlays (menus,
+drop-downs, tooltips) and the outer band. It replays the retained display
+offscreen through the host's own CPU raster, so it needs no timer and no
+host capture flag. Call it at any time after the host attached the window
+(from `ready`, a command, or a test that installs a framebuffer painter), as
+long as the window is not painting.
+
+```cpp
+gf::WindowCaptureOptions options{};
+options.include_overlays = false;  // the content beneath an open menu
+options.scale = 2.0;               // 0, the default, is the window's scale
+std::optional<gf::WindowCapture> capture = window.capture_window(options);
+std::vector<std::byte> png;
+if (capture && gf::encode_window_capture_png(*capture, png)) {
+    // write png to a file
+}
+```
+
+The capture owns its pixels: premultiplied BGRA rows, `pixel_width * 4` bytes
+each. Unlike `snapshot_control`, which draws one subtree over transparency
+and registers an image, it draws the backplane and registers nothing. What
+the host composites outside the window's own pixels (the system backdrop,
+the native frame and shadow) is not in it. A window of its own, such as an
+owned window or a splash, is captured through that window. It returns
+nothing without a framebuffer painter (a headless window, or fonts not yet
+ready), during a paint, or for a scale outside (0, 8].
+
 ## Reading the counters
 
 `MetricsSnapshot` carries `paint_passes`, `controls_painted`,

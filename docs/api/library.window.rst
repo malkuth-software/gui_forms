@@ -154,6 +154,10 @@ Related types
      - A window's band as it stands (Window::band_snapshot): whether it is declared and reserved, the reserved width (snapped, logical units), the colours the strips draw now, and the corners it follows.
    * - :cpp:class:`WindowCapabilities <gui_forms::WindowCapabilities>`
      - Every Window chrome capability, in the order Window takes them.
+   * - :cpp:class:`WindowCapture <gui_forms::WindowCapture>`
+     - A window's picture (Window::capture_window): its logical size, the scale it was drawn at and its pixels, ``pixel_height`` rows of ``pixel_width`` premultiplied BGRA pixels, tightly packed (pixel_width * 4 bytes a row).
+   * - :cpp:class:`WindowCaptureOptions <gui_forms::WindowCaptureOptions>`
+     - What Window::capture_window draws (owner request 2026-11-09, the product ports: screenshots and tests).
    * - :cpp:class:`WindowChrome <gui_forms::WindowChrome>`
      - What a window asks its host for.
    * - :cpp:class:`WindowChromeFields <gui_forms::WindowChromeFields>`
@@ -1646,6 +1650,40 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: WindowCapture final
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+   A window's picture (Window::capture_window): its logical size, the scale it was drawn at and its pixels, ``pixel_height`` rows of ``pixel_width`` premultiplied BGRA pixels, tightly packed (pixel_width * 4 bytes a row). The capture owns its pixels.
+
+   .. cpp:member:: Size logical_size
+
+   .. cpp:member:: double scale
+
+   .. cpp:member:: std::uint32_t pixel_width
+
+   .. cpp:member:: std::uint32_t pixel_height
+
+   .. cpp:member:: std::vector<std::byte> bgra
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowCaptureOptions final
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+   What Window::capture_window draws (owner request 2026-11-09, the product ports: screenshots and tests).
+
+   .. cpp:member:: bool include_overlays
+
+      The window's in-surface overlays (menus, drop-downs, tooltips and other overlays opened in it), composited over its content as presented. Off, the capture shows the content beneath them. Windows of their own (an owned window, a splash) are captured through their own Window. Default: ``{true}``.
+
+   .. cpp:member:: double scale
+
+      Device pixels per logical unit; 0 takes the window's own scale.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: WindowChrome final
 
    ``#include <gui_forms/window/chrome/window_chrome.hpp>``
@@ -2507,6 +2545,10 @@ Functions, constants and aliases
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+.. cpp:function:: bool encode_window_capture_png(const WindowCapture& capture, std::vector<std::byte>& png)
+
+   ``capture`` encoded as a PNG with its alpha (premultiplied pixels made straight), into ``png``, replacing its contents; false, leaving it empty, for a capture without pixels or whose pixels are fewer than its size needs.
 
 .. cpp:var:: constexpr std::size_t maximum_deferred_inputs
 

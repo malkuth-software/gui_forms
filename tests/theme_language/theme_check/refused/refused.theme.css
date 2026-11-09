@@ -1,0 +1,4 @@
+:root {
+    color-roles: syntax-keyword from ink-on-paper;
+}
+label { color: role(syntax-keyword-misspelt); }

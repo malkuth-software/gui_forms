@@ -44,6 +44,22 @@ struct ResolvedFont final {
     }
 };
 
+// An application colour role's colours where some media facts hold
+// (Theme::application_role, Control::theme_role_colours): its foreground,
+// its background for a pair (the foreground's plate for a single role),
+// the built-in role it falls back to and whether it is a pair.
+struct ThemeRoleColours final {
+    Color foreground{};
+    Color background{};
+    ColourRole fallback{ColourRole::ink_on_paper};
+    bool paired{};
+
+    friend bool operator==(const ThemeRoleColours& left, const ThemeRoleColours& right) noexcept {
+        return left.foreground == right.foreground && left.background == right.background &&
+               left.fallback == right.fallback && left.paired == right.paired;
+    }
+};
+
 class Theme final {
 public:
     // Validates `definition` and makes a theme holding its own copy, with
@@ -159,6 +175,13 @@ public:
     // lets the icon be replaced is the application's (ApplicationResources::
     // icon).
     [[nodiscard]] std::optional<ImageId> icon_override(std::string_view identifier) const noexcept;
+    // The colours of the application colour role `name` (lowercase, as the
+    // sheet's `color-roles` declares it) where `facts` hold: its last
+    // declaration whose condition holds. Under forced colours with no
+    // `forced-colors` declaration of its own, its fallback role's
+    // high-contrast pair. Nullopt where the theme declares no such role.
+    [[nodiscard]] std::optional<ThemeRoleColours> application_role(std::string_view name,
+                                                                   const MediaFacts& facts) const noexcept;
 
 private:
     // The engine compiles the definition's rules: a theme is made whole or

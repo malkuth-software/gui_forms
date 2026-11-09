@@ -96,7 +96,9 @@ struct ThemeValue final {
     std::vector<ExpressionInstruction> instructions{};
     // The colour roles the value's role()s read, one bit a role by its
     // position, mixed colours' included.
-    std::uint32_t roles_read{};
+    // One bit a palette slot (palette_slot_count): the built-in roles,
+    // then the theme's application roles.
+    std::uint64_t roles_read{};
 
     // The instructions of `program`, one of this value's programs.
     [[nodiscard]] std::span<const ExpressionInstruction> program_instructions(ValueProgram program) const& noexcept;
@@ -106,7 +108,10 @@ struct ThemeValue final {
 // The colour a CSS named colour or `transparent` names, in any ASCII case.
 [[nodiscard]] std::optional<Color> named_colour(std::string_view name) noexcept;
 
-static_assert(colour_role_count <= 32U, "ThemeValue::roles_read holds one bit a role");
+// A palette's slots: the built-in roles by their position, then the
+// theme's application roles (ApplicationColourRole) in declaration order.
+inline constexpr std::size_t palette_slot_count = colour_role_count + maximum_application_colour_roles;
+static_assert(palette_slot_count <= 64U, "ThemeValue::roles_read holds one bit a palette slot");
 
 // One role's colours in a palette: a pair's foreground and background, or
 // a single role's colour as its foreground.
@@ -120,9 +125,19 @@ struct RoleColours final {
 };
 
 // The colours role() reads (P8, R2-03): each role the theme's `:root`
-// palette declares, by the role's position.
+// palette declares, by its palette slot.
 struct RolePalette final {
-    std::array<std::optional<RoleColours>, colour_role_count> roles{};
+    std::array<std::optional<RoleColours>, palette_slot_count> roles{};
+};
+
+// An application role as role() reads it: its name, the built-in role it
+// falls back to (its meaning, which forced high contrast remaps by) and
+// whether it is a pair. Its palette slot is colour_role_count plus its
+// position in the list.
+struct ApplicationRoleName final {
+    std::string_view name{};
+    ColourRole fallback{ColourRole::ink_on_paper};
+    bool paired{};
 };
 
 // What a value may read besides constants, all borrowed for the read:
@@ -146,6 +161,8 @@ struct ValueContext final {
     std::span<const std::string_view> resources{};
     bool fold_constants{true};
     const RolePalette* palette{};
+    // The theme's application roles (`color-roles`), in slot order.
+    std::span<const ApplicationRoleName> application_roles{};
     std::optional<ColourRoleSide> bare_side{};
     // The host's colour hints env() reads (T4 theme variants), or null:
     // every env() then reads its fallback.

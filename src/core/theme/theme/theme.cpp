@@ -1489,6 +1489,38 @@ std::optional<ImageId> Theme::icon_override(std::string_view identifier) const n
     return std::nullopt;
 }
 
+std::optional<ThemeRoleColours> Theme::application_role(std::string_view name,
+                                                        const MediaFacts& facts) const noexcept {
+    const std::vector<ApplicationColourRole>& roles = definition_.rules.application_roles;
+    const ApplicationColourRole* found = nullptr;
+    for (const ApplicationColourRole& role : roles) {
+        if (role.name == name) found = &role;
+    }
+    if (found == nullptr) return std::nullopt;
+    ThemeRoleColours colours{};
+    colours.fallback = (*found).fallback;
+    colours.paired = (*found).paired;
+    bool chosen = false;
+    bool forced_declared = false;
+    for (const ApplicationColourRoleVariant& variant : (*found).variants) {
+        if (!media_condition_holds(variant.media, facts)) continue;
+        colours.foreground = variant.foreground;
+        colours.background = variant.background;
+        chosen = true;
+        forced_declared = forced_declared || variant.media.forced_colours.value_or(false);
+    }
+    if (facts.forced_colours && !forced_declared) {
+        // GUI.Forms' own high contrast remaps a role by its meaning, as it
+        // does the colours rules read from the role.
+        const HighContrastPair pair = high_contrast_role((*found).fallback);
+        colours.foreground = pair.foreground;
+        colours.background = pair.background;
+        chosen = true;
+    }
+    if (!chosen) return std::nullopt;
+    return colours;
+}
+
 const detail::ThemeSourceRecord& detail::ThemeAccess::source(const Theme& theme) noexcept {
     return *theme.source_;
 }

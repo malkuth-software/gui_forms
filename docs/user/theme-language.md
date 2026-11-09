@@ -174,6 +174,25 @@ specificity.
   colour. A literal colour in a text or edge position (`color`, borders,
   outlines) is a warning: forced high contrast can only replace it by its
   position.
+- **Application colour roles:** a theme package may declare roles of its
+  own beside the built-in ones, for colours its program means, in an
+  unconditional `:root` block:
+  `:root { color-roles: syntax-keyword from ink-on-paper, find-mark from signal-on-paper }`.
+  Each names the built-in role it falls back to, which gives its shape (a
+  pair or a single colour) and the colour forced high contrast shows for
+  it. Its colours are declared like a built-in role's, in `:root` and
+  under `@media (prefers-color-scheme: dark)` or `(forced-colors: active)`
+  (`syntax-keyword: #0000c0 on #fffff0`); without an unconditional
+  declaration of its own it starts from its fallback's. Rules read it with
+  `role(syntax-keyword)`; program code reads it with
+  `Control::theme_role_colours("syntax-keyword")` (or
+  `Theme::application_role(name, facts)`), so a program's colours follow
+  the light, dark and high-contrast variants instead of being hard-coded.
+  Names are lowercase letters, digits and `-`, a letter first, at most 64
+  characters and none a built-in role's; at most 32 per theme. A built-in
+  role name, a repeated name, a fallback that is not a built-in role
+  (E406), a missing `from` (E401) and `color-roles` under `@media` are
+  errors; reading a role that has no colours is E415.
 - **System colours:** `env(system-accent, <colour>)` and
   `env(system-highlight, <colour>)` read the host's accent and
   text-selection colours as hints, in any colour position. The fallback

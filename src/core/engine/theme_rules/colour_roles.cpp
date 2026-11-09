@@ -64,6 +64,18 @@ std::optional<ColourRole> colour_role_from_name(std::string_view name) noexcept 
     return std::nullopt;
 }
 
+bool application_colour_role_name_valid(std::string_view name) noexcept {
+    if (name.empty() || name.size() > maximum_application_colour_role_name) return false;
+    if (name.front() < 'a' || name.front() > 'z') return false;
+    for (const char character : name) {
+        const bool letter = character >= 'a' && character <= 'z';
+        const bool digit = character >= '0' && character <= '9';
+        if (!letter && !digit && character != '-') return false;
+    }
+    const bool built_in = colour_role_from_name(name).has_value();
+    return !built_in;
+}
+
 bool colour_role_paired(ColourRole role) noexcept {
     const bool paired = static_cast<std::size_t>(role) < static_cast<std::size_t>(first_single_role);
     return paired;

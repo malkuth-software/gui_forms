@@ -178,7 +178,12 @@ struct PaletteStorage final {
     // one, which an unconditional declaration replaces: the first, when it
     // is unconditional, is the role's base colours; each other holds where
     // its condition holds.
-    std::array<std::vector<PaletteVariant>, colour_role_count> variants{};
+    // Indexed by palette slot (palette_slot_count): the built-in roles,
+    // then the application roles.
+    std::array<std::vector<PaletteVariant>, palette_slot_count> variants{};
+    // The sheet's application roles (`color-roles`), in declaration order;
+    // their names view the source being compiled, valid for its pass.
+    std::vector<ApplicationRoleName> application_roles{};
     // Each role's base colours, where it has them.
     RolePalette base{};
     // The palette role() reads: the base, or a copy's variants.

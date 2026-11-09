@@ -406,6 +406,8 @@ gui_forms::SurfaceRoot
         -  
       * - :cpp:func:`snapshot_control <gui_forms::SurfaceRoot::snapshot_control>`
         - A picture of a control and its descendants as last laid out: their retained painting is replayed, every paint plane in order, into an offscreen framebuffer of the host's own CPU raster at the given scale, and the pixels are registered as one of the window's images (premultiplied BGRA).
+      * - :cpp:func:`capture_window <gui_forms::SurfaceRoot::capture_window>`
+        - The whole window as it presents itself (owner request 2026-11-09): its backplane (the theme's window material, cleared where a non-opaque backdrop is granted), every paint plane of its content, its in-surface overlays unless ``options`` leaves them out, and its outer band, replayed from the retained display after any pending layout into an offscreen framebuffer of the host's own CPU raster, as snapshot_control does.
       * - :cpp:func:`release_control_snapshot <gui_forms::SurfaceRoot::release_control_snapshot>`
         - Removes a snapshot's image; false when it is not there.
       * - :cpp:func:`resolve_text_layout_utf8 <gui_forms::SurfaceRoot::resolve_text_layout_utf8>`
@@ -1147,6 +1149,10 @@ gui_forms::SurfaceRoot
       (0, 8]. It costs one replay of the subtree and one copy of its pixels;
       the image lives until :cpp:func:`release_control_snapshot <gui_forms::SurfaceRoot::release_control_snapshot>` or the window's end.
       The docking drag's stamp uses it.
+
+   .. cpp:function:: std::optional<WindowCapture> capture_window(const WindowCaptureOptions& options = {})
+
+      The whole window as it presents itself (owner request 2026-11-09): its backplane (the theme's window material, cleared where a non-opaque backdrop is granted), every paint plane of its content, its in-surface overlays unless ``options`` leaves them out, and its outer band, replayed from the retained display after any pending layout into an offscreen framebuffer of the host's own CPU raster, as snapshot_control does. What the host composites outside the window's pixels (the system backdrop, native frame and shadow) is not drawn. Callable whenever the window is not painting, at any time after the host attached, so a screenshot or a test needs no timer. None, changing nothing, while no framebuffer painter is installed (a headless window, a host whose fonts are not ready), during a paint, for an empty window, for a scale outside (0, 8], or when the framebuffer refuses. Cost: one replay of the window into ceil(width * scale) by ceil(height * scale) pixels and one copy of them; chunks the replay had to rebuild are marked for the next real paint. On the UI thread (std::logic_error elsewhere).
 
    .. cpp:function:: bool release_control_snapshot(ImageId image)
 

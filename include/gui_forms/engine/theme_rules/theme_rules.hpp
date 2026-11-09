@@ -337,6 +337,61 @@ inline constexpr std::size_t colour_role_count = static_cast<std::size_t>(Colour
 // Which colour of a pair; a single role's colour is its foreground.
 enum class ColourRoleSide : std::uint8_t { foreground, background };
 
+// Application colour roles (owner request 2026-11-09, the product ports):
+// roles a theme package declares beside the built-in ones, for colours its
+// program means, such as `syntax-keyword`. A sheet declares them in an
+// unconditional `:root` block,
+//   :root { color-roles: syntax-keyword from ink-on-paper, ... }
+// each with the built-in role it falls back to, which also gives its
+// meaning: a pair or a single colour, and the colour forced high contrast
+// shows for it unless the sheet declares a `forced-colors` variant. Its
+// colours are then declared like a built-in role's, in `:root` and under
+// `@media (prefers-color-scheme: dark)` or `(forced-colors: active)`; a
+// role without an unconditional declaration of its own starts from its
+// fallback's declarations, its own after them. Rules read it with role(),
+// and program code through Theme::application_role or
+// Control::theme_role_colours. Names are 1 to 64 characters of lowercase
+// ASCII letters, digits and '-', the first a letter, none a built-in
+// role's; at most maximum_application_colour_roles in one theme.
+inline constexpr std::size_t maximum_application_colour_roles = 32U;
+inline constexpr std::size_t maximum_application_colour_role_name = 64U;
+
+// One declaration of an application role's colours: its foreground and,
+// for a pair, its background, where `media` holds.
+struct ApplicationColourRoleVariant final {
+    MediaCondition media{};
+    Color foreground{};
+    Color background{};
+
+    friend bool operator==(const ApplicationColourRoleVariant& left,
+                           const ApplicationColourRoleVariant& right) noexcept {
+        return left.media == right.media && left.foreground == right.foreground &&
+               left.background == right.background;
+    }
+};
+
+// An application role as the theme compiled it: its name, its fallback
+// built-in role, whether it is a pair (its fallback's shape), and its
+// declarations in sheet order from its last unconditional one (the base
+// colours, where there is one), each later one holding where its condition
+// does. A role without an unconditional declaration carries its fallback's
+// declarations before its own.
+struct ApplicationColourRole final {
+    std::string name{};
+    ColourRole fallback{ColourRole::ink_on_paper};
+    bool paired{};
+    std::vector<ApplicationColourRoleVariant> variants{};
+
+    friend bool operator==(const ApplicationColourRole& left, const ApplicationColourRole& right) noexcept {
+        return left.name == right.name && left.fallback == right.fallback && left.paired == right.paired &&
+               left.variants == right.variants;
+    }
+};
+
+// Whether `name` is a valid application role name (above), whatever the
+// theme declares.
+[[nodiscard]] bool application_colour_role_name_valid(std::string_view name) noexcept;
+
 // Where a declaration's colour came from (EC4): none (the declaration
 // holds no colour, or is `initial`); a literal (a hexadecimal, functional
 // or named colour, or a colour mixed from others); or a role. A
@@ -1310,10 +1365,14 @@ struct ThemeRuleSheet final {
     // T4 theme variants), or none where it declares none. Theme::create
     // takes a declared set as the theme's (ThemeDefinition::colour_schemes).
     std::optional<ColourSchemeSet> colour_schemes{};
+    // The application colour roles the sheet declares (`color-roles`), in
+    // declaration order; at most maximum_application_colour_roles.
+    std::vector<ApplicationColourRole> application_roles{};
 
     friend bool operator==(const ThemeRuleSheet& left, const ThemeRuleSheet& right) noexcept {
         return left.requires_engine == right.requires_engine && left.rules == right.rules &&
-               left.published_values == right.published_values && left.colour_schemes == right.colour_schemes;
+               left.published_values == right.published_values && left.colour_schemes == right.colour_schemes &&
+               left.application_roles == right.application_roles;
     }
 };
 

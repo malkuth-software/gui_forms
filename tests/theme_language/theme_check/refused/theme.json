@@ -1,0 +1,7 @@
+{
+  "format": "gui-forms-theme/1",
+  "name": "theme-check-refused",
+  "version": "1.0.0",
+  "engine": ">=0.3",
+  "sheet": {"path": "refused.theme.css", "sha256": "4f86badce743f700d8265f4088a4ff8602c86255293d0fde9dea0920f528ea47"}
+}

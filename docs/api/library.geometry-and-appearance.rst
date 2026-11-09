@@ -20,6 +20,10 @@ Types
      - The keys an ancestor chain holds, hashed into 256 bits: a rule whose ancestor keys are not all present cannot match, and is rejected without walking the chain (CSS engines' ancestor Bloom filter).
    * - :cpp:class:`AncestorFacts <gui_forms::AncestorFacts>`
      - One ancestor control as a selector's ancestor compounds read it: borrowed from the control for the resolution.
+   * - :cpp:class:`ApplicationColourRole <gui_forms::ApplicationColourRole>`
+     - An application role as the theme compiled it: its name, its fallback built-in role, whether it is a pair (its fallback's shape), and its declarations in sheet order from its last unconditional one (the base colours, where there is one), each later one holding where its condition does.
+   * - :cpp:class:`ApplicationColourRoleVariant <gui_forms::ApplicationColourRoleVariant>`
+     - One declaration of an application role's colours: its foreground and, for a pair, its background, where ``media`` holds.
    * - :cpp:class:`AssembledPartMaterial <gui_forms::AssembledPartMaterial>`
      - A part's assembled material (T3 EC1): its recipe's material, the floor, with the winning material fields of the theme's rules in place, and what it was assembled from.
    * - :cpp:class:`AuthoredGradient <gui_forms::AuthoredGradient>`
@@ -360,6 +364,8 @@ Types
      - One of the program's packages as a user theme's files, for export (USER_THEMES.md section 7): its sheet verbatim after an ``@theme`` header of its manifest's version, author, provenance and engine bound, and its ``.png`` resources as the folder's images.
    * - :cpp:class:`ThemePackageFile <gui_forms::ThemePackageFile>`
      - One file of a theme package: its path inside the package, as the manifest lists it, and its bytes.
+   * - :cpp:class:`ThemeRoleColours <gui_forms::ThemeRoleColours>`
+     - An application colour role's colours where some media facts hold (Theme::application_role, Control::theme_role_colours): its foreground, its background for a pair (the foreground's plate for a single role), the built-in role it falls back to and whether it is a pair.
    * - :cpp:class:`ThemeRule <gui_forms::ThemeRule>`
      -  
    * - :cpp:class:`ThemeRuleSheet <gui_forms::ThemeRuleSheet>`
@@ -370,6 +376,8 @@ Types
      - ThemeStructureTokens groups spacing, geometry, typography, and motion vocabularies into one coherent structural contract.
    * - :cpp:class:`ThemeTypographyTokens <gui_forms::ThemeTypographyTokens>`
      - ThemeTypographyTokens defines role-aware control, field, caption, heading, title, and monospace font recipes.
+   * - :cpp:class:`ThemeValidation <gui_forms::ThemeValidation>`
+     - What validating theme packages found (validate_theme_packages): whether they compile, and every finding, warnings included.
    * - :cpp:class:`ThemeWindowBackdrop <gui_forms::ThemeWindowBackdrop>`
      - The theme's window backdrop (stage T5, owner decision T5-Q8, option 1): what a window showing the theme asks the compositor for, and the base its backplane is drawn from over each backdrop the window may be granted (notes:planning/stages/T5-compositor/PLAN.md §4.1).
    * - :cpp:class:`UnkeptPartAssembly <gui_forms::UnkeptPartAssembly>`
@@ -425,6 +433,38 @@ Types
    .. cpp:member:: std::string_view stable_id
 
    .. cpp:member:: std::span<const std::string> classes
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ApplicationColourRole final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   An application role as the theme compiled it: its name, its fallback built-in role, whether it is a pair (its fallback's shape), and its declarations in sheet order from its last unconditional one (the base colours, where there is one), each later one holding where its condition does. A role without an unconditional declaration carries its fallback's declarations before its own.
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: ColourRole fallback
+
+      Default: ``{ColourRole::ink_on_paper}``.
+
+   .. cpp:member:: bool paired
+
+   .. cpp:member:: std::vector<ApplicationColourRoleVariant> variants
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ApplicationColourRoleVariant final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   One declaration of an application role's colours: its foreground and, for a pair, its background, where ``media`` holds.
+
+   .. cpp:member:: MediaCondition media
+
+   .. cpp:member:: Color foreground
+
+   .. cpp:member:: Color background
 
 .. cpp:namespace:: gui_forms
 
@@ -4896,6 +4936,10 @@ Types
 
       The image a compiled user theme gives the program icon ``identifier`` (its ``icons/<identifier>.png``), held by the theme while it lives; nullopt where it gives none (T3 user themes). Whether the program lets the icon be replaced is the application's (ApplicationResources:: icon).
 
+   .. cpp:function:: std::optional<ThemeRoleColours> application_role(std::string_view name, const MediaFacts& facts) const noexcept
+
+      The colours of the application colour role ``name`` (lowercase, as the sheet's ``color-roles`` declares it) where ``facts`` hold: its last declaration whose condition holds. Under forced colours with no ``forced-colors`` declaration of its own, its fallback role's high-contrast pair. Nullopt where the theme declares no such role.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ThemeBackdropBase final
@@ -5274,6 +5318,24 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ThemeRoleColours final
+
+   ``#include <gui_forms/theme/theme/theme.hpp>``
+
+   An application colour role's colours where some media facts hold (Theme::application_role, Control::theme_role_colours): its foreground, its background for a pair (the foreground's plate for a single role), the built-in role it falls back to and whether it is a pair.
+
+   .. cpp:member:: Color foreground
+
+   .. cpp:member:: Color background
+
+   .. cpp:member:: ColourRole fallback
+
+      Default: ``{ColourRole::ink_on_paper}``.
+
+   .. cpp:member:: bool paired
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ThemeRule final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
@@ -5347,6 +5409,10 @@ Types
    .. cpp:member:: std::optional<ColourSchemeSet> colour_schemes
 
       The colour schemes the sheet declares (``:root { color-scheme: ... }``, T4 theme variants), or none where it declares none. Theme::create takes a declared set as the theme's (ThemeDefinition::colour_schemes).
+
+   .. cpp:member:: std::vector<ApplicationColourRole> application_roles
+
+      The application colour roles the sheet declares (``color-roles``), in declaration order; at most maximum_application_colour_roles.
 
 .. cpp:namespace:: gui_forms
 
@@ -5431,6 +5497,18 @@ Types
    .. cpp:member:: FontSpec monospace
 
       Default: ``{FontRole::monospace, 12.0, 400, false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ThemeValidation final
+
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+
+   What validating theme packages found (validate_theme_packages): whether they compile, and every finding, warnings included.
+
+   .. cpp:member:: bool valid
+
+   .. cpp:member:: std::vector<ThemeCompileDiagnostic> diagnostics
 
 .. cpp:namespace:: gui_forms
 
@@ -7521,6 +7599,10 @@ Functions, constants and aliases
 
    Whether the role is a pair (a foreground on a background) rather than a single colour.
 
+.. cpp:function:: bool application_colour_role_name_valid(std::string_view name) noexcept
+
+   Whether ``name`` is a valid application role name (above), whatever the theme declares.
+
 .. cpp:function:: bool backdrop_declaration_valid(const BackdropDeclaration& backdrop) noexcept
 
    Whether ``backdrop`` is a chain the engine admits: its length within capacity, every amount finite and in its range, and at most one blur.
@@ -7642,6 +7724,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t colour_role_count
 
    Value: ``static_cast<std::size_t>(ColourRole::count)``.
+
+.. cpp:var:: constexpr std::size_t maximum_application_colour_roles
+
+   Application colour roles (owner request 2026-11-09, the product ports): roles a theme package declares beside the built-in ones, for colours its program means, such as ``syntax-keyword``. A sheet declares them in an unconditional ``:root`` block, :root { color-roles: syntax-keyword from ink-on-paper, ... } each with the built-in role it falls back to, which also gives its meaning: a pair or a single colour, and the colour forced high contrast shows for it unless the sheet declares a ``forced-colors`` variant. Its colours are then declared like a built-in role's, in ``:root`` and under ``@media (prefers-color-scheme: dark)`` or ``(forced-colors: active)``; a role without an unconditional declaration of its own starts from its fallback's declarations, its own after them. Rules read it with role(), and program code through Theme::application_role or Control::theme_role_colours. Names are 1 to 64 characters of lowercase ASCII letters, digits and '-', the first a letter, none a built-in role's; at most maximum_application_colour_roles in one theme. Value: ``32U``.
+
+.. cpp:var:: constexpr std::size_t maximum_application_colour_role_name
+
+   Value: ``64U``.
 
 .. cpp:var:: constexpr double maximum_backdrop_blur
 
@@ -8064,6 +8154,14 @@ Functions, constants and aliases
 .. cpp:function:: ThemeCompileResult compile_theme_packages(std::span<const ThemePackage> packages, const ThemeLibrary& library, ImageRegistry& images, const ThemeCompileOptions& options)
 
    Compiles an application's theme (APP_WINDOW_RULES_DESIGN.md section A): ``options.base``, then ``packages`` in their order, each with its ``@import`` closure among ``library``'s packages, as one cascade, so a later package overrides an earlier one and may read its colour roles. A package another imports again keeps its earlier place. The theme is named after the last package, or is the base alone, under the base's id, when ``packages`` is empty. Every package is verified before any is compiled; two of one name, or more than maximum_theme_packages, are refused (E601), and the findings name each package's files. The combined sheets are bounded as one closure's are (1 MiB). Images are owned as compile_theme_package's are; compile_theme_package is the one-package case.
+
+.. cpp:function:: ThemeValidation validate_theme_packages(std::span<const ThemePackage> packages, const ThemeLibrary& library, const ThemeCompileOptions& options)
+
+   Checks ``packages`` as compile_theme_packages would compile them, keeping no theme and no image: for a test or a build step to catch a bad sheet before Application::create (gui_forms_add_theme_check in GUIFormsThemes.cmake runs it at build time). The images the sheets name are decoded into a registry of the call's own, released before it returns. Like compile_theme_package, not concurrently with another compilation through ``library``.
+
+.. cpp:function:: std::string format_theme_diagnostic(const ThemeCompileDiagnostic& diagnostic)
+
+   One finding as one line, ``<file>:<line>:<column>: <severity> <code> <name>: <detail>`` (the place left out where the finding has none, then the rule and property where it is inside one), as the build check and a test print it.
 
 .. cpp:function:: std::shared_ptr<const Theme> default_compiled_theme()
 
