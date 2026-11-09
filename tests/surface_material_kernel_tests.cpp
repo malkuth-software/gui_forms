@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <iostream>
 #include <memory>
+#include <span>
 #include <string_view>
 #include <vector>
 
@@ -160,10 +161,56 @@ void test_three_paths_agree() {
     }
 }
 
+// A sunken radio well (Windows 2000's): a circle whose single edges and
+// keylines differ, top and left dark, bottom and right light. Rounded
+// single edges of one width are valid and draw as rings split at 45
+// degrees: the top and left of each ring take the top and left colours,
+// the bottom and right the others. Unequal widths stay invalid.
+void test_rounded_single_edges() {
+    SurfaceMaterial well{};
+    well.fills = {MaterialFillLayer::solid(Color::rgba(255, 255, 255))};
+    well.corner_radius = 7.5;
+    well.border_edges.top = MaterialBorder{.color = Color::rgba(128, 128, 128), .width = 1.0};
+    well.border_edges.left = MaterialBorder{.color = Color::rgba(128, 128, 128), .width = 1.0};
+    well.border_edges.bottom = MaterialBorder{.color = Color::rgba(255, 255, 255), .width = 1.0};
+    well.border_edges.right = MaterialBorder{.color = Color::rgba(255, 255, 255), .width = 1.0};
+    well.keylines = {MaterialKeyline{.edge = MaterialEdge::top, .color = Color::rgba(64, 64, 64), .width = 1.0, .inset = 1.0},
+                     MaterialKeyline{.edge = MaterialEdge::left, .color = Color::rgba(64, 64, 64), .width = 1.0, .inset = 1.0},
+                     MaterialKeyline{.edge = MaterialEdge::bottom, .color = Color::rgba(212, 208, 200), .width = 1.0, .inset = 1.0},
+                     MaterialKeyline{.edge = MaterialEdge::right, .color = Color::rgba(212, 208, 200), .width = 1.0, .inset = 1.0}};
+    require(valid_surface_material(well), "rounded single edges of one width are valid");
+    SurfaceMaterial uneven = well;
+    (*uneven.border_edges.top).width = 2.0;
+    require(!valid_surface_material(uneven), "rounded single edges of differing widths are refused");
+    const double outset = detail::material_raster_outset(well);
+    const std::shared_ptr<const PartRaster> raster =
+        detail::bake_material_raster(well, Size{15.0, 15.0}, DeviceScale{1.0}, outset);
+    require(raster != nullptr, "the radio well bakes");
+    if (raster == nullptr) return;
+    const PartRaster& baked = *raster;
+    const std::size_t origin = static_cast<std::size_t>(outset);
+    const std::size_t row_bytes = baked.row_bytes();
+    // The blue byte of the pixel at (x, y) in the box (BGRA): the greys
+    // here have equal channels, near enough.
+    const std::span<const std::uint8_t> pixels = baked.pixels();
+    const std::array<std::array<std::size_t, 2>, 6> probes{{{7U, 1U}, {1U, 7U}, {7U, 13U}, {13U, 7U}, {7U, 7U}, {7U, 0U}}};
+    std::array<std::uint8_t, 6> blue{};
+    for (std::size_t index = 0U; index < probes.size(); ++index) {
+        const std::size_t at = (origin + probes[index][1]) * row_bytes + (origin + probes[index][0]) * 4U;
+        blue[index] = pixels[at];
+    }
+    require(blue[0] < 110U && blue[1] < 110U, "the inner ring's top and left are the dark keylines");
+    require(blue[2] > 180U && blue[2] < 230U && blue[3] > 180U && blue[3] < 230U,
+            "the inner ring's bottom and right are the light keylines");
+    require(blue[4] == 255U, "the well's centre is its white fill");
+    require(blue[5] < 200U, "the outer ring's top is the shadow edge");
+}
+
 } // namespace
 
 int main() {
     test_three_paths_agree();
+    test_rounded_single_edges();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

@@ -28,15 +28,15 @@ The built-in themes are themselves sheets. `gui-forms` draws its control
 families from a floor sheet (`gui_forms_floor_sheet()`) of `:family()`
 blocks, read once into its recipes when the theme is first built. The
 familiar themes are made the same way: `familiar_theme(FamiliarTheme)`
-returns `classic` (Windows 98 bevels), `modern-flat`, `xp-style` (Luna-like),
+returns `classic` (Windows 2000 bevels), `modern-flat`, `xp-style` (Luna-like),
 `windows7-style` (Aero-like, opaque until glass arrives), each light only,
 or `macos-style` (macOS-like, light and dark: its dark colour scheme
 resolves a second floor sheet, `familiar_theme_dark_floor_sheet()`, as an
 authored dark variant), with high contrast derived as for every theme.
 Each follows its visual reference wherever the engine can express it:
 7.css (https://khang-nd.github.io/7.css/) for `windows7-style`, XP.css
-(https://botoxparty.github.io/XP.css/, which also covers Windows 98) for
-`xp-style` and `classic`, and Puppertino (https://puppertino.com/) for
+(https://botoxparty.github.io/XP.css/) for `xp-style`, Windows 2000's
+standard colour scheme and frame controls for `classic`, and Puppertino (https://puppertino.com/) for
 `macos-style`. A reference value that an enabled control would
 draw below the contrast gate is changed to meet it, and each sheet's
 comment names it. Disabled text and disabled controls' boundaries are

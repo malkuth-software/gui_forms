@@ -1588,6 +1588,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     # All of them stay under the public-controls-only policy test below.
     set(gui_forms_gallery_page_sources
         src/controls/gallery/pages/control-spectrum.cpp
+        src/controls/gallery/pages/controls-inspection.cpp
         src/controls/gallery/pages/ranges-and-progress.cpp
         src/controls/gallery/pages/containers-and-focus.cpp
         src/controls/gallery/pages/animation-laboratory.cpp

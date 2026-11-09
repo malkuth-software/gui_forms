@@ -21,8 +21,8 @@ namespace gui_forms {
 // evaluated once into its recipes over a structure-only recipe; none has a
 // parts sheet, so parts the engine paints draw from those recipes. Each
 // follows its visual reference where the engine can express it: 7.css for
-// windows7-style, XP.css for xp-style and its Windows 98 sheet for
-// classic, Puppertino for macos-style. A reference value an enabled
+// windows7-style, XP.css for xp-style, Windows 2000's standard scheme and
+// frame controls for classic, Puppertino for macos-style. A reference value an enabled
 // control would draw below the contrast gate (4.5:1 text, 3:1 boundaries,
 // glyphs and focus) is changed to meet it, and the sheet says so; disabled
 // controls are exempt (WCAG's inactive components), so they keep the
@@ -32,7 +32,7 @@ namespace gui_forms {
 // derived from the role model, as for every theme. `windows-professional`
 // (windows_professional_theme) stays the Windows-familiar theme it was.
 enum class FamiliarTheme : std::uint8_t {
-    // `classic`: the Windows 98 look, procedural bevels on #C0C0C0.
+    // `classic`: the Windows 2000 look, its system colours and bevels on #D4D0C8.
     classic,
     // `modern-flat`: a flat modern look whose boundaries, hover, focus and
     // input stay unequivocal (M076).

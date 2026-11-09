@@ -29,7 +29,7 @@ vendor's bitmaps:
 
 | Id | Look | Reference | Colour schemes |
 |---|---|---|---|
-| `classic` | Windows 98 bevels on grey | XP.css's Windows 98 sheet | light |
+| `classic` | Windows 2000 bevels on #d4d0c8 | Windows 2000's standard scheme and frame controls | light |
 | `modern-flat` | flat, with unmistakable boundaries, hover and focus | none | light |
 | `xp-style` | Luna-like plates with navy frames | XP.css | light |
 | `windows7-style` | Aero-like; opaque until window glass arrives | 7.css | light |

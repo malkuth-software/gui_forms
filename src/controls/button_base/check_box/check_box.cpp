@@ -295,7 +295,12 @@ void CheckBox::on_paint(Painter& painter, Rect) {
     well.role = PartRole::well;
     well.bounds = box;
     well.states = states;
-    well.corner_radius = indicator_style.read() == ChoiceIndicatorStyle::toggle ? 7.5 : 2.0;
+    // A box well takes the theme's choice corners up to 2 px (square in a
+    // theme with square wells); a toggle is a pill.
+    const ControlVisualContext context = part_visual_context(*this, states);
+    const double theme_radius = effective_theme().resolve(ControlVisualRole::choice, context).material.corner_radius;
+    const double box_radius = std::min(2.0, theme_radius);
+    well.corner_radius = indicator_style.read() == ChoiceIndicatorStyle::toggle ? 7.5 : box_radius;
     well.authored_background = ground;
     well.key = PartKey{"well", {}, {}};
     paint_part(painter, *this, well);

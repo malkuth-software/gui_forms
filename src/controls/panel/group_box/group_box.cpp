@@ -51,23 +51,51 @@ void GroupBox::on_paint(Painter& painter, Rect) {
         paint_part(painter, *this, face);
     }
     const Rect gap = caption_bounds();
-    const double top = rule_y - 0.5;
-    const double right = std::max(0.0, bounds.width - 1.0);
-    const double bottom = std::max(top, bounds.height - 1.0);
     const double gap_right = gap.x + gap.width;
+    // A panel whose edges differ (a sunken edge, dark over light) frames
+    // the group etched: each rule in the dark top edge's colour with a line
+    // of the light bottom edge's colour one pixel below or right of it, as
+    // a Windows group box. Not in high contrast, where the rule is one line.
+    const AnatomyStateSet states = anatomy_states();
+    const ControlVisualContext context = part_visual_context(*this, states);
+    const ControlVisualRecipe& panel = effective_theme().resolve(ControlVisualRole::panel, context);
+    const MaterialBorderEdges& edges = panel.material.border_edges;
+    const bool etched = edges.top && edges.bottom && !context.high_contrast;
+    const double inset = etched ? 2.0 : 1.0;
+    const double top = rule_y - 0.5;
+    const double right = std::max(0.0, bounds.width - inset);
+    const double bottom = std::max(top, bounds.height - inset);
+    const double height = std::max(0.0, bottom + 1.0 - top);
     const std::array<Rect, 5> sides{{
         {0.0, top, std::max(0.0, gap.x), 1.0},
-        {gap_right, top, std::max(0.0, bounds.width - gap_right), 1.0},
-        {0.0, bottom, bounds.width, 1.0},
-        {0.0, top, 1.0, std::max(0.0, bounds.height - top)},
-        {right, top, 1.0, std::max(0.0, bounds.height - top)},
+        {gap_right, top, std::max(0.0, right + 1.0 - gap_right), 1.0},
+        {0.0, bottom, right + 1.0, 1.0},
+        {0.0, top, 1.0, height},
+        {right, top, 1.0, height},
     }};
     PartPaint rule;
     rule.family = ControlVisualRole::panel;
     rule.role = PartRole::keyline;
+    if (etched) rule.authored_foreground = (*edges.top).color;
     for (const Rect& side : sides) {
         rule.bounds = side;
         paint_part(painter, *this, rule);
+    }
+    if (etched) {
+        // The light lines: each rule moved one pixel down (a horizontal
+        // rule) or right (a vertical one).
+        rule.authored_foreground = (*edges.bottom).color;
+        const std::array<Rect, 5> lights{{
+            {1.0, top + 1.0, std::max(0.0, gap.x - 1.0), 1.0},
+            {gap_right, top + 1.0, std::max(0.0, right - gap_right), 1.0},
+            {0.0, bottom + 1.0, right + 2.0, 1.0},
+            {1.0, top + 1.0, 1.0, std::max(0.0, height - 2.0)},
+            {right + 1.0, top, 1.0, height + 1.0},
+        }};
+        for (const Rect& side : lights) {
+            rule.bounds = side;
+            paint_part(painter, *this, rule);
+        }
     }
     PartPaint label;
     label.family = ControlVisualRole::panel;
