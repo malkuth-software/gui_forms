@@ -2,6 +2,7 @@
 
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/window/toasts/toasts.hpp"
+#include "gui_forms/window/chrome/window_capabilities.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -33,7 +34,7 @@ public:
 // shares the application's resources unless given its own, starts from its
 // presentation defaults and reads its tooltip switch, and leaves it when
 // destroyed. With no current application it makes its own resources.
-class Window : public SurfaceRoot {
+class Window : public SurfaceRoot, public WindowCapabilities<Window> {
 public:
     explicit Window(Control::Ptr root, Size client_size = {});
     // Joins `application` explicitly, for a program that wants the
@@ -242,7 +243,67 @@ public:
     // Raised after a toast closed, last in the operation that closed it.
     [[nodiscard]] Event<const ToastDismissal&>& toast_dismissed() noexcept { return toast_dismissed_; }
 
+    // The chrome properties (window_capabilities.hpp) the program has
+    // written; only these are sent to a host, so an unwritten text keeps the
+    // title the window opened with.
+    [[nodiscard]] WindowChromeFields written_chrome() const noexcept { return written_chrome_; }
+    // The chrome properties the attached host honours (HostServices::
+    // supported_window_chrome); none without a host.
+    [[nodiscard]] WindowChromeFields supported_chrome() const noexcept;
+    // The chrome properties the host applied at the last request; a written
+    // property the host could not apply (its platform has no such thing, or
+    // it refused) is missing here.
+    [[nodiscard]] WindowChromeFields applied_chrome() const noexcept { return applied_chrome_; }
+    // The chrome as the host is asked for it: the written properties' values
+    // (the icon decoded to premultiplied BGRA8, empty when none or when the
+    // image could not be decoded).
+    [[nodiscard]] WindowChrome chrome() const;
+
 private:
+    friend struct WindowTextCapability<Window>;
+    friend struct WindowIconCapability<Window>;
+    friend struct WindowFormBorderStyleCapability<Window>;
+    friend struct WindowMinimizeBoxCapability<Window>;
+    friend struct WindowMaximizeBoxCapability<Window>;
+    friend struct WindowControlBoxCapability<Window>;
+    friend struct WindowWindowStateCapability<Window>;
+    friend struct WindowTopMostCapability<Window>;
+    friend struct WindowOpacityCapability<Window>;
+    friend struct WindowStartPositionCapability<Window>;
+    friend struct WindowShowInTaskbarCapability<Window>;
+    friend struct WindowMinimumSizeCapability<Window>;
+    // The capabilities' hooks, chosen by the cell's type.
+    void prepare_write(const decltype(text)& cell, std::string& incoming);
+    void written(const decltype(text)& cell);
+    void prepare_write(const decltype(icon)& cell, ImageId& incoming);
+    void written(const decltype(icon)& cell);
+    void prepare_write(const decltype(form_border_style)& cell, FormBorderStyle& incoming);
+    void written(const decltype(form_border_style)& cell);
+    void prepare_write(const decltype(minimize_box)& cell, bool& incoming);
+    void written(const decltype(minimize_box)& cell);
+    void prepare_write(const decltype(maximize_box)& cell, bool& incoming);
+    void written(const decltype(maximize_box)& cell);
+    void prepare_write(const decltype(control_box)& cell, bool& incoming);
+    void written(const decltype(control_box)& cell);
+    void prepare_write(const decltype(window_state)& cell, FormWindowState& incoming);
+    void written(const decltype(window_state)& cell);
+    void prepare_write(const decltype(top_most)& cell, bool& incoming);
+    void written(const decltype(top_most)& cell);
+    void prepare_write(const decltype(opacity)& cell, double& incoming);
+    void written(const decltype(opacity)& cell);
+    void prepare_write(const decltype(start_position)& cell, FormStartPosition& incoming);
+    void written(const decltype(start_position)& cell);
+    void prepare_write(const decltype(show_in_taskbar)& cell, bool& incoming);
+    void written(const decltype(show_in_taskbar)& cell);
+    void prepare_write(const decltype(minimum_size)& cell, Size& incoming);
+    void written(const decltype(minimum_size)& cell);
+    // Sends `fields` (those of them the program has written) to the
+    // attached host, recording what it applied. Called by the written hooks
+    // and, for every written property, by HostSession when a host attaches.
+    void apply_window_chrome(WindowChromeFields fields);
+    WindowChromeFields written_chrome_{};
+    WindowChromeFields applied_chrome_{};
+
     friend class SurfaceRoot;
     friend class HostSession;
     friend class Application;

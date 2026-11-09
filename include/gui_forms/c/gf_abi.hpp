@@ -508,8 +508,40 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status show_modal(gf_object root, const gf_owned_window_options* options, gf_dialog_result_code* result) const noexcept {
+        if (table_.struct_size < 64u || table_.show_modal == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.show_modal(root, options, result);
+        return called;
+    }
+
+    [[nodiscard]] gf_status show_owned(gf_object root, const gf_owned_window_options* options) const noexcept {
+        if (table_.struct_size < 72u || table_.show_owned == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.show_owned(root, options);
+        return called;
+    }
+
+    [[nodiscard]] gf_status window_properties(gf_object window, gf_window_property_flags* supported, gf_window_property_flags* applied) const noexcept {
+        if (table_.struct_size < 80u || table_.window_properties == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.window_properties(window, supported, applied);
+        return called;
+    }
+
+    [[nodiscard]] gf_status focused_control(gf_object window_or_root, gf_object* control) const noexcept {
+        if (table_.struct_size < 88u || table_.focused_control == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.focused_control(window_or_root, control);
+        return called;
+    }
+
     [[nodiscard]] gf_status key_state(gf_object window, uint32_t physical_key, uint32_t* down) const noexcept {
-        if (table_.struct_size < 64u || table_.key_state == nullptr) {
+        if (table_.struct_size < 96u || table_.key_state == nullptr) {
             return GF_STATUS_UNSUPPORTED_VERSION;
         }
         const gf_status called = table_.key_state(window, physical_key, down);
@@ -1125,6 +1157,22 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status focus(gf_object object, uint32_t* focused) const noexcept {
+        if (table_.struct_size < 104u || table_.focus == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.focus(object, focused);
+        return called;
+    }
+
+    [[nodiscard]] gf_status focus_state(gf_object object, uint32_t* focused, uint32_t* contains_focus) const noexcept {
+        if (table_.struct_size < 112u || table_.focus_state == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.focus_state(object, focused, contains_focus);
+        return called;
+    }
+
 private:
     gf_controls_table table_;
 };
@@ -1284,6 +1332,22 @@ public:
             return GF_STATUS_UNSUPPORTED_VERSION;
         }
         const gf_status called = table_.hide_tool_tip(tool_tip);
+        return called;
+    }
+
+    [[nodiscard]] gf_status open_anchored(gf_object anchor, gf_object content, const gf_anchored_overlay_options* options) const noexcept {
+        if (table_.struct_size < 56u || table_.open_anchored == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.open_anchored(anchor, content, options);
+        return called;
+    }
+
+    [[nodiscard]] gf_status close_anchored(gf_object content) const noexcept {
+        if (table_.struct_size < 64u || table_.close_anchored == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.close_anchored(content);
         return called;
     }
 

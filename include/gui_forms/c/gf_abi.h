@@ -534,8 +534,12 @@ typedef struct gf_objects_table {
     uint32_t struct_size;
     uint32_t abi_minor;
     /* Creates an object of the schema type type_name, written in any
-     * spelling of its id ("check_box" or "CheckBox"), with a non-empty
-     * stable_id: a control made from its stable id, or a component made
+     * spelling of its id ("check_box" or "CheckBox"), with a stable_id: one
+     * or more '.'-separated segments of lowercase ASCII letters and digits
+     * joined by single '-' ("settings.ok-button"; a Windows Forms name such
+     * as "textBox1" is spelled "text-box1"), GF_STATUS_INVALID_ARGUMENT with
+     * a message stating the rule otherwise. A control is made from its
+     * stable id, or a component made
      * from nothing (a command, a file dialog) or from its id (a context
      * menu, a dock workspace). A type that needs another object (a dock site
      * its workspace or a timer its window, say: create_with), and the types
@@ -697,6 +701,12 @@ typedef struct gf_schema_interaction {
  * units; zero keeps the default. ready, closing and closed may each be null;
  * the library calls them with sender the root and releases each once before
  * run returns.
+ *
+ * Since 1.1 (read when struct_size covers them): minimum_width and
+ * minimum_height, the smallest client size the user may resize the window
+ * to, in logical units, from 0 to 32768; a side of 0 sets no minimum there
+ * beyond the host's own, as Windows Forms' empty MinimumSize. A record of the
+ * 1.0 size has no minimum. The client size may not be below the minimum.
  */
 typedef struct gf_run_options {
     uint32_t struct_size;
@@ -707,7 +717,66 @@ typedef struct gf_run_options {
     const gf_callback* ready;
     const gf_callback* closing;
     const gf_callback* closed;
+    double minimum_width;
+    double minimum_height;
 } gf_run_options;
+
+/* gf_owned_window_flags: how show_modal and show_owned open a window. */
+typedef uint32_t gf_owned_window_flags;
+#define GF_OWNED_WINDOW_FLAGS_NONE 0u
+/* The host's tool window style: a smaller title bar and no taskbar button. */
+#define GF_OWNED_WINDOW_TOOL 1u
+
+/*
+ * How show_modal and show_owned open a window over the running one (since
+ * 1.1). owner is the root of the running window or of an owned window that
+ * is open; zero means the running window. width and height are the client
+ * size in logical units; zero keeps the default. ready, closing and closed
+ * may each be null; the library calls them with sender the window's root
+ * and releases each once, on the UI thread, after the window has closed
+ * (for show_owned, possibly after show_owned has returned).
+ */
+typedef struct gf_owned_window_options {
+    uint32_t struct_size;
+    gf_owned_window_flags flags;
+    gf_utf8_view title;
+    double width;
+    double height;
+    gf_object owner;
+    const gf_callback* ready;
+    const gf_callback* closing;
+    const gf_callback* closed;
+} gf_owned_window_options;
+
+/* gf_dialog_result_code: a modal window's result, Form.DialogResult's
+ * values (a button's dialog_result property takes the same names). */
+typedef uint32_t gf_dialog_result_code;
+#define GF_DIALOG_RESULT_NONE 0u
+#define GF_DIALOG_RESULT_OK 1u
+#define GF_DIALOG_RESULT_CANCEL 2u
+#define GF_DIALOG_RESULT_ABORT 3u
+#define GF_DIALOG_RESULT_RETRY 4u
+#define GF_DIALOG_RESULT_IGNORE 5u
+#define GF_DIALOG_RESULT_YES 6u
+#define GF_DIALOG_RESULT_NO 7u
+#define GF_DIALOG_RESULT_TRY_AGAIN 10u
+#define GF_DIALOG_RESULT_CONTINUE 11u
+
+/* gf_window_property_flags: the window properties (schema type "window",
+ * since 1.1), one bit each, as window_properties reports them. */
+typedef uint32_t gf_window_property_flags;
+#define GF_WINDOW_PROPERTY_TEXT 1u
+#define GF_WINDOW_PROPERTY_ICON 2u
+#define GF_WINDOW_PROPERTY_FORM_BORDER_STYLE 4u
+#define GF_WINDOW_PROPERTY_MINIMIZE_BOX 8u
+#define GF_WINDOW_PROPERTY_MAXIMIZE_BOX 16u
+#define GF_WINDOW_PROPERTY_CONTROL_BOX 32u
+#define GF_WINDOW_PROPERTY_WINDOW_STATE 64u
+#define GF_WINDOW_PROPERTY_TOP_MOST 128u
+#define GF_WINDOW_PROPERTY_OPACITY 256u
+#define GF_WINDOW_PROPERTY_START_POSITION 512u
+#define GF_WINDOW_PROPERTY_SHOW_IN_TASKBAR 1024u
+#define GF_WINDOW_PROPERTY_MINIMUM_SIZE 2048u
 
 /*
  * GF_TABLE_WINDOWS: one window at a time, on the platform's host.
@@ -744,6 +813,29 @@ typedef struct gf_run_options {
  * loses activation. key_state asks whether a key is down now. Its subscriptions
  * end when the window is destroyed, each callback released once on the UI
  * thread; a disposed window refuses new ones with GF_STATUS_DISPOSED.
+ *
+ * During the run, show_modal and show_owned open further windows over a
+ * root control (since 1.1), owned by the running window or by another of
+ * them: a modal window, as Form.ShowDialog shows one, or a non-modal owned
+ * window, as Form.Show(owner). Their stable id is their root's, unique
+ * among open windows ("main" is the running window's). request_close
+ * closes them too. They share the library's theme, images and published
+ * values as they stand when the window opens.
+ *
+ * A window has properties (since 1.1), Form's for the native window: text
+ * (the title; until written, the run's options.title), icon (an image from
+ * themes.load_image, or none), form_border_style, minimize_box,
+ * maximize_box, control_box, window_state (the program's request, not a
+ * report of the native state), top_most, opacity (0 to 1), start_position
+ * (applies before the window is first shown), show_in_taskbar and
+ * minimum_size (the client area's, zero on a side for the window's own).
+ * The schema's "window" type lists them with their kinds and choices;
+ * properties.get, set and reset take their names on a window from create,
+ * before and during its run. A refused value is GF_STATUS_INVALID_ARGUMENT
+ * and changes nothing. A written property reaches the host when the run
+ * starts and at once during it, where the host applies that property;
+ * window_properties reports which it does (a host without a taskbar or a
+ * window icon reports those unsupported).
  */
 typedef struct gf_windows_table {
     uint32_t struct_size;
@@ -752,7 +844,10 @@ typedef struct gf_windows_table {
      * with no parent that the run makes a window for, and runs the event
      * loop until the window closes. The callbacks' sender is the object
      * given. options.width and height, when not zero, resize the window.
-     * GF_STATUS_INVALID_STATE while another run is under way. */
+     * GF_STATUS_INVALID_STATE while another run is under way.
+     * GF_STATUS_INVALID_ARGUMENT for a window the run refuses, with a
+     * message naming the reason (for a client size below the minimum, both
+     * sizes). */
     gf_status (GF_CALL* run)(gf_object window_or_root, const gf_run_options* options);
     /* Asks the running window, given as the object passed to run, to close;
      * closing may cancel it. GF_STATUS_INVALID_STATE when it is not
@@ -777,6 +872,52 @@ typedef struct gf_windows_table {
      * 1 when a handler or provider handled it, else 0 (since 1.1). UI thread.
      * GF_STATUS_DISPOSED once the window is gone. */
     gf_status (GF_CALL* request_help)(gf_object window, uint32_t* handled);
+    /* Opens a window over root, a control with no parent and not in a
+     * window, owned by options.owner, and runs a nested event loop until it
+     * closes (since 1.1): the run's other windows refuse the user's input
+     * meanwhile, while posted work, events of other sources, timers and
+     * repaint continue in every window. A dialog result other than none
+     * set on the window (a button's dialog_result, the window's own) asks
+     * it to close; its closing callback may cancel. Returns once the
+     * window has closed and its closed callback has run, with result its
+     * dialog result (GF_DIALOG_RESULT_CANCEL when it closed without one).
+     * When the run ends during the loop (the running window closed), the
+     * loop ends with GF_STATUS_CANCELLED and the window closes with the
+     * run. A callback inside the loop may call show_modal again, up to 8
+     * deep (GF_STATUS_LIMIT_EXCEEDED beyond). UI thread, during a run
+     * (GF_STATUS_INVALID_STATE otherwise); GF_STATUS_UNSUPPORTED_CAPABILITY
+     * where the host has no nested loop; GF_STATUS_INVALID_STATE when root
+     * has a parent or a window or its stable id is taken; result may be
+     * null. Nothing is opened on a refusal. */
+    gf_status (GF_CALL* show_modal)(gf_object root, const gf_owned_window_options* options,
+                                    gf_dialog_result_code* result);
+    /* Opens a window over root owned by options.owner, as show_modal does,
+     * and returns once it is ready, without a nested loop (since 1.1). The
+     * window closes through request_close, its close box, its owner
+     * closing or the run ending. The same refusals as show_modal, without
+     * the depth limit. */
+    gf_status (GF_CALL* show_owned)(gf_object root, const gf_owned_window_options* options);
+    /* The window properties window's host applies (since 1.1): supported
+     * receives the GF_WINDOW_PROPERTY_* bits of those the host honours, 0
+     * before the window runs; applied the bits of the written properties
+     * the host applied when each was last sent. Either output may be null.
+     * UI thread. GF_STATUS_WRONG_HANDLE_KIND for an object that is not a
+     * window; GF_STATUS_DISPOSED once the window is gone. */
+    gf_status (GF_CALL* window_properties)(gf_object window, gf_window_property_flags* supported,
+                                           gf_window_property_flags* applied);
+    /* The focused control of a window (since 1.1): window_or_root is a
+     * window from create, or a control in a window (a root passed to run,
+     * a root of a show_modal or show_owned window, or any control under
+     * one). control receives a new reference to the window's focused
+     * control, which the caller releases, or zero when none has focus; a
+     * composite field whose edit part has the caret is reported, not the
+     * edit part (Windows Forms' ActiveControl).
+     * When a modal window closes, or a disabled window's root is enabled
+     * again, the window's last focused control takes focus back. UI
+     * thread. GF_STATUS_INVALID_STATE for a control not in a window;
+     * GF_STATUS_DISPOSED for a window that has been disposed or whose run
+     * has ended. */
+    gf_status (GF_CALL* focused_control)(gf_object window_or_root, gf_object* control);
     /* down receives 1 when physical_key (a USB HID usage) is down in window
      * now, as the window has seen it (pressed, not released, not released by
      * the window losing activation), else 0 (since 1.1). UI thread.
@@ -1636,6 +1777,27 @@ typedef struct gf_controls_table {
      * callback then runs (GF_TABLE_CUSTOM_CONTROLS). A damage rectangle
      * that is not finite, or has a negative size, gives INVALID_ARGUMENT. */
     gf_status (GF_CALL* invalidate)(gf_object object, const gf_logical_rect* damage);
+    /* Gives the control keyboard focus, as Control.Focus and Select do
+     * (since 1.1): it becomes its window's focused control, the one its
+     * window gives the keyboard to while active. A composite field (a
+     * combo box with an edit field, a numeric or domain up-down, a masked
+     * text box, a search field, a token box) gives the caret to its edit
+     * part and still counts as the focused control. focused receives 1 when
+     * the window is active, so the control has the keyboard now, and 0
+     * when it is not (focus is taken when the window is next activated);
+     * it may be null. GF_STATUS_INVALID_STATE, changing nothing, for a
+     * control not in a window, disabled or hidden (or under a disabled or
+     * hidden ancestor), not focusable (its focusable property, or its edit
+     * part's for a composite), outside the
+     * window's open focus scope (a dialog or overlay), or whose window's
+     * validation kept focus where it was. UI thread. */
+    gf_status (GF_CALL* focus)(gf_object object, uint32_t* focused);
+    /* Whether the control is its window's focused control (Focused; a
+     * composite field is while its edit part has the caret), and whether it
+     * or a descendant holds focus (ContainsFocus), as 0 or 1 (since 1.1).
+     * A control not in a window has neither. Either output may be null. UI
+     * thread. */
+    gf_status (GF_CALL* focus_state)(gf_object object, uint32_t* focused, uint32_t* contains_focus);
 } gf_controls_table;
 
 /*
@@ -1672,7 +1834,51 @@ typedef struct gf_text_editing_table {
  * without a parent, shown over its owner's window until close_overlay, until
  * its owner leaves the window or until the window closes. Tooltips belong to
  * a tool_tip component (create_with). UI thread only.
+ *
+ * open_anchored (since 1.1) shows a content control beside an anchor, as a
+ * menu, drop-down or context menu shows: an anchored overlay in the
+ * anchor's window, placed below or above the anchor and kept inside the
+ * window, with click-away and Escape dismissal. Menus, drop-downs and
+ * context menus are overlays, not native windows.
  */
+
+/* gf_anchored_overlay_flags: how open_anchored shows its content. */
+typedef uint32_t gf_anchored_overlay_flags;
+#define GF_ANCHORED_OVERLAY_FLAGS_NONE 0u
+/* Prefer the space above the anchor (else below). */
+#define GF_ANCHORED_OVERLAY_ABOVE 1u
+/* Align the content's right edge with the anchor's (else the left edges). */
+#define GF_ANCHORED_OVERLAY_ALIGN_FAR 2u
+/* Never flip to the other side when the preferred one is too small. */
+#define GF_ANCHORED_OVERLAY_NO_FLIP 4u
+/* A click outside the content does not dismiss it. */
+#define GF_ANCHORED_OVERLAY_KEEP_ON_CLICK_AWAY 8u
+/* Escape does not dismiss it. */
+#define GF_ANCHORED_OVERLAY_KEEP_ON_ESCAPE 16u
+/* The content takes the keyboard focus, contained in it while open and
+ * given back to where it was when it closes (a menu, a drop-down list).
+ * Without it the focus stays where it is (a passive pop-up). */
+#define GF_ANCHORED_OVERLAY_TAKE_FOCUS 32u
+
+/*
+ * How open_anchored shows content (since 1.1). width and height are the
+ * content's preferred size in logical units (zero: its measured size); gap
+ * is the distance from the anchor. events, which may be null, receives the
+ * overlay's events with sender the content: "click_away" and "escape_key"
+ * when the user asks to dismiss it (setting the event's cancel keeps it
+ * open, for staged dismissal; otherwise it closes), then "closed" once it
+ * has closed for any reason (close_anchored, dismissal, the anchor leaving
+ * the window, the window closing), after which the callback is released.
+ */
+typedef struct gf_anchored_overlay_options {
+    uint32_t struct_size;
+    gf_anchored_overlay_flags flags;
+    double width;
+    double height;
+    double gap;
+    const gf_callback* events;
+} gf_anchored_overlay_options;
+
 typedef struct gf_overlays_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -1688,6 +1894,18 @@ typedef struct gf_overlays_table {
      * pointer leaves or hide_tool_tip). */
     gf_status (GF_CALL* show_tool_tip)(gf_object tool_tip, gf_object target, uint64_t duration_ms);
     gf_status (GF_CALL* hide_tool_tip)(gf_object tool_tip);
+    /* Shows content, a control with no parent and not in a window, beside
+     * anchor, a control in a running window (since 1.1). The library holds
+     * content while it is open. GF_STATUS_INVALID_STATE when anchor is not
+     * in a window or is disabled, or content is already open or has a
+     * parent; GF_STATUS_INVALID_ARGUMENT for options smaller than their 1.1
+     * size, unknown flags or a size or gap that is negative or not finite.
+     * Nothing is shown on a refusal. */
+    gf_status (GF_CALL* open_anchored)(gf_object anchor, gf_object content,
+                                       const gf_anchored_overlay_options* options);
+    /* Closes content's anchored overlay: its "closed" event follows before
+     * this returns. GF_STATUS_NOT_FOUND when it is not open (since 1.1). */
+    gf_status (GF_CALL* close_anchored)(gf_object content);
 } gf_overlays_table;
 
 /*
@@ -1835,7 +2053,8 @@ typedef struct gf_custom_control_spec {
 typedef struct gf_custom_controls_table {
     uint32_t struct_size;
     uint32_t abi_minor;
-    /* Creates a custom control with stable_id (non-empty) and gives the
+    /* Creates a custom control with stable_id (the objects table's rule:
+     * lowercase '.'-separated, '-'-joined segments) and gives the
      * caller one reference to it. A malformed spec gives INVALID_ARGUMENT
      * and calls no callback, release among them. */
     gf_status (GF_CALL* create)(const gf_custom_control_spec* spec, gf_utf8_view stable_id, gf_object* object);

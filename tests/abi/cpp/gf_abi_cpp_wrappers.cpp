@@ -15,6 +15,7 @@
 
 namespace {
 
+using gui_forms::abi::ControlsTable;
 using gui_forms::abi::EventsTable;
 using gui_forms::abi::ObjectReference;
 using gui_forms::abi::ObjectsTable;
@@ -155,6 +156,73 @@ void window_slots(const ObjectsTable& objects, const WindowsTable& windows) {
     require(older.interaction_count(&count) == GF_STATUS_UNSUPPORTED_VERSION &&
                 older.request_help(window.get(), &handled) == GF_STATUS_UNSUPPORTED_VERSION,
             "a 1.0 windows table serves none of the 1.1 slots");
+
+    // Modal and owned windows (since 1.1): refused outside a run, and not
+    // served by a table that ends before them.
+    gf_owned_window_options owned{};
+    owned.struct_size = static_cast<std::uint32_t>(sizeof(owned));
+    gf_dialog_result_code result = 99u;
+    require(windows.show_owned(root.get(), &owned) == GF_STATUS_INVALID_STATE &&
+                windows.show_modal(root.get(), &owned, &result) == GF_STATUS_INVALID_STATE && result == 99u,
+            "show_owned and show_modal outside a run");
+    gf_windows_table before_modal = windows.c_table();
+    before_modal.struct_size = static_cast<std::uint32_t>(offsetof(gf_windows_table, show_modal));
+    const WindowsTable without_modal = WindowsTable::adopt(before_modal);
+    require(without_modal.show_modal(root.get(), &owned, &result) == GF_STATUS_UNSUPPORTED_VERSION &&
+                without_modal.show_owned(root.get(), &owned) == GF_STATUS_UNSUPPORTED_VERSION,
+            "a table without the modal slots serves neither");
+
+    // Window properties (since 1.1): nothing supported before the run, and
+    // not served by a table that ends before the slot.
+    gf_window_property_flags supported = 99u;
+    gf_window_property_flags applied = 99u;
+    require(windows.window_properties(window.get(), &supported, &applied) == GF_STATUS_OK && supported == 0u &&
+                applied == 0u,
+            "window_properties before the run");
+    gf_windows_table before_properties = windows.c_table();
+    before_properties.struct_size = static_cast<std::uint32_t>(offsetof(gf_windows_table, window_properties));
+    const WindowsTable without_properties = WindowsTable::adopt(before_properties);
+    require(without_properties.window_properties(window.get(), &supported, &applied) == GF_STATUS_UNSUPPORTED_VERSION,
+            "a table without window_properties does not serve it");
+}
+
+// Focus (since 1.1): refused outside a window, reported inside one, and not
+// served by tables that end before the slots.
+void focus_slots(const ObjectsTable& objects, const ControlsTable& controls, const WindowsTable& windows) {
+    gf_object loose_made = 0u;
+    require(objects.create(text_view("Button"), text_view("cpp.focus.loose"), &loose_made) == GF_STATUS_OK,
+            "create a loose button");
+    const ObjectReference loose(objects, loose_made);
+    std::uint32_t focused = 9u;
+    std::uint32_t contains = 9u;
+    require(controls.focus(loose.get(), &focused) == GF_STATUS_INVALID_STATE && focused == 9u,
+            "a control not in a window cannot take focus");
+    require(controls.focus_state(loose.get(), &focused, &contains) == GF_STATUS_OK && focused == 0u &&
+                contains == 0u,
+            "a control not in a window has no focus");
+
+    gf_object root_made = 0u;
+    require(objects.create(text_view("Panel"), text_view("cpp.focus"), &root_made) == GF_STATUS_OK,
+            "create a focus root");
+    const ObjectReference root(objects, root_made);
+    gf_object window_made = 0u;
+    require(windows.create(root.get(), &window_made) == GF_STATUS_OK, "create a focus window");
+    const ObjectReference window(objects, window_made);
+    gf_object current = 7u;
+    require(windows.focused_control(window.get(), &current) == GF_STATUS_OK && current == 0u,
+            "a new window has no focused control");
+
+    gf_controls_table before_focus = controls.c_table();
+    before_focus.struct_size = static_cast<std::uint32_t>(offsetof(gf_controls_table, focus));
+    const ControlsTable without_focus = ControlsTable::adopt(before_focus);
+    require(without_focus.focus(loose.get(), &focused) == GF_STATUS_UNSUPPORTED_VERSION &&
+                without_focus.focus_state(loose.get(), &focused, &contains) == GF_STATUS_UNSUPPORTED_VERSION,
+            "a controls table without the focus slots serves neither");
+    gf_windows_table before_focused = windows.c_table();
+    before_focused.struct_size = static_cast<std::uint32_t>(offsetof(gf_windows_table, focused_control));
+    const WindowsTable without_focused = WindowsTable::adopt(before_focused);
+    require(without_focused.focused_control(window.get(), &current) == GF_STATUS_UNSUPPORTED_VERSION,
+            "a windows table without focused_control does not serve it");
 }
 
 } // namespace
@@ -165,9 +233,10 @@ int main() {
     EventsTable events;
     PropertiesTable properties;
     WindowsTable windows;
+    ControlsTable controls;
     if (RuntimeTable::negotiate(runtime) != GF_STATUS_OK || ObjectsTable::negotiate(objects) != GF_STATUS_OK ||
         EventsTable::negotiate(events) != GF_STATUS_OK || PropertiesTable::negotiate(properties) != GF_STATUS_OK ||
-        WindowsTable::negotiate(windows) != GF_STATUS_OK) {
+        WindowsTable::negotiate(windows) != GF_STATUS_OK || ControlsTable::negotiate(controls) != GF_STATUS_OK) {
         std::cerr << "FAIL: the tables did not negotiate\n";
         return 1;
     }
@@ -175,6 +244,7 @@ int main() {
     object_reference(objects);
     subscription_reference(objects, events, properties);
     window_slots(objects, windows);
+    focus_slots(objects, controls, windows);
     if (failures != 0) {
         std::cerr << failures << " checks failed\n";
         return 1;

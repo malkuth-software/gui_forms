@@ -1013,14 +1013,10 @@ void NativeWindow::action(ActionKind kind) {
   }
   if (kind == ActionKind::show) {
     visible = true;
-    if (utility) {
-      // A window manager removes _NET_WM_STATE when a window is withdrawn;
-      // restate skip-taskbar before every map.
-      const Atom skip = runtime.atom("_NET_WM_STATE_SKIP_TASKBAR");
-      XChangeProperty(runtime.display, xid, runtime.atom("_NET_WM_STATE"),
-                      XA_ATOM, 32, PropModeReplace,
-                      reinterpret_cast<const unsigned char *>(&skip), 1);
-    }
+    shown_once = true;
+    // A window manager removes _NET_WM_STATE when a window is withdrawn;
+    // restate it before every map.
+    restate_wm_state();
     XMapRaised(runtime.display, xid);
     damage.add({0, 0, size.width, size.height});
   }
@@ -1095,6 +1091,28 @@ void NativeWindow::action(ActionKind kind) {
     XSendEvent(runtime.display, DefaultRootWindow(runtime.display), False,
                SubstructureRedirectMask | SubstructureNotifyMask, &event);
   }
+}
+void NativeWindow::restate_wm_state() {
+  std::array<Atom, 4> states{};
+  int count = 0;
+  if (utility || chrome_skip_taskbar)
+    states[static_cast<std::size_t>(count++)] = runtime.atom("_NET_WM_STATE_SKIP_TASKBAR");
+  if (chrome_top_most)
+    states[static_cast<std::size_t>(count++)] = runtime.atom("_NET_WM_STATE_ABOVE");
+  if (chrome_window_state == FormWindowState::maximized) {
+    states[static_cast<std::size_t>(count++)] = runtime.atom("_NET_WM_STATE_MAXIMIZED_VERT");
+    states[static_cast<std::size_t>(count++)] = runtime.atom("_NET_WM_STATE_MAXIMIZED_HORZ");
+  }
+  if (count == 0)
+    return;
+  XChangeProperty(runtime.display, xid, runtime.atom("_NET_WM_STATE"), XA_ATOM, 32,
+                  PropModeReplace, reinterpret_cast<const unsigned char *>(states.data()), count);
+}
+Size NativeWindow::minimum_size() const noexcept {
+  const Size minimum{
+      chrome_minimum_size.width > 0.0 ? chrome_minimum_size.width : entry.options.minimum_size.width,
+      chrome_minimum_size.height > 0.0 ? chrome_minimum_size.height : entry.options.minimum_size.height};
+  return minimum;
 }
 void NativeWindow::close(HostCloseReason reason, bool force) {
   if (closed)
@@ -1697,8 +1715,8 @@ HostWindowFrame NativeWindow::frame() const {
 HostServiceStatus NativeWindow::request_frame(Rect content) {
   if (closed)
     return {HostServiceError::after_shutdown};
-  if (content.width < entry.options.minimum_size.width ||
-      content.height < entry.options.minimum_size.height)
+  const Size minimum = minimum_size();
+  if (content.width < minimum.width || content.height < minimum.height)
     return {HostServiceError::invalid_argument};
   if (fallback_fullscreen || window_state_fixed(*this))
     return {HostServiceError::unsupported};
@@ -1710,8 +1728,8 @@ HostServiceStatus NativeWindow::request_frame(Rect content) {
   hints.y = static_cast<int>(std::lround(content.y));
   hints.width = static_cast<int>(std::lround(content.width));
   hints.height = static_cast<int>(std::lround(content.height));
-  hints.min_width = static_cast<int>(entry.options.minimum_size.width);
-  hints.min_height = static_cast<int>(entry.options.minimum_size.height);
+  hints.min_width = static_cast<int>(minimum.width);
+  hints.min_height = static_cast<int>(minimum.height);
   hints.win_gravity = StaticGravity;
   XSetWMNormalHints(runtime.display, xid, &hints);
   XMoveResizeWindow(runtime.display, xid, hints.x, hints.y,

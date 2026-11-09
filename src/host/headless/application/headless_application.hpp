@@ -5,6 +5,7 @@
 #include "gui_forms/host/windowing/host_windowing.hpp"
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -58,6 +59,17 @@ public:
     // see the opaque path of an X11 run without a compositing manager.
     [[nodiscard]] bool transient_windows_translucent() const noexcept override;
     void set_transient_windows_translucent(bool translucent) noexcept { translucent_ = translucent; }
+    // run_modal's nested loop, which a test drives: each turn calls the
+    // turn target with the modal window, as a native loop dispatches the
+    // next events, until the window is no longer live or the target returns
+    // false (the run quits); at most maximum_modal_turns turns. Without a
+    // target run_modal is unsupported. Meanwhile every other window that
+    // the modal one does not own is input_blocked, and
+    // HeadlessApplication::simulate_user_close ignores it.
+    static constexpr std::size_t maximum_modal_turns = 1024U;
+    [[nodiscard]] bool supports_modal_windows() const noexcept override;
+    void set_modal_turn(std::function<bool(HostWindowId)> turn) { modal_turn_ = std::move(turn); }
+    [[nodiscard]] bool input_blocked(HostWindowId window) const noexcept;
 
     // Replaces the simulated monitors (desktop logical units). An empty
     // list is ignored.
@@ -112,6 +124,7 @@ protected:
     void query_monitors_into_impl(HostMonitorResult& result) override;
     [[nodiscard]] HostServiceStatus show_impl(HostWindowId window) override;
     [[nodiscard]] HostServiceStatus hide_impl(HostWindowId window) override;
+    [[nodiscard]] HostServiceStatus run_modal_impl(HostWindowId window) override;
 
 private:
     struct NativeWindow final {
@@ -147,6 +160,10 @@ private:
     bool splash_windows_{true};
     bool popup_windows_{true};
     bool translucent_{true};
+    std::function<bool(HostWindowId)> modal_turn_{};
+    // Windows a run_modal call under way blocked, each listed once per
+    // call that blocked it.
+    std::vector<HostWindowId> blocked_;
 };
 
 // A deterministic multi-window application for tests: Application::run's

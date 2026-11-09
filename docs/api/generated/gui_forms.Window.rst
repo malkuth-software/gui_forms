@@ -7,7 +7,7 @@ gui_forms::Window
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: Window : public SurfaceRoot
+.. cpp:class:: Window : public SurfaceRoot, public WindowCapabilities<Window>
 
    ``#include <gui_forms/window/window.hpp>``
 
@@ -52,6 +52,42 @@ gui_forms::Window
 
    :Properties:
 
+      **text** : ``std::string``
+         The window's title (Form.Text): UTF-8, at most 65536 bytes, no NUL (else std::invalid_argument). Until it is first written the title is the one the window opened with (ApplicationWindowOptions::title).
+
+      **icon** : ``ImageId``
+         The window's icon (Form.Icon): an image of the window's registry, or none for the platform's default. A PNG is decoded when the icon is sent to the host; an image the registry does not hold is std::invalid_argument.
+
+      **form_border_style** : ``FormBorderStyle``
+         The window's frame (Form.FormBorderStyle): none removes the title bar and border; the fixed styles keep the user from resizing; the tool window styles use the platform's smaller utility frame. An undefined value is std::invalid_argument.
+
+      **minimize_box** : ``bool``
+         Whether the title bar offers minimizing (Form.MinimizeBox).
+
+      **maximize_box** : ``bool``
+         Whether the title bar offers maximizing (Form.MaximizeBox).
+
+      **control_box** : ``bool``
+         Whether the title bar has its window menu and buttons (Form.ControlBox); without it the minimize and maximize boxes go too.
+
+      **window_state** : ``FormWindowState``
+         The state the program asks for (Form.WindowState): normal, minimized or maximized. It is the request, not a report: the user may change the native state afterwards. An undefined value is std::invalid_argument.
+
+      **top_most** : ``bool``
+         Whether the window stays above the other applications' windows (Form.TopMost).
+
+      **opacity** : ``double``
+         The whole window's opacity (Form.Opacity), from 0 (invisible) to 1 (opaque); outside that range or not finite is std::invalid_argument.
+
+      **start_position** : ``FormStartPosition``
+         Where the window is placed when it is first shown (Form.StartPosition); ignored once it has been shown. An undefined value is std::invalid_argument.
+
+      **show_in_taskbar** : ``bool``
+         Whether the window has a taskbar button (Form.ShowInTaskbar). Hosts without a taskbar report it unsupported (HostServices::supported_window_chrome).
+
+      **minimum_size** : ``Size``
+         The client area's least size in logical units (Form.MinimumSize); zero each way keeps the window's own minimum. Each extent finite, 0 to 32768 (else std::invalid_argument).
+
       **cursor_metrics** : ``CursorMetrics``, read-only
 
       **cursor_capabilities** : ``CursorCapabilities``, read-only
@@ -82,6 +118,18 @@ gui_forms::Window
 
       **toast_id** : ``std::uint64_t``, read-only
          The ID of the toast that shows, or 0.
+
+      **written_chrome** : ``WindowChromeFields``, read-only
+         The chrome properties (window_capabilities.hpp) the program has written; only these are sent to a host, so an unwritten text keeps the title the window opened with.
+
+      **supported_chrome** : ``WindowChromeFields``, read-only
+         The chrome properties the attached host honours (HostServices:: supported_window_chrome); none without a host.
+
+      **applied_chrome** : ``WindowChromeFields``, read-only
+         The chrome properties the host applied at the last request; a written property the host could not apply (its platform has no such thing, or it refused) is missing here.
+
+      **chrome** : ``WindowChrome``, read-only
+         The chrome as the host is asked for it: the written properties' values (the icon decoded to premultiplied BGRA8, empty when none or when the image could not be decoded).
 
    :Events:
 
@@ -300,6 +348,54 @@ gui_forms::Window
 
    .. rubric:: Properties
 
+   .. cpp:member:: std::string text
+
+      The window's title (Form.Text): UTF-8, at most 65536 bytes, no NUL (else std::invalid_argument). Until it is first written the title is the one the window opened with (ApplicationWindowOptions::title).
+
+   .. cpp:member:: ImageId icon
+
+      The window's icon (Form.Icon): an image of the window's registry, or none for the platform's default. A PNG is decoded when the icon is sent to the host; an image the registry does not hold is std::invalid_argument.
+
+   .. cpp:member:: FormBorderStyle form_border_style
+
+      The window's frame (Form.FormBorderStyle): none removes the title bar and border; the fixed styles keep the user from resizing; the tool window styles use the platform's smaller utility frame. An undefined value is std::invalid_argument.
+
+   .. cpp:member:: bool minimize_box
+
+      Whether the title bar offers minimizing (Form.MinimizeBox).
+
+   .. cpp:member:: bool maximize_box
+
+      Whether the title bar offers maximizing (Form.MaximizeBox).
+
+   .. cpp:member:: bool control_box
+
+      Whether the title bar has its window menu and buttons (Form.ControlBox); without it the minimize and maximize boxes go too.
+
+   .. cpp:member:: FormWindowState window_state
+
+      The state the program asks for (Form.WindowState): normal, minimized or maximized. It is the request, not a report: the user may change the native state afterwards. An undefined value is std::invalid_argument.
+
+   .. cpp:member:: bool top_most
+
+      Whether the window stays above the other applications' windows (Form.TopMost).
+
+   .. cpp:member:: double opacity
+
+      The whole window's opacity (Form.Opacity), from 0 (invisible) to 1 (opaque); outside that range or not finite is std::invalid_argument.
+
+   .. cpp:member:: FormStartPosition start_position
+
+      Where the window is placed when it is first shown (Form.StartPosition); ignored once it has been shown. An undefined value is std::invalid_argument.
+
+   .. cpp:member:: bool show_in_taskbar
+
+      Whether the window has a taskbar button (Form.ShowInTaskbar). Hosts without a taskbar report it unsupported (HostServices::supported_window_chrome).
+
+   .. cpp:member:: Size minimum_size
+
+      The client area's least size in logical units (Form.MinimumSize); zero each way keeps the window's own minimum. Each extent finite, 0 to 32768 (else std::invalid_argument).
+
    .. cpp:function:: CursorMetrics cursor_metrics() const noexcept
 
    .. cpp:function:: CursorCapabilities cursor_capabilities() const noexcept
@@ -340,6 +436,22 @@ gui_forms::Window
    .. cpp:function:: std::uint64_t toast_id() const noexcept
 
       The ID of the toast that shows, or 0.
+
+   .. cpp:function:: WindowChromeFields written_chrome() const noexcept
+
+      The chrome properties (window_capabilities.hpp) the program has written; only these are sent to a host, so an unwritten text keeps the title the window opened with.
+
+   .. cpp:function:: WindowChromeFields supported_chrome() const noexcept
+
+      The chrome properties the attached host honours (HostServices:: supported_window_chrome); none without a host.
+
+   .. cpp:function:: WindowChromeFields applied_chrome() const noexcept
+
+      The chrome properties the host applied at the last request; a written property the host could not apply (its platform has no such thing, or it refused) is missing here.
+
+   .. cpp:function:: WindowChrome chrome() const
+
+      The chrome as the host is asked for it: the written properties' values (the icon decoded to premultiplied BGRA8, empty when none or when the image could not be decoded).
 
 
    .. rubric:: Events

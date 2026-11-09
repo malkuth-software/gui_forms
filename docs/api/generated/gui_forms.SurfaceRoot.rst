@@ -188,6 +188,9 @@ gui_forms::SurfaceRoot
       **focused_control** : ``Control::Ptr``, read-only
          The control with keyboard focus, or null.
 
+      **active_control** : ``Control::Ptr``, read-only
+         The focused control as Windows Forms' ActiveControl names it: the outermost composite whose focus target holds focus (a ComboBox while its edit part has it), else focused_control(). Null without focus.
+
       **focus_cue_visible** : ``bool``, default ``false``, read-only
          Whether focus rectangles are shown. A key press turns them on; a primary
          pointer press turns them off without moving focus.
@@ -469,6 +472,12 @@ gui_forms::SurfaceRoot
         - The frontmost control eligible for input at a point in window coordinates, searching open overlays first, or null.
       * - :cpp:func:`request_focus <gui_forms::SurfaceRoot::request_focus>`
         - Moves keyboard focus to a control, or clears it with null.
+      * - :cpp:func:`restore_focus <gui_forms::SurfaceRoot::restore_focus>`
+        - Gives the window's last focused control its focus back: keeps the focused control when there is one; otherwise refocuses the control whose focus was taken when the window's root was disabled or hidden (a disabled window, Form.Enabled = false), once it can take focus again.
+      * - :cpp:func:`focus_target_of <gui_forms::SurfaceRoot::focus_target_of>`
+        - The control that takes focus when :cpp:func:`control <gui_forms::SurfaceRoot::control>` is asked to: its focus target's (Control::focus_target), followed through nested composites (at most focus_target_depth), or :cpp:func:`control <gui_forms::SurfaceRoot::control>` itself.
+      * - :cpp:func:`control_focused <gui_forms::SurfaceRoot::control_focused>`
+        - Whether :cpp:func:`control <gui_forms::SurfaceRoot::control>` is focused (Control.Focused): it holds focus, or its focus target does.
       * - :cpp:func:`text_input_caret <gui_forms::SurfaceRoot::text_input_caret>`
         - The box an input method places its windows by, in this root's coordinates: the focused control's Control::text_input_caret, or a one-unit-wide box at its left edge when it names none; none without an eligible focused control.
       * - :cpp:func:`rules <gui_forms::SurfaceRoot::rules>`
@@ -815,6 +824,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: Control::Ptr focused_control() const noexcept
 
       The control with keyboard focus, or null.
+
+   .. cpp:function:: Control::Ptr active_control() const
+
+      The focused control as Windows Forms' ActiveControl names it: the outermost composite whose focus target holds focus (a ComboBox while its edit part has it), else focused_control(). Null without focus.
 
    .. cpp:function:: bool focus_cue_visible() const noexcept
 
@@ -1284,6 +1297,18 @@ gui_forms::SurfaceRoot
       the active focus scope, or validation of the control losing focus
       refused the move.
 
+   .. cpp:function:: Control::Ptr restore_focus()
+
+      Gives the window's last focused control its focus back: keeps the focused control when there is one; otherwise refocuses the control whose focus was taken when the window's root was disabled or hidden (a disabled window, Form.Enabled = false), once it can take focus again. Runs when the window becomes active again (after a modal window over it closes, or the platform reactivates it) and when a disabled or hidden control is enabled or shown again; programs may call it too. Returns the focused control afterwards, or null. Root thread only.
+
+   .. cpp:function:: static Control::Ptr focus_target_of(const Control::Ptr& control)
+
+      The control that takes focus when :cpp:func:`control <gui_forms::SurfaceRoot::control>` is asked to: its focus target's (Control::focus_target), followed through nested composites (at most focus_target_depth), or :cpp:func:`control <gui_forms::SurfaceRoot::control>` itself. A target that is not a descendant is ignored.
+
+   .. cpp:function:: bool control_focused(const Control::Ptr& control) const
+
+      Whether :cpp:func:`control <gui_forms::SurfaceRoot::control>` is focused (Control.Focused): it holds focus, or its focus target does.
+
    .. cpp:function:: std::optional<Rect> text_input_caret()
 
       The box an input method places its windows by, in this root's coordinates: the focused control's Control::text_input_caret, or a one-unit-wide box at its left edge when it names none; none without an eligible focused control. Hosts read it when the input method asks. Root thread only.
@@ -1590,3 +1615,7 @@ gui_forms::SurfaceRoot
       *Protected.*
 
       The owner's teardown of the tree, on the root's thread: stops paint and host wakes, tells the controls everything (popups, accelerators, focus scopes, the motion clock and frame requests go; the tree is detached) while the dispatcher still accepts their posts, then shuts the dispatcher down, cancelling what they posted.
+
+   .. cpp:member:: constexpr std::size_t focus_target_depth
+
+      Default: ``8U``.

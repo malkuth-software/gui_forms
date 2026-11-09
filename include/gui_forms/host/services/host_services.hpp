@@ -4,6 +4,7 @@
 #include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/host/cursor_interaction/cursor_interaction.hpp"
 #include "gui_forms/window/band/window_band.hpp"
+#include "gui_forms/window/chrome/window_chrome.hpp"
 
 #include <chrono>
 #include <optional>
@@ -17,6 +18,13 @@ namespace gui_forms {
 struct HostWindowCornersResult final {
     HostServiceStatus status{};
     WindowCornerReport report{};
+};
+
+// A chrome request's outcome (HostServices::apply_window_chrome): the
+// status, and which of the requested properties the platform applied.
+struct HostWindowChromeResult final {
+    HostServiceStatus status{};
+    WindowChromeFields applied{};
 };
 
 // Portable host-to-platform service seam. The base class owns thread,
@@ -135,6 +143,17 @@ public:
     // cannot comply (it rounds regardless, or cannot round) reports its
     // actual corners with `complied` false.
     [[nodiscard]] HostWindowCornersResult apply_window_corners(WindowCornerPreference preference);
+    // Applies the named chrome properties of `chrome` to the window
+    // (Window's chrome properties): applied lists those the platform
+    // honoured; the others leave the native window as it was. Any value
+    // passes through as given (Window validates); refused as invalid_argument
+    // for a field outside WindowChromeFields, wrong_thread off the UI
+    // thread, after_shutdown once shut down. No capability bit: what each
+    // host can do is supported_window_chrome.
+    [[nodiscard]] HostWindowChromeResult apply_window_chrome(const WindowChrome& chrome, WindowChromeFields fields);
+    // The chrome properties this host applies; none unless the adapter says
+    // so.
+    [[nodiscard]] virtual WindowChromeFields supported_window_chrome() const noexcept;
     void shutdown() noexcept;
 
     [[nodiscard]] HostServicesSnapshot snapshot() const;
@@ -187,6 +206,10 @@ protected:
     // window_corners. The default refuses as unsupported with unknown
     // corners.
     [[nodiscard]] virtual HostWindowCornersResult apply_window_corners_impl(WindowCornerPreference preference);
+    // Called with fields the host supports (supported_window_chrome), at
+    // least one. The default applies nothing.
+    [[nodiscard]] virtual HostWindowChromeResult apply_window_chrome_impl(const WindowChrome& chrome,
+                                                                          WindowChromeFields fields);
     // Adapters report native tray events here, on the UI thread. Events for
     // identities that are not live are dropped.
     void publish_tray_icon_event(const HostTrayIconEvent& event);

@@ -6,6 +6,8 @@
 #include <X11/Xutil.h>
 
 #include <cmath>
+#include <memory>
+#include <optional>
 #include <stdexcept>
 
 namespace gui_forms::host::linux_detail {
@@ -314,6 +316,65 @@ HostServiceStatus X11Windowing::bring_to_front_impl(HostWindowId window) {
                             CWSibling | CWStackMode, &changes))
     return {HostServiceError::backend_failure};
   XFlush(display);
+  return {};
+}
+
+bool X11Windowing::supports_modal_windows() const noexcept { return true; }
+
+bool X11Windowing::owned_by(HostWindowId window,
+                            HostWindowId ancestor) const noexcept {
+  // Ownership chains are at most maximum_windows long.
+  HostWindowId current = window;
+  for (std::size_t depth = 0; depth <= maximum_windows && current.valid();
+       ++depth) {
+    if (current == ancestor)
+      return true;
+    const std::optional<HostWindowId> next = owner(current);
+    if (!next.has_value())
+      return false;
+    current = *next;
+  }
+  return false;
+}
+
+HostServiceStatus X11Windowing::run_modal_impl(HostWindowId window) {
+  if (native(window) == nullptr)
+    return {HostServiceError::after_shutdown};
+  // The windows this call marks modal, fixed here: a window opened during
+  // the loop keeps its own state. Shared pointers keep each one reachable
+  // for the restore even if it closes during the loop (Runtime::reclaim
+  // does not run inside the loop). Capacity: one entry per window.
+  std::vector<std::shared_ptr<NativeWindow>> blocked;
+  blocked.reserve(runtime_.windows.size());
+  for (std::size_t i = 0; i < runtime_.windows.size(); ++i) {
+    const std::shared_ptr<NativeWindow> &candidate = runtime_.windows[i];
+    NativeWindow &held = *candidate;
+    if (held.closed || held.modal || !held.window_id.valid())
+      continue;
+    if (owned_by(held.window_id, window))
+      continue;
+    held.modal = true;
+    blocked.push_back(candidate);
+  }
+  const std::optional<HostWindowId> owner_id = owner(window);
+  // The outer loop ends when the primary window closes; the nested loop
+  // ends then too, so the outer one sees it.
+  const HostWindowId main_window = primary();
+  while (native(window) != nullptr &&
+         (!main_window.valid() || native(main_window) != nullptr)) {
+    runtime_.step();
+    runtime_.report_activation();
+  }
+  for (std::size_t i = 0; i < blocked.size(); ++i)
+    (*blocked[i]).modal = false;
+  // The keyboard goes back to a shown owner; its FocusIn reactivates it,
+  // which gives its last focused control focus again
+  // (SurfaceRoot::restore_focus).
+  NativeWindow *const owner_native = owner_id.has_value() ? native(*owner_id) : nullptr;
+  if (owner_native != nullptr && !(*owner_native).closed && (*owner_native).visible) {
+    XSetInputFocus(runtime_.display, (*owner_native).xid, RevertToParent, CurrentTime);
+    XFlush(runtime_.display);
+  }
   return {};
 }
 

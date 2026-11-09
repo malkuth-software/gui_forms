@@ -21,7 +21,9 @@ enum class MacTitlebarPresentation : std::uint8_t {
 struct MacHostOptions {
     std::string title{"GUI.Forms Application"};
     Size initial_size{1120.0, 680.0};
-    Size minimum_size{150.0, 150.0};
+    // The smallest client size; a side of 0 (the default) sets no minimum
+    // there beyond the host's own (ApplicationWindowOptions::minimum_size).
+    Size minimum_size{};
     // Portable frame capture (identical on every host). When capture_path is
     // non-empty, after the first presented frame that covers the whole window
     // the host encodes the presented framebuffer as PNG to that path, prints

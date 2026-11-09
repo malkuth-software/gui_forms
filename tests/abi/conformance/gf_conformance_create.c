@@ -5,7 +5,8 @@
 #include <string.h>
 
 /* The types create refuses: those that need another object (create_with
- * makes them), the components a window owns, and the service. */
+ * makes them), the components a window owns, the service, and the window
+ * (windows.create makes it). */
 static const char* const refused_by_create[] = {
     "anchored_overlay_layer", "dock_site", "page_strip",
     "color_command", "font_command", "gallery_command",
@@ -13,6 +14,7 @@ static const char* const refused_by_create[] = {
     "help_provider", "image_list", "notify_icon", "ribbon_tool_tip", "semantic_feedback",
     "timer", "tool_tip",
     "live_surface", "toast",
+    "window",
 };
 
 /* Of those, the ones neither slot makes: a binding (bindings.bind makes
@@ -75,6 +77,10 @@ static const gf_create_choice sample_choices[] = {
 gf_object gf_kit_make_any(gf_kit* kit, gf_utf8_view id, const char* stable_id, gf_object* owner) {
     *owner = 0u;
     gf_object object = 0u;
+    /* The window type is made by windows.create. */
+    if (gf_kit_view_equals(id, "window")) {
+        return make_window(kit, stable_id);
+    }
     if (!gf_kit_create_refuses(id)) {
         if ((*kit).objects.create(id, gf_kit_text(stable_id), &object) != GF_STATUS_OK) {
             return 0u;

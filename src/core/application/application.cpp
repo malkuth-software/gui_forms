@@ -27,6 +27,13 @@ bool valid_size(Size size) noexcept {
         size.width <= 32768.0 && size.height <= 32768.0;
     return valid;
 }
+// A minimum may be 0 on a side: no minimum there beyond the host's own.
+bool valid_minimum_size(Size size) noexcept {
+    const bool valid = std::isfinite(size.width) && std::isfinite(size.height) &&
+        size.width >= 0.0 && size.height >= 0.0 &&
+        size.width <= 32768.0 && size.height <= 32768.0;
+    return valid;
+}
 
 // The window's state when it is ready and open on this thread; otherwise
 // empty, with the reason in `status`: after_shutdown once the state is gone
@@ -118,18 +125,52 @@ bool owner_chain_valid(const std::vector<ApplicationWindow>& windows, std::size_
 }
 }
 
+std::string_view application_window_refusal_text(const ApplicationWindowRefusal refusal) noexcept {
+    switch (refusal) {
+    case ApplicationWindowRefusal::none: return {};
+    case ApplicationWindowRefusal::window_count: return "the window list is empty or longer than the maximum";
+    case ApplicationWindowRefusal::no_model: return "the window entry has no model";
+    case ApplicationWindowRefusal::invalid_text:
+        return "the window's stable id, owner id or title is not UTF-8 without NUL within its limit, or the "
+               "window owns itself";
+    case ApplicationWindowRefusal::invalid_initial_size:
+        return "the window's client size is not finite or not within 1 to 32768 logical units";
+    case ApplicationWindowRefusal::invalid_minimum_size:
+        return "the window's minimum size is not finite or not within 0 to 32768 logical units";
+    case ApplicationWindowRefusal::below_minimum_size: return "the window's client size is below its minimum size";
+    case ApplicationWindowRefusal::invalid_popup:
+        return "a popup window opens only during a run, owned, passive when a Splash, at a finite origin";
+    case ApplicationWindowRefusal::invalid_floating: return "a floating window needs an owner and is not a tool window";
+    case ApplicationWindowRefusal::hidden_primary: return "the primary window may not start hidden or hide on close";
+    case ApplicationWindowRefusal::duplicate_stable_id: return "two windows have the same stable id";
+    case ApplicationWindowRefusal::invalid_owner:
+        return "a window's owner is not listed, the owners form a cycle, or a floating window's owner is not the "
+               "primary window";
+    case ApplicationWindowRefusal::primary_count: return "the run needs exactly one primary window";
+    default: return "the window entry was refused";
+    }
+}
+
 namespace detail {
 bool valid_window_entry(const ApplicationWindow& entry) {
-    if (!entry.model) return false;
+    const bool valid = window_entry_refusal(entry) == ApplicationWindowRefusal::none;
+    return valid;
+}
+
+ApplicationWindowRefusal window_entry_refusal(const ApplicationWindow& entry) {
+    if (!entry.model) return ApplicationWindowRefusal::no_model;
     // UTF-8 without NUL; the stable id is not empty and is not its owner's.
     const bool texts_valid = valid_text(entry.stable_id, 1024U, false) &&
         valid_text(entry.owner_id, 1024U, true) &&
         valid_text(entry.options.title, 65536U, true);
-    if (!texts_valid || entry.owner_id == entry.stable_id) return false;
+    if (!texts_valid || entry.owner_id == entry.stable_id) return ApplicationWindowRefusal::invalid_text;
     const Size initial = entry.options.initial_size;
     const Size minimum = entry.options.minimum_size;
-    if (!valid_size(initial) || !valid_size(minimum)) return false;
-    if (minimum.width > initial.width || minimum.height > initial.height) return false;
+    if (!valid_size(initial)) return ApplicationWindowRefusal::invalid_initial_size;
+    if (!valid_minimum_size(minimum)) return ApplicationWindowRefusal::invalid_minimum_size;
+    if (minimum.width > initial.width || minimum.height > initial.height) {
+        return ApplicationWindowRefusal::below_minimum_size;
+    }
     // A popup has an owner, is neither a tool nor a floating window, and
     // its origin is a finite desktop point in range.
     if (entry.popup.has_value()) {
@@ -142,13 +183,17 @@ bool valid_window_entry(const ApplicationWindow& entry) {
                                  (*entry.popup).focus == HostPopupFocus::passive;
         const bool popup_valid = !entry.tool_window && entry.floating == HostWindowFloating::none &&
                                  !entry.owner_id.empty() && origin_valid && focus_valid;
-        return popup_valid;
+        const ApplicationWindowRefusal popup_refusal =
+            popup_valid ? ApplicationWindowRefusal::none : ApplicationWindowRefusal::invalid_popup;
+        return popup_refusal;
     }
     // A floating window has an owner and is not a tool window in the host's
     // sense (HostWindowFloating).
-    if (entry.floating == HostWindowFloating::none) return true;
+    if (entry.floating == HostWindowFloating::none) return ApplicationWindowRefusal::none;
     const bool floating_valid = !entry.tool_window && !entry.owner_id.empty();
-    return floating_valid;
+    const ApplicationWindowRefusal floating_refusal =
+        floating_valid ? ApplicationWindowRefusal::none : ApplicationWindowRefusal::invalid_floating;
+    return floating_refusal;
 }
 
 bool primary_window_entry(const ApplicationWindow& entry) noexcept {
@@ -172,6 +217,7 @@ void revoke_window_state(ApplicationWindowState& state) noexcept {
     state.toggle_full_screen = {};
     state.set_title = {};
     state.request_client_size = {};
+    state.restore_focus = {};
     state.frame_changed = {};
 }
 
@@ -455,29 +501,45 @@ bool Application::tool_tips_shown() const noexcept {
 
 ApplicationResult Application::validate(const std::vector<ApplicationWindow>& windows) {
     if (windows.empty() || windows.size() > maximum_windows) {
-        return {ApplicationError::invalid_argument};
+        ApplicationResult counted{ApplicationError::invalid_argument};
+        counted.refusal = ApplicationWindowRefusal::window_count;
+        return counted;
     }
     std::size_t primary_count = 0U;
     for (std::size_t index = 0U; index < windows.size(); ++index) {
         const ApplicationWindow& entry = windows[index];
         ApplicationResult invalid{ApplicationError::invalid_argument};
         invalid.window_index = index;
-        if (!detail::valid_window_entry(entry)) return invalid;
+        invalid.refusal = detail::window_entry_refusal(entry);
+        if (invalid.refusal == ApplicationWindowRefusal::below_minimum_size) {
+            invalid.minimum_size = entry.options.minimum_size;
+            invalid.initial_size = entry.options.initial_size;
+        }
+        if (invalid.refusal != ApplicationWindowRefusal::none) return invalid;
         // A popup opens during the run only (Window::open_native_popup).
+        invalid.refusal = ApplicationWindowRefusal::invalid_popup;
         if (entry.popup.has_value()) return invalid;
         if (!(*entry.model).check_access()) {
             invalid.error = ApplicationError::wrong_thread;
+            invalid.refusal = ApplicationWindowRefusal::none;
             return invalid;
         }
         if (detail::primary_window_entry(entry)) {
             ++primary_count;
+            invalid.refusal = ApplicationWindowRefusal::hidden_primary;
             if (!entry.options.initially_visible || entry.options.hide_on_close) return invalid;
         }
         // Stable ids are unique: an earlier entry with this one refuses it.
+        invalid.refusal = ApplicationWindowRefusal::duplicate_stable_id;
         if (entry_index(windows, entry.stable_id) < index) return invalid;
+        invalid.refusal = ApplicationWindowRefusal::invalid_owner;
         if (!owner_chain_valid(windows, index)) return invalid;
     }
-    if (primary_count != 1U) return {ApplicationError::invalid_argument};
+    if (primary_count != 1U) {
+        ApplicationResult primaries{ApplicationError::invalid_argument};
+        primaries.refusal = ApplicationWindowRefusal::primary_count;
+        return primaries;
+    }
     return {};
 }
 HostServiceStatus ApplicationWindowHandle::set_title(const std::string_view title) const {
@@ -640,6 +702,96 @@ ApplicationWindowOpenResult ApplicationWindows::open_window(ApplicationWindow&& 
         result = {};
         result.status.error = HostServiceError::backend_failure;
     }
+    return result;
+}
+
+namespace {
+// One show_modal call's outcome, shared by the call and the subscription
+// to the model's dialog_result_changed (which may outlive neither: the
+// call disconnects it before returning).
+struct ModalOutcome final {
+    DialogResult dialog_result{DialogResult::none};
+    // Set once the window is ready; until then a result is only recorded.
+    ApplicationWindowHandle window{};
+};
+
+// dialog_result_changed's target during show_modal: records the result and,
+// for one other than none, asks the window to close.
+struct ModalDialogResultChanged final {
+    std::shared_ptr<ModalOutcome> outcome{};
+    void operator()(DialogResult result) const {
+        (*outcome).dialog_result = result;
+        if (result == DialogResult::none || !(*outcome).window.active()) return;
+        static_cast<void>((*outcome).window.request_close());
+    }
+};
+} // namespace
+
+namespace {
+// After a modal window over it closed: the owner's last focused control
+// takes focus back in the model. The host has reactivated the owner
+// natively (run_modal_impl), which restores it too when the activation is
+// reported; this covers a host or test that reports no activation.
+void restore_owner_focus(const detail::ApplicationRunState& run, std::string_view owner_id) {
+    for (std::size_t index = 0U; index < run.windows.size(); ++index) {
+        const std::shared_ptr<detail::ApplicationWindowState> state = run.windows[index].state.lock();
+        if (!state || (*state).closed || (*state).stable_id != owner_id) continue;
+        if ((*state).restore_focus) (*state).restore_focus();
+        return;
+    }
+}
+} // namespace
+
+ApplicationModalResult ApplicationWindows::show_modal(ApplicationWindow&& window) const {
+    ApplicationModalResult result;
+    const std::shared_ptr<detail::ApplicationRunState> run = live_run(run_, result.status);
+    if (!run) return result;
+    if (!window.model || window.owner_id.empty() || window.popup.has_value() ||
+        window.floating != HostWindowFloating::none) {
+        result.status.error = HostServiceError::invalid_argument;
+        return result;
+    }
+    HostWindowing& windowing = *(*run).windowing;
+    if (!windowing.supports_modal_windows()) {
+        result.status.error = HostServiceError::unsupported;
+        return result;
+    }
+    if (windowing.modal_depth() >= HostWindowing::maximum_modal_depth) {
+        result.status.error = HostServiceError::modal_limit;
+        return result;
+    }
+    // Subscribed before the open, so a result set by the ready callback is
+    // seen. The token is safe after the model is gone (Event's slots hold
+    // the event weakly).
+    const std::shared_ptr<ModalOutcome> outcome = std::make_shared<ModalOutcome>();
+    (*outcome).dialog_result = (*window.model).dialog_result();
+    const std::string owner_id = window.owner_id;
+    SubscriptionToken subscription =
+        (*window.model).dialog_result_changed().subscribe(ModalDialogResultChanged{outcome});
+    const ApplicationWindowOpenResult opened = open_window(std::move(window));
+    if (!opened.status.accepted()) {
+        result.status = opened.status;
+        return result;
+    }
+    (*outcome).window = opened.window;
+    // A result set before the window was ready closes it now.
+    if ((*outcome).dialog_result != DialogResult::none && opened.window.active()) {
+        static_cast<void>(opened.window.request_close());
+    }
+    // The open's callbacks may already have closed the window.
+    const HostWindowId id = opened.window.id();
+    if (id.valid() && windowing.live(id)) {
+        try {
+            result.status = windowing.run_modal(id);
+        } catch (...) {
+            subscription.disconnect();
+            throw;
+        }
+    }
+    subscription.disconnect();
+    if (!(*run).closed) restore_owner_focus(*run, owner_id);
+    result.dialog_result = (*outcome).dialog_result == DialogResult::none
+        ? DialogResult::cancel : (*outcome).dialog_result;
     return result;
 }
 

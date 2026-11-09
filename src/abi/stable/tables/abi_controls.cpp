@@ -9,6 +9,7 @@
 
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -45,6 +46,8 @@ constexpr SlotIdentity scroll_state_slot{GF_TABLE_CONTROLS, 7U};
 constexpr SlotIdentity set_scroll_axis_slot{GF_TABLE_CONTROLS, 8U};
 constexpr SlotIdentity scroll_into_view_slot{GF_TABLE_CONTROLS, 9U};
 constexpr SlotIdentity invalidate_slot{GF_TABLE_CONTROLS, 10U};
+constexpr SlotIdentity focus_slot{GF_TABLE_CONTROLS, 11U};
+constexpr SlotIdentity focus_state_slot{GF_TABLE_CONTROLS, 12U};
 
 constexpr std::uint32_t layout_transaction_size_1_0 = 32U;
 constexpr std::uint32_t scroll_snapshot_size_1_0 = 248U;
@@ -338,6 +341,77 @@ gf_status GF_CALL controls_invalidate(gf_object object, const gf_logical_rect* d
     }
 }
 
+// Focus (since 1.1): Control.Focus / Select, Focused and ContainsFocus.
+gf_status focus_control(gf_object object, std::uint32_t* focused) {
+    Control::Ptr control;
+    const gf_status entered = enter_live_control(object, focus_slot, control);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    SurfaceRoot* const window = (*control).attached_surface_root();
+    if (window == nullptr) {
+        return fail(GF_STATUS_INVALID_STATE, focus_slot, "the control is not in a window");
+    }
+    if (!(*control).eligible_for_input()) {
+        return fail(GF_STATUS_INVALID_STATE, focus_slot,
+                    "the control cannot take focus: it or an ancestor is disabled or hidden");
+    }
+    // A composite field (a combo box with an edit field, a numeric up-down)
+    // gives focus to its edit part, which must be able to take it.
+    const Control::Ptr target = SurfaceRoot::focus_target_of(control);
+    if (!(*target).eligible_for_input() || !(*target).focusable.read()) {
+        return fail(GF_STATUS_INVALID_STATE, focus_slot, "the control cannot take focus: it is not focusable");
+    }
+    const bool moved = (*window).request_focus(control);
+    if (!moved || (*window).focused_control() != target) {
+        return fail(GF_STATUS_INVALID_STATE, focus_slot,
+                    "focus was refused: the control is outside the window's open focus scope, or validation "
+                    "kept focus where it was");
+    }
+    if (focused != nullptr) *focused = (*window).active() ? 1U : 0U;
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL controls_focus(gf_object object, std::uint32_t* focused) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(focus_slot.table_id, focus_slot.slot_index);
+        const gf_status status = focus_control(object, focused);
+        return status;
+    } catch (...) {
+        return fail_with_current_exception(focus_slot);
+    }
+}
+
+// Whether `holder` is `control` or one of its ancestors.
+bool holds(const Control::Ptr& holder, const Control::Ptr& control) noexcept {
+    for (Control::Ptr current = control; current; current = (*current).parent()) {
+        if (current == holder) return true;
+    }
+    return false;
+}
+
+gf_status GF_CALL controls_focus_state(gf_object object, std::uint32_t* focused,
+                                       std::uint32_t* contains_focus) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(focus_state_slot.table_id, focus_state_slot.slot_index);
+        Control::Ptr control;
+        const gf_status entered = enter_live_control(object, focus_state_slot, control);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        SurfaceRoot* const window = (*control).attached_surface_root();
+        const Control::Ptr current = window == nullptr ? Control::Ptr{} : (*window).focused_control();
+        // A composite is focused while its edit part holds focus.
+        const bool is_focused = window != nullptr && (*window).control_focused(control);
+        const bool contains = current && holds(control, current);
+        if (focused != nullptr) *focused = is_focused ? 1U : 0U;
+        if (contains_focus != nullptr) *contains_focus = contains ? 1U : 0U;
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(focus_state_slot);
+    }
+}
+
 constexpr gf_controls_table table{
     .struct_size = sizeof(gf_controls_table),
     .abi_minor = GF_ABI_MINOR,
@@ -352,6 +426,8 @@ constexpr gf_controls_table table{
     .set_scroll_axis = &controls_set_scroll_axis,
     .scroll_into_view = &controls_scroll_into_view,
     .invalidate = &controls_invalidate,
+    .focus = &controls_focus,
+    .focus_state = &controls_focus_state,
 };
 
 } // namespace
