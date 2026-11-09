@@ -101,4 +101,28 @@ double DamageRegion::area() const noexcept {
     return result;
 }
 
+DamageRegion damage_after_scroll_copy(const DamageRegion& damage, Rect clip, Point offset) {
+    DamageRegion result;
+    for (const Rect rect : damage.rectangles()) {
+        const Rect inside = Rect::intersection(rect, clip);
+        if (inside.empty()) {
+            result.add(rect);
+            continue;
+        }
+        // The share outside the clip: the full-width bands above and below
+        // it, then the parts left and right of it within its rows.
+        const double right = rect.x + rect.width;
+        const double bottom = rect.y + rect.height;
+        const double inside_right = inside.x + inside.width;
+        const double inside_bottom = inside.y + inside.height;
+        result.add(Rect{rect.x, rect.y, rect.width, inside.y - rect.y});
+        result.add(Rect{rect.x, inside_bottom, rect.width, bottom - inside_bottom});
+        result.add(Rect{rect.x, inside.y, inside.x - rect.x, inside.height});
+        result.add(Rect{inside_right, inside.y, right - inside_right, inside.height});
+        const Rect moved{inside.x + offset.x, inside.y + offset.y, inside.width, inside.height};
+        result.add(Rect::intersection(moved, clip));
+    }
+    return result;
+}
+
 } // namespace gui_forms

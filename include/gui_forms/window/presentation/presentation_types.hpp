@@ -132,6 +132,15 @@ struct PresentedArea final {
     std::uint64_t copy_nanoseconds{};
 };
 
+// A scroll copy (SurfaceRoot::take_scroll_copies): the host moves the pixels
+// it holds inside `clip` by `offset`, both in window coordinates and whole
+// device pixels, before painting the damage taken with it. Pixels moved from
+// outside the clip are never needed: the damage covers what the copy exposed.
+struct ScrollCopy final {
+    Rect clip{};
+    Point offset{};
+};
+
 // Immutable host placement for the newest generation of one live surface.
 struct LiveSurfacePresentation final {
     RuntimeId control{};
