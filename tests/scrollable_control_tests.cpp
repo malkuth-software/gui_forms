@@ -1,4 +1,5 @@
 #include "gui_forms/gui_forms.hpp"
+#include "support/clip_tracking_painter.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -303,6 +304,10 @@ void test_scroll_bar_press_and_hold_repeats_on_a_ui_timer() {
 // over the viewport is repainted where it is and where the copy moved it.
 void test_scroll_copies_damage_only_the_exposed_band() {
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("copy.root"));
+    // An opaque solid ground whose paint does not depend on its size: the
+    // copy's precondition beneath the viewport (the theme's panel material
+    // has a border band and no opaque cover).
+    (*root).set_background(Color::rgba(240, 240, 240));
     std::shared_ptr<gui_forms::ScrollableControl> viewport =
         make_control<ScrollableControl>(StableId("copy.viewport"));
     (*viewport).auto_scroll = true;
@@ -314,6 +319,10 @@ void test_scroll_copies_damage_only_the_exposed_band() {
     Window window(root, {200.0, 120.0});
     window.set_scroll_copies_supported(true);
     window.perform_layout();
+    // The host has painted and presented a frame: the controls have
+    // recorded what they paint, which is what the copy keeps.
+    test_support::ClipTrackingPainter painter;
+    static_cast<void>(window.paint(painter));
     static_cast<void>(window.take_damage());
     std::vector<ScrollCopy> copies;
     window.take_scroll_copies(copies);
@@ -379,7 +388,8 @@ void test_damage_moves_with_a_scroll_copy() {
             "a rectangle crossing the clip keeps its outside share");
 }
 
-// A panel 100 high over content 1000 high: the vertical axis scrolls 0..900.
+// A panel 100 high over content 1000 high (and its 3-unit margin): the
+// vertical axis scrolls 0..903.
 struct GlideFixture final {
     ManualTime time{};
     std::shared_ptr<gui_forms::Panel> panel = make_control<Panel>(StableId("glide.panel"));
@@ -441,7 +451,11 @@ void test_wheel_glides_on_the_motion_clock() {
 
     // At the end of the range the target clamps; a line past it is not
     // handled, so an enclosing scroller may take it.
-    require(f.wheel(-2000.0, WheelDeltaUnit::pixels) && near((*f.panel).scroll_target().y, 900.0), "the target clamps to the range");
+    // The range ends at the content's bottom plus its margin (Control's
+    // default margin, 3 on each side) less the viewport's height.
+    const double range_end = 1000.0 + (*f.content).margin.read().bottom - 100.0;
+    require(f.wheel(-2000.0, WheelDeltaUnit::pixels) && near((*f.panel).scroll_target().y, range_end),
+            "the target clamps to the range");
     advance_frames(f.window, f.time, 60);
     require(!f.wheel(-1.0) && !(*f.panel).scrolling_smoothly(),
             "a line past the end must not be handled or start a glide");
