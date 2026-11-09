@@ -935,6 +935,7 @@ add_library(gui_forms_controls STATIC
     src/controls/range_control/range_control_rendering.cpp
     src/controls/range_control/progress_bar/progress_bar_effects.cpp
     src/controls/range_control/range_control.cpp
+    src/controls/range_control/value_bar/value_text.cpp
     src/controls/range_control/track_bar/track_bar.cpp
     src/controls/range_control/progress_bar/progress_bar.cpp
     src/controls/instruments/sweep_scope/sweep_scope.cpp
@@ -3801,6 +3802,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_drag_engine_tests tests/drag_engine_tests.cpp)
     target_link_libraries(gui_forms_drag_engine_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_drag_engine_tests COMMAND gui_forms_drag_engine_tests)
+    add_executable(gui_forms_value_text_tests tests/value_text_tests.cpp)
+    target_link_libraries(gui_forms_value_text_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_value_text_tests COMMAND gui_forms_value_text_tests)
 
     add_executable(gui_forms_layout_contract_tests
         tests/layout_contract_tests.cpp
