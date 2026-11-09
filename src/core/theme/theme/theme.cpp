@@ -1905,7 +1905,7 @@ BandDeclaration Theme::window_band(const Window& window) const noexcept {
     CompiledThemeRules::PartFacts facts{};
     facts.surface = SurfaceKind::window;
     facts.stable_id = (*root).stable_id().value();
-    facts.classes = (*root).classes();
+    facts.classes = (*root).classes.read();
     facts.media = window_media_facts(window);
     facts.user_rules = window.user_theme_rules();
     const BandDeclaration declared = engine_.rules().resolve_band(facts);
