@@ -510,6 +510,10 @@ private:
                 style = style | WS_CAPTION | WS_THICKFRAME;
                 extended = extended | WS_EX_TOOLWINDOW;
                 break;
+            default:
+                // Window refuses a value outside the enumeration when it is
+                // set, so none arrives; one would leave the frame bits clear.
+                break;
             }
         }
         if (fields.contains(WindowChromeField::control_box)) {

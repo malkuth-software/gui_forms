@@ -28,16 +28,18 @@ using namespace gui_forms;
 constexpr const char* log_path = "/tmp/gf_term.log";
 constexpr const char* refuse_flag = "/tmp/gf_term_refuse";
 
-// Appends "<local time>.<ms> pid=<pid> <event>" to the log, opening and
-// closing it each time so every line is on disk at once.
+// Appends "<UTC time>.<ms> pid=<pid> <event>" to the log, opening and
+// closing it each time so every line is on disk at once. UTC, not local
+// time: lsan.supp suppresses leaks under the local-time call, so no first-party frame
+// may call it (test_ci_build).
 void append_line(const char* const event) {
     timeval now{};
     gettimeofday(&now, nullptr);
     const std::time_t seconds = now.tv_sec;
-    std::tm local{};
-    localtime_r(&seconds, &local);
+    std::tm utc{};
+    gmtime_r(&seconds, &utc);
     char stamp[32];
-    std::strftime(stamp, sizeof stamp, "%Y-%m-%d %H:%M:%S", &local);
+    std::strftime(stamp, sizeof stamp, "%Y-%m-%d %H:%M:%SZ", &utc);
     std::FILE* const file = std::fopen(log_path, "a");
     if (file == nullptr) return;
     std::fprintf(file, "%s.%03d pid=%d %s\n", stamp, static_cast<int>(now.tv_usec / 1000), static_cast<int>(getpid()),

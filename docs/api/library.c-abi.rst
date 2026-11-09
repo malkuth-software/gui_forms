@@ -224,6 +224,8 @@ Types
      -  
    * - :cpp:class:`gf_subsurfaces_table <gf_subsurfaces_table>`
      -  
+   * - :cpp:class:`gf_text_decoration <gf_text_decoration>`
+     -  
    * - :cpp:class:`gf_text_editing_table <gf_text_editing_table>`
      -  
    * - :cpp:class:`gf_theme_diagnostic <gf_theme_diagnostic>`
@@ -2952,6 +2954,36 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_text_decoration
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint64_t start
+
+   .. cpp:member:: uint64_t end
+
+   .. cpp:member:: gf_text_decoration_fields fields
+
+   .. cpp:member:: gf_text_ink_role ink
+
+   .. cpp:member:: uint32_t foreground
+
+   .. cpp:member:: uint32_t weight
+
+   .. cpp:member:: uint32_t italic
+
+   .. cpp:member:: gf_text_underline underline
+
+   .. cpp:member:: uint32_t underline_color
+
+   .. cpp:member:: uint32_t background
+
+   .. cpp:member:: uint32_t tag
+
+   .. cpp:member:: uint32_t reserved
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_text_editing_table
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -2972,6 +3004,16 @@ Types
    .. cpp:member:: gf_status (*redo)(gf_object object, uint32_t* changed)
 
    .. cpp:member:: gf_status (*clear_undo_history)(gf_object object)
+
+   .. cpp:member:: gf_status (*set_decorations)(gf_object object, uint32_t layer, const gf_text_decoration* decorations, uint64_t count)
+
+   .. cpp:member:: gf_status (*replace_decorations)(gf_object object, uint32_t layer, uint64_t start, uint64_t end, const gf_text_decoration* decorations, uint64_t count)
+
+   .. cpp:member:: gf_status (*clear_decorations)(gf_object object)
+
+   .. cpp:member:: gf_status (*decoration_count)(gf_object object, uint32_t layer, uint64_t* count)
+
+   .. cpp:member:: gf_status (*decoration_at)(gf_object object, uint32_t layer, uint64_t index, gf_text_decoration* decoration)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3173,6 +3215,8 @@ Types
    .. cpp:member:: gf_status (*interaction_at)(uint64_t interaction, gf_schema_interaction* record)
 
    .. cpp:member:: gf_status (*request_help)(gf_object window, uint32_t* handled)
+
+   .. cpp:member:: gf_status (*key_state)(gf_object window, uint32_t physical_key, uint32_t* down)
 
    .. cpp:member:: gf_status (*show_modal)(gf_object root, const gf_owned_window_options* options, gf_dialog_result_code* result)
 
@@ -3698,6 +3742,16 @@ Types
 
    .. cpp:function:: gf_status clear_undo_history(gf_object object) const noexcept
 
+   .. cpp:function:: gf_status replace_decorations(gf_object object, uint32_t layer, uint64_t start, uint64_t end, const gf_text_decoration* decorations, uint64_t count) const noexcept
+
+   .. cpp:function:: gf_status clear_decorations(gf_object object) const noexcept
+
+   .. cpp:function:: gf_status decoration_count(gf_object object, uint32_t layer, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status decoration_at(gf_object object, uint32_t layer, uint64_t index, gf_text_decoration* decoration) const noexcept
+
+   .. cpp:function:: gf_status set_decorations(gf_object object, uint32_t layer, const gf_text_decoration* decorations, uint64_t count) const noexcept
+
 .. cpp:namespace:: gui_forms::abi
 
 .. cpp:class:: ThemesTable
@@ -3846,6 +3900,8 @@ Types
    .. cpp:function:: gf_status interaction_at(uint64_t interaction, gf_schema_interaction* record) const noexcept
 
    .. cpp:function:: gf_status request_help(gf_object window, uint32_t* handled) const noexcept
+
+   .. cpp:function:: gf_status key_state(gf_object window, uint32_t physical_key, uint32_t* down) const noexcept
 
    .. cpp:function:: gf_status show_modal(gf_object root, const gf_owned_window_options* options, gf_dialog_result_code* result) const noexcept
 

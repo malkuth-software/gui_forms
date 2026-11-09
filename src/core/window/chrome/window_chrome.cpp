@@ -70,10 +70,10 @@ HostImage decode_icon(const ImageResourceView& view) {
     const std::uint32_t height = view.metadata.height;
     if (width == 0U || height == 0U) return icon;
     const std::uint64_t row_bytes = static_cast<std::uint64_t>(width) * 4U;
-    // The registry admitted the image, so its pixel count is within its
-    // limits; the product cannot overflow 64 bits for 32-bit extents.
+    // The shape is checked before the product: an image whose rows exceed
+    // the host's byte limit gives the default icon.
+    if (height > HostImage::maximum_bytes / row_bytes) return icon;
     const std::uint64_t byte_count = row_bytes * height;
-    if (byte_count > HostImage::maximum_bytes) return icon;
     if (view.encoding == ImageResourceEncoding::bgra32_premultiplied) {
         if (view.row_bytes < row_bytes || view.encoded.size() < view.row_bytes * (height - 1U) + row_bytes) {
             return icon;

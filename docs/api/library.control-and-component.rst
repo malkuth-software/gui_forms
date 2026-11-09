@@ -3877,4 +3877,4 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::size_t maximum_interactions
 
-   Upper bound on one type's interactions, its inherited ones included. Value: ``64``.
+   Upper bound on one type's interactions, its inherited ones included (DataGridView declares 66 with the key events). Value: ``96``.

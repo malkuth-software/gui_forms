@@ -3331,5 +3331,9 @@ Interactions beyond every control's: none.
 | `dialog_result_changed` | `DialogResult` |
 | `focused_control_changed` | `FocusedControlChange` |
 | `help_requested` | `HelpRequestEvent`, by reference |
+| `key_down` | `KeyEventArgs`, by reference |
+| `key_press` | `KeyPressEventArgs`, by reference |
+| `key_state_changed` | `KeyStateChange` |
+| `key_up` | `KeyEventArgs`, by reference |
 | `presentation_changed` | `PresentationSettings` |
 | `theme_changed` | `Theme` |

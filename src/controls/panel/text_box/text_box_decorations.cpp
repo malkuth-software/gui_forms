@@ -183,6 +183,10 @@ PartPaint TextBox::decorated_text_part(const PartPaint& base, const TextDecorati
         case TextInkRole::notice:
             part.family = ControlVisualRole::notice;
             break;
+        default:
+            // An ink outside the enumeration (a foreign cast) keeps the
+            // field's own family, with the ordinary tone set above.
+            break;
         }
     }
     if (style.foreground.has_value()) part.authored_foreground = *style.foreground;

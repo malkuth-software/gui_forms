@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <span>
 #include <vector>
 #include <chrono>
@@ -254,6 +255,9 @@ void write_wm_icon(NativeWindow &window, const HostImage &image) {
           (alpha << 24U) | (red << 16U) | (green << 8U) | blue;
     }
   }
+  // XChangeProperty counts elements in an int; HostImage's byte limit keeps
+  // an icon far below it, and a larger one is not published.
+  if (data.size() > static_cast<std::size_t>(std::numeric_limits<int>::max())) return;
   XChangeProperty(window.runtime.display, window.xid, property, XA_CARDINAL, 32, PropModeReplace,
                   reinterpret_cast<const unsigned char *>(data.data()), static_cast<int>(data.size()));
 }

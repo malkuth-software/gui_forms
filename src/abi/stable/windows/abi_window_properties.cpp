@@ -234,6 +234,10 @@ void reset_window_property(Window& window, const WindowPropertyEntry& property) 
     case WindowChromeField::start_position: window.start_position = defaults.start_position; return;
     case WindowChromeField::show_in_taskbar: window.show_in_taskbar = defaults.show_in_taskbar; return;
     case WindowChromeField::minimum_size: window.minimum_size = defaults.minimum_size; return;
+    default:
+        // The entries come from this table's own list, which names only the
+        // fields above: there is nothing else to reset.
+        return;
     }
 }
 

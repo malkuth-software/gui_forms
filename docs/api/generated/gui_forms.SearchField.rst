@@ -189,7 +189,7 @@ gui_forms::SearchField
 
    .. cpp:function:: Ptr focus_target() const override
 
-      Focus on the field goes to its edit part (null without one).
+      Focus on the field goes to its edit part (null without one). Defined in the source: TextBox is only declared here.
 
    .. cpp:function:: Size measure(Size available) override
 
