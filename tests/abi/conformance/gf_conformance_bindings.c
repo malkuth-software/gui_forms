@@ -204,7 +204,7 @@ static void GF_CALL on_bindings_ready(void* context, gf_event* event) {
                                                      &arguments, &(*run).source);
     arguments.owner = (*run).child;
     (*run).made_on_child = (*kit).objects.create_with(gf_kit_text("BindingSource"),
-                                                      gf_kit_text("kit.run.child_source"), &arguments,
+                                                      gf_kit_text("kit.run.child-source"), &arguments,
                                                       &(*run).child_source);
     uint64_t index = 0u;
     (*run).added = add_titled(kit, (*run).source, "only", "Only", &index);
