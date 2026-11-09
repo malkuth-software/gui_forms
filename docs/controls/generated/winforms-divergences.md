@@ -67,6 +67,17 @@ records every difference here with its reason and the decision behind it.
 | Reason | Focus moves before the grid learns of it (Window::focused_control_changed), and taking it back from the window's focus change would let one control veto another's focus, which no other control may do. |
 | Decision | owner, 2026-11-02 |
 
+## Splitter
+
+### drag (live resize, cancel, keyboard)
+
+| | |
+|---|---|
+| Windows Forms | Dragging draws a split line and resizes the target on release; Escape during the drag cancels and the target keeps its size. The splitter has no keyboard input. |
+| GUI.Forms | Dragging resizes the target live (splitter_moving before each step). Escape, losing the pointer capture and the window's deactivation cancel and put the target back at its size before the drag. The begin_keyboard_drag rule action moves the bar from the keyboard (arrows by 10, Ctrl 100, Shift 1; Enter keeps, Escape restores). |
+| Reason | The drag runs on the drag engine, whose cancels never leave a model changed; the observable end of Escape is Windows Forms'. Live resizing was already GUI.Forms' behaviour, and the keyboard path is the engine's accessibility rule (every drag has a keyboard equivalent). |
+| Decision | coordinator, 2026-11-08 |
+
 ## TableLayoutPanelCompat
 
 ### column_span / row_span (automatic children)
