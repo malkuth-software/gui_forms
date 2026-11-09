@@ -156,6 +156,10 @@ Button::States Button::states() const {
 
 void Button::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
+    if (visual_style.read() == ButtonVisualStyle::flat) {
+        paint_flat_button(painter, bounds, flat_border_width.read());
+        return;
+    }
     const ControlVisualRole role = button_visual_role(visual_style.read());
     // An overridden accent button keeps its accent face and paper text while
     // enabled; disabled, it takes the override's face and disabled text, as
