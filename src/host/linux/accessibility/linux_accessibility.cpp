@@ -993,7 +993,6 @@ gint offset_at_point(AtkText* object, gint x, gint y, AtkCoordType coordinates) 
     g_object_unref(accessible);
     return result;
 }
-}
 void publish_on_query(AtkObject* object) {
     NodeData& value = data(object);
     if (!value.frame || value.owner == nullptr) return;
@@ -1001,6 +1000,7 @@ void publish_on_query(AtkObject* object) {
     if (owner.model == nullptr || owner.published) return;
     owner.update();
 }
+} // namespace
 LinuxAccessibility::LinuxAccessibility(Display* display, ::Window native, Window& model, const std::string& title)
     : impl_(std::make_unique<Impl>()) {
     (*impl_).display = display; (*impl_).native = native; (*impl_).model = &model;
