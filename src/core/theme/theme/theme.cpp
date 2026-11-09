@@ -996,6 +996,23 @@ bool valid_fill_layer(const MaterialFillLayer& fill) noexcept {
 
 } // namespace
 
+namespace {
+
+// Whether every present single edge of `edges` has the same width.
+bool equal_edge_widths(const MaterialBorderEdges& edges) noexcept {
+    const std::array<const std::optional<MaterialBorder>*, 4> sides{&edges.top, &edges.right, &edges.bottom,
+                                                                     &edges.left};
+    std::optional<double> width{};
+    for (const std::optional<MaterialBorder>* side : sides) {
+        if (!*side) continue;
+        if (width && *width != (**side).width) return false;
+        width = (**side).width;
+    }
+    return true;
+}
+
+} // namespace
+
 bool valid_surface_material(const SurfaceMaterial& material) noexcept {
     if (material.fills.empty() ||
         material.fills.size() > SurfaceMaterial::maximum_fill_layers ||
@@ -1010,10 +1027,13 @@ bool valid_surface_material(const SurfaceMaterial& material) noexcept {
         return false;
     }
     if (material.border && !material.border_edges.empty()) return false;
-    if (!material.border_edges.empty() && material.corner_radius != 0.0) {
+    // Rounded single edges draw as one ring split at the corners, so their
+    // widths are equal.
+    if (!material.border_edges.empty() && material.corner_radius != 0.0 &&
+        !equal_edge_widths(material.border_edges)) {
         return false;
     }
-    // Single edges are square-cornered, as with corner_radius.
+    // Per-corner radii take no single edges.
     if (material.corner_radii &&
         (!valid_corner_radii(*material.corner_radii) ||
          !material.border_edges.empty())) {

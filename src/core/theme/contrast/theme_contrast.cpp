@@ -123,18 +123,37 @@ bool sample_material(const SurfaceMaterial& material, const FaceSamples& ground,
     return true;
 }
 
-// The material's edge colour: its border, else the first per-edge border,
-// else none (the face is the boundary).
-std::optional<Color> edge_colour(const SurfaceMaterial& material) noexcept {
-    if (material.border && (*material.border).width > 0.0) return (*material.border).color;
+// The material's edge colours: its border, else each drawn single edge
+// and the keylines of a bevel (the inner ring of edges that differ: a
+// sunken well's dark inner line is its boundary as much as its outer
+// one), else none (the face is the boundary). `colours` holds at most
+// 4 + SurfaceMaterial::maximum_keylines entries. Returns the count.
+using EdgeColours = std::array<Color, 4U + SurfaceMaterial::maximum_keylines>;
+
+std::size_t edge_colours(const SurfaceMaterial& material, EdgeColours& colours) noexcept {
+    if (material.border && (*material.border).width > 0.0) {
+        colours[0] = (*material.border).color;
+        return 1U;
+    }
     const std::array<const std::optional<MaterialBorder>*, 4> edges{
         &material.border_edges.top, &material.border_edges.right,
         &material.border_edges.bottom, &material.border_edges.left,
     };
+    std::size_t count = 0U;
     for (const std::optional<MaterialBorder>* edge : edges) {
-        if (*edge && (**edge).width > 0.0) return (**edge).color;
+        if (*edge && (**edge).width > 0.0) {
+            colours[count] = (**edge).color;
+            ++count;
+        }
     }
-    return std::nullopt;
+    if (count == 0U) return count;
+    for (const MaterialKeyline& keyline : material.keylines) {
+        if (count == colours.size()) break;
+        if (keyline.width <= 0.0) continue;
+        colours[count] = keyline.color;
+        ++count;
+    }
+    return count;
 }
 
 // The worst pair of `foreground` composited over each of `backgrounds`.
@@ -314,12 +333,18 @@ void measure_recipe(const ControlVisualRecipe& recipe, const ContrastRow& key, b
     rows.push_back(measured_row(key, ContrastPair::muted_text, worst_over(recipe.muted_text, face), text_floor));
     rows.push_back(measured_row(key, ContrastPair::glyph, worst_over(recipe.glyph, face), non_text_minimum));
     if (boundary) {
-        const std::optional<Color> edge = edge_colour(recipe.material);
+        // A bevel (edges that differ, with its inner ring) is seen by its
+        // strongest line, its shadow side: the boundary is the best of the
+        // lines' worst pairs.
+        EdgeColours edges{};
+        const std::size_t edge_count = edge_colours(recipe.material, edges);
         WorstPair worst{};
-        if (edge) {
-            worst = worst_over(*edge, surround);
-        } else {
+        if (edge_count == 0U) {
             worst = worst_between(face, surround);
+        }
+        for (std::size_t index = 0U; index < edge_count; ++index) {
+            const WorstPair pair = worst_over(edges[index], surround);
+            if (index == 0U || pair.ratio > worst.ratio) worst = pair;
         }
         rows.push_back(measured_row(key, ContrastPair::boundary, worst, non_text_minimum));
     }
