@@ -48,7 +48,9 @@ void RibbonGroupOverlay::arrange(Rect final_bounds) {
     for (std::size_t command = 0; command < records.size(); ++command) {
         const Control::Ptr& control = records[command].hosted;
         if (!control || !is_current_layout_child(control)) continue;
-        const Rect bounds = Rect::intersection(placed.commands[group][command], panel_);
+        const RibbonCommandSpec& spec = ribbon.tabs_[tab].groups[group].commands[command];
+        const Rect field = ribbon.split_field(spec, placed.commands[group][command]).field;
+        const Rect bounds = Rect::intersection(field, panel_);
         set_child_layout_collapsed(control, bounds.empty());
         if (!bounds.empty()) set_child_layout(control, bounds);
     }

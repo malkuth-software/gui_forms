@@ -89,6 +89,7 @@ bool Ribbon::show_application_overlay(MenuOpenMode mode) {
     (*application_overlay_).set_origin(
         {absolute.x + placed.application.x, absolute.y + placed.application.y + placed.application.height});
     (*application_overlay_).reset(mode == MenuOpenMode::keyboard);
+    sync_overlay_themes();
     application_overlay_token_ = (*window).open_overlay(self, application_overlay_);
     application_overlay_open_ = true;
     if (Event<>* closed = application_overlay_token_.closed_event()) {

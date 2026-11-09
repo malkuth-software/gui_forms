@@ -1383,7 +1383,7 @@ Related types
 
    ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
 
-   One command record. ``stable_id`` is unique within the ribbon (across tabs, groups and commands) and names the command in events, semantics and the published anatomy. A button, toggle or split takes its text (when ``text`` is empty), enabled, visible and checked state from its required ``command``, and runs it on a click; a drop-down's command is optional. ``text`` may carry a mnemonic ("&Paste"). Labels are always shown (owner decision 6); a small command with an image may leave its label out (``show_label`` false: an authored icon-only command, decision 30). ``drop_down`` is the menu of a split or drop-down command. A hosted command's ``text`` is its control's accessible name (and a check box's caption); ``choices`` are a combo box's items and ``width`` its width in logical units (zero for the default). A gallery command's ``gallery`` is an in-ribbon RibbonGallery the application made and configured; the ribbon adds it as its child and sets its column count. A font control's ``font_control`` and a colour picker's ``color_picker`` are, likewise, the application's controls, which the ribbon adds and places on one row.
+   One command record. ``stable_id`` is unique within the ribbon (across tabs, groups and commands) and names the command in events, semantics and the published anatomy. A button, toggle or split takes its text (when ``text`` is empty), enabled, visible and checked state from its required ``command``, and runs it on a click; a drop-down's command is optional. ``text`` may carry a mnemonic ("&Paste"). Labels are always shown (owner decision 6); a small command with an image may leave its label out (``show_label`` false: an authored icon-only command, decision 30). ``drop_down`` is the menu of a split or drop-down command. A hosted command's ``text`` is its control's accessible name (and a check box's caption); ``choices`` are a combo box's items and ``width`` its field's width in logical units (zero for the default). A text box or numeric up-down also shows its ``text`` as a label part (Office's field label): at the field's left when its group stacks rows, above the field when the group's layout has one row; ``show_label`` false leaves an unlabelled field. A gallery command's ``gallery`` is an in-ribbon RibbonGallery the application made and configured; the ribbon adds it as its child and sets its column count. A font control's ``font_control`` and a colour picker's ``color_picker`` are, likewise, the application's controls, which the ribbon adds and places on one row.
 
    .. cpp:member:: std::string stable_id
 
@@ -2064,7 +2064,7 @@ Related types
 
    ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
 
-   A tab. ``text`` may carry a mnemonic ("&Home"). ``reduction_order`` is the order in which its groups shrink as the ribbon narrows; after it (or without it) every group that can still shrink does so one step at a time, right to left, repeating (WPF's cycle, decision 32). ``tab_set`` names the contextual tab set the tab belongs to (empty: a core tab); ``modes`` are the application modes it shows in.
+   A tab. ``text`` may carry a mnemonic ("&Home"). ``reduction_order`` is the order in which its groups shrink as the ribbon narrows; after it (or without it) every group that can still shrink does so one step at a time, right to left, repeating (WPF's cycle, decision 32). ``tab_set`` names the contextual tab set the tab belongs to (empty: a core tab); ``modes`` are the application modes it shows in. A panel tab: ``panel`` is a control the application made, which the ribbon adds as its child and sizes to the whole command plane while the tab is selected, in place of groups (the application's own command area, such as a palette or an atlas). It has no groups and no reduction order, and is unowned or already this ribbon's; the ribbon removes it when a new definition no longer names it. Its keyboard stops and semantics are its own, as a hosted control's are.
 
    .. cpp:member:: std::string stable_id
 
@@ -2079,6 +2079,8 @@ Related types
    .. cpp:member:: std::uint32_t modes
 
       Default: ``{ribbon_all_modes}``.
+
+   .. cpp:member:: std::shared_ptr<Control> panel
 
 .. cpp:namespace:: gui_forms
 

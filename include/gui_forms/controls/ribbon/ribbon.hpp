@@ -75,7 +75,11 @@ enum class RibbonCommandSize : std::uint8_t { large, small };
 // icon-only command, decision 30). `drop_down` is the menu of a split or
 // drop-down command. A hosted command's `text` is its control's accessible
 // name (and a check box's caption); `choices` are a combo box's items and
-// `width` its width in logical units (zero for the default). A gallery
+// `width` its field's width in logical units (zero for the default). A text
+// box or numeric up-down also shows its `text` as a label part (Office's
+// field label): at the field's left when its group stacks rows, above the
+// field when the group's layout has one row; `show_label` false leaves an
+// unlabelled field. A gallery
 // command's `gallery` is an in-ribbon RibbonGallery the application made and
 // configured; the ribbon adds it as its child and sets its column count. A
 // font control's `font_control` and a colour picker's `color_picker` are,
@@ -154,6 +158,14 @@ struct RibbonReductionStep final {
 // right to left, repeating (WPF's cycle, decision 32). `tab_set` names the
 // contextual tab set the tab belongs to (empty: a core tab); `modes` are the
 // application modes it shows in.
+//
+// A panel tab: `panel` is a control the application made, which the ribbon
+// adds as its child and sizes to the whole command plane while the tab is
+// selected, in place of groups (the application's own command area, such
+// as a palette or an atlas). It has no groups and no reduction order, and is
+// unowned or already this ribbon's; the ribbon removes it when a new
+// definition no longer names it. Its keyboard stops and semantics are its
+// own, as a hosted control's are.
 struct RibbonTabSpec final {
     std::string stable_id{};
     GUI_FORMS_LOCALIZABLE(text) std::string text{};
@@ -161,6 +173,7 @@ struct RibbonTabSpec final {
     std::vector<RibbonReductionStep> reduction_order{};
     std::string tab_set{};
     std::uint32_t modes{ribbon_all_modes};
+    std::shared_ptr<Control> panel{};
 };
 
 // A contextual tab set (stage RB, phase 5): tabs that show while the
@@ -279,6 +292,11 @@ struct RibbonTabChange final {
 //
 // The file area (phase 6): the File tab opens Backstage when the ribbon has
 // one, else the application menu, in two panes while there are recent items.
+//
+// Text and number fields show their text as a label part, at the field's
+// left or above it in a one-row layout; a panel tab shows the application's
+// control as its command plane; the ribbon and its overlays follow the
+// window's theme and colour scheme as they change.
 //
 // Not yet: hosting the QuickAccessToolbar on the tab row (it is a separate
 // control the application places), the minimized ribbon's temporary overlay,
@@ -541,6 +559,8 @@ public:
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_attachment_committed() noexcept override;
+    void on_attached_to_window() override;
+    void on_detached_from_window() noexcept override;
     void on_dispose() noexcept override;
     [[nodiscard]] bool mnemonic_matches(char32_t character) const noexcept override;
     bool process_mnemonic_self(char32_t character) override;
@@ -654,9 +674,18 @@ private:
     // One command's widths at each image size, measured once. A hosted
     // command's row width is its small width; a gallery's width depends on
     // its columns and is read from the gallery.
+    // A command's widths: as a large command (or a labelled field with its
+    // label above) and as a small command (or a field with its label at its
+    // left).
     struct CommandMetrics final {
         double large_width{};
         double small_width{};
+    };
+    // A labelled field's command bounds split into its label and its field;
+    // `label` is empty for an unlabelled field.
+    struct FieldSplit final {
+        Rect label{};
+        Rect field{};
     };
     // A gallery's column range and widest width as measured, so that a
     // change made on the gallery itself rebuilds the ladder.
@@ -719,6 +748,11 @@ private:
     };
     [[nodiscard]] TabPosition position_among_shown(std::size_t tab) const noexcept;
     void refresh_accents();
+    // Theme following: the window's theme or colour scheme changed.
+    void on_window_theme_changed(const Theme& theme);
+    void on_presentation_changed(const PresentationSettings& settings);
+    void follow_theme();
+    void sync_overlay_themes();
     void tabs_shown_changed();
 
     // -- set_tabs stages (ribbon.cpp) -------------------------------------------
@@ -773,6 +807,9 @@ private:
     [[nodiscard]] double state_width(const TabScaling& scaling, std::size_t tab,
                                      const std::vector<RibbonLadderGroupState>& state) const;
     [[nodiscard]] CommandMetrics measure_command(const RibbonCommandSpec& command) const;
+    [[nodiscard]] bool field_labelled(const RibbonCommandSpec& command) const;
+    [[nodiscard]] double hosted_field_width(const RibbonCommandSpec& command) const;
+    [[nodiscard]] FieldSplit split_field(const RibbonCommandSpec& command, Rect bounds) const;
     [[nodiscard]] TabParts tab_parts(const Layout& placed, std::size_t tab) const;
     [[nodiscard]] GroupParts group_parts(const Layout& placed, std::size_t group) const;
     [[nodiscard]] CommandParts command_parts(const Layout& placed, CommandAddress address) const;
@@ -927,6 +964,15 @@ private:
     FocusScopeId backstage_scope_{};
     SubscriptionToken backstage_revoked_{};
     bool backstage_open_{};
+
+    // The window's theme and presentation notifications while attached
+    // (follow_theme); disconnected on detach.
+    SubscriptionToken theme_subscription_{};
+    SubscriptionToken presentation_subscription_{};
+    // The theme and colour scheme follow_theme last followed, so that a
+    // presentation change leaving both as they were rebuilds nothing.
+    const Theme* followed_theme_{};
+    ColourScheme followed_scheme_{ColourScheme::light};
     Event<const RibbonRecentItemInvocation&> recent_item_invoked_{};
     Event<bool> backstage_open_changed_{};
     // property_codemod begin Ribbon (tools/property_families/ribbon.json; generated, do not edit)
