@@ -57,7 +57,39 @@ FileDialogFilterError append_extensions(std::string_view patterns, std::vector<s
     }
 }
 
+char ascii_lower(char character) noexcept {
+    const bool upper = character >= 'A' && character <= 'Z';
+    const char result = upper ? static_cast<char>(character - 'A' + 'a') : character;
+    return result;
+}
+
+// Whether `file_name` ends in `.extension` with at least one character
+// before the dot, comparing ASCII letters without case.
+bool name_has_extension(std::string_view file_name, std::string_view extension) noexcept {
+    if (extension.empty() || file_name.size() < extension.size() + 2U) return false;
+    const std::size_t dot = file_name.size() - extension.size() - 1U;
+    if (file_name[dot] != '.') return false;
+    for (std::size_t index = 0; index < extension.size(); ++index) {
+        if (ascii_lower(file_name[dot + 1U + index]) != ascii_lower(extension[index])) return false;
+    }
+    return true;
+}
+
 } // namespace
+
+bool file_dialog_filter_matches(const HostFileDialogFilter& filter, std::string_view file_name) {
+    if (filter.extensions.empty()) return true;
+    for (const std::string& written : filter.extensions) {
+        // Requests built by hand may keep the pattern's `*.` or `.`.
+        std::string_view extension = written;
+        if (extension == "*" || extension == "*.*") return true;
+        while (!extension.empty() && (extension.front() == '*' || extension.front() == '.')) {
+            extension.remove_prefix(1U);
+        }
+        if (name_has_extension(file_name, extension)) return true;
+    }
+    return false;
+}
 
 bool file_dialog_text_valid(std::string_view text) {
     if (text.size() > HostServices::maximum_dialog_text_bytes) return false;

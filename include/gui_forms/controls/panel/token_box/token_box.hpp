@@ -66,6 +66,8 @@ public:
     // Throws std::invalid_argument for an identity not in the box.
     void select_token(std::optional<TokenId> id);
     [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept { return editor_; }
+    // Focus on the field goes to its edit part (null without one).
+    [[nodiscard]] Ptr focus_target() const override { return editor_; }
 
     // Raised after a token is added, with the token.
     [[nodiscard]] Event<const Token&>& token_added() noexcept { return token_added_; }

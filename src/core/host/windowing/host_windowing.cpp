@@ -317,6 +317,38 @@ HostServiceStatus HostWindowing::destroy_window(HostWindowId window) {
     return status;
 }
 
+namespace {
+// Counts one run_modal call for the length of its nested loop, whatever
+// way the loop ends (an exception from a callback included).
+struct ModalDepthScope final {
+    std::size_t* depth{};
+    explicit ModalDepthScope(std::size_t& counted) noexcept : depth(&counted) { ++(*depth); }
+    ~ModalDepthScope() { --(*depth); }
+    ModalDepthScope(const ModalDepthScope&) = delete;
+    ModalDepthScope& operator=(const ModalDepthScope&) = delete;
+};
+} // namespace
+
+HostServiceStatus HostWindowing::run_modal(HostWindowId window) {
+    const HostServiceStatus status = validate_window_request(HostCapability::runtime_windows, window);
+    if (!status.accepted()) return status;
+    if (!supports_modal_windows()) return reject(HostServiceError::unsupported);
+    const WindowRecord& entry = *record(window);
+    const bool popup = entry.kind == HostWindowKind::popup;
+    const bool floating = host_window_kind_traits(entry.kind).floating;
+    if (!entry.owner.valid() || popup || floating) return reject(HostServiceError::invalid_argument);
+    if (modal_depth_ >= maximum_modal_depth) return reject(HostServiceError::modal_limit);
+    const ModalDepthScope depth{modal_depth_};
+    const HostServiceStatus ran = run_modal_impl(window);
+    if (!ran.accepted()) ++snapshot_.rejected_requests;
+    return ran;
+}
+
+HostServiceStatus HostWindowing::run_modal_impl(HostWindowId) {
+    const HostServiceStatus status{HostServiceError::unsupported};
+    return status;
+}
+
 HostMonitorResult HostWindowing::query_monitors() {
     HostMonitorResult result;
     result.status = validate_request(HostCapability::monitor_geometry);
@@ -414,6 +446,10 @@ bool HostWindowing::supports_splash_windows() const noexcept {
 
 bool HostWindowing::transient_windows_translucent() const noexcept {
     return true;
+}
+
+bool HostWindowing::supports_modal_windows() const noexcept {
+    return false;
 }
 
 HostWindowAdmission HostWindowing::admit(const HostWindowDescription& description) {

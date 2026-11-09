@@ -2,6 +2,7 @@
   "description": "Direct drawing calls under src/controls/ (tools/paint_census.py); the stage T4 gate is zero stock calls. The census may only fall. Effect-canvas calls (effect_calls) are the effect engine's sanctioned path and are not stock calls.",
   "drawing_methods": [
     "clip_rounded_rect_corners",
+    "draw_baked_surface_material",
     "draw_box_shadow",
     "draw_image",
     "draw_image_region",
@@ -14,6 +15,7 @@
     "draw_prepared_text",
     "draw_retained_box_shadow",
     "draw_retained_text_utf8",
+    "draw_surface_material",
     "draw_text_utf8",
     "draw_turned_text_utf8",
     "fill_image_pattern",
@@ -33,14 +35,15 @@
     "metrics_view/metrics_view.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
     "panel/material_panel/material_panel.cpp": "authored material: MaterialPanel paints the material its application gives it, as content (owner decision, 2026-11-03)",
     "panel/picture_box/picture_box.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
+    "panel/text_box/text_box_decorations.cpp": "draws application content: the background and underline decorations of the styled runs an application gives the text box (TextBox styled runs); the text and its chrome go through the theme. Provisional, pending the owner's T4-4 ruling for styled runs",
     "raster_canvas/raster_canvas.cpp": "draws the application's raster (RasterCanvas), not chrome",
     "typography_specimen/typography_specimen.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme; its line boxes are diagnostic inspection content (as VisualInspectorView's, owner-agreed exemption)",
     "visual_inspector_view/visual_inspector_view.cpp": "a diagnostic instrument: the inspector's dark panel stays fixed under every theme so that it reads the same while inspecting any of them (owner decision, 2026-11-03)"
   },
   "totals": {
     "exempt": {
-      "files": 10,
-      "calls": 41
+      "files": 11,
+      "calls": 44
     },
     "demo": {
       "files": 2,
@@ -92,6 +95,10 @@
     "panel/picture_box/picture_box.cpp": {
       "category": "exempt",
       "calls": 1
+    },
+    "panel/text_box/text_box_decorations.cpp": {
+      "category": "exempt",
+      "calls": 3
     },
     "range_control/progress_bar/progress_bar_effects.cpp": {
       "category": "stock",

@@ -128,6 +128,67 @@ static void text_editing(gf_kit* kit) {
     gf_kit_check(kit, changed == 1u, "the replacement is redone");
     gf_kit_status(kit, (*kit).text_editing.redo(box, &changed), GF_STATUS_OK, "redo with nothing left");
     gf_kit_check(kit, changed == 0u, "nothing is redone");
+    /* Styled text runs: the text is "world". */
+    gf_text_decoration runs[2];
+    memset(runs, 0, sizeof(runs));
+    runs[0].start = 3u;
+    runs[0].end = 5u;
+    runs[0].fields = GF_TEXT_DECORATION_FOREGROUND | GF_TEXT_DECORATION_WEIGHT;
+    runs[0].foreground = 0xC80000FFu;
+    runs[0].weight = 700u;
+    runs[0].tag = 2u;
+    runs[1].start = 0u;
+    runs[1].end = 2u;
+    runs[1].fields = GF_TEXT_DECORATION_UNDERLINE | GF_TEXT_DECORATION_INK;
+    runs[1].underline = GF_TEXT_UNDERLINE_SQUIGGLE;
+    runs[1].ink = GF_TEXT_INK_ROLE_NOTICE;
+    runs[1].tag = 1u;
+    gf_kit_status(kit, (*kit).text_editing.set_decorations(box, 4u, runs, 2u), GF_STATUS_OK, "decorate the text");
+    uint64_t decoration_count = 0u;
+    gf_kit_status(kit, (*kit).text_editing.decoration_count(box, 4u, &decoration_count), GF_STATUS_OK,
+                  "count the decorations");
+    gf_kit_check(kit, decoration_count == 2u, "both decorations are kept");
+    gf_text_decoration read_back;
+    memset(&read_back, 0, sizeof(read_back));
+    gf_kit_status(kit, (*kit).text_editing.decoration_at(box, 4u, 0u, &read_back), GF_STATUS_OK,
+                  "read the first decoration");
+    gf_kit_check(kit, read_back.tag == 1u && read_back.start == 0u && read_back.end == 2u &&
+                          read_back.underline == GF_TEXT_UNDERLINE_SQUIGGLE && read_back.ink == GF_TEXT_INK_ROLE_NOTICE &&
+                          read_back.fields == (GF_TEXT_DECORATION_UNDERLINE | GF_TEXT_DECORATION_INK),
+                  "decorations read back in start order with their fields");
+    gf_kit_status(kit, (*kit).text_editing.decoration_at(box, 4u, 2u, &read_back), GF_STATUS_INVALID_ARGUMENT,
+                  "an index past the layer is refused");
+    runs[0].end = 9u;
+    gf_kit_status(kit, (*kit).text_editing.set_decorations(box, 4u, runs, 1u), GF_STATUS_INVALID_ARGUMENT,
+                  "a decoration past the text is refused");
+    runs[0].end = 5u;
+    runs[0].reserved = 1u;
+    gf_kit_status(kit, (*kit).text_editing.set_decorations(box, 4u, runs, 1u), GF_STATUS_INVALID_ARGUMENT,
+                  "a nonzero reserved field is refused");
+    runs[0].reserved = 0u;
+    gf_kit_status(kit, (*kit).text_editing.decoration_count(box, 4u, &decoration_count), GF_STATUS_OK,
+                  "count after the refusals");
+    gf_kit_check(kit, decoration_count == 2u, "a refusal changes nothing");
+    runs[0].start = 1u;
+    runs[0].end = 2u;
+    gf_kit_status(kit, (*kit).text_editing.replace_decorations(box, 4u, 0u, 3u, runs, 1u), GF_STATUS_OK,
+                  "replace the decorations of a range");
+    gf_kit_status(kit, (*kit).text_editing.decoration_at(box, 4u, 0u, &read_back), GF_STATUS_OK,
+                  "read the replacement");
+    gf_kit_check(kit, read_back.start == 1u && read_back.end == 2u && read_back.weight == 700u &&
+                          read_back.foreground == 0xC80000FFu,
+                  "the range holds the replacement alone");
+    gf_kit_status(kit, (*kit).text_editing.replace_range(box, 0u, 0u, gf_kit_text("> "), &changed), GF_STATUS_OK,
+                  "type before the decorations");
+    gf_kit_status(kit, (*kit).text_editing.decoration_at(box, 4u, 0u, &read_back), GF_STATUS_OK,
+                  "read the moved decoration");
+    gf_kit_check(kit, read_back.start == 3u && read_back.end == 4u, "decorations follow an edit");
+    gf_kit_status(kit, (*kit).text_editing.set_decorations(box, 4u, NULL, 1u), GF_STATUS_INVALID_ARGUMENT,
+                  "null decorations with a count are refused");
+    gf_kit_status(kit, (*kit).text_editing.clear_decorations(box), GF_STATUS_OK, "clear every layer");
+    gf_kit_status(kit, (*kit).text_editing.decoration_count(box, 4u, &decoration_count), GF_STATUS_OK,
+                  "count after clearing");
+    gf_kit_check(kit, decoration_count == 0u, "nothing is left");
     const gf_object label = gf_kit_create(kit, "label", "kit.families.text.label");
     gf_kit_status(kit, (*kit).text_editing.undo(label, &changed), GF_STATUS_WRONG_HANDLE_KIND,
                   "a label is not a text box");

@@ -63,8 +63,9 @@ struct InteractionDeclaration final {
     }
 };
 
-// Upper bound on one type's interactions, its inherited ones included.
-inline constexpr std::size_t maximum_interactions = 64;
+// Upper bound on one type's interactions, its inherited ones included
+// (DataGridView declares 66 with the key events).
+inline constexpr std::size_t maximum_interactions = 96;
 
 // Reasons a type's interaction list is malformed.
 enum class InteractionDefect : std::uint8_t {

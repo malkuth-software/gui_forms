@@ -152,12 +152,42 @@ Related types
      - A window's band declaration (Window::declare_band).
    * - :cpp:class:`WindowBandSnapshot <gui_forms::WindowBandSnapshot>`
      - A window's band as it stands (Window::band_snapshot): whether it is declared and reserved, the reserved width (snapped, logical units), the colours the strips draw now, and the corners it follows.
+   * - :cpp:class:`WindowCapabilities <gui_forms::WindowCapabilities>`
+     - Every Window chrome capability, in the order Window takes them.
+   * - :cpp:class:`WindowChrome <gui_forms::WindowChrome>`
+     - What a window asks its host for.
+   * - :cpp:class:`WindowChromeFields <gui_forms::WindowChromeFields>`
+     - A set of chrome properties.
+   * - :cpp:class:`WindowControlBoxCapability <gui_forms::WindowControlBoxCapability>`
+     - Whether the title bar has its window menu and buttons (Form.ControlBox); without it the minimize and maximize boxes go too.
    * - :cpp:class:`WindowCornerReport <gui_forms::WindowCornerReport>`
      - The host's report of the window's corners, in reply to its preference (HostServices::apply_window_corners).
    * - :cpp:class:`WindowDispatcher <gui_forms::WindowDispatcher>`
      - A window's dispatcher, reachable from any thread for as long as the caller holds this handle, whatever happens to the window.
+   * - :cpp:class:`WindowFormBorderStyleCapability <gui_forms::WindowFormBorderStyleCapability>`
+     - The window's frame (Form.FormBorderStyle): none removes the title bar and border; the fixed styles keep the user from resizing; the tool window styles use the platform's smaller utility frame.
+   * - :cpp:class:`WindowIconCapability <gui_forms::WindowIconCapability>`
+     - The window's icon (Form.Icon): an image of the window's registry, or none for the platform's default.
+   * - :cpp:class:`WindowMaximizeBoxCapability <gui_forms::WindowMaximizeBoxCapability>`
+     - Whether the title bar offers maximizing (Form.MaximizeBox).
+   * - :cpp:class:`WindowMinimizeBoxCapability <gui_forms::WindowMinimizeBoxCapability>`
+     - Whether the title bar offers minimizing (Form.MinimizeBox).
+   * - :cpp:class:`WindowMinimumSizeCapability <gui_forms::WindowMinimumSizeCapability>`
+     - The client area's least size in logical units (Form.MinimumSize); zero each way keeps the window's own minimum.
+   * - :cpp:class:`WindowOpacityCapability <gui_forms::WindowOpacityCapability>`
+     - The whole window's opacity (Form.Opacity), from 0 (invisible) to 1 (opaque); outside that range or not finite is std::invalid_argument.
    * - :cpp:class:`WindowOverrides <gui_forms::WindowOverrides>`
      - What one window overrides of what it would otherwise read from its owner (APP_WINDOW_RULES_DESIGN K.1): its application, or for a popup or floating window the window that opened it, which shares its table.
+   * - :cpp:class:`WindowShowInTaskbarCapability <gui_forms::WindowShowInTaskbarCapability>`
+     - Whether the window has a taskbar button (Form.ShowInTaskbar).
+   * - :cpp:class:`WindowStartPositionCapability <gui_forms::WindowStartPositionCapability>`
+     - Where the window is placed when it is first shown (Form.StartPosition); ignored once it has been shown.
+   * - :cpp:class:`WindowTextCapability <gui_forms::WindowTextCapability>`
+     - The window's title (Form.Text): UTF-8, at most 65536 bytes, no NUL (else std::invalid_argument).
+   * - :cpp:class:`WindowTopMostCapability <gui_forms::WindowTopMostCapability>`
+     - Whether the window stays above the other applications' windows (Form.TopMost).
+   * - :cpp:class:`WindowWindowStateCapability <gui_forms::WindowWindowStateCapability>`
+     - The state the program asks for (Form.WindowState): normal, minimized or maximized.
 
 .. cpp:namespace:: gui_forms
 
@@ -1557,6 +1587,156 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> WindowCapabilities : public WindowTextCapability<Declaring>, public WindowIconCapability<Declaring>, public WindowFormBorderStyleCapability<Declaring>, public WindowMinimizeBoxCapability<Declaring>, public WindowMaximizeBoxCapability<Declaring>, public WindowControlBoxCapability<Declaring>, public WindowWindowStateCapability<Declaring>, public WindowTopMostCapability<Declaring>, public WindowOpacityCapability<Declaring>, public WindowStartPositionCapability<Declaring>, public WindowShowInTaskbarCapability<Declaring>, public WindowMinimumSizeCapability<Declaring>
+
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+
+   Every Window chrome capability, in the order Window takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The window's title (Form.Text): UTF-8, at most 65536 bytes, no NUL (else std::invalid_argument). Until it is first written the title is the one the window opened with (ApplicationWindowOptions::title).
+
+   .. cpp:member:: ImageId icon
+
+      The window's icon (Form.Icon): an image of the window's registry, or none for the platform's default. A PNG is decoded when the icon is sent to the host; an image the registry does not hold is std::invalid_argument.
+
+   .. cpp:member:: FormBorderStyle form_border_style
+
+      The window's frame (Form.FormBorderStyle): none removes the title bar and border; the fixed styles keep the user from resizing; the tool window styles use the platform's smaller utility frame. An undefined value is std::invalid_argument.
+
+   .. cpp:member:: bool minimize_box
+
+      Whether the title bar offers minimizing (Form.MinimizeBox).
+
+   .. cpp:member:: bool maximize_box
+
+      Whether the title bar offers maximizing (Form.MaximizeBox).
+
+   .. cpp:member:: bool control_box
+
+      Whether the title bar has its window menu and buttons (Form.ControlBox); without it the minimize and maximize boxes go too.
+
+   .. cpp:member:: FormWindowState window_state
+
+      The state the program asks for (Form.WindowState): normal, minimized or maximized. It is the request, not a report: the user may change the native state afterwards. An undefined value is std::invalid_argument.
+
+   .. cpp:member:: bool top_most
+
+      Whether the window stays above the other applications' windows (Form.TopMost).
+
+   .. cpp:member:: double opacity
+
+      The whole window's opacity (Form.Opacity), from 0 (invisible) to 1 (opaque); outside that range or not finite is std::invalid_argument.
+
+   .. cpp:member:: FormStartPosition start_position
+
+      Where the window is placed when it is first shown (Form.StartPosition); ignored once it has been shown. An undefined value is std::invalid_argument.
+
+   .. cpp:member:: bool show_in_taskbar
+
+      Whether the window has a taskbar button (Form.ShowInTaskbar). Hosts without a taskbar report it unsupported (HostServices::supported_window_chrome).
+
+   .. cpp:member:: Size minimum_size
+
+      The client area's least size in logical units (Form.MinimumSize); zero each way keeps the window's own minimum. Each extent finite, 0 to 32768 (else std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowChrome final
+
+   ``#include <gui_forms/window/chrome/window_chrome.hpp>``
+
+   What a window asks its host for. text is UTF-8; icon is premultiplied BGRA8, empty (zero width) for the platform's default; opacity is in [0, 1]; minimum_size is the client area's least size in logical units, zero for the window's own minimum. Only the fields a request names (apply_window_chrome) are read.
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: HostImage icon
+
+   .. cpp:member:: FormBorderStyle form_border_style
+
+      Default: ``{FormBorderStyle::sizable}``.
+
+   .. cpp:member:: bool minimize_box
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool maximize_box
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool control_box
+
+      Default: ``{true}``.
+
+   .. cpp:member:: FormWindowState window_state
+
+      Default: ``{FormWindowState::normal}``.
+
+   .. cpp:member:: bool top_most
+
+   .. cpp:member:: double opacity
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: FormStartPosition start_position
+
+      Default: ``{FormStartPosition::windows_default_location}``.
+
+   .. cpp:member:: bool show_in_taskbar
+
+      Default: ``{true}``.
+
+   .. cpp:member:: Size minimum_size
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowChromeFields final
+
+   ``#include <gui_forms/window/chrome/window_chrome.hpp>``
+
+   A set of chrome properties.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool empty() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: bool contains(WindowChromeField field) const noexcept
+
+   .. cpp:function:: void add(WindowChromeField field) noexcept
+
+   .. cpp:member:: constexpr std::uint32_t all_bits
+
+      Default: ``4095U``.
+
+   .. cpp:member:: std::uint32_t bits
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WindowControlBoxCapability
+
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+
+   Whether the title bar has its window menu and buttons (Form.ControlBox); without it the minimize and maximize boxes go too.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WindowControlBoxCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, WindowControlBoxCapability<Declaring>> control_box
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: WindowCornerReport final
 
    ``#include <gui_forms/window/band/window_band.hpp>``
@@ -1606,6 +1786,104 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> WindowFormBorderStyleCapability
+
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+
+   The window's frame (Form.FormBorderStyle): none removes the title bar and border; the fixed styles keep the user from resizing; the tool window styles use the platform's smaller utility frame. An undefined value is std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WindowFormBorderStyleCapability& capability, FormBorderStyle incoming)
+
+   .. cpp:member:: PropertyCell<FormBorderStyle, WindowFormBorderStyleCapability<Declaring>> form_border_style
+
+      Default: ``{FormBorderStyle::sizable}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WindowIconCapability
+
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+
+   The window's icon (Form.Icon): an image of the window's registry, or none for the platform's default. A PNG is decoded when the icon is sent to the host; an image the registry does not hold is std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WindowIconCapability& capability, ImageId incoming)
+
+   .. cpp:member:: PropertyCell<ImageId, WindowIconCapability<Declaring>> icon
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WindowMaximizeBoxCapability
+
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+
+   Whether the title bar offers maximizing (Form.MaximizeBox).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WindowMaximizeBoxCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, WindowMaximizeBoxCapability<Declaring>> maximize_box
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WindowMinimizeBoxCapability
+
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+
+   Whether the title bar offers minimizing (Form.MinimizeBox).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WindowMinimizeBoxCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, WindowMinimizeBoxCapability<Declaring>> minimize_box
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WindowMinimumSizeCapability
+
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+
+   The client area's least size in logical units (Form.MinimumSize); zero each way keeps the window's own minimum. Each extent finite, 0 to 32768 (else std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WindowMinimumSizeCapability& capability, Size incoming)
+
+   .. cpp:member:: PropertyCell<Size, WindowMinimumSizeCapability<Declaring>> minimum_size
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WindowOpacityCapability
+
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+
+   The whole window's opacity (Form.Opacity), from 0 (invisible) to 1 (opaque); outside that range or not finite is std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WindowOpacityCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, WindowOpacityCapability<Declaring>> opacity
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: WindowOverrides final
 
    ``#include <gui_forms/surface_root/surface_root.hpp>``
@@ -1630,6 +1908,89 @@ Related types
    .. cpp:member:: std::shared_ptr<KeyBindings> key_bindings
 
       The window's own keyboard-command table, or one it was given to share (set_key_bindings); null reads the owner's.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WindowShowInTaskbarCapability
+
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+
+   Whether the window has a taskbar button (Form.ShowInTaskbar). Hosts without a taskbar report it unsupported (HostServices::supported_window_chrome).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WindowShowInTaskbarCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, WindowShowInTaskbarCapability<Declaring>> show_in_taskbar
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WindowStartPositionCapability
+
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+
+   Where the window is placed when it is first shown (Form.StartPosition); ignored once it has been shown. An undefined value is std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WindowStartPositionCapability& capability, FormStartPosition incoming)
+
+   .. cpp:member:: PropertyCell<FormStartPosition, WindowStartPositionCapability<Declaring>> start_position
+
+      Default: ``{FormStartPosition::windows_default_location}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WindowTextCapability
+
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+
+   The window's title (Form.Text): UTF-8, at most 65536 bytes, no NUL (else std::invalid_argument). Until it is first written the title is the one the window opened with (ApplicationWindowOptions::title).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WindowTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, WindowTextCapability<Declaring>> text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WindowTopMostCapability
+
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+
+   Whether the window stays above the other applications' windows (Form.TopMost).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WindowTopMostCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, WindowTopMostCapability<Declaring>> top_most
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WindowWindowStateCapability
+
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+
+   The state the program asks for (Form.WindowState): normal, minimized or maximized. It is the request, not a report: the user may change the native state afterwards. An undefined value is std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WindowWindowStateCapability& capability, FormWindowState incoming)
+
+   .. cpp:member:: PropertyCell<FormWindowState, WindowWindowStateCapability<Declaring>> window_state
+
+      Default: ``{FormWindowState::normal}``.
 
 Enumerations
 ------------
@@ -1743,6 +2104,54 @@ Enumerations
    .. cpp:enumerator:: explicit_close
 
    .. cpp:enumerator:: owner_unavailable
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: FormBorderStyle
+
+   ``#include <gui_forms/window/chrome/window_chrome.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: fixed_single
+
+   .. cpp:enumerator:: fixed_3d
+
+   .. cpp:enumerator:: fixed_dialog
+
+   .. cpp:enumerator:: sizable
+
+   .. cpp:enumerator:: fixed_tool_window
+
+   .. cpp:enumerator:: sizable_tool_window
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: FormStartPosition
+
+   ``#include <gui_forms/window/chrome/window_chrome.hpp>``
+
+   .. cpp:enumerator:: manual
+
+   .. cpp:enumerator:: center_screen
+
+   .. cpp:enumerator:: windows_default_location
+
+   .. cpp:enumerator:: windows_default_bounds
+
+   .. cpp:enumerator:: center_parent
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: FormWindowState
+
+   ``#include <gui_forms/window/chrome/window_chrome.hpp>``
+
+   .. cpp:enumerator:: normal
+
+   .. cpp:enumerator:: minimized
+
+   .. cpp:enumerator:: maximized
 
 .. cpp:namespace:: gui_forms
 
@@ -1919,6 +2328,36 @@ Enumerations
    .. cpp:enumerator:: lit
 
    .. cpp:enumerator:: flashing
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WindowChromeField
+
+   ``#include <gui_forms/window/chrome/window_chrome.hpp>``
+
+   .. cpp:enumerator:: text
+
+   .. cpp:enumerator:: icon
+
+   .. cpp:enumerator:: form_border_style
+
+   .. cpp:enumerator:: minimize_box
+
+   .. cpp:enumerator:: maximize_box
+
+   .. cpp:enumerator:: control_box
+
+   .. cpp:enumerator:: window_state
+
+   .. cpp:enumerator:: top_most
+
+   .. cpp:enumerator:: opacity
+
+   .. cpp:enumerator:: start_position
+
+   .. cpp:enumerator:: show_in_taskbar
+
+   .. cpp:enumerator:: minimum_size
 
 .. cpp:namespace:: gui_forms
 
@@ -2134,6 +2573,34 @@ Functions, constants and aliases
 .. cpp:var:: constexpr unsigned maximum_band_flash_transitions
 
    The flash limiter (study section 5, WCAG 2.3.1): at most this many luminance transitions a second, whatever the theme or the application asks: a flashing band changes colour once every half second. Value: ``2U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/window/chrome/window_chrome.hpp>``
+
+.. cpp:function:: bool form_border_style_defined(FormBorderStyle style) noexcept
+
+   Whether each value is one the enumeration defines.
+
+.. cpp:function:: bool form_window_state_defined(FormWindowState state) noexcept
+
+.. cpp:function:: bool form_start_position_defined(FormStartPosition position) noexcept
+
+.. cpp:function:: bool form_border_style_is_tool(FormBorderStyle style) noexcept
+
+   Whether a border style is one of the two tool window styles.
+
+.. cpp:function:: bool form_border_style_is_sizable(FormBorderStyle style) noexcept
+
+   Whether a border style lets the user resize the window.
+
+.. cpp:var:: constexpr std::size_t maximum_window_text_bytes
+
+   The longest window text, in UTF-8 bytes (as ApplicationWindowHandle:: set_title), and the largest minimum size each way. Value: ``65536U``.
+
+.. cpp:var:: constexpr double maximum_window_minimum_extent
+
+   Value: ``32768.0``.
 
 .. cpp:namespace:: gui_forms
 

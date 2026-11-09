@@ -1,5 +1,6 @@
-// GF_TABLE_WINDOWS: one window at a time through GUIForms::Application. See
-// gf_abi.h.
+// GF_TABLE_WINDOWS: the run's window through GUIForms::Application, and
+// the modal and owned windows opened over it during the run (since 1.1).
+// See gf_abi.h.
 
 #include "abi_tables.hpp"
 #include "abi_records.hpp"
@@ -14,6 +15,7 @@
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <stdexcept>
 #include <functional>
@@ -32,10 +34,17 @@ constexpr SlotIdentity create_slot{GF_TABLE_WINDOWS, 2U};
 constexpr SlotIdentity interaction_count_slot{GF_TABLE_WINDOWS, 3U};
 constexpr SlotIdentity interaction_at_slot{GF_TABLE_WINDOWS, 4U};
 constexpr SlotIdentity request_help_slot{GF_TABLE_WINDOWS, 5U};
+constexpr SlotIdentity key_state_slot{GF_TABLE_WINDOWS, 6U};
+constexpr SlotIdentity show_modal_slot{GF_TABLE_WINDOWS, 7U};
+constexpr SlotIdentity show_owned_slot{GF_TABLE_WINDOWS, 8U};
+constexpr SlotIdentity window_properties_slot{GF_TABLE_WINDOWS, 9U};
+constexpr SlotIdentity focused_control_slot{GF_TABLE_WINDOWS, 10U};
 
 // The 1.0 size of gf_run_options: a caller passes at least this much.
 constexpr std::uint32_t run_options_size_1_0 = 64U;
-static_assert(sizeof(gf_run_options) == run_options_size_1_0);
+// Since 1.1: minimum_width and minimum_height.
+constexpr std::uint32_t run_options_size_1_1 = 80U;
+static_assert(sizeof(gf_run_options) == run_options_size_1_1);
 
 constexpr gf_run_flags known_run_flags = GF_RUN_FLAGS_NONE;
 
@@ -127,12 +136,46 @@ void disarm_all(RunCallbacks& callbacks) noexcept {
     if (callbacks.closed) (*callbacks.closed).disarm();
 }
 
+// A logical length for a failure message: whole units without a fraction.
+void append_length(std::string& message, double length) {
+    const double whole = std::floor(length);
+    if (whole == length && std::abs(length) < 1.0e9) {
+        message += std::to_string(static_cast<long long>(whole));
+    } else {
+        message += std::to_string(length);
+    }
+}
+
+// The run's refusal of the window: its reason, and for a client size below
+// the minimum both sizes, as "120 x 100 is below the minimum 150 x 150".
+gf_status refused_window(const ApplicationResult& result) noexcept {
+    try {
+        std::string message("the run refused the window: ");
+        const std::string_view reason = application_window_refusal_text(result.refusal);
+        message += reason.empty() ? std::string_view("the host refused it") : reason;
+        if (result.refusal == ApplicationWindowRefusal::below_minimum_size) {
+            message += " (";
+            append_length(message, result.initial_size.width);
+            message += " x ";
+            append_length(message, result.initial_size.height);
+            message += " is below the minimum ";
+            append_length(message, result.minimum_size.width);
+            message += " x ";
+            append_length(message, result.minimum_size.height);
+            message += ")";
+        }
+        return fail(GF_STATUS_INVALID_ARGUMENT, run_slot, message);
+    } catch (...) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, run_slot, "the run refused the window");
+    }
+}
+
 gf_status application_status(const ApplicationResult& result) noexcept {
     switch (result.error) {
     case ApplicationError::none:
         return GF_STATUS_OK;
     case ApplicationError::invalid_argument:
-        return fail(GF_STATUS_INVALID_ARGUMENT, run_slot, "the host refused the window");
+        return refused_window(result);
     case ApplicationError::wrong_thread:
         return fail(GF_STATUS_WRONG_THREAD, run_slot, "the host runs windows on another thread");
     case ApplicationError::already_running:
@@ -158,6 +201,18 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
         !std::isfinite((*options).height) || (*options).width < 0.0 || (*options).height < 0.0) {
         return fail(GF_STATUS_INVALID_ARGUMENT, run_slot,
                     "run needs options of at least the 1.0 size, known flags and a finite, non-negative size");
+    }
+    // The minimum, since 1.1; a 1.0 record has none.
+    Size minimum{};
+    if ((*options).struct_size >= run_options_size_1_1) {
+        minimum = Size{(*options).minimum_width, (*options).minimum_height};
+        const bool minimum_valid = std::isfinite(minimum.width) && std::isfinite(minimum.height) &&
+                                   minimum.width >= 0.0 && minimum.height >= 0.0 && minimum.width <= 32768.0 &&
+                                   minimum.height <= 32768.0;
+        if (!minimum_valid) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, run_slot,
+                        "a run's minimum size is finite and within 0 to 32768 logical units");
+        }
     }
     std::string_view title;
     const gf_status titled = read_text((*options).title, run_slot, title);
@@ -209,6 +264,7 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
     try {
         if (!title.empty()) window_options.title = std::string(title);
         window_options.initial_size = client_size;
+        window_options.minimum_size = minimum;
         window_options.ready = RunReady{&callbacks};
         window_options.wake_ready = RunWakeReady{};
         window_options.dispatch_pending = RunDispatchPending{};
@@ -281,6 +337,305 @@ gf_status GF_CALL windows_run(gf_object root, const gf_run_options* options) noe
     }
 }
 
+// ---------------------------------------------------------------------------
+// Owned windows (since 1.1): show_modal and show_owned.
+
+// The 1.1 size of gf_owned_window_options: a caller passes at least this much.
+constexpr std::uint32_t owned_window_options_size_1_1 = 72U;
+static_assert(sizeof(gf_owned_window_options) == owned_window_options_size_1_1);
+
+constexpr gf_owned_window_flags known_owned_window_flags = GF_OWNED_WINDOW_TOOL;
+
+// One window show_modal or show_owned opened. Shared by the window's
+// callbacks (which the host owns until it releases the window) and, from
+// ready until closed, by owned_windows(). The bindings are released when
+// the window closes; a refused open disarms them instead, so the caller
+// keeps its callbacks.
+struct OwnedWindow final {
+    gf_object root = 0U;
+    // Keeps the root alive while its window is open.
+    Control::Ptr control;
+    std::string stable_id;
+    ApplicationWindowHandle window;
+    bool ready_seen = false;
+    std::unique_ptr<CallbackBinding> ready;
+    std::unique_ptr<CallbackBinding> closing;
+    std::unique_ptr<CallbackBinding> closed;
+};
+
+// The owned windows from ready until closed, in opening order. UI thread
+// only; bounded by the host's window table (HostWindowing::maximum_windows).
+std::vector<std::shared_ptr<OwnedWindow>>& owned_windows() {
+    static std::vector<std::shared_ptr<OwnedWindow>> windows;
+    return windows;
+}
+
+// The open owned window over root, or null.
+std::shared_ptr<OwnedWindow> find_owned(gf_object root) {
+    const std::vector<std::shared_ptr<OwnedWindow>>& windows = owned_windows();
+    for (std::size_t index = 0U; index < windows.size(); ++index) {
+        if ((*windows[index]).root == root) {
+            return windows[index];
+        }
+    }
+    return nullptr;
+}
+
+// Calls callback, if any, with the window's root as sender. Returns the
+// event's cancel field.
+std::uint32_t call_owned_callback(gf_object root, const CallbackBinding* callback, std::string_view name) noexcept {
+    if (callback == nullptr) {
+        return 0U;
+    }
+    gf_event event{};
+    event.struct_size = sizeof(gf_event);
+    event.sender = root;
+    event.name.data = name.data();
+    event.name.size = name.size();
+    (*callback).invoke(event);
+    return event.cancel;
+}
+
+struct OwnedReady {
+    std::shared_ptr<OwnedWindow> owned;
+    void operator()(Window&, ApplicationWindowHandle window) const {
+        (*owned).window = window;
+        (*owned).ready_seen = true;
+        owned_windows().push_back(owned);
+        static_cast<void>(call_owned_callback((*owned).root, (*owned).ready.get(), "ready"));
+    }
+};
+
+struct OwnedClosing {
+    std::shared_ptr<OwnedWindow> owned;
+    void operator()(HostCloseRequest& request) const {
+        const std::uint32_t cancel = call_owned_callback((*owned).root, (*owned).closing.get(), "closing");
+        if (cancel != 0U) {
+            request.cancel = true;
+        }
+    }
+};
+
+// Forgets the window, calls closed, then releases the three callbacks
+// once each.
+struct OwnedClosed {
+    std::shared_ptr<OwnedWindow> owned;
+    void operator()() const {
+        std::vector<std::shared_ptr<OwnedWindow>>& windows = owned_windows();
+        for (std::size_t index = 0U; index < windows.size(); ++index) {
+            if (windows[index] == owned) {
+                windows.erase(windows.begin() + static_cast<std::ptrdiff_t>(index));
+                break;
+            }
+        }
+        static_cast<void>(call_owned_callback((*owned).root, (*owned).closed.get(), "closed"));
+        (*owned).ready.reset();
+        (*owned).closing.reset();
+        (*owned).closed.reset();
+    }
+};
+
+void disarm_owned(OwnedWindow& owned) noexcept {
+    if (owned.ready) (*owned.ready).disarm();
+    if (owned.closing) (*owned.closing).disarm();
+    if (owned.closed) (*owned.closed).disarm();
+}
+
+gf_status owned_status(const HostServiceStatus& status, SlotIdentity slot) noexcept {
+    switch (status.error) {
+    case HostServiceError::none:
+        return GF_STATUS_OK;
+    case HostServiceError::unsupported:
+        return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, slot, "the host cannot open this window during a run");
+    case HostServiceError::wrong_thread:
+        return fail(GF_STATUS_WRONG_THREAD, slot, "the host runs windows on another thread");
+    case HostServiceError::invalid_argument:
+        return fail(GF_STATUS_INVALID_STATE, slot, "the host refused the window (its owner or stable id)");
+    case HostServiceError::invalid_utf8:
+    case HostServiceError::too_large:
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the host refused the window's text");
+    case HostServiceError::modal_limit:
+        return fail(GF_STATUS_LIMIT_EXCEEDED, slot, "too many modal windows are open");
+    case HostServiceError::backend_failure:
+        return fail(GF_STATUS_INTERNAL, slot, "the window host failed");
+    case HostServiceError::after_shutdown:
+        return fail(GF_STATUS_INVALID_STATE, slot, "the run has ended");
+    }
+    return fail(GF_STATUS_INTERNAL, slot, "the host returned an unknown result");
+}
+
+// Validates root and options and fills entry, owned and windows for an
+// open. Nothing is opened; on a refusal the callbacks are not taken.
+gf_status prepare_owned(gf_object root, const gf_owned_window_options* options, SlotIdentity slot,
+                        ApplicationWindows& windows, ApplicationWindow& entry,
+                        std::shared_ptr<OwnedWindow>& owned) {
+    if (options == nullptr || (*options).struct_size < owned_window_options_size_1_1 ||
+        ((*options).flags & ~known_owned_window_flags) != 0U || !std::isfinite((*options).width) ||
+        !std::isfinite((*options).height) || (*options).width < 0.0 || (*options).height < 0.0) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot,
+                    "the options need at least the 1.1 size, known flags and a finite, non-negative size");
+    }
+    std::string_view title;
+    const gf_status titled = read_text((*options).title, slot, title);
+    if (titled != GF_STATUS_OK) {
+        return titled;
+    }
+    const gf_status entered = registry().enter_ui(slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Control::Ptr control;
+    const gf_status found = registry().find_object(root, slot, control);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    if (!(*control).is_alive()) {
+        return fail(GF_STATUS_DISPOSED, slot, "the root has been disposed");
+    }
+    if ((*control).parent() || (*control).attached()) {
+        return fail(GF_STATUS_INVALID_STATE, slot, "the root has a parent or is already in a window");
+    }
+    gf_object run_root = 0U;
+    ApplicationWindowHandle running;
+    const gf_status run = registry().current_run(slot, run_root, running);
+    if (run != GF_STATUS_OK) {
+        return run;
+    }
+    if (!running.active()) {
+        return fail(GF_STATUS_INVALID_STATE, slot, "the running window is not ready yet or has closed");
+    }
+    // The owner: the running window ("main", Application::run's stable id)
+    // or an open owned window.
+    std::string owner_id = "main";
+    if ((*options).owner != 0U && (*options).owner != run_root) {
+        const std::shared_ptr<OwnedWindow> owner = find_owned((*options).owner);
+        if (owner == nullptr || !(*owner).window.active()) {
+            return fail(GF_STATUS_INVALID_STATE, slot, "the owner is not the root of an open window");
+        }
+        owner_id = (*owner).stable_id;
+    }
+    const std::string stable_id((*control).stable_id().value());
+    if (stable_id.empty() || stable_id == "main" || find_owned(root) != nullptr) {
+        return fail(GF_STATUS_INVALID_STATE, slot, "the root's stable id is empty, \"main\" or already a window's");
+    }
+    const std::vector<std::shared_ptr<OwnedWindow>>& open = owned_windows();
+    for (std::size_t index = 0U; index < open.size(); ++index) {
+        if ((*open[index]).stable_id == stable_id) {
+            return fail(GF_STATUS_INVALID_STATE, slot, "another open window has the root's stable id");
+        }
+    }
+    std::shared_ptr<OwnedWindow> made = std::make_shared<OwnedWindow>();
+    (*made).root = root;
+    (*made).control = control;
+    (*made).stable_id = stable_id;
+    gf_status read = read_optional_callback((*options).ready, (*made).ready);
+    if (read == GF_STATUS_OK) {
+        read = read_optional_callback((*options).closing, (*made).closing);
+    }
+    if (read == GF_STATUS_OK) {
+        read = read_optional_callback((*options).closed, (*made).closed);
+    }
+    if (read != GF_STATUS_OK) {
+        disarm_owned(*made);
+        return read;
+    }
+    try {
+        ApplicationWindowOptions window_options{};
+        Size client_size = window_options.initial_size;
+        if ((*options).width > 0.0) client_size.width = (*options).width;
+        if ((*options).height > 0.0) client_size.height = (*options).height;
+        if (!title.empty()) window_options.title = std::string(title);
+        window_options.initial_size = client_size;
+        window_options.ready = OwnedReady{made};
+        window_options.closing = OwnedClosing{made};
+        window_options.closed = OwnedClosed{made};
+        entry.stable_id = stable_id;
+        entry.owner_id = owner_id;
+        entry.tool_window = ((*options).flags & GF_OWNED_WINDOW_TOOL) != 0U;
+        entry.model = make_run_window(control, client_size);
+        entry.options = std::move(window_options);
+    } catch (...) {
+        disarm_owned(*made);
+        throw;
+    }
+    windows = running.windows();
+    owned = std::move(made);
+    return GF_STATUS_OK;
+}
+
+gf_status show_modal_window(gf_object root, const gf_owned_window_options* options, gf_dialog_result_code* result) {
+    ApplicationWindows windows;
+    ApplicationWindow entry{};
+    std::shared_ptr<OwnedWindow> owned;
+    const gf_status prepared = prepare_owned(root, options, show_modal_slot, windows, entry, owned);
+    if (prepared != GF_STATUS_OK) {
+        return prepared;
+    }
+    ApplicationModalResult shown{};
+    try {
+        shown = windows.show_modal(std::move(entry));
+    } catch (...) {
+        if (!(*owned).ready_seen) disarm_owned(*owned);
+        throw;
+    }
+    if (!shown.status.accepted()) {
+        // A window that never became ready took nothing.
+        if (!(*owned).ready_seen) disarm_owned(*owned);
+        return owned_status(shown.status, show_modal_slot);
+    }
+    if ((*owned).window.active()) {
+        // The run is ending: the window closes with it.
+        return fail(GF_STATUS_CANCELLED, show_modal_slot, "the run ended while the modal window was open");
+    }
+    if (result != nullptr) {
+        *result = static_cast<gf_dialog_result_code>(shown.dialog_result);
+    }
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL windows_show_modal(gf_object root, const gf_owned_window_options* options,
+                                     gf_dialog_result_code* result) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(show_modal_slot.table_id, show_modal_slot.slot_index);
+        const gf_status shown = show_modal_window(root, options, result);
+        return shown;
+    } catch (...) {
+        return fail_with_current_exception(show_modal_slot);
+    }
+}
+
+gf_status show_owned_window(gf_object root, const gf_owned_window_options* options) {
+    ApplicationWindows windows;
+    ApplicationWindow entry{};
+    std::shared_ptr<OwnedWindow> owned;
+    const gf_status prepared = prepare_owned(root, options, show_owned_slot, windows, entry, owned);
+    if (prepared != GF_STATUS_OK) {
+        return prepared;
+    }
+    ApplicationWindowOpenResult opened{};
+    try {
+        opened = windows.open_window(std::move(entry));
+    } catch (...) {
+        if (!(*owned).ready_seen) disarm_owned(*owned);
+        throw;
+    }
+    if (!opened.status.accepted()) {
+        if (!(*owned).ready_seen) disarm_owned(*owned);
+        return owned_status(opened.status, show_owned_slot);
+    }
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL windows_show_owned(gf_object root, const gf_owned_window_options* options) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(show_owned_slot.table_id, show_owned_slot.slot_index);
+        const gf_status shown = show_owned_window(root, options);
+        return shown;
+    } catch (...) {
+        return fail_with_current_exception(show_owned_slot);
+    }
+}
+
 gf_status GF_CALL windows_request_close(gf_object root) noexcept {
     try {
         const ShadowFrameScope shadow_frame(request_close_slot.table_id, request_close_slot.slot_index);
@@ -292,6 +647,15 @@ gf_status GF_CALL windows_request_close(gf_object root) noexcept {
         const gf_status found = registry().find_component(root, request_close_slot, object);
         if (found != GF_STATUS_OK) {
             return found;
+        }
+        // A window show_modal or show_owned opened (since 1.1).
+        const std::shared_ptr<OwnedWindow> owned = find_owned(root);
+        if (owned != nullptr) {
+            const HostServiceStatus asked = (*owned).window.request_close();
+            if (!asked.accepted()) {
+                return owned_status(asked, request_close_slot);
+            }
+            return GF_STATUS_OK;
         }
         ApplicationWindowHandle window;
         const gf_status running = registry().running_window(root, request_close_slot, window);
@@ -432,6 +796,142 @@ gf_status GF_CALL windows_request_help(gf_object window, std::uint32_t* handled)
     }
 }
 
+// Window properties (since 1.1): what the window's host applies.
+gf_status report_window_properties(gf_object window, gf_window_property_flags* supported,
+                                   gf_window_property_flags* applied) {
+    const gf_status entered = registry().enter_ui(window_properties_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Component::Ptr object;
+    const gf_status found = registry().find_component(window, window_properties_slot, object);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    const std::shared_ptr<WindowHandle> handle = std::dynamic_pointer_cast<WindowHandle>(object);
+    if (handle == nullptr) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, window_properties_slot, "window_properties takes a window");
+    }
+    const Window* const held = (*handle).window();
+    if (!(*handle).is_alive() || held == nullptr) {
+        return fail(GF_STATUS_DISPOSED, window_properties_slot, "the window has been disposed or has closed");
+    }
+    // WindowChromeField's bits are GF_WINDOW_PROPERTY_*'s.
+    if (supported != nullptr) *supported = (*held).supported_chrome().bits;
+    if (applied != nullptr) *applied = (*held).applied_chrome().bits;
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL windows_window_properties(gf_object window, gf_window_property_flags* supported,
+                                            gf_window_property_flags* applied) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(window_properties_slot.table_id, window_properties_slot.slot_index);
+        const gf_status reported = report_window_properties(window, supported, applied);
+        return reported;
+    } catch (...) {
+        return fail_with_current_exception(window_properties_slot);
+    }
+}
+
+// The focused control of a window from create, or of the window a control
+// is in (a run's root, an owned or modal window's root, or any control).
+gf_status report_focused_control(gf_object window_or_root, gf_object* control) {
+    if (control == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, focused_control_slot, "focused_control needs a control output");
+    }
+    const gf_status entered = registry().enter_ui(focused_control_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Component::Ptr object;
+    const gf_status found = registry().find_component(window_or_root, focused_control_slot, object);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    const SurfaceRoot* window = nullptr;
+    const std::shared_ptr<WindowHandle> handle = std::dynamic_pointer_cast<WindowHandle>(object);
+    if (handle != nullptr) {
+        if (!(*handle).is_alive() || (*handle).window() == nullptr) {
+            return fail(GF_STATUS_DISPOSED, focused_control_slot, "the window has been disposed or has closed");
+        }
+        window = (*handle).window();
+    } else {
+        const Control::Ptr in_window = std::dynamic_pointer_cast<Control>(object);
+        if (!in_window) {
+            return fail(GF_STATUS_WRONG_HANDLE_KIND, focused_control_slot,
+                        "focused_control takes a window or a control in one");
+        }
+        if (!(*in_window).is_alive()) {
+            return fail(GF_STATUS_DISPOSED, focused_control_slot, "the object has been disposed");
+        }
+        window = (*in_window).attached_surface_root();
+        if (window == nullptr) {
+            return fail(GF_STATUS_INVALID_STATE, focused_control_slot, "the control is not in a window");
+        }
+    }
+    // The composite rather than its inner edit part (ActiveControl).
+    const Control::Ptr focused = (*window).active_control();
+    // The reference is made before the output is written: a failed
+    // allocation leaves the output as it was.
+    const gf_object made = focused ? registry().add_reference(focused) : gf_object{0U};
+    *control = made;
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL windows_focused_control(gf_object window_or_root, gf_object* control) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(focused_control_slot.table_id, focused_control_slot.slot_index);
+        const gf_status reported = report_focused_control(window_or_root, control);
+        return reported;
+    } catch (...) {
+        return fail_with_current_exception(focused_control_slot);
+    }
+}
+
+static_assert(static_cast<std::uint32_t>(WindowChromeField::text) == GF_WINDOW_PROPERTY_TEXT &&
+                  static_cast<std::uint32_t>(WindowChromeField::show_in_taskbar) ==
+                      GF_WINDOW_PROPERTY_SHOW_IN_TASKBAR &&
+                  static_cast<std::uint32_t>(WindowChromeField::minimum_size) == GF_WINDOW_PROPERTY_MINIMUM_SIZE &&
+                  WindowChromeFields::all_bits == 4095U,
+              "the chrome fields are the ABI's window property bits");
+
+// Whether a created or running window holds physical_key down.
+gf_status read_key_state(gf_object window, std::uint32_t physical_key, std::uint32_t* down) {
+    if (down == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, key_state_slot, "key_state needs a down output");
+    }
+    const gf_status entered = registry().enter_ui(key_state_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Component::Ptr object;
+    const gf_status found = registry().find_component(window, key_state_slot, object);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    const std::shared_ptr<WindowHandle> handle = std::dynamic_pointer_cast<WindowHandle>(object);
+    if (handle == nullptr) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, key_state_slot, "key_state takes a window");
+    }
+    Window* const held = (*handle).window();
+    if (!(*handle).is_alive() || held == nullptr) {
+        return fail(GF_STATUS_DISPOSED, key_state_slot, "the window has been disposed or has closed");
+    }
+    const bool pressed = (*held).is_key_down(physical_key);
+    *down = pressed ? 1U : 0U;
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL windows_key_state(gf_object window, std::uint32_t physical_key, std::uint32_t* down) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(key_state_slot.table_id, key_state_slot.slot_index);
+        const gf_status read = read_key_state(window, physical_key, down);
+        return read;
+    } catch (...) {
+        return fail_with_current_exception(key_state_slot);
+    }
+}
+
 constexpr gf_windows_table table{
     .struct_size = sizeof(gf_windows_table),
     .abi_minor = GF_ABI_MINOR,
@@ -441,6 +941,11 @@ constexpr gf_windows_table table{
     .interaction_count = &windows_interaction_count,
     .interaction_at = &windows_interaction_at,
     .request_help = &windows_request_help,
+    .key_state = &windows_key_state,
+    .show_modal = &windows_show_modal,
+    .show_owned = &windows_show_owned,
+    .window_properties = &windows_window_properties,
+    .focused_control = &windows_focused_control,
 };
 
 } // namespace

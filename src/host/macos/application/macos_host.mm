@@ -552,6 +552,15 @@ static std::uint32_t physical_key_for(unsigned short key_code) {
     case 50: return 0x35U;  // grave
     case 51: return 0x2AU;  // Backspace
     case 53: return 0x29U;  // Escape
+    case 54: return 0xE7U;  // Right Command
+    case 55: return 0xE3U;  // Left Command
+    case 56: return 0xE1U;  // Left Shift
+    case 57: return 0x39U;  // Caps Lock
+    case 58: return 0xE2U;  // Left Option
+    case 59: return 0xE0U;  // Left Control
+    case 60: return 0xE5U;  // Right Shift
+    case 61: return 0xE6U;  // Right Option
+    case 62: return 0xE4U;  // Right Control
     case 64: return 0x6CU;  // F17
     case 65: return 0x63U;  // Keypad decimal
     case 67: return 0x55U;  // Keypad multiply
@@ -1822,6 +1831,54 @@ static GUIFormsAccessibilityElement* reconcile_accessibility_element(
     return element;
 }
 
+// Main-thread work through the run loop rather than the main dispatch
+// queue. The main queue is serial: while one of its functions runs, a
+// nested event loop inside it (a modal window's, HostWindowing::run_modal)
+// would never see the queue's later work, so posted work, damage
+// collection and close requests would stall until the modal window closed.
+// A perform request on the main thread in the common modes is a run loop
+// source, which the modal session's run loop mode (a common mode) services
+// at any depth. Thread-safe; the target and its context are released after
+// the function runs.
+@interface GUIFormsMainWork : NSObject
+- (instancetype)initWithFunction:(void (*)(void*))function context:(void*)context;
+- (void)perform;
+@end
+
+@implementation GUIFormsMainWork {
+    void (*_function)(void*);
+    void* _context;
+}
+
+- (instancetype)initWithFunction:(void (*)(void*))function context:(void*)context {
+    self = [super init];
+    if (self != nil) {
+        _function = function;
+        _context = context;
+    }
+    return self;
+}
+
+- (void)perform {
+    void (*const function)(void*) = _function;
+    void* const context = _context;
+    _function = nullptr;
+    _context = nullptr;
+    if (function != nullptr) function(context);
+}
+@end
+
+namespace {
+// Runs function(context) on the main thread from the run loop, in the
+// common modes. The function adopts the context as dispatch_async_f's
+// would.
+void post_main_work(void* context, void (*function)(void*)) {
+    GUIFormsMainWork* const work = [[GUIFormsMainWork alloc] initWithFunction:function context:context];
+    NSArray<NSString*>* const modes = @[ NSRunLoopCommonModes ];
+    [work performSelectorOnMainThread:@selector(perform) withObject:nil waitUntilDone:NO modes:modes];
+}
+} // namespace
+
 // Main-queue work without Objective-C blocks (house style section 9, owner
 // decision V2-1). Each posting allocates one named context on the heap and
 // passes it to dispatch_async_f with a named dispatch_function_t; the
@@ -1870,7 +1927,7 @@ public:
     void operator()() const
     {
         WeakViewWork* const work = new WeakViewWork{view_};
-        dispatch_async_f(dispatch_get_main_queue(), work, &drain_posted_work_on_main);
+        post_main_work(work, &drain_posted_work_on_main);
     }
 
 private:
@@ -1885,7 +1942,7 @@ public:
     void operator()() const
     {
         WeakViewWork* const work = new WeakViewWork{view_};
-        dispatch_async_f(dispatch_get_main_queue(), work, &collect_damage_on_main);
+        post_main_work(work, &collect_damage_on_main);
     }
 
 private:
@@ -1905,7 +1962,7 @@ void perform_close_on_main(void* context) {
 
 void post_perform_close(NSWindow* window) {
     WindowWork* const work = new WindowWork{window};
-    dispatch_async_f(dispatch_get_main_queue(), work, &perform_close_on_main);
+    post_main_work(work, &perform_close_on_main);
 }
 } // namespace
 
@@ -3491,6 +3548,7 @@ void post_perform_close(NSWindow* window) {
     KeyEvent input;
     input.action = KeyAction::down;
     input.physical_key = physical_key_for(event.keyCode);
+    input.scan_code = event.keyCode;
     input.modifiers = modifiers_for(event.modifierFlags);
     input.repeat = event.isARepeat;
     const bool handled = [self dispatchHostPayload:std::move(input)
@@ -3505,7 +3563,42 @@ void post_perform_close(NSWindow* window) {
     KeyEvent input;
     input.action = KeyAction::up;
     input.physical_key = physical_key_for(event.keyCode);
+    input.scan_code = event.keyCode;
     input.modifiers = modifiers_for(event.modifierFlags);
+    static_cast<void>([self dispatchHostPayload:std::move(input)
+                               timestampNanoseconds:host_event_nanoseconds(event)]);
+    [self collectDamage];
+}
+
+// A modifier key went down or up: AppKit reports it as a change of the
+// modifier flags rather than as keyDown/keyUp. The key is down when its
+// own device-dependent flag (the side's bit, IOKit's NX_DEVICE*KEYMASK) is
+// set; Caps Lock toggles, so it is down when its flag turned on.
+- (void)flagsChanged:(NSEvent*)event {
+    const std::uint32_t physical = physical_key_for(event.keyCode);
+    const NSUInteger flags = event.modifierFlags;
+    bool down = false;
+    switch (event.keyCode) {
+    case 54: down = (flags & 0x10U) != 0U; break;   // Right Command
+    case 55: down = (flags & 0x08U) != 0U; break;   // Left Command
+    case 56: down = (flags & 0x02U) != 0U; break;   // Left Shift
+    case 57: down = (flags & NSEventModifierFlagCapsLock) != 0U; break;
+    case 58: down = (flags & 0x20U) != 0U; break;   // Left Option
+    case 59: down = (flags & 0x01U) != 0U; break;   // Left Control
+    case 60: down = (flags & 0x04U) != 0U; break;   // Right Shift
+    case 61: down = (flags & 0x40U) != 0U; break;   // Right Option
+    case 62: down = (flags & 0x2000U) != 0U; break; // Right Control
+    default: break;
+    }
+    if (physical == 0U) {
+        [super flagsChanged:event];
+        return;
+    }
+    KeyEvent input;
+    input.action = down ? KeyAction::down : KeyAction::up;
+    input.physical_key = physical;
+    input.scan_code = event.keyCode;
+    input.modifiers = modifiers_for(flags);
     static_cast<void>([self dispatchHostPayload:std::move(input)
                                timestampNanoseconds:host_event_nanoseconds(event)]);
     [self collectDamage];
@@ -3937,19 +4030,51 @@ void finish_run(MacRunEnd& end) {
 // once rather than deferred with NSTerminateLater.
 // After a quit, the process ends inside terminate: with status 0: the run's
 // own exit code and the program's code after the run do not apply.
+//
+// It also takes the system's requests to open files (application:openURLs:,
+// which AppKit sends instead of application:openFiles: when implemented) and
+// hands their paths to the run's open_files callback.
 @interface GUIFormsTerminationDelegate : NSObject <NSApplicationDelegate> {
     // Observing: the run function owns it and clears this delegate before
     // it returns.
     gui_forms::host::MacRunEnd* _end;
+    // Observing: the run's MacApplicationOptions::open_files, which outlives
+    // the delegate's time as NSApp's delegate; null for a run without one.
+    const std::function<void(std::vector<std::string>)>* _openFiles;
 }
 - (instancetype)initWithEnd:(gui_forms::host::MacRunEnd*)end;
+- (instancetype)initWithEnd:(gui_forms::host::MacRunEnd*)end
+                  openFiles:(const std::function<void(std::vector<std::string>)>*)openFiles;
 @end
 
 @implementation GUIFormsTerminationDelegate
 - (instancetype)initWithEnd:(gui_forms::host::MacRunEnd*)end {
-    self = [super init];
-    if (self != nil) _end = end;
+    self = [self initWithEnd:end openFiles:nullptr];
     return self;
+}
+- (instancetype)initWithEnd:(gui_forms::host::MacRunEnd*)end
+                  openFiles:(const std::function<void(std::vector<std::string>)>*)openFiles {
+    self = [super init];
+    if (self != nil) {
+        _end = end;
+        _openFiles = openFiles;
+    }
+    return self;
+}
+- (void)application:(NSApplication*)application openURLs:(NSArray<NSURL*>*)urls {
+    static_cast<void>(application);
+    if (_openFiles == nullptr || !(*_openFiles)) return;
+    std::vector<std::string> paths{};
+    paths.reserve(static_cast<std::size_t>([urls count]));
+    for (NSURL* url in urls) {
+        if (![url isFileURL]) continue;
+        // The file system's own spelling of the path, in UTF-8 on macOS.
+        const char* path = [url fileSystemRepresentation];
+        if (path == nullptr) continue;
+        paths.emplace_back(path);
+    }
+    if (paths.empty()) return;
+    (*_openFiles)(std::move(paths));
 }
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)sender {
     for (NSWindow* window in [sender windows]) {
@@ -4098,7 +4223,7 @@ public:
     void operator()() const
     {
         DispatchAndCollectWork* const work = new DispatchAndCollectWork{view_, dispatch_pending_};
-        dispatch_async_f(dispatch_get_main_queue(), work, &dispatch_and_collect_on_main);
+        post_main_work(work, &dispatch_and_collect_on_main);
     }
 
 private:
@@ -4126,7 +4251,7 @@ public:
     void operator()() const
     {
         WindowWork* const work = new WindowWork{window_};
-        dispatch_async_f(dispatch_get_main_queue(), work, &make_key_and_activate_on_main);
+        post_main_work(work, &make_key_and_activate_on_main);
     }
 
 private:
@@ -4203,7 +4328,7 @@ public:
     explicit RequestNativeFullScreen(NSWindow* window) noexcept : window_(window) {}
     void operator()() const {
         WindowWork* const work = new WindowWork{window_};
-        dispatch_async_f(dispatch_get_main_queue(), work, &toggle_full_screen_on_main);
+        post_main_work(work, &toggle_full_screen_on_main);
     }
 private:
     NSWindow* window_;
@@ -4216,7 +4341,7 @@ public:
     void operator()() const
     {
         WindowWork* const work = new WindowWork{window_};
-        dispatch_async_f(dispatch_get_main_queue(), work, &order_out_on_main);
+        post_main_work(work, &order_out_on_main);
     }
 
 private:
@@ -4416,7 +4541,7 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
             const std::uint32_t closeAttempts =
                 std::max<std::uint32_t>(1, options.close_attempts_for_testing);
             RepeatedCloseWork* const work = new RepeatedCloseWork{nativeWindow, closeAttempts};
-            dispatch_async_f(dispatch_get_main_queue(), work, &repeated_close_on_main);
+            post_main_work(work, &repeated_close_on_main);
         }
         SingleWindowRunEnd ending{view, nativeWindow, &options, &exitCode};
         MacRunEnd end{&end_single_window_run, &ending, false};

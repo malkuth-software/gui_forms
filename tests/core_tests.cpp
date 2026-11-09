@@ -1012,6 +1012,17 @@ void test_stable_id_rule() {
         }
         require(refused, "an invalid runtime stable ID throws std::invalid_argument");
     }
+    // The refusal states the rule and how a Windows Forms name is spelled.
+    std::string message{};
+    try {
+        static_cast<void>(StableId(std::string("textBox1")));
+    } catch (const std::invalid_argument& error) {
+        message = error.what();
+    }
+    require(message.find("\"textBox1\"") != std::string::npos &&
+                message.find("lowercase ASCII letters and digits") != std::string::npos &&
+                message.find("\"text-box1\"") != std::string::npos,
+            "a refused stable ID names itself, the rule and the Windows Forms spelling");
 }
 
 void test_static_tree_factory() {

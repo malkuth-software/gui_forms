@@ -288,6 +288,7 @@ add_library(gui_forms_core STATIC
     src/core/window/backdrop/window_backdrop_grant.cpp
     src/core/window/backdrop/backdrop_chain.cpp
     src/core/window/band/window_band.cpp
+    src/core/window/chrome/window_chrome.cpp
     src/core/window/backplane/window_backplane.cpp
     src/core/engine/primitives/kernel/box_blur.cpp
     src/core/engine/primitives/kernel/pixel_kernel.cpp
@@ -316,6 +317,7 @@ add_library(gui_forms_core STATIC
     src/core/document_view/document_view_state.cpp
     src/core/pages/page_set/page_set.cpp
     src/core/events/key_commands/key_commands.cpp
+    src/core/events/key_events/key_events.cpp
     src/core/text_shaping/validation/text_shaping_validation.cpp
     src/core/text/unicode/unicode_grapheme.cpp
     src/core/typography/resolution/typography_resolution.cpp
@@ -900,6 +902,8 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/rich_text_box/rich_text_box_layout.cpp
     src/controls/panel/text_box/text_box_scroll.cpp
     src/controls/panel/text_box/text_box_auto_complete.cpp
+    src/controls/panel/text_box/text_box_decorations.cpp
+    src/controls/panel/text_box/text_decorations/text_decorations.cpp
     src/controls/panel/text_box/auto_complete/auto_complete.cpp
     src/controls/panel/list_box/list_box.cpp
     src/controls/panel/list_box/checked_list_box/checked_list_box.cpp
@@ -2596,6 +2600,53 @@ if(GUI_FORMS_BUILD_TESTS)
                 ${GUI_FORMS_APPKIT} ${GUI_FORMS_COREGRAPHICS})
             add_test(NAME gui_forms_macos_compositor_tests COMMAND gui_forms_macos_compositor_tests)
             set_tests_properties(gui_forms_macos_compositor_tests PROPERTIES RUN_SERIAL TRUE TIMEOUT 60)
+
+            # Native AppKit readback of the window chrome, modal windows and
+            # composite focus (Mac handoff 2026-11-09, item 2). Launched
+            # through LaunchServices so their windows can become key; serial,
+            # since they need the key window. The focus probe writes its
+            # captures to handoff_focus_captures/ in this directory.
+            foreach(handoff_probe IN ITEMS window_chrome_probe modal_probe composite_focus_probe)
+                set(handoff_target gui_forms_macos_${handoff_probe}_tests)
+                add_executable(${handoff_target} MACOSX_BUNDLE tests/macos_${handoff_probe}_tests.mm
+                    ${GUI_FORMS_GALLERY_FONTS} ${GUI_FORMS_GALLERY_FONT_NOTICES})
+                target_compile_options(${handoff_target} PRIVATE -fobjc-arc)
+                target_include_directories(${handoff_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+                target_link_libraries(${handoff_target} PRIVATE gui_forms_application ${GUI_FORMS_APPKIT})
+                add_test(NAME ${handoff_target}
+                         COMMAND ${CMAKE_COMMAND}
+                             -DBUNDLE=$<TARGET_BUNDLE_DIR:${handoff_target}>
+                             -DOUTPUT_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}
+                             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/run_macos_activated_test.cmake)
+                set_tests_properties(${handoff_target} PROPERTIES RUN_SERIAL TRUE TIMEOUT 120)
+            endforeach()
+            # Files opened through application:openURLs: (Finder, the Dock),
+            # sent as open-documents Apple Events by `open -a`, at launch and
+            # during the run.
+            add_executable(gui_forms_macos_open_files_probe_app MACOSX_BUNDLE
+                tests/macos_open_files_probe_app.mm
+                ${GUI_FORMS_GALLERY_FONTS} ${GUI_FORMS_GALLERY_FONT_NOTICES})
+            target_compile_options(gui_forms_macos_open_files_probe_app PRIVATE -fobjc-arc)
+            target_include_directories(gui_forms_macos_open_files_probe_app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+            target_link_libraries(gui_forms_macos_open_files_probe_app PRIVATE gui_forms_application ${GUI_FORMS_APPKIT})
+            set_target_properties(gui_forms_macos_open_files_probe_app PROPERTIES
+                MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.open-files-probe")
+            add_test(NAME gui_forms_macos_open_files_probe_tests
+                     COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_macos_open_files_probe.sh
+                         $<TARGET_BUNDLE_DIR:gui_forms_macos_open_files_probe_app>
+                         ${CMAKE_CURRENT_BINARY_DIR})
+            set_tests_properties(gui_forms_macos_open_files_probe_tests PROPERTIES RUN_SERIAL TRUE TIMEOUT 120)
+            # Quit, logout and restart checks (Mac handoff 2026-11-09, item
+            # 2e): a window whose close is refused while /tmp/gf_term_refuse
+            # exists; it logs to /tmp/gf_term.log. Started by hand with
+            # `open -n -a`, never by ctest.
+            add_executable(gui_forms_macos_termination_fixture MACOSX_BUNDLE
+                tests/macos_termination_fixture.mm
+                ${GUI_FORMS_GALLERY_FONTS} ${GUI_FORMS_GALLERY_FONT_NOTICES})
+            target_compile_options(gui_forms_macos_termination_fixture PRIVATE -fobjc-arc)
+            target_link_libraries(gui_forms_macos_termination_fixture PRIVATE gui_forms_application ${GUI_FORMS_APPKIT})
+            set_target_properties(gui_forms_macos_termination_fixture PROPERTIES
+                MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.termination-fixture")
         endif()
         # Stage DK W0 measurement (notes:results/2026-10-18-dk-w0-capture-drag/): it
         # puts windows on the desktop, so it is built but never run by ctest.
@@ -3477,6 +3528,11 @@ if(GUI_FORMS_BUILD_TESTS)
         gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_multiline_text_box_tests COMMAND gui_forms_multiline_text_box_tests)
 
+    add_executable(gui_forms_text_decorations_tests tests/text_decorations_tests.cpp)
+    target_link_libraries(gui_forms_text_decorations_tests PRIVATE
+        gui_forms_controls gui_forms_host_headless)
+    add_test(NAME gui_forms_text_decorations_tests COMMAND gui_forms_text_decorations_tests)
+
     add_executable(gui_forms_semantic_text_tests tests/semantic_text_tests.cpp)
     target_link_libraries(gui_forms_semantic_text_tests PRIVATE
         gui_forms_controls gui_forms_host_headless)
@@ -3610,6 +3666,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_mouse_events_tests tests/mouse_events_tests.cpp)
     target_link_libraries(gui_forms_mouse_events_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_mouse_events_tests COMMAND gui_forms_mouse_events_tests)
+    add_executable(gui_forms_key_events_tests tests/key_events_tests.cpp)
+    target_link_libraries(gui_forms_key_events_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_key_events_tests COMMAND gui_forms_key_events_tests)
     add_executable(gui_forms_mouse_event_order_tests tests/mouse_event_order_tests.cpp)
     target_link_libraries(gui_forms_mouse_event_order_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_mouse_event_order_tests COMMAND gui_forms_mouse_event_order_tests)
@@ -3907,6 +3966,20 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_window_band_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_window_band_tests
              COMMAND gui_forms_window_band_tests)
+
+    add_executable(gui_forms_window_chrome_tests
+        tests/window_chrome_tests.cpp
+    )
+    target_link_libraries(gui_forms_window_chrome_tests PRIVATE gui_forms_controls gui_forms_host_headless)
+    add_test(NAME gui_forms_window_chrome_tests
+             COMMAND gui_forms_window_chrome_tests)
+
+    add_executable(gui_forms_focus_restore_tests
+        tests/focus_restore_tests.cpp
+    )
+    target_link_libraries(gui_forms_focus_restore_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_focus_restore_tests
+             COMMAND gui_forms_focus_restore_tests)
 
     add_executable(gui_forms_layout_direction_tests
         tests/layout_direction_tests.cpp

@@ -14,10 +14,15 @@ TextEditingEngine::TextEditingEngine(TextEditingHost& host, std::string_view tex
     selection_ = {store_.utf8_size(), store_.utf8_size()};
 }
 
+void TextEditingEngine::replace_whole_text(std::string_view text) {
+    last_change_ = text_change_between(store_.utf8(), text);
+    store_.set_text(text);
+}
+
 void TextEditingEngine::set_text(std::string_view text) {
     // Replacing the whole text abandons any composition it held.
     composing_ = false;
-    store_.set_text(text);
+    replace_whole_text(text);
     selection_ = {store_.utf8_size(), store_.utf8_size()};
     undo_.clear();
     redo_.clear();
@@ -26,7 +31,7 @@ void TextEditingEngine::set_text(std::string_view text) {
 
 bool TextEditingEngine::show_text(std::string_view text, TextSelection selection) {
     if (text == store_.utf8()) return false;
-    store_.set_text(text);
+    replace_whole_text(text);
     selection_ = selection;
     return true;
 }
@@ -48,7 +53,7 @@ TextEditingEngine::Snapshot TextEditingEngine::snapshot() const {
 
 void TextEditingEngine::apply_snapshot(Snapshot snapshot) {
     host_.editing_restoring();
-    store_.set_text(snapshot.text);
+    replace_whole_text(snapshot.text);
     selection_ = snapshot.selection;
     host_.editing_text_changed();
 }
@@ -154,6 +159,8 @@ bool TextEditingEngine::replace(Utf8Offset start, Utf8Offset end, std::string_vi
     }
     Snapshot previous = snapshot();
     static_cast<void>(store_.replace({start, end}, replacement));
+    last_change_ = TextChange{.start = start, .removed_bytes = end.value() - start.value(),
+                              .inserted_bytes = replacement.size()};
     clear_redo();
     push_history(undo_, std::move(previous));
     Utf8Offset next(start.value() + replacement.size());
@@ -176,7 +183,7 @@ bool TextEditingEngine::apply_rewrite(std::string_view rewritten, Utf8Offset car
     const bool changes = rewritten != store_.utf8();
     if (changes) {
         Snapshot previous = snapshot();
-        store_.set_text(rewritten);
+        replace_whole_text(rewritten);
         clear_redo();
         push_history(undo_, std::move(previous));
     }

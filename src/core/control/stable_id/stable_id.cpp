@@ -17,7 +17,9 @@ void StableId::require_valid() const {
     std::string message("GUI.Forms stable ID \"");
     message.append(value_, 0U, quoted_bytes);
     if (value_.size() > quoted_bytes) message.append("...");
-    message.append("\" is not '.'-separated segments of lowercase ASCII letters and digits joined by single '-'");
+    message.append("\" is not '.'-separated segments of lowercase ASCII letters and digits joined by single '-' "
+                   "(such as \"settings.ok-button\"; a Windows Forms name such as \"textBox1\" is spelled "
+                   "\"text-box1\")");
     throw std::invalid_argument(message);
 }
 

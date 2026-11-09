@@ -75,6 +75,8 @@ public:
     bool validate_text();
 
     [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept { return editor_; }
+    // Focus on the field goes to its edit part (null without one).
+    [[nodiscard]] Ptr focus_target() const override { return editor_; }
 
     // Raised for each refused input, before the edit returns.
     [[nodiscard]] Event<const MaskInputRejection&>& mask_input_rejected() noexcept {

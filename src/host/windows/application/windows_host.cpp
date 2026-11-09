@@ -1321,11 +1321,15 @@ public:
                 gui_forms::detail::BoundMemberFunction<void (WindowsHostState::*)() noexcept>(
                     *this, &WindowsHostState::hide_window));
         }
+        // The window is ready before the initialization turn: a callback in
+        // it may run a nested loop (a modal window shown from posted work),
+        // whose messages for this window, its managed wakes included, a window
+        // that is not ready would drop.
+        native_phase_ = NativePhase::ready;
         // One FIFO initialization turn runs before presentation. Work posted by
         // those callbacks stays deferred to the ordinary next host turn.
         static_cast<void>((*model_).drain_posted_work());
         if (options_.dispatch_pending) options_.dispatch_pending();
-        native_phase_ = NativePhase::ready;
         collect_damage();
         return true;
     }
@@ -1389,7 +1393,21 @@ public:
         window_id_ = window;
     }
     [[nodiscard]] HWND native_window() const noexcept { return hwnd_; }
-    [[nodiscard]] Size minimum_size() const noexcept { return options_.minimum_size; }
+    // The client area's least size: Window's MinimumSize where a side is
+    // written non-zero, else the size the window opened with.
+    [[nodiscard]] Size minimum_size() const noexcept {
+        const Size chrome = services_.chrome_minimum_size();
+        const Size minimum{chrome.width > 0.0 ? chrome.width : options_.minimum_size.width,
+                           chrome.height > 0.0 ? chrome.height : options_.minimum_size.height};
+        return minimum;
+    }
+    // Shows the window with `ordinary`, or with the state Window's
+    // WindowState asked for while it was hidden.
+    void show_with(int ordinary) noexcept {
+        if (hwnd_ == nullptr || closed_) return;
+        const int command = services_.show_command(ordinary);
+        ShowWindow(hwnd_, command);
+    }
     // Full screen, maximized and minimized windows refuse frame requests, as
     // they refuse client size requests.
     [[nodiscard]] bool frame_fixed() const noexcept {
@@ -1416,7 +1434,7 @@ public:
     void hidden_on_close_to_run() noexcept;
     // Shows without activating, for the floating policy.
     void show_without_activation() noexcept {
-        if (hwnd_ != nullptr && !closed_) ShowWindow(hwnd_, SW_SHOWNOACTIVATE);
+        show_with(SW_SHOWNOACTIVATE);
     }
     void hide_for_policy() noexcept { hide_window(); }
 
@@ -1784,7 +1802,7 @@ private:
     }
 
     void show_window() noexcept {
-        if (hwnd_ != nullptr && !closed_) ShowWindow(hwnd_, SW_SHOW);
+        show_with(SW_SHOW);
     }
 
     void toggle_full_screen() noexcept {
@@ -1816,8 +1834,8 @@ private:
     // ordinary resize event (deferred while a host callback is running).
     HostServiceStatus request_client_size(const Size client_size) {
         if (hwnd_ == nullptr || closed_) return {HostServiceError::after_shutdown};
-        if (client_size.width < options_.minimum_size.width ||
-            client_size.height < options_.minimum_size.height) {
+        const Size minimum = minimum_size();
+        if (client_size.width < minimum.width || client_size.height < minimum.height) {
             return {HostServiceError::invalid_argument};
         }
         if (full_screen_ || IsZoomed(hwnd_) || IsIconic(hwnd_)) {
@@ -2672,7 +2690,8 @@ private:
     bool key(KeyAction action, WPARAM wparam, LPARAM lparam) {
         KeyEvent event;
         event.action = action;
-        event.physical_key = detail::physical_key_from_virtual_key(wparam);
+        event.physical_key = detail::physical_key_from_key_message(wparam, lparam);
+        event.scan_code = detail::scan_code_from_key_message(lparam);
         event.modifiers = modifiers();
         event.repeat = action == KeyAction::down && (lparam & (1LL << 30)) != 0;
         const HostDispatchResult result = dispatch(std::move(event));
@@ -2726,13 +2745,17 @@ private:
 
     void minimum_size(MINMAXINFO* info) const {
         if (info == nullptr) return;
+        const Size minimum = minimum_size();
         RECT rect{0, 0,
-                  static_cast<LONG>(std::ceil(options_.minimum_size.width * scale_)),
-                  static_cast<LONG>(std::ceil(options_.minimum_size.height * scale_))};
+                  static_cast<LONG>(std::ceil(minimum.width * scale_)),
+                  static_cast<LONG>(std::ceil(minimum.height * scale_))};
         adjust_client_frame(rect, static_cast<DWORD>(GetWindowLongPtrW(hwnd_, GWL_STYLE)),
             static_cast<DWORD>(GetWindowLongPtrW(hwnd_, GWL_EXSTYLE)), scale_);
-        (*info).ptMinTrackSize.x = rect.right - rect.left;
-        (*info).ptMinTrackSize.y = rect.bottom - rect.top;
+        // A side of 0 sets no minimum there: the system's own minimum
+        // tracking size, already in `info`, stays (Windows Forms' empty
+        // MinimumSize).
+        if (minimum.width > 0.0) (*info).ptMinTrackSize.x = rect.right - rect.left;
+        if (minimum.height > 0.0) (*info).ptMinTrackSize.y = rect.bottom - rect.top;
     }
 
     LRESULT close() {
@@ -3297,7 +3320,7 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
         if (SUCCEEDED(com_status)) CoUninitialize();
         return 5;
     }
-    ShowWindow(window, SW_SHOWNORMAL);
+    state.show_with(SW_SHOWNORMAL);
     UpdateWindow(window);
     if (options.close_after_launch_for_testing) {
         PostMessageW(window, WM_CLOSE, 0, 0);
@@ -3473,7 +3496,7 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
             // A floating window is shown by the floating policy.
             (*run).window_created(slot.id, visible);
             if (visible && !slot.floating) {
-                ShowWindow(window, windows[listed].tool_window ? SW_SHOWNOACTIVATE : SW_SHOWNORMAL);
+                (*slot.state).show_with(windows[listed].tool_window ? SW_SHOWNOACTIVATE : SW_SHOWNORMAL);
                 UpdateWindow(window);
             }
             if (windows[listed].options.close_after_launch_for_testing) {
@@ -3487,68 +3510,8 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
 
     MSG message{};
     bool quit{};
-    std::vector<HANDLE> clocks;
-    clocks.reserve(WindowsApplicationRun::reserved_slots);
     while (!quit) {
-        // A window opened or closed in the previous turn changes the slots;
-        // their count is read afresh in every pass.
-        clocks.clear();
-        for (std::size_t index = 0; index < (*run).slot_count(); ++index) {
-            const HANDLE clock = (*(*run).slot_at(index).state).live_frame_clock();
-            if (clock != nullptr) clocks.push_back(clock);
-        }
-        if (clocks.size() >= MAXIMUM_WAIT_OBJECTS) {
-            clocks.resize(MAXIMUM_WAIT_OBJECTS - 1U);
-        }
-        const DWORD wait = MsgWaitForMultipleObjectsEx(
-            static_cast<DWORD>(clocks.size()),
-            clocks.empty() ? nullptr : clocks.data(), INFINITE,
-            QS_ALLINPUT, MWMO_INPUTAVAILABLE);
-        if (wait == WAIT_FAILED) break;
-        if (wait >= WAIT_OBJECT_0 && wait < WAIT_OBJECT_0 + clocks.size()) {
-            const HANDLE ready = clocks[wait - WAIT_OBJECT_0];
-            for (std::size_t index = 0; index < (*run).slot_count(); ++index) {
-                WindowsHostState& state = *(*run).slot_at(index).state;
-                if (state.live_frame_clock() == ready) {
-                    state.mark_live_frame_due();
-                    break;
-                }
-            }
-        }
-
-        const std::chrono::steady_clock::time_point batch_started =
-            std::chrono::steady_clock::now();
-        for (std::size_t drained = 0U; drained < 32U; ++drained) {
-            MSG pending{};
-            if (!detail::take_window_message(pending, drained % 2U == 0U)) break;
-            if (pending.message == WM_QUIT) {
-                message = pending;
-                quit = true;
-                break;
-            }
-            TranslateMessage(&pending);
-            DispatchMessageW(&pending);
-            // Finish an input/ordinary pair before applying the time budget.
-            if (drained % 2U == 1U && std::chrono::steady_clock::now() - batch_started >=
-                std::chrono::milliseconds(4)) {
-                break;
-            }
-        }
-        for (std::size_t index = 0; index < (*run).slot_count(); ++index) {
-            WindowsHostState& state = *(*run).slot_at(index).state;
-            const HANDLE clock = state.live_frame_clock();
-            if (clock != nullptr && WaitForSingleObject(clock, 0U) == WAIT_OBJECT_0) {
-                state.mark_live_frame_due();
-            }
-        }
-        if (!quit) {
-            for (std::size_t index = 0; index < (*run).slot_count(); ++index) {
-                (*(*run).slot_at(index).state).present_pending_frame();
-            }
-            // The end of the turn: no message of a closed window is on the
-            // stack, so runtime windows closed in it are released.
-            (*run).reclaim();
-        }
+        quit = (*run).turn(message, true);
     }
     // The program's handles stop reaching the windowing before the remaining
     // windows are destroyed, so a closed callback cannot open another.

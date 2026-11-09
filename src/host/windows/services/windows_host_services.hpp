@@ -162,6 +162,7 @@ protected:
             DestroyCursor(entry.native);
         }
         cursors_.clear();
+        release_chrome_icons();
         owner_ = nullptr;
         cursor_model_ = nullptr;
     }
@@ -178,6 +179,87 @@ protected:
         const HostWindowCornersResult applied = gui_forms::host::detail::apply_windows_corners(owner_, preference);
         return applied;
     }
+
+    // Window's chrome properties on the owner window. Every property maps:
+    // the frame and the boxes are style bits, the state is ShowWindow (held
+    // for the next show while the window is hidden), the start position
+    // places the window before its first show, the opacity is a layered
+    // window's constant alpha, and the taskbar button is WS_EX_APPWINDOW.
+    WindowChromeFields supported_window_chrome() const noexcept override {
+        const WindowChromeFields all{WindowChromeFields::all_bits};
+        return all;
+    }
+    HostWindowChromeResult apply_window_chrome_impl(const WindowChrome& chrome, WindowChromeFields fields) override {
+        HostWindowChromeResult result{};
+        if (owner_ == nullptr) {
+            result.status = HostServiceStatus{HostServiceError::after_shutdown};
+            return result;
+        }
+        const bool visible = IsWindowVisible(owner_) != FALSE;
+        if (fields.contains(WindowChromeField::text)) {
+            const std::wstring title = wide_from_utf8(chrome.text);
+            if (SetWindowTextW(owner_, title.c_str())) result.applied.add(WindowChromeField::text);
+        }
+        if (fields.contains(WindowChromeField::icon) && apply_chrome_icon(chrome.icon)) {
+            result.applied.add(WindowChromeField::icon);
+        }
+        const WindowChromeFields frame_fields{fields.bits & frame_field_bits};
+        if (!frame_fields.empty()) {
+            apply_chrome_frame(chrome, fields);
+            result.applied.bits = result.applied.bits | frame_fields.bits;
+        }
+        if (fields.contains(WindowChromeField::top_most)) {
+            const HWND order = chrome.top_most ? HWND_TOPMOST : HWND_NOTOPMOST;
+            if (SetWindowPos(owner_, order, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)) {
+                result.applied.add(WindowChromeField::top_most);
+            }
+        }
+        if (fields.contains(WindowChromeField::opacity) && apply_chrome_opacity(chrome.opacity)) {
+            result.applied.add(WindowChromeField::opacity);
+        }
+        if (fields.contains(WindowChromeField::show_in_taskbar) &&
+            apply_chrome_taskbar(chrome.show_in_taskbar, visible)) {
+            result.applied.add(WindowChromeField::show_in_taskbar);
+        }
+        if (fields.contains(WindowChromeField::minimum_size)) {
+            // WM_GETMINMAXINFO reads it (WindowsHostState::minimum_size); the
+            // window is not grown at once, the next resize honours it.
+            chrome_minimum_size_ = chrome.minimum_size;
+            result.applied.add(WindowChromeField::minimum_size);
+        }
+        if (fields.contains(WindowChromeField::start_position) && !shown_once_) {
+            pending_start_position_ = chrome.start_position;
+            result.applied.add(WindowChromeField::start_position);
+        }
+        if (fields.contains(WindowChromeField::window_state)) {
+            if (visible) {
+                ShowWindow(owner_, show_command_for(chrome.window_state, SW_RESTORE));
+            } else {
+                pending_window_state_ = chrome.window_state;
+                pending_window_state_set_ = true;
+            }
+            result.applied.add(WindowChromeField::window_state);
+        }
+        return result;
+    }
+
+public:
+    // The client area's least size Window's MinimumSize asks for, in logical
+    // units; zero on a side keeps the window's own minimum there.
+    [[nodiscard]] Size chrome_minimum_size() const noexcept { return chrome_minimum_size_; }
+    // The show command for a show of the owner window: `ordinary` unless a
+    // window state was written while the window was hidden. Before the first
+    // show it also places the window for its start position.
+    [[nodiscard]] int show_command(int ordinary) noexcept {
+        if (owner_ != nullptr && !shown_once_) place_for_start_position();
+        shown_once_ = true;
+        if (!pending_window_state_set_) return ordinary;
+        pending_window_state_set_ = false;
+        const int command = show_command_for(pending_window_state_, ordinary);
+        return command;
+    }
+
+protected:
 
     HostServiceStatus set_pointer_capture_impl(bool captured,
                                                std::uint64_t) override {
@@ -380,10 +462,187 @@ private:
         return TRUE;
     }
 
+    // The chrome fields that are style bits of the owner window.
+    static constexpr std::uint32_t frame_field_bits =
+        static_cast<std::uint32_t>(WindowChromeField::form_border_style) |
+        static_cast<std::uint32_t>(WindowChromeField::minimize_box) |
+        static_cast<std::uint32_t>(WindowChromeField::maximize_box) |
+        static_cast<std::uint32_t>(WindowChromeField::control_box);
+
+    static int show_command_for(FormWindowState state, int ordinary) noexcept {
+        switch (state) {
+        case FormWindowState::minimized:
+            return ordinary == SW_SHOWNOACTIVATE ? SW_SHOWMINNOACTIVE : SW_SHOWMINIMIZED;
+        case FormWindowState::maximized: return SW_SHOWMAXIMIZED;
+        case FormWindowState::normal: return ordinary;
+        }
+        return ordinary;
+    }
+
+    // Rewrites the style bits the named frame fields govern and keeps the
+    // others, so an unwritten box keeps the style the window opened with.
+    // Windows itself hides the boxes without WS_SYSMENU and on tool frames.
+    void apply_chrome_frame(const WindowChrome& chrome, WindowChromeFields fields) noexcept {
+        DWORD style = static_cast<DWORD>(GetWindowLongPtrW(owner_, GWL_STYLE));
+        DWORD extended = static_cast<DWORD>(GetWindowLongPtrW(owner_, GWL_EXSTYLE));
+        if (fields.contains(WindowChromeField::form_border_style)) {
+            const DWORD frame_mask = WS_POPUP | WS_CAPTION | WS_THICKFRAME;
+            const DWORD extended_mask = WS_EX_TOOLWINDOW | WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE;
+            style = style & ~frame_mask;
+            extended = extended & ~extended_mask;
+            switch (chrome.form_border_style) {
+            case FormBorderStyle::none: style = style | WS_POPUP; break;
+            case FormBorderStyle::fixed_single: style = style | WS_CAPTION; break;
+            case FormBorderStyle::fixed_3d:
+                style = style | WS_CAPTION;
+                extended = extended | WS_EX_CLIENTEDGE;
+                break;
+            case FormBorderStyle::fixed_dialog:
+                style = style | WS_CAPTION;
+                extended = extended | WS_EX_DLGMODALFRAME;
+                break;
+            case FormBorderStyle::sizable: style = style | WS_CAPTION | WS_THICKFRAME; break;
+            case FormBorderStyle::fixed_tool_window:
+                style = style | WS_CAPTION;
+                extended = extended | WS_EX_TOOLWINDOW;
+                break;
+            case FormBorderStyle::sizable_tool_window:
+                style = style | WS_CAPTION | WS_THICKFRAME;
+                extended = extended | WS_EX_TOOLWINDOW;
+                break;
+            default:
+                // Window refuses a value outside the enumeration when it is
+                // set, so none arrives; one would leave the frame bits clear.
+                break;
+            }
+        }
+        if (fields.contains(WindowChromeField::control_box)) {
+            style = chrome.control_box ? (style | WS_SYSMENU) : (style & ~static_cast<DWORD>(WS_SYSMENU));
+        }
+        if (fields.contains(WindowChromeField::minimize_box)) {
+            style = chrome.minimize_box ? (style | WS_MINIMIZEBOX) : (style & ~static_cast<DWORD>(WS_MINIMIZEBOX));
+        }
+        if (fields.contains(WindowChromeField::maximize_box)) {
+            style = chrome.maximize_box ? (style | WS_MAXIMIZEBOX) : (style & ~static_cast<DWORD>(WS_MAXIMIZEBOX));
+        }
+        SetWindowLongPtrW(owner_, GWL_STYLE, static_cast<LONG_PTR>(style));
+        SetWindowLongPtrW(owner_, GWL_EXSTYLE, static_cast<LONG_PTR>(extended));
+        // The frame is recomputed (WM_NCCALCSIZE); the resize that follows
+        // reaches the model as usual.
+        SetWindowPos(owner_, nullptr, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+    }
+
+    // The large and small icons from the one image (empty: the class icon).
+    bool apply_chrome_icon(const HostImage& image) noexcept {
+        HICON big_icon = nullptr;
+        HICON small_icon = nullptr;
+        if (image.width != 0U) {
+            const std::span<const HostImage> images(&image, 1U);
+            big_icon = gui_forms::host::detail::create_notify_icon_handle(images, GetSystemMetrics(SM_CXICON));
+            small_icon = gui_forms::host::detail::create_notify_icon_handle(images, GetSystemMetrics(SM_CXSMICON));
+            if (big_icon == nullptr || small_icon == nullptr) {
+                if (big_icon != nullptr) DestroyIcon(big_icon);
+                if (small_icon != nullptr) DestroyIcon(small_icon);
+                return false;
+            }
+        }
+        SendMessageW(owner_, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(big_icon));
+        SendMessageW(owner_, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(small_icon));
+        // The window no longer uses the previous handles.
+        if (big_icon_ != nullptr) DestroyIcon(big_icon_);
+        if (small_icon_ != nullptr) DestroyIcon(small_icon_);
+        big_icon_ = big_icon;
+        small_icon_ = small_icon;
+        return true;
+    }
+
+    void release_chrome_icons() noexcept {
+        if (big_icon_ == nullptr && small_icon_ == nullptr) return;
+        if (owner_ != nullptr && IsWindow(owner_)) {
+            SendMessageW(owner_, WM_SETICON, ICON_BIG, 0);
+            SendMessageW(owner_, WM_SETICON, ICON_SMALL, 0);
+        }
+        if (big_icon_ != nullptr) DestroyIcon(big_icon_);
+        if (small_icon_ != nullptr) DestroyIcon(small_icon_);
+        big_icon_ = nullptr;
+        small_icon_ = nullptr;
+    }
+
+    // A constant alpha through WS_EX_LAYERED; fully opaque drops the layered
+    // style so the window keeps its ordinary redirection.
+    bool apply_chrome_opacity(double opacity) noexcept {
+        const DWORD extended = static_cast<DWORD>(GetWindowLongPtrW(owner_, GWL_EXSTYLE));
+        if (opacity >= 1.0) {
+            const DWORD opaque = extended & ~static_cast<DWORD>(WS_EX_LAYERED);
+            SetWindowLongPtrW(owner_, GWL_EXSTYLE, static_cast<LONG_PTR>(opaque));
+            return true;
+        }
+        SetWindowLongPtrW(owner_, GWL_EXSTYLE, static_cast<LONG_PTR>(extended | WS_EX_LAYERED));
+        const BYTE alpha = static_cast<BYTE>(std::lround(opacity * 255.0));
+        const BOOL set = SetLayeredWindowAttributes(owner_, 0, alpha, LWA_ALPHA);
+        return set != FALSE;
+    }
+
+    // An owned window has a taskbar button only with WS_EX_APPWINDOW; an
+    // unowned one always has one, so hiding it is not applied there. The
+    // taskbar reads the style when the window is shown, so a visible window
+    // is hidden and shown again.
+    bool apply_chrome_taskbar(bool shown, bool visible) noexcept {
+        const bool owned = GetWindow(owner_, GW_OWNER) != nullptr;
+        if (!owned && !shown) return false;
+        const DWORD extended = static_cast<DWORD>(GetWindowLongPtrW(owner_, GWL_EXSTYLE));
+        const DWORD wanted =
+            shown && owned ? (extended | WS_EX_APPWINDOW) : (extended & ~static_cast<DWORD>(WS_EX_APPWINDOW));
+        if (wanted == extended) return true;
+        SetWindowLongPtrW(owner_, GWL_EXSTYLE, static_cast<LONG_PTR>(wanted));
+        if (visible) {
+            ShowWindow(owner_, SW_HIDE);
+            ShowWindow(owner_, SW_SHOWNA);
+        }
+        return true;
+    }
+
+    // Centres the window for center_screen (the work area of its monitor)
+    // and center_parent (its owner, or the screen without one). The other
+    // positions keep where the window was created.
+    void place_for_start_position() noexcept {
+        const FormStartPosition position = pending_start_position_;
+        if (position != FormStartPosition::center_screen && position != FormStartPosition::center_parent) return;
+        RECT frame{};
+        if (!GetWindowRect(owner_, &frame)) return;
+        RECT around{};
+        const HWND parent = GetWindow(owner_, GW_OWNER);
+        const bool over_parent =
+            position == FormStartPosition::center_parent && parent != nullptr && GetWindowRect(parent, &around);
+        if (!over_parent) {
+            MONITORINFO monitor{};
+            monitor.cbSize = sizeof(MONITORINFO);
+            const HMONITOR native = MonitorFromWindow(owner_, MONITOR_DEFAULTTOPRIMARY);
+            if (!GetMonitorInfoW(native, &monitor)) return;
+            around = monitor.rcWork;
+        }
+        const LONG width = frame.right - frame.left;
+        const LONG height = frame.bottom - frame.top;
+        const LONG left = around.left + ((around.right - around.left) - width) / 2;
+        const LONG top = around.top + ((around.bottom - around.top) - height) / 2;
+        SetWindowPos(owner_, nullptr, left, top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+    }
+
     HWND owner_{};
     Window* cursor_model_{};
     std::unique_ptr<gui_forms::host::detail::WindowsNotifyIcons> notify_icons_;
     std::array<COLORREF, 16> custom_colors_{};
     // The open message box's request identity; zero while none is open.
     std::uint64_t message_help_request_{};
+    // The chrome icons the window shows; destroyed when replaced and at
+    // shutdown, after the window lets them go.
+    HICON big_icon_{};
+    HICON small_icon_{};
+    Size chrome_minimum_size_{};
+    FormStartPosition pending_start_position_{FormStartPosition::windows_default_location};
+    // A window state written while the window was hidden, for its next show.
+    FormWindowState pending_window_state_{FormWindowState::normal};
+    bool pending_window_state_set_{};
+    bool shown_once_{};
 };

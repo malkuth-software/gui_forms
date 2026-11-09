@@ -525,6 +525,65 @@ std::uint32_t key_usage(KeySym key) {
     return 0x37U;
   case XK_slash:
     return 0x38U;
+  // The modifiers with their sides, the lock keys and the keypad (key
+  // input for games and Windows Forms KeyDown, 0.5).
+  case XK_Shift_L:
+    return PhysicalKey::left_shift;
+  case XK_Shift_R:
+    return PhysicalKey::right_shift;
+  case XK_Control_L:
+    return PhysicalKey::left_control;
+  case XK_Control_R:
+    return PhysicalKey::right_control;
+  case XK_Alt_L:
+  case XK_Meta_L:
+    return PhysicalKey::left_alt;
+  case XK_Alt_R:
+  case XK_Meta_R:
+  case XK_ISO_Level3_Shift:
+    return PhysicalKey::right_alt;
+  case XK_Super_L:
+    return PhysicalKey::left_meta;
+  case XK_Super_R:
+    return PhysicalKey::right_meta;
+  case XK_Caps_Lock:
+    return 0x39U;
+  case XK_Print:
+    return 0x46U;
+  case XK_Scroll_Lock:
+    return 0x47U;
+  case XK_Pause:
+    return 0x48U;
+  case XK_Num_Lock:
+    return 0x53U;
+  case XK_KP_Divide:
+    return 0x54U;
+  case XK_KP_Multiply:
+    return 0x55U;
+  case XK_KP_Insert:
+    return 0x62U;
+  case XK_KP_Delete:
+    return 0x63U;
+  case XK_KP_End:
+    return 0x59U;
+  case XK_KP_Down:
+    return 0x5AU;
+  case XK_KP_Page_Down:
+    return 0x5BU;
+  case XK_KP_Left:
+    return 0x5CU;
+  case XK_KP_Begin:
+    return 0x5DU;
+  case XK_KP_Right:
+    return 0x5EU;
+  case XK_KP_Home:
+    return 0x5FU;
+  case XK_KP_Up:
+    return 0x60U;
+  case XK_KP_Page_Up:
+    return 0x61U;
+  case XK_less:
+    return 0x64U;
   default:
     return 0U;
   }
@@ -954,14 +1013,10 @@ void NativeWindow::action(ActionKind kind) {
   }
   if (kind == ActionKind::show) {
     visible = true;
-    if (utility) {
-      // A window manager removes _NET_WM_STATE when a window is withdrawn;
-      // restate skip-taskbar before every map.
-      const Atom skip = runtime.atom("_NET_WM_STATE_SKIP_TASKBAR");
-      XChangeProperty(runtime.display, xid, runtime.atom("_NET_WM_STATE"),
-                      XA_ATOM, 32, PropModeReplace,
-                      reinterpret_cast<const unsigned char *>(&skip), 1);
-    }
+    shown_once = true;
+    // A window manager removes _NET_WM_STATE when a window is withdrawn;
+    // restate it before every map.
+    restate_wm_state();
     XMapRaised(runtime.display, xid);
     damage.add({0, 0, size.width, size.height});
   }
@@ -1036,6 +1091,28 @@ void NativeWindow::action(ActionKind kind) {
     XSendEvent(runtime.display, DefaultRootWindow(runtime.display), False,
                SubstructureRedirectMask | SubstructureNotifyMask, &event);
   }
+}
+void NativeWindow::restate_wm_state() {
+  std::array<Atom, 4> states{};
+  int count = 0;
+  if (utility || chrome_skip_taskbar)
+    states[static_cast<std::size_t>(count++)] = runtime.atom("_NET_WM_STATE_SKIP_TASKBAR");
+  if (chrome_top_most)
+    states[static_cast<std::size_t>(count++)] = runtime.atom("_NET_WM_STATE_ABOVE");
+  if (chrome_window_state == FormWindowState::maximized) {
+    states[static_cast<std::size_t>(count++)] = runtime.atom("_NET_WM_STATE_MAXIMIZED_VERT");
+    states[static_cast<std::size_t>(count++)] = runtime.atom("_NET_WM_STATE_MAXIMIZED_HORZ");
+  }
+  if (count == 0)
+    return;
+  XChangeProperty(runtime.display, xid, runtime.atom("_NET_WM_STATE"), XA_ATOM, 32,
+                  PropModeReplace, reinterpret_cast<const unsigned char *>(states.data()), count);
+}
+Size NativeWindow::minimum_size() const noexcept {
+  const Size minimum{
+      chrome_minimum_size.width > 0.0 ? chrome_minimum_size.width : entry.options.minimum_size.width,
+      chrome_minimum_size.height > 0.0 ? chrome_minimum_size.height : entry.options.minimum_size.height};
+  return minimum;
 }
 void NativeWindow::close(HostCloseReason reason, bool force) {
   if (closed)
@@ -1214,6 +1291,7 @@ void NativeWindow::event(XEvent &event) {
                            : 0;
     if (key.physical_key == 0)
       key.physical_key = key_usage(symbol);
+    key.scan_code = event.xkey.keycode;
     key.modifiers = modifiers(event.xkey.state);
     const HostDispatchResult result = dispatch(key);
     // The Menu key and Shift+F10 the window left unhandled ask for a
@@ -1637,8 +1715,8 @@ HostWindowFrame NativeWindow::frame() const {
 HostServiceStatus NativeWindow::request_frame(Rect content) {
   if (closed)
     return {HostServiceError::after_shutdown};
-  if (content.width < entry.options.minimum_size.width ||
-      content.height < entry.options.minimum_size.height)
+  const Size minimum = minimum_size();
+  if (content.width < minimum.width || content.height < minimum.height)
     return {HostServiceError::invalid_argument};
   if (fallback_fullscreen || window_state_fixed(*this))
     return {HostServiceError::unsupported};
@@ -1650,8 +1728,8 @@ HostServiceStatus NativeWindow::request_frame(Rect content) {
   hints.y = static_cast<int>(std::lround(content.y));
   hints.width = static_cast<int>(std::lround(content.width));
   hints.height = static_cast<int>(std::lround(content.height));
-  hints.min_width = static_cast<int>(entry.options.minimum_size.width);
-  hints.min_height = static_cast<int>(entry.options.minimum_size.height);
+  hints.min_width = static_cast<int>(minimum.width);
+  hints.min_height = static_cast<int>(minimum.height);
   hints.win_gravity = StaticGravity;
   XSetWMNormalHints(runtime.display, xid, &hints);
   XMoveResizeWindow(runtime.display, xid, hints.x, hints.y,

@@ -837,6 +837,20 @@ PropertyDescriptor Control::registered_descriptor(RegisteredProperty property) {
         tab_stop.bindable = false;
         return tab_stop;
     }
+    case RegisteredProperty::focusable: {
+        PropertyDescriptor focusable;
+        focusable.name = "focusable";
+        focusable.kind = BindingValueKind::boolean;
+        focusable.category = "Behavior";
+        focusable.description =
+            "Whether this control may take keyboard focus at all (tab_stop only keeps traversal from stopping).";
+        // Each type sets its own (a Button is focusable, a Panel is not):
+        // no shared default, so it is neither reset nor serialized.
+        focusable.invalidation_effects = Dirty::semantics | Dirty::accessibility;
+        focusable.bindable = false;
+        focusable.serialization_visibility = PropertySerializationVisibility::hidden;
+        return focusable;
+    }
     case RegisteredProperty::allow_drop: {
         PropertyDescriptor allow_drop;
         allow_drop.name = "allow_drop";
@@ -1047,6 +1061,8 @@ const std::array<PropertyEntry, Control::control_property_count>& Control::contr
          &write_registered<RegisteredProperty::tab_index>, nullptr, nullptr, nullptr, nullptr},
         {"tab_stop", &describe_registered<RegisteredProperty::tab_stop>, &read_registered<RegisteredProperty::tab_stop>,
          &write_registered<RegisteredProperty::tab_stop>, nullptr, nullptr, nullptr, nullptr},
+        {"focusable", &describe_registered<RegisteredProperty::focusable>, &read_registered<RegisteredProperty::focusable>,
+         &write_registered<RegisteredProperty::focusable>, nullptr, nullptr, nullptr, nullptr},
         {"allow_drop", &describe_registered<RegisteredProperty::allow_drop>, &read_registered<RegisteredProperty::allow_drop>,
          &write_registered<RegisteredProperty::allow_drop>, nullptr, nullptr, nullptr, nullptr},
         {"hit_test_transparent", &describe_registered<RegisteredProperty::hit_test_transparent>, &read_registered<RegisteredProperty::hit_test_transparent>,
@@ -2317,6 +2333,9 @@ void Control::written(const decltype(visible)&) {
     if (surface_root_) (*surface_root_).publish_control_availability(*this);
     if (!is_alive()) return;
     on_visible_changed();
+    if (is_alive() && surface_root_ && visible.read()) {
+        (*surface_root_).on_eligibility_restored(shared_from_this());
+    }
 }
 
 void Control::on_visible_changed() {
@@ -2336,6 +2355,9 @@ void Control::written(const decltype(enabled)&) {
     if (surface_root_) (*surface_root_).publish_control_availability(*this);
     if (!is_alive()) return;
     on_enabled_changed();
+    if (is_alive() && surface_root_ && enabled.read()) {
+        (*surface_root_).on_eligibility_restored(shared_from_this());
+    }
 }
 
 void Control::on_enabled_changed() {
@@ -3892,6 +3914,7 @@ void Control::on_drag(DragEvent&) {}
 void Control::on_drag_bubble(DragEvent&) {}
 void Control::on_focus_changed(bool) {}
 bool Control::reveal_focused_descendant(const Control&) { return false; }
+Control::Ptr Control::focus_target() const { return nullptr; }
 std::optional<Rect> Control::text_input_caret() const { return std::nullopt; }
 void Control::on_focus_cue_changed(bool) {}
 void Control::on_activate() {}
@@ -3907,6 +3930,11 @@ bool Control::clicks_primary_button_only() const noexcept {
 Control::MouseEvents& Control::mouse_events() {
     if (!mouse_events_) mouse_events_ = std::make_unique<MouseEvents>();
     return *mouse_events_;
+}
+
+Control::KeyEvents& Control::key_events() {
+    if (!key_events_) key_events_ = std::make_unique<KeyEvents>();
+    return *key_events_;
 }
 
 namespace {
@@ -4217,7 +4245,7 @@ void Control::on_dispose() noexcept {
 namespace {
 
 // The events Control adds to those of Component, in declaration order.
-constexpr std::array<InteractionDeclaration, 27> control_interactions{{
+constexpr std::array<InteractionDeclaration, 31> control_interactions{{
     {.name = "name_changed", .payload = "std::string", .mutable_payload = false},
     {.name = "visible_changed", .payload = "bool", .mutable_payload = false},
     {.name = "enabled_changed", .payload = "bool", .mutable_payload = false},
@@ -4245,6 +4273,10 @@ constexpr std::array<InteractionDeclaration, 27> control_interactions{{
     {.name = "focus_observed", .payload = "bool", .mutable_payload = false},
     {.name = "arranged_bounds_changed", .payload = "Rect", .mutable_payload = false},
     {.name = "help_requested", .payload = "HelpRequestEvent", .mutable_payload = true},
+    {.name = "preview_key_down", .payload = "PreviewKeyDownEventArgs", .mutable_payload = true},
+    {.name = "key_down", .payload = "KeyEventArgs", .mutable_payload = true},
+    {.name = "key_press", .payload = "KeyPressEventArgs", .mutable_payload = true},
+    {.name = "key_up", .payload = "KeyEventArgs", .mutable_payload = true},
 }};
 
 } // namespace

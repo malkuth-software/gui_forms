@@ -180,9 +180,36 @@ void synchronous_close_lifetime() {
     require(result.accepted() && completed && destroyed && !handle.active(),
             "synchronous close did not retain and then release the active callable");
 }
+// The minimum client size (Windows Forms' MinimumSize): none by default,
+// so a small window is accepted; a client size below a set minimum is
+// refused, naming the reason and both sizes; a negative minimum is
+// refused as such. Restores windows[0]'s sizes.
+void minimum_sizes(std::vector<ApplicationWindow>& windows) {
+    require(ApplicationWindowOptions{}.minimum_size == Size{}, "the default minimum is none");
+    windows[0].options.initial_size = {120.0, 100.0};
+    require(Application::validate(windows).accepted(), "a window under 150 x 150 without a minimum is accepted");
+    windows[0].options.minimum_size = {150.0, 150.0};
+    const ApplicationResult below = Application::validate(windows);
+    require(below.error == ApplicationError::invalid_argument && below.window_index == 0U &&
+                below.refusal == ApplicationWindowRefusal::below_minimum_size &&
+                below.minimum_size == Size{150.0, 150.0} && below.initial_size == Size{120.0, 100.0},
+            "a client size below the minimum names the reason and both sizes");
+    require(!application_window_refusal_text(below.refusal).empty() &&
+                application_window_refusal_text(ApplicationWindowRefusal::none).empty(),
+            "a refusal has a sentence, none has none");
+    windows[0].options.minimum_size = {100.0, 0.0};
+    require(Application::validate(windows).accepted(), "a minimum on one side, under the client size, is accepted");
+    windows[0].options.minimum_size = {-1.0, 0.0};
+    require(Application::validate(windows).refusal == ApplicationWindowRefusal::invalid_minimum_size,
+            "a negative minimum is named");
+    windows[0].options.minimum_size = {};
+    windows[0].options.initial_size = ApplicationWindowOptions{}.initial_size;
+}
 void validation() {
     std::vector<ApplicationWindow> windows{};
     require(!Application::validate(windows).accepted(), "empty application accepted");
+    require(Application::validate(windows).refusal == ApplicationWindowRefusal::window_count,
+            "an empty list names the window count");
     windows.push_back(make_window("main"));
     windows.push_back(make_window("tools", "main"));
     windows[1].options.initially_visible = false;
@@ -191,13 +218,21 @@ void validation() {
     require(Application::validate(windows).accepted(), "valid owned window rejected");
     windows[1].owner_id = "missing";
     require(Application::validate(windows).window_index == 1U, "missing owner not identified");
+    require(Application::validate(windows).refusal == ApplicationWindowRefusal::invalid_owner,
+            "a missing owner names the owner");
     windows[1].owner_id = "main";
     windows[0].owner_id = "tools";
     require(!Application::validate(windows).accepted(), "owner cycle accepted");
     windows[0].owner_id.clear();
+    // Owned by "main" and named "main", the entry would own itself, refused
+    // before any duplicate is looked for: the duplicate has no owner.
+    windows[1].owner_id.clear();
     windows[1].stable_id = "main";
     require(!Application::validate(windows).accepted(), "duplicate ID accepted");
+    require(Application::validate(windows).refusal == ApplicationWindowRefusal::duplicate_stable_id,
+            "a duplicate names the stable id");
     windows[1].stable_id = "tools";
+    windows[1].owner_id = "main";
     windows[0].options.title.assign("bad\0title", 9U);
     require(!Application::validate(windows).accepted(), "embedded NUL accepted");
     windows[0].options.title = "\xc0\xaf";
@@ -208,7 +243,10 @@ void validation() {
     windows[0].options.initial_size.width = 320;
     windows[0].options.hide_on_close = true;
     require(!Application::validate(windows).accepted(), "hidden primary accepted");
+    require(Application::validate(windows).refusal == ApplicationWindowRefusal::hidden_primary,
+            "a hidden primary is named");
     windows[0].options.hide_on_close = false;
+    minimum_sizes(windows);
     ApplicationResult worker{};
     std::thread thread(ValidateOnWorker{&windows, &worker});
     thread.join();

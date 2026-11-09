@@ -482,6 +482,10 @@ gui_forms::ComboBox
 
    .. rubric:: Extension points
 
+   .. cpp:function:: Ptr focus_target() const override
+
+      Focus on the field goes to its edit part (null without one).
+
    .. cpp:function:: void arrange(Rect final_bounds) override
 
       Places the drop_down style's editor left of the drop-down button.

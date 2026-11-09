@@ -68,6 +68,8 @@ Types
      - gd_string_view is a non-owning bounded drawing-ABI string view with explicit validation before copying.
    * - :cpp:class:`gf_abi_version_info <gf_abi_version_info>`
      - gf_abi_version_info is the size-prefixed output record of the library and ABI versions.
+   * - :cpp:class:`gf_anchored_overlay_options <gf_anchored_overlay_options>`
+     -  
    * - :cpp:class:`gf_api_v0 <gf_api_v0>`
      - gf_api_v0 is the size-versioned negotiated function table for generational control ownership, properties, layout/scroll, hierarchy, input, fields, dialogs/services, property proxies, callbacks, host execution, dispatch, and deterministic retirement.
    * - :cpp:class:`gf_application_config <gf_application_config>`
@@ -146,6 +148,8 @@ Types
      -  
    * - :cpp:class:`gf_overlays_table <gf_overlays_table>`
      -  
+   * - :cpp:class:`gf_owned_window_options <gf_owned_window_options>`
+     -  
    * - :cpp:class:`gf_paint_target <gf_paint_target>`
      -  
    * - :cpp:class:`gf_point <gf_point>`
@@ -219,6 +223,8 @@ Types
    * - :cpp:class:`gf_subsurface_content <gf_subsurface_content>`
      -  
    * - :cpp:class:`gf_subsurfaces_table <gf_subsurfaces_table>`
+     -  
+   * - :cpp:class:`gf_text_decoration <gf_text_decoration>`
      -  
    * - :cpp:class:`gf_text_editing_table <gf_text_editing_table>`
      -  
@@ -489,6 +495,10 @@ Types
    .. cpp:function:: gf_status scroll_into_view(gf_object object, gf_object child) const noexcept
 
    .. cpp:function:: gf_status invalidate(gf_object object, const gf_logical_rect* damage) const noexcept
+
+   .. cpp:function:: gf_status focus(gf_object object, uint32_t* focused) const noexcept
+
+   .. cpp:function:: gf_status focus_state(gf_object object, uint32_t* focused, uint32_t* contains_focus) const noexcept
 
    .. cpp:function:: gf_status set_pointer_capture(gf_object object, uint32_t captured) const noexcept
 
@@ -1128,6 +1138,24 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_anchored_overlay_options
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_anchored_overlay_flags flags
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: double height
+
+   .. cpp:member:: double gap
+
+   .. cpp:member:: const gf_callback* events
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_api_v0
 
    ``#include <gui_forms/c_api.h>``
@@ -1499,6 +1527,10 @@ Types
    .. cpp:member:: gf_status (*scroll_into_view)(gf_object object, gf_object child)
 
    .. cpp:member:: gf_status (*invalidate)(gf_object object, const gf_logical_rect* damage)
+
+   .. cpp:member:: gf_status (*focus)(gf_object object, uint32_t* focused)
+
+   .. cpp:member:: gf_status (*focus_state)(gf_object object, uint32_t* focused, uint32_t* contains_focus)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2042,9 +2074,37 @@ Types
 
    .. cpp:member:: gf_status (*hide_tool_tip)(gf_object tool_tip)
 
+   .. cpp:member:: gf_status (*open_anchored)(gf_object anchor, gf_object content, const gf_anchored_overlay_options* options)
+
+   .. cpp:member:: gf_status (*close_anchored)(gf_object content)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_owned_window_options
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_owned_window_flags flags
+
+   .. cpp:member:: gf_utf8_view title
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: double height
+
+   .. cpp:member:: gf_object owner
+
+   .. cpp:member:: const gf_callback* ready
+
+   .. cpp:member:: const gf_callback* closing
+
+   .. cpp:member:: const gf_callback* closed
 
 .. cpp:namespace:: 0
 
@@ -2342,6 +2402,10 @@ Types
    .. cpp:member:: const gf_callback* closing
 
    .. cpp:member:: const gf_callback* closed
+
+   .. cpp:member:: double minimum_width
+
+   .. cpp:member:: double minimum_height
 
 .. cpp:namespace:: 0
 
@@ -2890,6 +2954,36 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_text_decoration
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint64_t start
+
+   .. cpp:member:: uint64_t end
+
+   .. cpp:member:: gf_text_decoration_fields fields
+
+   .. cpp:member:: gf_text_ink_role ink
+
+   .. cpp:member:: uint32_t foreground
+
+   .. cpp:member:: uint32_t weight
+
+   .. cpp:member:: uint32_t italic
+
+   .. cpp:member:: gf_text_underline underline
+
+   .. cpp:member:: uint32_t underline_color
+
+   .. cpp:member:: uint32_t background
+
+   .. cpp:member:: uint32_t tag
+
+   .. cpp:member:: uint32_t reserved
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_text_editing_table
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -2910,6 +3004,16 @@ Types
    .. cpp:member:: gf_status (*redo)(gf_object object, uint32_t* changed)
 
    .. cpp:member:: gf_status (*clear_undo_history)(gf_object object)
+
+   .. cpp:member:: gf_status (*set_decorations)(gf_object object, uint32_t layer, const gf_text_decoration* decorations, uint64_t count)
+
+   .. cpp:member:: gf_status (*replace_decorations)(gf_object object, uint32_t layer, uint64_t start, uint64_t end, const gf_text_decoration* decorations, uint64_t count)
+
+   .. cpp:member:: gf_status (*clear_decorations)(gf_object object)
+
+   .. cpp:member:: gf_status (*decoration_count)(gf_object object, uint32_t layer, uint64_t* count)
+
+   .. cpp:member:: gf_status (*decoration_at)(gf_object object, uint32_t layer, uint64_t index, gf_text_decoration* decoration)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3112,6 +3216,16 @@ Types
 
    .. cpp:member:: gf_status (*request_help)(gf_object window, uint32_t* handled)
 
+   .. cpp:member:: gf_status (*key_state)(gf_object window, uint32_t physical_key, uint32_t* down)
+
+   .. cpp:member:: gf_status (*show_modal)(gf_object root, const gf_owned_window_options* options, gf_dialog_result_code* result)
+
+   .. cpp:member:: gf_status (*show_owned)(gf_object root, const gf_owned_window_options* options)
+
+   .. cpp:member:: gf_status (*window_properties)(gf_object window, gf_window_property_flags* supported, gf_window_property_flags* applied)
+
+   .. cpp:member:: gf_status (*focused_control)(gf_object window_or_root, gf_object* control)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -3283,6 +3397,10 @@ Types
    .. cpp:function:: gf_status show_tool_tip(gf_object tool_tip, gf_object target, uint64_t duration_ms) const noexcept
 
    .. cpp:function:: gf_status hide_tool_tip(gf_object tool_tip) const noexcept
+
+   .. cpp:function:: gf_status open_anchored(gf_object anchor, gf_object content, const gf_anchored_overlay_options* options) const noexcept
+
+   .. cpp:function:: gf_status close_anchored(gf_object content) const noexcept
 
    .. cpp:function:: gf_status set_tool_tip(gf_object tool_tip, gf_object target, gf_utf8_view text) const noexcept
 
@@ -3624,6 +3742,16 @@ Types
 
    .. cpp:function:: gf_status clear_undo_history(gf_object object) const noexcept
 
+   .. cpp:function:: gf_status replace_decorations(gf_object object, uint32_t layer, uint64_t start, uint64_t end, const gf_text_decoration* decorations, uint64_t count) const noexcept
+
+   .. cpp:function:: gf_status clear_decorations(gf_object object) const noexcept
+
+   .. cpp:function:: gf_status decoration_count(gf_object object, uint32_t layer, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status decoration_at(gf_object object, uint32_t layer, uint64_t index, gf_text_decoration* decoration) const noexcept
+
+   .. cpp:function:: gf_status set_decorations(gf_object object, uint32_t layer, const gf_text_decoration* decorations, uint64_t count) const noexcept
+
 .. cpp:namespace:: gui_forms::abi
 
 .. cpp:class:: ThemesTable
@@ -3772,3 +3900,13 @@ Types
    .. cpp:function:: gf_status interaction_at(uint64_t interaction, gf_schema_interaction* record) const noexcept
 
    .. cpp:function:: gf_status request_help(gf_object window, uint32_t* handled) const noexcept
+
+   .. cpp:function:: gf_status key_state(gf_object window, uint32_t physical_key, uint32_t* down) const noexcept
+
+   .. cpp:function:: gf_status show_modal(gf_object root, const gf_owned_window_options* options, gf_dialog_result_code* result) const noexcept
+
+   .. cpp:function:: gf_status show_owned(gf_object root, const gf_owned_window_options* options) const noexcept
+
+   .. cpp:function:: gf_status window_properties(gf_object window, gf_window_property_flags* supported, gf_window_property_flags* applied) const noexcept
+
+   .. cpp:function:: gf_status focused_control(gf_object window_or_root, gf_object* control) const noexcept

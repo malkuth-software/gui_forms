@@ -334,12 +334,16 @@ struct RecordingMark final {
 // The events a window raises through the C ABI (SurfaceRoot::append_interactions),
 // in declaration order. The rest of Window's events stay C++-only until a
 // consumer needs them; declaring one later is a minor ABI addition.
-constexpr std::array<InteractionDeclaration, 7> window_interactions{{
+constexpr std::array<InteractionDeclaration, 11> window_interactions{{
     {.name = "active_changed", .payload = "bool", .mutable_payload = false},
     {.name = "backdrop_changed", .payload = "WindowBackdropGrant", .mutable_payload = false},
     {.name = "dialog_result_changed", .payload = "DialogResult", .mutable_payload = false},
     {.name = "focused_control_changed", .payload = "FocusedControlChange", .mutable_payload = false},
     {.name = "help_requested", .payload = "HelpRequestEvent", .mutable_payload = true},
+    {.name = "key_down", .payload = "KeyEventArgs", .mutable_payload = true},
+    {.name = "key_press", .payload = "KeyPressEventArgs", .mutable_payload = true},
+    {.name = "key_state_changed", .payload = "KeyStateChange", .mutable_payload = false},
+    {.name = "key_up", .payload = "KeyEventArgs", .mutable_payload = true},
     {.name = "presentation_changed", .payload = "PresentationSettings", .mutable_payload = false},
     {.name = "theme_changed", .payload = "Theme", .mutable_payload = false},
 }};
@@ -728,8 +732,51 @@ void SurfaceRoot::remove_help_fallback(const detail::WindowHelpFallback& fallbac
     if (found != help_fallbacks_.end()) help_fallbacks_.erase(found);
 }
 
+Control::Ptr SurfaceRoot::focus_target_of(const Control::Ptr& control) {
+    Control::Ptr current = control;
+    for (std::size_t depth = 0U; current && depth < focus_target_depth; ++depth) {
+        const Control::Ptr inner = (*current).focus_target();
+        if (!inner || inner == current) break;
+        // Only a descendant: the parent chain from the target reaches
+        // the composite.
+        bool descendant = false;
+        for (Control::Ptr above = (*inner).parent(); above; above = (*above).parent()) {
+            if (above == current) {
+                descendant = true;
+                break;
+            }
+        }
+        if (!descendant) break;
+        current = inner;
+    }
+    return current;
+}
+
+Control::Ptr SurfaceRoot::active_control() const {
+    const Control::Ptr focused = focused_.lock();
+    if (!focused) return nullptr;
+    Control::Ptr active = focused;
+    for (Control::Ptr above = (*focused).parent(); above; above = (*above).parent()) {
+        if (focus_target_of(above) == focused) active = above;
+    }
+    return active;
+}
+
+bool SurfaceRoot::control_focused(const Control::Ptr& control) const {
+    const Control::Ptr focused = focused_.lock();
+    if (!focused || !control) return false;
+    const bool held = focus_target_of(control) == focused;
+    return held;
+}
+
 bool SurfaceRoot::request_focus(const Control::Ptr& control) {
     require_root_thread("focus mutation");
+    // A composite field gives focus to its edit part (Control::focus_target).
+    const Control::Ptr target = focus_target_of(control);
+    if (target != control) {
+        const bool moved = request_focus(target);
+        return moved;
+    }
     if (control && (!eligible(control) || !(*control).focusable.read())) {
         return false;
     }
@@ -781,6 +828,8 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
     }
     if (control && eligible(control) && (*control).focusable.read()) {
         focused_ = control;
+        // Focus that moved on is not given back to a withdrawn control.
+        withdrawn_focus_.reset();
         last_focus_traversal_ = pending_focus_traversal_;
         remember_region_focus(control);
         (*control).publish_change(
@@ -1902,6 +1951,20 @@ bool SurfaceRoot::offer_mouse_rules(detail::MouseRuleEvent event, Control& contr
     return consumed;
 }
 
+namespace {
+
+KeyEventArgs key_arguments(const KeyEvent& event) {
+    KeyEventArgs arguments;
+    arguments.key_code = key_code_from_physical_key(event.physical_key);
+    arguments.physical_key = event.physical_key;
+    arguments.scan_code = event.scan_code;
+    arguments.modifiers = event.modifiers;
+    arguments.repeat = event.repeat;
+    return arguments;
+}
+
+} // namespace
+
 bool SurfaceRoot::dispatch_key(KeyEvent event) {
     require_root_thread("key dispatch");
     const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "key", 0U);
@@ -1909,8 +1972,22 @@ bool SurfaceRoot::dispatch_key(KeyEvent event) {
         return defer_input(DeferredInput{std::move(event)});
     }
     const bool key_down = event.action == KeyAction::down;
-    // The input state sees the key before any control does.
-    interaction_state().note_key(event, input_now());
+    // The input state sees the key before any control does; a change of a
+    // key's held state is raised raw (key_state_changed) before any route
+    // can consume the key.
+    const bool state_changed = interaction_state().note_key(event, input_now());
+    if (state_changed) {
+        KeyStateChange change;
+        change.key_code = key_code_from_physical_key(event.physical_key);
+        change.physical_key = event.physical_key;
+        change.scan_code = event.scan_code;
+        change.modifiers = event.modifiers;
+        change.down = key_down;
+        const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+        Window* const presenting = (*lifetime).window;
+        key_state_changed_.emit(change);
+        if ((*lifetime).window != presenting) return true;
+    }
     // A lifted drop-down or picker's Popup window takes the key first.
     if (forward_to_popup(event)) return true;
     const bool handled = route_key(std::move(event));
@@ -1924,23 +2001,45 @@ bool SurfaceRoot::route_key(KeyEvent event) {
     metrics_.record_input();
     if (event.action == KeyAction::down) {
         set_focus_cue_visible(true);
+        // A new key's text is its own: an earlier suppression has lapsed.
+        suppress_key_text_ = false;
     }
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     // The window's key rules run before the control route (the owner's
     // Q-C5); a consuming rule ends the key. The set is held for the offer:
     // a rule's action may close and destroy this window.
     if (offer_key_rules_ != nullptr) {
         const std::shared_ptr<RuleSet> rules = rules_;
-        const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
-        Window* const presenting = (*lifetime).window;
         const bool consumed = offer_key_rules_(*rules, event);
         if (consumed) return true;
         // A closed window routes the key no further.
         if ((*lifetime).window != presenting) return false;
     }
-    if (focus_scopes_.empty() && dispatch_accelerator(event, true)) return true;
+    // PreviewKeyDown on the focused control: is_input_key makes the key the
+    // control's rather than a dialog key.
+    bool input_key = false;
     Control::Ptr target = focused_.lock();
+    if (event.action == KeyAction::down && target && eligible(target) && (*target).key_events_) {
+        PreviewKeyDownEventArgs preview;
+        preview.key_code = key_code_from_physical_key(event.physical_key);
+        preview.physical_key = event.physical_key;
+        preview.modifiers = event.modifiers;
+        preview.repeat = event.repeat;
+        metrics_.record_callback_emitted();
+        (*(*target).key_events_).preview_key_down.emit(preview);
+        if ((*lifetime).window != presenting) return true;
+        input_key = preview.is_input_key;
+    }
+    // The command keys (ProcessCmdKey) come before the key events.
+    if (focus_scopes_.empty() && dispatch_accelerator(event, true)) return true;
+    // The window's KeyPreview.
+    bool closed = false;
+    if (raise_window_key(event, closed)) return true;
+    if (closed) return true;
+    target = focused_.lock();
     if (!target || !eligible(target)) {
-        return finish_unhandled_key(event);
+        return finish_unhandled_key(event, input_key);
     }
     const std::vector<Control::Ptr> route = route_to(target);
     event.phase = EventPhase::preview;
@@ -1957,6 +2056,9 @@ bool SurfaceRoot::route_key(KeyEvent event) {
     if (!eligible(target)) {
         return event.handled;
     }
+    // KeyDown or KeyUp on the focused control, before its own handling.
+    if (raise_control_key(*target, event, closed)) return true;
+    if (closed || !eligible(target)) return true;
     event.phase = EventPhase::target;
     metrics_.record_callback_emitted();
     (*target).on_key(event);
@@ -1975,10 +2077,91 @@ bool SurfaceRoot::route_key(KeyEvent event) {
         }
     }
     if (event.handled) return true;
-    return finish_unhandled_key(event);
+    return finish_unhandled_key(event, input_key);
 }
 
-bool SurfaceRoot::finish_unhandled_key(const KeyEvent& event) {
+bool SurfaceRoot::raise_window_key(const KeyEvent& event, bool& closed) {
+    KeyEventArgs arguments = key_arguments(event);
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
+    if (event.action == KeyAction::down) {
+        key_down_.emit(arguments);
+    } else {
+        key_up_.emit(arguments);
+    }
+    if ((*lifetime).window != presenting) {
+        closed = true;
+        return true;
+    }
+    if (arguments.suppress_key_press) suppress_key_text_ = true;
+    const bool handled = arguments.handled || arguments.suppress_key_press;
+    return handled;
+}
+
+bool SurfaceRoot::raise_control_key(Control& control, const KeyEvent& event, bool& closed) {
+    if (!control.key_events_) return false;
+    KeyEventArgs arguments = key_arguments(event);
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
+    metrics_.record_callback_emitted();
+    if (event.action == KeyAction::down) {
+        (*control.key_events_).key_down.emit(arguments);
+    } else {
+        (*control.key_events_).key_up.emit(arguments);
+    }
+    if ((*lifetime).window != presenting) {
+        closed = true;
+        return true;
+    }
+    if (arguments.suppress_key_press) suppress_key_text_ = true;
+    const bool handled = arguments.handled || arguments.suppress_key_press;
+    return handled;
+}
+
+void SurfaceRoot::release_held_keys() {
+    if (!interaction_) return;
+    std::array<HeldKey, maximum_held_keys> released{};
+    const std::size_t count = (*interaction_).copy_held_keys(released);
+    (*interaction_).deactivated();
+    suppress_key_text_ = false;
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
+    for (std::size_t index = 0U; index < count; ++index) {
+        const std::uint32_t physical_key = released[index].physical_key;
+        KeyStateChange change;
+        change.key_code = key_code_from_physical_key(physical_key);
+        change.physical_key = physical_key;
+        change.released_by_deactivation = true;
+        key_state_changed_.emit(change);
+        if ((*lifetime).window != presenting) return;
+        KeyEventArgs arguments;
+        arguments.key_code = change.key_code;
+        arguments.physical_key = physical_key;
+        arguments.released_by_deactivation = true;
+        key_up_.emit(arguments);
+        if ((*lifetime).window != presenting) return;
+        const Control::Ptr focused = focused_.lock();
+        if (focused && (*focused).is_alive() && (*focused).key_events_) {
+            KeyEventArgs control_arguments;
+            control_arguments.key_code = change.key_code;
+            control_arguments.physical_key = physical_key;
+            control_arguments.released_by_deactivation = true;
+            (*(*focused).key_events_).key_up.emit(control_arguments);
+            if ((*lifetime).window != presenting) return;
+        }
+    }
+}
+
+bool SurfaceRoot::is_key_down(std::uint32_t physical_key) const noexcept {
+    if (!interaction_) return false;
+    const bool held = (*interaction_).holds(physical_key);
+    return held;
+}
+
+bool SurfaceRoot::finish_unhandled_key(const KeyEvent& event, bool input_key) {
+    if (dispatch_accelerator(event, false)) return true;
+    // A key the focused control claimed (is_input_key) is not a dialog key.
+    if (input_key) return false;
     const bool traversal_key = event.action == KeyAction::down &&
         event.physical_key == PhysicalKey::tab;
     // F6 and Shift+F6 cycle the focus regions; other modifiers leave F6 to
@@ -1989,7 +2172,6 @@ bool SurfaceRoot::finish_unhandled_key(const KeyEvent& event) {
     const bool forward =
         (static_cast<std::uint8_t>(event.modifiers) &
          static_cast<std::uint8_t>(Modifier::shift)) == 0U;
-    if (dispatch_accelerator(event, false)) return true;
     if (dispatch_dialog_key(event)) return true;
     if (traversal_key) return move_focus(forward);
     if (region_key) return move_focus_region(forward);
@@ -2012,7 +2194,7 @@ bool SurfaceRoot::resume_unhandled_key(const Control::Ptr& from, KeyEvent event)
         (*(*iterator)).on_key_bubble(event);
         if (event.handled) return true;
     }
-    const bool handled = finish_unhandled_key(event);
+    const bool handled = finish_unhandled_key(event, false);
     return handled;
 }
 
@@ -2024,6 +2206,27 @@ bool SurfaceRoot::dispatch_text(TextInputEvent event) {
     }
     metrics_.record_input();
     if (forward_to_popup(event)) return true;
+    // An input method's marked text passes to the control untouched: no
+    // KeyPress, no suppression, until the composition commits.
+    if (!event.composing && !event.text_utf8.empty()) {
+        if (suppress_key_text_) {
+            suppress_key_text_ = false;
+            return true;
+        }
+        KeyPressEventArgs press;
+        press.text = event.text_utf8;
+        press.key_char = single_key_char(event.text_utf8);
+        const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+        Window* const presenting = (*lifetime).window;
+        key_press_.emit(press);
+        if ((*lifetime).window != presenting || press.handled) return true;
+        const Control::Ptr pressed_target = focused_.lock();
+        if (pressed_target && eligible(pressed_target) && (*pressed_target).key_events_) {
+            metrics_.record_callback_emitted();
+            (*(*pressed_target).key_events_).key_press.emit(press);
+            if ((*lifetime).window != presenting || press.handled) return true;
+        }
+    }
     Control::Ptr target = focused_.lock();
     if (!target || !eligible(target)) {
         return false;
@@ -2627,8 +2830,43 @@ void SurfaceRoot::revoke_focus_scopes_for_subtree(
     }
 }
 
+Control::Ptr SurfaceRoot::restore_focus() {
+    require_root_thread("focus restore");
+    const Control::Ptr focused = focused_.lock();
+    if (focused && eligible(focused)) return focused;
+    const Control::Ptr withdrawn = withdrawn_focus_.lock();
+    if (!withdrawn || !(*withdrawn).is_alive() || (*withdrawn).surface_root_ != this) {
+        withdrawn_focus_.reset();
+        return focused_.lock();
+    }
+    // Still disabled or hidden: kept for a later restore.
+    if (!eligible(withdrawn) || !(*withdrawn).focusable.read()) return focused_.lock();
+    const bool moved = request_focus(withdrawn);
+    if (moved) withdrawn_focus_.reset();
+    const Control::Ptr current = focused_.lock();
+    return current;
+}
+
+void SurfaceRoot::remember_withdrawn_focus(const Control::Ptr& control) {
+    // Only the window's own withdrawal (its root disabled or hidden, as
+    // Form.Enabled = false) is remembered: a control inside the window that
+    // is disabled loses focus for good, as in Windows Forms.
+    if (control != root_) return;
+    const Control::Ptr focused = focused_.lock();
+    if (focused) withdrawn_focus_ = focused;
+}
+
+void SurfaceRoot::on_eligibility_restored(const Control::Ptr& control) {
+    require_root_thread("eligibility mutation");
+    if (focused_.lock()) return;
+    const Control::Ptr withdrawn = withdrawn_focus_.lock();
+    if (!withdrawn || !contains_control(control, withdrawn)) return;
+    static_cast<void>(restore_focus());
+}
+
 void SurfaceRoot::on_eligibility_changed(const Control::Ptr& control) {
     require_root_thread("eligibility mutation");
+    remember_withdrawn_focus(control);
     close_overlays_for_subtree(control, PassiveOverlays::close);
     close_focus_scopes_for_subtree(control);
     revoke_interaction_for_subtree(control, true);
@@ -2636,6 +2874,7 @@ void SurfaceRoot::on_eligibility_changed(const Control::Ptr& control) {
 
 void SurfaceRoot::on_enabled_withdrawn(const Control::Ptr& control) {
     require_root_thread("eligibility mutation");
+    remember_withdrawn_focus(control);
     close_overlays_for_subtree(control, PassiveOverlays::keep);
     close_focus_scopes_for_subtree(control);
     revoke_interaction_for_subtree(control, true);

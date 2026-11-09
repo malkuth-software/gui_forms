@@ -166,6 +166,7 @@ void TextBox::write_view(const decltype(text)&, std::string incoming) {
     end_auto_complete(false);
     // The engine ends any composition and the history with the old text.
     (*editing_).set_text(incoming);
+    decorations_.shift_for_edit((*editing_).last_change());
     layout_positions_.clear();
     layout_offsets_.clear();
     horizontal_offset_ = 0.0;
@@ -177,6 +178,8 @@ void TextBox::write_view(const decltype(text)&, std::string incoming) {
 }
 
 void TextBox::text_edited() {
+    // Decorations follow the text before anything lays it out again.
+    decorations_.shift_for_edit((*editing_).last_change());
     layout_positions_.clear();
     layout_offsets_.clear();
     reset_caret_blink();
@@ -433,7 +436,13 @@ void TextBox::rebuild_multiline_rows(const double width) {
     }
     if (!visual_lines_.empty() && multiline_revision_ == (*editing_).store().revision() &&
         multiline_font_ == content_font && multiline_width_ == width &&
-        multiline_provider_ == provider && multiline_device_scale_ == device_scale) return;
+        multiline_provider_ == provider && multiline_device_scale_ == device_scale &&
+        multiline_decoration_revision_ == decorations_.layout_revision()) return;
+    // A decoration's font alone moves glyphs, not the caret's place in the
+    // text: the view stays where it is.
+    const bool decorations_only = !visual_lines_.empty() && multiline_revision_ == (*editing_).store().revision() &&
+        multiline_font_ == content_font && multiline_width_ == width &&
+        multiline_provider_ == provider && multiline_device_scale_ == device_scale;
     // Invalidate before modifying retained rows: an allocation/metrics failure
     // leaves the cache uncommitted and the next call must rebuild it.
     multiline_width_ = -1.0;
@@ -467,8 +476,16 @@ void TextBox::rebuild_multiline_rows(const double width) {
     // Keep complete visual-row shaping runs. Prefix measurement is quadratic
     // within the admitted 4096-byte logical-line bound, cached across paints.
     // Tabs are explicit shaping boundaries; arbitrary chunk cuts are forbidden.
+    // Decorations that change the font split shaping runs where the font
+    // changes, and each run is measured in its own font.
+    const bool styled_fonts = decorations_.changes_font();
     for (std::size_t logical = 0U; logical < logical_count; ++logical) {
         const Utf8Range range = (*editing_).store().line_content_range(LineIndex(logical));
+        if (styled_fonts) {
+            decorations_.compose(range, styled_scratch_);
+        } else {
+            styled_scratch_.clear();
+        }
         std::size_t cursor = range.start.value();
         do {
             line.offsets.clear();
@@ -496,14 +513,15 @@ void TextBox::rebuild_multiline_rows(const double width) {
                     last_space = line.offsets.size() - 1U;
                     continue;
                 }
+                const RunFont run_font = run_font_at(cursor, range.end.value(), content_font);
                 std::size_t run_end = cursor;
-                while (cursor < range.end.value() && source[cursor] != '\t') {
+                while (cursor < range.end.value() && source[cursor] != '\t' && cursor < run_font.end) {
                     const Utf8Offset position(cursor);
                     const Utf8Offset following = (*editing_).store().next_grapheme_boundary(position);
                     const std::size_t next = following.value();
                     const std::size_t prefix_bytes = next - run_start;
                     const std::string_view prefix = source.substr(run_start, prefix_bytes);
-                    const ResolvedTextLayout prefix_metrics = resolve_text_layout_utf8(prefix, content_font);
+                    const ResolvedTextLayout prefix_metrics = resolve_text_layout_utf8(prefix, run_font.font);
                     const double x = run_x + prefix_metrics.logical_size.width;
                     if (word_wrap.read() && x > width && line.offsets.size() > 1) {
                         wrapped = true;
@@ -516,7 +534,7 @@ void TextBox::rebuild_multiline_rows(const double width) {
                     const char32_t scalar = (*editing_).store().scalar_at(position);
                     if (scalar == U' ' || scalar == U'\t') last_space = line.offsets.size() - 1;
                 }
-                if (run_end != run_start) line.runs.push_back({run_start, run_end, run_x});
+                if (run_end != run_start) line.runs.push_back({run_start, run_end, run_x, run_font.font});
             }
             if (wrapped && last_space > 0 && last_space + 1 < line.offsets.size()) {
                 cursor = line.offsets[last_space];
@@ -540,7 +558,8 @@ void TextBox::rebuild_multiline_rows(const double width) {
     multiline_width_ = width;
     multiline_provider_ = provider;
     multiline_device_scale_ = device_scale;
-    reveal_pending_ = true;
+    multiline_decoration_revision_ = decorations_.layout_revision();
+    if (!decorations_only) reveal_pending_ = true;
 }
 
 std::size_t TextBox::visual_line_count() {
@@ -687,6 +706,7 @@ Rect TextBox::paint_multiline(Painter& painter) {
     const std::size_t first = static_cast<std::size_t>(offset.y / line_height_);
     const std::size_t last = std::min(visual_lines_.size(), first +
         static_cast<std::size_t>(std::ceil(height / line_height_)) + 1);
+    const bool decorated = !decorations_.empty();
     for (std::size_t i = first; i < last; ++i) {
         const VisualLine& row = visual_lines_[i];
         const double y = 4.0 + static_cast<double>(i) * line_height_ - offset.y;
@@ -700,13 +720,22 @@ Rect TextBox::paint_multiline(Painter& painter) {
             double right = multiline_boundary_x(i, (*editing_).selection().end());
             if ((*editing_).selection().end().value() > row.offsets.back()) right += std::max(3.0, content_font.size * 0.35);
             selection_bounds = {origin + left, y, std::max(0.0, right - left), line_height_};
-            paint_selection_band(painter, selection_bounds);
         }
+        if (decorated) {
+            // Grounds go under the band, so the decorated row paints it.
+            const DecoratedRow decorated_row{.line = i, .origin = origin, .y = y, .selected = selected,
+                                             .band = selection_bounds, .clip_left = text_left_,
+                                             .clip_right = text_left_ + width};
+            paint_decorated_row(painter, decorated_row, text_part, selected_part);
+            continue;
+        }
+        if (selected) paint_selection_band(painter, selection_bounds);
         const std::string_view source = (*editing_).text();
         if (!selected) {
             for (const VisualRun& run : row.runs) {
                 const Point baseline{origin + run.x, y + line_ascent_};
                 PartPaint run_part = text_part;
+                run_part.font = run.font;
                 run_part.text = source.substr(run.start, run.end - run.start);
                 paint_text_part_at(painter, *this, run_part, baseline, 0.0);
             }
@@ -727,6 +756,7 @@ Rect TextBox::paint_multiline(Painter& painter) {
             for (const VisualRun& run : row.runs) {
                 const Point baseline{origin + run.x, y + line_ascent_};
                 PartPaint run_part = span == 1U ? selected_part : text_part;
+                run_part.font = run.font;
                 run_part.text = source.substr(run.start, run.end - run.start);
                 paint_text_part_at(painter, *this, run_part, baseline, 0.0);
             }

@@ -164,6 +164,8 @@ gui_forms::TextBox
       **auto_complete_highlighted** : ``std::optional<std::size_t>``, read-only
          The highlighted suggestion's index, or none.
 
+      **decorations** : ``TextDecorations``
+
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
@@ -244,6 +246,14 @@ gui_forms::TextBox
         - Whether :cpp:member:`auto_complete_source <gui_forms::TextBox::auto_complete_source>` can offer candidates.
       * - :cpp:func:`close_auto_complete <gui_forms::TextBox::close_auto_complete>`
         - Closes the suggestion list and ends an appended completion, keeping the text as it is.
+      * - :cpp:func:`replace_decorations <gui_forms::TextBox::replace_decorations>`
+        - Replaces ``layer``'s decorations within ``range`` only (an incremental highlighter's update; TextDecorations::replace_range).
+      * - :cpp:func:`clear_decorations <gui_forms::TextBox::clear_decorations>`
+        -  
+      * - :cpp:func:`clear_all_decorations <gui_forms::TextBox::clear_all_decorations>`
+        -  
+      * - :cpp:func:`styled_runs <gui_forms::TextBox::styled_runs>`
+        - The composed runs over ``range`` (cleared first), as the box draws them.
       * - :cpp:func:`text_box_property_entries <gui_forms::TextBox::text_box_property_entries>`
         -  
       * - :cpp:func:`set_edit_filter <gui_forms::TextBox::set_edit_filter>`
@@ -566,6 +576,12 @@ gui_forms::TextBox
 
       The highlighted suggestion's index, or none.
 
+   .. cpp:function:: const TextDecorations& decorations() const noexcept
+
+   .. cpp:function:: void set_decorations(TextDecorationLayer layer, std::span<const TextDecoration> decorations)
+
+      Styled text runs (text_box_decorations.cpp): decoration layers over the text, for syntax highlighting, diagnostics and search matches (see TextDecorations). A multiline box draws them; a single-line box keeps them but draws its text in one style. The text never changes. Ranges are UTF-8 offsets into text(); a range past the text throws std::out_of_range, and the collection's own refusals (std::invalid_argument) apply, before anything changes. Decorations follow every edit, undo, redo and assignment of the text. A change of colours, underlines or grounds repaints only the rows of the range it touched; a change of weight or italics lays the text out again, so the caret, hit testing and the accessibility layout keep to the glyphs. The selection band and its ink stay over decorations; underlines show through it.
+
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
@@ -687,6 +703,18 @@ gui_forms::TextBox
 
       Closes the suggestion list and ends an appended completion, keeping the
       text as it is.
+
+   .. cpp:function:: void replace_decorations(TextDecorationLayer layer, Utf8Range range, std::span<const TextDecoration> decorations)
+
+      Replaces ``layer``'s decorations within ``range`` only (an incremental highlighter's update; TextDecorations::replace_range).
+
+   .. cpp:function:: void clear_decorations(TextDecorationLayer layer)
+
+   .. cpp:function:: void clear_all_decorations()
+
+   .. cpp:function:: void styled_runs(Utf8Range range, std::vector<StyledTextRun>& runs)
+
+      The composed runs over ``range`` (cleared first), as the box draws them.
 
    .. cpp:function:: static const std::array<PropertyEntry, text_box_property_count>& text_box_property_entries() noexcept
 

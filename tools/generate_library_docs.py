@@ -132,8 +132,10 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           "for its own files, such as saved docking layouts.",
           ("xml",)),
     Group("images-and-resources", "Images and resources",
-          "The window-owned image registry and its PNG resource records.",
-          ("resources",)),
+          "The window-owned image registry, its PNG resource records, and "
+          "SHA-256 (one-shot and streaming) for resource and theme package "
+          "integrity.",
+          ("resources", "integrity")),
     Group("animation-and-threading", "Animation and threading",
           "Animation timelines and motion policy, cooperative workers, "
           "cancellation and the atomic thread pool.",

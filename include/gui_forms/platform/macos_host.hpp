@@ -21,7 +21,9 @@ enum class MacTitlebarPresentation : std::uint8_t {
 struct MacHostOptions {
     std::string title{"GUI.Forms Application"};
     Size initial_size{1120.0, 680.0};
-    Size minimum_size{150.0, 150.0};
+    // The smallest client size; a side of 0 (the default) sets no minimum
+    // there beyond the host's own (ApplicationWindowOptions::minimum_size).
+    Size minimum_size{};
     // Portable frame capture (identical on every host). When capture_path is
     // non-empty, after the first presented frame that covers the whole window
     // the host encodes the presented framebuffer as PNG to that path, prints
@@ -129,6 +131,12 @@ struct MacApplicationOptions final {
     // before the remaining windows close and before the windowing is shut
     // down and released.
     std::function<void()> windowing_ended;
+    // Called on the main thread when the system asks the running
+    // application to open files (Finder: a double-click, a drop on the Dock
+    // icon, "Open With"; application:openURLs:), with their paths in UTF-8,
+    // in the order given. URLs that are not file URLs are left out; a
+    // request with none calls nothing. May be empty.
+    std::function<void(std::vector<std::string> paths)> open_files;
 };
 
 int run_macos_application(std::vector<MacApplicationWindow> windows,

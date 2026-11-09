@@ -1,13 +1,20 @@
 #include "../../../core/host/image/clipboard_image_wire.hpp"
 #include "../../../core/host/image/clipboard_png.hpp"
+#include "../../../core/host/image/host_image_pixels.hpp"
 #include "../application/linux_host_internal.hpp"
 #include "x11_foreign_window.hpp"
 #include <X11/Xatom.h>
+#include <X11/Xutil.h>
 #include <X11/cursorfont.h>
 #ifdef GUI_FORMS_HAS_XCURSOR
 #include "x11_cursor.hpp"
 #endif
 #include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <limits>
+#include <span>
+#include <vector>
 #include <chrono>
 #include <cstring>
 #include <poll.h>
@@ -153,6 +160,271 @@ HostServiceStatus Services::apply_window_backdrop_impl(WindowBackdrop backdrop) 
   }
   return {HostServiceError::backend_failure};
 }
+namespace {
+
+// _NET_WM_STATE actions (EWMH): remove, add.
+constexpr long wm_state_remove = 0;
+constexpr long wm_state_add = 1;
+
+// Asks the window manager to add or remove one or two states of a mapped
+// window (EWMH _NET_WM_STATE client message; source indication 1, an
+// application).
+void send_wm_state(NativeWindow &window, long action, Atom first, Atom second) {
+  XEvent event{};
+  event.xclient.type = ClientMessage;
+  event.xclient.window = window.xid;
+  event.xclient.message_type = window.runtime.atom("_NET_WM_STATE");
+  event.xclient.format = 32;
+  event.xclient.data.l[0] = action;
+  event.xclient.data.l[1] = static_cast<long>(first);
+  event.xclient.data.l[2] = static_cast<long>(second);
+  event.xclient.data.l[3] = 1;
+  XSendEvent(window.runtime.display, DefaultRootWindow(window.runtime.display), False,
+             SubstructureRedirectMask | SubstructureNotifyMask, &event);
+}
+
+// The Motif window manager hints (_MOTIF_WM_HINTS, five longs): which
+// decorations and functions the frame offers.
+struct MotifHints final {
+  unsigned long flags{};
+  unsigned long functions{};
+  unsigned long decorations{};
+  long input_mode{};
+  unsigned long status{};
+};
+constexpr unsigned long motif_functions_flag = 1UL;
+constexpr unsigned long motif_decorations_flag = 2UL;
+constexpr unsigned long motif_function_resize = 2UL;
+constexpr unsigned long motif_function_move = 4UL;
+constexpr unsigned long motif_function_minimize = 8UL;
+constexpr unsigned long motif_function_maximize = 16UL;
+constexpr unsigned long motif_function_close = 32UL;
+constexpr unsigned long motif_decoration_border = 2UL;
+constexpr unsigned long motif_decoration_resize = 4UL;
+constexpr unsigned long motif_decoration_title = 8UL;
+constexpr unsigned long motif_decoration_menu = 16UL;
+constexpr unsigned long motif_decoration_minimize = 32UL;
+constexpr unsigned long motif_decoration_maximize = 64UL;
+
+// The frame and boxes as Motif hints. The window can always be moved and
+// closed (Alt+F4 closes a Windows Forms window without a control box too).
+MotifHints motif_hints_for(const WindowChrome &chrome) noexcept {
+  MotifHints hints{};
+  hints.flags = motif_functions_flag | motif_decorations_flag;
+  const bool sizable = form_border_style_is_sizable(chrome.form_border_style);
+  const bool minimize = chrome.control_box && chrome.minimize_box;
+  const bool maximize = chrome.control_box && chrome.maximize_box;
+  hints.functions = motif_function_move | motif_function_close;
+  if (sizable) hints.functions = hints.functions | motif_function_resize;
+  if (minimize) hints.functions = hints.functions | motif_function_minimize;
+  if (maximize) hints.functions = hints.functions | motif_function_maximize;
+  if (chrome.form_border_style == FormBorderStyle::none) return hints;
+  hints.decorations = motif_decoration_border | motif_decoration_title;
+  if (sizable) hints.decorations = hints.decorations | motif_decoration_resize;
+  if (chrome.control_box) hints.decorations = hints.decorations | motif_decoration_menu;
+  if (minimize) hints.decorations = hints.decorations | motif_decoration_minimize;
+  if (maximize) hints.decorations = hints.decorations | motif_decoration_maximize;
+  return hints;
+}
+
+// _NET_WM_ICON: width, height, then one straight-alpha ARGB pixel per
+// CARDINAL. Xlib passes format-32 data as longs, so each element is a long
+// even where long is 64 bits.
+void write_wm_icon(NativeWindow &window, const HostImage &image) {
+  const Atom property = window.runtime.atom("_NET_WM_ICON");
+  if (image.width == 0U) {
+    XDeleteProperty(window.runtime.display, window.xid, property);
+    return;
+  }
+  const std::size_t pixel_count = static_cast<std::size_t>(image.width) * image.height;
+  std::vector<unsigned long> data(2U + pixel_count);
+  data[0] = image.width;
+  data[1] = image.height;
+  const std::size_t row_length = static_cast<std::size_t>(image.width) * 4U;
+  std::vector<std::byte> straight(row_length);
+  for (std::uint32_t row = 0U; row < image.height; ++row) {
+    const std::span<const std::byte> source(image.pixels.data() + image.row_bytes * row, row_length);
+    gui_forms::detail::premultiplied_bgra_to_straight_bgra(source, straight, image.width);
+    for (std::uint32_t column = 0U; column < image.width; ++column) {
+      const std::size_t at = static_cast<std::size_t>(column) * 4U;
+      const unsigned long blue = std::to_integer<unsigned long>(straight[at]);
+      const unsigned long green = std::to_integer<unsigned long>(straight[at + 1U]);
+      const unsigned long red = std::to_integer<unsigned long>(straight[at + 2U]);
+      const unsigned long alpha = std::to_integer<unsigned long>(straight[at + 3U]);
+      data[2U + static_cast<std::size_t>(row) * image.width + column] =
+          (alpha << 24U) | (red << 16U) | (green << 8U) | blue;
+    }
+  }
+  // XChangeProperty counts elements in an int; HostImage's byte limit keeps
+  // an icon far below it, and a larger one is not published.
+  if (data.size() > static_cast<std::size_t>(std::numeric_limits<int>::max())) return;
+  XChangeProperty(window.runtime.display, window.xid, property, XA_CARDINAL, 32, PropModeReplace,
+                  reinterpret_cast<const unsigned char *>(data.data()), static_cast<int>(data.size()));
+}
+
+// Moves an unmapped window so its client area is centred over its owner
+// (WM_TRANSIENT_FOR, center_parent) or the screen; the size hints say the
+// program chose the position.
+void place_for_start_position(NativeWindow &window, FormStartPosition position) {
+  if (position != FormStartPosition::center_screen && position != FormStartPosition::center_parent) return;
+  Display *display = window.runtime.display;
+  const int screen = DefaultScreen(display);
+  int around_x = 0;
+  int around_y = 0;
+  int around_width = DisplayWidth(display, screen);
+  int around_height = DisplayHeight(display, screen);
+  ::Window parent{};
+  if (position == FormStartPosition::center_parent && XGetTransientForHint(display, window.xid, &parent) != 0 &&
+      parent != None) {
+    XWindowAttributes attributes{};
+    ::Window child{};
+    if (XGetWindowAttributes(display, parent, &attributes) != 0 &&
+        XTranslateCoordinates(display, parent, DefaultRootWindow(display), 0, 0, &around_x, &around_y, &child) != 0) {
+      around_width = attributes.width;
+      around_height = attributes.height;
+    }
+  }
+  const int width = static_cast<int>(window.size.width);
+  const int height = static_cast<int>(window.size.height);
+  const int x = around_x + (around_width - width) / 2;
+  const int y = around_y + (around_height - height) / 2;
+  XSizeHints hints{};
+  long supplied{};
+  XGetWMNormalHints(display, window.xid, &hints, &supplied);
+  hints.flags = hints.flags | USPosition;
+  hints.x = x;
+  hints.y = y;
+  XSetWMNormalHints(display, window.xid, &hints);
+  XMoveWindow(display, window.xid, x, y);
+}
+
+// Asks for normal, minimized or maximized. Before the first map the state
+// is the initial one (WM_HINTS initial_state, _NET_WM_STATE at the map);
+// afterwards iconify and _NET_WM_STATE requests.
+void apply_window_state(NativeWindow &window, FormWindowState state) {
+  Display *display = window.runtime.display;
+  window.chrome_window_state = state;
+  const Atom vertical = window.runtime.atom("_NET_WM_STATE_MAXIMIZED_VERT");
+  const Atom horizontal = window.runtime.atom("_NET_WM_STATE_MAXIMIZED_HORZ");
+  if (!window.visible) {
+    XWMHints *current = XGetWMHints(display, window.xid);
+    XWMHints hints{};
+    if (current != nullptr) {
+      hints = *current;
+      XFree(current);
+    }
+    hints.flags = hints.flags | StateHint;
+    hints.initial_state = state == FormWindowState::minimized ? IconicState : NormalState;
+    XSetWMHints(display, window.xid, &hints);
+    return;
+  }
+  if (state == FormWindowState::minimized) {
+    XIconifyWindow(display, window.xid, DefaultScreen(display));
+    return;
+  }
+  // Mapping an iconified window again restores it.
+  XMapRaised(display, window.xid);
+  const long action = state == FormWindowState::maximized ? wm_state_add : wm_state_remove;
+  send_wm_state(window, action, vertical, horizontal);
+}
+
+} // namespace
+
+WindowChromeFields Services::supported_window_chrome() const noexcept {
+  const WindowChromeFields all{WindowChromeFields::all_bits};
+  return all;
+}
+
+HostWindowChromeResult Services::apply_window_chrome_impl(const WindowChrome &chrome, WindowChromeFields fields) {
+  HostWindowChromeResult result{};
+  NativeWindow &window = window_;
+  if (window.closed || window.xid == 0) {
+    result.status = HostServiceStatus{HostServiceError::after_shutdown};
+    return result;
+  }
+  Display *display = window.runtime.display;
+  try {
+    if (fields.contains(WindowChromeField::text)) {
+      if (window.accessibility) (*window.accessibility).set_title(chrome.text);
+      XStoreName(display, window.xid, chrome.text.c_str());
+      XChangeProperty(display, window.xid, window.runtime.atom("_NET_WM_NAME"), window.runtime.atom("UTF8_STRING"),
+                      8, PropModeReplace, reinterpret_cast<const unsigned char *>(chrome.text.data()),
+                      static_cast<int>(chrome.text.size()));
+      result.applied.add(WindowChromeField::text);
+    }
+    if (fields.contains(WindowChromeField::icon)) {
+      write_wm_icon(window, chrome.icon);
+      result.applied.add(WindowChromeField::icon);
+    }
+    const std::uint32_t frame_bits = static_cast<std::uint32_t>(WindowChromeField::form_border_style) |
+                                     static_cast<std::uint32_t>(WindowChromeField::minimize_box) |
+                                     static_cast<std::uint32_t>(WindowChromeField::maximize_box) |
+                                     static_cast<std::uint32_t>(WindowChromeField::control_box);
+    if ((fields.bits & frame_bits) != 0U) {
+      const MotifHints hints = motif_hints_for(chrome);
+      const Atom property = window.runtime.atom("_MOTIF_WM_HINTS");
+      XChangeProperty(display, window.xid, property, property, 32, PropModeReplace,
+                      reinterpret_cast<const unsigned char *>(&hints), 5);
+      result.applied.bits = result.applied.bits | (fields.bits & frame_bits);
+    }
+    if (fields.contains(WindowChromeField::top_most)) {
+      window.chrome_top_most = chrome.top_most;
+      if (window.visible) {
+        send_wm_state(window, chrome.top_most ? wm_state_add : wm_state_remove,
+                      window.runtime.atom("_NET_WM_STATE_ABOVE"), None);
+      }
+      result.applied.add(WindowChromeField::top_most);
+    }
+    if (fields.contains(WindowChromeField::show_in_taskbar)) {
+      window.chrome_skip_taskbar = !chrome.show_in_taskbar;
+      // A utility window stays off the taskbar (decision 11).
+      if (window.visible && !window.utility) {
+        send_wm_state(window, chrome.show_in_taskbar ? wm_state_remove : wm_state_add,
+                      window.runtime.atom("_NET_WM_STATE_SKIP_TASKBAR"), None);
+      }
+      if (!window.utility || !chrome.show_in_taskbar) result.applied.add(WindowChromeField::show_in_taskbar);
+    }
+    if (fields.contains(WindowChromeField::opacity)) {
+      const Atom property = window.runtime.atom("_NET_WM_WINDOW_OPACITY");
+      if (chrome.opacity >= 1.0) {
+        XDeleteProperty(display, window.xid, property);
+      } else {
+        // EWMH: a CARDINAL from 0 (transparent) to 0xffffffff (opaque).
+        const unsigned long value = static_cast<unsigned long>(std::llround(chrome.opacity * 4294967295.0));
+        XChangeProperty(display, window.xid, property, XA_CARDINAL, 32, PropModeReplace,
+                        reinterpret_cast<const unsigned char *>(&value), 1);
+      }
+      result.applied.add(WindowChromeField::opacity);
+    }
+    if (fields.contains(WindowChromeField::minimum_size)) {
+      window.chrome_minimum_size = chrome.minimum_size;
+      const Size minimum = window.minimum_size();
+      XSizeHints hints{};
+      long supplied{};
+      XGetWMNormalHints(display, window.xid, &hints, &supplied);
+      hints.flags = hints.flags | PMinSize;
+      hints.min_width = static_cast<int>(std::ceil(minimum.width));
+      hints.min_height = static_cast<int>(std::ceil(minimum.height));
+      XSetWMNormalHints(display, window.xid, &hints);
+      result.applied.add(WindowChromeField::minimum_size);
+    }
+    if (fields.contains(WindowChromeField::start_position) && !window.shown_once) {
+      place_for_start_position(window, chrome.start_position);
+      result.applied.add(WindowChromeField::start_position);
+    }
+    if (fields.contains(WindowChromeField::window_state)) {
+      apply_window_state(window, chrome.window_state);
+      result.applied.add(WindowChromeField::window_state);
+    }
+    XFlush(display);
+  } catch (...) {
+    // Only the allocations (the icon's pixels) throw; what was applied
+    // before stays applied.
+    result.status = HostServiceStatus{HostServiceError::backend_failure};
+  }
+  return result;
+}
+
 HostServiceStatus Services::set_cursor_impl(CursorKind cursor) {
   if (window_.cursor_set && window_.current_cursor == cursor)
     return {};

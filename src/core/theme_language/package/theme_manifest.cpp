@@ -91,7 +91,7 @@ private:
     // null where it is absent (absent is a problem where `required`).
     [[nodiscard]] bool read_text(const JsonValue& object, std::string_view key, std::string_view path,
                                  std::size_t most, bool required, std::string& text);
-    [[nodiscard]] bool read_hash(const JsonValue& value, std::string_view path, detail::Sha256Digest& digest);
+    [[nodiscard]] bool read_hash(const JsonValue& value, std::string_view path, Sha256Digest& digest);
     [[nodiscard]] bool read_file(const JsonValue& object, std::string_view path, ThemePackageFile& file);
     [[nodiscard]] bool only_keys(const JsonValue& object, std::string_view path,
                                  std::span<const std::string_view> keys);
@@ -118,13 +118,13 @@ bool ManifestReader::read_text(const JsonValue& object, std::string_view key, st
     return true;
 }
 
-bool ManifestReader::read_hash(const JsonValue& value, std::string_view path, detail::Sha256Digest& digest) {
+bool ManifestReader::read_hash(const JsonValue& value, std::string_view path, Sha256Digest& digest) {
     if (value.kind != JsonKind::string || value.text.size() != sha256_hex_digits) return invalid(path);
     for (const char character : value.text) {
         const bool lower_hex = digit(character) || (character >= 'a' && character <= 'f');
         if (!lower_hex) return invalid(path);
     }
-    if (!detail::parse_sha256_hex(std::span<const char>(value.text), digest)) return invalid(path);
+    if (!parse_sha256_hex(std::span<const char>(value.text), digest)) return invalid(path);
     return true;
 }
 
@@ -303,19 +303,13 @@ ThemeManifestOutcome read_theme_manifest(std::string_view bytes, EngineVersion r
     return ThemeManifestOutcome::read;
 }
 
-detail::Sha256Digest package_sha256(std::string_view bytes) noexcept {
-    const std::span<const std::uint8_t> view(reinterpret_cast<const std::uint8_t*>(bytes.data()), bytes.size());
-    return detail::sha256(view);
+Sha256Digest package_sha256(std::string_view bytes) noexcept {
+    const Sha256Digest digest = sha256_of_text(bytes);
+    return digest;
 }
 
-std::string package_sha256_hex(const detail::Sha256Digest& digest) {
-    constexpr std::string_view hex_digits = "0123456789abcdef";
-    std::string text{};
-    text.reserve(sha256_hex_digits);
-    for (const std::uint8_t value : digest.bytes) {
-        text.push_back(hex_digits[value >> 4U]);
-        text.push_back(hex_digits[value & 0x0FU]);
-    }
+std::string package_sha256_hex(const Sha256Digest& digest) {
+    std::string text = sha256_hex(digest);
     return text;
 }
 

@@ -53,6 +53,16 @@ public:
     [[nodiscard]] WindowCornerPreference native_corner_preference() const noexcept {
         return native_corner_preference_;
     }
+    // The simulated window's chrome: every property is supported unless a
+    // test narrows the set (set_supported_chrome, as a platform without a
+    // taskbar would); apply_window_chrome copies the applied fields into
+    // native_chrome() and counts each request.
+    [[nodiscard]] WindowChromeFields supported_window_chrome() const noexcept override {
+        return supported_chrome_;
+    }
+    void set_supported_chrome(WindowChromeFields supported) noexcept { supported_chrome_ = supported; }
+    [[nodiscard]] const WindowChrome& native_chrome() const noexcept { return native_chrome_; }
+    [[nodiscard]] std::uint64_t chrome_requests() const noexcept { return chrome_requests_; }
 
 protected:
     [[nodiscard]] HostMonitorResult query_monitors_impl() override;
@@ -80,6 +90,8 @@ protected:
         HostTrayIconId icon_id, const HostTrayMenuRequest& request) override;
     [[nodiscard]] HostServiceStatus apply_window_backdrop_impl(WindowBackdrop backdrop) override;
     [[nodiscard]] HostWindowCornersResult apply_window_corners_impl(WindowCornerPreference preference) override;
+    [[nodiscard]] HostWindowChromeResult apply_window_chrome_impl(const WindowChrome& chrome,
+                                                                  WindowChromeFields fields) override;
 
 private:
     struct TrayIcon final {
@@ -103,6 +115,9 @@ private:
     std::string backdrop_trace_;
     bool fail_next_backdrop_{};
     WindowCornerPreference native_corner_preference_{WindowCornerPreference::system};
+    WindowChromeFields supported_chrome_{WindowChromeFields::all_bits};
+    WindowChrome native_chrome_{};
+    std::uint64_t chrome_requests_{};
     // Indexed by WindowCornerPreference.
     std::array<WindowCornerReport, 3> corner_reports_{};
 };

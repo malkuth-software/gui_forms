@@ -207,6 +207,10 @@ public:
     void end_run();
     [[nodiscard]] gf_status running_window(gf_object root, SlotIdentity slot,
                                            ApplicationWindowHandle& window);
+    // The run under way: its root and its window (inactive until ready).
+    // GF_STATUS_INVALID_STATE when no window is running.
+    [[nodiscard]] gf_status current_run(SlotIdentity slot, gf_object& root,
+                                        ApplicationWindowHandle& window);
 
 private:
     struct ObjectSlot {
@@ -301,6 +305,12 @@ private:
 // The status and message for the exception being handled; for use inside a
 // catch block of a slot, which is the subsystem boundary.
 gf_status fail_with_current_exception(SlotIdentity slot) noexcept;
+
+// The failure message for a stable id that breaks the rule
+// (valid_stable_id): what the rule is, with an example.
+inline constexpr std::string_view stable_id_rule =
+    "a stable id is one or more '.'-separated segments of lowercase ASCII letters and digits joined by single '-' "
+    "(such as \"settings.ok-button\"; a Windows Forms name such as \"textBox1\" is spelled \"text-box1\")";
 
 // Validates borrowed UTF-8 text: data may be null only when size is zero,
 // and the bytes must be well-formed UTF-8.

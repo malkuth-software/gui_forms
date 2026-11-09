@@ -284,6 +284,10 @@ gui_forms::NumericUpDown
 
    .. rubric:: Extension points
 
+   .. cpp:function:: Ptr focus_target() const override
+
+      Focus on the field goes to its edit part (null without one).
+
    .. cpp:function:: void arrange(Rect final_bounds) override
 
    .. cpp:function:: void on_paint_overlay(Painter& painter, Rect local_damage) override
@@ -324,4 +328,4 @@ gui_forms::NumericUpDown
 
    .. cpp:member:: constexpr std::size_t numeric_up_down_property_count
 
-      NumericUpDown's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.
+      NumericUpDown's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 5U``.

@@ -38,6 +38,8 @@ public:
 
     // The field's TextBox in the drop_down style, and null otherwise.
     [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept { return editor_; }
+    // Focus on the field goes to its edit part (null without one).
+    [[nodiscard]] Ptr focus_target() const override { return editor_; }
 
     // The items the open list shows, as indices into items(), in row order;
     // empty while the list is closed. Rows keep their item's identity: a

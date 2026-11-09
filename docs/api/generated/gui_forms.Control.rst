@@ -474,6 +474,15 @@ gui_forms::Control
          Raised when a :cpp:class:`HelpProvider <gui_forms::HelpProvider>` requests help for this control. Set
          ``handled`` on the event to stop the provider's own event.
 
+      **preview_key_down** : ``Event<PreviewKeyDownEventArgs&>``
+         The Windows Forms key events (key_events.hpp gives their order): PreviewKeyDown and KeyDown/KeyUp on the focused control for each key, KeyPress for the committed text a key produces. A handler that sets handled ends the key's route; is_input_key keeps a key from dialog processing; suppress_key_press drops the key's text. Kept, like the mouse events, in a record made by the first accessor called.
+
+      **key_down** : ``Event<KeyEventArgs&>``
+
+      **key_press** : ``Event<KeyPressEventArgs&>``
+
+      **key_up** : ``Event<KeyEventArgs&>``
+
    :Inherited:
 
       It also has every member of :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
@@ -1294,6 +1303,16 @@ gui_forms::Control
       Raised when a :cpp:class:`HelpProvider <gui_forms::HelpProvider>` requests help for this control. Set
       ``handled`` on the event to stop the provider's own event.
 
+   .. cpp:function:: Event<PreviewKeyDownEventArgs&>& preview_key_down()
+
+      The Windows Forms key events (key_events.hpp gives their order): PreviewKeyDown and KeyDown/KeyUp on the focused control for each key, KeyPress for the committed text a key produces. A handler that sets handled ends the key's route; is_input_key keeps a key from dialog processing; suppress_key_press drops the key's text. Kept, like the mouse events, in a record made by the first accessor called.
+
+   .. cpp:function:: Event<KeyEventArgs&>& key_down()
+
+   .. cpp:function:: Event<KeyPressEventArgs&>& key_press()
+
+   .. cpp:function:: Event<KeyEventArgs&>& key_up()
+
 
    .. rubric:: Methods
 
@@ -1721,6 +1740,10 @@ gui_forms::Control
 
       Focus moved to ``descendant``, a control inside this one: the window calls this on each ancestor of a newly focused control, innermost first, after the focused control's on_focus_changed (Windows Forms' ScrollControlIntoView on activation). Return true when this control scrolls its content to reveal ``descendant``; the ancestors above then reveal this control instead. The default reveals nothing: false.
 
+   .. cpp:function:: virtual Ptr focus_target() const
+
+      The inner control that takes keyboard focus for this one: a composite field (ComboBox with an edit field, NumericUpDown, MaskedTextBox, SearchField and the like) returns its edit part, which must be a descendant. SurfaceRoot::request_focus gives focus to the target instead (Windows Forms' Focus on a ComboBox puts the caret in its edit), and SurfaceRoot::active_control reports the composite while its target has focus. A composite with a target keeps focusable false itself, so keyboard traversal reaches only the target. The default is null: the control takes focus itself.
+
    .. cpp:function:: virtual std::optional<Rect> text_input_caret() const
 
       Where an input method places its composition and candidate windows while this control has focus: the caret's box, in local coordinates. The base returns none, and SurfaceRoot::text_input_caret then uses a one-unit-wide box at the control's left edge.
@@ -2058,4 +2081,4 @@ gui_forms::Control
 
    .. cpp:member:: constexpr std::size_t control_property_count
 
-      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``28U``.
+      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``29U``.

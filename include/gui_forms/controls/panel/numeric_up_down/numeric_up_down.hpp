@@ -20,6 +20,8 @@ public:
     // Sets both bounds; they must be finite and ordered (std::invalid_argument).
     void set_range(double lowest, double highest);
     [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept { return editor_; }
+    // Focus on the field goes to its edit part (null without one).
+    [[nodiscard]] Ptr focus_target() const override { return editor_; }
     [[nodiscard]] Event<double>& value_changed() noexcept { return value_changed_; }
 
     void arrange(Rect final_bounds) override;
@@ -91,7 +93,7 @@ private:
     // property_codemod begin NumericUpDown (tools/property_families/numeric_up_down.json; generated, do not edit)
 public:
     // NumericUpDown's property table: Panel's entries, then its own.
-    static constexpr std::size_t numeric_up_down_property_count = Panel::panel_property_count + 1U;
+    static constexpr std::size_t numeric_up_down_property_count = Panel::panel_property_count + 5U;
     [[nodiscard]] static const std::array<PropertyEntry, numeric_up_down_property_count>& numeric_up_down_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 

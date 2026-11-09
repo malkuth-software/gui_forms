@@ -1,9 +1,10 @@
 // SHA-256 against the FIPS 180-2 / NIST CAVP examples ("abc", the empty message, the 448-bit
 // two-block message and one million 'a'), every padding boundary from 0 to 130 bytes (checked
 // for agreement between one call and a call over the same bytes held elsewhere), and the
-// hexadecimal parser, including the rejections.
+// hexadecimal parser, including the rejections; the streaming hasher against the one-shot
+// digest at every split point, its copy and reset; the hexadecimal writer.
 
-#include "../src/core/resources/integrity/sha256.hpp"
+#include "gui_forms/integrity/sha256/sha256.hpp"
 
 #include <array>
 #include <cstddef>
@@ -11,14 +12,16 @@
 #include <cstdio>
 #include <cstring>
 #include <span>
+#include <string>
 #include <string_view>
 #include <vector>
 
 namespace {
 
-using gui_forms::detail::Sha256Digest;
-using gui_forms::detail::parse_sha256_hex;
-using gui_forms::detail::sha256;
+using gui_forms::Sha256Digest;
+using gui_forms::parse_sha256_hex;
+using gui_forms::sha256;
+using gui_forms::Sha256Hasher;
 
 struct KnownAnswer final {
     std::string_view message;
@@ -116,6 +119,92 @@ bool hex_parsing() {
     return unchanged;
 }
 
+// The hasher fed in two pieces, split at every point of a 200-byte message (crossing one, two
+// and three blocks), then in single bytes, gives the one-shot digest.
+bool streaming_matches_one_shot() {
+    std::vector<std::uint8_t> message(200U);
+    for (std::size_t index = 0; index < message.size(); ++index) {
+        message[index] = static_cast<std::uint8_t>(index * 91U + 7U);
+    }
+    const std::span<const std::uint8_t> whole(message.data(), message.size());
+    const Sha256Digest expected = sha256(whole);
+    Sha256Hasher hasher{};
+    for (std::size_t split = 0; split <= message.size(); ++split) {
+        hasher.update(whole.subspan(0U, split));
+        hasher.update(whole.subspan(split));
+        if (hasher.byte_count() != message.size()) {
+            std::printf("sha256: the hasher counted %llu bytes, not 200\n",
+                        static_cast<unsigned long long>(hasher.byte_count()));
+            return false;
+        }
+        const Sha256Digest streamed = hasher.finish();
+        if (streamed != expected) {
+            std::printf("sha256: the hasher split at %zu differs from the one-shot digest\n", split);
+            return false;
+        }
+    }
+    for (const std::uint8_t byte : message) {
+        const std::array<std::uint8_t, 1> one{byte};
+        hasher.update(std::span<const std::uint8_t>(one.data(), one.size()));
+    }
+    if (hasher.finish() != expected) {
+        std::puts("sha256: the hasher fed byte by byte differs from the one-shot digest");
+        return false;
+    }
+    // finish starts a new message: an empty one now.
+    if (!matches(hasher.finish(), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")) {
+        std::puts("sha256: a finished hasher does not start an empty message");
+        return false;
+    }
+    return true;
+}
+
+// A copy finishes the prefix while the original goes on; reset forgets; text updates hash the
+// bytes as they are.
+bool copy_reset_and_text() {
+    Sha256Hasher hasher{};
+    hasher.update(std::string_view("ab"));
+    Sha256Hasher prefix = hasher;
+    hasher.update(std::string_view("c"));
+    if (!matches(hasher.finish(), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")) {
+        std::puts("sha256: the original hasher lost its message when copied");
+        return false;
+    }
+    if (prefix.finish() != gui_forms::sha256_of_text("ab")) {
+        std::puts("sha256: a copied hasher does not finish the prefix");
+        return false;
+    }
+    hasher.update(std::string_view("discarded"));
+    hasher.reset();
+    hasher.update(std::string_view("abc"));
+    const bool reset_holds = hasher.finish() == digest_of("abc") && hasher.byte_count() == 0U;
+    if (!reset_holds) {
+        std::puts("sha256: reset did not forget the message");
+        return false;
+    }
+    return true;
+}
+
+// The writer gives lowercase digits the parser reads back to the same digest.
+bool hex_writing() {
+    const Sha256Digest digest = digest_of("abc");
+    const std::string text = gui_forms::sha256_hex(digest);
+    if (text != "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad") {
+        std::puts("sha256: sha256_hex wrote the wrong digits");
+        return false;
+    }
+    std::array<char, gui_forms::sha256_hex_digits> digits{};
+    gui_forms::format_sha256_hex(digest, digits);
+    Sha256Digest parsed{};
+    const bool round_trip = parse_sha256_hex(std::span<const char>(digits.data(), digits.size()), parsed) &&
+                            parsed == digest;
+    if (!round_trip) {
+        std::puts("sha256: written digits do not parse back to the digest");
+        return false;
+    }
+    return true;
+}
+
 } // namespace
 
 int main() {
@@ -125,6 +214,9 @@ int main() {
         std::puts("sha256: the hexadecimal parser accepted bad text or changed its output");
         return 3;
     }
-    std::puts("sha256: FIPS examples, padding boundaries and hexadecimal parsing hold");
+    if (!streaming_matches_one_shot()) return 4;
+    if (!copy_reset_and_text()) return 5;
+    if (!hex_writing()) return 6;
+    std::puts("sha256: FIPS examples, padding boundaries, streaming and hexadecimal parsing and writing hold");
     return 0;
 }

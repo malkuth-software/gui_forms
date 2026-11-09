@@ -1,5 +1,6 @@
 #include "../application/linux_host_internal.hpp"
 #include "gui_forms/basic_controls.hpp"
+#include "gui_forms/components/file_dialog_types/file_dialog_types.hpp"
 #include "gui_forms/controls/panel/combo_box/combo_box.hpp"
 #include "gui_forms/controls/panel/list_box/list_box.hpp"
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
@@ -143,25 +144,9 @@ struct DialogState final {
           *(*filter).selected_index.read() < filters.size()) {
         const HostFileDialogFilter &selected =
             filters[*(*filter).selected_index.read()];
-        std::string extension = item.path().extension().string();
-        if (!extension.empty())
-          extension.erase(0, 1);
-        for (std::size_t k = 0; k < extension.size(); ++k)
-          extension[k] = static_cast<char>(
-              std::tolower(static_cast<unsigned char>(extension[k])));
-        show = selected.extensions.empty();
-        for (std::size_t k = 0; k < selected.extensions.size(); ++k) {
-          std::string expected = selected.extensions[k];
-          if (expected == "*" || expected == "*.*") {
-            show = true;
-            break;
-          }
-          while (!expected.empty() &&
-                 (expected.front() == '.' || expected.front() == '*'))
-            expected.erase(0, 1);
-          if (extension == expected)
-            show = true;
-        }
+        // Case-insensitive, so *.png lists photo.PNG.
+        show = file_dialog_filter_matches(selected,
+                                          item.path().filename().string());
       }
       if (show)
         entries.push_back({item.path(), is_directory});

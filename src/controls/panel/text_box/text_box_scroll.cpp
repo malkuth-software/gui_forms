@@ -64,7 +64,8 @@ void TextBox::ensure_multiline_layout() {
     if (!visual_lines_.empty() && multiline_width_ >= 0.0 &&
         multiline_revision_ == (*editing_).store().revision() && multiline_font_ == content_font &&
         multiline_provider_ == provider && multiline_device_scale_ == scale &&
-        multiline_client_size_ == client && multiline_scroll_enabled_ == auto_scroll.read()) return;
+        multiline_client_size_ == client && multiline_scroll_enabled_ == auto_scroll.read() &&
+        multiline_decoration_revision_ == decorations_.layout_revision()) return;
 
     // Start from the full width so a bar from the previous layout cannot keep
     // itself visible after content shrinks. A vertical bar can only add wrapped

@@ -21,10 +21,14 @@ The fields, with their defaults:
     NUL; change it later with `ApplicationWindowHandle::set_title`.
 `initial_size`, default ``{1120, 680}``
     The client size the window opens with, in logical units.
-`minimum_size`, default ``{150, 150}``
-    The smallest client size the user can resize to. Both sizes must be
-    finite and between 1 and 32768, and the minimum may not exceed the
-    initial size.
+`minimum_size`, default ``{0, 0}``
+    The smallest client size the user can resize to, as Windows Forms'
+    `MinimumSize`: a side of 0 sets no minimum there beyond the host's own,
+    so the default sets none. The initial size must be finite and between 1
+    and 32768, the minimum finite and between 0 and 32768, and the initial
+    size may not be below the minimum. A refused entry's
+    `ApplicationResult::refusal` says why (`below_minimum_size`, with
+    `ApplicationResult::minimum_size` and `initial_size` naming both sizes).
 `initially_visible`, default ``true``
     Whether the window is shown when the run starts. The primary window must
     keep this true.

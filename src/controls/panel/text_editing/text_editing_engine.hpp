@@ -78,6 +78,12 @@ public:
         const bool present = static_cast<bool>(edit_filter_);
         return present;
     }
+    // The last change of the text, whichever way it came (an edit, undo or
+    // redo, a filter's rewrite, set_text or show_text): the bytes it
+    // replaced and how many took their place. Decorations follow it
+    // (TextDecorations::shift_for_edit). Before any change it is empty.
+    [[nodiscard]] TextChange last_change() const noexcept { return last_change_; }
+
     // Whether the last text input was an unfinished composition with text.
     [[nodiscard]] bool composing() const noexcept { return composing_; }
     void end_composition() noexcept { composing_ = false; }
@@ -142,8 +148,12 @@ private:
     // Replaces the whole text with a filter's rewrite, as one history step.
     bool apply_rewrite(std::string_view rewritten, Utf8Offset caret);
 
+    // Replaces the whole text, recording the change from the old one.
+    void replace_whole_text(std::string_view text);
+
     TextEditingHost& host_;
     TextStore store_{};
+    TextChange last_change_{};
     TextSelection selection_{};
     std::deque<Snapshot> undo_{};
     std::deque<Snapshot> redo_{};

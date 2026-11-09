@@ -14,6 +14,7 @@
 #include <iterator>
 #include <span>
 #include <string_view>
+#include <vector>
 
 namespace gallery_pages_tests {
 namespace {
@@ -757,6 +758,24 @@ std::string render_schema(std::span<const TypeRecord> records) {
         append_interactions(out, record.interactions);
         out += "\n    }";
     }
+    // The window (windows.create's object), after the registry's types as
+    // the C ABI lists it: a component, written with its interactions only
+    // (the C ABI's property_at lists its chrome properties).
+    std::vector<InteractionDeclaration> window_interactions;
+    Window::append_interactions(window_interactions);
+    out += ",\n    {\n";
+    append_key(out, "      ", "id");
+    append_json_string(out, "window");
+    out += ",\n";
+    append_key(out, "      ", "type");
+    append_json_string(out, "Window");
+    out += ",\n";
+    append_key(out, "      ", "kind");
+    append_json_string(out, "component");
+    out += ",\n";
+    append_key(out, "      ", "interactions");
+    append_interactions(out, window_interactions);
+    out += "\n    }";
     out += "\n  ]\n}\n";
     return out;
 }
