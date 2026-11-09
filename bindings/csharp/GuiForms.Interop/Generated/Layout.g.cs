@@ -485,12 +485,14 @@ public static unsafe class Layout
         {
             gf_host_capabilities value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_host_capabilities size", sizeof(gf_host_capabilities), 24);
+            failures += expect(output, "gf_host_capabilities size", sizeof(gf_host_capabilities), 32);
             failures += expect(output, "gf_host_capabilities.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_host_capabilities.protocol_version offset", (long)((byte*)&value.protocol_version - start), 4);
             failures += expect(output, "gf_host_capabilities.available offset", (long)((byte*)&value.available - start), 8);
             failures += expect(output, "gf_host_capabilities.transient_surfaces offset", (long)((byte*)&value.transient_surfaces - start), 16);
             failures += expect(output, "gf_host_capabilities.reserved offset", (long)((byte*)&value.reserved - start), 20);
+            failures += expect(output, "gf_host_capabilities.window_corner_shapes offset", (long)((byte*)&value.window_corner_shapes - start), 24);
+            failures += expect(output, "gf_host_capabilities.window_band_maximum_width offset", (long)((byte*)&value.window_band_maximum_width - start), 28);
         }
         {
             gf_file_filter value = default;

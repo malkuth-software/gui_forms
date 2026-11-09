@@ -1,7 +1,7 @@
 {
   "format": "gf-abi-host-capabilities/1",
   "description": "What each native host reports through GF_TABLE_HOST: its platform name, the host protocol revision and its capabilities, by their gf_host_capability names in lower case. gui_forms_abi_capability_matrix checks the row of the host it runs on; a host's report changing without its row is a failure.",
-  "protocol_version": 11,
+  "protocol_version": 12,
   "hosts": [
     {
       "platform": "win32-dib",
@@ -11,7 +11,8 @@
         "accessibility", "sound_cues", "clipboard_images", "frame_capture", "notification_area",
         "notification_area_messages", "notification_area_menus", "runtime_windows", "window_frames",
         "screen_pointer", "window_at_point", "window_ordering", "transparent_windows", "window_backdrops",
-        "compositor_notifications", "presentation_preferences", "windows_paint_endpoint", "transient_surfaces"
+        "compositor_notifications", "presentation_preferences", "windows_paint_endpoint", "transient_surfaces",
+        "window_corners", "window_state_reports"
       ]
     },
     {
@@ -22,7 +23,7 @@
         "dialogs", "accessibility", "sound_cues", "clipboard_images", "frame_capture", "notification_area",
         "notification_area_menus", "runtime_windows", "window_frames", "screen_pointer", "window_at_point",
         "window_ordering", "transparent_windows", "window_backdrops", "compositor_notifications",
-        "presentation_preferences", "transient_surfaces"
+        "presentation_preferences", "transient_surfaces", "window_state_reports"
       ]
     },
     {
@@ -32,7 +33,7 @@
         "pointer_capture", "cursor", "clipboard", "typed_drag_destination", "dialogs", "accessibility",
         "sound_cues", "clipboard_images", "frame_capture", "runtime_windows", "window_frames",
         "screen_pointer", "window_at_point", "window_ordering", "transparent_windows",
-        "compositor_notifications", "transient_surfaces"
+        "compositor_notifications", "transient_surfaces", "window_state_reports"
       ]
     }
   ]

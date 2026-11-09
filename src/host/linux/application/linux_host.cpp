@@ -74,6 +74,26 @@ bool window_state_hidden(NativeWindow& window) {
 }
 // True when the window manager holds the window full screen or maximized
 // (_NET_WM_STATE); a size request would fight it.
+// True when the window manager holds the window full screen
+// (_NET_WM_STATE_FULLSCREEN).
+bool window_state_full_screen(NativeWindow& window) {
+  Atom type{};
+  int format{};
+  unsigned long count{}, remaining{};
+  unsigned char* data = nullptr;
+  bool full_screen = false;
+  if (XGetWindowProperty(window.runtime.display, window.xid, window.runtime.atom("_NET_WM_STATE"),
+                         0, 64, False, XA_ATOM, &type, &format, &count, &remaining,
+                         &data) == Success && type == XA_ATOM && format == 32) {
+    const Atom fullscreen = window.runtime.atom("_NET_WM_STATE_FULLSCREEN");
+    const Atom* atoms = reinterpret_cast<const Atom*>(data);
+    for (unsigned long index = 0; index < count; ++index) {
+      if (atoms[index] == fullscreen) full_screen = true;
+    }
+  }
+  if (data != nullptr) XFree(data);
+  return full_screen;
+}
 bool window_state_fixed(NativeWindow& window) {
   Atom type{};
   int format{};
@@ -883,12 +903,20 @@ void NativeWindow::report_compositor_state() {
   compositor_generation = next;
   static_cast<void>(dispatch(HostCompositorEvent{state}));
 }
+void NativeWindow::report_window_state() {
+  const bool full_screen = fallback_fullscreen || window_state_full_screen(*this);
+  if (window_state_reported && reported_full_screen == full_screen) return;
+  if (!dispatch(HostWindowStateEvent{full_screen}).accepted()) return;
+  window_state_reported = true;
+  reported_full_screen = full_screen;
+}
 void NativeWindow::attach() {
   (*entry.model).set_dispatch_wake_handler(Wake{runtime.wake_pipe[1]});
   (*entry.model).set_paint_wake_handler(Wake{runtime.wake_pipe[1]});
   if (!dispatch(HostAttachEvent{size, 1.0}).accepted())
     throw std::runtime_error("Linux host attach rejected");
   report_compositor_state();
+  report_window_state();
   if (runtime.input_settings) {
     const HostInputSettingsEvent input{(*runtime.input_settings).double_click_milliseconds(),
                                        (*runtime.input_settings).double_click_origin(),
@@ -992,6 +1020,8 @@ void NativeWindow::action(ActionKind kind) {
       XMapRaised(runtime.display, xid);
       if (fallback_fullscreen)
         XSetInputFocus(runtime.display, xid, RevertToParent, CurrentTime);
+      // No window manager reports the fallback: the host does.
+      report_window_state();
       return;
     }
     XEvent event{};
@@ -1082,6 +1112,7 @@ void NativeWindow::event(XEvent &event) {
     if (runtime.windowing)
       (*runtime.windowing)
           .report_minimized(window_id, window_state_hidden(*this));
+    report_window_state();
     return;
   }
   if (event.type == FocusIn || event.type == FocusOut) {
@@ -1656,7 +1687,8 @@ HostCapabilities linux_capabilities() {
               HostCapability::transparent_windows |
               HostCapability::compositor_notifications |
               HostCapability::transient_surfaces |
-              HostCapability::opaque_transient_surfaces,
+              HostCapability::opaque_transient_surfaces |
+              HostCapability::window_state_reports,
           // X11 desktops follow the PC keyboard convention.
           pc_key_map()};
 }

@@ -325,12 +325,14 @@ GF_LAYOUT_ASSERT(offsetof(gf_themes_table, published_value) == 80, "gf_themes_ta
 GF_LAYOUT_ASSERT(offsetof(gf_themes_table, load_image) == 88, "gf_themes_table.load_image offset");
 GF_LAYOUT_ASSERT(offsetof(gf_themes_table, remove_image) == 96, "gf_themes_table.remove_image offset");
 GF_LAYOUT_ASSERT(offsetof(gf_themes_table, load_pixels) == 104, "gf_themes_table.load_pixels offset");
-GF_LAYOUT_ASSERT(sizeof(gf_host_capabilities) == 24, "gf_host_capabilities size");
+GF_LAYOUT_ASSERT(sizeof(gf_host_capabilities) == 32, "gf_host_capabilities size");
 GF_LAYOUT_ASSERT(offsetof(gf_host_capabilities, struct_size) == 0, "gf_host_capabilities.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_host_capabilities, protocol_version) == 4, "gf_host_capabilities.protocol_version offset");
 GF_LAYOUT_ASSERT(offsetof(gf_host_capabilities, available) == 8, "gf_host_capabilities.available offset");
 GF_LAYOUT_ASSERT(offsetof(gf_host_capabilities, transient_surfaces) == 16, "gf_host_capabilities.transient_surfaces offset");
 GF_LAYOUT_ASSERT(offsetof(gf_host_capabilities, reserved) == 20, "gf_host_capabilities.reserved offset");
+GF_LAYOUT_ASSERT(offsetof(gf_host_capabilities, window_corner_shapes) == 24, "gf_host_capabilities.window_corner_shapes offset");
+GF_LAYOUT_ASSERT(offsetof(gf_host_capabilities, window_band_maximum_width) == 28, "gf_host_capabilities.window_band_maximum_width offset");
 GF_LAYOUT_ASSERT(sizeof(gf_file_filter) == 32, "gf_file_filter size");
 GF_LAYOUT_ASSERT(offsetof(gf_file_filter, label) == 0, "gf_file_filter.label offset");
 GF_LAYOUT_ASSERT(offsetof(gf_file_filter, extensions) == 16, "gf_file_filter.extensions offset");

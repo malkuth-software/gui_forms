@@ -240,14 +240,54 @@ HostWindowCornersResult apply_windows_corners(HWND window, WindowCornerPreferenc
         result.report.complied = preference != WindowCornerPreference::round;
         return result;
     }
+    const WindowsWindowState state = read_windows_window_state(window);
     if (preference == WindowCornerPreference::square) {
         result.report.shape = WindowCornerShape::square;
+        result.report.complied = true;
+    } else if (state.squares_corners()) {
+        // DWM keeps the preference and applies it once the window is
+        // restored; until then its corners are square.
+        result.report.shape = WindowCornerShape::square;
+        result.report.complied = preference != WindowCornerPreference::round;
     } else {
         result.report.shape = WindowCornerShape::rounded;
         result.report.radius = windows_corner_radius;
+        result.report.complied = true;
     }
-    result.report.complied = true;
     return result;
+}
+
+WindowsWindowState read_windows_window_state(HWND window) noexcept {
+    WindowsWindowState state{};
+    if (window == nullptr || IsIconic(window) != FALSE) return state;
+    state.maximized = IsZoomed(window) != FALSE;
+    RECT frame{};
+    if (GetWindowRect(window, &frame) == FALSE) return state;
+    const LONG_PTR style = GetWindowLongPtrW(window, GWL_STYLE);
+    const bool captioned = (style & WS_CAPTION) == WS_CAPTION;
+    if (!captioned && !state.maximized) {
+        const HMONITOR monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
+        MONITORINFO info{};
+        info.cbSize = sizeof(info);
+        if (monitor != nullptr && GetMonitorInfoW(monitor, &info) != FALSE) {
+            const RECT& screen = info.rcMonitor;
+            state.full_screen = frame.left <= screen.left && frame.top <= screen.top &&
+                                frame.right >= screen.right && frame.bottom >= screen.bottom;
+        }
+    }
+    if (state.maximized || state.full_screen) return state;
+    WINDOWPLACEMENT placement{};
+    placement.length = sizeof(placement);
+    if (GetWindowPlacement(window, &placement) == FALSE) return state;
+    // The restore rectangle is in workspace coordinates, which a taskbar on
+    // the top or left edge offsets from the screen's: only sizes compare.
+    const RECT& normal = placement.rcNormalPosition;
+    const LONG frame_width = frame.right - frame.left;
+    const LONG frame_height = frame.bottom - frame.top;
+    const LONG normal_width = normal.right - normal.left;
+    const LONG normal_height = normal.bottom - normal.top;
+    state.snapped = frame_width != normal_width || frame_height != normal_height;
+    return state;
 }
 
 } // namespace gui_forms::host::detail

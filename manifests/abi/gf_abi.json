@@ -799,6 +799,26 @@
       "type": "uint64"
     },
     {
+      "name": "GF_HOST_CAPABILITY_WINDOW_CORNERS",
+      "value": 17179869184,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS",
+      "value": 34359738368,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_WINDOW_CORNER_SHAPE_SQUARE",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_CORNER_SHAPE_ROUNDED",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
       "name": "GF_TRANSIENT_SURFACE_TOOLTIP",
       "value": 1,
       "type": "uint32"
@@ -1500,6 +1520,10 @@
     {
       "name": "gf_host_capability",
       "type": "uint64_t"
+    },
+    {
+      "name": "gf_window_corner_shape",
+      "type": "uint32_t"
     },
     {
       "name": "gf_transient_surface_kind",
@@ -4773,7 +4797,7 @@
     {
       "name": "gf_host_capabilities",
       "kind": "extensible",
-      "size": 24,
+      "size": 32,
       "align": 8,
       "fields": [
         {
@@ -4804,6 +4828,18 @@
           "name": "reserved",
           "type": "uint32_t",
           "offset": 20,
+          "size": 4
+        },
+        {
+          "name": "window_corner_shapes",
+          "type": "gf_window_corner_shape",
+          "offset": 24,
+          "size": 4
+        },
+        {
+          "name": "window_band_maximum_width",
+          "type": "uint32_t",
+          "offset": 28,
           "size": 4
         }
       ]

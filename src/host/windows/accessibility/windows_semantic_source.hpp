@@ -145,6 +145,10 @@ struct SemanticTreeKey final {
     LONG client_height{};
     double scale{};
     std::string title;
+    // The window's content rectangle in logical units: the client less a
+    // declared outer band (Window::content_rect), which the client node
+    // covers.
+    Rect content{};
 };
 
 [[nodiscard]] bool operator==(const SemanticTreeKey& left, const SemanticTreeKey& right) noexcept;

@@ -236,7 +236,8 @@ bool operator==(const SemanticTreeKey& left, const SemanticTreeKey& right) noexc
                        left.captured == right.captured && left.active == right.active &&
                        left.client_width == right.client_width &&
                        left.client_height == right.client_height &&
-                       left.scale == right.scale && left.title == right.title;
+                       left.scale == right.scale && left.title == right.title &&
+                       left.content == right.content;
     return equal;
 }
 
@@ -268,6 +269,7 @@ SemanticTreeKey read_tree_key(const Window& window, HWND hwnd, double scale) {
     key.client_width = bounds.right;
     key.client_height = bounds.bottom;
     key.scale = scale;
+    key.content = window.content_rect();
     key.title = window_title(hwnd);
     return key;
 }
@@ -296,7 +298,10 @@ bool SemanticSource::snapshot(SemanticTreeRef& client) noexcept {
         node.children = std::move(tree.roots);
         node.states = SemanticState::enabled | SemanticState::visible;
         node.name = after.title;
-        node.bounds = Rect{0.0, 0.0, after.client_width / scale, after.client_height / scale};
+        // The client node covers the content rectangle: a declared outer
+        // band lies outside it, as it lies outside every hit test (owner,
+        // 2026-11-08). Without a band it is the whole client area.
+        node.bounds = after.content;
         current = std::move(built);
         current_key = std::move(after);
         ++trees_built;

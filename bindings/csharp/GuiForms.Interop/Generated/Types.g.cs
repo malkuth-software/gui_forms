@@ -514,7 +514,7 @@ public unsafe struct gf_themes_table
     public delegate* unmanaged[Cdecl]<byte*, uint, uint, ulong, ulong*, gf_status> load_pixels;
 }
 
-/// <summary>gf_host_capabilities (extensible, 24 bytes).</summary>
+/// <summary>gf_host_capabilities (extensible, 32 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_host_capabilities
 {
@@ -523,6 +523,8 @@ public unsafe struct gf_host_capabilities
     public gf_host_capability available;
     public gf_transient_surface_kind transient_surfaces;
     public uint reserved;
+    public gf_window_corner_shape window_corner_shapes;
+    public uint window_band_maximum_width;
 }
 
 /// <summary>gf_file_filter (record, 32 bytes).</summary>

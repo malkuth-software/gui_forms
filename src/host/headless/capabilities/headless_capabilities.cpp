@@ -41,7 +41,9 @@ HostCapabilities headless_capabilities() {
                 // The reference host simulates a platform that shapes
                 // corners: tests set what it reports
                 // (HeadlessHostServices::set_corner_report).
-                HostCapability::window_corners,
+                HostCapability::window_corners |
+                // Tests dispatch HostWindowStateEvent themselves.
+                HostCapability::window_state_reports,
             // The reference host reports the PC convention.
             pc_key_map()};
 }

@@ -590,6 +590,20 @@ struct HostHoverEvent final {
     Point position{};
 };
 
+// The native window's state changed (capability window_state_reports;
+// owner, 2026-11-08: the window outer band). Reported after attach and
+// whenever the window enters or leaves full screen, or is maximized,
+// snapped or restored, any of which the platform may answer by reshaping
+// its corners. full_screen: the window fills its monitor with no frame
+// (Windows: a captionless window covering its monitor; macOS:
+// NSWindowStyleMaskFullScreen; X11: _NET_WM_STATE_FULLSCREEN, or the
+// host's own override-redirect fallback). The session passes full_screen
+// to Window::report_full_screen and asks the host for the window's corners
+// again (HostServices::apply_window_corners), so the band follows both.
+struct HostWindowStateEvent final {
+    bool full_screen{};
+};
+
 using HostEventPayload = std::variant<
     HostAttachEvent,
     HostResizeEvent,
@@ -607,7 +621,8 @@ using HostEventPayload = std::variant<
     HostCompositorEvent,
     HostInputSettingsEvent,
     HostContextRequestEvent,
-    HostHoverEvent>;
+    HostHoverEvent,
+    HostWindowStateEvent>;
 
 struct HostEvent final {
     std::uint64_t sequence{};

@@ -751,11 +751,20 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_BoundingRectangle(UiaRect* out) {
     SemanticLocation self;
     const HRESULT status = resolve(client, self);
     if (FAILED(status)) return status;
-    // A fragment root hosted in a window answers an empty rectangle; UI
-    // Automation takes the window's.
-    if (self.parent == nullptr) return S_OK;
     const Rect bounds = (*self.node).bounds;
     const double scale = (*source_).scale;
+    // A fragment root hosted in a window answers an empty rectangle, and UI
+    // Automation takes the window's, while it covers the whole client
+    // area. With a declared outer band it covers the content rectangle
+    // only (the band hits nothing), and answers that.
+    if (self.parent == nullptr) {
+        RECT client_area{};
+        GetClientRect((*source_).hwnd, &client_area);
+        const bool whole_client = bounds.x <= 0.0 && bounds.y <= 0.0 &&
+                                  std::round(bounds.width * scale) >= static_cast<double>(client_area.right) &&
+                                  std::round(bounds.height * scale) >= static_cast<double>(client_area.bottom);
+        if (whole_client) return S_OK;
+    }
     // A node with no area answers the empty rectangle, as UI Automation
     // reports one to its clients.
     const double width = std::round(bounds.width * scale);

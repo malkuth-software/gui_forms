@@ -359,6 +359,11 @@ void HostSession::DispatchVisitor::operator()(
         (*result).handled = (*(*session).window_).dispatch_context_request(payload.origin, payload.position);
     } else if constexpr (std::is_same_v<Payload, HostHoverEvent>) {
         (*(*session).window_).dispatch_host_hover(payload.position);
+    } else if constexpr (std::is_same_v<Payload, HostWindowStateEvent>) {
+        // Full screen first: a band that hides there gives up its
+        // reservation before the corners' strips are damaged.
+        (*(*session).window_).report_full_screen(payload.full_screen);
+        (*(*session).window_).apply_corner_preference();
     }
 }
 

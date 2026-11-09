@@ -49,6 +49,11 @@ void gf_kit_host(gf_kit* kit) {
     report.struct_size = (uint32_t)sizeof(report);
     gf_kit_status(kit, (*kit).host.capabilities(&report), GF_STATUS_OK, "read the host's capabilities");
     gf_kit_check(kit, report.protocol_version != 0u, "the report names a protocol revision");
+    const int has_corners = (report.available & GF_HOST_CAPABILITY_WINDOW_CORNERS) != 0u;
+    gf_kit_check(kit, has_corners ? report.window_corner_shapes != 0u : report.window_corner_shapes == 0u,
+                 "corner shapes are reported with the window corners capability only");
+    gf_kit_check(kit, (report.window_corner_shapes & ~3u) == 0u, "only known corner shape bits are reported");
+    gf_kit_check(kit, report.window_band_maximum_width == 32u, "the band's widest declaration is 32 units");
     capability_read worker;
     memset(&worker, 0, sizeof(worker));
     worker.kit = kit;

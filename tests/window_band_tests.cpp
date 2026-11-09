@@ -6,7 +6,8 @@
 // whole device pixels, the band is drawn after every plane, the theme's
 // `window` rule styles it, high contrast and reduced motion still it,
 // full screen hides it on request, and its corners follow the host's
-// report.
+// report, including after the host reports a change of window state
+// (HostWindowStateEvent: full screen, maximize, snap, restore).
 
 #include "../src/core/theme_language/compiler/theme_compiler.hpp"
 #include "support/theme_definition_heap.hpp"
@@ -539,6 +540,64 @@ void test_host_corners() {
     require(window.corner_preference() == WindowCornerPreference::square, "the preference is kept");
 }
 
+// The host's window-state report: full screen reaches the band, and the
+// corners are asked for again, so a host that squares a maximized or
+// snapped window's corners squares the band's with them.
+void test_window_state_reports() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("state.root"));
+    Window window(root, Size{120.0, 90.0});
+    window.declare_band(WindowBandOptions{2.0, WindowBandFullScreen::hides});
+    host::HeadlessHost host(window);
+    require(host.dispatch(HostAttachEvent{{120.0, 90.0}, 1.0}, 1).accepted(), "attach refused");
+    require(host::headless_capabilities().supports(HostCapability::window_state_reports),
+            "the reference host reports window state");
+    host::HeadlessHostServices& services = host.headless_services();
+    WindowCornerReport rounded{};
+    rounded.shape = WindowCornerShape::rounded;
+    rounded.radius = 8.0;
+    rounded.complied = true;
+    services.set_corner_report(WindowCornerPreference::system, rounded);
+    require(host.dispatch(HostWindowStateEvent{false}, 2).accepted(), "a window state report is accepted");
+    require(window.band_snapshot().corners == rounded, "the report asks the host for the corners again");
+    window.perform_layout();
+    require((*root).committed_arranged_bounds() == Rect{2.0, 2.0, 116.0, 86.0}, "the band is reserved");
+
+    // Maximized: the simulated platform squares the corners.
+    WindowCornerReport squared{};
+    squared.shape = WindowCornerShape::square;
+    squared.complied = true;
+    services.set_corner_report(WindowCornerPreference::system, squared);
+    require(host.dispatch(HostWindowStateEvent{false}, 3).accepted(), "a second report is accepted");
+    require(window.band_snapshot().corners == squared, "a squared window squares the band's corners");
+    require(window.band_snapshot().reserved, "not full screen: the band stays");
+
+    // Full screen: a band that hides gives up its reservation.
+    require(host.dispatch(HostWindowStateEvent{true}, 4).accepted(), "a full-screen report is accepted");
+    window.perform_layout();
+    require(!window.band_snapshot().reserved, "full screen hides the band");
+    require((*root).committed_arranged_bounds() == Rect{0.0, 0.0, 120.0, 90.0}, "the root fills the screen");
+
+    // Restored.
+    services.set_corner_report(WindowCornerPreference::system, rounded);
+    require(host.dispatch(HostWindowStateEvent{false}, 5).accepted(), "a restore report is accepted");
+    window.perform_layout();
+    require(window.band_snapshot().reserved && window.band_snapshot().corners == rounded,
+            "restored: the band and its rounded corners return");
+    require((*root).committed_arranged_bounds() == Rect{2.0, 2.0, 116.0, 86.0}, "the root is inset again");
+    require(host_event_name(HostEventPayload{HostWindowStateEvent{}}) == std::string("window_state"),
+            "the event is named window_state");
+    require(window.content_rect() == Rect{2.0, 2.0, 116.0, 86.0},
+            "the content rectangle, which accessibility roots cover, leaves the band out");
+}
+
+void test_capability_names() {
+    const std::string json = host::headless_capabilities().to_json();
+    require(json.find("\"window_corners\"") != std::string::npos &&
+                json.find("\"window_state_reports\"") != std::string::npos &&
+                json.find("\"transient_surfaces\"") != std::string::npos,
+            "the capability report names bits 32 to 35");
+}
+
 } // namespace
 
 int main() {
@@ -551,6 +610,8 @@ int main() {
         test_theme_band();
         test_full_screen();
         test_host_corners();
+        test_window_state_reports();
+        test_capability_names();
         std::cout << "gui_forms_window_band_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

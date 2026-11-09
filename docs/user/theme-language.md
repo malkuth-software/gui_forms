@@ -294,6 +294,10 @@ dropped. Under forced high contrast the band draws the high-contrast
 palette's focus colour, solid and unflashing; reduced motion and turned-off
 ambient motion still a flash at its lit colour. For example,
 `window { band-width: 2px; band-lit-color: #c0392b; band-effect: flash }`.
+In 0.5 the band is a steady colour or the built-in flash only. Effect
+programs and textures on the band are planned after 0.5 (owner ruling,
+2026-11-08). The band never takes a resize-edge role: a frameless window
+stays frameless.
 
 `clip-path`, `rotate`, `transform`, text
 decoration and spacing, and layout properties (`width`, `margin`, ...) are

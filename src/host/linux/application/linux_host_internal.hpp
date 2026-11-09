@@ -191,6 +191,11 @@ public:
   // reading that differs from the window's last report only by its
   // generation is not sent.
   void report_compositor_state();
+  // Reports the window's full-screen state (HostWindowStateEvent; owner,
+  // 2026-11-08: the window outer band) after attach, on each _NET_WM_STATE
+  // change, and when the host's own override-redirect fallback toggles. A
+  // refused report is tried again on the next change.
+  void report_window_state();
   HostDialogResult dialog(const HostDialogRequest &request);
   // The window's frame in desktop units (pixels): the client area at its
   // root position, and the outer frame from _NET_FRAME_EXTENTS when the
@@ -243,6 +248,9 @@ public:
   bool frame_capture_saved{};
   bool cursor_set{};
   bool fallback_fullscreen{};
+  // The full-screen state the session last accepted (report_window_state).
+  bool window_state_reported{};
+  bool reported_full_screen{};
   Rect restored_frame;
   std::array<bool, 256> pressed_keys{};
   CursorKind current_cursor{CursorKind::arrow};
