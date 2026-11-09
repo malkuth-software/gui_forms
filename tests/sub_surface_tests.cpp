@@ -1681,10 +1681,14 @@ void ambient_effect_ticks_off_the_ui_thread() {
     window.flush();
     require(wait_for_ticks(*log, 3U), "the ambient control ticks on the sub-surface");
 
-    // The UI thread blocks; the sub-surface goes on.
+    // The UI thread blocks; the sub-surface goes on. The block is 200 ms,
+    // then waiting without serving the window: a loaded machine can starve
+    // the sub-surface's thread for 150 ms (measured with every core busy),
+    // so the ticks are counted against the wait limit, not against the
+    // 200 ms. Nothing here runs the window, so each tick is the sub-surface's.
     const std::size_t before_block = ticks_of(*log);
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    require(ticks_of(*log) >= before_block + 3U, "ticks continue while the UI thread is blocked");
+    require(wait_for_ticks(*log, before_block + 3U), "ticks continue while the UI thread is blocked");
 
     // Display timing: a 10 ms refresh phased at `phase`. Later ticks are on
     // its vertical blanks.
