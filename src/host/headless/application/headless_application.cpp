@@ -703,6 +703,36 @@ void HeadlessApplication::simulate_user_close(HostWindowId window) {
     if (primary != nullptr) close(*primary, HostCloseReason::user);
 }
 
+bool HeadlessApplication::simulate_session_end() {
+    windowing_.note("session end");
+    // Identities, not entries: a closing handler may open or close windows.
+    std::vector<HostWindowId> open;
+    open.reserve(entries_.size());
+    for (std::size_t index = entries_.size(); index > 0U; --index) {
+        const WindowEntry& candidate = *entries_[index - 1U];
+        if (!candidate.closed) open.push_back(candidate.id);
+    }
+    for (std::size_t index = 0U; index < open.size(); ++index) {
+        WindowEntry* found = entry(open[index]);
+        if (found == nullptr) continue;
+        HostCloseRequest request{HostCloseReason::session_end, false, false};
+        if ((*found).options.closing) (*found).options.closing(request);
+        found = entry(open[index]);
+        if (found == nullptr) continue;
+        request.hide_on_accept = false;
+        const HostDispatchResult result = (*(*found).host).dispatch(request, next_timestamp());
+        if (result.accepted() && !result.close_allowed) {
+            windowing_.note("session end cancelled");
+            return false;
+        }
+    }
+    for (std::size_t index = 0U; index < open.size(); ++index) {
+        WindowEntry* found = entry(open[index]);
+        if (found != nullptr) close(*found, HostCloseReason::session_end);
+    }
+    return true;
+}
+
 void HeadlessApplication::simulate_application_active(bool active) {
     std::ostringstream line;
     line << "application active=" << (active ? 1 : 0);

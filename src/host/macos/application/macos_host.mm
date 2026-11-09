@@ -1,5 +1,7 @@
 #include "display_link_trace.hpp"
 #import <AppKit/AppKit.h>
+// kAEQuitReason and the session-end reasons (AERegistry.h); constants only.
+#import <CoreServices/CoreServices.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <QuartzCore/CABase.h>
 #import <QuartzCore/CADisplayLink.h>
@@ -976,7 +978,7 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 - (void)completeFrameCaptureIfDue:(NSRect)dirtyRect presented:(BOOL)presented;
 - (HostDispatchResult)dispatchHostPayload:(HostEventPayload)payload
                          timestampNanoseconds:(std::uint64_t)timestamp;
-- (BOOL)requestCloseHiding:(BOOL)hiding;
+- (BOOL)requestCloseHiding:(BOOL)hiding reason:(HostCloseReason)reason;
 - (void)notifyClosed;
 - (void)notifyClosedWithReason:(HostCloseReason)reason;
 - (void)notifyActivation:(BOOL)active;
@@ -2103,10 +2105,10 @@ void post_perform_close(NSWindow* window) {
     return (*_hostSession).dispatch(std::move(event));
 }
 
-- (BOOL)requestCloseHiding:(BOOL)hiding {
+- (BOOL)requestCloseHiding:(BOOL)hiding reason:(HostCloseReason)reason {
     if (_hostAttached == NO) return NO;
     const HostDispatchResult result = [self dispatchHostPayload:
-        HostCloseRequest{HostCloseReason::user, false, hiding == YES}
+        HostCloseRequest{reason, false, hiding == YES}
                                            timestampNanoseconds:host_now_nanoseconds()];
     return result.accepted() && result.close_allowed;
 }
@@ -3824,7 +3826,8 @@ void finish_run(MacRunEnd& end) {
     gui_forms::host::MacApplicationRun* _run;
     gui_forms::HostWindowId _windowId;
     // The reason the closed event reports: user for every native close,
-    // application when the run destroys the window.
+    // application when the run destroys the window, quit or session_end
+    // when a quit request closes it (closeForTermination:reason:).
     HostCloseReason _closeReason;
 }
 - (instancetype)initWithView:(GUIFormsView*)view
@@ -3837,9 +3840,11 @@ void finish_run(MacRunEnd& end) {
 // Closes without asking the closing handler (HostWindowing::destroy_window).
 - (void)closeWindowForApplication:(NSWindow*)window;
 // A quit request (Cmd-Q, the Dock, a quit Apple event, a log-out): for the
-// window that ends the run, asks the closing handler as the close button
-// does and closes the window when it agrees.
-- (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window;
+// window that ends the run, asks the closing handler with reason (quit, or
+// session_end for a log-out, restart or shut-down) and closes the window
+// when it agrees. A hide-on-close window closes rather than hides.
+- (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window
+                                                     reason:(HostCloseReason)reason;
 @end
 
 @implementation GUIFormsWindowDelegate
@@ -3878,7 +3883,7 @@ void finish_run(MacRunEnd& end) {
     gui_forms::host::mac_run_report_frame(_run, _windowId);
 }
 - (BOOL)windowShouldClose:(NSWindow*)sender {
-    if (_view != nil && ![_view requestCloseHiding:_hideOnClose]) return NO;
+    if (_view != nil && ![_view requestCloseHiding:_hideOnClose reason:HostCloseReason::user]) return NO;
     if (_hideOnClose) {
         [sender orderOut:nil];
         gui_forms::host::mac_run_hidden_on_close(_run, _windowId);
@@ -3940,11 +3945,19 @@ void finish_run(MacRunEnd& end) {
 - (void)windowDidExitFullScreen:(NSNotification*)notification {
     [_view notifyWindowState];
 }
-- (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window {
+- (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window
+                                                     reason:(HostCloseReason)reason {
     if (!_stopsApplicationOnClose) return gui_forms::host::MacTerminationClose::not_ending;
-    // windowShouldClose: rather than performClose:, which beeps and does
-    // nothing for a window without a close button.
-    if (![self windowShouldClose:window]) return gui_forms::host::MacTerminationClose::refused;
+    // Asked directly rather than through performClose:, which beeps and does
+    // nothing for a window without a close button, or windowShouldClose:,
+    // which would report a user close.
+    if (_view != nil && ![_view requestCloseHiding:NO reason:reason]) {
+        return gui_forms::host::MacTerminationClose::refused;
+    }
+    _hideOnClose = NO;
+    _closeReason = reason;
+    // NSWindow close does not ask windowShouldClose:; windowWillClose:
+    // reports _closeReason before it returns.
     [window close];
     return gui_forms::host::MacTerminationClose::closed;
 }
@@ -3975,12 +3988,39 @@ void finish_run(MacRunEnd& end) {
     if (self != nil) _end = end;
     return self;
 }
+// The reason of the quit request being handled: session_end when the quit
+// Apple event says the session is ending (log out, restart, shut down, with
+// or without the system's confirmation dialog), otherwise quit (Cmd-Q, the
+// Dock, another application's plain quit event, or no Apple event at all).
+static HostCloseReason termination_close_reason() {
+    NSAppleEventDescriptor* event = [[NSAppleEventManager sharedAppleEventManager] currentAppleEvent];
+    if (event == nil) return HostCloseReason::quit;
+    NSAppleEventDescriptor* reason = [event attributeDescriptorForKeyword:kAEQuitReason];
+    if (reason == nil) return HostCloseReason::quit;
+    // The reason is an enumerated value; some senders type it as a type code.
+    OSType code = [reason enumCodeValue];
+    if (code == 0) code = [reason typeCodeValue];
+    switch (code) {
+        case kAELogOut:
+        case kAEReallyLogOut:
+        case kAEShowRestartDialog:
+        case kAERestart:
+        case kAEShowShutdownDialog:
+        case kAEShutDown:
+            return HostCloseReason::session_end;
+        default:
+            return HostCloseReason::quit;
+    }
+}
+
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)sender {
+    const HostCloseReason reason = termination_close_reason();
     for (NSWindow* window in [sender windows]) {
         const id delegate = [window delegate];
         if (![delegate isKindOfClass:[GUIFormsWindowDelegate class]]) continue;
         GUIFormsWindowDelegate* windowDelegate = static_cast<GUIFormsWindowDelegate*>(delegate);
-        const gui_forms::host::MacTerminationClose outcome = [windowDelegate closeForTermination:window];
+        const gui_forms::host::MacTerminationClose outcome =
+            [windowDelegate closeForTermination:window reason:reason];
         if (outcome == gui_forms::host::MacTerminationClose::not_ending) continue;
         if (outcome == gui_forms::host::MacTerminationClose::refused) return NSTerminateCancel;
         if (_end != nullptr) gui_forms::host::finish_run(*_end);

@@ -1704,6 +1704,8 @@ public:
         case WM_GETMINMAXINFO: minimum_size(reinterpret_cast<MINMAXINFO*>(lparam)); return 0;
         case WM_COPYDATA: return automation(reinterpret_cast<const COPYDATASTRUCT*>(lparam));
         case WM_CLOSE: return close();
+        case WM_QUERYENDSESSION: return query_end_session();
+        case WM_ENDSESSION: return end_session(wparam != FALSE);
         case WM_DESTROY:
             (*title_state_).window = nullptr;
             (*size_state_).host = nullptr;
@@ -2752,6 +2754,35 @@ private:
         return 0;
     }
 
+    // WM_QUERYENDSESSION: the user is logging off or the system is shutting
+    // down or restarting. Ask the window's closing handler with
+    // HostCloseReason::session_end; TRUE lets the session end, FALSE asks
+    // Windows to hold it (Windows may still end it). An allowed request
+    // leaves the window attached and visible, since WM_ENDSESSION may yet
+    // report that the session's end was called off.
+    LRESULT query_end_session() {
+        if (closed_ || native_phase_ == NativePhase::closing) return TRUE;
+        HostCloseRequest request{HostCloseReason::session_end, false, false};
+        if (options_.close_request) options_.close_request(request);
+        request.hide_on_accept = false;
+        const HostDispatchResult result = dispatch(request);
+        if (result.accepted() && !result.close_allowed) return FALSE;
+        return TRUE;
+    }
+
+    // WM_ENDSESSION: ending is TRUE when the session ends after this message
+    // returns (the process may be terminated without further messages), so
+    // the window closes now and WM_DESTROY reports HostCloseReason::
+    // session_end. FALSE means the session's end was called off; the window
+    // stays as it was.
+    LRESULT end_session(bool ending) {
+        if (!ending || closed_ || native_phase_ == NativePhase::closing) return 0;
+        destroy_reason_ = HostCloseReason::session_end;
+        native_phase_ = NativePhase::closing;
+        DestroyWindow(hwnd_);
+        return 0;
+    }
+
     LRESULT automation(const COPYDATASTRUCT* data) {
         if (!options_.automation_enabled || data == nullptr || (*data).lpData == nullptr ||
             (*data).cbData == 0 || (*data).cbData > maximum_automation_command) return FALSE;
@@ -3145,7 +3176,8 @@ private:
     // mark_splash: transparent to the pointer.
     bool splash_{};
     // The reason WM_DESTROY reports: user for every native close, application
-    // when the run destroys the window (HostWindowing::destroy_window).
+    // when the run destroys the window (HostWindowing::destroy_window),
+    // session_end when WM_ENDSESSION closes it.
     HostCloseReason destroy_reason_{HostCloseReason::user};
 };
 

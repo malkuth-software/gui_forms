@@ -443,8 +443,15 @@ typedef struct gf_event_field {
  * "closing" or "closed" (a run). payload is null when the event carries no
  * single value. A "closing" callback sets cancel to 1 to keep the window
  * open; other events ignore cancel. fields are the interaction's payload as
- * named fields (Event fields above); field_count is zero for the other
- * events. A callback writes a writable field with events.write_field; the
+ * named fields (Event fields above). "closing" and "closed" carry one
+ * read-only ENUMERATION field "reason": why the window is asked to close or
+ * closed, as text and number: "user" (0, the user closed the window),
+ * "application" (1, the program closed it), "session_end" (2, the user's
+ * session is ending: log out, restart, shut down), "test" (3) or "quit"
+ * (4, the user quit the application from the system, as macOS Cmd-Q). A
+ * "closing" with reason "session_end" may be cancelled only where the
+ * platform lets an application hold a session's end. field_count is zero
+ * for the other events. A callback writes a writable field with events.write_field; the
  * library applies what was written once the invoke returns.
  */
 typedef struct gf_event {

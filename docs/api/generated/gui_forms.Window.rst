@@ -71,6 +71,9 @@ gui_forms::Window
       **popup_windows_translucent** : ``bool``, read-only
          Whether this window's popup windows are translucent now: false on a run whose host draws them opaque (X11 without a compositing manager), where content shown in them casts no shadow and does not fade.
 
+      **host_close_reason** : ``std::optional<HostCloseReason>``, read-only
+         Why the host closed this window (the accepted HostClosedEvent's reason: the user, the program, the session ending, a quit), once it has; empty until then. Readable from the window's closed callback (ApplicationWindowOptions::closed). Set only by HostSession.
+
       **application** : ``Application*``, read-only
          The application the window joined, or null: none was current when it
          was made, or the application was destroyed first.
@@ -325,6 +328,10 @@ gui_forms::Window
    .. cpp:function:: bool popup_windows_translucent() const
 
       Whether this window's popup windows are translucent now: false on a run whose host draws them opaque (X11 without a compositing manager), where content shown in them casts no shadow and does not fade.
+
+   .. cpp:function:: std::optional<HostCloseReason> host_close_reason() const noexcept
+
+      Why the host closed this window (the accepted HostClosedEvent's reason: the user, the program, the session ending, a quit), once it has; empty until then. Readable from the window's closed callback (ApplicationWindowOptions::closed). Set only by HostSession.
 
    .. cpp:function:: Application* application() const noexcept
 

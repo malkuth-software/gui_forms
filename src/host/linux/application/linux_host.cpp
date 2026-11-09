@@ -17,6 +17,7 @@
 #include <chrono>
 #include <clocale>
 #include <cmath>
+#include <csignal>
 #include <cstring>
 #include <fcntl.h>
 #include <filesystem>
@@ -576,6 +577,32 @@ struct WriteText final {
     return (*(*window).services).write_clipboard_text(text);
   }
 };
+// The session-ending signal handler's state (Runtime::terminate_installed):
+// the flag it sets and the wake pipe it writes, both written only while a
+// handler is installed. Async-signal-safe: a sig_atomic_t store and write.
+volatile std::sig_atomic_t session_end_signalled = 0;
+volatile int session_end_wake = -1;
+void session_end_signal(int) {
+  session_end_signalled = 1;
+  const int descriptor = session_end_wake;
+  const char byte = 1;
+  if (descriptor >= 0)
+    static_cast<void>(::write(descriptor, &byte, 1));
+}
+// Installs session_end_signal for signal_number when its disposition is the
+// default; previous receives the action to restore. Returns whether it
+// installed.
+bool install_session_end_signal(int signal_number, struct sigaction &previous) {
+  if (sigaction(signal_number, nullptr, &previous) != 0)
+    return false;
+  if ((previous.sa_flags & SA_SIGINFO) != 0 || previous.sa_handler != SIG_DFL)
+    return false;
+  struct sigaction action{};
+  action.sa_handler = session_end_signal;
+  sigemptyset(&action.sa_mask);
+  action.sa_flags = SA_RESTART;
+  return sigaction(signal_number, &action, nullptr) == 0;
+}
 } // namespace
 void Wake::operator()() const noexcept {
   const char byte = 1;
@@ -644,8 +671,24 @@ Runtime::Runtime() {
     XkbFreeKeyboard(keyboard, XkbAllComponentsMask, True);
   compositor = std::make_unique<X11CompositorWatch>(display, DefaultScreen(display));
   input_settings = std::make_unique<XSettingsWatch>(display, DefaultScreen(display));
+  if (session_end_wake < 0) {
+    session_end_signalled = 0;
+    session_end_wake = wake_pipe[1];
+    terminate_installed = install_session_end_signal(SIGTERM, previous_terminate);
+    hangup_installed = install_session_end_signal(SIGHUP, previous_hangup);
+    if (!terminate_installed && !hangup_installed)
+      session_end_wake = -1;
+  }
 }
 Runtime::~Runtime() {
+  // Restored before the wake pipe closes, so the handler never writes to a
+  // closed (or reused) descriptor.
+  if (terminate_installed)
+    sigaction(SIGTERM, &previous_terminate, nullptr);
+  if (hangup_installed)
+    sigaction(SIGHUP, &previous_hangup, nullptr);
+  if (terminate_installed || hangup_installed)
+    session_end_wake = -1;
   for (std::size_t i = 0; i < windows.size(); ++i)
     (*windows[i]).close(HostCloseReason::application, true);
   windows.clear();
@@ -1040,6 +1083,10 @@ void NativeWindow::action(ActionKind kind) {
 void NativeWindow::close(HostCloseReason reason, bool force) {
   if (closed)
     return;
+  // A session end is told to the closing handler, which cannot refuse it
+  // here: the signal has already ended the session.
+  if (force && reason == HostCloseReason::session_end)
+    static_cast<void>(dispatch(HostCloseRequest{reason, false, false}));
   if (!force) {
     const HostDispatchResult result =
         dispatch(HostCloseRequest{reason, false, entry.options.hide_on_close});
@@ -1526,9 +1573,20 @@ void Runtime::dispatch(XEvent &event) {
       break;
     }
 }
+void Runtime::end_session() {
+  // A copy: a closed callback may open a replacement window.
+  const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
+  for (std::size_t i = snapshot.size(); i > 0; --i)
+    (*snapshot[i - 1]).close(HostCloseReason::session_end, true);
+}
 void Runtime::step(int maximum_wait) {
   char bytes[128];
   while (::read(wake_pipe[0], bytes, sizeof(bytes)) > 0) {
+  }
+  if ((terminate_installed || hangup_installed) && session_end_signalled != 0) {
+    session_end_signalled = 0;
+    end_session();
+    return;
   }
   std::deque<Action> queued;
   {

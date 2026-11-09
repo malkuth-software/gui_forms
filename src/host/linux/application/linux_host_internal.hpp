@@ -6,6 +6,7 @@
 #include "../settings/xsettings_watch.hpp"
 #include "gui_forms/platform/linux_host.hpp"
 #include <X11/Xlib.h>
+#include <signal.h>
 #include <array>
 #include <atomic>
 #include <deque>
@@ -326,6 +327,19 @@ public:
   std::array<std::uint32_t, 256> physical_keys{};
   XIM input_method{};
   int wake_pipe[2]{-1, -1};
+  // SIGTERM and SIGHUP end the session (a log-out or shut-down sends them;
+  // HostCloseReason::session_end). Runtime() installs a handler for each
+  // only where the disposition is still the default, so an application's
+  // own handler stays in force, and ~Runtime restores the previous action.
+  // The handler sets a flag and writes to wake_pipe; step() then closes
+  // every window. With two runtimes at once only the first installs.
+  struct sigaction previous_terminate{};
+  struct sigaction previous_hangup{};
+  bool terminate_installed{};
+  bool hangup_installed{};
+  // Closes every window, newest first, with HostCloseReason::session_end
+  // (step(), after a session-ending signal).
+  void end_session();
   std::shared_ptr<ActionQueue> actions;
   std::vector<std::shared_ptr<NativeWindow>> windows;
   // Created by run_linux_application right after the runtime; destroyed
