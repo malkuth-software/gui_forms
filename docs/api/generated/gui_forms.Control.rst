@@ -152,6 +152,13 @@ gui_forms::Control
       **accessible_description** : ``std::string``
          A longer description for assistive technology. Empty by default.
 
+      **ceremonial** : ``bool``, default ``false``
+         Whether the application marks the control's surface ceremonial, as an
+         installer's or a first run's world (T2, decision B3-1). On it and its
+         descendants the theme engine's ambient effects may cover more than the
+         everyday 10 % of the window; nothing else changes. A theme never sets
+         it. A change repaints the control and its descendants.
+
       **runtime_id** : ``RuntimeId``, read-only
          A process-local number, unique among the controls of one process run.
          Use it for fast lookup within a run, for example with :cpp:func:`remove_child <gui_forms::Control::remove_child>`;
@@ -310,15 +317,8 @@ gui_forms::Control
       **inline_style_rules** : ``CompiledThemeRules*``, read-only
          Its compiled rules (CompiledThemeRules::compile_inline), or null without one; the cascade reads them for this control alone.
 
-      **ceremonial** : ``bool``, default ``false``
-         Whether the application marks the control's surface ceremonial, as an
-         installer's or a first run's world (T2, decision B3-1). On it and its
-         descendants the theme engine's ambient effects may cover more than the
-         everyday 10 % of the window; nothing else changes. A theme never sets
-         it. A change repaints the control and its descendants.
-
       **on_ceremonial_surface** : ``bool``, read-only
-         Whether this control or one of its ancestors is marked :cpp:func:`ceremonial <gui_forms::Control::ceremonial>`.
+         Whether this control or one of its ancestors is marked :cpp:member:`ceremonial <gui_forms::Control::ceremonial>`.
 
       **effective_cursor_images** : ``CursorImagesPtr``, read-only
 
@@ -872,6 +872,14 @@ gui_forms::Control
 
       A longer description for assistive technology. Empty by default.
 
+   .. cpp:member:: bool ceremonial
+
+      Whether the application marks the control's surface ceremonial, as an
+      installer's or a first run's world (T2, decision B3-1). On it and its
+      descendants the theme engine's ambient effects may cover more than the
+      everyday 10 % of the window; nothing else changes. A theme never sets
+      it. A change repaints the control and its descendants.
+
    .. cpp:function:: RuntimeId runtime_id() const noexcept
 
       A process-local number, unique among the controls of one process run.
@@ -1104,21 +1112,9 @@ gui_forms::Control
 
       Its compiled rules (CompiledThemeRules::compile_inline), or null without one; the cascade reads them for this control alone.
 
-   .. cpp:function:: bool ceremonial() const noexcept
-
-      Whether the application marks the control's surface ceremonial, as an
-      installer's or a first run's world (T2, decision B3-1). On it and its
-      descendants the theme engine's ambient effects may cover more than the
-      everyday 10 % of the window; nothing else changes. A theme never sets
-      it. A change repaints the control and its descendants.
-
-   .. cpp:function:: void set_ceremonial(bool ceremonial)
-
-      Sets :cpp:func:`ceremonial <gui_forms::Control::ceremonial>`; see the property's description above.
-
    .. cpp:function:: bool on_ceremonial_surface() const noexcept
 
-      Whether this control or one of its ancestors is marked :cpp:func:`ceremonial <gui_forms::Control::ceremonial>`.
+      Whether this control or one of its ancestors is marked :cpp:member:`ceremonial <gui_forms::Control::ceremonial>`.
 
    .. cpp:function:: CursorImagesPtr effective_cursor_images() const noexcept
 

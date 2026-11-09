@@ -488,6 +488,26 @@
       "hand": [
         "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
       ]
+    },
+    {
+      "name": "ceremonial",
+      "capability": "Ceremonial",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the control is a ceremonial surface (GIVEN B3-1): on it and its descendants the theme engine's ambient effects may cover more than 10 % of the window. A theme never sets it; a change repaints the subtree.",
+      "getter": "ceremonial",
+      "setter": "set_ceremonial",
+      "clear": null,
+      "field": "ceremonial_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written repaints the subtree (invalidate_subtree), which a generated hook without a table entry cannot say"
+      ],
+      "sample": "true"
     }
   ],
   "not_properties": [

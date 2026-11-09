@@ -78,6 +78,8 @@ Related types
      - Top, right, bottom and left, CSS's shorthand order.
    * - :cpp:class:`CausesValidationCapability <gui_forms::CausesValidationCapability>`
      - Whether leaving the control starts validation (CausesValidation).
+   * - :cpp:class:`CeremonialCapability <gui_forms::CeremonialCapability>`
+     - Whether the control is a ceremonial surface (GIVEN B3-1): on it and its descendants the theme engine's ambient effects may cover more than 10 % of the window.
    * - :cpp:class:`CollapsedMargin <gui_forms::CollapsedMargin>`
      - A set of adjoining vertical margins (8.3.1): the largest positive margin and the most negative one; the collapsed margin is their sum.
    * - :cpp:class:`ComponentContainer <gui_forms::ComponentContainer>`
@@ -756,6 +758,21 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> CeremonialCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Whether the control is a ceremonial surface (GIVEN B3-1): on it and its descendants the theme engine's ambient effects may cover more than 10 % of the window. A theme never sets it; a change repaints the subtree.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CeremonialCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, CeremonialCapability<Declaring>> ceremonial
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: CollapsedMargin final
 
    ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>``
@@ -928,7 +945,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public JustifySelfCapability<Declaring>, public AlignSelfCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public JustifySelfCapability<Declaring>, public AlignSelfCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>, public CeremonialCapability<Declaring>
 
    ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
 
@@ -1036,6 +1053,10 @@ Related types
    .. cpp:member:: std::string accessible_description
 
       The description assistive technology announces.
+
+   .. cpp:member:: bool ceremonial
+
+      Whether the control is a ceremonial surface (GIVEN B3-1): on it and its descendants the theme engine's ambient effects may cover more than 10 % of the window. A theme never sets it; a change repaints the subtree.
 
 .. cpp:namespace:: gui_forms
 

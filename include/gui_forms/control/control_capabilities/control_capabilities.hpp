@@ -354,6 +354,19 @@ struct AccessibleDescriptionCapability {
     }
 };
 
+// Whether the control is a ceremonial surface (GIVEN B3-1): on it and its descendants the theme engine's ambient effects may cover more than 10 % of the window. A theme never sets it; a change repaints the subtree.
+template <typename Declaring>
+struct CeremonialCapability {
+    PropertyCell<bool, CeremonialCapability<Declaring>> ceremonial{};
+
+    static void assign(CeremonialCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.ceremonial), incoming);
+        if (!capability.ceremonial.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.ceremonial));
+    }
+};
+
 // Every Control capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct ControlCapabilities : public NameCapability<Declaring>,
@@ -380,6 +393,7 @@ struct ControlCapabilities : public NameCapability<Declaring>,
                              public AllowDropCapability<Declaring>,
                              public HitTestTransparentCapability<Declaring>,
                              public AccessibleNameCapability<Declaring>,
-                             public AccessibleDescriptionCapability<Declaring> {};
+                             public AccessibleDescriptionCapability<Declaring>,
+                             public CeremonialCapability<Declaring> {};
 
 } // namespace gui_forms

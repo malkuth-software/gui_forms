@@ -657,7 +657,7 @@ struct PropertyTransition final {
 // The ambient budget (design language §9.4, the accepted starting tokens):
 // at most 30 frames per second, over a region of at most 10 % of the window
 // on everyday surfaces. A surface the application marks ceremonial
-// (Control::set_ceremonial, GIVEN B3-1) lifts the area cap for the parts on
+// (Control::ceremonial, GIVEN B3-1) lifts the area cap for the parts on
 // it.
 inline constexpr double maximum_ambient_frames_per_second = 30.0;
 inline constexpr double maximum_ambient_window_fraction = 0.10;

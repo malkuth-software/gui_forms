@@ -7646,7 +7646,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr double maximum_ambient_frames_per_second
 
-   The ambient budget (design language §9.4, the accepted starting tokens): at most 30 frames per second, over a region of at most 10 % of the window on everyday surfaces. A surface the application marks ceremonial (Control::set_ceremonial, GIVEN B3-1) lifts the area cap for the parts on it. Value: ``30.0``.
+   The ambient budget (design language §9.4, the accepted starting tokens): at most 30 frames per second, over a region of at most 10 % of the window on everyday surfaces. A surface the application marks ceremonial (Control::ceremonial, GIVEN B3-1) lifts the area cap for the parts on it. Value: ``30.0``.
 
 .. cpp:var:: constexpr double maximum_ambient_window_fraction
 

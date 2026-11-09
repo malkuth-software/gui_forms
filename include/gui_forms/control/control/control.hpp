@@ -614,15 +614,9 @@ public:
     // Its compiled rules (CompiledThemeRules::compile_inline), or null
     // without one; the cascade reads them for this control alone.
     [[nodiscard]] const CompiledThemeRules* inline_style_rules() const noexcept;
-    // Whether the application marks this control's surface ceremonial (T2
-    // GIVEN B3-1; design language §10): an installer's or a first run's
-    // world. On it, and on its descendants, the theme engine's ambient
-    // effects may cover more than 10 % of the window; everywhere else the
-    // everyday cap holds. A theme never sets it. Changing it repaints the
-    // control and its descendants.
-    [[nodiscard]] bool ceremonial() const noexcept { return ceremonial_; }
-    void set_ceremonial(bool ceremonial);
-    // Whether this control or one of its ancestors is marked ceremonial.
+    // Whether this control or one of its ancestors is marked ceremonial
+    // (the ceremonial capability: T2 GIVEN B3-1; design language §10, an
+    // installer's or a first run's world).
     [[nodiscard]] bool on_ceremonial_surface() const noexcept;
     // A stock assignment clears the image override. Null images select fallback.
     void set_custom_cursor(CursorImagesPtr images, CursorKind fallback = CursorKind::arrow);
@@ -1282,6 +1276,7 @@ private:
     friend struct HitTestTransparentCapability<Control>;
     friend struct AccessibleNameCapability<Control>;
     friend struct AccessibleDescriptionCapability<Control>;
+    friend struct CeremonialCapability<Control>;
     // The capabilities' hooks, one pair per property, chosen by the cell's
     // type: prepare_write runs before the compare (require_mutable first,
     // then the value's checks; it may adjust the value), written after the
@@ -1339,6 +1334,8 @@ private:
     void written(const decltype(accessible_name)& cell);
     void prepare_write(const decltype(accessible_description)& cell, std::string& value);
     void written(const decltype(accessible_description)& cell);
+    void prepare_write(const decltype(ceremonial)& cell, bool& value);
+    void written(const decltype(ceremonial)& cell);
     friend class ContainerControl;
     // Reports an opaque engine face's cover (report_opaque_cover).
     friend void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part);
@@ -1484,7 +1481,6 @@ private:
                           ControlStyles::all_painting_in_one_pass};
     std::vector<std::string> classes_;
     std::shared_ptr<const detail::ControlInlineStyle> inline_style_;
-    bool ceremonial_{};
     CursorImagesPtr cursor_images_;
     std::shared_ptr<const Theme> theme_override_;
     std::optional<SurfaceMaterial> authored_surface_material_;

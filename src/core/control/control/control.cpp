@@ -2919,16 +2919,18 @@ void Control::restyle_descendants() {
     }
 }
 
-void Control::set_ceremonial(bool ceremonial) {
+void Control::prepare_write(const decltype(ceremonial)&, bool&) {
     require_mutable();
-    if (ceremonial_ == ceremonial) return;
-    ceremonial_ = ceremonial;
+}
+
+// The ambient effects' area cap is decided per part over the whole subtree.
+void Control::written(const decltype(ceremonial)&) {
     invalidate_subtree(Dirty::paint);
 }
 
 bool Control::on_ceremonial_surface() const noexcept {
     for (const Control* current = this; current != nullptr;) {
-        if ((*current).ceremonial_) return true;
+        if ((*current).ceremonial.read()) return true;
         const std::shared_ptr<Control> parent = (*current).parent_.lock();
         current = parent.get();
     }
