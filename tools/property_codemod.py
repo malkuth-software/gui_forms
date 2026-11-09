@@ -49,7 +49,9 @@ Config keys are the study's (section 15.2) plus these, all optional:
              a component without one (study section 14, G7 point 4).
   table      "binding_direction": a form binding's default direction
              (PropertyBindingDirection; "two_way" for what the user edits).
-  property   "prepare": C++ statements a generated prepare_write runs after
+  property   "coerce": false only (the study's key; a coerce_<name> virtual is
+             written by hand).
+             "prepare": C++ statements a generated prepare_write runs after
              require_mutable and before the compare (`incoming` is the incoming value).
              "written_effects": the dirty mask a generated written touches
              when it differs from the descriptor's (table.effects).
@@ -70,7 +72,7 @@ import sys
 PROPERTY_KEYS = {
     "name", "capability", "value", "initial", "comment", "getter", "setter", "clear", "field", "event",
     "on_changed", "localizable", "table", "hooks", "storage", "effects", "thunks", "hand",
-    "comment_generated", "prepare", "written_effects", "traits", "sample",
+    "comment_generated", "prepare", "written_effects", "traits", "sample", "coerce",
 }
 TOP_KEYS = {
     "family", "declaring", "header", "source", "capabilities_header", "properties", "step", "shared",
@@ -176,6 +178,10 @@ def validate(config):
             errors.append(f"{label}: storage must be 'cell' or 'view'")
         if prop.get("storage") == "view" and prop.get("hooks") == "generated":
             errors.append(f"{label}: a view's hooks are hand-written")
+        # The study's coerce key (section 15.2): only false is generated; a
+        # coerce_<name> virtual is written by hand.
+        if prop.get("coerce", False) is not False:
+            errors.append(f"{label}: coerce must be false (a coerce_<name> virtual is written by hand)")
         table = prop.get("table")
         if table is not None:
             for key in table:
