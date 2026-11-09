@@ -117,6 +117,7 @@ int main(int argc, char** argv) {
         // process made before it, so no other test may run first.
         if (argc == 2 && std::string_view(argv[1]) == "--display-trace") {
             test_display_commands_unchanged();
+            test_theme_switch_round_trip();
             std::cout << "gui_forms_gallery_pages_tests --display-trace: passed\n";
             return EXIT_SUCCESS;
         }
