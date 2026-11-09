@@ -5077,6 +5077,15 @@ else()
     set(GUI_FORMS_INSTALLED_LIBRARY_RPATH "")
 endif()
 
+# An installed program finds the shared libraries it needs in the library
+# directory beside its own (bin/../lib): the form compiler links the
+# controls, core and libgui_forms_threading.
+if(TARGET gui_forms_form_compiler AND NOT GUI_FORMS_INSTALLED_LIBRARY_RPATH STREQUAL "")
+    file(RELATIVE_PATH GUI_FORMS_BIN_TO_LIB "/${CMAKE_INSTALL_BINDIR}" "/${CMAKE_INSTALL_LIBDIR}")
+    set_target_properties(gui_forms_form_compiler PROPERTIES
+        INSTALL_RPATH "${GUI_FORMS_INSTALLED_LIBRARY_RPATH}/${GUI_FORMS_BIN_TO_LIB}")
+endif()
+
 if(TARGET gui_forms_application)
     target_link_libraries(gui_forms_application PUBLIC GUIForms::Threading)
     # libgui_forms_threading, beside it, when a library loads it privately
