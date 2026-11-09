@@ -6853,7 +6853,11 @@
         {"name": "help_requested", "payload": "HelpRequestEvent", "mutable_payload": true},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "auto_validate_changed", "payload": "AutoValidate", "mutable_payload": false},
-        {"name": "splitter_changed", "payload": "SplitChangeEvent", "mutable_payload": false}
+        {"name": "splitter_changed", "payload": "SplitChangeEvent", "mutable_payload": false},
+        {"name": "drag_started", "payload": "DragInteraction", "mutable_payload": false},
+        {"name": "drag_target_changed", "payload": "DragInteraction", "mutable_payload": false},
+        {"name": "drag_dropped", "payload": "DragInteraction", "mutable_payload": false},
+        {"name": "drag_ended", "payload": "DragInteraction", "mutable_payload": false}
       ]
     },
     {
@@ -7014,7 +7018,11 @@
         {"name": "arranged_bounds_changed", "payload": "Rect", "mutable_payload": false},
         {"name": "help_requested", "payload": "HelpRequestEvent", "mutable_payload": true},
         {"name": "splitter_moving", "payload": "SplitterMoveEvent", "mutable_payload": true},
-        {"name": "splitter_moved", "payload": "SplitterMoveEvent", "mutable_payload": false}
+        {"name": "splitter_moved", "payload": "SplitterMoveEvent", "mutable_payload": false},
+        {"name": "drag_started", "payload": "DragInteraction", "mutable_payload": false},
+        {"name": "drag_target_changed", "payload": "DragInteraction", "mutable_payload": false},
+        {"name": "drag_dropped", "payload": "DragInteraction", "mutable_payload": false},
+        {"name": "drag_ended", "payload": "DragInteraction", "mutable_payload": false}
       ]
     },
     {

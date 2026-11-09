@@ -781,6 +781,21 @@ private:
     std::string* out_;
 };
 
+// Counts the seam's typed drag interactions and keeps the last end.
+struct SeamInteractions final : public Component {
+    int started{};
+    int dropped{};
+    int ended{};
+    DragEnd last_end{DragEnd::none};
+
+    void on_started(const DragInteraction&) { ++started; }
+    void on_dropped(const DragInteraction&) { ++dropped; }
+    void on_ended(const DragInteraction& interaction) {
+        ++ended;
+        last_end = interaction.end;
+    }
+};
+
 PointerEvent seam_pointer(PointerAction action, double x) {
     PointerEvent event;
     event.action = action;
@@ -810,6 +825,10 @@ void test_seam_drag_engine_parity() {
     window.perform_layout();
     std::string trace;
     SubscriptionToken changed = (*split).splitter_changed().subscribe(SplitTrace(trace));
+    SeamInteractions interactions;
+    on((*split).drag_started(), interactions, &SeamInteractions::on_started);
+    on((*split).drag_dropped(), interactions, &SeamInteractions::on_dropped);
+    on((*split).drag_ended(), interactions, &SeamInteractions::on_ended);
 
     require(window.dispatch_pointer(seam_pointer(PointerAction::down, 121.0)) &&
                 window.captured_control() == (*split).splitter_control() &&
@@ -825,6 +844,9 @@ void test_seam_drag_engine_parity() {
     require(!window.captured_control() && window.drag_engine().phase() == DragPhase::idle &&
                 (*split).splitter_seam_snapshot().state != SplitSeamState::dragging,
             "the release ends the drag and its capture");
+    require(interactions.started == 1 && interactions.dropped == 1 && interactions.ended == 1 &&
+                interactions.last_end == DragEnd::free,
+            "the seam raises its typed drag interactions (phase E4)");
 
     window.perform_layout();
     const SemanticDescriptor range = (*split).semantic_descriptor();

@@ -78,6 +78,7 @@ fires, and its actions run in the order listed.
 | `context_request` | `context_menu_requested`; an action may set its `handled` |
 | `invocation` | `command_executed` |
 | `value` | `value_changed`; the new value |
+| `drag` | `interaction` on a typed drag interaction (`drag_started`, `drag_target_changed`, `drag_dropped`, `drag_ended`): the `DragInteraction` record, with the end kind |
 
 The firing also carries `control` (the control the trigger names), `state`
 (the window's input state when the trigger occurred) and `window`.
@@ -141,7 +142,16 @@ Every condition has a `not_` form, such as `not_focused(c)` or
   move key.
 
 `dragging`, `drop_candidate` and `begin_keyboard_drag` are C++ only for
-now; the C ABI does not offer them yet.
+now; the C ABI does not offer them yet (their numbers are reserved).
+
+A control the drag engine drives (Splitter, SplitContainer) raises typed
+drag interactions: `drag_started` when the drag is planned,
+`drag_target_changed` when the selected drop candidate changes,
+`drag_dropped` after a committing end and `drag_ended` after every end,
+each with a `DragInteraction` (input mode, candidate or value, pointer and
+end kind). A rule reaches them as `interaction(c, (*c).drag_ended())`, and
+its program action reads the record through `firing.drag`. The C ABI sees
+them by their schema names.
 
 The built-in actions let simple rules work without any program code.
 

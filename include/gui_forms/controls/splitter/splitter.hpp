@@ -2,6 +2,7 @@
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/event.hpp"
+#include "gui_forms/events/drag_events/drag_events.hpp"
 #include "gui_forms/controls/splitter/splitter_capabilities/splitter_capabilities.hpp"
 
 #include <memory>
@@ -42,7 +43,9 @@ struct SplitterMoveEvent final {
 // cancel and put the target back at its extent before the drag, as Windows
 // Forms' Escape does. The begin_keyboard_drag rule action moves it from the
 // keyboard: the arrows along the axis step by 10 (Ctrl 100, Shift 1), Enter
-// commits, Escape cancels.
+// commits, Escape cancels. The engine raises the typed drag interactions
+// (drag_started, drag_dropped, drag_ended; a splitter has no candidates, so
+// no drag_target_changed) after the splitter's own events.
 class Splitter final : public Control, public SplitterCapabilities<Splitter> {
 public:
     explicit Splitter(StableId stable_id);
@@ -59,6 +62,12 @@ public:
 
     [[nodiscard]] Event<SplitterMoveEvent&>& splitter_moving() noexcept { return splitter_moving_; }
     [[nodiscard]] Event<const SplitterMoveEvent&>& splitter_moved() noexcept { return splitter_moved_; }
+    [[nodiscard]] Event<const DragInteraction&>& drag_started() noexcept { return drag_interactions_.started; }
+    [[nodiscard]] Event<const DragInteraction&>& drag_target_changed() noexcept {
+        return drag_interactions_.target_changed;
+    }
+    [[nodiscard]] Event<const DragInteraction&>& drag_dropped() noexcept { return drag_interactions_.dropped; }
+    [[nodiscard]] Event<const DragInteraction&>& drag_ended() noexcept { return drag_interactions_.ended; }
 
     [[nodiscard]] Size measure(Size available) override;
     void on_pointer(PointerEvent& event) override;
@@ -118,6 +127,8 @@ private:
     std::unique_ptr<SplitterDrag> drag_{};
     Event<SplitterMoveEvent&> splitter_moving_{};
     Event<const SplitterMoveEvent&> splitter_moved_{};
+    // The typed drag interactions, raised by the drag engine.
+    DragInteractionEvents drag_interactions_{};
     // property_codemod begin Splitter (tools/property_families/splitter.json; generated, do not edit)
 private:
     friend struct SplitterMinSizeCapability<Splitter>;

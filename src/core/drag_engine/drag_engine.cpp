@@ -230,6 +230,7 @@ bool DragClient::accepts_drag_candidate(const DragLanding&) { return true; }
 void DragClient::announce_drag(const DragFrame&, DragAnnouncement&) {}
 void DragClient::rewrite_drag_outcome(DragOutcome&) {}
 void DragClient::commit_drag_chain(const DragOutcome&) {}
+DragInteractionEvents* DragClient::drag_interactions() noexcept { return nullptr; }
 
 // -- the plan builder --------------------------------------------------------------
 
@@ -1135,7 +1136,11 @@ bool DragEngine::plan() {
     }
     phase_ = DragPhase::dragging;
     record(DragTraceEvent::plan);
-    return true;
+    // A chain point plans again within the same drag, which started once.
+    if (epoch_.value != 1U) return true;
+    raise(&DragInteractionEvents::started, DragEnd::none);
+    const bool running = still(serial);
+    return running;
 }
 
 DragFrame DragEngine::frame_now() const noexcept {
@@ -1152,14 +1157,46 @@ DragFrame DragEngine::frame_now() const noexcept {
     return frame;
 }
 
+// A changed announcement changes the window's live region (published by
+// SurfaceRoot::semantic_snapshot), so the root's semantics are invalidated
+// and the host reads the new text. The copy is fixed storage, so nothing is
+// allocated.
 void DragEngine::announce(const DragFrame& frame) {
     if (!client_alive()) return;
+    const DragAnnouncement before = announcement_;
     (*client_).announce_drag(frame, announcement_);
+    if (announcement_.view() == before.view()) return;
+    const Control::Ptr root = (*root_).root();
+    if (root) (*root).invalidate(Dirty::semantics);
+}
+
+void DragEngine::raise(Event<const DragInteraction&> DragInteractionEvents::*which, DragEnd ending) {
+    if (!client_alive()) return;
+    DragInteractionEvents* const events = (*client_).drag_interactions();
+    if (events == nullptr) return;
+    // An end that restores commits nothing, so it carries no selection.
+    const bool restores = ending != DragEnd::none && ending != DragEnd::dropped && ending != DragEnd::free;
+    DragInteraction interaction{};
+    interaction.mode = mode_;
+    interaction.pointer = pointer_;
+    interaction.end = ending;
+    if (!restores) {
+        interaction.has_candidate = selection_.kind == DragSelectionKind::candidate;
+        interaction.candidate = interaction.has_candidate ? selection_.token.value : 0U;
+        interaction.has_value = selection_.kind == DragSelectionKind::value;
+        interaction.value = interaction.has_value ? selection_.value : 0.0;
+    }
+    Event<const DragInteraction&>& event = (*events).*which;
+    event.emit(interaction);
 }
 
 void DragEngine::select(const DragSelection& selection, DragTraceEvent event) {
     const bool changed = !(selection == selection_);
     const bool continuous = selection.kind == DragSelectionKind::value || selection.kind == DragSelectionKind::point;
+    // A target change is a change of candidate, to or from one; a continuous
+    // value's moves are not.
+    const bool target_changed = changed && (selection.kind == DragSelectionKind::candidate ||
+                                            selection_.kind == DragSelectionKind::candidate);
     selection_ = selection;
     record(event);
     if (!changed && !continuous) return;
@@ -1168,6 +1205,8 @@ void DragEngine::select(const DragSelection& selection, DragTraceEvent event) {
     if (client_alive()) (*client_).preview_drag(frame);
     if (!still(serial)) return;
     if (changed) announce(frame);
+    if (!target_changed || !still(serial)) return;
+    raise(&DragInteractionEvents::target_changed, DragEnd::none);
 }
 
 void DragEngine::drag_to(Point pointer, Modifier modifiers, DragTraceEvent event) {
@@ -1469,8 +1508,10 @@ void DragEngine::end(DragEnd ending) {
         if (serial == serial_ && client_alive()) {
             DragFrame frame = frame_now();
             frame.end = ending;
-            (*client_).announce_drag(frame, announcement_);
+            announce(frame);
         }
+        if (serial == serial_ && commits) raise(&DragInteractionEvents::dropped, ending);
+        if (serial == serial_) raise(&DragInteractionEvents::ended, ending);
     }
     if (serial == serial_ && phase_ == DragPhase::idle) reset_session();
     ending_ = false;

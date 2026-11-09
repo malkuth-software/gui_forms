@@ -43,6 +43,18 @@ splitter_moving
     may change; the result is clamped to the limits again.
 splitter_moved
     The drag ended, with the extent the target took.
+drag_started
+    The drag engine planned the drag (at the press), with a
+    `DragInteraction` holding the extent before the drag.
+drag_target_changed
+    Never raised by a splitter, whose drag has no candidates; listed with
+    the other typed drag interactions.
+drag_dropped
+    Raised after splitter_moved when a release or Enter commits the drag,
+    with the committed extent.
+drag_ended
+    Raised after every end, last, with its kind (`DragEnd`); an end that
+    restores carries no value.
 
 See Also
 --------
@@ -59,7 +71,8 @@ the pointer, pressed while dragging. It takes no focus, as in Windows Forms;
 the window gives a running drag its keys, so Escape cancels one. The
 `begin_keyboard_drag` rule action moves the bar from the keyboard: the
 arrows along its axis step by 10 units (Ctrl 100, Shift 1), Enter keeps
-the position and Escape restores it. It is published to accessibility as a
+the position and Escape restores it. Each step and the end are announced
+through the window's live region ("Split position 150, done"). It is published to accessibility as a
 separator whose value is the split position, with increment, decrement (10
 units) and set-value actions.
 

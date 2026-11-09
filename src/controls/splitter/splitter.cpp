@@ -121,6 +121,10 @@ public:
         if (previewed) splitter.apply(*resized, splitter.drag_start_extent_);
     }
 
+    [[nodiscard]] DragInteractionEvents* drag_interactions() noexcept override {
+        return &(*splitter_).drag_interactions_;
+    }
+
 private:
     [[nodiscard]] Point pointer_in_parent(Point window_point) const {
         const Control::Ptr owner = (*splitter_).parent();
@@ -388,9 +392,13 @@ constexpr ControlAnatomy splitter_anatomy{
 };
 
 // The events Splitter adds to those of Control, in declaration order.
-constexpr std::array<InteractionDeclaration, 2> splitter_interactions{{
+constexpr std::array<InteractionDeclaration, 6> splitter_interactions{{
     {.name = "splitter_moving", .payload = "SplitterMoveEvent", .mutable_payload = true},
     {.name = "splitter_moved", .payload = "SplitterMoveEvent", .mutable_payload = false},
+    {.name = "drag_started", .payload = "DragInteraction", .mutable_payload = false},
+    {.name = "drag_target_changed", .payload = "DragInteraction", .mutable_payload = false},
+    {.name = "drag_dropped", .payload = "DragInteraction", .mutable_payload = false},
+    {.name = "drag_ended", .payload = "DragInteraction", .mutable_payload = false},
 }};
 
 } // namespace

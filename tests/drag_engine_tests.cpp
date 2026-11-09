@@ -7,6 +7,8 @@
 // inverse against a full scan, the drop-zone map, foreign declared
 // targets, the rules' drag conditions and action, the trace text, seeded
 // property runs, and no allocation from the first dragging frame to the end.
+// Phase E4: the typed drag interactions in order (and a handler that
+// cancels) and the announcements' live region.
 // Headless: a window that is never shown.
 
 #include "gui_forms/gui_forms.hpp"
@@ -240,6 +242,8 @@ public:
     std::vector<std::uint32_t> previews{};
     std::vector<DragOutcome> ends{};
     std::size_t chains{};
+    // The typed interactions this client raises, or none.
+    DragInteractionEvents* events{};
 
     void reset_list(std::size_t count, std::size_t dragged) {
         slots = uniform_slots(count);
@@ -327,6 +331,8 @@ public:
         subject = outcome.selection.token.value;
         ++chains;
     }
+
+    DragInteractionEvents* drag_interactions() noexcept override { return events; }
 
     void end_drag(const DragOutcome& outcome) override {
         ends.push_back(outcome);
@@ -903,6 +909,149 @@ void rules_conditions_and_action() {
     require(engine.phase() == DragPhase::idle, "Escape ends it");
 }
 
+// -- typed interactions (phase E4) ------------------------------------------------------------------
+
+// Records each typed interaction as "<event>[ c<candidate>][ v<value>][ keyboard][ <end>];".
+// With cancel_on_start, the started handler cancels the drag (reentrancy).
+struct InteractionLog final : public Component {
+    std::string text;
+    DragEngine* cancel_on_start{};
+
+    void on_started(const DragInteraction& interaction) {
+        note("started", interaction);
+        if (cancel_on_start != nullptr) (*cancel_on_start).cancel(DragEnd::escaped);
+    }
+    void on_target_changed(const DragInteraction& interaction) { note("target_changed", interaction); }
+    void on_dropped(const DragInteraction& interaction) { note("dropped", interaction); }
+    void on_ended(const DragInteraction& interaction) { note("ended", interaction); }
+
+private:
+    void note(const char* event, const DragInteraction& interaction) {
+        text += event;
+        if (interaction.has_candidate) text += " c" + std::to_string(interaction.candidate);
+        if (interaction.has_value) text += " v" + std::to_string(std::lround(interaction.value));
+        if (interaction.mode == DragInputMode::keyboard) text += " keyboard";
+        if (interaction.end != DragEnd::none) {
+            text += ' ';
+            text += drag_end_name(interaction.end);
+        }
+        text += ';';
+    }
+};
+
+void listen(DragInteractionEvents& events, InteractionLog& log) {
+    on(events.started, log, &InteractionLog::on_started);
+    on(events.target_changed, log, &InteractionLog::on_target_changed);
+    on(events.dropped, log, &InteractionLog::on_dropped);
+    on(events.ended, log, &InteractionLog::on_ended);
+}
+
+// The order of section 5.3: drag_started once at the planning, a
+// drag_target_changed per change of candidate, and drag_dropped then
+// drag_ended after the client has committed; a cancel raises drag_ended
+// only, with no selection; a started handler that cancels ends the session
+// and nothing further is raised; a keyboard drag says so.
+void typed_interactions() {
+    TestClient client;
+    client.reset_list(5U, 1U);
+    Fixture fixture = make_fixture(client.slots[1]);
+    DragEngine& engine = (*fixture.window).drag_engine();
+    DragInteractionEvents events;
+    InteractionLog log;
+    listen(events, log);
+    client.events = &events;
+
+    const Point grab = centre(client.slots[1]);
+    require(press(fixture, client, grab, 4.0), "an observed drag arms");
+    require(log.text.empty(), "arming raises nothing");
+    move_to(fixture, {grab.x, 81.0});
+    move_to(fixture, {grab.x, 82.0});
+    move_to(fixture, {grab.x, 61.0});
+    release_at(fixture, {grab.x, 61.0});
+    if (log.text != "started c3;target_changed c3;target_changed c2;dropped c2 dropped;ended c2 dropped;") {
+        std::cerr << log.text << '\n';
+    }
+    require(log.text == "started c3;target_changed c3;target_changed c2;dropped c2 dropped;ended c2 dropped;",
+            "the interactions arrive in the study's order, once per change of candidate, after the commit");
+    const std::vector<int> committed{0, 2, 1, 3, 4};
+    require(client.order == committed, "drag_dropped follows the client's commit");
+
+    log.text.clear();
+    client.subject = 2U;
+    const Point again = centre(client.slots[2]);
+    require(press(fixture, client, again, 4.0), "a second drag arms");
+    move_to(fixture, {again.x, 101.0});
+    engine.cancel(DragEnd::escaped);
+    require(log.text == "started c4;target_changed c4;ended escaped;", "a cancel raises drag_ended without a selection");
+
+    log.text.clear();
+    log.cancel_on_start = &engine;
+    require(press(fixture, client, again, 4.0), "a third drag arms");
+    move_to(fixture, {again.x, 101.0});
+    require(log.text == "started c4;ended escaped;" && engine.phase() == DragPhase::idle,
+            "a started handler that cancels ends the session; no target change follows");
+    log.cancel_on_start = nullptr;
+
+    log.text.clear();
+    client.subject = 0U;
+    require(engine.begin_keyboard(client, *fixture.owner, *fixture.item, 0U), "a keyboard drag starts");
+    static_cast<void>(engine.key(key_down(PhysicalKey::escape)));
+    require(log.text.rfind("started", 0U) == 0U && log.text.find("keyboard") != std::string::npos &&
+                log.text.find("ended keyboard escaped;") != std::string::npos,
+            "a keyboard drag's interactions say keyboard");
+    client.events = nullptr;
+}
+
+// Depth-first search of a snapshot for a node by stable identity.
+const SemanticNode* find_semantic_node(const std::vector<SemanticNode>& nodes, std::string_view stable_id) {
+    for (const SemanticNode& node : nodes) {
+        if (node.stable_id == stable_id) return &node;
+        const SemanticNode* const below = find_semantic_node(node.children, stable_id);
+        if (below != nullptr) return below;
+    }
+    return nullptr;
+}
+
+// The announcements reach screen readers through the window's live region:
+// absent until the window has an engine, then always present, named by the
+// latest announcement; a changed announcement invalidates the semantics.
+void announcements_live_region() {
+    TestClient client;
+    client.reset_list(5U, 1U);
+    Fixture fixture = make_fixture(client.slots[1]);
+    Window& window = *fixture.window;
+    const SemanticSnapshot before = window.semantic_snapshot();
+    require(find_semantic_node(before.roots, "drag.root.drag-announcements") == nullptr,
+            "a window without a drag engine publishes no drag live region");
+
+    DragEngine& engine = window.drag_engine();
+    const Point grab = centre(client.slots[1]);
+    require(press(fixture, client, grab, 4.0), "a drag arms");
+    const std::uint64_t generation = window.semantic_generation();
+    move_to(fixture, {grab.x, 81.0});
+    require(window.semantic_generation() != generation, "a changed announcement invalidates the semantics");
+    const SemanticSnapshot during = window.semantic_snapshot();
+    const SemanticNode* const region = find_semantic_node(during.roots, "drag.root.drag-announcements");
+    require(region != nullptr && (*region).role == SemanticRole::live_region && (*region).name == "Item 4 of 5" &&
+                (*region).actions.empty(),
+            "the live region is named by the current announcement and takes no action");
+    require(semantic_announcement_due(nullptr, *region) == false && (*region).runtime_id != 0U,
+            "it announces on a change of name, not on appearance");
+    const std::uint64_t steady = window.semantic_generation();
+    move_to(fixture, {grab.x, 82.0});
+    require(window.semantic_generation() == steady, "an unchanged announcement leaves the semantics alone");
+    move_to(fixture, {grab.x, 61.0});
+    const SemanticSnapshot moved = window.semantic_snapshot();
+    const SemanticNode* const renamed = find_semantic_node(moved.roots, "drag.root.drag-announcements");
+    require(renamed != nullptr && (*renamed).name == "Item 3 of 5" && semantic_announcement_due(region, *renamed),
+            "the next candidate's announcement is due to the reader");
+    release_at(fixture, {grab.x, 61.0});
+    require(engine.phase() == DragPhase::idle, "the drag ends");
+    const SemanticSnapshot after = window.semantic_snapshot();
+    require(find_semantic_node(after.roots, "drag.root.drag-announcements") != nullptr,
+            "the live region stays once the window has an engine");
+}
+
 // -- the trace ---------------------------------------------------------------------------------------
 
 void trace_text() {
@@ -1036,11 +1185,13 @@ int main() {
     drop_zone_map();
     foreign_targets();
     rules_conditions_and_action();
+    typed_interactions();
+    announcements_live_region();
     trace_text();
     seeded_properties();
     no_allocation_while_dragging();
     std::cout << "Drag engine: reorder, cancels, targets, suppression, ties, chaining, keyboard path and "
                  "reachability, event-rate independence, reduced motion, refusals, inverse, drop zones, "
-                 "foreign targets, rules, trace and seeded properties passed; no allocation while dragging\n";
+                 "foreign targets, rules, typed interactions, the live region, trace and seeded properties passed; no allocation while dragging\n";
     return 0;
 }

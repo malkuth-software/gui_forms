@@ -381,7 +381,7 @@ Related types
 
    ``#include <gui_forms/rules/rule/rule.hpp>``
 
-   One firing of a rule, passed to each of its program actions. The trigger payload pointers are borrowed for the action's call and are null where the trigger has none: ``key`` for the key triggers, ``mouse`` for mouse_down, mouse_up, mouse_click and mouse_double_click, ``context_request`` for context_menu_requested (an action may set its ``handled``), ``invocation`` for command_executed. ``control`` is the control the trigger names (null for the key triggers and command_executed). ``state`` is the window's input state as it was when the trigger occurred (one copy per occurrence that fires a rule). ``window`` is the window whose rules fired.
+   One firing of a rule, passed to each of its program actions. The trigger payload pointers are borrowed for the action's call and are null where the trigger has none: ``key`` for the key triggers, ``mouse`` for mouse_down, mouse_up, mouse_click and mouse_double_click, ``context_request`` for context_menu_requested (an action may set its ``handled``), ``invocation`` for command_executed, ``drag`` for an interaction trigger on a typed drag interaction (drag_started, drag_target_changed, drag_dropped, drag_ended). ``control`` is the control the trigger names (null for the key triggers and command_executed). ``state`` is the window's input state as it was when the trigger occurred (one copy per occurrence that fires a rule). ``window`` is the window whose rules fired.
 
    .. cpp:member:: RuleTriggerKind trigger
 
@@ -396,6 +396,8 @@ Related types
    .. cpp:member:: ContextMenuRequest* context_request
 
    .. cpp:member:: const CommandInvocation* invocation
+
+   .. cpp:member:: const DragInteraction* drag
 
    .. cpp:member:: RuleValuePayload value
 

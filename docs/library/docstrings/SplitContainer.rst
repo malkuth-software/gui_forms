@@ -127,6 +127,17 @@ splitter_changed
     extent. Collapsing or restoring a panel, by any means, always
     raises it with `SplitChangeReason::collapse` and the collapse origin, even
     when the distance stays the same.
+drag_started
+    The seam drag began (a press on the seam or the keyboard drag), with a
+    `DragInteraction` holding the starting distance.
+drag_target_changed
+    Never raised by the seam, whose drag has no candidates.
+drag_dropped
+    Raised after `splitter_changed` when a release or Enter commits the
+    drag, with the committed distance.
+drag_ended
+    Raised after every end, last, with its kind (`DragEnd`); an end that
+    restores carries no value.
 
 Methods
 -------

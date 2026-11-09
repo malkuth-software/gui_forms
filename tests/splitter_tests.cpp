@@ -6,7 +6,8 @@
 // On the drag engine (roadmap 2.1, step M1): a parity trace of the pointer
 // script against the behaviour before the migration, cancels that restore
 // (Escape, a lost capture, deactivation) and the keyboard drag through the
-// begin_keyboard_drag rule action.
+// begin_keyboard_drag rule action. Phase E4: the typed drag interactions, a
+// rule reading RuleFiring::drag, and the window's announcement live region.
 
 #include "gui_forms/gui_forms.hpp"
 #include "../src/core/drag_engine/drag_engine.hpp"
@@ -20,6 +21,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -391,6 +393,99 @@ void keyboard_drag() {
             "Right moves a right splitter's bar right, narrowing its target");
 }
 
+// -- typed interactions and the live region (phase E4) ---------------------------
+
+// Records the splitter's typed interactions as "<event>[ v<value>][ <end>];".
+struct SplitterInteractions final : public Component {
+    std::string text;
+
+    void on_started(const DragInteraction& interaction) { note("started", interaction); }
+    void on_target_changed(const DragInteraction& interaction) { note("target_changed", interaction); }
+    void on_dropped(const DragInteraction& interaction) { note("dropped", interaction); }
+    void on_ended(const DragInteraction& interaction) { note("ended", interaction); }
+
+private:
+    void note(const char* event, const DragInteraction& interaction) {
+        text += event;
+        if (interaction.has_value) text += " v" + std::to_string(std::lround(interaction.value));
+        if (interaction.end != DragEnd::none) {
+            text += ' ';
+            text += drag_end_name(interaction.end);
+        }
+        text += ';';
+    }
+};
+
+// What a program action read from RuleFiring::drag.
+struct DragEndJournal final {
+    int firings{};
+    bool payload{};
+    DragEnd end{DragEnd::none};
+    double value{};
+};
+
+void note_drag_end(DragEndJournal& journal, const RuleFiring& firing) {
+    ++journal.firings;
+    if (firing.drag == nullptr) return;
+    journal.payload = true;
+    journal.end = (*firing.drag).end;
+    journal.value = (*firing.drag).value;
+}
+
+const SemanticNode* find_semantic_node(const std::vector<SemanticNode>& nodes, std::string_view stable_id) {
+    for (const SemanticNode& node : nodes) {
+        if (node.stable_id == stable_id) return &node;
+        const SemanticNode* const below = find_semantic_node(node.children, stable_id);
+        if (below != nullptr) return below;
+    }
+    return nullptr;
+}
+
+// The splitter's drag raises drag_started at the press, then drag_dropped
+// and drag_ended after splitter_moved (no drag_target_changed: a projection
+// has no candidates); a rule on drag_ended reads the record through
+// RuleFiring::drag; the window's live region carries the last announcement.
+void typed_interactions_and_live_region() {
+    Fixture fixture = make_fixture(DockStyle::left);
+    Window& window = *fixture.window;
+    Splitter& splitter = *fixture.splitter;
+    SplitterInteractions log;
+    on(splitter.drag_started(), log, &SplitterInteractions::on_started);
+    on(splitter.drag_target_changed(), log, &SplitterInteractions::on_target_changed);
+    on(splitter.drag_dropped(), log, &SplitterInteractions::on_dropped);
+    on(splitter.drag_ended(), log, &SplitterInteractions::on_ended);
+    DragEndJournal journal;
+    Rule on_end{};
+    on_end.trigger = trigger::interaction(splitter, splitter.drag_ended());
+    on_end.actions.push_back(action(journal, &note_drag_end));
+    require(window.rules().add(on_end).refusal == RuleRefusal::none, "a drag_ended interaction rule is armed");
+
+    const Point start = centre(splitter);
+    pointer(window, PointerAction::down, start);
+    pointer(window, PointerAction::move, {start.x + 50.0, start.y});
+    pointer(window, PointerAction::up, {start.x + 50.0, start.y});
+    if (log.text != "started v100;dropped v150 free;ended v150 free;") std::cerr << log.text << '\n';
+    require(log.text == "started v100;dropped v150 free;ended v150 free;",
+            "the press starts, the release drops and ends, with the projected value");
+    require(journal.firings == 1 && journal.payload && journal.end == DragEnd::free && near(journal.value, 150.0),
+            "the rule's program action reads the drag record from the firing");
+
+    log.text.clear();
+    const Point again = centre(splitter);
+    pointer(window, PointerAction::down, again);
+    pointer(window, PointerAction::move, {again.x + 30.0, again.y});
+    static_cast<void>(window.dispatch_key(key_down(PhysicalKey::escape)));
+    require(log.text == "started v150;ended escaped;", "Escape ends without a drop or a value");
+    require(journal.firings == 2 && journal.end == DragEnd::escaped && near(journal.value, 0.0),
+            "the cancel's record restores, so it carries no value");
+
+    const SemanticSnapshot snapshot = window.semantic_snapshot();
+    const SemanticNode* const region = find_semantic_node(snapshot.roots, "split.root.drag-announcements");
+    require(region != nullptr && (*region).role == SemanticRole::live_region &&
+                (*region).name == "Split position 150, restored",
+            "the window's live region carries the splitter's last announcement to screen readers");
+}
+
 } // namespace
 
 int main() {
@@ -400,8 +495,9 @@ int main() {
     parity_trace();
     cancels_restore();
     keyboard_drag();
+    typed_interactions_and_live_region();
     std::cout << "Splitter: targets at every edge, live drags within the limits, splitter_moving adjustment, "
                  "splitter_moved, programmatic and semantic positions, no target, anatomy and paint, the engine parity "
-                 "trace, restoring cancels and the keyboard drag passed\n";
+                 "trace, restoring cancels, the keyboard drag, typed interactions and the live region passed\n";
     return 0;
 }

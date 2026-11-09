@@ -4,6 +4,7 @@
 #include "gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp"
 #include "gui_forms/range_controls.hpp"
+#include "gui_forms/events/drag_events/drag_events.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp"
 
 #include <cstdint>
@@ -66,6 +67,15 @@ public:
     [[nodiscard]] Event<const SplitChangeEvent&>& splitter_changed() noexcept {
         return splitter_changed_;
     }
+    // The seam drag's typed interactions, raised by the drag engine after
+    // splitter_changed: drag_started, drag_dropped and drag_ended (a seam
+    // has no candidates, so no drag_target_changed).
+    [[nodiscard]] Event<const DragInteraction&>& drag_started() noexcept { return drag_interactions_.started; }
+    [[nodiscard]] Event<const DragInteraction&>& drag_target_changed() noexcept {
+        return drag_interactions_.target_changed;
+    }
+    [[nodiscard]] Event<const DragInteraction&>& drag_dropped() noexcept { return drag_interactions_.dropped; }
+    [[nodiscard]] Event<const DragInteraction&>& drag_ended() noexcept { return drag_interactions_.ended; }
 
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
@@ -153,6 +163,8 @@ private:
     Event<const SplitChangeEvent&> splitter_changed_;
     // The seam's drag client, owned here and observed by the engine.
     std::unique_ptr<SplitContainerDrag> drag_;
+    // The typed drag interactions, raised by the drag engine.
+    DragInteractionEvents drag_interactions_{};
     // property_codemod begin SplitContainer (tools/property_families/split_container.json; generated, do not edit)
 private:
     friend struct SplitContainerOrientationCapability<SplitContainer>;

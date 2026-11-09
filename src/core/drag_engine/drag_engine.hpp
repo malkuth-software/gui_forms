@@ -64,6 +64,7 @@
 // and no layout runs across a thread.
 
 #include "gui_forms/control/control/control.hpp"
+#include "gui_forms/events/drag_events/drag_events.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
@@ -146,22 +147,9 @@ struct DragCandidateRange final {
 
 enum class DragPhase : std::uint8_t { idle, armed, planning, dragging, settling };
 
-// How a session ended. Only dropped (a candidate) and free (a projection's
-// value or a free placement) commit; every other end restores.
-enum class DragEnd : std::uint8_t {
-    none,
-    dropped,
-    free,
-    rejected,
-    escaped,
-    capture_lost,
-    deactivated,
-    model_changed,
-    subject_gone,
-};
+// DragEnd and DragInputMode are public (gui_forms/events/drag_events), as
+// the typed drag interactions carry them.
 inline constexpr std::size_t drag_end_count = 9U;
-
-enum class DragInputMode : std::uint8_t { pointer, keyboard };
 
 // The distance a nearest operator compares: from the grab-adjusted pointer
 // to each landing's anchor (euclidean), to its rectangle (edge, zero inside),
@@ -442,6 +430,12 @@ public:
     virtual void commit_drag_chain(const DragOutcome& outcome);
     // Commits (dropped, free) or restores (every other end).
     virtual void end_drag(const DragOutcome& outcome) = 0;
+    // The control's typed drag interactions, which the engine raises (phase
+    // E4): drag_started after the first planning, drag_target_changed when
+    // the selected candidate changes, drag_dropped and drag_ended after
+    // end_drag. Null (the default) raises none. The events belong to the
+    // control that owns this client and live as long as it.
+    [[nodiscard]] virtual DragInteractionEvents* drag_interactions() noexcept;
 };
 
 // -- the plan builder -------------------------------------------------------------
@@ -607,6 +601,9 @@ private:
     bool step_continuous(double dx, double dy, Modifier modifiers);
     void select(const DragSelection& selection, DragTraceEvent event);
     void announce(const DragFrame& frame);
+    // Raises one of the client's typed interactions with the session's
+    // current selection and `ending`.
+    void raise(Event<const DragInteraction&> DragInteractionEvents::*which, DragEnd ending);
     [[nodiscard]] DragFrame frame_now() const noexcept;
     // Ends the session with `end`, calling the client (unless it is gone).
     void end(DragEnd end);

@@ -23,6 +23,7 @@
 
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/control/control/control.hpp"
+#include "gui_forms/events/drag_events/drag_events.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
 #include "gui_forms/value/value.hpp"
@@ -169,7 +170,9 @@ struct RuleValuePayload final {
 // trigger has none: `key` for the key triggers, `mouse` for mouse_down,
 // mouse_up, mouse_click and mouse_double_click, `context_request` for
 // context_menu_requested (an action may set its `handled`), `invocation`
-// for command_executed. `control` is the control the trigger names (null for
+// for command_executed, `drag` for an interaction trigger on a typed drag
+// interaction (drag_started, drag_target_changed, drag_dropped,
+// drag_ended). `control` is the control the trigger names (null for
 // the key triggers and command_executed). `state` is the window's input
 // state as it was when the trigger occurred (one copy per occurrence that
 // fires a rule). `window` is the window whose rules fired.
@@ -180,6 +183,7 @@ struct RuleFiring final {
     const MouseEventArgs* mouse{};
     ContextMenuRequest* context_request{};
     const CommandInvocation* invocation{};
+    const DragInteraction* drag{};
     RuleValuePayload value{};
     const InteractionSnapshot* state{};
     SurfaceRoot* window{};
@@ -282,9 +286,20 @@ struct Rule final {
 
 namespace detail {
 
+// The payload an interaction's argument gives a firing: a typed drag
+// interaction's record (borrowed for the firing) and nothing for any other
+// argument.
+template <typename Argument>
+void note_rule_payload(RuleFiring&, const Argument&) noexcept {}
+
+inline void note_rule_payload(RuleFiring& firing, const DragInteraction& interaction) noexcept {
+    firing.drag = &interaction;
+}
+
 // interaction's connection to a control's typed event: each emission fires
-// the tap; the event's arguments are not carried (the trigger has no
-// payload beyond its control).
+// the tap; of the event's arguments only a typed drag interaction's record
+// is carried (RuleFiring::drag), otherwise the trigger has no payload
+// beyond its control.
 template <typename... Arguments>
 class RuleEventSource final : public RuleSource {
 public:
@@ -299,8 +314,9 @@ public:
     }
     [[nodiscard]] const void* identity() const noexcept override { return event_; }
 
-    void fire(Arguments...) {
+    void fire(Arguments... arguments) {
         RuleFiring firing{};
+        (note_rule_payload(firing, arguments), ...);
         fire_rule_tap(*tap_, firing);
     }
 

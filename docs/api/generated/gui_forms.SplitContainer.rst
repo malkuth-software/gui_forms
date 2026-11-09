@@ -169,6 +169,21 @@ gui_forms::SplitContainer
          raises it with :cpp:enumerator:`SplitChangeReason::collapse <gui_forms::SplitChangeReason::collapse>` and the collapse origin, even
          when the distance stays the same.
 
+      **drag_started** : ``Event<const DragInteraction&>``
+         The seam drag began (a press on the seam or the keyboard drag), with a
+         :cpp:class:`DragInteraction <gui_forms::DragInteraction>` holding the starting distance.
+
+      **drag_target_changed** : ``Event<const DragInteraction&>``
+         Never raised by the seam, whose drag has no candidates.
+
+      **drag_dropped** : ``Event<const DragInteraction&>``
+         Raised after :cpp:func:`splitter_changed <gui_forms::SplitContainer::splitter_changed>` when a release or Enter commits the
+         drag, with the committed distance.
+
+      **drag_ended** : ``Event<const DragInteraction&>``
+         Raised after every end, last, with its kind (:cpp:enum:`DragEnd <gui_forms::DragEnd>`); an end that
+         restores carries no value.
+
    :Inherited:
 
       From :cpp:class:`ContainerControl <gui_forms::ContainerControl>`: properties :cpp:member:`auto_validate <gui_forms::ContainerControl::auto_validate>`, :cpp:func:`active_control <gui_forms::ContainerControl::active_control>`, :cpp:func:`effective_auto_validate <gui_forms::ContainerControl::effective_auto_validate>`; events :cpp:func:`auto_validate_changed <gui_forms::ContainerControl::auto_validate_changed>`; methods :cpp:func:`clear_active_control <gui_forms::ContainerControl::clear_active_control>`, :cpp:func:`contains_descendant <gui_forms::ContainerControl::contains_descendant>`, :cpp:func:`request_active_control <gui_forms::ContainerControl::request_active_control>`, :cpp:func:`validate <gui_forms::ContainerControl::validate>`, :cpp:func:`validate_children <gui_forms::ContainerControl::validate_children>`.
@@ -481,6 +496,25 @@ gui_forms::SplitContainer
       extent. Collapsing or restoring a panel, by any means, always
       raises it with :cpp:enumerator:`SplitChangeReason::collapse <gui_forms::SplitChangeReason::collapse>` and the collapse origin, even
       when the distance stays the same.
+
+   .. cpp:function:: Event<const DragInteraction&>& drag_started() noexcept
+
+      The seam drag began (a press on the seam or the keyboard drag), with a
+      :cpp:class:`DragInteraction <gui_forms::DragInteraction>` holding the starting distance.
+
+   .. cpp:function:: Event<const DragInteraction&>& drag_target_changed() noexcept
+
+      Never raised by the seam, whose drag has no candidates.
+
+   .. cpp:function:: Event<const DragInteraction&>& drag_dropped() noexcept
+
+      Raised after :cpp:func:`splitter_changed <gui_forms::SplitContainer::splitter_changed>` when a release or Enter commits the
+      drag, with the committed distance.
+
+   .. cpp:function:: Event<const DragInteraction&>& drag_ended() noexcept
+
+      Raised after every end, last, with its kind (:cpp:enum:`DragEnd <gui_forms::DragEnd>`); an end that
+      restores carries no value.
 
 
    .. rubric:: Methods

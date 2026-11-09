@@ -67,6 +67,22 @@ gui_forms::Splitter
       **splitter_moved** : ``Event<const SplitterMoveEvent&>``
          The drag ended, with the extent the target took.
 
+      **drag_started** : ``Event<const DragInteraction&>``
+         The drag engine planned the drag (at the press), with a
+         :cpp:class:`DragInteraction <gui_forms::DragInteraction>` holding the extent before the drag.
+
+      **drag_target_changed** : ``Event<const DragInteraction&>``
+         Never raised by a splitter, whose drag has no candidates; listed with
+         the other typed drag interactions.
+
+      **drag_dropped** : ``Event<const DragInteraction&>``
+         Raised after splitter_moved when a release or Enter commits the drag,
+         with the committed extent.
+
+      **drag_ended** : ``Event<const DragInteraction&>``
+         Raised after every end, last, with its kind (:cpp:enum:`DragEnd <gui_forms::DragEnd>`); an end that
+         restores carries no value.
+
    :Inherited:
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
@@ -87,7 +103,8 @@ gui_forms::Splitter
    the window gives a running drag its keys, so Escape cancels one. The
    ``begin_keyboard_drag`` rule action moves the bar from the keyboard: the
    arrows along its axis step by 10 units (Ctrl 100, Shift 1), Enter keeps
-   the position and Escape restores it. It is published to accessibility as a
+   the position and Escape restores it. Each step and the end are announced
+   through the window's live region ("Split position 150, done"). It is published to accessibility as a
    separator whose value is the split position, with increment, decrement (10
    units) and set-value actions.
 
@@ -163,6 +180,26 @@ gui_forms::Splitter
    .. cpp:function:: Event<const SplitterMoveEvent&>& splitter_moved() noexcept
 
       The drag ended, with the extent the target took.
+
+   .. cpp:function:: Event<const DragInteraction&>& drag_started() noexcept
+
+      The drag engine planned the drag (at the press), with a
+      :cpp:class:`DragInteraction <gui_forms::DragInteraction>` holding the extent before the drag.
+
+   .. cpp:function:: Event<const DragInteraction&>& drag_target_changed() noexcept
+
+      Never raised by a splitter, whose drag has no candidates; listed with
+      the other typed drag interactions.
+
+   .. cpp:function:: Event<const DragInteraction&>& drag_dropped() noexcept
+
+      Raised after splitter_moved when a release or Enter commits the drag,
+      with the committed extent.
+
+   .. cpp:function:: Event<const DragInteraction&>& drag_ended() noexcept
+
+      Raised after every end, last, with its kind (:cpp:enum:`DragEnd <gui_forms::DragEnd>`); an end that
+      restores carries no value.
 
 
    .. rubric:: Extension points

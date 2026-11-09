@@ -136,6 +136,10 @@ public:
         container.set_distance(container.pointer_start_distance_, SplitChangeReason::cancel);
     }
 
+    [[nodiscard]] DragInteractionEvents* drag_interactions() noexcept override {
+        return &(*container_).drag_interactions_;
+    }
+
 private:
     [[nodiscard]] static SplitChangeReason reason_for(DragInputMode mode) noexcept {
         const SplitChangeReason reason =
@@ -976,8 +980,12 @@ SplitContainer::States SplitContainer::states() const {
 namespace {
 
 // The events SplitContainer adds to those of ContainerControl, in declaration order.
-constexpr std::array<InteractionDeclaration, 1> split_container_interactions{{
+constexpr std::array<InteractionDeclaration, 5> split_container_interactions{{
     {.name = "splitter_changed", .payload = "SplitChangeEvent", .mutable_payload = false},
+    {.name = "drag_started", .payload = "DragInteraction", .mutable_payload = false},
+    {.name = "drag_target_changed", .payload = "DragInteraction", .mutable_payload = false},
+    {.name = "drag_dropped", .payload = "DragInteraction", .mutable_payload = false},
+    {.name = "drag_ended", .payload = "DragInteraction", .mutable_payload = false},
 }};
 
 } // namespace

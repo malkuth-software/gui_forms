@@ -1747,6 +1747,8 @@ private:
     // lies in an overlay whose owner does (the reach of the stable-identity
     // overload's virtual-child search).
     [[nodiscard]] bool semantic_scope_reaches(const Control::Ptr& control) const;
+    // Appends the drag engine's live region to a snapshot (phase E4).
+    void append_drag_announcements(SemanticSnapshot& snapshot) const;
     using DeferredInput = std::variant<
         PointerEvent, KeyEvent, TextInputEvent, DragEvent,
         DeferredSemanticInput>;
