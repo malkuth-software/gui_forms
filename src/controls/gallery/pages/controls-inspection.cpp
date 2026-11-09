@@ -19,7 +19,10 @@ namespace {
 // 1000 x 660 page body.
 constexpr double row_label_width = 112.0;
 constexpr double cell_width = 144.0;
-constexpr double caption_height = 14.0;
+constexpr double caption_height = 18.0;
+// Between a caption and its control, and between rows.
+constexpr double caption_gap = 3.0;
+constexpr double row_gap = 6.0;
 constexpr double grid_left = 8.0;
 constexpr double grid_top = 34.0;
 
@@ -49,7 +52,7 @@ void add_row_title(Surface& page, const InspectionRow& row) {
     id += row.stem;
     id += ".title";
     const std::shared_ptr<Label> title = make_control<Label>(StableId(id), std::string(row.title));
-    page.add_at(title, {grid_left, row.top + caption_height, row_label_width - 8.0, row.control_height});
+    page.add_at(title, {grid_left, row.top + caption_height + caption_gap, row_label_width - 8.0, row.control_height});
 }
 
 // Places `control` in column `column` of `row`, under a caption naming
@@ -60,7 +63,7 @@ void add_cell(Surface& page, const InspectionRow& row, std::size_t column, std::
     const std::shared_ptr<Label> caption =
         make_control<Label>(StableId(inspection_id(row, state, "caption")), std::string(state));
     page.add_at(caption, {left, row.top, cell_width - 8.0, caption_height});
-    page.add_at(control, {left, row.top + caption_height, cell_width - 12.0, row.control_height});
+    page.add_at(control, {left, row.top + caption_height + caption_gap, cell_width - 12.0, row.control_height});
 }
 
 void add_buttons(Surface& page, const InspectionRow& row) {
@@ -191,8 +194,14 @@ std::shared_ptr<Range> range(const InspectionRow& row, std::string_view state, b
 void add_ranges(Surface& page, const InspectionRow& track, const InspectionRow& progress, const InspectionRow& scroll) {
     add_cell(page, track, 0U, "normal", range<TrackBar>(track, "normal", true));
     add_cell(page, track, 1U, "disabled", range<TrackBar>(track, "disabled", false));
-    add_cell(page, progress, 0U, "normal", range<ProgressBar>(progress, "normal", true));
-    add_cell(page, progress, 1U, "disabled", range<ProgressBar>(progress, "disabled", false));
+    // Windows Forms' default progress style is blocks; both are shown.
+    const std::shared_ptr<ProgressBar> blocks = range<ProgressBar>(progress, "blocks", true);
+    (*blocks).visual_style = ProgressBarVisualStyle::blocks;
+    add_cell(page, progress, 0U, "blocks", blocks);
+    const std::shared_ptr<ProgressBar> blocks_disabled = range<ProgressBar>(progress, "blocks disabled", false);
+    (*blocks_disabled).visual_style = ProgressBarVisualStyle::blocks;
+    add_cell(page, progress, 1U, "blocks disabled", blocks_disabled);
+    add_cell(page, progress, 2U, "continuous", range<ProgressBar>(progress, "continuous", true));
     add_cell(page, scroll, 0U, "normal", range<HScrollBar>(scroll, "normal", true));
     add_cell(page, scroll, 1U, "disabled", range<HScrollBar>(scroll, "disabled", false));
 }
@@ -232,18 +241,44 @@ void add_controls_inspection(const std::shared_ptr<Surface>& page,
         StableId("gallery.inspection.heading"),
         "Every stock control at rest in the window's theme. Hot, pressed and focus: the specimen sheet.");
     body.add_at(heading, {grid_left, 8.0, 980.0, 18.0});
-    const InspectionRow buttons{"button", "Button", grid_top, 24.0};
-    const InspectionRow checks{"check-box", "CheckBox", grid_top + 44.0, 20.0};
-    const InspectionRow radios{"radio-button", "RadioButton", grid_top + 84.0, 20.0};
-    const InspectionRow texts{"text-box", "TextBox", grid_top + 124.0, 24.0};
-    const InspectionRow combos{"combo-box", "ComboBox", grid_top + 168.0, 24.0};
-    const InspectionRow lists{"list-box", "ListBox", grid_top + 212.0, 64.0};
-    const InspectionRow spinners{"numeric-up-down", "NumericUpDown", grid_top + 296.0, 24.0};
-    const InspectionRow tracks{"track-bar", "TrackBar", grid_top + 340.0, 32.0};
-    const InspectionRow progress{"progress-bar", "ProgressBar", grid_top + 392.0, 18.0};
-    const InspectionRow scrolls{"h-scroll-bar", "HScrollBar", grid_top + 430.0, 17.0};
-    const InspectionRow groups{"group-box", "GroupBox", grid_top + 467.0, 56.0};
-    const InspectionRow labels{"label", "Label, LinkLabel", grid_top + 543.0, 20.0};
+    // Each row's top: the previous row's top, caption, gap, control and
+    // the gap between rows.
+    std::array<InspectionRow, 12> grid{{
+        {"button", "Button", 0.0, 24.0},
+        {"check-box", "CheckBox", 0.0, 20.0},
+        {"radio-button", "RadioButton", 0.0, 20.0},
+        {"text-box", "TextBox", 0.0, 24.0},
+        {"combo-box", "ComboBox", 0.0, 24.0},
+        {"list-box", "ListBox", 0.0, 64.0},
+        {"numeric-up-down", "NumericUpDown", 0.0, 24.0},
+        {"track-bar", "TrackBar", 0.0, 32.0},
+        {"progress-bar", "ProgressBar", 0.0, 18.0},
+        {"h-scroll-bar", "HScrollBar", 0.0, 17.0},
+        {"group-box", "GroupBox", 0.0, 48.0},
+        {"label", "Label, LinkLabel", 0.0, 18.0},
+    }};
+    double top = grid_top;
+    for (InspectionRow& row : grid) {
+        row.top = top;
+        top = top + caption_height + caption_gap + row.control_height + row_gap;
+    }
+    // The theme's own ground under the grid: a borderless panel, so the
+    // controls stand on the face their theme draws them for, not on the
+    // Gallery's page ground.
+    const std::shared_ptr<Panel> ground = make_control<Panel>(StableId("gallery.inspection.ground"));
+    body.add_at(ground, {0.0, grid_top - 6.0, 1000.0, top - grid_top + 6.0});
+    const InspectionRow& buttons = grid[0];
+    const InspectionRow& checks = grid[1];
+    const InspectionRow& radios = grid[2];
+    const InspectionRow& texts = grid[3];
+    const InspectionRow& combos = grid[4];
+    const InspectionRow& lists = grid[5];
+    const InspectionRow& spinners = grid[6];
+    const InspectionRow& tracks = grid[7];
+    const InspectionRow& progress = grid[8];
+    const InspectionRow& scrolls = grid[9];
+    const InspectionRow& groups = grid[10];
+    const InspectionRow& labels = grid[11];
     const std::array<const InspectionRow*, 12> rows{&buttons, &checks, &radios, &texts, &combos, &lists,
                                                     &spinners, &tracks, &progress, &scrolls, &groups, &labels};
     for (const InspectionRow* row : rows) add_row_title(body, *row);

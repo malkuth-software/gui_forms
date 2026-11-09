@@ -1,4 +1,5 @@
 #include "gui_forms/theme/familiar_themes/familiar_themes.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
 #include "../theme_compiler/built_in_theme.hpp"
 
@@ -42,11 +43,10 @@ constexpr std::string_view classic_sheet = R"css(/* classic: the Windows 2000 lo
    thin edge has a #404040 shadow side (Windows' #808080 is 2.6:1 on the
    face; the gate is 3:1).
    Disabled text is #808080 (Windows embosses it in white; we do not):
-   disabled controls are exempt from the gate. Every control draws the one
-   content face, as Windows 2000 draws Tahoma throughout. */
+   disabled controls are exempt from the gate. Fonts and the scroll bar's
+   dithered track are in the parts sheet below. */
 
 * {
-  font-family: content;
   color: #000000;
   muted-color: #404040;
   glyph-color: #000000;
@@ -86,7 +86,7 @@ constexpr std::string_view classic_sheet = R"css(/* classic: the Windows 2000 lo
 
 /* Push buttons: raised soft; pressed, a black frame round a shadow line;
    a checked toggle sunken on a lighter face. The default button gains the
-   black ring (default-outline). */
+   black ring (default-outline); its bevel is in the parts sheet. */
 :family(button), :family(accent-button) {
   background: #d4d0c8;
   border: 1px solid #404040;
@@ -225,6 +225,43 @@ constexpr std::string_view classic_sheet = R"css(/* classic: the Windows 2000 lo
   color: #808080;
   muted-color: #808080;
   glyph-color: #808080;
+}
+)css";
+
+// classic's parts sheet (compiled rules, after the floor): every control
+// draws the bundled content face at 11 px, standing in for Windows 2000's
+// Tahoma at 8 pt (11 px at 96 dpi; we bundle no Tahoma), and a scroll
+// bar's track is Windows' 50 % dither of white over the face: stripes at
+// 45 degrees one diagonal pixel wide, which fall on alternate pixel
+// centres as a checker at scale 1 (a gradient fill takes no tile size).
+constexpr std::string_view classic_parts_sheet = R"css(/* classic: parts (Windows 2000). */
+* {
+  font-family: content;
+  font-size: 11px;
+}
+/* Windows 2000 draws the default button's black ring outside a full
+   bevel. One keyline is available, so the bevel inside the ring is the
+   outer pair (white, #404040) and the inner #808080 line is dropped;
+   pressed, the ring encloses the shadow line as on any button. */
+button:default::part(face) {
+  border-color: #000000;
+  keylines: #ffffff #404040 #404040 #ffffff;
+}
+button:default:active::part(face) {
+  keylines: #808080 #808080 #808080 #808080;
+}
+/* A disabled button is never the default: no ring, the plain bevel. */
+button:default:disabled::part(face) {
+  border-color: #ffffff #404040 #404040 #ffffff;
+  keylines: #d4d0c8 #808080 #808080 #d4d0c8;
+}
+button:default:disabled {
+  default-outline: 0px #000000;
+}
+h-scroll-bar::part(track), v-scroll-bar::part(track) {
+  background-color: #d4d0c8;
+  background-image: repeating-linear-gradient(45deg, #ffffff 0 0.7071px, transparent 0.7071px 1.4142px);
+  border: none;
 }
 )css";
 
@@ -512,18 +549,31 @@ constexpr std::string_view xp_style_sheet = R"css(/* xp-style: a Luna-like look 
   border-color: #003c74;
 }
 
-:family(choice), :family(editor) {
+:family(editor) {
   background: #ffffff;
   border: 1px solid #4f6f99;
   border-radius: 0;
+}
+/* Luna's check box and radio button: a #1c5180 frame round a fill from
+   #dcdcd7 to white, the mark green; pressed, the fill darkens. Contrast
+   fix: the mark is #107a10 (Luna's #21a121 is 2.5:1 on #dcdcd7, the glyph
+   gate is 3:1) and the pressed fill starts at #c4c4bb (Luna's #b0b0a7 under
+   the mark is 2.5:1). */
+:family(choice) {
+  background: linear-gradient(to bottom right, #dcdcd7, #ffffff);
+  border: 1px solid #1c5180;
+  border-radius: 0;
+  glyph-color: #107a10;
+}
+:family(choice):active {
+  background: linear-gradient(to bottom right, #c4c4bb, #e3e1d4);
 }
 :family(progress) {
   background: #ffffff;
   border: 1px solid #686868;
   border-radius: 4px;
 }
-:family(choice):hover, :family(editor):hover, :family(progress):hover, :family(choice):active,
-:family(editor):active, :family(progress):active {
+:family(editor):hover, :family(progress):hover, :family(editor):active, :family(progress):active {
   border-color: #2267cb;
 }
 :family(choice):state(pending), :family(editor):state(pending), :family(progress):state(pending) {
@@ -555,8 +605,8 @@ constexpr std::string_view xp_style_sheet = R"css(/* xp-style: a Luna-like look 
 }
 :family(menu-item):hover, :family(menu-item):active, :family(menu-item):state(selected), :family(selection):hover,
 :family(selection):active, :family(selection):state(selected) {
-  background: #2267cb;
-  border-color: #2267cb;
+  background: #316ac5;
+  border-color: #316ac5;
   color: #ffffff;
   muted-color: #f0f4fb;
   glyph-color: #ffffff;
@@ -583,8 +633,8 @@ constexpr std::string_view xp_style_sheet = R"css(/* xp-style: a Luna-like look 
 }
 
 :family(badge) {
-  background: #2267cb;
-  border: 1px solid #2267cb;
+  background: #316ac5;
+  border: 1px solid #316ac5;
   border-radius: 0;
   color: #ffffff;
   muted-color: #f0f4fb;
@@ -599,6 +649,75 @@ constexpr std::string_view xp_style_sheet = R"css(/* xp-style: a Luna-like look 
   color: #aca899;
   muted-color: #aca899;
   glyph-color: #aca899;
+}
+)css";
+
+constexpr std::string_view xp_style_parts_sheet = R"css(/* xp-style: parts (Luna). Luna's face is
+   Tahoma 8 pt, which is not bundled: the bundled body face stands in.
+   Scroll bar thumbs and arrows and the combo box's drop button are Luna's
+   pale blue plates with slate arrows; the scroll track is pale stock. A
+   group box keeps the panel's #aca899 frame and a black caption (Luna's
+   #d0d0bf frame and blue #0046d5 caption are not reachable: its rules and
+   caption take the panel's colours). */
+* {
+  font-family: content;
+  font-size: 11px;
+}
+h-scroll-bar::part(track) {
+  background: linear-gradient(to bottom, #f3f1ec, #fefefb);
+  border: none;
+}
+v-scroll-bar::part(track) {
+  background: linear-gradient(to right, #f3f1ec, #fefefb);
+  border: none;
+}
+h-scroll-bar::part(thumb), h-scroll-bar::part(increment-arrow), h-scroll-bar::part(decrement-arrow),
+combo-box::part(drop-down) {
+  background: linear-gradient(to bottom, #d4e1fd, #b6cbf6);
+  border: 1px solid #98b1ea;
+  border-radius: 3px;
+  keylines: none;
+}
+v-scroll-bar::part(thumb), v-scroll-bar::part(increment-arrow), v-scroll-bar::part(decrement-arrow) {
+  background: linear-gradient(to right, #d4e1fd, #b6cbf6);
+  border: 1px solid #98b1ea;
+  border-radius: 3px;
+  keylines: none;
+}
+h-scroll-bar::part(thumb):hover, h-scroll-bar::part(increment-arrow):hover, h-scroll-bar::part(decrement-arrow):hover,
+v-scroll-bar::part(thumb):hover, v-scroll-bar::part(increment-arrow):hover, v-scroll-bar::part(decrement-arrow):hover,
+combo-box::part(drop-down):hover {
+  background: linear-gradient(to bottom, #e3edfe, #c4d6fb);
+}
+h-scroll-bar::part(thumb):active, h-scroll-bar::part(increment-arrow):active, h-scroll-bar::part(decrement-arrow):active,
+v-scroll-bar::part(thumb):active, v-scroll-bar::part(increment-arrow):active, v-scroll-bar::part(decrement-arrow):active,
+combo-box::part(drop-down):active {
+  background: linear-gradient(to bottom, #a9bff0, #c2d4f8);
+}
+h-scroll-bar:disabled::part(thumb), h-scroll-bar:disabled::part(increment-arrow), h-scroll-bar:disabled::part(decrement-arrow),
+v-scroll-bar:disabled::part(thumb), v-scroll-bar:disabled::part(increment-arrow), v-scroll-bar:disabled::part(decrement-arrow),
+combo-box:disabled::part(drop-down) {
+  background: #f4f3ee;
+  border-color: #e3e1d4;
+}
+h-scroll-bar, v-scroll-bar, combo-box {
+  glyph-color: #4d6185;
+}
+h-scroll-bar:disabled, v-scroll-bar:disabled, combo-box:disabled {
+  glyph-color: #c9c7ba;
+}
+/* Luna's default button: the blue inner light; hot, the orange one. */
+button:default::part(face) {
+  keylines: #cee7ff #bcd4f6 #89ade4 #98b8ea;
+}
+button:default:hover::part(face) {
+  keylines: #fff0cf #fbc761 #e5a01a #fdd889;
+}
+button:default:active::part(face), button:default:disabled::part(face) {
+  keylines: none;
+}
+button:default:disabled {
+  default-outline: 0px #003c74;
 }
 )css";
 
@@ -802,6 +921,171 @@ constexpr std::string_view windows7_style_sheet = R"css(/* windows7-style: an Ae
   color: #838383;
   muted-color: #838383;
   glyph-color: #838383;
+}
+)css";
+
+constexpr std::string_view windows7_style_parts_sheet = R"css(/* windows7-style: parts (Aero). Aero's face
+   is Segoe UI 9 pt, which is not bundled: the bundled body face stands in
+   at 12 px. The scroll track is Aero's pale grey; the thumb is the grey
+   gloss in a #979797 frame; the arrow buttons are clear until hot, when
+   they take the thumb's gloss. */
+* {
+  font-family: content;
+  font-size: 12px;
+}
+h-scroll-bar::part(track) {
+  background: linear-gradient(to bottom, #e3e3e3, #f0f0f0 20%, #f0f0f0 80%, #e3e3e3);
+  border: none;
+}
+v-scroll-bar::part(track) {
+  background: linear-gradient(to right, #e3e3e3, #f0f0f0 20%, #f0f0f0 80%, #e3e3e3);
+  border: none;
+}
+h-scroll-bar::part(thumb), h-scroll-bar::part(increment-arrow):hover, h-scroll-bar::part(decrement-arrow):hover {
+  background: linear-gradient(to bottom, #f5f5f5, #e9e9e9 45%, #d9d9d9 46%, #cfcfcf);
+  border: 1px solid #979797;
+  border-radius: 2px;
+  keylines: #f8f8f8 #f8f8f8 #f8f8f8 #f8f8f8;
+}
+v-scroll-bar::part(thumb), v-scroll-bar::part(increment-arrow):hover, v-scroll-bar::part(decrement-arrow):hover {
+  background: linear-gradient(to right, #f5f5f5, #e9e9e9 45%, #d9d9d9 46%, #cfcfcf);
+  border: 1px solid #979797;
+  border-radius: 2px;
+  keylines: #f8f8f8 #f8f8f8 #f8f8f8 #f8f8f8;
+}
+h-scroll-bar::part(increment-arrow), h-scroll-bar::part(decrement-arrow),
+v-scroll-bar::part(increment-arrow), v-scroll-bar::part(decrement-arrow) {
+  background: #ffffff00;
+  border: 1px solid #ffffff00;
+  border-radius: 2px;
+  keylines: none;
+}
+h-scroll-bar::part(thumb):hover, v-scroll-bar::part(thumb):hover {
+  background: linear-gradient(to bottom, #eaf6fd, #d9f0fc 45%, #bee6fd 46%, #a7d9f5);
+  border-color: #3c7fb1;
+}
+v-scroll-bar::part(thumb):hover {
+  background: linear-gradient(to right, #eaf6fd, #d9f0fc 45%, #bee6fd 46%, #a7d9f5);
+}
+h-scroll-bar:disabled::part(thumb), v-scroll-bar:disabled::part(thumb) {
+  background: #f0f0f0;
+  border-color: #d9d9d9;
+  keylines: none;
+}
+h-scroll-bar, v-scroll-bar {
+  glyph-color: #4d4d4d;
+}
+/* A disabled button is never the default: no ring. */
+button:default:disabled {
+  default-outline: 0px #5586a3;
+}
+)css";
+
+constexpr std::string_view macos_style_parts_sheet = R"css(/* macos-style: parts (AppKit). The system face
+   is SF Pro 13 pt, which is not bundled: the bundled body face stands in.
+   As AppKit: the default push button is the accent with white text; a
+   checked check box or radio button is an accent well with a white mark;
+   the combo box's drop button is the accent with a white chevron; push
+   buttons and wells are white in light mode; scroll bars are a pale track
+   with a grey capsule thumb and clear arrows (the frames keep the theme's
+   #949494 contrast fix). */
+* {
+  font-family: content;
+  font-size: 13px;
+}
+button:default::part(face), combo-box::part(drop-down),
+check-box:checked::part(well), check-box:indeterminate::part(well), radio-button:checked::part(well) {
+  background: #0069f9;
+  border-color: #0069f9;
+}
+button:default:active::part(face), combo-box::part(drop-down):active {
+  background: #005bd9;
+  border-color: #005bd9;
+}
+button:default, combo-box, check-box:checked, check-box:indeterminate, radio-button:checked {
+  glyph-color: #ffffff;
+}
+button:default {
+  color: #ffffff;
+}
+combo-box:disabled::part(drop-down), check-box:checked:disabled::part(well),
+check-box:indeterminate:disabled::part(well), radio-button:checked:disabled::part(well) {
+  background: #0069f966;
+  border-color: #0069f900;
+}
+combo-box:disabled, check-box:checked:disabled, check-box:indeterminate:disabled, radio-button:checked:disabled {
+  glyph-color: #ffffffb0;
+}
+/* A disabled default button loses the accent, as in AppKit. */
+button:default:disabled::part(face) {
+  background: #0000000a;
+  border-color: #0000001f;
+}
+button:default:disabled {
+  color: #00000040;
+  default-outline: 1px #0000001f;
+}
+h-scroll-bar::part(track), v-scroll-bar::part(track) {
+  background: #fafafa;
+  border: none;
+}
+h-scroll-bar::part(thumb), v-scroll-bar::part(thumb) {
+  background: #c1c1c1;
+  border: 1px solid #949494;
+  border-radius: 8px;
+}
+h-scroll-bar::part(increment-arrow), h-scroll-bar::part(decrement-arrow),
+v-scroll-bar::part(increment-arrow), v-scroll-bar::part(decrement-arrow) {
+  background: #ffffff00;
+  border: 1px solid #ffffff00;
+}
+h-scroll-bar, v-scroll-bar {
+  glyph-color: #00000080;
+}
+h-scroll-bar:disabled::part(thumb), v-scroll-bar:disabled::part(thumb) {
+  background: #e6e6e6;
+  border-color: #0000001f;
+}
+@media (prefers-color-scheme: light) {
+  button::part(face), check-box::part(well), radio-button::part(well) {
+    background: #ffffff;
+  }
+  button:active::part(face) {
+    background: #e5e5e5;
+  }
+  button:disabled::part(face), button:default:disabled::part(face), check-box:disabled::part(well),
+  radio-button:disabled::part(well) {
+    background: #ffffff80;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  button:default::part(face), combo-box::part(drop-down),
+  check-box:checked::part(well), check-box:indeterminate::part(well), radio-button:checked::part(well) {
+    background: #0a6cf0;
+    border-color: #0a6cf0;
+  }
+  button:default:disabled::part(face) {
+    background: #ffffff0a;
+    border-color: #ffffff1f;
+  }
+  button:default:disabled {
+    color: #ffffff40;
+    default-outline: 1px #ffffff1f;
+  }
+  h-scroll-bar:disabled::part(thumb), v-scroll-bar:disabled::part(thumb) {
+    background: #3a3a3c;
+    border-color: #ffffff1f;
+  }
+  h-scroll-bar::part(track), v-scroll-bar::part(track) {
+    background: #2a2a2c;
+  }
+  h-scroll-bar::part(thumb), v-scroll-bar::part(thumb) {
+    background: #6b6b6b;
+    border-color: #676767;
+  }
+  h-scroll-bar, v-scroll-bar {
+    glyph-color: #ffffff80;
+  }
 }
 )css";
 
@@ -1299,6 +1583,10 @@ struct FamiliarDescription final {
     std::string_view file{};
     std::string_view dark_sheet{};
     std::string_view dark_file{};
+    // Compiled rules over the evaluated floor (parts and fonts the floor's
+    // recipes cannot carry); empty for none.
+    std::string_view parts_sheet{};
+    std::string_view parts_file{};
     FamiliarStructure structure{};
 };
 
@@ -1306,6 +1594,8 @@ constexpr std::array<FamiliarDescription, familiar_theme_count> descriptions{{
     {.id = "classic",
      .sheet = classic_sheet,
      .file = "classic/floor.css",
+     .parts_sheet = classic_parts_sheet,
+     .parts_file = "classic/parts.css",
      .structure = {.dotted_focus = true,
                    .focus_width = 1.0,
                    .pressed_content_offset = Point{1.0, 1.0},
@@ -1340,6 +1630,8 @@ constexpr std::array<FamiliarDescription, familiar_theme_count> descriptions{{
     {.id = "xp-style",
      .sheet = xp_style_sheet,
      .file = "xp-style/floor.css",
+     .parts_sheet = xp_style_parts_sheet,
+     .parts_file = "xp-style/parts.css",
      .structure = {.dotted_focus = true,
                    .focus_width = 1.0,
                    .pressed_content_offset = Point{1.0, 1.0},
@@ -1357,6 +1649,8 @@ constexpr std::array<FamiliarDescription, familiar_theme_count> descriptions{{
     {.id = "windows7-style",
      .sheet = windows7_style_sheet,
      .file = "windows7-style/floor.css",
+     .parts_sheet = windows7_style_parts_sheet,
+     .parts_file = "windows7-style/parts.css",
      .structure = {.dotted_focus = true,
                    .focus_width = 1.0,
                    .pressed_content_offset = Point{},
@@ -1376,6 +1670,8 @@ constexpr std::array<FamiliarDescription, familiar_theme_count> descriptions{{
      .file = "macos-style/floor.css",
      .dark_sheet = macos_style_dark_sheet,
      .dark_file = "macos-style/floor-dark.css",
+     .parts_sheet = macos_style_parts_sheet,
+     .parts_file = "macos-style/parts.css",
      .structure = {.dotted_focus = false,
                    .focus_width = 2.0,
                    .pressed_content_offset = Point{},
@@ -1452,6 +1748,14 @@ FamiliarThemeBuild build_familiar_theme(const FamiliarDescription& description) 
         }
     }
     result.theme = Theme::create(*definition);
+    if (!description.parts_sheet.empty()) {
+        // A refused parts sheet leaves the theme its floor alone.
+        detail::BuiltInThemeCompilation compiled = detail::compile_built_in_theme(
+            *definition, description.parts_file, description.parts_sheet, stock_control_anatomies());
+        result.diagnostics.insert(result.diagnostics.end(), compiled.diagnostics.begin(), compiled.diagnostics.end());
+        result.compile_operations += compiled.operations;
+        if (compiled.theme != nullptr) result.theme = std::move(compiled.theme);
+    }
     const std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     result.build_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
     return result;

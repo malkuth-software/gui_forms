@@ -252,6 +252,8 @@ AnatomyStateSet CheckBox::anatomy_states() const {
         states.insert(AnatomyState::checked);
     } else if (check_state_ == CheckState::indeterminate) {
         states.insert(AnatomyState::indeterminate);
+    } else {
+        // Unchecked adds no state.
     }
     return states;
 }

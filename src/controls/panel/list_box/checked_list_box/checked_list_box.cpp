@@ -42,6 +42,7 @@ void CheckedListBox::on_items_changing(const CollectionEdit& edit) {
     case CollectionEditKind::erase:
     case CollectionEditKind::replace:
     default:
+        // Erasing and replacing need no new capacity.
         break;
     }
 }
@@ -64,6 +65,7 @@ void CheckedListBox::on_items_changed(const CollectionEdit& edit) noexcept {
     }
     case CollectionEditKind::replace:
     default:
+        // A replaced item keeps its state.
         break;
     }
 }
@@ -315,6 +317,8 @@ void CheckedListBox::publish_realized_item_geometry(std::size_t item,
         } else if (check_states_[index] == CheckState::indeterminate) {
             const Rect bar{x + 3.0, y + size * 0.5 - 1.5, std::max(0.0, size - 6.0), 3.0};
             record.check = PartGeometry::from_bounds(bar);
+        } else {
+            // An unchecked item draws no mark.
         }
     }
     write_item_parts(anatomy().item_systems.front(), checked_item_part_fields, record, geometry);
@@ -328,6 +332,8 @@ AnatomyStateSet CheckedListBox::realized_item_anatomy_states(std::size_t item) c
             states.insert(AnatomyState::checked);
         } else if (check_states_[index] == CheckState::indeterminate) {
             states.insert(AnatomyState::indeterminate);
+        } else {
+            // An unchecked item adds no state.
         }
     }
     return states;

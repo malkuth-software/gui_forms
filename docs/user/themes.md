@@ -33,7 +33,12 @@ vendor's bitmaps:
 | `modern-flat` | flat, with unmistakable boundaries, hover and focus | none | light |
 | `xp-style` | Luna-like plates with navy frames | XP.css | light |
 | `windows7-style` | Aero-like; opaque until window glass arrives | 7.css | light |
-| `macos-style` | translucent plates with round corners | Puppertino | light and dark |
+| `macos-style` | translucent plates with round corners; AppKit's accent default button, checked wells and drop button | Puppertino, AppKit | light and dark |
+
+The reference systems' faces are not bundled: each of these four themes
+draws its controls in the bundled body face at the reference size (11 px for
+Tahoma 8 pt in `classic` and `xp-style`, 12 px for Segoe UI 9 pt in
+`windows7-style`, 13 px for the macOS system face).
 
 ```cpp
 #include <gui_forms/gui_forms.hpp>

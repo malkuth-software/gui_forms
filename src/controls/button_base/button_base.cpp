@@ -785,6 +785,7 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
     if (selected) states.insert(AnatomyState::selected);
     if (focus_cue_visible()) states.insert(AnatomyState::focus_visible);
     if (default_cue) states.insert(AnatomyState::preselect);
+    if (!effectively_enabled()) states.insert(AnatomyState::disabled);
     if (engine_drawn) {
         PartPaint face;
         face.family = role;
@@ -976,6 +977,8 @@ SemanticDescriptor ButtonBase::semantic_descriptor() const {
         descriptor.states |= SemanticState::busy;
     } else if (visual_status() == ControlVisualStatus::invalid) {
         descriptor.states |= SemanticState::invalid;
+    } else {
+        // A normal status publishes no state.
     }
     if (expanded_state.read()) {
         if (*expanded_state.read()) descriptor.states |= SemanticState::expanded;
