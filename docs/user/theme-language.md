@@ -146,8 +146,9 @@ package's. The base alone is the program's own sheet.
 an owned window or a floating panel in its own window is a `window`; a
 native popup window (an alert-like owned window, such as a task dialog's or
 a font dialog's panel) is a `popup`. Menus, drop-downs and tooltips are
-overlays: GUI.Forms draws them in the surface's own pixels, so ordinary
-control rules style them and they take no backdrop. Their classes and stable ID
+their owner's controls, painted by the owner whether they show as overlays
+or in Popup and Splash windows, so ordinary control rules style them and
+they take no backdrop. Their classes and stable ID
 are the surface root control's. A surface selector takes no control type,
 part, role or state, and a surface rule holds `backdrop` alone (any other
 property is a warning). A surface selector counts as a control type in

@@ -132,8 +132,8 @@ window opaque (`host_unsupported`). The measurements behind this are in
 [`planning/stages/T5-compositor/MEASUREMENTS.md`](https://github.com/malkuth-software/notes/blob/gui_forms/planning/stages/T5-compositor/MEASUREMENTS.md).
 
 **Owned and popup windows.** What a host can grant a window owned by
-another (a floating panel, and in time a native popup, menu or tooltip)
-is reported in that window's own `CompositorState`, as for any window:
+another (a floating panel or a native popup) is reported in that window's
+own `CompositorState`, as for any window:
 
 | Owned or popup window | macOS | Windows | X11 |
 |---|---|---|---|
@@ -141,9 +141,10 @@ is reported in that window's own `CompositorState`, as for any window:
 | system material (blur) | `NSVisualEffectView` in the owned window or panel | DWM system backdrop on the owned window (Windows 11 22H2 and later) | none; any blur is the compositing manager's own |
 | saturation of the material | no | no | no |
 
-Menus, drop-downs and tooltips drawn inside their owner's surface are
-overlays, the window's own pixels, and paint with the theme's materials
-([Transparency, glass and reflections](transparency.md), "Window
+Menus, drop-downs and tooltips are painted by their owner with the theme's
+materials, whether they are composited into it as overlays or shown in Popup
+and Splash windows ([Overlays, Popups and Splash](overlays-popups-and-splash);
+[Transparency, glass and reflections](transparency.md), "Window
 backdrops").
 
 The headless reference host simulates these capabilities
