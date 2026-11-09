@@ -8969,6 +8969,7 @@
         {"name": "scroll_left_glyph", "role": "glyph", "composed_from": null, "states": ["hot", "pressed"]},
         {"name": "scroll_right", "role": "actuator", "composed_from": "button", "states": ["hot", "pressed"]},
         {"name": "scroll_right_glyph", "role": "glyph", "composed_from": null, "states": ["hot", "pressed"]},
+        {"name": "help_button", "role": "actuator", "composed_from": "button", "states": ["hot", "pressed", "focus_visible"]},
         {"name": "focus", "role": "focus", "composed_from": null, "states": []}
       ],
       "states": ["normal", "enabled", "disabled", "focused", "focus_visible"],

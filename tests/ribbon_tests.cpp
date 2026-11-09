@@ -147,18 +147,20 @@ bool key(Window& window, std::uint32_t physical, Modifier modifiers = Modifier::
 void geometry() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     const ControlAnatomy& anatomy = (*ribbon).anatomy();
     require(validate_control_anatomy(anatomy).defect == AnatomyDefect::none && anatomy.control_id == "ribbon" &&
                 anatomy.item_systems.size() == 3U,
             "Ribbon publishes a valid anatomy with tab, group and command systems");
-    require((*ribbon).measure({900.0, 400.0}).height == 24.0 + 88.0,
+    require((*ribbon).measure({900.0, 400.0}).height == 27.0 + 88.0,
             "the ribbon is its tab row over its command plane");
     const Ribbon::Parts parts = (*ribbon).parts();
     require(parts.tab_rail.present && parts.application_button.present && parts.command_plane.present &&
                 parts.command_plane.bounds.y == parts.tab_rail.bounds.height,
             "the tab row is above the command plane");
+    require(find_part(anatomy, "help_button") && !parts.help_button.present,
+            "the help button's part is reserved and not yet placed (owner, N4)");
     const std::vector<Ribbon::Tab> tabs = (*ribbon).realized_tabs();
     require(tabs.size() == 2U && tabs[0].states.selected && !tabs[1].states.selected &&
                 tabs[0].parts.tab.bounds.x >= parts.application_button.bounds.x + parts.application_button.bounds.width,
@@ -189,7 +191,7 @@ void geometry() {
     require((*copy).parts.command_label.present, "labels are shown at every size");
 
     RecordingPainter painter;
-    static_cast<void>(window.paint(painter, {0.0, 0.0, 900.0, 112.0}));
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 900.0, 115.0}));
     require(painted(painter, "File") && painted(painter, "Home") && painted(painter, "Clipboard") &&
                 painted(painter, "Paste") && painted(painter, "Copy") && !painted(painter, "&Copy") &&
                 !painted(painter, "Bold") && painter.images >= 2 && painter.lines >= 5,
@@ -199,7 +201,7 @@ void geometry() {
 void one_command_path() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     int pastes = 0;
     int cuts = 0;
@@ -241,7 +243,7 @@ void one_command_path() {
 void tab_navigation() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     std::vector<std::string> launches;
     SubscriptionToken launched = (*ribbon).dialog_launcher_clicked().subscribe(RecordLaunch{&launches});
@@ -266,7 +268,7 @@ void tab_navigation() {
 void state_repaints_only_its_command() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     static_cast<void>(window.take_damage());
     const std::vector<Ribbon::CommandItem> items = (*ribbon).realized_commands();
@@ -283,14 +285,14 @@ void state_repaints_only_its_command() {
 void minimize_by_tab_click() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     const std::shared_ptr<ComboBox> font = (*ribbon).combo_box("font-name");
     const std::vector<Ribbon::Tab> tabs = (*ribbon).realized_tabs();
     click(window, centre(tabs[0].parts.tab.bounds));
     window.perform_layout();
     require((*ribbon).minimized.read() && !(*ribbon).parts().command_plane.present &&
-                (*ribbon).measure({900.0, 400.0}).height == 24.0 && (*ribbon).realized_tabs().size() == 2U &&
+                (*ribbon).measure({900.0, 400.0}).height == 27.0 && (*ribbon).realized_tabs().size() == 2U &&
                 !(*font).effectively_visible(),
             "clicking the selected tab minimizes the plane, keeping the tabs");
     click(window, centre(tabs[0].parts.tab.bounds));
@@ -309,7 +311,7 @@ void minimize_by_tab_click() {
 void hosted_controls() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     const std::shared_ptr<ComboBox> font = (*ribbon).combo_box("font-name");
     const std::shared_ptr<NumericUpDown> size = (*ribbon).numeric_up_down("font-size");
@@ -336,7 +338,7 @@ void hosted_controls() {
 void menus_and_launchers() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     std::vector<std::string> launches;
     SubscriptionToken launched = (*ribbon).dialog_launcher_clicked().subscribe(RecordLaunch{&launches});
@@ -362,7 +364,7 @@ void menus_and_launchers() {
 void semantics_and_region() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     const std::vector<Control::Ptr> regions = window.focus_regions();
     require(regions.size() == 1U && regions[0] == ribbon, "an attached ribbon registers itself as an F6 region");
@@ -403,7 +405,7 @@ void arranged_within_maximum_size() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
     (*ribbon).maximum_size = {150.0, 0.0};
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     require((*ribbon).committed_arranged_bounds().width == 150.0, "the ribbon is arranged at its maximum width");
     const std::vector<Ribbon::CommandItem> items = (*ribbon).realized_commands();

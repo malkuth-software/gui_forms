@@ -1081,7 +1081,7 @@ std::unique_ptr<RibbonFixture> make_ribbon(bool reduced) {
     tabs.push_back(std::move(home));
     made.ribbon = make_control<Ribbon>(StableId("ribbon"));
     (*made.ribbon).set_tabs(std::move(tabs));
-    made.window = std::make_unique<Window>(made.ribbon, Size{600.0, 112.0});
+    made.window = std::make_unique<Window>(made.ribbon, Size{600.0, 115.0});
     Window& window = *made.window;
     window.motion_clock().set_time_source(&made.time);
     if (reduced) {

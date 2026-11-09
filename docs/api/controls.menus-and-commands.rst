@@ -1071,6 +1071,10 @@ Related types
 
    .. cpp:member:: PartGeometry scroll_right_glyph
 
+   .. cpp:member:: PartGeometry help_button
+
+      Reserved for the help button (owner, N4); never present yet.
+
    .. cpp:member:: PartGeometry focus
 
 .. cpp:namespace:: gui_forms

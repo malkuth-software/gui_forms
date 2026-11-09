@@ -484,6 +484,8 @@ public:
         PartGeometry scroll_left_glyph;
         PartGeometry scroll_right;
         PartGeometry scroll_right_glyph;
+        // Reserved for the help button (owner, N4); never present yet.
+        PartGeometry help_button;
         PartGeometry focus;
     };
     [[nodiscard]] Parts parts() const;
