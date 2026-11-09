@@ -44,11 +44,13 @@ permissions:
   actions: read
 concurrency:
   # The daily schedule has its own group, so it and a push to main never
-  # cancel each other. A newer push to a branch cancels the branch's older
-  # run, but a push to main waits for the previous main run: that run
-  # publishes its release and leaves the receipts a tag carries.
+  # cancel each other. A newer push to a pull request cancels its older run,
+  # and a newer push to main cancels the older main run: the newer run
+  # validates, publishes and leaves the receipts for the newer tree, so the
+  # older one would only hold runners. A closed pull request's run is
+  # cancelled by cancel-closed-pull-requests.yml, which joins this group.
   group: gui-forms-${{ github.event_name == 'schedule' && 'daily' || github.head_ref || github.ref_name }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: true
 jobs:
   house-style:
     runs-on: ubuntu-24.04

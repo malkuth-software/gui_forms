@@ -213,6 +213,38 @@ class InstallOnlyTests(unittest.TestCase):
         self.assertEqual(self.toolkit_tests(self.commands_of(True)), [])
         self.assertEqual(len(self.toolkit_tests(self.commands_of(False))), 1)
 
+    def test_a_pull_request_builds_the_tests_targets_and_installs_nothing(self) -> None:
+        commands: list[list[str]] = []
+
+        def record(*arguments: object, **keywords: object) -> None:
+            commands.append([str(argument) for argument in arguments])
+
+        with tempfile.TemporaryDirectory() as scratch:
+            build: Path = Path(scratch)
+            toolkit: Path = build / 'gui-forms'
+            listing: dict = {'tests': [
+                {'name': 'a', 'command': [str(toolkit / 'a_tests'), str(toolkit / '_deps/x-src/corpus')]},
+                {'name': 'b', 'command': ['cmake', '-DLIBRARY=' + str(toolkit / 'libabi.so'), '-P', 'x.cmake']}]}
+            outputs: dict[str, str] = {'a_tests': 'CXX_EXECUTABLE_LINKER__a_tests_',
+                                       'gallery': 'CXX_EXECUTABLE_LINKER__gallery_',
+                                       'libabi.so': 'CXX_SHARED_LIBRARY_LINKER__abi_',
+                                       'libplugin.so': 'CXX_MODULE_LIBRARY_LINKER__plugin_',
+                                       'package': 'phony'}
+            with mock.patch.object(ci_build, 'run', side_effect=record), \
+                    mock.patch.object(ci_build, 'configure_tree'), \
+                    mock.patch.object(ci_build, 'prepare_host'), \
+                    mock.patch.object(ci_build, 'test_listing', return_value=listing), \
+                    mock.patch.object(ci_build, 'ninja_outputs', return_value=outputs):
+                ci_build.build_toolkit('linux', build, build / 'sdk', 1, test_targets_only=True)
+        self.assertIn(['cmake', '--build', str(toolkit), '--parallel', '1', '--target',
+                       'a_tests', 'libabi.so', 'libplugin.so'], commands)
+        self.assertEqual(len(self.toolkit_tests(commands)), 1)
+        self.assertIn('--output-junit', self.toolkit_tests(commands)[0])
+        command: list[str]
+        for command in commands:
+            self.assertNotIn('--install', command)
+            self.assertNotIn('gallery', command)
+
     def test_install_only_takes_no_narrowing(self) -> None:
         option: list[str]
         for option in (['--sanitize'], ['--tests', 'x'], ['--skip-labels', 'y']):

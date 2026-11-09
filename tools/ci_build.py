@@ -24,8 +24,9 @@ import harness_link  # noqa: F401  (puts the harness's tools on sys.path)
 import change_selection
 from ci_build_steps import (BUILT_EVERYTHING, BUILT_NOTHING, BUILT_SELECTED, DEBUG_INFO_FLAGS,  # noqa: F401
                             DEBUG_INFO_VARIABLE, SANITIZER_FLAGS, SANITIZER_LINK_FLAGS, build_record_path,
-                            changed_tests_listing, configure_tree, ctest_selection, debug_info_mode, run,
-                            sanitizer_options, selected_test_targets, test_listing, write_build_record)
+                            captured, changed_tests_listing, configure_tree, ctest_selection, debug_info_mode,
+                            run, sanitizer_options, selected_test_targets, test_listing, tree_relative,
+                            write_build_record)
 import native_tests
 from toolkit_configure import (HOST_OPTION_NAMES, host_options, prepare_host,  # noqa: F401
                                toolkit_options)
@@ -96,10 +97,63 @@ def gallery_enabled(flag: bool, environ: dict[str, str]) -> bool:
     return value in ('1', 'true', 'on', 'yes')
 
 
+# The ninja rules whose outputs a test may load without naming them (a C ABI
+# library a consumer test finds through its directory, a plugin): every shared
+# and module library is built with the test targets.
+LOADED_LIBRARY_RULES: tuple[str, ...] = ('C_SHARED_LIBRARY_LINKER', 'CXX_SHARED_LIBRARY_LINKER',
+                                         'C_MODULE_LIBRARY_LINKER', 'CXX_MODULE_LIBRARY_LINKER')
+
+
+def ninja_outputs(toolkit: Path) -> dict[str, str]:
+    """Every output ninja can build in toolkit, with the name of the rule that builds it."""
+    outputs: dict[str, str] = {}
+    line: str
+    for line in captured('ninja', '-C', toolkit, '-t', 'targets', 'all').splitlines():
+        output: str
+        rule: str
+        output, _, rule = line.rpartition(': ')
+        if output:
+            outputs[output] = rule.strip()
+    return outputs
+
+
+def test_build_targets(listing: dict, outputs: dict[str, str], toolkit: Path) -> tuple[list[str], list[str]]:
+    """The ninja outputs the tests of listing run, and the build-tree paths they name that ninja builds none of.
+
+    A test runs the build outputs its command names (its executable, the
+    libraries and programs a script inspects), plus every shared and module
+    library (LOADED_LIBRARY_RULES), which a test may load through a directory
+    it names. A named path ninja does not build is a source the configure
+    fetched or a file the test writes (gf_abi/...), so it needs no build; the
+    second list names them. Unlike ci_build_steps.targets_for_tests, which
+    builds everything for such a path, this list never falls back to `all`:
+    it is the pull request build, which a merge group's full build checks.
+    """
+    targets: set[str] = set()
+    unbuilt: set[str] = set()
+    test: dict
+    for test in listing.get('tests', []):
+        argument: str
+        for argument in test.get('command', []):
+            relative: str | None = tree_relative(argument, toolkit)
+            if relative is None:
+                continue
+            if relative in outputs:
+                targets.add(relative)
+            else:
+                unbuilt.add(relative)
+    output: str
+    rule: str
+    for output, rule in outputs.items():
+        if rule.startswith(LOADED_LIBRARY_RULES):
+            targets.add(output)
+    return sorted(targets), sorted(unbuilt)
+
+
 def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = False,
                   sanitize: bool = False, tests: str = '', test_jobs: int = 1,
                   debug_info: str = 'lines', skip_labels: str = '', changed_from: str = '',
-                  install_only: bool = False) -> None:
+                  install_only: bool = False, test_targets_only: bool = False) -> None:
     """Build, test, then install only into the explicitly supplied build SDK.
 
     With sanitize, the toolkit is built in its own directory with the
@@ -125,6 +179,11 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     of the toolkit's own tests and writes no JUnit report: a consumer's
     smoke build at a pin whose suite GUI.Forms' CI already passed (File
     Manager's bootstrap smoke).
+    test_targets_only (a pull request) runs the whole suite, with its JUnit
+    report, but builds only what the tests run (test_build_targets), never
+    `all`: no program, example, bundle or package no test runs. It installs
+    nothing and builds no installed reference example; the merge group's and
+    main's full runs do.
     """
     toolkit: Path = build / ('gui-forms-sanitize' if sanitize else 'gui-forms')
     build_record_path(toolkit).unlink(missing_ok=True)
@@ -166,7 +225,13 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     # A narrowed run builds only what its tests read, not every program in the tree.
     selection: list[str] = ctest_selection(tests, skip_labels)
     targets: list[str] | None = None
-    if tests or changed_from:
+    if test_targets_only:
+        unbuilt: list[str]
+        targets, unbuilt = test_build_targets(test_listing(toolkit, '', skip_labels), ninja_outputs(toolkit),
+                                              toolkit)
+        print(f'pull request: {len(targets)} build outputs serve the suite, not `all`; '
+              f'{len(unbuilt)} named paths are sources or test outputs: {", ".join(unbuilt)}', flush=True)
+    elif tests or changed_from:
         listing: dict = test_listing(toolkit, tests, skip_labels)
         if changed_from:
             changed_listing: dict | None = changed_tests_listing(changed, listing)
@@ -206,6 +271,10 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         # (tools/native_tests.py); the programs job does not run them again.
         run('ctest', '--test-dir', toolkit, '--output-on-failure', '--timeout', timeout,
             '--parallel', test_jobs, *selection, '--output-junit', native_tests.JUNIT_NAME)
+    if test_targets_only:
+        print('pull request: no SDK install or installed reference examples (the merge group builds them)',
+              flush=True)
+        return
     run('cmake', '--install', toolkit)
     check_installed_notices(sdk)
     if host == 'windows':
@@ -241,6 +310,9 @@ def main() -> None:
     parser.add_argument('--install-only', action='store_true',
                         help='build and install the SDK (with its checks and the installed reference examples) '
                              "but run none of the toolkit's tests: a consumer's smoke build at a tested pin")
+    parser.add_argument('--test-targets-only', action='store_true',
+                        help='a pull request: run the whole suite but build only what its tests run, and '
+                             'install nothing (no programs, examples, bundles or packages)')
     parser.add_argument('--gallery', action='store_true',
                         help='also configure GUI_FORMS_BUILD_GALLERY=ON '
                              '(or set GUI_FORMS_CI_BUILD_GALLERY=1); default OFF')
@@ -251,6 +323,9 @@ def main() -> None:
         parser.error('--test-jobs must be positive')
     if args.changed_from and not args.sanitize:
         parser.error('--changed-from narrows the sanitized run only')
+    if args.test_targets_only and (args.sanitize or args.tests or args.changed_from or args.install_only):
+        parser.error('--test-targets-only is the plain full run of a pull request; '
+                     'it takes no --sanitize, --tests, --changed-from or --install-only')
     if args.install_only and (args.sanitize or args.tests or args.changed_from or args.skip_labels):
         parser.error('--install-only builds and installs everything and runs no toolkit test; '
                      'it takes no --sanitize, --tests, --changed-from or --skip-labels')
@@ -270,7 +345,8 @@ def main() -> None:
     build.mkdir(parents=True, exist_ok=True)
     build_toolkit(host, build, build / 'gui-forms-sdk', args.jobs,
                   gallery_enabled(args.gallery, dict(os.environ)), args.sanitize, args.tests,
-                  args.test_jobs, debug_info, args.skip_labels, args.changed_from, args.install_only)
+                  args.test_jobs, debug_info, args.skip_labels, args.changed_from, args.install_only,
+                  args.test_targets_only)
 
 
 if __name__ == '__main__':
