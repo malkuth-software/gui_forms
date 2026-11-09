@@ -16,10 +16,17 @@
 // sibling's pixels (decision 7(a): nothing additive).
 //
 // The vocabulary is what PlaySuite's 2D drawing needs (shared/render r2d
-// and Canvas, shared/particles), reduced to what GUI.Forms' Painter draws:
-// rectangles, rounded rectangles and circles, lines, linear and radial
-// gradients, soft dots and streaks, and a bounded save, clip and translate.
-// Paths, rotation, text, images and r3d's triangles are not in it.
+// and Canvas, shared/particles), reduced to what GUI.Forms' Painter draws.
+// Version 1: rectangles, rounded rectangles and circles, lines, linear and
+// radial gradients, soft dots and streaks, and a bounded save, clip and
+// translate. Version 2 (current_effect_vocabulary_version) adds the
+// Painter's batched marks over fixed-capacity arrays of at most
+// maximum_effect_batch elements (polylines with joins, caps and dashes,
+// whose phase an effect advances for marching ants or link flow; polygons;
+// bands; rectangle batches; segments; markers), the conic gradient and the
+// checkerboard. A batched call refuses, and counts, an array whose count is
+// past its capacity or below the call's minimum, or any point that is not
+// finite. Rotation, text, images and r3d's triangles are not in it.
 //
 // Execution: UI thread, inside the parent's paint. The canvas borrows the
 // painter for the frame and is discarded with it.
@@ -27,6 +34,7 @@
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/part_shape/part_shape.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_marks/paint_marks.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <array>
@@ -52,6 +60,11 @@ struct EffectGradient final {
         return left.count == right.count && left.stops == right.stops;
     }
 };
+
+// The arrays a batched call draws: effect state, so fixed capacity.
+using EffectPoints = EffectArray<Point, maximum_effect_batch>;
+using EffectRects = EffectArray<Rect, maximum_effect_batch>;
+using EffectSegments = EffectArray<PaintSegment, maximum_effect_batch>;
 
 // What one frame's canvas did: device pixels charged against the budget,
 // and the calls refused for the budget or the save depth.
@@ -114,6 +127,36 @@ public:
     GUI_FORMS_EFFECT_VOCABULARY(18, 4)
     void streak(Point head, Point tail, double width, Color color) noexcept;
 
+    // Version 2. Each batched call's fixed cost covers maximum_effect_batch
+    // elements; its pixels are charged on the batch's bounds, held to the
+    // area its marks can cover.
+    // An open polyline through 2 or more points with `style`'s joins, caps
+    // and dashes (valid_stroke_style).
+    GUI_FORMS_EFFECT_VOCABULARY(72, 2)
+    void stroke_polyline(const EffectPoints& points, const StrokeStyle& style) noexcept;
+    // A closed polygon through 3 or more points.
+    GUI_FORMS_EFFECT_VOCABULARY(72, 2)
+    void fill_polygon(const EffectPoints& points, Color color, PolygonFillRule rule) noexcept;
+    // The area between two polylines of the same count, 2 or more.
+    GUI_FORMS_EFFECT_VOCABULARY(140, 2)
+    void fill_band(const EffectPoints& upper, const EffectPoints& lower, Color color) noexcept;
+    // Each of 1 or more rectangles in one colour.
+    GUI_FORMS_EFFECT_VOCABULARY(72, 1)
+    void fill_rects(const EffectRects& rects, Color color) noexcept;
+    // Each of 1 or more segments with `style`'s caps and dashes, no joins.
+    GUI_FORMS_EFFECT_VOCABULARY(72, 2)
+    void stroke_segments(const EffectSegments& segments, const StrokeStyle& style) noexcept;
+    // A marker centred on each of 1 or more points (valid_marker_style).
+    GUI_FORMS_EFFECT_VOCABULARY(140, 3)
+    void draw_markers(const EffectPoints& centers, const MarkerStyle& style) noexcept;
+    // A conic (sweep) gradient over `rect`: one turn clockwise from
+    // `start_degrees` about `center` (piece C9).
+    GUI_FORMS_EFFECT_VOCABULARY(12, 4)
+    void fill_conic_gradient(Rect rect, Point center, double start_degrees, const EffectGradient& gradient) noexcept;
+    // `rect` filled with a checkerboard (piece C7).
+    GUI_FORMS_EFFECT_VOCABULARY(8, 2)
+    void fill_checker(Rect rect, const CheckerPattern& pattern) noexcept;
+
     // Saves the clip and the offset; refused past maximum_effect_save_depth.
     GUI_FORMS_EFFECT_VOCABULARY(2, 0)
     void save() noexcept;
@@ -155,6 +198,8 @@ private:
     // the current offset's coordinates) inside the clip; false, counting a
     // refusal, when that would pass the budget or the bounds are not finite.
     bool charge(Rect bounds, double coverage, std::uint32_t per_pixel) noexcept;
+    // Counts one call and one refusal, for a batch refused before charging.
+    void refuse() noexcept;
     [[nodiscard]] Rect to_part(Rect rect) const noexcept;
 
     Painter& painter_;

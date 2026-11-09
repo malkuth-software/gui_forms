@@ -1537,6 +1537,38 @@ Types
 
       A streak: a line of ``width`` from ``tail`` to ``head`` with a soft dot at the head (PlaySuite's particle streaks, simplified).
 
+   .. cpp:function:: void stroke_polyline(const EffectPoints& points, const StrokeStyle& style) noexcept
+
+      Version 2. Each batched call's fixed cost covers maximum_effect_batch elements; its pixels are charged on the batch's bounds, held to the area its marks can cover. An open polyline through 2 or more points with ``style``'s joins, caps and dashes (valid_stroke_style).
+
+   .. cpp:function:: void fill_polygon(const EffectPoints& points, Color color, PolygonFillRule rule) noexcept
+
+      A closed polygon through 3 or more points.
+
+   .. cpp:function:: void fill_band(const EffectPoints& upper, const EffectPoints& lower, Color color) noexcept
+
+      The area between two polylines of the same count, 2 or more.
+
+   .. cpp:function:: void fill_rects(const EffectRects& rects, Color color) noexcept
+
+      Each of 1 or more rectangles in one colour.
+
+   .. cpp:function:: void stroke_segments(const EffectSegments& segments, const StrokeStyle& style) noexcept
+
+      Each of 1 or more segments with ``style``'s caps and dashes, no joins.
+
+   .. cpp:function:: void draw_markers(const EffectPoints& centers, const MarkerStyle& style) noexcept
+
+      A marker centred on each of 1 or more points (valid_marker_style).
+
+   .. cpp:function:: void fill_conic_gradient(Rect rect, Point center, double start_degrees, const EffectGradient& gradient) noexcept
+
+      A conic (sweep) gradient over ``rect``: one turn clockwise from ``start_degrees`` about ``center`` (piece C9).
+
+   .. cpp:function:: void fill_checker(Rect rect, const CheckerPattern& pattern) noexcept
+
+      ``rect`` filled with a checkerboard (piece C7).
+
    .. cpp:function:: void save() noexcept
 
       Saves the clip and the offset; refused past maximum_effect_save_depth.
@@ -1625,7 +1657,7 @@ Types
 
    .. cpp:member:: std::uint32_t engine_version
 
-      The engine version that introduced the effect. Default: ``{1U}``.
+      The vocabulary version the effect draws with, 1 to current_effect_vocabulary_version. Default: ``{1U}``.
 
    .. cpp:member:: EffectTimeModel time_model
 
@@ -6076,6 +6108,8 @@ Enumerations
 
    .. cpp:enumerator:: backdrop_out_of_range
 
+   .. cpp:enumerator:: vocabulary_version_unknown
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: EffectSelectionOutcome
@@ -7459,6 +7493,14 @@ Functions, constants and aliases
 
    The largest state any effect may declare, in bytes. Value: ``16384U``.
 
+.. cpp:var:: constexpr std::uint32_t current_effect_vocabulary_version
+
+   The drawing vocabulary's version, which an effect names in EffectDeclaration::engine_version: 1 is the design note's first list (fills, strokes, gradients, soft dots and streaks); 2 adds the batched marks (polylines with joins, caps and dashes on a phase, polygons, bands, rectangle batches, segments, markers), the conic gradient and the checkerboard. A registry refuses an effect that names a later version. Value: ``2U``.
+
+.. cpp:var:: constexpr std::size_t maximum_effect_batch
+
+   The most elements one batched vocabulary call draws (EffectPoints, EffectRects, EffectSegments); each call's declared fixed cost covers this many. Value: ``32U``.
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/engine/effect_canvas/effect_canvas.hpp>``
@@ -7466,6 +7508,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_effect_save_depth
 
    The deepest the canvas's save stack goes; a deeper save is refused. Value: ``4U``.
+
+.. cpp:type:: EffectPoints = EffectArray<Point, maximum_effect_batch>
+
+   The arrays a batched call draws: effect state, so fixed capacity.
+
+.. cpp:type:: EffectRects = EffectArray<Rect, maximum_effect_batch>
+
+.. cpp:type:: EffectSegments = EffectArray<PaintSegment, maximum_effect_batch>
 
 .. cpp:namespace:: gui_forms
 

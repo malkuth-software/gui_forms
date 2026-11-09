@@ -138,6 +138,8 @@ enum class EffectRegistrationOutcome : std::uint8_t {
     // A backdrop margin that is not finite, negative or past
     // maximum_effect_backdrop_margin.
     backdrop_out_of_range,
+    // An engine_version of 0 or past current_effect_vocabulary_version.
+    vocabulary_version_unknown,
 };
 
 // The most effect types one registry holds.
