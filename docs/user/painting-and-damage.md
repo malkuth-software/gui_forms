@@ -7,7 +7,7 @@ coherently, and how to read the counters that prove it.
 
 ## From mutation to damage
 
-A setter marks `Dirty::paint` on its control. When the outermost update scope
+A property write marks `Dirty::paint` on its control. When the outermost update scope
 closes, the flush converts each paint mark into a damage rectangle in window
 coordinates: the control's arranged bounds plus its `visual_outsets` (focus
 rings and shadows that extend beyond layout without affecting it), plus the

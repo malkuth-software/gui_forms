@@ -80,7 +80,7 @@ holds. That ancestor is marked for arrange only.
 
 The three CSS containers take the property names and the initial values of
 CSS. The typed records are in `gui_forms/layout/style/layout_style.hpp`.
-Each container has container properties set with setters, and one item
+Each container has container properties, written like any property, and one item
 record per child, set with `set_item_layout(child, record)` and dropped
 when the child leaves. A child's own `margin` is its CSS margin, and its
 `minimum_size` and `maximum_size` still bound it. Lengths are logical pixels.
