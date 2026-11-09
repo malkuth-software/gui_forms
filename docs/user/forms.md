@@ -138,7 +138,13 @@ runs it.
   does.
 - **A control root.** A document whose root is a control (`user-control`,
   `panel` and so on) generates a subclass of that control's type instead,
-  made with `X::make(model)`.
+  made with `X::make(model)`. The layout panels (`flex-panel`,
+  `grid-panel`, `block-panel`, `flow-layout-panel-compat`,
+  `table-layout-panel-compat`) are final: their measure, arrange and the
+  solver state they keep for inspection are one contract a subclass could
+  break. A document rooted in one generates a class that holds the panel
+  as its first member instead; `X::make(model)` returns that class by
+  value, and `root_control()` is the control to show or add to a parent.
 - **Application types.** `TYPES "note_card,my_app::NoteCard,user_control,my_app/note_card.hpp"`
   lets a document name your own control types.
 

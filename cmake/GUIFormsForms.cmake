@@ -20,7 +20,10 @@
 #   DERIVED      generate the class deriving from the root's type (stage B):
 #                a gui_forms::Window subclass for a form root, a subclass of
 #                the root control's type otherwise, instead of the document
-#                class template over an owner.
+#                class template over an owner. A root control whose type is
+#                final (the layout panels: flex, grid, block, flow, table)
+#                is composed instead: the class holds it as a member, and
+#                root_control() is the control to show.
 #   MODEL        the model a derived class binds (`a::Type`); implies DERIVED.
 #                Required when the document binds.
 #   MODEL_HEADER the header declaring MODEL, included by the generated one.

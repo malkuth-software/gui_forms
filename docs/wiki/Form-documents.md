@@ -25,7 +25,9 @@ gui_forms_add_form(my_app forms/settings.form CLASS SettingsWindow NAMESPACE my_
 
 - **The window is the form.** A `form` root generates a `gui_forms::Window`
   subclass; a control root (`user-control`, `panel`, ...) a subclass of that
-  control. Its controls are typed public members named after their stable
+  control, or, for a final layout panel (`flex-panel`, `grid-panel`, ...),
+  a class holding the panel as a member (`root_control()` shows it). Its
+  controls are typed public members named after their stable
   IDs (`settings.ok` becomes `settings_ok`).
 - **Bindings** are made when each control is created, from the model named
   in CMake: `bind(autosave)` reads `settings.autosave`. A property the user

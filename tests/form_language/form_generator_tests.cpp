@@ -861,6 +861,54 @@ void test_panel_scroll_properties() {
     }
 }
 
+// A derived class of a control root whose type is final (a layout panel)
+// composes the root instead of deriving from it; a root type that admits
+// subclasses is still derived from.
+void test_composed_root() {
+    const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    const std::string_view document = "flex-panel app.root {\n"
+                                      "  auto-scroll: true;\n"
+                                      "  button app.a { text: \"A\"; }\n"
+                                      "}\n";
+    Workspace workspace{};
+    const bool read = read_document(workspace, "flex.form", document, schema);
+    if (!read) print_diagnostics(workspace);
+    require(read, "composed root: the model builds");
+    if (!read) return;
+    FormGeneratorOptions options = sample_options();
+    options.class_name = "FlexForm";
+    options.source_name = "flex.form";
+    options.derived = true;
+    std::string generated{};
+    require(generate(workspace, schema, options, generated) == FormGenerateOutcome::generated,
+            "composed root: the generator writes the document");
+    require(generated.find("class FlexForm final {") != std::string::npos &&
+                generated.find(": public gui_forms::FlexPanel") == std::string::npos,
+            "composed root: a class of its own, not a FlexPanel subclass");
+    require(generated.find("std::shared_ptr<gui_forms::FlexPanel> app_root{};") != std::string::npos,
+            "composed root: the root is a member");
+    require(generated.find("made.app_root = gui_forms::make_control<gui_forms::FlexPanel>(") != std::string::npos &&
+                generated.find("(*made.app_root).add_child(made.app_a);") != std::string::npos,
+            "composed root: make() makes the root, then adds its children");
+    require(generated.find("(*made.app_root).auto_scroll = ") != std::string::npos,
+            "composed root: the root's values set through the member");
+    require(generated.find("[[nodiscard]] static FlexForm make() {") != std::string::npos,
+            "composed root: binding nothing, make() takes no model");
+
+    const std::string_view user = "user-control app.root {\n"
+                                  "  button app.a { text: \"A\"; }\n"
+                                  "}\n";
+    const bool user_read = read_document(workspace, "user.form", user, schema);
+    require(user_read, "derived root: the model builds");
+    if (!user_read) return;
+    options.class_name = "UserForm";
+    options.source_name = "user.form";
+    std::string derived{};
+    require(generate(workspace, schema, options, derived) == FormGenerateOutcome::generated &&
+                derived.find("class UserForm final : public gui_forms::UserControl {") != std::string::npos,
+            "derived root: a type that admits subclasses is derived from");
+}
+
 void test_member_names() {
     require(gui_forms::form_language::form_member_name("settings.auto-save") == "settings_auto_save",
             "member names: '.' and '-' spelled '_'");
@@ -889,6 +937,7 @@ int main() {
     test_string_escapes();
     test_capability_assignment();
     test_panel_scroll_properties();
+    test_composed_root();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

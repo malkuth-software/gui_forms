@@ -74,7 +74,11 @@ struct FormGeneratorOptions final {
     // root's type instead of being a document over an owner. A form root
     // gives a gui_forms::Window subclass whose constructors take the model
     // (and, in an overload, the Application); a control root gives a
-    // subclass of its type made with make(model). Opt-in until the Gallery
+    // subclass of its type made with make(model). A control root whose type
+    // is final (FormSchemaType::final_type: the layout panels) is composed
+    // instead: a class holding the root as its first member, whose static
+    // make(model) returns it by value with every object made and set, and
+    // whose root_control() is the control to show. Opt-in until the Gallery
     // migrates.
     bool derived{};
     // The model a derived class binds: a `::`-separated name, required when
