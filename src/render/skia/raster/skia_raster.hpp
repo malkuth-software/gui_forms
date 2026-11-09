@@ -46,6 +46,13 @@ public:
     // to device pixels, so drawing touches those rectangles and not the span
     // between them. Bracket with save() and restore().
     void clip_damage(const DamageRegion& damage);
+    // Applies a scroll copy (ScrollCopy) to the frame begun: moves the pixels
+    // inside `clip` by `offset`, both logical and whole device pixels; pixels
+    // that would come from outside the clip are left as they were. Call after
+    // begin_frame or begin_prepared_frame and before painting the frame's
+    // damage. False, changing nothing, when no frame surface is addressable
+    // or the copy is not device-aligned; the caller then repaints the clip.
+    [[nodiscard]] bool scroll_copy(Rect clip, Point offset);
 #if defined(GUI_FORMS_PREPARED_TEXT)
     // Guarded host transaction. begin expands damage when a full repaint is
     // required; caller paints that updated region. Null receipts and exceptions

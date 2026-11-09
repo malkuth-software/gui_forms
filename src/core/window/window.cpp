@@ -360,8 +360,18 @@ void SurfaceRoot::FocusChangePublication::operator()() const {
     if (!(*control).is_alive()) return;
     if (!focused || (*root).eligible(control)) {
         (*control).invalidate(invalidation::focus);
+        if (focused) (*root).reveal_focused(control);
     } else {
         (*root).focused_.reset();
+    }
+}
+
+void SurfaceRoot::reveal_focused(const Control::Ptr& control) {
+    Control::Ptr revealed = control;
+    for (Control::Ptr ancestor = (*control).parent(); ancestor; ancestor = (*ancestor).parent()) {
+        if (!(*ancestor).is_alive() || (*ancestor).surface_root_ != this) return;
+        const bool scrolls = (*ancestor).reveal_focused_descendant(*revealed);
+        if (scrolls) revealed = ancestor;
     }
 }
 
@@ -3171,6 +3181,172 @@ void SurfaceRoot::damage_resized(Control& control, Rect old_bounds, Rect new_bou
     }
 }
 
+namespace {
+
+// Whether `value` logical units is a whole number of device pixels.
+bool whole_device_pixels(double value, double scale) noexcept {
+    const double device = value * scale;
+    return std::isfinite(device) && std::abs(device - std::round(device)) <= 1.0e-6;
+}
+
+bool device_aligned_rect(Rect rect, double scale) noexcept {
+    return whole_device_pixels(rect.x, scale) && whole_device_pixels(rect.y, scale) &&
+           whole_device_pixels(rect.width, scale) && whole_device_pixels(rect.height, scale);
+}
+
+} // namespace
+
+bool SurfaceRoot::opaque_fill_covers(const Control& control, Rect clip) const {
+    const std::shared_ptr<const detail::DisplayChunk>& chunk = control.display_chunk_;
+    if (!chunk || !(*chunk).opaque_cover()) return false;
+    const Rect bounds = absolute_bounds_of(control);
+    const Rect cover = *(*chunk).opaque_cover();
+    const Rect window_cover{bounds.x + cover.x, bounds.y + cover.y, cover.width, cover.height};
+    return window_cover.contains(clip);
+}
+
+bool SurfaceRoot::records_no_paint(const Control& control) const noexcept {
+    const std::shared_ptr<const detail::DisplayChunk>& chunk = control.display_chunk_;
+    const bool nothing = chunk && !has_dirty(control.dirty_, Dirty::paint) && (*chunk).commands().empty();
+    return nothing;
+}
+
+void SurfaceRoot::take_scroll_copies(std::vector<ScrollCopy>& copies) {
+    require_root_thread("scroll copy mutation");
+    copies.insert(copies.end(), scroll_copies_.begin(), scroll_copies_.end());
+    scroll_copies_.clear();
+}
+
+void SurfaceRoot::collect_overlay_paint(const Control::Ptr& control, Rect clip,
+                                        std::vector<Rect>& crossing) const {
+    if (!control || !(*control).is_alive() || !(*control).visible.read()) return;
+    const Rect bounds = visual_bounds_of(*control, (*control).effective_visual_outsets());
+    if (!Rect::intersection(bounds, clip).empty() && !records_no_paint(*control)) crossing.push_back(bounds);
+    for (const Control::Ptr& child : (*control).children_) collect_overlay_paint(child, clip, crossing);
+}
+
+bool SurfaceRoot::other_plane_crosses(const Control::Ptr& control, const Control& scroller,
+                                      Rect clip, bool beneath_covered, std::vector<Rect>& crossing) const {
+    if (!control || control.get() == &scroller || !(*control).is_alive() ||
+        (*control).surface_root_ != this || !(*control).visible.read()) {
+        return false;
+    }
+    // The backplane is composed beneath the control plane, so beneath an
+    // opaque fill covering the viewport: elsewhere it would not move with
+    // the copy. The overlay plane is composed above it and repainted.
+    const PaintPlane plane = (*control).paint_plane_;
+    if (plane != PaintPlane::control && !records_no_paint(*control)) {
+        const Rect bounds = visual_bounds_of(*control, (*control).effective_visual_outsets());
+        const bool crosses = !Rect::intersection(bounds, clip).empty();
+        if (crosses && plane == PaintPlane::overlay) crossing.push_back(bounds);
+        if (crosses && plane == PaintPlane::backplane && !beneath_covered) return true;
+    }
+    for (const Control::Ptr& child : (*control).children_) {
+        if (other_plane_crosses(child, scroller, clip, beneath_covered, crossing)) return true;
+    }
+    return false;
+}
+
+bool SurfaceRoot::request_scroll_copy(Control& scroller, Point offset) {
+    require_root_thread("scroll copy mutation");
+    // A bound on the copies one host frame applies; past it the viewport is
+    // repainted, which is no slower than the copies would have been.
+    constexpr std::size_t copy_limit = 16U;
+    if (!scroll_copies_supported_ || !in_layout_ || scroller.surface_root_ != this ||
+        scroll_translating_ != nullptr || scroll_copies_.size() >= copy_limit) {
+        return false;
+    }
+    if (!whole_device_pixels(offset.x, scale_) || !whole_device_pixels(offset.y, scale_) ||
+        offset == Point{}) {
+        return false;
+    }
+    // The visible part of the viewport: its child viewport within each
+    // ancestor's and the client area.
+    Rect clip = Rect::intersection(absolute_child_viewport_of(scroller),
+                                   {0.0, 0.0, client_size_.width, client_size_.height});
+    for (Control::Ptr ancestor = scroller.parent(); ancestor; ancestor = (*ancestor).parent()) {
+        if (!(*ancestor).is_alive() || (*ancestor).surface_root_ != this || !(*ancestor).visible.read()) {
+            return false;
+        }
+        clip = Rect::intersection(clip, absolute_child_viewport_of(*ancestor));
+    }
+    if (clip.empty() || !device_aligned_rect(clip, scale_) || std::abs(offset.x) >= clip.width ||
+        std::abs(offset.y) >= clip.height) {
+        return false;
+    }
+    // The scroller's own paint beneath its children moves with them only
+    // when it does not depend on its extent; its docked children stay put.
+    if (!keeps_pixels_on_resize(scroller)) return false;
+    for (const Control::Ptr& child : scroller.children_) {
+        if (!child || !(*child).is_alive() || !(*child).visible.read() ||
+            (*child).dock.read() == DockStyle::none) {
+            continue;
+        }
+        const Rect bounds = visual_bounds_of(*child, (*child).effective_visual_outsets());
+        if (!Rect::intersection(bounds, clip).empty()) return false;
+    }
+    // Beneath the viewport, up to the first control whose opaque fill covers
+    // it, every ancestor's paint must not depend on its extent and no earlier
+    // sibling may cross it; above it, later siblings at every level that
+    // cross it are repainted where they are and where the copy moves them.
+    // An opaque solid fill of the scroller or an ancestor that covers the
+    // viewport ends the search beneath: what that control paints over its
+    // fill inside the viewport is its children's.
+    scroll_overlay_crossings_.clear();
+    const Control* node = &scroller;
+    bool covered = opaque_fill_covers(scroller, clip);
+    for (Control::Ptr parent = scroller.parent(); parent; parent = (*parent).parent()) {
+        bool after = false;
+        for (const Control::Ptr& sibling : (*parent).children_) {
+            if (sibling.get() == node) {
+                after = true;
+                continue;
+            }
+            if (!sibling || !(*sibling).is_alive() || !(*sibling).visible.read()) continue;
+            if (!after && covered) continue;
+            const Rect bounds = visual_bounds_of(*sibling, (*sibling).effective_visual_outsets());
+            if (Rect::intersection(bounds, clip).empty()) continue;
+            // A later sibling is repainted over the viewport like an overlay;
+            // an earlier one beneath it would not move with the copy.
+            if (!after) return false;
+            scroll_overlay_crossings_.push_back(bounds);
+        }
+        if (!covered) {
+            covered = opaque_fill_covers(*parent, clip);
+            if (!covered && !keeps_pixels_on_resize(*parent)) return false;
+        }
+        node = parent.get();
+    }
+    // Other paint planes are composed before or after this one.
+    // Overlays drawn into the viewport are repainted over it, where they
+    // are and where the copy moves their pixels.
+    if (other_plane_crosses(root_, scroller, clip, covered, scroll_overlay_crossings_)) return false;
+    for (const std::shared_ptr<detail::OverlayAttachment>& overlay : overlays_) {
+        if (overlay) collect_overlay_paint((*overlay).overlay(), clip, scroll_overlay_crossings_);
+    }
+    // Accepted. The damage already pending moves with the pixels; then the
+    // band the copy exposed on each axis is damaged.
+    for (DamageRegion& plane : plane_damage_) {
+        if (plane.empty()) continue;
+        plane = damage_after_scroll_copy(plane, clip, offset);
+    }
+    scroll_copies_.push_back(ScrollCopy{clip, offset});
+    scroll_translating_ = &scroller;
+    scroll_translation_ = offset;
+    const double band_x = offset.x < 0.0 ? clip.x + clip.width + offset.x : clip.x;
+    const double band_y = offset.y < 0.0 ? clip.y + clip.height + offset.y : clip.y;
+    if (offset.x != 0.0) add_damage_all_planes(Rect{band_x, clip.y, std::abs(offset.x), clip.height});
+    if (offset.y != 0.0) add_damage_all_planes(Rect{clip.x, band_y, clip.width, std::abs(offset.y)});
+    for (const Rect crossing : scroll_overlay_crossings_) {
+        add_damage_all_planes(Rect::intersection(crossing, clip));
+        const Rect moved{crossing.x + offset.x, crossing.y + offset.y, crossing.width, crossing.height};
+        add_damage_all_planes(Rect::intersection(moved, clip));
+    }
+    scroll_overlay_crossings_.clear();
+    touch_paint();
+    return true;
+}
+
 bool SurfaceRoot::keeps_pixels_on_resize(const Control& control) const noexcept {
     if (control.paint_depends_on_size()) return false;
     if (!(control.effective_visual_outsets() == Insets{})) return false;
@@ -3391,6 +3567,7 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
     const ShadowFrameScope shadow_frame(ShadowFrameKind::layout_pass, (*root_).stable_id().value(), std::string_view{},
                                         layout_pass_sequence_ + 1U);
     in_layout_ = true;
+    scroll_translating_ = nullptr;
     try {
         std::uint32_t pass = 0;
         do {
@@ -3579,6 +3756,15 @@ void SurfaceRoot::measure_dirty_recursive(const Control::Ptr& control,
 
 namespace {
 
+// Whether `after` is `before` moved by `offset`, within rounding.
+bool translated_by(Rect before, Rect after, Point offset) noexcept {
+    constexpr double tolerance = 1.0e-6;
+    return std::abs(after.x - (before.x + offset.x)) <= tolerance &&
+           std::abs(after.y - (before.y + offset.y)) <= tolerance &&
+           std::abs(after.width - before.width) <= tolerance &&
+           std::abs(after.height - before.height) <= tolerance;
+}
+
 // The axes along which an arranged extent changed.
 ResizeAxes resized_axes(Rect before, Rect after) noexcept {
     ResizeAxes changed = ResizeAxes::none;
@@ -3618,7 +3804,10 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
             throw;
         }
         ++callbacks;
-        if (!(*control).is_alive() || (*control).surface_root_ != this) return;
+        if (!(*control).is_alive() || (*control).surface_root_ != this) {
+            if (scroll_translating_ == control.get()) scroll_translating_ = nullptr;
+            return;
+        }
         // The resize registration (reduced M0.4): asked again whenever the
         // size changes, which costs one pass over the children that arrange
         // has just made, so no write has to keep it current. The first
@@ -3639,10 +3828,17 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
         }
         const Rect new_bounds = visual_bounds_of(
             *control, (*control).effective_visual_outsets());
+        // A scrolling child moved by its scroller's recorded copy keeps
+        // its pixels in the copy (request_scroll_copy).
+        const Control::Ptr arranged_parent = (*control).parent_.lock();
+        const bool copied = scroll_translating_ != nullptr && arranged_parent.get() == scroll_translating_ &&
+            translated_by(old_bounds, new_bounds, scroll_translation_);
         if (old_bounds != new_bounds) {
-            const bool escalate = !keeps_pixels_on_resize(*control);
-            damage_resized(*control, old_bounds, new_bounds, escalate, relaid);
-            touch_paint();
+            if (!copied) {
+                const bool escalate = !keeps_pixels_on_resize(*control);
+                damage_resized(*control, old_bounds, new_bounds, escalate, relaid);
+                touch_paint();
+            }
             (*control).publish_change((*control).arranged_bounds_changed_,
                                     new_bounds);
         }
@@ -3658,6 +3854,8 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
             child, (*child).layout_slot_.value_or((*child).requested_bounds_),
             visited_nodes, callbacks);
     }
+    // A recorded scroll copy's children are arranged.
+    if (scroll_translating_ == control.get()) scroll_translating_ = nullptr;
 }
 
 bool SurfaceRoot::has_runnable_layout_dirty(

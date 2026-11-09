@@ -241,6 +241,7 @@ public:
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_scroll_position_changed() override;
+    [[nodiscard]] bool paints_scrolled_content() const noexcept override { return true; }
     // Multiline opt-in: the document extent drives the inherited scroll bars;
     // turning auto scroll off keeps the document where it was.
     void on_auto_scroll_changed(Point previous_position) override;
@@ -346,6 +347,9 @@ private:
     double layout_text_scale_{};
     double horizontal_offset_{};
     bool reveal_pending_{true};
+    // A paging key moved the caret: the next caret reveal scrolls smoothly
+    // (ScrollableControl::glide_to) instead of at once. Taken by that reveal.
+    bool glide_next_reveal_{};
     bool caret_upstream_{};
     bool next_upstream_{};
     double vertical_offset_{};

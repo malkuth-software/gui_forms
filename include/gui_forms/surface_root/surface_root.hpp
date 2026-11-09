@@ -690,6 +690,33 @@ public:
     [[nodiscard]] PaintLeaseSnapshot paint_lease_snapshot() const noexcept;
     [[nodiscard]] DamageRegion take_damage();
     [[nodiscard]] DamageRegion take_damage(PaintPlane plane);
+    // Scroll copies (ScrollCopy). A host that can move the pixels it holds
+    // turns them on; then a scroll that only translates a viewport's children
+    // by whole device pixels damages the band it exposed and records a copy
+    // instead of damaging the viewport. take_damage commits the layout that
+    // records them; take them after it and apply them, in order, before
+    // painting that damage: the damage already taken (and any the host
+    // still holds) is moved with each copy (damage_after_scroll_copy). A host
+    // that cannot apply a copy damages its clip instead. Off by default.
+    void set_scroll_copies_supported(bool supported) noexcept { scroll_copies_supported_ = supported; }
+    [[nodiscard]] bool scroll_copies_supported() const noexcept { return scroll_copies_supported_; }
+    // Appends the copies recorded since the last take to `copies`, in the
+    // order recorded, and forgets them.
+    void take_scroll_copies(std::vector<ScrollCopy>& copies);
+    // Called by `scroller`'s arrange, inside the layout pass, after it moved
+    // its scrolling children by `offset` (whole device pixels) and nothing
+    // else changed in its child viewport. Returns true when the copy is
+    // recorded: the damage already pending in the viewport is moved by
+    // `offset`, the exposed band is damaged, and the children's moves by
+    // exactly `offset` in this pass damage nothing; controls drawn over the
+    // viewport (later siblings, overlays) are damaged where they are and
+    // where the copy moved their pixels. False when the pixels beneath the
+    // viewport would not move with it (an earlier sibling or a backplane
+    // control crosses it, or an ancestor's paint depends on its size, below
+    // the first opaque fill covering it), the viewport or offset is not
+    // device-aligned, or copies are off; the caller then repaints its
+    // viewport.
+    [[nodiscard]] bool request_scroll_copy(Control& scroller, Point offset);
     [[nodiscard]] bool needs_frame() const noexcept;
     [[nodiscard]] std::optional<FrameTime> next_wake() const noexcept;
     [[nodiscard]] FrameRequestToken schedule_paint(const Control::Ptr& control,
@@ -1500,6 +1527,11 @@ private:
         bool focused{};
         void operator()() const;
     };
+    // After `control` was told it gained focus: each ancestor, innermost
+    // first, reveals the innermost control that holds the focus within its
+    // content (Control::reveal_focused_descendant). Stops at an ancestor
+    // that died or left this root during the walk.
+    void reveal_focused(const Control::Ptr& control);
     struct FocusScopePublication final {
         SurfaceRoot* root{};
         Control::Ptr owner;
@@ -1992,6 +2024,30 @@ private:
     std::uint64_t drag_session_id_{};
     DragEffect drag_last_accepted_effect_{DragEffect::none};
     std::array<DamageRegion, paint_plane_count> plane_damage_;
+    // Scroll copies recorded and not yet taken; the scroller whose copy this
+    // layout pass recorded, whose children's moves by `scroll_translation_`
+    // damage nothing, until its arrange descent ends.
+    bool scroll_copies_supported_{};
+    std::vector<ScrollCopy> scroll_copies_;
+    const Control* scroll_translating_{};
+    Point scroll_translation_{};
+    // Whether `control`'s current recorded paint draws nothing (a layer
+    // that only holds other controls). False when it has no current record.
+    [[nodiscard]] bool records_no_paint(const Control& control) const noexcept;
+    // Appends the visual bounds of `control` and the controls below it, in
+    // an overlay attachment, that draw into `clip`.
+    void collect_overlay_paint(const Control::Ptr& control, Rect clip, std::vector<Rect>& crossing) const;
+    // Whether `control`'s last recorded paint left an opaque solid fill
+    // over `clip` (window coordinates; DisplayChunk::opaque_cover).
+    [[nodiscard]] bool opaque_fill_covers(const Control& control, Rect clip) const;
+    // Whether a control outside `scroller`'s subtree paints into `clip` from
+    // the backplane where no opaque fill covers the clip beneath the
+    // scroller (`beneath_covered`). Appends the visual bounds of those that
+    // paint into it from the overlay plane to `crossing`.
+    [[nodiscard]] bool other_plane_crosses(const Control::Ptr& control, const Control& scroller,
+                                           Rect clip, bool beneath_covered, std::vector<Rect>& crossing) const;
+    // Scratch for request_scroll_copy's overlay crossings.
+    std::vector<Rect> scroll_overlay_crossings_;
     struct PaintControlCheckpoint final {
         Control::Ptr control;
         std::shared_ptr<const detail::DisplayChunk> chunk;

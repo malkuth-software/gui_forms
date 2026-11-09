@@ -120,6 +120,8 @@ Related types
      - PresentationSettings keeps logical text scaling, contrast, motion, and sound preferences independent from device scale and native host mechanics.
    * - :cpp:class:`PresentedArea <gui_forms::PresentedArea>`
      - The screen area one presentation copied (stage DP): device pixels, the rectangles they were copied in, and the time spent only copying them (pixel conversion and the native copy, not painting).
+   * - :cpp:class:`ScrollCopy <gui_forms::ScrollCopy>`
+     - A scroll copy (SurfaceRoot::take_scroll_copies): the host moves the pixels it holds inside ``clip`` by ``offset``, both in window coordinates and whole device pixels, before painting the damage taken with it.
    * - :cpp:class:`ShadowFrame <gui_forms::ShadowFrame>`
      - One frame.
    * - :cpp:class:`ShadowFrameScope <gui_forms::ShadowFrameScope>`
@@ -1214,6 +1216,18 @@ Related types
    .. cpp:member:: std::uint64_t rectangles
 
    .. cpp:member:: std::uint64_t copy_nanoseconds
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ScrollCopy final
+
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+
+   A scroll copy (SurfaceRoot::take_scroll_copies): the host moves the pixels it holds inside ``clip`` by ``offset``, both in window coordinates and whole device pixels, before painting the damage taken with it. Pixels moved from outside the clip are never needed: the damage covers what the copy exposed.
+
+   .. cpp:member:: Rect clip
+
+   .. cpp:member:: Point offset
 
 .. cpp:namespace:: gui_forms
 

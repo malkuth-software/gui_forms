@@ -46,10 +46,18 @@ struct Fixture {
     test_support::TypographyPainter painter{};
     // Window borrows metrics; declaration order destroys it before the provider.
     Window window{field, {110.0, 68.0}};
-    Fixture() {
+    // Reduced motion unless `smooth`: wheel and paging scrolls land at once,
+    // so the tests read positions right after the input.
+    Fixture() : Fixture(false) {}
+    explicit Fixture(bool smooth) {
         editor.set_requested_bounds({0, 0, 110, 68});
         editor.multiline = true;
         window.set_text_metrics_provider(&metrics);
+        if (!smooth) {
+            PresentationSettings settings = window.presentation_settings();
+            settings.reduced_motion = true;
+            window.set_presentation_settings(settings);
+        }
         window.perform_layout();
         const bool focused = window.request_focus(field);
         require(focused, "focus");
@@ -689,6 +697,48 @@ void localized_caret_blinks() {
     }
 }
 
+// The motion clock's time, set by the test. Declared before the fixture
+// whose window borrows it.
+class ManualTime final : public MotionTimeSource {
+public:
+    [[nodiscard]] FrameTime now() const noexcept override { return time; }
+    FrameTime time{std::chrono::seconds(1000)};
+};
+
+// PageDown's caret reveal glides (smooth scrolling); a paint while it moves
+// restates the position and leaves it moving; it settles on the reveal.
+void paging_reveal_glides() {
+    ManualTime time{};
+    Fixture f{true};
+    f.window.motion_clock().set_time_source(&time);
+    f.window.resize({360.0, 240.0});
+    f.editor.auto_scroll = true;
+    std::string source{};
+    for (unsigned int row = 0; row < 80; ++row) source.append("abcdefghijklmnopqrstuvwxyz\n");
+    f.editor.text = source;
+    f.caret(0);
+    f.window.perform_layout();
+    f.paint();
+    require(f.editor.scroll_offset().y == 0.0, "the document starts at its top");
+    f.key(PhysicalKey::page_down);
+    f.paint();
+    const double target = f.editor.scroll_target().y;
+    require(target > 0.0 && f.editor.scroll_offset().y == 0.0 && f.editor.scrolling_smoothly(),
+            "PageDown's reveal must glide toward the caret rather than jump");
+    time.time += std::chrono::milliseconds(32);
+    static_cast<void>(f.window.poll_frame_schedule(time.time));
+    f.paint();
+    require(f.editor.scroll_offset().y > 0.0 && f.editor.scroll_offset().y < target &&
+                f.editor.scrolling_smoothly(),
+            "a paint during the glide must leave it moving");
+    for (int frame = 0; frame < 60; ++frame) {
+        time.time += std::chrono::milliseconds(16);
+        static_cast<void>(f.window.poll_frame_schedule(time.time));
+    }
+    require(f.editor.scroll_offset().y == target && !f.editor.scrolling_smoothly(),
+            "the reveal's glide settles on the reveal");
+}
+
 void require_full_blink_fallback(Fixture& fixture, const char* message) {
     // Drain the prior mutation's region while leaving its dirty state pending.
     // The blink itself must not trust previously recorded geometry.
@@ -789,6 +839,7 @@ int main() {
         clear_history_establishes_save_boundary();
         localized_caret_blinks();
         caret_geometry_fallbacks();
+        paging_reveal_glides();
         selected_text_drawn_once();
         bounded_workload();
         std::cout << "gui_forms_multiline_text_box_tests: passed\n";

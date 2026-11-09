@@ -2,6 +2,7 @@
 
 #include "gui_forms/binding/property_cell/property_cell.hpp"
 #include "gui_forms/controls/range_control/range_control.hpp"
+#include "gui_forms/controls/scrollable_control/scroll_bar_metrics/scroll_bar_metrics.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -40,7 +41,7 @@ struct ScrollBarButtonExtentCapability {
 // The thumb's least extent, 8 to 128 pixels (else std::invalid_argument).
 template <typename Declaring>
 struct ScrollBarMinimumThumbExtentCapability {
-    PropertyCell<double, ScrollBarMinimumThumbExtentCapability<Declaring>> minimum_thumb_extent{18.0};
+    PropertyCell<double, ScrollBarMinimumThumbExtentCapability<Declaring>> minimum_thumb_extent{scroll_thumb_extent_default};
 
     static void assign(ScrollBarMinimumThumbExtentCapability& capability, double incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
@@ -53,7 +54,7 @@ struct ScrollBarMinimumThumbExtentCapability {
 // How long a held part waits before it repeats, 100ms to 2s (else std::invalid_argument); a press already repeating keeps its schedule.
 template <typename Declaring>
 struct ScrollBarInitialRepeatDelayCapability {
-    PropertyCell<FrameInterval, ScrollBarInitialRepeatDelayCapability<Declaring>> initial_repeat_delay{std::chrono::milliseconds(400)};
+    PropertyCell<FrameInterval, ScrollBarInitialRepeatDelayCapability<Declaring>> initial_repeat_delay{scroll_repeat_delay_default};
 
     static void assign(ScrollBarInitialRepeatDelayCapability& capability, FrameInterval incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
@@ -66,7 +67,7 @@ struct ScrollBarInitialRepeatDelayCapability {
 // The interval between a held part's repeats, 16ms to 500ms (else std::invalid_argument).
 template <typename Declaring>
 struct ScrollBarRepeatIntervalCapability {
-    PropertyCell<FrameInterval, ScrollBarRepeatIntervalCapability<Declaring>> repeat_interval{std::chrono::milliseconds(60)};
+    PropertyCell<FrameInterval, ScrollBarRepeatIntervalCapability<Declaring>> repeat_interval{scroll_repeat_interval_default};
 
     static void assign(ScrollBarRepeatIntervalCapability& capability, FrameInterval incoming) {
         Declaring& control = static_cast<Declaring&>(capability);

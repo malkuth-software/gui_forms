@@ -549,6 +549,7 @@ void RichTextBox::reveal_caret() {
     const double width = std::max(1.0, viewport.width);
     const double height = std::max(1.0, viewport.height);
     Point offset = scroll_offset();
+    const bool glide = std::exchange(glide_next_reveal_, false);
     if (reveal_pending_ && !rows_.empty()) {
         const Row& row = rows_[caret_row()];
         const double x = boundary_x(row, (*editing_).selection().caret);
@@ -557,6 +558,12 @@ void RichTextBox::reveal_caret() {
         if (x < offset.x) offset.x = x;
         if (x > offset.x + width - 1.0) offset.x = x - width + 1.0;
         reveal_pending_ = false;
+        // A paging key's reveal glides; with reduced motion it lands at once.
+        if (glide && auto_scroll.read()) {
+            if (word_wrap.read()) offset.x = 0.0;
+            glide_to(offset);
+            return;
+        }
     }
     set_scroll(offset);
 }

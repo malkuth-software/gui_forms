@@ -77,10 +77,8 @@ private:
     // when the track no longer lies under the pointer or the step is refused.
     void repeat_step();
 
-    // One arrow button: its actuator part, pressed while it is the pressed
-    // part, and its arrow mark.
-    void paint_button(Painter& painter, Rect button, ScrollBarPart part,
-                      bool incrementing, AnatomyStateSet states);
+    // Moves the hover onto `part` (none: off the bar), repainting on change.
+    void set_hot_part(ScrollBarPart part);
     [[nodiscard]] double axis_coordinate(Point local_point) const noexcept;
     [[nodiscard]] double value_from_thumb_coordinate(double coordinate) const noexcept;
     bool apply_part(ScrollBarPart part);
@@ -88,6 +86,8 @@ private:
     void stop_interaction() noexcept;
 
     ScrollBarPart pressed_part_{ScrollBarPart::none};
+    // The part under the pointer (none off the bar), which alone shows hot.
+    ScrollBarPart hot_part_{ScrollBarPart::none};
     Point repeat_pointer_{};
     double thumb_drag_offset_{};
     // Repeats the pressed part: first after initial_repeat_delay, then
@@ -96,6 +96,8 @@ private:
     FrameRequestToken repeat_frames_;
     bool focused_{};
     bool tracking_thumb_{};
+    // The arrow buttons' extent on a bar `axis` long (the theme may draw none).
+    [[nodiscard]] double arrow_extent(double axis) const noexcept;
     // property_codemod begin ScrollBar (tools/property_families/scroll_bar.json; generated, do not edit)
 public:
     // ScrollBar's property table: RangeControl's entries, then its own.
@@ -104,8 +106,6 @@ public:
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
 private:
-    // The arrow buttons' extent on a bar `axis` long (the theme may draw none).
-    [[nodiscard]] double arrow_extent(double axis) const noexcept;
     friend struct ScrollBarButtonExtentCapability<ScrollBar>;
     friend struct ScrollBarMinimumThumbExtentCapability<ScrollBar>;
     friend struct ScrollBarInitialRepeatDelayCapability<ScrollBar>;

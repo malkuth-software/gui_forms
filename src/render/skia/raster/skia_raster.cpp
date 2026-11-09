@@ -760,6 +760,53 @@ void SkiaRaster::begin_frame(const DamageRegion& damage) {
     }
 }
 
+bool SkiaRaster::scroll_copy(const Rect clip, const Point offset) {
+    // The frame's own surface, never an open group's layer.
+    SkCanvas* canvas = nullptr;
+    bool prepared = false;
+#if defined(GUI_FORMS_PREPARED_TEXT)
+    prepared = (*impl_).prepared_mode;
+    if (prepared) canvas = (*impl_).prepared_frame.canvas();
+#endif
+    if (!prepared && (*impl_).surface) canvas = (*(*impl_).surface).getCanvas();
+    if (canvas == nullptr) return false;
+    const std::optional<SkPixmap> peeked = (*canvas).peekPixels();
+    if (!peeked || (*peeked).colorType() != kBGRA_8888_SkColorType) return false;
+    const SkPixmap& pixels = *peeked;
+    const double scale = (*impl_).scale;
+    const double values[] = {clip.x * scale, clip.y * scale, clip.width * scale, clip.height * scale,
+                             offset.x * scale, offset.y * scale};
+    for (const double value : values) {
+        if (!std::isfinite(value) || std::abs(value - std::round(value)) > 1.0e-6) return false;
+    }
+    // Device rectangles: the clip within the surface, and the destination,
+    // the clip's pixels that receive a pixel from inside it.
+    const long long width = pixels.width();
+    const long long height = pixels.height();
+    const long long left = std::clamp(std::llround(values[0]), 0LL, width);
+    const long long top = std::clamp(std::llround(values[1]), 0LL, height);
+    const long long right = std::clamp(std::llround(values[0] + values[2]), left, width);
+    const long long bottom = std::clamp(std::llround(values[1] + values[3]), top, height);
+    const long long dx = std::llround(values[4]);
+    const long long dy = std::llround(values[5]);
+    const long long destination_left = std::max(left, left + dx);
+    const long long destination_right = std::min(right, right + dx);
+    const long long destination_top = std::max(top, top + dy);
+    const long long destination_bottom = std::min(bottom, bottom + dy);
+    if (destination_left >= destination_right || destination_top >= destination_bottom) return true;
+    const std::size_t row_bytes = static_cast<std::size_t>(destination_right - destination_left) * 4U;
+    const long long rows = destination_bottom - destination_top;
+    // Rows move toward the copy's direction: a row is read before the copy
+    // overwrites it. memmove handles the overlap within a row.
+    for (long long step = 0; step < rows; ++step) {
+        const long long row = dy > 0 ? destination_bottom - 1 - step : destination_top + step;
+        void* const target = pixels.writable_addr(static_cast<int>(destination_left), static_cast<int>(row));
+        const void* const source = pixels.addr(static_cast<int>(destination_left - dx), static_cast<int>(row - dy));
+        std::memmove(target, source, row_bytes);
+    }
+    return true;
+}
+
 void SkiaRaster::clip_damage(const DamageRegion& damage) {
     SkCanvas* const canvas = (*impl_).canvas();
     if (canvas == nullptr || damage.empty()) return;

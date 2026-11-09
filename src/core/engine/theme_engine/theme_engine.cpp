@@ -836,7 +836,7 @@ ThemeEngine::PartPlan ThemeEngine::plan(const Control& control, const PartPaint&
         return result;
     }
     CompiledThemeRules::PartFacts facts{};
-    facts.control_type = control.anatomy().control_id;
+    facts.control_type = part.control_type.empty() ? control.anatomy().control_id : part.control_type;
     facts.stable_id = control.stable_id().value();
     facts.classes = control.classes();
     facts.inline_rules = control.inline_style_rules();

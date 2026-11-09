@@ -7,7 +7,8 @@
   "capabilities_header": "include/gui_forms/controls/range_control/scroll_bar/scroll_bar_capabilities/scroll_bar_capabilities.hpp",
   "base": "RangeControl",
   "includes": [
-    "gui_forms/controls/range_control/range_control.hpp"
+    "gui_forms/controls/range_control/range_control.hpp",
+    "gui_forms/controls/scrollable_control/scroll_bar_metrics/scroll_bar_metrics.hpp"
   ],
   "properties": [
     {
@@ -36,7 +37,7 @@
       "name": "minimum_thumb_extent",
       "capability": "ScrollBarMinimumThumbExtent",
       "value": "double",
-      "initial": "18.0",
+      "initial": "scroll_thumb_extent_default",
       "comment": "The thumb's least extent, 8 to 128 pixels (else std::invalid_argument).",
       "getter": "minimum_thumb_extent",
       "setter": "set_minimum_thumb_extent",
@@ -50,7 +51,7 @@
       "effects": "Dirty::paint | Dirty::hit_test | Dirty::semantics",
       "prepare": [
         "require_finite(incoming, \"scrollbar thumb extent must be finite\");",
-        "if (incoming < 8.0 || incoming > 128.0) throw std::invalid_argument(\"scrollbar thumb extent must be between 8 and 128\");"
+        "if (incoming < scroll_thumb_extent_least || incoming > scroll_thumb_extent_most) throw std::invalid_argument(\"scrollbar thumb extent must be between 8 and 128\");"
       ],
       "sample": "24.0"
     },
@@ -58,7 +59,7 @@
       "name": "initial_repeat_delay",
       "capability": "ScrollBarInitialRepeatDelay",
       "value": "FrameInterval",
-      "initial": "std::chrono::milliseconds(400)",
+      "initial": "scroll_repeat_delay_default",
       "comment": "How long a held part waits before it repeats, 100ms to 2s (else std::invalid_argument); a press already repeating keeps its schedule.",
       "getter": "initial_repeat_delay",
       "setter": "set_initial_repeat_delay",
@@ -78,7 +79,7 @@
       "name": "repeat_interval",
       "capability": "ScrollBarRepeatInterval",
       "value": "FrameInterval",
-      "initial": "std::chrono::milliseconds(60)",
+      "initial": "scroll_repeat_interval_default",
       "comment": "The interval between a held part's repeats, 16ms to 500ms (else std::invalid_argument).",
       "getter": "repeat_interval",
       "setter": "set_repeat_interval",
