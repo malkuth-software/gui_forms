@@ -23,7 +23,9 @@ gui_forms::Splitter
    the visible sibling docked at the same edge whose far side touches the
    splitter's near side. A left or right splitter sets its target's requested
    width; a top or bottom one its height. The resize is live: the layout runs
-   as the pointer moves.
+   as the pointer moves. The drag runs on the window's drag engine; Escape,
+   losing the pointer capture and the window's deactivation cancel it and put
+   the target back at its extent before the drag.
 
    *Status:* provisional. *Windows Forms counterpart:* ``Splitter``.
 
@@ -81,8 +83,11 @@ gui_forms::Splitter
    splitter docked none or fill, or one without a target, ignores the pointer.
 
    The bar is painted by role as a face plate of the panel family: hot under
-   the pointer, pressed while dragging. It takes no focus, as in Windows Forms,
-   so Escape does not cancel a drag. It is published to accessibility as a
+   the pointer, pressed while dragging. It takes no focus, as in Windows Forms;
+   the window gives a running drag its keys, so Escape cancels one. The
+   ``begin_keyboard_drag`` rule action moves the bar from the keyboard: the
+   arrows along its axis step by 10 units (Ctrl 100, Shift 1), Enter keeps
+   the position and Escape restores it. It is published to accessibility as a
    separator whose value is the split position, with increment, decrement (10
    units) and set-value actions.
 
@@ -171,6 +176,8 @@ gui_forms::Splitter
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value) override
+
+   .. cpp:function:: bool begin_keyboard_drag() override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 

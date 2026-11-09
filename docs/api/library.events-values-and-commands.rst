@@ -293,7 +293,7 @@ Related types
 
    ``#include <gui_forms/rules/rule/rule.hpp>``
 
-   An action of a rule; made by action() and the functions in namespace builtin. program: ``call`` runs ``function`` (a ``void (Context&, const RuleFiring&)`` stored as a plain function pointer) with ``context``. retained: a context the rule owns, released with the rule (the C ABI's callback loans); null for a C++ action, whose context is borrowed. invoke: ``command``, executed through the window's command route. set, toggle: ``value`` (a Value<T>) written by ``write`` from ``argument``. focus: ``control``, given the keyboard focus. anchor: the component the action names (a context that is a Component, the command, the Value), whose disposal disarms the rule.
+   An action of a rule; made by action() and the functions in namespace builtin. program: ``call`` runs ``function`` (a ``void (Context&, const RuleFiring&)`` stored as a plain function pointer) with ``context``. retained: a context the rule owns, released with the rule (the C ABI's callback loans); null for a C++ action, whose context is borrowed. invoke: ``command``, executed through the window's command route. set, toggle: ``value`` (a Value<T>) written by ``write`` from ``argument``. focus: ``control``, given the keyboard focus. begin_keyboard_drag: ``control``, whose keyboard drag mode is entered. anchor: the component the action names (a context that is a Component, the command, the Value), whose disposal disarms the rule.
 
    .. cpp:member:: RuleActionKind kind
 
@@ -351,7 +351,7 @@ Related types
 
    ``#include <gui_forms/rules/rule/rule.hpp>``
 
-   A condition of a rule; made by the functions in namespace condition. A negated condition holds when its level does not (the ``not_`` forms). physical_key: key_down's key; modifiers: the modifiers' exact set. control: the control hovering, pressed, focused, focus_within, enabled and visible read. flag: is_true's Value; number and expected: equals' Value and number. anchor: the Value is_true or equals reads, whose disposal disarms the rule (a control condition's control is anchored through ``control``).
+   A condition of a rule; made by the functions in namespace condition. A negated condition holds when its level does not (the ``not_`` forms). physical_key: key_down's key; modifiers: the modifiers' exact set. control: the control hovering, pressed, focused, focus_within, enabled, visible, dragging and drop_candidate read. flag: is_true's Value; number and expected: equals' Value and number. anchor: the Value is_true or equals reads, whose disposal disarms the rule (a control condition's control is anchored through ``control``).
 
    .. cpp:member:: RuleConditionKind kind
 
@@ -627,6 +627,8 @@ Enumerations
 
    .. cpp:enumerator:: focus
 
+   .. cpp:enumerator:: begin_keyboard_drag
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: RuleConditionKind
@@ -656,6 +658,10 @@ Enumerations
    .. cpp:enumerator:: is_true
 
    .. cpp:enumerator:: equals
+
+   .. cpp:enumerator:: dragging
+
+   .. cpp:enumerator:: drop_candidate
 
 .. cpp:namespace:: gui_forms
 
@@ -902,6 +908,16 @@ Functions, constants and aliases
 
 .. cpp:function:: RuleCondition not_window_active()
 
+.. cpp:function:: RuleCondition dragging(Control& control)
+
+   The drag engine's levels (C++ only for now; see RuleConditionKind).
+
+.. cpp:function:: RuleCondition not_dragging(Control& control)
+
+.. cpp:function:: RuleCondition drop_candidate(Control& control)
+
+.. cpp:function:: RuleCondition not_drop_candidate(Control& control)
+
 .. cpp:function:: RuleCondition is_true(Value<bool>& flag)
 
 .. cpp:function:: RuleCondition not_true(Value<bool>& flag)
@@ -929,6 +945,10 @@ Functions, constants and aliases
 .. cpp:function:: RuleAction focus(Control& control)
 
    Gives ``control`` the keyboard focus (SurfaceRoot::request_focus on the firing window); a control that cannot take it is left as it is.
+
+.. cpp:function:: RuleAction begin_keyboard_drag(Control& control)
+
+   Enters ``control``'s keyboard drag mode (Control::begin_keyboard_drag), so that an application can bind its own move key; a control that declares no drag, or a window already running one, is left as it is.
 
 .. cpp:namespace:: gui_forms
 

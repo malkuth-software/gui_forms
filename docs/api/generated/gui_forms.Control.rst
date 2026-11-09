@@ -1690,6 +1690,10 @@ gui_forms::Control
 
    .. cpp:function:: virtual std::vector<SemanticNode> semantic_virtual_children() const
 
+   .. cpp:function:: virtual bool begin_keyboard_drag()
+
+      Enters the control's keyboard drag mode (the window's drag engine, roadmap 2.1) on its subject: the begin_keyboard_drag rule action and the move command reach it. True when a keyboard drag started; false for a control that declares no drag (the default) or has nothing to drag now.
+
    .. cpp:function:: virtual std::vector<SemanticNode> tool_tip_items() const
 
       The parts whose tooltips the root's tooltip route looks for, in root coordinates, read only when publishes_item_tool_tips is set: the semantic virtual children by default. A control whose tooltip parts are not semantic children (SubSurfaceHost: its sub-surface's requests) returns them here.
