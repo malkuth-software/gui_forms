@@ -133,15 +133,13 @@ bool streaming_matches_one_shot() {
         hasher.update(whole.subspan(0U, split));
         hasher.update(whole.subspan(split));
         if (hasher.byte_count() != message.size()) {
-            std::printf("sha256: the hasher counted %llu bytes, not 200
-",
+            std::printf("sha256: the hasher counted %llu bytes, not 200\n",
                         static_cast<unsigned long long>(hasher.byte_count()));
             return false;
         }
         const Sha256Digest streamed = hasher.finish();
         if (streamed != expected) {
-            std::printf("sha256: the hasher split at %zu differs from the one-shot digest
-", split);
+            std::printf("sha256: the hasher split at %zu differs from the one-shot digest\n", split);
             return false;
         }
     }

@@ -207,6 +207,9 @@ ApplicationResult run_probe(Probe& probe) {
     ApplicationWindowOptions options{};
     options.title = "GUI.Forms portable application contract";
     options.initial_size = {360, 240};
+    // The default minimum is none; Ready checks that a request below this
+    // one is refused.
+    options.minimum_size = {150.0, 150.0};
     options.ready = Ready{&probe};
     options.closing = Closing{&probe};
     options.closed = Closed{&probe};

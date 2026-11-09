@@ -368,7 +368,11 @@ gf_status focus_control(gf_object object, std::uint32_t* focused) {
                     "focus was refused: the control is outside the window's open focus scope, or validation "
                     "kept focus where it was");
     }
-    if (focused != nullptr) *focused = (*window).active() ? 1U : 0U;
+    // A window counts as active only once a host session presents it: a
+    // window that has not run keeps SurfaceRoot's headless default
+    // (active) but does not have the keyboard.
+    const bool keyboard = (*window).active() && (*window).host_services() != nullptr;
+    if (focused != nullptr) *focused = keyboard ? 1U : 0U;
     return GF_STATUS_OK;
 }
 

@@ -1321,11 +1321,15 @@ public:
                 gui_forms::detail::BoundMemberFunction<void (WindowsHostState::*)() noexcept>(
                     *this, &WindowsHostState::hide_window));
         }
+        // The window is ready before the initialization turn: a callback in
+        // it may run a nested loop (a modal window shown from posted work),
+        // whose messages for this window, its managed wakes included, a window
+        // that is not ready would drop.
+        native_phase_ = NativePhase::ready;
         // One FIFO initialization turn runs before presentation. Work posted by
         // those callbacks stays deferred to the ordinary next host turn.
         static_cast<void>((*model_).drain_posted_work());
         if (options_.dispatch_pending) options_.dispatch_pending();
-        native_phase_ = NativePhase::ready;
         collect_damage();
         return true;
     }

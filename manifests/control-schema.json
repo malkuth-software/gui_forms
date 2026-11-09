@@ -10242,6 +10242,10 @@
         {"name": "dialog_result_changed", "payload": "DialogResult", "mutable_payload": false},
         {"name": "focused_control_changed", "payload": "FocusedControlChange", "mutable_payload": false},
         {"name": "help_requested", "payload": "HelpRequestEvent", "mutable_payload": true},
+        {"name": "key_down", "payload": "KeyEventArgs", "mutable_payload": true},
+        {"name": "key_press", "payload": "KeyPressEventArgs", "mutable_payload": true},
+        {"name": "key_state_changed", "payload": "KeyStateChange", "mutable_payload": false},
+        {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "presentation_changed", "payload": "PresentationSettings", "mutable_payload": false},
         {"name": "theme_changed", "payload": "Theme", "mutable_payload": false}
       ]

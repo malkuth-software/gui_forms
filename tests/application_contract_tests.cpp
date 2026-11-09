@@ -224,11 +224,15 @@ void validation() {
     windows[0].owner_id = "tools";
     require(!Application::validate(windows).accepted(), "owner cycle accepted");
     windows[0].owner_id.clear();
+    // Owned by "main" and named "main", the entry would own itself, refused
+    // before any duplicate is looked for: the duplicate has no owner.
+    windows[1].owner_id.clear();
     windows[1].stable_id = "main";
     require(!Application::validate(windows).accepted(), "duplicate ID accepted");
     require(Application::validate(windows).refusal == ApplicationWindowRefusal::duplicate_stable_id,
             "a duplicate names the stable id");
     windows[1].stable_id = "tools";
+    windows[1].owner_id = "main";
     windows[0].options.title.assign("bad\0title", 9U);
     require(!Application::validate(windows).accepted(), "embedded NUL accepted");
     windows[0].options.title = "\xc0\xaf";

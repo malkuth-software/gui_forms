@@ -157,7 +157,7 @@ internal static unsafe class Program
     {
         ulong count = 0;
         Abi.check(Abi.windows.interaction_count(&count));
-        expect(count == 7u, "a window raises seven interactions");
+        expect(count == 11u, "a window raises eleven interactions");
         using ObjectHandle root = ObjectHandle.create("Panel"u8, "csharp.window"u8);
         gf_object made = 0;
         Abi.check(Abi.windows.create(root.value, &made));

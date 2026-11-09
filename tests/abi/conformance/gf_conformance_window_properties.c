@@ -99,8 +99,8 @@ static void window_schema(gf_kit* kit) {
     record.struct_size = (uint32_t)sizeof(record);
     gf_kit_status(kit, (*kit).schema.type_at(window_type, &record), GF_STATUS_OK, "the window type's record");
     gf_kit_check(kit, record.kind == GF_SCHEMA_KIND_COMPONENT && gf_kit_view_equals(record.type_name, "Window") &&
-                          record.property_count == 12u && record.interaction_count == 7u,
-                 "the window type is a component with twelve properties and seven interactions");
+                          record.property_count == 12u && record.interaction_count == 11u,
+                 "the window type is a component with twelve properties and eleven interactions");
     uint64_t index = 0u;
     uint64_t found = 0u;
     for (index = 0u; index < record.property_count; ++index) {

@@ -447,10 +447,11 @@ void key_events(const Tables& tables) {
     gf_subscription press_subscription = 0U;
     require_ok(tables.events.subscribe(button_object, text_view("key_press"), &press_callback, &press_subscription),
                "subscribe key_press");
+    // U+00E9 (e with acute accent), written as its UTF-8 bytes.
     TextInputEvent typed;
-    typed.text_utf8 = "Ã©";
+    typed.text_utf8 = "\xC3\xA9";
     require(window.dispatch_text(typed), "a handled key_press keeps the text from the control");
-    require(press.invoked == 1 && press.text == "Ã©" && press.key_char == 0xE9U &&
+    require(press.invoked == 1 && press.text == "\xC3\xA9" && press.key_char == 0xE9U &&
                 press.handled_written == GF_STATUS_OK,
             "key_press carries the text and its character");
 
