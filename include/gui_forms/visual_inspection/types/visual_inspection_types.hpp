@@ -43,6 +43,20 @@ enum class VisualPaintOperation : std::uint8_t {
     begin_group,
     end_group,
     draw_prepared_text,
+    // Batched marks and patterns (Painter::stroke_polyline and after).
+    // `element_count` gives the batch's length; the elements themselves are
+    // not copied into the snapshot.
+    stroke_polyline,
+    fill_polygon,
+    fill_band,
+    fill_rects,
+    stroke_segments,
+    draw_markers,
+    fill_conic_gradient,
+    fill_checker,
+    fill_grid_pattern,
+    fill_rounded_rect_corners,
+    stroke_rounded_rect_corners,
 };
 
 [[nodiscard]] const char* visual_paint_operation_name(
@@ -78,6 +92,10 @@ struct VisualPaintOperationSnapshot final {
     std::string text;
     // The reading direction of a draw_text operation.
     TextOrientation text_orientation{TextOrientation::horizontal};
+    // A batched mark's length: its points, rectangles, segments or markers
+    // (a band counts its upper points); 0 for every other operation, whose
+    // JSON leaves the field out.
+    std::size_t element_count{};
 };
 
 struct VisualControlStateSnapshot final {

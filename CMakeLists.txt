@@ -258,6 +258,8 @@ add_library(gui_forms_core STATIC
     src/core/binding/binding_context/binding_context.cpp
     src/core/types/damage_region/damage_region.cpp
     src/core/types/painter/painter.cpp
+    src/core/types/painter/painter_marks.cpp
+    src/core/types/paint_marks/paint_marks.cpp
     src/core/types/rect/rect.cpp
     src/core/theme/theme/theme.cpp
     src/core/theme/contrast/theme_contrast.cpp
@@ -4043,6 +4045,12 @@ if(GUI_FORMS_BUILD_TESTS)
     )
     target_link_libraries(gui_forms_display_chunk_tests PRIVATE gui_forms_controls gui_forms_core)
     add_test(NAME gui_forms_display_chunk_tests COMMAND gui_forms_display_chunk_tests)
+
+    add_executable(gui_forms_paint_marks_tests
+        tests/paint_marks_tests.cpp
+    )
+    target_link_libraries(gui_forms_paint_marks_tests PRIVATE gui_forms_controls gui_forms_core)
+    add_test(NAME gui_forms_paint_marks_tests COMMAND gui_forms_paint_marks_tests)
 
     add_executable(gui_forms_frame_scheduler_tests
         tests/frame_scheduler_tests.cpp

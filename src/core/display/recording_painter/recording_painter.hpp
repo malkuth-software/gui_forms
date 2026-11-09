@@ -47,6 +47,23 @@ public:
                                double blur_radius, double spread,
                                Color color) override;
     void draw_line(Point from, Point to, Color color, double width) override;
+    // The batched marks and patterns record their spans verbatim, copied
+    // once into the command's DisplayMarks; the painter that replays them
+    // validates them. fill_conic_gradient throws std::invalid_argument for
+    // invalid stops, as the other gradients do.
+    void stroke_polyline(std::span<const Point> points, const StrokeStyle& style) override;
+    void fill_polygon(std::span<const Point> points, Color color, PolygonFillRule rule) override;
+    void fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color) override;
+    void fill_rects(std::span<const Rect> rects, Color color) override;
+    void fill_rects_each(std::span<const Rect> rects, std::span<const Color> colors) override;
+    void stroke_segments(std::span<const PaintSegment> segments, const StrokeStyle& style) override;
+    void draw_markers(std::span<const Point> centers, const MarkerStyle& style) override;
+    void fill_conic_gradient(Rect rect, Point center, double start_degrees,
+                             std::span<const GradientStop> stops) override;
+    void fill_checker(Rect rect, const CheckerPattern& pattern) override;
+    void fill_grid_pattern(Rect rect, const GridPattern& pattern) override;
+    void fill_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color) override;
+    void stroke_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color, double width) override;
     void draw_text_utf8(Point origin, std::string_view text,
                         FontSpec font, Color color) override;
     // Re-recording a retained command keeps its cache with the new copy.

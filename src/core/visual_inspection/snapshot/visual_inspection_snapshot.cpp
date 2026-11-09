@@ -432,6 +432,7 @@ void append_operation(std::ostringstream& output,
     append_json_string(output, operation.text);
     output << ",\"text_orientation\":";
     append_json_string(output, text_orientation_name(operation.text_orientation));
+    if (operation.element_count != 0U) output << ",\"element_count\":" << operation.element_count;
     output << '}';
 }
 
@@ -586,6 +587,17 @@ const char* visual_paint_operation_name(VisualPaintOperation operation) noexcept
     case VisualPaintOperation::begin_group: return "begin_group";
     case VisualPaintOperation::end_group: return "end_group";
     case VisualPaintOperation::draw_prepared_text: return "draw_prepared_text";
+    case VisualPaintOperation::stroke_polyline: return "stroke_polyline";
+    case VisualPaintOperation::fill_polygon: return "fill_polygon";
+    case VisualPaintOperation::fill_band: return "fill_band";
+    case VisualPaintOperation::fill_rects: return "fill_rects";
+    case VisualPaintOperation::stroke_segments: return "stroke_segments";
+    case VisualPaintOperation::draw_markers: return "draw_markers";
+    case VisualPaintOperation::fill_conic_gradient: return "fill_conic_gradient";
+    case VisualPaintOperation::fill_checker: return "fill_checker";
+    case VisualPaintOperation::fill_grid_pattern: return "fill_grid_pattern";
+    case VisualPaintOperation::fill_rounded_rect_corners: return "fill_rounded_rect_corners";
+    case VisualPaintOperation::stroke_rounded_rect_corners: return "stroke_rounded_rect_corners";
     }
     return "unknown";
 }
