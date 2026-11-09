@@ -78,6 +78,9 @@ exclude_patterns = [
     ".DS_Store",
     # Maintainer notes for this directory; not a user page.
     "README.md",
+    # The GitHub wiki's pages, kept here and published to the wiki by hand;
+    # they link to this site rather than being part of it.
+    "wiki/**",
     # Maintainer notes for the generated control indexes; not a user page.
     "controls/generated/README.md",
     # Hand-written narratives and capture evidence read by

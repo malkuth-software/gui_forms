@@ -73,9 +73,9 @@ A Popup forces a decision. GUI.Forms opens one in three ways:
   default, `DialogSurface::overlay`, keeps the panel in the window.
 - **Menus, drop-downs and pickers.** These open in warm Popup windows when
   the run can, so a menu or a drop-down list may reach past the window onto
-  the desktop. A Popup never takes the focus: keys still reach the owner's
-  window, and the control that opened the Popup forwards them to it. The
-  program does nothing to choose this.
+  the desktop. A warm Popup window never takes the focus: keys still reach
+  the owner's window, and the control that opened the Popup forwards them
+  to it. The program does nothing to choose this.
 - **Your own content.** `Window::open_native_popup(owner, content, bounds,
   options)` opens a live detached root in a Popup window at `bounds` in the
   window's client area, kept inside its monitor's work area:
