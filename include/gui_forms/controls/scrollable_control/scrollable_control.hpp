@@ -114,6 +114,11 @@ protected:
     // Called after the retained position changes, including silent API writes
     // and layout clamping. This does not publish a public Scroll event.
     virtual void on_scroll_position_changed() {}
+    // True for a control that paints content of its own at the scroll
+    // position (a text box's lines), which a copy of its children's pixels
+    // would not move: its scrolls repaint the viewport. False by default:
+    // the scroll position moves only the children this class arranges.
+    [[nodiscard]] virtual bool paints_scrolled_content() const noexcept { return false; }
     // Runs after a changed auto_scroll write, once the scroll state is
     // updated and a moved position reported; `previous_position` is the
     // scroll position before the write (turning auto scroll off returns it
@@ -200,6 +205,19 @@ private:
     double scrollbar_button_extent_{16.0};
     double minimum_thumb_extent_{18.0};
     bool arranging_scroll_{};
+    // The scroll copy (SurfaceRoot::request_scroll_copy). Children are placed
+    // at the scroll position rounded to whole device pixels, so that a
+    // scroll moves their pixels exactly; the position itself stays exact.
+    // `painted_scroll_position_` is that rounded offset as last arranged.
+    // `scroll_copy_pending_`: a scroll left the viewport's repaint to the
+    // next arrange, which records a copy or repaints. `copy_arranged_`: the
+    // last arrange was this class's, which places the children at the
+    // scroll position (a derived arrange that does not call it places them).
+    Point painted_scroll_position_{};
+    bool scroll_copy_pending_{};
+    bool copy_arranged_{};
+    [[nodiscard]] Point device_scroll_position() const noexcept;
+    [[nodiscard]] bool scroll_copies_children() const noexcept;
     // property_codemod begin ScrollableControl (tools/property_families/scrollable_control.json; generated, do not edit)
 public:
     // ScrollableControl's property table: Control's entries, then its own.

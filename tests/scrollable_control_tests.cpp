@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <type_traits>
+#include <vector>
 
 namespace {
 
@@ -263,6 +264,89 @@ void test_scroll_bar_press_and_hold_repeats_on_a_ui_timer() {
     static_cast<void>(window.dispatch_pointer(release));
     require(!window.next_wake().has_value() && near((*bar).value.read(), 3.0),
             "release must stop the repeat timer");
+
+// A host that keeps its pixels (scroll copies on): a scroll that only moves
+// the viewport's children by whole device pixels records one copy and
+// damages the band it exposed and the bar, not the viewport; a control
+// over the viewport is repainted where it is and where the copy moved it.
+void test_scroll_copies_damage_only_the_exposed_band() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("copy.root"));
+    std::shared_ptr<gui_forms::ScrollableControl> viewport =
+        make_control<ScrollableControl>(StableId("copy.viewport"));
+    (*viewport).auto_scroll = true;
+    (*viewport).set_requested_bounds({10.0, 10.0, 100.0, 80.0});
+    std::shared_ptr<gui_forms::Button> child = make_control<Button>(StableId("copy.child"), "Tall");
+    (*child).set_requested_bounds({0.0, 0.0, 80.0, 400.0});
+    (*viewport).add_child(child);
+    (*root).add_child(viewport);
+    Window window(root, {200.0, 120.0});
+    window.set_scroll_copies_supported(true);
+    window.perform_layout();
+    static_cast<void>(window.take_damage());
+    std::vector<ScrollCopy> copies;
+    window.take_scroll_copies(copies);
+    copies.clear();
+
+    require((*viewport).scroll_by({0.0, 10.0}), "the viewport scrolls");
+    const DamageRegion damage = window.take_damage();
+    window.take_scroll_copies(copies);
+    const Rect clip{10.0, 10.0, 84.0, 80.0};
+    require(copies.size() == 1U && copies[0].clip == clip && copies[0].offset == Point{0.0, -10.0},
+            "a scroll by whole pixels must record one copy of the viewport");
+    const double band_and_bar = 84.0 * 10.0 + 16.0 * 80.0;
+    require(damage.area() <= band_and_bar + 1.0e-6 && damage.area() >= 84.0 * 10.0,
+            "a copied scroll must damage only the exposed band and the bar");
+    require((*child).committed_arranged_bounds() == Rect{0.0, -10.0, 80.0, 400.0},
+            "the children move by the scroll");
+
+    // Under a pixel: the children stay on the pixel grid, nothing is copied.
+    copies.clear();
+    require((*viewport).scroll_by({0.0, 0.25}), "a fractional scroll is kept");
+    const DamageRegion fractional = window.take_damage();
+    window.take_scroll_copies(copies);
+    require(copies.empty() && fractional.area() <= 16.0 * 80.0 + 1.0e-6 &&
+                (*child).committed_arranged_bounds() == Rect{0.0, -10.0, 80.0, 400.0} &&
+                near((*viewport).scroll_position().y, 10.25),
+            "a scroll under a device pixel must keep the exact position and move no pixels");
+
+    // A later sibling over the viewport is repainted where it is and where
+    // the copy moved its pixels; the rest of the viewport is still copied.
+    std::shared_ptr<gui_forms::Label> cover = make_control<Label>(StableId("copy.cover"), "Over");
+    (*cover).set_requested_bounds({40.0, 40.0, 30.0, 20.0});
+    (*root).add_child(cover);
+    window.perform_layout();
+    static_cast<void>(window.take_damage());
+    copies.clear();
+    require((*viewport).scroll_by({0.0, 12.0}), "the covered viewport scrolls");
+    const DamageRegion covered = window.take_damage();
+    window.take_scroll_copies(copies);
+    const double repainted_cover = 2.0 * 30.0 * 20.0;
+    require(copies.size() == 1U && copies[0].offset == Point{0.0, -12.0} &&
+                covered.area() <= 84.0 * 12.0 + 16.0 * 80.0 + repainted_cover + 1.0e-6,
+            "a control over the viewport must be repainted, and the viewport still copied");
+    bool cover_damaged = false;
+    for (const Rect rect : covered.rectangles()) {
+        if (rect.contains(Rect{40.0, 40.0, 30.0, 20.0})) cover_damaged = true;
+    }
+    require(cover_damaged, "the control over the viewport must be damaged where it is");
+}
+
+// damage_after_scroll_copy: a rectangle's share inside the clip moves and is
+// cut to it; its share outside stays.
+void test_damage_moves_with_a_scroll_copy() {
+    DamageRegion damage;
+    damage.add({0.0, 20.0, 10.0, 10.0});
+    damage.add({50.0, 50.0, 10.0, 10.0});
+    const DamageRegion moved = damage_after_scroll_copy(damage, {0.0, 0.0, 40.0, 100.0}, {0.0, -15.0});
+    require(near(moved.area(), 200.0) && moved.bounds() == Rect{0.0, 5.0, 60.0, 55.0},
+            "damage inside the clip must move with the copy and damage outside stay");
+    const DamageRegion clipped = damage_after_scroll_copy(damage, {0.0, 22.0, 40.0, 100.0}, {0.0, -15.0});
+    // The first rectangle keeps its two rows above the clip; its share
+    // inside moves above the clip and is cut away.
+    require(near(clipped.area(), 120.0) && clipped.bounds() == Rect{0.0, 20.0, 60.0, 40.0},
+            "a rectangle crossing the clip keeps its outside share");
+}
+
 }
 
 int main() {
@@ -272,6 +356,8 @@ int main() {
         test_scroll_gestures_events_semantics_and_state();
         test_control_into_view_offset_and_minimum_extent();
         test_scroll_bar_press_and_hold_repeats_on_a_ui_timer();
+        test_scroll_copies_damage_only_the_exposed_band();
+        test_damage_moves_with_a_scroll_copy();
         std::cout << "gui_forms_scrollable_control_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

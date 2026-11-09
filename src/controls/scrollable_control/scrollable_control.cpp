@@ -4,10 +4,12 @@
 #include "scrollable_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
 
 #include <array>
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <limits>
 #include <numeric>
 #include <stdexcept>
@@ -326,25 +328,67 @@ void ScrollableControl::arrange(Rect final_bounds) {
         bool& value;
         ~Reset() { value = false; }
     } reset{arranging_scroll_};
+    const Rect previous_bounds = committed_arranged_bounds();
+    const Rect previous_viewport = viewport_rectangle_;
     arrange_self(final_bounds);
     recompute_scroll_layout({final_bounds.width, final_bounds.height});
     if (!is_alive()) return;
     if (auto_scroll.read()) adjust_scrollbars(true);
     Control::arrange(final_bounds);
-    if (scroll_position_ == Point{}) return;
+    copy_arranged_ = true;
+    const Point previous_painted = painted_scroll_position_;
+    const Point painted = device_scroll_position();
+    painted_scroll_position_ = painted;
     // Right to left, the base arrange mirrored the slots, so scrolling the
     // logical content toward the left moves them to the right.
     const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
-    for (const Control::Ptr& child : children()) {
-        if (!child || !(*child).is_alive() || !(*child).visible.read() ||
-            (*child).dock.read() != DockStyle::none) continue;
-        // The base arrange just assigned the unscrolled slot; offset that, not
-        // the committed bounds, which still carry the previous scroll offset.
-        Rect bounds = (*child).pending_layout_bounds();
-        bounds.x += mirrored ? scroll_position_.x : -scroll_position_.x;
-        bounds.y -= scroll_position_.y;
-        set_child_layout(child, bounds);
+    if (painted != Point{}) {
+        for (const Control::Ptr& child : children()) {
+            if (!child || !(*child).is_alive() || !(*child).visible.read() ||
+                (*child).dock.read() != DockStyle::none) continue;
+            // The base arrange just assigned the unscrolled slot; offset that, not
+            // the committed bounds, which still carry the previous scroll offset.
+            Rect bounds = (*child).pending_layout_bounds();
+            bounds.x += mirrored ? painted.x : -painted.x;
+            bounds.y -= painted.y;
+            set_child_layout(child, bounds);
+        }
     }
+    if (!scroll_copy_pending_) return;
+    // A scroll left the viewport's repaint to this arrange: the children
+    // moved by whole device pixels, so their pixels are copied and only the
+    // band exposed and the bars are repainted, when this arrange changed
+    // nothing else in the viewport and the surface accepts the copy.
+    scroll_copy_pending_ = false;
+    const Point moved{mirrored ? painted.x - previous_painted.x : previous_painted.x - painted.x,
+                      previous_painted.y - painted.y};
+    const Rect arranged = committed_arranged_bounds();
+    const bool unchanged = previous_viewport == viewport_rectangle_ &&
+        previous_bounds.width == arranged.width && previous_bounds.height == arranged.height;
+    bool copied = unchanged && moved == Point{};
+    std::fprintf(stderr, "scroll-arrange unchanged=%d moved %g %g\n", unchanged ? 1 : 0, moved.x, moved.y);
+    if (unchanged && !copied && surface_root() != nullptr) {
+        copied = (*surface_root()).request_scroll_copy(*this, moved);
+    }
+    // The bars were repainted by the scroll (apply_axis_value).
+    if (!copied) invalidate(Dirty::paint);
+}
+
+// The scroll position rounded to whole device pixels, where the children are
+// placed (a scroll then moves their pixels exactly).
+Point ScrollableControl::device_scroll_position() const noexcept {
+    const double scale = surface_root() != nullptr ? (*surface_root()).scale() : 1.0;
+    if (!(scale > 0.0)) return scroll_position_;
+    const Point rounded{std::round(scroll_position_.x * scale) / scale,
+                        std::round(scroll_position_.y * scale) / scale};
+    return rounded;
+}
+
+// Whether a scroll may leave its repaint to the next arrange's copy.
+bool ScrollableControl::scroll_copies_children() const noexcept {
+    if (!copy_arranged_ || paints_scrolled_content() || surface_root() == nullptr) return false;
+    const bool supported = (*surface_root()).scroll_copies_supported();
+    return supported;
 }
 
 double ScrollableControl::maximum_offset(
@@ -370,8 +414,16 @@ bool ScrollableControl::apply_axis_value(ScrollOrientation orientation,
     if (orientation == ScrollOrientation::horizontal) scroll_position_.x = next;
     else scroll_position_.y = next;
     if (notify) scroll_state_ |= scroll_state_user_has_scrolled;
-    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test |
-               Dirty::semantics | Dirty::accessibility);
+    // The children this class arranges move by a copy of their pixels when
+    // the surface accepts one (arrange); otherwise the viewport repaints.
+    // The bars repaint now either way, which also asks the host for a frame.
+    Dirty effects = Dirty::arrange | Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
+    const bool copy = scroll_copies_children() && (vscroll() || hscroll());
+    if (copy) scroll_copy_pending_ = true;
+    else effects |= Dirty::paint;
+    std::fprintf(stderr, "scroll-apply copy=%d arranged=%d sr=%d\n", copy ? 1 : 0, copy_arranged_ ? 1 : 0, surface_root() != nullptr ? 1 : 0);
+    invalidate(effects);
+    if (copy) invalidate_scroll_bar_strips(viewport_rectangle_);
     on_scroll_position_changed();
     if (notify) notify_scroll(orientation, type, old_value, next);
     return true;

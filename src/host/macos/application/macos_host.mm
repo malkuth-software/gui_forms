@@ -872,6 +872,13 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     SkiaRaster _raster;
     BOOL _rasterHasContent;
     DamageRegion _pendingDamage;
+    // Scroll copies taken from the model and not yet applied to the raster,
+    // in order (SurfaceRoot::take_scroll_copies); scratch for the take; the
+    // clips of copies the current draw applied, damaged again if its frame
+    // is not presented.
+    std::vector<gui_forms::ScrollCopy> _pendingCopies;
+    std::vector<gui_forms::ScrollCopy> _takenCopies;
+    std::vector<GFRect> _appliedCopyClips;
     NSMutableAttributedString* _markedText;
     NSRange _selectedRange;
     NSTrackingArea* _trackingArea;
@@ -983,6 +990,7 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 // Called once, when the window is made.
 - (NSView*)hostContentView;
 - (void)collectDamage;
+- (void)takeScrollCopies;
 - (void)drainPostedWork;
 - (void)armWakeTimer;
 - (void)scheduledWake;
@@ -1963,6 +1971,9 @@ void post_perform_close(NSWindow* window) {
                                   DISPATCH_TIME_FOREVER, 0);
         (*_model).set_dispatch_wake_handler(DrainPostedWorkWake(self));
         (*_model).set_paint_wake_handler(CollectDamageWake(self));
+        // The raster keeps its pixels between draws, so a scroll's pixels
+        // can be moved instead of repainted (drawRetainedRect:).
+        (*_model).set_scroll_copies_supported(true);
         (*_model).set_live_surface_idle_wake_handler(CollectDamageWake(self));
         [self setWantsLayer:NO];
         [self registerForDraggedTypes:@[
@@ -2395,6 +2406,22 @@ void post_perform_close(NSWindow* window) {
     [super updateTrackingAreas];
 }
 
+// Takes the scroll copies the model recorded with the damage just taken.
+// The damage this view still holds moves with each copy's pixels; the copy's
+// clip is asked of AppKit, which copies the raster there after the draw.
+- (void)takeScrollCopies {
+    _takenCopies.clear();
+    (*_model).take_scroll_copies(_takenCopies);
+    for (const gui_forms::ScrollCopy& copy : _takenCopies) {
+        if (!_pendingDamage.empty()) {
+            _pendingDamage = gui_forms::damage_after_scroll_copy(_pendingDamage, copy.clip, copy.offset);
+        }
+        _pendingCopies.push_back(copy);
+        [self setNeedsDisplayInRect:NSMakeRect(copy.clip.x, copy.clip.y, copy.clip.width, copy.clip.height)];
+    }
+    _takenCopies.clear();
+}
+
 - (void)collectDamage {
     std::optional<MacCpuScope> cpuScope{};
     if (_cpuAttribution.enabled) cpuScope.emplace(_cpuAttribution, 2U);
@@ -2424,6 +2451,7 @@ void post_perform_close(NSWindow* window) {
         DamageRegion damage = (*_model).take_damage();
         const double scale =
             self.window == nil ? 1.0 : self.window.backingScaleFactor;
+        [self takeScrollCopies];
         for (GFRect rect : damage.rectangles()) {
             rect = gui_forms::detail::align_damage_outward(rect, scale);
             _pendingDamage.add(rect);
@@ -2432,6 +2460,11 @@ void post_perform_close(NSWindow* window) {
         }
         [self startDisplayLinkIfNeeded];
         [self armWakeTimer];
+        if (getenv("GF_SYNC_DISPLAY") != nullptr) {
+            const BOOL wanted = self.needsDisplay;
+            [self displayIfNeeded];
+            std::fprintf(stderr, "sync-display wanted=%d visible=%d key=%d occl=%lu\n", wanted ? 1 : 0, self.window.visible ? 1 : 0, self.window.keyWindow ? 1 : 0, static_cast<unsigned long>(self.window.occlusionState));
+        }
     } catch (const std::exception& error) {
         [self recordNativeCallbackFault:"collect-damage" message:error.what()];
     } catch (...) {
@@ -2573,6 +2606,7 @@ void post_perform_close(NSWindow* window) {
         // it into this flush so the overlay is retained-painted over the new
         // frame together with the live copy, not one wake later.
         const DamageRegion beneathOverlays = (*_model).take_damage();
+        [self takeScrollCopies];
         for (GFRect rect : beneathOverlays.rectangles()) {
             rect = gui_forms::detail::align_damage_outward(rect, scale);
             _pendingDamage.add(rect);
@@ -2758,6 +2792,8 @@ void post_perform_close(NSWindow* window) {
         _raster.end_frame();
         _liveFrames.clear();
         _liveRegionLost = YES;
+        for (const GFRect clip : _appliedCopyClips) _pendingDamage.add(clip);
+        _appliedCopyClips.clear();
 #if defined(GUI_FORMS_PREPARED_TEXT)
         _raster.abort_prepared_frame();
 #endif
@@ -2766,6 +2802,8 @@ void post_perform_close(NSWindow* window) {
         _raster.end_frame();
         _liveFrames.clear();
         _liveRegionLost = YES;
+        for (const GFRect clip : _appliedCopyClips) _pendingDamage.add(clip);
+        _appliedCopyClips.clear();
 #if defined(GUI_FORMS_PREPARED_TEXT)
         _raster.abort_prepared_frame();
 #endif
@@ -2820,6 +2858,13 @@ void post_perform_close(NSWindow* window) {
     // in the model's current surface epoch.
     const bool frontHeld = gui_forms::detail::front_held(reuse);
     const bool reusableRaster = frontHeld && _hostOccluded == NO;
+    // Scroll copies move pixels of a raster that still holds the last
+    // presentation; otherwise their clips are repainted.
+    if (!reusableRaster && !_pendingCopies.empty()) {
+        for (const gui_forms::ScrollCopy& copy : _pendingCopies) _pendingDamage.add(copy.clip);
+        _pendingCopies.clear();
+    }
+    const bool copiesPending = !_pendingCopies.empty();
     // While hidden the model declines to paint. AppKit's rectangles then ask
     // for a copy (an exposure or a snapshot); kept as retained damage, they
     // would be repainted by the first visible frame. Live frames still
@@ -2827,7 +2872,8 @@ void post_perform_close(NSWindow* window) {
     const bool occludedCopy = frontHeld && _hostOccluded == YES && _pendingLivePresentations.empty();
     // Copying only a presentation region needs a raster that still holds the
     // previous presentation of that placement.
-    const bool regionsUsable = reusableRaster && _liveRegionLost == NO;
+    // A scroll copy can move a live surface's previous pixels: copy whole clips.
+    const bool regionsUsable = reusableRaster && _liveRegionLost == NO && !copiesPending;
     _liveFrames.clear();
     _opaqueLiveClips.clear();
     _liveFrameSources.clear();
@@ -2902,7 +2948,7 @@ void post_perform_close(NSWindow* window) {
     // scale change, a reallocated backing or a discarded candidate fails the
     // predicate and repaints.
     const bool copyOnly = gui_forms::detail::copy_only_draw(
-        reuse, !_pendingDamage.empty(), !_pendingLivePresentations.empty());
+        reuse, !_pendingDamage.empty() || copiesPending, !_pendingLivePresentations.empty());
     if (copyOnly) _uncoveredDamage.clear();
     if (reusableRaster && !copyOnly) {
         // Paint the gathered set, not AppKit's coalesced request: outside the
@@ -2988,6 +3034,30 @@ void post_perform_close(NSWindow* window) {
 #else
     if (frameReady) _raster.begin_frame(frameDamage);
 #endif
+    // The scroll copies move the begun frame's pixels before its damage is
+    // painted. A frame not begun repaints their clips later; a copy the
+    // raster refuses (it cannot, after the model checked the alignment)
+    // drops this frame and repaints the clips in the next.
+    _appliedCopyClips.clear();
+    if (!_pendingCopies.empty()) {
+        bool applied = frameReady;
+        for (const gui_forms::ScrollCopy& copy : _pendingCopies) {
+            if (applied) applied = _raster.scroll_copy(copy.clip, copy.offset);
+            _appliedCopyClips.push_back(copy.clip);
+        }
+        _pendingCopies.clear();
+        if (!applied) {
+            for (const GFRect clip : _appliedCopyClips) _pendingDamage.add(clip);
+            if (frameReady) {
+                _raster.end_frame();
+                frameReady = false;
+                for (const GFRect clip : _appliedCopyClips) {
+                    [self setNeedsDisplayInRect:NSMakeRect(clip.x, clip.y, clip.width, clip.height)];
+                }
+            }
+            _appliedCopyClips.clear();
+        }
+    }
     _lastFrameDamageBoundsArea = frameDamage.bounds().area();
     const std::chrono::steady_clock::time_point preparedAt =
         std::chrono::steady_clock::now();
@@ -3041,6 +3111,11 @@ void post_perform_close(NSWindow* window) {
         receipt.reset();
     }
 #endif
+    // A frame that moved pixels and was not presented repaints the clips.
+    if (!receipt) {
+        for (const GFRect clip : _appliedCopyClips) _pendingDamage.add(clip);
+    }
+    _appliedCopyClips.clear();
     _liveFrameGenerations.clear();
     _liveFrameGenerations.reserve(_liveFrames.size());
     for (const gui_forms::LiveSurfaceFrame& frame : _liveFrames) {

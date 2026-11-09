@@ -30,4 +30,10 @@ private:
     std::uint64_t collapse_count_{};
 };
 
+// The damage `damage` becomes once a scroll copy moved the pixels inside
+// `clip` by `offset` (window coordinates): a rectangle's share inside the
+// clip moves with its pixels and is cut to the clip; its share outside the
+// clip stays where it was. The pixels the copy exposed are not included.
+[[nodiscard]] DamageRegion damage_after_scroll_copy(const DamageRegion& damage, Rect clip, Point offset);
+
 } // namespace gui_forms

@@ -241,6 +241,7 @@ public:
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_scroll_position_changed() override;
+    [[nodiscard]] bool paints_scrolled_content() const noexcept override { return true; }
     // Multiline opt-in: the document extent drives the inherited scroll bars;
     // turning auto scroll off keeps the document where it was.
     void on_auto_scroll_changed(Point previous_position) override;
