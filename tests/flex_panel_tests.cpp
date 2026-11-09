@@ -413,24 +413,35 @@ void test_auto_scroll_extent_covers_all_content() {
         scroll_case("flex.scroll.row_reverse", {100.0, 60.0}, {40.0, 20.0}, 4, FlexDirection::row_reverse,
                     FlexWrap::nowrap);
     require_extent(*reversed.panel, 160.0, 44.0, "a reversed row's overflow is scrollable");
-    require(near((*reversed.boxes[0]).arranged_bounds().x, 120.0) && near((*reversed.boxes[3]).arranged_bounds().x, 0.0),
-            "a reversed row moves inside the extent, first item at its end");
+    // It opens on the main-axis start (CSS's scroll origin): scrolled by the
+    // 60 units moved inside, so the first item stands at the right edge.
+    require(near((*reversed.panel).scroll_position().x, 60.0), "a reversed row opens on its main-axis start");
+    require(near((*reversed.boxes[0]).arranged_bounds().x, 60.0) && near((*reversed.boxes[3]).arranged_bounds().x, -60.0),
+            "a reversed row: the first item at the viewport's right edge, the overflow left of it");
+    // A scroll the user makes survives the next layout (the shift is
+    // unchanged, so the position is not moved again).
+    static_cast<void>((*reversed.panel).scroll_to(Point{0.0, 0.0}));
+    (*reversed.window).perform_layout();
+    require(near((*reversed.panel).scroll_position().x, 0.0) && near((*reversed.boxes[3]).arranged_bounds().x, 0.0),
+            "a reversed row keeps the user's scroll across a layout");
 
     // Column-reverse, nowrap: the line runs up past the start.
     const ScrollCase upward =
         scroll_case("flex.scroll.column_reverse", {60.0, 100.0}, {20.0, 40.0}, 4, FlexDirection::column_reverse,
                     FlexWrap::nowrap);
     require_extent(*upward.panel, 44.0, 160.0, "a reversed column's overflow is scrollable");
-    require(near((*upward.boxes[0]).arranged_bounds().y, 120.0) && near((*upward.boxes[3]).arranged_bounds().y, 0.0),
-            "a reversed column moves inside the extent");
+    require(near((*upward.panel).scroll_position().y, 60.0) && near((*upward.boxes[0]).arranged_bounds().y, 60.0) &&
+                near((*upward.boxes[3]).arranged_bounds().y, -60.0),
+            "a reversed column opens on its main-axis start, the first item at the bottom edge");
 
     // Row, wrap-reverse: lines stack upward past the start.
     const ScrollCase stacked =
         scroll_case("flex.scroll.wrap_reverse", {100.0, 60.0}, {40.0, 20.0}, 10, FlexDirection::row,
                     FlexWrap::wrap_reverse);
     require_extent(*stacked.panel, 84.0, 100.0, "wrap-reverse lines are all scrollable");
-    require(near((*stacked.boxes[0]).arranged_bounds().y, 80.0) && near((*stacked.boxes[9]).arranged_bounds().y, 0.0),
-            "wrap-reverse: the first line at the bottom of the extent, the last at its top");
+    require(near((*stacked.panel).scroll_position().y, 40.0) && near((*stacked.boxes[0]).arranged_bounds().y, 40.0) &&
+                near((*stacked.boxes[9]).arranged_bounds().y, -40.0),
+            "wrap-reverse opens on the cross-start: the first line at the viewport's bottom, the last above it");
 
     // Without auto_scroll nothing moves and the extent is the client.
     std::shared_ptr<FlexPanel> plain = make_control<FlexPanel>(StableId("flex.scroll.off"));

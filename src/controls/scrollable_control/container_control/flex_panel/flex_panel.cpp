@@ -738,7 +738,18 @@ void FlexPanel::arrange(Rect final_bounds) {
             if (next == available) break;
             available = next;
         }
+        // Keep the view on the same content when the shift changes (and on
+        // the main-axis start at first): the position moves with the shift,
+        // clamped to the range the viewport just set.
+        const Point moved{overflow_shift_.x - scrolled_shift_.x, overflow_shift_.y - scrolled_shift_.y};
+        scrolled_shift_ = overflow_shift_;
+        if (moved != Point{}) {
+            const Point position = scroll_position();
+            static_cast<void>(scroll_to(Point{position.x + moved.x, position.y + moved.y}));
+            if (!is_alive()) return;
+        }
     } else {
+        scrolled_shift_ = Point{};
         arrange_scroll_viewport(client, client);
     }
     SolveRequest request{};

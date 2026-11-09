@@ -163,6 +163,11 @@ private:
     // that overflows the content box's start (a reversed direction or
     // wrap-reverse) lies inside the scroll extent; zero otherwise.
     Point overflow_shift_{};
+    // The shift the scroll position last moved with. A change of shift
+    // moves the position by the same amount, so the content in view stays
+    // in view, and a first layout with a reversed axis opens on the
+    // main-axis start, as CSS's scroll origin does.
+    Point scrolled_shift_{};
     // property_codemod begin FlexPanel (tools/property_families/flex_panel.json; generated, do not edit)
 public:
     // FlexPanel's property table: ScrollableControl's entries, then its own.
