@@ -367,6 +367,15 @@ struct EnumerationChoices<DockCloseCause> {
 };
 
 template <>
+struct EnumerationChoices<DockEditOrigin> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"program", static_cast<std::int64_t>(DockEditOrigin::program)},
+        {"user", static_cast<std::int64_t>(DockEditOrigin::user)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<DockFlyoutCause> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 10> choices{{
@@ -944,6 +953,7 @@ void append_field(EventFields& fields, std::string_view name, const DockActivati
 void append_field(EventFields& fields, std::string_view name, const DockDocumentClosing& value);
 void read_field(EventFields& fields, std::string_view name, DockDocumentClosing& value);
 void append_field(EventFields& fields, std::string_view name, const DockFlyoutChange& value);
+void append_field(EventFields& fields, std::string_view name, const DockLayoutChange& value);
 void append_field(EventFields& fields, std::string_view name, const DockNavigatorChoice& value);
 void append_field(EventFields& fields, std::string_view name, const DockPanelId& value);
 void append_field(EventFields& fields, std::string_view name, const ErrorProviderChange& value);
@@ -1610,6 +1620,16 @@ inline void append_field(EventFields& fields, std::string_view name, const DockF
     append_field(fields, "panel", value.panel);
     append_field(fields, "open", value.open);
     append_field(fields, "cause", value.cause);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const DockLayoutChange& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "generation", value.generation);
+    append_field(fields, "origin", value.origin);
+    append_field(fields, "edit_count", value.edit_count);
+    append_field(fields, "restored", value.restored);
+    append_field(fields, "frames_only", value.frames_only);
     fields.leave(prefix);
 }
 
@@ -4215,6 +4235,15 @@ inline SubscriptionToken connect_control_key_up(Component& source, const EventSi
     return token;
 }
 
+inline SubscriptionToken connect_dock_workspace_layout_changed(Component& source, const EventSink& sink) {
+    DockWorkspace* typed = dynamic_cast<DockWorkspace*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).layout_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_rich_text_box_link_clicked(Component& source, const EventSink& sink) {
     RichTextBox* typed = dynamic_cast<RichTextBox*>(&source);
     if (typed == nullptr) {
@@ -5493,7 +5522,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 299> event_connectors{{
+inline constexpr std::array<EventConnector, 300> event_connectors{{
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
     {"activated", "ChoiceGroup", &connect_choice_group_activated},
@@ -5652,6 +5681,7 @@ inline constexpr std::array<EventConnector, 299> event_connectors{{
     {"key_state_changed", "Window", &connect_window_key_state_changed},
     {"key_up", "Window", &connect_window_key_up},
     {"key_up", "Control", &connect_control_key_up},
+    {"layout_changed", "DockWorkspace", &connect_dock_workspace_layout_changed},
     {"link_clicked", "RichTextBox", &connect_rich_text_box_link_clicked},
     {"list_changed", "BindingSource", &connect_binding_source_list_changed},
     {"loaded", "UserControl", &connect_user_control_loaded},

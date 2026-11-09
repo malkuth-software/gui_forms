@@ -112,6 +112,7 @@ typedef uint32_t gf_table_id;
 #define GF_TABLE_APPLICATION 18u
 #define GF_TABLE_RULES 19u
 #define GF_TABLE_DATA_GRID 20u
+#define GF_TABLE_DOCKING 21u
 /* Platform extension tables have ids from 0x100. A library has one only on
  * its platform, and reports it as a host capability; elsewhere
  * gf_abi_get_table gives GF_STATUS_NOT_FOUND. */
@@ -2867,6 +2868,258 @@ typedef struct gf_data_grid_table {
     /* Discards the edit in progress. */
     gf_status (GF_CALL* cancel_edit)(gf_object grid);
 } gf_data_grid_table;
+
+/*
+ * GF_TABLE_DOCKING (since 1.1): a dock workspace's panels and layout (C++
+ * DockWorkspace), for a program whose own docking vocabulary maps onto
+ * GUI.Forms docking (a Windows Forms docking library's shim, for example).
+ * The workspace is a dock_workspace object (objects.create); a dock_site
+ * made with objects.create_with, the workspace as its owner, shows the
+ * main site in a window, and the workspace opens one floating window per
+ * floating site once attach_windows binds the running window. Every edit
+ * the user makes in a site (dragging with the drop tiles, the caption's
+ * pin and close buttons, the tab strips, the seams, auto-hide flyouts,
+ * floating windows) goes through the same layout. The workspace's
+ * interactions (events.subscribe): layout_changed (DockLayoutChange, once
+ * per applied transaction or restore), activation_changed and
+ * document_closing (mutable: set cancel to keep the documents). Another
+ * object gives GF_STATUS_WRONG_HANDLE_KIND. UI thread only.
+ *
+ * Panels are named by their id, the program's stable text (any non-empty
+ * UTF-8; a saved layout records it). Stacks, splits and the document area
+ * are nodes named by number, and floating sites by number, as the layout
+ * assigns them; zero is none. Numbers stay stable across edits and are
+ * saved with the layout.
+ */
+
+/* gf_dock_panel_kind: a tool panel or a document. */
+typedef uint32_t gf_dock_panel_kind;
+#define GF_DOCK_PANEL_KIND_TOOL 0u
+#define GF_DOCK_PANEL_KIND_DOCUMENT 1u
+
+/* gf_dock_placement: where a panel is. HIDDEN keeps its place for a later
+ * show; ABSENT is never placed, or closed. */
+typedef uint32_t gf_dock_placement;
+#define GF_DOCK_PLACEMENT_DOCKED 0u
+#define GF_DOCK_PLACEMENT_FLOATING 1u
+#define GF_DOCK_PLACEMENT_AUTO_HIDDEN 2u
+#define GF_DOCK_PLACEMENT_HIDDEN 3u
+#define GF_DOCK_PLACEMENT_ABSENT 4u
+
+/* gf_dock_side: a side of a node or of the main site. NONE only in output. */
+typedef uint32_t gf_dock_side;
+#define GF_DOCK_SIDE_LEFT 0u
+#define GF_DOCK_SIDE_TOP 1u
+#define GF_DOCK_SIDE_RIGHT 2u
+#define GF_DOCK_SIDE_BOTTOM 3u
+#define GF_DOCK_SIDE_NONE 4u
+
+/* gf_dock_node_kind: what a node is. NONE only in output. */
+typedef uint32_t gf_dock_node_kind;
+#define GF_DOCK_NODE_KIND_SPLIT 0u
+#define GF_DOCK_NODE_KIND_TOOL_STACK 1u
+#define GF_DOCK_NODE_KIND_DOCUMENT_STACK 2u
+#define GF_DOCK_NODE_KIND_DOCUMENT_AREA 3u
+#define GF_DOCK_NODE_KIND_NONE 4u
+
+/* gf_dock_allowed: the places a panel permits, as flags. DOCKED: a tool
+ * stack of the main site; DOCUMENT_AREA: the document area (a tool panel
+ * also needs dock_as_document); TABBED: sharing a stack; HIDDEN: the
+ * close button and the hide edit hide it (else a close closes it). */
+typedef uint32_t gf_dock_allowed;
+#define GF_DOCK_ALLOWED_DOCKED 0x1u
+#define GF_DOCK_ALLOWED_DOCUMENT_AREA 0x2u
+#define GF_DOCK_ALLOWED_FLOATING 0x4u
+#define GF_DOCK_ALLOWED_AUTO_HIDDEN 0x8u
+#define GF_DOCK_ALLOWED_TABBED 0x10u
+#define GF_DOCK_ALLOWED_HIDDEN 0x20u
+#define GF_DOCK_ALLOWED_CLOSED 0x40u
+#define GF_DOCK_ALLOWED_ALL 0x7fu
+
+/* gf_dock_edit_kind: one primitive layout edit (C++ DockEdit). */
+typedef uint32_t gf_dock_edit_kind;
+#define GF_DOCK_EDIT_DOCK_INTO 0u
+#define GF_DOCK_EDIT_DOCK_BESIDE 1u
+#define GF_DOCK_EDIT_DOCK_AT_EDGE 2u
+#define GF_DOCK_EDIT_FLOAT 3u
+#define GF_DOCK_EDIT_AUTO_HIDE 4u
+#define GF_DOCK_EDIT_UNPIN 5u
+#define GF_DOCK_EDIT_HIDE 6u
+#define GF_DOCK_EDIT_SHOW 7u
+#define GF_DOCK_EDIT_CLOSE 8u
+#define GF_DOCK_EDIT_MOVE 9u
+#define GF_DOCK_EDIT_SELECT 10u
+#define GF_DOCK_EDIT_SET_RATIO 11u
+#define GF_DOCK_EDIT_SET_FLOATING_FRAME 12u
+
+/* gf_dock_refusal: why the layout refused an edit (C++ DockRefusalReason). */
+typedef uint32_t gf_dock_refusal;
+#define GF_DOCK_REFUSAL_NONE 0u
+#define GF_DOCK_REFUSAL_UNKNOWN_PANEL 1u
+#define GF_DOCK_REFUSAL_UNKNOWN_NODE 2u
+#define GF_DOCK_REFUSAL_UNKNOWN_SITE 3u
+#define GF_DOCK_REFUSAL_NOT_A_STACK 4u
+#define GF_DOCK_REFUSAL_NOT_A_SPLIT 5u
+#define GF_DOCK_REFUSAL_NOT_AUTO_HIDDEN 6u
+#define GF_DOCK_REFUSAL_TARGET_IS_SUBJECT 7u
+#define GF_DOCK_REFUSAL_INVALID_RATIO 8u
+#define GF_DOCK_REFUSAL_INVALID_FRAME 9u
+#define GF_DOCK_REFUSAL_INVALID_EXTENT 10u
+#define GF_DOCK_REFUSAL_FLOATING_SITE_LIMIT 11u
+#define GF_DOCK_REFUSAL_IDENTITIES_EXHAUSTED 12u
+#define GF_DOCK_REFUSAL_NOT_ROOT_LEVEL 13u
+#define GF_DOCK_REFUSAL_NOT_IN_MAIN_SITE 14u
+#define GF_DOCK_REFUSAL_ALREADY_PLACED 15u
+#define GF_DOCK_REFUSAL_NOT_PLACED 16u
+#define GF_DOCK_REFUSAL_INVARIANT_VIOLATED 17u
+#define GF_DOCK_REFUSAL_PLACEMENT_NOT_ALLOWED 18u
+#define GF_DOCK_REFUSAL_TABBING_NOT_ALLOWED 19u
+#define GF_DOCK_REFUSAL_KIND_MISMATCH 20u
+#define GF_DOCK_REFUSAL_GROUP_NOT_ADMITTED 21u
+#define GF_DOCK_REFUSAL_SITE_REFUSES_KIND 22u
+#define GF_DOCK_REFUSAL_SITE_REFUSES_GROUP 23u
+#define GF_DOCK_REFUSAL_USER_DOCKING_LOCKED 24u
+
+/*
+ * A panel to register, read during the call. The caller sets struct_size
+ * to at least the 1.1 size and reserved to zero. id is the panel's
+ * identity (not empty, unique in the workspace); title what its caption
+ * and tab show; kind; allowed (GF_DOCK_ALLOWED_* flags); dock_as_document
+ * 0 or 1; default_placement (DOCKED, FLOATING or AUTO_HIDDEN), with
+ * default_side, default_ratio (in (0, 1)), default_extent (logical units,
+ * positive) and default_frame (desktop logical units, positive size): where
+ * a show puts the panel the layout has no memory of; minimum_size its
+ * content's smallest size (zero for none); content the control the panel
+ * shows (zero for an empty area until set_panel_content gives one). The
+ * table holds a reference to content until another replaces it or the
+ * workspace is released; closing the panel keeps it for a later show.
+ */
+typedef struct gf_dock_panel {
+    uint32_t struct_size;
+    gf_dock_panel_kind kind;
+    gf_dock_allowed allowed;
+    uint32_t dock_as_document;
+    gf_dock_placement default_placement;
+    gf_dock_side default_side;
+    double default_ratio;
+    double default_extent;
+    gf_logical_rect default_frame;
+    gf_logical_size minimum_size;
+    gf_utf8_view id;
+    gf_utf8_view title;
+    gf_object content;
+    uint64_t reserved;
+} gf_dock_panel;
+
+/*
+ * One edit, read during the call; struct_size at least the 1.1 size,
+ * reserved zero. The subject is the panel named panel, or, with
+ * subject_is_stack 1, the stack subject_stack (a caption drag moves the
+ * stack). The fields each kind reads (C++ DockEdit's factories):
+ * DOCK_INTO target_node (a stack or the document area), index;
+ * DOCK_BESIDE target_node, side, ratio; DOCK_AT_EDGE side, ratio (against
+ * the main site's outer edge); FLOAT frame (desktop logical units);
+ * AUTO_HIDE side (the window edge), extent; UNPIN subject_stack; HIDE,
+ * SHOW, CLOSE and SELECT panel; MOVE panel, index (within its stack);
+ * SET_RATIO target_node (a split), ratio; SET_FLOATING_FRAME site, frame.
+ * An index past the end appends.
+ */
+typedef struct gf_dock_edit {
+    uint32_t struct_size;
+    gf_dock_edit_kind kind;
+    uint32_t subject_is_stack;
+    uint32_t subject_stack;
+    uint32_t target_node;
+    uint32_t site;
+    gf_dock_side side;
+    uint32_t index;
+    double ratio;
+    double extent;
+    gf_logical_rect frame;
+    gf_utf8_view panel;
+    uint64_t reserved;
+} gf_dock_edit;
+
+/*
+ * Where a panel is (locate). placement; for a docked, floating or
+ * auto-hidden panel, stack (its stack node), index (its place there),
+ * stack_kind, selected (1 when it is its stack's selected tab) and
+ * stack_panel_count; site the floating site of a floating panel; side, for
+ * a panel docked in the main site, the side of the document area its
+ * stack stands on (NONE inside the document area), and for an auto-hidden
+ * panel the window edge it is pinned to. Fields that do not apply are zero
+ * (NONE for side and stack_kind).
+ */
+typedef struct gf_dock_location {
+    uint32_t struct_size;
+    gf_dock_placement placement;
+    uint32_t stack;
+    uint32_t index;
+    uint32_t site;
+    gf_dock_node_kind stack_kind;
+    gf_dock_side side;
+    uint32_t selected;
+    uint32_t stack_panel_count;
+    uint32_t reserved;
+} gf_dock_location;
+
+typedef struct gf_docking_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* Registers a panel (gf_dock_panel). The id must be new: an id
+     * registered before gives GF_STATUS_INVALID_ARGUMENT. Registering does
+     * not place the panel; a SHOW edit does. */
+    gf_status (GF_CALL* register_panel)(gf_object workspace, const gf_dock_panel* panel);
+    /* Sets the control a registered panel shows the next time its content
+     * is made (zero: an empty area). While the workspace holds content it
+     * made for the panel (shown, or hidden since), another control gives
+     * GF_STATUS_INVALID_STATE; close the panel first. */
+    gf_status (GF_CALL* set_panel_content)(gf_object workspace, gf_utf8_view panel, gf_object content);
+    /* Sets a registered panel's title. */
+    gf_status (GF_CALL* set_panel_title)(gf_object workspace, gf_utf8_view panel, gf_utf8_view title);
+    /* Applies one edit as the program's (gf_dock_edit) in one transaction.
+     * A refused edit gives GF_STATUS_INVALID_STATE, leaves the layout
+     * unchanged and writes the reason into refusal (may be null); an
+     * applied one writes GF_DOCK_REFUSAL_NONE. SHOW, HIDE, CLOSE and
+     * FLOAT (once attach_windows has succeeded) go through the workspace's
+     * own operations: SHOW of a placed panel activates it; a floated panel
+     * opens its window. */
+    gf_status (GF_CALL* apply_edit)(gf_object workspace, const gf_dock_edit* edit, gf_dock_refusal* refusal);
+    /* Where a registered panel is, into location (at least the 1.1 size). */
+    gf_status (GF_CALL* locate)(gf_object workspace, gf_utf8_view panel, gf_dock_location* location);
+    /* The layout as XML (C++ DockLayout::write_xml) into the caller's
+     * buffer; required receives its size, also with
+     * GF_STATUS_BUFFER_TOO_SMALL. */
+    gf_status (GF_CALL* save_layout)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required);
+    /* Restores a layout save_layout wrote. Panels it names that are not
+     * registered are kept as placeholders. diagnostic_count (may be null)
+     * receives the number of restore diagnostics. Malformed or refused XML
+     * gives GF_STATUS_INVALID_ARGUMENT and leaves the layout unchanged. */
+    gf_status (GF_CALL* load_layout)(gf_object workspace, gf_utf8_view xml, uint64_t* diagnostic_count);
+    /* Activates a placed panel (its stack selects it; an auto-hidden one's
+     * flyout opens); GF_STATUS_INVALID_STATE when it is not placed. */
+    gf_status (GF_CALL* activate_panel)(gf_object workspace, gf_utf8_view panel);
+    /* Binds the window being run (windows.run) as the workspace's main
+     * window, so floating sites get floating windows. GF_STATUS_INVALID_STATE
+     * while no window is running or before it is ready; again once bound is
+     * GF_STATUS_OK. */
+    gf_status (GF_CALL* attach_windows)(gf_object workspace);
+    /* The main site's document area node. */
+    gf_status (GF_CALL* document_area)(gf_object workspace, uint32_t* node);
+    /* The id of the panel at index in stack into the caller's buffer;
+     * required receives its size. GF_STATUS_NOT_FOUND past the stack's
+     * panels; another node than a stack gives GF_STATUS_INVALID_ARGUMENT. */
+    gf_status (GF_CALL* panel_at)(gf_object workspace, uint32_t stack, uint64_t index, char* buffer,
+                                  uint64_t capacity, uint64_t* required);
+    /* The floating sites' numbers, in the layout's order, into sites
+     * (capacity entries); count receives how many there are, also with
+     * GF_STATUS_BUFFER_TOO_SMALL. */
+    gf_status (GF_CALL* floating_sites)(gf_object workspace, uint32_t* sites, uint64_t capacity, uint64_t* count);
+    /* A floating site's frame (its window's client area, desktop logical
+     * units) and its first stack (zero when it has none). */
+    gf_status (GF_CALL* floating_site)(gf_object workspace, uint32_t site, gf_logical_rect* frame,
+                                       uint32_t* first_stack);
+} gf_docking_table;
 
 /*
  * GF_TABLE_WINDOWS_PAINT_ENDPOINT (Windows only; host capability

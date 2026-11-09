@@ -342,6 +342,11 @@ public:
     // Raised after a track changed: the panel track first, then the document
     // track when both change. Handlers may activate other panels.
     [[nodiscard]] Event<const DockActivationChange&>& activation_changed() noexcept { return activation_changed_; }
+    // The layout's change, once per applied transaction or restore, after
+    // the model is committed (DockLayout::changed, offered as the
+    // workspace's layout_changed interaction for C ABI programs, which
+    // reach the workspace but not its layout).
+    [[nodiscard]] Event<const DockLayoutChange&>& layout_changed() noexcept { return layout_.changed(); }
 
     // The bound main site, or null.
     [[nodiscard]] DockSite* site() const noexcept { return site_; }

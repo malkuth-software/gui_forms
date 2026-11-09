@@ -9111,7 +9111,8 @@
       "kind": "component",
       "interactions": [
         {"name": "document_closing", "payload": "DockDocumentClosing", "mutable_payload": true},
-        {"name": "activation_changed", "payload": "DockActivationChange", "mutable_payload": false}
+        {"name": "activation_changed", "payload": "DockActivationChange", "mutable_payload": false},
+        {"name": "layout_changed", "payload": "DockLayoutChange", "mutable_payload": false}
       ]
     },
     {

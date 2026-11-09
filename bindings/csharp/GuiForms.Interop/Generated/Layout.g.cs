@@ -1013,6 +1013,78 @@ public static unsafe class Layout
             failures += expect(output, "gf_data_grid_table.cancel_edit offset", (long)((byte*)&value.cancel_edit - start), 264);
         }
         {
+            gf_dock_panel value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_dock_panel size", sizeof(gf_dock_panel), 136);
+            failures += expect(output, "gf_dock_panel.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_dock_panel.kind offset", (long)((byte*)&value.kind - start), 4);
+            failures += expect(output, "gf_dock_panel.allowed offset", (long)((byte*)&value.allowed - start), 8);
+            failures += expect(output, "gf_dock_panel.dock_as_document offset", (long)((byte*)&value.dock_as_document - start), 12);
+            failures += expect(output, "gf_dock_panel.default_placement offset", (long)((byte*)&value.default_placement - start), 16);
+            failures += expect(output, "gf_dock_panel.default_side offset", (long)((byte*)&value.default_side - start), 20);
+            failures += expect(output, "gf_dock_panel.default_ratio offset", (long)((byte*)&value.default_ratio - start), 24);
+            failures += expect(output, "gf_dock_panel.default_extent offset", (long)((byte*)&value.default_extent - start), 32);
+            failures += expect(output, "gf_dock_panel.default_frame offset", (long)((byte*)&value.default_frame - start), 40);
+            failures += expect(output, "gf_dock_panel.minimum_size offset", (long)((byte*)&value.minimum_size - start), 72);
+            failures += expect(output, "gf_dock_panel.id offset", (long)((byte*)&value.id - start), 88);
+            failures += expect(output, "gf_dock_panel.title offset", (long)((byte*)&value.title - start), 104);
+            failures += expect(output, "gf_dock_panel.content offset", (long)((byte*)&value.content - start), 120);
+            failures += expect(output, "gf_dock_panel.reserved offset", (long)((byte*)&value.reserved - start), 128);
+        }
+        {
+            gf_dock_edit value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_dock_edit size", sizeof(gf_dock_edit), 104);
+            failures += expect(output, "gf_dock_edit.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_dock_edit.kind offset", (long)((byte*)&value.kind - start), 4);
+            failures += expect(output, "gf_dock_edit.subject_is_stack offset", (long)((byte*)&value.subject_is_stack - start), 8);
+            failures += expect(output, "gf_dock_edit.subject_stack offset", (long)((byte*)&value.subject_stack - start), 12);
+            failures += expect(output, "gf_dock_edit.target_node offset", (long)((byte*)&value.target_node - start), 16);
+            failures += expect(output, "gf_dock_edit.site offset", (long)((byte*)&value.site - start), 20);
+            failures += expect(output, "gf_dock_edit.side offset", (long)((byte*)&value.side - start), 24);
+            failures += expect(output, "gf_dock_edit.index offset", (long)((byte*)&value.index - start), 28);
+            failures += expect(output, "gf_dock_edit.ratio offset", (long)((byte*)&value.ratio - start), 32);
+            failures += expect(output, "gf_dock_edit.extent offset", (long)((byte*)&value.extent - start), 40);
+            failures += expect(output, "gf_dock_edit.frame offset", (long)((byte*)&value.frame - start), 48);
+            failures += expect(output, "gf_dock_edit.panel offset", (long)((byte*)&value.panel - start), 80);
+            failures += expect(output, "gf_dock_edit.reserved offset", (long)((byte*)&value.reserved - start), 96);
+        }
+        {
+            gf_dock_location value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_dock_location size", sizeof(gf_dock_location), 40);
+            failures += expect(output, "gf_dock_location.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_dock_location.placement offset", (long)((byte*)&value.placement - start), 4);
+            failures += expect(output, "gf_dock_location.stack offset", (long)((byte*)&value.stack - start), 8);
+            failures += expect(output, "gf_dock_location.index offset", (long)((byte*)&value.index - start), 12);
+            failures += expect(output, "gf_dock_location.site offset", (long)((byte*)&value.site - start), 16);
+            failures += expect(output, "gf_dock_location.stack_kind offset", (long)((byte*)&value.stack_kind - start), 20);
+            failures += expect(output, "gf_dock_location.side offset", (long)((byte*)&value.side - start), 24);
+            failures += expect(output, "gf_dock_location.selected offset", (long)((byte*)&value.selected - start), 28);
+            failures += expect(output, "gf_dock_location.stack_panel_count offset", (long)((byte*)&value.stack_panel_count - start), 32);
+            failures += expect(output, "gf_dock_location.reserved offset", (long)((byte*)&value.reserved - start), 36);
+        }
+        {
+            gf_docking_table value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_docking_table size", sizeof(gf_docking_table), 112);
+            failures += expect(output, "gf_docking_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_docking_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
+            failures += expect(output, "gf_docking_table.register_panel offset", (long)((byte*)&value.register_panel - start), 8);
+            failures += expect(output, "gf_docking_table.set_panel_content offset", (long)((byte*)&value.set_panel_content - start), 16);
+            failures += expect(output, "gf_docking_table.set_panel_title offset", (long)((byte*)&value.set_panel_title - start), 24);
+            failures += expect(output, "gf_docking_table.apply_edit offset", (long)((byte*)&value.apply_edit - start), 32);
+            failures += expect(output, "gf_docking_table.locate offset", (long)((byte*)&value.locate - start), 40);
+            failures += expect(output, "gf_docking_table.save_layout offset", (long)((byte*)&value.save_layout - start), 48);
+            failures += expect(output, "gf_docking_table.load_layout offset", (long)((byte*)&value.load_layout - start), 56);
+            failures += expect(output, "gf_docking_table.activate_panel offset", (long)((byte*)&value.activate_panel - start), 64);
+            failures += expect(output, "gf_docking_table.attach_windows offset", (long)((byte*)&value.attach_windows - start), 72);
+            failures += expect(output, "gf_docking_table.document_area offset", (long)((byte*)&value.document_area - start), 80);
+            failures += expect(output, "gf_docking_table.panel_at offset", (long)((byte*)&value.panel_at - start), 88);
+            failures += expect(output, "gf_docking_table.floating_sites offset", (long)((byte*)&value.floating_sites - start), 96);
+            failures += expect(output, "gf_docking_table.floating_site offset", (long)((byte*)&value.floating_site - start), 104);
+        }
+        {
             gf_windows_paint_endpoint_table value = default;
             byte* start = (byte*)&value;
             failures += expect(output, "gf_windows_paint_endpoint_table size", sizeof(gf_windows_paint_endpoint_table), 104);

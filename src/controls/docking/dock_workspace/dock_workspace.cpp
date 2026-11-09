@@ -24,9 +24,10 @@ void bring_to_front(std::vector<DockPanelId>& history, const DockPanelId& panel)
 }
 
 // The events DockWorkspace adds to those of Component, in declaration order.
-constexpr std::array<InteractionDeclaration, 2> workspace_interactions{{
+constexpr std::array<InteractionDeclaration, 3> workspace_interactions{{
     {.name = "document_closing", .payload = "DockDocumentClosing", .mutable_payload = true},
     {.name = "activation_changed", .payload = "DockActivationChange", .mutable_payload = false},
+    {.name = "layout_changed", .payload = "DockLayoutChange", .mutable_payload = false},
 }};
 
 // The smallest client area a floating window is opened with.

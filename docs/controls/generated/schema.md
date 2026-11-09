@@ -2949,6 +2949,7 @@ Properties beyond every control's: none.
 |---|---|
 | `document_closing` | `DockDocumentClosing`, by reference |
 | `activation_changed` | `DockActivationChange` |
+| `layout_changed` | `DockLayoutChange` |
 
 ## `command` (Command, component)
 

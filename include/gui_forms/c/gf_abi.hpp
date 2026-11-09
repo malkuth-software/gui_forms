@@ -2155,6 +2155,150 @@ private:
     gf_data_grid_table table_;
 };
 
+// gf_docking_table, negotiated as GF_TABLE_DOCKING.
+class DockingTable {
+public:
+    DockingTable() noexcept : table_{} {}
+
+    // Negotiates the table at the header's version into output; a refusal
+    // leaves output serving nothing.
+    [[nodiscard]] static gf_status negotiate(DockingTable& output) noexcept {
+        gf_docking_table negotiated_table{};
+        const gf_status negotiated = gf_abi_get_table(GF_TABLE_DOCKING, GF_ABI_MAJOR, GF_ABI_MINOR,
+                                                      &negotiated_table, sizeof(negotiated_table));
+        if (negotiated != GF_STATUS_OK) {
+            output = DockingTable{};
+            return negotiated;
+        }
+        output.table_ = negotiated_table;
+        return GF_STATUS_OK;
+    }
+
+    // A table the caller negotiated through gf_abi_get_table.
+    [[nodiscard]] static DockingTable adopt(const gf_docking_table& adopted_table) noexcept {
+        DockingTable adopted;
+        adopted.table_ = adopted_table;
+        return adopted;
+    }
+
+    [[nodiscard]] const gf_docking_table& c_table() const noexcept { return table_; }
+
+    [[nodiscard]] gf_status register_panel(gf_object workspace, const gf_dock_panel* panel) const noexcept {
+        if (table_.struct_size < 16u || table_.register_panel == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.register_panel(workspace, panel);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_panel_content(gf_object workspace, gf_utf8_view panel,
+                                              gf_object content) const noexcept {
+        if (table_.struct_size < 24u || table_.set_panel_content == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_panel_content(workspace, panel, content);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_panel_title(gf_object workspace, gf_utf8_view panel,
+                                            gf_utf8_view title) const noexcept {
+        if (table_.struct_size < 32u || table_.set_panel_title == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_panel_title(workspace, panel, title);
+        return called;
+    }
+
+    [[nodiscard]] gf_status apply_edit(gf_object workspace, const gf_dock_edit* edit,
+                                       gf_dock_refusal* refusal) const noexcept {
+        if (table_.struct_size < 40u || table_.apply_edit == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.apply_edit(workspace, edit, refusal);
+        return called;
+    }
+
+    [[nodiscard]] gf_status locate(gf_object workspace, gf_utf8_view panel, gf_dock_location* location) const noexcept {
+        if (table_.struct_size < 48u || table_.locate == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.locate(workspace, panel, location);
+        return called;
+    }
+
+    [[nodiscard]] gf_status save_layout(gf_object workspace, char* buffer, uint64_t capacity,
+                                        uint64_t* required) const noexcept {
+        if (table_.struct_size < 56u || table_.save_layout == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.save_layout(workspace, buffer, capacity, required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status load_layout(gf_object workspace, gf_utf8_view xml,
+                                        uint64_t* diagnostic_count) const noexcept {
+        if (table_.struct_size < 64u || table_.load_layout == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.load_layout(workspace, xml, diagnostic_count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status activate_panel(gf_object workspace, gf_utf8_view panel) const noexcept {
+        if (table_.struct_size < 72u || table_.activate_panel == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.activate_panel(workspace, panel);
+        return called;
+    }
+
+    [[nodiscard]] gf_status attach_windows(gf_object workspace) const noexcept {
+        if (table_.struct_size < 80u || table_.attach_windows == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.attach_windows(workspace);
+        return called;
+    }
+
+    [[nodiscard]] gf_status document_area(gf_object workspace, uint32_t* node) const noexcept {
+        if (table_.struct_size < 88u || table_.document_area == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.document_area(workspace, node);
+        return called;
+    }
+
+    [[nodiscard]] gf_status panel_at(gf_object workspace, uint32_t stack, uint64_t index, char* buffer,
+                                     uint64_t capacity, uint64_t* required) const noexcept {
+        if (table_.struct_size < 96u || table_.panel_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.panel_at(workspace, stack, index, buffer, capacity, required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status floating_sites(gf_object workspace, uint32_t* sites, uint64_t capacity,
+                                           uint64_t* count) const noexcept {
+        if (table_.struct_size < 104u || table_.floating_sites == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.floating_sites(workspace, sites, capacity, count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status floating_site(gf_object workspace, uint32_t site, gf_logical_rect* frame,
+                                          uint32_t* first_stack) const noexcept {
+        if (table_.struct_size < 112u || table_.floating_site == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.floating_site(workspace, site, frame, first_stack);
+        return called;
+    }
+
+private:
+    gf_docking_table table_;
+};
+
 // gf_windows_paint_endpoint_table, negotiated as GF_TABLE_WINDOWS_PAINT_ENDPOINT.
 class WindowsPaintEndpointTable {
 public:
