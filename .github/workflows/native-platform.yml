@@ -326,6 +326,11 @@ jobs:
           else
             python gui_forms/tools/ci_build.py --jobs 4 $SCOPE
           fi
+      # Where the build's time went (tools/ninja_phases.py): evidence on the
+      # run's summary page, never a gate.
+      - name: Report the build's phases
+        if: always() && steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true'
+        run: python gui_forms/tools/ninja_phases.py .build/native-${{ inputs.platform }}/gui-forms --title "native-${{ inputs.platform }} build" --out "$GITHUB_STEP_SUMMARY"
       # SK2: the time each host spends presenting a frame
       # (benchmarks/present_profile_workload.cpp), in the configuration the
       # toolkit step built. Its values are evidence, never a gate; a workload

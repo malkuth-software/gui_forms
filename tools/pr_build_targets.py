@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Print the build outputs the tests of a configured tree run, one per line (ci_build.test_build_targets).
 
-  python tools/test_build_targets.py --build-dir <tree> [--tests <ctest -R pattern>]
+  python tools/pr_build_targets.py --build-dir <tree> [--tests <ctest -R pattern>]
 
 A pull request's programs job builds these instead of `all`: the tests it
 runs, plus every shared and module library, and no program, bundle or

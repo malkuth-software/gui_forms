@@ -348,7 +348,7 @@ jobs:
             -DGUI_FORMS_STX_PACKAGE_DIR="$PWD/.ci/stx-package"
       # A pull request builds only what the tests it runs need: the tests its
       # native job did not pass (tools/native_tests.py select), through
-      # tools/test_build_targets.py, and no program, bundle or package no test
+      # tools/pr_build_targets.py, and no program, bundle or package no test
       # runs. It packages and launches nothing (below); the merge group and
       # main build, package and launch everything.
       - name: Build the programs and tests
@@ -371,7 +371,7 @@ jobs:
             *) pattern="$selection" ;;
           esac
           # The pull request's merge commit: its first parent is the base.
-          python gui_forms/tools/test_build_targets.py --build-dir "$BUILD_DIR" --tests "$pattern" \
+          python gui_forms/tools/pr_build_targets.py --build-dir "$BUILD_DIR" --tests "$pattern" \
             --changed-from HEAD^1 --pattern-out "$RUNNER_TEMP/pattern.txt" > "$RUNNER_TEMP/targets.txt"
           echo "A pull request: building $(wc -l < "$RUNNER_TEMP/targets.txt") outputs the tests run, not every program"
           if [ -s "$RUNNER_TEMP/targets.txt" ]; then
@@ -380,6 +380,10 @@ jobs:
       - name: Report cache statistics
         if: always()
         run: ccache --show-stats --verbose
+      # Where the build's time went (tools/ninja_phases.py): evidence, never a gate.
+      - name: Report the build's phases
+        if: always()
+        run: python gui_forms/tools/ninja_phases.py "$BUILD_DIR" --title "programs-${{ matrix.platform }} build" --out "$GITHUB_STEP_SUMMARY"
       - name: Test
         if: steps.tested.outputs.reused != 'true'
         env:
