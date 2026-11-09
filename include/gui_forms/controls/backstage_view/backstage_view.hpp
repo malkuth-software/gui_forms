@@ -66,10 +66,6 @@ public:
     // another parent, a page or definitive flag on a command or topic that
     // takes none, or more than maximum_items.
     void set_items(std::vector<BackstageItemSpec> items);
-    [[nodiscard]] std::optional<std::size_t> selected_topic() const noexcept { return selected_; }
-    // Throws std::out_of_range past the end and std::invalid_argument for an
-    // item that is not a topic.
-    void set_selected_topic(std::size_t item);
 
     // The one path every activation takes (pointer, keyboard, mnemonic and
     // accessibility): runs a command, or selects a topic. False for an
@@ -173,9 +169,12 @@ private:
     // property_codemod begin BackstageView (tools/property_families/backstage_view.json; generated, do not edit)
 private:
     friend struct BackstageViewColumnWidthCapability<BackstageView>;
+    friend struct BackstageViewSelectedTopicCapability<BackstageView>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(column_width)& cell, double& incoming);
     void written(const decltype(column_width)& cell);
+    void write_view(const decltype(selected_topic)& cell, std::optional<std::size_t> incoming);
+    [[nodiscard]] std::optional<std::size_t> read_view(const decltype(selected_topic)& cell) const;
     // property_codemod end BackstageView
 };
 

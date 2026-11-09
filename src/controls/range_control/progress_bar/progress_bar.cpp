@@ -48,7 +48,7 @@ std::shared_ptr<const PropertyEnumDescriptor> effect_input_enum() {
 
 ProgressBar::ProgressBar(StableId stable_id)
     : RangeControl(std::move(stable_id)) {
-    set_focusable(false);
+    focusable = false;
 }
 
 BindingValue ProgressBar::effect_seed_property_value() const {

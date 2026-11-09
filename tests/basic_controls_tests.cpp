@@ -143,7 +143,7 @@ public:
 class FocusSink final : public Control {
 public:
     explicit FocusSink(StableId stable_id) : Control(std::move(stable_id)) {
-        set_focusable(true);
+        focusable = true;
     }
 };
 
@@ -1564,10 +1564,10 @@ void test_public_drawing_metrics_and_control_tag() {
         std::shared_ptr<gui_forms::Panel> tagged = make_control<Panel>(StableId("controls.tagged"));
         std::shared_ptr<int> anchor = std::make_shared<int>(42);
         released_anchor = anchor;
-        (*tagged).set_tag(anchor);
+        (*tagged).tag = anchor;
         anchor.reset();
-        const std::shared_ptr<int>* retained =
-            std::any_cast<std::shared_ptr<int>>(&(*tagged).tag());
+        const std::any held = (*tagged).tag.read();
+        const std::shared_ptr<int>* retained = std::any_cast<std::shared_ptr<int>>(&held);
         require(retained != nullptr && **retained == 42,
                 "Control Tag must retain exact type-erased application metadata");
         (*tagged).dispose();

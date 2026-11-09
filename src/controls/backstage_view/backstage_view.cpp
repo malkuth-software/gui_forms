@@ -38,7 +38,7 @@ std::string node_id(std::string_view view_id, std::string_view item_id) {
 } // namespace
 
 BackstageView::BackstageView(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(true);
+    focusable = true;
     set_paint_plane(PaintPlane::control);
 }
 
@@ -101,8 +101,14 @@ void BackstageView::CommandWatch::operator()(const CommandState&) const {
     if (view != nullptr && (*view).is_alive()) (*view).invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void BackstageView::set_selected_topic(std::size_t item) {
+std::optional<std::size_t> BackstageView::read_view(const decltype(selected_topic)&) const {
+    return selected_;
+}
+
+void BackstageView::write_view(const decltype(selected_topic)&, std::optional<std::size_t> incoming) {
     require_mutable();
+    if (!incoming) throw std::invalid_argument("BackstageView selection cannot be cleared");
+    const std::size_t item = *incoming;
     if (item >= items_.size()) throw std::out_of_range("BackstageView item index is past the end");
     if (items_[item].kind != BackstageItemKind::topic) throw std::invalid_argument("BackstageView item is not a topic");
     select_topic(item);

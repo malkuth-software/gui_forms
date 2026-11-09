@@ -107,7 +107,7 @@ bool PopupLift::lift(Window& window, const Control::Ptr& content, const Rect fac
     if (input == PopupLiftInput::kept_by_owner) return true;
     window.forward_input_to_popup_window(slot);
     if (Window* const model = window.popup_window_model(slot)) {
-        if ((*content).focusable()) static_cast<void>((*model).request_focus(content));
+        if ((*content).focusable.read()) static_cast<void>((*model).request_focus(content));
     }
     return true;
 }

@@ -258,7 +258,7 @@ void hover_preview_order() {
     require(fixture.log.joined() == "preview:item.2 value:item.2 invoked ",
             "a click commits without a cancellation, value before invocation");
     const std::vector<RibbonGallery::Item> chosen = (*gallery).realized_items();
-    require((*gallery).selected_id() == std::string("item.2") && item_named(chosen, "item.2").states.selected,
+    require((*gallery).selected_id.read() == std::string("item.2") && item_named(chosen, "item.2").states.selected,
             "the selection follows the command's value");
     fixture.log.entries.clear();
     move_to(window, a);
@@ -347,7 +347,7 @@ void overlays() {
     click_at(window, choice);
     require(fixture.log.joined() == "overlay:open value:item.11 invoked overlay:closed ",
             "a click in the overlay commits, then closes it");
-    require((*gallery).selected_id() == std::string("item.11"), "the in-ribbon gallery follows the committed value");
+    require((*gallery).selected_id.read() == std::string("item.11"), "the in-ribbon gallery follows the committed value");
 
     // A drop-down gallery as a button's overlay.
     std::shared_ptr<Button> anchor = make_control<Button>(StableId("overlay.anchor"), "Styles");
@@ -382,7 +382,7 @@ void semantics() {
     const SemanticNode& more = nodes.back();
     require(more.role == SemanticRole::menu_button && more.has_popup, "the more button is a menu button with an overlay");
     require((*gallery).on_semantic_child_action("item.4", SemanticAction::press, {}) &&
-                (*gallery).selected_id() == std::string("item.4"),
+                (*gallery).selected_id.read() == std::string("item.4"),
             "pressing an item node selects it");
 
     std::shared_ptr<RibbonGallery> full = make_control<RibbonGallery>(StableId("semantics.full"), RibbonGalleryForm::drop_down);

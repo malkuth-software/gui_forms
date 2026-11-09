@@ -246,7 +246,7 @@ void tab_navigation() {
     SubscriptionToken launched = (*ribbon).dialog_launcher_clicked().subscribe(RecordLaunch{&launches});
     require(window.request_focus(ribbon), "the ribbon takes focus on its selected tab");
     require(key(window, PhysicalKey::tab) && (*ribbon).realized_tabs()[1].states.focus_visible &&
-                (*ribbon).selected_tab() == std::size_t{0U},
+                (*ribbon).selected_tab.read() == std::size_t{0U},
             "Tab moves along the tab row without selecting");
     require(key(window, PhysicalKey::tab) && key(window, PhysicalKey::tab, Modifier::shift) &&
                 (*ribbon).realized_tabs()[1].states.focus_visible,
@@ -300,7 +300,7 @@ void minimize_by_tab_click() {
     window.perform_layout();
     click(window, centre(tabs[1].parts.tab.bounds));
     window.perform_layout();
-    require(!(*ribbon).minimized.read() && (*ribbon).selected_tab() == std::size_t{1U} && !(*font).effectively_visible() &&
+    require(!(*ribbon).minimized.read() && (*ribbon).selected_tab.read() == std::size_t{1U} && !(*font).effectively_visible() &&
                 (*(*ribbon).text_box("find")).effectively_visible(),
             "clicking another tab while minimized selects it and shows the plane");
 }
@@ -389,7 +389,7 @@ void semantics_and_region() {
                 clipboard.children[1].access_key.empty(),
             "a tab's or a command's mnemonic is its access key; a command without one has none");
     require((*ribbon).on_semantic_child_action("ribbon.tab.insert", SemanticAction::select, {}) &&
-                (*ribbon).selected_tab() == std::size_t{1U},
+                (*ribbon).selected_tab.read() == std::size_t{1U},
             "selecting a tab node selects the tab");
     const std::string json = window.semantic_snapshot().to_json();
     require(json.find("\"role\":\"menu_button\"") != std::string::npos, "the snapshot carries the ribbon's nodes");

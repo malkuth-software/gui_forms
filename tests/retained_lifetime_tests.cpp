@@ -83,7 +83,7 @@ struct WindowFixture {
         (*left).set_requested_bounds({0.0, 0.0, 100.0, 150.0});
         (*right).set_requested_bounds({120.0, 0.0, 100.0, 150.0});
         (*child).set_requested_bounds({10.0, 10.0, 50.0, 40.0});
-        (*child).set_focusable(true);
+        (*child).focusable = true;
         (*left).add_child(child);
         (*root).add_child(left);
         (*root).add_child(right);

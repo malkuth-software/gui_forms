@@ -122,6 +122,27 @@
       "comment": "In-ribbon form: the current column count, kept inside the column range (owner decision RB-8: the ribbon's scaling gives up one column at a time within it). A count outside the range throws std::out_of_range.",
       "getter": "columns",
       "setter": "set_columns"
+    },
+    {
+      "name": "selected_id",
+      "capability": "RibbonGallerySelectedId",
+      "value": "std::optional<std::string>",
+      "initial": null,
+      "comment": "The selected item's ID: the command's value, or the gallery's own selection; a write selects without committing (the command's set_value) and throws std::invalid_argument for an ID the gallery does not have. A view onto the command or the gallery's own selection.",
+      "getter": "selected_id",
+      "setter": "set_selected_id",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::optional<std::string>{}",
+      "storage": "view",
+      "hand": [
+        "a view: the value has two owners (the bound command's value, else own_selection_); write_view and read_view keep the setter's and getter's bodies; owner 2026-11-08 (G14: selection is a cell)"
+      ]
     }
   ],
   "not_properties": [
@@ -132,10 +153,6 @@
     {
       "name": "column_range, drop_down_size",
       "reason": "multi-value calls (section 4)"
-    },
-    {
-      "name": "selected_id",
-      "reason": "G14 selection"
     }
   ]
 }

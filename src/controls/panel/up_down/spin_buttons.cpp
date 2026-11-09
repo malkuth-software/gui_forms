@@ -42,7 +42,7 @@ SpinPartGeometry spin_part_geometry(const SpinButtons& spin) {
 }
 
 SpinButtons::SpinButtons(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(false);
+    focusable = false;
     cursor = CursorKind::hand;
 }
 

@@ -36,7 +36,7 @@ command
     one the gallery keeps its own selection and offers no preview.
 selected_id
     The selected item's ID: the command's value, or the gallery's own.
-    `set_selected_id` selects without committing; an unknown ID throws
+    Assigning an ID selects without committing; an unknown ID throws
     `std::invalid_argument`.
 item_size : default 48 by 48
     Every item's image area, from 16 to 256 units a side (`std::out_of_range`

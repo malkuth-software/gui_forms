@@ -66,6 +66,9 @@ gui_forms::ErrorProvider
          record's error for "address.city", or for "city" when that is empty. The
          name is trimmed and compared ignoring ASCII case.
 
+      **tag** : ``std::any``
+         Application data, kept as given and never interpreted.
+
       **has_errors** : ``bool``, read-only
          Whether any live control in the window currently has a nonempty error
          from this provider.
@@ -73,9 +76,6 @@ gui_forms::ErrorProvider
       **container_control** : ``std::shared_ptr<Control>``, read-only
          The root control of the provider's window, or null once the window has
          shut down.
-
-      **tag** : ``std::any``
-         Application data, kept as given and never interpreted.
 
       **snapshot** : ``ErrorProviderSnapshot``, read-only
          An :cpp:class:`ErrorProviderSnapshot <gui_forms::ErrorProviderSnapshot>` listing every marked control with its message,
@@ -266,6 +266,10 @@ gui_forms::ErrorProvider
       record's error for "address.city", or for "city" when that is empty. The
       name is trimmed and compared ignoring ASCII case.
 
+   .. cpp:member:: std::any tag
+
+      Application data, kept as given and never interpreted.
+
    .. cpp:function:: bool has_errors() const noexcept
 
       Whether any live control in the window currently has a nonempty error
@@ -275,14 +279,6 @@ gui_forms::ErrorProvider
 
       The root control of the provider's window, or null once the window has
       shut down.
-
-   .. cpp:function:: const std::any& tag() const noexcept
-
-      Application data, kept as given and never interpreted.
-
-   .. cpp:function:: void set_tag(std::any tag)
-
-      Sets :cpp:func:`tag <gui_forms::ErrorProvider::tag>`; see the property's description above.
 
    .. cpp:function:: ErrorProviderSnapshot snapshot() const
 

@@ -818,7 +818,7 @@ void test_retained_input_waits_for_lease_and_compacts_move_pressure() {
     std::shared_ptr<DeferredInputPaintControl> root =
         make_control<DeferredInputPaintControl>(StableId("paint.input"));
     (*root).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
-    (*root).set_focusable(true);
+    (*root).focusable = true;
     (*root).inject_pressure_during_next_paint = true;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{120.0, 80.0});
     Window& window = *held_window;
@@ -862,7 +862,7 @@ void test_retained_input_is_abandoned_when_paint_owner_retires() {
     std::shared_ptr<DeferredInputPaintControl> root =
         make_control<DeferredInputPaintControl>(StableId("paint.input.dispose"));
     (*root).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
-    (*root).set_focusable(true);
+    (*root).focusable = true;
     (*root).dispose_during_next_paint = true;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{120.0, 80.0});
     Window& window = *held_window;
@@ -888,7 +888,7 @@ void test_retained_input_fault_does_not_drop_later_events() {
     std::shared_ptr<DeferredInputPaintControl> root =
         make_control<DeferredInputPaintControl>(StableId("paint.input.fault"));
     (*root).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
-    (*root).set_focusable(true);
+    (*root).focusable = true;
     (*root).inject_pressure_during_next_paint = true;
     (*root).throw_on_key = true;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{120.0, 80.0});
@@ -943,7 +943,7 @@ void test_slow_replay_pressure_coalesces_to_latest_state_and_exact_receipt() {
     std::shared_ptr<ReplayPressureControl> root =
         make_control<ReplayPressureControl>(StableId("paint.pressure"));
     (*root).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
-    (*root).set_focusable(true);
+    (*root).focusable = true;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{120.0, 80.0});
     Window& window = *held_window;
     std::uint64_t wake_calls{};
@@ -1116,22 +1116,22 @@ void test_backend_replay_fault_and_retirement_never_issue_receipt() {
 
 void test_buffering_styles_are_retained_compatibility_facts() {
     std::shared_ptr<gui_forms::Control> control = make_control<Control>(StableId("styles.buffering"));
-    require(!(*control).double_buffered() &&
+    require(!(*control).double_buffered.read() &&
                 (*control).has_style(ControlStyles::all_painting_in_one_pass),
             "coherent baseline and historical buffering request must be independent");
-    (*control).set_double_buffered(true);
-    require((*control).double_buffered() &&
+    (*control).double_buffered = true;
+    require((*control).double_buffered.read() &&
                 (*control).has_style(ControlStyles::double_buffer) &&
                 (*control).has_style(ControlStyles::optimized_double_buffer),
             "DoubleBuffered must retain both compatible buffering bits");
     (*control).set_style(ControlStyles::resize_redraw, true);
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(control, Size{40.0, 30.0});
     Window& window = *held_window;
-    require((*control).double_buffered() &&
+    require((*control).double_buffered.read() &&
                 (*control).has_style(ControlStyles::resize_redraw),
             "control styles must survive attachment and handle-equivalent lifetime");
-    (*control).set_double_buffered(false);
-    require(!(*control).double_buffered(),
+    (*control).double_buffered = false;
+    require(!(*control).double_buffered.read(),
             "clearing a compatibility request must not alter baseline paint safety");
 }
 

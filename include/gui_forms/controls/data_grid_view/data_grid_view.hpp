@@ -508,27 +508,24 @@ public:
     }
     // Repaints after the provider's values changed outside the grid.
     void refresh_rows();
-    // Shows a BindingSource's records as rows: a column shows the field its
-    // data_property_name names. The current row follows the source's
-    // position and moves it; a committed edit moves the position to its row
-    // and sets the field. A null source returns to unbound rows.
-    void set_data_source(std::shared_ptr<BindingSource> source);
-    [[nodiscard]] std::shared_ptr<BindingSource> data_source() const noexcept { return data_source_; }
+    // data_source (a capability) shows a BindingSource's records as rows: a
+    // column shows the field its data_property_name names. The current row
+    // follows the source's position and moves it; a committed edit moves the
+    // position to its row and sets the field. A null source returns to
+    // unbound rows.
 
     // -- adding and deleting rows (owner decision B1-2) ------------------
-    // With allow_user_to_add_rows (on by default) unbound and bound grids
-    // show a new row after the last row (Windows Forms' new row); virtual
-    // grids do not. A bound grid shows it while its source allows new
-    // records; a read-only grid or one without columns never does. The new
-    // row has a generated ID and empty values; when it becomes current,
-    // default_values_needed gives it its first values. The first value the
-    // user commits to it (an edit, a toggle or a choice) makes it a row of the
-    // grid's, or a record of the source's, with the same ID: user_added_row
-    // is raised, and a new row appears after it. Until the current cell
-    // leaves it, the added row can be discarded with cancel_row_edit (Escape
-    // when no cell is in edit).
-    [[nodiscard]] bool allow_user_to_add_rows() const noexcept { return allow_add_rows_; }
-    void set_allow_user_to_add_rows(bool allow);
+    // With allow_user_to_add_rows (a capability, on by default) unbound and
+    // bound grids show a new row after the last row (Windows Forms' new
+    // row); virtual grids do not. A bound grid shows it while its source
+    // allows new records; a read-only grid or one without columns never does.
+    // The new row has a generated ID and empty values; when it becomes
+    // current, default_values_needed gives it its first values. The first
+    // value the user commits to it (an edit, a toggle or a choice) makes it a
+    // row of the grid's, or a record of the source's, with the same ID:
+    // user_added_row is raised, and a new row appears after it. Until the
+    // current cell leaves it, the added row can be discarded with
+    // cancel_row_edit (Escape when no cell is in edit).
     // The new row's position, while it is shown.
     [[nodiscard]] std::optional<DataGridViewRowPosition> new_row_index() const noexcept;
     // Discards the row the user added, while it is the current row and the
@@ -1668,6 +1665,8 @@ private:
     friend struct DataGridViewMultiSelectCapability<DataGridView>;
     friend struct DataGridViewEditModeCapability<DataGridView>;
     friend struct DataGridViewCellsOnSubSurfaceCapability<DataGridView>;
+    friend struct DataGridViewAllowUserToAddRowsCapability<DataGridView>;
+    friend struct DataGridViewDataSourceCapability<DataGridView>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(auto_size_columns_mode)& cell, DataGridViewAutoSizeColumnsMode& incoming);
     void written(const decltype(auto_size_columns_mode)& cell);
@@ -1741,6 +1740,10 @@ private:
     void written(const decltype(edit_mode)& cell);
     void prepare_write(const decltype(cells_on_sub_surface)& cell, bool& incoming);
     void written(const decltype(cells_on_sub_surface)& cell);
+    void write_view(const decltype(allow_user_to_add_rows)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(allow_user_to_add_rows)& cell) const;
+    void write_view(const decltype(data_source)& cell, std::shared_ptr<BindingSource> incoming);
+    [[nodiscard]] std::shared_ptr<BindingSource> read_view(const decltype(data_source)& cell) const;
     // property_codemod end DataGridView
 };
 

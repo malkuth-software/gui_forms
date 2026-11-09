@@ -534,7 +534,7 @@ PropertyList::PropertyList(StableId stable_id)
     // The theme's panel ground, resolved per colour scheme (no colour
     // written here, which would fix a light grey in every scheme).
     border_style = BorderStyle::none;
-    set_focusable(true);
+    focusable = true;
     set_paint_plane(PaintPlane::control);
 }
 

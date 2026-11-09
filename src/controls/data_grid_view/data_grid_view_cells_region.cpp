@@ -43,7 +43,7 @@ void DataGridView::written(const decltype(cells_on_sub_surface)&) {
     if (wanted && !cells_host_) {
         const std::string prefix(stable_id().value());
         cells_host_ = make_control<SubSurfaceHost>(StableId(prefix + ".cells-region"));
-        (*cells_host_).set_focusable(false);
+        (*cells_host_).focusable = false;
         (*cells_host_).hit_test_transparent = true;
         // The grid publishes its cells as its own virtual children; the
         // region publishes no "Sub-surface" pane and no nodes of its own.
@@ -89,7 +89,7 @@ bool DataGridView::cells_on_region() const noexcept {
 bool DataGridView::send_cells_snapshot(const GridLayout& layout, const Parts& grid) {
     const Point offset{-layout.data.x, -layout.data.y};
     DataGridViewCellsSnapshot snapshot{};
-    const std::span<const std::string> own_classes = classes();
+    const std::span<const std::string> own_classes = classes.read();
     snapshot.look.classes.assign(own_classes.begin(), own_classes.end());
     snapshot.look.inline_style = std::string(inline_style());
     snapshot.look.back_color = ambient_back_color();

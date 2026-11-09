@@ -138,7 +138,7 @@ void test_info_banner_properties_and_states() {
     std::shared_ptr<InfoBanner> banner = make_control<InfoBanner>(StableId("display.banner"));
     require((*banner).severity.read() == NoticeSeverity::information && (*banner).closable.read(),
             "a banner starts as closable information");
-    require((*banner).focusable(), "a closable banner takes focus");
+    require((*banner).focusable.read(), "a closable banner takes focus");
     const ControlAnatomy& anatomy = (*banner).anatomy();
     const std::optional<CustomStateIndex> information = find_custom_state(anatomy, "information");
     const std::optional<CustomStateIndex> warning = find_custom_state(anatomy, "warning");
@@ -172,7 +172,7 @@ void test_info_banner_properties_and_states() {
             "a closable banner offers the close action");
 
     (*banner).closable = false;
-    require(!(*banner).focusable() && (*banner).semantic_descriptor().actions.empty(),
+    require(!(*banner).focusable.read() && (*banner).semantic_descriptor().actions.empty(),
             "a banner that is not closable takes no focus and offers no close action");
     require(!(*banner).on_semantic_action(SemanticAction::close, std::string_view{}) && (*banner).visible.read(),
             "the close action is refused while the banner is not closable");
@@ -793,7 +793,7 @@ void test_search_field_alone() {
     const std::shared_ptr<SearchField> field = make_control<SearchField>(StableId("display.search.alone"));
     const std::shared_ptr<TextBox> editor = (*field).editor();
     require(editor && (*editor).parent() == field && (*editor).stable_id().value() == "display.search.alone.editor" &&
-                !(*field).focusable(),
+                !(*field).focusable.read(),
             "the field owns its editor, which takes the focus instead of the field");
     SearchRecorder recorder;
     watch(*field, recorder);

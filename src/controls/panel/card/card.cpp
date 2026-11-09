@@ -106,7 +106,7 @@ void Card::prepare_write(const decltype(interactive)&, bool&) {
 
 // A card that stops being interactive drops its interaction visuals.
 void Card::written(const decltype(interactive)&) {
-    set_focusable(interactive.read());
+    focusable = interactive.read();
     if (!interactive.read()) {
         hovered_ = false;
         pressed_ = false;

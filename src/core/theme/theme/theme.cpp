@@ -1564,7 +1564,7 @@ void fill_ancestor_facts(const Control& control, std::vector<AncestorFacts>& cha
         AncestorFacts facts{};
         facts.control_type = above.anatomy().control_id;
         facts.stable_id = above.stable_id().value();
-        facts.classes = above.classes();
+        facts.classes = above.classes.read();
         chain.push_back(facts);
         bloom.add({}, facts.control_type);
         if (!facts.stable_id.empty()) bloom.add("#", facts.stable_id);
@@ -1677,7 +1677,7 @@ Color inherited_text(const Control& control, Color fallback) {
         CompiledThemeRules::PartFacts facts{};
         facts.control_type = above.anatomy().control_id;
         facts.stable_id = above.stable_id().value();
-        facts.classes = above.classes();
+        facts.classes = above.classes.read();
         facts.inline_rules = above.inline_style_rules();
         facts.states = above.anatomy_states();
         const SurfaceRoot* const window = above.attached_surface_root();
@@ -1794,7 +1794,7 @@ void Theme::provenance(const Control& control, ControlVisualRole role, ControlVi
     CompiledThemeRules::PartFacts facts{};
     facts.control_type = control.anatomy().control_id;
     facts.stable_id = control.stable_id().value();
-    facts.classes = control.classes();
+    facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
     facts.states = visual_context_states(context);
     facts.forced_high_contrast = forced;
@@ -1831,7 +1831,7 @@ ResolvedFont Theme::resolve_font(const Control& control, FontSpec own) const noe
     CompiledThemeRules::PartFacts facts{};
     facts.control_type = control.anatomy().control_id;
     facts.stable_id = control.stable_id().value();
-    facts.classes = control.classes();
+    facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
     facts.states = visual_context_states(ControlVisualContext{});
     const Window* const window = control.attached_window();
@@ -1880,7 +1880,7 @@ std::optional<BackdropChain> Theme::window_backdrop_chain(const Window& window) 
     CompiledThemeRules::PartFacts facts{};
     facts.surface = SurfaceKind::window;
     facts.stable_id = (*root).stable_id().value();
-    facts.classes = (*root).classes();
+    facts.classes = (*root).classes.read();
     facts.media = window_media_facts(window);
     facts.user_rules = window.user_theme_rules();
     const BackdropDeclaration* const declared = engine_.rules().resolve_backdrop(facts);
@@ -1904,7 +1904,7 @@ bool Theme::declares_clarity(const Control& control) const noexcept {
     CompiledThemeRules::PartFacts facts{};
     facts.control_type = control.anatomy().control_id;
     facts.stable_id = control.stable_id().value();
-    facts.classes = control.classes();
+    facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
     facts.states = visual_context_states(ControlVisualContext{});
     const Window* const window = control.attached_window();
@@ -1944,7 +1944,7 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     CompiledThemeRules::PartFacts facts{};
     facts.control_type = control.anatomy().control_id;
     facts.stable_id = control.stable_id().value();
-    facts.classes = control.classes();
+    facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
     facts.part = part;
     facts.states = states;

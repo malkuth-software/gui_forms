@@ -100,8 +100,6 @@ public:
         return data_member_changed_;
     }
 
-    [[nodiscard]] const std::any& tag() const noexcept { return tag_; }
-    void set_tag(std::any tag);
     [[nodiscard]] Event<const ErrorProviderChange&>& error_changed() noexcept {
         return error_changed_;
     }
@@ -169,6 +167,7 @@ private:
     friend struct ErrorProviderIconCapability<ErrorProvider>;
     friend struct ErrorProviderDataSourceCapability<ErrorProvider>;
     friend struct ErrorProviderDataMemberCapability<ErrorProvider>;
+    friend struct ErrorProviderTagCapability<ErrorProvider>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(icon_size)& cell, double& incoming);
     void written(const decltype(icon_size)& cell);
@@ -184,6 +183,8 @@ private:
     [[nodiscard]] std::shared_ptr<BindingSource> read_view(const decltype(data_source)& cell) const;
     void prepare_write(const decltype(data_member)& cell, std::string& incoming);
     void written(const decltype(data_member)& cell);
+    void write_view(const decltype(tag)& cell, std::any incoming);
+    [[nodiscard]] std::any read_view(const decltype(tag)& cell) const;
     // property_codemod end ErrorProvider
 };
 

@@ -25,9 +25,9 @@ items
     elsewhere, a page or definitive flag where it does not belong, or more
     than `BackstageView::maximum_items` (64).
 selected_topic
-    The topic whose page shows. `set_selected_topic` throws
-    `std::out_of_range` past the end and `std::invalid_argument` for an item
-    that is not a topic.
+    The topic whose page shows. Assigning an item past the end throws
+    `std::out_of_range`; an item that is not a topic, or no value, throws
+    `std::invalid_argument`.
 column_width : default ``132``
     The column's width in logical units at text scale 1.
     `set_column_width` throws `std::invalid_argument` outside 48 to 480.

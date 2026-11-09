@@ -88,7 +88,7 @@ void test_cards() {
     (*card).selected = true;
     require((*card).selected.read() && changes == 1, "selected raises selected_changed once per change");
     (*card).interactive = true;
-    require((*card).interactive.read() && (*card).focusable(), "an interactive card takes focus");
+    require((*card).interactive.read() && (*card).focusable.read(), "an interactive card takes focus");
     bool refused = false;
     try {
         (*card).selection_behavior = static_cast<CardSelectionBehavior>(9);

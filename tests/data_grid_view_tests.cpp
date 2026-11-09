@@ -177,7 +177,7 @@ std::shared_ptr<DataGridView> make_grid(const char* identity) {
     (*grid).rows.append({.stable_id = {"charlie"}, .cells = {BindingValue{std::string("Charlie")}}});
     // The tests count the fixture's three rows, so the new row (on by
     // default) is turned off here; new_row_unbound turns it back on.
-    (*grid).set_allow_user_to_add_rows(false);
+    (*grid).allow_user_to_add_rows = false;
     return grid;
 }
 
@@ -893,7 +893,7 @@ void bound_rows() {
                          {.name = "city", .header_text = "City", .data_property_name = "City"}});
     // The rows counted below are the source's records alone; new_row_bound
     // covers the new row of a bound grid.
-    (*grid).set_allow_user_to_add_rows(false);
+    (*grid).allow_user_to_add_rows = false;
     Window window(grid, {360.0, 160.0});
     std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
     BindingRecord::FieldMap first;
@@ -903,7 +903,7 @@ void bound_rows() {
     second["Name"] = std::string("Grace");
     second["City"] = std::string("Arlington");
     (*source).set_records({BindingRecord("person.1", first), BindingRecord("person.2", second)});
-    (*grid).set_data_source(source);
+    (*grid).data_source = source;
     window.perform_layout();
     require((*grid).row_source() == DataGridViewRowSource::binding_source && (*grid).row_count() == 2U &&
                 (*grid).cell_text(row_at(1U), 0U) == "Grace" && (*grid).row_id(row_at(1U)) == id("person.2"),
@@ -934,7 +934,7 @@ void bound_rows() {
             "the record that takes the removed current record's place becomes current");
     require((*grid).is_cell_selected(row_at(2U), 0U) && (*grid).selected_cells().size() == 1U,
             "the removed record leaves the selection and person.3 stays selected");
-    (*grid).set_data_source(nullptr);
+    (*grid).data_source = nullptr;
     require((*grid).row_source() == DataGridViewRowSource::unbound && (*grid).row_count() == 0U,
             "a null source returns to empty unbound rows");
 }
@@ -1625,13 +1625,13 @@ void new_row_unbound() {
     Window window(grid, {360.0, 200.0});
     window.perform_layout();
     std::shared_ptr<DataGridView> fresh = make_control<DataGridView>(StableId("grid.new-row.fresh"));
-    require((*fresh).allow_user_to_add_rows() && (*fresh).allow_user_to_delete_rows.read(),
+    require((*fresh).allow_user_to_add_rows.read() && (*fresh).allow_user_to_delete_rows.read(),
             "adding and deleting rows are on by default, as in Windows Forms");
     (*fresh).set_columns(sample_columns());
     require((*fresh).row_count() == 1U && (*fresh).new_row_index() == row_at(0U),
             "a fresh grid with columns shows only the new row");
     require(!(*grid).new_row_index() && (*grid).row_count() == 3U, "no new row once turned off");
-    (*grid).set_allow_user_to_add_rows(true);
+    (*grid).allow_user_to_add_rows = true;
     window.perform_layout();
     require((*grid).new_row_index() == row_at(3U) && (*grid).row_count() == 4U,
             "the new row follows the last row");
@@ -1668,7 +1668,7 @@ void new_row_unbound() {
     require((*grid).set_current_cell(cell_at(0U, 0U)) && !(*grid).cancel_row_edit() && (*grid).row_count() == 5U,
             "once left, the added row is kept");
     require(throws<std::out_of_range>(RemoveNewRow{grid.get()}), "the new row is not removed");
-    (*grid).set_allow_user_to_add_rows(false);
+    (*grid).allow_user_to_add_rows = false;
     require((*grid).row_count() == 4U && !(*grid).new_row_index(), "turning it off hides the new row");
 }
 
@@ -1681,8 +1681,8 @@ void new_row_bound() {
     BindingRecord::FieldMap first;
     first["Name"] = std::string("Ada");
     (*source).set_records({BindingRecord("person.1", first)});
-    (*grid).set_data_source(source);
-    (*grid).set_allow_user_to_add_rows(true);
+    (*grid).data_source = source;
+    (*grid).allow_user_to_add_rows = true;
     window.perform_layout();
     require((*grid).row_count() == 2U && (*grid).new_row_index() == row_at(1U), "a bound grid shows the new row");
     const DataGridViewRowId placeholder = (*grid).row_id(row_at(1U));
@@ -1725,7 +1725,7 @@ void deleting_rows() {
     BindingRecord::FieldMap fields;
     fields["Name"] = std::string("Ada");
     (*source).set_records({BindingRecord("p.1", fields), BindingRecord("p.2", fields)});
-    (*bound).set_data_source(source);
+    (*bound).data_source = source;
     (*bound).allow_user_to_delete_rows = true;
     bound_window.perform_layout();
     require(bound_window.request_focus(bound) && (*bound).set_current_cell(cell_at(0U, 0U)), "bound focus");
@@ -1911,7 +1911,7 @@ void cell_styles() {
 
 void formatting_and_parsing() {
     std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.format"));
-    (*grid).set_allow_user_to_add_rows(false);
+    (*grid).allow_user_to_add_rows = false;
     (*grid).set_columns({{.name = "price", .header_text = "Price", .value_kind = BindingValueKind::number},
                          {.name = "note", .header_text = "Note"}});
     (*grid).rows.append({.stable_id = {"a"}, .cells = {BindingValue{3.14159}, BindingValue{std::string("x")}}});

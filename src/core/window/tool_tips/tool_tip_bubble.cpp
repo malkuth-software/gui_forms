@@ -9,7 +9,7 @@ namespace gui_forms::detail {
 
 ToolTipLayer::ToolTipLayer(StableId stable_id) : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::overlay);
-    set_focusable(false);
+    focusable = false;
 }
 
 bool ToolTipLayer::hit_test_local(Point) const {
@@ -120,7 +120,7 @@ void break_tool_tip_lines(const Control& measurer, std::string_view text, double
 ToolTipBubble::ToolTipBubble(StableId stable_id, std::string text, ToolTipLines lines)
     : Control(std::move(stable_id)), text_(std::move(text)), lines_(std::move(lines)) {
     set_paint_plane(PaintPlane::overlay);
-    set_focusable(false);
+    focusable = false;
 }
 
 void ToolTipBubble::set_content(const std::string_view text, ToolTipLines& lines) {

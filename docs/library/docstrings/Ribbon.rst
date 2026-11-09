@@ -47,9 +47,9 @@ tabs
     (owner decision 29), or more than the development bounds. A refused
     definition leaves the previous tabs.
 selected_tab
-    The selected tab, or none while no tab shows. `set_selected_tab` throws
-    `std::out_of_range` for a tab past the end and `std::invalid_argument`
-    for a tab not shown.
+    The selected tab, or none while no tab shows. Assigning a tab past the
+    end throws `std::out_of_range`; a tab not shown, or no value, throws
+    `std::invalid_argument`.
 tab_sets
     The contextual tab sets (`RibbonTabSetSpec`: ID and caption).
 application_modes : default ``1``

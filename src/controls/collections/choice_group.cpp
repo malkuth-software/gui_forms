@@ -123,7 +123,7 @@ void ChoiceGroup::refresh_tab_stop() {
 }
 
 ChoiceGroup::ChoiceGroup(StableId id) : Panel(std::move(id)) {
-    set_focusable(false);
+    focusable = false;
     tab_stop = false;
 }
 ChoiceGroup::~ChoiceGroup() = default;

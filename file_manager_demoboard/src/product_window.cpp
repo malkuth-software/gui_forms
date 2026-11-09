@@ -3788,7 +3788,7 @@ std::unique_ptr<gui_forms::Window> make_product_window() {
     }
     std::unique_ptr<gui_forms::Window> window = std::make_unique<Window>(root, Size{1450,850});
     (*window).perform_layout();
-    (*root).set_tag(wire_product(refs));
+    (*root).tag = wire_product(refs);
     return window;
 }
 
@@ -3835,9 +3835,11 @@ bool set_product_surface(gui_forms::Window& product,
                          std::string_view surface) {
     const gui_forms::Control::Ptr root = product.root();
     if (!root) return false;
+    // A copy of the tag: the view reads by value, and the copy holds the
+    // lifetime for the rest of this call.
+    const std::any held = (*root).tag.read();
     const std::shared_ptr<ProductLifetime>* lifetime =
-        std::any_cast<std::shared_ptr<ProductLifetime>>(
-        &(*root).tag());
+        std::any_cast<std::shared_ptr<ProductLifetime>>(&held);
     if (lifetime == nullptr || *lifetime == nullptr) return false;
     const std::string normalized = lower_ascii(surface);
     if (normalized == "criteria") {

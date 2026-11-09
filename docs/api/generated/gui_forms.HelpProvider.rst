@@ -176,13 +176,9 @@ gui_forms::HelpProvider
       passed to handlers in ``HelpRequestEvent::help_namespace`` and never
       interpreted. It must be valid UTF-8.
 
-   .. cpp:function:: const std::any& tag() const noexcept
+   .. cpp:member:: std::any tag
 
       Application data, kept as given and never interpreted.
-
-   .. cpp:function:: void set_tag(std::any tag)
-
-      Sets :cpp:func:`tag <gui_forms::HelpProvider::tag>`; see the property's description above.
 
    .. cpp:function:: HelpProviderSnapshot snapshot() const noexcept
 

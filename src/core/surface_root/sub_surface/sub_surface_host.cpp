@@ -224,7 +224,7 @@ constexpr std::array<InteractionDeclaration, 2> sub_surface_host_interactions{{
 
 SubSurfaceHost::SubSurfaceHost(StableId stable_id)
     : Control(std::move(stable_id)), notices_(std::make_shared<Notices>(*this)) {
-    set_focusable(true);
+    focusable = true;
     // The sub-surface's tooltip requests are this host's tooltip parts.
     set_publishes_item_tool_tips(true);
 }
@@ -415,8 +415,8 @@ bool SubSurfaceHost::on_semantic_child_action(std::string_view stable_id_text, S
     }
     const SemanticNode& node = *target.node;
     const bool offered = std::find(node.actions.begin(), node.actions.end(), action) != node.actions.end();
-    const bool focusable = action == SemanticAction::focus && has_semantic_state(node.states, SemanticState::focusable);
-    if (!offered && !focusable) return false;
+    const bool focus_offered = action == SemanticAction::focus && has_semantic_state(node.states, SemanticState::focusable);
+    if (!offered && !focus_offered) return false;
     SubSurfaceInput input;
     input.kind = SubSurfaceInputKind::semantic_action;
     input.semantic.control = target.control;

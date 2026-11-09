@@ -781,7 +781,7 @@ TextRole resolved_text_role(const Control& control, FontDeclaration font) {
         CompiledThemeRules::PartFacts facts{};
         facts.control_type = above.anatomy().control_id;
         facts.stable_id = above.stable_id().value();
-        facts.classes = above.classes();
+        facts.classes = above.classes.read();
         facts.inline_rules = above.inline_style_rules();
         facts.states = above.anatomy_states();
         const SurfaceRoot* const window = above.attached_surface_root();
@@ -838,7 +838,7 @@ ThemeEngine::PartPlan ThemeEngine::plan(const Control& control, const PartPaint&
     CompiledThemeRules::PartFacts facts{};
     facts.control_type = control.anatomy().control_id;
     facts.stable_id = control.stable_id().value();
-    facts.classes = control.classes();
+    facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
     if (part.key) facts.part = (*part.key).part;
     facts.role = part.role;

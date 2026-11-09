@@ -23,7 +23,7 @@ class CutOffTextLayer final : public Control {
 public:
     explicit CutOffTextLayer(StableId stable_id) : Control(std::move(stable_id)) {
         set_paint_plane(PaintPlane::overlay);
-        set_focusable(false);
+        focusable = false;
     }
     [[nodiscard]] bool hit_test_local(Point) const override { return false; }
 };
@@ -38,7 +38,7 @@ public:
         : Control(std::move(stable_id)), text_(std::move(text)), font_(font), text_bounds_(text_bounds),
           paint_(paint) {
         set_paint_plane(PaintPlane::overlay);
-        set_focusable(false);
+        focusable = false;
     }
 
     void on_paint(Painter& painter, Rect) override {

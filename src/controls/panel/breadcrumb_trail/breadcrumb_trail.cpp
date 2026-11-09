@@ -50,7 +50,7 @@ BreadcrumbTrail::BreadcrumbTrail(StableId stable_id,
     // scheme).
     visual_role = ControlVisualRole::editor;
     border_style = BorderStyle::sunken;
-    set_focusable(true);
+    focusable = true;
 }
 
 void BreadcrumbTrail::initialize_control_tree() {

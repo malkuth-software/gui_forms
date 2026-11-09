@@ -721,7 +721,7 @@ void test_dispatch_order_against_input_timer_layout_and_paint() {
     std::shared_ptr<DispatchPhaseProbe> root =
         make_control<DispatchPhaseProbe>(
         StableId("dispatcher.phase.root"), trace);
-    (*root).set_focusable(true);
+    (*root).focusable = true;
     Window window(root, {320.0, 180.0});
     host::HeadlessHost host(window);
     NullPainter painter;

@@ -108,7 +108,7 @@ ToolStrip::ToolStrip(StableId stable_id, StatusLayout) : Control(std::move(stabl
 }
 
 void ToolStrip::construct() {
-    set_focusable(true);
+    focusable = true;
     // Items carry their own tooltips in their semantic nodes.
     set_publishes_item_tool_tips(true);
     cursor = CursorKind::arrow;

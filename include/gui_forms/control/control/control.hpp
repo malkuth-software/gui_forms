@@ -349,10 +349,6 @@ public:
     [[nodiscard]] Event<bool>& enabled_changed() noexcept {
         return enabled_changed_;
     }
-    // Application-owned metadata/lifetime anchor. Tag is deliberately inert:
-    // assigning it does not imply rendering, layout, semantics, or binding.
-    [[nodiscard]] const std::any& tag() const noexcept { return tag_; }
-    void set_tag(std::any tag);
     [[nodiscard]] Ptr parent() const noexcept { return parent_.lock(); }
     [[nodiscard]] std::span<const Ptr> children() const noexcept { return children_; }
     [[nodiscard]] bool attached() const noexcept { return surface_root_ != nullptr; }
@@ -551,8 +547,6 @@ public:
     [[nodiscard]] bool layout_collapsed() const noexcept {
         return layout_collapsed_;
     }
-    [[nodiscard]] bool focusable() const noexcept { return focusable_; }
-    void set_focusable(bool focusable);
     [[nodiscard]] Event<bool>& causes_validation_changed() noexcept {
         return causes_validation_changed_;
     }
@@ -570,20 +564,10 @@ public:
         return (styles_ & style) == style;
     }
     void set_style(ControlStyles style, bool enabled);
-    [[nodiscard]] bool double_buffered() const noexcept {
-        return has_style(ControlStyles::double_buffer) ||
-               has_style(ControlStyles::optimized_double_buffer);
-    }
-    void set_double_buffered(bool enabled);
-    // Style classes (T2 plan, E4): names a theme's class rules select, in
-    // the order they were added, without duplicates. A class name is 1 to 64
-    // characters of lowercase ASCII letters, digits, '-' and '_', starting
-    // with a letter (valid_style_class_name). Changing the classes repaints
-    // the control. set_classes throws std::invalid_argument for an invalid
-    // name and then changes nothing; it drops repeated names.
-    [[nodiscard]] std::span<const std::string> classes() const noexcept { return classes_; }
-    void set_classes(std::vector<std::string> classes);
-    // Adds or removes one class; false when the class was already there (or
+    // tag, focusable, double_buffered (a view over the two buffering style
+    // bits) and classes (style classes, T2 plan E4; valid_style_class_name)
+    // are capabilities (control_capabilities.hpp).
+    // Adds or removes one style class; false when the class was already there (or
     // absent). An invalid name throws std::invalid_argument.
     bool add_class(std::string_view name);
     bool remove_class(std::string_view name);
@@ -1277,6 +1261,10 @@ private:
     friend struct AccessibleNameCapability<Control>;
     friend struct AccessibleDescriptionCapability<Control>;
     friend struct CeremonialCapability<Control>;
+    friend struct TagCapability<Control>;
+    friend struct FocusableCapability<Control>;
+    friend struct DoubleBufferedCapability<Control>;
+    friend struct ClassesCapability<Control>;
     // The capabilities' hooks, one pair per property, chosen by the cell's
     // type: prepare_write runs before the compare (require_mutable first,
     // then the value's checks; it may adjust the value), written after the
@@ -1336,6 +1324,14 @@ private:
     void written(const decltype(accessible_description)& cell);
     void prepare_write(const decltype(ceremonial)& cell, bool& value);
     void written(const decltype(ceremonial)& cell);
+    void write_view(const decltype(tag)& cell, std::any incoming);
+    [[nodiscard]] std::any read_view(const decltype(tag)& cell) const;
+    void prepare_write(const decltype(focusable)& cell, bool& value);
+    void written(const decltype(focusable)& cell);
+    void write_view(const decltype(double_buffered)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(double_buffered)& cell) const;
+    void prepare_write(const decltype(classes)& cell, std::vector<std::string>& value);
+    void written(const decltype(classes)& cell);
     friend class ContainerControl;
     // Reports an opaque engine face's cover (report_opaque_cover).
     friend void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part);
@@ -1397,7 +1393,7 @@ private:
     [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor>
         layout_direction_property_enum();
     // The classes property: a collection of text, one item per class in
-    // order. Setting it refuses an invalid name as set_classes does.
+    // order. Setting it refuses an invalid name as the classes capability does.
     [[nodiscard]] BindingValue classes_property_value() const;
     void set_classes_property_value(const BindingValue& value);
     // The cursor property: "inherit" (no cursor of its own) or a kind.
@@ -1464,7 +1460,6 @@ private:
     std::shared_ptr<const detail::DisplayChunk> display_chunk_;
     Insets last_painted_visual_outsets_{};
     bool layout_collapsed_{};
-    bool focusable_{};
     // Whether this is its window's hovered control, the one the pointer was
     // last over (stage T4, hot states). Only the window sets it, before the
     // control sees the enter or leave; base_anatomy_states reports it as
@@ -1479,7 +1474,6 @@ private:
                           ControlStyles::standard_double_click |
                           ControlStyles::selectable |
                           ControlStyles::all_painting_in_one_pass};
-    std::vector<std::string> classes_;
     std::shared_ptr<const detail::ControlInlineStyle> inline_style_;
     CursorImagesPtr cursor_images_;
     std::shared_ptr<const Theme> theme_override_;
@@ -1489,7 +1483,7 @@ private:
     // The primary text font last resolved (text_font), and what it was
     // resolved against: valid while the theme, the window's media facts,
     // the user theme's and the inline style's rules and `own` are the same.
-    // The classes are not compared: set_classes drops it (refresh_text_font).
+    // The classes are not compared: a classes write drops it (refresh_text_font).
     struct TextFontCache final {
         bool valid{};
         FontSpec own{};

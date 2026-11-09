@@ -88,7 +88,7 @@ std::span<const BundledFontFace> bundled_font_faces() noexcept {
 
 FontDialog::FontDialog(StableId stable_id) : Panel(std::move(stable_id)) {
     border_style = BorderStyle::none;
-    set_focusable(false);
+    focusable = false;
 }
 
 FontDialog::~FontDialog() {

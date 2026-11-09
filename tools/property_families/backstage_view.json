@@ -37,16 +37,33 @@
       "getter": "column_width",
       "setter": "set_column_width",
       "field": "column_width_"
+    },
+    {
+      "name": "selected_topic",
+      "capability": "BackstageViewSelectedTopic",
+      "value": "std::optional<std::size_t>",
+      "initial": null,
+      "comment": "The topic whose page shows, or none before the first topic exists. A write past the end throws std::out_of_range; an item that is not a topic, or none, throws std::invalid_argument. A view onto the view's selection.",
+      "getter": "selected_topic",
+      "setter": "set_selected_topic",
+      "clear": null,
+      "field": "selected_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::optional<std::size_t>{0U}",
+      "storage": "view",
+      "hand": [
+        "a view: write_view keeps set_selected_topic's checks and select_topic; owner 2026-11-08 (G14: selection is a cell)"
+      ]
     }
   ],
   "not_properties": [
     {
       "name": "items",
       "reason": "wholesale collection replacement (section 4)"
-    },
-    {
-      "name": "selected_topic",
-      "reason": "G14 selection"
     }
   ]
 }

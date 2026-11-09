@@ -43,7 +43,7 @@ std::string_view list_suffix(DockNavigatorList list) noexcept {
 } // namespace
 
 DockNavigator::DockNavigator(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(true);
+    focusable = true;
     cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
 }

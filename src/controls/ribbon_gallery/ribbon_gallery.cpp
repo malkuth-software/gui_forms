@@ -53,7 +53,7 @@ RibbonGallery::RibbonGallery(StableId stable_id, RibbonGalleryForm form)
     if (form_ != RibbonGalleryForm::in_ribbon && form_ != RibbonGalleryForm::drop_down) {
         throw std::invalid_argument("RibbonGallery form is invalid");
     }
-    set_focusable(true);
+    focusable = true;
     cursor = CursorKind::arrow;
     set_paint_plane(form_ == RibbonGalleryForm::drop_down ? PaintPlane::overlay : PaintPlane::control);
 }
@@ -183,12 +183,12 @@ void RibbonGallery::written(const decltype(command)&) {
     if (more_gallery_) (*more_gallery_).command = bound;
 }
 
-std::optional<std::string> RibbonGallery::selected_id() const {
+std::optional<std::string> RibbonGallery::read_view(const decltype(selected_id)&) const {
     if (command.read()) return (*command.read()).value();
     return own_selection_;
 }
 
-void RibbonGallery::set_selected_id(std::optional<std::string> item_id) {
+void RibbonGallery::write_view(const decltype(selected_id)&, std::optional<std::string> item_id) {
     require_mutable();
     if (item_id && !position_of(*item_id)) throw std::invalid_argument("RibbonGallery has no item with this ID");
     if (command.read()) {
@@ -396,7 +396,7 @@ void RibbonGallery::on_focus_changed(bool focused) {
     has_focus_ = focused;
     if (focused) {
         if (!focused_ && !order_.empty()) {
-            const std::optional<std::string> selected = selected_id();
+            const std::optional<std::string> selected = selected_id.read();
             const std::optional<std::size_t> position = selected ? position_of(*selected) : std::nullopt;
             focused_ = position ? *position : 0U;
         }
@@ -585,7 +585,7 @@ bool RibbonGallery::open_overlay(const Control::Ptr& anchor) {
         drop_down_popup_face(window, hung, placement.preferred_size, anchor_bounds.x);
     const bool lifted = face.has_value() && lift_.lift(window, shared_from_this(), *face);
     if (!lifted) (*layer_).set_content(shared_from_this());
-    (*layer_).set_focusable(lifted);
+    (*layer_).focusable = lifted;
     const Size client = window.client_size();
     (*layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
     try {
@@ -710,7 +710,7 @@ SemanticDescriptor RibbonGallery::semantic_descriptor() const {
     descriptor.role = SemanticRole::list;
     descriptor.name = accessible_name.read().empty() ? "Gallery" : accessible_name.read();
     descriptor.description = accessible_description.read();
-    const std::optional<std::string> selected = selected_id();
+    const std::optional<std::string> selected = selected_id.read();
     const std::optional<std::size_t> position = selected ? position_of(*selected) : std::nullopt;
     if (position) descriptor.value = items_[order_[*position]].label;
     descriptor.actions = {SemanticAction::focus};
@@ -723,7 +723,7 @@ std::vector<SemanticNode> RibbonGallery::semantic_virtual_children() const {
     const Rect absolute = absolute_bounds();
     const Geometry layout = geometry();
     const std::string prefix(stable_id().value());
-    const std::optional<std::string> selected = selected_id();
+    const std::optional<std::string> selected = selected_id.read();
     // Every item is published, with bounds only where it is in view, so the
     // whole collection is readable (RIBBON_STUDY.md §5.2).
     const std::size_t end = visible_line_end(layout);

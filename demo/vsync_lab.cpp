@@ -117,7 +117,7 @@ public:
         : Control(std::move(stable_id)),
           surface_(LiveSurface::create(waterfall_description({surface_width, surface_height}))),
           pacer_(surface_) {
-        set_focusable(true);
+        focusable = true;
         accessible_name = "High-rate waterfall and tearing diagnostic";
         const char* const trace_path = std::getenv("GUI_FORMS_VSYNC_LAB_TRACE");
         if (trace_path != nullptr && *trace_path != '\0') {
@@ -864,7 +864,7 @@ std::unique_ptr<Window> make_vsync_lab() {
     std::shared_ptr<LabContext> context = std::make_shared<LabContext>();
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("vsync.root"));
     (*root).set_background(Color::rgba(225, 231, 237));
-    (*root).set_tag(context);
+    (*root).tag = context;
     // The root, header and footer are flat colour without a border, so a
     // size change repaints only what it exposed (Panel::paint_depends_on_size).
 

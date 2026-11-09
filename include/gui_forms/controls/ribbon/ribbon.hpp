@@ -361,11 +361,6 @@ public:
     [[nodiscard]] bool plane_hidden() const noexcept { return plane_hidden_; }
     [[nodiscard]] RibbonScalingCounters scaling_counters() const noexcept { return counters_; }
 
-    [[nodiscard]] std::optional<std::size_t> selected_tab() const noexcept { return selected_tab_; }
-    // Throws std::out_of_range for a tab past the end and
-    // std::invalid_argument for a tab not shown.
-    void set_selected_tab(std::size_t tab);
-
     // The File tab's menu (its text is application_text).
     [[nodiscard]] const std::vector<MenuItemSpec>& application_menu() const noexcept { return application_menu_; }
     // Throws std::invalid_argument for an invalid menu.
@@ -708,7 +703,7 @@ private:
         std::size_t tab_count{};
     };
     // Who changed the selection: the user (or the application on the user's
-    // behalf, set_selected_tab), whose choices the selection rules remember,
+    // behalf, through selected_tab), whose choices the selection rules remember,
     // or a selection rule, whose choices they do not.
     enum class SelectionCause : std::uint8_t { user, rule };
     [[nodiscard]] bool shown(std::size_t tab) const noexcept;
@@ -944,6 +939,7 @@ private:
     friend struct RibbonBackstageCapability<Ribbon>;
     friend struct RibbonFocusRegionCapability<Ribbon>;
     friend struct FontCapability<Ribbon>;
+    friend struct RibbonSelectedTabCapability<Ribbon>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(application_modes)& cell, std::uint32_t& incoming);
     void written(const decltype(application_modes)& cell);
@@ -961,6 +957,8 @@ private:
     void written(const decltype(focus_region)& cell);
     void prepare_write(const decltype(font)& cell, FontSpec& incoming);
     void written(const decltype(font)& cell);
+    void write_view(const decltype(selected_tab)& cell, std::optional<std::size_t> incoming);
+    [[nodiscard]] std::optional<std::size_t> read_view(const decltype(selected_tab)& cell) const;
     // property_codemod end Ribbon
 };
 

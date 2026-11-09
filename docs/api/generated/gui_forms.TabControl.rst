@@ -67,22 +67,23 @@ gui_forms::TabControl
          content (Windows Forms' ``DrawMode.OwnerDrawFixed``): see
          :cpp:func:`draw_item_content <gui_forms::TabControl::draw_item_content>`. Throws ``std::invalid_argument`` for an unknown mode.
 
+      **selected_index** : ``std::optional<std::size_t>``
+         The index of the selected page, or empty when there are no pages.
+         Assigning an index hides the old page, shows the new one and raises
+         :cpp:func:`selected_index_changed <gui_forms::TabControl::selected_index_changed>`; an index outside the pages throws
+         ``std::out_of_range`` and an empty value ``std::invalid_argument``.
+         Selecting the current page does nothing.
+
+      **selected_tab** : ``std::shared_ptr<TabPage>``
+         The selected page, or null. Assigning a page of this control selects it;
+         any other page, or null, throws ``std::invalid_argument``.
+
       **pages** : ``std::vector<std::shared_ptr<TabPage>>``, read-only
          The pages in tab order. Only pages that are still children of the
          control are listed.
 
       **page_count** : ``std::size_t``, read-only
          The number of pages.
-
-      **selected_index** : ``std::optional<std::size_t>``
-         The index of the selected page, or empty when there are no pages.
-         :cpp:func:`set_selected_index <gui_forms::TabControl::set_selected_index>` hides the old page, shows the new one and raises
-         :cpp:func:`selected_index_changed <gui_forms::TabControl::selected_index_changed>`; an index outside the pages throws
-         ``std::out_of_range``. Selecting the current page does nothing.
-
-      **selected_tab** : ``std::shared_ptr<TabPage>``
-         The selected page, or null. :cpp:func:`set_selected_tab <gui_forms::TabControl::set_selected_tab>` selects a page of this
-         control and throws ``std::invalid_argument`` for any other page.
 
       **style** : ``BasicControlStyle``
          Kept for compatibility: the control paints by role from the window's
@@ -116,7 +117,7 @@ gui_forms::TabControl
          Raised after the selection changes, by the user or by a setter, with a
          :cpp:class:`TabSelectionChange <gui_forms::TabSelectionChange>` holding the old and new index (either may be
          empty). By then the old page is hidden and the new page shown, and
-         after :cpp:func:`set_selected_index <gui_forms::TabControl::set_selected_index>` or user input, focus has been moved as
+         after ``set_selected_index`` or user input, focus has been moved as
          described in the Notes. Adding the first page raises it with no old
          index.
          Removing a page raises it when the selected page or its index changes,
@@ -126,7 +127,7 @@ gui_forms::TabControl
       **deselecting** : ``Event<TabControlCancelEvent&>``
          Raised with a :cpp:class:`TabControlCancelEvent <gui_forms::TabControlCancelEvent>` for the selected page before a
          change of page by the user (a click, a key, the strip's list) or by
-         :cpp:func:`set_selected_index <gui_forms::TabControl::set_selected_index>` (Windows Forms' ``Deselecting``). Set ``cancel`` to keep
+         ``set_selected_index`` (Windows Forms' ``Deselecting``). Set ``cancel`` to keep
          the page; nothing has changed yet.
 
       **selecting** : ``Event<TabControlCancelEvent&>``
@@ -258,7 +259,7 @@ gui_forms::TabControl
       (*general).add_child(wrap);
       (*tabs).add_page(general);    // the first page is selected
       (*tabs).add_page(advanced);
-      (*tabs).set_selected_tab(advanced);
+      (*tabs).selected_tab = advanced;
 
    Follow the selection with an owned handler, and change it from the keyboard:
 
@@ -342,6 +343,19 @@ gui_forms::TabControl
       content (Windows Forms' ``DrawMode.OwnerDrawFixed``): see
       :cpp:func:`draw_item_content <gui_forms::TabControl::draw_item_content>`. Throws ``std::invalid_argument`` for an unknown mode.
 
+   .. cpp:member:: std::optional<std::size_t> selected_index
+
+      The index of the selected page, or empty when there are no pages.
+      Assigning an index hides the old page, shows the new one and raises
+      :cpp:func:`selected_index_changed <gui_forms::TabControl::selected_index_changed>`; an index outside the pages throws
+      ``std::out_of_range`` and an empty value ``std::invalid_argument``.
+      Selecting the current page does nothing.
+
+   .. cpp:member:: std::shared_ptr<TabPage> selected_tab
+
+      The selected page, or null. Assigning a page of this control selects it;
+      any other page, or null, throws ``std::invalid_argument``.
+
    .. cpp:function:: std::vector<std::shared_ptr<TabPage>> pages() const
 
       The pages in tab order. Only pages that are still children of the
@@ -350,26 +364,6 @@ gui_forms::TabControl
    .. cpp:function:: std::size_t page_count() const
 
       The number of pages.
-
-   .. cpp:function:: std::optional<std::size_t> selected_index() const
-
-      The index of the selected page, or empty when there are no pages.
-      :cpp:func:`set_selected_index <gui_forms::TabControl::set_selected_index>` hides the old page, shows the new one and raises
-      :cpp:func:`selected_index_changed <gui_forms::TabControl::selected_index_changed>`; an index outside the pages throws
-      ``std::out_of_range``. Selecting the current page does nothing.
-
-   .. cpp:function:: void set_selected_index(std::size_t index)
-
-      Sets :cpp:func:`selected_index <gui_forms::TabControl::selected_index>`; see the property's description above.
-
-   .. cpp:function:: std::shared_ptr<TabPage> selected_tab() const noexcept
-
-      The selected page, or null. :cpp:func:`set_selected_tab <gui_forms::TabControl::set_selected_tab>` selects a page of this
-      control and throws ``std::invalid_argument`` for any other page.
-
-   .. cpp:function:: void set_selected_tab(const std::shared_ptr<TabPage>& page)
-
-      Sets :cpp:func:`selected_tab <gui_forms::TabControl::selected_tab>`; see the property's description above.
 
    .. cpp:function:: const BasicControlStyle& style() const noexcept
 
@@ -414,7 +408,7 @@ gui_forms::TabControl
       Raised after the selection changes, by the user or by a setter, with a
       :cpp:class:`TabSelectionChange <gui_forms::TabSelectionChange>` holding the old and new index (either may be
       empty). By then the old page is hidden and the new page shown, and
-      after :cpp:func:`set_selected_index <gui_forms::TabControl::set_selected_index>` or user input, focus has been moved as
+      after ``set_selected_index`` or user input, focus has been moved as
       described in the Notes. Adding the first page raises it with no old
       index.
       Removing a page raises it when the selected page or its index changes,
@@ -425,7 +419,7 @@ gui_forms::TabControl
 
       Raised with a :cpp:class:`TabControlCancelEvent <gui_forms::TabControlCancelEvent>` for the selected page before a
       change of page by the user (a click, a key, the strip's list) or by
-      :cpp:func:`set_selected_index <gui_forms::TabControl::set_selected_index>` (Windows Forms' ``Deselecting``). Set ``cancel`` to keep
+      ``set_selected_index`` (Windows Forms' ``Deselecting``). Set ``cancel`` to keep
       the page; nothing has changed yet.
 
    .. cpp:function:: Event<TabControlCancelEvent&>& selecting() noexcept

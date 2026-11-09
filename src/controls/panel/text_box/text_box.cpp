@@ -112,7 +112,7 @@ TextBox::TextBox(StableId stable_id, std::string initial_text)
       editing_(std::make_unique<detail::TextEditingEngine>(*editing_host_, initial_text)) {
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
-    set_focusable(true);
+    focusable = true;
     cursor = CursorKind::text;
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
 }

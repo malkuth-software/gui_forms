@@ -65,7 +65,7 @@ ControlVisualStatus module_status(InstrumentModuleState state) noexcept {
 
 Control::Ptr first_focusable_descendant(const Control::Ptr& root) {
     if (!root) return {};
-    if ((*root).focusable() && (*root).effectively_visible() &&
+    if ((*root).focusable.read() && (*root).effectively_visible() &&
         (*root).effectively_enabled()) return root;
     for (const Control::Ptr& child : (*root).children()) {
         if (Control::Ptr result = first_focusable_descendant(child)) return result;

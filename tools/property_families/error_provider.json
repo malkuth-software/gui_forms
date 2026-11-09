@@ -12,7 +12,8 @@
     "gui_forms/types.hpp",
     "<chrono>",
     "<memory>",
-    "<optional>"
+    "<optional>",
+    "<any>"
   ],
   "mutation_check": null,
   "properties": [
@@ -160,16 +161,33 @@
       "getter": "data_member",
       "setter": "set_data_member",
       "field": "data_member_"
+    },
+    {
+      "name": "tag",
+      "capability": "ErrorProviderTag",
+      "value": "std::any",
+      "initial": null,
+      "comment": "The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal. A view onto the provider's std::any, which has no ==.",
+      "getter": "tag",
+      "setter": "set_tag",
+      "clear": null,
+      "field": "tag_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::any{7}",
+      "storage": "view",
+      "hand": [
+        "a view: std::any has no ==; write_view keeps set_tag's access check and stores unconditionally"
+      ]
     }
   ],
   "not_properties": [
     {
       "name": "error, icon_alignment, icon_padding",
       "reason": "per-target operations (section 4)"
-    },
-    {
-      "name": "tag",
-      "reason": "under review with Control::set_tag (decision M-S/4)"
     }
   ]
 }

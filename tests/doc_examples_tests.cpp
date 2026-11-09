@@ -3458,7 +3458,7 @@ void example() {
     (*general).add_child(wrap);
     (*tabs).add_page(general);    // the first page is selected
     (*tabs).add_page(advanced);
-    (*tabs).set_selected_tab(advanced);
+    (*tabs).selected_tab = advanced;
 }
 }  // namespace doc_example_TabControl_1
 

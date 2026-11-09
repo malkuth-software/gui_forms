@@ -379,7 +379,7 @@ CustomControl<Base>::CustomControl(StableId stable_id, const gf_custom_control_c
         (*this).define_bindable_property(std::move(registration));
     }
     if (focusable) {
-        (*this).set_focusable(true);
+        (*this).focusable = true;
     }
     state_.arm();
 }

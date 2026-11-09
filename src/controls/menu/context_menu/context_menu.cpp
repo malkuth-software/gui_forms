@@ -129,7 +129,7 @@ struct ContextMenu::Impl final {
     public:
         MenuPanel(StableId id, Impl& impl, std::size_t depth)
             : Panel(std::move(id)), impl_(impl), depth_(depth) {
-            set_focusable(true);
+            focusable = true;
             set_paint_plane(PaintPlane::overlay);
             // The theme's card role, an overlay surface resolved per
             // colour scheme, not a fixed light colour.
@@ -315,7 +315,7 @@ struct ContextMenu::Impl final {
               item_(item) {
             set_paint_plane(PaintPlane::overlay);
             enabled = item.kind != MenuItemKind::separator && enabled_item();
-            set_focusable(item.kind != MenuItemKind::separator && enabled_item());
+            focusable = item.kind != MenuItemKind::separator && enabled_item();
             cursor = item.kind != MenuItemKind::separator && enabled_item()
                 ? std::optional<CursorKind>{CursorKind::hand}
                 : std::optional<CursorKind>{};
@@ -612,7 +612,7 @@ struct ContextMenu::Impl final {
         Control::Ptr preferred = mode == MenuOpenMode::pointer ? panels[0U].panel : first_focusable(0U);
         if (!preferred) preferred = panels[0U].panel;
         if (popup_mode) {
-            (*layer).set_focusable(true);
+            (*layer).focusable = true;
             focus_scope = (*window).begin_focus_scope(layer, layer);
             popup_closed = (*window).popup_window_closed().subscribe(
                 owner, Delegate<std::size_t>::bind<Impl, &Impl::on_popup_closed>(*this));
@@ -881,10 +881,10 @@ struct ContextMenu::Impl final {
     [[nodiscard]] Control::Ptr first_focusable(std::size_t depth) const {
         if (depth >= panels.size()) return {};
         for (const std::shared_ptr<gui_forms::ContextMenu::Impl::MenuRow>& row : panels[depth].rows) {
-            if ((*row).focusable() && (*row).effectively_visible()) return row;
+            if ((*row).focusable.read() && (*row).effectively_visible()) return row;
         }
         for (const std::shared_ptr<gui_forms::ContextMenu::Impl::MenuRow>& row : panels[depth].rows) {
-            if ((*row).focusable()) return row;
+            if ((*row).focusable.read()) return row;
         }
         return {};
     }
@@ -927,7 +927,7 @@ struct ContextMenu::Impl final {
         for (std::size_t current = 0; current < panels[depth].rows.size(); ++current) {
             (*panels[depth].rows[current]).set_hot(current == index);
         }
-        if (window && (*panels[depth].rows[index]).focusable()) {
+        if (window && (*panels[depth].rows[index]).focusable.read()) {
             static_cast<void>(focus_row(depth, panels[depth].rows[index]));
         }
         const MenuSnapshot& item = (*panels[depth].items)[index];
@@ -995,7 +995,7 @@ struct ContextMenu::Impl final {
                 (raw % static_cast<std::ptrdiff_t>(count) +
                  static_cast<std::ptrdiff_t>(count)) %
                 static_cast<std::ptrdiff_t>(count));
-            if ((*panels[depth].rows[candidate]).focusable()) {
+            if ((*panels[depth].rows[candidate]).focusable.read()) {
                 ensure_visible(depth, candidate);
                 if (window) static_cast<void>(focus_row(depth, panels[depth].rows[candidate]));
                 return;
@@ -1008,7 +1008,7 @@ struct ContextMenu::Impl final {
         std::vector<std::shared_ptr<MenuRow>>& rows = panels[depth].rows;
         if (last) {
             for (std::size_t index = rows.size(); index > 0U; --index) {
-                if ((*rows[index - 1U]).focusable()) {
+                if ((*rows[index - 1U]).focusable.read()) {
                     ensure_visible(depth, index - 1U);
                     if (window) static_cast<void>(focus_row(depth, rows[index - 1U]));
                     return;
@@ -1016,7 +1016,7 @@ struct ContextMenu::Impl final {
             }
         } else {
             for (std::size_t index = 0U; index < rows.size(); ++index) {
-                if ((*rows[index]).focusable()) {
+                if ((*rows[index]).focusable.read()) {
                     ensure_visible(depth, index);
                     if (window) static_cast<void>(focus_row(depth, rows[index]));
                     return;

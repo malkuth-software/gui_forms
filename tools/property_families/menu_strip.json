@@ -98,16 +98,33 @@
       "getter": "allow_merge",
       "setter": "set_allow_merge",
       "field": "allow_merge_"
+    },
+    {
+      "name": "selected_item_id",
+      "capability": "MenuStripSelectedItemId",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The stable ID of the top-level item shown as selected, or empty for none; an ID that names no visible top-level item throws std::out_of_range. set_items clears it. A view onto the strip's selection.",
+      "getter": "selected_item_id",
+      "setter": "set_selected_item_id",
+      "clear": null,
+      "field": "selected_item_id_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::string{}",
+      "storage": "view",
+      "hand": [
+        "a view: write_view keeps set_selected_item_id's check and invalidation; owner 2026-11-08 (G14: selection is a cell)"
+      ]
     }
   ],
   "not_properties": [
     {
       "name": "items",
       "reason": "wholesale collection replacement"
-    },
-    {
-      "name": "selected_item_id",
-      "reason": "selection state, as TabControl's selected_index, waits for the G14 decision; set_items clears it"
     },
     {
       "name": "hot",

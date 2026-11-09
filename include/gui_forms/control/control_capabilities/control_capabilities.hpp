@@ -8,10 +8,12 @@
 #include "gui_forms/types.hpp"
 #include "gui_forms/types/cursor_image/cursor_image.hpp"
 
+#include <any>
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace gui_forms {
 
@@ -367,6 +369,66 @@ struct CeremonialCapability {
     }
 };
 
+// Application-owned metadata or lifetime anchor (Windows Forms Tag). Deliberately inert: a write implies no rendering, layout, semantics or binding, and stores even an equal value. A view onto the control's std::any, which has no ==.
+template <typename Declaring>
+struct TagCapability {
+    PropertyView<std::any, TagCapability<Declaring>> tag;
+
+    static void assign(TagCapability& capability, std::any incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.tag), std::move(incoming));
+    }
+
+    static std::any read(const TagCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::any current = control.read_view(capability.tag);
+        return current;
+    }
+};
+
+// Whether the control may receive focus; turning it off while attached gives up eligibility (focus moves on).
+template <typename Declaring>
+struct FocusableCapability {
+    PropertyCell<bool, FocusableCapability<Declaring>> focusable{};
+
+    static void assign(FocusableCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.focusable), incoming);
+        if (!capability.focusable.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.focusable));
+    }
+};
+
+// Windows Forms DoubleBuffered: a view over the double_buffer and optimized_double_buffer style bits, kept together; retained release is coherent either way.
+template <typename Declaring>
+struct DoubleBufferedCapability {
+    PropertyView<bool, DoubleBufferedCapability<Declaring>> double_buffered;
+
+    static void assign(DoubleBufferedCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.double_buffered), std::move(incoming));
+    }
+
+    static bool read(const DoubleBufferedCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        bool current = control.read_view(capability.double_buffered);
+        return current;
+    }
+};
+
+// Style classes (T2 plan, E4) a theme's class rules select, in order, without duplicates; 1 to 64 lowercase ASCII letters, digits, '-' and '_', starting with a letter (std::invalid_argument, nothing changed). Repeated names are dropped.
+template <typename Declaring>
+struct ClassesCapability {
+    PropertyCell<std::vector<std::string>, ClassesCapability<Declaring>> classes{};
+
+    static void assign(ClassesCapability& capability, std::vector<std::string> incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.classes), incoming);
+        if (!capability.classes.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.classes));
+    }
+};
+
 // Every Control capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct ControlCapabilities : public NameCapability<Declaring>,
@@ -394,6 +456,10 @@ struct ControlCapabilities : public NameCapability<Declaring>,
                              public HitTestTransparentCapability<Declaring>,
                              public AccessibleNameCapability<Declaring>,
                              public AccessibleDescriptionCapability<Declaring>,
-                             public CeremonialCapability<Declaring> {};
+                             public CeremonialCapability<Declaring>,
+                             public TagCapability<Declaring>,
+                             public FocusableCapability<Declaring>,
+                             public DoubleBufferedCapability<Declaring>,
+                             public ClassesCapability<Declaring> {};
 
 } // namespace gui_forms

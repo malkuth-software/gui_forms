@@ -209,7 +209,7 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
 
     std::unique_ptr<gui_forms::Window> window = std::make_unique<Window>(root, Size{470,700});
     (*window).perform_layout();
-    (*root).set_tag(std::move(lifetime));
+    (*root).tag = std::move(lifetime);
     return window;
 }
 

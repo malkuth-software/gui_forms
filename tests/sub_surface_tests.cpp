@@ -624,7 +624,7 @@ class InputRecorder final : public Control {
 public:
     InputRecorder(StableId stable_id, std::string name, std::shared_ptr<InputLog> log)
         : Control(std::move(stable_id)), name_(std::move(name)), log_(std::move(log)) {
-        set_focusable(true);
+        focusable = true;
     }
 
     [[nodiscard]] std::optional<Rect> text_input_caret() const override { return Rect{5.0, 3.0, 1.0, 12.0}; }
@@ -728,7 +728,7 @@ public:
 // A focusable control that names no caret.
 class PlainStop final : public Control {
 public:
-    explicit PlainStop(StableId stable_id) : Control(std::move(stable_id)) { set_focusable(true); }
+    explicit PlainStop(StableId stable_id) : Control(std::move(stable_id)) { focusable = true; }
 };
 
 // Waits until the window's text input caret is `expected`.
@@ -958,7 +958,7 @@ class SemanticStop final : public Control {
 public:
     SemanticStop(StableId stable_id, std::string name, std::shared_ptr<InputLog> log)
         : Control(std::move(stable_id)), name_(std::move(name)), log_(std::move(log)) {
-        set_focusable(true);
+        focusable = true;
     }
 
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override {
@@ -1275,8 +1275,8 @@ void host_stitches_semantics() {
 // A control with a tooltip, focusable or not.
 class TipControl final : public Control {
 public:
-    TipControl(StableId stable_id, std::string tip, bool focusable) : Control(std::move(stable_id)) {
-        set_focusable(focusable);
+    TipControl(StableId stable_id, std::string tip, bool takes_focus) : Control(std::move(stable_id)) {
+        focusable = takes_focus;
         tool_tip_text = std::move(tip);
     }
 };

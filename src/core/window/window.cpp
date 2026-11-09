@@ -170,7 +170,7 @@ struct HiddenFocus final {
 
 // Records `control` itself as a hidden control.
 void note_hidden_control(const Control::Ptr& control, const Control::Ptr& focused, HiddenFocus& hidden) {
-    if ((*control).focusable() && (*control).eligible_for_input()) hidden.focusable = true;
+    if ((*control).focusable.read() && (*control).eligible_for_input()) hidden.focusable = true;
     if (control == focused) hidden.focused = true;
 }
 
@@ -274,7 +274,7 @@ void append_semantic_nodes(const Control::Ptr& control,
     // A node is focusable when its control is, or when a control it hides
     // (one that publishes no node of its own) can take focus; it is focused
     // while focus is on its control or on such a hidden control.
-    if ((*control).focusable() || inner.focusable) node.states |= SemanticState::focusable;
+    if ((*control).focusable.read() || inner.focusable) node.states |= SemanticState::focusable;
     if (control == focused || inner.focused) node.states |= SemanticState::focused;
     node.actions = descriptor.actions;
     node.children = std::move(descendants);
@@ -717,7 +717,7 @@ void SurfaceRoot::remove_help_fallback(const detail::WindowHelpFallback& fallbac
 
 bool SurfaceRoot::request_focus(const Control::Ptr& control) {
     require_root_thread("focus mutation");
-    if (control && (!eligible(control) || !(*control).focusable_)) {
+    if (control && (!eligible(control) || !(*control).focusable.read())) {
         return false;
     }
     if (control && !focus_allowed_by_active_scope(control)) {
@@ -756,7 +756,7 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
         previous.reset();
         focused_.reset();
     }
-    if (control && (!eligible(control) || !(*control).focusable_ ||
+    if (control && (!eligible(control) || !(*control).focusable.read() ||
                     !focus_allowed_by_active_scope(control))) {
         return false;
     }
@@ -766,7 +766,7 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
             static_cast<const void*>(&(*previous).focus_observed_),
             FocusChangePublication{this, previous, false});
     }
-    if (control && eligible(control) && (*control).focusable_) {
+    if (control && eligible(control) && (*control).focusable.read()) {
         focused_ = control;
         last_focus_traversal_ = pending_focus_traversal_;
         remember_region_focus(control);
@@ -881,7 +881,7 @@ void SurfaceRoot::collect_focus_candidates(const Control::Ptr& control,
                                       ControlList& result,
                                       bool focusable_only) const {
     if (!control || !eligible(control)) return;
-    if (!focusable_only || ((*control).focusable_ && (*control).tab_stop.read())) {
+    if (!focusable_only || ((*control).focusable.read() && (*control).tab_stop.read())) {
         result.push_back(control);
     }
     ControlList children((*control).children_.begin(),
@@ -924,7 +924,7 @@ bool SurfaceRoot::move_focus_after(const Control::Ptr& origin) {
     if (found == ordered.end()) return false;
     for (ControlList::iterator current = std::next(found);
          current != ordered.end(); ++current) {
-        if ((*(*current)).focusable() && (*(*current)).tab_stop.read() &&
+        if ((*(*current)).focusable.read() && (*(*current)).tab_stop.read() &&
             request_focus(*current)) return true;
     }
     return false;
@@ -1107,7 +1107,7 @@ void SurfaceRoot::validate_children_recursive(
         bool selected = true;
         if (has_validation_constraint(
                 constraints, ValidationConstraints::selectable)) {
-            selected = (*child).focusable() &&
+            selected = (*child).focusable.read() &&
                        (*child).has_style(ControlStyles::selectable);
         }
         if (has_validation_constraint(
@@ -1217,7 +1217,7 @@ FocusScopeId SurfaceRoot::begin_focus_scope(const Control::Ptr& root,
     }
     if (preferred_focus &&
         (!contains_control(root, preferred_focus) || !eligible(preferred_focus) ||
-         !(*preferred_focus).focusable_)) {
+         !(*preferred_focus).focusable.read())) {
         throw std::invalid_argument(
             "GUI.Forms preferred focus must be an eligible focusable scope descendant");
     }
@@ -1303,7 +1303,7 @@ bool SurfaceRoot::end_focus_scope(FocusScopeId scope,
         }
 
         if (restoration_requested) {
-            if (restoration && eligible(restoration) && (*restoration).focusable_ &&
+            if (restoration && eligible(restoration) && (*restoration).focusable.read() &&
                 focus_allowed_by_active_scope(restoration)) {
                 restored = request_focus(restoration) &&
                            focused_.lock() == restoration;
@@ -1725,7 +1725,7 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
 
     if (event.action == PointerAction::down &&
         event.button == PointerButton::primary) {
-        const bool accepts_press = !(*target).focusable_ || request_focus(target);
+        const bool accepts_press = !(*target).focusable.read() || request_focus(target);
         if (!accepts_press) {
             // Prevent-mode validation rejects the input transaction that
             // attempted to enter this focusable target. In particular, a
@@ -2902,7 +2902,7 @@ bool SurfaceRoot::perform_semantic_action(std::string_view stable_id,
     }
     if (action == SemanticAction::focus) {
         set_focus_cue_visible(true);
-        if ((*control).focusable_) {
+        if ((*control).focusable.read()) {
             const bool focused = request_focus(control);
             return focused;
         }

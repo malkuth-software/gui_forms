@@ -48,7 +48,7 @@ struct ExpandableSections::HeadingChange final {
 };
 
 ExpandableSections::ExpandableSections(StableId id) : Panel(std::move(id)) {
-    set_focusable(false);
+    focusable = false;
     tab_stop = false;
 }
 ExpandableSections::~ExpandableSections() = default;

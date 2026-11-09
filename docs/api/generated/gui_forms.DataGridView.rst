@@ -166,6 +166,15 @@ gui_forms::DataGridView
       **cells_on_sub_surface** : ``bool``
          Whether the cells are painted on a threaded sub-surface (stage S7): the grid resolves each frame's visible cells into a snapshot and its cell region shows them, off the UI thread. Owner drawing keeps the cells on the UI thread.
 
+      **allow_user_to_add_rows** : ``bool``, default ``true``
+         Whether an unbound or bound grid shows the new row after the last row.
+
+      **data_source** : ``std::shared_ptr<BindingSource>``, default none
+         The :cpp:class:`BindingSource <gui_forms::BindingSource>` whose records are the rows, or none. Assigning a
+         source shows its records as rows; assigning none returns to empty
+         unbound rows. Every assignment resets the rows, even of the same
+         source.
+
       **rows** : ``std::vector<DataGridViewRow>``
          The unbound rows, edited in place. Read them with ``rows.read()`` or
          ``rows[i]``; write them with ``rows = {...}`` (every row, ending any edit
@@ -230,16 +239,8 @@ gui_forms::DataGridView
          changes, index writes, slot moves, chunk-table rebuilds, whole builds,
          window requests, IDs requested, position queries and mode switches.
 
-      **data_source** : ``std::shared_ptr<BindingSource>``
-         The :cpp:class:`BindingSource <gui_forms::BindingSource>` whose records are the rows, or none.
-         :cpp:func:`set_data_source <gui_forms::DataGridView::set_data_source>` shows a source's records as rows, or returns to empty
-         unbound rows for none.
-
-      **allow_user_to_add_rows** : ``bool``, default ``true``
-         Whether an unbound or bound grid shows the new row after the last row.
-
       **new_row_index** : ``std::optional<DataGridViewRowPosition>``, read-only
-         The new row's position, while it is shown.
+         -- adding and deleting rows (owner decision B1-2) ------------------ With allow_user_to_add_rows (a capability, on by default) unbound and bound grids show a new row after the last row (Windows Forms' new row); virtual grids do not. A bound grid shows it while its source allows new records; a read-only grid or one without columns never does. The new row has a generated ID and empty values; when it becomes current, default_values_needed gives it its first values. The first value the user commits to it (an edit, a toggle or a choice) makes it a row of the grid's, or a record of the source's, with the same ID: user_added_row is raised, and a new row appears after it. Until the current cell leaves it, the added row can be discarded with cancel_row_edit (Escape when no cell is in edit). The new row's position, while it is shown.
 
       **inherited_row_header_style** : ``DataGridViewCellStyle``, read-only
          The style row headers draw with: the row headers', then the grid's.
@@ -1028,6 +1029,17 @@ gui_forms::DataGridView
 
       Whether the cells are painted on a threaded sub-surface (stage S7): the grid resolves each frame's visible cells into a snapshot and its cell region shows them, off the UI thread. Owner drawing keeps the cells on the UI thread.
 
+   .. cpp:member:: bool allow_user_to_add_rows
+
+      Whether an unbound or bound grid shows the new row after the last row.
+
+   .. cpp:member:: std::shared_ptr<BindingSource> data_source
+
+      The :cpp:class:`BindingSource <gui_forms::BindingSource>` whose records are the rows, or none. Assigning a
+      source shows its records as rows; assigning none returns to empty
+      unbound rows. Every assignment resets the rows, even of the same
+      source.
+
    .. cpp:member:: std::vector<DataGridViewRow> rows
 
       The unbound rows, edited in place. Read them with ``rows.read()`` or
@@ -1115,27 +1127,9 @@ gui_forms::DataGridView
       changes, index writes, slot moves, chunk-table rebuilds, whole builds,
       window requests, IDs requested, position queries and mode switches.
 
-   .. cpp:function:: std::shared_ptr<BindingSource> data_source() const noexcept
-
-      The :cpp:class:`BindingSource <gui_forms::BindingSource>` whose records are the rows, or none.
-      :cpp:func:`set_data_source <gui_forms::DataGridView::set_data_source>` shows a source's records as rows, or returns to empty
-      unbound rows for none.
-
-   .. cpp:function:: void set_data_source(std::shared_ptr<BindingSource> source)
-
-      Sets :cpp:func:`data_source <gui_forms::DataGridView::data_source>`; see the property's description above.
-
-   .. cpp:function:: bool allow_user_to_add_rows() const noexcept
-
-      Whether an unbound or bound grid shows the new row after the last row.
-
-   .. cpp:function:: void set_allow_user_to_add_rows(bool allow)
-
-      Sets :cpp:func:`allow_user_to_add_rows <gui_forms::DataGridView::allow_user_to_add_rows>`; see the property's description above.
-
    .. cpp:function:: std::optional<DataGridViewRowPosition> new_row_index() const noexcept
 
-      The new row's position, while it is shown.
+      -- adding and deleting rows (owner decision B1-2) ------------------ With allow_user_to_add_rows (a capability, on by default) unbound and bound grids show a new row after the last row (Windows Forms' new row); virtual grids do not. A bound grid shows it while its source allows new records; a read-only grid or one without columns never does. The new row has a generated ID and empty values; when it becomes current, default_values_needed gives it its first values. The first value the user commits to it (an edit, a toggle or a choice) makes it a row of the grid's, or a record of the source's, with the same ID: user_added_row is raised, and a new row appears after it. Until the current cell leaves it, the added row can be discarded with cancel_row_edit (Escape when no cell is in edit). The new row's position, while it is shown.
 
    .. cpp:function:: DataGridViewCellStyle inherited_row_header_style() const
 

@@ -137,8 +137,8 @@ void test_error_semantics_geometry_rtl_and_lifetime() {
     require(errors.can_extend(fixture.target) &&
                 errors.container_control() == fixture.root,
             "provider extension and container lookup must stay bound to one Window");
-    errors.set_tag(std::string("validation-channel"));
-    require(std::any_cast<std::string>(errors.tag()) == "validation-channel",
+    errors.tag = std::string("validation-channel");
+    require(std::any_cast<std::string>(errors.tag.read()) == "validation-channel",
             "ErrorProvider Tag must retain application metadata inertly");
     const std::array<std::byte, 4> pixel{
         std::byte{0x20}, std::byte{0x30}, std::byte{0xd0}, std::byte{0xff}};
@@ -302,8 +302,8 @@ void test_help_routes_f1_locally_then_to_provider_without_external_policy() {
     HelpProvider help(fixture.window);
     require(help.can_extend(fixture.panel),
             "HelpProvider must accept a live target in its Window");
-    help.set_tag(std::string("local-help"));
-    require(std::any_cast<std::string>(help.tag()) == "local-help",
+    help.tag = std::string("local-help");
+    require(std::any_cast<std::string>(help.tag.read()) == "local-help",
             "HelpProvider Tag must retain inert application metadata");
     help.help_namespace = "malkuth://local-help";
     help.set_help_string(fixture.panel, "Choose a reachable local service endpoint.");

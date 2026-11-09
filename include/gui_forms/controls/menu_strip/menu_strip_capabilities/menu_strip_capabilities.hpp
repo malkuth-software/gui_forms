@@ -18,11 +18,11 @@ namespace gui_forms {
 // Each is a standard-layout struct whose only member is its property's
 // cell, taken by the declaring class as a base. A write
 // `(*control).x = value;` runs `assign`: the declaring class's
-// prepare_write hook (require_mutable first, then the value's checks and,
-// where C# lets a subclass rewrite the value, the protected virtual coerce
-// hook), the compare and store, then the written hook (the touch, side
-// effects and the change event, through the protected virtual
-// on_<property>_changed() where Windows Forms has OnXChanged). A read is
+// prepare_write hook (require_mutable first, then the value's checks), the
+// compare and store, then the written hook (the touch, side effects and the
+// change event, through the protected virtual on_<property>_changed() where
+// Windows Forms has an overridable On<Property>Changed; other properties
+// have no hook, and a subclass subscribes to their change events instead). A read is
 // `(*control).x.read()`.
 
 // Whether an ampersand in an item's text marks its access key (Windows Forms' UseMnemonic; default true).
@@ -64,12 +64,30 @@ struct MenuStripAllowMergeCapability {
     }
 };
 
+// The stable ID of the top-level item shown as selected, or empty for none; an ID that names no visible top-level item throws std::out_of_range. set_items clears it. A view onto the strip's selection.
+template <typename Declaring>
+struct MenuStripSelectedItemIdCapability {
+    PropertyView<std::string, MenuStripSelectedItemIdCapability<Declaring>> selected_item_id;
+
+    static void assign(MenuStripSelectedItemIdCapability& capability, std::string incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.selected_item_id), std::move(incoming));
+    }
+
+    static std::string read(const MenuStripSelectedItemIdCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::string current = control.read_view(capability.selected_item_id);
+        return current;
+    }
+};
+
 // Every MenuStrip capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct MenuStripCapabilities : public MenuStripUseMnemonicCapability<Declaring>,
                                public MenuStripItemPaddingCapability<Declaring>,
                                public FontCapability<Declaring>,
-                               public MenuStripAllowMergeCapability<Declaring> {
+                               public MenuStripAllowMergeCapability<Declaring>,
+                               public MenuStripSelectedItemIdCapability<Declaring> {
     MenuStripCapabilities() : FontCapability<Declaring>(FontSpec{FontRole::control, 10.5, 400, false, 0.12}) {}
 };
 

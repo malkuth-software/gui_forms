@@ -4,7 +4,7 @@ namespace gui_forms {
 
 ErrorLayer::ErrorLayer(StableId stable_id) : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::overlay);
-    set_focusable(false);
+    focusable = false;
 }
 
 bool ErrorLayer::hit_test_local(Point) const {

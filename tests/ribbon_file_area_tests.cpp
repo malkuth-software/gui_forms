@@ -429,7 +429,7 @@ void backstage() {
     int closes = 0;
     SubscriptionToken saved = (*save).invoked().subscribe(CountInvocation{&saves});
     SubscriptionToken closed = (*close).invoked().subscribe(CountInvocation{&closes});
-    require((*view).selected_topic() == std::size_t{1U}, "the first topic is selected");
+    require((*view).selected_topic.read() == std::size_t{1U}, "the first topic is selected");
     click(window, centre((*ribbon).parts().application_button.bounds));
     require((*ribbon).backstage_open() && (*ribbon).parts().application_button.states.contains(AnatomyState::open),
             "the File tab opens Backstage");
@@ -468,7 +468,7 @@ void backstage() {
     require((*ribbon).show_backstage(), "and again");
     window.perform_layout();
     click(window, centre((*ribbon).realized_tabs()[1].parts.tab.bounds));
-    require(!(*ribbon).backstage_open() && (*ribbon).selected_tab() == std::size_t{1U} && !(*ribbon).minimized.read(),
+    require(!(*ribbon).backstage_open() && (*ribbon).selected_tab.read() == std::size_t{1U} && !(*ribbon).minimized.read(),
             "a tab closes it and selects that tab");
     require((*ribbon).show_backstage(), "Backstage reopens");
     window.perform_layout();

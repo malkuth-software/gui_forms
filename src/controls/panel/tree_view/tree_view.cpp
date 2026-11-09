@@ -29,7 +29,7 @@ TreeView::TreeView(StableId stable_id)
     // scheme).
     visual_role = ControlVisualRole::editor;
     border_style = BorderStyle::sunken;
-    set_focusable(true);
+    focusable = true;
 }
 
 TreeView::~TreeView() {}

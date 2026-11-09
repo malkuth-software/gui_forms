@@ -308,7 +308,7 @@ void test_context_requests() {
             "a pointer request goes to the control under it, then its ancestors until handled");
 
     log.clear();
-    (*fixture.probe).set_focusable(true);
+    (*fixture.probe).focusable = true;
     require(window.request_focus(fixture.probe), "the probe takes focus");
     require(window.dispatch_context_request(ContextRequestOrigin::keyboard, {}) &&
                 log == Log{"probe:keyboard", "root:keyboard"},

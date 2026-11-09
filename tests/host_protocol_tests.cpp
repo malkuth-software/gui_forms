@@ -29,7 +29,7 @@ void require(bool condition, const char* message) {
 class InputProbe final : public Control {
 public:
     explicit InputProbe(StableId id) : Control(std::move(id)) {
-        set_focusable(true);
+        focusable = true;
         allow_drop = true;
     }
 
@@ -87,7 +87,7 @@ public:
 class HostLeaseInputProbe final : public Control {
 public:
     explicit HostLeaseInputProbe(StableId id) : Control(std::move(id)) {
-        set_focusable(true);
+        focusable = true;
         allow_drop = true;
     }
 

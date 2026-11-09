@@ -66,7 +66,7 @@ bool single_bit(const std::int64_t value) noexcept {
 FlagsValueEditor::FlagsValueEditor(StableId stable_id) : Panel(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
-    set_focusable(true);
+    focusable = true;
     cursor = CursorKind::hand;
 }
 
@@ -307,7 +307,7 @@ void FlagsValueEditor::open_drop_down() {
     const std::optional<Rect> face =
         drop_down_popup_face(*window(), editor, Size{overlay_width.read(), height}, editor.x);
     const bool lifted = face.has_value() && lift_.lift(*window(), list, *face);
-    if (lifted) (*layer).set_focusable(true);
+    if (lifted) (*layer).focusable = true;
     else (*layer).add_child(list);
 
     overlay_layer_ = layer;

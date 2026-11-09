@@ -7,7 +7,8 @@
   "capabilities_header": "include/gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp",
   "shared": [],
   "includes": [
-    "<string>"
+    "<string>",
+    "<any>"
   ],
   "mutation_check": null,
   "properties": [
@@ -34,16 +35,33 @@
       "getter": "help_namespace",
       "setter": "set_help_namespace",
       "field": "help_namespace_"
+    },
+    {
+      "name": "tag",
+      "capability": "HelpProviderTag",
+      "value": "std::any",
+      "initial": null,
+      "comment": "The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal. A view onto the provider's std::any, which has no ==.",
+      "getter": "tag",
+      "setter": "set_tag",
+      "clear": null,
+      "field": "tag_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::any{7}",
+      "storage": "view",
+      "hand": [
+        "a view: std::any has no ==; write_view keeps set_tag's access check and stores unconditionally"
+      ]
     }
   ],
   "not_properties": [
     {
       "name": "help_string, help_keyword, help_navigator, show_help",
       "reason": "per-target operations (section 4)"
-    },
-    {
-      "name": "tag",
-      "reason": "under review with Control::set_tag (decision M-S/4)"
     }
   ]
 }

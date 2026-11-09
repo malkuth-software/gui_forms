@@ -14,7 +14,8 @@
     "gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp",
     "gui_forms/controls/panel/panel.hpp",
     "gui_forms/theme/owner_draw/owner_draw.hpp",
-    "gui_forms/types.hpp"
+    "gui_forms/types.hpp",
+    "<memory>"
   ],
   "test": {
     "type": "DataGridView",
@@ -22,15 +23,19 @@
   },
   "not_properties": [
     {
-      "name": "allow_user_to_add_rows",
-      "reason": "written needs the current position from before the store (the new row leaves); a compound capability later"
+      "name": "row_count",
+      "reason": "owner 2026-11-08: a method; set_row_count builds or trims unbound rows (an operation on the row collection)"
     },
     {
-      "name": "first_displayed_row, horizontal_scroll_offset",
-      "reason": "view positions the grid's scrolling moves (a view capability, as ScrollableControl's auto_scroll_position, later)"
+      "name": "first_displayed_row",
+      "reason": "owner 2026-11-08: a method; the view position the grid's scrolling moves, clamped by layout"
     },
     {
-      "name": "columns, rows, row_count, data_source, virtual rows and their per-column and per-row setters",
+      "name": "horizontal_scroll_offset",
+      "reason": "scroll state clamped by layout: the read differs from the write"
+    },
+    {
+      "name": "columns, rows, virtual rows and their per-column, per-row and per-cell setters",
       "reason": "collections and indexed values, not single properties (the in-place collections proposal)"
     }
   ],
@@ -739,6 +744,48 @@
         "written starts or stops the cell region (its SubSurfaceHost child); in data_grid_view_cells_region.cpp"
       ],
       "sample": "true"
+    },
+    {
+      "name": "allow_user_to_add_rows",
+      "capability": "DataGridViewAllowUserToAddRows",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether unbound and bound grids show a new row after the last row (Windows Forms' new row); on by default. Turning it off cancels an edit on the new row and moves a current cell on it to the last row. A view onto the grid's flag.",
+      "getter": "allow_user_to_add_rows",
+      "setter": "set_allow_user_to_add_rows",
+      "clear": null,
+      "field": "allow_add_rows_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "false",
+      "storage": "view",
+      "hand": [
+        "a view: write_view keeps the setter whole, since it reads the current position before the store (owner 2026-11-08: a cell)"
+      ]
+    },
+    {
+      "name": "data_source",
+      "capability": "DataGridViewDataSource",
+      "value": "std::shared_ptr<BindingSource>",
+      "initial": null,
+      "comment": "The BindingSource the grid's rows show (data_property_name names the fields); null returns to unbound rows. Every write resets the rows and the row state, even an equal one. A view onto the grid's source.",
+      "getter": "data_source",
+      "setter": "set_data_source",
+      "clear": null,
+      "field": "data_source_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::shared_ptr<BindingSource>{}",
+      "storage": "view",
+      "hand": [
+        "a view: write_view keeps set_data_source whole (it rebinds and resets even for the same source)"
+      ]
     }
   ]
 }

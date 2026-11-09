@@ -404,10 +404,6 @@
         "pages": "Returns a live strong snapshot in retained page order after expired references are excluded.",
         "page_count": "Returns the number of live owned pages.",
         "page_at": "Returns the live page at a validated retained index.",
-        "selected_index": "Returns the live selected page index or no value when the control is empty.",
-        "selected_tab": "Returns the selected live TabPage or null when none remains.",
-        "set_selected_index": "Validates index and changes selection through the focus-memory, visibility, event, and invalidation law.",
-        "set_selected_tab": "Requires an owned live page and changes selection through the same authoritative path.",
         "style": "Returns the stored BasicControlStyle, kept for compatibility; painting is by role and does not read it.",
         "set_style": "Validates and commits compatibility colors before invalidating visual and semantic state.",
         "tab_bounds": "Returns the local rectangle of the strip's tab for a validated page index, empty while it is scrolled out of view.",
@@ -1057,8 +1053,6 @@
         "update_binding": "Rebuilds provider errors from current BindingSource completion state without disturbing authored mappings.",
         "data_source_changed": "Returns the event published after source ownership changes.",
         "data_member_changed": "Returns the event carrying the committed member filter after change.",
-        "tag": "Returns caller-owned opaque provider metadata.",
-        "set_tag": "Replaces caller-owned opaque provider metadata without affecting validation state.",
         "error_changed": "Returns the event published after each target error commit.",
         "snapshot": "Returns deterministic icon records and live/presented counts for tests and diagnostics."
       }
@@ -1122,8 +1116,6 @@
         "show_help": "Reports effective help eligibility after default and explicit override policy.",
         "reset_show_help": "Removes a target's explicit eligibility override and returns to metadata-derived behavior.",
         "clear": "Removes every mapping and restores affected semantic descriptions.",
-        "tag": "Returns caller-owned opaque provider metadata.",
-        "set_tag": "Replaces caller-owned opaque provider metadata without changing help routing.",
         "request_help": "Builds and publishes a request for an eligible live target, updates counters, and returns handled state.",
         "help_requested": "Returns the mutable event through which consumers handle policy-free help requests.",
         "snapshot": "Returns exact mapping and request counters for diagnostics and tests."

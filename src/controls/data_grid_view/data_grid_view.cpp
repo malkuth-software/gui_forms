@@ -209,7 +209,7 @@ struct DataGridView::SortingScope final {
 };
 
 DataGridView::DataGridView(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(true);
+    focusable = true;
     cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
     // The error glyphs are the grid's interface, not its data: each shows
@@ -238,8 +238,8 @@ void DataGridView::initialize_control_tree() {
     vertical_bar_ = make_control<VScrollBar>(StableId(prefix + ".vertical-scroll"));
     horizontal_bar_ = make_control<HScrollBar>(StableId(prefix + ".horizontal-scroll"));
     // The bars scroll the grid; keyboard focus stays on the grid.
-    (*vertical_bar_).set_focusable(false);
-    (*horizontal_bar_).set_focusable(false);
+    (*vertical_bar_).focusable = false;
+    (*horizontal_bar_).focusable = false;
     add_child(editor_);
     add_child(vertical_bar_);
     add_child(horizontal_bar_);
@@ -1380,7 +1380,12 @@ void DataGridView::detach_data_source() noexcept {
     data_source_.reset();
 }
 
-void DataGridView::set_data_source(std::shared_ptr<BindingSource> source) {
+std::shared_ptr<BindingSource> DataGridView::read_view(const decltype(data_source)&) const {
+    std::shared_ptr<BindingSource> source = data_source_;
+    return source;
+}
+
+void DataGridView::write_view(const decltype(data_source)&, std::shared_ptr<BindingSource> source) {
     require_mutable();
     require_not_sorting();
     reset_row_state();
@@ -2749,7 +2754,11 @@ std::optional<DataGridViewRowPosition> DataGridView::new_row_index() const noexc
     return position;
 }
 
-void DataGridView::set_allow_user_to_add_rows(bool allow) {
+bool DataGridView::read_view(const decltype(allow_user_to_add_rows)&) const {
+    return allow_add_rows_;
+}
+
+void DataGridView::write_view(const decltype(allow_user_to_add_rows)&, bool allow) {
     require_mutable();
     if (allow_add_rows_ == allow) return;
     const std::optional<std::size_t> former = current_position();

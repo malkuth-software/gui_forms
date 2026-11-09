@@ -570,7 +570,7 @@ void test_tab_header_tooltips() {
     require(window.tool_tip_visible() && window.tool_tip_item_id() == "tab-tips.second.tab" &&
                 window.tool_tip_text() == "Network and cache settings",
             "resting over the header shows the page's tooltip");
-    (*tabs).set_selected_index(1U);
+    (*tabs).selected_index = 1U;
     window.perform_layout();
     hover(window, {200.0, 160.0});
     require(!window.tool_tip_visible(), "leaving the header closes it");

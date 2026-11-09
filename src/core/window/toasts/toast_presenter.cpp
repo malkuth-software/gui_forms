@@ -17,7 +17,7 @@ constexpr double toast_margin = 16.0;
 
 ToastLayer::ToastLayer(StableId stable_id) : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::overlay);
-    set_focusable(false);
+    focusable = false;
 }
 
 bool ToastLayer::hit_test_local(Point) const {

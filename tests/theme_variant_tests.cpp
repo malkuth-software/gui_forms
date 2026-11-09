@@ -486,7 +486,7 @@ void test_window_backdrop() {
     const std::shared_ptr<Panel> plain_root = make_control<Panel>(StableId("plain-root"));
     std::vector<std::string> classes{};
     classes.push_back("plain");
-    (*plain_root).set_classes(std::move(classes));
+    (*plain_root).classes = std::move(classes);
     Window plain(plain_root, Size{200.0, 100.0});
     plain.set_theme(theme);
     require(!plain.backdrop_chain(), "backdrop: none on the root's class removes the chain");
