@@ -302,6 +302,7 @@ add_library(gui_forms_core STATIC
     src/core/engine/motion_value/motion_value.cpp
     src/core/engine/motion_clock/motion_clock.cpp
     src/core/drag_engine/drag_engine.cpp
+    src/core/drag_engine/scrub_gesture.cpp
     src/core/engine/effect_canvas/effect_canvas.cpp
     src/core/engine/effect_registry/effect_registry.cpp
     src/core/surface_material/colour_matrix/colour_matrix.cpp
@@ -3802,6 +3803,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_drag_engine_tests tests/drag_engine_tests.cpp)
     target_link_libraries(gui_forms_drag_engine_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_drag_engine_tests COMMAND gui_forms_drag_engine_tests)
+    add_executable(gui_forms_scrub_gesture_tests tests/scrub_gesture_tests.cpp)
+    target_link_libraries(gui_forms_scrub_gesture_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_scrub_gesture_tests COMMAND gui_forms_scrub_gesture_tests)
     add_executable(gui_forms_value_text_tests tests/value_text_tests.cpp)
     target_link_libraries(gui_forms_value_text_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_value_text_tests COMMAND gui_forms_value_text_tests)
