@@ -45,6 +45,17 @@ struct FileDialogFilterParse final {
 // string is no filter: the host shows every file.
 [[nodiscard]] FileDialogFilterParse parse_file_dialog_filter(std::string_view filter);
 
+// Whether a file name passes a host filter, as the portable hosts filter a
+// directory listing: true when the filter has no extensions or holds `*`
+// or `*.*`, or when the name ends in `.` followed by one of its extensions. Letters
+// compare without regard to ASCII case, so `png` matches `photo.PNG` and
+// `PNG` matches `photo.png`; a multi-dotted extension such as `tar.gz`
+// matches `backup.tar.gz`. A name that is only the extension (`.png`) does
+// not match. Leading `*` and `.` of an extension are ignored, so a hand-built
+// `*.png` or `.png` reads as `png`. `file_name` is a name, not a path; pass file_dialog_name_part
+// of a path.
+[[nodiscard]] bool file_dialog_filter_matches(const HostFileDialogFilter& filter, std::string_view file_name);
+
 // Whether `text` may be a dialog's title, directory or name: valid UTF-8
 // without NUL, of at most HostServices::maximum_dialog_text_bytes.
 [[nodiscard]] bool file_dialog_text_valid(std::string_view text);

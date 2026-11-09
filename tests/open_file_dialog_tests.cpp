@@ -119,6 +119,31 @@ void filter_syntax() {
             "more patterns in one filter than the host takes are refused");
 }
 
+void filter_matching() {
+    const HostFileDialogFilter images{"Images", {"png", "JPG"}};
+    require(file_dialog_filter_matches(images, "photo.png"), "a lower-case extension matches");
+    require(file_dialog_filter_matches(images, "photo.PNG"), "a pattern matches an upper-case extension");
+    require(file_dialog_filter_matches(images, "photo.Png"), "a pattern matches a mixed-case extension");
+    require(file_dialog_filter_matches(images, "photo.jpg"), "an upper-case pattern matches a lower-case name");
+    require(!file_dialog_filter_matches(images, "photo.gif"), "another extension does not match");
+    require(!file_dialog_filter_matches(images, "photopng"), "an extension needs its dot");
+    require(!file_dialog_filter_matches(images, ".png"), "a name that is only the extension does not match");
+    require(!file_dialog_filter_matches(images, "photo"), "a name without an extension does not match");
+    const HostFileDialogFilter archives{"Archives", {"tar.gz"}};
+    require(file_dialog_filter_matches(archives, "backup.TAR.GZ"), "a multi-dotted extension matches whole");
+    require(!file_dialog_filter_matches(archives, "backup.gz"), "a part of a multi-dotted extension does not");
+    const HostFileDialogFilter any{"All files", {"*"}};
+    require(file_dialog_filter_matches(any, "README"), "* matches any file");
+    const HostFileDialogFilter empty{"Nothing", {}};
+    require(file_dialog_filter_matches(empty, "README"), "a filter without extensions matches any file");
+    const HostFileDialogFilter written{"Written", {"*.txt", ".log"}};
+    require(file_dialog_filter_matches(written, "a.TXT") && file_dialog_filter_matches(written, "b.log"),
+            "a hand-built extension keeps working with its pattern prefix");
+    const FileDialogFilterParse parsed = parse_file_dialog_filter("PNG images|*.PNG");
+    require(parsed.error == FileDialogFilterError::none && file_dialog_filter_matches(parsed.filters[0], "a.png"),
+            "a parsed upper-case pattern matches a lower-case name");
+}
+
 void name_part() {
     require(file_dialog_name_part("/tmp/alpha.txt") == "alpha.txt", "the name follows the last separator");
     require(file_dialog_name_part("alpha.txt") == "alpha.txt", "a bare name is its own name");
@@ -410,13 +435,14 @@ void filter_index() {
 
 int main() {
     filter_syntax();
+    filter_matching();
     name_part();
     settings();
     without_host();
     shown_through_host();
     filter_index();
     ended_from_file_ok();
-    std::cout << "OpenFileDialog: filter syntax, name part, settings, refusals, host requests and answers, "
+    std::cout << "OpenFileDialog: filter syntax, filter matching, name part, settings, refusals, host requests and answers, "
                  "the filter index, file_ok, disposal, destruction, reentrancy and threads passed\n";
     return 0;
 }
