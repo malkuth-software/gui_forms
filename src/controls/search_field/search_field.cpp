@@ -404,6 +404,8 @@ SemanticTextResult SearchField::on_set_semantic_text_selection(SemanticTextSelec
     return result;
 }
 
+Control::Ptr SearchField::focus_target() const { return editor_; }
+
 // Focus goes to the editor; a set value is written as the text, which the
 // editor validates (std::invalid_argument is reported as not handled).
 bool SearchField::on_semantic_action(SemanticAction action, std::string_view value) {
