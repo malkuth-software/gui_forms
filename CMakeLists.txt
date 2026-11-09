@@ -2619,7 +2619,6 @@ if(GUI_FORMS_BUILD_TESTS)
     endif()
     add_library(gui_forms_reference_examples OBJECT
         examples/reference/clipboard_image.cpp
-        examples/reference/mouse_events.cpp
     )
     target_link_libraries(gui_forms_reference_examples PRIVATE gui_forms_core)
     if(TARGET GUIForms::form_compiler)
@@ -2632,6 +2631,8 @@ if(GUI_FORMS_BUILD_TESTS)
             ${reference_forms}/shared_state.cpp
             ${reference_forms}/collection_state.cpp
             ${reference_forms}/multiline_scrollbars.cpp
+            ${reference_forms}/window_rules.cpp
+            ${reference_forms}/mouse_events.cpp
             ${reference_forms}/collection_gallery.cpp)
         target_link_libraries(gui_forms_reference_form_examples PRIVATE gui_forms_core)
         target_include_directories(gui_forms_reference_form_examples PRIVATE
@@ -2647,6 +2648,10 @@ if(GUI_FORMS_BUILD_TESTS)
             CLASS CollectionsWindow NAMESPACE reference DERIVED)
         gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/multiline_scrollbars.form
             CLASS ViewerWindow NAMESPACE reference DERIVED)
+        gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/window_rules.form
+            CLASS RulesWindow NAMESPACE reference DERIVED)
+        gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/mouse_events.form
+            CLASS MouseWindow NAMESPACE reference DERIVED)
         gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/collection_gallery.form
             CLASS GalleryWindow NAMESPACE reference
             MODEL reference::GalleryModel MODEL_HEADER collection_gallery_model.hpp)

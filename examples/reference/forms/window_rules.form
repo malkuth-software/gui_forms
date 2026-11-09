@@ -1,0 +1,9 @@
+/* One button whose behaviour is a window rule (window_rules.cpp). */
+form example.window {
+  text: "Window rules";
+  client-size: 320 200;
+
+  panel example.root {
+    button example.apply { text: "Apply"; bounds: 12 12 100 32; }
+  }
+}
