@@ -1,0 +1,346 @@
+// Menus on Popup windows (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part
+// S), on the headless reference host: the menu-handling defect of
+// 2026-11-09, where a menu opened as a host window much larger than the
+// menu, painted with the theme's window material round the panel.
+//
+// - A menu panel's Popup window is exactly the panel's face plus the
+//   overlay shadow's outsets while popups are translucent, and the face
+//   alone (no shadow) while they are opaque: before any compositor report,
+//   in high contrast and with reduced transparency.
+// - The face drops from its invoker: a menu strip item's lower left corner,
+//   on the desktop, through the owner's client origin; a submenu opens at
+//   the parent's right edge level with its row.
+// - The Popup window's backplane is clear round the panel: no theme window
+//   material and no theme backdrop chain.
+// - Rows take the menu strip's `menu_item` part, so the engine's built-in
+//   rule gives them the designed hover (the dithered bulge rising while
+//   hot) and a row whose submenu shows the open plate.
+// - A panel is as wide as its rows need, shortcut column included.
+// - The keyboard drives the Popups: Down, Right opens the submenu's Popup,
+//   Left closes it, Escape closes the menu and hides every Popup.
+#include "gui_forms/application.hpp"
+#include "gui_forms/commands.hpp"
+#include "gui_forms/components/context_menu/context_menu.hpp"
+#include "gui_forms/control.hpp"
+#include "gui_forms/controls/menu_strip/menu_strip.hpp"
+#include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/host.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/window.hpp"
+#include "application/headless_application.hpp"
+
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <iostream>
+#include <memory>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace {
+using namespace gui_forms;
+
+void require(bool condition, const char* message) {
+    if (!condition) throw std::runtime_error(message);
+}
+
+bool near(double left, double right) noexcept {
+    const bool close = std::abs(left - right) < 0.001;
+    return close;
+}
+
+struct KeepReady final {
+    ApplicationWindowHandle* handle{};
+    Window** model{};
+    void operator()(Window& window, ApplicationWindowHandle value) const {
+        *handle = value;
+        *model = &window;
+    }
+};
+
+// A compositing desktop that grants the transparent backdrop.
+CompositorState compositing_desktop() {
+    CompositorState state{};
+    state.compositing = CompositorPresence::present;
+    state.support[static_cast<std::size_t>(WindowBackdrop::transparent)] = WindowBackdropSupport::supported;
+    state.transparency_enabled = true;
+    return state;
+}
+
+// The primary window "main", 800 x 600 at 100,100 on the headless work area
+// (0,0 1920 x 1040), holding a menu strip across its top.
+struct Desk final {
+    ApplicationWindowHandle main{};
+    Window* model{};
+    std::shared_ptr<MenuStrip> strip{};
+    std::unique_ptr<host::HeadlessApplication> application{};
+
+    explicit Desk(const bool compositing) {
+        std::vector<ApplicationWindow> windows;
+        ApplicationWindow primary{};
+        primary.stable_id = "main";
+        std::shared_ptr<Control> root = make_control<Control>(StableId("root"));
+        strip = make_control<MenuStrip>(StableId("strip"));
+        (*strip).set_requested_bounds(Rect{0.0, 0.0, 800.0, 26.0});
+        (*root).add_child(strip);
+        primary.model = std::make_unique<Window>(root, Size{800.0, 600.0});
+        primary.options.title = "main";
+        primary.options.initial_size = {800.0, 600.0};
+        primary.options.ready = KeepReady{&main, &model};
+        windows.push_back(std::move(primary));
+        application = std::make_unique<host::HeadlessApplication>(std::move(windows));
+        require(model != nullptr && main.active(), "the main window is ready");
+        if (compositing) (*application).simulate_compositor_state(compositing_desktop());
+        (*model).perform_layout();
+    }
+    host::HeadlessWindowing& windowing() { return (*application).windowing(); }
+    // The visible Popup windows, back to front.
+    std::vector<HostWindowId> popups() {
+        std::vector<HostWindowId> shown;
+        const std::vector<HostWindowId> order = windowing().z_order();
+        for (std::size_t index = order.size(); index > 0U; --index) {
+            const HostWindowId id = order[index - 1U];
+            if (id != main.id() && windowing().native_visible(id)) shown.push_back(id);
+        }
+        return shown;
+    }
+    Rect client() {
+        const std::optional<Rect> content = windowing().native_content(main.id());
+        require(content.has_value(), "the main window is placed");
+        return *content;
+    }
+};
+
+// The menu's commands, kept alive by the test.
+struct Commands final {
+    std::shared_ptr<Command> open = std::make_shared<Command>("file.open", "Open");
+    std::shared_ptr<Command> save = std::make_shared<Command>("file.save", "Save");
+    std::shared_ptr<Command> tile = std::make_shared<Command>("file.tile", "Tile");
+    std::shared_ptr<Command> fill = std::make_shared<Command>("file.fill", "Fill");
+    std::shared_ptr<Command> quit = std::make_shared<Command>("file.quit", "Exit");
+    Commands() {
+        (*save).set_shortcut("Ctrl+Shift+Alt+S");
+    }
+};
+
+// File: Open, Save (with a long shortcut), a separator, a Background
+// submenu (Tile, Fill), Exit.
+std::vector<MenuStripItemSpec> strip_items(const Commands& commands) {
+    std::vector<MenuItemSpec> background;
+    background.emplace_back("file.background.tile", MenuItemKind::command, commands.tile);
+    background.emplace_back("file.background.fill", MenuItemKind::command, commands.fill);
+    std::vector<MenuItemSpec> file;
+    file.emplace_back("file.open", MenuItemKind::command, commands.open);
+    file.emplace_back("file.save", MenuItemKind::command, commands.save);
+    file.emplace_back("file.rule", MenuItemKind::separator);
+    file.emplace_back("file.background", MenuItemKind::submenu, std::shared_ptr<Command>{}, "Background",
+                      std::move(background));
+    file.emplace_back("file.quit", MenuItemKind::command, commands.quit);
+    std::vector<MenuStripItemSpec> items;
+    MenuStripItemSpec entry{};
+    entry.stable_id = "file";
+    entry.text = "&File";
+    entry.items = std::move(file);
+    items.push_back(std::move(entry));
+    return items;
+}
+
+KeyEvent key_down(std::uint32_t key) {
+    KeyEvent event{};
+    event.action = KeyAction::down;
+    event.physical_key = key;
+    return event;
+}
+
+// The panel of `depth` in its Popup window's model.
+std::shared_ptr<Control> panel_of(Window& owner, const std::size_t depth) {
+    Window* const popup = owner.popup_window_model(depth);
+    require(popup != nullptr, "the depth's Popup window shows");
+    const std::string id = "strip.menu.overlay.panel." + std::to_string(depth);
+    std::shared_ptr<Control> panel = (*popup).find(id);
+    require(panel != nullptr, "the panel is in its Popup window");
+    return panel;
+}
+
+// 28-unit rows, a 9-unit separator and the panel's two 2-unit borders.
+constexpr double file_panel_height = 4.0 * 28.0 + 9.0 + 4.0;
+
+void a_translucent_popup_is_the_face_plus_its_shadow() {
+    Desk desk(true);
+    Commands commands;
+    (*desk.strip).set_items(strip_items(commands));
+    require((*desk.model).popup_windows_translucent(), "a compositing desktop has translucent popups");
+    require((*desk.strip).open(0U, MenuOpenMode::keyboard), "the File menu opens");
+    const std::vector<HostWindowId> shown = desk.popups();
+    require(shown.size() == 1U, "the menu's panel has one Popup window");
+    const std::optional<Rect> window = desk.windowing().native_content(shown[0]);
+    require(window.has_value(), "the Popup window is placed");
+    const std::shared_ptr<Control> panel = panel_of(*desk.model, 0U);
+    const Insets outsets = overlay_shadow_outsets(*panel);
+    require(outsets.left > 0.0 && outsets.bottom > 0.0, "the panel casts the overlay shadow");
+    const double face_width = (*panel).requested_bounds().width;
+    require(near((*window).width, face_width + outsets.left + outsets.right),
+            "the window is as wide as the face plus the shadow's outsets");
+    require(near((*window).height, file_panel_height + outsets.top + outsets.bottom),
+            "the window is as tall as the face plus the shadow's outsets");
+    require(near((*panel).requested_bounds().x, outsets.left), "the face sits inside the shadow's outsets");
+    // Hung from the File item's lower left corner (its bounds' bottom less
+    // one unit, as MenuStrip opens it), through the owner's client origin.
+    const std::vector<Rect> items = (*desk.strip).item_bounds();
+    const Rect client = desk.client();
+    require(near((*window).x + outsets.left, client.x + items[0].x), "the face's left edge is the item's");
+    require(near((*window).y + outsets.top, client.y + items[0].y + items[0].height - 1.0),
+            "the face's top edge is the item's bottom");
+    Window* const popup = (*desk.model).popup_window_model(0U);
+    require((*popup).client_size() == Size{(*window).width, (*window).height}, "the model is the window's size");
+    require((*popup).content_surface_declared() && (*popup).backdrop_grant().granted == WindowBackdrop::transparent,
+            "the Popup window is a clear content surface over the transparent backdrop");
+    (*desk.strip).close();
+}
+
+void an_opaque_popup_is_the_face_alone() {
+    // No compositor report: nothing but opaque can be granted.
+    {
+        Desk desk(false);
+        Commands commands;
+        (*desk.strip).set_items(strip_items(commands));
+        require(!(*desk.model).popup_windows_translucent(), "without a compositor popups are opaque");
+        require((*desk.strip).open(0U, MenuOpenMode::keyboard), "the File menu opens");
+        const std::vector<HostWindowId> shown = desk.popups();
+        require(shown.size() == 1U, "the menu's panel has one Popup window");
+        const std::optional<Rect> window = desk.windowing().native_content(shown[0]);
+        const std::shared_ptr<Control> panel = panel_of(*desk.model, 0U);
+        require(near((*window).width, (*panel).requested_bounds().width) && near((*window).height, file_panel_height),
+                "an opaque Popup window holds the face alone, with no room for a shadow");
+        const Rect client = desk.client();
+        const std::vector<Rect> items = (*desk.strip).item_bounds();
+        require(near((*window).x, client.x + items[0].x), "the face's left edge is still the item's");
+        (*desk.strip).close();
+    }
+    // High contrast withdraws the transparent backdrop.
+    {
+        Desk desk(true);
+        CompositorState contrast = compositing_desktop();
+        contrast.high_contrast = true;
+        (*desk.application).simulate_compositor_state(contrast);
+        require(!(*desk.model).popup_windows_translucent(), "high contrast makes popups opaque");
+    }
+    // So does reduced transparency.
+    {
+        Desk desk(true);
+        CompositorState reduced = compositing_desktop();
+        reduced.reduced_transparency = true;
+        reduced.transparency_enabled = false;
+        (*desk.application).simulate_compositor_state(reduced);
+        require(!(*desk.model).popup_windows_translucent(), "reduced transparency makes popups opaque");
+    }
+}
+
+void the_popup_backplane_is_clear_round_the_panel() {
+    Desk desk(true);
+    Commands commands;
+    (*desk.strip).set_items(strip_items(commands));
+    require((*desk.strip).open(0U, MenuOpenMode::keyboard), "the File menu opens");
+    Window* const popup = (*desk.model).popup_window_model(0U);
+    require(popup != nullptr, "the Popup window shows");
+    // A content surface over the transparent grant: its backplane is clear
+    // (no theme window material) and the theme's window backdrop chain does
+    // not reach it, so only the panel and its shadow show.
+    require((*popup).content_surface_declared(), "the Popup window is a content surface");
+    require(!(*popup).backdrop_chain().has_value(), "the theme's window backdrop chain does not reach it");
+    require((*popup).backdrop_grant().granted == WindowBackdrop::transparent, "the transparent backdrop is granted");
+    require(!(*popup).declare_content_surface(), "a bound window cannot be declared a content surface again");
+    (*desk.strip).close();
+}
+
+void rows_take_the_designed_hover() {
+    const CompiledThemeRules rules =
+        CompiledThemeRules::compile_with_built_in(ThemeRuleSheet{}, builtin_primitive_registry());
+    CompiledThemeRules::PartFacts facts{};
+    facts.control_type = "menu_strip";
+    facts.stable_id = "subject";
+    facts.part = "menu_item";
+    facts.role = PartRole::face;
+    const CompiledThemeRules::Resolution rest = rules.resolve(facts);
+    require(rest.outcome == CompiledThemeRules::Outcome::primitive &&
+                (*rest.primitive).descriptor().name == "dithered_bulge" && rest.transition_count == 1U,
+            "a menu item is the dithered bulge with its rise (the designed hover)");
+    AnatomyStateSet open{};
+    open.insert(AnatomyState::open);
+    facts.states = open;
+    const CompiledThemeRules::Resolution plate = rules.resolve(facts);
+    require(plate.outcome == CompiledThemeRules::Outcome::built_in_selected && plate.transition_count == 0U,
+            "an item whose menu shows keeps the plate");
+}
+
+void panels_fit_their_rows() {
+    Desk desk(true);
+    Commands commands;
+    std::vector<MenuStripItemSpec> items = strip_items(commands);
+    items[0].items[0].text = "Open a picture from a folder far away on the network";
+    (*desk.strip).set_items(std::move(items));
+    require((*desk.strip).open(0U, MenuOpenMode::keyboard), "the File menu opens");
+    const std::shared_ptr<Control> panel = panel_of(*desk.model, 0U);
+    const double width = (*panel).requested_bounds().width;
+    require(width > 268.0, "a long label widens the panel past its preferred width");
+    const ResolvedTextLayout label = (*desk.model).resolve_text_layout_utf8(
+        "Open a picture from a folder far away on the network", FontSpec{FontRole::control, 11.0, 400, false, 0.12});
+    require(width >= 30.0 + label.logical_size.width + 25.0, "the label fits between the gutter and the chevron");
+    (*desk.strip).close();
+}
+
+void the_keyboard_drives_submenu_popups() {
+    Desk desk(true);
+    Commands commands;
+    (*desk.strip).set_items(strip_items(commands));
+    require((*desk.strip).open(0U, MenuOpenMode::keyboard), "the File menu opens");
+    // Open, Save, (rule), Background: three Downs from Open.
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), "Down reaches the panel");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), "Down skips the rule");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::right)), "Right opens the submenu");
+    require(desk.popups().size() == 2U, "the submenu shows in a second Popup window");
+    const std::shared_ptr<Control> parent = panel_of(*desk.model, 0U);
+    const std::shared_ptr<Control> child = panel_of(*desk.model, 1U);
+    const std::optional<Rect> parent_window = desk.windowing().native_content(desk.popups()[0]);
+    const std::optional<Rect> child_window = desk.windowing().native_content(desk.popups()[1]);
+    const Insets parent_outsets = overlay_shadow_outsets(*parent);
+    const Insets child_outsets = overlay_shadow_outsets(*child);
+    const double parent_face_x = (*parent_window).x + parent_outsets.left;
+    const double parent_face_y = (*parent_window).y + parent_outsets.top;
+    const double child_face_x = (*child_window).x + child_outsets.left;
+    const double child_face_y = (*child_window).y + child_outsets.top;
+    require(near(child_face_x, parent_face_x + (*parent).requested_bounds().width - 3.0),
+            "the submenu opens at the parent's right edge");
+    // Background is the fourth row, after two rows and the rule.
+    require(near(child_face_y, parent_face_y + 2.0 * 28.0 + 9.0),
+            "the submenu's first row is level with the row that opened it");
+    Window* const child_model = (*desk.model).popup_window_model(1U);
+    require((*child_model).focused_control() == (*child_model).find("strip.menu.overlay.row.file.background.tile"),
+            "the submenu's first command takes the menu's focus");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::left)), "Left closes the submenu");
+    require(desk.popups().size() == 1U, "the submenu's Popup window hides");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::escape)), "Escape closes the menu");
+    require(desk.popups().empty() && !(*desk.strip).is_open(), "every Popup window hides");
+}
+
+} // namespace
+
+int main() {
+    try {
+        a_translucent_popup_is_the_face_plus_its_shadow();
+        an_opaque_popup_is_the_face_alone();
+        the_popup_backplane_is_clear_round_the_panel();
+        rows_take_the_designed_hover();
+        panels_fit_their_rows();
+        the_keyboard_drives_submenu_popups();
+    } catch (const std::exception& error) {
+        std::cerr << "menu popup tests failed: " << error.what() << '\n';
+        return 1;
+    }
+    std::cout << "menu popup tests passed\n";
+    return 0;
+}

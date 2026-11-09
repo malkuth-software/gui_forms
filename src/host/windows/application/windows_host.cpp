@@ -550,7 +550,34 @@ GetDpiForMonitorFunction load_get_dpi_for_monitor() noexcept {
     return function;
 }
 
+// The run's fixed device scale, or 0 to follow each monitor: the
+// scale_override (WindowsHostOptions) of the window run_windows opens, or of
+// the first window run_windows_application opens, which every window of the
+// run then takes, popups included, and in which the monitors are reported.
+// One scale for the whole desktop keeps desktop logical units and every
+// window's logical units the same, so a popup lands where its owner put it
+// (a capture at scale 1 on a 2x display). Set on the UI thread before the
+// first window exists and read there only.
+double& run_scale_override() noexcept {
+    static double scale = 0.0;
+    return scale;
+}
+
+// Development hook (GUI_FORMS_WINDOWS_SCALE, a number from 1 to 4): the
+// fixed device scale of an application run whose first window asks for
+// none, so that a program run through Application::run can be captured at
+// one scale whatever the display; 0 when unset or out of range.
+double development_scale_override() noexcept {
+    const char* const value = std::getenv("GUI_FORMS_WINDOWS_SCALE");
+    if (value == nullptr) return 0.0;
+    char* end = nullptr;
+    const double scale = std::strtod(value, &end);
+    const bool valid = end != value && *end == '\0' && std::isfinite(scale) && scale >= 1.0 && scale <= 4.0;
+    return valid ? scale : 0.0;
+}
+
 double native_monitor_scale(HMONITOR monitor) noexcept {
+    if (run_scale_override() > 0.0) return run_scale_override();
     static const GetDpiForMonitorFunction get_dpi_for_monitor =
         load_get_dpi_for_monitor();
     UINT x = 96U;
@@ -603,6 +630,7 @@ Function load_function(HMODULE module, const char* name) noexcept {
 }
 
 double query_scale(HWND window) noexcept {
+    if (run_scale_override() > 0.0) return run_scale_override();
     using GetDpiForWindowFunction = decltype(&::GetDpiForWindow);
     if (HMODULE user32 = GetModuleHandleW(L"user32.dll")) {
         const GetDpiForWindowFunction function =
@@ -1047,6 +1075,23 @@ public:
     }
     [[nodiscard]] bool bundled_fonts_ready() const noexcept { return bundled_fonts_ready_; }
 
+    // What the window last presented, for a composite capture
+    // (capture-composite): premultiplied BGRA8 rows `row_bytes` apart,
+    // borrowed until the next frame; `alpha` false when every pixel is
+    // presented opaque.
+    struct PresentedView final {
+        const std::byte* pixels{};
+        std::size_t row_bytes{};
+        int width{};
+        int height{};
+        bool alpha{};
+    };
+    [[nodiscard]] PresentedView presented_view() const noexcept {
+        const PresentedPixels saved = presented_pixels();
+        const PresentedView view{saved.pixels, saved.row_bytes, saved.width, saved.height, frame_alpha_};
+        return view;
+    }
+
 private:
     // The pixels a capture reads: the committed front (transactional), else
     // the painter's last frame.
@@ -1157,6 +1202,11 @@ struct RequestWindowTitle final {
 };
 class WindowsHostState;
 class WindowsApplicationRun;
+// Writes what `owner` and the visible windows it owns show, composed in
+// their desktop places over a checkerboard, as one PNG at `path`, and
+// prints their client rectangles (capture-composite). Defined in
+// windows_application_run.inc; `run` is null outside an application run.
+bool write_composite_capture(WindowsApplicationRun* run, WindowsHostState& owner, const std::wstring& path);
 // As TitleCallbackState: only the UI thread reads or revokes host. The
 // operation owns no host; it reaches the host only while the window lives.
 struct ClientSizeCallbackState final {
@@ -1427,6 +1477,7 @@ public:
         native_phase_ = NativePhase::closing;
         DestroyWindow(hwnd_);
     }
+    [[nodiscard]] WindowsRaster::PresentedView presented_view() const noexcept { return raster_.presented_view(); }
     // Defined in windows_application_run.inc.
     void report_frame_to_run();
     void retire_from_run() noexcept;
@@ -1938,8 +1989,9 @@ private:
     }
 
     void dpi_changed(WPARAM wparam, LPARAM lparam) {
-        const double next = options_.scale_override > 0.0 ? options_.scale_override
-                                                          : std::max(1.0, HIWORD(wparam) / 96.0);
+        double next = std::max(1.0, HIWORD(wparam) / 96.0);
+        if (run_scale_override() > 0.0) next = run_scale_override();
+        if (options_.scale_override > 0.0) next = options_.scale_override;
         if (next != scale_) { scale_ = next; dispatch(HostScaleEvent{scale_}); }
         if (const RECT* suggested = reinterpret_cast<const RECT*>(lparam)) {
             SetWindowPos(hwnd_, nullptr, (*suggested).left, (*suggested).top,
@@ -2821,6 +2873,13 @@ private:
             std::fflush(stdout);
             return saved ? TRUE : FALSE;
         }
+        constexpr std::string_view composite = "capture-composite ";
+        if (command.starts_with(composite)) {
+            const std::wstring path = wide_from_utf8(command.substr(composite.size()));
+            if (path.empty()) return FALSE;
+            const bool saved = write_composite_capture(run_, *this, path);
+            return saved ? TRUE : FALSE;
+        }
         if (command == "close") { PostMessageW(hwnd_, WM_CLOSE, 0, 0); return TRUE; }
         constexpr std::string_view move_at = "move ";
         if (command.starts_with(move_at)) {
@@ -3264,6 +3323,7 @@ HostCapabilities windows_capabilities() {
 }
 
 int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
+    run_scale_override() = options.scale_override > 0.0 ? options.scale_override : 0.0;
     if (!model || !options.initially_visible || options.hide_on_close) return 2;
     const HRESULT com_status = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     enable_best_dpi_awareness();
@@ -3412,6 +3472,14 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
         if (!entry.owner_id.empty() && !identities.contains(entry.owner_id)) return 2;
     }
     if (primary_count != 1U) return 2;
+    run_scale_override() = windows.front().options.scale_override > 0.0 ? windows.front().options.scale_override
+                                                                         : development_scale_override();
+    // Development hook (GUI_FORMS_WINDOWS_AUTOMATION=1): a program run
+    // through Application::run, whose portable options cannot ask for it,
+    // answers the automation channel in every window (menu probes).
+    if (environment_flag("GUI_FORMS_WINDOWS_AUTOMATION")) {
+        for (WindowsApplicationWindow& entry : windows) entry.options.automation_enabled = true;
+    }
 
     const HRESULT com_status = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     enable_best_dpi_awareness();

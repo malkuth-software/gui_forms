@@ -169,7 +169,15 @@ void RibbonApplicationMenu::on_paint(Painter& painter, Rect) {
         part.states = states;
         part.role = PartRole::face;
         part.bounds = entry.bounds;
+        // A menu item as a drop-down menu's rows are (menu_utilities.hpp):
+        // the built-in rule's dithered bulge, rising while the row is hot.
+        const std::string_view row_id = entry.recent ? std::string_view((*ribbon_).recent_items_[entry.index].stable_id)
+                                                     : std::string_view((*ribbon_).application_menu_[entry.index].stable_id);
+        part.control_type = "menu_strip";
+        part.key = PartKey{"menu_item", row_id, {}};
         paint_part(painter, *this, part);
+        part.control_type = {};
+        part.key.reset();
         const double left = (entry.recent ? recent_label_left : label_left) * scale;
         const std::string label = row_text(entry);
         part.role = PartRole::label;

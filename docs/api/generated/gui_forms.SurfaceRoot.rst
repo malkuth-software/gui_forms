@@ -130,6 +130,8 @@ gui_forms::SurfaceRoot
 
       **non_opaque_declared** : ``bool``, read-only
 
+      **content_surface_declared** : ``bool``, read-only
+
       **compositor_state** : ``CompositorState``
          The host's compositor state as last reported. Before any report: compositing unknown and only ``opaque`` supported.
 
@@ -416,6 +418,8 @@ gui_forms::SurfaceRoot
         -  
       * - :cpp:func:`declare_non_opaque <gui_forms::SurfaceRoot::declare_non_opaque>`
         - Compositor cooperation (stage T5, notes:planning/stages/T5-compositor/ PLAN.md §2).
+      * - :cpp:func:`declare_content_surface <gui_forms::SurfaceRoot::declare_content_surface>`
+        - Declares, before a host attaches, that this window's content draws every surface the window shows, so that over a non-opaque grant its backplane is clear: a Popup or Splash window (APP_WINDOW_RULES_DESIGN Part S) whose content is a menu panel, a drop-down list or a tooltip bubble with the overlay shadow around it.
       * - :cpp:func:`request_backdrop <gui_forms::SurfaceRoot::request_backdrop>`
         - Asks for a backdrop (owner decisions T5-Q3 and T5-Q5) and returns the grant now in force: the request's first entry this window may be given under the host's state and its presentation settings, else ``opaque``, with the reason the preferred entry was or was not given.
       * - :cpp:func:`share_key_bindings <gui_forms::SurfaceRoot::share_key_bindings>`
@@ -741,6 +745,8 @@ gui_forms::SurfaceRoot
       Sets :cpp:func:`active <gui_forms::SurfaceRoot::active>`; see the property's description above.
 
    .. cpp:function:: bool non_opaque_declared() const noexcept
+
+   .. cpp:function:: bool content_surface_declared() const noexcept
 
    .. cpp:function:: const CompositorState& compositor_state() const noexcept
 
@@ -1163,6 +1169,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: bool declare_non_opaque()
 
       Compositor cooperation (stage T5, notes:planning/stages/T5-compositor/ PLAN.md §2). Declares, before a host attaches, that this window may be presented non-opaque (owner decision T5-Q4); ApplicationWindowOptions::non_opaque does it for an application window. False, changing nothing, once a host session has been bound to the window: a host fixes what a native window can show when it creates it. UI thread.
+
+   .. cpp:function:: bool declare_content_surface()
+
+      Declares, before a host attaches, that this window's content draws every surface the window shows, so that over a non-opaque grant its backplane is clear: a Popup or Splash window (APP_WINDOW_RULES_DESIGN Part S) whose content is a menu panel, a drop-down list or a tooltip bubble with the overlay shadow around it. Neither the theme's window material, its base for the grant nor its window backdrop chain is drawn there; over ``opaque`` the backplane is the theme's window material, as for any window. Declares the window non-opaque too. False, changing nothing, once a host session has been bound. UI thread.
 
    .. cpp:function:: WindowBackdropGrant request_backdrop(const WindowBackdropRequest& request)
 

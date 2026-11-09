@@ -48,6 +48,7 @@ std::unique_ptr<TransientWindow> TransientWindow::open(const TransientWindowOpen
     popup.focus = HostPopupFocus::passive;
     popup.kind = opening.kind;
     popup.initially_visible = false;
+    popup.content_surface = true;
     popup.key_bindings = opening.key_bindings;
     popup.resources = opening.resources;
     std::shared_ptr<NativePopupRecord> record = open_native_popup_window(popup);

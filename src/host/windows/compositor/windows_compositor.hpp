@@ -37,6 +37,15 @@ namespace gui_forms::host::detail {
 // material); the window then grants opaque, which withdraws everything.
 [[nodiscard]] HostServiceStatus apply_windows_backdrop(HWND window, WindowBackdrop backdrop) noexcept;
 
+// Frames a popup-kind window (a Popup or Splash, APP_WINDOW_RULES_DESIGN
+// Part S) for its own alpha surface: DWM neither rounds its corners nor
+// draws its one-pixel border (DWMWA_WINDOW_CORNER_PREFERENCE square,
+// DWMWA_BORDER_COLOR none, both build 22000 and later), so that the clear
+// pixels around the content's shape and shadow show only what lies
+// beneath. Before build 22000 DWM draws neither and the refusals are
+// ignored. Nothing without dwmapi.dll.
+void apply_windows_popup_frame(HWND window) noexcept;
+
 // Asks DWM for `window`'s corners (DWMWA_WINDOW_CORNER_PREFERENCE, build
 // 22000 and later; owner, 2026-11-08: the window outer band) and reports
 // them: Windows 11 rounds a top-level window by default at

@@ -331,6 +331,10 @@ struct ContextMenu::Impl final {
             invalidate(Dirty::paint);
         }
 
+        // The row's submenu opened or closed: its open plate and expanded
+        // state change.
+        void submenu_changed() { invalidate(Dirty::paint | Dirty::semantics); }
+
         void on_paint(Painter& painter, Rect) override {
             const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                               committed_arranged_bounds().height};
@@ -342,44 +346,61 @@ struct ContextMenu::Impl final {
             AnatomyStateSet states{};
             if (hot_ || focused_) states.insert(AnatomyState::hot);
             if (!enabled_item()) states.insert(AnatomyState::disabled);
+            const bool submenu_shown = item_.kind == MenuItemKind::submenu && impl_.submenu_open(depth_, index_);
+            if (submenu_shown) states.insert(AnatomyState::open);
             if (item_.kind == MenuItemKind::separator) {
                 PartPaint rule;
                 rule.family = ControlVisualRole::menu_item;
                 rule.role = PartRole::divider;
-                rule.bounds = {30.0, bounds.height * .5 - 0.5,
-                               std::max(1.0, bounds.width - 37.0), 1.0};
+                rule.bounds = {menu_label_left, bounds.height * .5 - 0.5,
+                               std::max(1.0, bounds.width - menu_label_left - 7.0), 1.0};
                 paint_part(painter, *this, rule);
                 return;
             }
-            if (hot_ || focused_) {
-                PartPaint plate;
-                plate.family = ControlVisualRole::menu_item;
-                plate.role = PartRole::face;
-                plate.bounds = {2.0, 1.0, std::max(0.0, bounds.width - 4.0),
-                                std::max(0.0, bounds.height - 2.0)};
-                plate.states = states;
-                paint_part(painter, *this, plate);
+            // The row's face is the menu strip's `menu_item` part, painted
+            // in every state and keyed by the item, so that the engine's
+            // built-in rule draws the designed hover: the dithered bulge,
+            // flat at rest and rising while the row is hot (RB 15, GIVEN
+            // D3-1); a row whose submenu shows keeps the open plate.
+            PartPaint plate;
+            plate.family = ControlVisualRole::menu_item;
+            plate.role = PartRole::face;
+            plate.bounds = {2.0, 1.0, std::max(0.0, bounds.width - 4.0),
+                            std::max(0.0, bounds.height - 2.0)};
+            plate.states = states;
+            plate.control_type = menu_item_control_type;
+            plate.key = PartKey{menu_item_part, item_.stable_id, {}};
+            paint_part(painter, *this, plate);
+            const bool checked = (item_.kind == MenuItemKind::check || item_.kind == MenuItemKind::radio) &&
+                                 item_.command_state.checked;
+            if (item_.image.value != 0U && !checked) {
+                // The item's icon in the gutter, centred on the row.
+                PartPaint icon;
+                icon.family = ControlVisualRole::menu_item;
+                icon.role = PartRole::icon;
+                icon.states = states;
+                icon.image = item_.image;
+                icon.bounds = {menu_icon_left, std::floor((bounds.height - menu_icon_size) * 0.5),
+                               menu_icon_size, menu_icon_size};
+                paint_part(painter, *this, icon);
             }
-            if ((item_.kind == MenuItemKind::check ||
-                 item_.kind == MenuItemKind::radio) && item_.command_state.checked) {
+            if (checked) {
                 PartPaint mark;
                 mark.family = ControlVisualRole::menu_item;
                 mark.role = PartRole::indicator;
                 mark.states = states;
                 mark.states.insert(AnatomyState::checked);
+                // Centred on the row, in the icon gutter.
                 if (item_.kind == MenuItemKind::check) {
                     mark.mark = PartMark::check;
-                    mark.bounds = {7.0, 6.0, 14.0, 14.0};
+                    mark.bounds = {7.0, std::floor((bounds.height - 14.0) * 0.5), 14.0, 14.0};
                 } else {
                     mark.mark = PartMark::radio_dot;
-                    mark.bounds = {9.0, 8.0, 12.0, 12.0};
+                    mark.bounds = {9.0, std::floor((bounds.height - 12.0) * 0.5), 12.0, 12.0};
                 }
                 paint_part(painter, *this, mark);
             }
-            const FontSpec font = effective_font({FontRole::control, 11.0,
-                                static_cast<std::uint16_t>(
-                                    item_.command_state.default_action ? 700 : 400),
-                                item_.italic, 0.12});
+            const FontSpec font = effective_font(menu_label_font(item_));
             const double baseline = std::max(font.size,
                                               bounds.height * 0.5 + font.size * 0.35);
             const std::string display_text = menu_display_text(item_.text);
@@ -392,11 +413,10 @@ struct ContextMenu::Impl final {
             // A destructive command's red ink, provisionally an authored
             // colour until the theme has a text tone for it (asked).
             if (item_.command_state.destructive) label.authored_foreground = menu_ink(item_, style);
-            paint_text_part_at(painter, *this, label, {30.0, baseline},
-                               std::max(0.0, bounds.width - 30.0));
+            paint_text_part_at(painter, *this, label, {menu_label_left, baseline},
+                               std::max(0.0, bounds.width - menu_label_left));
             if (!item_.command_state.shortcut.empty()) {
-                const FontSpec shortcut_font = effective_font(
-                    {FontRole::content, 10.0, 400, false});
+                const FontSpec shortcut_font = effective_font(menu_shortcut_font());
                 const Size size = painter.measure_text_utf8(
                     item_.command_state.shortcut, shortcut_font);
                 PartPaint shortcut;
@@ -407,8 +427,11 @@ struct ContextMenu::Impl final {
                 shortcut.text = item_.command_state.shortcut;
                 shortcut.font = shortcut_font;
                 shortcut.measured_text = size;
+                // Right-aligned in the shortcut column, before the chevron's
+                // trailing space.
                 paint_text_part_at(painter, *this, shortcut,
-                                   {std::max(34.0, bounds.width - size.width - 25.0), baseline},
+                                   {std::max(menu_label_left + 4.0, bounds.width - size.width - menu_trailing),
+                                    baseline},
                                    size.width);
             }
             if (item_.kind == MenuItemKind::submenu) {
@@ -416,7 +439,7 @@ struct ContextMenu::Impl final {
                 chevron.family = ControlVisualRole::menu_item;
                 chevron.role = PartRole::disclosure;
                 chevron.mark = PartMark::chevron_right;
-                chevron.bounds = {bounds.width - 18.0, 10.0, 8.0, 8.0};
+                chevron.bounds = {bounds.width - 18.0, std::floor((bounds.height - 8.0) * 0.5), 8.0, 8.0};
                 chevron.states = states;
                 paint_part(painter, *this, chevron);
             }
@@ -775,6 +798,35 @@ struct ContextMenu::Impl final {
         return area;
     }
 
+    // The width the rows of `items` need, in logical units: the borders,
+    // the gutter, the widest label and, when an item has a shortcut, the gap
+    // and the widest shortcut, then the trailing chevron space. Measured
+    // through the window's text engine at its text scale, as the rows draw.
+    [[nodiscard]] double content_width(const std::vector<MenuSnapshot>& items) const {
+        const double scale = text_scale();
+        double labels = 0.0;
+        double shortcuts = 0.0;
+        for (const MenuSnapshot& item : items) {
+            if (item.kind == MenuItemKind::separator) continue;
+            FontSpec label_font = menu_label_font(item);
+            label_font.size *= scale;
+            label_font.letter_spacing *= scale;
+            const std::string display_text = menu_display_text(item.text);
+            const ResolvedTextLayout label = (*window).resolve_text_layout_utf8(display_text, label_font);
+            labels = std::max(labels, label.logical_size.width);
+            if (item.command_state.shortcut.empty()) continue;
+            FontSpec shortcut_font = menu_shortcut_font();
+            shortcut_font.size *= scale;
+            shortcut_font.letter_spacing *= scale;
+            const ResolvedTextLayout shortcut =
+                (*window).resolve_text_layout_utf8(item.command_state.shortcut, shortcut_font);
+            shortcuts = std::max(shortcuts, shortcut.logical_size.width);
+        }
+        const double shortcut_column = shortcuts > 0.0 ? menu_shortcut_gap + shortcuts : 0.0;
+        const double width = menu_border * 2.0 + 2.0 + menu_label_left + labels + shortcut_column + menu_trailing;
+        return std::ceil(width);
+    }
+
     void open_panel(std::size_t depth, const std::vector<MenuSnapshot>& items,
                     double requested_x, double requested_y,
                     std::optional<std::size_t> parent_index) {
@@ -783,9 +835,10 @@ struct ContextMenu::Impl final {
         const Rect area = placement_area(Point{requested_x, requested_y});
         const double area_right = area.x + area.width;
         const double area_bottom = area.y + area.height;
-        const double panel_width = std::max(
-            0.0, std::min(owner.preferred_width.read() * text_scale(),
-                          area.width - 8.0));
+        // As wide as its rows need (gutter, widest label, shortcut column,
+        // chevron), at least the menu's preferred width, at most the area.
+        const double wanted_width = std::max(owner.preferred_width.read() * text_scale(), content_width(items));
+        const double panel_width = std::max(0.0, std::min(wanted_width, area.width - 8.0));
         double content = menu_border * 2.0;
         for (const MenuSnapshot& item : items) content += row_height(item, text_scale());
         const double maximum_height = std::max(command_row_height + menu_border * 2.0,
@@ -870,7 +923,11 @@ struct ContextMenu::Impl final {
             }
         }
         if (depth > 0U && depth - 1U < panels.size()) {
+            const std::optional<std::size_t> source = panels[depth - 1U].child_source_index;
             panels[depth - 1U].child_source_index.reset();
+            if (source && *source < panels[depth - 1U].rows.size()) {
+                (*panels[depth - 1U].rows[*source]).submenu_changed();
+            }
         }
     }
 
@@ -953,15 +1010,17 @@ struct ContextMenu::Impl final {
             const Rect row{parent.x, parent.y + (row_bounds.y - panel_bounds.y), parent.width, row_bounds.height};
             const double right_x = parent.x + parent.width - 3.0;
             const Rect area = placement_area(Point{right_x, row.y});
-            const double child_width = std::max(
-                0.0, std::min(owner.preferred_width.read() * text_scale(),
-                              area.width - 8.0));
+            const double wanted_width =
+                std::max(owner.preferred_width.read() * text_scale(), content_width(item.children));
+            const double child_width = std::max(0.0, std::min(wanted_width, area.width - 8.0));
             // Past the area's right edge the submenu flips to the left.
             const bool flips = right_x + child_width + 4.0 > area.x + area.width;
             const double x = flips ? parent.x - child_width + 3.0 : right_x;
             panels[depth].child_source_index = index;
-            open_panel(depth + 1U, item.children, x, row.y, index);
+            // Its first row level with the row that opened it.
+            open_panel(depth + 1U, item.children, x, row.y - menu_border, index);
             panels[depth].child_source_index = index;
+            (*panels[depth].rows[index]).submenu_changed();
         }
         if (focus_first && window) {
             if (const Control::Ptr first = first_focusable(depth + 1U)) {

@@ -5,6 +5,7 @@
 
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
 
+#include <array>
 #include <chrono>
 
 namespace gui_forms {
@@ -80,10 +81,31 @@ void add_ribbon_button(ThemeRuleSheet& sheet, std::string_view part, bool checka
     sheet.rules.push_back(std::move(open));
 }
 
+// A menu item (the menu strip anatomy's `menu_item` part, which the menu
+// bar's items and the rows of the menus they open both paint): the designed
+// hover, the ribbon's dithered bulge, flat at rest and rising while the item
+// is hot (owner: the soft dither is the hover for menu items and buttons;
+// design language §3.5 and §12.6). An item that shows its menu (open, or
+// pressed on the bar) or is selected keeps the plate, which tells it apart.
+void add_menu_item(ThemeRuleSheet& sheet) {
+    ThemeRule rise = built_in_rule("menu_rise:menu_item", "menu_strip", "menu_item");
+    rise.declarations.push_back(RuleDeclaration::primitive("dithered_bulge"));
+    rise.transitions.push_back(ribbon_rise());
+    sheet.rules.push_back(std::move(rise));
+    const std::array<AnatomyState, 3> plated{AnatomyState::open, AnatomyState::pressed, AnatomyState::selected};
+    for (const AnatomyState state : plated) {
+        ThemeRule plate = built_in_rule("menu_plate:menu_item", "menu_strip", "menu_item");
+        plate.selector.states.push_back(state);
+        plate.declarations.push_back(RuleDeclaration::primitive(built_in_primitive_name));
+        sheet.rules.push_back(std::move(plate));
+    }
+}
+
 ThemeRuleSheet make_built_in_rules() {
     ThemeRuleSheet sheet{};
     add_ribbon_button(sheet, "command_face", true);
     add_ribbon_button(sheet, "group_button", false);
+    add_menu_item(sheet);
     // The tiles' plates are engine primitives (E8): the pill plate, the gold
     // plate while lit, so that a tile's fade composites one engine raster
     // and its pixels are the same on every host. Their quiet look (dark

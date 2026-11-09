@@ -2058,6 +2058,16 @@ if(GUI_FORMS_BUILD_GALLERY)
             OUTPUT_NAME "GUI.Forms Gallery"
         )
 
+        # The Gallery under Application::run, so menus open in Popup
+        # windows (tools/menu_probe.py drives it).
+        add_executable(gui_forms_menu_probe_windows
+            src/host/windows/menu_probe_main.cpp
+        )
+        target_link_libraries(gui_forms_menu_probe_windows PRIVATE
+            gui_forms_gallery_model
+            gui_forms_host_windows
+        )
+
         add_executable(gui_forms_vsync_lab_windows
             src/host/windows/vsync_lab_main.cpp
         )
@@ -4211,6 +4221,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_splash_window_tests tests/splash_window_tests.cpp)
     target_link_libraries(gui_forms_splash_window_tests PRIVATE gui_forms_host_headless gui_forms_controls)
     add_test(NAME gui_forms_splash_window_tests COMMAND gui_forms_splash_window_tests)
+    add_executable(gui_forms_menu_popup_tests tests/menu_popup_tests.cpp)
+    target_link_libraries(gui_forms_menu_popup_tests PRIVATE gui_forms_host_headless gui_forms_controls)
+    add_test(NAME gui_forms_menu_popup_tests COMMAND gui_forms_menu_popup_tests)
     add_executable(gui_forms_shared_resources_tests tests/shared_resources_tests.cpp)
     target_link_libraries(gui_forms_shared_resources_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_shared_resources_tests COMMAND gui_forms_shared_resources_tests)
