@@ -30,6 +30,10 @@ constexpr double gap = 4.0;
 constexpr double minimum_height = 28.0;
 constexpr double natural_width = 220.0;
 constexpr double activity_height = 2.0;
+// The well's frame: the borderless editor sits inside it, so that the
+// editor's ground never covers the frame (Mac handoff 2026-11-09, also on
+// Windows: the white text area painted over the well's edges).
+constexpr double well_frame = 1.0;
 
 constexpr std::array<AnatomyState, 2> clear_part_states{{AnatomyState::hot, AnatomyState::pressed}};
 
@@ -252,8 +256,10 @@ SearchField::Placement SearchField::placement(Size size) const {
     if (!text.read().empty()) placed.clear = Rect{clear_x, mark_y, mark_side, mark_side};
     const double content_x = placed.icon.x + mark_side + gap;
     const double content_width = std::max(0.0, clear_x - gap - content_x);
-    const double content_height = std::min(size.height, editor_height_ > 0.0 ? editor_height_ : size.height);
-    placed.content = Rect{content_x, std::floor(centre - content_height * 0.5), content_width, content_height};
+    const double inner_height = std::max(0.0, size.height - well_frame * 2.0);
+    const double content_height = std::min(inner_height, editor_height_ > 0.0 ? editor_height_ : inner_height);
+    const double content_y = std::max(well_frame, std::floor(centre - content_height * 0.5));
+    placed.content = Rect{content_x, content_y, content_width, content_height};
     if (busy.read()) {
         const Rect strip{2.0, std::max(0.0, size.height - activity_height - 2.0), std::max(0.0, size.width - 4.0),
                          activity_height};

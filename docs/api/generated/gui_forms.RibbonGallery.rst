@@ -381,6 +381,8 @@ gui_forms::RibbonGallery
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
+   .. cpp:function:: void on_pointer_preview(PointerEvent& event) override
+
    .. cpp:function:: void on_pointer(PointerEvent& event) override
 
    .. cpp:function:: void on_key(KeyEvent& event) override

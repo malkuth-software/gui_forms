@@ -926,6 +926,28 @@ bool pointed_face_contains(Rect bounds, double point, Point position) noexcept {
     return inside;
 }
 
+namespace {
+
+// The provisional accent (design language §8.5) over a surface part a
+// theme rule's primitive drew: the built-in recipe lays it on itself
+// (paint_part_with_built_in_recipe), a primitive does not, so a contextual
+// tab or plane a theme styles keeps its tint (RB 25). The ramp colour
+// carries its own translucency and follows the recipe's corners.
+void paint_primitive_accent(Painter& painter, const Control& control, const PartPaint& part) {
+    if (!part.accent || !surface_role(part.role) || !paintable(part.bounds)) return;
+    const Theme& theme = control.effective_theme();
+    const ThemeEngine::PartPlan decided = theme.engine().plan(control, part);
+    if (decided.drawing != ThemeEngine::PartDrawing::primitive) return;
+    const ControlVisualContext context = part_visual_context(control, part.states);
+    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const ResolvedControlRecipe resolved =
+        theme.resolve(control, part.family, context, part.states, part_name, part.control_type);
+    const double radius = part_corner_radius(part, resolved.recipe());
+    painter.fill_rounded_rect(part.bounds, radius, theme.accent(*part.accent));
+}
+
+} // namespace
+
 void paint_part(Painter& painter, const Control& control, const PartPaint& part) {
     // Drawn in GUI.Forms' own theme in place of the application's (T4
     // theme variants): colours chosen against the other theme are not
@@ -959,12 +981,14 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
     const bool unchanged = background == part.authored_background && foreground == part.authored_foreground;
     if (unchanged) {
         theme.engine().paint(painter, control, part);
+        paint_primitive_accent(painter, control, part);
         return;
     }
     PartPaint coloured = part;
     coloured.authored_background = background;
     coloured.authored_foreground = foreground;
     theme.engine().paint(painter, control, coloured);
+    paint_primitive_accent(painter, control, coloured);
 }
 
 void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin,

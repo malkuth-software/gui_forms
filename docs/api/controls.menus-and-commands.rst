@@ -1841,7 +1841,7 @@ Related types
 
    ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
 
-   A group of commands on a tab, with a caption beneath and, when ``dialog_launcher`` is set, a launcher button in the caption's corner. ``image`` is the icon of the group's collapsed button (none: the first command image). ``layouts`` are its size definitions, largest first; empty layouts are generated (Ribbon::group_layouts). ``modes`` are the application modes it shows in.
+   A group of commands on a tab, with a caption beneath and, when ``dialog_launcher`` is set, a launcher button in the caption's corner. ``image`` is the icon of the group's collapsed button (none: the first command image). ``layouts`` are its size definitions, largest first; empty layouts are generated (Ribbon::group_layouts). Authored layouts that do not end in the collapsed button gain it as their last step, so that a group never vanishes from a narrow plane (a group of one command never collapses). ``modes`` are the application modes it shows in.
 
    .. cpp:member:: std::string stable_id
 
