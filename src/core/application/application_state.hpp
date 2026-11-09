@@ -101,8 +101,11 @@ void detach_run_windowing(ApplicationRunState& run) noexcept;
 void register_run_window(const std::shared_ptr<ApplicationWindowState>& state);
 // Called as a window closes: removes it from the run.
 void unregister_run_window(ApplicationWindowState& state) noexcept;
-// Validates one entry as Application::validate validates each entry,
-// without the run-wide rules (one primary, ownership order).
+// Why one entry is refused, as Application::validate checks each entry,
+// without the run-wide rules (one primary, ownership order); none when it
+// is valid.
+[[nodiscard]] ApplicationWindowRefusal window_entry_refusal(const ApplicationWindow& entry);
+// window_entry_refusal(entry) == none.
 [[nodiscard]] bool valid_window_entry(const ApplicationWindow& entry);
 // Whether an entry asks for the run's one primary window
 // (HostWindowKind::primary): no owner and not a tool window.

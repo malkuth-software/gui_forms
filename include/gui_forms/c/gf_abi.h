@@ -534,8 +534,12 @@ typedef struct gf_objects_table {
     uint32_t struct_size;
     uint32_t abi_minor;
     /* Creates an object of the schema type type_name, written in any
-     * spelling of its id ("check_box" or "CheckBox"), with a non-empty
-     * stable_id: a control made from its stable id, or a component made
+     * spelling of its id ("check_box" or "CheckBox"), with a stable_id: one
+     * or more '.'-separated segments of lowercase ASCII letters and digits
+     * joined by single '-' ("settings.ok-button"; a Windows Forms name such
+     * as "textBox1" is spelled "text-box1"), GF_STATUS_INVALID_ARGUMENT with
+     * a message stating the rule otherwise. A control is made from its
+     * stable id, or a component made
      * from nothing (a command, a file dialog) or from its id (a context
      * menu, a dock workspace). A type that needs another object (a dock site
      * its workspace or a timer its window, say: create_with), and the types
@@ -697,6 +701,12 @@ typedef struct gf_schema_interaction {
  * units; zero keeps the default. ready, closing and closed may each be null;
  * the library calls them with sender the root and releases each once before
  * run returns.
+ *
+ * Since 1.1 (read when struct_size covers them): minimum_width and
+ * minimum_height, the smallest client size the user may resize the window
+ * to, in logical units, from 0 to 32768; a side of 0 sets no minimum there
+ * beyond the host's own, as Windows Forms' empty MinimumSize. A record of the
+ * 1.0 size has no minimum. The client size may not be below the minimum.
  */
 typedef struct gf_run_options {
     uint32_t struct_size;
@@ -707,6 +717,8 @@ typedef struct gf_run_options {
     const gf_callback* ready;
     const gf_callback* closing;
     const gf_callback* closed;
+    double minimum_width;
+    double minimum_height;
 } gf_run_options;
 
 /* gf_owned_window_flags: how show_modal and show_owned open a window. */
@@ -787,7 +799,10 @@ typedef struct gf_windows_table {
      * with no parent that the run makes a window for, and runs the event
      * loop until the window closes. The callbacks' sender is the object
      * given. options.width and height, when not zero, resize the window.
-     * GF_STATUS_INVALID_STATE while another run is under way. */
+     * GF_STATUS_INVALID_STATE while another run is under way.
+     * GF_STATUS_INVALID_ARGUMENT for a window the run refuses, with a
+     * message naming the reason (for a client size below the minimum, both
+     * sizes). */
     gf_status (GF_CALL* run)(gf_object window_or_root, const gf_run_options* options);
     /* Asks the running window, given as the object passed to run, to close;
      * closing may cancel it. GF_STATUS_INVALID_STATE when it is not
@@ -1945,7 +1960,8 @@ typedef struct gf_custom_control_spec {
 typedef struct gf_custom_controls_table {
     uint32_t struct_size;
     uint32_t abi_minor;
-    /* Creates a custom control with stable_id (non-empty) and gives the
+    /* Creates a custom control with stable_id (the objects table's rule:
+     * lowercase '.'-separated, '-'-joined segments) and gives the
      * caller one reference to it. A malformed spec gives INVALID_ARGUMENT
      * and calls no callback, release among them. */
     gf_status (GF_CALL* create)(const gf_custom_control_spec* spec, gf_utf8_view stable_id, gf_object* object);

@@ -2393,6 +2393,10 @@ Types
 
    .. cpp:member:: const gf_callback* closed
 
+   .. cpp:member:: double minimum_width
+
+   .. cpp:member:: double minimum_height
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gf_runtime_table

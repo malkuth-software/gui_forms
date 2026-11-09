@@ -2731,8 +2731,11 @@ private:
                   static_cast<LONG>(std::ceil(options_.minimum_size.height * scale_))};
         adjust_client_frame(rect, static_cast<DWORD>(GetWindowLongPtrW(hwnd_, GWL_STYLE)),
             static_cast<DWORD>(GetWindowLongPtrW(hwnd_, GWL_EXSTYLE)), scale_);
-        (*info).ptMinTrackSize.x = rect.right - rect.left;
-        (*info).ptMinTrackSize.y = rect.bottom - rect.top;
+        // A side of 0 sets no minimum there: the system's own minimum
+        // tracking size, already in `info`, stays (Windows Forms' empty
+        // MinimumSize).
+        if (options_.minimum_size.width > 0.0) (*info).ptMinTrackSize.x = rect.right - rect.left;
+        if (options_.minimum_size.height > 0.0) (*info).ptMinTrackSize.y = rect.bottom - rect.top;
     }
 
     LRESULT close() {

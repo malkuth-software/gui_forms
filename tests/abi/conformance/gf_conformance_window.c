@@ -130,6 +130,14 @@ void gf_kit_window(gf_kit* kit) {
     gf_kit_status(kit, (*kit).windows.run(run.root, &options), GF_STATUS_INVALID_ARGUMENT,
                   "unknown run flags are refused");
     options.flags = GF_RUN_FLAGS_NONE;
+    /* The minimum client size (since 1.1): a negative side is refused before
+     * the run takes the callbacks; a minimum under the client size runs. */
+    options.minimum_width = -1.0;
+    gf_kit_status(kit, (*kit).windows.run(run.root, &options), GF_STATUS_INVALID_ARGUMENT,
+                  "a negative minimum size is refused");
+    gf_kit_check(kit, run.releases[release_ready] == 0u, "a refused minimum does not take the callbacks");
+    options.minimum_width = 100.0;
+    options.minimum_height = 80.0;
 
     gf_kit_status(kit, (*kit).windows.run(run.root, &options), GF_STATUS_OK, "run a window");
     if (run.worker_started) {

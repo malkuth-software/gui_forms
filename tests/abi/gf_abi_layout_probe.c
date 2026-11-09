@@ -154,7 +154,7 @@ GF_LAYOUT_ASSERT(offsetof(gf_schema_interaction, struct_size) == 0, "gf_schema_i
 GF_LAYOUT_ASSERT(offsetof(gf_schema_interaction, mutable_payload) == 4, "gf_schema_interaction.mutable_payload offset");
 GF_LAYOUT_ASSERT(offsetof(gf_schema_interaction, name) == 8, "gf_schema_interaction.name offset");
 GF_LAYOUT_ASSERT(offsetof(gf_schema_interaction, payload) == 24, "gf_schema_interaction.payload offset");
-GF_LAYOUT_ASSERT(sizeof(gf_run_options) == 64, "gf_run_options size");
+GF_LAYOUT_ASSERT(sizeof(gf_run_options) == 80, "gf_run_options size");
 GF_LAYOUT_ASSERT(offsetof(gf_run_options, struct_size) == 0, "gf_run_options.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_run_options, flags) == 4, "gf_run_options.flags offset");
 GF_LAYOUT_ASSERT(offsetof(gf_run_options, title) == 8, "gf_run_options.title offset");
@@ -163,6 +163,8 @@ GF_LAYOUT_ASSERT(offsetof(gf_run_options, height) == 32, "gf_run_options.height 
 GF_LAYOUT_ASSERT(offsetof(gf_run_options, ready) == 40, "gf_run_options.ready offset");
 GF_LAYOUT_ASSERT(offsetof(gf_run_options, closing) == 48, "gf_run_options.closing offset");
 GF_LAYOUT_ASSERT(offsetof(gf_run_options, closed) == 56, "gf_run_options.closed offset");
+GF_LAYOUT_ASSERT(offsetof(gf_run_options, minimum_width) == 64, "gf_run_options.minimum_width offset");
+GF_LAYOUT_ASSERT(offsetof(gf_run_options, minimum_height) == 72, "gf_run_options.minimum_height offset");
 GF_LAYOUT_ASSERT(sizeof(gf_owned_window_options) == 72, "gf_owned_window_options size");
 GF_LAYOUT_ASSERT(offsetof(gf_owned_window_options, struct_size) == 0, "gf_owned_window_options.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_owned_window_options, flags) == 4, "gf_owned_window_options.flags offset");

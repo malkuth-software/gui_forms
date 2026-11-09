@@ -39,7 +39,9 @@ constexpr SlotIdentity show_owned_slot{GF_TABLE_WINDOWS, 7U};
 
 // The 1.0 size of gf_run_options: a caller passes at least this much.
 constexpr std::uint32_t run_options_size_1_0 = 64U;
-static_assert(sizeof(gf_run_options) == run_options_size_1_0);
+// Since 1.1: minimum_width and minimum_height.
+constexpr std::uint32_t run_options_size_1_1 = 80U;
+static_assert(sizeof(gf_run_options) == run_options_size_1_1);
 
 constexpr gf_run_flags known_run_flags = GF_RUN_FLAGS_NONE;
 
@@ -131,12 +133,46 @@ void disarm_all(RunCallbacks& callbacks) noexcept {
     if (callbacks.closed) (*callbacks.closed).disarm();
 }
 
+// A logical length for a failure message: whole units without a fraction.
+void append_length(std::string& message, double length) {
+    const double whole = std::floor(length);
+    if (whole == length && std::abs(length) < 1.0e9) {
+        message += std::to_string(static_cast<long long>(whole));
+    } else {
+        message += std::to_string(length);
+    }
+}
+
+// The run's refusal of the window: its reason, and for a client size below
+// the minimum both sizes, as "120 x 100 is below the minimum 150 x 150".
+gf_status refused_window(const ApplicationResult& result) noexcept {
+    try {
+        std::string message("the run refused the window: ");
+        const std::string_view reason = application_window_refusal_text(result.refusal);
+        message += reason.empty() ? std::string_view("the host refused it") : reason;
+        if (result.refusal == ApplicationWindowRefusal::below_minimum_size) {
+            message += " (";
+            append_length(message, result.initial_size.width);
+            message += " x ";
+            append_length(message, result.initial_size.height);
+            message += " is below the minimum ";
+            append_length(message, result.minimum_size.width);
+            message += " x ";
+            append_length(message, result.minimum_size.height);
+            message += ")";
+        }
+        return fail(GF_STATUS_INVALID_ARGUMENT, run_slot, message);
+    } catch (...) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, run_slot, "the run refused the window");
+    }
+}
+
 gf_status application_status(const ApplicationResult& result) noexcept {
     switch (result.error) {
     case ApplicationError::none:
         return GF_STATUS_OK;
     case ApplicationError::invalid_argument:
-        return fail(GF_STATUS_INVALID_ARGUMENT, run_slot, "the host refused the window");
+        return refused_window(result);
     case ApplicationError::wrong_thread:
         return fail(GF_STATUS_WRONG_THREAD, run_slot, "the host runs windows on another thread");
     case ApplicationError::already_running:
@@ -162,6 +198,18 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
         !std::isfinite((*options).height) || (*options).width < 0.0 || (*options).height < 0.0) {
         return fail(GF_STATUS_INVALID_ARGUMENT, run_slot,
                     "run needs options of at least the 1.0 size, known flags and a finite, non-negative size");
+    }
+    // The minimum, since 1.1; a 1.0 record has none.
+    Size minimum{};
+    if ((*options).struct_size >= run_options_size_1_1) {
+        minimum = Size{(*options).minimum_width, (*options).minimum_height};
+        const bool minimum_valid = std::isfinite(minimum.width) && std::isfinite(minimum.height) &&
+                                   minimum.width >= 0.0 && minimum.height >= 0.0 && minimum.width <= 32768.0 &&
+                                   minimum.height <= 32768.0;
+        if (!minimum_valid) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, run_slot,
+                        "a run's minimum size is finite and within 0 to 32768 logical units");
+        }
     }
     std::string_view title;
     const gf_status titled = read_text((*options).title, run_slot, title);
@@ -213,6 +261,7 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
     try {
         if (!title.empty()) window_options.title = std::string(title);
         window_options.initial_size = client_size;
+        window_options.minimum_size = minimum;
         window_options.ready = RunReady{&callbacks};
         window_options.wake_ready = RunWakeReady{};
         window_options.dispatch_pending = RunDispatchPending{};

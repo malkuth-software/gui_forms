@@ -84,8 +84,8 @@ gf_status read_type_and_id(gf_utf8_view type_name, gf_utf8_view stable_id, SlotI
     if (id_read != GF_STATUS_OK) {
         return id_read;
     }
-    if (id_text.empty() || id_text.find('\0') != std::string_view::npos) {
-        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a stable id is non-empty and has no NUL byte");
+    if (!valid_stable_id(id_text)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, stable_id_rule);
     }
     if (type_text.empty()) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a type name is not empty");

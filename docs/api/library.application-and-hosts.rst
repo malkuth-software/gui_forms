@@ -337,6 +337,14 @@ Related types
 
    .. cpp:member:: std::exception_ptr callback_exception
 
+   .. cpp:member:: ApplicationWindowRefusal refusal
+
+      With invalid_argument from validation: why; for below_minimum_size, the refused entry's minimum and initial client sizes. Default: ``{ApplicationWindowRefusal::none}``.
+
+   .. cpp:member:: Size minimum_size
+
+   .. cpp:member:: Size initial_size
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ApplicationThemeConfig final
@@ -2393,7 +2401,7 @@ Related types
 
    .. cpp:member:: Size minimum_size
 
-      Default: ``{150.0, 150.0}``.
+      The smallest client size; a side of 0 (the default) sets no minimum there beyond the host's own (ApplicationWindowOptions::minimum_size).
 
    .. cpp:member:: std::string capture_path
 
@@ -2495,7 +2503,7 @@ Related types
 
    .. cpp:member:: Size minimum_size
 
-      Default: ``{150.0, 150.0}``.
+      The smallest client size; a side of 0 (the default) sets no minimum there beyond the host's own (ApplicationWindowOptions::minimum_size).
 
    .. cpp:member:: std::string capture_path
 
@@ -3044,7 +3052,7 @@ Related types
 
    .. cpp:member:: Size minimum_size
 
-      Default: ``{150.0, 150.0}``.
+      The smallest client size; a side of 0 (the default) sets no minimum there beyond the host's own (ApplicationWindowOptions::minimum_size).
 
    .. cpp:member:: std::string capture_path
 
@@ -3206,6 +3214,38 @@ Enumerations
    .. cpp:enumerator:: after_shutdown
 
    .. cpp:enumerator:: windows_alive
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ApplicationWindowRefusal
+
+   ``#include <gui_forms/application/application.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: window_count
+
+   .. cpp:enumerator:: no_model
+
+   .. cpp:enumerator:: invalid_text
+
+   .. cpp:enumerator:: invalid_initial_size
+
+   .. cpp:enumerator:: invalid_minimum_size
+
+   .. cpp:enumerator:: below_minimum_size
+
+   .. cpp:enumerator:: invalid_popup
+
+   .. cpp:enumerator:: invalid_floating
+
+   .. cpp:enumerator:: hidden_primary
+
+   .. cpp:enumerator:: duplicate_stable_id
+
+   .. cpp:enumerator:: invalid_owner
+
+   .. cpp:enumerator:: primary_count
 
 .. cpp:namespace:: gui_forms
 
@@ -3775,6 +3815,14 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/application/application.hpp>``
+
+.. cpp:function:: std::string_view application_window_refusal_text(ApplicationWindowRefusal refusal) noexcept
+
+   A short English sentence for ``refusal``, for logs and the C ABI's failure message. Static storage; empty for none.
 
 .. cpp:namespace:: gui_forms
 

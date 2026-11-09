@@ -306,6 +306,12 @@ private:
 // catch block of a slot, which is the subsystem boundary.
 gf_status fail_with_current_exception(SlotIdentity slot) noexcept;
 
+// The failure message for a stable id that breaks the rule
+// (valid_stable_id): what the rule is, with an example.
+inline constexpr std::string_view stable_id_rule =
+    "a stable id is one or more '.'-separated segments of lowercase ASCII letters and digits joined by single '-' "
+    "(such as \"settings.ok-button\"; a Windows Forms name such as \"textBox1\" is spelled \"text-box1\")";
+
 // Validates borrowed UTF-8 text: data may be null only when size is zero,
 // and the bytes must be well-formed UTF-8.
 [[nodiscard]] gf_status read_text(gf_utf8_view view, SlotIdentity slot, std::string_view& text) noexcept;

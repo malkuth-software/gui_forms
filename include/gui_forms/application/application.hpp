@@ -40,11 +40,55 @@ enum class ApplicationError : std::uint8_t {
     windows_alive,
 };
 
+// Why Application::validate (and so a run) refused its window list or an
+// entry of it; none for a result that is not invalid_argument.
+enum class ApplicationWindowRefusal : std::uint8_t {
+    none,
+    // The list is empty or longer than Application::maximum_windows.
+    window_count,
+    // The entry has no model.
+    no_model,
+    // The stable id, owner id or title is not UTF-8 without NUL within its
+    // limit, the stable id is empty, or the entry owns itself.
+    invalid_text,
+    // initial_size is not finite or not within [1, 32768] logical units.
+    invalid_initial_size,
+    // minimum_size is not finite or not within [0, 32768] logical units.
+    invalid_minimum_size,
+    // initial_size is below minimum_size on a side (ApplicationResult's
+    // minimum_size and initial_size give both).
+    below_minimum_size,
+    // A popup entry, which opens only during a run
+    // (Window::open_native_popup), or one with an invalid owner, kind,
+    // focus or origin.
+    invalid_popup,
+    // A floating entry without an owner, or one marked a tool window.
+    invalid_floating,
+    // The primary window starts hidden or hides on close.
+    hidden_primary,
+    // An earlier entry has the same stable id.
+    duplicate_stable_id,
+    // An owner is not listed, the owners form a cycle, or a floating
+    // entry's owner is not the primary window.
+    invalid_owner,
+    // The list has no primary window, or more than one.
+    primary_count,
+};
+
+// A short English sentence for `refusal`, for logs and the C ABI's failure
+// message. Static storage; empty for none.
+[[nodiscard]] std::string_view application_window_refusal_text(ApplicationWindowRefusal refusal) noexcept;
+
 struct ApplicationResult final {
     ApplicationError error{ApplicationError::none};
     int native_exit_code{};
     std::size_t window_index{std::numeric_limits<std::size_t>::max()};
     std::exception_ptr callback_exception{};
+    // With invalid_argument from validation: why; for below_minimum_size,
+    // the refused entry's minimum and initial client sizes.
+    ApplicationWindowRefusal refusal{ApplicationWindowRefusal::none};
+    Size minimum_size{};
+    Size initial_size{};
 
     [[nodiscard]] bool accepted() const noexcept {
         const bool accepted = error == ApplicationError::none;
@@ -103,7 +147,12 @@ private:
 struct ApplicationWindowOptions final {
     std::string title{"GUI.Forms Application"};
     Size initial_size{1120.0, 680.0};
-    Size minimum_size{150.0, 150.0};
+    // The smallest client size the user may resize the window to, in
+    // logical units; a side of 0 sets no minimum on that side beyond the
+    // host's own, and the default {0, 0} sets none (Windows Forms'
+    // MinimumSize, empty by default). initial_size must not be below it
+    // (ApplicationWindowRefusal::below_minimum_size).
+    Size minimum_size{};
     bool initially_visible{true};
     bool hide_on_close{};
     bool minimizable{true};
