@@ -36,9 +36,10 @@ constexpr SlotIdentity show_dialog_slot{GF_TABLE_HOST, 5U};
 constexpr SlotIdentity dialog_path_at_slot{GF_TABLE_HOST, 6U};
 
 // The 1.0 size of gf_host_capabilities: a caller passes at least this much
-// and receives the fields that fit (1.1 added transient_surfaces).
+// and receives the fields that fit (1.1 added transient_surfaces, then
+// window_corner_shapes and window_band_maximum_width).
 constexpr std::uint32_t host_capabilities_size_1_0 = 16U;
-static_assert(sizeof(gf_host_capabilities) == 24U);
+static_assert(sizeof(gf_host_capabilities) == 32U);
 static_assert(sizeof(gf_file_filter) == 32U);
 static_assert(sizeof(gf_dialog_result) == 32U);
 // The 1.0 size of gf_dialog_request: a caller passes at least this much.
@@ -52,7 +53,7 @@ struct CapabilityBit final {
     gf_host_capability abi = 0U;
 };
 
-constexpr std::array<CapabilityBit, 33> capability_bits{{
+constexpr std::array<CapabilityBit, 35> capability_bits{{
     {HostCapability::lifecycle, GF_HOST_CAPABILITY_LIFECYCLE},
     {HostCapability::scale_notifications, GF_HOST_CAPABILITY_SCALE_NOTIFICATIONS},
     {HostCapability::monitor_geometry, GF_HOST_CAPABILITY_MONITOR_GEOMETRY},
@@ -86,7 +87,18 @@ constexpr std::array<CapabilityBit, 33> capability_bits{{
     {HostCapability::compositor_notifications, GF_HOST_CAPABILITY_COMPOSITOR_NOTIFICATIONS},
     {HostCapability::presentation_preferences, GF_HOST_CAPABILITY_PRESENTATION_PREFERENCES},
     {HostCapability::transient_surfaces, GF_HOST_CAPABILITY_TRANSIENT_SURFACES},
+    {HostCapability::window_corners, GF_HOST_CAPABILITY_WINDOW_CORNERS},
+    {HostCapability::window_state_reports, GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS},
 }};
+
+// The corner shapes a host with window_corners may give: square on request
+// and rounded by default (Windows 11). A window's corners at a moment
+// follow its state (Window::band_snapshot().corners).
+gf_window_corner_shape abi_window_corner_shapes(HostCapability available) noexcept {
+    if (!has_capability(available, HostCapability::window_corners)) return 0U;
+    const gf_window_corner_shape shapes = GF_WINDOW_CORNER_SHAPE_SQUARE | GF_WINDOW_CORNER_SHAPE_ROUNDED;
+    return shapes;
+}
 
 // The kinds and drawing of the host's transient surfaces (1.1): every kind
 // with transient_surfaces, translucent, and also opaque where the desktop
@@ -164,13 +176,15 @@ gf_status GF_CALL host_capabilities(gf_host_capabilities* record) noexcept {
         complete.protocol_version = report.protocol_version;
         complete.available = abi_capabilities(report.available);
         complete.transient_surfaces = abi_transient_surfaces(report.available);
+        complete.window_corner_shapes = abi_window_corner_shapes(report.available);
+        complete.window_band_maximum_width = static_cast<std::uint32_t>(maximum_band_width);
 #if defined(GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT)
         // A capability of this library, not of the host: its Windows build
         // has the paint endpoint table.
         complete.available = complete.available | GF_HOST_CAPABILITY_WINDOWS_PAINT_ENDPOINT;
 #endif
         // The fields that fit the caller's record: a 1.0 record ends before
-        // transient_surfaces.
+        // transient_surfaces, an early 1.1 record before window_corner_shapes.
         const std::size_t declared = (*record).struct_size;
         const std::size_t writable = declared < sizeof(gf_host_capabilities) ? declared : sizeof(gf_host_capabilities);
         const std::size_t skipped = sizeof(std::uint32_t);

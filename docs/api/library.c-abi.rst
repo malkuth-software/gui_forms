@@ -1871,6 +1871,10 @@ Types
 
    .. cpp:member:: uint32_t reserved
 
+   .. cpp:member:: gf_window_corner_shape window_corner_shapes
+
+   .. cpp:member:: uint32_t window_band_maximum_width
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gf_host_table

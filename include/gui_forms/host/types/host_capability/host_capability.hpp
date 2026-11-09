@@ -79,6 +79,19 @@ enum class HostCapability : std::uint64_t {
     // compositor decides at run time (X11 without a compositing manager;
     // owner, 2026-11-08: Q-S2 (b)). Reported with transient_surfaces.
     opaque_transient_surfaces = 1ULL << 33U,
+    // The window's corner shape requested and reported
+    // (HostServices::apply_window_corners; owner, 2026-11-08: the window
+    // outer band follows the host's corners only where the host reports
+    // them). Windows 11 DWM corner preference today; macOS and X11 report
+    // nothing and the band draws square. Additive flag; no protocol version
+    // change.
+    window_corners = 1ULL << 34U,
+    // The host reports the native window's state (HostWindowStateEvent:
+    // full screen, and the changes that can reshape its corners, such as
+    // maximize, snap and restore) after attach and whenever it changes
+    // (owner, 2026-11-08: the window outer band hides in full screen when
+    // declared so). Windows, macOS and X11. Host protocol version 12.
+    window_state_reports = 1ULL << 35U,
 };
 
 [[nodiscard]] constexpr HostCapability operator|(HostCapability left,

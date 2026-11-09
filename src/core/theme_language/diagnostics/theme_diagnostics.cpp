@@ -114,6 +114,7 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::primitive_over_budget:
     case DiagnosticCode::primitive_cost_unbounded:
     case DiagnosticCode::backdrop_not_on_window:
+    case DiagnosticCode::band_not_on_window:
     case DiagnosticCode::needs_newer_engine:
     case DiagnosticCode::keyword_from_newer_engine:
     case DiagnosticCode::literal_colour_unremappable:
@@ -220,6 +221,7 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::primitive_over_budget: return "primitive_over_budget";
     case DiagnosticCode::primitive_cost_unbounded: return "primitive_cost_unbounded";
     case DiagnosticCode::backdrop_not_on_window: return "backdrop_not_on_window";
+    case DiagnosticCode::band_not_on_window: return "band_not_on_window";
     case DiagnosticCode::needs_newer_engine: return "needs_newer_engine";
     case DiagnosticCode::keyword_from_newer_engine: return "keyword_from_newer_engine";
     case DiagnosticCode::literal_colour_unremappable: return "literal_colour_unremappable";

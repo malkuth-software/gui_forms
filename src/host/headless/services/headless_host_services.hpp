@@ -2,6 +2,7 @@
 
 #include "../capabilities/headless_capabilities.hpp"
 
+#include <array>
 #include <cstdint>
 #include <deque>
 #include <functional>
@@ -44,6 +45,14 @@ public:
     // The next non-opaque application fails with backend_failure and leaves
     // the native backdrop unchanged, as a native call that failed would.
     void fail_next_backdrop() noexcept { fail_next_backdrop_ = true; }
+    // The simulated platform's corners: apply_window_corners records the
+    // preference (native_corner_preference, `system` until then) and
+    // answers with the report set for it here (unknown corners until one
+    // is set), as a platform that rounds, squares or cannot comply would.
+    void set_corner_report(WindowCornerPreference preference, WindowCornerReport report) noexcept;
+    [[nodiscard]] WindowCornerPreference native_corner_preference() const noexcept {
+        return native_corner_preference_;
+    }
 
 protected:
     [[nodiscard]] HostMonitorResult query_monitors_impl() override;
@@ -70,6 +79,7 @@ protected:
     [[nodiscard]] HostTrayMenuResult show_tray_menu_impl(
         HostTrayIconId icon_id, const HostTrayMenuRequest& request) override;
     [[nodiscard]] HostServiceStatus apply_window_backdrop_impl(WindowBackdrop backdrop) override;
+    [[nodiscard]] HostWindowCornersResult apply_window_corners_impl(WindowCornerPreference preference) override;
 
 private:
     struct TrayIcon final {
@@ -92,6 +102,9 @@ private:
     WindowBackdrop native_backdrop_{WindowBackdrop::opaque};
     std::string backdrop_trace_;
     bool fail_next_backdrop_{};
+    WindowCornerPreference native_corner_preference_{WindowCornerPreference::system};
+    // Indexed by WindowCornerPreference.
+    std::array<WindowCornerReport, 3> corner_reports_{};
 };
 
 } // namespace gui_forms::host

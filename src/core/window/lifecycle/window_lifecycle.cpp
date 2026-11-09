@@ -263,7 +263,13 @@ void SurfaceRoot::apply_client_resize(Rect old_bounds, Rect new_bounds, bool wid
     base_context.high_contrast = presentation_settings_.high_contrast;
     const std::optional<double> base_band = surface_material_resize_band(backplane_base(base_context));
     if (base_band) {
-        add_resize_strip_damage(old_bounds, new_bounds, *base_band);
+        // The outer band moves with the edges too, its rounded corners
+        // reaching in by their radius.
+        double reach = std::max(*base_band, band_.reserved);
+        if (band_.reserved > 0.0 && band_.corners.shape == WindowCornerShape::rounded) {
+            reach = std::max(reach, band_.corners.radius);
+        }
+        add_resize_strip_damage(old_bounds, new_bounds, reach);
     } else {
         add_damage_all_planes(old_bounds);
         add_damage_all_planes(new_bounds);
@@ -273,10 +279,13 @@ void SurfaceRoot::apply_client_resize(Rect old_bounds, Rect new_bounds, bool wid
 }
 
 Rect SurfaceRoot::root_slot() const noexcept {
+    // The outer band lies along the client area's edges; the chrome insets
+    // are measured inside it.
     const Insets& insets = chrome_insets_;
-    const double width = client_size_.width - insets.left - insets.right;
-    const double height = client_size_.height - insets.top - insets.bottom;
-    const Rect slot{insets.left, insets.top, width > 0.0 ? width : 0.0, height > 0.0 ? height : 0.0};
+    const double band = band_.reserved;
+    const double width = client_size_.width - insets.left - insets.right - 2.0 * band;
+    const double height = client_size_.height - insets.top - insets.bottom - 2.0 * band;
+    const Rect slot{band + insets.left, band + insets.top, width > 0.0 ? width : 0.0, height > 0.0 ? height : 0.0};
     return slot;
 }
 
@@ -337,6 +346,8 @@ bool SurfaceRoot::set_surface_scale(double scale) {
     scale_ = scale;
     // A resolution media query may give the window another backdrop.
     lower_theme_backdrop_chain();
+    // The band is snapped to whole device pixels of the new scale.
+    refresh_band();
     ++surface_epoch_;
     if (surface_epoch_ == 0U) ++surface_epoch_;
     mark_subtree_dirty(*root_, invalidation::conservative_subtree);
@@ -490,6 +501,8 @@ void SurfaceRoot::apply_presentation(PresentationSettings settings) {
     // another colour for a role in tint(). Where a theme shown above has
     // lowered it already, this changes nothing.
     lower_theme_backdrop_chain();
+    // High contrast, the scheme and the motion settings change the band.
+    refresh_band();
 }
 
 const Theme& SurfaceRoot::application_theme() const noexcept {
@@ -566,6 +579,8 @@ void SurfaceRoot::show_theme(const std::shared_ptr<const Theme>& shown) {
     // The new theme's window backdrop chain first: the request below is
     // implied by it.
     lower_theme_backdrop_chain();
+    // The new theme's `window` band rule.
+    refresh_band();
     // A window following its theme's backdrop request takes the new
     // theme's, and its grant is resolved again before theme_changed is
     // raised, so handlers see the grant the theme brings.

@@ -212,6 +212,9 @@ HostSession::HostSession(Window& window,
         }
         window.invalidate_cursor_interaction(CursorError::stale_window);
         window.host_services_ = services_;
+        // The window's corners as the host makes them, which its band
+        // follows (owner, 2026-11-08).
+        window.apply_corner_preference();
         capture_observation_ = window.pointer_capture_changed().subscribe(
             Delegate<const PointerCaptureChange&>::bind<
                 HostSession, &HostSession::observe_pointer_capture>(*this));
@@ -356,6 +359,11 @@ void HostSession::DispatchVisitor::operator()(
         (*result).handled = (*(*session).window_).dispatch_context_request(payload.origin, payload.position);
     } else if constexpr (std::is_same_v<Payload, HostHoverEvent>) {
         (*(*session).window_).dispatch_host_hover(payload.position);
+    } else if constexpr (std::is_same_v<Payload, HostWindowStateEvent>) {
+        // Full screen first: a band that hides there gives up its
+        // reservation before the corners' strips are damaged.
+        (*(*session).window_).report_full_screen(payload.full_screen);
+        (*(*session).window_).apply_corner_preference();
     }
 }
 

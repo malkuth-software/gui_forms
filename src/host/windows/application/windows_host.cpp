@@ -1275,6 +1275,7 @@ public:
         native_phase_ = NativePhase::attached;
         report_compositor_state();
         report_input_settings();
+        report_window_state();
         accessibility_.attach(hwnd_, *model_, scale_);
         (*model_).set_dispatch_wake_handler(
             gui_forms::detail::BoundMemberFunction<
@@ -1327,6 +1328,24 @@ public:
         native_phase_ = NativePhase::ready;
         collect_damage();
         return true;
+    }
+
+    // Reports the native window's state (HostWindowStateEvent; owner,
+    // 2026-11-08: the window outer band) after attach and whenever it
+    // changes: WM_SIZE (maximize, restore, and a snap's resize),
+    // WM_EXITSIZEMOVE (a snap by dragging) and WM_STYLECHANGED (a caption
+    // removed for full screen). The session passes full screen to the band
+    // and asks DWM for the corners again, which the state may square. A
+    // report refused (before attach, after close) is tried again on the
+    // next change.
+    void report_window_state() {
+        const detail::WindowsWindowState state = detail::read_windows_window_state(hwnd_);
+        if (window_state_reported_ && state == reported_window_state_) return;
+        const HostDispatchResult reported = dispatch(HostWindowStateEvent{state.full_screen});
+        if (!reported.accepted()) return;
+        reported_window_state_ = state;
+        window_state_reported_ = true;
+        collect_damage();
     }
 
     // Reports DWM's state to the window (stage T5, C2): after attach, and
@@ -1486,6 +1505,7 @@ public:
                 resize();
             }
             report_frame_to_run();
+            report_window_state();
             return 0;
         case WM_MOVE: report_frame_to_run(); return 0;
         case WM_DPICHANGED: dpi_changed(wparam, lparam); return 0;
@@ -1583,8 +1603,14 @@ public:
             stop_modal_live_clock();
             in_size_move_ = false;
             apply_pending_resize();
+            report_window_state();
             mark_live_frame_due();
             return 0;
+        case WM_STYLECHANGED:
+            // A caption removed or restored can make the window full screen
+            // or leave it (read_windows_window_state).
+            report_window_state();
+            break;
         case modal_live_clock_message:
             // A late post after the loop ended is ignored: the outer loop
             // waits on the clock again.
@@ -3070,6 +3096,10 @@ private:
     PTP_WAIT modal_live_clock_{};
     // A WM_SIZE inside the size/move loop not yet laid out (WM_SIZE).
     bool resize_pending_{};
+    // The last native window state the session accepted
+    // (report_window_state); none before the first.
+    detail::WindowsWindowState reported_window_state_{};
+    bool window_state_reported_{};
     // Whether the next present copies the whole raster: set by every
     // resize, whose pixels Windows may have left out of step with the
     // raster; cleared when such a present succeeds (paint,
@@ -3202,7 +3232,9 @@ HostCapabilities windows_capabilities() {
                 HostCapability::window_backdrops |
                 HostCapability::compositor_notifications |
                 HostCapability::presentation_preferences |
-                HostCapability::transient_surfaces,
+                HostCapability::transient_surfaces |
+                HostCapability::window_corners |
+                HostCapability::window_state_reports,
             // Windows follows the PC keyboard convention (Ctrl+F4 closes a
             // document).
             pc_key_map()};

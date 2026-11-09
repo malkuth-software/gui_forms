@@ -183,6 +183,8 @@ Related types
      -  
    * - :cpp:class:`HostWindowAtResult <gui_forms::HostWindowAtResult>`
      - An accepted result whose ``window`` is invalid means no window of this run is the topmost window at the point (the desktop, or another application's window, is).
+   * - :cpp:class:`HostWindowCornersResult <gui_forms::HostWindowCornersResult>`
+     - A corner request's outcome (HostServices::apply_window_corners): the status, and what the window's corners are afterwards, which the window's band follows.
    * - :cpp:class:`HostWindowDescription <gui_forms::HostWindowDescription>`
      - What an adapter tells the windowing seam about a window it is about to create.
    * - :cpp:class:`HostWindowFrame <gui_forms::HostWindowFrame>`
@@ -199,6 +201,8 @@ Related types
      -  
    * - :cpp:class:`HostWindowKindTraits <gui_forms::HostWindowKindTraits>`
      - What the run does with a window of each kind (stage DK decisions 1, 10 and 11).
+   * - :cpp:class:`HostWindowStateEvent <gui_forms::HostWindowStateEvent>`
+     - The native window's state changed (capability window_state_reports; owner, 2026-11-08: the window outer band).
    * - :cpp:class:`LinuxApplicationOptions <gui_forms::host::LinuxApplicationOptions>`
      -  
    * - :cpp:class:`LinuxApplicationWindow <gui_forms::host::LinuxApplicationWindow>`
@@ -1367,6 +1371,10 @@ Related types
 
       Applies a window's backdrop grant to the native window (stage T5). The window calls it only when its granted backdrop changes. ``opaque`` needs no capability, and an adapter must not fail it; ``transparent`` needs transparent_windows, and the two materials window_backdrops. A refused or failed request leaves the native window as it was.
 
+   .. cpp:function:: HostWindowCornersResult apply_window_corners(WindowCornerPreference preference)
+
+      Asks the platform to shape the window's corners (capability window_corners) and reports what they are afterwards. Refused as unsupported, with unknown corners, without the capability; refused as invalid_argument for a value outside the enumeration. A platform that cannot comply (it rounds regardless, or cannot round) reports its actual corners with ``complied`` false.
+
    .. cpp:function:: void shutdown() noexcept
 
       Idempotently enters terminal state on the UI thread and invokes concrete adapter cleanup.
@@ -1503,6 +1511,12 @@ Related types
       *Protected.*
 
       Called with a backdrop whose capability the host advertises. The default accepts ``opaque``, which needs nothing native, and refuses the rest as unsupported.
+
+   .. cpp:function:: virtual HostWindowCornersResult apply_window_corners_impl(WindowCornerPreference preference)
+
+      *Protected.*
+
+      Called with a known preference when the host advertises window_corners. The default refuses as unsupported with unknown corners.
 
    .. cpp:function:: void publish_tray_icon_event(const HostTrayIconEvent& event)
 
@@ -1914,6 +1928,18 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HostWindowCornersResult final
+
+   ``#include <gui_forms/host/services/host_services.hpp>``
+
+   A corner request's outcome (HostServices::apply_window_corners): the status, and what the window's corners are afterwards, which the window's band follows. A refused or failed request reports unknown corners.
+
+   .. cpp:member:: HostServiceStatus status
+
+   .. cpp:member:: WindowCornerReport report
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostWindowDescription final
 
    ``#include <gui_forms/host/windowing/host_windowing.hpp>``
@@ -2262,6 +2288,16 @@ Related types
    .. cpp:member:: bool popup
 
       A native popup: no decorations, no taskbar button, above its owner, placed where the program puts it and never moved by the floating policy. Whether it is activated is declared per popup (HostPopupFocus).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostWindowStateEvent final
+
+   ``#include <gui_forms/host/types/host_types.hpp>``
+
+   The native window's state changed (capability window_state_reports; owner, 2026-11-08: the window outer band). Reported after attach and whenever the window enters or leaves full screen, or is maximized, snapped or restored, any of which the platform may answer by reshaping its corners. full_screen: the window fills its monitor with no frame (Windows: a captionless window covering its monitor; macOS: NSWindowStyleMaskFullScreen; X11: _NET_WM_STATE_FULLSCREEN, or the host's own override-redirect fallback). The session passes full_screen to Window::report_full_screen and asks the host for the window's corners again (HostServices::apply_window_corners), so the band follows both.
+
+   .. cpp:member:: bool full_screen
 
 .. cpp:namespace:: gui_forms::host
 
@@ -3279,6 +3315,10 @@ Enumerations
 
    .. cpp:enumerator:: opaque_transient_surfaces
 
+   .. cpp:enumerator:: window_corners
+
+   .. cpp:enumerator:: window_state_reports
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HostCloseReason
@@ -3778,7 +3818,7 @@ Functions, constants and aliases
 
    Whether the rows run consecutively from 8, each with a feature.
 
-.. cpp:var:: constexpr std::array<HostProtocolRevision, 4> host_protocol_revisions
+.. cpp:var:: constexpr std::array<HostProtocolRevision, 5> host_protocol_revisions
 
    The host protocol's versions, one row each, from version 8 (earlier versions are not recorded). The current version is the last row's. A change to the protocol adds a row at the end, so two changes that claim the same version both add the same line and conflict when merged, and the checks below refuse a skipped or repeated version.
 
@@ -3826,7 +3866,7 @@ Functions, constants and aliases
 
 .. cpp:type:: HostDialogResultPayload = std::variant< HostMessageDialogResult, HostPathDialogResult, HostColorDialogResult>
 
-.. cpp:type:: HostEventPayload = std::variant< HostAttachEvent, HostResizeEvent, HostScaleEvent, HostActivationEvent, HostOcclusionEvent, HostDisplayEvent, DragEvent, PointerEvent, KeyEvent, TextInputEvent, HostCloseRequest, HostClosedEvent, HostShutdownEvent, HostCompositorEvent, HostInputSettingsEvent, HostContextRequestEvent, HostHoverEvent>
+.. cpp:type:: HostEventPayload = std::variant< HostAttachEvent, HostResizeEvent, HostScaleEvent, HostActivationEvent, HostOcclusionEvent, HostDisplayEvent, DragEvent, PointerEvent, KeyEvent, TextInputEvent, HostCloseRequest, HostClosedEvent, HostShutdownEvent, HostCompositorEvent, HostInputSettingsEvent, HostContextRequestEvent, HostHoverEvent, HostWindowStateEvent>
 
 .. cpp:namespace:: gui_forms
 

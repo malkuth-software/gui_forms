@@ -370,6 +370,7 @@ std::string_view rule_diagnostic_name(RuleDiagnosticKind kind) noexcept {
     case RuleDiagnosticKind::expression_reads_colour: return "expression_reads_colour";
     case RuleDiagnosticKind::rule_empty: return "rule_empty";
     case RuleDiagnosticKind::backdrop_invalid: return "backdrop_invalid";
+    case RuleDiagnosticKind::band_invalid: return "band_invalid";
     case RuleDiagnosticKind::transition_property_unknown: return "transition_property_unknown";
     case RuleDiagnosticKind::transition_property_not_animated: return "transition_property_not_animated";
     case RuleDiagnosticKind::transition_invalid: return "transition_invalid";
@@ -1607,6 +1608,7 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         add_materials(result.diagnostics_, index, rule, compiled);
         add_recipe_fields(result.diagnostics_, index, rule, compiled);
         add_backdrop(result.diagnostics_, index, rule, compiled);
+        add_band(result.diagnostics_, index, rule, compiled);
         if (!add_scoped(result.diagnostics_, index, rule, result, compiled)) continue;
         if (!add_reads(result.diagnostics_, index, rule, result, compiled)) continue;
         const bool declares = compiled.selects || !compiled.parameters.empty() || !compiled.transitions.empty() ||
@@ -1614,7 +1616,8 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
                               compiled.effect.has_value() || compiled.effect_primary.has_value() ||
                               compiled.effect_secondary.has_value() ||
                               !compiled.materials.empty() || !compiled.recipe_fields.empty() ||
-                              !compiled.scoped_definitions.empty() || compiled.backdrop.has_value();
+                              !compiled.scoped_definitions.empty() || compiled.backdrop.has_value() ||
+                              compiled.band.has_value();
         // A rule of definitions no condition reads declares nothing the
         // cascade uses, and is dropped without a diagnostic.
         if (!declares && !rule.scoped_definitions.empty()) continue;
@@ -1899,6 +1902,27 @@ void CompiledThemeRules::add_backdrop(std::vector<RuleDiagnostic>& diagnostics, 
         return;
     }
     compiled.backdrop = rule.backdrop;
+}
+
+bool band_declaration_valid(const BandDeclaration& band) noexcept {
+    if (band.width) {
+        const double width = *band.width;
+        if (!std::isfinite(width) || width < 0.0 || width > maximum_theme_band_width) return false;
+    }
+    if (band.effect && *band.effect != BandEffect::none && *band.effect != BandEffect::flash) return false;
+    return true;
+}
+
+void CompiledThemeRules::add_band(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
+                                  const ThemeRule& rule, CompiledRule& compiled) {
+    if (!rule.band) return;
+    // Only a window has a band: a popup is not a window's frame.
+    const bool on_window = rule.selector.surface == SurfaceKind::window;
+    if (!on_window || (*rule.band).empty() || !band_declaration_valid(*rule.band)) {
+        diagnostics.push_back(diagnostic(RuleDiagnosticKind::band_invalid, index, rule, "band"));
+        return;
+    }
+    compiled.band = rule.band;
 }
 
 void CompiledThemeRules::add_recipe_fields(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
@@ -2691,6 +2715,26 @@ const BackdropDeclaration* CompiledThemeRules::resolve_backdrop(const PartFacts&
         winner = &*rule.backdrop;
     }
     return winner;
+}
+
+BandDeclaration CompiledThemeRules::resolve_band(const PartFacts& facts) const noexcept {
+    // Only a window rule holds a band (add_band). Rules are walked in
+    // ascending precedence, so each field's last setter wins.
+    BandDeclaration merged{};
+    if (facts.surface != SurfaceKind::window) return merged;
+    ScopedWinners winners{};
+    resolve_scoped(facts, winners);
+    RuleWalk walk(*this, facts, false, &winners);
+    for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
+        const CompiledRule& rule = *next;
+        if (!rule.band || !matches(rule, facts)) continue;
+        const BandDeclaration& band = *rule.band;
+        if (band.width) merged.width = band.width;
+        if (band.rest_colour) merged.rest_colour = band.rest_colour;
+        if (band.lit_colour) merged.lit_colour = band.lit_colour;
+        if (band.effect) merged.effect = band.effect;
+    }
+    return merged;
 }
 
 void CompiledThemeRules::resolve_primitive(const PartFacts& facts, const ScopedWinners& winners,

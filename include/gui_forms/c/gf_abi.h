@@ -1229,6 +1229,24 @@ typedef uint64_t gf_host_capability;
  * are translucent, is gf_host_capabilities.transient_surfaces. Without it
  * each kind is shown inside its owner window instead. */
 #define GF_HOST_CAPABILITY_TRANSIENT_SURFACES 8589934592ull
+/* Since 1.1: the host shapes a window's corners and reports them; the
+ * window outer band follows the report (a rounded band where the host
+ * rounds). Which shapes it may give is
+ * gf_host_capabilities.window_corner_shapes. Without it a window's corners
+ * are square to the band. Windows 11 (DWM) today. */
+#define GF_HOST_CAPABILITY_WINDOW_CORNERS 17179869184ull
+/* Since 1.1: the host reports the native window's state: full screen, and
+ * the maximize, snap and restore changes that can reshape its corners. A
+ * window outer band declared to hide in full screen hides only where the
+ * host reports it. Windows, macOS and X11. */
+#define GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS 34359738368ull
+
+/* gf_window_corner_shape (since 1.1): the corner shapes a host may give a
+ * window, one bit each. A window's corners at a given moment follow its
+ * state: Windows squares a maximized, snapped or full-screen window's. */
+typedef uint32_t gf_window_corner_shape;
+#define GF_WINDOW_CORNER_SHAPE_SQUARE 1u
+#define GF_WINDOW_CORNER_SHAPE_ROUNDED 2u
 
 /* gf_transient_surface_kind (since 1.1): the transient surfaces a host
  * opens, one bit each, and how they are drawn. */
@@ -1244,16 +1262,23 @@ typedef uint32_t gf_transient_surface_kind;
 #define GF_TRANSIENT_SURFACE_OPAQUE 16u
 
 /* The host's report. An output record (struct_size at least the 1.0 size,
- * 16; a 1.0 record receives the 1.0 fields only). protocol_version is the
- * host protocol's revision; available is a set of gf_host_capability bits.
- * Since 1.1, transient_surfaces is a set of gf_transient_surface_kind bits,
- * zero without GF_HOST_CAPABILITY_TRANSIENT_SURFACES; reserved is zero. */
+ * 16; a smaller record receives the fields that fit it). protocol_version
+ * is the host protocol's revision; available is a set of
+ * gf_host_capability bits. Since 1.1, transient_surfaces is a set of
+ * gf_transient_surface_kind bits, zero without
+ * GF_HOST_CAPABILITY_TRANSIENT_SURFACES; reserved is zero;
+ * window_corner_shapes is a set of gf_window_corner_shape bits, zero
+ * without GF_HOST_CAPABILITY_WINDOW_CORNERS; window_band_maximum_width is
+ * the widest window outer band, in logical units, a window may declare (a
+ * limit of the library, the same on every host). */
 typedef struct gf_host_capabilities {
     uint32_t struct_size;
     uint32_t protocol_version;
     gf_host_capability available;
     gf_transient_surface_kind transient_surfaces;
     uint32_t reserved;
+    gf_window_corner_shape window_corner_shapes;
+    uint32_t window_band_maximum_width;
 } gf_host_capabilities;
 
 /* gf_pointer_cursor: the pointer's shape over the running window. */

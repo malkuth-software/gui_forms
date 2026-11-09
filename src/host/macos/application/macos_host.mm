@@ -889,6 +889,9 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     std::unique_ptr<MacDisplayLinkTrace> _displayTrace;
     CADisplayLink* _displayLink;
     BOOL _hostOccluded;
+    // The full-screen state the session last accepted (notifyWindowState).
+    BOOL _windowStateReported;
+    BOOL _reportedFullScreen;
     std::vector<LiveSurfacePresentation> _pendingLivePresentations;
     // Objective-C++ constructs these vectors empty with the view. Reuse storage
     // across ticks; immutable leases survive producer reconfiguration until
@@ -979,6 +982,7 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 - (void)notifyActivation:(BOOL)active;
 - (void)notifyOcclusion:(BOOL)occluded;
 - (void)notifyScaleChanged;
+- (void)notifyWindowState;
 - (void)notifyDisplaysChanged;
 - (void)screenParametersChanged:(NSNotification*)notification;
 // Stage T5: the accessibility display options changed (reduce
@@ -2021,6 +2025,7 @@ void post_perform_close(NSWindow* window) {
     [self notifyOcclusion:_initialHostOccluded];
     [self notifyDisplaysChanged];
     [self reportCompositorState];
+    [self notifyWindowState];
     [self collectDamage];
     [self startDisplayLinkIfNeeded];
     return YES;
@@ -2167,6 +2172,31 @@ void post_perform_close(NSWindow* window) {
     static_cast<void>([self dispatchHostPayload:HostScaleEvent{scale}
                                timestampNanoseconds:host_now_nanoseconds()]);
     [self collectDamage];
+}
+
+// Reports the native window's full-screen state (HostWindowStateEvent;
+// owner, 2026-11-08: the window outer band) after attach and when AppKit
+// enters or leaves full screen. macOS reports no corners (no
+// window_corners), so the session's corner request changes nothing here.
+// A refused report is tried again on the next change.
+- (void)notifyWindowState {
+    if (_hostAttached == NO || self.window == nil) return;
+    const BOOL fullScreen = ([self.window styleMask] & NSWindowStyleMaskFullScreen) != 0 ? YES : NO;
+    if (_windowStateReported == YES && _reportedFullScreen == fullScreen) return;
+    const HostDispatchResult reported = [self dispatchHostPayload:gui_forms::HostWindowStateEvent{fullScreen == YES}
+                                              timestampNanoseconds:host_now_nanoseconds()];
+    if (!reported.accepted()) return;
+    _windowStateReported = YES;
+    _reportedFullScreen = fullScreen;
+    [self collectDamage];
+}
+
+// The surface's own element covers the content rectangle: a declared window
+// outer band lies outside it (owner, 2026-11-08), as it lies outside every
+// hit test.
+- (NSRect)accessibilityFrame {
+    if (!_model) return [super accessibilityFrame];
+    return [self accessibilityFrameForSemanticBounds:(*_model).content_rect()];
 }
 
 - (void)notifyDisplaysChanged {
@@ -3880,6 +3910,12 @@ void finish_run(MacRunEnd& end) {
 - (void)windowDidChangeBackingProperties:(NSNotification*)notification {
     [_view notifyScaleChanged];
 }
+- (void)windowDidEnterFullScreen:(NSNotification*)notification {
+    [_view notifyWindowState];
+}
+- (void)windowDidExitFullScreen:(NSNotification*)notification {
+    [_view notifyWindowState];
+}
 - (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window {
     if (!_stopsApplicationOnClose) return gui_forms::host::MacTerminationClose::not_ending;
     // windowShouldClose: rather than performClose:, which beeps and does
@@ -4003,7 +4039,8 @@ HostCapabilities macos_capabilities() {
                 HostCapability::window_backdrops |
                 HostCapability::compositor_notifications |
                 HostCapability::presentation_preferences |
-                HostCapability::transient_surfaces,
+                HostCapability::transient_surfaces |
+                HostCapability::window_state_reports,
             macos_key_map()};
 }
 

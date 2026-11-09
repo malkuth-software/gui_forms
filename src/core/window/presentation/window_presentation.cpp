@@ -668,6 +668,10 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
                 }
             }
         }
+        // The outer band over every plane, overlays included (owner,
+        // 2026-11-08): what lies beneath it in the band shows only where
+        // its colour lets it.
+        paint_band(candidate, painted);
         const std::shared_ptr<const detail::DisplayChunk> transaction =
             candidate.finish(
             display_generation_, PaintPlane::control, window_bounds);
@@ -1019,8 +1023,9 @@ Window::take_live_surface_presentations(const bool include_unchanged,
         }
 
         const Rect destination = absolute_bounds_of(*control);
-        Rect clip = Rect::intersection(
-            destination, {0.0, 0.0, client_size_.width, client_size_.height});
+        // A host-composed live frame never covers the outer band: it is
+        // clipped to the content rectangle.
+        Rect clip = Rect::intersection(destination, content_rect());
         bool valid = !destination.empty() && !clip.empty();
         for (Control::Ptr ancestor = (*control).parent();
              ancestor && valid && !clip.empty();

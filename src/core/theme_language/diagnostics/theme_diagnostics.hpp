@@ -269,6 +269,10 @@ enum class DiagnosticCode : std::uint16_t {
     // selector (owner decision 2026-11-04): a backdrop belongs to a surface
     // only. The declaration is dropped.
     backdrop_not_on_window = 1110,
+    // A `band-*` declaration in a rule whose selector is not a window
+    // selector (owner, 2026-11-08): the outer band belongs to a top-level
+    // window only. The declaration is dropped.
+    band_not_on_window = 1111,
     // W3xx versions (R2-07): the sheet declares a newer engine than the
     // running one, reported once; and, in such a sheet, a keyword the
     // running engine lacks, whose declaration is dropped.

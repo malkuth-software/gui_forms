@@ -9,7 +9,7 @@ advertised protocol surface; some native integrations are not advertised yet.
 
 ## The host protocol
 
-`HostCapabilities` carries `protocol_version` (currently 11; one row per version in
+`HostCapabilities` carries `protocol_version` (currently 12; one row per version in
 `host_protocol_revisions`), a `platform`
 string, a bit set of `HostCapability` flags and the host's keyboard-command
 defaults (`key_map`, below). `Application::capabilities()`
@@ -50,6 +50,8 @@ whole record for logs.
 | `compositor_notifications` | compositor and preference changes reported at run time | yes | yes | yes |
 | `presentation_preferences` | the host's high contrast and reduced transparency fed to each window; its light or dark preference and accent and highlight colours reported (Windows only so far) | yes | yes | no |
 | `transient_surfaces` | tooltips and the splashscreen in Splash windows, menus, drop-downs and pickers in Popup windows, each the host's own window beside its owner; translucent with the library's shadow and fade (C: `GF_HOST_CAPABILITY_TRANSIENT_SURFACES`, kinds in `gf_host_capabilities.transient_surfaces`) | yes | yes | yes (opaque, with no shadow or fade, without a compositing manager: `opaque_transient_surfaces`, `GF_TRANSIENT_SURFACE_OPAQUE`) |
+| `window_corners` | the window's corners shaped on request and reported (`Window::set_corner_preference`), which the window outer band follows; the host squares a maximized, snapped or full-screen window's (C: `GF_HOST_CAPABILITY_WINDOW_CORNERS`, shapes in `gf_host_capabilities.window_corner_shapes`) | no (square) | yes (Windows 11; square before) | no (square) |
+| `window_state_reports` | the native window's state reported (`HostWindowStateEvent`): full screen, which hides a band declared `WindowBandFullScreen::hides`, and the maximize, snap and restore changes that can reshape its corners (C: `GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS`) | yes | yes (full screen: a captionless window covering its monitor) | yes (`_NET_WM_STATE_FULLSCREEN`, or the host's own fallback) |
 
 The table reflects the bits each adapter currently advertises; read
 `Application::capabilities()` rather than this page in code.

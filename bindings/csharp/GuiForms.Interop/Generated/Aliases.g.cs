@@ -25,6 +25,7 @@ global using gf_theme_outcome = uint;
 global using gf_theme_severity = uint;
 global using gf_theme_diagnostic_text = uint;
 global using gf_host_capability = ulong;
+global using gf_window_corner_shape = uint;
 global using gf_transient_surface_kind = uint;
 global using gf_pointer_cursor = uint;
 global using gf_dialog_kind = uint;

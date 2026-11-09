@@ -659,6 +659,9 @@ Control::Ptr SurfaceRoot::hit_test(Point position) {
     for (std::uint32_t pass = 0U;
          pass < maximum_semantic_snapshot_passes; ++pass) {
         ensure_layout(true);
+        // The outer band hits nothing, overlays included (owner,
+        // 2026-11-08): a point in it reaches no control.
+        if (band_contains(position)) return {};
         const std::uint64_t generation = semantic_generation_;
         Control::Ptr target;
         ControlList overlay_roots;

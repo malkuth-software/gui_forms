@@ -1900,6 +1900,18 @@ std::optional<BackdropChain> Theme::window_backdrop_chain(const Window& window) 
     return chain;
 }
 
+BandDeclaration Theme::window_band(const Window& window) const noexcept {
+    const Control::Ptr root = window.root();
+    CompiledThemeRules::PartFacts facts{};
+    facts.surface = SurfaceKind::window;
+    facts.stable_id = (*root).stable_id().value();
+    facts.classes = (*root).classes();
+    facts.media = window_media_facts(window);
+    facts.user_rules = window.user_theme_rules();
+    const BandDeclaration declared = engine_.rules().resolve_band(facts);
+    return declared;
+}
+
 bool Theme::declares_clarity(const Control& control) const noexcept {
     CompiledThemeRules::PartFacts facts{};
     facts.control_type = control.anatomy().control_id;

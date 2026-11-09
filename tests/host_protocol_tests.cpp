@@ -1083,10 +1083,11 @@ struct PresentationChangeCounter final {
 };
 
 void test_input_settings_report_and_validation() {
-    require(host_protocol_revisions.size() == 4U && host_protocol_revisions[1].version == 9U &&
+    require(host_protocol_revisions.size() == 5U && host_protocol_revisions[1].version == 9U &&
                 host_protocol_revisions[2].version == 10U && host_protocol_revisions[3].version == 11U &&
-                HostCapabilities::current_protocol_version == 11U,
-            "the compositor report is version 9, the input settings 10 and the mouse conventions 11");
+                host_protocol_revisions[4].version == 12U && HostCapabilities::current_protocol_version == 12U,
+            "the compositor report is version 9, the input settings 10, the mouse conventions 11 and the "
+            "window state 12");
     const std::unique_ptr<Fixture> held_fixture = std::make_unique<Fixture>();
     Fixture& fixture = *held_fixture;
     const PresentationSettings initial = fixture.window.presentation_settings();

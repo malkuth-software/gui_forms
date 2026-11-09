@@ -403,6 +403,41 @@ struct BackdropDeclaration final {
 // capacity, every amount finite and in its range, and at most one blur.
 [[nodiscard]] bool backdrop_declaration_valid(const BackdropDeclaration& backdrop) noexcept;
 
+// What a theme's band does while lit (`band-effect`): nothing more, or
+// flash (the window's flash limiter bounds it; gui_forms/window/band/
+// window_band.hpp).
+enum class BandEffect : std::uint8_t { none, flash };
+
+// A `window` rule's band (owner, 2026-11-08: the window outer band):
+// `band-width` (logical units, before device-pixel snapping),
+// `band-color` (the rest colour), `band-lit-color` and `band-effect`. Each
+// field is set only by its own declaration; the cascade takes each field
+// from the last matching rule that sets it.
+struct BandDeclaration final {
+    std::optional<double> width{};
+    std::optional<Color> rest_colour{};
+    std::optional<Color> lit_colour{};
+    std::optional<BandEffect> effect{};
+
+    [[nodiscard]] bool empty() const noexcept {
+        const bool none = !width && !rest_colour && !lit_colour && !effect;
+        return none;
+    }
+
+    friend bool operator==(const BandDeclaration& left, const BandDeclaration& right) noexcept {
+        return left.width == right.width && left.rest_colour == right.rest_colour &&
+               left.lit_colour == right.lit_colour && left.effect == right.effect;
+    }
+};
+
+// The widest `band-width` a theme may declare, in logical units (the same
+// as gui_forms::maximum_band_width, which a window checks).
+inline constexpr double maximum_theme_band_width = 32.0;
+
+// Whether `band` is one the engine admits: a width, if set, finite from 0
+// to maximum_theme_band_width; an effect, if set, in the enumeration.
+[[nodiscard]] bool band_declaration_valid(const BandDeclaration& band) noexcept;
+
 // Where a colour is drawn, as forced high contrast reads it: a fill (a
 // plate), an edge (a border, a keyline or a ring) or text; `none` for a
 // colour the high-contrast pass drops (a shadow, a glow, an image).
@@ -1242,6 +1277,8 @@ struct ThemeRule final {
     std::uint32_t source_position{};
     // A surface rule's backdrop (`backdrop:`), or none.
     std::optional<BackdropDeclaration> backdrop{};
+    // A window rule's band (`band-*`), or none.
+    std::optional<BandDeclaration> band{};
     // Where the rule was written. Not compared: two rules that cascade
     // alike are equal wherever they were written.
     RuleProvenance provenance{};
@@ -1254,7 +1291,8 @@ struct ThemeRule final {
                left.recipe_fields == right.recipe_fields && left.media == right.media &&
                left.scoped_definitions == right.scoped_definitions &&
                left.scoped_conditions == right.scoped_conditions && left.reads == right.reads &&
-               left.source_position == right.source_position && left.backdrop == right.backdrop;
+               left.source_position == right.source_position && left.backdrop == right.backdrop &&
+               left.band == right.band;
     }
 };
 
@@ -1334,6 +1372,9 @@ enum class RuleDiagnosticKind : std::uint8_t {
     // one that is not a valid chain (backdrop_declaration_valid); the
     // backdrop is dropped.
     backdrop_invalid,
+    // A band (ThemeRule::band) on a rule that selects no window, or one
+    // band_declaration_valid refuses; the band is dropped.
+    band_invalid,
     // A transition (E7) is dropped: its property is neither opacity nor a
     // parameter of the rule's primitive; the parameter is not animated or
     // not a number; or it has no states or more than
@@ -1687,6 +1728,12 @@ public:
     // matching rule declares one. `backdrop: none` wins as a chain of length
     // 0. Linear in the number of rules.
     [[nodiscard]] const BackdropDeclaration* resolve_backdrop(const PartFacts& facts) const noexcept;
+    // The band of the window `facts` name (PartFacts::surface window, its
+    // root control's classes and ID): each field from the last matching
+    // rule that sets it, among the compiled rules and the user theme's.
+    // Empty where none does, and for any surface but a window. Linear in
+    // the number of rules.
+    [[nodiscard]] BandDeclaration resolve_band(const PartFacts& facts) const noexcept;
 
     // The cascade for one part: the winning primitive declaration, then
     // each of that primitive's parameters from the winning declaration of
@@ -1769,6 +1816,8 @@ private:
         std::vector<RecipeDeclaration> recipe_fields{};
         // A surface rule's checked backdrop.
         std::optional<BackdropDeclaration> backdrop{};
+        // A window rule's checked band.
+        std::optional<BandDeclaration> band{};
         // Scoped custom properties (P12), by position in scoped_names_.
         std::vector<CompiledScoped> scoped_definitions{};
         std::vector<CompiledScoped> scoped_conditions{};
@@ -1848,6 +1897,10 @@ private:
     // an invalid chain, is dropped with a diagnostic.
     static void add_backdrop(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                              CompiledRule& compiled);
+    // A rule's band, checked; one on a rule that selects no window, or an
+    // invalid one, is dropped with a diagnostic.
+    static void add_band(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
+                         CompiledRule& compiled);
 
     [[nodiscard]] static bool matches(const CompiledRule& rule, const PartFacts& facts) noexcept;
     // Whether one `:not()` argument matches the part: every field it names

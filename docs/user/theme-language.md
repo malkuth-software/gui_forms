@@ -282,6 +282,25 @@ effect at the next of these. An application that sets its own chain keeps
 it. `popup` rules are compiled and held: they apply once native popup
 windows exist.
 
+The window outer band, a thin strip along the edges of a top-level window's
+client area that the program declares with `Window::declare_band`, takes its
+look from `window` rules. `band-width` is one length (0 to 32px; the
+window's own width wins, and the band is snapped to whole device pixels),
+`band-color` its rest colour (transparent by default, so a resting band shows
+the window's base), `band-lit-color` its lit colour (the window's focus-ring
+colour by default) and `band-effect` `none` or `flash` (a lit band flashes,
+at most twice a second). Each property comes from the last matching rule
+that sets it. A CSS-wide keyword is an error. In any other rule, including
+`popup` rules, a band property is warning W111 (`band_not_on_window`) and is
+dropped. Under forced high contrast the band draws the high-contrast
+palette's focus colour, solid and unflashing; reduced motion and turned-off
+ambient motion still a flash at its lit colour. For example,
+`window { band-width: 2px; band-lit-color: #c0392b; band-effect: flash }`.
+In 0.5 the band is a steady colour or the built-in flash only. Effect
+programs and textures on the band are planned after 0.5 (owner ruling,
+2026-11-08). The band never takes a resize-edge role: a frameless window
+stays frameless.
+
 `clip-path`, `rotate`, `transform`, text
 decoration and spacing, and layout properties (`width`, `margin`, ...) are
 warnings: geometry and layout belong to the engine and to forms.

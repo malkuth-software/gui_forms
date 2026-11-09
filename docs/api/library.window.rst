@@ -146,6 +146,14 @@ Related types
      - How a window's one tooltip presenter behaves (owner, 2026-10-28).
    * - :cpp:class:`ValidationSnapshot <gui_forms::ValidationSnapshot>`
      - ValidationSnapshot reports attempts, outcomes, focus blocks, reentrancy rejection, bulk visits, and active transaction state.
+   * - :cpp:class:`WindowBandAppearance <gui_forms::WindowBandAppearance>`
+     -  
+   * - :cpp:class:`WindowBandOptions <gui_forms::WindowBandOptions>`
+     - A window's band declaration (Window::declare_band).
+   * - :cpp:class:`WindowBandSnapshot <gui_forms::WindowBandSnapshot>`
+     - A window's band as it stands (Window::band_snapshot): whether it is declared and reserved, the reserved width (snapped, logical units), the colours the strips draw now, and the corners it follows.
+   * - :cpp:class:`WindowCornerReport <gui_forms::WindowCornerReport>`
+     - The host's report of the window's corners, in reply to its preference (HostServices::apply_window_corners).
    * - :cpp:class:`WindowDispatcher <gui_forms::WindowDispatcher>`
      - A window's dispatcher, reachable from any thread for as long as the caller holds this handle, whatever happens to the window.
    * - :cpp:class:`WindowOverrides <gui_forms::WindowOverrides>`
@@ -1483,6 +1491,88 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: WindowBandAppearance final
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   .. cpp:member:: WindowBandState state
+
+      Default: ``{WindowBandState::rest}``.
+
+   .. cpp:member:: std::optional<Color> rest_colour
+
+      The application's colours, each replacing the theme's while set. Ignored under high contrast, where the band takes the high-contrast palette.
+
+   .. cpp:member:: std::optional<Color> lit_colour
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowBandOptions final
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   A window's band declaration (Window::declare_band).
+
+   .. cpp:member:: double width
+
+      The width asked for, in logical units, before it is snapped to whole device pixels: 0 takes the theme's ``band-width``, or one logical unit where the theme declares none. Finite, from 0 to maximum_band_width.
+
+   .. cpp:member:: WindowBandFullScreen full_screen
+
+      Default: ``{WindowBandFullScreen::stays}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowBandSnapshot final
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   A window's band as it stands (Window::band_snapshot): whether it is declared and reserved, the reserved width (snapped, logical units), the colours the strips draw now, and the corners it follows.
+
+   .. cpp:member:: bool declared
+
+   .. cpp:member:: bool reserved
+
+      Declared and not hidden by full screen.
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: WindowBandOptions options
+
+   .. cpp:member:: WindowBandAppearance appearance
+
+   .. cpp:member:: Color drawn
+
+      The colour the strips draw now (the flash phase included). Default: ``{Color::rgba(0, 0, 0, 0)}``.
+
+   .. cpp:member:: bool flashing
+
+      Whether a flash is running now (not stilled).
+
+   .. cpp:member:: WindowCornerReport corners
+
+   .. cpp:member:: std::uint64_t flash_changes
+
+      The flash phase changes the strips have been damaged for, counted from the window's creation.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowCornerReport final
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   The host's report of the window's corners, in reply to its preference (HostServices::apply_window_corners). ``radius`` is in logical units, and meaningful only for ``rounded``. ``complied`` is false when the platform could not do as asked (it rounds regardless, or cannot round), so the band follows ``shape``, not the preference.
+
+   .. cpp:member:: WindowCornerShape shape
+
+      Default: ``{WindowCornerShape::unknown}``.
+
+   .. cpp:member:: double radius
+
+   .. cpp:member:: bool complied
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: WindowDispatcher final
 
    ``#include <gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp>``
@@ -1808,6 +1898,52 @@ Enumerations
 
    .. cpp:enumerator:: owner_gone
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WindowBandFullScreen
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   .. cpp:enumerator:: stays
+
+   .. cpp:enumerator:: hides
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WindowBandState
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   .. cpp:enumerator:: rest
+
+   .. cpp:enumerator:: lit
+
+   .. cpp:enumerator:: flashing
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WindowCornerPreference
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   .. cpp:enumerator:: system
+
+   .. cpp:enumerator:: square
+
+   .. cpp:enumerator:: round
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WindowCornerShape
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   .. cpp:enumerator:: unknown
+
+   .. cpp:enumerator:: square
+
+   .. cpp:enumerator:: rounded
+
 Functions, constants and aliases
 --------------------------------
 
@@ -1970,6 +2106,34 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double backdrop_maximum_saturation
 
    Value: ``4.0``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/window/band/window_band.hpp>``
+
+.. cpp:function:: bool window_band_options_valid(const WindowBandOptions& options) noexcept
+
+   Whether ``options`` is a declaration the window accepts: a finite width from 0 to maximum_band_width and a known full-screen choice.
+
+.. cpp:function:: bool window_band_appearance_valid(const WindowBandAppearance& appearance) noexcept
+
+   Whether ``appearance`` names a known state.
+
+.. cpp:function:: double snapped_band_width(double width, double scale) noexcept
+
+   ``width`` logical units snapped to whole device pixels at ``scale``: the nearest whole number of device pixels, at least one, back in logical units (study section 2.2), so content inside the band keeps landing on the device grid. 0 for a width that is not positive and finite or a scale that is not.
+
+.. cpp:function:: const char* window_corner_preference_name(WindowCornerPreference preference) noexcept
+
+.. cpp:function:: const char* window_corner_shape_name(WindowCornerShape shape) noexcept
+
+.. cpp:var:: constexpr double maximum_band_width
+
+   The widest band a window or a theme may ask for, in logical units. Value: ``32.0``.
+
+.. cpp:var:: constexpr unsigned maximum_band_flash_transitions
+
+   The flash limiter (study section 5, WCAG 2.3.1): at most this many luminance transitions a second, whatever the theme or the application asks: a flashing band changes colour once every half second. Value: ``2U``.
 
 .. cpp:namespace:: gui_forms
 

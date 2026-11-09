@@ -191,6 +191,19 @@ void HeadlessHostServices::shutdown_impl() noexcept {
     dialog_results_.clear();
     sound_trace_.clear();
 }
+void HeadlessHostServices::set_corner_report(WindowCornerPreference preference, WindowCornerReport report) noexcept {
+    const std::size_t index = static_cast<std::size_t>(preference);
+    if (index < corner_reports_.size()) corner_reports_[index] = report;
+}
+
+HostWindowCornersResult HeadlessHostServices::apply_window_corners_impl(WindowCornerPreference preference) {
+    // The base class admitted only a known preference.
+    native_corner_preference_ = preference;
+    HostWindowCornersResult result{};
+    result.report = corner_reports_[static_cast<std::size_t>(preference)];
+    return result;
+}
+
 HostServiceStatus HeadlessHostServices::apply_window_backdrop_impl(WindowBackdrop backdrop) {
     HostServiceStatus status{};
     // Opaque never fails (the HostServices contract).

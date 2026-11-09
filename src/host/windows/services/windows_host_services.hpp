@@ -172,6 +172,13 @@ protected:
         return applied;
     }
 
+    // The owner window's corners (DWM corner preference; the window outer
+    // band follows the report).
+    HostWindowCornersResult apply_window_corners_impl(WindowCornerPreference preference) override {
+        const HostWindowCornersResult applied = gui_forms::host::detail::apply_windows_corners(owner_, preference);
+        return applied;
+    }
+
     HostServiceStatus set_pointer_capture_impl(bool captured,
                                                std::uint64_t) override {
         if (owner_ == nullptr) return {HostServiceError::backend_failure};

@@ -687,8 +687,10 @@ struct LinuxAccessibility::Impl {
         NodeData& frame_data = data(frame);
         std::vector<AtkObject*> previous = std::move(frame_data.children);
         frame_data.children.clear();
-        XWindowAttributes window_attributes{}; XGetWindowAttributes(display, native, &window_attributes);
-        frame_data.node.bounds = {0, 0, static_cast<double>(window_attributes.width), static_cast<double>(window_attributes.height)};
+        // The frame covers the content rectangle: the client less a declared
+        // outer band, which hits nothing (owner, 2026-11-08). The X11 host
+        // runs at scale 1, so logical units are pixels.
+        frame_data.node.bounds = (*model).content_rect();
         frame_data.node.states = SemanticState::enabled | SemanticState::visible;
         for (std::size_t i = 0; i < snapshot.roots.size(); ++i) { sync(snapshot.roots[i], frame, static_cast<int>(i), 0U); }
         announce_children(frame, previous, frame_data.children);
