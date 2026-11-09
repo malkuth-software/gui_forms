@@ -219,8 +219,14 @@ int main(void) {
           GD_ERROR_UNSUPPORTED_VERSION);
     api.struct_size = sizeof(api);
     CHECK(gd_get_api_v0(GD_ABI_VERSION_0_2, &api) == GD_OK);
-    CHECK(api.struct_size == sizeof(api));
+    CHECK(api.struct_size == offsetof(gd_api_v0, pen_set_line_join));
     CHECK(api.abi_version == GD_ABI_VERSION_0_2);
+    CHECK(api.pen_set_line_join == NULL);
+    memset(&api, 0, sizeof(api));
+    api.struct_size = sizeof(api);
+    CHECK(gd_get_api_v0(GD_ABI_VERSION_0_3, &api) == GD_OK);
+    CHECK(api.struct_size == sizeof(api));
+    CHECK(api.abi_version == GD_ABI_VERSION_0_3);
     CHECK(api.recorder_trace != NULL);
     CHECK(api.graphics_path_create != NULL);
     CHECK(api.recorder_draw_image != NULL);

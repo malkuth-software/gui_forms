@@ -23,6 +23,10 @@ extern "C" {
 /* Experimental GUI.Drawing ABI. Nothing in this header is a 1.0 promise. */
 #define GD_ABI_VERSION_0_1 UINT32_C(0x00000001)
 #define GD_ABI_VERSION_0_2 UINT32_C(0x00000002)
+/* 0.3 appends the drawing primitives (pen_set_line_join onwards). Each
+   version exposes the table prefix it introduced; a newer version only
+   appends. */
+#define GD_ABI_VERSION_0_3 UINT32_C(0x00000003)
 
 typedef struct gd_handle {
     uint32_t slot;
@@ -569,7 +573,7 @@ typedef struct gd_api_v0 {
      */
     gd_result (*font_resolve)(gd_handle font, gd_font_resolution* resolution);
     /*
-     * Drawing primitives, appended before the drawing ABI seals: pen joins
+     * ABI 0.3, the drawing primitives (before the drawing ABI seals): pen joins
      * and caps, batched marks (one command per call, the array copied
      * once, at most 1,000,000 elements), conic and checker brushes, the
      * world-aligned grid, the proportional fill, text over a fill with

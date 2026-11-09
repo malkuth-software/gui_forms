@@ -2404,7 +2404,7 @@ gd_result api_graphics_path_add_rounded_rectangle(gd_handle handle, gd_rect rect
 }
 
 const gd_api_v0 api_table{
-    sizeof(gd_api_v0), GD_ABI_VERSION_0_2,
+    sizeof(gd_api_v0), GD_ABI_VERSION_0_3,
     &api_last_error, &api_retain, &api_release, &api_dispose,
     &api_object_state, &api_object_kind,
     &api_solid_brush_create, &api_pen_create, &api_pen_set_width,
@@ -2483,13 +2483,19 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
                     "drawing ABI negotiation requires a size-prefixed table");
     }
     if (requested_version != GD_ABI_VERSION_0_1 &&
-        requested_version != GD_ABI_VERSION_0_2) {
+        requested_version != GD_ABI_VERSION_0_2 &&
+        requested_version != GD_ABI_VERSION_0_3) {
         return fail(GD_ERROR_UNSUPPORTED_VERSION,
                     "requested GUI.Drawing ABI version is unsupported");
     }
     const std::uint32_t caller_size = (*table).struct_size;
-    const std::size_t available = requested_version == GD_ABI_VERSION_0_1
-        ? offsetof(gd_api_v0, bitmap_edit_begin) : sizeof(api_table);
+    // Each version's table is the prefix it introduced.
+    std::size_t available = sizeof(api_table);
+    if (requested_version == GD_ABI_VERSION_0_1) {
+        available = offsetof(gd_api_v0, bitmap_edit_begin);
+    } else if (requested_version == GD_ABI_VERSION_0_2) {
+        available = offsetof(gd_api_v0, pen_set_line_join);
+    }
     const std::size_t copied = std::min<std::size_t>(caller_size, available);
     std::memcpy(table, &api_table, copied);
     (*table).struct_size = static_cast<std::uint32_t>(available);
