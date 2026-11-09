@@ -33,6 +33,16 @@ Labels, images, progress and review cards.
      - Indeterminate busy indicator: a ring of twelve dots, three lit, turning while active on the window's frame clock; still under reduced motion; busy to assistive technology.
    * - :cpp:class:`SweepScope <gui_forms::SweepScope>`
      - A read-only scope that draws a level as a trace on a graticule.
+   * - :cpp:class:`Sparkline <gui_forms::Sparkline>`
+     - Read-only word-sized trend line from the instruments package: the newest values of a ring drawn through the plot primitives, with an optional shaded band and a dot on the newest value.
+   * - :cpp:class:`PlotView <gui_forms::PlotView>`
+     - Retained declarative plot from the plots package: axes, series and annotations declared as item children, with pan, zoom, box zoom, query and point picking, a keyboard point cursor, a figure node with a summary and a table view, and an optional live sub-surface.
+   * - :cpp:class:`PlotAxisItem <gui_forms::PlotAxisItem>`
+     - Item child of a PlotView declaring one axis: direction, scale, initial range, title, fitting and following.
+   * - :cpp:class:`PlotSeriesItem <gui_forms::PlotSeriesItem>`
+     - Item child of a PlotView declaring one series: its kind, legend label, axes and data (copied, a ring, borrowed views, a signal program or a producer's ring channel).
+   * - :cpp:class:`PlotAnnotationItem <gui_forms::PlotAnnotationItem>`
+     - Item child of a PlotView declaring a text label anchored at a data point.
    * - :cpp:class:`ReviewCard <gui_forms::ReviewCard>`
      - A card that presents one review record: a title, a summary and a verdict.
 
@@ -50,6 +60,11 @@ Labels, images, progress and review cards.
    generated/gui_forms.ProgressRing
    generated/gui_forms.Spinner
    generated/gui_forms.SweepScope
+   generated/gui_forms.Sparkline
+   generated/gui_forms.PlotView
+   generated/gui_forms.PlotAxisItem
+   generated/gui_forms.PlotSeriesItem
+   generated/gui_forms.PlotAnnotationItem
    generated/gui_forms.ReviewCard
 
 Related types
@@ -125,6 +140,66 @@ Related types
      - The image's opacity from zero through one; anything else, or a value that is not finite, throws std::invalid_argument.
    * - :cpp:class:`PictureBoxSizeModePropertyCapability <gui_forms::PictureBoxSizeModePropertyCapability>`
      - How the image is placed and scaled (SizeMode): normal, stretch_image, auto_size, center_image or zoom.
+   * - :cpp:class:`PlotAnnotationItemCapabilities <gui_forms::PlotAnnotationItemCapabilities>`
+     - Every PlotAnnotationItem capability, in the order the declaring class takes them.
+   * - :cpp:class:`PlotAnnotationItemTextCapability <gui_forms::PlotAnnotationItemTextCapability>`
+     - The annotation's words.
+   * - :cpp:class:`PlotAnnotationItemXCapability <gui_forms::PlotAnnotationItemXCapability>`
+     - The anchor's x in the first horizontal axis's units.
+   * - :cpp:class:`PlotAnnotationItemYCapability <gui_forms::PlotAnnotationItemYCapability>`
+     - The anchor's y in the first vertical axis's units.
+   * - :cpp:class:`PlotAxisItemAutoFitCapability <gui_forms::PlotAxisItemAutoFitCapability>`
+     - Whether the axis fits the data when the series change, until a gesture moves the view.
+   * - :cpp:class:`PlotAxisItemCapabilities <gui_forms::PlotAxisItemCapabilities>`
+     - Every PlotAxisItem capability, in the order the declaring class takes them.
+   * - :cpp:class:`PlotAxisItemDirectionCapability <gui_forms::PlotAxisItemDirectionCapability>`
+     - Which way the axis runs: horizontal (an x axis) or vertical (a y axis).
+   * - :cpp:class:`PlotAxisItemFollowSpanCapability <gui_forms::PlotAxisItemFollowSpanCapability>`
+     - A horizontal axis's following window: above zero the axis shows the newest x and this span before it (a live plot's tail); zero turns following off.
+   * - :cpp:class:`PlotAxisItemLabelCapability <gui_forms::PlotAxisItemLabelCapability>`
+     - The axis title drawn beside its tick labels.
+   * - :cpp:class:`PlotAxisItemMaximumCapability <gui_forms::PlotAxisItemMaximumCapability>`
+     - The largest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).
+   * - :cpp:class:`PlotAxisItemMinimumCapability <gui_forms::PlotAxisItemMinimumCapability>`
+     - The smallest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).
+   * - :cpp:class:`PlotAxisItemScaleCapability <gui_forms::PlotAxisItemScaleCapability>`
+     - How the axis maps values: linear, log10, symlog, time (UTC seconds) or category.
+   * - :cpp:class:`PlotPointPick <gui_forms::PlotPointPick>`
+     - A point the pointer or the keyboard cursor picked (PlotView::point_picked).
+   * - :cpp:class:`PlotQuery <gui_forms::PlotQuery>`
+     - A query rectangle (Ctrl + right drag, owner ruling 3a) in the first axes' data units (PlotView::selection_changed); ``present`` false when the selection was cleared.
+   * - :cpp:class:`PlotSeriesItemCapabilities <gui_forms::PlotSeriesItemCapabilities>`
+     - Every PlotSeriesItem capability, in the order the declaring class takes them.
+   * - :cpp:class:`PlotSeriesItemHiddenCapability <gui_forms::PlotSeriesItemHiddenCapability>`
+     - Whether the series is left out of the plot (its legend entry stays, dimmed); clicking the entry toggles it.
+   * - :cpp:class:`PlotSeriesItemKindCapability <gui_forms::PlotSeriesItemKindCapability>`
+     - What the series draws: line, stairs, scatter, shaded, bars or stems.
+   * - :cpp:class:`PlotSeriesItemLabelCapability <gui_forms::PlotSeriesItemLabelCapability>`
+     - The series' name in the legend and to assistive technology.
+   * - :cpp:class:`PlotSeriesItemSourceCapability <gui_forms::PlotSeriesItemSourceCapability>`
+     - A signal program declaration, ``signal(sine, frequency 2Hz, amplitude 1)`` (plots::parse_signal_source); empty for data written in C++.
+   * - :cpp:class:`PlotSeriesItemXAxisCapability <gui_forms::PlotSeriesItemXAxisCapability>`
+     - The horizontal axis the series is drawn against, by position among the plot's horizontal axes (past the last: the first).
+   * - :cpp:class:`PlotSeriesItemYAxisCapability <gui_forms::PlotSeriesItemYAxisCapability>`
+     - The vertical axis the series is drawn against, by position among the plot's vertical axes (past the last: the first).
+   * - :cpp:class:`PlotView::Parts <gui_forms::PlotView::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`PlotView::States <gui_forms::PlotView::States>`
+     -  
+   * - :cpp:class:`PlotViewCapabilities <gui_forms::PlotViewCapabilities>`
+     - Every PlotView capability, in the order the declaring class takes them.
+   * - :cpp:class:`PlotViewCrosshairCapability <gui_forms::PlotViewCrosshairCapability>`
+     - Whether a crosshair follows the pointer over the plot, with its coordinates.
+   * - :cpp:class:`PlotViewLiveCapability <gui_forms::PlotViewLiveCapability>`
+     - Whether the plot draws on its own sub-surface, paced by its frame pacer and fed by its series' ring channels (owner ruling 4a).
+   * - :cpp:class:`PlotViewRanges <gui_forms::PlotViewRanges>`
+     - The plot's visible ranges after a gesture or a programmatic change (PlotView::view_changed): the first x and y axes', as plain numbers so the C ABI carries them as fields.
+   * - :cpp:class:`PlotViewShowGridCapability <gui_forms::PlotViewShowGridCapability>`
+     - Whether the major and minor grid lines are drawn.
+   * - :cpp:class:`PlotViewShowLegendCapability <gui_forms::PlotViewShowLegendCapability>`
+     - Whether the legend is drawn (when a series has a label).
+   * - :cpp:class:`PlotViewTitleCapability <gui_forms::PlotViewTitleCapability>`
+     - The words drawn above the plot, and its accessible name by default.
    * - :cpp:class:`ProgressBar::Parts <gui_forms::ProgressBar::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`ProgressBar::States <gui_forms::ProgressBar::States>`
@@ -183,6 +258,16 @@ Related types
      - One bubble rising in the fill, or one puff of steam rising above the bar.
    * - :cpp:class:`ScopeSweep <gui_forms::ScopeSweep>`
      - The trace (a rise from the lower left to a peak above the level's place, and a fall to the right edge) and the sweep line crossing the plot once a period.
+   * - :cpp:class:`Sparkline::Parts <gui_forms::Sparkline::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`Sparkline::States <gui_forms::Sparkline::States>`
+     -  
+   * - :cpp:class:`SparklineCapabilities <gui_forms::SparklineCapabilities>`
+     - Every Sparkline capability, in the order the declaring class takes them.
+   * - :cpp:class:`SparklineCapacityCapability <gui_forms::SparklineCapacityCapability>`
+     - How many of the newest values the line keeps, 2 to 100000 (std::invalid_argument outside them); a smaller capacity drops the oldest.
+   * - :cpp:class:`SparklineFillCapability <gui_forms::SparklineFillCapability>`
+     - Whether the band under the line is shaded.
    * - :cpp:class:`Spinner::Parts <gui_forms::Spinner::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`SpinnerActiveCapability <gui_forms::SpinnerActiveCapability>`
@@ -828,6 +913,571 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> PlotAnnotationItemCapabilities : public PlotAnnotationItemTextCapability<Declaring>, public PlotAnnotationItemXCapability<Declaring>, public PlotAnnotationItemYCapability<Declaring>
+
+   ``#include <gui_forms/controls/plots/plot_annotation_item/plot_annotation_item_capabilities/plot_annotation_item_capabilities.hpp>``
+
+   Every PlotAnnotationItem capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The annotation's words.
+
+   .. cpp:member:: double x
+
+      The anchor's x in the first horizontal axis's units.
+
+   .. cpp:member:: double y
+
+      The anchor's y in the first vertical axis's units.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotAnnotationItemTextCapability
+
+   ``#include <gui_forms/controls/plots/plot_annotation_item/plot_annotation_item_capabilities/plot_annotation_item_capabilities.hpp>``
+
+   The annotation's words.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotAnnotationItemTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, PlotAnnotationItemTextCapability<Declaring>> text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotAnnotationItemXCapability
+
+   ``#include <gui_forms/controls/plots/plot_annotation_item/plot_annotation_item_capabilities/plot_annotation_item_capabilities.hpp>``
+
+   The anchor's x in the first horizontal axis's units.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotAnnotationItemXCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, PlotAnnotationItemXCapability<Declaring>> x
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotAnnotationItemYCapability
+
+   ``#include <gui_forms/controls/plots/plot_annotation_item/plot_annotation_item_capabilities/plot_annotation_item_capabilities.hpp>``
+
+   The anchor's y in the first vertical axis's units.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotAnnotationItemYCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, PlotAnnotationItemYCapability<Declaring>> y
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotAxisItemAutoFitCapability
+
+   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp>``
+
+   Whether the axis fits the data when the series change, until a gesture moves the view.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotAxisItemAutoFitCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, PlotAxisItemAutoFitCapability<Declaring>> auto_fit
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotAxisItemCapabilities : public PlotAxisItemDirectionCapability<Declaring>, public PlotAxisItemScaleCapability<Declaring>, public PlotAxisItemMinimumCapability<Declaring>, public PlotAxisItemMaximumCapability<Declaring>, public PlotAxisItemLabelCapability<Declaring>, public PlotAxisItemAutoFitCapability<Declaring>, public PlotAxisItemFollowSpanCapability<Declaring>
+
+   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp>``
+
+   Every PlotAxisItem capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: PlotAxisDirection direction
+
+      Which way the axis runs: horizontal (an x axis) or vertical (a y axis).
+
+   .. cpp:member:: PlotAxisScale scale
+
+      How the axis maps values: linear, log10, symlog, time (UTC seconds) or category.
+
+   .. cpp:member:: double minimum
+
+      The smallest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).
+
+   .. cpp:member:: double maximum
+
+      The largest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).
+
+   .. cpp:member:: std::string label
+
+      The axis title drawn beside its tick labels.
+
+   .. cpp:member:: bool auto_fit
+
+      Whether the axis fits the data when the series change, until a gesture moves the view.
+
+   .. cpp:member:: double follow_span
+
+      A horizontal axis's following window: above zero the axis shows the newest x and this span before it (a live plot's tail); zero turns following off. Negative or not finite throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotAxisItemDirectionCapability
+
+   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp>``
+
+   Which way the axis runs: horizontal (an x axis) or vertical (a y axis).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotAxisItemDirectionCapability& capability, PlotAxisDirection incoming)
+
+   .. cpp:member:: PropertyCell<PlotAxisDirection, PlotAxisItemDirectionCapability<Declaring>> direction
+
+      Default: ``{PlotAxisDirection::horizontal}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotAxisItemFollowSpanCapability
+
+   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp>``
+
+   A horizontal axis's following window: above zero the axis shows the newest x and this span before it (a live plot's tail); zero turns following off. Negative or not finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotAxisItemFollowSpanCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, PlotAxisItemFollowSpanCapability<Declaring>> follow_span
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotAxisItemLabelCapability
+
+   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp>``
+
+   The axis title drawn beside its tick labels.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotAxisItemLabelCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, PlotAxisItemLabelCapability<Declaring>> label
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotAxisItemMaximumCapability
+
+   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp>``
+
+   The largest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotAxisItemMaximumCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, PlotAxisItemMaximumCapability<Declaring>> maximum
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotAxisItemMinimumCapability
+
+   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp>``
+
+   The smallest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotAxisItemMinimumCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, PlotAxisItemMinimumCapability<Declaring>> minimum
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotAxisItemScaleCapability
+
+   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp>``
+
+   How the axis maps values: linear, log10, symlog, time (UTC seconds) or category.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotAxisItemScaleCapability& capability, PlotAxisScale incoming)
+
+   .. cpp:member:: PropertyCell<PlotAxisScale, PlotAxisItemScaleCapability<Declaring>> scale
+
+      Default: ``{PlotAxisScale::linear}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PlotPointPick final
+
+   ``#include <gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp>``
+
+   A point the pointer or the keyboard cursor picked (PlotView::point_picked).
+
+   .. cpp:member:: std::size_t series
+
+      The series' position among the plot's series items, and the element.
+
+   .. cpp:member:: std::size_t element
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double y
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PlotQuery final
+
+   ``#include <gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp>``
+
+   A query rectangle (Ctrl + right drag, owner ruling 3a) in the first axes' data units (PlotView::selection_changed); ``present`` false when the selection was cleared.
+
+   .. cpp:member:: bool present
+
+   .. cpp:member:: double x_minimum
+
+   .. cpp:member:: double x_maximum
+
+   .. cpp:member:: double y_minimum
+
+   .. cpp:member:: double y_maximum
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotSeriesItemCapabilities : public PlotSeriesItemKindCapability<Declaring>, public PlotSeriesItemLabelCapability<Declaring>, public PlotSeriesItemSourceCapability<Declaring>, public PlotSeriesItemHiddenCapability<Declaring>, public PlotSeriesItemXAxisCapability<Declaring>, public PlotSeriesItemYAxisCapability<Declaring>
+
+   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp>``
+
+   Every PlotSeriesItem capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: PlotSeriesKind kind
+
+      What the series draws: line, stairs, scatter, shaded, bars or stems.
+
+   .. cpp:member:: std::string label
+
+      The series' name in the legend and to assistive technology.
+
+   .. cpp:member:: std::string source
+
+      A signal program declaration, ``signal(sine, frequency 2Hz, amplitude 1)`` (plots::parse_signal_source); empty for data written in C++. A declaration that does not parse throws std::invalid_argument.
+
+   .. cpp:member:: bool hidden
+
+      Whether the series is left out of the plot (its legend entry stays, dimmed); clicking the entry toggles it.
+
+   .. cpp:member:: std::uint32_t x_axis
+
+      The horizontal axis the series is drawn against, by position among the plot's horizontal axes (past the last: the first).
+
+   .. cpp:member:: std::uint32_t y_axis
+
+      The vertical axis the series is drawn against, by position among the plot's vertical axes (past the last: the first).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotSeriesItemHiddenCapability
+
+   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp>``
+
+   Whether the series is left out of the plot (its legend entry stays, dimmed); clicking the entry toggles it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotSeriesItemHiddenCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, PlotSeriesItemHiddenCapability<Declaring>> hidden
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotSeriesItemKindCapability
+
+   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp>``
+
+   What the series draws: line, stairs, scatter, shaded, bars or stems.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotSeriesItemKindCapability& capability, PlotSeriesKind incoming)
+
+   .. cpp:member:: PropertyCell<PlotSeriesKind, PlotSeriesItemKindCapability<Declaring>> kind
+
+      Default: ``{PlotSeriesKind::line}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotSeriesItemLabelCapability
+
+   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp>``
+
+   The series' name in the legend and to assistive technology.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotSeriesItemLabelCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, PlotSeriesItemLabelCapability<Declaring>> label
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotSeriesItemSourceCapability
+
+   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp>``
+
+   A signal program declaration, ``signal(sine, frequency 2Hz, amplitude 1)`` (plots::parse_signal_source); empty for data written in C++. A declaration that does not parse throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotSeriesItemSourceCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, PlotSeriesItemSourceCapability<Declaring>> source
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotSeriesItemXAxisCapability
+
+   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp>``
+
+   The horizontal axis the series is drawn against, by position among the plot's horizontal axes (past the last: the first).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotSeriesItemXAxisCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, PlotSeriesItemXAxisCapability<Declaring>> x_axis
+
+      Default: ``{0U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotSeriesItemYAxisCapability
+
+   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp>``
+
+   The vertical axis the series is drawn against, by position among the plot's vertical axes (past the last: the first).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotSeriesItemYAxisCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, PlotSeriesItemYAxisCapability<Declaring>> y_axis
+
+      Default: ``{0U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PlotView::Parts final
+
+   ``#include <gui_forms/controls/plots/plot_view/plot_view.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts).
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry title
+
+   .. cpp:member:: PartGeometry plot
+
+   .. cpp:member:: PartGeometry x_axis
+
+   .. cpp:member:: PartGeometry y_axis
+
+   .. cpp:member:: PartGeometry legend
+
+   .. cpp:member:: PartGeometry crosshair
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PlotView::States final
+
+   ``#include <gui_forms/controls/plots/plot_view/plot_view.hpp>``
+
+   .. cpp:member:: bool normal
+
+   .. cpp:member:: bool enabled
+
+   .. cpp:member:: bool disabled
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotViewCapabilities : public PlotViewTitleCapability<Declaring>, public PlotViewLiveCapability<Declaring>, public PlotViewShowLegendCapability<Declaring>, public PlotViewShowGridCapability<Declaring>, public PlotViewCrosshairCapability<Declaring>
+
+   ``#include <gui_forms/controls/plots/plot_view/plot_view_capabilities/plot_view_capabilities.hpp>``
+
+   Every PlotView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string title
+
+      The words drawn above the plot, and its accessible name by default.
+
+   .. cpp:member:: bool live
+
+      Whether the plot draws on its own sub-surface, paced by its frame pacer and fed by its series' ring channels (owner ruling 4a). Off draws on the window's thread.
+
+   .. cpp:member:: bool show_legend
+
+      Whether the legend is drawn (when a series has a label).
+
+   .. cpp:member:: bool show_grid
+
+      Whether the major and minor grid lines are drawn.
+
+   .. cpp:member:: bool crosshair
+
+      Whether a crosshair follows the pointer over the plot, with its coordinates.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotViewCrosshairCapability
+
+   ``#include <gui_forms/controls/plots/plot_view/plot_view_capabilities/plot_view_capabilities.hpp>``
+
+   Whether a crosshair follows the pointer over the plot, with its coordinates.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotViewCrosshairCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, PlotViewCrosshairCapability<Declaring>> crosshair
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotViewLiveCapability
+
+   ``#include <gui_forms/controls/plots/plot_view/plot_view_capabilities/plot_view_capabilities.hpp>``
+
+   Whether the plot draws on its own sub-surface, paced by its frame pacer and fed by its series' ring channels (owner ruling 4a). Off draws on the window's thread.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotViewLiveCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, PlotViewLiveCapability<Declaring>> live
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PlotViewRanges final
+
+   ``#include <gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp>``
+
+   The plot's visible ranges after a gesture or a programmatic change (PlotView::view_changed): the first x and y axes', as plain numbers so the C ABI carries them as fields.
+
+   .. cpp:member:: double x_minimum
+
+   .. cpp:member:: double x_maximum
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double y_minimum
+
+   .. cpp:member:: double y_maximum
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotViewShowGridCapability
+
+   ``#include <gui_forms/controls/plots/plot_view/plot_view_capabilities/plot_view_capabilities.hpp>``
+
+   Whether the major and minor grid lines are drawn.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotViewShowGridCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, PlotViewShowGridCapability<Declaring>> show_grid
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotViewShowLegendCapability
+
+   ``#include <gui_forms/controls/plots/plot_view/plot_view_capabilities/plot_view_capabilities.hpp>``
+
+   Whether the legend is drawn (when a series has a label).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotViewShowLegendCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, PlotViewShowLegendCapability<Declaring>> show_legend
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PlotViewTitleCapability
+
+   ``#include <gui_forms/controls/plots/plot_view/plot_view_capabilities/plot_view_capabilities.hpp>``
+
+   The words drawn above the plot, and its accessible name by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PlotViewTitleCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, PlotViewTitleCapability<Declaring>> title
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ProgressBar::Parts final
 
    ``#include <gui_forms/controls/range_control/progress_bar/progress_bar.hpp>``
@@ -1411,6 +2061,85 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: Sparkline::Parts final
+
+   ``#include <gui_forms/controls/instruments/sparkline/sparkline.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts).
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry plot
+
+   .. cpp:member:: PartGeometry series
+
+   .. cpp:member:: PartGeometry marker
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: Sparkline::States final
+
+   ``#include <gui_forms/controls/instruments/sparkline/sparkline.hpp>``
+
+   .. cpp:member:: bool normal
+
+   .. cpp:member:: bool enabled
+
+   .. cpp:member:: bool disabled
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SparklineCapabilities : public SparklineCapacityCapability<Declaring>, public SparklineFillCapability<Declaring>
+
+   ``#include <gui_forms/controls/instruments/sparkline/sparkline_capabilities/sparkline_capabilities.hpp>``
+
+   Every Sparkline capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::uint32_t capacity
+
+      How many of the newest values the line keeps, 2 to 100000 (std::invalid_argument outside them); a smaller capacity drops the oldest.
+
+   .. cpp:member:: bool fill
+
+      Whether the band under the line is shaded.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SparklineCapacityCapability
+
+   ``#include <gui_forms/controls/instruments/sparkline/sparkline_capabilities/sparkline_capabilities.hpp>``
+
+   How many of the newest values the line keeps, 2 to 100000 (std::invalid_argument outside them); a smaller capacity drops the oldest.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SparklineCapacityCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, SparklineCapacityCapability<Declaring>> capacity
+
+      Default: ``{120U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SparklineFillCapability
+
+   ``#include <gui_forms/controls/instruments/sparkline/sparkline_capabilities/sparkline_capabilities.hpp>``
+
+   Whether the band under the line is shaded.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SparklineFillCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, SparklineFillCapability<Declaring>> fill
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: Spinner::Parts final
 
    ``#include <gui_forms/controls/spinner/spinner.hpp>``
@@ -1738,6 +2467,60 @@ Enumerations
    .. cpp:enumerator:: center_image
 
    .. cpp:enumerator:: zoom
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PlotAxisDirection
+
+   ``#include <gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp>``
+
+   .. cpp:enumerator:: horizontal
+
+   .. cpp:enumerator:: vertical
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PlotAxisScale
+
+   ``#include <gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp>``
+
+   .. cpp:enumerator:: linear
+
+   .. cpp:enumerator:: log10
+
+   .. cpp:enumerator:: symlog
+
+   .. cpp:enumerator:: time
+
+   .. cpp:enumerator:: category
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PlotSeriesItem::DataSource
+
+   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item.hpp>``
+
+   .. cpp:enumerator:: columns
+
+   .. cpp:enumerator:: borrowed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PlotSeriesKind
+
+   ``#include <gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp>``
+
+   .. cpp:enumerator:: line
+
+   .. cpp:enumerator:: stairs
+
+   .. cpp:enumerator:: scatter
+
+   .. cpp:enumerator:: shaded
+
+   .. cpp:enumerator:: bars
+
+   .. cpp:enumerator:: stems
 
 .. cpp:namespace:: gui_forms
 

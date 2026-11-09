@@ -610,8 +610,10 @@ void PlotView::take_live_notice(const detail::PlotLiveNotice& notice) {
     case detail::PlotLiveNoticeKind::view:
         live_ranges_ = notice.ranges;
         view_moved_ = true;
-        static_cast<void>((*engine_).model().set_x_range(0U, notice.ranges.x));
-        static_cast<void>((*engine_).model().set_y_range(0U, notice.ranges.y));
+        static_cast<void>((*engine_).model().set_x_range(
+            0U, plots::PlotRange{notice.ranges.x_minimum, notice.ranges.x_maximum}));
+        static_cast<void>((*engine_).model().set_y_range(
+            0U, plots::PlotRange{notice.ranges.y_minimum, notice.ranges.y_maximum}));
         invalidate(Dirty::semantics);
         view_changed_.emit(notice.ranges);
         return;

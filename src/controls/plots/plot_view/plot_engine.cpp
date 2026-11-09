@@ -1002,9 +1002,13 @@ bool PlotEngine::set_cursor(PlotCursor cursor, std::span<const PlotEngineSeries>
 }
 
 PlotViewRanges PlotEngine::ranges() const {
+    const plots::PlotRange x = model_.x_axes()[0].range;
+    const plots::PlotRange y = model_.y_axes()[0].range;
     PlotViewRanges result{};
-    result.x = model_.x_axes()[0].range;
-    result.y = model_.y_axes()[0].range;
+    result.x_minimum = x.minimum;
+    result.x_maximum = x.maximum;
+    result.y_minimum = y.minimum;
+    result.y_maximum = y.maximum;
     return result;
 }
 
@@ -1013,8 +1017,10 @@ PlotQuery PlotEngine::query() const {
     const std::optional<plots::PlotSelection>& selection = model_.selection();
     if (!selection.has_value()) return result;
     result.present = true;
-    result.x = (*selection).x;
-    result.y = (*selection).y;
+    result.x_minimum = (*selection).x.minimum;
+    result.x_maximum = (*selection).x.maximum;
+    result.y_minimum = (*selection).y.minimum;
+    result.y_maximum = (*selection).y.maximum;
     return result;
 }
 
@@ -1035,13 +1041,13 @@ std::string PlotEngine::summary(std::span<const PlotEngineSeries> series) const 
     }
     const PlotViewRanges shown = ranges();
     text += ". x from ";
-    text += format_value(shown.x.minimum);
+    text += format_value(shown.x_minimum);
     text += " to ";
-    text += format_value(shown.x.maximum);
+    text += format_value(shown.x_maximum);
     text += ", y from ";
-    text += format_value(shown.y.minimum);
+    text += format_value(shown.y_minimum);
     text += " to ";
-    text += format_value(shown.y.maximum);
+    text += format_value(shown.y_maximum);
     text += ".";
     const std::optional<PlotPointPick> at = cursor_point(series);
     if (at.has_value()) {

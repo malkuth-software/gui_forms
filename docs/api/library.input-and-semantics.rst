@@ -1190,6 +1190,8 @@ Enumerations
 
    .. cpp:enumerator:: search_box
 
+   .. cpp:enumerator:: figure
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -1307,7 +1309,7 @@ Functions, constants and aliases
 
 .. cpp:function:: constexpr SemanticRole semantic_role_fallback(SemanticRole role) noexcept
 
-   The role ``role`` specialises, which a host without a mapping for ``role`` publishes, and whose behaviour (patterns, interfaces, checked value and text) ``role`` shares: check_box for toggle_switch, text_box for search_box. Every other role is its own fallback.
+   The role ``role`` specialises, which a host without a mapping for ``role`` publishes, and whose behaviour (patterns, interfaces, checked value and text) ``role`` shares: check_box for toggle_switch, text_box for search_box, image for figure. Every other role is its own fallback.
 
 .. cpp:function:: constexpr bool has_semantic_state(SemanticState states, SemanticState requested) noexcept
 

@@ -3368,6 +3368,30 @@ Enumerations
 
    .. cpp:enumerator:: trace
 
+   .. cpp:enumerator:: axis
+
+   .. cpp:enumerator:: tick
+
+   .. cpp:enumerator:: tick_label
+
+   .. cpp:enumerator:: grid_major
+
+   .. cpp:enumerator:: grid_minor
+
+   .. cpp:enumerator:: legend
+
+   .. cpp:enumerator:: legend_entry
+
+   .. cpp:enumerator:: marker
+
+   .. cpp:enumerator:: crosshair
+
+   .. cpp:enumerator:: annotation
+
+   .. cpp:enumerator:: color_scale
+
+   .. cpp:enumerator:: series
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms

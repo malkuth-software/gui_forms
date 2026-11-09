@@ -90,6 +90,8 @@
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
+#include "gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp"
+#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
 #include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
 #include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar_values/quick_access_toolbar_values.hpp"
 #include "gui_forms/controls/range_control/range_control.hpp"
@@ -1012,6 +1014,9 @@ void read_field(EventFields& fields, std::string_view name, PageId& value);
 void append_field(EventFields& fields, std::string_view name, const PageInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const PagePinRequest& value);
 void read_field(EventFields& fields, std::string_view name, PagePinRequest& value);
+void append_field(EventFields& fields, std::string_view name, const PlotPointPick& value);
+void append_field(EventFields& fields, std::string_view name, const PlotQuery& value);
+void append_field(EventFields& fields, std::string_view name, const PlotViewRanges& value);
 void append_field(EventFields& fields, std::string_view name, const PointerEvent& value);
 void append_field(EventFields& fields, std::string_view name, const PointerSettings& value);
 void append_field(EventFields& fields, std::string_view name, const PresentationSettings& value);
@@ -2192,6 +2197,34 @@ inline void read_field(EventFields& fields, std::string_view name, PagePinReques
     read_field(fields, "page", value.page);
     read_field(fields, "pinned", value.pinned);
     read_field(fields, "handled", value.handled);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const PlotPointPick& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "series", value.series);
+    append_field(fields, "element", value.element);
+    append_field(fields, "x", value.x);
+    append_field(fields, "y", value.y);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const PlotQuery& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "present", value.present);
+    append_field(fields, "x_minimum", value.x_minimum);
+    append_field(fields, "x_maximum", value.x_maximum);
+    append_field(fields, "y_minimum", value.y_minimum);
+    append_field(fields, "y_maximum", value.y_maximum);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const PlotViewRanges& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "x_minimum", value.x_minimum);
+    append_field(fields, "x_maximum", value.x_maximum);
+    append_field(fields, "y_minimum", value.y_minimum);
+    append_field(fields, "y_maximum", value.y_maximum);
     fields.leave(prefix);
 }
 
@@ -4055,6 +4088,15 @@ inline SubscriptionToken connect_combo_box_items_changed(Component& source, cons
     return token;
 }
 
+inline SubscriptionToken connect_plot_view_legend_toggled(Component& source, const EventSink& sink) {
+    PlotView* typed = dynamic_cast<PlotView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).legend_toggled(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_rich_text_box_link_clicked(Component& source, const EventSink& sink) {
     RichTextBox* typed = dynamic_cast<RichTextBox*>(&source);
     if (typed == nullptr) {
@@ -4412,6 +4454,15 @@ inline SubscriptionToken connect_quick_access_toolbar_placement_changed(Componen
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).placement_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_plot_view_point_picked(Component& source, const EventSink& sink) {
+    PlotView* typed = dynamic_cast<PlotView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).point_picked(), sink);
     return token;
 }
 
@@ -4860,6 +4911,15 @@ inline SubscriptionToken connect_list_view_selection_changed(Component& source, 
     return token;
 }
 
+inline SubscriptionToken connect_plot_view_selection_changed(Component& source, const EventSink& sink) {
+    PlotView* typed = dynamic_cast<PlotView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_ribbon_gallery_selection_changed(Component& source, const EventSink& sink) {
     RibbonGallery* typed = dynamic_cast<RibbonGallery*>(&source);
     if (typed == nullptr) {
@@ -5296,6 +5356,15 @@ inline SubscriptionToken connect_task_dialog_verification_changed(Component& sou
     return token;
 }
 
+inline SubscriptionToken connect_plot_view_view_changed(Component& source, const EventSink& sink) {
+    PlotView* typed = dynamic_cast<PlotView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).view_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_ribbon_tool_tip_visibility_changed(Component& source, const EventSink& sink) {
     RibbonToolTip* typed = dynamic_cast<RibbonToolTip*>(&source);
     if (typed == nullptr) {
@@ -5324,7 +5393,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 291> event_connectors{{
+inline constexpr std::array<EventConnector, 295> event_connectors{{
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
     {"activated", "ChoiceGroup", &connect_choice_group_activated},
@@ -5476,6 +5545,7 @@ inline constexpr std::array<EventConnector, 291> event_connectors{{
     {"item_invoked", "ContextMenu", &connect_context_menu_item_invoked},
     {"item_invoked", "MenuStrip", &connect_menu_strip_item_invoked},
     {"items_changed", "ComboBox", &connect_combo_box_items_changed},
+    {"legend_toggled", "PlotView", &connect_plot_view_legend_toggled},
     {"link_clicked", "RichTextBox", &connect_rich_text_box_link_clicked},
     {"list_changed", "BindingSource", &connect_binding_source_list_changed},
     {"loaded", "UserControl", &connect_user_control_loaded},
@@ -5516,6 +5586,7 @@ inline constexpr std::array<EventConnector, 291> event_connectors{{
     {"parse", "Binding", &connect_binding_parse},
     {"pin_changed", "CorrespondenceView", &connect_correspondence_view_pin_changed},
     {"placement_changed", "QuickAccessToolbar", &connect_quick_access_toolbar_placement_changed},
+    {"point_picked", "PlotView", &connect_plot_view_point_picked},
     {"pointer_observed", "Control", &connect_control_pointer_observed},
     {"pointer_preview_observed", "Control", &connect_control_pointer_preview_observed},
     {"position_changed", "BindingSource", &connect_binding_source_position_changed},
@@ -5565,6 +5636,7 @@ inline constexpr std::array<EventConnector, 291> event_connectors{{
     {"selection_changed", "TreeView", &connect_tree_view_selection_changed},
     {"selection_changed", "DataGridView", &connect_data_grid_view_selection_changed},
     {"selection_changed", "ListView", &connect_list_view_selection_changed},
+    {"selection_changed", "PlotView", &connect_plot_view_selection_changed},
     {"selection_changed", "RibbonGallery", &connect_ribbon_gallery_selection_changed},
     {"selection_changed", "TreeListView", &connect_tree_list_view_selection_changed},
     {"sort_changed", "TreeListView", &connect_tree_list_view_sort_changed},
@@ -5613,6 +5685,7 @@ inline constexpr std::array<EventConnector, 291> event_connectors{{
     {"value_changed", "RibbonFontControl", &connect_ribbon_font_control_value_changed},
     {"value_committed", "PropertyList", &connect_property_list_value_committed},
     {"verification_changed", "TaskDialog", &connect_task_dialog_verification_changed},
+    {"view_changed", "PlotView", &connect_plot_view_view_changed},
     {"visibility_changed", "RibbonToolTip", &connect_ribbon_tool_tip_visibility_changed},
     {"visibility_changed", "ToolTip", &connect_tool_tip_visibility_changed},
     {"visible_changed", "Control", &connect_control_visible_changed},

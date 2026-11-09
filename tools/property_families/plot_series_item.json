@@ -8,7 +8,7 @@
   "base": "Control",
   "shared": [],
   "includes": [
-    "gui_forms/controls/plots/plot_values/plot_values.hpp"
+    "gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp"
   ],
   "properties": [
     {

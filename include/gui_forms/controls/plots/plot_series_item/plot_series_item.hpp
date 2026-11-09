@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui_forms/control.hpp"
-#include "gui_forms/controls/plots/plot_values/plot_values.hpp"
+#include "gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp"
 #include "gui_forms/plots/decimation/decimation.hpp"
 #include "gui_forms/plots/series_column/series_column.hpp"
 #include "gui_forms/plots/series_ring_channel/series_ring_channel.hpp"

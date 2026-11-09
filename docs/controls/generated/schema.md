@@ -547,6 +547,84 @@ Properties beyond every control's: `caption` (text), `maximum` (number), `minimu
 | `value_changed` | `double` |
 | `scroll` | `RangeScrollEvent` |
 
+## `sparkline` (Sparkline, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `plot` | plot |  |  |
+| `series` | series |  |  |
+| `marker` | marker |  |  |
+
+States: `normal`, `enabled`, `disabled`.
+
+Properties beyond every control's: `capacity` (unsigned_integer), `fill` (boolean).
+
+Interactions beyond every control's: none.
+
+## `plot_view` (PlotView, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `title` | caption |  |  |
+| `plot` | plot |  |  |
+| `x_axis` | axis |  |  |
+| `y_axis` | axis |  |  |
+| `legend` | legend |  |  |
+| `crosshair` | crosshair |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `crosshair` (boolean), `live` (boolean), `show_grid` (boolean), `show_legend` (boolean), `title` (text).
+
+| Interaction | Payload |
+|---|---|
+| `view_changed` | `PlotViewRanges` |
+| `selection_changed` | `PlotQuery` |
+| `point_picked` | `PlotPointPick` |
+| `legend_toggled` | `std::size_t` |
+
+## `plot_axis_item` (PlotAxisItem, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `auto_fit` (boolean), `direction` (enumeration), `follow_span` (number), `label` (text), `maximum` (number), `minimum` (number), `scale` (enumeration).
+
+Interactions beyond every control's: none.
+
+## `plot_series_item` (PlotSeriesItem, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `hidden` (boolean), `kind` (enumeration), `label` (text), `source` (text), `x_axis` (unsigned_integer), `y_axis` (unsigned_integer).
+
+Interactions beyond every control's: none.
+
+## `plot_annotation_item` (PlotAnnotationItem, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `text` (text), `x` (number), `y` (number).
+
+Interactions beyond every control's: none.
+
 ## `review_card` (ReviewCard, control)
 
 | Part | Role | Reuses | Own states |

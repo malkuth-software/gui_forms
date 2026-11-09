@@ -42,10 +42,13 @@ struct PlotPointPick final {
 };
 
 // The plot's visible ranges after a gesture or a programmatic change
-// (PlotView::view_changed): the first x and y axes'.
+// (PlotView::view_changed): the first x and y axes', as plain numbers so the
+// C ABI carries them as fields.
 struct PlotViewRanges final {
-    plots::PlotRange x{};
-    plots::PlotRange y{};
+    double x_minimum{};
+    double x_maximum{1.0};
+    double y_minimum{};
+    double y_maximum{1.0};
 };
 
 // A query rectangle (Ctrl + right drag, owner ruling 3a) in the first
@@ -53,8 +56,10 @@ struct PlotViewRanges final {
 // selection was cleared.
 struct PlotQuery final {
     bool present{};
-    plots::PlotRange x{};
-    plots::PlotRange y{};
+    double x_minimum{};
+    double x_maximum{};
+    double y_minimum{};
+    double y_maximum{};
 };
 
 } // namespace gui_forms

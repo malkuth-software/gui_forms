@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui_forms/binding/property_cell/property_cell.hpp"
-#include "gui_forms/controls/plots/plot_values/plot_values.hpp"
+#include "gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp"
 
 #include <cstdint>
 #include <optional>

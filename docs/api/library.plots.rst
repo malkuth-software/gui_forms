@@ -150,6 +150,8 @@ Types
      -  
    * - :cpp:class:`TickSet <gui_forms::plots::TickSet>`
      - Caller-owned output of TickGenerator::generate: capacity fixed, live counts stated.
+   * - :cpp:class:`ViewSamples <gui_forms::plots::ViewSamples>`
+     - x and y from two borrowed views, read as a decimation source (decimation.hpp's ColumnSamples for owned columns): read only under a pin (SeriesPin) of each view's lease.
 
 .. cpp:namespace:: gui_forms::plots
 
@@ -490,6 +492,10 @@ Types
 
    .. cpp:function:: std::size_t size() const noexcept
 
+   .. cpp:function:: std::size_t capacity() const noexcept
+
+      The elements reserve() made room for.
+
    .. cpp:function:: std::size_t level_count() const noexcept
 
 
@@ -497,7 +503,7 @@ Types
 
    .. cpp:function:: void reserve(std::size_t capacity)
 
-      Reserves the levels for up to ``capacity`` elements (allocates once).
+      Reserves the levels for up to :cpp:func:`capacity <gui_forms::plots::EnvelopePyramid::capacity>` elements (allocates once).
 
    .. cpp:function:: template <typename Source> PyramidOutcome build(const Source& source) noexcept
 
@@ -1780,6 +1786,30 @@ Types
    .. cpp:member:: std::size_t label_every
 
       Default: ``{1U}``.
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:struct:: template <SeriesElement XElement, SeriesElement YElement> ViewSamples final
+
+   ``#include <gui_forms/plots/series_view/series_view.hpp>``
+
+   x and y from two borrowed views, read as a decimation source (decimation.hpp's ColumnSamples for owned columns): read only under a pin (SeriesPin) of each view's lease.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t size() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: double x(std::size_t index) const noexcept
+
+   .. cpp:function:: double y(std::size_t index) const noexcept
+
+   .. cpp:member:: SeriesView<XElement> xs
+
+   .. cpp:member:: SeriesView<YElement> ys
 
 Enumerations
 ------------

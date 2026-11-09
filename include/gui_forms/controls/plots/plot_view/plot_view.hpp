@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui_forms/control.hpp"
-#include "gui_forms/controls/plots/plot_values/plot_values.hpp"
+#include "gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp"
 #include "gui_forms/plots/plot_view_model/plot_view_model.hpp"
 #include "gui_forms/plots/signal_program/signal_program.hpp"
 #include "gui_forms/controls/plots/plot_view/plot_view_capabilities/plot_view_capabilities.hpp"

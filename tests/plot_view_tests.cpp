@@ -347,7 +347,7 @@ void test_ranges_and_legend() {
     Window window(fixture.plot, {400.0, 300.0});
     window.perform_layout();
     require((*fixture.plot).set_x_range(0U, plots::PlotRange{2.0, 4.0}) && recorder.views == 1 &&
-                recorder.last_view.x == (plots::PlotRange{2.0, 4.0}),
+                near(recorder.last_view.x_minimum, 2.0) && near(recorder.last_view.x_maximum, 4.0),
             "set_x_range moves the view and raises view_changed");
     require(!(*fixture.plot).set_x_range(0U, plots::PlotRange{4.0, 2.0}) && recorder.views == 1,
             "an inverted range is refused, raising nothing");

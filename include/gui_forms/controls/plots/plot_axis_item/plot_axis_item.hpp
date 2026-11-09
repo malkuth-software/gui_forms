@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui_forms/control.hpp"
-#include "gui_forms/controls/plots/plot_values/plot_values.hpp"
+#include "gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp"
 #include "gui_forms/plots/axis/axis.hpp"
 #include "gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp"
 
