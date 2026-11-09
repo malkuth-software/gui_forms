@@ -64,6 +64,20 @@ struct PlotLiveAnnotation final {
     double y{};
 };
 
+// A copied series' points for the live frame, made on the UI thread when
+// the series' data changes and never written after. The plot keeps it for
+// its next updates and the frame reads it in place, so a repaint with
+// unchanged data sends a shared pointer, not a copy; an update coalesced
+// away costs nothing, since every update names the whole set. Freed by the
+// last holder, on either thread (immutable, so shared without a lock).
+struct PlotLiveColumns final {
+    std::vector<double> xs{};
+    std::vector<double> ys{};
+    // Unique within the plot that made it: the engine's revision for these
+    // points (its picker caches by revision).
+    std::uint64_t generation{};
+};
+
 // One series' state as the UI thread sent it. Exactly one data source is
 // used: a channel, else a signal program, else borrowed views, else the
 // copied columns.
@@ -81,8 +95,7 @@ struct PlotLiveSeries final {
     bool borrowed{};
     plots::BorrowedSeries<double> borrowed_x{};
     plots::BorrowedSeries<double> borrowed_y{};
-    std::vector<double> xs{};
-    std::vector<double> ys{};
+    std::shared_ptr<const PlotLiveColumns> columns{};
 };
 
 // Everything the frame shows, made on the UI thread and moved to the
@@ -138,7 +151,8 @@ protected:
     void on_key(KeyEvent& event) override;
 
 private:
-    // One series' data on this thread.
+    // One series' ring on this thread (channels and signals; copied
+    // series read their PlotLiveColumns in place).
     struct SeriesData final {
         plots::SeriesColumn<double> xs{};
         plots::SeriesColumn<double> ys{};

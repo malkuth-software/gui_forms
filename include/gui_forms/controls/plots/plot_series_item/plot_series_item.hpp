@@ -84,6 +84,10 @@ public:
     [[nodiscard]] const std::shared_ptr<plots::SeriesRingChannel>& channel() const noexcept { return channel_; }
     // Bumped by every data change and property write.
     [[nodiscard]] std::uint64_t revision() const noexcept { return revision_; }
+    // Bumped by every change to the points alone (set, append, push, borrow,
+    // clear, a new ring, a signal or channel frame), not by other property
+    // writes: a live plot copies a series again only when it moves.
+    [[nodiscard]] std::uint64_t data_revision() const noexcept { return data_revision_; }
     // Runs the signal program for `frame` into the ring (the plot's
     // ambient frame; `sink` is the plot's reused scratch). False when the
     // item has no signal.
@@ -105,6 +109,8 @@ public:
 private:
     // Bumps the revision and invalidates the owning plot.
     void notify_plot();
+    // Bumps the data revision, then notify_plot().
+    void notify_data_changed();
     // Rebuilds or extends the pyramid after the columns changed (from
     // `previous` elements).
     void update_pyramid(std::size_t previous);
@@ -122,6 +128,7 @@ private:
     std::optional<plots::SignalProgram> signal_{};
     std::shared_ptr<plots::SeriesRingChannel> channel_{};
     std::uint64_t revision_{};
+    std::uint64_t data_revision_{};
     // property_codemod begin PlotSeriesItem (tools/property_families/plot_series_item.json; generated, do not edit)
 public:
     // PlotSeriesItem's property table: Control's entries, then its own.

@@ -28,6 +28,7 @@ struct PlotEngineSeries;
 struct PlotEngineAnnotation;
 struct PlotLiveInbox;
 struct PlotLiveNotice;
+struct PlotLiveColumns;
 } // namespace detail
 
 // PlotView: the plots package's retained, declarative plot (IMGUI_IMPLOT_STUDY
@@ -128,6 +129,9 @@ public:
     [[nodiscard]] const plots::PlotViewModel& view_model() const;
     // The live sub-surface's host while `live`; null otherwise.
     [[nodiscard]] SubSurfaceHost* live_host() const noexcept { return live_host_.get(); }
+    // Copies of copied-in series made for the live frame: one each time a
+    // series' points change while live, none for a repaint that leaves them.
+    [[nodiscard]] std::uint64_t live_column_copies() const noexcept { return live_column_copies_; }
     // Ambient frames run (signal programs and channels while not live).
     [[nodiscard]] std::uint64_t frames_run() const noexcept { return frames_run_; }
 
@@ -200,6 +204,10 @@ private:
     // Makes or removes the live sub-surface, and sends it the plot's state.
     void update_live_host();
     void send_live_update(bool reset_view);
+    // The shared points of the copied series `item` at `position` for the
+    // live frame: the entry's when the item and its data revision are
+    // unchanged, else a new copy (live_columns_).
+    std::shared_ptr<const detail::PlotLiveColumns> live_columns(std::size_t position, const PlotSeriesItem& item);
     [[nodiscard]] double device_scale() const noexcept;
 
     std::unique_ptr<detail::PlotEngine> engine_;
@@ -226,6 +234,20 @@ private:
     std::uint64_t frames_run_{};
     std::shared_ptr<SubSurfaceHost> live_host_{};
     std::shared_ptr<detail::PlotLiveInbox> live_inbox_{};
+    // The points last sent to the live frame for each copied series, by
+    // series position: copied again only when the series' item or its data
+    // revision changes (send_live_update), and shared with the frame
+    // otherwise. Cleared when live mode ends.
+    struct LiveColumnsEntry final {
+        RuntimeId item{};
+        std::uint64_t data_revision{};
+        std::shared_ptr<const detail::PlotLiveColumns> columns{};
+    };
+    std::vector<LiveColumnsEntry> live_columns_{};
+    std::uint64_t live_generation_{};
+    // Copies of a series' points made for the live frame (diagnostics and
+    // tests: unchanged repaints make none).
+    std::uint64_t live_column_copies_{};
     // The live frame's last reported view and cursor, for the summary.
     PlotViewRanges live_ranges_{};
     std::optional<PlotPointPick> live_cursor_{};

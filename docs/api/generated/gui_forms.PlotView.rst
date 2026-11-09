@@ -61,6 +61,9 @@ gui_forms::PlotView
       **live_host** : ``SubSurfaceHost*``, read-only
          The live sub-surface's host while :cpp:member:`live <gui_forms::PlotView::live>`; null otherwise.
 
+      **live_column_copies** : ``std::uint64_t``, read-only
+         Copies of copied-in series made for the live frame: one each time a series' points change while live, none for a repaint that leaves them.
+
       **frames_run** : ``std::uint64_t``, read-only
          Ambient frames run (signal programs and channels while not live).
 
@@ -172,6 +175,10 @@ gui_forms::PlotView
    .. cpp:function:: SubSurfaceHost* live_host() const noexcept
 
       The live sub-surface's host while :cpp:member:`live <gui_forms::PlotView::live>`; null otherwise.
+
+   .. cpp:function:: std::uint64_t live_column_copies() const noexcept
+
+      Copies of copied-in series made for the live frame: one each time a series' points change while live, none for a repaint that leaves them.
 
    .. cpp:function:: std::uint64_t frames_run() const noexcept
 

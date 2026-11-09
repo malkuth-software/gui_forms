@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <span>
 #include <utility>
 
 namespace gui_forms::detail {
@@ -34,7 +35,7 @@ PlotLiveFrame::~PlotLiveFrame() = default;
 void PlotLiveFrame::take_state(PlotLiveState state) {
     std::vector<SeriesData> next(state.series.size());
     for (std::size_t index = 0U; index < state.series.size(); ++index) {
-        PlotLiveSeries& incoming = state.series[index];
+        const PlotLiveSeries& incoming = state.series[index];
         SeriesData& data = next[index];
         // A series fed by the same channel, or running the same signal,
         // keeps its ring; anything else takes the new data.
@@ -57,14 +58,8 @@ void PlotLiveFrame::take_state(PlotLiveState state) {
             data.ys = plots::SeriesColumn<double>(plots::SeriesMode::ring, live_signal_capacity, plots::XOrder::unordered);
             continue;
         }
-        if (incoming.borrowed) continue;
-        data.xs = plots::SeriesColumn<double>(plots::SeriesMode::growable, incoming.xs.size(), incoming.order);
-        data.ys = plots::SeriesColumn<double>(plots::SeriesMode::growable, incoming.ys.size(), plots::XOrder::unordered);
-        static_cast<void>(data.xs.assign(incoming.xs));
-        static_cast<void>(data.ys.assign(incoming.ys));
-        // The copy is held by the columns now.
-        incoming.xs = std::vector<double>{};
-        incoming.ys = std::vector<double>{};
+        // Borrowed views and copied columns are read in place (gather):
+        // nothing to hold here.
     }
     data_ = std::move(next);
     const bool reset = state.reset_view;
@@ -112,12 +107,22 @@ void PlotLiveFrame::gather() {
         series.x_axis = state.x_axis;
         series.y_axis = state.y_axis;
         series.borrowed = state.borrowed && !state.channel && !state.signal.has_value();
-        series.columns.xs = data_[index].xs.read();
-        series.columns.ys = data_[index].ys.read();
         series.borrowed_x = &state.borrowed_x;
         series.borrowed_y = &state.borrowed_y;
         series.order = state.channel || state.signal.has_value() ? plots::XOrder::monotone : state.order;
-        series.revision = data_[index].ys.revision();
+        const bool copied = !state.channel && !state.signal.has_value() && !state.borrowed && state.columns;
+        if (copied) {
+            // Borrowed from state_, which holds the columns until the next
+            // take_state, and gather runs again after each.
+            const PlotLiveColumns& columns = *state.columns;
+            series.columns.xs.first = std::span<const double>(columns.xs.data(), columns.xs.size());
+            series.columns.ys.first = std::span<const double>(columns.ys.data(), columns.ys.size());
+            series.revision = columns.generation;
+        } else {
+            series.columns.xs = data_[index].xs.read();
+            series.columns.ys = data_[index].ys.read();
+            series.revision = data_[index].ys.revision();
+        }
         gathered_.push_back(series);
     }
     for (std::size_t index = 0U; index < state_.annotations.size(); ++index) {

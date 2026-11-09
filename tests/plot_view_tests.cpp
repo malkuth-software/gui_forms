@@ -4,9 +4,11 @@
 // auto-fitted to the data); its gestures and keys raising view_changed,
 // selection_changed, point_picked and legend_toggled once each; the point
 // cursor; the figure node, its summary and the table view; the declared
-// interactions; `live` making and removing the sub-surface host; signal
-// programs run on the window's motion clock; and Sparkline's ring, bounds
-// and paint. Time comes from the test, never the wall clock.
+// interactions; `live` making and removing the sub-surface host, and a live
+// plot's repaints sending unchanged copied series without copying them
+// (counted with the allocation probe below); signal programs run on the
+// window's motion clock; and Sparkline's ring, bounds and paint. Time comes
+// from the test, never the wall clock.
 
 #include "gui_forms/instrument_controls.hpp"
 #include "gui_forms/plot_controls.hpp"
@@ -17,17 +19,155 @@
 #include <array>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <new>
 #include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
+#ifdef _WIN32
+#include <malloc.h>
+#endif
+
+// Counts allocation attempts and bytes on this thread while enabled (the
+// PageStrip probe's pattern, tests/page_strip_tests.cpp). Replacement
+// allocation is confined to this executable; a live plot's sub-surface
+// thread is not counted.
+namespace plot_view_allocation_probe {
+thread_local bool enabled{};
+thread_local std::size_t attempts{};
+thread_local std::size_t bytes_requested{};
+
+void count(const std::size_t bytes) {
+    if (!enabled) return;
+    ++attempts;
+    bytes_requested = bytes_requested + bytes;
+}
+
+void* allocate(const std::size_t bytes) {
+    count(bytes);
+    const std::size_t extent = bytes == 0U ? 1U : bytes;
+    void* memory = std::malloc(extent);
+    if (!memory) throw std::bad_alloc();
+    return memory;
+}
+
+void* allocate_aligned(const std::size_t bytes, const std::size_t alignment) {
+    count(bytes);
+    const std::size_t extent = bytes == 0U ? 1U : bytes;
+    void* memory = nullptr;
+#ifdef _WIN32
+    memory = _aligned_malloc(extent, alignment);
+#else
+    const int status = posix_memalign(&memory, alignment, extent);
+    if (status != 0) throw std::bad_alloc();
+#endif
+    if (!memory) throw std::bad_alloc();
+    return memory;
+}
+
+void release_aligned(void* const memory) noexcept {
+#ifdef _WIN32
+    _aligned_free(memory);
+#else
+    std::free(memory);
+#endif
+}
+
+class CountScope final {
+public:
+    CountScope() {
+        attempts = 0U;
+        bytes_requested = 0U;
+        enabled = true;
+    }
+    ~CountScope() { enabled = false; }
+    CountScope(const CountScope&) = delete;
+    CountScope& operator=(const CountScope&) = delete;
+};
+} // namespace plot_view_allocation_probe
+
+void* operator new(const std::size_t bytes) {
+    void* const memory = plot_view_allocation_probe::allocate(bytes);
+    return memory;
+}
+void* operator new[](const std::size_t bytes) {
+    void* const memory = plot_view_allocation_probe::allocate(bytes);
+    return memory;
+}
+void operator delete(void* const memory) noexcept { std::free(memory); }
+void operator delete[](void* const memory) noexcept { std::free(memory); }
+void operator delete(void* const memory, std::size_t) noexcept { std::free(memory); }
+void operator delete[](void* const memory, std::size_t) noexcept { std::free(memory); }
+void* operator new(const std::size_t bytes, const std::align_val_t alignment) {
+    void* const memory = plot_view_allocation_probe::allocate_aligned(bytes, static_cast<std::size_t>(alignment));
+    return memory;
+}
+void* operator new[](const std::size_t bytes, const std::align_val_t alignment) {
+    void* const memory = plot_view_allocation_probe::allocate_aligned(bytes, static_cast<std::size_t>(alignment));
+    return memory;
+}
+void operator delete(void* const memory, const std::align_val_t) noexcept {
+    plot_view_allocation_probe::release_aligned(memory);
+}
+void operator delete[](void* const memory, const std::align_val_t) noexcept {
+    plot_view_allocation_probe::release_aligned(memory);
+}
+void operator delete(void* const memory, std::size_t, const std::align_val_t) noexcept {
+    plot_view_allocation_probe::release_aligned(memory);
+}
+void operator delete[](void* const memory, std::size_t, const std::align_val_t) noexcept {
+    plot_view_allocation_probe::release_aligned(memory);
+}
+// The nothrow forms too: every form must come from the same allocator as its
+// matching delete, or a sanitizer reports an allocation/deallocation mismatch.
+void* operator new(const std::size_t bytes, const std::nothrow_t&) noexcept {
+    try {
+        void* const memory = plot_view_allocation_probe::allocate(bytes);
+        return memory;
+    } catch (const std::bad_alloc&) {
+        return nullptr;
+    }
+}
+void* operator new[](const std::size_t bytes, const std::nothrow_t&) noexcept {
+    try {
+        void* const memory = plot_view_allocation_probe::allocate(bytes);
+        return memory;
+    } catch (const std::bad_alloc&) {
+        return nullptr;
+    }
+}
+void operator delete(void* const memory, const std::nothrow_t&) noexcept { std::free(memory); }
+void operator delete[](void* const memory, const std::nothrow_t&) noexcept { std::free(memory); }
+void* operator new(const std::size_t bytes, const std::align_val_t alignment, const std::nothrow_t&) noexcept {
+    try {
+        void* const memory = plot_view_allocation_probe::allocate_aligned(bytes, static_cast<std::size_t>(alignment));
+        return memory;
+    } catch (const std::bad_alloc&) {
+        return nullptr;
+    }
+}
+void* operator new[](const std::size_t bytes, const std::align_val_t alignment, const std::nothrow_t&) noexcept {
+    try {
+        void* const memory = plot_view_allocation_probe::allocate_aligned(bytes, static_cast<std::size_t>(alignment));
+        return memory;
+    } catch (const std::bad_alloc&) {
+        return nullptr;
+    }
+}
+void operator delete(void* const memory, const std::align_val_t, const std::nothrow_t&) noexcept {
+    plot_view_allocation_probe::release_aligned(memory);
+}
+void operator delete[](void* const memory, const std::align_val_t, const std::nothrow_t&) noexcept {
+    plot_view_allocation_probe::release_aligned(memory);
+}
 
 namespace {
 using namespace gui_forms;
@@ -429,6 +569,71 @@ void test_live_host() {
     require((*fixture.plot).live_host() == nullptr, "live off removes the host");
 }
 
+// What one repaint of a plot allocated on this thread.
+struct RepaintAllocations final {
+    std::size_t attempts{};
+    std::size_t bytes{};
+};
+
+RepaintAllocations count_repaint(PlotView& plot) {
+    RecordingPainter painter;
+    RepaintAllocations counted{};
+    {
+        plot_view_allocation_probe::CountScope probe{};
+        plot.on_paint(painter, Rect{0.0, 0.0, 400.0, 300.0});
+        counted.attempts = plot_view_allocation_probe::attempts;
+        counted.bytes = plot_view_allocation_probe::bytes_requested;
+    }
+    return counted;
+}
+
+// A live plot sends its state with every repaint; a copied-in series
+// travels as the shared columns made when its points last changed, so a
+// repaint that leaves the points costs no copy: neither a copy count nor
+// bytes in proportion to the series. A change of the points makes exactly
+// one copy, and the repaints after it none again.
+void test_live_repaint_copies_only_changed_columns() {
+    Fixture fixture = make_plot("plot.live_copies", false);
+    constexpr std::size_t point_count = 100000U;
+    std::vector<double> xs(point_count);
+    std::vector<double> ys(point_count);
+    for (std::size_t index = 0U; index < point_count; ++index) {
+        xs[index] = static_cast<double>(index) * 1e-4;
+        ys[index] = std::sin(xs[index]);
+    }
+    (*fixture.series).set_points(xs, ys);
+    (*fixture.plot).live = true;
+    require((*fixture.plot).live_host() != nullptr, "the plot is live");
+    const std::uint64_t made = (*fixture.plot).live_column_copies();
+    require(made == 1U, "going live copies the copied-in series once");
+    const std::size_t series_bytes = point_count * 2U * sizeof(double);
+
+    // One repaint first, so storage the plot reuses has its size.
+    static_cast<void>(count_repaint(*fixture.plot));
+    const RepaintAllocations first = count_repaint(*fixture.plot);
+    const RepaintAllocations second = count_repaint(*fixture.plot);
+    require((*fixture.plot).live_column_copies() == made, "an unchanged repaint copies no series");
+    require(first.bytes < series_bytes / 16U && second.bytes < series_bytes / 16U,
+            "an unchanged repaint allocates nothing in proportion to the series");
+    require(first.attempts == second.attempts && first.bytes == second.bytes,
+            "unchanged repaints allocate the same, repaint after repaint");
+
+    // A label is not data: still no copy.
+    (*fixture.series).label = std::string("renamed");
+    static_cast<void>(count_repaint(*fixture.plot));
+    require((*fixture.plot).live_column_copies() == made, "a label change copies no series");
+
+    for (std::size_t index = 0U; index < point_count; ++index) ys[index] = std::cos(xs[index]);
+    (*fixture.series).set_points(xs, ys);
+    const RepaintAllocations changed = count_repaint(*fixture.plot);
+    require((*fixture.plot).live_column_copies() == made + 1U, "changed points are copied once");
+    require(changed.bytes >= series_bytes, "the probe sees the one copy of the changed points");
+    const RepaintAllocations after = count_repaint(*fixture.plot);
+    require((*fixture.plot).live_column_copies() == made + 1U && after.bytes < series_bytes / 16U,
+            "the repaints after a change copy nothing again");
+    (*fixture.plot).live = false;
+}
+
 void test_signal_runs_on_motion_clock() {
     Fixture fixture = make_plot("plot.signal", false);
     (*fixture.series).source = std::string("signal(sine, frequency 2Hz)");
@@ -501,6 +706,7 @@ int main() {
     test_semantics_and_table();
     test_paint_draws_series();
     test_live_host();
+    test_live_repaint_copies_only_changed_columns();
     test_signal_runs_on_motion_clock();
     test_sparkline();
     std::cout << "gui_forms_plot_view_tests passed\n";

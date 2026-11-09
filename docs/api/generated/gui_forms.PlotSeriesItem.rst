@@ -60,6 +60,9 @@ gui_forms::PlotSeriesItem
       **revision** : ``std::uint64_t``, read-only
          Bumped by every data change and property write.
 
+      **data_revision** : ``std::uint64_t``, read-only
+         Bumped by every change to the points alone (set, append, push, borrow, clear, a new ring, a signal or channel frame), not by other property writes: a live plot copies a series again only when it moves.
+
    :Inherited:
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
@@ -148,6 +151,10 @@ gui_forms::PlotSeriesItem
    .. cpp:function:: std::uint64_t revision() const noexcept
 
       Bumped by every data change and property write.
+
+   .. cpp:function:: std::uint64_t data_revision() const noexcept
+
+      Bumped by every change to the points alone (set, append, push, borrow, clear, a new ring, a signal or channel frame), not by other property writes: a live plot copies a series again only when it moves.
 
 
    .. rubric:: Methods

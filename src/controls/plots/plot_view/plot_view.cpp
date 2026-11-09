@@ -526,6 +526,7 @@ void PlotView::update_live_host() {
         static_cast<void>(removed);
         live_host_.reset();
         live_cursor_.reset();
+        live_columns_.clear();
         focusable = true;
         // Channels are consumed on this thread again from the next frame.
         update_ambient();
@@ -581,15 +582,7 @@ void PlotView::send_live_update(bool reset_view) {
             series.borrowed_x = item.borrowed_x();
             series.borrowed_y = item.borrowed_y();
         } else if (!series.channel && !series.signal.has_value()) {
-            // Copied columns travel as a copy.
-            const plots::ColumnSamples<double, double> samples = item.column_samples();
-            const std::size_t count = samples.size();
-            series.xs.resize(count);
-            series.ys.resize(count);
-            for (std::size_t element = 0U; element < count; ++element) {
-                series.xs[element] = samples.x(element);
-                series.ys[element] = samples.y(element);
-            }
+            series.columns = live_columns(index, item);
         }
         state.series.push_back(std::move(series));
     }
@@ -603,6 +596,32 @@ void PlotView::send_live_update(bool reset_view) {
     if (surface_root() != nullptr) state.dispatcher = (*surface_root()).dispatcher();
     state.inbox = live_inbox_;
     static_cast<void>((*live_host_).redraw_all(std::make_unique<detail::PlotLiveUpdate>(std::move(state))));
+}
+
+std::shared_ptr<const detail::PlotLiveColumns> PlotView::live_columns(std::size_t position,
+                                                                     const PlotSeriesItem& item) {
+    if (live_columns_.size() <= position) live_columns_.resize(position + 1U);
+    LiveColumnsEntry& entry = live_columns_[position];
+    const bool unchanged = entry.columns && entry.item == item.runtime_id() && entry.data_revision == item.data_revision();
+    if (unchanged) return entry.columns;
+    // The points changed (or another item took this position): one copy,
+    // made aside so a throw leaves the entry as it was.
+    const plots::ColumnSamples<double, double> samples = item.column_samples();
+    const std::size_t count = samples.size();
+    std::shared_ptr<detail::PlotLiveColumns> made = std::make_shared<detail::PlotLiveColumns>();
+    (*made).xs.resize(count);
+    (*made).ys.resize(count);
+    for (std::size_t element = 0U; element < count; ++element) {
+        (*made).xs[element] = samples.x(element);
+        (*made).ys[element] = samples.y(element);
+    }
+    live_generation_ = live_generation_ + 1U;
+    (*made).generation = live_generation_;
+    entry.item = item.runtime_id();
+    entry.data_revision = item.data_revision();
+    entry.columns = std::move(made);
+    live_column_copies_ = live_column_copies_ + 1U;
+    return entry.columns;
 }
 
 void PlotView::take_live_notice(const detail::PlotLiveNotice& notice) {

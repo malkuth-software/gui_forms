@@ -65,7 +65,7 @@ void PlotSeriesItem::set_points(std::span<const double> xs, std::span<const doub
     borrowed_x_ = plots::BorrowedSeries<double>{};
     borrowed_y_ = plots::BorrowedSeries<double>{};
     update_pyramid(0U);
-    notify_plot();
+    notify_data_changed();
 }
 
 void PlotSeriesItem::append_points(std::span<const double> xs, std::span<const double> ys) {
@@ -88,7 +88,7 @@ void PlotSeriesItem::append_points(std::span<const double> xs, std::span<const d
     }
     static_cast<void>(ys_.append(ys));
     update_pyramid(previous);
-    notify_plot();
+    notify_data_changed();
 }
 
 void PlotSeriesItem::set_values(std::span<const double> ys) {
@@ -107,7 +107,7 @@ void PlotSeriesItem::set_values(std::span<const double> ys) {
     borrowed_x_ = plots::BorrowedSeries<double>{};
     borrowed_y_ = plots::BorrowedSeries<double>{};
     update_pyramid(0U);
-    notify_plot();
+    notify_data_changed();
 }
 
 void PlotSeriesItem::make_ring(std::size_t capacity) {
@@ -120,13 +120,14 @@ void PlotSeriesItem::make_ring(std::size_t capacity) {
     borrowed_x_ = plots::BorrowedSeries<double>{};
     borrowed_y_ = plots::BorrowedSeries<double>{};
     pyramid_valid_ = false;
+    data_revision_ = data_revision_ + 1U;
 }
 
 void PlotSeriesItem::use_ring(std::size_t capacity) {
     require_mutable();
     if (capacity < 2U) throw std::invalid_argument("PlotSeriesItem ring capacity must be at least 2");
     make_ring(capacity);
-    notify_plot();
+    notify_data_changed();
 }
 
 void PlotSeriesItem::push_points(std::span<const double> xs, std::span<const double> ys) {
@@ -140,7 +141,7 @@ void PlotSeriesItem::push_points(std::span<const double> xs, std::span<const dou
         throw std::invalid_argument("PlotSeriesItem push_points would go back in x");
     }
     static_cast<void>(ys_.push_overwrite(ys));
-    notify_plot();
+    notify_data_changed();
 }
 
 void PlotSeriesItem::borrow_points(plots::BorrowedSeries<double> xs, plots::BorrowedSeries<double> ys,
@@ -154,7 +155,7 @@ void PlotSeriesItem::borrow_points(plots::BorrowedSeries<double> xs, plots::Borr
     order_ = order;
     data_source_ = DataSource::borrowed;
     pyramid_valid_ = false;
-    notify_plot();
+    notify_data_changed();
 }
 
 std::shared_ptr<plots::SeriesRingChannel> PlotSeriesItem::live_channel(std::size_t capacity) {
@@ -162,7 +163,7 @@ std::shared_ptr<plots::SeriesRingChannel> PlotSeriesItem::live_channel(std::size
     if (!channel_) {
         channel_ = std::make_shared<plots::SeriesRingChannel>(capacity, 2U);
         make_ring((*channel_).capacity());
-        notify_plot();
+        notify_data_changed();
     }
     return channel_;
 }
@@ -175,7 +176,7 @@ void PlotSeriesItem::clear_points() {
     borrowed_y_ = plots::BorrowedSeries<double>{};
     data_source_ = DataSource::columns;
     pyramid_valid_ = false;
-    notify_plot();
+    notify_data_changed();
 }
 
 plots::ColumnSamples<double, double> PlotSeriesItem::column_samples() const noexcept {
@@ -218,6 +219,7 @@ bool PlotSeriesItem::run_signal_frame(const plots::SignalFrame& frame, plots::Si
     static_cast<void>(xs_.push_overwrite(times));
     static_cast<void>(ys_.push_overwrite(values));
     revision_ = revision_ + 1U;
+    data_revision_ = data_revision_ + 1U;
     return true;
 }
 
@@ -226,7 +228,10 @@ std::size_t PlotSeriesItem::consume_channel(std::span<double> scratch) {
     if (xs_.mode() != plots::SeriesMode::ring) make_ring((*channel_).capacity());
     std::array<plots::SeriesColumn<double>*, 2> columns{&xs_, &ys_};
     const std::size_t taken = (*channel_).consume(columns, scratch);
-    if (taken != 0U) revision_ = revision_ + 1U;
+    if (taken != 0U) {
+        revision_ = revision_ + 1U;
+        data_revision_ = data_revision_ + 1U;
+    }
     return taken;
 }
 
@@ -251,6 +256,11 @@ void PlotSeriesItem::notify_plot() {
     revision_ = revision_ + 1U;
     const Control::Ptr owner = parent();
     if (owner) (*owner).invalidate(Dirty::arrange | Dirty::paint | Dirty::semantics);
+}
+
+void PlotSeriesItem::notify_data_changed() {
+    data_revision_ = data_revision_ + 1U;
+    notify_plot();
 }
 
 // -- property hooks --------------------------------------------------------------------
