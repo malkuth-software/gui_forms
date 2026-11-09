@@ -225,7 +225,7 @@ Related types
    * - :cpp:class:`TextItemsCapability <gui_forms::TextItemsCapability>`
      - An ordered list of text items edited in place (in-place collections design, owner 2026-11-07; the ListBox pilot): ``(*list).items.read()``, ``(*list).items[i]``, ``(*list).items = {...}``, ``items.insert(i, x)``, ``items.erase(i, n)``, ``items.replace(i, x)`` and ``items.clear()``.
    * - :cpp:class:`VisualRoleCapability <gui_forms::VisualRoleCapability>`
-     - The recipe family the panel paints with: window, panel or card.
+     - The recipe family the panel paints with: window, panel, card, or editor (the recessed field ground of the Panel-derived editors such as NumericUpDown and TreeView).
 
 .. cpp:namespace:: gui_forms
 
@@ -1397,7 +1397,7 @@ Related types
 
    .. cpp:member:: ControlVisualRole visual_role
 
-      The recipe family the panel paints with: window, panel or card.
+      The recipe family the panel paints with: window, panel, card, or editor (the recessed field ground of the Panel-derived editors such as NumericUpDown and TreeView).
 
 .. cpp:namespace:: gui_forms
 
@@ -1761,7 +1761,7 @@ Related types
 
    ``#include <gui_forms/controls/panel/panel_capabilities/panel_capabilities.hpp>``
 
-   The recipe family the panel paints with: window, panel or card.
+   The recipe family the panel paints with: window, panel, card, or editor (the recessed field ground of the Panel-derived editors such as NumericUpDown and TreeView).
 
 
    .. rubric:: Methods

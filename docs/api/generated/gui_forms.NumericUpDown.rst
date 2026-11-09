@@ -286,6 +286,10 @@ gui_forms::NumericUpDown
 
    .. cpp:function:: void arrange(Rect final_bounds) override
 
+   .. cpp:function:: void on_paint_overlay(Painter& painter, Rect local_damage) override
+
+      The scroll bars, then the spin column's halves as this control's arrow and glyph parts.
+
    .. cpp:function:: void on_key_preview(KeyEvent& event) override
 
    .. cpp:function:: void on_pointer_preview(PointerEvent& event) override

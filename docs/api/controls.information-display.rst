@@ -1823,6 +1823,14 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/controls/info_banner/notice_values/notice_values.hpp>``
+
+.. cpp:function:: constexpr Color notice_severity_colour(NoticeSeverity severity) noexcept
+
+   A severity's colour, which InfoBanner's keyline and icon, Toast's icon and InstrumentRack's module keyline draw as an authored foreground over the notice's role, under the severity's custom state (``:state(warning)``). Mid-tone, so that each reads on a light face and a dark one; high contrast replaces it with the role's own colour. Provisional until T4's floor gives the status colours roles.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope_effects.hpp>``
 
 .. cpp:function:: void register_sweep_scope_effects(EffectRegistry& registry)

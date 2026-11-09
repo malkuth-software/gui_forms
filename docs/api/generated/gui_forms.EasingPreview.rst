@@ -53,6 +53,8 @@ gui_forms::EasingPreview
          The :cpp:class:`BasicControlStyle <gui_forms::BasicControlStyle>` colours used for the paper, borders, labels and
          track rails.
 
+      **has_style_override** : ``bool``, read-only
+
       **tracks** : ``std::vector<EasingPreviewTrack>``
          The rows, each an :cpp:class:`EasingPreviewTrack <gui_forms::EasingPreviewTrack>` with a curve, a label and a marker
          colour. By default there are eight, one per :cpp:enum:`EasingCurve <gui_forms::EasingCurve>`. There must be
@@ -81,6 +83,8 @@ gui_forms::EasingPreview
       :class: autosummary longtable
       :widths: 35 65
 
+      * - :cpp:func:`clear_style <gui_forms::EasingPreview::clear_style>`
+        -  
       * - :cpp:func:`advance_animation <gui_forms::EasingPreview::advance_animation>`
         - Samples the timeline at a frame time into :cpp:func:`phase <gui_forms::EasingPreview::phase>`.
       * - :cpp:func:`easing_preview_property_entries <gui_forms::EasingPreview::easing_preview_property_entries>`
@@ -180,6 +184,8 @@ gui_forms::EasingPreview
 
       Sets :cpp:func:`style <gui_forms::EasingPreview::style>`; see the property's description above.
 
+   .. cpp:function:: bool has_style_override() const noexcept
+
    .. cpp:function:: const std::vector<EasingPreviewTrack>& tracks() const noexcept
 
       The rows, each an :cpp:class:`EasingPreviewTrack <gui_forms::EasingPreviewTrack>` with a curve, a label and a marker
@@ -207,6 +213,8 @@ gui_forms::EasingPreview
 
 
    .. rubric:: Methods
+
+   .. cpp:function:: void clear_style()
 
    .. cpp:function:: void advance_animation(FrameTime now)
 

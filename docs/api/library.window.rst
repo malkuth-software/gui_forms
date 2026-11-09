@@ -106,6 +106,8 @@ Related types
      - PointerCaptureChange carries capture state, runtime/stable control identity, and pointer identity to host services.
    * - :cpp:class:`PointerSettings <gui_forms::PointerSettings>`
      - The pointer settings controls and the window read (the WinForms SystemInformation values), from the host where its platform offers them.
+   * - :cpp:class:`PopupLift <gui_forms::PopupLift>`
+     - A drop-down's list or a picker's panel lifted out of its owner window into the owner's warm Popup window (owner, 2026-11-08: APP_WINDOW_RULES_ DESIGN Part S, drop-downs and pickers are Popups before 0.5), where it may extend past the owner's edges onto the desktop.
    * - :cpp:class:`PresentationAvailability <gui_forms::PresentationAvailability>`
      - The record a window publishes: the host's declaration and the live paint-lease snapshot.
    * - :cpp:class:`PresentationDeclaration <gui_forms::PresentationDeclaration>`
@@ -1040,6 +1042,41 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: PopupLift final
+
+   ``#include <gui_forms/window/native_popup/popup_lift.hpp>``
+
+   A drop-down's list or a picker's panel lifted out of its owner window into the owner's warm Popup window (owner, 2026-11-08: APP_WINDOW_RULES_ DESIGN Part S, drop-downs and pickers are Popups before 0.5), where it may extend past the owner's edges onto the desktop. The control keeps its overlay layer in the owner (it takes outside clicks and holds the owner's focus) and lifts only the content: lift shows ``content`` in Window::picker_popup_window_slot at ``face``, framed with room for the theme's overlay shadow when the Popup is translucent, gives it the Popup's focus and forwards the owner's keys and text to it (Window::forward_input_to_popup_window). Keys it leaves unhandled (Escape) reach the owner's layer as before. release hides the Popup, takes the content out (detached again) and ends the forwarding; the destructor releases. One lift per object; a second lift replaces the first. UI thread only, on the owner window's thread.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: PopupLift() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool lifted() const noexcept
+
+   .. cpp:function:: Window* host() const noexcept
+
+      The window the content shows in while lifted (the Popup's model), or null.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: bool lift(Window& window, const Control::Ptr& content, Rect face, PopupLiftInput input = PopupLiftInput::forwarded)
+
+      Shows ``content`` (a live control with no parent and in no window) in ``window``'s picker Popup at ``face``, the content's bounds in the window's client coordinates (which may reach past the client area; the Popup is kept inside the monitor's work area). False, changing nothing, when the run has no Popup windows or the host refuses: the caller then shows the content in its overlay layer.
+
+   .. cpp:function:: bool move(Rect face)
+
+      Moves the lifted content to ``face``; false when nothing is lifted.
+
+   .. cpp:function:: void release() noexcept
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PresentationAvailability final
 
    ``#include <gui_forms/window/presentation/presentation_types.hpp>``
@@ -1675,6 +1712,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: PopupLiftInput
+
+   ``#include <gui_forms/window/native_popup/popup_lift.hpp>``
+
+   .. cpp:enumerator:: forwarded
+
+   .. cpp:enumerator:: kept_by_owner
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: SettingOrigin
 
    ``#include <gui_forms/window/presentation/input_settings.hpp>``
@@ -1917,6 +1964,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_held_keys
 
    The most physical keys a window tracks as held at once. A key pressed while this many are held is not tracked (InteractionSnapshot:: untracked_key_presses counts them); its release is ignored. Value: ``16U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/window/native_popup/popup_lift.hpp>``
+
+.. cpp:function:: std::optional<Rect> drop_down_popup_face(Window& window, Rect anchor, Size size, double preferred_x)
+
+   The face, in ``window``'s client coordinates, of a drop-down of ``size`` hung from ``anchor`` (client coordinates) at ``preferred_x``, against the work area of the monitor under the anchor's lower left corner: under the anchor, or above it when it would overrun the area's bottom, and moved and cut to stay inside the area. None when the run has no Popup windows or cannot say the work area; the caller then places the drop-down in its client. UI thread.
 
 .. cpp:namespace:: gui_forms
 

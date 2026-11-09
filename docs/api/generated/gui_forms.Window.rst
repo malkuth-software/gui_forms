@@ -122,6 +122,10 @@ gui_forms::Window
         -  
       * - :cpp:func:`popup_window_model <gui_forms::Window::popup_window_model>`
         -  
+      * - :cpp:func:`forward_input_to_popup_window <gui_forms::Window::forward_input_to_popup_window>`
+        - While ``slot`` is set, every key and text event this window receives is offered first to popup_window_model(*slot), and routed here only when that leaves it unhandled; none ends the forwarding.
+      * - :cpp:func:`popup_work_area <gui_forms::Window::popup_work_area>`
+        - The work area of the monitor under ``client_point`` (this window's client coordinates), in client coordinates: the region a Popup window may cover, which reaches past the client area onto the desktop.
       * - :cpp:func:`show_toast <gui_forms::Window::show_toast>`
         - Toasts (W-4; coordinator ruling: one presenter per window, on the tooltip presenter's pattern, so that both move to lightweight Splash windows in Part S).
       * - :cpp:func:`dismiss_toast <gui_forms::Window::dismiss_toast>`
@@ -371,6 +375,14 @@ gui_forms::Window
 
    .. cpp:function:: Window* popup_window_model(std::size_t slot) const noexcept
 
+   .. cpp:function:: void forward_input_to_popup_window(std::optional<std::size_t> slot)
+
+      While ``slot`` is set, every key and text event this window receives is offered first to popup_window_model(*slot), and routed here only when that leaves it unhandled; none ends the forwarding. The control whose Popup has the keyboard sets it (PopupLift does) and clears it when the Popup hides. std::out_of_range for a slot out of range. UI thread.
+
+   .. cpp:function:: std::optional<Rect> popup_work_area(Point client_point)
+
+      The work area of the monitor under ``client_point`` (this window's client coordinates), in client coordinates: the region a Popup window may cover, which reaches past the client area onto the desktop. None when the run cannot say (no run, no frame, no monitors). Reads the monitor table into storage the window keeps. UI thread.
+
    .. cpp:function:: std::uint64_t show_toast(const Control::Ptr& owner, const Control::Ptr& content, std::chrono::milliseconds duration = default_toast_duration)
 
       Toasts (W-4; coordinator ruling: one presenter per window, on the tooltip presenter's pattern, so that both move to lightweight Splash windows in Part S). Only a true root window shows toasts, as only it opens native popups. show_toast places ``content``, a live control subtree with no parent and in no window (the stock content is Toast), in an overlay owned by ``owner`` (passive, as a tooltip: a disabled owner may show one), centred above the bottom of the client area at the size it measures, for ``duration`` (zero: until dismissed or hidden). A toast that shows is replaced (dismissed ``replaced``). The content takes no focus from the window. When the toast closes, the content leaves the overlay, detached again, so the caller may show it again. Returns the toast's ID: 1 for the first, growing by one. std::invalid_argument for an owner that is not a live, visible control of this window, null or disposed content, content with a parent or in a window, or a negative duration, changing nothing. UI thread.
@@ -398,3 +410,7 @@ gui_forms::Window
    .. cpp:member:: constexpr std::size_t maximum_popup_windows
 
       Warm Popup windows (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S; menus are Popups). Slot ``slot`` (below maximum_popup_windows; a menu uses its depth) is one passive popup-kind host window, opened hidden on the slot's first show and kept, hidden between shows, for this window's life. show_popup_window shows ``content`` (a live detached root) as its whole client at ``bounds`` (this window's client coordinates, kept inside the monitor's work area), replacing content already shown there; move_popup_window moves it; hide_popup_window hides it and takes the content out. A Popup never takes the focus: keys reach this window, and the control that opened the popup forwards them to popup_window_model(slot), the model while the slot shows (else null). False when the run cannot (no run, a host without popup windows, a host refusal): the caller opens an overlay instead. popup_window_closed() is raised with the slot when the host closes a slot that shows. std::out_of_range for a slot out of range. UI thread. Default: ``8U``.
+
+   .. cpp:member:: constexpr std::size_t picker_popup_window_slot
+
+      The slot drop-downs and pickers lift their lists and panels into (PopupLift; owner, 2026-11-08: Part S scope for 0.5). Menus use the slots below it, one per depth. Default: ``maximum_popup_windows - 1U``.

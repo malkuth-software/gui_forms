@@ -187,7 +187,7 @@ Types
    * - :cpp:class:`MaterialBorder <gui_forms::MaterialBorder>`
      - MaterialBorder pairs an authored color and logical stroke width.
    * - :cpp:class:`MaterialBorderEdges <gui_forms::MaterialBorderEdges>`
-     -  
+     - Single edges (CSS border-color with differing sides).
    * - :cpp:class:`MaterialColourFilter <gui_forms::MaterialColourFilter>`
      - A material's colour filter: none, or one matrix held out of line.
    * - :cpp:class:`MaterialColourMatrix <gui_forms::MaterialColourMatrix>`
@@ -2639,6 +2639,8 @@ Types
 
    ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
 
+   Single edges (CSS border-color with differing sides). On a square box each is a band along its edge; on a rounded one (corner_radius above 0, every present edge the same width) they draw as one ring, each pixel in the colour of the edge it lies nearest (split along 45-degree lines from the corners, as CSS splits a rounded box's edge colours), and the material's keylines draw as rings the same way.
+
 
    .. rubric:: Properties
 
@@ -4817,6 +4819,10 @@ Types
 
       Bounds role/state indices and chooses ordinary, selected, high-contrast, or high-contrast-selected recipe deterministically.
 
+   .. cpp:function:: ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role, ControlVisualContext context, AnatomyStateSet states, std::string_view part) const
+
+      Bounds role/state indices and chooses ordinary, selected, high-contrast, or high-contrast-selected recipe deterministically.
+
    .. cpp:function:: void provenance(const Control& control, ControlVisualRole role, ControlVisualContext context, CompiledThemeRules::PartProvenance& result) const
 
       Where each field of ``control``'s recipe in ``role`` and ``context`` came from (T4 cascade spec, item 5), for an editor's query: the facts resolve() reads, through CompiledThemeRules::resolve_provenance, into ``result``, its parameters left unset (a recipe has no primitive). In forced high contrast the fields the engine's pass draws are at forced_high_contrast in its layer, unauthored. Paint never calls it; the borrows in ``result`` stay valid while this theme, the control's inline style and its window's user theme live.
@@ -5127,6 +5133,10 @@ Types
    .. cpp:member:: double compact_breakpoint
 
       Default: ``{720.0}``.
+
+   .. cpp:member:: bool scroll_arrows
+
+      Whether scroll bars draw their arrow buttons: false gives the track the whole bar, as a macOS scroller (ScrollBar and the scroll bars of a ScrollableControl; their button extent then reads as zero). Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -6594,6 +6604,8 @@ Enumerations
    .. cpp:enumerator:: brushed_metal
 
    .. cpp:enumerator:: fresco
+
+   .. cpp:enumerator:: checker
 
 .. cpp:namespace:: gui_forms
 
