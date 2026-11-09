@@ -3,7 +3,7 @@
 Text a program sets after a window is built, such as `(*status).text = "Ready";`
 in an event handler, never appears in the window's initial description, so a
 translator could not see it. GUI.Forms finds that text while the program
-compiles. A Clang plugin records every string literal passed to a localizable
+compiles. A Clang plugin records every string literal written to a localizable
 property, and the program can read the list back at run time.
 
 The plugin changes no code. It adds one table per translation unit to the
@@ -13,22 +13,36 @@ function that passes it, and the literal's bytes.
 
 ## Localizable properties
 
-A parameter or field is localizable when its declaration carries
+A property is localizable when the declaration it is written through carries
 `GUI_FORMS_LOCALIZABLE(property)` (from
-`gui_forms/text/localizable/localizable_property.hpp`). The toolkit marks:
+`gui_forms/text/localizable/localizable_property.hpp`). A control's properties
+are cells ([Properties](properties)), and the mark is on the cell's field, so
+an ordinary write is what the plugin finds:
+
+```cpp
+(*window.status).text = "Ready";                   // a property cell's assignment
+(*window.sizes).items = {"Small", "Medium"};       // a collection cell's assignment
+(*window.sizes).items.append("Large");             // and its insert, append and replace
+```
+
+The mark on a capability's field holds for every control that takes the
+capability, so `text` is found on a Label, a Button and a GroupBox alike. A
+few values are still written through a marked function parameter, and an item
+record's marked field is found in its initialiser or assignment. The toolkit
+marks:
 
 | Property | Where |
 | --- | --- |
-| `text` | the `text` property cell of Label, ButtonBase, GroupBox, TabPage, TextBlock, RibbonColorPicker, NotifyIcon and the other controls that take the shared `TextCapability`; `Command::set_text`; the text of menu, tool strip, menu strip, ribbon, backstage, list view, tree view, choice, section and command bar items |
-| `tool_tip` | the `Control::tool_tip_text` property cell (also a TabPage's header tooltip and a field's hint), `ToolTip::set_tool_tip`, a tool strip item's `tool_tip_text`, and `RibbonToolTipContent`'s `title`, `description` and `disabled_reason` (not its `shortcut`, which comes from the key binding) |
-| `title` | the `title` property cell of ColorDialog, OpenFileDialog, SaveFileDialog, InfoBanner and EmptyState |
-| `placeholder` | the `placeholder_text` property cell of TextBox and ComboBox |
-| `accessible_name`, `accessible_description` | the Control property cells, and the accessible names of choice and command bar items |
+| `text` | the `text` cell of every control and component that takes the shared text capability (Label, ButtonBase and its buttons, GroupBox, NotifyIcon, Ribbon and the others in their API pages); `Command::set_text`; the text of menu, tool strip, menu strip, ribbon, backstage, list view, tree view, choice, section and command bar items |
+| `tool_tip` | the `tool_tip_text` cell of every control (also a TabPage's header tooltip and a field's hint), `ToolTip::set_tool_tip`, a tool strip item's `tool_tip_text`, and `RibbonToolTipContent`'s `title`, `description` and `disabled_reason` (not its `shortcut`, which comes from the key binding) |
+| `title` | the `title` cells of ColorDialog, OpenFileDialog, SaveFileDialog and EmptyState |
+| `placeholder` | the `placeholder_text` cells of TextBox and ComboBox |
+| `accessible_name`, `accessible_description` | the cells of every control, and the accessible names of choice and command bar items |
 | `header` | list view and tree list view column text, list view group headers, `DataGridViewColumn::header_text` |
 | `items` | the `items` collection cell of ComboBox, ListBox, CheckedListBox and DomainUpDown (assignment, `insert`, `append` and `replace`), and `CheckedListBox::add_item` |
 
 The text of a TextBox, ComboBox or DomainUpDown is the user's, so its `text`
-view is not marked.
+is not marked.
 
 A function of your own that passes its parameter on to a marked one is found
 when you mark its parameter too:
@@ -96,6 +110,8 @@ computed:
   literal (`constexpr const char* title = "Settings";`), recorded at the
   constant's definition and under each function that uses it;
 - in templates, once however many instantiations repeat it, and in lambdas;
+- in a write to a marked cell, through a reference or a pointer
+  (`(*status).text = "Ready";`, `(*list).items.insert(0, "First");`);
 - in a designated or positional aggregate initialiser, a constructor argument
   or an assignment to a marked field (`spec.text = "Open";`);
 - in a static or a shared library compiled with the plugin.
@@ -106,8 +122,9 @@ computed:
   from a file. Such text is never translated.
 - A literal that reaches a marked parameter only through an unmarked
   parameter of a function of your own.
-- A control's initial text passed to its constructor; initial text is
-  translated with the window's description.
+- A control's initial text passed to its constructor, and the property values
+  a form document sets; that text is translated with the window's
+  description, not recorded here.
 - A template's calls that are never instantiated.
 - Wide, UTF-16 and UTF-32 literals.
 - A constructor that keeps only part of its argument (a substring) is recorded
