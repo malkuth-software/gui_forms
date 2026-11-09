@@ -506,6 +506,53 @@ void test_backstage_column() {
     require(painter.filled(Color::rgba(0xff, 0xff, 0xff)), "the page is white");
 }
 
+// RB decision 25: a contextual tab keeps its set's tint when a theme rule's
+// primitive draws its face (the default theme styles every tab).
+void test_contextual_tint() {
+    std::vector<RibbonTabSpec> tabs = two_tabs();
+    RibbonTabSpec format{.stable_id = "format", .text = "Format"};
+    format.tab_set = "picture";
+    RibbonGroupSpec arrange{.stable_id = "arrange", .caption = "Arrange"};
+    arrange.commands.push_back({.stable_id = "front", .command = std::make_shared<Command>("front", "Front")});
+    format.groups.push_back(std::move(arrange));
+    tabs.push_back(std::move(format));
+    std::shared_ptr<Ribbon> ribbon = make_control<Ribbon>(StableId("ribbon"));
+    (*ribbon).set_tabs(std::move(tabs), {{"picture", "Picture Tools"}});
+    (*ribbon).set_theme_override(gui_forms_theme());
+    (*ribbon).set_tab_set_availability("picture", RibbonTabSetAvailability::available);
+    Window window(ribbon, {700.0, 160.0});
+    window.perform_layout();
+    const std::optional<AccentIndex> accent = (*ribbon).tab_set_accent("picture");
+    require(accent.has_value(), "the shown set has an accent");
+    LookPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 160.0}));
+    require(accent && painter.filled((*gui_forms_theme()).accent(*accent)),
+            "the contextual tab's themed face carries its set's tint");
+}
+
+// The derived dark variant turns a rule's dark ink to the dark ink: the
+// selected tab's #173F79 label is light on the dark tab, while the File
+// tab's white label stays white.
+void test_dark_tab_ink() {
+    std::shared_ptr<Ribbon> ribbon = ribbon_with(two_tabs());
+    (*ribbon).set_theme_override(gui_forms_theme());
+    Window window(ribbon, {700.0, 160.0});
+    PresentationOverrides dark{};
+    dark.colour_scheme = ColourScheme::dark;
+    window.set_presentation_overrides(dark);
+    window.perform_layout();
+    LookPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 160.0}));
+    const std::optional<std::size_t> home = painter.text_index("Home");
+    const std::optional<std::size_t> file = painter.text_index("File");
+    require(home.has_value() && file.has_value(), "the dark ribbon paints its labels");
+    if (!home || !file) return;
+    const Color ink = painter.text_colours[*home];
+    const int ink_sum = static_cast<int>(ink.red) + static_cast<int>(ink.green) + static_cast<int>(ink.blue);
+    require(ink_sum > 3 * 128, "the selected tab's ink is light in dark");
+    require(painter.text_colours[*file] == Color::rgba(0xff, 0xff, 0xff), "the File tab's white label stays white");
+}
+
 } // namespace
 
 int main() {
@@ -517,6 +564,8 @@ int main() {
     test_release_activation();
     test_width_refusals();
     test_plan_paint_package();
+    test_contextual_tint();
+    test_dark_tab_ink();
     test_default_theme_row();
     test_backstage_column();
     if (failures != 0) {

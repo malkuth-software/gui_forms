@@ -9,6 +9,8 @@
 #include "forced_high_contrast.hpp"
 #include "material_layers.hpp"
 #include "theme_access.hpp"
+#include "../contrast/theme_contrast.hpp"
+#include "../dark_variant/dark_variant.hpp"
 #include "../theme_compiler/theme_source_record.hpp"
 
 #include <algorithm>
@@ -2040,8 +2042,32 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     if (written != nullptr) text = (*written).inherit ? inherited_text(control, floor.text) : (*written).colour;
     // The fields relative to the control, copied: an inherited text colour,
     // currentcolor, and lengths in em at the control's em.
+    // At most two copies per field (darkened, then made relative): the
+    // reserve keeps every pointer into the copies valid.
     std::vector<RecipeDeclaration> scaled{};
-    scaled.reserve(recipe_field_count);
+    scaled.reserve(recipe_field_count * 2U);
+    // A theme that derives its dark variant writes its rules in light terms:
+    // in dark, a dark ink a rule authors for text (a named part's, such as a
+    // selected Ribbon tab's label) turns to the dark variant's ink by the
+    // primitives' rule, rather than staying light-scheme ink on a dark face.
+    // A light text colour (white on the File tab) is kept: the derivation
+    // would darken it as a face. An inherited colour and currentcolor are
+    // the resolved text already.
+    if (context.dark && definition().dark_variant == ThemeDarkVariant::derived) {
+        for (const RecipeDeclaration*& field : fields.fields) {
+            if (field == nullptr || (*field).initial || (*field).inherit || (*field).current_colour) continue;
+            if (recipe_field_colour_position((*field).field) != ColourPosition::text) continue;
+            const Color light = (*field).colour;
+            const Color dark = detail::dark_parameter_colour(light, (*field).origin, role);
+            if (!(detail::relative_luminance(dark) > detail::relative_luminance(light))) continue;
+            scaled.push_back(*field);
+            RecipeDeclaration& darkened = scaled.back();
+            darkened.colour = dark;
+            field = &darkened;
+        }
+        const RecipeDeclaration* const ink = set_recipe_field(fields, RecipeField::text);
+        if (ink != nullptr && !(*ink).inherit && !(*ink).current_colour) text = (*ink).colour;
+    }
     bool reads_em = false;
     for (const RecipeDeclaration*& field : fields.fields) {
         if (field == nullptr || (*field).initial) continue;

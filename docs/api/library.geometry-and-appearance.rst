@@ -251,9 +251,9 @@ Types
    * - :cpp:class:`PartMotion <gui_forms::PartMotion>`
      - A part's running transitions (E7; T2 plan, "How motion is driven").
    * - :cpp:class:`PartPaint <gui_forms::PartPaint>`
-     -  
-   * - :cpp:class:`PartProfile <gui_forms::PartProfile>`
      - One part to paint, in the control's local coordinates.
+   * - :cpp:class:`PartProfile <gui_forms::PartProfile>`
+     - A part's profile beside its rectangle (look integration; the T4 rendering reference's tab stack and the owner's Plan Paint tab look), as a theme sets it on the part (ControlPartMetrics) and the control passes it on: - ``taper``: the trailing (right) edge leans in by this many units at the part's top, a file-folder tab's edge, drawn as a line in ``taper_colour`` when it has one; - ``flare``: the bottom corners flare outward by this many units in a concave lip of ``flare_colour``, where a selected tab meets the plane; - ``edge_shadow``: a soft shadow beyond the trailing edge, following its taper, falling off from ``edge_shadow_colour`` to clear over this many units.
    * - :cpp:class:`PartRaster <gui_forms::PartRaster>`
      - One part's pixels as the engine keeps them (T2 plan, PartRaster): premultiplied BGRA8 in device pixels, in PartRasterView's layout, made for one display scale.
    * - :cpp:class:`PartRasterRequest <gui_forms::PartRasterRequest>`
@@ -3736,6 +3736,8 @@ Types
 
    ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
 
+   One part to paint, in the control's local coordinates. ``text``, ``image`` and ``mark`` are read only by roles that show them (label, caption and content; icon and image; glyph and indicator). ``text`` is borrowed for the call. ``font`` is an effective font (Control::effective_font). ``corner_radius``, when set, gives a surface part its shape; the theme (T4) will own shapes, so a control sets it only where today's recipe has no shape for the part. ``orientation`` and ``alignment`` are read with ``text``; ``dock_region`` only by the dock_shape mark.
+
    .. cpp:member:: PartRole role
 
       Default: ``{PartRole::region}``.
@@ -3784,7 +3786,7 @@ Types
 
    .. cpp:member:: std::optional<PartProfile> profile
 
-      The part's shape beside its rectangle (PartProfile), or none. Only surface roles read it; a pointed face ignores it.
+      The part's profile beside its rectangle (PartProfile), or none. Only surface roles read it; a pointed face ignores it.
 
    .. cpp:member:: PartFrame frame
 
@@ -3826,7 +3828,7 @@ Types
 
    ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
 
-   One part to paint, in the control's local coordinates. ``text``, ``image`` and ``mark`` are read only by roles that show them (label, caption and content; icon and image; glyph and indicator). ``text`` is borrowed for the call. ``font`` is an effective font (Control::effective_font). ``corner_radius``, when set, gives a surface part its shape; the theme (T4) will own shapes, so a control sets it only where today's recipe has no shape for the part. ``orientation`` and ``alignment`` are read with ``text``; ``dock_region`` only by the dock_shape mark. A part's profile beside its rectangle (look integration; the T4 rendering reference's tab stack and the owner's Plan Paint tab look), as a theme sets it on the part (ControlPartMetrics) and the control passes it on: - ``taper``: the trailing (right) edge leans in by this many units at the part's top, a file-folder tab's edge, drawn as a line in ``taper_colour`` when it has one; - ``flare``: the bottom corners flare outward by this many units in a concave lip of ``flare_colour``, where a selected tab meets the plane; - ``edge_shadow``: a soft shadow beyond the trailing edge, following its taper, falling off from ``edge_shadow_colour`` to clear over this many units. A tapered part is cut to its shape, its outer shadows with it; the edge shadow then draws its cast. Each is bounded: the taper by the part's width, the flare by its height, all by maximum_part_shape.
+   A part's profile beside its rectangle (look integration; the T4 rendering reference's tab stack and the owner's Plan Paint tab look), as a theme sets it on the part (ControlPartMetrics) and the control passes it on: - ``taper``: the trailing (right) edge leans in by this many units at the part's top, a file-folder tab's edge, drawn as a line in ``taper_colour`` when it has one; - ``flare``: the bottom corners flare outward by this many units in a concave lip of ``flare_colour``, where a selected tab meets the plane; - ``edge_shadow``: a soft shadow beyond the trailing edge, following its taper, falling off from ``edge_shadow_colour`` to clear over this many units. A tapered part is cut to its shape, its outer shadows with it; the edge shadow then draws its cast. Each is bounded: the taper by the part's width, the flare by its height, all by maximum_part_shape.
 
    .. cpp:member:: double taper
 
