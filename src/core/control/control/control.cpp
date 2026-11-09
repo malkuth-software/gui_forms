@@ -3909,6 +3909,11 @@ Control::MouseEvents& Control::mouse_events() {
     return *mouse_events_;
 }
 
+Control::KeyEvents& Control::key_events() {
+    if (!key_events_) key_events_ = std::make_unique<KeyEvents>();
+    return *key_events_;
+}
+
 namespace {
 
 constexpr std::array<PartField<Control::Parts>, 2> control_part_fields{{
@@ -4217,7 +4222,7 @@ void Control::on_dispose() noexcept {
 namespace {
 
 // The events Control adds to those of Component, in declaration order.
-constexpr std::array<InteractionDeclaration, 27> control_interactions{{
+constexpr std::array<InteractionDeclaration, 31> control_interactions{{
     {.name = "name_changed", .payload = "std::string", .mutable_payload = false},
     {.name = "visible_changed", .payload = "bool", .mutable_payload = false},
     {.name = "enabled_changed", .payload = "bool", .mutable_payload = false},
@@ -4245,6 +4250,10 @@ constexpr std::array<InteractionDeclaration, 27> control_interactions{{
     {.name = "focus_observed", .payload = "bool", .mutable_payload = false},
     {.name = "arranged_bounds_changed", .payload = "Rect", .mutable_payload = false},
     {.name = "help_requested", .payload = "HelpRequestEvent", .mutable_payload = true},
+    {.name = "preview_key_down", .payload = "PreviewKeyDownEventArgs", .mutable_payload = true},
+    {.name = "key_down", .payload = "KeyEventArgs", .mutable_payload = true},
+    {.name = "key_press", .payload = "KeyPressEventArgs", .mutable_payload = true},
+    {.name = "key_up", .payload = "KeyEventArgs", .mutable_payload = true},
 }};
 
 } // namespace

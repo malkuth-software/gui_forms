@@ -3134,7 +3134,7 @@
     {
       "name": "gf_windows_table",
       "kind": "table",
-      "size": 56,
+      "size": 64,
       "align": 8,
       "fields": [
         {
@@ -3255,6 +3255,30 @@
               },
               {
                 "name": "handled",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "key_state",
+          "type": "function",
+          "offset": 56,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window",
+                "type": "gf_object"
+              },
+              {
+                "name": "physical_key",
+                "type": "uint32_t"
+              },
+              {
+                "name": "down",
                 "type": "uint32_t*"
               }
             ]

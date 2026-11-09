@@ -415,15 +415,111 @@ const PropertyDescriptor& describe_numeric_up_down_value() {
     return descriptor;
 }
 
+PropertyDescriptor numeric_up_down_minimum_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "minimum";
+    descriptor.kind = BindingValueKind::number;
+    descriptor.category = "Data";
+    descriptor.description = "The lowest value; a minimum above the maximum raises the maximum to it, and the value is clamped into the range.";
+    descriptor.default_value = BindingValue{0.0};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_numeric_up_down_minimum() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        numeric_up_down_minimum_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor numeric_up_down_maximum_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "maximum";
+    descriptor.kind = BindingValueKind::number;
+    descriptor.category = "Data";
+    descriptor.description = "The highest value; a maximum below the minimum lowers the minimum to it, and the value is clamped into the range.";
+    descriptor.default_value = BindingValue{100.0};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_numeric_up_down_maximum() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        numeric_up_down_maximum_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor numeric_up_down_increment_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "increment";
+    descriptor.kind = BindingValueKind::number;
+    descriptor.category = "Data";
+    descriptor.description = "How far one step moves the value; finite and positive.";
+    descriptor.default_value = BindingValue{1.0};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_numeric_up_down_increment() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        numeric_up_down_increment_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor numeric_up_down_decimal_places_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "decimal_places";
+    descriptor.kind = BindingValueKind::unsigned_integer;
+    descriptor.category = "Data";
+    descriptor.description = "Decimal places the editor shows, at most 12; any turn hexadecimal off.";
+    descriptor.default_value = BindingValue{std::uint64_t{0U}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_numeric_up_down_decimal_places() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        numeric_up_down_decimal_places_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
 } // namespace
 
 const std::array<PropertyEntry, NumericUpDown::numeric_up_down_property_count>& NumericUpDown::numeric_up_down_property_entries() noexcept {
-    static constexpr std::array<PropertyEntry, 1U> own{{
+    static constexpr std::array<PropertyEntry, 5U> own{{
         {"value", &describe_numeric_up_down_value,
          &read_cell_entry<NumericUpDown, decltype(&NumericUpDown::value), &NumericUpDown::value>,
          &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::value), &NumericUpDown::value>,
          nullptr, nullptr, nullptr,
          &connect_event_entry<NumericUpDown, decltype(&NumericUpDown::value_changed_), &NumericUpDown::value_changed_>},
+        {"minimum", &describe_numeric_up_down_minimum,
+         &read_cell_entry<NumericUpDown, decltype(&NumericUpDown::minimum), &NumericUpDown::minimum>,
+         &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::minimum), &NumericUpDown::minimum>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"maximum", &describe_numeric_up_down_maximum,
+         &read_cell_entry<NumericUpDown, decltype(&NumericUpDown::maximum), &NumericUpDown::maximum>,
+         &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::maximum), &NumericUpDown::maximum>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"increment", &describe_numeric_up_down_increment,
+         &read_cell_entry<NumericUpDown, decltype(&NumericUpDown::increment), &NumericUpDown::increment>,
+         &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::increment), &NumericUpDown::increment>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"decimal_places", &describe_numeric_up_down_decimal_places,
+         &read_cell_entry<NumericUpDown, decltype(&NumericUpDown::decimal_places), &NumericUpDown::decimal_places>,
+         &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::decimal_places), &NumericUpDown::decimal_places>,
+         nullptr, nullptr, nullptr,
+         nullptr},
     }};
     static_assert(property_names_distinct(own), "NumericUpDown's property table names a property twice");
     static const std::array<PropertyEntry, numeric_up_down_property_count> entries =
@@ -447,7 +543,9 @@ void NumericUpDown::prepare_write(const decltype(increment)&, double& incoming) 
     }
 }
 
-void NumericUpDown::written(const decltype(increment)&) {}
+void NumericUpDown::written(const decltype(increment)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
 
 void NumericUpDown::prepare_write(const decltype(button_width)&, double& incoming) {
     require_mutable();

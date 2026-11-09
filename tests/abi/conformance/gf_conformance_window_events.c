@@ -67,14 +67,16 @@ static void GF_CALL help_release(void* context) {
     ++(*probe).released;
 }
 
-/* The listing: seven interactions, help_requested among them with a mutable
- * payload, and an index past the end refused. */
+/* The listing: eleven interactions, help_requested among them with a
+ * mutable payload, the key events (since 1.1), and an index past the end
+ * refused. */
 static void window_listing(gf_kit* kit) {
     uint64_t count = 0u;
     gf_kit_status(kit, (*kit).windows.interaction_count(&count), GF_STATUS_OK, "a window's interaction_count");
-    gf_kit_check(kit, count == 7u, "a window raises seven interactions");
+    gf_kit_check(kit, count == 11u, "a window raises eleven interactions");
     int help = 0;
     int focus = 0;
+    int keys = 0;
     uint64_t index = 0u;
     for (index = 0u; index < count; ++index) {
         gf_schema_interaction interaction;
@@ -90,7 +92,20 @@ static void window_listing(gf_kit* kit) {
         if (gf_kit_view_equals(interaction.name, "focused_control_changed")) {
             focus = 1;
         }
+        if ((gf_kit_view_equals(interaction.name, "key_down") || gf_kit_view_equals(interaction.name, "key_up")) &&
+            gf_kit_view_equals(interaction.payload, "KeyEventArgs") && interaction.mutable_payload == 1u) {
+            ++keys;
+        }
+        if (gf_kit_view_equals(interaction.name, "key_press") &&
+            gf_kit_view_equals(interaction.payload, "KeyPressEventArgs") && interaction.mutable_payload == 1u) {
+            ++keys;
+        }
+        if (gf_kit_view_equals(interaction.name, "key_state_changed") &&
+            gf_kit_view_equals(interaction.payload, "KeyStateChange") && interaction.mutable_payload == 0u) {
+            ++keys;
+        }
     }
+    gf_kit_check(kit, keys == 4, "the listing has key_down, key_press, key_up and key_state_changed");
     gf_kit_check(kit, help, "the listing has help_requested with a mutable HelpRequestEvent");
     gf_kit_check(kit, focus, "the listing has focused_control_changed");
     gf_schema_interaction past;
@@ -143,9 +158,45 @@ static void window_help(gf_kit* kit) {
     gf_kit_status(kit, (*kit).windows.request_help(window, NULL), GF_STATUS_INVALID_ARGUMENT,
                   "request_help needs a handled output");
 
+    /* Key state (since 1.1): nothing is held in a window that has seen no
+     * key; subscribing the key events is accepted. */
+    uint32_t down = 7u;
+    gf_kit_status(kit, (*kit).windows.key_state(window, 0x04u, &down), GF_STATUS_OK, "read a key's state");
+    gf_kit_check(kit, down == 0u, "no key is down in a window that has seen none");
+    gf_kit_status(kit, (*kit).windows.key_state(root, 0x04u, &down), GF_STATUS_WRONG_HANDLE_KIND,
+                  "key_state takes a window, not its root");
+    gf_kit_status(kit, (*kit).windows.key_state(window, 0x04u, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "key_state needs a down output");
+    gf_kit_recorder keys;
+    memset(&keys, 0, sizeof(keys));
+    keys.kit = kit;
+    const gf_callback keys_callback = gf_kit_recording_callback(&keys);
+    gf_subscription key_subscription = 0u;
+    gf_kit_status(kit, (*kit).events.subscribe(window, gf_kit_text("key_state_changed"), &keys_callback,
+                                               &key_subscription),
+                  GF_STATUS_OK, "subscribe to a window's key_state_changed");
+    const gf_object field = gf_kit_create(kit, "TextBox", "kit.window-events.field");
+    gf_subscription control_key = 0u;
+    gf_kit_status(kit, (*kit).events.subscribe(field, gf_kit_text("key_down"), &keys_callback, &control_key),
+                  GF_STATUS_OK, "subscribe to a control's key_down");
+    gf_subscription control_press = 0u;
+    gf_kit_status(kit, (*kit).events.subscribe(field, gf_kit_text("key_press"), &keys_callback, &control_press),
+                  GF_STATUS_OK, "subscribe to a control's key_press");
+    gf_subscription control_preview = 0u;
+    gf_kit_status(kit, (*kit).events.subscribe(field, gf_kit_text("preview_key_down"), &keys_callback,
+                                               &control_preview),
+                  GF_STATUS_OK, "subscribe to a control's preview_key_down");
+    gf_kit_status(kit, (*kit).events.disconnect(control_key), GF_STATUS_OK, "end the key_down subscription");
+    gf_kit_status(kit, (*kit).events.disconnect(control_press), GF_STATUS_OK, "end the key_press subscription");
+    gf_kit_status(kit, (*kit).events.disconnect(control_preview), GF_STATUS_OK,
+                  "end the preview_key_down subscription");
+    gf_kit_status(kit, (*kit).objects.release(field), GF_STATUS_OK, "release the key events control");
+
     gf_kit_status(kit, (*kit).objects.dispose(window), GF_STATUS_OK, "dispose the window");
     gf_kit_check(kit, probe.released == 1u && focus.released == 1u,
                  "destroying the window releases each subscription's callback once");
+    gf_kit_status(kit, (*kit).windows.key_state(window, 0x04u, &down), GF_STATUS_DISPOSED,
+                  "a disposed window refuses key_state");
     gf_kit_check(kit, focus.off_thread_calls == 0u, "the releases run on the UI thread");
     gf_kit_status(kit, (*kit).windows.request_help(window, &handled), GF_STATUS_DISPOSED,
                   "a disposed window refuses request_help");

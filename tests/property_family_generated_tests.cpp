@@ -1466,21 +1466,33 @@ void test_numeric_up_down_properties() {
         const double sample = -10.0;
         (*control).minimum = sample;
         expect((*control).minimum.read() == sample, "NumericUpDown.minimum: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("minimum");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "NumericUpDown.minimum: the table reads the cell");
     }
     {
         const double sample = 50.0;
         (*control).maximum = sample;
         expect((*control).maximum.read() == sample, "NumericUpDown.maximum: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("maximum");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "NumericUpDown.maximum: the table reads the cell");
     }
     {
         const double sample = 0.5;
         (*control).increment = sample;
         expect((*control).increment.read() == sample, "NumericUpDown.increment: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("increment");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "NumericUpDown.increment: the table reads the cell");
     }
     {
         const std::uint8_t sample = std::uint8_t{2};
         (*control).decimal_places = sample;
         expect((*control).decimal_places.read() == sample, "NumericUpDown.decimal_places: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("decimal_places");
+        expect(by_name && *by_name == PropertyValueTraits<std::uint8_t>::to_binding(sample),
+               "NumericUpDown.decimal_places: the table reads the cell");
     }
     {
         const bool sample = !(*control).hexadecimal.read();

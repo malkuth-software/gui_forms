@@ -727,7 +727,21 @@ typedef struct gf_run_options {
  * events.subscribe takes their names on the window object, and
  * interaction_count and interaction_at list them (active_changed,
  * backdrop_changed, dialog_result_changed, focused_control_changed,
- * help_requested, presentation_changed, theme_changed). Its subscriptions
+ * help_requested, key_down, key_press, key_state_changed, key_up,
+ * presentation_changed, theme_changed).
+ *
+ * Key input (since 1.1). A window's key_down and key_up reach a subscriber
+ * before the focused control (Windows Forms' KeyPreview), and every
+ * control raises preview_key_down, key_down, key_press and key_up; their
+ * fields are key_code (the Windows Forms Keys code, the same on every
+ * host), physical_key (the USB HID usage), scan_code (the host's own
+ * hardware code, zero when none), modifiers, repeat (an auto-repeated
+ * down), released_by_deactivation, and the writable handled and
+ * suppress_key_press (preview_key_down: is_input_key; key_press: text,
+ * key_char and handled). key_state_changed is the raw press and release
+ * of each physical key, once each and never for an auto-repeat, before
+ * anything can consume it, with the releases the window makes when it
+ * loses activation. key_state asks whether a key is down now. Its subscriptions
  * end when the window is destroyed, each callback released once on the UI
  * thread; a disposed window refuses new ones with GF_STATUS_DISPOSED.
  */
@@ -763,6 +777,12 @@ typedef struct gf_windows_table {
      * 1 when a handler or provider handled it, else 0 (since 1.1). UI thread.
      * GF_STATUS_DISPOSED once the window is gone. */
     gf_status (GF_CALL* request_help)(gf_object window, uint32_t* handled);
+    /* down receives 1 when physical_key (a USB HID usage) is down in window
+     * now, as the window has seen it (pressed, not released, not released by
+     * the window losing activation), else 0 (since 1.1). UI thread.
+     * GF_STATUS_INVALID_ARGUMENT without down; GF_STATUS_DISPOSED once the
+     * window is gone. */
+    gf_status (GF_CALL* key_state)(gf_object window, uint32_t physical_key, uint32_t* down);
 } gf_windows_table;
 
 /* gf_schema_kind: what a schema type is. A control is created and placed in

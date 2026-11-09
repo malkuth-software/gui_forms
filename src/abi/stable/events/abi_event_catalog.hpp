@@ -116,6 +116,7 @@
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/events/key_events/key_events.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/feedback/types/feedback_types.hpp"
@@ -967,7 +968,12 @@ void append_field(EventFields& fields, std::string_view name, const ItemCheckEve
 void read_field(EventFields& fields, std::string_view name, ItemCheckEvent& value);
 void append_field(EventFields& fields, std::string_view name, const ItemContentPaint& value);
 void read_field(EventFields& fields, std::string_view name, ItemContentPaint& value);
+void append_field(EventFields& fields, std::string_view name, const KeyEventArgs& value);
+void read_field(EventFields& fields, std::string_view name, KeyEventArgs& value);
 void append_field(EventFields& fields, std::string_view name, const KeyGesture& value);
+void append_field(EventFields& fields, std::string_view name, const KeyPressEventArgs& value);
+void read_field(EventFields& fields, std::string_view name, KeyPressEventArgs& value);
+void append_field(EventFields& fields, std::string_view name, const KeyStateChange& value);
 void append_field(EventFields& fields, std::string_view name, const ListSelectionChange& value);
 void append_field(EventFields& fields, std::string_view name, const ListViewColumnClick& value);
 void append_field(EventFields& fields, std::string_view name, const ListViewColumnWidthChange& value);
@@ -1015,6 +1021,8 @@ void read_field(EventFields& fields, std::string_view name, PagePinRequest& valu
 void append_field(EventFields& fields, std::string_view name, const PointerEvent& value);
 void append_field(EventFields& fields, std::string_view name, const PointerSettings& value);
 void append_field(EventFields& fields, std::string_view name, const PresentationSettings& value);
+void append_field(EventFields& fields, std::string_view name, const PreviewKeyDownEventArgs& value);
+void read_field(EventFields& fields, std::string_view name, PreviewKeyDownEventArgs& value);
 void append_field(EventFields& fields, std::string_view name, const ProceduralFill& value);
 void append_field(EventFields& fields, std::string_view name, const PropertyEditorInputError& value);
 void append_field(EventFields& fields, std::string_view name, const PropertyEnumValue& value);
@@ -1807,10 +1815,63 @@ inline void read_field(EventFields& fields, std::string_view name, ItemContentPa
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const KeyEventArgs& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "key_code", value.key_code);
+    append_field(fields, "physical_key", value.physical_key);
+    append_field(fields, "scan_code", value.scan_code);
+    append_field(fields, "modifiers", value.modifiers);
+    append_field(fields, "repeat", value.repeat);
+    append_field(fields, "released_by_deactivation", value.released_by_deactivation);
+    append_field(fields, "handled", value.handled);
+    append_field(fields, "suppress_key_press", value.suppress_key_press);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, KeyEventArgs& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "key_code", value.key_code);
+    read_field(fields, "physical_key", value.physical_key);
+    read_field(fields, "scan_code", value.scan_code);
+    read_field(fields, "modifiers", value.modifiers);
+    read_field(fields, "repeat", value.repeat);
+    read_field(fields, "released_by_deactivation", value.released_by_deactivation);
+    read_field(fields, "handled", value.handled);
+    read_field(fields, "suppress_key_press", value.suppress_key_press);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const KeyGesture& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "physical_key", value.physical_key);
     append_field(fields, "modifiers", value.modifiers);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const KeyPressEventArgs& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "text", value.text);
+    append_field(fields, "key_char", value.key_char);
+    append_field(fields, "handled", value.handled);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, KeyPressEventArgs& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "text", value.text);
+    read_field(fields, "key_char", value.key_char);
+    read_field(fields, "handled", value.handled);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const KeyStateChange& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "key_code", value.key_code);
+    append_field(fields, "physical_key", value.physical_key);
+    append_field(fields, "scan_code", value.scan_code);
+    append_field(fields, "modifiers", value.modifiers);
+    append_field(fields, "down", value.down);
+    append_field(fields, "released_by_deactivation", value.released_by_deactivation);
     fields.leave(prefix);
 }
 
@@ -2235,6 +2296,26 @@ inline void append_field(EventFields& fields, std::string_view name, const Prese
     append_field(fields, "double_click_origin", value.double_click_origin);
     append_field(fields, "pointer", value.pointer);
     append_field(fields, "colour_scheme", value.colour_scheme);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const PreviewKeyDownEventArgs& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "key_code", value.key_code);
+    append_field(fields, "physical_key", value.physical_key);
+    append_field(fields, "modifiers", value.modifiers);
+    append_field(fields, "repeat", value.repeat);
+    append_field(fields, "is_input_key", value.is_input_key);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, PreviewKeyDownEventArgs& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "key_code", value.key_code);
+    read_field(fields, "physical_key", value.physical_key);
+    read_field(fields, "modifiers", value.modifiers);
+    read_field(fields, "repeat", value.repeat);
+    read_field(fields, "is_input_key", value.is_input_key);
     fields.leave(prefix);
 }
 
@@ -4055,6 +4136,85 @@ inline SubscriptionToken connect_combo_box_items_changed(Component& source, cons
     return token;
 }
 
+inline SubscriptionToken connect_window_key_down(Component& source, const EventSink& sink) {
+    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
+    if (holder == nullptr) {
+        return SubscriptionToken{};
+    }
+    Window* typed = (*holder).window();
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).key_down(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_key_down(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).key_down(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_window_key_press(Component& source, const EventSink& sink) {
+    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
+    if (holder == nullptr) {
+        return SubscriptionToken{};
+    }
+    Window* typed = (*holder).window();
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).key_press(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_key_press(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).key_press(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_window_key_state_changed(Component& source, const EventSink& sink) {
+    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
+    if (holder == nullptr) {
+        return SubscriptionToken{};
+    }
+    Window* typed = (*holder).window();
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).key_state_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_window_key_up(Component& source, const EventSink& sink) {
+    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
+    if (holder == nullptr) {
+        return SubscriptionToken{};
+    }
+    Window* typed = (*holder).window();
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).key_up(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_key_up(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).key_up(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_rich_text_box_link_clicked(Component& source, const EventSink& sink) {
     RichTextBox* typed = dynamic_cast<RichTextBox*>(&source);
     if (typed == nullptr) {
@@ -4470,6 +4630,15 @@ inline SubscriptionToken connect_gallery_command_preview_cancelled(Component& so
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).preview_cancelled(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_preview_key_down(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).preview_key_down(), sink);
     return token;
 }
 
@@ -5324,7 +5493,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 291> event_connectors{{
+inline constexpr std::array<EventConnector, 299> event_connectors{{
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
     {"activated", "ChoiceGroup", &connect_choice_group_activated},
@@ -5476,6 +5645,13 @@ inline constexpr std::array<EventConnector, 291> event_connectors{{
     {"item_invoked", "ContextMenu", &connect_context_menu_item_invoked},
     {"item_invoked", "MenuStrip", &connect_menu_strip_item_invoked},
     {"items_changed", "ComboBox", &connect_combo_box_items_changed},
+    {"key_down", "Window", &connect_window_key_down},
+    {"key_down", "Control", &connect_control_key_down},
+    {"key_press", "Window", &connect_window_key_press},
+    {"key_press", "Control", &connect_control_key_press},
+    {"key_state_changed", "Window", &connect_window_key_state_changed},
+    {"key_up", "Window", &connect_window_key_up},
+    {"key_up", "Control", &connect_control_key_up},
     {"link_clicked", "RichTextBox", &connect_rich_text_box_link_clicked},
     {"list_changed", "BindingSource", &connect_binding_source_list_changed},
     {"loaded", "UserControl", &connect_user_control_loaded},
@@ -5522,6 +5698,7 @@ inline constexpr std::array<EventConnector, 291> event_connectors{{
     {"presentation_changed", "MasterDetailView", &connect_master_detail_view_presentation_changed},
     {"presentation_changed", "Window", &connect_window_presentation_changed},
     {"preview_cancelled", "GalleryCommand", &connect_gallery_command_preview_cancelled},
+    {"preview_key_down", "Control", &connect_control_preview_key_down},
     {"preview_requested", "GalleryCommand", &connect_gallery_command_preview_requested},
     {"progress_changed", "BackgroundWorker", &connect_background_worker_progress_changed},
     {"property_value_changed", "PropertyGrid", &connect_property_grid_property_value_changed},

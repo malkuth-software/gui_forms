@@ -267,7 +267,7 @@ public unsafe struct gf_run_options
     public gf_callback* closed;
 }
 
-/// <summary>gf_windows_table (table, 56 bytes).</summary>
+/// <summary>gf_windows_table (table, 64 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_table
 {
@@ -279,6 +279,7 @@ public unsafe struct gf_windows_table
     public delegate* unmanaged[Cdecl]<ulong*, gf_status> interaction_count;
     public delegate* unmanaged[Cdecl]<ulong, gf_schema_interaction*, gf_status> interaction_at;
     public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> request_help;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, uint*, gf_status> key_state;
 }
 
 /// <summary>gf_schema_type (extensible, 88 bytes).</summary>

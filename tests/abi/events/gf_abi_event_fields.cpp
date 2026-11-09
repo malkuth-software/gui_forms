@@ -20,6 +20,7 @@
 #include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
 #include "gui_forms/dirty.hpp"
+#include "gui_forms/window.hpp"
 
 #include <cstdint>
 #include <cstring>
@@ -369,6 +370,96 @@ void two_arguments(const Tables& tables) {
     require_ok(tables.objects.release(panel), "release the panel");
 }
 
+// The key events (since 1.1): a control's key_down and key_press reach an
+// ABI callback with their fields, and handled written there ends the key's
+// route; the window's raw key_state_changed is not writable.
+struct KeyProbe final {
+    const Tables* tables = nullptr;
+    int invoked = 0;
+    std::uint64_t physical_key = 0U;
+    std::uint64_t key_code = 0U;
+    bool repeat = false;
+    std::string text;
+    std::uint64_t key_char = 0U;
+    std::string modifiers;
+    gf_status handled_written = GF_STATUS_INTERNAL;
+};
+
+void GF_CALL key_invoke(void* context, gf_event* event) {
+    KeyProbe& probe = *static_cast<KeyProbe*>(context);
+    probe.invoked = probe.invoked + 1;
+    std::uint64_t index = 0U;
+    const gf_event_field* physical = field_named(*event, "physical_key", index);
+    if (physical != nullptr) probe.physical_key = (*(*physical).value).unsigned_integer;
+    const gf_event_field* code = field_named(*event, "key_code", index);
+    if (code != nullptr) probe.key_code = (*(*code).value).unsigned_integer;
+    const gf_event_field* repeat = field_named(*event, "repeat", index);
+    if (repeat != nullptr) probe.repeat = (*(*repeat).value).boolean == 1U;
+    const gf_event_field* modifiers = field_named(*event, "modifiers", index);
+    if (modifiers != nullptr) probe.modifiers = std::string(view_text((*(*modifiers).value).text));
+    const gf_event_field* text = field_named(*event, "text", index);
+    if (text != nullptr) probe.text = std::string(view_text((*(*text).value).text));
+    const gf_event_field* key_char = field_named(*event, "key_char", index);
+    if (key_char != nullptr) probe.key_char = (*(*key_char).value).unsigned_integer;
+    const gf_event_field* handled = field_named(*event, "handled", index);
+    if (handled != nullptr) {
+        gf_value yes = blank_value(GF_VALUE_KIND_BOOLEAN);
+        yes.boolean = 1U;
+        probe.handled_written = (*probe.tables).events.write_field(event, index, &yes);
+    }
+}
+
+void key_events(const Tables& tables) {
+    const gf_object root_object = create(tables, "panel", "fields.keys");
+    const gf_object button_object = create(tables, "button", "fields.keys.button");
+    const std::shared_ptr<Panel> root = control_of<Panel>(root_object);
+    const std::shared_ptr<Button> button = control_of<Button>(button_object);
+    (*button).set_requested_bounds({0.0, 0.0, 60.0, 20.0});
+    (*root).add_child(button);
+    Window window(root, Size{120.0, 60.0});
+    window.perform_layout();
+    (*button).focusable = true;
+    require(window.request_focus(button), "the button takes the focus");
+
+    KeyProbe down;
+    down.tables = &tables;
+    gf_callback down_callback{};
+    down_callback.struct_size = sizeof(gf_callback);
+    down_callback.invoke = &key_invoke;
+    down_callback.context = &down;
+    gf_subscription down_subscription = 0U;
+    require_ok(tables.events.subscribe(button_object, text_view("key_down"), &down_callback, &down_subscription),
+               "subscribe key_down");
+    KeyEvent pressed;
+    pressed.action = KeyAction::down;
+    pressed.physical_key = PhysicalKey::a;
+    pressed.modifiers = Modifier::shift;
+    pressed.repeat = true;
+    require(window.dispatch_key(pressed), "handled written by the ABI callback ends the key's route");
+    require(down.invoked == 1 && down.physical_key == PhysicalKey::a && down.key_code == 0x41U && down.repeat &&
+                down.modifiers == "shift" && down.handled_written == GF_STATUS_OK,
+            "key_down carries physical_key, key_code, repeat and modifiers, and handled is writable");
+
+    KeyProbe press;
+    press.tables = &tables;
+    gf_callback press_callback = down_callback;
+    press_callback.context = &press;
+    gf_subscription press_subscription = 0U;
+    require_ok(tables.events.subscribe(button_object, text_view("key_press"), &press_callback, &press_subscription),
+               "subscribe key_press");
+    TextInputEvent typed;
+    typed.text_utf8 = "Ã©";
+    require(window.dispatch_text(typed), "a handled key_press keeps the text from the control");
+    require(press.invoked == 1 && press.text == "Ã©" && press.key_char == 0xE9U &&
+                press.handled_written == GF_STATUS_OK,
+            "key_press carries the text and its character");
+
+    require_ok(tables.events.disconnect(down_subscription), "disconnect key_down");
+    require_ok(tables.events.disconnect(press_subscription), "disconnect key_press");
+    require_ok(tables.objects.release(button_object), "release the key button");
+    require_ok(tables.objects.release(root_object), "release the key root");
+}
+
 } // namespace
 
 int main() {
@@ -378,6 +469,7 @@ int main() {
         collections(tables);
         optional_text(tables);
         two_arguments(tables);
+        key_events(tables);
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';
         return 1;

@@ -552,6 +552,15 @@ static std::uint32_t physical_key_for(unsigned short key_code) {
     case 50: return 0x35U;  // grave
     case 51: return 0x2AU;  // Backspace
     case 53: return 0x29U;  // Escape
+    case 54: return 0xE7U;  // Right Command
+    case 55: return 0xE3U;  // Left Command
+    case 56: return 0xE1U;  // Left Shift
+    case 57: return 0x39U;  // Caps Lock
+    case 58: return 0xE2U;  // Left Option
+    case 59: return 0xE0U;  // Left Control
+    case 60: return 0xE5U;  // Right Shift
+    case 61: return 0xE6U;  // Right Option
+    case 62: return 0xE4U;  // Right Control
     case 64: return 0x6CU;  // F17
     case 65: return 0x63U;  // Keypad decimal
     case 67: return 0x55U;  // Keypad multiply
@@ -3491,6 +3500,7 @@ void post_perform_close(NSWindow* window) {
     KeyEvent input;
     input.action = KeyAction::down;
     input.physical_key = physical_key_for(event.keyCode);
+    input.scan_code = event.keyCode;
     input.modifiers = modifiers_for(event.modifierFlags);
     input.repeat = event.isARepeat;
     const bool handled = [self dispatchHostPayload:std::move(input)
@@ -3505,7 +3515,42 @@ void post_perform_close(NSWindow* window) {
     KeyEvent input;
     input.action = KeyAction::up;
     input.physical_key = physical_key_for(event.keyCode);
+    input.scan_code = event.keyCode;
     input.modifiers = modifiers_for(event.modifierFlags);
+    static_cast<void>([self dispatchHostPayload:std::move(input)
+                               timestampNanoseconds:host_event_nanoseconds(event)]);
+    [self collectDamage];
+}
+
+// A modifier key went down or up: AppKit reports it as a change of the
+// modifier flags rather than as keyDown/keyUp. The key is down when its
+// own device-dependent flag (the side's bit, IOKit's NX_DEVICE*KEYMASK) is
+// set; Caps Lock toggles, so it is down when its flag turned on.
+- (void)flagsChanged:(NSEvent*)event {
+    const std::uint32_t physical = physical_key_for(event.keyCode);
+    const NSUInteger flags = event.modifierFlags;
+    bool down = false;
+    switch (event.keyCode) {
+    case 54: down = (flags & 0x10U) != 0U; break;   // Right Command
+    case 55: down = (flags & 0x08U) != 0U; break;   // Left Command
+    case 56: down = (flags & 0x02U) != 0U; break;   // Left Shift
+    case 57: down = (flags & NSEventModifierFlagCapsLock) != 0U; break;
+    case 58: down = (flags & 0x20U) != 0U; break;   // Left Option
+    case 59: down = (flags & 0x01U) != 0U; break;   // Left Control
+    case 60: down = (flags & 0x04U) != 0U; break;   // Right Shift
+    case 61: down = (flags & 0x40U) != 0U; break;   // Right Option
+    case 62: down = (flags & 0x2000U) != 0U; break; // Right Control
+    default: break;
+    }
+    if (physical == 0U) {
+        [super flagsChanged:event];
+        return;
+    }
+    KeyEvent input;
+    input.action = down ? KeyAction::down : KeyAction::up;
+    input.physical_key = physical;
+    input.scan_code = event.keyCode;
+    input.modifiers = modifiers_for(flags);
     static_cast<void>([self dispatchHostPayload:std::move(input)
                                timestampNanoseconds:host_event_nanoseconds(event)]);
     [self collectDamage];
