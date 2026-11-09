@@ -3790,6 +3790,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_splitter_tests tests/splitter_tests.cpp)
     target_link_libraries(gui_forms_splitter_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_splitter_tests COMMAND gui_forms_splitter_tests)
+    add_executable(gui_forms_drag_engine_tests tests/drag_engine_tests.cpp)
+    target_link_libraries(gui_forms_drag_engine_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_drag_engine_tests COMMAND gui_forms_drag_engine_tests)
 
     add_executable(gui_forms_layout_contract_tests
         tests/layout_contract_tests.cpp

@@ -1240,6 +1240,9 @@ bool DragEngine::pointer(const PointerEvent& event) {
         modifiers_ = event.modifiers;
         if (!plan()) return true;
         if (!still(serial)) return true;
+        // The first dragging frame is a change from nothing, so the client
+        // previews and announces it.
+        selection_ = DragSelection{};
         drag_to(event.position, event.modifiers, DragTraceEvent::move);
         note_growth(landings_capacity, flags_capacity, trace_capacity);
         return true;
