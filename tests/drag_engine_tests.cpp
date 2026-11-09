@@ -1011,6 +1011,8 @@ const SemanticNode* find_semantic_node(const std::vector<SemanticNode>& nodes, s
     }
     return nullptr;
 }
+// The result borrows `nodes`, so a temporary snapshot is refused.
+const SemanticNode* find_semantic_node(std::vector<SemanticNode>&& nodes, std::string_view stable_id) = delete;
 
 // The announcements reach screen readers through the window's live region:
 // absent until the window has an engine, then always present, named by the

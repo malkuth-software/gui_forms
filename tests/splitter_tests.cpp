@@ -440,6 +440,8 @@ const SemanticNode* find_semantic_node(const std::vector<SemanticNode>& nodes, s
     }
     return nullptr;
 }
+// The result borrows `nodes`, so a temporary snapshot is refused.
+const SemanticNode* find_semantic_node(std::vector<SemanticNode>&& nodes, std::string_view stable_id) = delete;
 
 // The splitter's drag raises drag_started at the press, then drag_dropped
 // and drag_ended after splitter_moved (no drag_target_changed: a projection

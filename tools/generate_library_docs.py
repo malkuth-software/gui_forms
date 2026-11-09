@@ -161,6 +161,13 @@ AREA_TO_CATEGORY: dict[str, str] = {
     "visual_inspection": "Diagnostics",
 }
 
+# Control-family directories whose headers precede their registered control
+# (the node canvas's graph model and link router arrive before NodeCanvas
+# itself); remove an entry once the directory's control is registered.
+DIRECTORY_TO_CATEGORY: dict[str, str] = {
+    "include/gui_forms/controls/node_canvas": "Drawing",
+}
+
 CATEGORY_DESCRIPTIONS: dict[str, str] = {
     "Commands": "Buttons, links and command rows.",
     "Text editing": "Text entry.",
@@ -277,6 +284,9 @@ def page_resolver(registry: list[dict]):
         directory = posixpath.dirname(header)
         for control_dir, category in control_dirs:
             if directory == control_dir or directory.startswith(control_dir + "/"):
+                return category_slug(category)
+        for family_dir, category in DIRECTORY_TO_CATEGORY.items():
+            if directory == family_dir or directory.startswith(family_dir + "/"):
                 return category_slug(category)
         area = area_of(header)
         if area in AREA_TO_CATEGORY:
