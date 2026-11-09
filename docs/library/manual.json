@@ -689,12 +689,6 @@
       "summary": "ProgressBar is a noninteractive RangeControl visualization with continuous, segmented, and marquee modes; optional overlays and stripes; centralized motion-policy resolution; retained frame scheduling; deterministic phase; reduced-motion behavior; and progress semantics.",
       "methods": {
         "ProgressBar": "Constructs a non-focusable, non-hit-testable range visualization with progress semantics.",
-        "animation_paused": "Reports whether application policy currently freezes phase.",
-        "set_animation_paused": "Toggles pause state without discarding deterministic phase.",
-        "reduced_motion": "Reports the local compatibility override for reduced motion.",
-        "set_reduced_motion": "Toggles the local override and reconciles effective animation registration.",
-        "set_motion_policy": "Installs or clears an explicit policy override instead of inheriting the Window policy.",
-        "motion_policy": "Returns the optional caller-authored motion-policy override.",
         "effective_motion_policy": "Resolves local compatibility state, explicit override, and attached Window policy into one behavior.",
         "animation_phase": "Returns the normalized retained phase used for deterministic rendering and tests.",
         "measure": "Provides stable progress-track desired thickness independent of phase.",

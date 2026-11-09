@@ -2699,7 +2699,9 @@ void example() {
     (*busy).accessible_name = "Synchronizing";
     (*busy).visual_style = gf::ProgressBarVisualStyle::marquee;
     gf::Window window(busy, gf::Size{160.0, 20.0});   // the band now animates
-    (*busy).set_animation_paused(true);               // it stops, keeping its phase
+    gf::MotionPolicy policy = (*busy).motion_policy.read();
+    policy.paused = true;
+    (*busy).motion_policy = policy;                   // it stops, keeping its phase
 }
 }  // namespace doc_example_ProgressBar_2
 

@@ -162,7 +162,7 @@ struct PageContext final {
         const MotionPolicy policy = motion_policy();
         if (easing) (*easing).motion_policy = policy;
         for (const std::shared_ptr<gui_forms::ProgressBar>& progress : animated_progress) {
-            (*progress).set_motion_policy(policy);
+            (*progress).motion_policy = policy;
         }
         if (motion_pause) {
             (*motion_pause).enabled = live_motion;

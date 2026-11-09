@@ -166,31 +166,16 @@ void ProgressBar::on_pointer(PointerEvent& event) {
     if (effect_instance_.note_pointer(event, Point{absolute.x, absolute.y})) invalidate(animated_extent());
 }
 
-void ProgressBar::set_animation_paused(bool paused) {
-    MotionPolicy policy = motion_policy_;
-    policy.paused = paused;
-    set_motion_policy(policy);
-}
-
-void ProgressBar::set_reduced_motion(bool reduced) {
-    MotionPolicy policy = motion_policy_;
-    policy.reduced = reduced;
-    set_motion_policy(policy);
-}
-
-void ProgressBar::set_motion_policy(bool paused, bool reduced) {
-    MotionPolicy policy = motion_policy_;
-    policy.paused = paused;
-    policy.reduced = reduced;
-    set_motion_policy(policy);
-}
-
-void ProgressBar::set_motion_policy(MotionPolicy policy) {
+void ProgressBar::write_view(const decltype(motion_policy)&, MotionPolicy incoming) {
     require_mutable();
-    if (motion_policy_ == policy) return;
-    motion_policy_ = policy;
+    if (motion_policy_ == incoming) return;
+    motion_policy_ = incoming;
     update_animation_registration();
     invalidate(Dirty::paint | Dirty::semantics);
+}
+
+MotionPolicy ProgressBar::read_view(const decltype(motion_policy)&) const {
+    return motion_policy_;
 }
 
 MotionPolicy ProgressBar::effective_motion_policy() const noexcept {

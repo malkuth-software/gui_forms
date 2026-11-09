@@ -144,6 +144,23 @@ struct ProgressBarEffectInputCapability {
     }
 };
 
+// Whether the bar's animation and effects move: disabled or paused stops them, keeping the phase; reduced swaps motion for a still form. A view onto the bar's policy; effective_motion_policy adds the window's reduced-motion setting.
+template <typename Declaring>
+struct ProgressBarMotionPolicyCapability {
+    PropertyView<MotionPolicy, ProgressBarMotionPolicyCapability<Declaring>> motion_policy;
+
+    static void assign(ProgressBarMotionPolicyCapability& capability, MotionPolicy incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.motion_policy), std::move(incoming));
+    }
+
+    static MotionPolicy read(const ProgressBarMotionPolicyCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        MotionPolicy current = control.read_view(capability.motion_policy);
+        return current;
+    }
+};
+
 // ProgressBarVisualStyle as a property value; defined beside ProgressBar's table.
 template <>
 struct PropertyValueTraits<ProgressBarVisualStyle> {
@@ -170,6 +187,7 @@ struct ProgressBarCapabilities : public ProgressBarVisualStyleChoiceCapability<D
                                  public ProgressBarAnimationPeriodCapability<Declaring>,
                                  public ProgressBarEffectCapability<Declaring>,
                                  public ProgressBarEffectSeedCapability<Declaring>,
-                                 public ProgressBarEffectInputCapability<Declaring> {};
+                                 public ProgressBarEffectInputCapability<Declaring>,
+                                 public ProgressBarMotionPolicyCapability<Declaring> {};
 
 } // namespace gui_forms

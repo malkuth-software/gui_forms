@@ -19,19 +19,8 @@ class ProgressBar : public RangeControl, public ProgressBarCapabilities<Progress
 public:
     explicit ProgressBar(StableId stable_id);
 
-    [[nodiscard]] bool animation_paused() const noexcept {
-        return motion_policy_.paused;
-    }
-    void set_animation_paused(bool paused);
-    [[nodiscard]] bool reduced_motion() const noexcept {
-        return motion_policy_.reduced;
-    }
-    void set_reduced_motion(bool reduced);
-    void set_motion_policy(bool paused, bool reduced_motion);
-    void set_motion_policy(MotionPolicy policy);
-    [[nodiscard]] MotionPolicy motion_policy() const noexcept {
-        return motion_policy_;
-    }
+    // motion_policy (a capability view) combined with the window's
+    // reduced-motion setting: what the bar's animation obeys.
     [[nodiscard]] MotionPolicy effective_motion_policy() const noexcept;
     [[nodiscard]] double animation_phase() const noexcept {
         return animation_phase_;
@@ -191,6 +180,7 @@ private:
     friend struct ProgressBarEffectCapability<ProgressBar>;
     friend struct ProgressBarEffectSeedCapability<ProgressBar>;
     friend struct ProgressBarEffectInputCapability<ProgressBar>;
+    friend struct ProgressBarMotionPolicyCapability<ProgressBar>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(visual_style)& cell, ProgressBarVisualStyle& incoming);
     void written(const decltype(visual_style)& cell);
@@ -210,6 +200,8 @@ private:
     void written(const decltype(effect_seed)& cell);
     void prepare_write(const decltype(effect_input)& cell, EffectInputKind& incoming);
     void written(const decltype(effect_input)& cell);
+    void write_view(const decltype(motion_policy)& cell, MotionPolicy incoming);
+    [[nodiscard]] MotionPolicy read_view(const decltype(motion_policy)& cell) const;
     // property_codemod end ProgressBar
 };
 

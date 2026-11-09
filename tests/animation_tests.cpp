@@ -410,9 +410,9 @@ void test_progress_animation_and_hidden_suspension() {
     require(!window.next_wake().has_value() && (*progress).animation_phase() == 0.0,
             "disabled stripe motion must paint statically without an idle wake");
     (*progress).animation_enabled = true;
-    (*progress).set_animation_paused(true);
+    (*progress).motion_policy = MotionPolicy{true, true, false};
     require(!window.next_wake().has_value(), "paused stripes must leave the motion clock");
-    (*progress).set_animation_paused(false);
+    (*progress).motion_policy = MotionPolicy{true, false, false};
     StripePainter resumed_painter;
     (*progress).on_paint(resumed_painter, {0.0, 0.0, 240.0, 20.0});
     require(window.next_wake().has_value(), "resumed stripes must enlist on the motion clock again when painted");
@@ -423,11 +423,11 @@ void test_progress_animation_and_hidden_suspension() {
     (*progress).visual_style = ProgressBarVisualStyle::marquee;
     (*progress).advance_animation(FrameClock::now() + 325ms);
     const double retained_phase = (*progress).animation_phase();
-    (*progress).set_animation_paused(true);
+    (*progress).motion_policy = MotionPolicy{true, true, false};
     require(!window.next_wake().has_value() &&
                 close_to((*progress).animation_phase(), retained_phase),
             "paused progress motion must revoke its lease without destroying phase");
-    (*progress).set_animation_paused(false);
+    (*progress).motion_policy = MotionPolicy{true, false, false};
     require(window.next_wake().has_value() &&
                 close_to((*progress).animation_phase(), retained_phase),
             "resumed progress motion must retain phase before its next frame");
@@ -436,7 +436,7 @@ void test_progress_animation_and_hidden_suspension() {
             "the first resumed frame must advance from the retained phase");
     const double pre_reduced_phase = (*progress).animation_phase();
     const FrameTime before_reduced = FrameClock::now();
-    (*progress).set_reduced_motion(true);
+    (*progress).motion_policy = MotionPolicy{true, false, true};
     const FrameTime after_reduced = FrameClock::now();
     (*progress).value = 73.0;
     require(window.next_wake().has_value() &&
@@ -457,30 +457,30 @@ void test_progress_animation_and_hidden_suspension() {
     require(reduced_phase > pre_reduced_phase && reduced_step <= 0.35 * longest + 1e-9 &&
                 reduced_step >= 0.35 * shortest - 1e-9,
             "reduced progress motion must advance visibly at its calmer speed");
-    (*progress).set_reduced_motion(false);
+    (*progress).motion_policy = MotionPolicy{true, false, false};
     require(window.next_wake().has_value() &&
                 close_to((*progress).animation_phase(), reduced_phase),
             "leaving reduced motion must retain the reduced timeline position");
     const std::uint64_t requests_before_batch =
         window.metrics_snapshot().scheduled_frame_requests;
-    (*progress).set_motion_policy(true, true);
+    (*progress).motion_policy = MotionPolicy{true, true, true};
     require(!window.next_wake().has_value(),
             "batched pause plus reduced motion must quiesce without a transient lease");
-    (*progress).set_motion_policy(false, false);
+    (*progress).motion_policy = MotionPolicy{true, false, false};
     require(window.next_wake().has_value() &&
                 window.metrics_snapshot().scheduled_frame_requests ==
                     requests_before_batch + 1U,
             "batched live policy must publish exactly one replacement lease");
 
     const double phase_before_master_gate = (*progress).animation_phase();
-    (*progress).set_motion_policy(MotionPolicy{false, false, false});
+    (*progress).motion_policy = MotionPolicy{false, false, false};
     require(!window.next_wake().has_value() &&
-                (*progress).motion_policy() == MotionPolicy{false, false, false} &&
+                (*progress).motion_policy.read() == MotionPolicy{false, false, false} &&
                 close_to((*progress).animation_phase(), phase_before_master_gate) &&
                 !has_semantic_state((*progress).semantic_descriptor().states,
                                     SemanticState::busy),
             "a disabled application motion policy must revoke its lease without mutating phase");
-    (*progress).set_motion_policy(MotionPolicy{true, false, false});
+    (*progress).motion_policy = MotionPolicy{true, false, false};
     require(window.next_wake().has_value() &&
                 close_to((*progress).animation_phase(), phase_before_master_gate) &&
                 has_semantic_state((*progress).semantic_descriptor().states,
@@ -488,33 +488,33 @@ void test_progress_animation_and_hidden_suspension() {
             "re-enabling the application motion policy must resume from retained phase");
 
     for (std::size_t cycle = 0U; cycle < 16U; ++cycle) {
-        (*progress).set_motion_policy(MotionPolicy{true, true, true});
+        (*progress).motion_policy = MotionPolicy{true, true, true};
         const double compound_phase = (*progress).animation_phase();
-        require(!window.next_wake().has_value() && (*progress).animation_paused() &&
-                    (*progress).reduced_motion() &&
+        require(!window.next_wake().has_value() && (*progress).motion_policy.read().paused &&
+                    (*progress).motion_policy.read().reduced &&
                     !has_semantic_state((*progress).semantic_descriptor().states,
                                         SemanticState::busy),
                 "compound pause plus reduced motion must remain a single quiescent policy");
-        (*progress).set_motion_policy(MotionPolicy{true, false, true});
+        (*progress).motion_policy = MotionPolicy{true, false, true};
         require(window.next_wake().has_value() &&
                     close_to((*progress).animation_phase(), compound_phase) &&
                     has_semantic_state((*progress).semantic_descriptor().states,
                                        SemanticState::busy),
                 "resuming while reduced must arm one calm animation lease");
-        (*progress).set_motion_policy(MotionPolicy{true, true, false});
+        (*progress).motion_policy = MotionPolicy{true, true, false};
         require(!window.next_wake().has_value() &&
                     close_to((*progress).animation_phase(), compound_phase),
                 "leaving reduced motion while paused must retain the suspended phase");
-        (*progress).set_motion_policy(MotionPolicy{true, false, false});
+        (*progress).motion_policy = MotionPolicy{true, false, false};
         require(window.next_wake().has_value() &&
                     close_to((*progress).animation_phase(), compound_phase),
                 "full motion must restore its frame lease from the retained phase");
     }
     PresentationSettings calm = window.presentation_settings();
     calm.reduced_motion = true;
-    (*progress).set_motion_policy(MotionPolicy{true, false, false});
+    (*progress).motion_policy = MotionPolicy{true, false, false};
     window.set_presentation_settings(calm);
-    require(!(*progress).motion_policy().reduced &&
+    require(!(*progress).motion_policy.read().reduced &&
                 (*progress).effective_motion_policy().reduced &&
                 window.next_wake().has_value(),
             "window reduced-motion preference must calm progress without overwriting local policy or stopping it");
@@ -672,7 +672,7 @@ void test_progress_animation_style_family() {
                           Rect{2.0, 2.0, 151.04, 20.0}) != laser.clips.end(),
             "laser progress must combine a repeating phase with a compact white-hot corona and short sparks");
 
-    (*progress).set_reduced_motion(true);
+    (*progress).motion_policy = MotionPolicy{true, false, true};
     ProgressEffectsPainter reduced_laser;
     (*progress).on_paint(reduced_laser, {0.0, 0.0, 240.0, 24.0});
     require(reduced_laser.five_stop_spread_gradients == 1 &&
