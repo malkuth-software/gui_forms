@@ -26,38 +26,52 @@ namespace {
 // values changed to meet the contrast gate on enabled elements (disabled
 // controls are exempt).
 
-constexpr std::string_view classic_sheet = R"css(/* classic: the Windows 98 look (stage T4, phase 7), following XP.css's
-   Windows 98 sheet (https://botoxparty.github.io/XP.css/, 98.css): the
-   silver face #c0c0c0, two-ring bevels (white and #dfdfdf against #808080
-   and #0a0a0a), sunken white wells, navy #000080 highlights. Our keylines
-   draw one inner ring, so each bevel is its frame plus one ring.
-   Contrast fixes on enabled elements: a button's frame is #0a0a0a on
-   every side (98.css's white top-left edge is 1.8:1 on silver; the
-   boundary gate is 3:1), and a well's or group's dark top-left edge is
-   #696969 (98.css's #808080 is 2.2:1); a toolbar button's thin bevel has
-   a #696969 frame; the pending frame is #705800 (#8a6d00 is 2.7:1 on
-   silver). Disabled text keeps 98.css's #808080: disabled controls are
-   exempt from the gate. */
+constexpr std::string_view classic_sheet = R"css(/* classic: the Windows 2000 look (stage T4, phase 7; owner, 2026-11-08:
+   authentic, not inspired). The system colours of Windows 2000's
+   standard scheme: the face #d4d0c8 (3D face), white highlight, #d4d0c8
+   light, #808080 shadow, #404040 dark shadow, #0a246a selection, #ffffe1
+   tooltips. The bevels are DrawFrameControl's and DrawEdge's: a push
+   button is raised soft (outer white and #404040, inner #d4d0c8 and
+   #808080), pressed it is a black frame round a #808080 line; a field, a
+   check box and a radio button are sunken (outer #808080 and white, inner
+   #404040 and #d4d0c8) round white, the radio's as a circle; a group box
+   is etched (the panel's sunken outer edge, #808080 over white); a panel's
+   own frame is Fixed3D's sunken edge; a card is a raised panel. Our
+   keylines draw the inner ring. The boundary gate reads a bevel by its
+   strongest line, its shadow side. One contrast fix: a toolbar button's
+   thin edge has a #404040 shadow side (Windows' #808080 is 2.6:1 on the
+   face; the gate is 3:1).
+   Disabled text is #808080 (Windows embosses it in white; we do not):
+   disabled controls are exempt from the gate. Every control draws the one
+   content face, as Windows 2000 draws Tahoma throughout. */
 
 * {
+  font-family: content;
   color: #000000;
-  muted-color: #3c3c3c;
+  muted-color: #404040;
   glyph-color: #000000;
   outline-color: #000000;
-  default-outline: 1px #0a0a0a;
+  default-outline: 1px #000000;
 }
 
-:family(window), :family(panel) {
-  background: #c0c0c0;
+:family(window) {
+  background: #d4d0c8;
   border: 1px solid #808080;
   border-radius: 0;
 }
-:family(card), :family(notice) {
-  background: #c0c0c0;
-  border: 1px solid #696969;
-  border-color: #696969 #ffffff #ffffff #696969;
+:family(panel) {
+  background: #d4d0c8;
+  border: 1px solid #808080;
+  border-color: #808080 #ffffff #ffffff #808080;
   border-radius: 0;
-  keylines: #ffffff #808080 #808080 #ffffff;
+  keylines: #404040 #d4d0c8 #d4d0c8 #404040;
+}
+:family(card), :family(notice) {
+  background: #d4d0c8;
+  border: 1px solid #404040;
+  border-color: #ffffff #404040 #404040 #ffffff;
+  border-radius: 0;
+  keylines: #d4d0c8 #808080 #808080 #d4d0c8;
 }
 :family(tool-tip) {
   background: #ffffe1;
@@ -66,24 +80,28 @@ constexpr std::string_view classic_sheet = R"css(/* classic: the Windows 98 look
 }
 :family(window):state(selected), :family(panel):state(selected), :family(card):state(selected),
 :family(notice):state(selected), :family(tool-tip):state(selected) {
-  background: #dfdfdf;
-  border-color: #0a0a0a;
+  background: #ffffff;
+  border-color: #404040;
 }
 
-/* Push buttons: raised, sunken while pressed or checked (a checked toggle
-   is the lighter face). The default button gains 98.css's outer black
-   ring (default-outline). */
+/* Push buttons: raised soft; pressed, a black frame round a shadow line;
+   a checked toggle sunken on a lighter face. The default button gains the
+   black ring (default-outline). */
 :family(button), :family(accent-button) {
-  background: #c0c0c0;
-  border: 1px solid #0a0a0a;
+  background: #d4d0c8;
+  border: 1px solid #404040;
+  border-color: #ffffff #404040 #404040 #ffffff;
   border-radius: 0;
-  keylines: #ffffff #808080 #808080 #ffffff;
+  keylines: #d4d0c8 #808080 #808080 #d4d0c8;
 }
-:family(button):active, :family(accent-button):active, :family(button):state(selected) {
-  keylines: #808080 #dfdfdf #dfdfdf #808080;
+:family(button):active, :family(accent-button):active {
+  border-color: #000000;
+  keylines: #808080 #808080 #808080 #808080;
 }
 :family(button):state(selected) {
-  background: #dfdfdf;
+  background: #e8e6e1;
+  border-color: #404040 #ffffff #ffffff #404040;
+  keylines: #808080 #d4d0c8 #d4d0c8 #808080;
 }
 :family(button):state(pending), :family(accent-button):state(pending) {
   border-color: #705800;
@@ -91,66 +109,70 @@ constexpr std::string_view classic_sheet = R"css(/* classic: the Windows 98 look
 :family(button):invalid, :family(accent-button):invalid {
   border-color: #a00000;
 }
-:family(button):disabled, :family(accent-button):disabled {
-  border-color: #808080;
-}
 
-/* Toolbar buttons: flat at rest, a thin raised bevel while hot, sunken
-   while pressed or checked. */
+/* Toolbar buttons: flat at rest, a thin raised edge while hot, a thin
+   sunken one while pressed or checked. */
 :family(command-button) {
   background: #ffffff00;
   border: 1px solid #ffffff00;
   border-radius: 0;
   keylines: none;
 }
-:family(command-button):hover, :family(command-button):active, :family(command-button):state(selected) {
-  border-color: #696969;
-  keylines: #ffffff #808080 #808080 #ffffff;
+:family(command-button):hover {
+  border-color: #ffffff #404040 #404040 #ffffff;
 }
 :family(command-button):active, :family(command-button):state(selected) {
-  keylines: #808080 #ffffff #ffffff #808080;
+  border-color: #404040 #ffffff #ffffff #404040;
 }
 :family(command-button):state(selected) {
-  background: #dfdfdf;
+  background: #e8e6e1;
 }
 
-/* Wells: white fields sunken two rings deep, as 98.css's (outer ring
-   #808080 top-left and white bottom-right, inner ring #0a0a0a and
-   #dfdfdf). A progress bar's fill is the navy highlight. */
-:family(choice), :family(editor), :family(progress) {
+/* Wells: white, sunken two rings deep; disabled on the face. A check box
+   or radio button pressed shows the face in its well. */
+:family(choice), :family(editor) {
   background: #ffffff;
-  border: 1px solid #696969;
-  border-color: #696969 #ffffff #ffffff #696969;
+  border: 1px solid #808080;
+  border-color: #808080 #ffffff #ffffff #808080;
   border-radius: 0;
-  keylines: #0a0a0a #dfdfdf #dfdfdf #0a0a0a;
+  keylines: #404040 #d4d0c8 #d4d0c8 #404040;
 }
-:family(choice):state(pending), :family(editor):state(pending), :family(progress):state(pending) {
+:family(choice):active {
+  background: #d4d0c8;
+}
+:family(choice):state(pending), :family(editor):state(pending) {
   background: #fffbe0;
   border-color: #705800;
 }
-:family(choice):invalid, :family(editor):invalid, :family(progress):invalid {
+:family(choice):invalid, :family(editor):invalid {
   background: #fff0f0;
   border-color: #a00000;
 }
-:family(choice):disabled, :family(editor):disabled, :family(progress):disabled {
-  background: #c0c0c0;
+:family(choice):disabled, :family(editor):disabled {
+  background: #d4d0c8;
+}
+
+/* A progress bar: a thin sunken track on the face, its fill the
+   selection blue. */
+:family(progress) {
+  background: #d4d0c8;
+  border: 1px solid #808080;
   border-color: #808080 #ffffff #ffffff #808080;
+  border-radius: 0;
 }
 :family(progress):state(selected) {
-  background: #000080;
-  border-color: #000080;
-  keylines: none;
+  background: #0a246a;
+  border-color: #0a246a;
   color: #ffffff;
-  muted-color: #dfdfdf;
+  muted-color: #d4d0c8;
   glyph-color: #ffffff;
 }
 :family(progress):state(selected):disabled {
-  background: #c0c0c0;
-  border-color: #808080 #ffffff #ffffff #808080;
-  keylines: #0a0a0a #dfdfdf #dfdfdf #0a0a0a;
+  background: #808080;
+  border-color: #808080;
 }
 
-/* Menu members and rows: clear at rest, the navy highlight with white
+/* Menu members and rows: clear at rest, the selection blue with white
    text while hot, pressed or selected; the focus ring turns white on it. */
 :family(menu-item), :family(selection) {
   background: #ffffff00;
@@ -159,15 +181,15 @@ constexpr std::string_view classic_sheet = R"css(/* classic: the Windows 98 look
 }
 :family(menu-item):hover, :family(menu-item):active, :family(menu-item):state(selected), :family(selection):hover,
 :family(selection):active, :family(selection):state(selected) {
-  background: #000080;
-  border-color: #000080;
+  background: #0a246a;
+  border-color: #0a246a;
   color: #ffffff;
-  muted-color: #dfdfdf;
+  muted-color: #d4d0c8;
   glyph-color: #ffffff;
   outline-color: #ffffff;
 }
 :family(menu-item):state(selected):disabled, :family(selection):state(selected):disabled {
-  background: #c0c0c0;
+  background: #d4d0c8;
   border-color: #808080;
   outline-color: #000000;
 }
@@ -187,15 +209,15 @@ constexpr std::string_view classic_sheet = R"css(/* classic: the Windows 98 look
 }
 
 :family(badge) {
-  background: #000080;
-  border: 1px solid #000080;
+  background: #0a246a;
+  border: 1px solid #0a246a;
   border-radius: 0;
   color: #ffffff;
-  muted-color: #dfdfdf;
+  muted-color: #d4d0c8;
   glyph-color: #ffffff;
 }
 :family(badge):disabled {
-  background: #c0c0c0;
+  background: #d4d0c8;
   border-color: #808080;
 }
 
@@ -1287,15 +1309,15 @@ constexpr std::array<FamiliarDescription, familiar_theme_count> descriptions{{
      .structure = {.dotted_focus = true,
                    .focus_width = 1.0,
                    .pressed_content_offset = Point{1.0, 1.0},
-                   .face = Color::rgba(192, 192, 192),
-                   .face_light = Color::rgba(223, 223, 223),
+                   .face = Color::rgba(212, 208, 200),
+                   .face_light = Color::rgba(255, 255, 255),
                    .paper = Color::rgba(255, 255, 255),
                    .border = Color::rgba(128, 128, 128),
-                   .dark_border = Color::rgba(10, 10, 10),
+                   .dark_border = Color::rgba(64, 64, 64),
                    .text = Color::rgba(0, 0, 0),
                    .disabled_text = Color::rgba(128, 128, 128),
-                   .accent = Color::rgba(0, 0, 128),
-                   .accent_light = Color::rgba(223, 223, 223),
+                   .accent = Color::rgba(10, 36, 106),
+                   .accent_light = Color::rgba(212, 208, 200),
                    .link = Color::rgba(0, 0, 255),
                    .visited_link = Color::rgba(128, 0, 128)}},
     {.id = "modern-flat",

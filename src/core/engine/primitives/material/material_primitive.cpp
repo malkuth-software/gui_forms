@@ -144,6 +144,22 @@ struct ResolvedBand final {
 
 constexpr std::size_t maximum_bands = 4U + SurfaceMaterial::maximum_keylines;
 
+// A ring of a rounded box's single edges or of one keyline (a box with
+// corners draws them as rings, as CSS draws a rounded box's edge colours):
+// the pixels between `outer` and `inner`, each drawn in the colour of the
+// box edge it lies nearest, split along the 45-degree lines from the box's
+// corners. `colours` holds the four edges' colours (top, right, bottom,
+// left); an edge without a colour leaves its part of the ring clear.
+struct ResolvedRing final {
+    Rect outer{};
+    PartShape outer_shape{};
+    Rect inner{};
+    PartShape inner_shape{};
+    std::array<std::optional<Color>, 4> colours{};
+};
+
+constexpr std::size_t maximum_rings = 1U + SurfaceMaterial::maximum_keylines;
+
 constexpr double quarter_turn = 3.14159265358979323846264338327950288 * 0.5;
 
 // A dashed or dotted border's path (E9.6): the border's centre line, half
@@ -198,6 +214,9 @@ struct MaterialLook final {
     // The border's single edges, then the keylines.
     std::array<ResolvedBand, maximum_bands> bands{};
     std::size_t band_count{};
+    // A rounded box's single edges, then its keylines, as rings.
+    std::array<ResolvedRing, maximum_rings> rings{};
+    std::size_t ring_count{};
     // An alpha mask (E9.6), evaluated at each pixel centre moved into the
     // box, so that outside the box it extends at its edge value; an image
     // mask's variant is MaterialImages' mask_layer.
@@ -403,6 +422,50 @@ void add_band(MaterialLook& look, Rect band, Color colour, bool clipped) noexcep
     look.band_count = look.band_count + 1U;
 }
 
+// The ring between `outline` grown in `box` by -`inset` and by
+// -(`inset` + `width`) device pixels, without colours; none when it does not
+// fit across the box.
+std::optional<ResolvedRing> rounded_ring(const MaterialOutline& outline, Rect box, double inset,
+                                         double width) noexcept {
+    const double depth = inset + width;
+    if (width <= 0.0 || depth * 2.0 > std::min(box.width, box.height)) return std::nullopt;
+    ResolvedRing ring{};
+    ring.outer = Rect{box.x + inset, box.y + inset, box.width - inset * 2.0, box.height - inset * 2.0};
+    ring.outer_shape = grown(outline, ring.outer, -inset).shape;
+    ring.inner = Rect{box.x + depth, box.y + depth, box.width - depth * 2.0, box.height - depth * 2.0};
+    ring.inner_shape = grown(outline, ring.inner, -depth).shape;
+    return ring;
+}
+
+void add_ring(MaterialLook& look, const ResolvedRing& ring) noexcept {
+    if (look.ring_count == maximum_rings) return;
+    look.rings[look.ring_count] = ring;
+    look.ring_count = look.ring_count + 1U;
+}
+
+std::size_t edge_index(MaterialEdge edge) noexcept {
+    switch (edge) {
+    case MaterialEdge::top: return 0U;
+    case MaterialEdge::right: return 1U;
+    case MaterialEdge::bottom: return 2U;
+    case MaterialEdge::left: return 3U;
+    }
+    // An edge outside the enumeration counts as the top.
+    return 0U;
+}
+
+// The index (top, right, bottom, left) of the edge of `box` nearest the
+// point: the 45-degree split from each corner. A tie goes to the earlier
+// edge.
+std::size_t nearest_edge(Rect box, double x, double y) noexcept {
+    const std::array<double, 4> distances{y - box.y, box.right() - x, box.bottom() - y, x - box.x};
+    std::size_t nearest = 0U;
+    for (std::size_t index = 1U; index < distances.size(); ++index) {
+        if (distances[index] < distances[nearest]) nearest = index;
+    }
+    return nearest;
+}
+
 // A keyline's band (as paint_material_keyline places it), in device pixels;
 // none when the keyline does not fit across the box.
 void add_keyline(MaterialLook& look, const MaterialKeyline& keyline, double scale, bool clipped) noexcept {
@@ -558,24 +621,50 @@ MaterialLook resolve_look_at(const SurfaceMaterial& material, const PrimitiveTar
         look.border_path = border_path((*material.border).style, outline, box, width);
     }
     const MaterialBorderEdges& edges = material.border_edges;
-    if (edges.top) {
+    // A rounded box draws its single edges and keylines as rings (their
+    // widths are equal: valid_surface_material); a square one as bands.
+    const bool rounded_edges = radius > 0.0 && !edges.empty();
+    if (rounded_edges) {
+        const std::array<const std::optional<MaterialBorder>*, 4> sides{&edges.top, &edges.right, &edges.bottom,
+                                                                         &edges.left};
+        double width = 0.0;
+        for (const std::optional<MaterialBorder>* side : sides) {
+            if (*side) width = std::max(width, (**side).width * scale);
+        }
+        std::optional<ResolvedRing> ring = rounded_ring(outline, box, 0.0, width);
+        if (ring) {
+            for (std::size_t index = 0U; index < sides.size(); ++index) {
+                if (*sides[index]) (*ring).colours[index] = (**sides[index]).color;
+            }
+            add_ring(look, *ring);
+        }
+        for (const MaterialKeyline& keyline : material.keylines) {
+            std::optional<ResolvedRing> line = rounded_ring(outline, box, keyline.inset * scale, keyline.width * scale);
+            if (!line) continue;
+            (*line).colours[edge_index(keyline.edge)] = keyline.color;
+            add_ring(look, *line);
+        }
+    }
+    if (edges.top && !rounded_edges) {
         const double width = (*edges.top).width * scale;
         add_band(look, Rect{box.x, box.y, box.width, width}, (*edges.top).color, false);
     }
-    if (edges.right) {
+    if (edges.right && !rounded_edges) {
         const double width = (*edges.right).width * scale;
         add_band(look, Rect{box.right() - width, box.y, width, box.height}, (*edges.right).color, false);
     }
-    if (edges.bottom) {
+    if (edges.bottom && !rounded_edges) {
         const double width = (*edges.bottom).width * scale;
         add_band(look, Rect{box.x, box.bottom() - width, box.width, width}, (*edges.bottom).color, false);
     }
-    if (edges.left) {
+    if (edges.left && !rounded_edges) {
         const double width = (*edges.left).width * scale;
         add_band(look, Rect{box.x, box.y, width, box.height}, (*edges.left).color, false);
     }
     const bool clip_keylines = radius > 0.0;
-    for (const MaterialKeyline& keyline : material.keylines) add_keyline(look, keyline, scale, clip_keylines);
+    if (!rounded_edges) {
+        for (const MaterialKeyline& keyline : material.keylines) add_keyline(look, keyline, scale, clip_keylines);
+    }
     if (material.colour_filter) {
         look.filtered = true;
         look.filter = *material.colour_filter;
@@ -584,7 +673,8 @@ MaterialLook resolve_look_at(const SurfaceMaterial& material, const PrimitiveTar
     for (std::size_t index = 0U; index < look.outer_count; ++index) {
         if (look.outer[index].over) over_glows = true;
     }
-    look.reads_inside = look.fill_count > 0U || look.inset_count > 0U || look.border || over_glows;
+    look.reads_inside = look.fill_count > 0U || look.inset_count > 0U || look.border || over_glows ||
+                        look.ring_count > 0U;
     for (std::size_t index = 0U; index < look.band_count; ++index) {
         if (look.bands[index].clipped) look.reads_inside = true;
     }
@@ -1142,6 +1232,17 @@ Unit material_pixel(const MaterialLook& look, const MaterialImages& images, cons
             const bool patterned = look.border_path.style != MaterialBorderStyle::solid && ring > 0.0;
             const double drawn = patterned ? patterned_ring(look, ring, centre_x, centre_y) : ring;
             blend_over(result, premultiply(look.border_colour, drawn));
+        }
+        // A rounded box's edge and keyline rings, each pixel in its nearest
+        // edge's colour.
+        const std::size_t nearest = look.ring_count > 0U ? nearest_edge(look.box, centre_x, centre_y) : 0U;
+        for (std::size_t index = 0U; index < look.ring_count; ++index) {
+            const ResolvedRing& ring = look.rings[index];
+            if (!ring.colours[nearest]) continue;
+            const double outer = shape_coverage(ring.outer_shape, ring.outer, 1.0, x, y);
+            const double inner = shape_coverage(ring.inner_shape, ring.inner, 1.0, x, y);
+            const double drawn = std::max(0.0, std::min(outer, inside) - inner);
+            blend_over(result, premultiply(*ring.colours[nearest], drawn));
         }
     }
     const double px = static_cast<double>(x);
@@ -1729,6 +1830,19 @@ AxisReach axis_reach(const SurfaceMaterial& material, const PrimitiveTarget& tar
         reach_at_least(reach, inner, inner, width * 2.0 + 1.0);
     }
     const MaterialBorderEdges& edges = material.border_edges;
+    // Rounded single edges and keylines are rings, reaching in as a border.
+    if (radius > 0.0 && !edges.empty()) {
+        double depth = 0.0;
+        if (edges.top) depth = std::max(depth, (*edges.top).width * scale);
+        if (edges.right) depth = std::max(depth, (*edges.right).width * scale);
+        if (edges.bottom) depth = std::max(depth, (*edges.bottom).width * scale);
+        if (edges.left) depth = std::max(depth, (*edges.left).width * scale);
+        for (const MaterialKeyline& keyline : material.keylines) {
+            depth = std::max(depth, (keyline.inset + keyline.width) * scale);
+        }
+        const double inner = std::max(radius, depth) + 1.0;
+        reach_at_least(reach, inner, inner, depth * 2.0 + 1.0);
+    }
     if (edges.top) band_reach(reach, MaterialEdge::top, 0.0, (*edges.top).width * scale, across);
     if (edges.right) band_reach(reach, MaterialEdge::right, 0.0, (*edges.right).width * scale, across);
     if (edges.bottom) band_reach(reach, MaterialEdge::bottom, 0.0, (*edges.bottom).width * scale, across);

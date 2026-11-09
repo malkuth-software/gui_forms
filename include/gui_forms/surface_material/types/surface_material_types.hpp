@@ -173,6 +173,12 @@ struct MaterialReflection final {
                left.source == right.source;
     }
 };
+// Single edges (CSS border-color with differing sides). On a square box
+// each is a band along its edge; on a rounded one (corner_radius above 0,
+// every present edge the same width) they draw as one ring, each pixel in
+// the colour of the edge it lies nearest (split along 45-degree lines from
+// the corners, as CSS splits a rounded box's edge colours), and the
+// material's keylines draw as rings the same way.
 struct MaterialBorderEdges final {
     std::optional<MaterialBorder> top;
     std::optional<MaterialBorder> right;
