@@ -34,7 +34,7 @@
 // published_value_invalid (E606), and more than maximum_imports imports
 // is too_many_imports (E506).
 
-#include "../../resources/integrity/sha256.hpp"
+#include "gui_forms/integrity/sha256/sha256.hpp"
 #include "../../json/json_reader/json_reader.hpp"
 #include "../diagnostics/theme_diagnostics.hpp"
 #include "../syntax_tree/theme_syntax_tree.hpp"
@@ -61,13 +61,10 @@ inline constexpr std::size_t maximum_package_name_bytes = 64U;
 inline constexpr std::size_t maximum_manifest_resources = 256U;
 inline constexpr std::size_t maximum_manifest_published_values = 64U;
 inline constexpr std::size_t maximum_manifest_coverage = 256U;
-// The digits of a hash as the manifest writes it.
-inline constexpr std::size_t sha256_hex_digits = 64U;
-
 // A file of the package and the hash its bytes must have.
 struct ThemePackageFile final {
     std::string path{};
-    detail::Sha256Digest sha256{};
+    Sha256Digest sha256{};
 
     friend bool operator==(const ThemePackageFile& left, const ThemePackageFile& right) noexcept {
         return left.path == right.path && left.sha256 == right.sha256;
@@ -78,7 +75,7 @@ struct ThemePackageFile final {
 // manifest's bytes.
 struct ThemeManifestImport final {
     std::string name{};
-    detail::Sha256Digest manifest_sha256{};
+    Sha256Digest manifest_sha256{};
 
     friend bool operator==(const ThemeManifestImport& left, const ThemeManifestImport& right) noexcept {
         return left.name == right.name && left.manifest_sha256 == right.manifest_sha256;
@@ -135,9 +132,9 @@ enum class ThemeManifestOutcome : std::uint8_t { read, refused };
                                                        ThemeManifest& manifest, ThemeManifestProblem& problem);
 
 // The SHA-256 of `bytes` (main's first-party implementation).
-[[nodiscard]] detail::Sha256Digest package_sha256(std::string_view bytes) noexcept;
+[[nodiscard]] Sha256Digest package_sha256(std::string_view bytes) noexcept;
 // A digest as the manifest writes it: 64 lowercase hexadecimal digits.
-[[nodiscard]] std::string package_sha256_hex(const detail::Sha256Digest& digest);
+[[nodiscard]] std::string package_sha256_hex(const Sha256Digest& digest);
 
 // `>=X.Y`: X and Y decimal, without a sign or a leading zero, each at most
 // 65535; none for anything else (C8: a lower bound only).

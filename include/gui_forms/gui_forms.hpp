@@ -34,6 +34,7 @@
 #include "gui_forms/guidance.hpp"
 #include "gui_forms/host.hpp"
 #include "gui_forms/image_list.hpp"
+#include "gui_forms/integrity.hpp"
 #include "gui_forms/input_controls.hpp"
 #include "gui_forms/inspection_controls.hpp"
 #include "gui_forms/instrument_controls.hpp"

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui_forms/types/paint_types/paint_types.hpp"
-#include "../integrity/sha256.hpp"
+#include "gui_forms/integrity/sha256/sha256.hpp"
 #include "codepoint_coverage.hpp"
 
 #include <cstddef>
