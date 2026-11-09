@@ -115,6 +115,7 @@
 #include "gui_forms/controls/tool_strip_panel/tool_strip_panel_values/tool_strip_panel_values.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
+#include "gui_forms/events/drag_events/drag_events.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/events/key_events/key_events.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
@@ -389,6 +390,31 @@ struct EnumerationChoices<DockNavigatorList> {
     static constexpr std::array<EnumerationChoice, 2> choices{{
         {"tools", static_cast<std::int64_t>(DockNavigatorList::tools)},
         {"documents", static_cast<std::int64_t>(DockNavigatorList::documents)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<DragEnd> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 9> choices{{
+        {"none", static_cast<std::int64_t>(DragEnd::none)},
+        {"dropped", static_cast<std::int64_t>(DragEnd::dropped)},
+        {"free", static_cast<std::int64_t>(DragEnd::free)},
+        {"rejected", static_cast<std::int64_t>(DragEnd::rejected)},
+        {"escaped", static_cast<std::int64_t>(DragEnd::escaped)},
+        {"capture_lost", static_cast<std::int64_t>(DragEnd::capture_lost)},
+        {"deactivated", static_cast<std::int64_t>(DragEnd::deactivated)},
+        {"model_changed", static_cast<std::int64_t>(DragEnd::model_changed)},
+        {"subject_gone", static_cast<std::int64_t>(DragEnd::subject_gone)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<DragInputMode> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"pointer", static_cast<std::int64_t>(DragInputMode::pointer)},
+        {"keyboard", static_cast<std::int64_t>(DragInputMode::keyboard)},
     }};
 };
 
@@ -946,6 +972,7 @@ void read_field(EventFields& fields, std::string_view name, DockDocumentClosing&
 void append_field(EventFields& fields, std::string_view name, const DockFlyoutChange& value);
 void append_field(EventFields& fields, std::string_view name, const DockNavigatorChoice& value);
 void append_field(EventFields& fields, std::string_view name, const DockPanelId& value);
+void append_field(EventFields& fields, std::string_view name, const DragInteraction& value);
 void append_field(EventFields& fields, std::string_view name, const ErrorProviderChange& value);
 void append_field(EventFields& fields, std::string_view name, const FileDialogOk& value);
 void read_field(EventFields& fields, std::string_view name, FileDialogOk& value);
@@ -1623,6 +1650,18 @@ inline void append_field(EventFields& fields, std::string_view name, const DockN
 inline void append_field(EventFields& fields, std::string_view name, const DockPanelId& value) {
     // An identity: the field is its one value.
     append_field(fields, name, value.value);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const DragInteraction& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "mode", value.mode);
+    append_field(fields, "has_candidate", value.has_candidate);
+    append_field(fields, "candidate", value.candidate);
+    append_field(fields, "has_value", value.has_value);
+    append_field(fields, "value", value.value);
+    append_field(fields, "pointer", value.pointer);
+    append_field(fields, "end", value.end);
+    fields.leave(prefix);
 }
 
 inline void append_field(EventFields& fields, std::string_view name, const ErrorProviderChange& value) {
@@ -3606,12 +3645,84 @@ inline SubscriptionToken connect_control_double_click(Component& source, const E
     return token;
 }
 
+inline SubscriptionToken connect_split_container_drag_dropped(Component& source, const EventSink& sink) {
+    SplitContainer* typed = dynamic_cast<SplitContainer*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drag_dropped(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_splitter_drag_dropped(Component& source, const EventSink& sink) {
+    Splitter* typed = dynamic_cast<Splitter*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drag_dropped(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_split_container_drag_ended(Component& source, const EventSink& sink) {
+    SplitContainer* typed = dynamic_cast<SplitContainer*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drag_ended(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_dock_site_drag_ended(Component& source, const EventSink& sink) {
     DockSite* typed = dynamic_cast<DockSite*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).drag_ended(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_splitter_drag_ended(Component& source, const EventSink& sink) {
+    Splitter* typed = dynamic_cast<Splitter*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drag_ended(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_split_container_drag_started(Component& source, const EventSink& sink) {
+    SplitContainer* typed = dynamic_cast<SplitContainer*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drag_started(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_splitter_drag_started(Component& source, const EventSink& sink) {
+    Splitter* typed = dynamic_cast<Splitter*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drag_started(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_split_container_drag_target_changed(Component& source, const EventSink& sink) {
+    SplitContainer* typed = dynamic_cast<SplitContainer*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drag_target_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_splitter_drag_target_changed(Component& source, const EventSink& sink) {
+    Splitter* typed = dynamic_cast<Splitter*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drag_target_changed(), sink);
     return token;
 }
 
@@ -5587,7 +5698,15 @@ inline constexpr std::array<EventConnector, 299> event_connectors{{
     {"document_closing", "DockWorkspace", &connect_dock_workspace_document_closing},
     {"double_click", "NotifyIcon", &connect_notify_icon_double_click},
     {"double_click", "Control", &connect_control_double_click},
+    {"drag_dropped", "SplitContainer", &connect_split_container_drag_dropped},
+    {"drag_dropped", "Splitter", &connect_splitter_drag_dropped},
+    {"drag_ended", "SplitContainer", &connect_split_container_drag_ended},
     {"drag_ended", "DockSite", &connect_dock_site_drag_ended},
+    {"drag_ended", "Splitter", &connect_splitter_drag_ended},
+    {"drag_started", "SplitContainer", &connect_split_container_drag_started},
+    {"drag_started", "Splitter", &connect_splitter_drag_started},
+    {"drag_target_changed", "SplitContainer", &connect_split_container_drag_target_changed},
+    {"drag_target_changed", "Splitter", &connect_splitter_drag_target_changed},
     {"draw_item_content", "TabControl", &connect_tab_control_draw_item_content},
     {"draw_item_content", "DataGridView", &connect_data_grid_view_draw_item_content},
     {"draw_item_content", "ListView", &connect_list_view_draw_item_content},

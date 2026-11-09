@@ -302,6 +302,7 @@ add_library(gui_forms_core STATIC
     src/core/engine/theme_rules/built_in_rules.cpp
     src/core/engine/motion_value/motion_value.cpp
     src/core/engine/motion_clock/motion_clock.cpp
+    src/core/drag_engine/drag_engine.cpp
     src/core/engine/effect_canvas/effect_canvas.cpp
     src/core/engine/effect_registry/effect_registry.cpp
     src/core/surface_material/colour_matrix/colour_matrix.cpp
@@ -881,6 +882,8 @@ add_library(gui_forms_controls STATIC
     src/controls/scrollable_control/container_control/split_container/splitter_grip.cpp
     src/controls/scrollable_control/container_control/split_container/split_container.cpp
     src/controls/splitter/splitter.cpp
+    src/controls/node_canvas/node_graph/node_graph.cpp
+    src/controls/node_canvas/link_router/link_router.cpp
     src/controls/panel/date_time_picker/date_time_utilities.cpp
     src/controls/panel/date_time_picker/calendar_grid/calendar_grid.cpp
     src/controls/panel/date_time_picker/date_time_value/date_time_value.cpp
@@ -3853,6 +3856,15 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_splitter_tests tests/splitter_tests.cpp)
     target_link_libraries(gui_forms_splitter_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_splitter_tests COMMAND gui_forms_splitter_tests)
+    add_executable(gui_forms_node_graph_tests tests/node_graph_tests.cpp)
+    target_link_libraries(gui_forms_node_graph_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_node_graph_tests COMMAND gui_forms_node_graph_tests)
+    add_executable(gui_forms_link_router_tests tests/link_router_tests.cpp)
+    target_link_libraries(gui_forms_link_router_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_link_router_tests COMMAND gui_forms_link_router_tests)
+    add_executable(gui_forms_drag_engine_tests tests/drag_engine_tests.cpp)
+    target_link_libraries(gui_forms_drag_engine_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_drag_engine_tests COMMAND gui_forms_drag_engine_tests)
 
     add_executable(gui_forms_layout_contract_tests
         tests/layout_contract_tests.cpp

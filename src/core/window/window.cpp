@@ -8,6 +8,7 @@
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "../dispatcher/state/dispatcher_state.hpp"
+#include "../drag_engine/drag_engine.hpp"
 #include "../display/chunk/display_chunk.hpp"
 #include "../display/recording_painter/recording_painter.hpp"
 #include "../display/replay/replay_display_chunk.hpp"
@@ -1642,6 +1643,12 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
     if (revoked && previous) {
         metrics_.record_capture_revocation();
     }
+    // A drag whose subject lost the capture ends (the engine ignores the
+    // release it makes itself). A primary release frees the capture before
+    // the release reaches the subject, which then ends the drag itself.
+    if (previous && previous != control && drag_engine_ && !defer_capture_changed_) {
+        (*drag_engine_).note_capture_lost(*previous);
+    }
     PointerCaptureChange change;
     change.captured = static_cast<bool>(control);
     change.control_id = control ? (*control).runtime_id() : RuntimeId{};
@@ -1990,6 +1997,9 @@ bool SurfaceRoot::dispatch_key(KeyEvent event) {
     }
     // A lifted drop-down or picker's Popup window takes the key first.
     if (forward_to_popup(event)) return true;
+    // A running drag takes the keys it uses (Escape; the keyboard mode's
+    // arrows, Tab and Enter) before the rules and the focused control.
+    if (drag_engine_ && (*drag_engine_).key(event)) return true;
     const bool handled = route_key(std::move(event));
     // A key may have moved the keyboard within the focused control, or
     // shown the focus cue: the presenter looks at what focus is on again.
@@ -3071,6 +3081,38 @@ void SurfaceRoot::mark_child_layout_slot(Control& control) {
     if (in_layout_ || in_paint_) settle_dirty();
 }
 
+// The drag engine's live region (roadmap 2.1, phase E4): once the window has
+// made its engine, the latest drag announcement names a live region below
+// the root control's node (a top-level node when the root publishes none,
+// as under a modal scope or for an unexposed root), so a screen reader
+// hears each step and the end. It is always
+// present from then on, so a reader knows it before it changes; it covers
+// the window and takes no action. The engine invalidates the root's
+// semantics whenever the text changes.
+void SurfaceRoot::append_drag_announcements(SemanticSnapshot& snapshot) const {
+    if (!drag_engine_ || !root_) return;
+    SemanticNode region{};
+    region.stable_id = std::string((*root_).stable_id().value()) + ".drag-announcements";
+    region.runtime_id = virtual_semantic_runtime_id(region.stable_id);
+    region.role = SemanticRole::live_region;
+    region.name = std::string((*drag_engine_).announcement());
+    region.bounds = (*root_).absolute_bounds();
+    region.states = SemanticState::visible | SemanticState::enabled;
+    const std::uint64_t root_runtime_id = (*root_).runtime_id().value;
+    SemanticNode* holder = nullptr;
+    for (SemanticNode& node : snapshot.roots) {
+        if (node.runtime_id != root_runtime_id) continue;
+        holder = &node;
+        break;
+    }
+    if (holder != nullptr) {
+        (*holder).children.push_back(std::move(region));
+    } else {
+        snapshot.roots.push_back(std::move(region));
+    }
+    ++snapshot.node_count;
+}
+
 SemanticSnapshot SurfaceRoot::semantic_snapshot() {
     require_root_thread("semantic snapshot");
     if (in_semantic_snapshot_) {
@@ -3106,6 +3148,7 @@ SemanticSnapshot SurfaceRoot::semantic_snapshot() {
             append_semantic_nodes(root, root == scoped ? (*root).parent().get() : nullptr, this, focused, snapshot.roots,
                                   snapshot.node_count, unowned);
         }
+        append_drag_announcements(snapshot);
         if (generation == semantic_generation_) {
             return snapshot;
         }

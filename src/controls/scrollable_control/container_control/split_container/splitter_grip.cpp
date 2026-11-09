@@ -151,6 +151,13 @@ Insets SplitterGrip::visual_outsets() const noexcept {
             std::max(0.0, bottom - bounds.height)};
 }
 
+bool SplitterGrip::begin_keyboard_drag() {
+    const Control::Ptr owner = parent();
+    if (!owner) return false;
+    const bool started = (*owner).begin_keyboard_drag();
+    return started;
+}
+
 void SplitterGrip::on_pointer(PointerEvent& event) {
     if (event.action != PointerAction::enter &&
         event.action != PointerAction::move &&

@@ -2332,6 +2332,10 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `scroll` | `ScrollEvent`, by reference |
 | `auto_validate_changed` | `AutoValidate` |
 | `splitter_changed` | `SplitChangeEvent` |
+| `drag_started` | `DragInteraction` |
+| `drag_target_changed` | `DragInteraction` |
+| `drag_dropped` | `DragInteraction` |
+| `drag_ended` | `DragInteraction` |
 
 ## `splitter_panel` (SplitterPanel, control)
 
@@ -2375,6 +2379,10 @@ Properties beyond every control's: none.
 |---|---|
 | `splitter_moving` | `SplitterMoveEvent`, by reference |
 | `splitter_moved` | `SplitterMoveEvent` |
+| `drag_started` | `DragInteraction` |
+| `drag_target_changed` | `DragInteraction` |
+| `drag_dropped` | `DragInteraction` |
+| `drag_ended` | `DragInteraction` |
 
 ## `command_overflow_panel` (CommandOverflowPanel, control)
 

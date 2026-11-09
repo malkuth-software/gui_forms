@@ -3,12 +3,14 @@
 #include "gui_forms/window.hpp"
 #include "../../scrollable_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "../../../../core/drag_engine/drag_engine.hpp"
 
 #include <vector>
 #include <array>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdio>
 #include <limits>
 #include <numeric>
 #include <stdexcept>
@@ -57,16 +59,110 @@ void validate_splitter_geometry(const SplitSeamGeometry& geometry) {
     }
 }
 
+const char* split_announcement_suffix(DragEnd end) noexcept {
+    if (end == DragEnd::none) return "";
+    if (end == DragEnd::free) return ", done";
+    return ", restored";
+}
+
 } // namespace
 
+// The seam's drag client (the drag engine's second migrated client, after
+// Splitter): one projection along the orientation's axis from the distance
+// at the press, with scale one, so the distance follows the pointer by the
+// offset it was grabbed at, clamped to the constrained range and with no
+// threshold. A preview sets the distance live; the release sets the
+// projected distance; any other end (Escape, a lost capture, deactivation)
+// puts back the distance before the drag with SplitChangeReason::cancel.
+// Owned by the container, which the engine observes: a disposed container is
+// never called, and a detached one drops its session without a restore.
+class SplitContainerDrag final : public DragClient {
+public:
+    explicit SplitContainerDrag(SplitContainer& container) noexcept : container_(&container) {}
+
+    [[nodiscard]] DragPlanRefusal plan_drag(DragPlanBuilder& builder, const DragSubject&) override {
+        SplitContainer& container = *container_;
+        if (!container.seam_draggable()) return DragPlanRefusal::client_refused;
+        const double total = container.axis_extent(container.committed_arranged_bounds());
+        DragProjection projection{};
+        projection.axis = container.orientation.read() == Orientation::vertical ? DragAxis::x : DragAxis::y;
+        projection.origin_value = container.pointer_start_distance_;
+        projection.scale = 1.0;
+        // The constrained range is monotonic in the request, so its two ends
+        // are the clamps of the smallest and largest requests.
+        projection.minimum = container.constrained_distance(0.0, total);
+        projection.maximum = container.constrained_distance(total, total);
+        projection.keyboard_step = container.keyboard_increment.read();
+        const DragNodeIndex root = builder.project(projection);
+        builder.group_container(DragGroup{}, container);
+        const DragPlanRefusal refusal = builder.finish(root);
+        if (refusal != DragPlanRefusal::none) return refusal;
+        container.pointer_tracking_ = true;
+        static_cast<SplitterGrip&>(*container.splitter_).set_dragging(true);
+        return refusal;
+    }
+
+    void preview_drag(const DragFrame& frame) override {
+        if (frame.selection.kind != DragSelectionKind::value) return;
+        SplitContainer& container = *container_;
+        container.set_distance(frame.selection.value, reason_for(frame.mode));
+        container.previewed_ = true;
+    }
+
+    void announce_drag(const DragFrame& frame, DragAnnouncement& announcement) override {
+        if (frame.selection.kind != DragSelectionKind::value && frame.end == DragEnd::none) return;
+        const SplitContainer& container = *container_;
+        const bool shows_selection = frame.end == DragEnd::none || frame.end == DragEnd::free;
+        const double shown = shows_selection ? frame.selection.value : container.pointer_start_distance_;
+        std::array<char, 96> text{};
+        const int written = std::snprintf(text.data(), text.size(), "Split position %.0f%s", shown,
+                                          split_announcement_suffix(frame.end));
+        if (written <= 0) return;
+        const std::size_t length = std::min(static_cast<std::size_t>(written), text.size() - 1U);
+        announcement.assign(std::string_view(text.data(), length));
+    }
+
+    void end_drag(const DragOutcome& outcome) override {
+        SplitContainer& container = *container_;
+        const bool previewed = container.previewed_;
+        container.pointer_tracking_ = false;
+        container.previewed_ = false;
+        static_cast<SplitterGrip&>(*container.splitter_).set_dragging(false);
+        if (outcome.end == DragEnd::free && outcome.selection.kind == DragSelectionKind::value) {
+            container.set_distance(outcome.selection.value, reason_for(outcome.mode));
+            return;
+        }
+        if (!previewed || container.pointer_start_distance_ == container.effective_distance_) return;
+        container.set_distance(container.pointer_start_distance_, SplitChangeReason::cancel);
+    }
+
+    [[nodiscard]] DragInteractionEvents* drag_interactions() noexcept override {
+        return &(*container_).drag_interactions_;
+    }
+
+private:
+    [[nodiscard]] static SplitChangeReason reason_for(DragInputMode mode) noexcept {
+        const SplitChangeReason reason =
+            mode == DragInputMode::keyboard ? SplitChangeReason::keyboard : SplitChangeReason::pointer;
+        return reason;
+    }
+
+    SplitContainer* container_;
+};
+
 SplitContainer::SplitContainer(StableId stable_id)
-    : ContainerControl(std::move(stable_id)) {
+    : ContainerControl(std::move(stable_id)),
+      drag_(std::make_unique<SplitContainerDrag>(*this)) {
     const std::string prefix((*this).stable_id().value());
     first_panel_ = make_control<SplitterPanel>(StableId(prefix + ".panel1"));
     second_panel_ = make_control<SplitterPanel>(StableId(prefix + ".panel2"));
     splitter_ = make_control<SplitterGrip>(StableId(prefix + ".splitter"));
     update_splitter_cursor();
 }
+
+// The engine observes this container, so a session it runs ends without
+// calling the client once the container is gone; the client is released here.
+SplitContainer::~SplitContainer() = default;
 
 void SplitContainer::initialize_control_tree() {
     require_mutable();
@@ -373,17 +469,15 @@ void SplitContainer::arrange(Rect final_bounds) {
 }
 
 void SplitContainer::on_pointer_preview(PointerEvent& event) {
-    if ((pointer_tracking_ || collapse_tab_tracking_) &&
-        !(*splitter_).has_pointer_capture() &&
+    if (collapse_tab_tracking_ && !(*splitter_).has_pointer_capture() &&
         event.action != PointerAction::up) {
         cancel_splitter_interaction(false);
     }
     const bool on_collapse_tab = collapse_panel.read() != SplitFixedPanel::none &&
                                  collapse_tab_bounds().contains(event.position);
-    if (event.action == PointerAction::down &&
+    if (!pointer_tracking_ && event.action == PointerAction::down &&
         event.button == PointerButton::primary && on_collapse_tab) {
         collapse_tab_tracking_ = true;
-        pointer_tracking_ = false;
         static_cast<SplitterGrip&>(*splitter_).set_actuator_pressed(true);
         if (window() != nullptr) (*window()).request_focus(splitter_);
         (*splitter_).set_pointer_capture(true);
@@ -402,39 +496,43 @@ void SplitContainer::on_pointer_preview(PointerEvent& event) {
         event.handled = true;
         return;
     }
-    if (splitter_fixed.read() || first_collapsed_ || second_collapsed_) return;
-    if (event.action == PointerAction::down &&
-        event.button == PointerButton::primary &&
-        (*splitter_).absolute_bounds().contains(event.position)) {
-        pointer_tracking_ = true;
-        pointer_start_distance_ = effective_distance_;
-        static_cast<SplitterGrip&>(*splitter_).set_dragging(true);
-        pointer_offset_ = pointer_axis(event.position) - effective_distance_;
-        if (window() != nullptr) (*window()).request_focus(splitter_);
-        (*splitter_).set_pointer_capture(true);
-        event.handled = true;
-    } else if (event.action == PointerAction::move && pointer_tracking_) {
-        set_distance(pointer_axis(event.position) - pointer_offset_,
-                     SplitChangeReason::pointer);
-        event.handled = true;
-    } else if (event.action == PointerAction::up && pointer_tracking_) {
-        pointer_tracking_ = false;
-        static_cast<SplitterGrip&>(*splitter_).set_dragging(false);
-        set_distance(pointer_axis(event.position) - pointer_offset_,
-                     SplitChangeReason::pointer);
-        event.handled = true;
+    SurfaceRoot* const root = surface_root();
+    if (root == nullptr) return;
+    if (pointer_tracking_) {
+        // The engine owns a running seam drag: moves preview, the release
+        // commits, and a lost capture ends it with a restore.
+        DragEngine& engine = (*root).drag_engine();
+        if (!engine.runs(*drag_)) return;
+        if (engine.pointer(event)) event.handled = true;
+        return;
     }
+    if (!seam_draggable()) return;
+    if (event.action != PointerAction::down || event.button != PointerButton::primary ||
+        !(*splitter_).absolute_bounds().contains(event.position)) {
+        return;
+    }
+    pointer_start_distance_ = effective_distance_;
+    previewed_ = false;
+    if (window() != nullptr) (*window()).request_focus(splitter_);
+    // No threshold: the press starts the drag, as before the engine. The
+    // grip is the subject, so it holds the capture.
+    DragEngine& engine = (*root).drag_engine();
+    const bool started = engine.arm(*drag_, *this, *splitter_, 0U, event.position,
+                                    (*splitter_).absolute_bounds(), 0.0);
+    if (started) event.handled = true;
 }
 
 void SplitContainer::on_key_preview(KeyEvent& event) {
     if (event.action != KeyAction::down || window() == nullptr ||
         (*window()).focused_control() != splitter_) return;
-    if (event.physical_key == PhysicalKey::escape &&
-        (pointer_tracking_ || collapse_tab_tracking_)) {
-        cancel_splitter_interaction(pointer_tracking_);
+    // Escape during a seam drag reaches the drag engine before this preview;
+    // here it only abandons a pressed collapse tab.
+    if (event.physical_key == PhysicalKey::escape && collapse_tab_tracking_) {
+        cancel_splitter_interaction(false);
         event.handled = true;
         return;
     }
+    if (pointer_tracking_) return;
     if (collapse_panel.read() != SplitFixedPanel::none &&
         (event.physical_key == PhysicalKey::enter ||
          event.physical_key == PhysicalKey::space)) {
@@ -540,6 +638,15 @@ bool SplitContainer::on_semantic_action(SemanticAction action,
 }
 
 void SplitContainer::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
+    // A drag leaving with the container ends without a restore, as before
+    // the engine: the session is dropped without calling the client.
+    if (former_window.drag_engine_if_made() != nullptr) {
+        try {
+            former_window.drag_engine().client_gone(*drag_);
+        } catch (...) {
+            // Only a call off the root's thread throws; detaching runs on it.
+        }
+    }
     cancel_splitter_interaction(false);
     static_cast<SplitterGrip&>(*splitter_).reset_interaction();
     ContainerControl::on_detaching_from_window(former_window);
@@ -547,9 +654,25 @@ void SplitContainer::on_detaching_from_window(SurfaceRoot& former_window) noexce
 
 void SplitContainer::on_detached_from_window() noexcept {
     pointer_tracking_ = false;
+    previewed_ = false;
     collapse_tab_tracking_ = false;
     static_cast<SplitterGrip&>(*splitter_).reset_interaction();
     ContainerControl::on_detached_from_window();
+}
+
+bool SplitContainer::seam_draggable() const noexcept {
+    const bool draggable = !splitter_fixed.read() && !first_collapsed_ && !second_collapsed_;
+    return draggable;
+}
+
+bool SplitContainer::begin_keyboard_drag() {
+    SurfaceRoot* const root = surface_root();
+    if (root == nullptr || !enabled.read() || !seam_draggable() || collapse_tab_tracking_) return false;
+    pointer_start_distance_ = effective_distance_;
+    previewed_ = false;
+    DragEngine& engine = (*root).drag_engine();
+    const bool started = engine.begin_keyboard(*drag_, *this, *splitter_, 0U);
+    return started;
 }
 
 double SplitContainer::axis_extent(Rect bounds) const noexcept {
@@ -698,10 +821,14 @@ void SplitContainer::set_distance(double distance, SplitChangeReason reason) {
     publish_change(splitter_changed_, change);
 }
 
+// Clears the collapse tab's press and the grip's drag cues and releases the
+// seam's capture. A seam drag the engine runs is ended through the engine
+// before this is called; restore_distance puts back the starting distance.
 void SplitContainer::cancel_splitter_interaction(
     const bool restore_distance) noexcept {
     const bool was_tracking = pointer_tracking_ || collapse_tab_tracking_;
     pointer_tracking_ = false;
+    previewed_ = false;
     collapse_tab_tracking_ = false;
     SplitterGrip& grip = static_cast<SplitterGrip&>(*splitter_);
     grip.set_dragging(false);
@@ -853,8 +980,12 @@ SplitContainer::States SplitContainer::states() const {
 namespace {
 
 // The events SplitContainer adds to those of ContainerControl, in declaration order.
-constexpr std::array<InteractionDeclaration, 1> split_container_interactions{{
+constexpr std::array<InteractionDeclaration, 5> split_container_interactions{{
     {.name = "splitter_changed", .payload = "SplitChangeEvent", .mutable_payload = false},
+    {.name = "drag_started", .payload = "DragInteraction", .mutable_payload = false},
+    {.name = "drag_target_changed", .payload = "DragInteraction", .mutable_payload = false},
+    {.name = "drag_dropped", .payload = "DragInteraction", .mutable_payload = false},
+    {.name = "drag_ended", .payload = "DragInteraction", .mutable_payload = false},
 }};
 
 } // namespace

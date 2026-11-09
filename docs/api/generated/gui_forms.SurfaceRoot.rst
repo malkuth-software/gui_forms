@@ -301,6 +301,8 @@ gui_forms::SurfaceRoot
          has settled it schedules nothing. Tests install a :cpp:class:`MotionTimeSource <gui_forms::MotionTimeSource>` on
          it so that motion is sampled from their own time.
 
+      **drag_engine_if_made** : ``DragEngine*``, read-only
+
       **layout_diagnostics** : ``std::span<const LayoutDiagnostic>``, read-only
          Nonfatal layout diagnostics (stage L, phase L5; PLAN section 2.5), in the order the layout passes recorded them: at most maximum_layout_diagnostics, the later ones counted in dropped_layout_diagnostics(). Clearing empties both. The span is valid until the next layout pass or clear.
 
@@ -546,6 +548,8 @@ gui_forms::SurfaceRoot
         -  
       * - :cpp:func:`motion_clock <gui_forms::SurfaceRoot::motion_clock>`
         - The window's :cpp:class:`MotionClock <gui_forms::MotionClock>`: one frame request, armed only while some control's :cpp:class:`MotionValue <gui_forms::MotionValue>` is moving, however many are.
+      * - :cpp:func:`drag_engine <gui_forms::SurfaceRoot::drag_engine>`
+        - The window's drag engine (roadmap 2.1; internal, its header is src/core/drag_engine/drag_engine.hpp): one drag session at a time, for this root's controls.
       * - :cpp:func:`publish_value <gui_forms::SurfaceRoot::publish_value>`
         - Publishes a named number for the theme engine, such as a meter's ``level``.
       * - :cpp:func:`withdraw_value <gui_forms::SurfaceRoot::withdraw_value>`
@@ -974,6 +978,8 @@ gui_forms::SurfaceRoot
       control's :cpp:class:`MotionValue <gui_forms::MotionValue>` is moving, however many are. Once every value
       has settled it schedules nothing. Tests install a :cpp:class:`MotionTimeSource <gui_forms::MotionTimeSource>` on
       it so that motion is sampled from their own time.
+
+   .. cpp:function:: const DragEngine* drag_engine_if_made() const noexcept
 
    .. cpp:function:: std::span<const LayoutDiagnostic> layout_diagnostics() const& noexcept
 
@@ -1490,6 +1496,10 @@ gui_forms::SurfaceRoot
       control's :cpp:class:`MotionValue <gui_forms::MotionValue>` is moving, however many are. Once every value
       has settled it schedules nothing. Tests install a :cpp:class:`MotionTimeSource <gui_forms::MotionTimeSource>` on
       it so that motion is sampled from their own time.
+
+   .. cpp:function:: DragEngine& drag_engine()
+
+      The window's drag engine (roadmap 2.1; internal, its header is src/core/drag_engine/drag_engine.hpp): one drag session at a time, for this root's controls. Made on first use (drag_engine); null until then (drag_engine_if_made). Root thread.
 
    .. cpp:function:: bool publish_value(std::string_view name, double value)
 

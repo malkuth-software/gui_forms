@@ -3889,6 +3889,8 @@ std::vector<SemanticNode> Control::tool_tip_items() const {
     return semantic_virtual_children();
 }
 
+bool Control::begin_keyboard_drag() { return false; }
+
 std::vector<SemanticNode> Control::semantic_virtual_children() const {
     return {};
 }
