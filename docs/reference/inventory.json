@@ -217450,7 +217450,7 @@
       "kind": "class",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 286,
+      "line": 304,
       "declaration": "class Ribbon final : public Control, public RibbonCapabilities<Ribbon>",
       "comment": "",
       "access": "public",
@@ -217471,7 +217471,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 289,
+          "line": 307,
           "page": "gui-forms-ribbon-maximum-tabs-const-std-size-t-e9fd9acdbc.html"
         },
         {
@@ -217486,7 +217486,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 290,
+          "line": 308,
           "page": "gui-forms-ribbon-maximum-groups-per-tab-const-std-size-t-1ee0b1e06f.html"
         },
         {
@@ -217501,7 +217501,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 291,
+          "line": 309,
           "page": "gui-forms-ribbon-maximum-commands-per-group-const-std-size-t-cd1b11199f.html"
         },
         {
@@ -217516,7 +217516,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 292,
+          "line": 310,
           "page": "gui-forms-ribbon-maximum-layouts-per-group-const-std-size-t-01e8a12e7d.html"
         },
         {
@@ -217531,7 +217531,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 293,
+          "line": 311,
           "page": "gui-forms-ribbon-maximum-reduction-steps-const-std-size-t-64706c47f2.html"
         },
         {
@@ -217546,7 +217546,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 296,
+          "line": 314,
           "page": "gui-forms-ribbon-hide-hysteresis-const-double-f52b416706.html"
         },
         {
@@ -217561,7 +217561,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 299,
+          "line": 317,
           "page": "gui-forms-ribbon-scroll-hysteresis-const-double-61578399a8.html"
         },
         {
@@ -217582,7 +217582,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 301,
+          "line": 319,
           "page": "gui-forms-ribbon-ribbon-void-stableid-21dcb83100.html"
         },
         {
@@ -217597,7 +217597,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 302,
+          "line": 320,
           "page": "gui-forms-ribbon-ribbon-void-noexcept-5bbeed7415.html"
         },
         {
@@ -217612,7 +217612,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 304,
+          "line": 322,
           "page": "gui-forms-ribbon-tabs-std-span-const-ribbontabspec-const-noexcept-b1cfc392eb.html"
         },
         {
@@ -217638,7 +217638,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 326,
+          "line": 344,
           "page": "gui-forms-ribbon-set-tabs-void-std-vector-ribbontabspec-std-vector-ribbontabsetspec-a969e23b38.html"
         },
         {
@@ -217653,7 +217653,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 327,
+          "line": 345,
           "page": "gui-forms-ribbon-tab-sets-std-span-const-ribbontabsetspec-const-noexcept-40742b104d.html"
         },
         {
@@ -217674,7 +217674,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 334,
+          "line": 352,
           "page": "gui-forms-ribbon-tab-set-availability-ribbontabsetavailability-std-string-view-const-eaa7413340.html"
         },
         {
@@ -217700,7 +217700,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 335,
+          "line": 353,
           "page": "gui-forms-ribbon-set-tab-set-availability-void-std-string-view-ribbontabsetavailability-3ce1a76529.html"
         },
         {
@@ -217721,7 +217721,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 339,
+          "line": 357,
           "page": "gui-forms-ribbon-tab-set-accent-std-optional-accentindex-std-string-view-const-64f143eb13.html"
         },
         {
@@ -217742,7 +217742,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 342,
+          "line": 360,
           "page": "gui-forms-ribbon-tab-shown-bool-std-size-t-const-0dcbeeda07.html"
         },
         {
@@ -217768,7 +217768,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 347,
+          "line": 365,
           "page": "gui-forms-ribbon-group-layouts-std-span-const-ribbongrouplayout-std-size-t-std-size-t-const-af9a1ede14.html"
         },
         {
@@ -217789,7 +217789,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 350,
+          "line": 368,
           "page": "gui-forms-ribbon-reduction-ladder-std-vector-ribbonladderentry-std-size-t-const-f78af704b7.html"
         },
         {
@@ -217804,7 +217804,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 353,
+          "line": 371,
           "page": "gui-forms-ribbon-ladder-step-std-optional-std-size-t-const-e722319ef8.html"
         },
         {
@@ -217819,7 +217819,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 358,
+          "line": 376,
           "page": "gui-forms-ribbon-scrolling-bool-const-4fc64b5936.html"
         },
         {
@@ -217834,7 +217834,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 359,
+          "line": 377,
           "page": "gui-forms-ribbon-first-visible-group-std-size-t-const-noexcept-60a63adf17.html"
         },
         {
@@ -217849,7 +217849,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 361,
+          "line": 379,
           "page": "gui-forms-ribbon-plane-hidden-bool-const-noexcept-5a98c552b1.html"
         },
         {
@@ -217864,7 +217864,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 362,
+          "line": 380,
           "page": "gui-forms-ribbon-scaling-counters-ribbonscalingcounters-const-noexcept-567446620f.html"
         },
         {
@@ -217879,7 +217879,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 365,
+          "line": 383,
           "page": "gui-forms-ribbon-application-menu-const-std-vector-menuitemspec-const-noexcept-de2278a946.html"
         },
         {
@@ -217900,7 +217900,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 367,
+          "line": 385,
           "page": "gui-forms-ribbon-set-application-menu-void-std-vector-menuitemspec-d0b502a41b.html"
         },
         {
@@ -217921,7 +217921,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 371,
+          "line": 389,
           "page": "gui-forms-ribbon-show-application-menu-bool-menuopenmode-211d4b9ade.html"
         },
         {
@@ -217936,7 +217936,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 379,
+          "line": 397,
           "page": "gui-forms-ribbon-maximum-recent-items-const-std-size-t-c7f1918820.html"
         },
         {
@@ -217951,7 +217951,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 380,
+          "line": 398,
           "page": "gui-forms-ribbon-recent-items-std-span-const-ribbonrecentitem-const-noexcept-62cf27f74f.html"
         },
         {
@@ -217972,7 +217972,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 381,
+          "line": 399,
           "page": "gui-forms-ribbon-set-recent-items-void-std-vector-ribbonrecentitem-b55677e64e.html"
         },
         {
@@ -217987,7 +217987,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 383,
+          "line": 401,
           "page": "gui-forms-ribbon-application-menu-overlay-control-ptr-const-noexcept-09e5fd214d.html"
         },
         {
@@ -218002,7 +218002,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 384,
+          "line": 402,
           "page": "gui-forms-ribbon-show-backstage-bool-078eec67a6.html"
         },
         {
@@ -218017,7 +218017,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 385,
+          "line": 403,
           "page": "gui-forms-ribbon-close-backstage-void-noexcept-df4774bbdf.html"
         },
         {
@@ -218032,7 +218032,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 386,
+          "line": 404,
           "page": "gui-forms-ribbon-backstage-open-bool-const-noexcept-183c70e660.html"
         },
         {
@@ -218058,7 +218058,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 389,
+          "line": 407,
           "page": "gui-forms-ribbon-show-drop-down-bool-std-string-view-menuopenmode-d7d4ce5e77.html"
         },
         {
@@ -218073,7 +218073,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 390,
+          "line": 408,
           "page": "gui-forms-ribbon-close-menus-void-noexcept-0ea5dbc29f.html"
         },
         {
@@ -218088,7 +218088,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 391,
+          "line": 409,
           "page": "gui-forms-ribbon-menu-open-bool-const-noexcept-b079ca9c29.html"
         },
         {
@@ -218114,7 +218114,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 397,
+          "line": 415,
           "page": "gui-forms-ribbon-show-group-overlay-bool-std-string-view-menuopenmode-6171d06975.html"
         },
         {
@@ -218129,7 +218129,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 399,
+          "line": 417,
           "page": "gui-forms-ribbon-close-group-overlay-void-noexcept-09cfe7ab31.html"
         },
         {
@@ -218144,7 +218144,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 401,
+          "line": 419,
           "page": "gui-forms-ribbon-overlay-group-std-optional-std-string-const-51719899ec.html"
         },
         {
@@ -218159,7 +218159,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 404,
+          "line": 422,
           "page": "gui-forms-ribbon-group-overlay-control-ptr-const-noexcept-c5c7d6ed26.html"
         },
         {
@@ -218180,7 +218180,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 408,
+          "line": 426,
           "page": "gui-forms-ribbon-combo-box-std-shared-ptr-combobox-std-string-view-const-58955eb4ab.html"
         },
         {
@@ -218201,7 +218201,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 409,
+          "line": 427,
           "page": "gui-forms-ribbon-numeric-up-down-std-shared-ptr-numericupdown-std-string-view-const-57662764ad.html"
         },
         {
@@ -218222,7 +218222,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 410,
+          "line": 428,
           "page": "gui-forms-ribbon-check-box-std-shared-ptr-checkbox-std-string-view-const-caea4e57cf.html"
         },
         {
@@ -218243,7 +218243,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 411,
+          "line": 429,
           "page": "gui-forms-ribbon-text-box-std-shared-ptr-textbox-std-string-view-const-9942fe0af7.html"
         },
         {
@@ -218258,7 +218258,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 413,
+          "line": 431,
           "page": "gui-forms-ribbon-command-clicked-event-const-ribboncommandclick-noexcept-fc02154726.html"
         },
         {
@@ -218273,7 +218273,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 414,
+          "line": 432,
           "page": "gui-forms-ribbon-drop-down-item-invoked-event-const-ribbondropdowninvocation-noexcept-d579dc3196.html"
         },
         {
@@ -218288,7 +218288,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 417,
+          "line": 435,
           "page": "gui-forms-ribbon-dialog-launcher-clicked-event-const-ribbondialoglaunch-noexcept-3432d4c9ee.html"
         },
         {
@@ -218303,7 +218303,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 420,
+          "line": 438,
           "page": "gui-forms-ribbon-selected-tab-changed-event-const-ribbontabchange-noexcept-a811982882.html"
         },
         {
@@ -218318,7 +218318,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 421,
+          "line": 439,
           "page": "gui-forms-ribbon-minimized-changed-event-bool-noexcept-bed24db77c.html"
         },
         {
@@ -218333,7 +218333,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 422,
+          "line": 440,
           "page": "gui-forms-ribbon-application-menu-item-invoked-event-const-menuiteminvocation-noexcept-69951ff261.html"
         },
         {
@@ -218348,7 +218348,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 425,
+          "line": 443,
           "page": "gui-forms-ribbon-recent-item-invoked-event-const-ribbonrecentiteminvocation-noexcept-f0b570760d.html"
         },
         {
@@ -218363,7 +218363,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 428,
+          "line": 446,
           "page": "gui-forms-ribbon-backstage-open-changed-event-bool-noexcept-a4d47d6472.html"
         },
         {
@@ -218384,7 +218384,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 430,
+          "line": 448,
           "page": "gui-forms-ribbon-measure-size-size-5f852d202d.html"
         },
         {
@@ -218405,7 +218405,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 431,
+          "line": 449,
           "page": "gui-forms-ribbon-arrange-void-rect-699199951a.html"
         },
         {
@@ -218431,7 +218431,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 432,
+          "line": 450,
           "page": "gui-forms-ribbon-on-paint-void-painter-rect-dc6f84be8f.html"
         },
         {
@@ -218452,7 +218452,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 433,
+          "line": 451,
           "page": "gui-forms-ribbon-on-pointer-void-pointerevent-56e4810723.html"
         },
         {
@@ -218473,7 +218473,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 434,
+          "line": 452,
           "page": "gui-forms-ribbon-on-pointer-preview-void-pointerevent-b36b009eca.html"
         },
         {
@@ -218494,7 +218494,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 435,
+          "line": 453,
           "page": "gui-forms-ribbon-on-key-void-keyevent-2292e8179d.html"
         },
         {
@@ -218515,7 +218515,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 436,
+          "line": 454,
           "page": "gui-forms-ribbon-on-focus-changed-void-bool-97c9581e05.html"
         },
         {
@@ -218530,7 +218530,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 437,
+          "line": 455,
           "page": "gui-forms-ribbon-semantic-descriptor-semanticdescriptor-const-0e07283c66.html"
         },
         {
@@ -218545,7 +218545,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 438,
+          "line": 456,
           "page": "gui-forms-ribbon-semantic-virtual-children-std-vector-semanticnode-const-51985dbbd0.html"
         },
         {
@@ -218576,7 +218576,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 439,
+          "line": 457,
           "page": "gui-forms-ribbon-on-semantic-child-action-bool-std-string-view-semanticaction-std-string-view-152995629c.html"
         },
         {
@@ -218591,7 +218591,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 441,
+          "line": 459,
           "page": "gui-forms-ribbon-anatomy-const-controlanatomy-const-noexcept-08a2964c6b.html"
         },
         {
@@ -218606,7 +218606,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 442,
+          "line": 460,
           "page": "gui-forms-ribbon-realized-item-count-std-size-t-const-fea1783057.html"
         },
         {
@@ -218627,7 +218627,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 443,
+          "line": 461,
           "page": "gui-forms-ribbon-realized-item-stable-id-std-string-std-size-t-const-0b975aba91.html"
         },
         {
@@ -218648,7 +218648,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 444,
+          "line": 462,
           "page": "gui-forms-ribbon-realized-item-anatomy-states-anatomystateset-std-size-t-const-d8f611bdda.html"
         },
         {
@@ -218663,7 +218663,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 459,
+          "line": 477,
           "page": "gui-forms-ribbon-parts-parts-const-65d845f99e.html"
         },
         {
@@ -218678,7 +218678,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 478,
+          "line": 496,
           "page": "gui-forms-ribbon-realized-tabs-std-vector-tab-const-d822290cb2.html"
         },
         {
@@ -218693,7 +218693,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 502,
+          "line": 520,
           "page": "gui-forms-ribbon-realized-groups-std-vector-group-const-ce63493153.html"
         },
         {
@@ -218708,7 +218708,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 535,
+          "line": 553,
           "page": "gui-forms-ribbon-realized-commands-std-vector-commanditem-const-fd9729a2a3.html"
         },
         {
@@ -218723,7 +218723,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 538,
+          "line": 556,
           "page": "gui-forms-ribbon-realized-overlay-groups-std-vector-group-const-2304e632a6.html"
         },
         {
@@ -218738,7 +218738,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 539,
+          "line": 557,
           "page": "gui-forms-ribbon-realized-overlay-commands-std-vector-commanditem-const-e2cfa90305.html"
         },
         {
@@ -218759,7 +218759,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 542,
+          "line": 560,
           "page": "gui-forms-ribbon-append-interactions-void-std-vector-interactiondeclaration-const-4ca829a542.html"
         },
         {
@@ -218774,8 +218774,38 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 543,
+          "line": 561,
           "page": "gui-forms-ribbon-on-attachment-committed-void-noexcept-b37df8203b.html"
+        },
+        {
+          "id": "gui_forms::Ribbon::on_attached_to_window|void ()",
+          "name": "on_attached_to_window",
+          "type": "void ()",
+          "namespace": "gui_forms::Ribbon",
+          "kind": "CXXMethodDecl",
+          "access": "protected",
+          "parameters": [],
+          "declaration": "void on_attached_to_window() override",
+          "comment": "",
+          "header": "gui_forms/controls/ribbon/ribbon.hpp",
+          "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
+          "line": 562,
+          "page": "gui-forms-ribbon-on-attached-to-window-void-61fce26e67.html"
+        },
+        {
+          "id": "gui_forms::Ribbon::on_detached_from_window|void () noexcept",
+          "name": "on_detached_from_window",
+          "type": "void () noexcept",
+          "namespace": "gui_forms::Ribbon",
+          "kind": "CXXMethodDecl",
+          "access": "protected",
+          "parameters": [],
+          "declaration": "void on_detached_from_window() noexcept override",
+          "comment": "",
+          "header": "gui_forms/controls/ribbon/ribbon.hpp",
+          "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
+          "line": 563,
+          "page": "gui-forms-ribbon-on-detached-from-window-void-noexcept-c895308872.html"
         },
         {
           "id": "gui_forms::Ribbon::on_dispose|void () noexcept",
@@ -218789,7 +218819,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 544,
+          "line": 564,
           "page": "gui-forms-ribbon-on-dispose-void-noexcept-a50e7bba0e.html"
         },
         {
@@ -218810,7 +218840,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 545,
+          "line": 565,
           "page": "gui-forms-ribbon-mnemonic-matches-bool-char32-t-const-noexcept-87e620dfd6.html"
         },
         {
@@ -218831,7 +218861,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 546,
+          "line": 566,
           "page": "gui-forms-ribbon-process-mnemonic-self-bool-char32-t-005e23fbd1.html"
         },
         {
@@ -218852,7 +218882,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 547,
+          "line": 567,
           "page": "gui-forms-ribbon-publish-part-geometry-void-std-span-partgeometry-const-bc489e7984.html"
         },
         {
@@ -218873,7 +218903,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 548,
+          "line": 568,
           "page": "gui-forms-ribbon-publish-realized-item-system-itemsystemindex-std-size-t-const-94da1fdaa5.html"
         },
         {
@@ -218899,7 +218929,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 549,
+          "line": 569,
           "page": "gui-forms-ribbon-publish-realized-item-geometry-void-std-size-t-std-span-partgeometry-const-b4920eff51.html"
         }
       ],
@@ -218913,7 +218943,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 528,
+      "line": 546,
       "declaration": "struct CommandItem final",
       "comment": "",
       "access": "public",
@@ -218931,7 +218961,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 529,
+          "line": 547,
           "page": "gui-forms-ribbon-commanditem-group-std-size-t-8a20542bfb.html"
         },
         {
@@ -218946,7 +218976,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 530,
+          "line": 548,
           "page": "gui-forms-ribbon-commanditem-index-std-size-t-fdb2e579c9.html"
         },
         {
@@ -218961,7 +218991,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 531,
+          "line": 549,
           "page": "gui-forms-ribbon-commanditem-stable-id-std-string-05711b4f2e.html"
         },
         {
@@ -218976,7 +219006,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 532,
+          "line": 550,
           "page": "gui-forms-ribbon-commanditem-parts-commandparts-1b727b6454.html"
         },
         {
@@ -218991,7 +219021,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 533,
+          "line": 551,
           "page": "gui-forms-ribbon-commanditem-states-commandstates-8bc0dc5aad.html"
         }
       ],
@@ -219005,7 +219035,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 505,
+      "line": 523,
       "declaration": "struct CommandParts final",
       "comment": "",
       "access": "public",
@@ -219023,7 +219053,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 506,
+          "line": 524,
           "page": "gui-forms-ribbon-commandparts-command-face-partgeometry-6702e0e5b0.html"
         },
         {
@@ -219038,7 +219068,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 507,
+          "line": 525,
           "page": "gui-forms-ribbon-commandparts-command-icon-partgeometry-86df9a45f6.html"
         },
         {
@@ -219053,7 +219083,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 508,
+          "line": 526,
           "page": "gui-forms-ribbon-commandparts-command-label-partgeometry-300bf8961a.html"
         },
         {
@@ -219068,7 +219098,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 509,
+          "line": 527,
           "page": "gui-forms-ribbon-commandparts-command-arrow-partgeometry-8f196fc93b.html"
         },
         {
@@ -219083,7 +219113,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 510,
+          "line": 528,
           "page": "gui-forms-ribbon-commandparts-command-arrow-glyph-partgeometry-47437a9e4c.html"
         },
         {
@@ -219098,7 +219128,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 511,
+          "line": 529,
           "page": "gui-forms-ribbon-commandparts-command-focus-partgeometry-bb9ffac0a8.html"
         },
         {
@@ -219113,7 +219143,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 512,
+          "line": 530,
           "page": "gui-forms-ribbon-commandparts-command-combo-box-partgeometry-ce17ea446e.html"
         },
         {
@@ -219128,7 +219158,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 513,
+          "line": 531,
           "page": "gui-forms-ribbon-commandparts-command-numeric-up-down-partgeometry-12827739ca.html"
         },
         {
@@ -219143,7 +219173,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 514,
+          "line": 532,
           "page": "gui-forms-ribbon-commandparts-command-check-box-partgeometry-6a9ca86eb1.html"
         },
         {
@@ -219158,7 +219188,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 515,
+          "line": 533,
           "page": "gui-forms-ribbon-commandparts-command-text-box-partgeometry-93a48ce1ea.html"
         },
         {
@@ -219173,7 +219203,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 516,
+          "line": 534,
           "page": "gui-forms-ribbon-commandparts-command-gallery-partgeometry-2e6acc6fa2.html"
         },
         {
@@ -219188,7 +219218,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 517,
+          "line": 535,
           "page": "gui-forms-ribbon-commandparts-command-font-control-partgeometry-cb07fb4bd5.html"
         },
         {
@@ -219203,7 +219233,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 518,
+          "line": 536,
           "page": "gui-forms-ribbon-commandparts-command-color-picker-partgeometry-009e26e824.html"
         }
       ],
@@ -219217,7 +219247,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 520,
+      "line": 538,
       "declaration": "struct CommandStates final",
       "comment": "",
       "access": "public",
@@ -219235,7 +219265,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 521,
+          "line": 539,
           "page": "gui-forms-ribbon-commandstates-hot-bool-0832ba5bbb.html"
         },
         {
@@ -219250,7 +219280,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 522,
+          "line": 540,
           "page": "gui-forms-ribbon-commandstates-pressed-bool-18f7da2157.html"
         },
         {
@@ -219265,7 +219295,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 523,
+          "line": 541,
           "page": "gui-forms-ribbon-commandstates-checked-bool-781629ec69.html"
         },
         {
@@ -219280,7 +219310,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 524,
+          "line": 542,
           "page": "gui-forms-ribbon-commandstates-open-bool-f03ba91fb5.html"
         },
         {
@@ -219295,7 +219325,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 525,
+          "line": 543,
           "page": "gui-forms-ribbon-commandstates-disabled-bool-aef957e1d8.html"
         },
         {
@@ -219310,7 +219340,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 526,
+          "line": 544,
           "page": "gui-forms-ribbon-commandstates-focus-visible-bool-7e2274c225.html"
         }
       ],
@@ -219324,7 +219354,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 495,
+      "line": 513,
       "declaration": "struct Group final",
       "comment": "",
       "access": "public",
@@ -219342,7 +219372,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 496,
+          "line": 514,
           "page": "gui-forms-ribbon-group-index-std-size-t-ce2d4b5ca1.html"
         },
         {
@@ -219357,7 +219387,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 497,
+          "line": 515,
           "page": "gui-forms-ribbon-group-stable-id-std-string-a9dd9bb878.html"
         },
         {
@@ -219372,7 +219402,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 498,
+          "line": 516,
           "page": "gui-forms-ribbon-group-layout-std-size-t-138504b7e3.html"
         },
         {
@@ -219387,7 +219417,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 499,
+          "line": 517,
           "page": "gui-forms-ribbon-group-collapsed-bool-f022919016.html"
         },
         {
@@ -219402,7 +219432,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 500,
+          "line": 518,
           "page": "gui-forms-ribbon-group-parts-groupparts-63848225ef.html"
         }
       ],
@@ -219416,7 +219446,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 482,
+      "line": 500,
       "declaration": "struct GroupParts final",
       "comment": "",
       "access": "public",
@@ -219434,7 +219464,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 483,
+          "line": 501,
           "page": "gui-forms-ribbon-groupparts-group-region-partgeometry-2a3cf9c23b.html"
         },
         {
@@ -219449,7 +219479,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 484,
+          "line": 502,
           "page": "gui-forms-ribbon-groupparts-group-caption-partgeometry-8386802419.html"
         },
         {
@@ -219464,7 +219494,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 485,
+          "line": 503,
           "page": "gui-forms-ribbon-groupparts-group-divider-partgeometry-097be43053.html"
         },
         {
@@ -219479,7 +219509,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 486,
+          "line": 504,
           "page": "gui-forms-ribbon-groupparts-group-launcher-partgeometry-8600f310bc.html"
         },
         {
@@ -219494,7 +219524,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 487,
+          "line": 505,
           "page": "gui-forms-ribbon-groupparts-group-launcher-glyph-partgeometry-6cf2962af6.html"
         },
         {
@@ -219509,7 +219539,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 488,
+          "line": 506,
           "page": "gui-forms-ribbon-groupparts-group-launcher-focus-partgeometry-9318c00ce9.html"
         },
         {
@@ -219524,7 +219554,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 489,
+          "line": 507,
           "page": "gui-forms-ribbon-groupparts-group-button-partgeometry-bf2e5bcdc9.html"
         },
         {
@@ -219539,7 +219569,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 490,
+          "line": 508,
           "page": "gui-forms-ribbon-groupparts-group-button-icon-partgeometry-62e0887ad0.html"
         },
         {
@@ -219554,7 +219584,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 491,
+          "line": 509,
           "page": "gui-forms-ribbon-groupparts-group-button-label-partgeometry-5cdf67246c.html"
         },
         {
@@ -219569,7 +219599,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 492,
+          "line": 510,
           "page": "gui-forms-ribbon-groupparts-group-button-glyph-partgeometry-1a606ebfbc.html"
         },
         {
@@ -219584,7 +219614,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 493,
+          "line": 511,
           "page": "gui-forms-ribbon-groupparts-group-button-focus-partgeometry-9b489305b6.html"
         }
       ],
@@ -219598,7 +219628,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 447,
+      "line": 465,
       "declaration": "struct Parts final",
       "comment": "",
       "access": "public",
@@ -219616,7 +219646,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 448,
+          "line": 466,
           "page": "gui-forms-ribbon-parts-region-partgeometry-b91cd1da9e.html"
         },
         {
@@ -219631,7 +219661,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 449,
+          "line": 467,
           "page": "gui-forms-ribbon-parts-tab-rail-partgeometry-1fcfb92e9a.html"
         },
         {
@@ -219646,7 +219676,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 450,
+          "line": 468,
           "page": "gui-forms-ribbon-parts-application-button-partgeometry-f622672b8c.html"
         },
         {
@@ -219661,7 +219691,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 451,
+          "line": 469,
           "page": "gui-forms-ribbon-parts-application-label-partgeometry-a4b92ff66e.html"
         },
         {
@@ -219676,7 +219706,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 452,
+          "line": 470,
           "page": "gui-forms-ribbon-parts-command-plane-partgeometry-205ec6a581.html"
         },
         {
@@ -219691,7 +219721,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 453,
+          "line": 471,
           "page": "gui-forms-ribbon-parts-scroll-left-partgeometry-e9738a1581.html"
         },
         {
@@ -219706,7 +219736,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 454,
+          "line": 472,
           "page": "gui-forms-ribbon-parts-scroll-left-glyph-partgeometry-bca8d6f963.html"
         },
         {
@@ -219721,7 +219751,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 455,
+          "line": 473,
           "page": "gui-forms-ribbon-parts-scroll-right-partgeometry-68c2c859d3.html"
         },
         {
@@ -219736,7 +219766,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 456,
+          "line": 474,
           "page": "gui-forms-ribbon-parts-scroll-right-glyph-partgeometry-66eca85730.html"
         },
         {
@@ -219751,7 +219781,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 457,
+          "line": 475,
           "page": "gui-forms-ribbon-parts-focus-partgeometry-89f44f5c0f.html"
         }
       ],
@@ -219765,7 +219795,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 472,
+      "line": 490,
       "declaration": "struct Tab final",
       "comment": "",
       "access": "public",
@@ -219783,7 +219813,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 473,
+          "line": 491,
           "page": "gui-forms-ribbon-tab-index-std-size-t-e3c6c37917.html"
         },
         {
@@ -219798,7 +219828,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 474,
+          "line": 492,
           "page": "gui-forms-ribbon-tab-stable-id-std-string-e26d2b419c.html"
         },
         {
@@ -219813,7 +219843,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 475,
+          "line": 493,
           "page": "gui-forms-ribbon-tab-parts-tabparts-9c12a6446f.html"
         },
         {
@@ -219828,7 +219858,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 476,
+          "line": 494,
           "page": "gui-forms-ribbon-tab-states-tabstates-bdfe11531a.html"
         }
       ],
@@ -219842,7 +219872,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 462,
+      "line": 480,
       "declaration": "struct TabParts final",
       "comment": "",
       "access": "public",
@@ -219860,7 +219890,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 463,
+          "line": 481,
           "page": "gui-forms-ribbon-tabparts-tab-partgeometry-16f1e2ecac.html"
         },
         {
@@ -219875,7 +219905,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 464,
+          "line": 482,
           "page": "gui-forms-ribbon-tabparts-tab-label-partgeometry-eee92de5f0.html"
         },
         {
@@ -219890,7 +219920,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 465,
+          "line": 483,
           "page": "gui-forms-ribbon-tabparts-tab-focus-partgeometry-9633f1cefb.html"
         }
       ],
@@ -219904,7 +219934,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 467,
+      "line": 485,
       "declaration": "struct TabStates final",
       "comment": "",
       "access": "public",
@@ -219922,7 +219952,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 468,
+          "line": 486,
           "page": "gui-forms-ribbon-tabstates-hot-bool-4898327e3c.html"
         },
         {
@@ -219937,7 +219967,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 469,
+          "line": 487,
           "page": "gui-forms-ribbon-tabstates-selected-bool-39f0c1d518.html"
         },
         {
@@ -219952,7 +219982,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 470,
+          "line": 488,
           "page": "gui-forms-ribbon-tabstates-focus-visible-bool-2303f5324b.html"
         }
       ],
@@ -221313,7 +221343,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 219,
+      "line": 232,
       "declaration": "struct RibbonCommandClick final",
       "comment": "",
       "access": "public",
@@ -221331,7 +221361,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 220,
+          "line": 233,
           "page": "gui-forms-ribboncommandclick-ribbon-id-std-string-f50c7cdf0f.html"
         },
         {
@@ -221346,7 +221376,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 221,
+          "line": 234,
           "page": "gui-forms-ribboncommandclick-command-id-std-string-25838e3b38.html"
         }
       ],
@@ -221589,7 +221619,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 84,
+      "line": 88,
       "declaration": "struct RibbonCommandSpec final",
       "comment": "",
       "access": "public",
@@ -221607,7 +221637,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 85,
+          "line": 89,
           "page": "gui-forms-ribboncommandspec-stable-id-std-string-ea7a5b4c50.html"
         },
         {
@@ -221622,7 +221652,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 86,
+          "line": 90,
           "page": "gui-forms-ribboncommandspec-kind-ribboncommandkind-035f747f5c.html"
         },
         {
@@ -221637,7 +221667,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 87,
+          "line": 91,
           "page": "gui-forms-ribboncommandspec-size-ribboncommandsize-f1d3c7d41a.html"
         },
         {
@@ -221652,7 +221682,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 88,
+          "line": 92,
           "page": "gui-forms-ribboncommandspec-command-std-shared-ptr-command-ed4631b823.html"
         },
         {
@@ -221663,11 +221693,11 @@
           "kind": "FieldDecl",
           "access": "public",
           "parameters": [],
-          "declaration": "perty.hpp\" #include \"gui_forms/window.hpp\" #include \"gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp\" #include <cstddef> #include <cstdint> #include <memory> #include <optional> #include <span> #include <string> #include <string_view> #include <utility> #include <vector> namespace gui_forms { class RibbonGroupOverlay; class RibbonApplicationMenu; // The kinds of ribbon command (stage RB, owner decision 2: commands are // records in a command item system, hosted editors are child controls). // - button runs its Command; // - toggle flips its Command's checked state, then runs it; // - split runs its Command from its face and opens its menu from its arrow; // - drop_down opens its menu; // - combo_box, numeric_up_down, check_box and text_box hold a real // ComboBox, NumericUpDown, CheckBox or TextBox child control; // - gallery holds the application's in-ribbon RibbonGallery, which gives up // one column at a time as the ribbon narrows (decision 8); // - font_control and color_picker hold the application's RibbonFontControl // or RibbonColorPicker, each bound to its value command (phase 6). enum class RibbonCommandKind : std::uint8_t { button, toggle, split, drop_down, combo_box, numeric_up_down, check_box, text_box, gallery, font_control, color_picker, }; // A button-family command's image size: large (a 32-unit icon over its // label, the group's full height) or small (a 16-unit icon beside its label, // stacked in rows). `RibbonCommandSpec::size` is the size at the group's // largest layout; the group's layouts may make it small (phase 2b). enum class RibbonCommandSize : std::uint8_t { large, small }; // One command record. `stable_id` is unique within the ribbon (across tabs, // groups and commands) and names the command in events, semantics and the // published anatomy. // // A button, toggle or split takes its text (when `text` is empty), enabled, // visible and checked state from its required `command`, and runs it on a // click; a drop-down's command is optional. `text` may carry a mnemonic // (\"&Paste\"). Labels are always shown (owner decision 6); a small command // with an image may leave its label out (`show_label` false: an authored // icon-only command, decision 30). `drop_down` is the menu of a split or // drop-down command. A hosted command's `text` is its control's accessible // name (and a check box's caption); `choices` are a combo box's items and // `width` its width in logical units (zero for the default). A gallery // command's `gallery` is an in-ribbon RibbonGallery the application made and // configured; the ribbon adds it as its child and sets its column count. A // font control's `font_control` and a colour picker's `color_picker` are, // likewise, the application's controls, which the ribbon adds and places on // one row. struct RibbonCommandSpec final { std::string stable_id{}; RibbonCommandKind kind{RibbonCommandKind::button}; RibbonCommandSize size{RibbonCommandSize::large}; std::shared_ptr<Command> command{}; GUI_FORMS_LOCALIZABLE(text) std::string text{}",
+          "declaration": "perty.hpp\" #include \"gui_forms/window.hpp\" #include \"gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp\" #include <cstddef> #include <cstdint> #include <memory> #include <optional> #include <span> #include <string> #include <string_view> #include <utility> #include <vector> namespace gui_forms { class RibbonGroupOverlay; class RibbonApplicationMenu; // The kinds of ribbon command (stage RB, owner decision 2: commands are // records in a command item system, hosted editors are child controls). // - button runs its Command; // - toggle flips its Command's checked state, then runs it; // - split runs its Command from its face and opens its menu from its arrow; // - drop_down opens its menu; // - combo_box, numeric_up_down, check_box and text_box hold a real // ComboBox, NumericUpDown, CheckBox or TextBox child control; // - gallery holds the application's in-ribbon RibbonGallery, which gives up // one column at a time as the ribbon narrows (decision 8); // - font_control and color_picker hold the application's RibbonFontControl // or RibbonColorPicker, each bound to its value command (phase 6). enum class RibbonCommandKind : std::uint8_t { button, toggle, split, drop_down, combo_box, numeric_up_down, check_box, text_box, gallery, font_control, color_picker, }; // A button-family command's image size: large (a 32-unit icon over its // label, the group's full height) or small (a 16-unit icon beside its label, // stacked in rows). `RibbonCommandSpec::size` is the size at the group's // largest layout; the group's layouts may make it small (phase 2b). enum class RibbonCommandSize : std::uint8_t { large, small }; // One command record. `stable_id` is unique within the ribbon (across tabs, // groups and commands) and names the command in events, semantics and the // published anatomy. // // A button, toggle or split takes its text (when `text` is empty), enabled, // visible and checked state from its required `command`, and runs it on a // click; a drop-down's command is optional. `text` may carry a mnemonic // (\"&Paste\"). Labels are always shown (owner decision 6); a small command // with an image may leave its label out (`show_label` false: an authored // icon-only command, decision 30). `drop_down` is the menu of a split or // drop-down command. A hosted command's `text` is its control's accessible // name (and a check box's caption); `choices` are a combo box's items and // `width` its field's width in logical units (zero for the default). A text // box or numeric up-down also shows its `text` as a label part (Office's // field label): at the field's left when its group stacks rows, above the // field when the group's layout has one row; `show_label` false leaves an // unlabelled field. A gallery // command's `gallery` is an in-ribbon RibbonGallery the application made and // configured; the ribbon adds it as its child and sets its column count. A // font control's `font_control` and a colour picker's `color_picker` are, // likewise, the application's controls, which the ribbon adds and places on // one row. struct RibbonCommandSpec final { std::string stable_id{}; RibbonCommandKind kind{RibbonCommandKind::button}; RibbonCommandSize size{RibbonCommandSize::large}; std::shared_ptr<Command> command{}; GUI_FORMS_LOCALIZABLE(text) std::string text{}",
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 89,
+          "line": 93,
           "page": "gui-forms-ribboncommandspec-text-std-string-e1274dfada.html"
         },
         {
@@ -221682,7 +221712,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 90,
+          "line": 94,
           "page": "gui-forms-ribboncommandspec-image-imageid-3e76eecec6.html"
         },
         {
@@ -221697,7 +221727,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 91,
+          "line": 95,
           "page": "gui-forms-ribboncommandspec-show-label-bool-7464ac329d.html"
         },
         {
@@ -221712,7 +221742,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 92,
+          "line": 96,
           "page": "gui-forms-ribboncommandspec-drop-down-std-vector-menuitemspec-1c7baaed1d.html"
         },
         {
@@ -221727,7 +221757,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 93,
+          "line": 97,
           "page": "gui-forms-ribboncommandspec-choices-std-vector-std-string-ac3f0307fd.html"
         },
         {
@@ -221742,7 +221772,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 94,
+          "line": 98,
           "page": "gui-forms-ribboncommandspec-width-double-74f71e19c3.html"
         },
         {
@@ -221757,7 +221787,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 95,
+          "line": 99,
           "page": "gui-forms-ribboncommandspec-gallery-std-shared-ptr-ribbongallery-c6e93be150.html"
         },
         {
@@ -221772,7 +221802,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 96,
+          "line": 100,
           "page": "gui-forms-ribboncommandspec-font-control-std-shared-ptr-ribbonfontcontrol-dc791bfada.html"
         },
         {
@@ -221787,7 +221817,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 97,
+          "line": 101,
           "page": "gui-forms-ribboncommandspec-color-picker-std-shared-ptr-ribboncolorpicker-a3458461e6.html"
         }
       ],
@@ -221801,7 +221831,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 247,
+      "line": 260,
       "declaration": "struct RibbonDialogLaunch final",
       "comment": "",
       "access": "public",
@@ -221819,7 +221849,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 248,
+          "line": 261,
           "page": "gui-forms-ribbondialoglaunch-ribbon-id-std-string-4ee7f34b1f.html"
         },
         {
@@ -221834,7 +221864,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 249,
+          "line": 262,
           "page": "gui-forms-ribbondialoglaunch-group-id-std-string-3e9feaee75.html"
         }
       ],
@@ -221906,7 +221936,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 225,
+      "line": 238,
       "declaration": "struct RibbonDropDownInvocation final",
       "comment": "",
       "access": "public",
@@ -221924,7 +221954,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 226,
+          "line": 239,
           "page": "gui-forms-ribbondropdowninvocation-ribbon-id-std-string-a753a72553.html"
         },
         {
@@ -221939,7 +221969,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 227,
+          "line": 240,
           "page": "gui-forms-ribbondropdowninvocation-command-id-std-string-d88509588c.html"
         },
         {
@@ -221954,7 +221984,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 228,
+          "line": 241,
           "page": "gui-forms-ribbondropdowninvocation-choice-menuiteminvocation-572525b0e3.html"
         }
       ],
@@ -224728,7 +224758,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 114,
+      "line": 118,
       "declaration": "struct RibbonGroupLayout final",
       "comment": "",
       "access": "public",
@@ -224746,7 +224776,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 115,
+          "line": 119,
           "page": "gui-forms-ribbongrouplayout-size-ribbongroupsize-046dfa1b56.html"
         },
         {
@@ -224761,7 +224791,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 116,
+          "line": 120,
           "page": "gui-forms-ribbongrouplayout-command-sizes-std-vector-ribboncommandsize-4ceb54f483.html"
         },
         {
@@ -224776,7 +224806,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 117,
+          "line": 121,
           "page": "gui-forms-ribbongrouplayout-rows-std-size-t-cb4599653b.html"
         }
       ],
@@ -224790,7 +224820,7 @@
       "kind": "enum",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 104,
+      "line": 108,
       "declaration": "enum class RibbonGroupSize : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -224808,7 +224838,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 104,
+          "line": 108,
           "page": "gui-forms-ribbongroupsize-large-gui-forms-ribbongroupsize-a50113bc70.html"
         },
         {
@@ -224823,7 +224853,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 104,
+          "line": 108,
           "page": "gui-forms-ribbongroupsize-medium-gui-forms-ribbongroupsize-c6c614c1b2.html"
         },
         {
@@ -224838,7 +224868,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 104,
+          "line": 108,
           "page": "gui-forms-ribbongroupsize-small-gui-forms-ribbongroupsize-c54b40c41a.html"
         },
         {
@@ -224853,7 +224883,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 104,
+          "line": 108,
           "page": "gui-forms-ribbongroupsize-collapsed-gui-forms-ribbongroupsize-6d9adcbe2d.html"
         }
       ],
@@ -224867,7 +224897,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 132,
+      "line": 136,
       "declaration": "struct RibbonGroupSpec final",
       "comment": "",
       "access": "public",
@@ -224885,7 +224915,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 133,
+          "line": 137,
           "page": "gui-forms-ribbongroupspec-stable-id-std-string-3f9b6fa2ff.html"
         },
         {
@@ -224896,11 +224926,11 @@
           "kind": "FieldDecl",
           "access": "public",
           "parameters": [],
-          "declaration": "perty.hpp\" #include \"gui_forms/window.hpp\" #include \"gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp\" #include <cstddef> #include <cstdint> #include <memory> #include <optional> #include <span> #include <string> #include <string_view> #include <utility> #include <vector> namespace gui_forms { class RibbonGroupOverlay; class RibbonApplicationMenu; // The kinds of ribbon command (stage RB, owner decision 2: commands are // records in a command item system, hosted editors are child controls). // - button runs its Command; // - toggle flips its Command's checked state, then runs it; // - split runs its Command from its face and opens its menu from its arrow; // - drop_down opens its menu; // - combo_box, numeric_up_down, check_box and text_box hold a real // ComboBox, NumericUpDown, CheckBox or TextBox child control; // - gallery holds the application's in-ribbon RibbonGallery, which gives up // one column at a time as the ribbon narrows (decision 8); // - font_control and color_picker hold the application's RibbonFontControl // or RibbonColorPicker, each bound to its value command (phase 6). enum class RibbonCommandKind : std::uint8_t { button, toggle, split, drop_down, combo_box, numeric_up_down, check_box, text_box, gallery, font_control, color_picker, }; // A button-family command's image size: large (a 32-unit icon over its // label, the group's full height) or small (a 16-unit icon beside its label, // stacked in rows). `RibbonCommandSpec::size` is the size at the group's // largest layout; the group's layouts may make it small (phase 2b). enum class RibbonCommandSize : std::uint8_t { large, small }; // One command record. `stable_id` is unique within the ribbon (across tabs, // groups and commands) and names the command in events, semantics and the // published anatomy. // // A button, toggle or split takes its text (when `text` is empty), enabled, // visible and checked state from its required `command`, and runs it on a // click; a drop-down's command is optional. `text` may carry a mnemonic // (\"&Paste\"). Labels are always shown (owner decision 6); a small command // with an image may leave its label out (`show_label` false: an authored // icon-only command, decision 30). `drop_down` is the menu of a split or // drop-down command. A hosted command's `text` is its control's accessible // name (and a check box's caption); `choices` are a combo box's items and // `width` its width in logical units (zero for the default). A gallery // command's `gallery` is an in-ribbon RibbonGallery the application made and // configured; the ribbon adds it as its child and sets its column count. A // font control's `font_control` and a colour picker's `color_picker` are, // likewise, the application's controls, which the ribbon adds and places on // one row. struct RibbonCommandSpec final { std::string stable_id{}; RibbonCommandKind kind{RibbonCommandKind::button}; RibbonCommandSize size{RibbonCommandSize::large}; std::shared_ptr<Command> command{}; GUI_FORMS_LOCALIZABLE(text) std::string text{}; ImageId image{}; bool show_label{true}; std::vector<MenuItemSpec> drop_down{}; std::vector<std::string> choices{}; double width{}; std::shared_ptr<RibbonGallery> gallery{}; std::shared_ptr<RibbonFontControl> font_control{}; std::shared_ptr<RibbonColorPicker> color_picker{}; }; // A group's size in one of its layouts, named after the Windows Ribbon // Framework's group sizes, largest first. A collapsed group shows one button // (its icon, caption and a chevron, owner decision 27) that opens the group // at its largest layout in an overlay. enum class RibbonGroupSize : std::uint8_t { large, medium, small, collapsed }; // One layout of a group (the WPF/MFC model, owner decision 5): the image size // of each command and how many small commands stack in a column. Labels // never drop (decision 6), so a layout only changes image sizes and rows. // `command_sizes` holds one size per command of the group, in command order, // or is empty for the commands' own sizes (`RibbonCommandSpec::size`); // entries for hosted and gallery commands are ignored. A collapsed layout // has no sizes. `rows` (1 to 3) is the number of small and hosted commands // per column. struct RibbonGroupLayout final { RibbonGroupSize size{RibbonGroupSize::large}; std::vector<RibbonCommandSize> command_sizes{}; std::size_t rows{3U}; }; // The application modes a tab or group belongs to (stage RB, phase 5; owner // decision 14, F2-1, after the Windows Ribbon Framework's application modes): // one bit per mode, 32 modes. A tab or group shows while it shares a bit with // Ribbon::application_modes. Every mode by default. inline constexpr std::uint32_t ribbon_all_modes = 0xFFFFFFFFU; // A group of commands on a tab, with a caption beneath and, when // `dialog_launcher` is set, a launcher button in the caption's corner. // `image` is the icon of the group's collapsed button (none: the first // command image). `layouts` are its size definitions, largest first; empty // layouts are generated (Ribbon::group_layouts). `modes` are the // application modes it shows in. struct RibbonGroupSpec final { std::string stable_id{}; GUI_FORMS_LOCALIZABLE(text) std::string caption{}",
+          "declaration": "perty.hpp\" #include \"gui_forms/window.hpp\" #include \"gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp\" #include <cstddef> #include <cstdint> #include <memory> #include <optional> #include <span> #include <string> #include <string_view> #include <utility> #include <vector> namespace gui_forms { class RibbonGroupOverlay; class RibbonApplicationMenu; // The kinds of ribbon command (stage RB, owner decision 2: commands are // records in a command item system, hosted editors are child controls). // - button runs its Command; // - toggle flips its Command's checked state, then runs it; // - split runs its Command from its face and opens its menu from its arrow; // - drop_down opens its menu; // - combo_box, numeric_up_down, check_box and text_box hold a real // ComboBox, NumericUpDown, CheckBox or TextBox child control; // - gallery holds the application's in-ribbon RibbonGallery, which gives up // one column at a time as the ribbon narrows (decision 8); // - font_control and color_picker hold the application's RibbonFontControl // or RibbonColorPicker, each bound to its value command (phase 6). enum class RibbonCommandKind : std::uint8_t { button, toggle, split, drop_down, combo_box, numeric_up_down, check_box, text_box, gallery, font_control, color_picker, }; // A button-family command's image size: large (a 32-unit icon over its // label, the group's full height) or small (a 16-unit icon beside its label, // stacked in rows). `RibbonCommandSpec::size` is the size at the group's // largest layout; the group's layouts may make it small (phase 2b). enum class RibbonCommandSize : std::uint8_t { large, small }; // One command record. `stable_id` is unique within the ribbon (across tabs, // groups and commands) and names the command in events, semantics and the // published anatomy. // // A button, toggle or split takes its text (when `text` is empty), enabled, // visible and checked state from its required `command`, and runs it on a // click; a drop-down's command is optional. `text` may carry a mnemonic // (\"&Paste\"). Labels are always shown (owner decision 6); a small command // with an image may leave its label out (`show_label` false: an authored // icon-only command, decision 30). `drop_down` is the menu of a split or // drop-down command. A hosted command's `text` is its control's accessible // name (and a check box's caption); `choices` are a combo box's items and // `width` its field's width in logical units (zero for the default). A text // box or numeric up-down also shows its `text` as a label part (Office's // field label): at the field's left when its group stacks rows, above the // field when the group's layout has one row; `show_label` false leaves an // unlabelled field. A gallery // command's `gallery` is an in-ribbon RibbonGallery the application made and // configured; the ribbon adds it as its child and sets its column count. A // font control's `font_control` and a colour picker's `color_picker` are, // likewise, the application's controls, which the ribbon adds and places on // one row. struct RibbonCommandSpec final { std::string stable_id{}; RibbonCommandKind kind{RibbonCommandKind::button}; RibbonCommandSize size{RibbonCommandSize::large}; std::shared_ptr<Command> command{}; GUI_FORMS_LOCALIZABLE(text) std::string text{}; ImageId image{}; bool show_label{true}; std::vector<MenuItemSpec> drop_down{}; std::vector<std::string> choices{}; double width{}; std::shared_ptr<RibbonGallery> gallery{}; std::shared_ptr<RibbonFontControl> font_control{}; std::shared_ptr<RibbonColorPicker> color_picker{}; }; // A group's size in one of its layouts, named after the Windows Ribbon // Framework's group sizes, largest first. A collapsed group shows one button // (its icon, caption and a chevron, owner decision 27) that opens the group // at its largest layout in an overlay. enum class RibbonGroupSize : std::uint8_t { large, medium, small, collapsed }; // One layout of a group (the WPF/MFC model, owner decision 5): the image size // of each command and how many small commands stack in a column. Labels // never drop (decision 6), so a layout only changes image sizes and rows. // `command_sizes` holds one size per command of the group, in command order, // or is empty for the commands' own sizes (`RibbonCommandSpec::size`); // entries for hosted and gallery commands are ignored. A collapsed layout // has no sizes. `rows` (1 to 3) is the number of small and hosted commands // per column. struct RibbonGroupLayout final { RibbonGroupSize size{RibbonGroupSize::large}; std::vector<RibbonCommandSize> command_sizes{}; std::size_t rows{3U}; }; // The application modes a tab or group belongs to (stage RB, phase 5; owner // decision 14, F2-1, after the Windows Ribbon Framework's application modes): // one bit per mode, 32 modes. A tab or group shows while it shares a bit with // Ribbon::application_modes. Every mode by default. inline constexpr std::uint32_t ribbon_all_modes = 0xFFFFFFFFU; // A group of commands on a tab, with a caption beneath and, when // `dialog_launcher` is set, a launcher button in the caption's corner. // `image` is the icon of the group's collapsed button (none: the first // command image). `layouts` are its size definitions, largest first; empty // layouts are generated (Ribbon::group_layouts). `modes` are the // application modes it shows in. struct RibbonGroupSpec final { std::string stable_id{}; GUI_FORMS_LOCALIZABLE(text) std::string caption{}",
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 134,
+          "line": 138,
           "page": "gui-forms-ribbongroupspec-caption-std-string-066582f3de.html"
         },
         {
@@ -224915,7 +224945,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 135,
+          "line": 139,
           "page": "gui-forms-ribbongroupspec-dialog-launcher-bool-a4f28338fe.html"
         },
         {
@@ -224930,7 +224960,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 136,
+          "line": 140,
           "page": "gui-forms-ribbongroupspec-commands-std-vector-ribboncommandspec-cfab931658.html"
         },
         {
@@ -224945,7 +224975,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 137,
+          "line": 141,
           "page": "gui-forms-ribbongroupspec-image-imageid-c89533f761.html"
         },
         {
@@ -224960,7 +224990,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 138,
+          "line": 142,
           "page": "gui-forms-ribbongroupspec-layouts-std-vector-ribbongrouplayout-862ca7a25f.html"
         },
         {
@@ -224975,7 +225005,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 139,
+          "line": 143,
           "page": "gui-forms-ribbongroupspec-modes-std-uint32-t-e3f68e000d.html"
         }
       ],
@@ -224989,7 +225019,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 198,
+      "line": 211,
       "declaration": "struct RibbonLadderEntry final",
       "comment": "",
       "access": "public",
@@ -225007,7 +225037,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 199,
+          "line": 212,
           "page": "gui-forms-ribbonladderentry-groups-std-vector-ribbonladdergroupstate-26258e7b14.html"
         },
         {
@@ -225022,7 +225052,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 200,
+          "line": 213,
           "page": "gui-forms-ribbonladderentry-width-double-54e6efef23.html"
         }
       ],
@@ -225036,7 +225066,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 184,
+      "line": 197,
       "declaration": "struct RibbonLadderGroupState final",
       "comment": "",
       "access": "public",
@@ -225054,7 +225084,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 185,
+          "line": 198,
           "page": "gui-forms-ribbonladdergroupstate-layout-std-size-t-312e7ae4ab.html"
         },
         {
@@ -225069,7 +225099,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 186,
+          "line": 199,
           "page": "gui-forms-ribbonladdergroupstate-size-ribbongroupsize-ad1d69cf00.html"
         },
         {
@@ -225084,7 +225114,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 187,
+          "line": 200,
           "page": "gui-forms-ribbonladdergroupstate-gallery-columns-std-size-t-405995c012.html"
         }
       ],
@@ -225276,7 +225306,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 234,
+      "line": 247,
       "declaration": "struct RibbonRecentItem final",
       "comment": "",
       "access": "public",
@@ -225294,7 +225324,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 235,
+          "line": 248,
           "page": "gui-forms-ribbonrecentitem-stable-id-std-string-c6ed422fee.html"
         },
         {
@@ -225309,7 +225339,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 236,
+          "line": 249,
           "page": "gui-forms-ribbonrecentitem-text-std-string-28017f459f.html"
         },
         {
@@ -225324,7 +225354,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 237,
+          "line": 250,
           "page": "gui-forms-ribbonrecentitem-description-std-string-7b376ac409.html"
         }
       ],
@@ -225338,7 +225368,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 241,
+      "line": 254,
       "declaration": "struct RibbonRecentItemInvocation final",
       "comment": "",
       "access": "public",
@@ -225356,7 +225386,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 242,
+          "line": 255,
           "page": "gui-forms-ribbonrecentiteminvocation-ribbon-id-std-string-6aba6e669d.html"
         },
         {
@@ -225371,7 +225401,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 243,
+          "line": 256,
           "page": "gui-forms-ribbonrecentiteminvocation-item-id-std-string-39d7392ea3.html"
         }
       ],
@@ -225385,7 +225415,7 @@
       "kind": "enum",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 145,
+      "line": 149,
       "declaration": "enum class RibbonReductionKind : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -225403,7 +225433,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 145,
+          "line": 149,
           "page": "gui-forms-ribbonreductionkind-layout-gui-forms-ribbonreductionkind-5427d91416.html"
         },
         {
@@ -225418,7 +225448,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 145,
+          "line": 149,
           "page": "gui-forms-ribbonreductionkind-gallery-column-gui-forms-ribbonreductionkind-a982746a2b.html"
         }
       ],
@@ -225432,7 +225462,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 146,
+      "line": 150,
       "declaration": "struct RibbonReductionStep final",
       "comment": "",
       "access": "public",
@@ -225450,7 +225480,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 147,
+          "line": 151,
           "page": "gui-forms-ribbonreductionstep-group-std-string-e878794c6e.html"
         },
         {
@@ -225465,7 +225495,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 148,
+          "line": 152,
           "page": "gui-forms-ribbonreductionstep-kind-ribbonreductionkind-8df1c7f874.html"
         }
       ],
@@ -225479,7 +225509,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 209,
+      "line": 222,
       "declaration": "struct RibbonScalingCounters final",
       "comment": "",
       "access": "public",
@@ -225497,7 +225527,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 210,
+          "line": 223,
           "page": "gui-forms-ribbonscalingcounters-ladder-builds-std-uint64-t-8a416192f1.html"
         },
         {
@@ -225512,7 +225542,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 211,
+          "line": 224,
           "page": "gui-forms-ribbonscalingcounters-ladder-entries-std-uint64-t-08a7eeea47.html"
         },
         {
@@ -225527,7 +225557,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 212,
+          "line": 225,
           "page": "gui-forms-ribbonscalingcounters-nonshrinking-steps-std-uint64-t-99c94b8c1f.html"
         },
         {
@@ -225542,7 +225572,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 213,
+          "line": 226,
           "page": "gui-forms-ribbonscalingcounters-ladder-lookups-std-uint64-t-c421859797.html"
         },
         {
@@ -225557,7 +225587,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 214,
+          "line": 227,
           "page": "gui-forms-ribbonscalingcounters-text-measurements-std-uint64-t-858bacdd27.html"
         }
       ],
@@ -225928,7 +225958,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 253,
+      "line": 266,
       "declaration": "struct RibbonTabChange final",
       "comment": "",
       "access": "public",
@@ -225946,7 +225976,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 254,
+          "line": 267,
           "page": "gui-forms-ribbontabchange-ribbon-id-std-string-f83faac880.html"
         },
         {
@@ -225961,7 +225991,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 255,
+          "line": 268,
           "page": "gui-forms-ribbontabchange-tab-std-size-t-998bcc8fd4.html"
         },
         {
@@ -225976,7 +226006,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 256,
+          "line": 269,
           "page": "gui-forms-ribbontabchange-tab-id-std-string-34756c05ef.html"
         }
       ],
@@ -225990,7 +226020,7 @@
       "kind": "enum",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 179,
+      "line": 192,
       "declaration": "enum class RibbonTabSetAvailability : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -226008,7 +226038,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 179,
+          "line": 192,
           "page": "gui-forms-ribbontabsetavailability-not-available-gui-forms-ribbontabsetavailability-9fdc43e2c3.html"
         },
         {
@@ -226023,7 +226053,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 179,
+          "line": 192,
           "page": "gui-forms-ribbontabsetavailability-available-gui-forms-ribbontabsetavailability-a4977f5a14.html"
         },
         {
@@ -226038,7 +226068,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 179,
+          "line": 192,
           "page": "gui-forms-ribbontabsetavailability-active-gui-forms-ribbontabsetavailability-773a6d1afa.html"
         }
       ],
@@ -226052,7 +226082,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 172,
+      "line": 185,
       "declaration": "struct RibbonTabSetSpec final",
       "comment": "",
       "access": "public",
@@ -226070,7 +226100,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 173,
+          "line": 186,
           "page": "gui-forms-ribbontabsetspec-stable-id-std-string-5fb0a87740.html"
         },
         {
@@ -226085,7 +226115,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 174,
+          "line": 187,
           "page": "gui-forms-ribbontabsetspec-caption-std-string-e75ef94511.html"
         }
       ],
@@ -226099,7 +226129,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 157,
+      "line": 169,
       "declaration": "struct RibbonTabSpec final",
       "comment": "",
       "access": "public",
@@ -226117,7 +226147,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 158,
+          "line": 170,
           "page": "gui-forms-ribbontabspec-stable-id-std-string-112bbca8c6.html"
         },
         {
@@ -226128,11 +226158,11 @@
           "kind": "FieldDecl",
           "access": "public",
           "parameters": [],
-          "declaration": "perty.hpp\" #include \"gui_forms/window.hpp\" #include \"gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp\" #include <cstddef> #include <cstdint> #include <memory> #include <optional> #include <span> #include <string> #include <string_view> #include <utility> #include <vector> namespace gui_forms { class RibbonGroupOverlay; class RibbonApplicationMenu; // The kinds of ribbon command (stage RB, owner decision 2: commands are // records in a command item system, hosted editors are child controls). // - button runs its Command; // - toggle flips its Command's checked state, then runs it; // - split runs its Command from its face and opens its menu from its arrow; // - drop_down opens its menu; // - combo_box, numeric_up_down, check_box and text_box hold a real // ComboBox, NumericUpDown, CheckBox or TextBox child control; // - gallery holds the application's in-ribbon RibbonGallery, which gives up // one column at a time as the ribbon narrows (decision 8); // - font_control and color_picker hold the application's RibbonFontControl // or RibbonColorPicker, each bound to its value command (phase 6). enum class RibbonCommandKind : std::uint8_t { button, toggle, split, drop_down, combo_box, numeric_up_down, check_box, text_box, gallery, font_control, color_picker, }; // A button-family command's image size: large (a 32-unit icon over its // label, the group's full height) or small (a 16-unit icon beside its label, // stacked in rows). `RibbonCommandSpec::size` is the size at the group's // largest layout; the group's layouts may make it small (phase 2b). enum class RibbonCommandSize : std::uint8_t { large, small }; // One command record. `stable_id` is unique within the ribbon (across tabs, // groups and commands) and names the command in events, semantics and the // published anatomy. // // A button, toggle or split takes its text (when `text` is empty), enabled, // visible and checked state from its required `command`, and runs it on a // click; a drop-down's command is optional. `text` may carry a mnemonic // (\"&Paste\"). Labels are always shown (owner decision 6); a small command // with an image may leave its label out (`show_label` false: an authored // icon-only command, decision 30). `drop_down` is the menu of a split or // drop-down command. A hosted command's `text` is its control's accessible // name (and a check box's caption); `choices` are a combo box's items and // `width` its width in logical units (zero for the default). A gallery // command's `gallery` is an in-ribbon RibbonGallery the application made and // configured; the ribbon adds it as its child and sets its column count. A // font control's `font_control` and a colour picker's `color_picker` are, // likewise, the application's controls, which the ribbon adds and places on // one row. struct RibbonCommandSpec final { std::string stable_id{}; RibbonCommandKind kind{RibbonCommandKind::button}; RibbonCommandSize size{RibbonCommandSize::large}; std::shared_ptr<Command> command{}; GUI_FORMS_LOCALIZABLE(text) std::string text{}; ImageId image{}; bool show_label{true}; std::vector<MenuItemSpec> drop_down{}; std::vector<std::string> choices{}; double width{}; std::shared_ptr<RibbonGallery> gallery{}; std::shared_ptr<RibbonFontControl> font_control{}; std::shared_ptr<RibbonColorPicker> color_picker{}; }; // A group's size in one of its layouts, named after the Windows Ribbon // Framework's group sizes, largest first. A collapsed group shows one button // (its icon, caption and a chevron, owner decision 27) that opens the group // at its largest layout in an overlay. enum class RibbonGroupSize : std::uint8_t { large, medium, small, collapsed }; // One layout of a group (the WPF/MFC model, owner decision 5): the image size // of each command and how many small commands stack in a column. Labels // never drop (decision 6), so a layout only changes image sizes and rows. // `command_sizes` holds one size per command of the group, in command order, // or is empty for the commands' own sizes (`RibbonCommandSpec::size`); // entries for hosted and gallery commands are ignored. A collapsed layout // has no sizes. `rows` (1 to 3) is the number of small and hosted commands // per column. struct RibbonGroupLayout final { RibbonGroupSize size{RibbonGroupSize::large}; std::vector<RibbonCommandSize> command_sizes{}; std::size_t rows{3U}; }; // The application modes a tab or group belongs to (stage RB, phase 5; owner // decision 14, F2-1, after the Windows Ribbon Framework's application modes): // one bit per mode, 32 modes. A tab or group shows while it shares a bit with // Ribbon::application_modes. Every mode by default. inline constexpr std::uint32_t ribbon_all_modes = 0xFFFFFFFFU; // A group of commands on a tab, with a caption beneath and, when // `dialog_launcher` is set, a launcher button in the caption's corner. // `image` is the icon of the group's collapsed button (none: the first // command image). `layouts` are its size definitions, largest first; empty // layouts are generated (Ribbon::group_layouts). `modes` are the // application modes it shows in. struct RibbonGroupSpec final { std::string stable_id{}; GUI_FORMS_LOCALIZABLE(text) std::string caption{}; bool dialog_launcher{}; std::vector<RibbonCommandSpec> commands{}; ImageId image{}; std::vector<RibbonGroupLayout> layouts{}; std::uint32_t modes{ribbon_all_modes}; }; // One authored step of a tab's reduction order (owner decisions 5, 29): // `group` (a group's stable ID on the same tab) moves to its next layout, or // its gallery gives up one column (decision 8). enum class RibbonReductionKind : std::uint8_t { layout, gallery_column }; struct RibbonReductionStep final { std::string group{}; RibbonReductionKind kind{RibbonReductionKind::layout}; }; // A tab. `text` may carry a mnemonic (\"&Home\"). `reduction_order` is the // order in which its groups shrink as the ribbon narrows; after it (or // without it) every group that can still shrink does so one step at a time, // right to left, repeating (WPF's cycle, decision 32). `tab_set` names the // contextual tab set the tab belongs to (empty: a core tab); `modes` are the // application modes it shows in. struct RibbonTabSpec final { std::string stable_id{}; GUI_FORMS_LOCALIZABLE(text) std::string text{}",
+          "declaration": "perty.hpp\" #include \"gui_forms/window.hpp\" #include \"gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp\" #include <cstddef> #include <cstdint> #include <memory> #include <optional> #include <span> #include <string> #include <string_view> #include <utility> #include <vector> namespace gui_forms { class RibbonGroupOverlay; class RibbonApplicationMenu; // The kinds of ribbon command (stage RB, owner decision 2: commands are // records in a command item system, hosted editors are child controls). // - button runs its Command; // - toggle flips its Command's checked state, then runs it; // - split runs its Command from its face and opens its menu from its arrow; // - drop_down opens its menu; // - combo_box, numeric_up_down, check_box and text_box hold a real // ComboBox, NumericUpDown, CheckBox or TextBox child control; // - gallery holds the application's in-ribbon RibbonGallery, which gives up // one column at a time as the ribbon narrows (decision 8); // - font_control and color_picker hold the application's RibbonFontControl // or RibbonColorPicker, each bound to its value command (phase 6). enum class RibbonCommandKind : std::uint8_t { button, toggle, split, drop_down, combo_box, numeric_up_down, check_box, text_box, gallery, font_control, color_picker, }; // A button-family command's image size: large (a 32-unit icon over its // label, the group's full height) or small (a 16-unit icon beside its label, // stacked in rows). `RibbonCommandSpec::size` is the size at the group's // largest layout; the group's layouts may make it small (phase 2b). enum class RibbonCommandSize : std::uint8_t { large, small }; // One command record. `stable_id` is unique within the ribbon (across tabs, // groups and commands) and names the command in events, semantics and the // published anatomy. // // A button, toggle or split takes its text (when `text` is empty), enabled, // visible and checked state from its required `command`, and runs it on a // click; a drop-down's command is optional. `text` may carry a mnemonic // (\"&Paste\"). Labels are always shown (owner decision 6); a small command // with an image may leave its label out (`show_label` false: an authored // icon-only command, decision 30). `drop_down` is the menu of a split or // drop-down command. A hosted command's `text` is its control's accessible // name (and a check box's caption); `choices` are a combo box's items and // `width` its field's width in logical units (zero for the default). A text // box or numeric up-down also shows its `text` as a label part (Office's // field label): at the field's left when its group stacks rows, above the // field when the group's layout has one row; `show_label` false leaves an // unlabelled field. A gallery // command's `gallery` is an in-ribbon RibbonGallery the application made and // configured; the ribbon adds it as its child and sets its column count. A // font control's `font_control` and a colour picker's `color_picker` are, // likewise, the application's controls, which the ribbon adds and places on // one row. struct RibbonCommandSpec final { std::string stable_id{}; RibbonCommandKind kind{RibbonCommandKind::button}; RibbonCommandSize size{RibbonCommandSize::large}; std::shared_ptr<Command> command{}; GUI_FORMS_LOCALIZABLE(text) std::string text{}; ImageId image{}; bool show_label{true}; std::vector<MenuItemSpec> drop_down{}; std::vector<std::string> choices{}; double width{}; std::shared_ptr<RibbonGallery> gallery{}; std::shared_ptr<RibbonFontControl> font_control{}; std::shared_ptr<RibbonColorPicker> color_picker{}; }; // A group's size in one of its layouts, named after the Windows Ribbon // Framework's group sizes, largest first. A collapsed group shows one button // (its icon, caption and a chevron, owner decision 27) that opens the group // at its largest layout in an overlay. enum class RibbonGroupSize : std::uint8_t { large, medium, small, collapsed }; // One layout of a group (the WPF/MFC model, owner decision 5): the image size // of each command and how many small commands stack in a column. Labels // never drop (decision 6), so a layout only changes image sizes and rows. // `command_sizes` holds one size per command of the group, in command order, // or is empty for the commands' own sizes (`RibbonCommandSpec::size`); // entries for hosted and gallery commands are ignored. A collapsed layout // has no sizes. `rows` (1 to 3) is the number of small and hosted commands // per column. struct RibbonGroupLayout final { RibbonGroupSize size{RibbonGroupSize::large}; std::vector<RibbonCommandSize> command_sizes{}; std::size_t rows{3U}; }; // The application modes a tab or group belongs to (stage RB, phase 5; owner // decision 14, F2-1, after the Windows Ribbon Framework's application modes): // one bit per mode, 32 modes. A tab or group shows while it shares a bit with // Ribbon::application_modes. Every mode by default. inline constexpr std::uint32_t ribbon_all_modes = 0xFFFFFFFFU; // A group of commands on a tab, with a caption beneath and, when // `dialog_launcher` is set, a launcher button in the caption's corner. // `image` is the icon of the group's collapsed button (none: the first // command image). `layouts` are its size definitions, largest first; empty // layouts are generated (Ribbon::group_layouts). `modes` are the // application modes it shows in. struct RibbonGroupSpec final { std::string stable_id{}; GUI_FORMS_LOCALIZABLE(text) std::string caption{}; bool dialog_launcher{}; std::vector<RibbonCommandSpec> commands{}; ImageId image{}; std::vector<RibbonGroupLayout> layouts{}; std::uint32_t modes{ribbon_all_modes}; }; // One authored step of a tab's reduction order (owner decisions 5, 29): // `group` (a group's stable ID on the same tab) moves to its next layout, or // its gallery gives up one column (decision 8). enum class RibbonReductionKind : std::uint8_t { layout, gallery_column }; struct RibbonReductionStep final { std::string group{}; RibbonReductionKind kind{RibbonReductionKind::layout}; }; // A tab. `text` may carry a mnemonic (\"&Home\"). `reduction_order` is the // order in which its groups shrink as the ribbon narrows; after it (or // without it) every group that can still shrink does so one step at a time, // right to left, repeating (WPF's cycle, decision 32). `tab_set` names the // contextual tab set the tab belongs to (empty: a core tab); `modes` are the // application modes it shows in. // // A panel tab: `panel` is a control the application made, which the ribbon // adds as its child and sizes to the whole command plane while the tab is // selected, in place of groups (the application's own command area, such // as a palette or an atlas). It has no groups and no reduction order, and is // unowned or already this ribbon's; the ribbon removes it when a new // definition no longer names it. Its keyboard stops and semantics are its // own, as a hosted control's are. struct RibbonTabSpec final { std::string stable_id{}; GUI_FORMS_LOCALIZABLE(text) std::string text{}",
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 159,
+          "line": 171,
           "page": "gui-forms-ribbontabspec-text-std-string-719ff5b7d3.html"
         },
         {
@@ -226147,7 +226177,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 160,
+          "line": 172,
           "page": "gui-forms-ribbontabspec-groups-std-vector-ribbongroupspec-b762841c72.html"
         },
         {
@@ -226162,7 +226192,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 161,
+          "line": 173,
           "page": "gui-forms-ribbontabspec-reduction-order-std-vector-ribbonreductionstep-12e0063920.html"
         },
         {
@@ -226177,7 +226207,7 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 162,
+          "line": 174,
           "page": "gui-forms-ribbontabspec-tab-set-std-string-a95d3ab942.html"
         },
         {
@@ -226192,8 +226222,23 @@
           "comment": "",
           "header": "gui_forms/controls/ribbon/ribbon.hpp",
           "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-          "line": 163,
+          "line": 175,
           "page": "gui-forms-ribbontabspec-modes-std-uint32-t-473878d221.html"
+        },
+        {
+          "id": "gui_forms::RibbonTabSpec::panel|std::shared_ptr<Control>",
+          "name": "panel",
+          "type": "std::shared_ptr<Control>",
+          "namespace": "gui_forms::RibbonTabSpec",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "std::shared_ptr<Control> panel{}",
+          "comment": "",
+          "header": "gui_forms/controls/ribbon/ribbon.hpp",
+          "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
+          "line": 176,
+          "page": "gui-forms-ribbontabspec-panel-std-shared-ptr-control-a873f5d0be.html"
         }
       ],
       "page": "gui-forms-ribbontabspec-0d7fa774d4.html",
@@ -329125,7 +329170,7 @@
       "comment": "",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 189,
+      "line": 202,
       "page": "gui-forms-operator-bool-const-gui-forms-ribbonladdergroupstate-const-gui-forms-ribbonladdergroupstate-noexcept-d395aaab9e.html",
       "associated_type": "gui_forms::RibbonLadderGroupState"
     },
@@ -340829,7 +340874,7 @@
       "comment": "",
       "header": "gui_forms/controls/ribbon/ribbon.hpp",
       "source": "include/gui_forms/controls/ribbon/ribbon.hpp",
-      "line": 124,
+      "line": 128,
       "page": "gui-forms-ribbon-all-modes-const-std-uint32-t-f4f9d03dfb.html"
     },
     {

@@ -439,7 +439,16 @@ void menus_take_the_ribbon_theme() {
                 (*row).effective_theme().id() == "ribbon-override",
             "a drop-down menu takes the theme override of the ribbon's ancestor");
     (*ribbon).close_menus();
+    // Without recent items the application menu is the ribbon's one-pane
+    // menu; with them it is the two-pane overlay.
     require((*ribbon).show_application_menu(), "the application menu opens");
+    window.perform_layout();
+    const Control::Ptr one_pane = window.find("ribbon.menu.overlay.panel.0");
+    require(one_pane && (*one_pane).effective_theme().id() == "ribbon-override",
+            "the one-pane application menu takes the ribbon's theme override");
+    (*ribbon).close_menus();
+    (*ribbon).set_recent_items({{"recent.report", "Report.txt", "C:\\Documents"}});
+    require((*ribbon).show_application_menu(), "the two-pane application menu opens");
     window.perform_layout();
     const Control::Ptr application = window.find("ribbon.application-menu");
     require(application && (*application).effective_theme().id() == "ribbon-override",

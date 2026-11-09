@@ -1332,7 +1332,9 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
                 part.role = PartRole::label;
                 part.states = command_states(address);
                 part.bounds = command_part.command_label.bounds;
-                part.text = command_text(spec);
+                // part.text views the label: it lives here until the paint.
+                const std::string label = command_text(spec);
+                part.text = label;
                 paint_part(painter, *this, part);
                 part.text = {};
             }

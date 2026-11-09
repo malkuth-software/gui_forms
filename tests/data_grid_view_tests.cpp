@@ -2362,7 +2362,7 @@ struct InsertDuplicateColumn final {
 
 struct SetInvalidHeaderText final {
     DataGridView* grid{};
-    void operator()() const { (*grid).set_column_header_text(0U, std::string("Ã")); }
+    void operator()() const { (*grid).set_column_header_text(0U, std::string("\xC3")); }
 };
 
 std::vector<std::size_t> display_order(const DataGridView& grid) {
@@ -2487,6 +2487,12 @@ void column_order() {
     require(display_order(*grid) == std::vector<std::size_t>{1U, 0U, 2U, 3U}, "an added column goes last");
     (*grid).set_columns(sample_columns());
     require(display_order(*grid) == std::vector<std::size_t>{0U, 1U, 2U, 3U}, "setting the columns resets the order");
+    // remove_column_at took the first row's "On" value with its column, and
+    // the values after it moved down one: the row is set again for the
+    // insertion below.
+    require((*grid).set_cell_value(row_at(0U), 1U, BindingValue{true}) &&
+                (*grid).set_cell_value(row_at(0U), 2U, BindingValue{std::string("FM")}),
+            "the first row takes its values again");
 
     // insert_column: values move with their columns, the display order
     // makes room at the inserted index.

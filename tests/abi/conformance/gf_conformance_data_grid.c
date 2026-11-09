@@ -273,7 +273,11 @@ static void cells(gf_kit* kit, gf_object grid) {
                   GF_STATUS_OK, "read a column's cells");
     gf_kit_check(kit, gf_kit_view_equals(values[0].text, "Alpha one") && gf_kit_view_equals(values[1].text, "Bravo"),
                  "each value's text is in the caller's buffer");
-    gf_kit_status(kit, (*kit).data_grid.read_cells(grid, 0u, 1u, 9u, values, text, sizeof(text), &required),
+    /* Rows 1 and 2 of two: the range passes the last row. The count stays
+     * within values, whose every element the call reads. */
+    values[0] = blank();
+    values[1] = blank();
+    gf_kit_status(kit, (*kit).data_grid.read_cells(grid, 0u, 1u, 2u, values, text, sizeof(text), &required),
                   GF_STATUS_NOT_FOUND, "a range past the rows is not found");
     values[1].struct_size = 8u;
     gf_kit_status(kit, (*kit).data_grid.read_cells(grid, 0u, 0u, 2u, values, text, sizeof(text), &required),

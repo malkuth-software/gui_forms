@@ -1078,7 +1078,9 @@ void field_labels() {
     const Point point{label.x + label.width * 0.5, label.y + label.height * 0.5};
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, point}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, point}));
-    require(window.focused_control() == matches_field, "a press on a field's label focuses its field");
+    // A numeric up-down gives focus to its edit part (a composite field).
+    require(window.focused_control() == SurfaceRoot::focus_target_of(matches_field),
+            "a press on a field's label focuses its field");
     std::vector<RibbonTabSpec> icon_only;
     RibbonTabSpec refused_tab{.stable_id = "home", .text = "&Home"};
     RibbonGroupSpec refused_group{.stable_id = "group", .caption = "Group"};
