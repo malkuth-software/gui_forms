@@ -194,6 +194,28 @@ static void text_editing(gf_kit* kit) {
                   "a label is not a text box");
     gf_kit_status(kit, (*kit).objects.release(label), GF_STATUS_OK, "release the label");
     gf_kit_status(kit, (*kit).objects.release(box), GF_STATUS_OK, "release the text box");
+
+    /* A combo box in the drop_down style is edited through its editor; the
+     * default drop_down_list style has none and is refused. */
+    const gf_object combo = gf_kit_create(kit, "combo_box", "kit.families.text.combo");
+    gf_kit_status(kit, (*kit).text_editing.select(combo, 0u, 0u), GF_STATUS_WRONG_HANDLE_KIND,
+                  "a drop_down_list combo box has no editor");
+    gf_value style;
+    memset(&style, 0, sizeof(style));
+    style.struct_size = (uint32_t)sizeof(gf_value);
+    style.kind = GF_VALUE_KIND_ENUMERATION;
+    style.signed_integer = 1;
+    gf_kit_status(kit, (*kit).properties.set(combo, gf_kit_text("drop_down_style"), &style), GF_STATUS_OK,
+                  "the drop_down style");
+    gf_kit_status(kit, gf_kit_set_text(kit, combo, "text", "combo"), GF_STATUS_OK, "give the combo box text");
+    gf_kit_status(kit, (*kit).text_editing.select(combo, 1u, 3u), GF_STATUS_OK, "select in the editor");
+    gf_kit_status(kit, (*kit).text_editing.selection(combo, &anchor, &caret), GF_STATUS_OK,
+                  "read the editor's selection");
+    gf_kit_check(kit, anchor == 1u && caret == 3u, "the editor's selection reads back");
+    gf_kit_status(kit, (*kit).text_editing.replace_range(combo, 0u, 5u, gf_kit_text("typed"), &changed),
+                  GF_STATUS_OK, "replace the editor's text");
+    gf_kit_check(kit, changed == 1u, "the editor's text changed");
+    gf_kit_status(kit, (*kit).objects.release(combo), GF_STATUS_OK, "release the combo box");
 }
 
 static void property_grid(gf_kit* kit) {
