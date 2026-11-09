@@ -124,12 +124,37 @@ jobs:
           python3 tools/generate_library_docs.py --check
           python3 -B ../template_harness/harness/check_house_style.py include src demo tests examples tools file_manager_demoboard fuzz
           python3 -B -m unittest discover -s tools -p test_ci_build.py
+          python3 -B -m unittest discover -s tools -p test_ci_docs_only.py
           python3 -B -m unittest discover -s tools -p test_engine_gate.py
           python3 -B -m unittest discover -s tools -p test_profile_hot_paths.py
           python3 -B -m unittest discover -s tools/layout_oracle -p test_layout_oracle.py
           python3 -B ../template_harness/harness/check_lifetime_rules.py include src demo tests examples tools file_manager_demoboard fuzz
           python3 -B -m unittest discover -s tools -p test_check_test_registration.py
           python3 -B tools/check_test_registration.py
+  # Documentation-only pull requests (owner, 2026-11-09): when every changed
+  # path is documentation no test reads (tools/ci_docs_only.py), the four
+  # native jobs report success without building (their build job is
+  # skipped), the engine gate passes without comparing and no programs job
+  # runs; house-style and docs still check the change. Merge groups, pushes,
+  # the schedule and dispatches always build in full, as does any failure to
+  # classify. The whole history, so the pull request's merge base is known.
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      docs_only: ${{ steps.classify.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gui_forms
+          fetch-depth: 0
+      - uses: ./gui_forms/.github/actions/harness-checkout
+      - name: Classify the changed paths
+        id: classify
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: python3 -B gui_forms/tools/ci_docs_only.py --event "$EVENT" --base "$BASE" >> "$GITHUB_OUTPUT"
   # The site depends only on the tree (docs/requirements.txt pins its
   # toolchain), so a tree an earlier run of this repository built passes
   # without building it again (tools/ci_tree_receipt.py); the job still
@@ -384,7 +409,7 @@ jobs:
 
   native-macos-arm64:
     name: native (macos-15, macos-arm64, bash)
-    needs: house-style
+    needs: [house-style, changes]
     if: needs.house-style.outputs.due != 'false'
     uses: ./.github/workflows/native-platform.yml
     with:
@@ -394,13 +419,14 @@ jobs:
       force_validation: ${{ inputs.force_validation == true || inputs.cold_build == true || github.event_name == 'schedule' }}
       cold_build: ${{ inputs.cold_build == true }}
       package_windows_toolchain: ${{ inputs.package_windows_toolchain == true }}
+      docs_only: ${{ needs.changes.outputs.docs_only == 'true' }}
     permissions:
       contents: write
       actions: read
 
   native-linux-x64:
     name: native (ubuntu-24.04, linux-x64, bash)
-    needs: house-style
+    needs: [house-style, changes]
     if: needs.house-style.outputs.due != 'false'
     uses: ./.github/workflows/native-platform.yml
     with:
@@ -410,13 +436,14 @@ jobs:
       force_validation: ${{ inputs.force_validation == true || inputs.cold_build == true || github.event_name == 'schedule' }}
       cold_build: ${{ inputs.cold_build == true }}
       package_windows_toolchain: ${{ inputs.package_windows_toolchain == true }}
+      docs_only: ${{ needs.changes.outputs.docs_only == 'true' }}
     permissions:
       contents: write
       actions: read
 
   native-linux-arm64:
     name: native (ubuntu-24.04-arm, linux-arm64, bash)
-    needs: house-style
+    needs: [house-style, changes]
     if: needs.house-style.outputs.due != 'false'
     uses: ./.github/workflows/native-platform.yml
     with:
@@ -426,13 +453,14 @@ jobs:
       force_validation: ${{ inputs.force_validation == true || inputs.cold_build == true || github.event_name == 'schedule' }}
       cold_build: ${{ inputs.cold_build == true }}
       package_windows_toolchain: ${{ inputs.package_windows_toolchain == true }}
+      docs_only: ${{ needs.changes.outputs.docs_only == 'true' }}
     permissions:
       contents: write
       actions: read
 
   native-windows-x64:
     name: native (windows-2022, windows-x64, msys2 {0})
-    needs: house-style
+    needs: [house-style, changes]
     if: needs.house-style.outputs.due != 'false'
     uses: ./.github/workflows/native-platform.yml
     with:
@@ -442,6 +470,7 @@ jobs:
       force_validation: ${{ inputs.force_validation == true || inputs.cold_build == true || github.event_name == 'schedule' }}
       cold_build: ${{ inputs.cold_build == true }}
       package_windows_toolchain: ${{ inputs.package_windows_toolchain == true }}
+      docs_only: ${{ needs.changes.outputs.docs_only == 'true' }}
     permissions:
       contents: write
       actions: read
@@ -451,28 +480,38 @@ jobs:
   # any idle counter above zero, or any host without a manifest (a job that
   # reused a validation carries that run's manifest). The filled record is the
   # t2-engine-gate-record artifact (notes:results/2026-10-22-t2-engine-gate/).
+  # A documentation-only pull request built nothing to compare, so the gate
+  # passes without comparing.
   engine-gate:
-    needs: [native-macos-arm64, native-linux-x64, native-linux-arm64, native-windows-x64]
-    if: always() && !contains(needs.*.result, 'skipped') && !contains(needs.*.result, 'cancelled')
+    needs: [changes, native-macos-arm64, native-linux-x64, native-linux-arm64, native-windows-x64]
+    if: >-
+      always() && !contains(needs.*.result, 'cancelled')
+      && (needs.changes.outputs.docs_only == 'true' || !contains(needs.*.result, 'skipped'))
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
+      - name: Documentation only, nothing was built to compare
+        if: needs.changes.outputs.docs_only == 'true'
+        run: echo "A documentation-only pull request: no native job built, so no manifest is compared."
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.docs_only != 'true'
       - uses: actions/download-artifact@v4
+        if: needs.changes.outputs.docs_only != 'true'
         with:
           pattern: gui-forms-evidence-*
           path: .ci/evidence
       - name: Compare the engine gate manifests across hosts
+        if: needs.changes.outputs.docs_only != 'true'
         run: >-
           python3 -B tools/engine_gate.py compare --evidence .ci/evidence --out .ci/engine-gate
           --commit "${{ github.sha }}"
           --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
       - name: Show the record
-        if: always()
+        if: always() && needs.changes.outputs.docs_only != 'true'
         run: |
           if [ -f .ci/engine-gate/record.md ]; then cat .ci/engine-gate/record.md >> "$GITHUB_STEP_SUMMARY"; fi
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && needs.changes.outputs.docs_only != 'true'
         with:
           name: t2-engine-gate-record
           include-hidden-files: true
@@ -482,8 +521,8 @@ jobs:
   # The demonstration programs, their tests and packages, one platform each,
   # built from that platform's native objects as soon as its native job passes.
   programs-macos-arm64:
-    needs: native-macos-arm64
-    if: inputs.cold_build != true
+    needs: [changes, native-macos-arm64]
+    if: inputs.cold_build != true && needs.changes.outputs.docs_only != 'true'
     uses: ./.github/workflows/release.yml
     with:
       from_native: true
@@ -493,8 +532,8 @@ jobs:
       actions: read
 
   programs-linux-x64:
-    needs: native-linux-x64
-    if: inputs.cold_build != true
+    needs: [changes, native-linux-x64]
+    if: inputs.cold_build != true && needs.changes.outputs.docs_only != 'true'
     uses: ./.github/workflows/release.yml
     with:
       from_native: true
@@ -504,8 +543,8 @@ jobs:
       actions: read
 
   programs-linux-arm64:
-    needs: native-linux-arm64
-    if: inputs.cold_build != true
+    needs: [changes, native-linux-arm64]
+    if: inputs.cold_build != true && needs.changes.outputs.docs_only != 'true'
     uses: ./.github/workflows/release.yml
     with:
       from_native: true
@@ -517,8 +556,8 @@ jobs:
   # This job and publish name the results they need instead of relying on an
   # implicit success(), which any skipped job before them turns false.
   programs-windows-x64:
-    needs: native-windows-x64
-    if: ${{ !cancelled() && needs.native-windows-x64.result == 'success' && inputs.cold_build != true }}
+    needs: [changes, native-windows-x64]
+    if: ${{ !cancelled() && needs.native-windows-x64.result == 'success' && inputs.cold_build != true && needs.changes.outputs.docs_only != 'true' }}
     uses: ./.github/workflows/release.yml
     with:
       from_native: true
