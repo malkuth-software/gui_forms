@@ -596,7 +596,7 @@ struct HostHoverEvent final {
 // snapped or restored, any of which the platform may answer by reshaping
 // its corners. full_screen: the window fills its monitor with no frame
 // (Windows: a captionless window covering its monitor; macOS:
-// NSWindowStyleMaskFullScreen; X11: _NET_WM_STATE_FULLSCREEN, or the
+// the window style mask's full-screen bit; X11: _NET_WM_STATE_FULLSCREEN, or the
 // host's own override-redirect fallback). The session passes full_screen
 // to Window::report_full_screen and asks the host for the window's corners
 // again (HostServices::apply_window_corners), so the band follows both.
