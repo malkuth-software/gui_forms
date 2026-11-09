@@ -325,11 +325,16 @@ void HostSession::DispatchVisitor::operator()(
         (*session).closing_.emit(payload);
         (*result).close_allowed = !payload.cancel;
         (*session).snapshot_.close_cancellations += payload.cancel ? 1U : 0U;
-        if (!payload.cancel && !hide_on_accept) {
+        // An allowed session-end request stays attached: the platform may
+        // still call the session's end off, and the host reports the close
+        // itself when it happens (HostCloseReason::session_end).
+        const bool session_end = payload.reason == HostCloseReason::session_end;
+        if (!payload.cancel && !hide_on_accept && !session_end) {
             (*session).snapshot_.phase = HostLifecyclePhase::close_authorized;
         }
     } else if constexpr (std::is_same_v<Payload, HostClosedEvent>) {
         (*session).snapshot_.phase = HostLifecyclePhase::closed;
+        (*(*session).window_).host_close_reason_ = payload.reason;
         (*session).snapshot_.attached = false;
         (*session).snapshot_.closed = true;
         (*session).snapshot_.active = false;

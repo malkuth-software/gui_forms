@@ -307,10 +307,19 @@ void select_gallery_theme(Window& window) {
 
 }  // namespace
 
-std::unique_ptr<Application> create_gallery_application()
+std::optional<ThemeBase> gallery_theme_base(std::string_view id) noexcept
+{
+    if (id.empty()) return default_theme_base;
+    if (id == "gui-forms") return ThemeBase::gui_forms;
+    if (id == "windows-professional") return ThemeBase::windows_professional;
+    return std::nullopt;
+}
+
+std::unique_ptr<Application> create_gallery_application(ThemeBase base)
 {
     ApplicationConfig config{};
     config.theme.packages.push_back(gallery_theme_package());
+    config.theme.base = base;
     config.theme.effects = &built_in_effect_registry();
     ApplicationCreateResult created = Application::create(std::move(config));
     if (created.error == ApplicationCreateError::already_exists) {

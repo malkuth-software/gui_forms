@@ -27,6 +27,10 @@
 //                       one to three WindowBackdrop names, comma-separated,
 //                       preferred first (e.g. window_material,transparent).
 //                       Other programs ignore it.
+//   --theme <id>        The Gallery compiles its project theme onto this
+//                       base: gui-forms (the default) or
+//                       windows-professional, as its Theme settings page
+//                       does. Other programs ignore it.
 //
 // Header-only so every demo executable can include it without a new library.
 // It is demo-facing code: no host, renderer or platform type appears here.
@@ -57,12 +61,13 @@ struct ProgramOptions final {
     double scale_hint{};
     std::string page;
     std::string backdrop;
+    std::string theme;
 };
 
 inline void print_program_usage(const char* program) {
     std::fprintf(stderr,
                  "usage: %s [--automation] [--smoke-test] [--capture <path.png>] "
-                 "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>]\n",
+                 "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>] [--theme <id>]\n",
                  program != nullptr && *program != '\0' ? program : "gui-forms-demo");
 }
 
@@ -118,7 +123,7 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
         }
         const bool wants_value = argument == "--capture" || argument == "--size" ||
                                  argument == "--scale" || argument == "--page" ||
-                                 argument == "--backdrop";
+                                 argument == "--backdrop" || argument == "--theme";
         if (!wants_value) {
             print_program_usage(program);
             return std::nullopt;
@@ -146,6 +151,12 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
                 return std::nullopt;
             }
             options.backdrop = std::string(value);
+        } else if (argument == "--theme") {
+            if (value.empty()) {
+                print_program_usage(program);
+                return std::nullopt;
+            }
+            options.theme = std::string(value);
         } else if (argument == "--size") {
             Size size{};
             if (!detail::parse_size(value, size)) {

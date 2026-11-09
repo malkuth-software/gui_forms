@@ -14,6 +14,7 @@ void test_anatomy_coverage();
 void test_schema_export();
 void test_every_page_scrolls_to_its_end();
 void test_display_commands_unchanged();
+void test_theme_switch_round_trip();
 
 void test_ranges_and_progress(gui_forms::Window& window);
 void test_containers_and_focus(gui_forms::Window& window);

@@ -4354,8 +4354,11 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/anatomy_coverage_tests.cpp
             tests/gallery_pages/schema_export_tests.cpp
         )
+        # The theme switch test compiles the Gallery's embedded theme package
+        # (gui_forms_add_theme writes its header there).
         target_include_directories(gui_forms_gallery_pages_tests PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_CURRENT_BINARY_DIR}/gui_forms_themes
         )
         target_link_libraries(gui_forms_gallery_pages_tests PRIVATE
             gui_forms_gallery_model

@@ -4637,6 +4637,8 @@ bool SurfaceRoot::eligible(const Control::Ptr& control) const noexcept {
     return control && (*control).surface_root_ == this && (*control).eligible_for_input();
 }
 
-
+std::optional<HostCloseReason> Window::host_close_reason() const noexcept {
+    return host_close_reason_;
+}
 
 } // namespace gui_forms
