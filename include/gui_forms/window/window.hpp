@@ -65,6 +65,38 @@ public:
     void resize(Size client_size);
     void set_scale(double scale);
 
+    // The window outer band (owner, 2026-11-08; gui_forms/window/band/
+    // window_band.hpp). declare_band reserves the band on every side at
+    // once: the root is measured against the client size less the band and
+    // arranged inside it, and the window is laid out again. Declaring again
+    // lays it out only when the reserved width changes. std::invalid_argument
+    // for options window_band_options_valid refuses, changing nothing. UI
+    // thread.
+    void declare_band(const WindowBandOptions& options);
+    // Removes the band and its reservation; the window is laid out again.
+    // Does nothing for an undeclared band. UI thread.
+    void undeclare_band();
+    // What the band shows: paint only, never a layout; only the four strips
+    // repaint. Kept while the band is undeclared, and shown once it is
+    // declared. std::invalid_argument for an unknown state, changing
+    // nothing. UI thread.
+    void set_band_appearance(const WindowBandAppearance& appearance);
+    [[nodiscard]] WindowBandSnapshot band_snapshot() const noexcept;
+    // Host-only: the native window entered or left full screen. A band
+    // declared WindowBandFullScreen::hides gives up its reservation in full
+    // screen (a layout each way). UI thread.
+    void report_full_screen(bool full_screen);
+    // The corners this window asks its host for (owner, 2026-11-08, answer
+    // 4): sent at once while a host is attached, and when one attaches. The
+    // band follows what the host reports (band_snapshot().corners), not the
+    // preference: a host without HostCapability::window_corners reports
+    // unknown corners, and the band draws square. std::invalid_argument for
+    // a value outside the enumeration, changing nothing. UI thread.
+    void set_corner_preference(WindowCornerPreference preference);
+    [[nodiscard]] WindowCornerPreference corner_preference() const noexcept {
+        return band_.corner_preference;
+    }
+
     // Records one live-surface frame the host copied to the screen. Live
     // frames carry no paint receipt; this only counts their cost.
     void notify_live_presented(std::uint64_t duration_nanoseconds, PresentedArea presented);
@@ -234,6 +266,10 @@ private:
     // so that its deleter is bound where it is made.
     std::shared_ptr<detail::PopupStandby> popup_standby_{};
     [[nodiscard]] detail::PopupStandby& popup_standby();
+    // Sends the corner preference to the attached host, if any, and takes
+    // its report; changed corners repaint the band's strips. Called by
+    // set_corner_preference and by HostSession when it attaches.
+    void apply_corner_preference();
     // Called by HostSession: seeds the window's bindings with the host's
     // defaults unless they are seeded already.
     void install_host_key_map(const KeyMap& defaults);

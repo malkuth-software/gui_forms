@@ -37,7 +37,11 @@ HostCapabilities headless_capabilities() {
                 HostCapability::window_backdrops |
                 HostCapability::compositor_notifications |
                 HostCapability::presentation_preferences |
-                HostCapability::transient_surfaces,
+                HostCapability::transient_surfaces |
+                // The reference host simulates a platform that shapes
+                // corners: tests set what it reports
+                // (HeadlessHostServices::set_corner_report).
+                HostCapability::window_corners,
             // The reference host reports the PC convention.
             pc_key_map()};
 }

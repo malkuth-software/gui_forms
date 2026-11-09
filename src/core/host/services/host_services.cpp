@@ -390,6 +390,27 @@ HostServiceStatus HostServices::apply_window_backdrop_impl(WindowBackdrop backdr
     return status;
 }
 
+HostWindowCornersResult HostServices::apply_window_corners(WindowCornerPreference preference) {
+    HostWindowCornersResult result{};
+    const bool known = preference == WindowCornerPreference::system || preference == WindowCornerPreference::square ||
+                       preference == WindowCornerPreference::round;
+    if (!known) {
+        result.status = reject(HostServiceError::invalid_argument);
+        return result;
+    }
+    result.status = validate_request(HostCapability::window_corners);
+    if (!result.status.accepted()) return result;
+    result = apply_window_corners_impl(preference);
+    return result;
+}
+
+HostWindowCornersResult HostServices::apply_window_corners_impl(WindowCornerPreference preference) {
+    static_cast<void>(preference);
+    HostWindowCornersResult refused{};
+    refused.status.error = HostServiceError::unsupported;
+    return refused;
+}
+
 HostServiceStatus HostServices::validate_request(HostCapability capability) noexcept {
     HostServiceStatus status;
     if (std::this_thread::get_id() != ui_thread_) {

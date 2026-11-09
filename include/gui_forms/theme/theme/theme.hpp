@@ -117,6 +117,12 @@ public:
     // declares one or the winner is `none`. `popup` rules are not read here:
     // they wait for native popup windows (stage T5).
     [[nodiscard]] std::optional<BackdropChain> window_backdrop_chain(const Window& window) const noexcept;
+    // The band the rules selecting `window` declare (`window { band-width:
+    // ...; band-color: ...; band-lit-color: ...; band-effect: ... }`; owner,
+    // 2026-11-08): each field from the last matching rule that sets it,
+    // among the theme's and the user theme's rules, matched as
+    // window_backdrop_chain matches. Empty where no rule sets one.
+    [[nodiscard]] BandDeclaration window_band(const Window& window) const noexcept;
     [[nodiscard]] const ThemeDefinition& definition() const noexcept {
         return definition_;
     }

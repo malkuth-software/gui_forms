@@ -287,6 +287,7 @@ add_library(gui_forms_core STATIC
     src/core/window/backplane/backplane_composite.cpp
     src/core/window/backdrop/window_backdrop_grant.cpp
     src/core/window/backdrop/backdrop_chain.cpp
+    src/core/window/band/window_band.cpp
     src/core/window/backplane/window_backplane.cpp
     src/core/engine/primitives/kernel/box_blur.cpp
     src/core/engine/primitives/kernel/pixel_kernel.cpp
@@ -3894,6 +3895,13 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_window_root_slot_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_window_root_slot_tests
              COMMAND gui_forms_window_root_slot_tests)
+
+    add_executable(gui_forms_window_band_tests
+        tests/window_band_tests.cpp
+    )
+    target_link_libraries(gui_forms_window_band_tests PRIVATE gui_forms_controls gui_forms_host_headless)
+    add_test(NAME gui_forms_window_band_tests
+             COMMAND gui_forms_window_band_tests)
 
     add_executable(gui_forms_layout_direction_tests
         tests/layout_direction_tests.cpp

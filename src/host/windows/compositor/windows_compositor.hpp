@@ -37,4 +37,16 @@ namespace gui_forms::host::detail {
 // material); the window then grants opaque, which withdraws everything.
 [[nodiscard]] HostServiceStatus apply_windows_backdrop(HWND window, WindowBackdrop backdrop) noexcept;
 
+// Asks DWM for `window`'s corners (DWMWA_WINDOW_CORNER_PREFERENCE, build
+// 22000 and later; owner, 2026-11-08: the window outer band) and reports
+// them: Windows 11 rounds a top-level window by default at
+// windows_corner_radius logical units, and squares it on request. Before
+// build 22000 the attribute does not exist: the window is square and a
+// request to round reports square with `complied` false.
+[[nodiscard]] HostWindowCornersResult apply_windows_corners(HWND window, WindowCornerPreference preference) noexcept;
+
+// The radius DWM rounds a top-level window's corners by (DWMWCP_ROUND), in
+// logical units.
+inline constexpr double windows_corner_radius = 8.0;
+
 } // namespace gui_forms::host::detail

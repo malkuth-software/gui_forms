@@ -15,6 +15,7 @@
 #include "gui_forms/paint_framebuffer.hpp"
 #include "gui_forms/host/compositor/window_backdrop.hpp"
 #include "gui_forms/window/backdrop/backdrop_chain.hpp"
+#include "gui_forms/window/band/window_band.hpp"
 #include "gui_forms/host/cursor_interaction/cursor_interaction.hpp"
 #include "gui_forms/layout/diagnostics/layout_diagnostics.hpp"
 #include "gui_forms/resources.hpp"
@@ -81,6 +82,7 @@ class SubSurfaceAlertRequester;
 class MessageBoxHelpRoute;
 class InteractionState;
 struct InteractionHoverWake;
+struct BandFlashWake;
 
 // The WinForms mouse events raise_mouse_events offers the window's rules
 // before raising them (SurfaceRoot::offer_mouse_rules_). The rules library
@@ -434,13 +436,19 @@ public:
     // window (attaching a repeated one is refused). Changes nothing.
     [[nodiscard]] ControlLookup control(std::string_view stable_id) const;
     [[nodiscard]] Size client_size() const noexcept { return client_size_; }
-    // The root slot (stage B, B.2a): the client rectangle less the chrome
-    // insets, in client coordinates. The layout pass measures the root at
-    // its size and arranges it there, and a resize marks what it reaches
-    // through it; damage and clipping stay in the whole client area. The
-    // inset band is the window's own (chrome hit-testing, frame drag): no
-    // control is there. Empty on an axis the insets cover.
+    // The root slot (stage B, B.2a): the client rectangle less the window's
+    // outer band (Window::declare_band) and, inside it, the chrome insets,
+    // in client coordinates. The layout pass measures the root at its size
+    // and arranges it there, and a resize marks what it reaches through it;
+    // damage and clipping stay in the whole client area. The inset band is
+    // the window's own (chrome hit-testing, frame drag): no control is
+    // there. Empty on an axis the band and insets cover.
     [[nodiscard]] Rect root_slot() const noexcept;
+    // The content rectangle: the client rectangle less the reserved outer
+    // band (the whole client area when none is reserved), in client
+    // coordinates. Live surfaces are clipped to it; points outside it hit
+    // nothing.
+    [[nodiscard]] Rect content_rect() const noexcept;
     [[nodiscard]] Insets chrome_insets() const noexcept { return chrome_insets_; }
     // Sets the chrome insets: std::invalid_argument, changing nothing,
     // unless each is finite and not negative; otherwise damages the client
@@ -1841,6 +1849,36 @@ private:
     // Zero unless the window's chrome takes a band of the client area
     // (root_slot).
     Insets chrome_insets_{};
+    // The window outer band (Window::declare_band; gui_forms/window/band/
+    // window_band.hpp). Only a Window declares one, so a sub-surface's
+    // stays undeclared and reserves nothing.
+    struct BandRecord final {
+        bool declared{};
+        WindowBandOptions options{};
+        WindowBandAppearance appearance{};
+        // The width reserved on every side (snapped, logical units): 0
+        // while undeclared or hidden in full screen. root_slot and
+        // content_rect read it; only refresh_band changes it.
+        double reserved{};
+        // The colours resolved by the last refresh, and the one the strips
+        // draw now.
+        Color rest{Color::rgba(0, 0, 0, 0)};
+        Color lit{Color::rgba(0, 0, 0, 0)};
+        Color drawn{Color::rgba(0, 0, 0, 0)};
+        // Whether a flash runs now (asked for and not stilled), and its
+        // phase: true while it shows the lit colour.
+        bool flashing{};
+        bool lit_phase{true};
+        std::uint64_t flash_changes{};
+        // The one-shot wake of the next phase change, armed only while a
+        // flash runs.
+        FrameRequestToken flash_wake{};
+        // Reported by the host (Window::report_full_screen).
+        bool full_screen{};
+        WindowCornerPreference corner_preference{WindowCornerPreference::system};
+        WindowCornerReport corners{};
+    };
+    BandRecord band_{};
     double scale_{1.0};
     PresentationSettings presentation_settings_{};
     // The window's own settings (from its application, its host or the
@@ -2182,6 +2220,28 @@ private:
     // The theme's chain for this window (Theme::window_backdrop_chain), put
     // in force unless the application set its own.
     void lower_theme_backdrop_chain();
+    // Resolves the band against its declaration and appearance, the
+    // theme's `window` rule, the presentation (high contrast, motion), the
+    // scale and full screen. A changed reserved width lays the window out
+    // again (the whole client area is damaged and the root marked, as for
+    // set_chrome_insets); otherwise a changed drawn colour or corner
+    // damages the four strips only. Arms the flash wake while a flash runs
+    // and disconnects it otherwise. Root thread; does nothing on a root
+    // with no Window.
+    void refresh_band();
+    // Damages the four strips of a band `width` wide along the client
+    // area's edges, in the overlay plane (the band is drawn after it), and
+    // asks for a paint.
+    void damage_band_strips(double width);
+    // Whether `position` (client coordinates) lies in the reserved band.
+    [[nodiscard]] bool band_contains(Point position) const noexcept;
+    // Draws the band over every plane, clipped to each painted rectangle
+    // (paint_rectangles' last step).
+    void paint_band(detail::RecordingPainter& candidate, std::span<const Rect> painted);
+    // The flash wake: the phase changes, the strips are damaged, and the
+    // next wake is armed while the flash still runs.
+    void band_flash_due(FrameTime now);
+    friend struct detail::BandFlashWake;
     // Resolves the grant from the request, the compositor state, the
     // declaration and the presentation settings, applies a changed backdrop
     // through the host services, and raises backdrop_changed when it changed.

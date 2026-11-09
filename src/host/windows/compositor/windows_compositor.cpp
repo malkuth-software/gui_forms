@@ -222,4 +222,32 @@ HostServiceStatus apply_windows_backdrop(HWND window, WindowBackdrop backdrop) n
     return {};
 }
 
+HostWindowCornersResult apply_windows_corners(HWND window, WindowCornerPreference preference) noexcept {
+    HostWindowCornersResult result{};
+    const DwmFunctions& functions = dwm();
+    if (window == nullptr || functions.set_attribute == nullptr) {
+        result.status.error = HostServiceError::backend_failure;
+        return result;
+    }
+    DWM_WINDOW_CORNER_PREFERENCE value = DWMWCP_DEFAULT;
+    if (preference == WindowCornerPreference::square) value = DWMWCP_DONOTROUND;
+    if (preference == WindowCornerPreference::round) value = DWMWCP_ROUND;
+    const HRESULT set = functions.set_attribute(window, DWMWA_WINDOW_CORNER_PREFERENCE, &value, sizeof(value));
+    if (FAILED(set)) {
+        // Before Windows 11 the attribute is refused: windows are square,
+        // and cannot be rounded.
+        result.report.shape = WindowCornerShape::square;
+        result.report.complied = preference != WindowCornerPreference::round;
+        return result;
+    }
+    if (preference == WindowCornerPreference::square) {
+        result.report.shape = WindowCornerShape::square;
+    } else {
+        result.report.shape = WindowCornerShape::rounded;
+        result.report.radius = windows_corner_radius;
+    }
+    result.report.complied = true;
+    return result;
+}
+
 } // namespace gui_forms::host::detail

@@ -212,6 +212,9 @@ HostSession::HostSession(Window& window,
         }
         window.invalidate_cursor_interaction(CursorError::stale_window);
         window.host_services_ = services_;
+        // The window's corners as the host makes them, which its band
+        // follows (owner, 2026-11-08).
+        window.apply_corner_preference();
         capture_observation_ = window.pointer_capture_changed().subscribe(
             Delegate<const PointerCaptureChange&>::bind<
                 HostSession, &HostSession::observe_pointer_capture>(*this));
