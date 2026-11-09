@@ -1931,6 +1931,73 @@ void test_image_list_state_density_ownership_and_button_layout() {
             "ImageList disposal must synchronously release every owned Window image");
 }
 
+// Whether set_image_index throws std::out_of_range.
+bool image_index_refused(ButtonBase& button, int index) {
+    try {
+        button.set_image_index(index);
+    } catch (const std::out_of_range&) {
+        return true;
+    }
+    return false;
+}
+
+// set_image_index: the index reads back and selects the ImageList entry
+// painted; it replaces a key (and a key replaces it); -1 shows no image;
+// an index below -1 or past the list is refused, keeping the old one.
+void test_button_image_index() {
+    std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("button.image-index"), "Index");
+    (*button).set_requested_bounds({0.0, 0.0, 150.0, 36.0});
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(button, Size{150.0, 36.0});
+    Window& window = *held_window;
+    std::shared_ptr<gui_forms::ImageList> images = std::make_shared<ImageList>(window, Size{16.0, 16.0});
+    // Two one-pixel images of different colours, so they are distinct
+    // resources whatever the window shares.
+    const std::array<std::byte, 4U> red_pixel{std::byte{0}, std::byte{0}, std::byte{255}, std::byte{255}};
+    const std::array<std::byte, 4U> blue_pixel{std::byte{255}, std::byte{0}, std::byte{0}, std::byte{255}};
+    const ImageId first = window.load_bgra32_premultiplied(1U, 1U, 4U, red_pixel).image;
+    const ImageId second = window.load_bgra32_premultiplied(1U, 1U, 4U, blue_pixel).image;
+    static_cast<void>((*images).add_image("first", first));
+    static_cast<void>((*images).add_image("second", second));
+    require(first.value != 0U && second.value != 0U && !(first == second) && (*images).count() == 2U,
+            "the fixture list holds two distinct images");
+    (*button).set_image_list(images);
+    (*button).set_image_key("first");
+    (*button).set_image_index(1);
+    window.perform_layout();
+    require((*button).image_index() == 1 && (*button).image_key().empty(),
+            "an index reads back and clears the key");
+    RecordingPainter indexed{};
+    (*button).on_paint(indexed, {0.0, 0.0, 150.0, 36.0});
+    require(indexed.images.size() == 1U && indexed.images.front() == second,
+            "the button paints the entry at its index");
+
+    require(image_index_refused(*button, -2) && image_index_refused(*button, 2) && (*button).image_index() == 1,
+            "an index below -1 or past the list is refused, keeping the old index");
+
+    (*button).set_image_key("first");
+    require((*button).image_index() == -1 && (*button).image_key() == "first", "a key replaces the index");
+    (*button).set_image_index(-1);
+    window.perform_layout();
+    RecordingPainter cleared{};
+    (*button).on_paint(cleared, {0.0, 0.0, 150.0, 36.0});
+    require((*button).image_index() == -1 && (*button).image_key().empty() && cleared.images.empty(),
+            "index -1 shows no image and clears the key");
+
+    // Without a list any nonnegative index is held for the list to come;
+    // assigning a list too short for it is refused.
+    (*button).set_image_list(nullptr);
+    (*button).set_image_index(5);
+    require((*button).image_index() == 5, "an index is held while no list is assigned");
+    bool short_list_refused = false;
+    try {
+        (*button).set_image_list(images);
+    } catch (const std::out_of_range&) {
+        short_list_refused = true;
+    }
+    require(short_list_refused && (*button).image_list() == nullptr,
+            "a list shorter than the held index is refused");
+}
+
 } // namespace
 
 void test_group_box_capability_hooks() {
@@ -2073,6 +2140,7 @@ int main() {
         test_button_selected_state();
         test_drop_down_button_routes_pointer_keyboard_and_semantics();
         test_image_list_state_density_ownership_and_button_layout();
+        test_button_image_index();
         test_bottom_disclosure_and_multiline_button_content();
         std::cout << "gui_forms_basic_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;

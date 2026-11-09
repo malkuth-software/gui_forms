@@ -2,6 +2,7 @@
 #include "gui_forms/container_controls.hpp"
 #include "gui_forms/window.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -9,6 +10,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <stdexcept>
 #include <thread>
@@ -892,6 +894,87 @@ bool cell_refused(TableLayoutPanelCompat& table, const Control& child, GridCell 
     return false;
 }
 
+// Whether replacing the column (or row) styles throws `Refusal`.
+template <typename Refusal>
+bool column_styles_refused(TableLayoutPanelCompat& table, const std::vector<TableLayoutStyle>& styles) {
+    try {
+        table.set_column_styles(styles);
+    } catch (const Refusal&) {
+        return true;
+    }
+    return false;
+}
+
+template <typename Refusal>
+bool row_styles_refused(TableLayoutPanelCompat& table, const std::vector<TableLayoutStyle>& styles) {
+    try {
+        table.set_row_styles(styles);
+    } catch (const Refusal&) {
+        return true;
+    }
+    return false;
+}
+
+// set_column_styles and set_row_styles replace every track's style, set the
+// track count to the number of styles and lay the table out again; a
+// refused list changes nothing.
+void test_table_style_lists() {
+    std::shared_ptr<TableLayoutPanelCompat> table =
+        make_control<TableLayoutPanelCompat>(StableId("layout.table.style-lists"));
+    std::shared_ptr<Button> corner = sized_button("layout.table.style-lists.corner", 20.0, 10.0);
+    std::shared_ptr<Button> far = sized_button("layout.table.style-lists.far", 20.0, 10.0);
+    (*table).add_child(corner);
+    (*table).add_child(far);
+    const std::vector<TableLayoutStyle> columns{{TableSizeMode::absolute, 60.0}, {TableSizeMode::percent, 1.0},
+                                                {TableSizeMode::percent, 3.0}};
+    const std::vector<TableLayoutStyle> rows{{TableSizeMode::absolute, 30.0}, {TableSizeMode::percent, 1.0}};
+    (*table).set_column_styles(columns);
+    (*table).set_row_styles(rows);
+    (*table).cell[*corner] = GridCell{.row = 0U, .column = 0U};
+    (*table).cell[*far] = GridCell{.row = 1U, .column = 2U};
+    require((*table).column_count.read() == 3U && (*table).row_count.read() == 2U &&
+                std::equal(columns.begin(), columns.end(), (*table).column_styles().begin(),
+                           (*table).column_styles().end()) &&
+                std::equal(rows.begin(), rows.end(), (*table).row_styles().begin(), (*table).row_styles().end()),
+            "the style lists read back and set the track counts");
+
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(table, Size{300.0, 130.0});
+    Window& window = *held_window;
+    window.perform_layout();
+    std::span<const double> widths = (*table).column_widths();
+    std::span<const double> heights = (*table).row_heights();
+    require(widths.size() == 3U && near(widths[0], 60.0) && near(widths[1], 60.0) && near(widths[2], 180.0) &&
+                heights.size() == 2U && near(heights[0], 30.0) && near(heights[1], 100.0),
+            "the tracks resolve from the replaced styles");
+    require((*far).arranged_bounds() == Rect{120.0, 30.0, 20.0, 10.0}, "a child sits in its styled cell");
+
+    const std::vector<TableLayoutStyle> two_columns{{TableSizeMode::percent, 1.0}, {TableSizeMode::percent, 1.0}};
+    (*table).cell[*far] = GridCell{.row = 1U, .column = 1U};
+    (*table).set_column_styles(two_columns);
+    window.perform_layout();
+    widths = (*table).column_widths();
+    require((*table).column_count.read() == 2U && widths.size() == 2U && near(widths[0], 150.0) &&
+                near(widths[1], 150.0) && (*far).arranged_bounds() == Rect{150.0, 30.0, 20.0, 10.0},
+            "a shorter list lowers the column count and lays the table out again");
+
+    const std::vector<TableLayoutStyle> none{};
+    const std::vector<TableLayoutStyle> too_many(65U, TableLayoutStyle{TableSizeMode::auto_size, 0.0});
+    const std::vector<TableLayoutStyle> negative{{TableSizeMode::absolute, 10.0}, {TableSizeMode::absolute, -1.0}};
+    const std::vector<TableLayoutStyle> zero_percent{{TableSizeMode::percent, 0.0}};
+    require(column_styles_refused<std::out_of_range>(*table, none) &&
+                column_styles_refused<std::out_of_range>(*table, too_many) &&
+                column_styles_refused<std::invalid_argument>(*table, negative) &&
+                row_styles_refused<std::out_of_range>(*table, none) &&
+                row_styles_refused<std::out_of_range>(*table, too_many) &&
+                row_styles_refused<std::invalid_argument>(*table, zero_percent),
+            "empty, oversized and invalid style lists are refused");
+    require((*table).column_count.read() == 2U && (*table).row_count.read() == 2U &&
+                std::equal(two_columns.begin(), two_columns.end(), (*table).column_styles().begin(),
+                           (*table).column_styles().end()) &&
+                std::equal(rows.begin(), rows.end(), (*table).row_styles().begin(), (*table).row_styles().end()),
+            "a refused list leaves the styles and counts as they were");
+}
+
 void test_table_child_properties() {
     std::shared_ptr<TableLayoutPanelCompat> table =
         make_control<TableLayoutPanelCompat>(StableId("layout.table.child"));
@@ -1024,6 +1107,7 @@ int main() {
         test_margin_padding_validation_and_retained_slots();
         test_flow_break_child_property();
         test_table_child_properties();
+        test_table_style_lists();
         test_panel_settings_as_properties();
         test_flow_direction_break_visibility_and_resize();
         test_flow_item_spacing_is_explicit_bounded_layout_state();

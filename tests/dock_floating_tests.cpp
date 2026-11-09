@@ -670,6 +670,60 @@ void load_layout_on_live_windows() {
             "its floating window opens again with Properties inside");
 }
 
+// -- retitling a panel -----------------------------------------------------------
+
+const SemanticNode* find_semantic(const std::vector<SemanticNode>& nodes, std::string_view id) {
+    for (const SemanticNode& node : nodes) {
+        if (node.stable_id == id) return &node;
+        const SemanticNode* const found = find_semantic(node.children, id);
+        if (found != nullptr) return found;
+    }
+    return nullptr;
+}
+// The result points into `nodes`: a temporary list may not be passed.
+const SemanticNode* find_semantic(std::vector<SemanticNode>&& nodes, std::string_view id) = delete;
+
+// set_panel_title: the title reads back, the docked stack's pane takes the
+// new name, and the floating window showing the panel is retitled through
+// the host; the same title again does nothing, and an unregistered panel
+// is refused.
+void set_panel_title_retitles() {
+    std::unique_ptr<App> app = make_app();
+    DockWorkspace& workspace = *(*app).workspace;
+    host::HeadlessWindowing& windowing = (*(*app).application).windowing();
+    const DockSiteId floating = float_properties(*app);
+    const ApplicationWindowHandle handle = workspace.floating_window(floating);
+    require(handle.active(), "Properties has its own window");
+
+    windowing.clear_trace();
+    require(workspace.set_panel_title(DockPanelId("properties"), "Inspector") &&
+                workspace.panel_title(DockPanelId("properties")) == "Inspector",
+            "the new title reads back");
+    const std::string retitle = "title id=" + std::to_string(handle.id().value) + " text=Inspector";
+    require(position(windowing.trace(), retitle) != std::string::npos,
+            "the floating window showing the panel is retitled");
+
+    windowing.clear_trace();
+    require(workspace.set_panel_title(DockPanelId("properties"), "Inspector") &&
+                position(windowing.trace(), "title id=") == std::string::npos,
+            "the same title again is accepted and retitles nothing");
+
+    require(workspace.set_panel_title(DockPanelId("solution"), "Explorer"), "a docked panel is retitled");
+    lay_out_all(*app);
+    const SemanticSnapshot snapshot = (*(*app).main_model).semantic_snapshot();
+    const std::string pane = (*(*app).site).stack_identity(stack_of(workspace, "solution"));
+    const SemanticNode* const node = find_semantic(snapshot.roots, pane);
+    require(node != nullptr && (*node).name == "Explorer", "the docked stack's pane takes the new name");
+
+    require(!workspace.set_panel_title(DockPanelId("nobody"), "Nobody") &&
+                workspace.panel_title(DockPanelId("nobody")) == "nobody",
+            "an unregistered panel is refused and keeps answering its identity");
+    require(workspace.set_panel_title(DockPanelId("output"), std::string{}) &&
+                workspace.panel_title(DockPanelId("output")) == "output",
+            "an empty title falls back to the identity");
+    (*(*app).application).reclaim();
+}
+
 } // namespace
 
 int main() {
@@ -685,6 +739,7 @@ int main() {
     close_button_without_a_main_site();
     close_button_asks_about_documents();
     load_layout_on_live_windows();
+    set_panel_title_retitles();
     std::cout << "Floating windows: the Float trace, floating on release and at the limit, docking back, drags "
                  "across windows, moving by the caption, frames saved, Ctrl+S, restore and closing passed\n";
     return EXIT_SUCCESS;
