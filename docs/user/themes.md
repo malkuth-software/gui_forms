@@ -194,7 +194,7 @@ A control uses the first theme it finds in this order:
 1. its own override (`Control::set_theme_override`);
 2. its window's (`SurfaceRoot::set_theme`);
 3. the application's resources (`ApplicationResources::set_theme`);
-4. the built-in default theme.
+4. the built-in default theme, GUI.Forms' own (`gui-forms`) from 0.5.
 
 A user theme the program allows replaces or extends the program's theme in
 the resources ([The theme language](theme-language.md#user-themes)).

@@ -64,7 +64,8 @@ there is one, and one detail argument.
 
 The theme in effect for a control is its own override
 (`Control::set_theme_override`), else its window's, else the program's
-(`ApplicationResources::set_theme`), else the built-in default theme.
+(`ApplicationResources::set_theme`), else the built-in default theme
+(GUI.Forms' own from 0.5).
 
 Every compiled rule keeps where it was written (`ThemeRule::provenance`):
 its layer (`ThemeLayer`: built-in, library pack, project theme, user

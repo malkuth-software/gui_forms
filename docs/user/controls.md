@@ -79,3 +79,21 @@ lab
   through `part(name, index)` for custom recipes without subclassing.
 - Accessibility metadata is optional; the default adapter publishes a
   sensible role and name, and authored labels enrich it.
+
+## Scrolling
+
+Scrollable controls (panels with scroll bars, lists, grids, trees and the
+multiline text boxes) scroll the same way:
+
+- A notched mouse wheel, a press on a scroll bar's arrow or track, and
+  Page Up or Page Down glide to the new position over a short, fixed time.
+  Input that arrives during a glide moves its target, so repeated notches
+  never queue up.
+- Precise deltas, such as a trackpad's or a high-resolution wheel's, apply at
+  once: the device already supplies the motion.
+- With reduced motion (`PresentationSettings::reduced_motion`, the host's
+  preference) every scroll is instant.
+- Moving the keyboard focus to a control scrolls it into view.
+
+The `scroll` event fires when the input arrives, with the target position as
+its new value; the position read during a glide is the one being shown.

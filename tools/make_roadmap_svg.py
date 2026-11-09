@@ -57,6 +57,7 @@ STAGES = [
         "Properties as capabilities",
         "Application, windows and rules",
         "Form and theme languages",
+        "Smooth scrolling",
     ]),
     ("1.0", "Backend", "stage", [
         "Final controls",

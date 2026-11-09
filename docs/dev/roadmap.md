@@ -107,6 +107,18 @@ a sealed interface needs a recorded owner decision. What is sealed:
   effects and accessibility.
 - **The creation-cost contract**: window creation does no hidden work,
   enforced by a benchmark gate.
+- **Smooth scrolling**: a notched wheel, the scroll bar's arrows and track,
+  and paging glide to their target; precise (trackpad) deltas apply at once;
+  reduced motion makes every scroll instant
+  ([Controls](../user/controls.md#scrolling)).
+- **The default theme** becomes GUI.Forms' own (`gui-forms`), beside the four
+  familiar themes.
+- **The reference application**, `examples/reference`, shows the sealed API
+  in one program.
+
+At the seal the ABI baseline is recorded again from the sealed head, and the
+breaking-change audit becomes blocking: a change that breaks the recorded
+tables fails CI.
 
 What remains before the seal, with the open owner decisions, is tracked in
 the project's coordination records; the stage plans are in
@@ -126,7 +138,9 @@ Planned after the seal, in this order:
 
 Work already placed after the seal:
 
-- **Smooth scrolling**, unless the owner places it in 0.5.
+- **The macOS checks**: the host rows still open on macOS (the compositor
+  gate's light, dark and reduced-transparency rows among them) are verified
+  after the seal.
 - **Outer-edge effects**: the active border and effects drawn past a
   control's box, with the window band and host shaping.
 - **Splash, further**: baking Splash content on a worker thread, and menus
@@ -269,9 +283,11 @@ gates as their own rows. "Done" means the deliverable exists and a test in
 The 0.5 seal
 : Landing the last checkpoint on every platform, the gate records of the
   GUI.Forms and familiar themes, the form-document gate and the compositor
-  gate's remaining host rows, the creation-cost baselines, the switch of the
-  default theme to GUI.Forms' own (an owner decision), and the re-recorded
-  ABI baseline with the audit in its enforcing mode.
+  gate's remaining Windows and X11 rows, the creation-cost baselines, smooth
+  scrolling, the switch of the default theme to GUI.Forms' own (decided by
+  the owner, with the four familiar themes approved), the reference
+  application in `examples/reference`, and the re-recorded ABI baseline with
+  the audit blocking.
 
 Documentation
 : Reviewed descriptions for the public members the API reference still lists
@@ -287,13 +303,13 @@ Hosts
   outbound drag on every host.
 
 Themes
-: The owner's review of the familiar themes, then fine-tuning of the
-  GUI.Forms theme and the scroll bars.
+: Fine-tuning of the GUI.Forms theme and the scroll bars; the owner has
+  approved the four familiar themes.
 
 Compositor cooperation
-: The stage gate's remaining rows: the Windows fallback and settings rows,
-  the macOS light, dark and reduced-transparency rows, and X11 with and
-  without a compositing manager.
+: The stage gate's remaining rows: the Windows fallback and settings rows
+  and X11 with and without a compositing manager. The macOS light, dark and
+  reduced-transparency rows come after 0.5.
 
 Layout
 : The text corpus for the layout gate (parked).
