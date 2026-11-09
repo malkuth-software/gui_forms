@@ -106,9 +106,9 @@ private:
 enum class ThemeBase : std::uint8_t { windows_professional, gui_forms };
 
 // The base of the process default theme (default_compiled_theme()), the
-// one place that chooses it: windows_professional until default_theme()
-// switches to gui-forms (stage T4 phase 6, an owner decision).
-inline constexpr ThemeBase default_theme_base = ThemeBase::windows_professional;
+// one place that chooses it: gui-forms, as default_theme() (stage T4
+// phase 6, owner decision 2026-11-08).
+inline constexpr ThemeBase default_theme_base = ThemeBase::gui_forms;
 
 // What a compilation reads besides the package.
 struct ThemeCompileOptions final {
@@ -128,11 +128,12 @@ struct ThemeCompileOptions final {
     // and compile_user_theme pass the resources' (system_colour_hints)
     // where these are empty.
     SystemColourHints system_colours{};
-    // The theme the sheets compile onto; windows_professional unless the
-    // caller chooses gui_forms. With gui_forms, `controls` names the stock
+    // The theme the sheets compile onto: the process default's base
+    // (default_theme_base, gui-forms) unless the caller chooses
+    // windows_professional. With gui_forms, `controls` names the stock
     // control types too: the light sheet's rules for a type outside it are
     // warnings that drop them, named for `gui-forms/light.css`.
-    ThemeBase base{ThemeBase::windows_professional};
+    ThemeBase base{default_theme_base};
     // The effects a sheet's `effect` may name (EP-3), borrowed for the call;
     // usually built_in_effect_registry(). A name it does not hold refuses
     // the package (E417, at the name). Null, only the name's form is

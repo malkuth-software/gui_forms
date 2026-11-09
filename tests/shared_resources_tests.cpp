@@ -266,11 +266,15 @@ void test_a_package_theme_compiles_into_the_shared_registry() {
     package.files.push_back(ThemePackageFile{"theme.theme.css", sheet});
     const ThemeLibrary library{};
     const std::size_t before = (*resources).images().image_ids().size();
-    ThemeCompileResult compiled = (*resources).compile_theme_package(package, library, ThemeCompileOptions{});
+    // Onto windows-professional: no stock anatomies are named here, which
+    // the gui-forms base's light sheet would need.
+    ThemeCompileOptions professional{};
+    professional.base = ThemeBase::windows_professional;
+    ThemeCompileResult compiled = (*resources).compile_theme_package(package, library, professional);
     require(compiled.succeeded(), "the package compiles through the resources");
     require((*resources).images().image_ids().size() == before + 1U, "its image is in the shared registry");
     package.files.back().bytes = sheet + "\nbutton { opacity: 2 }";
-    const ThemeCompileResult refused = (*resources).compile_theme_package(package, library, ThemeCompileOptions{});
+    const ThemeCompileResult refused = (*resources).compile_theme_package(package, library, professional);
     require(!refused.succeeded(), "a package whose sheet no longer matches its manifest is refused");
     require((*resources).images().image_ids().size() == before + 1U, "a refusal leaves no image");
     compiled = ThemeCompileResult::refused({});

@@ -1,5 +1,6 @@
 #include "gui_forms/theme.hpp"
 #include "gui_forms/control/control/control.hpp"
+#include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 #include "gui_forms/surface_material/presets/material_presets.hpp"
 #include "gui_forms/window/window.hpp"
 
@@ -2115,7 +2116,10 @@ ThemeDefinition windows_professional_theme_definition() {
 }
 
 std::shared_ptr<const Theme> default_theme() {
-    static const std::shared_ptr<const Theme> value = Theme::create(windows_professional_theme_definition());
+    // GUI.Forms' own theme (stage T4 phase 6, owner decision 2026-11-08);
+    // windows-professional stays as a Windows-familiar theme, made from
+    // windows_professional_theme_definition().
+    const std::shared_ptr<const Theme> value = gui_forms_theme();
     return value;
 }
 
