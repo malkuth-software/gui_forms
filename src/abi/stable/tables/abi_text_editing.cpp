@@ -1,10 +1,12 @@
-// GF_TABLE_TEXT_EDITING: a text box's selection, grapheme navigation, edits
-// and history, and its styled text runs. See gf_abi.h.
+// GF_TABLE_TEXT_EDITING: a text field's selection, grapheme navigation,
+// edits and history (a text box's, or the editor of a combo box in the
+// drop_down style), and a text box's styled text runs. See gf_abi.h.
 
 #include "abi_control_entry.hpp"
 #include "abi_tables.hpp"
 #include "../values/abi_values.hpp"
 
+#include "gui_forms/controls/panel/combo_box/combo_box.hpp"
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/text/text_store/text_store.hpp"
@@ -35,6 +37,30 @@ constexpr SlotIdentity decoration_count_slot{GF_TABLE_TEXT_EDITING, 10U};
 constexpr SlotIdentity decoration_at_slot{GF_TABLE_TEXT_EDITING, 11U};
 
 constexpr const char* not_text_box = "the control is not a text box";
+constexpr const char* not_text_field = "the control is not a text box or an editable combo box";
+
+// The text box a text-editing entry acts on: the control itself, or the
+// editor of a combo box in the drop_down style (a drop_down_list combo box
+// has no editor and is refused like any other control).
+[[nodiscard]] gf_status enter_text_field(gf_object object, SlotIdentity slot, std::shared_ptr<TextBox>& box) {
+    Control::Ptr control;
+    const gf_status entered = enter_live_control(object, slot, control);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    std::shared_ptr<TextBox> field = std::dynamic_pointer_cast<TextBox>(control);
+    if (!field) {
+        const std::shared_ptr<ComboBox> combo = std::dynamic_pointer_cast<ComboBox>(control);
+        if (combo) {
+            field = (*combo).editor();
+        }
+    }
+    if (!field) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, slot, not_text_field);
+    }
+    box = std::move(field);
+    return GF_STATUS_OK;
+}
 
 // The C vocabularies by value: gf_text_ink_role and gf_text_underline.
 constexpr std::array<TextInkRole, 5> ink_roles{TextInkRole::text, TextInkRole::muted, TextInkRole::link,
@@ -168,7 +194,7 @@ gf_status GF_CALL text_editing_select(gf_object object, std::uint64_t anchor, st
     try {
         const ShadowFrameScope shadow_frame(select_slot.table_id, select_slot.slot_index);
         std::shared_ptr<TextBox> box;
-        const gf_status entered = enter_typed_control(object, select_slot, not_text_box, box);
+        const gf_status entered = enter_text_field(object, select_slot, box);
         if (entered != GF_STATUS_OK) {
             return entered;
         }
@@ -193,7 +219,7 @@ gf_status GF_CALL text_editing_selection(gf_object object, std::uint64_t* anchor
             return fail(GF_STATUS_INVALID_ARGUMENT, selection_slot, "selection needs anchor and caret outputs");
         }
         std::shared_ptr<TextBox> box;
-        const gf_status entered = enter_typed_control(object, selection_slot, not_text_box, box);
+        const gf_status entered = enter_text_field(object, selection_slot, box);
         if (entered != GF_STATUS_OK) {
             return entered;
         }
@@ -215,7 +241,7 @@ gf_status GF_CALL text_editing_grapheme_boundary(gf_object object, std::uint64_t
                         "grapheme_boundary needs an output and a direction of 1 or -1");
         }
         std::shared_ptr<TextBox> box;
-        const gf_status entered = enter_typed_control(object, grapheme_boundary_slot, not_text_box, box);
+        const gf_status entered = enter_text_field(object, grapheme_boundary_slot, box);
         if (entered != GF_STATUS_OK) {
             return entered;
         }
@@ -250,7 +276,7 @@ gf_status GF_CALL text_editing_replace_range(gf_object object, std::uint64_t sta
             return fail(GF_STATUS_INVALID_ARGUMENT, replace_range_slot, "replace_range needs a changed output");
         }
         std::shared_ptr<TextBox> box;
-        const gf_status entered = enter_typed_control(object, replace_range_slot, not_text_box, box);
+        const gf_status entered = enter_text_field(object, replace_range_slot, box);
         if (entered != GF_STATUS_OK) {
             return entered;
         }
@@ -283,7 +309,7 @@ gf_status GF_CALL text_editing_undo(gf_object object, std::uint32_t* changed) no
             return fail(GF_STATUS_INVALID_ARGUMENT, undo_slot, "undo needs a changed output");
         }
         std::shared_ptr<TextBox> box;
-        const gf_status entered = enter_typed_control(object, undo_slot, not_text_box, box);
+        const gf_status entered = enter_text_field(object, undo_slot, box);
         if (entered != GF_STATUS_OK) {
             return entered;
         }
@@ -302,7 +328,7 @@ gf_status GF_CALL text_editing_redo(gf_object object, std::uint32_t* changed) no
             return fail(GF_STATUS_INVALID_ARGUMENT, redo_slot, "redo needs a changed output");
         }
         std::shared_ptr<TextBox> box;
-        const gf_status entered = enter_typed_control(object, redo_slot, not_text_box, box);
+        const gf_status entered = enter_text_field(object, redo_slot, box);
         if (entered != GF_STATUS_OK) {
             return entered;
         }
@@ -318,7 +344,7 @@ gf_status GF_CALL text_editing_clear_undo_history(gf_object object) noexcept {
     try {
         const ShadowFrameScope shadow_frame(clear_undo_history_slot.table_id, clear_undo_history_slot.slot_index);
         std::shared_ptr<TextBox> box;
-        const gf_status entered = enter_typed_control(object, clear_undo_history_slot, not_text_box, box);
+        const gf_status entered = enter_text_field(object, clear_undo_history_slot, box);
         if (entered != GF_STATUS_OK) {
             return entered;
         }
