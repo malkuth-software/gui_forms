@@ -165,8 +165,8 @@ private:
     Point overflow_shift_{};
     // property_codemod begin FlexPanel (tools/property_families/flex_panel.json; generated, do not edit)
 public:
-    // FlexPanel's property table: Control's entries, then its own.
-    static constexpr std::size_t flex_panel_property_count = Control::control_property_count + 1U;
+    // FlexPanel's property table: ScrollableControl's entries, then its own.
+    static constexpr std::size_t flex_panel_property_count = ScrollableControl::scrollable_control_property_count + 1U;
     [[nodiscard]] static const std::array<PropertyEntry, flex_panel_property_count>& flex_panel_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 

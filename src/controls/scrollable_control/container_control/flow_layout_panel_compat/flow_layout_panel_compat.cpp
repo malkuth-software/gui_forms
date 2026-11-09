@@ -670,7 +670,7 @@ const std::array<PropertyEntry, FlowLayoutPanelCompat::flow_layout_panel_compat_
     }};
     static_assert(property_names_distinct(own), "FlowLayoutPanelCompat's property table names a property twice");
     static const std::array<PropertyEntry, flow_layout_panel_compat_property_count> entries =
-        join_property_tables(Control::control_property_entries(), own);
+        join_property_tables(ScrollableControl::scrollable_control_property_entries(), own);
     return entries;
 }
 

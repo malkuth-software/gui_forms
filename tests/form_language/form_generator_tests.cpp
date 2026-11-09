@@ -816,6 +816,51 @@ void test_capability_assignment() {
     require(too_wide, "assigned value: a value outside the cell's narrower type is refused");
 }
 
+// The scroll properties on every layout panel that scrolls its content
+// (flex, grid, block and flow): a document sets them, the loader makes the
+// panel with them, and the generator writes them.
+void test_panel_scroll_properties() {
+    const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    const std::string_view panel_types[] = {"flex-panel", "grid-panel", "block-panel", "flow-layout-panel-compat"};
+    for (const std::string_view panel_type : panel_types) {
+        const std::string what = "scroll properties on " + std::string(panel_type) + ": ";
+        const std::string document = std::string(panel_type) +
+                                     " app.root {\n"
+                                     "  auto-scroll: true;\n"
+                                     "  auto-scroll-margin: 4 8;\n"
+                                     "  auto-scroll-min-size: 200 300;\n"
+                                     "  button app.a { text: \"A\"; }\n"
+                                     "}\n";
+        Workspace workspace{};
+        const bool read = read_document(workspace, "scroll.form", document, schema);
+        if (!read) print_diagnostics(workspace);
+        require(read, what + "the model builds");
+        if (!read) continue;
+        const FormSources no_sources{};
+        LoadedForm loaded{};
+        const FormLoadOutcome outcome = gui_forms::form_language::load_form(
+            workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, no_sources,
+            loaded, workspace.diagnostics);
+        require(outcome == FormLoadOutcome::loaded, what + "the document loads");
+        const std::shared_ptr<gui_forms::ScrollableControl> panel =
+            std::dynamic_pointer_cast<gui_forms::ScrollableControl>(loaded.root);
+        require(panel != nullptr, what + "the root is a scrollable control");
+        if (panel == nullptr) continue;
+        require((*panel).auto_scroll.read(), what + "auto-scroll set");
+        require((*panel).auto_scroll_margin.read() == gui_forms::Size{4.0, 8.0}, what + "auto-scroll-margin set");
+        require((*panel).auto_scroll_min_size.read() == gui_forms::Size{200.0, 300.0},
+                what + "auto-scroll-min-size set");
+        FormGeneratorOptions options = sample_options();
+        options.class_name = "ScrollForm";
+        options.source_name = "scroll.form";
+        std::string generated{};
+        require(generate(workspace, schema, options, generated) == FormGenerateOutcome::generated,
+                what + "the generator writes the document");
+        require(generated.find("(*made.app_root).auto_scroll = ") != std::string::npos,
+                what + "the generator assigns auto_scroll");
+    }
+}
+
 void test_member_names() {
     require(gui_forms::form_language::form_member_name("settings.auto-save") == "settings_auto_save",
             "member names: '.' and '-' spelled '_'");
@@ -843,6 +888,7 @@ int main() {
     test_binding_spelling();
     test_string_escapes();
     test_capability_assignment();
+    test_panel_scroll_properties();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

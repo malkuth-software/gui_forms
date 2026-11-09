@@ -531,4 +531,4 @@ gui_forms::GridPanel
 
    .. cpp:member:: constexpr std::size_t grid_panel_property_count
 
-      GridPanel's property table: Control's entries, then its own. Default: ``Control::control_property_count + 1U``.
+      GridPanel's property table: ScrollableControl's entries, then its own. Default: ``ScrollableControl::scrollable_control_property_count + 1U``.

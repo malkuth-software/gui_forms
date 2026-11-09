@@ -5,7 +5,7 @@
   "header": "include/gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp",
   "source": "src/controls/scrollable_control/container_control/block_panel/block_panel.cpp",
   "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/block_panel/block_panel_capabilities/block_panel_capabilities.hpp",
-  "base": "Control",
+  "base": "ScrollableControl",
   "includes": [
     "gui_forms/controls/scrollable_control/container_control/container_control.hpp",
     "gui_forms/layout/block_flow_solver/block_flow_solver.hpp",

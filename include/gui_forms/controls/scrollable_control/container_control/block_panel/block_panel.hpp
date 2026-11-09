@@ -199,8 +199,8 @@ private:
     SharedMarginsEntry shared_entry_{};
     // property_codemod begin BlockPanel (tools/property_families/block_panel.json; generated, do not edit)
 public:
-    // BlockPanel's property table: Control's entries, then its own.
-    static constexpr std::size_t block_panel_property_count = Control::control_property_count + 1U;
+    // BlockPanel's property table: ScrollableControl's entries, then its own.
+    static constexpr std::size_t block_panel_property_count = ScrollableControl::scrollable_control_property_count + 1U;
     [[nodiscard]] static const std::array<PropertyEntry, block_panel_property_count>& block_panel_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 

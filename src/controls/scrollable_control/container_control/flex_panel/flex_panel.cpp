@@ -837,7 +837,7 @@ const std::array<PropertyEntry, FlexPanel::flex_panel_property_count>& FlexPanel
     }};
     static_assert(property_names_distinct(own), "FlexPanel's property table names a property twice");
     static const std::array<PropertyEntry, flex_panel_property_count> entries =
-        join_property_tables(Control::control_property_entries(), own);
+        join_property_tables(ScrollableControl::scrollable_control_property_entries(), own);
     return entries;
 }
 
