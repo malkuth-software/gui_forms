@@ -25,6 +25,7 @@ form gallery.window {
   client-size: 1280 820;
 
   panel gallery.shell {
+    classes: "shell-canvas";
     bounds: 0 0 1280 820;
 
     panel gallery.command-strip {
@@ -52,11 +53,12 @@ form gallery.window {
       bounds: 0 34 238 786;
       dock: left;
       auto-scroll: true;
-      panel gallery.sidebar.paper { bounds: 0 0 206 786; }
+      panel gallery.sidebar.paper { classes: "navigation-paper"; bounds: 0 0 206 786; }
     }
 
     /* Before the page area, so it claims its edge first. */
     panel gallery.status {
+      classes: "status-strip";
       bounds: 238 776 1042 44;
       dock: bottom;
       panel gallery.status.rule { classes: "rule-line"; bounds: 0 0 1042 1; dock: top; }
@@ -92,6 +94,7 @@ form gallery.window {
 
     /* Each page's viewport goes here, anchored to all four edges. */
     panel gallery.content {
+      classes: "shell-canvas";
       bounds: 238 34 1042 742;
       dock: fill;
     }

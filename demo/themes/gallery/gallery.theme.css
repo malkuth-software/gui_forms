@@ -5,8 +5,8 @@
    it for its window; gui_forms_add_theme embeds it and checks it against
    the Gallery's form documents.
 
-   Light only for now: the shell's own colours (page style, canvas) are
-   still code, and a dark variant waits until they are themed too. */
+   Light only for now: the shell's page style is still code, and a dark
+   variant waits until it is themed too. */
 
 /* Text roles: colour roles, never literals, so that forced high contrast
    replaces each by meaning (a literal text colour warns, W201). The role
@@ -68,3 +68,11 @@
 .picture-ground::part(face) { background: #e6ecf1; }
 .border-tint::part(face) { background: #e6eef5; }
 .rule-line::part(face) { background: #a6b3bf; }
+
+/* The shell's grounds: the canvas behind the pages, the navigation
+   column's paper and the status strip. Classes rather than code colours,
+   so that a familiar theme, which has no rule for them, shows its own
+   window face behind every page. */
+.shell-canvas::part(face) { background: #eff3f7; }
+.navigation-paper::part(face) { background: #dce5ed; }
+.status-strip::part(face) { background: #e1e8ee; }
