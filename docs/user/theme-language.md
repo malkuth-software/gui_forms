@@ -128,8 +128,11 @@ more than 256 levels up are not matched.
 
 `:has()`, `:nth-*()`, attribute selectors, the sibling combinators `+`
 and `~`, a combinator inside a group, and `&` are errors, as are a
-`:not()` inside a `:not()` and a part, role or surface in one. An unknown control type, part, state or pseudo-class is a
-warning that drops the rule. Specificity is CSS's: stable IDs, then
+`:not()` inside a `:not()` and a part, role or surface in one. An unknown control type, state or pseudo-class is a
+warning (W106) that drops the rule. A part the selector's control type lacks
+is a warning too, but, as CSS's `::part()` matches nothing for a part the
+element lacks, it leaves out only its own selector: in
+`user-control::part(lid), panel::part(face)` the panel rule still applies. Specificity is CSS's: stable IDs, then
 classes and states (pseudo-classes) together, then control types and parts
 (the part's name and role, as pseudo-elements). `:family()` counts as a
 pseudo-class, `:is()` and `:not()` as their most specific argument and
@@ -292,7 +295,21 @@ colour by default) and `band-effect` `none` or `flash` (a lit band flashes,
 at most twice a second). Each property comes from the last matching rule
 that sets it. A CSS-wide keyword is an error. In any other rule, including
 `popup` rules, a band property is warning W111 (`band_not_on_window`) and is
-dropped. Under forced high contrast the band draws the high-contrast
+dropped.
+
+A themed TextBox paints its field as one part, `text-box::part(well)`: a
+background there is the field's ground, and the control's own colour
+(`text-box { color: ... }`) is its text's. Its `face` and `edge` are painted
+only while the application overrides the field's look (its background or
+style), and its text runs share no part identity, so a surface property on
+the face or edge, and a colour or surface property on `::part(content)`, is
+warning W112
+(`part_not_themed`), saying what to style instead; the declaration is
+kept. The containers `scrollable-control`,
+`container-control`, `user-control` and `split-container` have a ground,
+`::part(face)`, over their whole box, painted only when a rule names that
+part (`user-control::part(face) { background: #202020 }`); a rule on the
+panel family or the face role alone paints none. Under forced high contrast the band draws the high-contrast
 palette's focus colour, solid and unflashing; reduced motion and turned-off
 ambient motion still a flash at its lit colour. For example,
 `window { band-width: 2px; band-lit-color: #c0392b; band-effect: flash }`.

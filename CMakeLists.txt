@@ -1386,7 +1386,9 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         src/host/linux/compositor/x11_compositor.cpp)
     set_target_properties(gui_forms_host_linux PROPERTIES POSITION_INDEPENDENT_CODE ON)
     target_link_libraries(gui_forms_host_linux PUBLIC gui_forms_core gui_forms_controls gui_forms_skia
-        PRIVATE X11::X11 X11::Xfixes X11::Xrender PkgConfig::GUI_FORMS_ATK)
+        PRIVATE X11::X11 X11::Xfixes X11::Xrender PkgConfig::GUI_FORMS_ATK
+        # dladdr, for the fonts beside the GUI.Forms library (glibc before 2.34 keeps it in libdl).
+        ${CMAKE_DL_LIBS})
     if(GUI_FORMS_XCURSOR_AVAILABLE)
         target_link_libraries(gui_forms_host_linux PUBLIC X11::Xcursor)
         target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAS_XCURSOR=1)

@@ -480,6 +480,29 @@ void test_dropped() {
     const Lowering in_list = lower("button, slider:hover, .a");
     require(in_list.outcome == SelectorOutcome::dropped && in_list.selectors.empty(),
             "an unknown name drops the whole rule, not one selector");
+    // As CSS's `::part()` matches nothing for a part the element lacks, an
+    // unknown part leaves out its own selector, with one warning each, and
+    // the rest of the list applies.
+    const Lowering part_in_list = lower("button::part(thumb), track-bar::part(thumb), check-box::part(face)");
+    const bool kept_rest = part_in_list.outcome == SelectorOutcome::lowered &&
+                           part_in_list.selectors.size() == 1U &&
+                           part_in_list.selectors[0].selector.control_type == "track_bar" &&
+                           part_in_list.selectors[0].selector.part == "thumb" &&
+                           part_in_list.diagnostics.size() == 2U &&
+                           part_in_list.diagnostics[0].code == DiagnosticCode::unknown_selector_name &&
+                           part_in_list.diagnostics[0].detail == "thumb" &&
+                           part_in_list.diagnostics[1].detail == "face" &&
+                           part_in_list.budget_left < maximum_rules;
+    require(kept_rest, "a part the type lacks leaves out only its own selector");
+    const Lowering part_in_group = lower(":is(button, track-bar)::part(thumb)");
+    require(part_in_group.outcome == SelectorOutcome::lowered && part_in_group.selectors.size() == 1U &&
+                part_in_group.selectors[0].selector.control_type == "track_bar" &&
+                part_in_group.diagnostics.size() == 1U,
+            "an expanded alternative whose type lacks the part is left out, warned once");
+    const Lowering only_unknown_parts = lower("button::part(thumb), check-box::part(face)");
+    require(only_unknown_parts.outcome == SelectorOutcome::dropped && only_unknown_parts.selectors.empty() &&
+                only_unknown_parts.diagnostics.size() == 2U && only_unknown_parts.budget_left == maximum_rules,
+            "a list left with no selector is dropped");
     const Lowering then_error = lower("slider + a");
     require(then_error.outcome == SelectorOutcome::refused && then_error.diagnostics.size() == 2U &&
                 then_error.diagnostics[1].code == DiagnosticCode::combinator_not_admitted,

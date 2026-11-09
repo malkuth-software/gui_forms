@@ -808,6 +808,10 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         well.role = PartRole::well;
         well.bounds = bounds;
         well.states = text_states();
+        // Keyed by its part's name, so that `text-box::part(well)` styles
+        // the field as `:family(editor)` does (a rule naming a part matches
+        // only a keyed part).
+        well.key = PartKey{"well", {}, {}};
         well.frame = border_style.read() == BorderStyle::none ? PartFrame::none : PartFrame::drawn;
         paint_part(painter, *this, well);
     } else {

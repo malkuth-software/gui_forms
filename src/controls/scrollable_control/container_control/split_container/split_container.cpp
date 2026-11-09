@@ -769,8 +769,8 @@ constexpr std::array<StateField<SplitContainer::States>, 10> split_container_sta
 constexpr std::array<AnatomyState, 10> split_container_states =
     state_declarations(split_container_state_fields);
 
-constexpr std::array<PartDeclaration, scrollable_detail::part_count + 2>
-    split_container_parts = joined_declarations(scrollable_detail::parts,
+constexpr std::array<PartDeclaration, scrollable_detail::part_count + 3>
+    split_container_parts = joined_declarations(scrollable_detail::grounded_parts,
                                          part_declarations(split_container_extra_part_fields));
 
 constexpr ControlAnatomy split_container_anatomy{

@@ -6,6 +6,7 @@
 // (cmake/expect_fault.cmake checks how it ended).
 
 #include "../src/core/resources/fonts/bundled_font_set.hpp"
+#include "gui_forms/metrics/metrics/metrics.hpp"
 #if defined(_WIN32)
 #include "../src/host/windows/fonts/sealed_pages_windows.hpp"
 #else
@@ -13,6 +14,7 @@
 #endif
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -31,7 +33,11 @@
 
 namespace {
 
+using gui_forms::BundledFontDiagnostics;
+using gui_forms::BundledFontSource;
 using gui_forms::detail::BundledFaceRecord;
+using gui_forms::detail::BundledFontCandidate;
+using gui_forms::detail::BundledFontLocation;
 using gui_forms::detail::BundledFontSet;
 using gui_forms::detail::FontFaceLoad;
 using gui_forms::detail::FontSetError;
@@ -311,6 +317,88 @@ bool shared_set_is_shared() {
     return passed;
 }
 
+// A host offers its font directories in order (environment, executable, library module):
+// the first holding every required face wins, whichever source it is, so a library loaded by
+// another process finds the fonts beside itself. With none, the lookup is counted, the refusal
+// names every directory tried, and the windows' metrics report it; a later success clears the
+// refusal.
+bool font_directory_lookup() {
+    const std::filesystem::path root =
+        std::filesystem::temp_directory_path() / "gui_forms_bundled_font_lookup_tests";
+    std::error_code status;
+    std::filesystem::remove_all(root, status);
+    const std::filesystem::path partial = root / "executable" / "fonts";
+    const std::filesystem::path complete = root / "library" / "fonts";
+    std::filesystem::create_directories(partial);
+    std::filesystem::create_directories(complete);
+    std::size_t required{};
+    for (const gui_forms::detail::BundledFaceUse& use : gui_forms::detail::bundled_face_uses()) {
+        if (!use.required) continue;
+        // Only names are checked here; the set checks sizes and digests when it reads.
+        write_file(complete / use.file_name, "face");
+        if (required == 0U) write_file(partial / use.file_name, "face");
+        ++required;
+    }
+    bool passed = require(required > 1U, "fewer than two required faces to test a partial directory");
+    passed = passed && require(gui_forms::detail::directory_holds_required_faces(complete),
+                               "a directory with every required face was not accepted");
+    passed = passed && require(!gui_forms::detail::directory_holds_required_faces(partial),
+                               "a directory missing a required face was accepted");
+    passed = passed && require(!gui_forms::detail::directory_holds_required_faces({}),
+                               "the empty directory was accepted");
+
+    const BundledFontDiagnostics before = gui_forms::bundled_font_diagnostics();
+    std::array<BundledFontCandidate, 3> candidates{};
+    candidates[0].source = BundledFontSource::environment;
+    candidates[1].source = BundledFontSource::executable;
+    candidates[1].directory = partial;
+    candidates[2].source = BundledFontSource::library_module;
+    candidates[2].directory = complete;
+    const BundledFontLocation found = gui_forms::detail::locate_bundled_fonts(candidates);
+    passed = passed && require(found.source == BundledFontSource::library_module && found.directory == complete,
+                               "the fonts beside the library module were not found");
+    const BundledFontDiagnostics after_found = gui_forms::bundled_font_diagnostics();
+    passed = passed && require(after_found.lookups == before.lookups + 1U &&
+                                   after_found.lookups_without_source == before.lookups_without_source &&
+                                   after_found.last_source == BundledFontSource::library_module,
+                               "a successful lookup was not counted as found");
+    passed = passed && require(gui_forms::bundled_font_refusal().empty(), "a successful lookup left a refusal");
+
+    candidates[2].directory = root / "nowhere";
+    const BundledFontLocation missing = gui_forms::detail::locate_bundled_fonts(candidates);
+    passed = passed && require(missing.source == BundledFontSource::none && missing.directory.empty(),
+                               "a lookup without the faces named a source");
+    const BundledFontDiagnostics after_missing = gui_forms::bundled_font_diagnostics();
+    passed = passed && require(after_missing.lookups == before.lookups + 2U &&
+                                   after_missing.lookups_without_source == before.lookups_without_source + 1U &&
+                                   after_missing.last_source == BundledFontSource::none,
+                               "a lookup without the faces was not counted");
+    const std::string refusal = gui_forms::bundled_font_refusal();
+    passed = passed && require(refusal.find("executable (") != std::string::npos &&
+                                   refusal.find("library_module (") != std::string::npos &&
+                                   refusal.find("environment") == std::string::npos &&
+                                   refusal.find("GUI_FORMS_FONT_DIR") != std::string::npos,
+                               "the refusal does not name the directories tried and the remedy");
+    gui_forms::Metrics metrics;
+    passed = passed && require(metrics.snapshot().bundled_font_lookups_without_source ==
+                                   after_missing.lookups_without_source,
+                               "the metrics do not report the lookups without a source");
+    passed = passed && require(metrics.snapshot().to_json().find("\"bundled_font_lookups_without_source\":") !=
+                                   std::string::npos,
+                               "the metrics JSON leaves out the lookups without a source");
+
+    candidates[2].directory = complete;
+    const BundledFontLocation again = gui_forms::detail::locate_bundled_fonts(candidates);
+    passed = passed && require(again.source == BundledFontSource::library_module &&
+                                   gui_forms::bundled_font_refusal().empty(),
+                               "a later successful lookup kept the old refusal");
+    passed = passed && require(gui_forms::bundled_font_source_name(BundledFontSource::library_module) ==
+                                   "library_module",
+                               "the library module source is misnamed");
+    std::filesystem::remove_all(root, status);
+    return passed;
+}
+
 // Writes into a sealed face; reaching the end is the failure.
 int write_into_sealed_face() {
     BundledFontSet set(GUI_FORMS_TEST_FONT_DIRECTORY, platform_pages());
@@ -341,7 +429,8 @@ int main(int argument_count, char** arguments) {
     passed = construction_is_validated() && passed;
     passed = face_uses_match_the_manifest() && passed;
     passed = shared_set_is_shared() && passed;
+    passed = font_directory_lookup() && passed;
     if (!passed) return 1;
-    std::printf("bundled_font_set: manifest, loading, sharing, refusals and page release passed\n");
+    std::printf("bundled_font_set: manifest, loading, sharing, refusals, page release and font lookup passed\n");
     return 0;
 }

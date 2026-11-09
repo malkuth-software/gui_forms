@@ -38,6 +38,8 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`BundledFontDiagnostics <gui_forms::BundledFontDiagnostics>`
+     - What the hosts' font lookups found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::bundled_font_lookups_without_source).
    * - :cpp:class:`EasingPreview::Parts <gui_forms::EasingPreview::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`EasingPreview::States <gui_forms::EasingPreview::States>`
@@ -110,6 +112,22 @@ Related types
      - The stable ID of the control the view inspects; empty for none.
    * - :cpp:class:`VisualPaintOperationSnapshot <gui_forms::VisualPaintOperationSnapshot>`
      - One immutable, backend-neutral record from the last committed display chunk.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BundledFontDiagnostics final
+
+   ``#include <gui_forms/metrics/font_sources/bundled_font_sources.hpp>``
+
+   What the hosts' font lookups found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::bundled_font_lookups_without_source). A host looks once per application run and once per window it opens. The first lookup that finds no source also writes one line to stderr, the refusal bundled_font_refusal returns; later ones are only counted. Any thread.
+
+   .. cpp:member:: std::uint64_t lookups
+
+   .. cpp:member:: std::uint64_t lookups_without_source
+
+   .. cpp:member:: BundledFontSource last_source
+
+      The most recent lookup's answer; none before the first lookup. Default: ``{BundledFontSource::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -761,6 +779,10 @@ Related types
 
       Paint groups begun deeper than maximum_paint_group_depth, drawn without isolation (Painter::begin_group).
 
+   .. cpp:member:: std::uint64_t bundled_font_lookups_without_source
+
+      Host font lookups in this process that found no bundled font directory (bundled_font_diagnostics, read when the snapshot is taken): nonzero means some window drew no bundled text; bundled_font_refusal says why.
+
    .. cpp:member:: std::string renderer_name
 
       Default: ``{"unbound"}``.
@@ -1400,6 +1422,24 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: BundledFontSource
+
+   ``#include <gui_forms/metrics/font_sources/bundled_font_sources.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: environment
+
+   .. cpp:enumerator:: executable
+
+   .. cpp:enumerator:: library_module
+
+   .. cpp:enumerator:: install_share
+
+   .. cpp:enumerator:: application_bundle
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: VisualPaintOperation
 
    ``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>``
@@ -1456,6 +1496,20 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/metrics/font_sources/bundled_font_sources.hpp>``
+
+.. cpp:function:: std::string_view bundled_font_source_name(BundledFontSource source) noexcept
+
+   The source's name in diagnostics: "none", "environment", "executable", "library_module", "install_share" or "application_bundle".
+
+.. cpp:function:: BundledFontDiagnostics bundled_font_diagnostics() noexcept
+
+.. cpp:function:: std::string bundled_font_refusal()
+
+   The most recent lookup's refusal: which directories it tried and why text is missing, as one line of UTF-8. Empty when that lookup found a source, or before the first lookup. A copy; any thread.
 
 .. cpp:namespace:: gui_forms
 

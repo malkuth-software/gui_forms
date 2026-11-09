@@ -102,7 +102,7 @@ namespace {
 
 constexpr ControlAnatomy container_control_anatomy{
     .control_id = "container_control",
-    .parts = scrollable_detail::parts,
+    .parts = scrollable_detail::grounded_parts,
     .states = scrollable_detail::states,
     .custom_states = {},
 };

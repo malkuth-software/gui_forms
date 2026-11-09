@@ -5283,7 +5283,8 @@
         {"name": "vertical_thumb", "role": "thumb", "composed_from": null, "states": ["hot", "pressed", "captured"]},
         {"name": "vertical_increment_arrow", "role": "actuator", "composed_from": "button", "states": ["hot"]},
         {"name": "scroll_corner", "role": "face", "composed_from": null, "states": []},
-        {"name": "focus", "role": "focus", "composed_from": null, "states": []}
+        {"name": "focus", "role": "focus", "composed_from": null, "states": []},
+        {"name": "face", "role": "face", "composed_from": null, "states": []}
       ],
       "states": ["normal", "pressed", "captured", "enabled", "disabled", "focused", "focus_visible"],
       "custom_states": [],
@@ -5370,7 +5371,8 @@
         {"name": "vertical_thumb", "role": "thumb", "composed_from": null, "states": ["hot", "pressed", "captured"]},
         {"name": "vertical_increment_arrow", "role": "actuator", "composed_from": "button", "states": ["hot"]},
         {"name": "scroll_corner", "role": "face", "composed_from": null, "states": []},
-        {"name": "focus", "role": "focus", "composed_from": null, "states": []}
+        {"name": "focus", "role": "focus", "composed_from": null, "states": []},
+        {"name": "face", "role": "face", "composed_from": null, "states": []}
       ],
       "states": ["normal", "pressed", "captured", "enabled", "disabled", "focused", "focus_visible"],
       "custom_states": [],
@@ -6783,6 +6785,7 @@
         {"name": "vertical_increment_arrow", "role": "actuator", "composed_from": "button", "states": ["hot"]},
         {"name": "scroll_corner", "role": "face", "composed_from": null, "states": []},
         {"name": "focus", "role": "focus", "composed_from": null, "states": []},
+        {"name": "face", "role": "face", "composed_from": null, "states": []},
         {"name": "seam", "role": "seam", "composed_from": null, "states": ["hot", "pressed", "captured"]},
         {"name": "grip", "role": "grip", "composed_from": null, "states": ["open", "closed"]}
       ],
@@ -7208,7 +7211,8 @@
         {"name": "vertical_thumb", "role": "thumb", "composed_from": null, "states": ["hot", "pressed", "captured"]},
         {"name": "vertical_increment_arrow", "role": "actuator", "composed_from": "button", "states": ["hot"]},
         {"name": "scroll_corner", "role": "face", "composed_from": null, "states": []},
-        {"name": "focus", "role": "focus", "composed_from": null, "states": []}
+        {"name": "focus", "role": "focus", "composed_from": null, "states": []},
+        {"name": "face", "role": "face", "composed_from": null, "states": []}
       ],
       "states": ["normal", "pressed", "captured", "enabled", "disabled", "focused", "focus_visible"],
       "custom_states": [],
