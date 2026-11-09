@@ -908,24 +908,31 @@ public:
         area.right = std::clamp<int>(damage.right, area.left, width_);
         area.bottom = std::clamp<int>(damage.bottom, area.top, height_);
         if (area.right == area.left || area.bottom == area.top) return true;
+        const int columns = area.right - area.left;
+        const int rows = area.bottom - area.top;
+        // The source is described as a top-down DIB of exactly the damaged
+        // rows, starting at the first of them, and copied whole in height.
+        // GDI does not read a partial-height source rectangle of a top-down
+        // DIB consistently: it measures y from the bottom row, except that a
+        // rectangle with y 0 (one touching the bottom edge) is read from the
+        // top rows, so such a band was drawn with the window's top rows,
+        // shifted down by its own top (PlaySuite's live scene alternated
+        // between true and shifted frames). A full-height source has one
+        // reading.
+        const std::byte* const first_row =
+            static_cast<const std::byte*>(source) + static_cast<std::size_t>(area.top) * row_bytes;
         BITMAPINFO info{};
         info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
         info.bmiHeader.biWidth = static_cast<LONG>(row_bytes / 4U);
-        info.bmiHeader.biHeight = -height_;
+        info.bmiHeader.biHeight = -rows;
         info.bmiHeader.biPlanes = 1;
         info.bmiHeader.biBitCount = 32;
         info.bmiHeader.biCompression = BI_RGB;
-        const int columns = area.right - area.left;
-        const int rows = area.bottom - area.top;
-        // GDI measures the source rectangle's y from the bottom row even for
-        // a top-down DIB, so the rows above it are counted from there.
-        const int source_y = height_ - area.bottom;
         const int copied = StretchDIBits(target, area.left, area.top, columns, rows,
-                                         area.left, source_y, columns, rows,
-                                         source, &info, DIB_RGB_COLORS, SRCCOPY);
+                                         area.left, 0, columns, rows,
+                                         first_row, &info, DIB_RGB_COLORS, SRCCOPY);
         // StretchDIBits reports the scan lines it copied, or 0 or GDI_ERROR
-        // on failure; for a partial source rectangle the count is not the
-        // rectangle's height, so only failure is tested.
+        // on failure; only failure is tested.
         const bool presented = copied != 0 && copied != static_cast<int>(GDI_ERROR);
         return presented;
     }
