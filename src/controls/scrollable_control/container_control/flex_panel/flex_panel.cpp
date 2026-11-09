@@ -542,10 +542,32 @@ void FlexPanel::publish_slots(const FlexLayoutWorkspace& workspace, Size content
         if (index >= results.size() || !is_current_layout_child(child)) continue;
         const Rect bounds = results[index].bounds;
         const Point shift = relative_position_offset(record_for(*child).positioning, content_box, direction);
-        const Rect slot{inset.left + bounds.x - offset.x + shift.x, inset.top + bounds.y - offset.y + shift.y,
-                        bounds.width, bounds.height};
+        const Rect slot{inset.left + bounds.x + overflow_shift_.x - offset.x + shift.x,
+                        inset.top + bounds.y + overflow_shift_.y - offset.y + shift.y, bounds.width, bounds.height};
         set_child_layout(child, slot);
     }
+}
+
+Rect FlexPanel::content_margin_bounds(const FlexLayoutWorkspace& workspace) const noexcept {
+    const std::span<const FlexItemResult> results = workspace.items();
+    const std::size_t count = std::min(results.size(), inputs_.size());
+    if (count == 0U) return Rect{};
+    // Every item counts, an empty one too: its position still extends the
+    // content.
+    double left = std::numeric_limits<double>::infinity();
+    double top = std::numeric_limits<double>::infinity();
+    double right = -std::numeric_limits<double>::infinity();
+    double bottom = -std::numeric_limits<double>::infinity();
+    for (std::size_t index = 0U; index < count; ++index) {
+        const Rect bounds = results[index].bounds;
+        const BoxSides<FlexMargin>& margin = inputs_[index].margin;
+        left = std::min(left, bounds.x - margin.left.length);
+        top = std::min(top, bounds.y - margin.top.length);
+        right = std::max(right, bounds.x + bounds.width + margin.right.length);
+        bottom = std::max(bottom, bounds.y + bounds.height + margin.bottom.length);
+    }
+    const Rect result{left, top, right - left, bottom - top};
+    return result;
 }
 
 Size FlexPanel::solve(const SolveRequest& request, FlexLayoutWorkspace& workspace) {
@@ -689,6 +711,11 @@ void FlexPanel::arrange(Rect final_bounds) {
     // With auto_scroll, the bars a content overflow needs narrow the
     // viewport; lay out against it until the two settle (at most three
     // passes, as FlowLayoutPanelCompat).
+    // The scroll extent is every item's margin box, on both axes, whatever
+    // the direction and wrap: lines wrapped below the viewport, a nowrap
+    // line running past it, and content a reversed axis pushes past the
+    // content box's start (moved inside by overflow_shift_).
+    overflow_shift_ = Point{};
     if (auto_scroll.read()) {
         for (int pass = 0; pass < 3; ++pass) {
             SolveRequest request{};
@@ -696,9 +723,15 @@ void FlexPanel::arrange(Rect final_bounds) {
             request.height = FlexAvailableExtent{std::max(0.0, available.height - inset.top - inset.bottom), true};
             const Size used = solve(request, arranged_);
             if (!is_alive()) return;
+            const Rect items = content_margin_bounds(arranged_);
+            const double low_x = std::min(0.0, items.x);
+            const double low_y = std::min(0.0, items.y);
+            const double high_x = std::max(used.width, items.x + items.width);
+            const double high_y = std::max(used.height, items.y + items.height);
+            overflow_shift_ = Point{-low_x, -low_y};
             const Size extra = auto_scroll_margin.read();
-            const Size content{std::max(arranged_.content_main(), used.width) + inset.left + inset.right + extra.width,
-                               used.height + inset.top + inset.bottom + extra.height};
+            const Size content{high_x - low_x + inset.left + inset.right + extra.width,
+                               high_y - low_y + inset.top + inset.bottom + extra.height};
             arrange_scroll_viewport(client, content);
             const Rect viewport = scroll_snapshot().viewport_rectangle;
             const Size next{viewport.width, viewport.height};
