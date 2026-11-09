@@ -360,8 +360,18 @@ void SurfaceRoot::FocusChangePublication::operator()() const {
     if (!(*control).is_alive()) return;
     if (!focused || (*root).eligible(control)) {
         (*control).invalidate(invalidation::focus);
+        if (focused) (*root).reveal_focused(control);
     } else {
         (*root).focused_.reset();
+    }
+}
+
+void SurfaceRoot::reveal_focused(const Control::Ptr& control) {
+    Control::Ptr revealed = control;
+    for (Control::Ptr ancestor = (*control).parent(); ancestor; ancestor = (*ancestor).parent()) {
+        if (!(*ancestor).is_alive() || (*ancestor).surface_root_ != this) return;
+        const bool scrolls = (*ancestor).reveal_focused_descendant(*revealed);
+        if (scrolls) revealed = ancestor;
     }
 }
 

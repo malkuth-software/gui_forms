@@ -5,14 +5,18 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/window.hpp"
+#include "../range_control/scroll_bar/scroll_bar_painting.hpp"
 
 #include <array>
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <memory>
 #include <numeric>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_set>
 #include <utility>
 
@@ -637,9 +641,19 @@ void ScrollableControl::notify_scroll(ScrollOrientation orientation,
 
 ScrollableControl::AxisGeometry ScrollableControl::axis_geometry(
     ScrollOrientation orientation) const noexcept {
+    const ScrollProperties& axis = orientation == ScrollOrientation::horizontal
+        ? horizontal_scroll_ : vertical_scroll_;
+    const AxisGeometry geometry = axis_geometry(orientation, axis.value_);
+    return geometry;
+}
+
+ScrollableControl::AxisGeometry ScrollableControl::axis_geometry(
+    ScrollOrientation orientation, double value) const noexcept {
     AxisGeometry geometry;
     // A theme without scroll arrows (ThemeGeometryTokens::scroll_arrows)
-    // gives the track the whole bar.
+    // gives the track the whole bar. Below twice the button extent the two
+    // buttons share the bar (scroll_bar_detail draws no mark in a button
+    // smaller than the mark) and the track is gone.
     const double button_extent =
         effective_theme().structure().geometry.scroll_arrows ? scrollbar_button_extent_ : 0.0;
     if (orientation == ScrollOrientation::horizontal) {
@@ -668,25 +682,27 @@ ScrollableControl::AxisGeometry ScrollableControl::axis_geometry(
                           geometry.bar.width,
                           std::max(0.0, geometry.bar.height - button * 2.0)};
     }
-    const ScrollProperties& axis = orientation == ScrollOrientation::horizontal
-        ? horizontal_scroll_ : vertical_scroll_;
-    const double track_extent = orientation == ScrollOrientation::horizontal
-        ? geometry.track.width : geometry.track.height;
-    const double viewport_extent = orientation == ScrollOrientation::horizontal
-        ? viewport_rectangle_.width : viewport_rectangle_.height;
-    const double content = orientation == ScrollOrientation::horizontal
-        ? content_extent_.width : content_extent_.height;
-    const double thumb_extent = std::min(
-        track_extent, std::max(minimum_thumb_extent_,
-            content <= 0.0 ? track_extent : track_extent * viewport_extent / content));
-    const double travel = std::max(0.0, track_extent - thumb_extent);
+    const bool horizontal = orientation == ScrollOrientation::horizontal;
+    const double track_start = horizontal ? geometry.track.x : geometry.track.y;
+    const double track_extent = horizontal ? geometry.track.width : geometry.track.height;
+    const double viewport_extent = horizontal ? viewport_rectangle_.width : viewport_rectangle_.height;
+    const double content = horizontal ? content_extent_.width : content_extent_.height;
+    const double proportion = content <= 0.0 ? 1.0 : viewport_extent / content;
     const double maximum = maximum_offset(orientation);
-    const double offset = maximum <= 0.0 ? 0.0 : travel * axis.value_ / maximum;
-    geometry.thumb = orientation == ScrollOrientation::horizontal
-        ? Rect{geometry.track.x + offset, geometry.track.y,
-               thumb_extent, geometry.track.height}
-        : Rect{geometry.track.x, geometry.track.y + offset,
-               geometry.track.width, thumb_extent};
+    const double fraction = maximum <= 0.0 ? 0.0 : value / maximum;
+    const scroll_bar_detail::ThumbPlacement placed = scroll_bar_detail::place_thumb(
+        track_extent, proportion, fraction, minimum_thumb_extent_);
+    // The thumb's ends on whole device pixels, within the track.
+    const double scale = surface_root() != nullptr ? (*surface_root()).scale() : 1.0;
+    const double device = scale > 0.0 ? scale : 1.0;
+    const double track_end = track_start + track_extent;
+    const double start = std::clamp(std::round((track_start + placed.offset) * device) / device,
+                                    track_start, track_end);
+    const double end = std::clamp(std::round((track_start + placed.offset + placed.extent) * device) / device,
+                                  start, track_end);
+    geometry.thumb = horizontal
+        ? Rect{start, geometry.track.y, end - start, geometry.track.height}
+        : Rect{geometry.track.x, start, geometry.track.width, end - start};
     return geometry;
 }
 
@@ -714,6 +730,10 @@ ScrollableControl::ScrollPart ScrollableControl::part_at(
 }
 
 bool ScrollableControl::handle_scroll_pointer(PointerEvent& event) {
+    if (event.action == PointerAction::leave) {
+        set_hot_part(ScrollPart::none);
+        return false;
+    }
     const Point local = point_from_window(event.position);
     if (dragging_orientation_) {
         if (event.pointer_id != 0U && dragging_pointer_id_ != 0U &&
@@ -748,11 +768,36 @@ bool ScrollableControl::handle_scroll_pointer(PointerEvent& event) {
             set_pointer_capture(false);
             notify_scroll(orientation, ScrollEventType::thumb_position,
                           value, value);
+            // The thumb shows pressed no longer; the hover is where the
+            // pointer was released.
+            invalidate_scroll_bar_strips(viewport_rectangle_);
+            set_hot_part(part_at(local));
             event.handled = true;
             return true;
         }
         event.handled = true;
         return true;
+    }
+    if (pressed_part_ != ScrollPart::none) {
+        if (event.pointer_id != 0U && pressed_pointer_id_ != 0U &&
+            event.pointer_id != pressed_pointer_id_) return false;
+        if (event.action == PointerAction::move) {
+            repeat_pointer_ = local;
+            set_hot_part(part_at(local));
+        } else if (event.action == PointerAction::up) {
+            stop_press();
+            set_pointer_capture(false);
+            invalidate_scroll_bar_strips(viewport_rectangle_);
+            set_hot_part(part_at(local));
+        } else {
+            // Other buttons and wheels while the press holds are taken.
+        }
+        event.handled = true;
+        return true;
+    }
+    if (event.action == PointerAction::move) {
+        set_hot_part(part_at(local));
+        return false;
     }
     if (event.action != PointerAction::down ||
         event.button != PointerButton::primary) return false;
@@ -778,29 +823,122 @@ bool ScrollableControl::handle_scroll_pointer(PointerEvent& event) {
         dragging_start_value_ = axis.value_;
         set_pointer_capture(true);
     } else {
-        // A press while the axis glides steps on from its target, so that
-        // quick presses add up.
-        double next = glide_base(orientation);
-        ScrollEventType type = ScrollEventType::small_increment;
-        if (part == ScrollPart::horizontal_first ||
-            part == ScrollPart::vertical_first) {
-            next -= axis.small_change();
-            type = ScrollEventType::small_decrement;
-        } else if (part == ScrollPart::horizontal_last ||
-                   part == ScrollPart::vertical_last) {
-            next += axis.small_change();
-            type = ScrollEventType::small_increment;
-        } else if (part == ScrollPart::horizontal_track_before ||
-                   part == ScrollPart::vertical_track_before) {
-            next -= axis.large_change();
-            type = ScrollEventType::large_decrement;
-        } else {
-            next += axis.large_change();
-            type = ScrollEventType::large_increment;
-        }
-        static_cast<void>(glide_axis(orientation, next, type, true));
+        pressed_part_ = part;
+        pressed_pointer_id_ = event.pointer_id == 0U ? 1U : event.pointer_id;
+        repeat_pointer_ = local;
+        set_pointer_capture(true);
+        static_cast<void>(step_part(part));
+        begin_repeat();
     }
+    invalidate_scroll_bar_strips(viewport_rectangle_);
     event.handled = true;
+    return true;
+}
+
+bool ScrollableControl::step_part(ScrollPart part) {
+    const bool horizontal = part >= ScrollPart::horizontal_first &&
+        part <= ScrollPart::horizontal_last;
+    const ScrollOrientation orientation = horizontal
+        ? ScrollOrientation::horizontal : ScrollOrientation::vertical;
+    const ScrollProperties& axis = horizontal ? horizontal_scroll_ : vertical_scroll_;
+    if (!axis.enabled_ || part == ScrollPart::none ||
+        part == ScrollPart::horizontal_thumb || part == ScrollPart::vertical_thumb) {
+        return false;
+    }
+    // A step while the axis glides goes on from its target, so that quick
+    // presses and repeats add up.
+    double next = glide_base(orientation);
+    ScrollEventType type = ScrollEventType::small_increment;
+    if (part == ScrollPart::horizontal_first || part == ScrollPart::vertical_first) {
+        next -= axis.small_change();
+        type = ScrollEventType::small_decrement;
+    } else if (part == ScrollPart::horizontal_last || part == ScrollPart::vertical_last) {
+        next += axis.small_change();
+        type = ScrollEventType::small_increment;
+    } else if (part == ScrollPart::horizontal_track_before ||
+               part == ScrollPart::vertical_track_before) {
+        next -= axis.large_change();
+        type = ScrollEventType::large_decrement;
+    } else {
+        next += axis.large_change();
+        type = ScrollEventType::large_increment;
+    }
+    const bool moved = glide_axis(orientation, next, type, true);
+    return moved;
+}
+
+void ScrollableControl::begin_repeat() {
+    repeat_frames_.disconnect();
+    if (window() == nullptr || pressed_part_ == ScrollPart::none) return;
+    const FrameTime now = FrameClock::now();
+    const std::shared_ptr<ScrollableControl> self =
+        std::static_pointer_cast<ScrollableControl>(shared_from_this());
+    repeat_frames_ = (*window()).schedule_ui_timer(
+        *this, scroll_repeat_interval_default, now + scroll_repeat_delay_default, RepeatTick{self});
+}
+
+void ScrollableControl::RepeatTick::operator()(FrameTime now) const {
+    static_cast<void>(now);
+    const std::shared_ptr<ScrollableControl> live = control.lock();
+    if (live) (*live).repeat_step();
+}
+
+void ScrollableControl::repeat_step() {
+    if (pressed_part_ == ScrollPart::none || !has_pointer_capture()) {
+        stop_press();
+        invalidate_scroll_bar_strips(viewport_rectangle_);
+        return;
+    }
+    const bool track = pressed_part_ == ScrollPart::horizontal_track_before ||
+        pressed_part_ == ScrollPart::horizontal_track_after ||
+        pressed_part_ == ScrollPart::vertical_track_before ||
+        pressed_part_ == ScrollPart::vertical_track_after;
+    if (track && !track_press_continues()) {
+        repeat_frames_.disconnect();
+        return;
+    }
+    if (!step_part(pressed_part_)) repeat_frames_.disconnect();
+}
+
+bool ScrollableControl::track_press_continues() const noexcept {
+    const bool horizontal = pressed_part_ == ScrollPart::horizontal_track_before ||
+        pressed_part_ == ScrollPart::horizontal_track_after;
+    const ScrollOrientation orientation = horizontal
+        ? ScrollOrientation::horizontal : ScrollOrientation::vertical;
+    const AxisGeometry geometry = axis_geometry(orientation, glide_base(orientation));
+    const double pointer = horizontal ? repeat_pointer_.x : repeat_pointer_.y;
+    const double thumb_start = horizontal ? geometry.thumb.x : geometry.thumb.y;
+    const double thumb_end = horizontal ? geometry.thumb.right() : geometry.thumb.bottom();
+    const bool before = pressed_part_ == ScrollPart::horizontal_track_before ||
+        pressed_part_ == ScrollPart::vertical_track_before;
+    const bool continues = before ? pointer < thumb_start : pointer >= thumb_end;
+    return continues;
+}
+
+void ScrollableControl::stop_press() noexcept {
+    repeat_frames_.disconnect();
+    pressed_part_ = ScrollPart::none;
+    pressed_pointer_id_ = 0U;
+}
+
+void ScrollableControl::set_hot_part(ScrollPart part) {
+    if (hot_part_ == part) return;
+    hot_part_ = part;
+    if (hscroll() || vscroll()) invalidate_scroll_bar_strips(viewport_rectangle_);
+}
+
+void ScrollableControl::on_detached_from_window() noexcept {
+    stop_press();
+    hot_part_ = ScrollPart::none;
+    Control::on_detached_from_window();
+}
+
+bool ScrollableControl::reveal_focused_descendant(const Control& descendant) {
+    if (!auto_scroll.read()) return false;
+    if ((hscroll() || vscroll()) && !viewport_rectangle_.empty()) {
+        glide_to(scroll_to_control(descendant));
+        scroll_state_ &= ~scroll_state_user_has_scrolled;
+    }
     return true;
 }
 
@@ -808,17 +946,22 @@ bool ScrollableControl::handle_wheel(PointerEvent& event) {
     if (event.action != PointerAction::wheel || event.handled) return false;
     const double vertical_delta = -normalize_wheel_delta(event.wheel_delta.y, event.wheel_unit);
     const double horizontal_delta = -normalize_wheel_delta(event.wheel_delta.x, event.wheel_unit);
-    // Every wheel delta, a detented line or a precise device's pixels,
-    // adds to the axis's glide target: a stream of small precise deltas
-    // keeps retargeting one glide, which settles shortly after the stream
-    // ends.
+    // A detented wheel's lines add to the axis's glide target. A precise
+    // device's pixels (a trackpad, whose stream the system already smooths
+    // and carries on with momentum) move the position at once, as do lines
+    // a host reports in pixels (normalize_wheel_delta), stopping any glide.
+    const bool precise = event.wheel_unit == WheelDeltaUnit::pixels ||
+        std::abs(event.wheel_delta.y) > 8.0 || std::abs(event.wheel_delta.x) > 8.0;
     bool changed{};
     if (vertical_scroll_.visible_ && vertical_scroll_.enabled_ &&
         vertical_delta != 0.0) {
         const ScrollEventType type = vertical_delta < 0.0
             ? ScrollEventType::small_decrement : ScrollEventType::small_increment;
-        changed = glide_axis(ScrollOrientation::vertical,
-                             glide_base(ScrollOrientation::vertical) + vertical_delta, type, false);
+        changed = precise
+            ? apply_axis_input(ScrollOrientation::vertical,
+                               scroll_position_.y + vertical_delta, type, false)
+            : glide_axis(ScrollOrientation::vertical,
+                         glide_base(ScrollOrientation::vertical) + vertical_delta, type, false);
     }
     if (!changed && horizontal_scroll_.visible_ &&
         horizontal_scroll_.enabled_) {
@@ -827,8 +970,11 @@ bool ScrollableControl::handle_wheel(PointerEvent& event) {
         if (delta != 0.0) {
             const ScrollEventType type = delta < 0.0
                 ? ScrollEventType::small_decrement : ScrollEventType::small_increment;
-            changed = glide_axis(ScrollOrientation::horizontal,
-                                 glide_base(ScrollOrientation::horizontal) + delta, type, false);
+            changed = precise
+                ? apply_axis_input(ScrollOrientation::horizontal,
+                                   scroll_position_.x + delta, type, false)
+                : glide_axis(ScrollOrientation::horizontal,
+                             glide_base(ScrollOrientation::horizontal) + delta, type, false);
         }
     }
     if (changed) event.handled = true;
@@ -853,6 +999,11 @@ void ScrollableControl::on_pointer(PointerEvent& event) {
 }
 
 void ScrollableControl::on_pointer_bubble(PointerEvent& event) {
+    // A move bubbling from a child is over the child, not over a bar.
+    if (event.action == PointerAction::move && !dragging_orientation_ &&
+        pressed_part_ == ScrollPart::none) {
+        set_hot_part(ScrollPart::none);
+    }
     static_cast<void>(handle_wheel(event));
 }
 
@@ -885,45 +1036,73 @@ void ScrollableControl::paint_axis(Painter& painter,
                                    ScrollOrientation orientation,
                                    const AxisGeometry& geometry) const {
     if (geometry.bar.empty()) return;
-    const ScrollProperties& axis = orientation == ScrollOrientation::horizontal
-        ? horizontal_scroll_ : vertical_scroll_;
-    AnatomyStateSet states{};
-    if (!axis.enabled_) states.insert(AnatomyState::disabled);
-    PartPaint trough;
-    trough.family = ControlVisualRole::panel;
-    trough.role = PartRole::track;
-    trough.bounds = geometry.bar;
-    trough.states = states;
-    paint_part(painter, *this, trough);
     const bool horizontal = orientation == ScrollOrientation::horizontal;
-    const std::array<Rect, 2> buttons{{geometry.first_button, geometry.last_button}};
-    for (std::size_t index = 0U; index < buttons.size(); ++index) {
-        const Rect button = buttons[index];
-        if (button.empty()) continue;
-        PartPaint actuator;
-        actuator.family = ControlVisualRole::button;
-        actuator.role = PartRole::actuator;
-        actuator.bounds = button;
-        actuator.states = states;
-        paint_part(painter, *this, actuator);
-        // An 8-unit square holds the arrow's four rows.
-        const double center_x = std::floor(button.x + button.width * 0.5);
-        const double center_y = std::floor(button.y + button.height * 0.5);
-        PartPaint arrow;
-        arrow.family = ControlVisualRole::button;
-        arrow.role = PartRole::glyph;
-        arrow.mark = horizontal ? (index == 0U ? PartMark::arrow_left : PartMark::arrow_right)
-                                : (index == 0U ? PartMark::arrow_up : PartMark::arrow_down);
-        arrow.bounds = {center_x - 4.0, center_y - 4.0, 8.0, 8.0};
-        arrow.states = states;
-        paint_part(painter, *this, arrow);
+    const ScrollProperties& axis = horizontal ? horizontal_scroll_ : vertical_scroll_;
+    // The bar part a ScrollPart of this axis is, for the shared drawing.
+    struct PartMap final {
+        ScrollPart first;
+        ScrollPart track_before;
+        ScrollPart thumb;
+        ScrollPart track_after;
+        ScrollPart last;
+    };
+    const PartMap map = horizontal
+        ? PartMap{ScrollPart::horizontal_first, ScrollPart::horizontal_track_before,
+                  ScrollPart::horizontal_thumb, ScrollPart::horizontal_track_after,
+                  ScrollPart::horizontal_last}
+        : PartMap{ScrollPart::vertical_first, ScrollPart::vertical_track_before,
+                  ScrollPart::vertical_thumb, ScrollPart::vertical_track_after,
+                  ScrollPart::vertical_last};
+    scroll_bar_detail::ScrollBarPaintParts parts;
+    parts.orientation = horizontal ? Orientation::horizontal : Orientation::vertical;
+    parts.bar = geometry.bar;
+    parts.track = geometry.track;
+    parts.decrement = geometry.first_button;
+    parts.increment = geometry.last_button;
+    parts.thumb = geometry.thumb;
+    // The bar takes only the disabled state from its control (a scrollable
+    // control's own states describe its content); the press and hover are
+    // its own parts'.
+    AnatomyStateSet bar_states{};
+    bar_states.insert(axis.enabled_ ? AnatomyState::normal : AnatomyState::disabled);
+    parts.states = bar_states;
+    const bool dragging = dragging_orientation_ == orientation;
+    if (dragging) {
+        parts.pressed = ScrollBarPart::thumb;
+    } else if (pressed_part_ == map.first) {
+        parts.pressed = ScrollBarPart::decrement_button;
+    } else if (pressed_part_ == map.last) {
+        parts.pressed = ScrollBarPart::increment_button;
+    } else if (pressed_part_ == map.track_before) {
+        parts.pressed = ScrollBarPart::decrement_track;
+    } else if (pressed_part_ == map.track_after) {
+        parts.pressed = ScrollBarPart::increment_track;
+    } else {
+        parts.pressed = ScrollBarPart::none;
     }
-    PartPaint thumb;
-    thumb.family = ControlVisualRole::button;
-    thumb.role = PartRole::thumb;
-    thumb.bounds = geometry.thumb;
-    thumb.states = states;
-    paint_part(painter, *this, thumb);
+    parts.thumb_captured = dragging;
+    // A disabled axis shows no hover. (The pointer leaving this control,
+    // onto a child or away, clears the hot part: handle_scroll_pointer.)
+    if (!axis.enabled_) {
+        parts.hot = ScrollBarPart::none;
+    } else if (hot_part_ == map.first) {
+        parts.hot = ScrollBarPart::decrement_button;
+    } else if (hot_part_ == map.last) {
+        parts.hot = ScrollBarPart::increment_button;
+    } else if (hot_part_ == map.track_before) {
+        parts.hot = ScrollBarPart::decrement_track;
+    } else if (hot_part_ == map.track_after) {
+        parts.hot = ScrollBarPart::increment_track;
+    } else if (hot_part_ == map.thumb || (dragging && hot_part_ != ScrollPart::none)) {
+        parts.hot = ScrollBarPart::thumb;
+    } else {
+        parts.hot = ScrollBarPart::none;
+    }
+    // Styled as the stock bar of the same orientation, so that a theme's
+    // `v-scroll-bar::part(thumb)` rules draw both kinds of bar alike.
+    parts.control_type = horizontal ? std::string_view{"h_scroll_bar"} : std::string_view{"v_scroll_bar"};
+    parts.item = horizontal ? std::string_view{"horizontal"} : std::string_view{"vertical"};
+    scroll_bar_detail::paint_scroll_bar_parts(painter, *this, parts);
 }
 
 void ScrollableControl::on_paint_overlay(Painter& painter, Rect) {
@@ -1052,6 +1231,27 @@ ScrollableControl::Parts ScrollableControl::scrollable_parts() const {
         record.vertical_thumb.states.insert(AnatomyState::captured);
     } else {
         // No thumb is dragged.
+    }
+    // The held arrow or track side, and the part under the pointer.
+    struct PartState final {
+        ScrollPart part;
+        PartGeometry* geometry;
+    };
+    const std::array<PartState, 10> mapped{{
+        {ScrollPart::horizontal_first, &record.horizontal_decrement_arrow},
+        {ScrollPart::horizontal_track_before, &record.horizontal_track},
+        {ScrollPart::horizontal_thumb, &record.horizontal_thumb},
+        {ScrollPart::horizontal_track_after, &record.horizontal_track},
+        {ScrollPart::horizontal_last, &record.horizontal_increment_arrow},
+        {ScrollPart::vertical_first, &record.vertical_decrement_arrow},
+        {ScrollPart::vertical_track_before, &record.vertical_track},
+        {ScrollPart::vertical_thumb, &record.vertical_thumb},
+        {ScrollPart::vertical_track_after, &record.vertical_track},
+        {ScrollPart::vertical_last, &record.vertical_increment_arrow},
+    }};
+    for (const PartState& entry : mapped) {
+        if (entry.part == pressed_part_) (*entry.geometry).states.insert(AnatomyState::pressed);
+        if (entry.part == hot_part_) (*entry.geometry).states.insert(AnatomyState::hot);
     }
     if (hscroll() && vscroll()) {
         const Rect corner{viewport_rectangle_.width, viewport_rectangle_.height,

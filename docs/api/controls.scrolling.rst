@@ -344,7 +344,7 @@ Related types
 
    .. cpp:member:: PropertyCell<FrameInterval, ScrollBarInitialRepeatDelayCapability<Declaring>> initial_repeat_delay
 
-      Default: ``{std::chrono::milliseconds(400)}``.
+      Default: ``{scroll_repeat_delay_default}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -361,7 +361,7 @@ Related types
 
    .. cpp:member:: PropertyCell<double, ScrollBarMinimumThumbExtentCapability<Declaring>> minimum_thumb_extent
 
-      Default: ``{18.0}``.
+      Default: ``{scroll_thumb_extent_default}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -378,7 +378,7 @@ Related types
 
    .. cpp:member:: PropertyCell<FrameInterval, ScrollBarRepeatIntervalCapability<Declaring>> repeat_interval
 
-      Default: ``{std::chrono::milliseconds(60)}``.
+      Default: ``{scroll_repeat_interval_default}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -553,3 +553,34 @@ Enumerations
    .. cpp:enumerator:: horizontal
 
    .. cpp:enumerator:: vertical
+
+Functions, constants and aliases
+--------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/scrollable_control/scroll_bar_metrics/scroll_bar_metrics.hpp>``
+
+.. cpp:var:: constexpr double scroll_thumb_extent_default
+
+   The thumb's least extent along the bar, in logical units: the default, and the range ScrollBar::minimum_thumb_extent accepts. A track shorter than a bar's minimum thumb extent shows no thumb (its presses still page). Value: ``18.0``.
+
+.. cpp:var:: constexpr double scroll_thumb_extent_least
+
+   Value: ``8.0``.
+
+.. cpp:var:: constexpr double scroll_thumb_extent_most
+
+   Value: ``128.0``.
+
+.. cpp:var:: constexpr FrameInterval scroll_repeat_delay_default
+
+   Press-and-hold repeat of an arrow or the track (ADR-016): the first repeat after the delay, then one per interval, until release. Value: ``std::chrono::milliseconds(400)``.
+
+.. cpp:var:: constexpr FrameInterval scroll_repeat_interval_default
+
+   Value: ``std::chrono::milliseconds(60)``.
+
+.. cpp:var:: constexpr double scroll_arrow_mark_extent
+
+   The side of the square an arrow button's mark is drawn in; a button narrower or shorter than this draws no mark. Value: ``8.0``.

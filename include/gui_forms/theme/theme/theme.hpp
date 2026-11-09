@@ -82,6 +82,12 @@ public:
     [[nodiscard]] ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role,
                                                 ControlVisualContext context, AnatomyStateSet states,
                                                 std::string_view part) const;
+    // As above with the rules of `control_type` (an anatomy control id;
+    // PartPaint::control_type) in place of the control's own type; an empty
+    // type is the form above.
+    [[nodiscard]] ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role,
+                                                ControlVisualContext context, AnatomyStateSet states,
+                                                std::string_view part, std::string_view control_type) const;
     // Where each field of `control`'s recipe in `role` and `context` came
     // from (T4 cascade spec, item 5), for an editor's query: the facts
     // resolve() reads, through CompiledThemeRules::resolve_provenance,

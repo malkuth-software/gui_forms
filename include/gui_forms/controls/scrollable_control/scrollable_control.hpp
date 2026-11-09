@@ -2,6 +2,7 @@
 
 #include "gui_forms/controls/scrollable_control/scroll_properties/scroll_properties.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp"
+#include "gui_forms/controls/scrollable_control/scroll_bar_metrics/scroll_bar_metrics.hpp"
 #include "gui_forms/engine/motion_value/motion_value.hpp"
 
 #include <cstdint>
@@ -62,10 +63,13 @@ public:
         return scroll_event_revision_;
     }
     [[nodiscard]] ScrollSnapshot scroll_snapshot() const noexcept;
-    // Smooth scrolling (0.5 scroll fine-tuning). Wheel input, the scroll
-    // bars' arrows and track, and a derived control's paging keys
-    // (glide_to) move the position toward a target on the window's motion
-    // clock rather than at once: each frame the position covers a fixed
+    // Smooth scrolling (0.5 scroll fine-tuning). A detented wheel's lines,
+    // the scroll bars' arrows and track (held: repeating), focus moving to
+    // a descendant (reveal_focused_descendant) and a derived control's
+    // paging keys (glide_to) move the position toward a target on the
+    // window's motion clock rather than at once; a precise device's pixel
+    // deltas (a trackpad, which the system already smooths) move it at
+    // once: each frame the position covers a fixed
     // fraction of the remaining gap (MotionCurve::follow, about 63 % per
     // 75 ms) and settles on the target within half a device pixel. A further
     // step while one moves adds to the target, not to the position. With
@@ -153,6 +157,11 @@ protected:
     // (a text box's PageDown reveal). Raises no Scroll event.
     void glide_to(Point target);
     void on_paint_overlay(Painter& painter, Rect local_damage) override;
+    void on_detached_from_window() noexcept override;
+    // Windows Forms' ScrollControlIntoView on activation: with auto scroll,
+    // glides `descendant` into the viewport (at once under reduced motion)
+    // and returns true, so that enclosing scrollers reveal this control.
+    bool reveal_focused_descendant(const Control& descendant) override;
     [[nodiscard]] Rect child_viewport_rectangle() const noexcept override {
         return effective_viewport_rectangle();
     }
@@ -192,6 +201,11 @@ private:
     [[nodiscard]] Size content_extent();
     [[nodiscard]] double maximum_offset(ScrollOrientation orientation) const noexcept;
     [[nodiscard]] AxisGeometry axis_geometry(ScrollOrientation orientation) const noexcept;
+    // The axis's bar with its thumb placed for `value` (the position, or a
+    // glide's target). The thumb's ends lie on whole device pixels, so its
+    // painted edges and its hit region agree; a track shorter than the
+    // least thumb extent shows none (scroll_bar_detail::place_thumb).
+    [[nodiscard]] AxisGeometry axis_geometry(ScrollOrientation orientation, double value) const noexcept;
     [[nodiscard]] ScrollPart part_at(Point local) const noexcept;
     bool handle_wheel(PointerEvent& event);
     bool handle_scroll_pointer(PointerEvent& event);
@@ -224,6 +238,29 @@ private:
                        double old_value, double new_value);
     void paint_axis(Painter& painter, ScrollOrientation orientation,
                     const AxisGeometry& geometry) const;
+    // Press-and-hold of an arrow or the track (ADR-016, as ScrollBar): one
+    // step on the press, then repeats on a UI timer, first after
+    // scroll_repeat_delay_default and then every
+    // scroll_repeat_interval_default, until release, a lost capture or
+    // detachment. A track press stops repeating once the thumb, at the
+    // glide's target, reaches the pointer.
+    struct RepeatTick final {
+        std::weak_ptr<ScrollableControl> control;
+        void operator()(FrameTime now) const;
+    };
+    // One step of a pressed part: a glide by the small change (arrows) or
+    // the large change (track), with its Scroll event. False when the axis
+    // is disabled or already at the end.
+    bool step_part(ScrollPart part);
+    void begin_repeat();
+    void repeat_step();
+    // Whether the pointer still lies beyond the thumb, placed at the axis's
+    // glide target, on the pressed track side.
+    [[nodiscard]] bool track_press_continues() const noexcept;
+    // Ends a press of an arrow or the track. Never fails.
+    void stop_press() noexcept;
+    // Moves the hover onto `part`, repainting the bars when it changes.
+    void set_hot_part(ScrollPart part);
     void append_semantic_axis(std::vector<SemanticNode>& nodes,
                               Rect absolute, ScrollOrientation orientation,
                               const ScrollProperties& axis) const;
@@ -248,7 +285,15 @@ private:
     double dragging_start_value_{};
     double scrollbar_thickness_{16.0};
     double scrollbar_button_extent_{16.0};
-    double minimum_thumb_extent_{18.0};
+    double minimum_thumb_extent_{scroll_thumb_extent_default};
+    // The bar part under the pointer (none elsewhere), which alone shows
+    // hot; the arrow or track side held down, with the pointer that holds
+    // it and where it is, and the repeat's UI timer.
+    ScrollPart hot_part_{ScrollPart::none};
+    ScrollPart pressed_part_{ScrollPart::none};
+    std::uint64_t pressed_pointer_id_{};
+    Point repeat_pointer_{};
+    FrameRequestToken repeat_frames_;
     bool arranging_scroll_{};
     // The scroll copy (SurfaceRoot::request_scroll_copy). Children are placed
     // at the scroll position rounded to whole device pixels, so that a

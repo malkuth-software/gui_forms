@@ -1935,6 +1935,13 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
 
 ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole role, ControlVisualContext context,
                                      AnatomyStateSet states, std::string_view part) const {
+    ResolvedControlRecipe result = resolve(control, role, context, states, part, std::string_view{});
+    return result;
+}
+
+ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole role, ControlVisualContext context,
+                                     AnatomyStateSet states, std::string_view part,
+                                     std::string_view control_type) const {
     const ControlVisualRecipe& floor = resolve(role, context);
     // Forced high contrast is the engine's own pass (E1): the built-in
     // recipe's high-contrast records draw the part, under the non-colour
@@ -1942,7 +1949,7 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     const bool forced = context.high_contrast;
     if (forced && control.inline_style_rules() == nullptr) return ResolvedControlRecipe(floor);
     CompiledThemeRules::PartFacts facts{};
-    facts.control_type = control.anatomy().control_id;
+    facts.control_type = control_type.empty() ? control.anatomy().control_id : control_type;
     facts.stable_id = control.stable_id().value();
     facts.classes = control.classes();
     facts.inline_rules = control.inline_style_rules();

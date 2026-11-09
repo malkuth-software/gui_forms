@@ -964,6 +964,13 @@ public:
     virtual void on_drag(DragEvent& event);
     virtual void on_drag_bubble(DragEvent& event);
     virtual void on_focus_changed(bool focused);
+    // Focus moved to `descendant`, a control inside this one: the window
+    // calls this on each ancestor of a newly focused control, innermost
+    // first, after the focused control's on_focus_changed (Windows Forms'
+    // ScrollControlIntoView on activation). Return true when this control
+    // scrolls its content to reveal `descendant`; the ancestors above then
+    // reveal this control instead. The default reveals nothing: false.
+    virtual bool reveal_focused_descendant(const Control& descendant);
     // Where an input method places its composition and candidate windows
     // while this control has focus: the caret's box, in local coordinates.
     // The base returns none, and SurfaceRoot::text_input_caret then uses a

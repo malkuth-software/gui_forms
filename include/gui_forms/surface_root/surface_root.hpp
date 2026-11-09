@@ -1527,6 +1527,11 @@ private:
         bool focused{};
         void operator()() const;
     };
+    // After `control` was told it gained focus: each ancestor, innermost
+    // first, reveals the innermost control that holds the focus within its
+    // content (Control::reveal_focused_descendant). Stops at an ancestor
+    // that died or left this root during the walk.
+    void reveal_focused(const Control::Ptr& control);
     struct FocusScopePublication final {
         SurfaceRoot* root{};
         Control::Ptr owner;

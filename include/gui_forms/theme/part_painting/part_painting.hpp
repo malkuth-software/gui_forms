@@ -200,6 +200,14 @@ struct PartPaint final {
     // identity, not vocabulary: it changes nothing a part looks like today.
     // Its views are borrowed for the call.
     std::optional<PartKey> key{};
+    // The control type whose theme rules style the part (an anatomy control
+    // id, such as "v_scroll_bar"), when a control draws a part on behalf of
+    // a stock control it embeds (a scrollable control's built-in scroll
+    // bars, so that `v-scroll-bar::part(thumb)` styles them as it styles a
+    // VScrollBar); empty, the default, for the painting control's own type.
+    // Only the type selector changes: the painting control's id, classes,
+    // ancestors and inline style still match. Borrowed for the call.
+    std::string_view control_type{};
     // How far past `bounds` the control lets the part be drawn when a theme
     // scales it (T2 GIVEN D5-1, E8), in logical units. The presentational
     // scale grows the part about its centre only as far as this allows:
