@@ -6,6 +6,7 @@
 
 #include "mouse_events_form.hpp"   // generated from forms/mouse_events.form
 
+#include <gui_forms/application.hpp>
 #include <gui_forms/component.hpp>
 #include <gui_forms/event.hpp>
 #include <gui_forms/rules.hpp>
@@ -79,8 +80,9 @@ void press_and_release(gf::Window& window, gf::Point position, std::uint32_t cli
     static_cast<void>(window.dispatch_pointer(up));
 }
 
-void run() {
-    reference::MouseWindow window{};   // binds nothing, so it takes no model
+void run(gf::Application& application) {
+    reference::MouseWindow window(application);   // binds nothing, so it takes no model
+    require(application.window_count() == 1U, "the window joins the application");
     window.perform_layout();
     const std::shared_ptr<gf::Button> ok = window.example_ok;   // request_focus takes the shared pointer
     Journal journal(*ok, *window.example_surface);
@@ -127,7 +129,12 @@ void run() {
 
 int main() {
     try {
-        run();
+        // The program's application first (APP_WINDOW_RULES_DESIGN A.2):
+        // the window joins it and shares its resources and theme. Making it
+        // needs no host; only Application::run does.
+        gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+        require(static_cast<bool>(created), "the application is made");
+        run(*created.application);
     } catch (const std::exception& failure) {
         std::cerr << "mouse_events: " << failure.what() << '\n';
         return 1;

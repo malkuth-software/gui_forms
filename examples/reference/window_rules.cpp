@@ -4,6 +4,7 @@
 // must all hold, and ordered actions, a named function or a built-in.
 #include "window_rules_form.hpp"   // generated from forms/window_rules.form
 
+#include <gui_forms/application.hpp>
 #include <gui_forms/rules.hpp>
 #include <gui_forms/value.hpp>
 
@@ -21,10 +22,15 @@ void apply_settings(Settings& settings, const gf::RuleFiring& firing) {
 }
 
 int main() {
+    // The program's application first: the window joins it.
+    gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+    if (!created) return 1;
+    gf::Application& application = *created.application;
     Settings settings{};
     gf::Value<bool> unlocked{true};
     gf::Value<bool> dirty{true};
-    reference::RulesWindow window{};   // binds nothing, so it takes no model
+    reference::RulesWindow window(application);   // binds nothing, so it takes no model
+    if (application.window_count() != 1U) return 1;
     gf::Button& apply = *window.example_apply;
 
     // Apply runs the program action and clears `dirty`, while `unlocked`
