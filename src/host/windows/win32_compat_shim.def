@@ -18,6 +18,7 @@ EXPORTS
     GetPixel=gf_compat_GetPixel
     MoveToEx=gf_compat_MoveToEx
     PolylineTo=gf_compat_PolylineTo
+    Polygon=gf_compat_Polygon
     SelectObject=gf_compat_SelectObject
     SetDCBrushColor=gf_compat_SetDCBrushColor
     SetDCPenColor=gf_compat_SetDCPenColor
