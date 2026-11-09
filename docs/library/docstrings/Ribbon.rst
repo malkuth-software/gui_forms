@@ -44,12 +44,19 @@ tabs
     size count other than the command count, rows outside 1 to 3, an icon-only
     command made large), a reduction step naming a group not on its tab or
     shrinking a group past its last layout or its gallery past its minimum
-    (owner decision 29), or more than the development bounds. A refused
-    definition leaves the previous tabs.
+    (owner decision 29), an authored tab width outside 0 (exclusive) to
+    `Ribbon::maximum_tab_width` (1024), or more than the development bounds.
+    A refused definition leaves the previous tabs. A tab's `width`, when
+    set, replaces its measured width; a tab that is not `enabled` shows in
+    the disabled state and cannot be selected by the pointer, the keyboard,
+    a mnemonic or accessibility, and the selection passes over it.
 selected_tab
     The selected tab, or none while no tab shows. Assigning a tab past the
-    end throws `std::out_of_range`; a tab not shown, or no value, throws
-    `std::invalid_argument`.
+    end throws `std::out_of_range`; a tab not shown or disabled, or no value,
+    throws `std::invalid_argument`.
+tabs_activate_on_release : default ``false``
+    Whether a tab is selected when the pointer is released over the tab it
+    was pressed on, instead of on the press (Office's way, the default).
 tab_sets
     The contextual tab sets (`RibbonTabSetSpec`: ID and caption).
 application_modes : default ``1``
@@ -113,7 +120,11 @@ focus_region : default ``true``
     Whether the ribbon adds itself to its window's F6 regions when it is
     attached.
 font
-    The font of tab, caption and command text.
+    The font of tab, caption and command text. A theme may give a tab's
+    label its own font in each state (`ribbon::part(tab-label)`; the default
+    theme's selected label is bold and a little larger); a tab is as wide as
+    its label at the wider of its resting and selected fonts, so selecting a
+    tab never moves the others.
 realized_tabs
     The tabs' parts and states.
 realized_groups
@@ -266,10 +277,21 @@ The ribbon publishes ``region``, ``tab_rail``, ``application_button``,
 ``command_text_box``, ``command_gallery``, ``command_font_control`` and
 ``command_color_picker``; hot, pressed, checked, open, disabled,
 focus_visible).
-Until the default theme (T4), command faces use the menu-item family (flat
-at rest), the plane and tab row the panel family and the File tab the
-accent-button family. A command whose enabled or checked state changes
-repaints only its own bounds.
+Command faces and tabs use the menu-item family (flat at rest), the plane
+and tab row the panel family and the File tab the accent-button family.
+Every part is painted under its anatomy name, an item's parts also under
+the item's ID, so a theme's ``ribbon::part(...)`` rules reach each of them,
+and a face a theme authors stands at rest over the built-in flat face.
+The theme also sets the tab row's metrics: ``height`` on ``tab-rail`` and
+``command-plane``, ``padding-inline``, ``gap`` and ``min-width`` on
+``tab`` and ``application-button``, and ``margin-top`` and
+``margin-bottom`` per state (a negative bottom margin runs the selected tab
+into the plane, which it is painted over, so that it joins it); and a tab's
+shape: ``taper`` (a folder edge on its right), ``flare`` (a lip at its foot)
+and ``edge-shadow`` (a soft shadow beyond its right edge), none in the
+stock themes. The tabs paint from the last to the first, the selected tab
+last. A command whose enabled or checked state changes repaints only its
+own bounds.
 
 Keyboard: the ribbon is one Tab stop holding its own stops: the File tab,
 the tabs, then each group's commands and launcher. Left and Right move along

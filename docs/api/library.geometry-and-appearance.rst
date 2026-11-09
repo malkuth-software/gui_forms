@@ -70,6 +70,8 @@ Types
      -  
    * - :cpp:class:`ConnectedControlVisualGeometry <gui_forms::ConnectedControlVisualGeometry>`
      - The resolved recipe owns no renderer object.
+   * - :cpp:class:`ControlPartMetrics <gui_forms::ControlPartMetrics>`
+     - A part's metrics and shape as a theme sets them (RecipeField::block_size to edge_shadow_colour), each unset where no rule sets it: the control then keeps its own metric and the part its rectangle.
    * - :cpp:class:`ControlRoleRecipes <gui_forms::ControlRoleRecipes>`
      - ControlRoleRecipes stores complete ordinary, selected, high-contrast, and high-contrast-selected recipes across the closed surface-state axis.
    * - :cpp:class:`ControlRoleTable <gui_forms::ControlRoleTable>`
@@ -249,7 +251,7 @@ Types
    * - :cpp:class:`PartMotion <gui_forms::PartMotion>`
      - A part's running transitions (E7; T2 plan, "How motion is driven").
    * - :cpp:class:`PartPaint <gui_forms::PartPaint>`
-     - One part to paint, in the control's local coordinates.
+     -  
    * - :cpp:class:`PartRaster <gui_forms::PartRaster>`
      - One part's pixels as the engine keeps them (T2 plan, PartRaster): premultiplied BGRA8 in device pixels, in PartRasterView's layout, made for one display scale.
    * - :cpp:class:`PartRasterRequest <gui_forms::PartRasterRequest>`
@@ -264,6 +266,8 @@ Types
      - Which record a handle names: a slot of the table and the slot's generation when the record was made.
    * - :cpp:class:`PartShape <gui_forms::PartShape>`
      -  
+   * - :cpp:class:`PartShape <gui_forms::PartShape>`
+     - One part to paint, in the control's local coordinates.
    * - :cpp:class:`PartTransitionChannel <gui_forms::PartTransitionChannel>`
      - One property's transition on a part (E7): an engine property or the parameter at ``parameter``, the machine and the state of it the part was last painted in (state none when the part's states matched none), and the property's motion value, made the first time the part is painted with the transition.
    * - :cpp:class:`Point <gui_forms::Point>`
@@ -1150,6 +1154,38 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ControlPartMetrics final
+
+   ``#include <gui_forms/theme/types/theme_types.hpp>``
+
+   A part's metrics and shape as a theme sets them (RecipeField::block_size to edge_shadow_colour), each unset where no rule sets it: the control then keeps its own metric and the part its rectangle. Lengths are logical units; a taper, flare or edge shadow of zero draws nothing.
+
+   .. cpp:member:: std::optional<double> block_size
+
+   .. cpp:member:: std::optional<double> minimum_inline_size
+
+   .. cpp:member:: std::optional<double> padding_inline
+
+   .. cpp:member:: std::optional<double> gap
+
+   .. cpp:member:: std::optional<double> margin_block_start
+
+   .. cpp:member:: std::optional<double> margin_block_end
+
+   .. cpp:member:: double taper
+
+   .. cpp:member:: std::optional<Color> taper_colour
+
+   .. cpp:member:: double flare
+
+   .. cpp:member:: std::optional<Color> flare_colour
+
+   .. cpp:member:: double edge_shadow_width
+
+   .. cpp:member:: Color edge_shadow_colour
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ControlRoleRecipes final
 
    ``#include <gui_forms/theme/types/theme_types.hpp>``
@@ -1315,6 +1351,10 @@ Types
    .. cpp:member:: std::optional<ControlTextShadow> text_shadow
 
       The shadow under the recipe's text, if any (E9.6, data only).
+
+   .. cpp:member:: ControlPartMetrics part_metrics
+
+      The part's metrics and shape, where a rule naming the part sets them.
 
 .. cpp:namespace:: gui_forms
 
@@ -3696,8 +3736,6 @@ Types
 
    ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
 
-   One part to paint, in the control's local coordinates. ``text``, ``image`` and ``mark`` are read only by roles that show them (label, caption and content; icon and image; glyph and indicator). ``text`` is borrowed for the call. ``font`` is an effective font (Control::effective_font). ``corner_radius``, when set, gives a surface part its shape; the theme (T4) will own shapes, so a control sets it only where today's recipe has no shape for the part. ``orientation`` and ``alignment`` are read with ``text``; ``dock_region`` only by the dock_shape mark.
-
    .. cpp:member:: PartRole role
 
       Default: ``{PartRole::region}``.
@@ -3743,6 +3781,10 @@ Types
    .. cpp:member:: std::optional<double> point
 
       A pointed face (design language §8.5; owner decision 2026-11-02): the surface's trailing end is a nose this many units long, its tip at the middle of the right edge, as a raised breadcrumb segment's. Only surface roles read it; none is a rectangle. Hit testing uses the same shape (pointed_face_contains).
+
+   .. cpp:member:: std::optional<PartShape> shape
+
+      The part's shape beside its rectangle (PartShape), or none. Only surface roles read it; a pointed face ignores it.
 
    .. cpp:member:: PartFrame frame
 
@@ -3903,6 +3945,26 @@ Types
       A rounded rectangle whose corners differ (E9.6): when ``per_corner`` is set, ``corners`` replaces ``corner_radius``, each clamped to half the shorter side. Other kinds ignore both.
 
    .. cpp:member:: PartCornerRadii corners
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PartShape final
+
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+
+   One part to paint, in the control's local coordinates. ``text``, ``image`` and ``mark`` are read only by roles that show them (label, caption and content; icon and image; glyph and indicator). ``text`` is borrowed for the call. ``font`` is an effective font (Control::effective_font). ``corner_radius``, when set, gives a surface part its shape; the theme (T4) will own shapes, so a control sets it only where today's recipe has no shape for the part. ``orientation`` and ``alignment`` are read with ``text``; ``dock_region`` only by the dock_shape mark. A part's shape beside its rectangle (look integration; the T4 rendering reference's tab stack and the owner's Plan Paint tab look), as a theme sets it on the part (ControlPartMetrics) and the control passes it on: - ``taper``: the trailing (right) edge leans in by this many units at the part's top, a file-folder tab's edge, drawn as a line in ``taper_colour`` when it has one; - ``flare``: the bottom corners flare outward by this many units in a concave lip of ``flare_colour``, where a selected tab meets the plane; - ``edge_shadow``: a soft shadow beyond the trailing edge, following its taper, falling off from ``edge_shadow_colour`` to clear over this many units. A tapered part is cut to its shape, its outer shadows with it; the edge shadow then draws its cast. Each is bounded: the taper by the part's width, the flare by its height, all by maximum_part_shape.
+
+   .. cpp:member:: double taper
+
+   .. cpp:member:: std::optional<Color> taper_colour
+
+   .. cpp:member:: double flare
+
+   .. cpp:member:: Color flare_colour
+
+   .. cpp:member:: double edge_shadow
+
+   .. cpp:member:: Color edge_shadow_colour
 
 .. cpp:namespace:: gui_forms
 
@@ -4867,6 +4929,10 @@ Types
    .. cpp:function:: ResolvedFont resolve_font(const Control& control, FontSpec own) const noexcept
 
       ``control``'s primary text font (T4 fonts): ``own``, the font it holds, with the font fields (RecipeField::font_family to letter_spacing) of the theme's rules matching it at rest in place: no part, the region role, and the states of a default ControlVisualContext. Forced high contrast keeps them: they are not colours. An em size is of ``own``'s size, an em spacing of the resolved size. Where the fields make no font valid_font_spec admits, or a size outside minimum_rule_font_size to maximum_rule_font_size, it is ``own`` with no field themed.
+
+   .. cpp:function:: ResolvedFont resolve_font(const Control& control, FontSpec own, std::string_view part, AnatomyStateSet states) const noexcept
+
+      A named part's font in ``states`` (a tab label's, larger while selected): the control's own font with the font fields of the rules naming the part (and the control's own) in place.
 
    .. cpp:function:: bool declares_clarity(const Control& control) const noexcept
 
@@ -6762,6 +6828,30 @@ Enumerations
 
    .. cpp:enumerator:: default_outline_colour
 
+   .. cpp:enumerator:: block_size
+
+   .. cpp:enumerator:: minimum_inline_size
+
+   .. cpp:enumerator:: padding_inline
+
+   .. cpp:enumerator:: gap
+
+   .. cpp:enumerator:: margin_block_start
+
+   .. cpp:enumerator:: margin_block_end
+
+   .. cpp:enumerator:: taper
+
+   .. cpp:enumerator:: taper_colour
+
+   .. cpp:enumerator:: flare
+
+   .. cpp:enumerator:: flare_colour
+
+   .. cpp:enumerator:: edge_shadow_width
+
+   .. cpp:enumerator:: edge_shadow_colour
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -7759,6 +7849,18 @@ Functions, constants and aliases
 
    Value: ``16.0``.
 
+.. cpp:var:: constexpr double maximum_part_metric
+
+   What a part metric admits (RecipeField::block_size to edge_shadow_width): a size at most 512 logical units, a margin within +-64, a taper, flare or edge shadow at most 64. Value: ``512.0``.
+
+.. cpp:var:: constexpr double maximum_part_margin
+
+   Value: ``64.0``.
+
+.. cpp:var:: constexpr double maximum_part_shape
+
+   Value: ``64.0``.
+
 .. cpp:var:: constexpr double minimum_rule_font_size
 
    What a font field admits (T4 fonts): a size of 4 to 96 logical units once its em part is resolved, a weight of 100 to 900, and a letter spacing valid_font_spec admits at the size. Value: ``4.0``.
@@ -8025,7 +8127,7 @@ Functions, constants and aliases
 
    Value: ``static_cast<std::size_t>(PartMark::count)``.
 
-.. cpp:var:: constexpr std::array<std::string_view, 7> part_value_names
+.. cpp:var:: constexpr std::array<std::string_view, 8> part_value_names
 
    The values admitted to the vocabulary beside states and marks (design language 12.7), as the schema lists them: they have no enum, so this is the order they were admitted in.
 

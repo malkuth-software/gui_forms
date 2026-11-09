@@ -219,6 +219,26 @@
       "hand": [
         "a view: write_view keeps set_selected_tab's checks and select_tab; owner 2026-11-08 (G14: selection is a cell)"
       ]
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "tabs_activate_on_release",
+      "capability": "RibbonTabsActivateOnRelease",
+      "value": "bool",
+      "initial": "false",
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "comment": "Whether a tab is selected when the pointer is released over the tab it was pressed on (a click), instead of on the press (false, the default, as Office's ribbon does; the ribbon study does not decide it). The keyboard, mnemonics and accessibility select at once either way.",
+      "sample": "true",
+      "getter": "tabs_activate_on_release",
+      "setter": "set_tabs_activate_on_release",
+      "field": "tabs_activate_on_release_"
     }
   ],
   "not_properties": [

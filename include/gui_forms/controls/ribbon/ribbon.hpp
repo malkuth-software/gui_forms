@@ -157,7 +157,13 @@ struct RibbonReductionStep final {
 // without it) every group that can still shrink does so one step at a time,
 // right to left, repeating (WPF's cycle, decision 32). `tab_set` names the
 // contextual tab set the tab belongs to (empty: a core tab); `modes` are the
-// application modes it shows in.
+// application modes it shows in. `width` is an authored width in logical
+// units, scaled with the text as the tab row is (none: the label's width,
+// at its widest state font, plus the theme's padding; Plan Paint's tabs
+// carry their own widths); above zero and at most Ribbon::maximum_tab_width.
+// A tab that is not `enabled` shows in the disabled state and cannot be
+// selected: the pointer, the keyboard, mnemonics and accessibility pass it
+// by, and a selection that would fall on it falls back to another tab.
 //
 // A panel tab: `panel` is a control the application made, which the ribbon
 // adds as its child and sizes to the whole command plane while the tab is
@@ -174,6 +180,8 @@ struct RibbonTabSpec final {
     std::string tab_set{};
     std::uint32_t modes{ribbon_all_modes};
     std::shared_ptr<Control> panel{};
+    std::optional<double> width{};
+    bool enabled{true};
 };
 
 // A contextual tab set (stage RB, phase 5): tabs that show while the
@@ -315,6 +323,8 @@ public:
     // How far, in logical units, the plane must clear the narrowest ladder
     // entry before scrolling ends (owner decision 45).
     static constexpr double scroll_hysteresis = 8.0;
+    // The widest authored tab width (RibbonTabSpec::width), in logical units.
+    static constexpr double maximum_tab_width = 1024.0;
 
     explicit Ribbon(StableId stable_id);
     ~Ribbon() override;
@@ -486,6 +496,7 @@ public:
         bool hot{};
         bool selected{};
         bool focus_visible{};
+        bool disabled{};
     };
     struct Tab final {
         std::size_t index{};
@@ -665,10 +676,19 @@ private:
         const Theme* theme{};
         const TextMetricsProvider* provider{};
         FontSpec font{};
+        // What the theme's rules are matched against beside the theme: the
+        // window's media facts (its colour scheme among them), its user
+        // theme's rules and the ribbon's inline style; the tab row's
+        // metrics come from them (RowMetrics).
+        MediaFacts media{};
+        const CompiledThemeRules* user_rules{};
+        const CompiledThemeRules* inline_rules{};
 
         friend bool operator==(const ScalingKey& left, const ScalingKey& right) noexcept {
             return left.content == right.content && left.text_scale == right.text_scale &&
-                   left.theme == right.theme && left.provider == right.provider && left.font == right.font;
+                   left.theme == right.theme && left.provider == right.provider && left.font == right.font &&
+                   left.media == right.media && left.user_rules == right.user_rules &&
+                   left.inline_rules == right.inline_rules;
         }
     };
     // One command's widths at each image size, measured once. A hosted
@@ -711,11 +731,30 @@ private:
         std::vector<GalleryMetrics> gallery_metrics;
         std::vector<RibbonLadderEntry> ladder;
     };
-    // The tab row's measured widths.
+    // The tab row's measured widths and the theme's metrics for it (look
+    // integration, Plan Paint defect 5), each scaled by the text scale: the
+    // rail's height (`height` on the tab rail), the plane's (`height` on the
+    // command plane), the tabs' padding and gap, and how far a tab's top
+    // sits below the rail's top and its bottom above the rail's bottom, at
+    // rest and selected (`margin-top`, `margin-bottom`; a negative bottom
+    // margin runs the tab into the plane). Each falls back to the ribbon's
+    // own metric where no rule sets it.
+    struct TabMargins final {
+        double top{};
+        double bottom{};
+    };
     struct RowMetrics final {
         bool built{};
         double application{};
         std::vector<double> tabs;
+        double row_height{};
+        double plane_height{};
+        double padding{};
+        double application_padding{};
+        double gap{};
+        TabMargins application_margins{};
+        TabMargins rest{};
+        TabMargins selected{};
     };
 
     // -- contextual sets and modes (ribbon_contextual.cpp) ---------------------
@@ -736,6 +775,8 @@ private:
     // or a selection rule, whose choices they do not.
     enum class SelectionCause : std::uint8_t { user, rule };
     [[nodiscard]] bool shown(std::size_t tab) const noexcept;
+    // Whether a tab may be selected: shown and enabled.
+    [[nodiscard]] bool selectable(std::size_t tab) const noexcept;
     [[nodiscard]] bool group_shown(std::size_t tab, std::size_t group) const noexcept;
     [[nodiscard]] std::optional<std::size_t> find_tab_set(std::string_view set_id) const noexcept;
     [[nodiscard]] std::optional<AccentIndex> tab_accent(std::size_t tab) const noexcept;
@@ -798,8 +839,12 @@ private:
     [[nodiscard]] double place_group(const TabScaling& scaling, std::size_t tab, std::size_t group,
                                      const RibbonGroupLayout& group_layout, std::size_t columns, double x, double top,
                                      std::vector<Rect>& commands) const;
-    [[nodiscard]] double tab_row_height() const noexcept;
-    [[nodiscard]] double plane_height() const noexcept;
+    [[nodiscard]] double tab_row_height() const;
+    [[nodiscard]] double plane_height() const;
+    [[nodiscard]] ControlPartMetrics part_metrics(std::string_view part, ControlVisualRole family,
+                                                  AnatomyStateSet states) const;
+    [[nodiscard]] FontSpec tab_label_font(AnatomyStateSet states) const;
+    [[nodiscard]] double tab_label_width(std::string_view text, AnatomyStateSet states) const;
     [[nodiscard]] double text_width(std::string_view text) const;
     [[nodiscard]] ScalingKey current_scaling_key() const;
     void refresh_scaling_key() const;
@@ -844,6 +889,7 @@ private:
     [[nodiscard]] Control::Ptr make_hosted(const RibbonCommandSpec& command) const;
     void configure_hosted(const RibbonCommandSpec& command, Control& control) const;
     void paint_groups(Painter& painter, const Layout& placed) const;
+    void paint_tab(Painter& painter, PartPaint& part, const Layout& placed, std::size_t tab) const;
     void append_group_node(SemanticNode& parent, const Layout& placed, std::size_t group, Rect absolute) const;
     [[nodiscard]] std::vector<Group> groups_of(const Layout& placed) const;
     [[nodiscard]] std::vector<CommandItem> commands_of(const Layout& placed) const;
@@ -913,6 +959,8 @@ private:
     std::optional<CommandAddress> pressed_command_{};
     CommandZone pressed_zone_{CommandZone::none};
     std::optional<std::size_t> pressed_launcher_{};
+    // The tab pressed while tabs_activate_on_release holds, until the release.
+    std::optional<std::size_t> pressed_tab_{};
     std::optional<std::size_t> pressed_group_{};
     Hit::Kind pressed_scroll_{Hit::Kind::none};
     bool application_pressed_{};
@@ -993,6 +1041,7 @@ private:
     friend struct RibbonFocusRegionCapability<Ribbon>;
     friend struct FontCapability<Ribbon>;
     friend struct RibbonSelectedTabCapability<Ribbon>;
+    friend struct RibbonTabsActivateOnReleaseCapability<Ribbon>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(application_modes)& cell, std::uint32_t& incoming);
     void written(const decltype(application_modes)& cell);
@@ -1012,6 +1061,8 @@ private:
     void written(const decltype(font)& cell);
     void write_view(const decltype(selected_tab)& cell, std::optional<std::size_t> incoming);
     [[nodiscard]] std::optional<std::size_t> read_view(const decltype(selected_tab)& cell) const;
+    void prepare_write(const decltype(tabs_activate_on_release)& cell, bool& incoming);
+    void written(const decltype(tabs_activate_on_release)& cell);
     // property_codemod end Ribbon
 };
 
