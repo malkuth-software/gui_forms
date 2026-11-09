@@ -738,7 +738,7 @@ public:
     void adopt_property_link(std::unique_ptr<PropertyLink> link);
     // Control's own table (its capabilities' entries); a derived type joins
     // it first (join_property_tables) and returns the joined table.
-    static constexpr std::size_t control_property_count = 28U;
+    static constexpr std::size_t control_property_count = 29U;
     [[nodiscard]] static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
     // The properties below are the instance registry's
@@ -949,6 +949,16 @@ public:
     // scrolls its content to reveal `descendant`; the ancestors above then
     // reveal this control instead. The default reveals nothing: false.
     virtual bool reveal_focused_descendant(const Control& descendant);
+    // The inner control that takes keyboard focus for this one: a composite
+    // field (ComboBox with an edit field, NumericUpDown, MaskedTextBox,
+    // SearchField and the like) returns its edit part, which must be a
+    // descendant. SurfaceRoot::request_focus gives focus to the target
+    // instead (Windows Forms' Focus on a ComboBox puts the caret in its
+    // edit), and SurfaceRoot::active_control reports the composite while
+    // its target has focus. A composite with a target keeps focusable
+    // false itself, so keyboard traversal reaches only the target. The
+    // default is null: the control takes focus itself.
+    [[nodiscard]] virtual Ptr focus_target() const;
     // Where an input method places its composition and candidate windows
     // while this control has focus: the caret's box, in local coordinates.
     // The base returns none, and SurfaceRoot::text_input_caret then uses a
@@ -1617,6 +1627,7 @@ private:
         classes,
         back_color,
         fore_color,
+        focusable,
     };
 
     // Control's table operations over the adapters below (study section
@@ -1697,6 +1708,8 @@ private:
                     (*control).tab_index.read())};
             } else if constexpr (Property == RegisteredProperty::tab_stop) {
                 return BindingValue{(*control).tab_stop.read()};
+            } else if constexpr (Property == RegisteredProperty::focusable) {
+                return BindingValue{(*control).focusable.read()};
             } else if constexpr (Property == RegisteredProperty::allow_drop) {
                 return BindingValue{(*control).allow_drop.read()};
             } else if constexpr (
@@ -1801,6 +1814,8 @@ private:
                 (*control).tab_index = static_cast<std::uint32_t>(index);
             } else if constexpr (Property == RegisteredProperty::tab_stop) {
                 (*control).tab_stop = std::get<bool>(value);
+            } else if constexpr (Property == RegisteredProperty::focusable) {
+                (*control).focusable = std::get<bool>(value);
             } else if constexpr (Property == RegisteredProperty::allow_drop) {
                 (*control).allow_drop = std::get<bool>(value);
             } else if constexpr (

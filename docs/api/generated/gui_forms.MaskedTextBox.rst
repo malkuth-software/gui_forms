@@ -357,6 +357,10 @@ gui_forms::MaskedTextBox
 
    .. rubric:: Extension points
 
+   .. cpp:function:: Ptr focus_target() const override
+
+      Focus on the field goes to its edit part (null without one).
+
    .. cpp:function:: void arrange(Rect final_bounds) override
 
    .. cpp:function:: void on_key_preview(KeyEvent& event) override

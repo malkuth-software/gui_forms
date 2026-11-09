@@ -728,8 +728,51 @@ void SurfaceRoot::remove_help_fallback(const detail::WindowHelpFallback& fallbac
     if (found != help_fallbacks_.end()) help_fallbacks_.erase(found);
 }
 
+Control::Ptr SurfaceRoot::focus_target_of(const Control::Ptr& control) {
+    Control::Ptr current = control;
+    for (std::size_t depth = 0U; current && depth < focus_target_depth; ++depth) {
+        const Control::Ptr inner = (*current).focus_target();
+        if (!inner || inner == current) break;
+        // Only a descendant: the parent chain from the target reaches
+        // the composite.
+        bool descendant = false;
+        for (Control::Ptr above = (*inner).parent(); above; above = (*above).parent()) {
+            if (above == current) {
+                descendant = true;
+                break;
+            }
+        }
+        if (!descendant) break;
+        current = inner;
+    }
+    return current;
+}
+
+Control::Ptr SurfaceRoot::active_control() const {
+    const Control::Ptr focused = focused_.lock();
+    if (!focused) return nullptr;
+    Control::Ptr active = focused;
+    for (Control::Ptr above = (*focused).parent(); above; above = (*above).parent()) {
+        if (focus_target_of(above) == focused) active = above;
+    }
+    return active;
+}
+
+bool SurfaceRoot::control_focused(const Control::Ptr& control) const {
+    const Control::Ptr focused = focused_.lock();
+    if (!focused || !control) return false;
+    const bool held = focus_target_of(control) == focused;
+    return held;
+}
+
 bool SurfaceRoot::request_focus(const Control::Ptr& control) {
     require_root_thread("focus mutation");
+    // A composite field gives focus to its edit part (Control::focus_target).
+    const Control::Ptr target = focus_target_of(control);
+    if (target != control) {
+        const bool moved = request_focus(target);
+        return moved;
+    }
     if (control && (!eligible(control) || !(*control).focusable.read())) {
         return false;
     }

@@ -895,7 +895,9 @@ typedef struct gf_windows_table {
      * window from create, or a control in a window (a root passed to run,
      * a root of a show_modal or show_owned window, or any control under
      * one). control receives a new reference to the window's focused
-     * control, which the caller releases, or zero when none has focus.
+     * control, which the caller releases, or zero when none has focus; a
+     * composite field whose edit part has the caret is reported, not the
+     * edit part (Windows Forms' ActiveControl).
      * When a modal window closes, or a disabled window's root is enabled
      * again, the window's last focused control takes focus back. UI
      * thread. GF_STATUS_INVALID_STATE for a control not in a window;
@@ -1757,17 +1759,22 @@ typedef struct gf_controls_table {
     gf_status (GF_CALL* invalidate)(gf_object object, const gf_logical_rect* damage);
     /* Gives the control keyboard focus, as Control.Focus and Select do
      * (since 1.1): it becomes its window's focused control, the one its
-     * window gives the keyboard to while active. focused receives 1 when
+     * window gives the keyboard to while active. A composite field (a
+     * combo box with an edit field, a numeric or domain up-down, a masked
+     * text box, a search field, a token box) gives the caret to its edit
+     * part and still counts as the focused control. focused receives 1 when
      * the window is active, so the control has the keyboard now, and 0
      * when it is not (focus is taken when the window is next activated);
      * it may be null. GF_STATUS_INVALID_STATE, changing nothing, for a
      * control not in a window, disabled or hidden (or under a disabled or
-     * hidden ancestor), not focusable (its focusable property), outside the
+     * hidden ancestor), not focusable (its focusable property, or its edit
+     * part's for a composite), outside the
      * window's open focus scope (a dialog or overlay), or whose window's
      * validation kept focus where it was. UI thread. */
     gf_status (GF_CALL* focus)(gf_object object, uint32_t* focused);
-    /* Whether the control is its window's focused control (Focused), and
-     * whether it or a descendant is (ContainsFocus), as 0 or 1 (since 1.1).
+    /* Whether the control is its window's focused control (Focused; a
+     * composite field is while its edit part has the caret), and whether it
+     * or a descendant holds focus (ContainsFocus), as 0 or 1 (since 1.1).
      * A control not in a window has neither. Either output may be null. UI
      * thread. */
     gf_status (GF_CALL* focus_state)(gf_object object, uint32_t* focused, uint32_t* contains_focus);

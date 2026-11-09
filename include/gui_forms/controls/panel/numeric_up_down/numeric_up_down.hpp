@@ -20,6 +20,8 @@ public:
     // Sets both bounds; they must be finite and ordered (std::invalid_argument).
     void set_range(double lowest, double highest);
     [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept { return editor_; }
+    // Focus on the field goes to its edit part (null without one).
+    [[nodiscard]] Ptr focus_target() const override { return editor_; }
     [[nodiscard]] Event<double>& value_changed() noexcept { return value_changed_; }
 
     void arrange(Rect final_bounds) override;

@@ -868,7 +868,8 @@ gf_status report_focused_control(gf_object window_or_root, gf_object* control) {
             return fail(GF_STATUS_INVALID_STATE, focused_control_slot, "the control is not in a window");
         }
     }
-    const Control::Ptr focused = (*window).focused_control();
+    // The composite rather than its inner edit part (ActiveControl).
+    const Control::Ptr focused = (*window).active_control();
     // The reference is made before the output is written: a failed
     // allocation leaves the output as it was.
     const gf_object made = focused ? registry().add_reference(focused) : gf_object{0U};

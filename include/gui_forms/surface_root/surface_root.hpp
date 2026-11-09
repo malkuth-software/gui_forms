@@ -791,6 +791,19 @@ public:
     // call it too. Returns the focused control afterwards, or null. Root
     // thread only.
     Control::Ptr restore_focus();
+    // The control that takes focus when `control` is asked to: its focus
+    // target's (Control::focus_target), followed through nested composites
+    // (at most focus_target_depth), or `control` itself. A target that is
+    // not a descendant is ignored.
+    [[nodiscard]] static Control::Ptr focus_target_of(const Control::Ptr& control);
+    static constexpr std::size_t focus_target_depth = 8U;
+    // The focused control as Windows Forms' ActiveControl names it: the
+    // outermost composite whose focus target holds focus (a ComboBox while
+    // its edit part has it), else focused_control(). Null without focus.
+    [[nodiscard]] Control::Ptr active_control() const;
+    // Whether `control` is focused (Control.Focused): it holds focus, or its
+    // focus target does.
+    [[nodiscard]] bool control_focused(const Control::Ptr& control) const;
     // The box an input method places its windows by, in this root's
     // coordinates: the focused control's Control::text_input_caret, or a
     // one-unit-wide box at its left edge when it names none; none without

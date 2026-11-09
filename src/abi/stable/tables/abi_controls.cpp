@@ -356,11 +356,14 @@ gf_status focus_control(gf_object object, std::uint32_t* focused) {
         return fail(GF_STATUS_INVALID_STATE, focus_slot,
                     "the control cannot take focus: it or an ancestor is disabled or hidden");
     }
-    if (!(*control).focusable.read()) {
+    // A composite field (a combo box with an edit field, a numeric up-down)
+    // gives focus to its edit part, which must be able to take it.
+    const Control::Ptr target = SurfaceRoot::focus_target_of(control);
+    if (!(*target).eligible_for_input() || !(*target).focusable.read()) {
         return fail(GF_STATUS_INVALID_STATE, focus_slot, "the control cannot take focus: it is not focusable");
     }
     const bool moved = (*window).request_focus(control);
-    if (!moved || (*window).focused_control() != control) {
+    if (!moved || (*window).focused_control() != target) {
         return fail(GF_STATUS_INVALID_STATE, focus_slot,
                     "focus was refused: the control is outside the window's open focus scope, or validation "
                     "kept focus where it was");
@@ -398,7 +401,8 @@ gf_status GF_CALL controls_focus_state(gf_object object, std::uint32_t* focused,
         }
         SurfaceRoot* const window = (*control).attached_surface_root();
         const Control::Ptr current = window == nullptr ? Control::Ptr{} : (*window).focused_control();
-        const bool is_focused = current && current == control;
+        // A composite is focused while its edit part holds focus.
+        const bool is_focused = window != nullptr && (*window).control_focused(control);
         const bool contains = current && holds(control, current);
         if (focused != nullptr) *focused = is_focused ? 1U : 0U;
         if (contains_focus != nullptr) *contains_focus = contains ? 1U : 0U;
