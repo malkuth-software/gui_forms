@@ -656,7 +656,7 @@ constexpr DWORD maximum_module_path_units = 32768U;
 
 // The directory of `module`'s file (null for the executable); empty when Windows cannot say.
 std::filesystem::path module_directory(HMODULE module) {
-    std::vector<wchar_t> path(maximum_module_path_units, L' ');
+    std::vector<wchar_t> path(maximum_module_path_units, L'\0');
     const DWORD count = GetModuleFileNameW(module, path.data(), maximum_module_path_units);
     if (count == 0U || count >= maximum_module_path_units) return {};
     const std::filesystem::path directory =

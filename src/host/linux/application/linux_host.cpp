@@ -602,7 +602,7 @@ std::filesystem::path gui_forms_module_directory() {
   Dl_info information{};
   const int found = dladdr(&gui_forms_module_anchor, &information);
   if (found == 0 || information.dli_fname == nullptr ||
-      information.dli_fname[0] == ' ')
+      information.dli_fname[0] == '\0')
     return {};
   std::error_code error;
   const std::filesystem::path module =
