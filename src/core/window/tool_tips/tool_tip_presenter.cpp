@@ -179,10 +179,11 @@ std::optional<ToolTipEvent> ToolTipPresenter::open(ToolTipOrigin origin, ToolTip
     lines.font = (*control).effective_font(tool_tip_font);
     break_tool_tip_lines(*control, subject.text, settings.maximum_width, lines);
 
-    ToolTipEvent change{};
-    change.target_stable_id = std::string((*control).stable_id().value());
-    change.item_id = subject.item_id;
-    change.text = subject.text;
+    // Written into the recycled event's storage (raise returns it).
+    ToolTipEvent change = std::move(spare_event_);
+    change.target_stable_id.assign((*control).stable_id().value());
+    change.item_id.assign(subject.item_id);
+    change.text.assign(subject.text);
     change.shown = true;
     change.keyboard_initiated = origin == ToolTipOrigin::keyboard;
     const std::chrono::milliseconds stay = duration.value_or(settings.auto_pop_delay);
@@ -285,13 +286,16 @@ std::optional<ToolTipEvent> ToolTipPresenter::close(State next) {
         if (!std::holds_alternative<Waiting>(state_)) wake_.disconnect();
         return std::nullopt;
     }
-    ToolTipEvent change{};
+    ToolTipEvent change = std::move(spare_event_);
+    change.target_stable_id.clear();
     if (const Control::Ptr control = (*showing).subject.control.lock()) {
-        change.target_stable_id = std::string((*control).stable_id().value());
+        change.target_stable_id.assign((*control).stable_id().value());
     }
-    change.item_id = (*showing).subject.item_id;
-    change.text = (*showing).subject.text;
+    change.item_id.assign((*showing).subject.item_id);
+    change.text.assign((*showing).subject.text);
     change.shown = false;
+    // The subject's text storage is kept for the next program show.
+    spare_text_ = std::move((*showing).subject.text);
     change.keyboard_initiated = (*showing).origin == ToolTipOrigin::keyboard;
     if ((*showing).overlay == nullptr && transient_) (*transient_).hide();
     // Moving the state out first leaves the presenter consistent while the
@@ -355,10 +359,13 @@ bool ToolTipPresenter::position(Showing& showing) {
     return true;
 }
 
-void ToolTipPresenter::raise(const std::optional<ToolTipEvent>& change) {
+void ToolTipPresenter::raise(std::optional<ToolTipEvent> change) {
     if (!change) return;
     window_.tool_tip_request_changed(*change);
     window_.tool_tip_visibility_changed_.emit(*change);
+    // Its storage serves the next event (a handler that opened or closed a
+    // tooltip meanwhile took the spare and built its own).
+    spare_event_ = std::move(*change);
 }
 
 void ToolTipPresenter::overlay_closed() {
@@ -409,9 +416,9 @@ void ToolTipPresenter::pointer_moved(Point position, const Control::Ptr& hovered
         // Keyboard and program tooltips stay while the pointer moves.
         if ((*showing).origin != ToolTipOrigin::pointer) return;
         if (contains_point((*showing).subject.anchor, position) && hover_allowed()) return;
-        const std::optional<ToolTipEvent> change = close(Idle{});
+        std::optional<ToolTipEvent> change = close(Idle{});
         pointer_wait(hovered, now);
-        raise(change);
+        raise(std::move(change));
         return;
     }
     pointer_wait(hovered, now);
@@ -475,7 +482,7 @@ void ToolTipPresenter::focus_changed(const Control::Ptr& focused) {
             wait(ToolTipOrigin::keyboard, std::move(subject), FrameClock::now());
         }
     }
-    raise(change);
+    raise(std::move(change));
 }
 
 // A handled key may have moved the keyboard within the focused control
@@ -498,7 +505,7 @@ void ToolTipPresenter::key_handled() {
         }
     }
     if (!subject.text.empty()) wait(ToolTipOrigin::keyboard, std::move(subject), FrameClock::now());
-    raise(change);
+    raise(std::move(change));
 }
 
 void ToolTipPresenter::root_arranged() {
@@ -559,10 +566,10 @@ void ToolTipPresenter::items_changed(const Control& control) {
         const SemanticNode* item = item_with_id(items, (*showing).subject.item_id);
         const ToolTipOrigin origin = (*showing).origin;
         if (item == nullptr || (*item).tool_tip.empty()) {
-            const std::optional<ToolTipEvent> change = close(Idle{});
+            std::optional<ToolTipEvent> change = close(Idle{});
             // The pointer may rest over another part of the control now.
             if (origin == ToolTipOrigin::pointer) pointer_wait(window_.hit_test(pointer_), last_motion_);
-            raise(change);
+            raise(std::move(change));
             return;
         }
         if ((*item).tool_tip == (*showing).subject.text) return;
@@ -629,8 +636,9 @@ void ToolTipPresenter::cover(RuntimeId control, std::string_view item_id, bool c
 
 void ToolTipPresenter::show_program(const Control::Ptr& target,
                                     std::optional<std::chrono::milliseconds> duration) {
-    ToolTipSubject subject =
-        tool_tip_subject_of(target, {}, (*target).tool_tip_text.read(), (*target).absolute_bounds());
+    std::string text = std::move(spare_text_);
+    text.assign((*target).tool_tip_text.read());
+    ToolTipSubject subject = tool_tip_subject_of(target, {}, std::move(text), (*target).absolute_bounds());
     replace(ToolTipOrigin::program, std::move(subject), duration);
 }
 

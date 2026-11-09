@@ -27,16 +27,20 @@ namespace {
     return value == ' ' || value == '\t';
 }
 
-// Appends `line` to `lines` and starts it again empty.
-void finish_line(ToolTipLines& lines, std::string& line) {
-    lines.lines.push_back(line);
+// Writes `line` as line `filled` of `lines` (assigned into a kept string
+// where there is one, so its storage is reused), counts it, and starts
+// `line` again empty.
+void finish_line(ToolTipLines& lines, std::size_t& filled, std::string& line) {
+    if (filled < lines.lines.size()) lines.lines[filled].assign(line);
+    else lines.lines.push_back(line);
+    ++filled;
     line.clear();
 }
 
 // Breaks one word wider than `maximum_width` between graphemes, continuing
 // `line`, which holds the start of the paragraph's current line.
 void break_long_word(const Control& measurer, std::string_view word, double maximum_width,
-                     ToolTipLines& lines, std::string& line) {
+                     ToolTipLines& lines, std::size_t& filled, std::string& line) {
     const TextStore store(word);
     const std::size_t graphemes = store.grapheme_count().value();
     if (!line.empty()) line.push_back(' ');
@@ -49,7 +53,7 @@ void break_long_word(const Control& measurer, std::string_view word, double maxi
         if (previous_length != 0U && measured_width(measurer, line, lines.font) > maximum_width) {
             line.resize(previous_length);
             if (line.back() == ' ') line.pop_back();
-            finish_line(lines, line);
+            finish_line(lines, filled, line);
             line.assign(cluster);
         }
     }
@@ -57,7 +61,7 @@ void break_long_word(const Control& measurer, std::string_view word, double maxi
 
 // Breaks one paragraph (no line feeds) into `lines`.
 void break_paragraph(const Control& measurer, std::string_view paragraph, double maximum_width,
-                     ToolTipLines& lines, std::string& line) {
+                     ToolTipLines& lines, std::size_t& filled, std::string& line) {
     std::size_t cursor = 0U;
     while (cursor < paragraph.size()) {
         while (cursor < paragraph.size() && breaks_words(paragraph[cursor])) ++cursor;
@@ -67,7 +71,7 @@ void break_paragraph(const Control& measurer, std::string_view paragraph, double
         const std::string_view word = paragraph.substr(cursor, word_end - cursor);
         cursor = word_end;
         if (measured_width(measurer, word, lines.font) > maximum_width) {
-            break_long_word(measurer, word, maximum_width, lines, line);
+            break_long_word(measurer, word, maximum_width, lines, filled, line);
             continue;
         }
         const std::size_t previous_length = line.size();
@@ -75,29 +79,33 @@ void break_paragraph(const Control& measurer, std::string_view paragraph, double
         line.append(word);
         if (previous_length != 0U && measured_width(measurer, line, lines.font) > maximum_width) {
             line.resize(previous_length);
-            finish_line(lines, line);
+            finish_line(lines, filled, line);
             line.assign(word);
         }
     }
-    finish_line(lines, line);
+    finish_line(lines, filled, line);
 }
 
 } // namespace
 
 void break_tool_tip_lines(const Control& measurer, std::string_view text, double maximum_width,
                           ToolTipLines& lines) {
-    lines.lines.clear();
     lines.text_width = 0.0;
-    std::string line{};
+    // The count of lines written so far; the kept strings past it are
+    // dropped at the end.
+    std::size_t filled = 0U;
+    std::string& line = lines.scratch;
+    line.clear();
     std::size_t paragraph_start = 0U;
     while (paragraph_start <= text.size()) {
         const std::size_t newline = text.find('\n', paragraph_start);
         const std::size_t paragraph_end = newline == std::string_view::npos ? text.size() : newline;
         break_paragraph(measurer, text.substr(paragraph_start, paragraph_end - paragraph_start),
-                        maximum_width, lines, line);
+                        maximum_width, lines, filled, line);
         if (newline == std::string_view::npos) break;
         paragraph_start = newline + 1U;
     }
+    lines.lines.resize(filled);
     // A line is as tall as the painter's text line (paint_text): the larger
     // of the measured height and 1.2 times the size.
     double line_height = lines.font.size * 1.2;

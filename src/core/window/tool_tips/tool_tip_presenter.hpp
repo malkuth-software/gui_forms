@@ -178,7 +178,9 @@ private:
                  std::optional<std::chrono::milliseconds> duration);
     // Places the bubble that shows; false when the Splash window refused it.
     bool position(Showing& showing);
-    void raise(const std::optional<ToolTipEvent>& change);
+    // Raises `change` (none raises nothing) and keeps its storage as the
+    // spare the next open or close writes into.
+    void raise(std::optional<ToolTipEvent> change);
     // The pointer moved with nothing showing for it: wait, settle or idle.
     void pointer_wait(const Control::Ptr& hovered, FrameTime now);
 
@@ -201,6 +203,11 @@ private:
     std::shared_ptr<ToolTipLayer> transient_layer_{};
     std::shared_ptr<ToolTipBubble> transient_bubble_{};
     ToolTipLines transient_lines_{};
+    // Storage recycled so a warm show allocates nothing on any standard
+    // library (libstdc++ keeps only 15 bytes inline): the last raised
+    // event, and the text of the last subject closed.
+    ToolTipEvent spare_event_{};
+    std::string spare_text_{};
     // The monitor table's storage for Splash placement, reused by every show.
     HostMonitorResult placement_monitors_{};
     // The host refused a Splash window once; the overlay is used from then.

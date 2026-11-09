@@ -39,10 +39,16 @@
 namespace {
 bool counting_allocations = false;
 std::uint64_t counted_allocations = 0U;
+// The sizes of the first counted allocations, printed when a warm show
+// allocates (fixed storage: recording allocates nothing).
+std::size_t counted_sizes[16]{};
 } // namespace
 
 void* operator new(std::size_t size) {
-    if (counting_allocations) ++counted_allocations;
+    if (counting_allocations) {
+        if (counted_allocations < 16U) counted_sizes[counted_allocations] = size;
+        ++counted_allocations;
+    }
     void* allocation = std::malloc(size == 0U ? 1U : size);
     if (allocation == nullptr) throw std::bad_alloc();
     return allocation;
@@ -172,6 +178,11 @@ void a_warm_show_reuses_the_window() {
         (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
         counting_allocations = false;
         warm[round] = counted_allocations;
+        const std::uint64_t recorded = counted_allocations < 16U ? counted_allocations : 16U;
+        for (std::uint64_t index = 0U; index < recorded; ++index) {
+            std::printf("  warm allocation %llu: %zu bytes\n", static_cast<unsigned long long>(index),
+                        counted_sizes[index]);
+        }
         require((*desk.model).tool_tip_visible(), "the warm tooltip shows");
         require(desk.splash() == first && desk.windowing().window_count() == 2U, "the same window shows it");
         require(desk.windowing().native_visible(*first), "and it is visible");

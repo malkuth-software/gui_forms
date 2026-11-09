@@ -20,6 +20,10 @@ public:
 // width and `line_height` each line's height, in logical units.
 struct ToolTipLines final {
     std::vector<std::string> lines{};
+    // The line being built while breaking, kept with the lines so that a
+    // warm break reuses its storage (libstdc++'s short-string buffer holds
+    // 15 bytes, libc++'s 22: a line between them allocates only on Linux).
+    std::string scratch{};
     FontSpec font{};
     double text_width{};
     double line_height{};
@@ -29,7 +33,8 @@ struct ToolTipLines final {
 // line feeds, then between words (runs of characters other than space and
 // tab), and inside a word wider than the width between graphemes. Measures
 // with `measurer`'s attached text engine, so the bubble breaks as its
-// window draws. Writes `lines` (its storage reused) and returns nothing.
+// window draws. Writes `lines` (its storage reused: lines it already holds
+// are assigned in place, never destroyed and rebuilt) and returns nothing.
 void break_tool_tip_lines(const Control& measurer, std::string_view text, double maximum_width,
                           ToolTipLines& lines);
 
