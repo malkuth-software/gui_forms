@@ -1,9 +1,7 @@
+#include "gui_forms/application.hpp"
 #include "gui_forms/canvas.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/window.hpp"
-#if GUI_FORMS_EXAMPLE_NATIVE
-#include "gui_forms/application.hpp"
-#endif
 
 #include <array>
 #include <cstddef>
@@ -75,12 +73,13 @@ struct CloseWhenReady final {
 } // namespace
 
 int main() {
+    using namespace gui_forms;
     // The program's application (APP_WINDOW_RULES_DESIGN A.2): windows made
-    // from here join it, and it runs them.
+    // from here join it and share its resources, and the native build runs
+    // them. Making it needs only Core; `run` needs GUIForms::Application.
     ApplicationCreateResult created = Application::create(ApplicationConfig{});
     if (!created) return 1;
     Application& application = *created.application;
-    using namespace gui_forms;
     Document document;
     document.pixels[0] = 231U; // Hidden color in a completely transparent pixel.
     document.undo = document.pixels;
@@ -94,7 +93,8 @@ int main() {
     (*canvas).set_view(2.0, {0, 0});
     (*canvas).bitmap = display;
     (*root).add_child(canvas);
-    std::unique_ptr<Window> window = std::make_unique<Window>(root, Size{100, 100});
+    std::unique_ptr<Window> window = std::make_unique<Window>(application, root, Size{100, 100});
+    require(application.window_count() == 1U, "the window did not join the application");
     (*window).perform_layout();
     static_cast<void>((*window).take_damage());
 
