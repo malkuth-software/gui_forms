@@ -775,13 +775,13 @@ private:
         }
         if (kind == FixtureKind::block_panel) {
             BlockPanel& panel = static_cast<BlockPanel&>(control);
-            panel.set_text_align(own.text_align);
+            panel.text_align = own.text_align;
             if (own.zero_font) {
                 const double half = own.line_height < 0.0 ? 0.0 : own.line_height / 2.0;
-                panel.set_line_strut(LineStrut{half, half, 0.0});
+                panel.line_strut = LineStrut{half, half, 0.0};
             } else {
                 // The strut comes from the panel's font, as CSS's does.
-                panel.set_font(own.font);
+                panel.font = own.font;
             }
         }
         if (text_leaf) {
@@ -947,7 +947,7 @@ private:
             configure_grid(static_cast<GridPanel&>(control), style, where);
         }
         if (roles.block_container) {
-            static_cast<BlockPanel&>(control).set_text_align(style.text_align);
+            static_cast<BlockPanel&>(control).text_align = style.text_align;
         }
         if (roles.block_item) {
             BlockFlowItemLayout& layout = child.block_item;

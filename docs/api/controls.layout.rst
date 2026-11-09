@@ -69,6 +69,14 @@ Related types
      - One child's block flow properties (CSS's names; PLAN section 2.4).
    * - :cpp:class:`BlockFlowSharedMargins <gui_forms::BlockFlowSharedMargins>`
      - The margins a nested BlockPanel's content shares with the block flow that lays it out (CSS 2.1 8.3.1), its own margins excluded.
+   * - :cpp:class:`BlockPanelCapabilities <gui_forms::BlockPanelCapabilities>`
+     - Every BlockPanel capability, in the order the declaring class takes them.
+   * - :cpp:class:`BlockPanelFontCapability <gui_forms::BlockPanelFontCapability>`
+     - The panel's own font for the strut; empty takes the theme's field typography (resolved_font).
+   * - :cpp:class:`BlockPanelLineStrutCapability <gui_forms::BlockPanelLineStrutCapability>`
+     - The strut every line box starts with (CSS 2.1 section 10.8.1), used as given; empty takes the font's line-height: normal line box at the effective text scale (used_line_strut).
+   * - :cpp:class:`BlockPanelTextAlignCapability <gui_forms::BlockPanelTextAlignCapability>`
+     - The line boxes' inline alignment; start by default.
    * - :cpp:class:`ChildTrackCapability <gui_forms::ChildTrackCapability>`
      - The track a track panel provides to its children (a child property, study sections 10 and 15.4): the authored track index, or none for the next track no child names.
    * - :cpp:class:`CommandOverflowGroupGapCapability <gui_forms::CommandOverflowGroupGapCapability>`
@@ -363,6 +371,76 @@ Related types
    .. cpp:member:: bool open
 
       No line box or nonempty block closed the leading margins: at a zero height the panel's own top and bottom margins adjoin.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BlockPanelCapabilities : public BlockPanelTextAlignCapability<Declaring>, public BlockPanelLineStrutCapability<Declaring>, public BlockPanelFontCapability<Declaring>
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/block_panel/block_panel_capabilities/block_panel_capabilities.hpp>``
+
+   Every BlockPanel capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: TextAlignment text_align
+
+      The line boxes' inline alignment; start by default. justify is not admitted (std::invalid_argument).
+
+   .. cpp:member:: std::optional<LineStrut> line_strut
+
+      The strut every line box starts with (CSS 2.1 section 10.8.1), used as given; empty takes the font's line-height: normal line box at the effective text scale (used_line_strut). Its values must be finite and nonnegative (std::invalid_argument).
+
+   .. cpp:member:: std::optional<FontSpec> font
+
+      The panel's own font for the strut; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BlockPanelFontCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/block_panel/block_panel_capabilities/block_panel_capabilities.hpp>``
+
+   The panel's own font for the strut; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BlockPanelFontCapability& capability, std::optional<FontSpec> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<FontSpec>, BlockPanelFontCapability<Declaring>> font
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BlockPanelLineStrutCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/block_panel/block_panel_capabilities/block_panel_capabilities.hpp>``
+
+   The strut every line box starts with (CSS 2.1 section 10.8.1), used as given; empty takes the font's line-height: normal line box at the effective text scale (used_line_strut). Its values must be finite and nonnegative (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BlockPanelLineStrutCapability& capability, std::optional<LineStrut> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<LineStrut>, BlockPanelLineStrutCapability<Declaring>> line_strut
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BlockPanelTextAlignCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/block_panel/block_panel_capabilities/block_panel_capabilities.hpp>``
+
+   The line boxes' inline alignment; start by default. justify is not admitted (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BlockPanelTextAlignCapability& capability, TextAlignment incoming)
+
+   .. cpp:member:: PropertyCell<TextAlignment, BlockPanelTextAlignCapability<Declaring>> text_align
+
+      Default: ``{TextAlignment::start}``.
 
 .. cpp:namespace:: gui_forms
 

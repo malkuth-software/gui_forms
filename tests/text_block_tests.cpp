@@ -341,7 +341,7 @@ void test_containers_align_by_baselines() {
 void test_block_panel_strut_and_inline_baseline() {
     CarlitoProportions metrics{};
     std::shared_ptr<BlockPanel> flow = make_control<BlockPanel>(StableId("text.block"));
-    (*flow).set_font(carlito(19.5));
+    (*flow).font = carlito(19.5);
     std::shared_ptr<TextBlock> words = text_block("text.block.words", "aaa bbb");
     (*flow).add_child(words);
     BlockFlowItemLayout inline_layout{};
@@ -356,11 +356,11 @@ void test_block_panel_strut_and_inline_baseline() {
     (*held).perform_layout();
     require_near((*words).arranged_bounds().y, 19.0 - 12.0, "the block's baseline is on the strut's");
     require_near((*words).arranged_bounds().height, 15.0, "the block keeps its own line box");
-    (*flow).set_line_strut(LineStrut{});
+    (*flow).line_strut = LineStrut{};
     (*held).perform_layout();
     require_near((*words).arranged_bounds().y, 0.0, "a zero strut leaves the line as tall as the item");
-    (*flow).clear_line_strut();
-    require(!(*flow).line_strut().has_value(), "clearing it resumes the font's");
+    (*flow).line_strut = std::nullopt;
+    require(!(*flow).line_strut.read().has_value(), "clearing it resumes the font's");
 }
 
 } // namespace

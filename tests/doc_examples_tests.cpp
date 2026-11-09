@@ -296,8 +296,8 @@ namespace doc_example_BlockPanel_2 {
 void example() {
     std::shared_ptr<gf::BlockPanel> row =
         gf::make_control<gf::BlockPanel>(gf::StableId("row"));
-    (*row).set_text_align(gf::TextAlignment::center);
-    (*row).set_line_strut(gf::LineStrut{});   // lines as tall as their items
+    (*row).text_align = gf::TextAlignment::center;
+    (*row).line_strut = gf::LineStrut{};   // lines as tall as their items
     gf::BlockFlowItemLayout atomic{};
     atomic.level = gf::BlockFlowLevel::inline_level;
     atomic.width = gf::SizeValue{gf::SizeKind::length_percentage,
