@@ -322,6 +322,33 @@ void test_window_overrides() {
 
 } // namespace
 
+struct CountRequests final {
+    int* requests{};
+    void operator()() const { ++(*requests); }
+};
+
+// Files the platform asks the application to open (macOS Finder) arrive as
+// request_open_files does: kept in order until taken, announced once each.
+void test_open_files() {
+    ApplicationCreateResult created = Application::create(ApplicationConfig{});
+    require(static_cast<bool>(created), "an application for the open-files requests");
+    Application& application = *created.application;
+    require(application.request_open_files({"/early/a.png"}), "a request before any handler is kept");
+    int requests = 0;
+    SubscriptionToken token = application.open_files_requested().subscribe(CountRequests{&requests});
+    require(application.request_open_files({"/later/b.png", "/later/c.png"}) && requests == 1,
+            "a request is announced once");
+    const std::vector<std::string> taken = application.take_open_files();
+    require(taken == std::vector<std::string>{"/early/a.png", "/later/b.png", "/later/c.png"},
+            "the paths are taken in order, an early request first");
+    require(application.take_open_files().empty(), "taken paths are gone");
+    require(!application.request_open_files({}) && requests == 1, "an empty request is refused, unannounced");
+    std::vector<std::string> many(Application::maximum_pending_open_files + 1U, std::string("/x"));
+    require(!application.request_open_files(std::move(many)) && application.take_open_files().empty(),
+            "a request beyond the bound is refused whole");
+    token.disconnect();
+}
+
 int main() {
     try {
         test_no_application();
@@ -332,6 +359,7 @@ int main() {
         test_application_destroyed_first();
         test_presentation_and_overrides();
         test_window_overrides();
+        test_open_files();
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';
         return EXIT_FAILURE;

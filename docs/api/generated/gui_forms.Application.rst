@@ -62,6 +62,11 @@ gui_forms::Application
          (``Window::set_tool_tips_shown``). A tooltip that already shows stays
          until it closes. Any thread.
 
+   :Events:
+
+      **open_files_requested** : ``Event<>``
+         Raised after request_open_files keeps paths. A handler takes them with take_open_files.
+
    .. rubric:: Methods
 
    .. list-table::
@@ -78,6 +83,10 @@ gui_forms::Application
         - Checks a set of windows against the rules :cpp:func:`run <gui_forms::Application::run>` applies, without presenting anything, and returns the first problem as an :cpp:class:`ApplicationResult <gui_forms::ApplicationResult>`.
       * - :cpp:func:`capabilities <gui_forms::Application::capabilities>`
         - The capability record of the linked native host: its name and the services it offers, such as dialogs, clipboard and cursors.
+      * - :cpp:func:`request_open_files <gui_forms::Application::request_open_files>`
+        - Files the platform asks the running application to open, as a command line names them at launch: on macOS, a document double-clicked in Finder, dropped on the Dock icon or opened with "Open With", at launch or later (application:openURLs:).
+      * - :cpp:func:`take_open_files <gui_forms::Application::take_open_files>`
+        - The paths requested and not yet taken, oldest first; the application holds none afterwards.
       * - :cpp:func:`run <gui_forms::Application::run>`
         - ``run(std::unique_ptr<Window>, ApplicationWindowOptions)`` presents one window, with the stable ID ``"main"``.
       * - :cpp:func:`shutdown <gui_forms::Application::shutdown>`
@@ -234,6 +243,13 @@ gui_forms::Application
       Sets :cpp:func:`tool_tips_shown <gui_forms::Application::tool_tips_shown>`; see the property's description above.
 
 
+   .. rubric:: Events
+
+   .. cpp:function:: Event<>& open_files_requested() noexcept
+
+      Raised after request_open_files keeps paths. A handler takes them with take_open_files.
+
+
    .. rubric:: Methods
 
    .. cpp:function:: static ApplicationCreateResult create(ApplicationConfig config)
@@ -281,6 +297,14 @@ gui_forms::Application
       without a native host reports the name ``"unsupported"`` and no
       capabilities.
 
+   .. cpp:function:: bool request_open_files(std::vector<std::string> paths)
+
+      Files the platform asks the running application to open, as a command line names them at launch: on macOS, a document double-clicked in Finder, dropped on the Dock icon or opened with "Open With", at launch or later (application:openURLs:). Windows and Linux start a process with the paths on its command line instead, which the program reads itself. The host calls request_open_files on the UI thread with the paths in UTF-8; a program may call it too (to hand its own command line to the same handler). The application keeps the paths, in order, until take_open_files takes them, then raises open_files_requested. A program that subscribes late takes what came before. Returns false, keeping nothing and raising nothing, for an empty request or one that would hold more than maximum_pending_open_files paths. UI thread.
+
+   .. cpp:function:: std::vector<std::string> take_open_files()
+
+      The paths requested and not yet taken, oldest first; the application holds none afterwards. UI thread.
+
    .. cpp:function:: ApplicationResult run(std::unique_ptr<Window> window, ApplicationWindowOptions options = {})
 
       ``run(std::unique_ptr<Window>, ApplicationWindowOptions)`` presents one
@@ -322,3 +346,7 @@ gui_forms::Application
    .. cpp:member:: constexpr std::size_t maximum_windows
 
       Default: ``64U``.
+
+   .. cpp:member:: constexpr std::size_t maximum_pending_open_files
+
+      -- files the platform asks the application to open ----------------- The most paths the application holds untaken; a request beyond it is refused whole. Default: ``4096U``.

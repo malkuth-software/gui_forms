@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/event.hpp"
 #include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/host/windowing/host_windowing.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
@@ -339,6 +340,32 @@ public:
     // closes. Any thread.
     void set_tool_tips_shown(bool shown) noexcept;
     [[nodiscard]] bool tool_tips_shown() const noexcept;
+
+    // -- files the platform asks the application to open -----------------
+    // The most paths the application holds untaken; a request beyond it is
+    // refused whole.
+    static constexpr std::size_t maximum_pending_open_files = 4096U;
+    // Files the platform asks the running application to open, as a command
+    // line names them at launch: on macOS, a document double-clicked in
+    // Finder, dropped on the Dock icon or opened with "Open With", at launch
+    // or later (application:openURLs:). Windows and Linux start a process
+    // with the paths on its command line instead, which the program reads
+    // itself. The host calls request_open_files on the UI thread with the
+    // paths in UTF-8; a program may call it too (to hand its own command
+    // line to the same handler). The application keeps the paths, in
+    // order, until take_open_files takes them, then raises
+    // open_files_requested. A program that subscribes late takes what came
+    // before. Returns false, keeping nothing and raising nothing, for an
+    // empty request or one that would hold more than
+    // maximum_pending_open_files paths. UI thread.
+    bool request_open_files(std::vector<std::string> paths);
+    // The paths requested and not yet taken, oldest first; the application
+    // holds none afterwards. UI thread.
+    [[nodiscard]] std::vector<std::string> take_open_files();
+    // Raised after request_open_files keeps paths. A handler takes them with
+    // take_open_files.
+    [[nodiscard]] Event<>& open_files_requested() noexcept { return open_files_requested_; }
+
     [[nodiscard]] ApplicationResult run(
         std::unique_ptr<Window> window, ApplicationWindowOptions options = {});
     [[nodiscard]] ApplicationResult run(
@@ -365,6 +392,9 @@ private:
     std::shared_ptr<KeyBindings> key_bindings_{};
     // Shared with joined windows, which read it from their threads.
     std::shared_ptr<std::atomic<bool>> tool_tips_shown_{};
+    // Paths request_open_files kept and take_open_files has not taken.
+    std::vector<std::string> pending_open_files_{};
+    Event<> open_files_requested_{};
     // The joined windows, oldest first.
     Window* first_window_{};
     Window* last_window_{};
