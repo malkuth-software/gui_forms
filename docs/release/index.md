@@ -4,7 +4,12 @@ Every push to `main` that passes the build, the tests and a launch of each
 packaged program is published on the
 [Releases page](https://github.com/malkuth-software/gui_forms/releases) as
 `vX.Y.Z`, with generated notes naming the commit and the platforms. The notes
-below describe each release series.
+below describe each release series and each stage.
+
+The package and the tags still carry the 0.2 version number (`v0.2.N`):
+the stages 0.3, 0.4 and 0.5 were not tagged separately, and their content
+reached the published builds as it landed. The newest work is under
+[Unreleased (towards 1.0)](unreleased).
 
 ## Documentation site
 
@@ -37,6 +42,10 @@ from commits that CI passed:
 ```{toctree}
 :maxdepth: 1
 
+unreleased
+0.5
+0.4
+0.3
 0.2
 0.1
 ```

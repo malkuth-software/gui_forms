@@ -67,6 +67,49 @@ duplicate winners after the previous match rather than always choosing the
 first. `DialogKeySnapshot` reports attempts, handled commands, candidates,
 collisions and completed cycles.
 
+## Key events
+
+Controls and windows raise key events in the Windows Forms shape:
+
+- **On a control:** `preview_key_down`, `key_down`, `key_press` and
+  `key_up`.
+- **On a window:** `key_down`, `key_press` and `key_up`. These reach the
+  window before the focused control, like Windows Forms' KeyPreview
+  (always on for a subscriber). A handler that sets `handled` keeps the key
+  or its text from the control.
+- **`key_state_changed`:** the window's raw press and release of each
+  physical key, raised once (no auto-repeats) before anything can consume
+  the key. It includes the releases the window makes when it loses
+  activation. `Window::is_key_down(physical_key)` says whether a key is
+  down now.
+
+`KeyEventArgs` carries:
+- `key_code`, the Windows Forms `Keys` code;
+- `physical_key` and `scan_code`;
+- the modifiers;
+- `repeat`;
+- `released_by_deactivation`;
+- `handled` and `suppress_key_press`.
+
+`PreviewKeyDownEventArgs::is_input_key` claims a navigation key for the
+control. `KeyPressEventArgs` carries committed text only: input-method
+marked text passes untouched, and `suppress_key_press` drops a key's text.
+
+A key travels in this order:
+1. `key_state_changed`;
+2. key rules;
+3. `preview_key_down`;
+4. accelerators (ProcessCmdKey);
+5. the window's `key_down`;
+6. the control's `key_down`;
+7. the bubble to its ancestors;
+8. accelerators, dialog keys and Tab traversal (ProcessDialogKey), unless
+   the control claimed the key as an input key.
+
+Every handler runs on the UI thread, and a handler may close the window,
+which ends the key's route. In the C ABI, `windows.key_state` reads a key's
+state, and the key interactions and their payloads are in the schema.
+
 ## Focus
 
 `Window::request_focus(control)` moves focus if the control is focusable,
@@ -98,6 +141,27 @@ Validation
   mutation during a validation callback and rechecks both endpoints after
   the callbacks return. `ValidationSnapshot` reports attempt, success, cancel,
   block and reentrancy counts.
+
+Composite fields
+: A combo box with an edit field, NumericUpDown, DomainUpDown,
+  MaskedTextBox, TokenBox and SearchField give focus to their edit part
+  (`Control::focus_target`). Focusing the composite puts the caret in the
+  edit, as in Windows Forms. The window's active control is the composite,
+  and the composite reports itself focused while its edit holds the caret.
+  `focusable` is a schema property.
+
+Focus restore
+: A window remembers its focused control when its own root is disabled or
+  hidden, and gives focus back when the root is enabled or shown again,
+  when the window is reactivated, and when a modal window over it closes.
+  A control disabled inside the window still loses focus for good, as in
+  Windows Forms.
+
+From C
+: `controls.focus` gives a control focus, and refuses with
+  `GF_STATUS_INVALID_STATE` when the control cannot take it.
+  `controls.focus_state` reads Focused and ContainsFocus.
+  `windows.focused_control` reads a window's focused control.
 
 ## Activation and dialog keys
 

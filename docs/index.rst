@@ -25,6 +25,11 @@ GUI.Forms documentation
 `Issue Tracker <https://github.com/malkuth-software/gui_forms/issues>`_ |
 `Releases <https://github.com/malkuth-software/gui_forms/releases>`_
 
+**What's new**:
+:doc:`Unreleased (towards 1.0) <release/unreleased>` |
+:doc:`0.5, the ABI and API seal <release/0.5>` |
+:doc:`Roadmap <dev/roadmap>`
+
 GUI.Forms is a retained, CPU-rendered forms toolkit written in C++20. You
 build a tree of controls once, change it imperatively, and the toolkit tracks
 exactly which layout, paint and hit-test work each change requires. It

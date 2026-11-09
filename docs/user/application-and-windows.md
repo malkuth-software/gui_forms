@@ -145,6 +145,58 @@ const int exit_code = result.accepted() ? 0 : 1;
   caches once per process, after the last `run` has returned and every
   window is gone. A process that ends without it leaks nothing.
 
+## Window properties
+
+A `Window` has Windows Forms' window properties, written and read like any
+other property (`(*window).text = "Report"`, `window.opacity.read()`). The
+properties are:
+- `text` (the title) and `icon`;
+- `form_border_style`, `minimize_box`, `maximize_box` and `control_box`;
+- `window_state`, `top_most`, `opacity` and `start_position` (which
+  applies before the window is first shown);
+- `show_in_taskbar` and `minimum_size`.
+
+A write is validated first: an invalid value throws `std::invalid_argument`
+and changes nothing. Only the properties a program wrote are sent to the
+host, when the native window appears and at once while it exists. Each host
+reports which properties it honours (`supported_window_chrome`). macOS has
+no icon or taskbar setting, for example.
+
+`ApplicationWindowOptions::minimum_size` defaults to {0, 0}: no minimum
+beyond the host's own, as Windows Forms' empty `MinimumSize`. When
+`Application::validate` refuses a window, `ApplicationResult::refusal`
+names why.
+
+## Modal and owned windows
+
+During a run, `ApplicationWindows` (from an `ApplicationWindowHandle`) can
+open more windows:
+
+- `open_window` opens an owned or tool window.
+- `show_modal` opens an owned window and runs a nested event loop until it
+  closes, as `Form.ShowDialog` does. While it runs:
+  - the run's other windows refuse input;
+  - posted work, timers and repainting continue everywhere;
+  - setting a dialog result on the window's model asks it to close.
+
+  It returns an `ApplicationModalResult` with that dialog result, or
+  `cancel` when the window closed without one. Nesting is bounded
+  (`HostWindowing::maximum_modal_depth`). A host without a nested loop
+  refuses (capability `supports_modal_windows`).
+
+When a modal window closes, its owner gets focus back.
+
+## Files the platform asks to open
+
+A platform can ask a running program to open documents. On macOS these
+come from the Finder: a double-click, a drop on the Dock icon, or Open With.
+The application keeps the paths, in order, until
+`Application::take_open_files` takes them, and raises
+`open_files_requested` after each request. A program that subscribes late
+still takes what came at launch. A program may hand its own command line to
+`request_open_files`. On Windows and Linux, files arrive on a new process's
+command line, as before.
+
 ## Tests and headless use
 
 Construct the window without running it: `my_app::MainWindow window(settings);`.
@@ -162,5 +214,14 @@ a `gf_theme_report`; `close` and `state` complete it. `GF_TABLE_THEMES` holds
 the one theme every window shows, so a theme loaded before a run is each
 window's from its first frame. A window is made with `windows.create(root)`.
 The splashscreen calls of `GF_TABLE_RUNTIME` work before anything else, on
-the thread that will be the UI thread. See the C ABI header
+the thread that will be the UI thread.
+
+Since 1.1, additively:
+- `windows.show_modal` and `windows.show_owned` open modal and owned
+  windows over the running window;
+- `overlays.open_anchored` and `close_anchored` open menus and drop-downs;
+- `properties.get`, `set` and `reset` take the window properties above on
+  a window (schema component type `window`);
+- `windows.key_state` and `windows.focused_control` read keys and focus
+  ([Input and focus](input-and-focus.md#key-events)). See the C ABI header
 `gui_forms/c/gf_abi.h` and [The C ABI conformance kit](c-abi-conformance-kit).

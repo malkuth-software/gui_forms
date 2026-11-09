@@ -7,7 +7,7 @@ which remain the detailed source; where they disagree with the code, the code
 and its tests are the authority.
 
 ```{image} ../_static/roadmap.svg
-:alt: Releases toward 1.0: 0.1 Shipped, 0.2 Verified, 0.3 Themeable, 0.4 Flexible, 0.5 ABI seal, then 1.0 Backend, then Tools (the designers), then 1.0 Stable.
+:alt: Releases toward 1.0: 0.1 Shipped, 0.2 Verified, 0.3 Themeable, 0.4 Flexible and 0.5 ABI seal are done; 1.0 Backend is in progress; then Tools (the designers), then 1.0 Stable.
 :width: 100%
 :class: roadmap-figure
 ```
@@ -45,8 +45,9 @@ details are under [Done and tested](#done-and-tested).
 
 ## 0.3 Themeable and 0.4 Flexible
 
-These two stages are finished and were not tagged: their content ships in
-0.5. What they delivered:
+These two stages are finished and were not tagged: their content shipped in
+the published builds as it landed ([0.3 notes](../release/0.3),
+[0.4 notes](../release/0.4)). What they delivered:
 
 - **The theme engine**: themes are data (properties, layered effects,
   transitions, state machines and bounded expressions), and an idle window
@@ -74,91 +75,162 @@ These two stages are finished and were not tagged: their content ships in
   of the control superset (badges, banners, toasts, toggle switches, search
   fields, spinners and progress rings).
 
-## 0.5 ABI and API seal
+## 0.5 ABI and API seal (done)
 
-0.5 is an internal candidate that finalises the ABI, the API and the
-languages, then touches them up and records the seal. After 0.5, a change to
-a sealed interface needs a recorded owner decision. What is sealed:
+0.5 was declared done on 2026-11-08, and its last checkpoint merged on
+2026-11-09. It finalised the C ABI (version 1.1, with a blocking
+breaking-change audit), properties as capabilities, the application, its
+windows and rules, the Window, Popup and Splash kinds, the form language,
+the theme language and effects, sub-surfaces and the creation-cost
+contract. It also brought smooth scrolling, the window band, theme
+variants and the reference application. After 0.5, a change to a sealed
+interface needs a recorded owner decision. The
+[0.5 release notes](../release/0.5) list it in full.
 
-- **The C ABI**, version 1.1: installed and versioned, with an error model,
-  a breaking-change audit of its function tables against a recorded
-  baseline, a conformance kit for native consumers, and C# interop over it.
-  It covers the application, rules, sub-surfaces and the splashscreen.
-- **Properties as capabilities**: every property is a cell, a view or a
-  collection cell with one spelling, `(*c).text = "OK"` to write and
-  `.read()` to read, typed conversions through `as_type`, and child
-  properties such as `(*grid).area[*c]`. Getter and setter pairs for
-  properties are gone ([Properties](../user/properties)).
-- **The application, its windows and rules**: `Application::create`, one
-  current application whose theme compiles once, the window a form generates
-  as a `Window` subclass bound at construction, and window rules over a
-  closed vocabulary ([The application and its windows](../user/application-and-windows),
-  [Rules](../user/rules)).
-- **Window kinds**: Window, Popup and Splash, with the splashscreen API and
-  the hosts' `transient_surfaces` capability
-  ([Overlays, Popups and Splash](../user/overlays-popups-and-splash)).
-- **The form language**: `.form` documents, in-slot bindings, generated
-  window and user-control classes, and the refusals that keep colours, fonts
-  and program code out of documents ([Forms](../user/forms)).
-- **The theme language and effects**: selectors, specificity and origins,
-  `:family()`, backdrops, inline styles and user themes
-  ([The theme language](../user/theme-language)).
-- **Sub-surfaces**: threaded regions of a window with their own input,
-  effects and accessibility.
-- **The creation-cost contract**: window creation does no hidden work,
-  enforced by a benchmark gate.
-- **Smooth scrolling**: a notched wheel, the scroll bar's arrows and track,
-  and paging glide to their target; precise (trackpad) deltas apply at once;
-  reduced motion makes every scroll instant
-  ([Controls](../user/controls.md#scrolling)).
-- **The default theme** becomes GUI.Forms' own (`gui-forms`), beside the four
-  familiar themes.
-- **The reference application**, `examples/reference`, shows the sealed API
-  in one program.
+## 1.0 (backend): in progress
 
-At the seal the ABI baseline is recorded again from the sealed head, and the
-breaking-change audit becomes blocking: a change that breaks the recorded
-tables fails CI.
+1.0 (backend) is the library, its C ABI and its C# bindings. Work goes in
+blocks, with coders writing in parallel and checkpoints verified on every
+host before they merge.
 
-What remains before the seal, with the open owner decisions, is tracked in
-the project's coordination records; the stage plans are in
-[`planning/`](https://github.com/malkuth-software/notes/tree/gui_forms/planning).
+### Done since the seal
 
-## After 0.5
+On `main` (checkpoints 24 and 25; see
+[Unreleased](../release/unreleased)):
 
-Planned after the seal, in this order:
+- `gui-forms` is the default theme.
+- **C ABI additions**, additive over 1.1:
+  - keys and NumericUpDown's range;
+  - modal and owned windows and anchored overlays;
+  - window properties;
+  - keyboard focus, with composite fields and focus restore.
+- **Styled text runs** in TextBox.
+- A public SHA-256.
+- The host file gaps: Finder open-files on macOS, and Linux dialog filters
+  that ignore case.
+- macOS readback probes.
+- Allocation-free unkept parts.
 
-1. **The final controls**, then GUI.Forms is declared **1.0 (backend)**:
-   the library, its ABI and its C# bindings.
-2. **The visual tools**: the Windows Forms conversion program, the visual
-   editor, the interface builder and Visual Studio integration, as separate,
-   closed-source tools. The library stays MIT.
-3. **A final cleanup round**, better documentation and tutorials, then
-   **1.0 Stable**.
+Folding in checkpoint 26 (pull request #476, not yet merged):
+- the data grid in the C ABI;
+- the ribbon gaps;
+- the look integration's first rows;
+- the declarative drag engine;
+- the Blender-style value bar;
+- new drawing primitives;
+- the plots package.
 
-Work already placed after the seal:
+### In progress
 
-- **The macOS checks**: the host rows still open on macOS (the compositor
-  gate's light, dark and reduced-transparency rows among them) are verified
-  after the seal.
-- **Outer-edge effects**: the active border and effects drawn past a
-  control's box, with the window band and host shaping.
-- **Splash, further**: baking Splash content on a worker thread, and menus
-  as their own Splash kind.
-- **Rules in form documents**, limited to the built-in actions.
-- **Loading form documents at run time** as a public API.
-- **Capability demonstrators**: a node-graph editor, a flame-graph viewer,
-  retained equivalents of what Dear ImGui and ImPlot exercise, and some 3D
-  plotting.
-- **An Emscripten build**, after `stx_skia`. Painting stays on the CPU;
-  WebGL only presents the finished frame.
+Theming is not done
+: The owner's look studies (the ribbon study and its scaling study, the
+  design language, the docking and PageView studies) are not yet fully
+  integrated into the themes. The look integration is a ledger of 87 rows:
+  - 56 were already implemented;
+  - 23 are implemented and waiting to merge;
+  - 8 are left;
+  - seven owner questions are open.
+
+  The ribbon's remaining behaviour is still "not yet": the minimized
+  ribbon's temporary popup, the Quick Access Toolbar on the tab row, and
+  the help question mark with a window help card.
+
+The swap-in proof of concept
+: An existing Windows Forms program can run on GUI.Forms without being
+  recompiled. A launcher puts a Windows Forms facade over the C ABI in
+  place of Windows Forms, and logs whatever is not yet supported. The
+  first real target is SDR#, the software-defined radio receiver:
+  - it now runs on GUI.Forms with a live radio;
+  - its docking library runs as its own code on the facade;
+  - it has a theme package that matches its own look.
+
+  The C ABI additions above came from this work.
+
+Products on GUI.Forms
+: Plan Paint, PlaySuite and SwiftEdit are being ported to the current API
+  and the C ABI. Their gaps feed the library.
+
+macOS
+: The macOS checks of the focus stack, smooth-scroll feel, Cmd-Q, logout,
+  live resize and the compositor rows.
+
+### Next
+
+The final controls
+: The remaining Windows Forms controls and the control superset's rest:
+  - callout;
+  - wizard and step indicator;
+  - gauges and dial;
+  - a seven-segment readout;
+  - a lookup combo;
+  - an in-window modal layer;
+  - About.
+
+Engine pieces
+: The node canvas (blueprint backgrounds, curved links), effects taken from
+  Dear ImGui as effect programs, and the active border on controls and the
+  window band.
+
+The help system
+: A help viewer in the old Windows (CHM) shape, on the paper style of Plan
+  Paint's help:
+  - a window and a docked book, with Contents, Index, Search and Bookmarks
+    tabs;
+  - history and printing;
+  - F1 context help;
+  - What's This.
+
+  Help is part of each program's translatable text: every control's
+  record gains a short help line, a markdown help body and keywords, keyed
+  by stable ID. Stand-alone topics are records of their own. The contents
+  tree is generated from the program's structure. The help section and its
+  search index are compiled with the language files, and the C ABI gets a
+  help table before 1.0.
+
+The C# bindings
+: Generated C# bindings, a Windows Forms-shaped package and a corpus of
+  programs, on the C ABI. The SDR# reflection is rebuilt on the current
+  ABI first.
+
+Demonstrators and exhibits
+: A node-graph editor, a flame graph and profiler viewer, retained
+  equivalents of what Dear ImGui and ImPlot exercise, 3D plotting, and the
+  first exhibits (an oscilloscope, process control, a wizard and data
+  entry).
+
+The website
+: Screenshots of the template examples for the project's website.
+
+The 1.0 conditions
+: The same normative traces on Windows, macOS and X11, the member
+  manifest, and two independent consumers passing conformance (see
+  [1.0 Stable](#10-stable)).
+
+## Tools (after 1.0 backend)
+
+The visual tools are closed source and separate from the library, which
+stays MIT. Binaries come from the website. There is no nag screen and no
+splash: each tool shows the line "MALKUTH SOFTWARE CONSULTING" in its title
+bar and one line along the top. The licence is freeware, single seat. The
+tools are:
+
+- the theme editor, which captures every control for reference and lets
+  you click a control to see and edit the rules that affect it (started);
+- the WYSIWYG designer, with flex and grid snapping and in-line theme
+  overrides;
+- Visual Studio integration for C++ and C#;
+- the Windows Forms conversion program;
+- the mirrored-mode launcher (the swap-in above), already in progress.
+
+Then a cleanup round, documentation and tutorials, and reproducible,
+signed packaging lead to **1.0 Stable**.
 
 After 1.0:
-
-- **HTML import**: converting static web pages into GUI.Forms documents.
-- **A light FreeType fork**, with the known defects fixed.
-- **Identical floating-point results on every architecture**, removing the
-  differences fused multiply-add produces between arm64 and x86-64.
+- HTML import (converting static web pages into GUI.Forms documents);
+- a light FreeType fork;
+- identical floating-point results on every architecture;
+- an Emscripten build (the CPU painting stays; WebGL only presents the
+  finished frame).
 
 ## 1.0 Stable
 
@@ -278,46 +350,29 @@ gates as their own rows. "Done" means the deliverable exists and a test in
   pipeline that builds, tests, packages and launch-tests each of them before
   publishing archives, installers and checksums.
 
-## In progress
+## Open work by area
 
-The 0.5 seal
-: Landing the last checkpoint on every platform, the gate records of the
-  GUI.Forms and familiar themes, the form-document gate and the compositor
-  gate's remaining Windows and X11 rows, the creation-cost baselines, smooth
-  scrolling, the switch of the default theme to GUI.Forms' own (decided by
-  the owner, with the four familiar themes approved), the reference
-  application in `examples/reference`, and the re-recorded ABI baseline with
-  the audit blocking.
+The current work is under
+[1.0 (backend): in progress](#10-backend-in-progress). By area, what is
+still open:
 
 Documentation
 : Reviewed descriptions for the public members the API reference still lists
   by signature only, screenshots captured by CI rather than by hand, and the
   wiki tutorial, Setting up a GUI.Forms application.
 
-Demonstration programs
-: The Explore preview's remaining interaction gates, tracked in that
-  program's status file.
-
 Hosts
 : Input-method preedit on Windows and X11, drag and drop on Windows, and
   outbound drag on every host.
 
-Themes
-: Fine-tuning of the GUI.Forms theme and the scroll bars; the owner has
-  approved the four familiar themes.
-
 Compositor cooperation
-: The stage gate's remaining rows: the Windows fallback and settings rows
-  and X11 with and without a compositing manager. The macOS light, dark and
-  reduced-transparency rows come after 0.5.
-
-Layout
-: The text corpus for the layout gate (parked).
+: The stage gate's remaining rows: the Windows fallback and settings rows,
+  X11 with and without a compositing manager, and the macOS light, dark
+  and reduced-transparency rows.
 
 Windows Forms controls
 : The link role and column, menu letter mnemonics, the slow-click label
-  edit, the RichTextBox run model and the remaining ListView and TabControl
-  gaps.
+  edit and the remaining ListView and TabControl gaps.
 
 ## Not planned
 
