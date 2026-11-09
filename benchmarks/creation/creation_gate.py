@@ -19,8 +19,9 @@ check: five runs; per case the median of their medians. Fails when the
 allocations exceed the baseline's, or the median exceeds median_ns plus
 threshold_ns. Prints one line per case and the verdict.
 
-The time rule (spread of ten runs, compared with a median of five) is this
-gate's author's choice while Q-K1 is open.
+The time rule is the owner's ruling Q-K1 (a), 2026-11-08: each threshold is
+the spread of the first ten runs' medians on the M4, recorded in the
+manifest; allocation counts stay exact.
 """
 import argparse
 import re
