@@ -75,11 +75,11 @@ void add_buttons(Surface& page, const InspectionRow& row) {
     (*disabled).enabled = false;
     add_cell(page, row, 1U, "disabled", disabled);
     const std::shared_ptr<Button> standing = make_control<Button>(StableId(inspection_id(row, "default", "")), "OK");
-    (*standing).set_default_button(true);
+    (*standing).default_button = true;
     add_cell(page, row, 2U, "default", standing);
     const std::shared_ptr<Button> standing_disabled =
         make_control<Button>(StableId(inspection_id(row, "default-disabled", "")), "OK");
-    (*standing_disabled).set_default_button(true);
+    (*standing_disabled).default_button = true;
     (*standing_disabled).enabled = false;
     add_cell(page, row, 3U, "default disabled", standing_disabled);
 }

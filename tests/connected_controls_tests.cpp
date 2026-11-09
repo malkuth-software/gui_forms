@@ -304,7 +304,7 @@ void test_atomic_grouping_hit_cracks_focus_and_semantics() {
     require(operation_count("connected.test.middle",
                             VisualPaintOperation::draw_line) == 1U,
             "disabled interior state must retain one shared seam");
-    (*first).set_default_button(true);
+    (*first).default_button = true;
     static_cast<void>(window.request_focus(first));
     static_cast<void>(window.paint(painter, window.take_damage().bounds()));
     require(operation_count("connected.test.first",

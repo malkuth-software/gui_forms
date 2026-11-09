@@ -370,7 +370,7 @@ void example() {
         gf::make_control<gf::Button>(gf::StableId("dialog.ok"), "OK");
     std::shared_ptr<gf::Button> cancel =
         gf::make_control<gf::Button>(gf::StableId("dialog.cancel"), "Cancel");
-    (*ok).set_dialog_result(gf::DialogResult::ok);
+    (*ok).dialog_result = gf::DialogResult::ok;
     (*ok).set_requested_bounds({8.0, 8.0, 80.0, 28.0});
     (*cancel).set_requested_bounds({96.0, 8.0, 80.0, 28.0});
     (*cancel).causes_validation = false;

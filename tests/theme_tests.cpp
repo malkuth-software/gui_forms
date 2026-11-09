@@ -273,7 +273,7 @@ void test_button_routes_hover_and_status_through_theme_recipes() {
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("theme.states.root"));
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("theme.states.button"), "Run");
     (*button).set_requested_bounds({20.0, 20.0, 100.0, 30.0});
-    (*button).set_default_button(true);
+    (*button).default_button = true;
     (*root).add_child(button);
     Window window(root, {160.0, 80.0});
     window.perform_layout();

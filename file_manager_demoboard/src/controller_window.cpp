@@ -176,7 +176,7 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
 
     std::shared_ptr<gui_forms::Button> reset = std::make_shared<Button>(StableId("demo.reset"), "Reset to reference");
     (*reset).set_requested_bounds({0,0,180,30});
-    (*reset).set_default_button(true);
+    (*reset).default_button = true;
     (*root).add_child(reset);
 
     std::shared_ptr<ControllerLifetime> lifetime =

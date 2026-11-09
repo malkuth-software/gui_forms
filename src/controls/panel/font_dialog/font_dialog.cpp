@@ -120,9 +120,9 @@ void FontDialog::initialize_control_tree() {
     (*size_box_).decimal_places = 1U;
     (*size_box_).increment = 1.0;
     (*size_box_).set_range(minimum_size_, maximum_size_);
-    (*ok_button_).set_default_button(true);
-    (*ok_button_).set_dialog_result(DialogResult::ok);
-    (*cancel_button_).set_dialog_result(DialogResult::cancel);
+    (*ok_button_).default_button = true;
+    (*ok_button_).dialog_result = DialogResult::ok;
+    (*cancel_button_).dialog_result = DialogResult::cancel;
     add_child(face_caption_);
     add_child(style_caption_);
     add_child(size_caption_);

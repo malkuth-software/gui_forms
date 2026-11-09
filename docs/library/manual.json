@@ -108,10 +108,6 @@
       "summary": "Button specializes ButtonBase with accept/cancel dialog results, default-button state, four public visual policies, bounded flat-border width, and event ordering that commits dialog state before command publication.",
       "methods": {
         "Button": "Constructs a ButtonBase with standard visual policy and no dialog result.",
-        "default_button": "Reports whether Window currently designates this command as the default action.",
-        "set_default_button": "Commits the default cue and invalidates paint and semantics.",
-        "dialog_result": "Returns the result assigned to successful activation.",
-        "set_dialog_result": "Validates the dialog-result vocabulary, commits it, and publishes dialog_result_changed.",
         "dialog_result_changed": "Returns the event published after dialog result commits.",
         "on_paint": "Resolves the selected visual role/style and records default/focus/content cues.",
         "visual_outsets": "Reports outsets for the active role recipe or compatibility rendering."

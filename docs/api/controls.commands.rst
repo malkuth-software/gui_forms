@@ -52,8 +52,14 @@ Related types
      - A direct generational image resource for the button's content (Image); a view onto the image slot: a write clears image_index and image_key.
    * - :cpp:class:`ButtonCapabilities <gui_forms::ButtonCapabilities>`
      - Every Button capability, in the order the declaring class takes them.
+   * - :cpp:class:`ButtonDefaultButtonCapability <gui_forms::ButtonDefaultButtonCapability>`
+     - Whether the button draws and announces itself as the default button; the window's accept_button writes it through notify_default.
+   * - :cpp:class:`ButtonDialogResultCapability <gui_forms::ButtonDialogResultCapability>`
+     - The result the button gives its window when activated (none: no result); an undefined value throws std::invalid_argument.
    * - :cpp:class:`ButtonFlatBorderWidthCapability <gui_forms::ButtonFlatBorderWidthCapability>`
      - Border width in logical pixels of a flat button; finite and nonnegative (std::invalid_argument).
+   * - :cpp:class:`ButtonSelectedCapability <gui_forms::ButtonSelectedCapability>`
+     - Whether the button shows as selected (a checked command's push button); a change raises selected_changed.
    * - :cpp:class:`ButtonUseMnemonicCapability <gui_forms::ButtonUseMnemonicCapability>`
      - Whether an ampersand in the text marks the access key (UseMnemonic).
    * - :cpp:class:`ButtonVisualStyleChoiceCapability <gui_forms::ButtonVisualStyleChoiceCapability>`
@@ -280,7 +286,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ButtonCapabilities : public ButtonVisualStyleChoiceCapability<Declaring>, public ButtonFlatBorderWidthCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ButtonCapabilities : public ButtonVisualStyleChoiceCapability<Declaring>, public ButtonFlatBorderWidthCapability<Declaring>, public ButtonDefaultButtonCapability<Declaring>, public ButtonDialogResultCapability<Declaring>, public ButtonSelectedCapability<Declaring>
 
    ``#include <gui_forms/controls/button_base/button/button_capabilities/button_capabilities.hpp>``
 
@@ -296,6 +302,50 @@ Related types
    .. cpp:member:: double flat_border_width
 
       Border width in logical pixels of a flat button; finite and nonnegative (std::invalid_argument).
+
+   .. cpp:member:: bool default_button
+
+      Whether the button draws and announces itself as the default button; the window's accept_button writes it through notify_default.
+
+   .. cpp:member:: DialogResult dialog_result
+
+      The result the button gives its window when activated (none: no result); an undefined value throws std::invalid_argument. A change raises dialog_result_changed.
+
+   .. cpp:member:: bool selected
+
+      Whether the button shows as selected (a checked command's push button); a change raises selected_changed.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ButtonDefaultButtonCapability
+
+   ``#include <gui_forms/controls/button_base/button/button_capabilities/button_capabilities.hpp>``
+
+   Whether the button draws and announces itself as the default button; the window's accept_button writes it through notify_default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ButtonDefaultButtonCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ButtonDefaultButtonCapability<Declaring>> default_button
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ButtonDialogResultCapability
+
+   ``#include <gui_forms/controls/button_base/button/button_capabilities/button_capabilities.hpp>``
+
+   The result the button gives its window when activated (none: no result); an undefined value throws std::invalid_argument. A change raises dialog_result_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ButtonDialogResultCapability& capability, DialogResult incoming)
+
+   .. cpp:member:: PropertyCell<DialogResult, ButtonDialogResultCapability<Declaring>> dialog_result
+
+      Default: ``{DialogResult::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -313,6 +363,21 @@ Related types
    .. cpp:member:: PropertyCell<double, ButtonFlatBorderWidthCapability<Declaring>> flat_border_width
 
       Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ButtonSelectedCapability
+
+   ``#include <gui_forms/controls/button_base/button/button_capabilities/button_capabilities.hpp>``
+
+   Whether the button shows as selected (a checked command's push button); a change raises selected_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ButtonSelectedCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ButtonSelectedCapability<Declaring>> selected
 
 .. cpp:namespace:: gui_forms
 

@@ -157,7 +157,7 @@ void empty_entry_passes_enter_on() {
     std::shared_ptr<Button> accept = make_control<Button>(StableId("tokens.dialog.accept"), "OK");
     (*box).set_requested_bounds({10.0, 10.0, 300.0, 60.0});
     (*accept).set_requested_bounds({10.0, 90.0, 80.0, 28.0});
-    (*accept).set_dialog_result(DialogResult::ok);
+    (*accept).dialog_result = DialogResult::ok;
     (*root).add_child(box);
     (*root).add_child(accept);
     Window window(root, {400.0, 160.0});

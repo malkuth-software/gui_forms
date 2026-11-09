@@ -50,6 +50,45 @@ struct ButtonFlatBorderWidthCapability {
     }
 };
 
+// Whether the button draws and announces itself as the default button; the window's accept_button writes it through notify_default.
+template <typename Declaring>
+struct ButtonDefaultButtonCapability {
+    PropertyCell<bool, ButtonDefaultButtonCapability<Declaring>> default_button{};
+
+    static void assign(ButtonDefaultButtonCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.default_button), incoming);
+        if (!capability.default_button.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.default_button));
+    }
+};
+
+// The result the button gives its window when activated (none: no result); an undefined value throws std::invalid_argument. A change raises dialog_result_changed.
+template <typename Declaring>
+struct ButtonDialogResultCapability {
+    PropertyCell<DialogResult, ButtonDialogResultCapability<Declaring>> dialog_result{DialogResult::none};
+
+    static void assign(ButtonDialogResultCapability& capability, DialogResult incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.dialog_result), incoming);
+        if (!capability.dialog_result.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.dialog_result));
+    }
+};
+
+// Whether the button shows as selected (a checked command's push button); a change raises selected_changed.
+template <typename Declaring>
+struct ButtonSelectedCapability {
+    PropertyCell<bool, ButtonSelectedCapability<Declaring>> selected{};
+
+    static void assign(ButtonSelectedCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.selected), incoming);
+        if (!capability.selected.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.selected));
+    }
+};
+
 // ButtonVisualStyle as a property value; defined beside Button's table.
 template <>
 struct PropertyValueTraits<ButtonVisualStyle> {
@@ -61,6 +100,9 @@ struct PropertyValueTraits<ButtonVisualStyle> {
 // Every Button capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct ButtonCapabilities : public ButtonVisualStyleChoiceCapability<Declaring>,
-                            public ButtonFlatBorderWidthCapability<Declaring> {};
+                            public ButtonFlatBorderWidthCapability<Declaring>,
+                            public ButtonDefaultButtonCapability<Declaring>,
+                            public ButtonDialogResultCapability<Declaring>,
+                            public ButtonSelectedCapability<Declaring> {};
 
 } // namespace gui_forms

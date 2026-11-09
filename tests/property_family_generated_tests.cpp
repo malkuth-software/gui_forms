@@ -231,6 +231,33 @@ void test_button_properties() {
         expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
                "Button.flat_border_width: the table reads the cell");
     }
+    {
+        const bool sample = true;
+        (*control).default_button = sample;
+        expect((*control).default_button.read() == sample, "Button.default_button: a write stores");
+    }
+    {
+        const DialogResult sample = DialogResult::ok;
+        int raises = 0;
+        const SubscriptionToken token = (*control).dialog_result_changed().subscribe(RaiseCounter{&raises});
+        (*control).dialog_result = sample;
+        expect((*control).dialog_result.read() == sample, "Button.dialog_result: a write stores");
+        expect(raises == 1, "Button.dialog_result: a changed write raises once");
+        (*control).dialog_result = sample;
+        expect(raises == 1, "Button.dialog_result: an equal write raises nothing");
+        static_cast<void>(token);
+    }
+    {
+        const bool sample = true;
+        int raises = 0;
+        const SubscriptionToken token = (*control).selected_changed().subscribe(RaiseCounter{&raises});
+        (*control).selected = sample;
+        expect((*control).selected.read() == sample, "Button.selected: a write stores");
+        expect(raises == 1, "Button.selected: a changed write raises once");
+        (*control).selected = sample;
+        expect(raises == 1, "Button.selected: an equal write raises nothing");
+        static_cast<void>(token);
+    }
 }
 
 void test_button_base_properties() {

@@ -583,7 +583,7 @@ std::shared_ptr<CriteriaSurfacePanel> make_criteria_surface(ProductRefs& refs) {
     (*actions).cell[*refs.criteria_action_state] = GridCell{.row = 1, .column = 0};
     refs.criteria_apply = button("fm.criteria.apply", "Apply 1", {0, 0, 78, 27},
                                  ButtonVisualStyle::accent);
-    (*refs.criteria_apply).set_default_button(true);
+    (*refs.criteria_apply).default_button = true;
     (*refs.criteria_apply).margin = {2, 1, 2, 1};
     (*refs.criteria_apply).dock = DockStyle::fill;
     (*actions).add_child(refs.criteria_apply);

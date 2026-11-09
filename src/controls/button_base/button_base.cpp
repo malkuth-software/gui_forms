@@ -81,7 +81,7 @@ private:
             return;
         }
         Button* const push_button = dynamic_cast<Button*>(&button);
-        if (push_button != nullptr) (*push_button).set_selected(checkable && checked);
+        if (push_button != nullptr) (*push_button).selected = checkable && checked;
     }
     void publish_checked(const bool checked) {
         if (!state_.connected()) return;

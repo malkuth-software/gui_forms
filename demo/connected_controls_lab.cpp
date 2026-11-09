@@ -276,7 +276,7 @@ std::unique_ptr<Window> make_connected_controls_lab() {
         {24.0, 239.0, 410.0, 20.0});
     std::shared_ptr<Button> three_default = segment<Button>(
         "connected-controls.three.default", "Default", {24.0, 262.0, 130.0, 42.0}, root);
-    (*three_default).set_default_button(true);
+    (*three_default).default_button = true;
     std::shared_ptr<CheckBox> three_checked = segment<CheckBox>(
         "connected-controls.three.checked", "Checked", {154.0, 262.0, 132.0, 42.0}, root);
     (*three_checked).appearance = CheckBoxAppearance::button;
@@ -298,7 +298,7 @@ std::unique_ptr<Window> make_connected_controls_lab() {
             "connected-controls.five." + std::to_string(index),
             std::array<const char*, 4U>{"Cut", "Copy", "Paste", "Delete"}[index],
             {24.0 + static_cast<double>(index) * 112.0, 343.0, 112.0, 42.0}, root);
-        if (index == 1U) (*item).set_selected(true);
+        if (index == 1U) (*item).selected = true;
         if (index == 2U) (*item).enabled = false;
         if (index == 3U) (*item).set_visual_status(ControlVisualStatus::pending);
         five_group[index] = item;
@@ -319,7 +319,7 @@ std::unique_ptr<Window> make_connected_controls_lab() {
             "connected-controls.vertical." + std::to_string(index),
             std::array<const char*, 3U>{"Details", "List", "Icons"}[index],
             {642.0, 101.0 + static_cast<double>(index) * 44.0, 170.0, 44.0}, root);
-        if (index == 2U) (*item).set_selected(true);
+        if (index == 2U) (*item).selected = true;
         vertical_group[index] = item;
     }
     connect_button_group(vertical_group, ConnectedControlAxis::vertical);

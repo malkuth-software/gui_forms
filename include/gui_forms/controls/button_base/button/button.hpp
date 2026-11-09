@@ -12,17 +12,9 @@ class Button : public ButtonBase, public ButtonCapabilities<Button> {
 public:
     explicit Button(StableId stable_id, std::string text = {});
 
-    [[nodiscard]] bool default_button() const noexcept { return default_button_; }
-    void set_default_button(bool is_default);
-    [[nodiscard]] DialogResult dialog_result() const noexcept {
-        return dialog_result_;
-    }
-    void set_dialog_result(DialogResult result);
     [[nodiscard]] Event<DialogResult>& dialog_result_changed() noexcept {
         return dialog_result_changed_;
     }
-    [[nodiscard]] bool selected() const noexcept { return selected_; }
-    void set_selected(bool selected);
     [[nodiscard]] Event<bool>& selected_changed() noexcept { return selected_changed_; }
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
@@ -65,13 +57,10 @@ private:
     void notify_default(bool value) override;
     void on_activate() override;
     [[nodiscard]] DialogResult command_dialog_result() const noexcept override {
-        return dialog_result_;
+        return dialog_result.read();
     }
     void assign_cancel_dialog_result() override;
-    bool default_button_{};
-    DialogResult dialog_result_{DialogResult::none};
     Event<DialogResult> dialog_result_changed_;
-    bool selected_{};
     // property_codemod begin Button (tools/property_families/button.json; generated, do not edit)
 public:
     // Button's property table: ButtonBase's entries, then its own.
@@ -82,11 +71,20 @@ public:
 private:
     friend struct ButtonVisualStyleChoiceCapability<Button>;
     friend struct ButtonFlatBorderWidthCapability<Button>;
+    friend struct ButtonDefaultButtonCapability<Button>;
+    friend struct ButtonDialogResultCapability<Button>;
+    friend struct ButtonSelectedCapability<Button>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(visual_style)& cell, ButtonVisualStyle& incoming);
     void written(const decltype(visual_style)& cell);
     void prepare_write(const decltype(flat_border_width)& cell, double& incoming);
     void written(const decltype(flat_border_width)& cell);
+    void prepare_write(const decltype(default_button)& cell, bool& incoming);
+    void written(const decltype(default_button)& cell);
+    void prepare_write(const decltype(dialog_result)& cell, DialogResult& incoming);
+    void written(const decltype(dialog_result)& cell);
+    void prepare_write(const decltype(selected)& cell, bool& incoming);
+    void written(const decltype(selected)& cell);
     // property_codemod end Button
 };
 
