@@ -34,6 +34,7 @@
 #include <memory>
 #include <span>
 #include <stdexcept>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -297,7 +298,12 @@ bool same_trace(const std::vector<std::string>& left, const std::vector<std::str
 
 // The C++ path: the package compiled through ApplicationResources against
 // the fixture's own control types and applied with set_theme.
-std::vector<std::string> cpp_trace(const ThemePackage& package, double level) {
+// The C++ path's trace of the fixture with `level` published. With
+// `earlier`, the window first paints with `earlier` published and then
+// publishes `level`, as a running window does: a second paint leaves out
+// what the first one kept (the backplane plane, when the theme draws one).
+std::vector<std::string> cpp_trace(const ThemePackage& package, double level,
+                                   std::optional<double> earlier = std::nullopt) {
     const std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
     const ThemeLibrary library{};
     const Control::Ptr root = make_fixture();
@@ -321,8 +327,13 @@ std::vector<std::string> cpp_trace(const ThemePackage& package, double level) {
     }
     (*resources).set_theme(compiled.theme());
     Window window(root, fixture_size, resources);
+    if (earlier) {
+        require(window.publish_value(published_name, *earlier), "the C++ path publishes the earlier value");
+        static_cast<void>(trace_of(window));
+    }
     require(window.publish_value(published_name, level), "the C++ path publishes the value");
-    return trace_of(window);
+    std::vector<std::string> trace = trace_of(window);
+    return trace;
 }
 
 // Where the traces are written when the program is given a directory, so
@@ -384,7 +395,7 @@ void run_gate() {
     require_ok(themes.publish_value(view_of(published_name), 0.25), "themes.publish_value (running)");
     const std::vector<std::string> republished = trace_of(*abi_window);
     abi1::engine().detach_window();
-    require(same_trace(republished, cpp_trace(package, 0.25), "after publishing 0.25", true),
+    require(same_trace(republished, cpp_trace(package, 0.25, 0.5), "after publishing 0.25", true),
             "a value published through the ABI repaints as Window::publish_value does");
     require(!same_trace(republished, through_abi, "0.25 against 0.5", false),
             "the trace depends on the published value");

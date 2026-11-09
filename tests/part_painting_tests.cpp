@@ -126,8 +126,19 @@ void surfaces_and_cues(const Control& control) {
     paint_part(focused, control, focus);
     const ControlVisualRecipe& recipe =
         theme.resolve(ControlVisualRole::button, part_visual_context(control, focus.states));
-    require(focused.count("stroke_rounded") == 1U && focused.operations[0].color == recipe.focus_ring,
-            "a visible focus cue strokes one ring in the recipe's focus colour");
+    if (recipe.dotted_focus) {
+        // The default theme's house ring is dotted: square dots, each in the
+        // recipe's focus colour, and no stroked ring.
+        bool every_dot_in_focus_colour = !focused.operations.empty();
+        for (const Operation& dot : focused.operations) {
+            if (!(dot.color == recipe.focus_ring)) every_dot_in_focus_colour = false;
+        }
+        require(focused.count("stroke_rounded") == 0U && every_dot_in_focus_colour,
+                "a visible dotted focus cue paints dots in the recipe's focus colour");
+    } else {
+        require(focused.count("stroke_rounded") == 1U && focused.operations[0].color == recipe.focus_ring,
+                "a visible focus cue strokes one ring in the recipe's focus colour");
+    }
 
     PartPaint preselect = focus;
     preselect.role = PartRole::preselect;

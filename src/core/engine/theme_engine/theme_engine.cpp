@@ -706,24 +706,71 @@ bool same_assembly(const AssembledPartMaterial& assembled, std::uint64_t rules_s
     return same_floor;
 }
 
+// A window's unkept assemblies, lent by ThemeEngine::paint_planned (which
+// SurfaceRoot admits) for one part's paint.
+struct UnkeptAssemblies final {
+    std::array<UnkeptPartAssembly, unkept_part_assembly_count>& entries;
+    std::size_t& next;
+    Metrics& metrics;
+};
+
+// The material assembled from `floor` and the fields of `resolution` for
+// a part that keeps no assembly of its own, from `window`'s unkept
+// assemblies: an entry with the same identity (same_assembly, and the same
+// `darkened` role) is reused; otherwise the next entry in turn is assembled
+// again, and darkened for `darkened`'s role when it is set. Each assembly is
+// counted. The result is borrowed from the window within this paint.
+const SurfaceMaterial& unkept_assembly(UnkeptAssemblies& window, std::uint64_t rules_serial,
+                                       const SurfaceMaterial& floor, Rect box, MaterialAssemblyContext context,
+                                       const CompiledThemeRules::Resolution& resolution,
+                                       std::optional<ControlVisualRole> darkened) {
+    // The box keys the assembly only where a field reads it; so does the em.
+    const Size size{box.width, box.height};
+    const Size keyed = material_fields_read_box(resolution.materials) ? size : Size{};
+    std::array<UnkeptPartAssembly, unkept_part_assembly_count>& entries = window.entries;
+    for (UnkeptPartAssembly& entry : entries) {
+        if (!entry.filled || entry.darkened != darkened) continue;
+        if (same_assembly(entry.assembled, rules_serial, floor, keyed, context, resolution)) {
+            return entry.assembled.material;
+        }
+    }
+    std::size_t& next = window.next;
+    UnkeptPartAssembly& entry = entries[next];
+    next = (next + 1U) % unkept_part_assembly_count;
+    AssembledPartMaterial& held = entry.assembled;
+    held.rules_serial = rules_serial;
+    held.inline_serial = resolution.inline_serial;
+    held.user_serial = resolution.user_serial;
+    held.fields = resolution.materials;
+    held.box = keyed;
+    held.em = context.em;
+    held.current_colour = context.current_colour;
+    held.floor = floor;
+    assemble_material(floor, resolution.materials, size, context, held.material);
+    if (darkened) detail::darken_material(held.material, *darkened);
+    entry.darkened = darkened;
+    entry.filled = true;
+    window.metrics.record_engine_material_assembly();
+    return held.material;
+}
+
 // The material a part with authored material fields draws: its record's
 // assembly, made again only when the assembly's identity changed, or, for
-// a part without a record, `unkept`, assembled for this paint. Each
-// assembly is counted. The result is borrowed from `kept` or `unkept`.
-const SurfaceMaterial& authored_material(EnginePartRecord* kept, std::uint64_t rules_serial,
+// a part without a record, one of the window's unkept assemblies
+// (unkept_assembly). Each assembly is counted. The result is borrowed from
+// `kept` or the window.
+const SurfaceMaterial& authored_material(UnkeptAssemblies& window, EnginePartRecord* kept, std::uint64_t rules_serial,
                                          const SurfaceMaterial& floor, Rect box, MaterialAssemblyContext context,
-                                         const CompiledThemeRules::Resolution& resolution,
-                                         std::optional<SurfaceMaterial>& unkept, Metrics& metrics) {
+                                         const CompiledThemeRules::Resolution& resolution, Metrics& metrics) {
+    if (kept == nullptr) {
+        const std::optional<ControlVisualRole> light{};
+        const SurfaceMaterial& unkept = unkept_assembly(window, rules_serial, floor, box, context, resolution, light);
+        return unkept;
+    }
     // The box keys the assembly only where a field reads it, so that a
     // resize assembles nothing new otherwise; so does the em (P8c).
     const Size size{box.width, box.height};
     const Size keyed = material_fields_read_box(resolution.materials) ? size : Size{};
-    if (kept == nullptr) {
-        unkept.emplace();
-        assemble_material(floor, resolution.materials, size, context, *unkept);
-        metrics.record_engine_material_assembly();
-        return *unkept;
-    }
     std::unique_ptr<AssembledPartMaterial>& held = (*kept).assembled_material;
     if (held != nullptr && same_assembly(*held, rules_serial, floor, keyed, context, resolution)) {
         return (*held).material;
@@ -1147,7 +1194,12 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
     // recipe role for the part's state (E8-1), with the material fields the
     // rules set in place (EC1), the part's own corner radius and the
     // window's images, for this paint only.
-    std::optional<SurfaceMaterial> unkept_material{};
+    // A material made for this paint only (forced high contrast) is
+    // assembled into the window's one paint slot, and a part that keeps no
+    // assembly borrows one of the window's unkept assemblies: paint_planned
+    // is not reentrant, and nothing below reaches another part's paint
+    // while they are borrowed, so one slot is enough.
+    SurfaceMaterial* unkept_material = nullptr;
     std::optional<SurfaceMaterial> authored_ground{};
     std::optional<SurfaceMaterial> unreflected{};
     std::optional<SurfaceMaterial> ground{};
@@ -1165,11 +1217,11 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
             if (material_fields_read_em(forced.fields)) {
                 relative.em = text_role_em(control, resolved_text_role(control, resolution.font));
             }
-            unkept_material.emplace();
+            unkept_material = &(*window).engine_paint_material();
             assemble_material(recipe.material, forced.fields, Size{part.bounds.width, part.bounds.height}, relative,
                               *unkept_material);
             (*window).metrics().record_engine_material_assembly();
-            request.target.material = &*unkept_material;
+            request.target.material = unkept_material;
         } else if (resolution.materials_authored && context.dark && derives_dark(control.effective_theme())) {
             // The dark variant (T4 phase 5): the rules' fields in place on
             // the light recipe's material, then the whole darkened by rule,
@@ -1186,12 +1238,10 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
                 const ResolvedControlRecipe text = theme.resolve(control, part.family, light_context, part.states);
                 relative.current_colour = text.recipe().text;
             }
-            unkept_material.emplace();
-            assemble_material(light.material, resolution.materials, Size{part.bounds.width, part.bounds.height},
-                              relative, *unkept_material);
-            detail::darken_material(*unkept_material, *material_role);
-            (*window).metrics().record_engine_material_assembly();
-            request.target.material = &*unkept_material;
+            UnkeptAssemblies unkept{(*window).engine_unkept_assemblies(), (*window).engine_unkept_next(),
+                                    (*window).metrics()};
+            request.target.material = &unkept_assembly(unkept, rules_.serial(), light.material, part.bounds,
+                                                       relative, resolution, *material_role);
         } else if (resolution.materials_authored) {
             // The part's em and text colour, where a field reads them (P8c).
             MaterialAssemblyContext relative{};
@@ -1203,9 +1253,10 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
                 const ResolvedControlRecipe text = theme.resolve(control, part.family, context, part.states);
                 relative.current_colour = text.recipe().text;
             }
-            request.target.material = &authored_material(kept, rules_.serial(), recipe.material, part.bounds,
-                                                         relative, resolution, unkept_material,
-                                                         (*window).metrics());
+            UnkeptAssemblies unkept{(*window).engine_unkept_assemblies(), (*window).engine_unkept_next(),
+                                    (*window).metrics()};
+            request.target.material = &authored_material(unkept, kept, rules_.serial(), recipe.material,
+                                                         part.bounds, relative, resolution, (*window).metrics());
         }
         // An authored background (owner decision T4-1) stands as the
         // material's only fill, under an important rule's primitive and
@@ -1240,18 +1291,21 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
     // part's presentation, as a material of one transparent fill and those
     // shadows at the part's corner radius (its own, else its family
     // recipe's), for this paint only. A theme that casts none draws nothing.
-    SurfaceMaterial overlay{};
+    // Made only for a part that borrows it: a SurfaceMaterial's default
+    // fill is a heap allocation, which every other part would pay.
+    std::optional<SurfaceMaterial> overlay{};
     if ((*request.primitive).lends_overlay_shadow()) {
         const ControlVisualContext context = part_visual_context(control, part.states);
         const Theme& theme = control.effective_theme();
         const std::vector<MaterialShadow>& layers = theme.overlay_shadow(context.high_contrast);
         if (layers.empty()) return;
         const ControlVisualRecipe& recipe = theme.resolve(part.family, context);
-        overlay.fills.assign(1U, MaterialFillLayer::solid(Color::rgba(0, 0, 0, 0)));
-        overlay.shadows = layers;
-        overlay.corner_radius = recipe.material.corner_radius;
-        if (part.corner_radius) overlay.corner_radius = std::max(0.0, *part.corner_radius);
-        request.target.material = &overlay;
+        overlay.emplace();
+        (*overlay).fills.assign(1U, MaterialFillLayer::solid(Color::rgba(0, 0, 0, 0)));
+        (*overlay).shadows = layers;
+        (*overlay).corner_radius = recipe.material.corner_radius;
+        if (part.corner_radius) (*overlay).corner_radius = std::max(0.0, *part.corner_radius);
+        request.target.material = &*overlay;
         request.target.images = &(*window).image_resources();
     }
     // A material that reflects the backplane (stage T5, PLAN.md §4.4)

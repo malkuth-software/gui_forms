@@ -372,6 +372,8 @@ Types
      - ThemeTypographyTokens defines role-aware control, field, caption, heading, title, and monospace font recipes.
    * - :cpp:class:`ThemeWindowBackdrop <gui_forms::ThemeWindowBackdrop>`
      - The theme's window backdrop (stage T5, owner decision T5-Q8, option 1): what a window showing the theme asks the compositor for, and the base its backplane is drawn from over each backdrop the window may be granted (notes:planning/stages/T5-compositor/PLAN.md §4.1).
+   * - :cpp:class:`UnkeptPartAssembly <gui_forms::UnkeptPartAssembly>`
+     - One of a window's assemblies for parts that keep none of their own (a part without a record, and every part's derived dark variant): the assembly, the role whose dark variant darkened it (none for a light assembly) and whether it holds one yet.
    * - :cpp:class:`UserThemeFiles <gui_forms::UserThemeFiles>`
      - A user theme's files (T3 user themes, notes:planning/stages/ T3-theme-language/USER_THEMES.md): its name, the stem of its main file ``themes/<name>.css``; that file's bytes; and the files of its folder ``themes/<name>/``, each by its path inside the folder, as the host read them.
    * - :cpp:class:`UserThemeHeader <gui_forms::UserThemeHeader>`
@@ -5455,6 +5457,20 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: UnkeptPartAssembly final
+
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+
+   One of a window's assemblies for parts that keep none of their own (a part without a record, and every part's derived dark variant): the assembly, the role whose dark variant darkened it (none for a light assembly) and whether it holds one yet.
+
+   .. cpp:member:: AssembledPartMaterial assembled
+
+   .. cpp:member:: std::optional<ControlVisualRole> darkened
+
+   .. cpp:member:: bool filled
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: UserThemeFiles final
 
    ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
@@ -7374,6 +7390,10 @@ Functions, constants and aliases
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+
+.. cpp:var:: constexpr std::size_t unkept_part_assembly_count
+
+   How many assemblies a window keeps for such parts: a strip's tabs share a few identities (resting, selected, hot), so a few entries keep a repeated paint from assembling, or allocating, again. Value: ``8U``.
 
 .. cpp:var:: constexpr std::size_t maximum_item_part_records
 

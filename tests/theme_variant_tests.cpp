@@ -406,8 +406,8 @@ void test_automatic_scheme() {
     ApplicationResources& resources = *window.resources();
     require(!resources.automatic_colour_scheme(), "automatic is off by default");
     resources.set_automatic_colour_scheme(true);
-    require(window.presentation_settings().colour_scheme == ColourScheme::dark && window.theme_fallback(),
-            "on, the window takes the host's last report");
+    require(window.presentation_settings().colour_scheme == ColourScheme::dark && !window.theme_fallback(),
+            "on, the window takes the host's last report, and the default theme shows its dark variant");
     state.generation = CompositorGeneration{2U};
     state.dark_scheme = false;
     window.set_compositor_state(state, true);

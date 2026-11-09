@@ -1,6 +1,7 @@
 """build_sdk.py configures exactly as ci_build.py's build_toolkit does, less tests and programs."""
 from __future__ import annotations
 
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -45,9 +46,16 @@ def definitions(command: list[str]) -> dict[str, str]:
 
 
 def ci_configure(host: str, build: Path) -> list[str]:
-    """The configure command ci_build.build_toolkit runs for host, without running anything."""
+    """The configure command ci_build.build_toolkit runs for host, without running anything.
+
+    Run as outside GitHub Actions: there, ci_build also requires the effect
+    verifier on Linux (GUI_FORMS_EFFECT_VERIFY_REQUIRED), a gate on the CI
+    image that changes nothing built, so the SDK does not set it."""
+    outside_actions: dict[str, str] = dict(os.environ)
+    outside_actions.pop("GITHUB_ACTIONS", None)
     with mock.patch.object(ci_build, "prepare_host", ignore_preparation), \
-            mock.patch.object(ci_build, "configure_tree", capture_configure):
+            mock.patch.object(ci_build, "configure_tree", capture_configure), \
+            mock.patch.dict(os.environ, outside_actions, clear=True):
         try:
             ci_build.build_toolkit(host, build, build / "gui-forms-sdk", 1)
         except Captured as captured:
