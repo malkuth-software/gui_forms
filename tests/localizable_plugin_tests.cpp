@@ -109,6 +109,15 @@ void exercise(Controls& controls, Window& window, bool never, int mode) {
     (*controls.combo).items = {"Small", "Medium"};
     (*controls.combo).items.append("Large");
     (*controls.list).items.append(std::string("Extra"));
+    // Every localizable property is a cell (PropertyCell or CollectionCell)
+    // whose field carries the mark: a write is the cell's operator= or one
+    // of the collection's edits, through a pointer as a generated window's
+    // members are reached.
+    (*controls.button).tool_tip_text = "Closes the window";
+    (*controls.button).accessible_description = "Closes the settings window";
+    (*controls.list).items.insert(0U, "First item");
+    (*controls.list).items.replace(0U, "Replaced item");
+    (*controls.label).text = never ? "Pointer on" : "Pointer off";
 
     // Not localizable: a text box's text is the user's.
     (*controls.box).text = "User content";
@@ -170,6 +179,12 @@ const std::vector<Expected>& expected_records() {
         {"items", "Medium", exercise_name, self, 1U},
         {"items", "Large", exercise_name, self, 1U},
         {"items", "Extra", exercise_name, self, 1U},
+        {"tool_tip", "Closes the window", exercise_name, self, 1U},
+        {"accessible_description", "Closes the settings window", exercise_name, self, 1U},
+        {"items", "First item", exercise_name, self, 1U},
+        {"items", "Replaced item", exercise_name, self, 1U},
+        {"text", "Pointer on", exercise_name, self, 1U},
+        {"text", "Pointer off", exercise_name, self, 1U},
         {"text", "Helper caption", exercise_name, self, 1U},
         {"text", "From a template", "localizable_dogfood::set_from_template", self, 1U},
         {"text", "Group caption", exercise_name, self, 1U},

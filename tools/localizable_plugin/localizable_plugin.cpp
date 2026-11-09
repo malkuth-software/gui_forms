@@ -5,7 +5,14 @@
 //
 // The localizable pass. Loaded with -fplugin during the normal compile, it finds every string
 // literal that reaches a parameter or field annotated
-// GUI_FORMS_LOCALIZABLE(property) (gui_forms/text/localizable/localizable_property.hpp)
+// GUI_FORMS_LOCALIZABLE(property) (gui_forms/text/localizable/localizable_property.hpp).
+// A control's localizable properties are cells whose field carries the mark
+// (PropertyCell, CollectionCell), so `(*status).text = "Ready";` is found as
+// the cell's operator= on an annotated member (assignment), and
+// `items.append("Large")` / insert / replace as a member call on one
+// (member_cell_call); the mark on a capability template's field holds in
+// each instantiation. Marked function parameters (Command::set_text, your
+// own helpers) are found at their calls.
 // and writes one table per translation unit into a dedicated section of the
 // object file: the property, a content-derived variant name, the call site
 // (file, line, column, enclosing function) and the literal's bytes. It rewrites
