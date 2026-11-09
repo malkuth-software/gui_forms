@@ -182,30 +182,18 @@ void test_load() {
 // names and a nullable soft limit as a number.
 void test_value_bar() {
     const FormSchema schema = sample_schema();
-    const std::string_view document = "user-control render.root {
-"
-                                      "  value-bar render.samples {
-"
-                                      "    minimum: 1;
-"
-                                      "    maximum: 4096;
-"
-                                      "    soft-maximum: 256;
-"
-                                      "    value: 64;
-"
-                                      "    precision: 0;
-"
-                                      "    presentation: field;
-"
-                                      "    label: \"Samples\";
-"
-                                      "  }
-"
-                                      "  value-bar render.opacity { unit: percent; maximum: 1; value: 0.5; }
-"
-                                      "}
-";
+    const std::string_view document = "user-control render.root {\n"
+                                      "  value-bar render.samples {\n"
+                                      "    minimum: 1;\n"
+                                      "    maximum: 4096;\n"
+                                      "    soft-maximum: 256;\n"
+                                      "    value: 64;\n"
+                                      "    precision: 0;\n"
+                                      "    presentation: field;\n"
+                                      "    label: \"Samples\";\n"
+                                      "  }\n"
+                                      "  value-bar render.opacity { unit: percent; maximum: 1; value: 0.5; }\n"
+                                      "}\n";
     Workspace workspace{};
     LoadedForm loaded{};
     const FormLoadOutcome outcome = load(workspace, document, schema, loaded);

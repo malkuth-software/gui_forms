@@ -1,5 +1,12 @@
 #include "support.hpp"
 
+#include "gui_forms/controls/instruments/sparkline/sparkline.hpp"
+#include "gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp"
+#include "gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp"
+#include "gui_forms/controls/plots/plot_series_item/plot_series_item.hpp"
+#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
+#include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
+
 #include "gui_forms/controls/toast/toast.hpp"
 #include "gui_forms/engine.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
@@ -830,6 +837,23 @@ void test_schema_export() {
     toast_content.message = "Sample";
     const std::shared_ptr<Toast> toast = make_control<Toast>(StableId("schema.toast"), std::move(toast_content));
     record_control(*toast, records);
+    // Types no Gallery page shows yet: the plots and instruments packages'
+    // PlotView with its item children and Sparkline, and the ValueBar. The
+    // items have no anatomy of their own and are recorded by their ids.
+    const std::shared_ptr<PlotView> plot_view = make_control<PlotView>(StableId("schema.plot-view"));
+    const std::shared_ptr<PlotAxisItem> plot_axis = make_control<PlotAxisItem>(StableId("schema.plot-axis"));
+    const std::shared_ptr<PlotSeriesItem> plot_series =
+        make_control<PlotSeriesItem>(StableId("schema.plot-series"));
+    const std::shared_ptr<PlotAnnotationItem> plot_annotation =
+        make_control<PlotAnnotationItem>(StableId("schema.plot-annotation"));
+    const std::shared_ptr<Sparkline> sparkline = make_control<Sparkline>(StableId("schema.sparkline"));
+    const std::shared_ptr<ValueBar> value_bar = make_control<ValueBar>(StableId("schema.value-bar"));
+    record_control(*plot_view, records);
+    record_component("plot_axis_item", *plot_axis, records);
+    record_component("plot_series_item", *plot_series, records);
+    record_component("plot_annotation_item", *plot_annotation, records);
+    record_control(*sparkline, records);
+    record_control(*value_bar, records);
 
     // Components, constructed directly.
     const std::shared_ptr<Command> command = std::make_shared<Command>();

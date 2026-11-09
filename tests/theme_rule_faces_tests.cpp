@@ -225,21 +225,16 @@ void test_text_box_parts() {
     (*field).set_requested_bounds({10.0, 10.0, 160.0, 24.0});
     (*root).add_child(field);
     Window window(root, Size{200.0, 60.0});
-    window.set_theme(theme_from_sheet("text-box::part(well) { background: #a01080; }
-"));
+    window.set_theme(theme_from_sheet("text-box::part(well) { background: #a01080; }\n"));
     window.perform_layout();
     ColourPainter painter{};
     window.paint(painter);
     require(painter.filled(well_purple), "text-box::part(well) paints the field's ground");
 
-    const ThemeCompileResult face = compiled_sheet(":root { ink-on-paper: #c01020 on #ffffff; }
-"
-                                                   "text-box::part(face) { background: #a01080; }
-"
-                                                   "text-box::part(content) { color: role(ink-on-paper); }
-"
-                                                   "text-box::part(well) { background: #a01080; }
-");
+    const ThemeCompileResult face = compiled_sheet(":root { ink-on-paper: #c01020 on #ffffff; }\n"
+                                                   "text-box::part(face) { background: #a01080; }\n"
+                                                   "text-box::part(content) { color: role(ink-on-paper); }\n"
+                                                   "text-box::part(well) { background: #a01080; }\n");
     require(face.succeeded(), "a sheet styling a text box's unthemed parts still compiles");
     require(count_diagnostics(face, "W112", "text-box::part(well)") == 2U,
             "the face's background and the content's colour each warn W112, naming the well");
@@ -279,14 +274,12 @@ void test_container_grounds() {
     const std::array<std::string_view, 4> types{{"user-control", "container-control", "scrollable-control",
                                                  "split-container"}};
     for (const std::string_view type : types) {
-        const std::string sheet = std::string(type) + "::part(face) { background: #d09010; }
-";
+        const std::string sheet = std::string(type) + "::part(face) { background: #d09010; }\n";
         require(containers_fill(sheet, ground_amber), std::string(type) + "::part(face) paints the container's ground");
     }
     const std::shared_ptr<UserControl> alone = make_control<UserControl>(StableId("probe.alone"));
     Window bare(alone, Size{100.0, 60.0});
-    bare.set_theme(theme_from_sheet(":family(panel) { background: #107070; }
-"));
+    bare.set_theme(theme_from_sheet(":family(panel) { background: #107070; }\n"));
     bare.perform_layout();
     ColourPainter unnamed{};
     bare.paint(unnamed);
@@ -298,8 +291,7 @@ void test_container_grounds() {
 // list still styles its controls.
 void test_unknown_part_in_a_list() {
     const ThemeCompileResult result =
-        compiled_sheet("user-control::part(lid), panel::part(face) { background: #d09010; }
-");
+        compiled_sheet("user-control::part(lid), panel::part(face) { background: #d09010; }\n");
     require(result.succeeded(), "the list compiles");
     require(count_diagnostics(result, "W106", "lid") == 1U && result.diagnostics().size() == 1U,
             "the unknown part warns once (W106)");

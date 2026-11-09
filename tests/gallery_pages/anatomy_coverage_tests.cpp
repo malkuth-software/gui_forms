@@ -1,5 +1,9 @@
 #include "support.hpp"
 
+#include "gui_forms/controls/instruments/sparkline/sparkline.hpp"
+#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
+#include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
+
 #include <algorithm>
 #include <cstdlib>
 #include <array>
@@ -20,7 +24,7 @@ constexpr std::array<std::string_view, 0> anatomy_pending{
 // Registry entries that are not controls: nonvisual components and the
 // LiveSurface service type. They have no parts; a component that shows
 // something (a context menu, a tool tip) does so through an internal control.
-constexpr std::array<std::string_view, 24> nonvisual_entries{
+constexpr std::array<std::string_view, 27> nonvisual_entries{
     "command",
     "gallery_command",
     "font_command",
@@ -45,6 +49,11 @@ constexpr std::array<std::string_view, 24> nonvisual_entries{
     "binding_context",
     "live_surface",
     "dock_workspace",
+    // A PlotView's item children declare its axes, series and annotations;
+    // the PlotView paints them as its own parts.
+    "plot_axis_item",
+    "plot_series_item",
+    "plot_annotation_item",
 };
 
 // True when every state a part publishes is one its declaration lists.
@@ -298,6 +307,16 @@ void test_anatomy_coverage() {
         make_control<Toast>(StableId("anatomy.coverage.toast"), std::move(toast_content));
     inspect_control(*toast, seen_ids);
     inspected += 6U;
+    // Controls that have no Gallery page yet (the plots and instruments
+    // packages' Sparkline and PlotView, and the ValueBar): their anatomies are checked on instances made here until a
+    // page shows them.
+    const std::shared_ptr<Sparkline> sparkline = make_control<Sparkline>(StableId("anatomy.coverage.sparkline"));
+    const std::shared_ptr<PlotView> plot_view = make_control<PlotView>(StableId("anatomy.coverage.plot-view"));
+    const std::shared_ptr<ValueBar> value_bar = make_control<ValueBar>(StableId("anatomy.coverage.value-bar"));
+    inspect_control(*sparkline, seen_ids);
+    inspect_control(*plot_view, seen_ids);
+    inspect_control(*value_bar, seen_ids);
+    inspected += 3U;
 
     std::string unexpected_gaps;
     std::string stale_pending;

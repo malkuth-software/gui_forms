@@ -939,7 +939,7 @@ void DragEngine::reset_session() noexcept {
 bool DragEngine::start_session(DragClient& client, Control& owner, Control& subject, std::uint64_t key,
                                DragInputMode mode, Point press, Rect source) {
     if (phase_ != DragPhase::idle) return false;
-    if (subject.surface_root() != root_ || !finite_point(press) || !finite_rect(source)) return false;
+    if (subject.attached_surface_root() != root_ || !finite_point(press) || !finite_rect(source)) return false;
     reserve_storage();
     ++serial_;
     ++statistics_.sessions;

@@ -37,6 +37,14 @@ constexpr std::size_t legend_capacity = 32U;
     return result;
 }
 
+// The colour of the plot's rules (grid and axes): the panel's border, or its
+// top edge, else its text, for a theme that draws the panel unbordered.
+[[nodiscard]] Color rule_colour(const ControlVisualRecipe& recipe) noexcept {
+    if (recipe.material.border) return (*recipe.material.border).color;
+    if (recipe.material.border_edges.top) return (*recipe.material.border_edges.top).color;
+    return recipe.text;
+}
+
 [[nodiscard]] std::string format_value(double value) {
     std::array<char, 32> text{};
     const int written = std::snprintf(text.data(), text.size(), "%.6g", value);
@@ -543,9 +551,9 @@ void PlotEngine::paint(Painter& painter, const Control& owner, AnatomyStateSet s
         const plots::PlotTransformResult primary = plots::PlotTransform::make(xs[0], ys[0], layout_.plot, device_scale);
         if (primary.check == plots::PlotTransformCheck::valid) {
             StrokeStyle major{};
-            major.color = with_alpha(recipe.material.border, grid_major_alpha);
+            major.color = with_alpha(rule_colour(recipe), grid_major_alpha);
             StrokeStyle minor{};
-            minor.color = with_alpha(recipe.material.border, grid_minor_alpha);
+            minor.color = with_alpha(rule_colour(recipe), grid_minor_alpha);
             static_cast<void>(marks_.paint_grid(painter, ticks_[0], true, primary.transform, major, minor));
             static_cast<void>(marks_.paint_grid(painter, ticks_[2], false, primary.transform, major, minor));
         }
@@ -674,7 +682,7 @@ void PlotEngine::paint_axes(Painter& painter, const Control& owner, AnatomyState
     part.family = ControlVisualRole::panel;
     part.font = label_font;
     StrokeStyle stroke{};
-    stroke.color = recipe.material.border;
+    stroke.color = rule_colour(recipe);
     for (std::size_t slot = 0U; slot < 4U; ++slot) {
         if (!ticks_valid_[slot]) continue;
         const bool horizontal = slot < 2U;

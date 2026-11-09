@@ -524,6 +524,8 @@ PropertyDescriptor numeric_up_down_minimum_descriptor() {
     descriptor.description = "The lowest value; a minimum above the maximum raises the maximum to it, and the value is clamped into the range.";
     descriptor.default_value = BindingValue{0.0};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -603,13 +605,16 @@ const PropertyDescriptor& describe_numeric_up_down_decimal_places() {
     return descriptor;
 }
 
+const PropertyDescriptor& describe_numeric_up_down_scrub() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        numeric_up_down_scrub_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
 } // namespace
 
 const std::array<PropertyEntry, NumericUpDown::numeric_up_down_property_count>& NumericUpDown::numeric_up_down_property_entries() noexcept {
-    static constexpr std::array<PropertyEntry, 5U> own{{
-         nullptr, nullptr, nullptr,
-         nullptr},
-    static constexpr std::array<PropertyEntry, 2U> own{{
+    static constexpr std::array<PropertyEntry, 6U> own{{
         {"value", &describe_numeric_up_down_value,
          &read_cell_entry<NumericUpDown, decltype(&NumericUpDown::value), &NumericUpDown::value>,
          &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::value), &NumericUpDown::value>,

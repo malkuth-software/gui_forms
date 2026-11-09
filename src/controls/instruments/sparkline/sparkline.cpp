@@ -3,6 +3,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/plots/decimation/decimation.hpp"
 #include "gui_forms/plots/plot_transform/plot_transform.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 
@@ -178,7 +179,7 @@ void Sparkline::on_paint(Painter& painter, Rect) {
     plots::Axis y_axis{};
     y_axis.side = plots::AxisSide::left;
     y_axis.range = range.minimum < range.maximum ? range : plots::PlotRange{range.minimum - 1.0, range.maximum + 1.0};
-    const SurfaceRoot* const root = surface_root();
+    const SurfaceRoot* const root = attached_surface_root();
     const double scale = root != nullptr ? (*root).scale() : 1.0;
     const plots::PlotTransformResult made = plots::PlotTransform::make(x_axis, y_axis, plot, scale);
     if (made.check != plots::PlotTransformCheck::valid) return;

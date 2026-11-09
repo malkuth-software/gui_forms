@@ -1390,6 +1390,10 @@ Types
 
       The part's metrics and shape, where a rule naming the part sets them.
 
+   .. cpp:member:: std::optional<Color> fill_text
+
+      The text's colour where it lies over a fill (``fill-text-color``, the value bar study's section 3.6), if the theme sets one; none, the built-in recipes' value, draws such text in the fill's own selected text colour.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: CursorImage final
@@ -4628,7 +4632,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph and default_outline_colour: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``; font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``.
+   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph, default_outline_colour and fill_text: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``; font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``.
 
    .. cpp:member:: RecipeField field
 
@@ -7161,6 +7165,8 @@ Enumerations
    .. cpp:enumerator:: default_outline_width
 
    .. cpp:enumerator:: default_outline_colour
+
+   .. cpp:enumerator:: fill_text
 
    .. cpp:enumerator:: block_size
 

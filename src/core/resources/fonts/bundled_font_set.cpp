@@ -171,8 +171,7 @@ BundledFontLocation locate_bundled_fonts(std::span<const BundledFontCandidate> c
     }
     const std::string refusal = refusal_text(candidates);
     const std::uint64_t before = font_lookups_without_source.fetch_add(1U, std::memory_order_relaxed);
-    if (before == 0U) std::fprintf(stderr, "%s
-", refusal.c_str());
+    if (before == 0U) std::fprintf(stderr, "%s\n", refusal.c_str());
     const std::lock_guard<std::mutex> lock(font_refusal_mutex);
     font_refusal = refusal;
     return location;

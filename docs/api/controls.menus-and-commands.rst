@@ -2093,7 +2093,7 @@ Related types
 
    ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
 
-   A tab. ``text`` may carry a mnemonic ("&Home"). ``reduction_order`` is the order in which its groups shrink as the ribbon narrows; after it (or without it) every group that can still shrink does so one step at a time, right to left, repeating (WPF's cycle, decision 32). ``tab_set`` names the contextual tab set the tab belongs to (empty: a core tab); ``modes`` are the application modes it shows in. A panel tab: ``panel`` is a control the application made, which the ribbon adds as its child and sizes to the whole command plane while the tab is selected, in place of groups (the application's own command area, such as a palette or an atlas). It has no groups and no reduction order, and is unowned or already this ribbon's; the ribbon removes it when a new definition no longer names it. Its keyboard stops and semantics are its own, as a hosted control's are.
+   A tab. ``text`` may carry a mnemonic ("&Home"). ``reduction_order`` is the order in which its groups shrink as the ribbon narrows; after it (or without it) every group that can still shrink does so one step at a time, right to left, repeating (WPF's cycle, decision 32). ``tab_set`` names the contextual tab set the tab belongs to (empty: a core tab); ``modes`` are the application modes it shows in. ``width`` is an authored width in logical units, scaled with the text as the tab row is (none: the label's width, at its widest state font, plus the theme's padding; Plan Paint's tabs carry their own widths); above zero and at most Ribbon::maximum_tab_width. A tab that is not ``enabled`` shows in the disabled state and cannot be selected: the pointer, the keyboard, mnemonics and accessibility pass it by, and a selection that would fall on it falls back to another tab. A panel tab: ``panel`` is a control the application made, which the ribbon adds as its child and sizes to the whole command plane while the tab is selected, in place of groups (the application's own command area, such as a palette or an atlas). It has no groups and no reduction order, and is unowned or already this ribbon's; the ribbon removes it when a new definition no longer names it. Its keyboard stops and semantics are its own, as a hosted control's are.
 
    .. cpp:member:: std::string stable_id
 
@@ -2110,6 +2110,12 @@ Related types
       Default: ``{ribbon_all_modes}``.
 
    .. cpp:member:: std::shared_ptr<Control> panel
+
+   .. cpp:member:: std::optional<double> width
+
+   .. cpp:member:: bool enabled
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
