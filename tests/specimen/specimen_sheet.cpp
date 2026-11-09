@@ -45,6 +45,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -132,6 +133,8 @@ constexpr double cell_height = 80.0;
 constexpr double label_width = 200.0;
 constexpr double gutter = 8.0;
 constexpr std::size_t rows_per_sheet = 20U;
+// Idle frames a page may take to generate its procedural patterns.
+constexpr std::size_t maximum_settle_frames = 64U;
 
 // -- colour arithmetic (WCAG 2, as src/core/theme/contrast) ----------------------
 
@@ -742,6 +745,33 @@ std::string config_name(SheetConfig config) {
 // --page: draws the Gallery on `page` at `config` and writes the whole
 // window to `path` as a PNG. False when the raster cannot be prepared or the
 // file not written.
+// Paints the whole window into `raster`.
+void paint_whole(Window& window, render::SkiaRaster& raster) {
+    window.perform_layout();
+    const Rect whole{0.0, 0.0, window.client_size().width, window.client_size().height};
+    DamageRegion damage;
+    damage.add(whole);
+    static_cast<void>(raster.synchronize_images(window.image_resources()));
+    raster.begin_frame(damage);
+    static_cast<void>(window.paint(raster, whole));
+    raster.end_frame();
+}
+
+// Generates the procedural patterns a paint asked for. The engine makes
+// them in idle frames (E10), one per frame, and draws their grounds until
+// then, so a page painted once would show only the grounds. Bounded: a
+// page whose motion never settles keeps its grounds.
+void settle_patterns(Window& window) {
+    FrameTime now = FrameClock::now();
+    std::size_t frame = 0U;
+    while (frame < maximum_settle_frames && window.engine_parts().patterns_waiting()) {
+        static_cast<void>(window.take_damage());
+        now += std::chrono::milliseconds(16);
+        static_cast<void>(window.poll_frame_schedule(now));
+        frame = frame + 1U;
+    }
+}
+
 bool write_page(const std::filesystem::path& path, std::string_view page, SheetConfig config,
                 const std::shared_ptr<detail::BundledFontSet>& fonts) {
     // Declared before the window, which borrows it.
@@ -751,14 +781,11 @@ bool write_page(const std::filesystem::path& path, std::string_view page, SheetC
     Window& window = *owned;
     // resize refuses (false) the size the raster already has.
     static_cast<void>(raster.resize(window.client_size(), config.scale));
-    window.perform_layout();
-    const Rect whole{0.0, 0.0, window.client_size().width, window.client_size().height};
-    DamageRegion damage;
-    damage.add(whole);
-    static_cast<void>(raster.synchronize_images(window.image_resources()));
-    raster.begin_frame(damage);
-    static_cast<void>(window.paint(raster, whole));
-    raster.end_frame();
+    paint_whole(window, raster);
+    if (window.engine_parts().patterns_waiting()) {
+        settle_patterns(window);
+        paint_whole(window, raster);
+    }
     image::PngEncodeInput input{};
     input.width = raster.pixel_width();
     input.height = raster.pixel_height();

@@ -54,25 +54,39 @@ AnatomyStateSet SpinButtons::half_states(SpinHalf half) const noexcept {
     return states;
 }
 
-void SpinButtons::paint_half(Painter& painter, Rect half, SpinHalf which, PartMark arrow) const {
+namespace {
+
+// One half as `owner`'s parts: its actuator, then its glyph.
+void paint_spin_half(Painter& painter, const Control& owner, Rect half, AnatomyStateSet states,
+                     PartMark arrow, std::string_view arrow_part, std::string_view glyph_part) {
     PartPaint actuator;
     actuator.role = PartRole::actuator;
     actuator.bounds = half;
-    actuator.states = half_states(which);
+    actuator.states = states;
     actuator.family = ControlVisualRole::button;
-    paint_part(painter, *this, actuator);
+    actuator.key = PartKey{arrow_part, {}, {}};
+    paint_part(painter, owner, actuator);
     PartPaint glyph = actuator;
     glyph.role = PartRole::glyph;
     glyph.bounds = spin_glyph(half);
     glyph.mark = arrow;
-    paint_part(painter, *this, glyph);
+    glyph.key = PartKey{glyph_part, {}, {}};
+    paint_part(painter, owner, glyph);
 }
 
-void SpinButtons::on_paint(Painter& painter, Rect) {
-    const SpinHalves halves = spin_halves(client_rectangle());
-    paint_half(painter, halves.upper, SpinHalf::upper, PartMark::arrow_up);
-    paint_half(painter, halves.lower, SpinHalf::lower, PartMark::arrow_down);
+} // namespace
+
+void paint_spin_parts(Painter& painter, const Control& owner, const SpinButtons& spin, const SpinPartNames& names) {
+    if (!spin.effectively_visible()) return;
+    const SpinHalves halves = spin_halves(spin.committed_arranged_bounds());
+    paint_spin_half(painter, owner, halves.upper, spin.half_states(SpinHalf::upper), PartMark::arrow_up,
+                    names.upper_arrow, names.upper_glyph);
+    paint_spin_half(painter, owner, halves.lower, spin.half_states(SpinHalf::lower), PartMark::arrow_down,
+                    names.lower_arrow, names.lower_glyph);
 }
+
+// The owner paints the halves (paint_spin_parts): the column draws nothing.
+void SpinButtons::on_paint(Painter&, Rect) {}
 
 SpinHalf SpinButtons::half_at(Point window_position) const {
     const Rect bounds = absolute_bounds();
@@ -88,9 +102,10 @@ void SpinButtons::show(SpinHalf hot, SpinHalf pressed) {
     hot_ = hot;
     pressed_ = pressed;
     invalidate(Dirty::paint);
-    // The owning up-down control publishes these states on its arrow parts.
+    // The owning up-down control paints and publishes these states on its
+    // arrow parts.
     const Control::Ptr owner = parent();
-    if (owner) (*owner).invalidate(Dirty::semantics);
+    if (owner) (*owner).invalidate(Dirty::paint | Dirty::semantics);
 }
 
 void SpinButtons::on_pointer(PointerEvent& event) {

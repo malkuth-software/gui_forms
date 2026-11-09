@@ -239,13 +239,13 @@ constexpr std::string_view classic_parts_sheet = R"css(/* classic: parts (Window
   font-family: content;
   font-size: 11px;
 }
-/* Windows 2000 draws the default button's black ring outside a full
-   bevel. One keyline is available, so the bevel inside the ring is the
-   outer pair (white, #404040) and the inner #808080 line is dropped;
-   pressed, the ring encloses the shadow line as on any button. */
+/* Windows 2000 draws the default button's black ring outside the full
+   bevel: two rings of keylines inside it (white and #404040, then
+   #d4d0c8 and #808080); pressed, the ring encloses the shadow line as on
+   any button. */
 button:default::part(face) {
   border-color: #000000;
-  keylines: #ffffff #404040 #404040 #ffffff;
+  keylines: #ffffff #404040 #404040 #ffffff, #d4d0c8 #808080 #808080 #d4d0c8;
 }
 button:default:active::part(face) {
   keylines: #808080 #808080 #808080 #808080;
@@ -258,9 +258,10 @@ button:default:disabled::part(face) {
 button:default:disabled {
   default-outline: 0px #000000;
 }
+/* The scroll track: Windows' 50% dither of white and the face, a
+   checkerboard of logical pixels. */
 h-scroll-bar::part(track), v-scroll-bar::part(track) {
-  background-color: #d4d0c8;
-  background-image: repeating-linear-gradient(45deg, #ffffff 0 0.7071px, transparent 0.7071px 1.4142px);
+  background: pattern(checker, #d4d0c8, #ffffff);
   border: none;
 }
 )css";
@@ -655,10 +656,10 @@ constexpr std::string_view xp_style_sheet = R"css(/* xp-style: a Luna-like look 
 constexpr std::string_view xp_style_parts_sheet = R"css(/* xp-style: parts (Luna). Luna's face is
    Tahoma 8 pt, which is not bundled: the bundled body face stands in.
    Scroll bar thumbs and arrows and the combo box's drop button are Luna's
-   pale blue plates with slate arrows; the scroll track is pale stock. A
-   group box keeps the panel's #aca899 frame and a black caption (Luna's
-   #d0d0bf frame and blue #0046d5 caption are not reachable: its rules and
-   caption take the panel's colours). */
+   pale blue plates with slate arrows; the scroll track is pale stock. The
+   up-down arrows take the same plates. A group box's caption is Luna's
+   blue #0046d5; its frame keeps the panel's #aca899 (Luna's #d0d0bf is
+   1.3:1 on the stock). */
 * {
   font-family: content;
   font-size: 11px;
@@ -704,6 +705,42 @@ h-scroll-bar, v-scroll-bar, combo-box {
   glyph-color: #4d6185;
 }
 h-scroll-bar:disabled, v-scroll-bar:disabled, combo-box:disabled {
+  glyph-color: #c9c7ba;
+}
+/* Luna's group box caption is blue. */
+group-box::part(caption) {
+  color: #0046d5;
+}
+group-box:disabled::part(caption) {
+  color: #aca899;
+}
+/* Luna's up-down arrows: the scroll bar's blue plates and slate arrows. */
+numeric-up-down::part(increment-arrow), numeric-up-down::part(decrement-arrow),
+domain-up-down::part(up-arrow), domain-up-down::part(down-arrow) {
+  background: linear-gradient(to bottom, #d4e1fd, #b6cbf6);
+  border: 1px solid #98b1ea;
+  border-radius: 2px;
+  keylines: none;
+}
+numeric-up-down::part(increment-arrow):hover, numeric-up-down::part(decrement-arrow):hover,
+domain-up-down::part(up-arrow):hover, domain-up-down::part(down-arrow):hover {
+  background: linear-gradient(to bottom, #e3edfe, #c4d6fb);
+}
+numeric-up-down::part(increment-arrow):active, numeric-up-down::part(decrement-arrow):active,
+domain-up-down::part(up-arrow):active, domain-up-down::part(down-arrow):active {
+  background: linear-gradient(to bottom, #a9bff0, #c2d4f8);
+}
+numeric-up-down:disabled::part(increment-arrow), numeric-up-down:disabled::part(decrement-arrow),
+domain-up-down:disabled::part(up-arrow), domain-up-down:disabled::part(down-arrow) {
+  background: #f4f3ee;
+  border-color: #e3e1d4;
+}
+numeric-up-down::part(increment-glyph), numeric-up-down::part(decrement-glyph),
+domain-up-down::part(up-glyph), domain-up-down::part(down-glyph) {
+  glyph-color: #4d6185;
+}
+numeric-up-down:disabled::part(increment-glyph), numeric-up-down:disabled::part(decrement-glyph),
+domain-up-down:disabled::part(up-glyph), domain-up-down:disabled::part(down-glyph) {
   glyph-color: #c9c7ba;
 }
 /* Luna's default button: the blue inner light; hot, the orange one. */
@@ -928,7 +965,8 @@ constexpr std::string_view windows7_style_parts_sheet = R"css(/* windows7-style:
    is Segoe UI 9 pt, which is not bundled: the bundled body face stands in
    at 12 px. The scroll track is Aero's pale grey; the thumb is the grey
    gloss in a #979797 frame; the arrow buttons are clear until hot, when
-   they take the thumb's gloss. */
+   they take the thumb's gloss. The up-down arrows are small gloss
+   buttons. */
 * {
   font-family: content;
   font-size: 12px;
@@ -979,6 +1017,33 @@ h-scroll-bar, v-scroll-bar {
 button:default:disabled {
   default-outline: 0px #5586a3;
 }
+/* Aero's up-down arrows: small grey gloss buttons, blue while hot. */
+numeric-up-down::part(increment-arrow), numeric-up-down::part(decrement-arrow),
+domain-up-down::part(up-arrow), domain-up-down::part(down-arrow) {
+  background: linear-gradient(to bottom, #f5f5f5, #e9e9e9 45%, #d9d9d9 46%, #cfcfcf);
+  border: 1px solid #979797;
+  border-radius: 2px;
+  keylines: none;
+}
+numeric-up-down::part(increment-arrow):hover, numeric-up-down::part(decrement-arrow):hover,
+domain-up-down::part(up-arrow):hover, domain-up-down::part(down-arrow):hover {
+  background: linear-gradient(to bottom, #eaf6fd, #d9f0fc 45%, #bee6fd 46%, #a7d9f5);
+  border-color: #3c7fb1;
+}
+numeric-up-down::part(increment-arrow):active, numeric-up-down::part(decrement-arrow):active,
+domain-up-down::part(up-arrow):active, domain-up-down::part(down-arrow):active {
+  background: linear-gradient(to bottom, #e5f4fc, #c4e5f6 50%, #98d1ef 50%, #68b3db);
+  border-color: #6c8fa9;
+}
+numeric-up-down:disabled::part(increment-arrow), numeric-up-down:disabled::part(decrement-arrow),
+domain-up-down:disabled::part(up-arrow), domain-up-down:disabled::part(down-arrow) {
+  background: #f4f4f4;
+  border-color: #d9d9d9;
+}
+numeric-up-down::part(increment-glyph), numeric-up-down::part(decrement-glyph),
+domain-up-down::part(up-glyph), domain-up-down::part(down-glyph) {
+  glyph-color: #4d4d4d;
+}
 )css";
 
 constexpr std::string_view macos_style_parts_sheet = R"css(/* macos-style: parts (AppKit). The system face
@@ -987,8 +1052,8 @@ constexpr std::string_view macos_style_parts_sheet = R"css(/* macos-style: parts
    checked check box or radio button is an accent well with a white mark;
    the combo box's drop button is the accent with a white chevron; push
    buttons and wells are white in light mode; scroll bars are a pale track
-   with a grey capsule thumb and clear arrows (the frames keep the theme's
-   #949494 contrast fix). */
+   with a grey capsule thumb and no arrows (the theme's structure hides
+   them; the frames keep the theme's #949494 contrast fix). */
 * {
   font-family: content;
   font-size: 13px;
@@ -1034,14 +1099,6 @@ h-scroll-bar::part(thumb), v-scroll-bar::part(thumb) {
   border: 1px solid #949494;
   border-radius: 8px;
 }
-h-scroll-bar::part(increment-arrow), h-scroll-bar::part(decrement-arrow),
-v-scroll-bar::part(increment-arrow), v-scroll-bar::part(decrement-arrow) {
-  background: #ffffff00;
-  border: 1px solid #ffffff00;
-}
-h-scroll-bar, v-scroll-bar {
-  glyph-color: #00000080;
-}
 h-scroll-bar:disabled::part(thumb), v-scroll-bar:disabled::part(thumb) {
   background: #e6e6e6;
   border-color: #0000001f;
@@ -1082,9 +1139,6 @@ h-scroll-bar:disabled::part(thumb), v-scroll-bar:disabled::part(thumb) {
   h-scroll-bar::part(thumb), v-scroll-bar::part(thumb) {
     background: #6b6b6b;
     border-color: #676767;
-  }
-  h-scroll-bar, v-scroll-bar {
-    glyph-color: #ffffff80;
   }
 }
 )css";
@@ -1573,6 +1627,8 @@ struct FamiliarStructure final {
     Color accent_light{};
     Color link{};
     Color visited_link{};
+    // Whether scroll bars draw arrow buttons (ThemeGeometryTokens).
+    bool scroll_arrows{true};
 };
 
 // One theme's description: its id, its floor sheet, its dark floor sheet
@@ -1685,7 +1741,8 @@ constexpr std::array<FamiliarDescription, familiar_theme_count> descriptions{{
                    .accent = Color::rgba(0, 105, 249),
                    .accent_light = Color::rgba(214, 214, 214),
                    .link = Color::rgba(0, 105, 249),
-                   .visited_link = Color::rgba(0, 105, 249)}},
+                   .visited_link = Color::rgba(0, 105, 249),
+                   .scroll_arrows = false}},
 }};
 
 // The recipe the sheet's fields are evaluated onto: the theme's focus
@@ -1710,6 +1767,7 @@ FamiliarThemeBuild build_familiar_theme(const FamiliarDescription& description) 
         std::make_unique<ThemeDefinition>(windows_professional_theme_definition());
     (*definition).id = std::string(description.id);
     const FamiliarStructure& structure = description.structure;
+    (*definition).structure.geometry.scroll_arrows = structure.scroll_arrows;
     (*definition).compatibility.face = structure.face;
     (*definition).compatibility.face_light = structure.face_light;
     (*definition).compatibility.paper = structure.paper;

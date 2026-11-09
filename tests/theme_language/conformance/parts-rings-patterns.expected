@@ -1,0 +1,26 @@
+compiled
+W201 literal_colour_unremappable 2:32 rule=button::part(face) property=keylines detail=#ffffff
+W201 literal_colour_unremappable 5:30 rule=button::part(label) property=color detail=#0046d5
+W201 literal_colour_unremappable 5:52 rule=button::part(label) property=muted-color detail=#0046d5
+W201 literal_colour_unremappable 5:74 rule=button::part(label) property=glyph-color detail=#4d6185
+rule 0 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name material
+  material keylines keylines=8 lengths=[1 1 1 1 1 1 1 1 1 2 1 2 1 2 1 2] colours=[#000000ff #ffffffff #ffffffff #404040ff #404040ff #d4d0c8ff #d4d0c8ff #808080ff #808080ff] origin=literal
+rule 1 theme_sheet type=track_bar part=track
+  label track-bar::part(track)
+  decl primitive = name material
+  material background_colour colours=[#00000000] origin=literal
+  material fill_positions positions=1 lengths=[0 0] colours=[#000000ff]
+  material fill_sizes sizes=1 size(0) lengths=[0] colours=[#000000ff]
+  material fill_repeats repeats=1 repeat(0) colours=[#000000ff]
+  material fills fills=1 colours=[#000000ff] origin=literal
+rule 2 theme_sheet type=track_bar part=thumb
+  label track-bar::part(thumb)
+  decl primitive = name material
+  material fills fills=1 colours=[#000000ff] origin=literal
+rule 3 theme_sheet type=button part=label
+  label button::part(label)
+  recipe text colour=#0046d5ff number=0 outline=0 origin=literal
+  recipe muted_text colour=#0046d5ff number=0 outline=0 origin=literal
+  recipe glyph colour=#4d6185ff number=0 outline=0 origin=literal

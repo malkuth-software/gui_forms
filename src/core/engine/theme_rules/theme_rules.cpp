@@ -598,7 +598,7 @@ double sized_length(BoxLength length, double side) noexcept {
 void size_image(const MaterialImageSize& size, Size box, MaterialFillLayer& layer) noexcept {
     const Size pixels = layer.image_pixel_size;
     switch (size.sizing) {
-    case MaterialImageSizing::natural: return;
+    case MaterialImageSizing::natural: return; // The image's own size: nothing to change.
     case MaterialImageSizing::stretch: layer.image_mode = MaterialImageMode::stretch; return;
     case MaterialImageSizing::width:
         layer.image_scale = pixels.width / sized_length(size.length, box.width);
@@ -1882,7 +1882,7 @@ bool backdrop_declaration_valid(const BackdropDeclaration& backdrop) noexcept {
         case BackdropStepKind::saturate:
             if (step.amount < 0.0 || step.amount > maximum_backdrop_saturation) return false;
             break;
-        case BackdropStepKind::tint: break;
+        case BackdropStepKind::tint: break; // Any colour tints.
         default: return false;
         }
     }
@@ -1904,8 +1904,10 @@ void CompiledThemeRules::add_backdrop(std::vector<RuleDiagnostic>& diagnostics, 
 void CompiledThemeRules::add_recipe_fields(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
                                            const ThemeRule& rule, CompiledRule& compiled) {
     // The recipe's fields are the control's: a selector naming a part or a
-    // role sets none.
-    const bool on_part = !rule.selector.part.empty() || rule.selector.role.has_value();
+    // role sets none, except the text colours on a named part (its text,
+    // muted text and glyphs: Theme::resolve with the part's name).
+    const bool on_role = rule.selector.role.has_value();
+    const bool on_named_part = !rule.selector.part.empty() && !on_role;
     std::array<bool, recipe_field_count> declared{};
     for (const RecipeDeclaration& declaration : rule.recipe_fields) {
         const std::size_t position = static_cast<std::size_t>(declaration.field);
@@ -1914,7 +1916,9 @@ void CompiledThemeRules::add_recipe_fields(std::vector<RuleDiagnostic>& diagnost
             diagnostics.push_back(diagnostic(RuleDiagnosticKind::recipe_field_invalid, index, rule, {}));
             continue;
         }
-        if (on_part) {
+        const bool text_colour = declaration.field == RecipeField::text ||
+                                 declaration.field == RecipeField::muted_text || declaration.field == RecipeField::glyph;
+        if (on_role || (on_named_part && !text_colour)) {
             diagnostics.push_back(diagnostic(RuleDiagnosticKind::recipe_field_on_part, index, rule, name));
             continue;
         }

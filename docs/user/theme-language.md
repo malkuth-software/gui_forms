@@ -210,14 +210,24 @@ only material fields selects the `material` primitive.
 
 | Area | Properties |
 |---|---|
-| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` forms, images), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position` |
-| borders | `border`, `border-<edge>`, `border-width`, `border-color`, `border-style` (`solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`), `border-radius` (1 to 4 values), `border-image`, `outline`, `outline-style` (`auto`, `solid`, `dotted`, `none`), `outline-offset`, `default-outline: <width> <colour>` (the default button's second perimeter, on a control), `keylines` (`none`, or one to four colours in box order: lines one unit wide one unit inside the border), `shape` |
+| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` forms, images, `pattern()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position` |
+| borders | `border`, `border-<edge>`, `border-width`, `border-color`, `border-style` (`solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`), `border-radius` (1 to 4 values), `border-image`, `outline`, `outline-style` (`auto`, `solid`, `dotted`, `none`), `outline-offset`, `default-outline: <width> <colour>` (the default button's second perimeter, on a control), `keylines` (`none`, or one or two comma-separated rings of one to four colours in box order: lines one unit wide, the first ring one unit inside the border and the second inside it), `shape` |
 | shadows and light | `box-shadow` (up to 4, `inset` admitted), `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
 | filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` |
 | presentation | `opacity`, `scale`, `translate` |
 | effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; given the effect registry (`ThemeCompileOptions::effects`, `ApplicationThemeConfig::effects`, usually `built_in_effect_registry()`), a name it does not hold refuses the theme with E417 at the name; the control also checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
-| text | `color`, `muted-color` and `glyph-color` (the recipe's secondary text and glyph colours, on a control), `font: <role>` (`ui`, `field`, `caption`, `heading`, `title`, `monospace`) |
+| text | `color`, `muted-color` and `glyph-color` (the recipe's secondary text and glyph colours, on a control or a named part, such as `group-box::part(caption)`; not on a role), `font: <role>` (`ui`, `field`, `caption`, `heading`, `title`, `monospace`) |
 | fonts | `font-family` (`control`, `content`, `monospace`), `font-size` (4px to 96px, or em of the control's own size), `font-weight` (`normal`, `bold`, 100 to 900), `font-style` (`normal`, `italic`), `letter-spacing` (`normal`, px or em) |
+
+`pattern(<name>, <ground>, <figure> [, <tile>])` is a built-in procedural
+pattern in two colours: `checker` (a checkerboard; its default 2px tile is a
+50% dither of logical pixels, as a Windows scroll track), `felt`,
+`wood-grain`, `paper-fibre`, `pinstripe` and `brushed-metal`. The tile is a
+length from 2px to 256px (by default 2px for the checker, 4px for the
+pinstripe and 64px for the rest). The engine generates the pattern for each
+display scale in an idle frame and draws the ground until it is ready; a
+pattern layer takes no position, size or repetition. For example,
+`background: pattern(checker, #d4d0c8, #ffffff)`.
 
 `reflection` mirrors the part's finished face (its fills, borders, glows,
 filters and mask; not its text), or with `backplane` the window's backplane

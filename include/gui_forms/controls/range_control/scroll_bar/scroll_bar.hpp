@@ -104,6 +104,8 @@ public:
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
 private:
+    // The arrow buttons' extent on a bar `axis` long (the theme may draw none).
+    [[nodiscard]] double arrow_extent(double axis) const noexcept;
     friend struct ScrollBarButtonExtentCapability<ScrollBar>;
     friend struct ScrollBarMinimumThumbExtentCapability<ScrollBar>;
     friend struct ScrollBarInitialRepeatDelayCapability<ScrollBar>;

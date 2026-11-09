@@ -165,6 +165,7 @@ property.glow	finish-light-images-masks
 property.glow-placement	finish-light-images-masks
 property.glyph-color	recipe-colours
 property.isolation	shadows-opacity-filters
+property.keyline-rings	parts-rings-patterns
 property.keylines	recipe-colours
 property.layout	not-admitted
 property.letter-spacing	fonts
@@ -175,6 +176,8 @@ property.muted-color	recipe-colours
 property.opacity	shadows-opacity-filters
 property.outline	borders
 property.outline-offset	borders
+property.part-text-colours	parts-rings-patterns
+property.pattern	parts-rings-patterns
 property.primitive	transforms-text
 property.procedural	fills
 property.radial-gradient	fills

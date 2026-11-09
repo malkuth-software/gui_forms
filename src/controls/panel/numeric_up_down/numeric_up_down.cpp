@@ -189,6 +189,14 @@ void NumericUpDown::step(int direction) {
     }
 }
 
+void NumericUpDown::on_paint_overlay(Painter& painter, Rect local_damage) {
+    Panel::on_paint_overlay(painter, local_damage);
+    if (!spinner_) return;
+    // spinner_ is the SpinButtons initialize_control_tree made.
+    const SpinPartNames names{"increment_arrow", "decrement_arrow", "increment_glyph", "decrement_glyph"};
+    paint_spin_parts(painter, *this, static_cast<const SpinButtons&>(*spinner_), names);
+}
+
 void NumericUpDown::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     // The field and the spin column sit inside the control's own border
@@ -364,6 +372,8 @@ AnatomyStateSet NumericUpDown::anatomy_states() const {
         states.insert(AnatomyState::invalid);
     } else if (visual_status() == ControlVisualStatus::pending) {
         states.insert(AnatomyState::pending);
+    } else {
+        // A normal status adds no state.
     }
     return states;
 }

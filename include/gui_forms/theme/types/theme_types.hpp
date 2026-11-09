@@ -353,6 +353,10 @@ struct ThemeGeometryTokens final {
     double navigation_minimum{120.0};
     double content_minimum{240.0};
     double compact_breakpoint{720.0};
+    // Whether scroll bars draw their arrow buttons: false gives the track
+    // the whole bar, as a macOS scroller (ScrollBar and the scroll bars of a
+    // ScrollableControl; their button extent then reads as zero).
+    bool scroll_arrows{true};
     friend constexpr bool operator==(const ThemeGeometryTokens& left,
                                      const ThemeGeometryTokens& right) noexcept {
         return left.compact_control_height == right.compact_control_height &&
@@ -364,7 +368,8 @@ struct ThemeGeometryTokens final {
                left.navigation_extent == right.navigation_extent &&
                left.navigation_minimum == right.navigation_minimum &&
                left.content_minimum == right.content_minimum &&
-               left.compact_breakpoint == right.compact_breakpoint;
+               left.compact_breakpoint == right.compact_breakpoint &&
+               left.scroll_arrows == right.scroll_arrows;
     }
 };
 struct ThemeTypographyTokens final {

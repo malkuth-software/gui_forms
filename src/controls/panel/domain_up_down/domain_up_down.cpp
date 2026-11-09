@@ -280,6 +280,14 @@ void DomainUpDown::down_button() {
     step(1);
 }
 
+void DomainUpDown::on_paint_overlay(Painter& painter, Rect local_damage) {
+    Panel::on_paint_overlay(painter, local_damage);
+    if (!spinner_) return;
+    // spinner_ is the SpinButtons initialize_control_tree made.
+    const SpinPartNames names{"up_arrow", "down_arrow", "up_glyph", "down_glyph"};
+    paint_spin_parts(painter, *this, static_cast<const SpinButtons&>(*spinner_), names);
+}
+
 void DomainUpDown::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     // The spin column takes button_width.read() (or the whole width, when narrower)
@@ -305,6 +313,8 @@ void DomainUpDown::on_key_preview(KeyEvent& event) {
     } else if (event.physical_key == PhysicalKey::down) {
         down_button();
         event.handled = true;
+    } else {
+        // Other keys go to the field.
     }
 }
 
@@ -463,6 +473,8 @@ AnatomyStateSet DomainUpDown::anatomy_states() const {
         states.insert(AnatomyState::invalid);
     } else if (status == ControlVisualStatus::pending) {
         states.insert(AnatomyState::pending);
+    } else {
+        // A normal status adds no state.
     }
     return states;
 }

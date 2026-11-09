@@ -906,8 +906,10 @@ void paint_part_with_built_in_recipe(Painter& painter, const Control& control, c
     const ControlVisualContext context = part_visual_context(control, part.states);
     const Theme& theme = control.effective_theme();
     // The control's recipe fields (T3 P6f) in the part's states: a label
-    // part takes the control's text colour.
-    const ResolvedControlRecipe resolved = theme.resolve(control, part.family, context, part.states);
+    // part takes the control's text colour, or its own where a rule names
+    // the part.
+    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const ResolvedControlRecipe resolved = theme.resolve(control, part.family, context, part.states, part_name);
     const ControlVisualRecipe& recipe = resolved.recipe();
     if (part.role == PartRole::shadow) {
         paint_overlay_shadow(painter, part, recipe, theme.overlay_shadow(context.high_contrast));

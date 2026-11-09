@@ -461,6 +461,23 @@ void generate_pinstripe(const PatternInputs& inputs, double scale, const PartRas
     }
 }
 
+// Checker: the tile split at half its width and half its height, the
+// top-left and bottom-right quarters the ground and the other two the
+// figure. An odd side gives the first half the smaller share.
+void generate_checker(const PatternInputs& inputs, const PartRasterView& destination) {
+    const Channels square = mix_channels(inputs.ground, inputs.figure, inputs.strength);
+    const std::uint32_t half_across = inputs.width / 2U;
+    const std::uint32_t half_down = inputs.height / 2U;
+    for (std::uint32_t y = 0U; y < inputs.height; ++y) {
+        const bool lower = y >= half_down;
+        for (std::uint32_t x = 0U; x < inputs.width; ++x) {
+            const bool right = x >= half_across;
+            const Channels& colour = lower == right ? inputs.ground : square;
+            store_channels(pixel_at(destination, x, y), colour);
+        }
+    }
+}
+
 // One fresco bloom: its centre and radii in doubled device pixels (pixel
 // centres are odd there).
 struct Bloom final {
@@ -564,6 +581,7 @@ std::uint64_t generation_weight(ProceduralPattern pattern) noexcept {
     case ProceduralPattern::pinstripe: return weights.pinstripe;
     case ProceduralPattern::brushed_metal: return weights.brushed_metal;
     case ProceduralPattern::fresco: return weights.fresco;
+    case ProceduralPattern::checker: return weights.checker;
     }
     // A pattern outside the enumeration is never accepted
     // (valid_surface_material): one pixel of it is past the budget.
@@ -627,6 +645,9 @@ void generate_procedural(const ProceduralFill& fill, double scale, const PartRas
         return;
     case ProceduralPattern::fresco:
         generate_fresco(fill, inputs, destination, scratch);
+        return;
+    case ProceduralPattern::checker:
+        generate_checker(inputs, destination);
         return;
     }
     // A pattern outside the enumeration is never accepted: the ground.

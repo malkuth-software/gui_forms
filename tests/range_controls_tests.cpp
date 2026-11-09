@@ -1,5 +1,6 @@
 #include "gui_forms/container_controls.hpp"
 #include "gui_forms/range_controls.hpp"
+#include "gui_forms/theme.hpp"
 #include "gui_forms/window.hpp"
 #include "support/named_callbacks.hpp"
 
@@ -364,6 +365,34 @@ void test_disposal_and_ui_thread_guard() {
 
 } // namespace
 
+// A theme without scroll arrows (ThemeGeometryTokens::scroll_arrows, as
+// macos-style): the buttons are empty, the track takes the whole bar, a
+// press at the bar's end pages instead of stepping; the macos-style theme
+// says so.
+void test_scrollbar_without_arrows() {
+    require(!(*familiar_theme(FamiliarTheme::macos_style)).structure().geometry.scroll_arrows &&
+                (*familiar_theme(FamiliarTheme::classic)).structure().geometry.scroll_arrows,
+            "macos-style draws no scroll arrows, classic does");
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("arrowless.root"));
+    std::shared_ptr<gui_forms::HScrollBar> horizontal = make_control<HScrollBar>(StableId("arrowless.horizontal"));
+    (*horizontal).set_requested_bounds({10.0, 10.0, 240.0, 18.0});
+    (*horizontal).set_range(0.0, 100.0);
+    (*horizontal).large_change = 20.0;
+    (*root).add_child(horizontal);
+    Window window(root, {300.0, 60.0});
+    ThemeDefinition arrowless = gui_forms_theme_definition();
+    arrowless.structure.geometry.scroll_arrows = false;
+    window.set_theme(Theme::create(arrowless));
+    window.perform_layout();
+    const double bar_width = 240.0;
+    require((*horizontal).decrement_button_bounds().width == 0.0 &&
+                (*horizontal).increment_button_bounds().width == 0.0 &&
+                (*horizontal).track_bounds().x == 0.0 && (*horizontal).track_bounds().width == bar_width,
+            "without scroll arrows the track takes the whole bar");
+    require((*horizontal).part_at({1.0, 9.0}) != ScrollBarPart::decrement_button,
+            "without scroll arrows the bar's end is no arrow");
+}
+
 int main() {
     try {
         test_container_focus_identity();
@@ -371,6 +400,7 @@ int main() {
         test_pointer_capture_keyboard_and_disabled_state();
         test_progress_rendering_and_vertical_geometry();
         test_scrollbar_geometry_capture_repeat_and_orientation();
+        test_scrollbar_without_arrows();
         test_disposal_and_ui_thread_guard();
         std::cout << "gui_forms_range_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;

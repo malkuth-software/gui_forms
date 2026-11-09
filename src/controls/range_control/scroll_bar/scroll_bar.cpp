@@ -42,11 +42,20 @@ void ScrollBar::prepare_write(const decltype(repeat_interval)&, FrameInterval& i
 
 void ScrollBar::written(const decltype(repeat_interval)&) {}
 
+// The arrow buttons' extent along the bar: none where the theme draws no
+// scroll arrows (ThemeGeometryTokens::scroll_arrows), else the button
+// extent, at most half the bar.
+double ScrollBar::arrow_extent(double axis) const noexcept {
+    if (!effective_theme().structure().geometry.scroll_arrows) return 0.0;
+    const double extent = std::min(button_extent.read(), axis * 0.5);
+    return extent;
+}
+
 Rect ScrollBar::decrement_button_bounds() const noexcept {
     const Rect bounds = local_bounds();
     const double axis = orientation.read() == Orientation::horizontal
         ? bounds.width : bounds.height;
-    const double extent = std::min(button_extent.read(), axis * 0.5);
+    const double extent = arrow_extent(axis);
     return orientation.read() == Orientation::horizontal
         ? Rect{0.0, 0.0, extent, bounds.height}
         : Rect{0.0, 0.0, bounds.width, extent};
@@ -56,7 +65,7 @@ Rect ScrollBar::increment_button_bounds() const noexcept {
     const Rect bounds = local_bounds();
     const double axis = orientation.read() == Orientation::horizontal
         ? bounds.width : bounds.height;
-    const double extent = std::min(button_extent.read(), axis * 0.5);
+    const double extent = arrow_extent(axis);
     return orientation.read() == Orientation::horizontal
         ? Rect{std::max(0.0, bounds.width - extent), 0.0, extent, bounds.height}
         : Rect{0.0, std::max(0.0, bounds.height - extent), bounds.width, extent};
@@ -319,10 +328,11 @@ void ScrollBar::on_paint(Painter& painter, Rect) {
     track.key = PartKey{"track", {}, {}};
     paint_part(painter, *this, track);
 
-    paint_button(painter, decrement_button_bounds(),
-                 ScrollBarPart::decrement_button, false, states);
-    paint_button(painter, increment_button_bounds(),
-                 ScrollBarPart::increment_button, true, states);
+    // A theme without scroll arrows leaves the buttons empty: not drawn.
+    const Rect decrement = decrement_button_bounds();
+    const Rect increment = increment_button_bounds();
+    if (!decrement.empty()) paint_button(painter, decrement, ScrollBarPart::decrement_button, false, states);
+    if (!increment.empty()) paint_button(painter, increment, ScrollBarPart::increment_button, true, states);
     PartPaint thumb;
     thumb.family = ControlVisualRole::button;
     thumb.role = PartRole::thumb;

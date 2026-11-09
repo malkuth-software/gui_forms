@@ -965,8 +965,11 @@ void assemble_material(const SurfaceMaterial& floor,
 
 // The fields of a control's own recipe (ControlVisualRecipe) beside its
 // material that a rule may set (T3 P6f; design language §2, §3 and §14).
-// They are the control's, not a part's: a rule naming a part or a role
-// sets none (RuleDiagnosticKind::recipe_field_on_part). They cascade as
+// They are the control's, not a part's: a rule naming a role sets none,
+// and a rule naming a part only the text colours (text, muted_text, glyph),
+// which the part's own resolution reads (Theme::resolve with its name);
+// any other is dropped (RuleDiagnosticKind::recipe_field_on_part). They
+// cascade as
 // the material fields do, each on its own, from every matching rule, over
 // the theme's built-in recipe for the control's role and state (the floor,
 // Theme::resolve); a field no rule sets keeps the floor's value.
@@ -1371,8 +1374,9 @@ enum class RuleDiagnosticKind : std::uint8_t {
     // A recipe field the recipe does not admit
     // (recipe_declaration_admitted), such as an outline 20 units wide.
     recipe_field_invalid,
-    // A recipe field in a rule whose selector names a part or a role: the
-    // recipe's fields are the control's, so the field is dropped.
+    // A recipe field in a rule whose selector names a role, or one other
+    // than the text colours in a rule naming a part: the recipe's fields
+    // are the control's, so the field is dropped.
     recipe_field_on_part,
     // The rule's media condition has a resolution bound that is not finite
     // or not above zero (media_condition_valid); the rule is dropped.

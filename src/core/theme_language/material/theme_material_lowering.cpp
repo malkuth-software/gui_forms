@@ -141,6 +141,25 @@ constexpr std::array<NamedGradient, 6> gradient_functions{{
     {.name = "repeating-conic-gradient", .kind = MaterialFillKind::conic_gradient, .repeating = true},
 }};
 
+// The built-in procedural patterns `pattern()` names (ProceduralPattern);
+// the fresco, which reads more colours, is not among them.
+struct NamedPattern final {
+    std::string_view name{};
+    ProceduralPattern pattern{ProceduralPattern::felt};
+    double tile{64.0};
+};
+
+constexpr std::array<NamedPattern, 6> pattern_names{{
+    {.name = "checker", .pattern = ProceduralPattern::checker, .tile = 2.0},
+    {.name = "felt", .pattern = ProceduralPattern::felt, .tile = 64.0},
+    {.name = "wood-grain", .pattern = ProceduralPattern::wood_grain, .tile = 64.0},
+    {.name = "paper-fibre", .pattern = ProceduralPattern::paper_fibre, .tile = 64.0},
+    {.name = "pinstripe", .pattern = ProceduralPattern::pinstripe, .tile = 4.0},
+    {.name = "brushed-metal", .pattern = ProceduralPattern::brushed_metal, .tile = 64.0},
+}};
+
+constexpr std::string_view pattern_function_name = "pattern";
+
 [[nodiscard]] const NamedGradient* gradient_function(std::string_view name) noexcept {
     for (const NamedGradient& gradient : gradient_functions) {
         if (equals_ascii_folded(name, gradient.name)) return &gradient;
@@ -281,6 +300,8 @@ struct WrittenLayer final {
     AuthoredGradient gradient{};
     MaterialFillLayer image{};
     bool imaged{};
+    // A pattern() layer (also `imaged`: fixed, in `image`).
+    bool patterned{};
 };
 
 // One layer of the `background` shorthand: its image, and the position,
@@ -337,6 +358,7 @@ private:
     bool read_radial_configuration(ComponentRange range, AuthoredGradient& gradient, bool& configured);
     bool read_conic_configuration(ComponentRange range, AuthoredGradient& gradient, bool& configured);
     bool read_gradient(std::size_t index, AuthoredGradient& gradient);
+    bool read_pattern(std::size_t index, MaterialFillLayer& layer);
     bool read_image(std::size_t index, WrittenLayer& layer);
     bool read_resource_image(std::size_t index, MaterialFillLayer& layer);
     bool push_fills(std::span<const WrittenLayer> written);
@@ -421,6 +443,7 @@ bool MaterialReader::drop_unknown_functions() {
     for (const ValueComponent& component : value_.components) {
         if (component.kind != ValueComponentKind::function) continue;
         if (gradient_function(component.text) != nullptr || filter_function(component.text) != nullptr) continue;
+        if (equals_ascii_folded(component.text, pattern_function_name)) continue;
         return fail(DiagnosticCode::unknown_function, component.token, clipped_theme_detail(component.text));
     }
     return true;
@@ -796,12 +819,63 @@ bool MaterialReader::read_gradient(std::size_t index, AuthoredGradient& gradient
     return true;
 }
 
+// `pattern(<name>, <ground>, <figure> [, <tile>])`: a built-in procedural
+// pattern (pattern_names) in two colours, its tile a length within
+// [minimum_procedural_tile, maximum_procedural_tile] (by default the
+// pattern's own: 2px for the checker, a 50% dither), at full strength and
+// seed 0. The engine generates it per display scale and draws the ground
+// until it is ready (E10).
+bool MaterialReader::read_pattern(std::size_t index, MaterialFillLayer& layer) {
+    const ValueComponent& function = value_.components[index];
+    std::vector<ComponentRange> arguments{};
+    split(ComponentRange{index + 1U, function.subtree_end}, arguments);
+    if (arguments.size() < 3U || arguments.size() > 4U) {
+        return fail(DiagnosticCode::value_syntax, function.token, "a pattern, two colours and an optional tile");
+    }
+    for (const ComponentRange& argument : arguments) {
+        if (count(argument) != 1U) return fail(DiagnosticCode::value_syntax, function.token, "one value per argument");
+    }
+    const NamedPattern* named = nullptr;
+    for (const NamedPattern& candidate : pattern_names) {
+        if (keyword(arguments[0].first, candidate.name)) named = &candidate;
+    }
+    if (named == nullptr) {
+        return fail(DiagnosticCode::value_wrong_kind, value_.components[arguments[0].first].token,
+                    "checker, felt, wood-grain, paper-fibre, pinstripe or brushed-metal");
+    }
+    ProceduralFill fill{};
+    fill.pattern = (*named).pattern;
+    fill.tile = (*named).tile;
+    fill.strength = 1.0;
+    if (!read_colour(arguments[1].first, fill.ground)) return false;
+    if (!read_colour(arguments[2].first, fill.figure)) return false;
+    fill.accent = fill.ground;
+    if (arguments.size() == 4U) {
+        BoxLength tile{};
+        if (!read_length(arguments[3].first, false, false, tile)) return false;
+        if (!(tile.units >= minimum_procedural_tile && tile.units <= maximum_procedural_tile)) {
+            return fail(DiagnosticCode::value_out_of_range, value_.components[arguments[3].first].token,
+                        "a tile from 2px to 256px");
+        }
+        fill.tile = tile.units;
+    }
+    layer = MaterialFillLayer::procedural_pattern(fill);
+    return true;
+}
+
 bool MaterialReader::read_image(std::size_t index, WrittenLayer& layer) {
     layer = WrittenLayer{};
     const ValueComponent& component = value_.components[index];
     const bool gradient_written =
         component.kind == ValueComponentKind::function && gradient_function(component.text) != nullptr;
     if (gradient_written) return read_gradient(index, layer.gradient);
+    const bool pattern_written =
+        component.kind == ValueComponentKind::function && equals_ascii_folded(component.text, pattern_function_name);
+    if (pattern_written) {
+        layer.imaged = true;
+        layer.patterned = true;
+        return read_pattern(index, layer.image);
+    }
     if (component.kind == ValueComponentKind::resource) {
         layer.imaged = true;
         return read_resource_image(index, layer.image);
@@ -1758,11 +1832,14 @@ bool MaterialReader::lower_glow_placements() {
     return true;
 }
 
-// `keylines`: `none`, or one to four colours in CSS's box order (top,
-// right, bottom, left; an omitted side takes the opposite one's, the left
-// the right's), each a line one unit wide one unit inside the border
-// (T4 floor sheet, owner option 1). They are drawn top, left, right,
-// bottom, so the top and bottom lines lie over the side lines' ends.
+// `keylines`: `none`, or one or more rings separated by commas, each one to
+// four colours in CSS's box order (top, right, bottom, left; an omitted
+// side takes the opposite one's, the left the right's), each line one unit
+// wide. The first ring lies one unit inside the border, each later ring one
+// unit inside the ring before it (T4 floor sheet, owner option 1; several
+// rings for a bevel two lines deep inside a frame). A ring's lines are
+// drawn top, left, right, bottom, so the top and bottom lines lie over the
+// side lines' ends; at most SurfaceMaterial::maximum_keylines lines in all.
 bool MaterialReader::lower_keylines() {
     MaterialDeclaration declaration{};
     declaration.field = MaterialField::keylines;
@@ -1771,28 +1848,38 @@ bool MaterialReader::lower_keylines() {
         lowering_.declarations.push_back(std::move(declaration));
         return true;
     }
-    const std::size_t written = count(whole);
-    if (written == 0U || written > 4U) {
-        return fail(DiagnosticCode::value_syntax, start_, "one to four colours");
+    std::vector<ComponentRange> rings{};
+    split(whole, rings);
+    constexpr std::size_t ring_lines = 4U;
+    if (rings.size() * ring_lines > SurfaceMaterial::maximum_keylines) {
+        return fail(DiagnosticCode::value_syntax, start_, "at most two rings of keylines");
     }
-    std::array<Color, 4> sides{};
-    std::size_t index = 0U;
-    for (std::size_t side = 0U; side < written; ++side) {
-        if (!read_colour(index, sides[side])) return false;
-        index = next(index);
-    }
-    // CSS's box expansion: the top's for the bottom, the right's for the
-    // left.
-    if (written < 2U) sides[1] = sides[0];
-    if (written < 3U) sides[2] = sides[0];
-    if (written < 4U) sides[3] = sides[1];
-    const std::array<MaterialEdge, 4> drawn_order{MaterialEdge::top, MaterialEdge::left, MaterialEdge::right,
-                                                  MaterialEdge::bottom};
-    const std::array<std::size_t, 4> side_of_drawn{0U, 3U, 1U, 2U};
-    declaration.keylines.reserve(drawn_order.size());
-    for (std::size_t line = 0U; line < drawn_order.size(); ++line) {
-        const MaterialKeyline keyline{drawn_order[line], sides[side_of_drawn[line]], 1.0, 1.0};
-        declaration.keylines.push_back(keyline);
+    const std::array<MaterialEdge, ring_lines> drawn_order{MaterialEdge::top, MaterialEdge::left, MaterialEdge::right,
+                                                           MaterialEdge::bottom};
+    const std::array<std::size_t, ring_lines> side_of_drawn{0U, 3U, 1U, 2U};
+    declaration.keylines.reserve(rings.size() * ring_lines);
+    for (std::size_t ring = 0U; ring < rings.size(); ++ring) {
+        const ComponentRange range = rings[ring];
+        const std::size_t written = count(range);
+        if (written == 0U || written > ring_lines) {
+            return fail(DiagnosticCode::value_syntax, start_, "one to four colours in each ring");
+        }
+        std::array<Color, ring_lines> sides{};
+        std::size_t index = range.first;
+        for (std::size_t side = 0U; side < written; ++side) {
+            if (!read_colour(index, sides[side])) return false;
+            index = next(index);
+        }
+        // CSS's box expansion: the top's for the bottom, the right's for
+        // the left.
+        if (written < 2U) sides[1] = sides[0];
+        if (written < 3U) sides[2] = sides[0];
+        if (written < 4U) sides[3] = sides[1];
+        const double inset = 1.0 + static_cast<double>(ring);
+        for (std::size_t line = 0U; line < ring_lines; ++line) {
+            const MaterialKeyline keyline{drawn_order[line], sides[side_of_drawn[line]], 1.0, inset};
+            declaration.keylines.push_back(keyline);
+        }
     }
     lowering_.declarations.push_back(std::move(declaration));
     return true;
@@ -2083,12 +2170,12 @@ bool MaterialReader::lower_background() {
             return fail(DiagnosticCode::value_form_not_admitted, value_.components[ranges[index].first].token,
                         "none among other layers");
         }
-        const bool gradient = written.size() > before && !written.back().imaged;
+        const bool gradient = written.size() > before && (!written.back().imaged || written.back().patterned);
         const bool placed = !(layer.position == MaterialImagePosition{}) || !(layer.size == MaterialImageSize{}) ||
                             layer.repeat != MaterialImageRepeat::repeat;
         if (gradient && placed) {
             return fail(DiagnosticCode::value_form_not_admitted, value_.components[ranges[index].first].token,
-                        "a gradient layer's position, size or repetition");
+                        "a gradient or pattern layer's position, size or repetition");
         }
         if (written.size() == before) continue;
         positions.image_positions.push_back(layer.position);

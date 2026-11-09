@@ -519,11 +519,18 @@ void test_recipe_lowering() {
     }
     require(all_initial, "initial resets each field the property sets");
 
-    const Compilation on_part = compile("#pad::part(face) { color: red }");
+    const Compilation on_part = compile("#pad::part(face) { outline-width: 2px }");
     require(on_part.outcome == CompileOutcome::compiled && on_part.sheet.rules.empty() &&
                 on_part.diagnostics.size() == 1U &&
                 on_part.diagnostics[0].code == DiagnosticCode::property_not_admitted,
             "a recipe field on a part is dropped with a warning: the recipe's fields are the control's");
+    const std::string_view part_colour_sheet = "#pad::part(face) { color: red; glyph-color: blue }";
+    const Compilation part_colour = compile(part_colour_sheet);
+    const ThemeRule& part_colour_rule = only_rule(part_colour, part_colour_sheet);
+    require(part_colour_rule.selector.part == "face" &&
+                recipe_field_of(part_colour_rule, RecipeField::text) != nullptr &&
+                recipe_field_of(part_colour_rule, RecipeField::glyph) != nullptr,
+            "but a named part takes its own text colours");
 }
 
 void test_filter_lowering() {

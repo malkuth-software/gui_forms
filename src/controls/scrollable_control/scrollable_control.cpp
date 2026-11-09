@@ -486,12 +486,15 @@ void ScrollableControl::notify_scroll(ScrollOrientation orientation,
 ScrollableControl::AxisGeometry ScrollableControl::axis_geometry(
     ScrollOrientation orientation) const noexcept {
     AxisGeometry geometry;
+    // A theme without scroll arrows (ThemeGeometryTokens::scroll_arrows)
+    // gives the track the whole bar.
+    const double button_extent =
+        effective_theme().structure().geometry.scroll_arrows ? scrollbar_button_extent_ : 0.0;
     if (orientation == ScrollOrientation::horizontal) {
         if (!horizontal_scroll_.visible_) return geometry;
         geometry.bar = {0.0, viewport_rectangle_.height,
                         viewport_rectangle_.width, scrollbar_thickness_};
-        const double button = std::min(scrollbar_button_extent_,
-                                       geometry.bar.width * 0.5);
+        const double button = std::min(button_extent, geometry.bar.width * 0.5);
         geometry.first_button = {geometry.bar.x, geometry.bar.y, button,
                                  geometry.bar.height};
         geometry.last_button = {geometry.bar.right() - button, geometry.bar.y,
@@ -503,8 +506,7 @@ ScrollableControl::AxisGeometry ScrollableControl::axis_geometry(
         if (!vertical_scroll_.visible_) return geometry;
         geometry.bar = {viewport_rectangle_.width, 0.0,
                         scrollbar_thickness_, viewport_rectangle_.height};
-        const double button = std::min(scrollbar_button_extent_,
-                                       geometry.bar.height * 0.5);
+        const double button = std::min(button_extent, geometry.bar.height * 0.5);
         geometry.first_button = {geometry.bar.x, geometry.bar.y,
                                  geometry.bar.width, button};
         geometry.last_button = {geometry.bar.x,
@@ -889,6 +891,8 @@ ScrollableControl::Parts ScrollableControl::scrollable_parts() const {
     } else if (dragging_orientation_ == ScrollOrientation::vertical) {
         record.vertical_thumb.states.insert(AnatomyState::pressed);
         record.vertical_thumb.states.insert(AnatomyState::captured);
+    } else {
+        // No thumb is dragged.
     }
     if (hscroll() && vscroll()) {
         const Rect corner{viewport_rectangle_.width, viewport_rectangle_.height,

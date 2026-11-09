@@ -57,6 +57,9 @@ public:
     }
 
     void arrange(Rect final_bounds) override;
+    // The scroll bars, then the spin column's halves as this control's
+    // arrow and glyph parts.
+    void on_paint_overlay(Painter& painter, Rect local_damage) override;
     void on_key_preview(KeyEvent& event) override;
     void on_pointer_preview(PointerEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;

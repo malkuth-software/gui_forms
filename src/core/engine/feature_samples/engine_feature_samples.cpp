@@ -212,6 +212,10 @@ void procedural_fresco(const FeatureSampleInputs&, ThemeDefinition& definition) 
     draw_procedural(definition, ProceduralPattern::fresco, 0x0E11F006U, "procedural_fresco");
 }
 
+void procedural_checker(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_procedural(definition, ProceduralPattern::checker, 0x0E11F007U, "procedural_checker");
+}
+
 // A face with a second fill blended onto it by `blend`.
 void draw_fill_blend(ThemeDefinition& definition, MaterialBlendMode blend, std::string_view label) {
     SurfaceMaterial material = lit_face();
@@ -563,6 +567,7 @@ constexpr EngineFeatureSample samples[] = {
     {"procedural_pinstripe", "material", PartRole::face, Drive::rest, procedural_pinstripe},
     {"procedural_brushed_metal", "material", PartRole::face, Drive::rest, procedural_brushed_metal},
     {"procedural_fresco", "material", PartRole::face, Drive::rest, procedural_fresco},
+    {"procedural_checker", "material", PartRole::face, Drive::rest, procedural_checker},
     {"fill_blend_multiply", "material", PartRole::face, Drive::rest, fill_blend_multiply},
     {"fill_blend_screen", "material", PartRole::face, Drive::rest, fill_blend_screen},
     {"shape_corner_radii", "material", PartRole::face, Drive::rest, shape_corner_radii},

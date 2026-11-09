@@ -561,6 +561,32 @@ void measure() {
     }
 }
 
+// The checker: a 2-unit tile is a dither of logical pixels, the ground at
+// the tile's top left and bottom right, the figure beside them; at scale 2
+// each cell is 2 × 2 device pixels.
+void checker_dithers() {
+    ProceduralFill fill{};
+    fill.pattern = ProceduralPattern::checker;
+    fill.tile = 2.0;
+    fill.ground = Color::rgba(212, 208, 200);
+    fill.figure = Color::rgba(255, 255, 255);
+    const std::array<std::uint8_t, 4> ground{212, 208, 200, 255};
+    const std::array<std::uint8_t, 4> figure{255, 255, 255, 255};
+    const std::shared_ptr<PartRaster> one = make_pattern(fill, 1.0);
+    require((*one).extent().width == 2U && (*one).extent().height == 2U, "the checker's tile is 2 pixels at scale 1");
+    require(pixel_of(*one, 0U, 0U) == ground && pixel_of(*one, 1U, 1U) == ground, "the ground on the diagonal");
+    require(pixel_of(*one, 1U, 0U) == figure && pixel_of(*one, 0U, 1U) == figure, "the figure beside it");
+    const std::shared_ptr<PartRaster> two = make_pattern(fill, 2.0);
+    require((*two).extent().width == 4U && (*two).extent().height == 4U, "the checker's tile is 4 pixels at scale 2");
+    for (std::uint32_t row = 0U; row < 4U; ++row) {
+        for (std::uint32_t column = 0U; column < 4U; ++column) {
+            const bool diagonal = (row >= 2U) == (column >= 2U);
+            const std::array<std::uint8_t, 4>& expected = diagonal ? ground : figure;
+            require(pixel_of(*two, column, row) == expected, "each cell is 2 x 2 pixels at scale 2");
+        }
+    }
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -569,6 +595,7 @@ int main(int argc, char** argv) {
         return 0;
     }
     reference_patterns();
+    checker_dithers();
     patterns_are_seeded();
     tiles_per_scale();
     generated_in_idle_frames();

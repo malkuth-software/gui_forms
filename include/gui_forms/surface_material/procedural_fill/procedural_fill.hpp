@@ -27,6 +27,11 @@ enum class ProceduralPattern : std::uint8_t {
     // The box's own extent, not a tile: a three-stop vertical gradient
     // (ground, figure, accent) and three broad seeded blooms of `bloom`.
     fresco,
+    // A checkerboard: the tile's top-left and bottom-right quarters the
+    // ground, the other two the figure (mixed by strength); no noise. A
+    // 2-unit tile is a 50% dither of logical pixels, as a Windows scroll
+    // track's pattern brush.
+    checker,
 };
 
 // One procedural fill's parameters. The pattern is generated per display

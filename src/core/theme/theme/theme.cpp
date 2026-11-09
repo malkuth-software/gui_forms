@@ -141,7 +141,8 @@ bool valid_procedural_fill(const ProceduralFill& fill) noexcept {
     case ProceduralPattern::paper_fibre:
     case ProceduralPattern::pinstripe:
     case ProceduralPattern::brushed_metal:
-    case ProceduralPattern::fresco: {
+    case ProceduralPattern::fresco:
+    case ProceduralPattern::checker: {
         const bool valid = std::isfinite(fill.tile) && fill.tile >= minimum_procedural_tile &&
                            fill.tile <= maximum_procedural_tile && std::isfinite(fill.strength) &&
                            fill.strength >= 0.0 && fill.strength <= 1.0;
@@ -1928,6 +1929,12 @@ bool Theme::declares_clarity(const Control& control) const noexcept {
 
 ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole role, ControlVisualContext context,
                                      AnatomyStateSet states) const {
+    ResolvedControlRecipe result = resolve(control, role, context, states, std::string_view{});
+    return result;
+}
+
+ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole role, ControlVisualContext context,
+                                     AnatomyStateSet states, std::string_view part) const {
     const ControlVisualRecipe& floor = resolve(role, context);
     // Forced high contrast is the engine's own pass (E1): the built-in
     // recipe's high-contrast records draw the part, under the non-colour
@@ -1939,6 +1946,7 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     facts.stable_id = control.stable_id().value();
     facts.classes = control.classes();
     facts.inline_rules = control.inline_style_rules();
+    facts.part = part;
     facts.states = states;
     facts.forced_high_contrast = forced;
     facts.family = control_visual_role_name(role);

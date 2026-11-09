@@ -521,6 +521,7 @@ private:
     // Whether a selector of the rule names a part or a role: the recipe's
     // fields are the control's (P6f).
     [[nodiscard]] bool rule_selects_part() const noexcept;
+    [[nodiscard]] bool rule_names_parts_only() const noexcept;
     [[nodiscard]] bool rule_has_states() const noexcept;
     // Whether a selector of the rule names a family, its own or a `:not()`
     // argument's (a control's fonts are resolved for no family).
@@ -2657,12 +2658,17 @@ bool CompilePass::read_backdrop_step(std::size_t function, BackdropStepKind kind
 // A material property's fields (P6b), or the recipe's (P6f): its CSS-wide
 // `initial` resets each field it sets; any other value is lowered by the
 // material lowering. A recipe property in a rule naming a part or a role
-// is dropped with a warning, since the recipe's fields are the control's.
+// is dropped with a warning, since the recipe's fields are the control's;
+// the text colours (`color`, `muted-color`, `glyph-color`) are admitted on
+// a named part, whose text and marks they colour.
 bool CompilePass::lower_material(const SyntaxNode& node) {
     // folded_ holds the property's name, which classify() found listed.
     const MaterialProperty property = *material_property(folded_);
     const bool recipe = recipe_property(property);
-    if (recipe && rule_selects_part()) {
+    const bool text_colour = property == MaterialProperty::color || property == MaterialProperty::muted_color ||
+                             property == MaterialProperty::glyph_color;
+    const bool on_named_part = text_colour && rule_names_parts_only();
+    if (recipe && rule_selects_part() && !on_named_part) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_ + " on a part or a role");
         return true;
     }
@@ -3345,6 +3351,15 @@ bool CompilePass::rule_selects_part() const noexcept {
         if (!lowered.selector.part.empty() || lowered.selector.role.has_value()) return true;
     }
     return false;
+}
+
+// Whether every selector of the rule names a part (not a role alone).
+bool CompilePass::rule_names_parts_only() const noexcept {
+    if (lowered_selectors_.empty()) return false;
+    for (const LoweredSelector& lowered : lowered_selectors_) {
+        if (lowered.selector.part.empty()) return false;
+    }
+    return true;
 }
 
 void CompilePass::add_material(MaterialDeclaration declaration) {

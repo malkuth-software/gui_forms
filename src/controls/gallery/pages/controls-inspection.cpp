@@ -1,5 +1,7 @@
 #include "pages.hpp"
 
+#include <cstddef>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -173,11 +175,24 @@ std::shared_ptr<NumericUpDown> spinner(const InspectionRow& row, std::string_vie
     return value;
 }
 
+std::shared_ptr<DomainUpDown> domain(const InspectionRow& row, std::string_view state) {
+    const std::shared_ptr<DomainUpDown> value = make_control<DomainUpDown>(StableId(inspection_id(row, state, "")));
+    (*value).items = {"First", "Second", "Third"};
+    (*value).selected_index = std::optional<std::size_t>{0U};
+    (*value).accessible_name = std::string(state);
+    return value;
+}
+
+// NumericUpDown in the first two cells, DomainUpDown in the next two.
 void add_spinners(Surface& page, const InspectionRow& row) {
     add_cell(page, row, 0U, "normal", spinner(row, "normal"));
     const std::shared_ptr<NumericUpDown> disabled = spinner(row, "disabled");
     (*disabled).enabled = false;
     add_cell(page, row, 1U, "disabled", disabled);
+    add_cell(page, row, 2U, "domain", domain(row, "domain"));
+    const std::shared_ptr<DomainUpDown> domain_disabled = domain(row, "domain disabled");
+    (*domain_disabled).enabled = false;
+    add_cell(page, row, 3U, "domain disabled", domain_disabled);
 }
 
 // A range control at 40 of 0 to 100.
@@ -250,7 +265,7 @@ void add_controls_inspection(const std::shared_ptr<Surface>& page,
         {"text-box", "TextBox", 0.0, 24.0},
         {"combo-box", "ComboBox", 0.0, 24.0},
         {"list-box", "ListBox", 0.0, 64.0},
-        {"numeric-up-down", "NumericUpDown", 0.0, 24.0},
+        {"numeric-up-down", "Up-downs", 0.0, 24.0},
         {"track-bar", "TrackBar", 0.0, 32.0},
         {"progress-bar", "ProgressBar", 0.0, 18.0},
         {"h-scroll-bar", "HScrollBar", 0.0, 17.0},

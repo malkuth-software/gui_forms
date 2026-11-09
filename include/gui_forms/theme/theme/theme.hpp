@@ -75,6 +75,13 @@ public:
                                                 ControlVisualContext context) const;
     [[nodiscard]] ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role,
                                                 ControlVisualContext context, AnatomyStateSet states) const;
+    // As above for the control's part named `part` (a key's part name):
+    // rules naming that part also match, so a part's own text colours
+    // (`::part(caption) { color }`) stand over the control's. An empty name
+    // is the form above.
+    [[nodiscard]] ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role,
+                                                ControlVisualContext context, AnatomyStateSet states,
+                                                std::string_view part) const;
     // Where each field of `control`'s recipe in `role` and `context` came
     // from (T4 cascade spec, item 5), for an editor's query: the facts
     // resolve() reads, through CompiledThemeRules::resolve_provenance,

@@ -670,13 +670,14 @@ struct EnumerationChoices<PointerButton> {
 template <>
 struct EnumerationChoices<ProceduralPattern> {
     static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 6> choices{{
+    static constexpr std::array<EnumerationChoice, 7> choices{{
         {"felt", static_cast<std::int64_t>(ProceduralPattern::felt)},
         {"wood_grain", static_cast<std::int64_t>(ProceduralPattern::wood_grain)},
         {"paper_fibre", static_cast<std::int64_t>(ProceduralPattern::paper_fibre)},
         {"pinstripe", static_cast<std::int64_t>(ProceduralPattern::pinstripe)},
         {"brushed_metal", static_cast<std::int64_t>(ProceduralPattern::brushed_metal)},
         {"fresco", static_cast<std::int64_t>(ProceduralPattern::fresco)},
+        {"checker", static_cast<std::int64_t>(ProceduralPattern::checker)},
     }};
 };
 
