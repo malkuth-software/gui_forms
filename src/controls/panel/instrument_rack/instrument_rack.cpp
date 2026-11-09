@@ -39,36 +39,18 @@ void require_finite_positive(double value, const char* field) {
     }
 }
 
-BasicControlStyle module_style(InstrumentModuleState state) {
-    BasicControlStyle result;
-    result.face = Color::rgba(226, 235, 241);
-    result.face_light = Color::rgba(252, 254, 255);
-    result.paper = Color::rgba(255, 255, 255);
-    result.border = Color::rgba(105, 126, 142);
-    result.dark_border = Color::rgba(72, 97, 116);
-    result.text = Color::rgba(43, 65, 82);
-    result.disabled_text = Color::rgba(111, 126, 137);
-    result.accent = Color::rgba(61, 96, 138);
-    result.accent_light = Color::rgba(219, 232, 242);
-    // A live module keeps these colours.
-    if (state == InstrumentModuleState::staged) {
-        result.face = Color::rgba(238, 229, 241);
-        result.border = Color::rgba(138, 106, 152);
-        result.dark_border = Color::rgba(108, 79, 121);
-        result.accent = Color::rgba(113, 78, 133);
-        result.accent_light = Color::rgba(239, 226, 245);
-    } else if (state == InstrumentModuleState::pending) {
-        result.face = Color::rgba(225, 235, 247);
-        result.border = Color::rgba(83, 116, 157);
-        result.accent = Color::rgba(56, 91, 139);
-    } else if (state == InstrumentModuleState::invalid) {
-        result.face = Color::rgba(247, 231, 229);
-        result.border = Color::rgba(157, 91, 86);
-        result.dark_border = Color::rgba(121, 65, 62);
-        result.accent = Color::rgba(139, 69, 66);
-        result.accent_light = Color::rgba(250, 224, 222);
-    }
-    return result;
+// A module's look in its state, from the theme's roles so that it follows
+// the colour scheme: a live module is a card; a staged one the notice
+// role; a pending or invalid one a card in that surface state.
+ControlVisualRole module_role(InstrumentModuleState state) noexcept {
+    if (state == InstrumentModuleState::staged) return ControlVisualRole::notice;
+    return ControlVisualRole::card;
+}
+
+ControlVisualStatus module_status(InstrumentModuleState state) noexcept {
+    if (state == InstrumentModuleState::pending) return ControlVisualStatus::pending;
+    if (state == InstrumentModuleState::invalid) return ControlVisualStatus::invalid;
+    return ControlVisualStatus::normal;
 }
 
 Control::Ptr first_focusable_descendant(const Control::Ptr& root) {
@@ -468,7 +450,6 @@ struct InstrumentRack::Impl final {
             StableId(module.spec.stable_id + ".state"),
             module.spec.status_text);
         (*module.status).font = FontSpec{FontRole::control, 9.5, 600, false, 0.30};
-        (*module.status).fore_color = Color::rgba(92, 113, 128);
         (*module.status).margin = Insets{};
         (*module.status).accessible_name = "Application state";
         (*module.panel).add_child(module.status);
@@ -501,10 +482,12 @@ struct InstrumentRack::Impl final {
     }
 
     void update_module_presentation(ModuleState& module) {
-        const BasicControlStyle style = module_style(module.spec.state);
-        (*module.panel).set_style(style);
-        (*module.panel).set_background(style.face);
-        (*module.enable).set_style(style);
+        // The module and its status line take the state's role and status;
+        // no colour is written, so both resolve in the window's scheme.
+        const ControlVisualStatus status = module_status(module.spec.state);
+        (*module.panel).visual_role = module_role(module.spec.state);
+        (*module.panel).set_visual_status(status);
+        (*module.status).set_visual_status(status);
         synchronizing = true;
         (*module.enable).checked = module.spec.enabled;
         synchronizing = false;
@@ -512,15 +495,8 @@ struct InstrumentRack::Impl final {
         (*module.enable).enabled = !pending;
         (*module.remove).enabled = module.spec.removable && !pending;
         (*module.remove).visible = module.spec.removable;
-        (*module.remove).set_style(style);
         (*module.status).text = module.spec.status_text;
         (*module.status).accessible_description = module.spec.status_text;
-        (*module.status).fore_color =
-            module.spec.state == InstrumentModuleState::invalid
-                ? Color::rgba(130, 59, 57)
-                : module.spec.state == InstrumentModuleState::staged
-                    ? Color::rgba(121, 93, 131)
-                    : Color::rgba(92, 113, 128);
         (*module.panel).accessible_description = module.spec.status_text +
             " · Alt+Left and Alt+Right request reordering";
         for (std::size_t index = 0; index < module.fields.size(); ++index) {
@@ -529,10 +505,6 @@ struct InstrumentRack::Impl final {
             (*module.fields[index].editor).accessible_description = field.validation_message.empty()
                     ? module.spec.name + " criterion field"
                     : field.validation_message;
-            if (const std::shared_ptr<gui_forms::Panel> panel = std::dynamic_pointer_cast<Panel>(
-                    module.fields[index].editor)) {
-                (*panel).set_style(style);
-            }
         }
         owner.invalidate(Dirty::paint | Dirty::semantics);
     }

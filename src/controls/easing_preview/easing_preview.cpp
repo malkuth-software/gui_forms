@@ -1,5 +1,6 @@
 #include "gui_forms/controls/easing_preview/easing_preview.hpp"
 
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
@@ -30,6 +31,40 @@ using namespace std::chrono_literals;
     };
 }
 
+// The colours one paint uses besides the ground: from the style set with
+// set_style, or from the theme's editor recipe in the preview's context
+// (its colour scheme, contrast and state).
+struct PreviewColours final {
+    Color border{};
+    Color title{};
+    Color label{};
+    Color track{};
+    Color marker_edge{};
+    Color accent{};
+};
+
+PreviewColours styled_colours(const BasicControlStyle& style) noexcept {
+    PreviewColours colours{};
+    colours.border = style.border;
+    colours.title = style.dark_border;
+    colours.label = style.text;
+    colours.track = style.face;
+    colours.marker_edge = style.dark_border;
+    colours.accent = style.accent;
+    return colours;
+}
+
+PreviewColours themed_colours(const ControlVisualRecipe& recipe) noexcept {
+    PreviewColours colours{};
+    colours.border = recipe.muted_text;
+    colours.title = recipe.text;
+    colours.label = recipe.text;
+    colours.track = recipe.muted_text;
+    colours.marker_edge = recipe.glyph;
+    colours.accent = recipe.focus_ring;
+    return colours;
+}
+
 } // namespace
 
 EasingPreview::EasingPreview(StableId stable_id)
@@ -39,15 +74,26 @@ EasingPreview::EasingPreview(StableId stable_id)
     initial_specification.infinite = true;
     initial_specification.easing = EasingCurve::linear;
     timeline_.set_specification(initial_specification);
-    tracks_ = default_easing_tracks(style_);
+    tracks_ = default_easing_tracks(BasicControlStyle{});
     accessible_name = "Animation easing preview";
     accessible_description = "Retained timeline tracks comparing configured easing curves";
 }
 
+const BasicControlStyle& EasingPreview::style() const noexcept {
+    return style_override_ ? *style_override_ : effective_theme().basic_style();
+}
+
 void EasingPreview::set_style(BasicControlStyle style) {
     require_mutable();
-    if (style_ == style) return;
-    style_ = style;
+    if (style_override_ && *style_override_ == style) return;
+    style_override_ = style;
+    invalidate(Dirty::paint);
+}
+
+void EasingPreview::clear_style() {
+    require_mutable();
+    if (!style_override_) return;
+    style_override_.reset();
     invalidate(Dirty::paint);
 }
 
@@ -190,20 +236,33 @@ void EasingPreview::on_paint(Painter& painter, Rect) {
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                       committed_arranged_bounds().height};
     const double s = effective_text_scale();
-    painter.fill_rect(bounds, style_.paper);
+    // The ground: a style's paper, else the theme's editor face, which
+    // resolves in the window's colour scheme.
+    const ControlVisualRecipe& recipe = effective_theme().resolve(ControlVisualRole::editor, visual_context());
+    const PreviewColours colours = style_override_ ? styled_colours(*style_override_) : themed_colours(recipe);
+    if (style_override_) {
+        painter.fill_rect(bounds, (*style_override_).paper);
+    } else {
+        PartPaint face{};
+        face.family = ControlVisualRole::editor;
+        face.role = PartRole::face;
+        face.bounds = bounds;
+        face.key = PartKey{"face", {}, {}};
+        paint_part(painter, *this, face);
+    }
     painter.stroke_rect({0.5, 0.5, std::max(0.0, bounds.width - 1.0),
                          std::max(0.0, bounds.height - 1.0)},
-                        style_.border, 1.0);
+                        colours.border, 1.0);
     painter.draw_text_utf8({18.0 * s, 25.0 * s}, title.read(),
                            effective_font({FontRole::control, 13.0, 700, false}),
-                           style_.dark_border);
+                           colours.title);
     const MotionPolicy policy = effective_motion_policy();
     const double presented_phase = policy.presentation_phase(phase_);
     const std::string readout = motion_readout(presented_phase);
     const Rect readout_box = readout_bounds();
     painter.draw_text_utf8({readout_box.x, 25.0 * s}, readout,
                            effective_font({FontRole::control, 11.0, 600, false}),
-                           policy.active() ? style_.accent
+                           policy.active() ? colours.accent
                                            : Color::rgba(211, 121, 42));
 
     const double track_x = track_left();
@@ -212,14 +271,14 @@ void EasingPreview::on_paint(Painter& painter, Rect) {
         const double y = track_row_top(index);
         painter.draw_text_utf8({18.0 * s, y + 15.0 * s}, tracks_[index].label,
                                effective_font({FontRole::content, 11.0, 400, false}),
-                               style_.text);
-        painter.fill_rect({track_x, y + 8.0, width, 3.0}, style_.face);
+                               colours.label);
+        painter.fill_rect({track_x, y + 8.0, width, 3.0}, colours.track);
         const Rect marker = marker_bounds(index, presented_phase);
         painter.fill_rect(marker, tracks_[index].color);
         painter.stroke_rect({marker.x + 0.5, marker.y + 0.5,
                              std::max(0.0, marker_size.read() - 1.0),
                              std::max(0.0, marker_size.read() - 1.0)},
-                            style_.dark_border, 1.0);
+                            colours.marker_edge, 1.0);
     }
 }
 

@@ -6,6 +6,7 @@
 #include "gui_forms/controls/easing_preview/easing_preview_capabilities/easing_preview_capabilities.hpp"
 
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <vector>
@@ -33,10 +34,13 @@ class EasingPreview final : public Control, public EasingPreviewCapabilities<Eas
 public:
     explicit EasingPreview(StableId stable_id);
 
-    [[nodiscard]] const BasicControlStyle& style() const noexcept {
-        return style_;
-    }
+    // The colours set with set_style, else the theme's compatibility
+    // colours. Without set_style the preview paints from the theme's editor
+    // role in the window's colour scheme, not from these.
+    [[nodiscard]] const BasicControlStyle& style() const noexcept;
+    [[nodiscard]] bool has_style_override() const noexcept { return style_override_.has_value(); }
     void set_style(BasicControlStyle style);
+    void clear_style();
     [[nodiscard]] const std::vector<EasingPreviewTrack>& tracks() const noexcept {
         return tracks_;
     }
@@ -101,7 +105,8 @@ private:
     SubscriptionToken presentation_subscription_;
     AnimationTimeline timeline_;
     std::vector<EasingPreviewTrack> tracks_;
-    BasicControlStyle style_;
+    // The colours set_style gave; empty, the theme's roles paint it.
+    std::optional<BasicControlStyle> style_override_{};
     MotionPolicy motion_policy_{};
     double phase_{};
     bool timeline_started_{};

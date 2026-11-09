@@ -10,6 +10,7 @@
 #include "support/theme_definition_heap.hpp"
 #include "gui_forms/gui_forms.hpp"
 
+#include <array>
 #include <cstddef>
 #include <initializer_list>
 #include <iostream>
@@ -152,6 +153,70 @@ void test_control_grounds_follow_scheme() {
         require(brightness(dark) < brightness(light[index]), cases[index].name + ": the dark ground is darker");
     }
     require((*page).background().alpha == 0U, "a tab page's ground is transparent over the display");
+}
+
+// The rack's module panel with `stable_id`, or null.
+std::shared_ptr<Panel> module_panel(const InstrumentRack& rack, std::string_view stable_id) {
+    for (const Control::Ptr& child : rack.children()) {
+        if ((*child).stable_id().value() == stable_id) return std::dynamic_pointer_cast<Panel>(child);
+    }
+    return {};
+}
+
+// The rest of the set: an InstrumentRack's modules take theme roles per
+// state (card, notice for staged, the card's pending and invalid surface
+// states), with no colour written, so each follows the scheme; an
+// EasingPreview without set_style paints from the theme's editor role in
+// its context, which differs by scheme.
+void test_module_and_preview_grounds_follow_scheme() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("modules.root"));
+    const std::shared_ptr<InstrumentRack> rack = make_control<InstrumentRack>(StableId("modules.rack"));
+    std::vector<InstrumentModuleSpec> modules{};
+    const std::array<InstrumentModuleState, 4> states{{InstrumentModuleState::live, InstrumentModuleState::staged,
+                                                       InstrumentModuleState::pending,
+                                                       InstrumentModuleState::invalid}};
+    const std::array<std::string, 4> ids{{"modules.live", "modules.staged", "modules.pending", "modules.invalid"}};
+    for (std::size_t index = 0U; index < states.size(); ++index) {
+        InstrumentModuleSpec spec{};
+        spec.stable_id = ids[index];
+        spec.name = ids[index];
+        spec.status_text = "state";
+        spec.state = states[index];
+        modules.push_back(spec);
+    }
+    (*rack).set_modules(std::move(modules));
+    (*root).add_child(rack);
+    const std::shared_ptr<EasingPreview> preview = make_control<EasingPreview>(StableId("modules.preview"));
+    (*root).add_child(preview);
+    Window window(root, Size{600.0, 400.0});
+    window.set_theme(gui_forms_theme());
+    set_scheme(window, ColourScheme::light);
+    std::vector<Color> light{};
+    for (const std::string& id : ids) {
+        const std::shared_ptr<Panel> panel = module_panel(*rack, id);
+        require(panel != nullptr, id + ": the module panel is the rack's child");
+        if (panel == nullptr) return;
+        require(!(*panel).has_background_override() && !(*panel).has_style_override(),
+                id + ": no colour or style written for the module");
+        light.push_back((*panel).background());
+    }
+    require((*module_panel(*rack, "modules.pending")).visual_context().surface == ControlSurfaceState::pending &&
+                (*module_panel(*rack, "modules.invalid")).visual_context().surface == ControlSurfaceState::invalid,
+            "pending and invalid modules resolve in those surface states");
+    require(!(*preview).has_style_override(), "the preview has no style of its own by default");
+    const Color preview_light =
+        window.theme().resolve(ControlVisualRole::editor, (*preview).visual_context()).text;
+    set_scheme(window, ColourScheme::dark);
+    for (std::size_t index = 0U; index < ids.size(); ++index) {
+        const Color dark = (*module_panel(*rack, ids[index])).background();
+        require(dark != light[index], ids[index] + ": the module's ground changes with the scheme");
+        require(brightness(dark) < brightness(light[index]), ids[index] + ": the dark ground is darker");
+    }
+    require((*preview).visual_context().dark, "the preview's context is dark");
+    const Color preview_dark =
+        window.theme().resolve(ControlVisualRole::editor, (*preview).visual_context()).text;
+    require(brightness(preview_dark) > brightness(preview_light),
+            "the preview's text, from the editor role, lightens in dark");
 }
 
 void test_declaring_schemes() {
@@ -424,6 +489,7 @@ void test_window_backdrop() {
 
 int main() {
     test_control_grounds_follow_scheme();
+    test_module_and_preview_grounds_follow_scheme();
     test_declaring_schemes();
     test_dark_rules_without_variant();
     test_theme_supports();
