@@ -20,6 +20,13 @@ counter, or any platform of PLATFORMS without a manifest (none found at
 all included): a gate that compares fewer hosts than it covers proves
 nothing about the missing ones. Otherwise it is 0.
 
+The outcomes are reported apart, so that runner capacity never reads as an
+engine regression: a cross-host difference, a busy idle counter, and host
+evidence missing. --job-results (the workflow's toJSON(needs)) names why a
+host is missing: a native job that did not succeed was cancelled, failed,
+or never acquired a runner, and its own check reports that; a job that
+succeeded without a manifest is an evidence defect.
+
 `carry` keeps a host in the comparison when its native job ran no test:
 a job that promoted (a push to main) or reused an exact-tree validation
 finds the validation run in .ci/reused.json and copies that run's manifest
@@ -136,6 +143,49 @@ def differs(values: dict[str, list[str] | None]) -> bool:
         if value not in distinct:
             distinct.append(value)
     return len(distinct) > 1
+
+
+def job_results(text: str) -> dict[str, str]:
+    """Each platform's native job result, from the workflow's toJSON(needs) (empty: none known).
+
+    A needs entry named native-<platform> carries {"result": ...}; other
+    entries are ignored.
+    """
+    results: dict[str, str] = {}
+    if not text.strip():
+        return results
+    needs: dict = json.loads(text)
+    name: str
+    entry: dict
+    for name, entry in needs.items():
+        if name.startswith('native-'):
+            results[name[len('native-'):]] = str(entry.get('result', ''))
+    return results
+
+
+def missing_reason(platform: str, results: dict[str, str]) -> str:
+    """Why platform has no manifest, given its native job's result (results from job_results)."""
+    result: str = results.get(platform, '')
+    if not result:
+        return 'host evidence missing: no manifest (job result unknown)'
+    if result == 'success':
+        return 'host evidence missing: the job succeeded without a manifest (an evidence defect)'
+    return f'host evidence missing: job cancelled or not acquired (job result: {result})'
+
+
+def outcomes(result: dict) -> list[str]:
+    """The comparison's outcomes, each reported apart: 'pass' alone, or any of 'cross-host difference',
+    'busy idle counter' and 'host evidence missing'."""
+    found: list[str] = []
+    if not result['identical']:
+        found.append('cross-host difference')
+    if result['busy_idle_counters']:
+        found.append('busy idle counter')
+    if result['missing']:
+        found.append('host evidence missing')
+    if not found:
+        found.append('pass')
+    return found
 
 
 def compare(manifests: dict[str, Manifest], required: tuple[str, ...]) -> dict:
@@ -269,7 +319,8 @@ def host_table(result: dict, manifests: dict[str, Manifest]) -> str:
         rows.append(f'| {platform} | {manifest.registry} | {len(manifest.images)} | {manifest.sample_count} '
                     f'| {len(manifest.samples)} | {verdict} |')
     for platform in result['missing']:
-        rows.append(f'| {platform} | - | - | - | - | no manifest (validation reused, or the job did not run) |')
+        reason: str = result.get('missing_reasons', {}).get(platform, 'host evidence missing: no manifest')
+        rows.append(f'| {platform} | - | - | - | - | {reason} |')
     return '\n'.join(rows)
 
 
@@ -304,13 +355,15 @@ def feature_table(manifests: dict[str, Manifest]) -> str:
 
 def fill_record(template: str, result: dict, manifests: dict[str, Manifest], commit: str, run: str) -> str:
     """The record: the template with its {{placeholders}} filled."""
-    verdict: str = 'identical on every host that ran'
+    verdict: str = f"identical on every host that ran ({len(result['differences'])} cross-host differences)"
     if not result['identical']:
-        verdict = 'DIFFERENT between hosts'
+        verdict = f"cross-host difference: DIFFERENT between hosts ({len(result['differences'])} differences)"
     if result['busy_idle_counters']:
         verdict = verdict + '; a window ran frames while idle'
-    if result['missing']:
-        verdict = verdict + '; missing: ' + ', '.join(result['missing'])
+    platform: str
+    for platform in result['missing']:
+        reason: str = result.get('missing_reasons', {}).get(platform, 'host evidence missing: no manifest')
+        verdict = verdict + f'; {platform}: {reason}'
     quoted: list[str] = []
     primitive: str
     for primitive in result['primitives']:
@@ -416,6 +469,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('--out', type=Path, help='compare: directory for comparison.json and record.md')
     parser.add_argument('--commit', default='', help='compare: the commit the manifests were made from')
     parser.add_argument('--run', default='', help='compare: the CI run that made them')
+    parser.add_argument('--job-results', default='',
+                        help="compare: the workflow's toJSON(needs), naming why a host's evidence is missing")
     parser.add_argument('--platform', default='', help='carry: the platform of this native job')
     parser.add_argument('--state', type=Path, default=Path('.ci'), help='carry: the .ci directory of this job')
     args: argparse.Namespace = parser.parse_args(argv)
@@ -432,6 +487,12 @@ def main(argv: list[str] | None = None) -> int:
     for platform, path in paths.items():
         manifests[platform] = parse_manifest(path.read_text(encoding='utf-8'))
     result: dict = compare(manifests, PLATFORMS)
+    results: dict[str, str] = job_results(args.job_results)
+    reasons: dict[str, str] = {}
+    for platform in result['missing']:
+        reasons[platform] = missing_reason(platform, results)
+    result['missing_reasons'] = reasons
+    result['outcomes'] = outcomes(result)
     result['commit'] = args.commit
     result['run'] = args.run
     args.out.mkdir(parents=True, exist_ok=True)
@@ -442,7 +503,12 @@ def main(argv: list[str] | None = None) -> int:
           f"{result['sample_images']} sample images, {len(result['features'])} features, "
           f"{len(result['differences'])} differences, {len(result['busy_idle_counters'])} busy idle counters, "
           f"missing {result['missing']}")
-    failed: bool = not result['identical'] or bool(result['busy_idle_counters']) or bool(result['missing'])
+    print('engine gate outcome: ' + ', '.join(result['outcomes']))
+    for platform in result['missing']:
+        # A separate annotation, so a host without evidence reads apart from an engine difference.
+        print(f"::error title=engine gate: host evidence missing::{platform}: {reasons[platform]}; "
+              f"{len(result['differences'])} cross-host differences among the hosts that ran")
+    failed: bool = result['outcomes'] != ['pass']
     if not manifests:
         print('engine gate: no manifest found; nothing compared')
         failed = True

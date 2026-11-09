@@ -478,14 +478,17 @@ jobs:
   # T2's gate evidence (E11): every native job's engine gate manifest, compared
   # across hosts. Fails on any reference-image hash that differs between hosts,
   # any idle counter above zero, or any host without a manifest (a job that
-  # reused a validation carries that run's manifest). The filled record is the
+  # reused a validation carries that run's manifest). A host without evidence
+  # (its job cancelled, failed or never given a runner) is reported apart from
+  # a cross-host difference, and still fails: the gate runs whatever the
+  # native jobs' results, so it never reads as skipped. The filled record is the
   # t2-engine-gate-record artifact (notes:results/2026-10-22-t2-engine-gate/).
   # A documentation-only pull request built nothing to compare, so the gate
   # passes without comparing.
   engine-gate:
     needs: [changes, native-macos-arm64, native-linux-x64, native-linux-arm64, native-windows-x64]
     if: >-
-      always() && !contains(needs.*.result, 'cancelled')
+      !cancelled()
       && (needs.changes.outputs.docs_only == 'true' || !contains(needs.*.result, 'skipped'))
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -506,6 +509,9 @@ jobs:
           python3 -B tools/engine_gate.py compare --evidence .ci/evidence --out .ci/engine-gate
           --commit "${{ github.sha }}"
           --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          --job-results "$NEEDS"
+        env:
+          NEEDS: ${{ toJSON(needs) }}
       - name: Show the record
         if: always() && needs.changes.outputs.docs_only != 'true'
         run: |

@@ -64,13 +64,14 @@ class ParseTests(unittest.TestCase):
 
 
 class CompareTests(unittest.TestCase):
-    def run_compare(self, manifests: dict[str, str]) -> tuple[int, dict, str]:
+    def run_compare(self, manifests: dict[str, str], job_results: str = '') -> tuple[int, dict, str]:
         with tempfile.TemporaryDirectory() as scratch:
             root: Path = Path(scratch)
             write_evidence(root / 'evidence', manifests)
             (root / 'evidence').mkdir(exist_ok=True)
             arguments: list[str] = ['compare', '--evidence', str(root / 'evidence'), '--out', str(root / 'out'),
-                                    '--commit', 'abc123', '--run', 'https://example.invalid/run/1']
+                                    '--commit', 'abc123', '--run', 'https://example.invalid/run/1',
+                                    '--job-results', job_results]
             status: int = engine_gate.main(arguments)
             result: dict = json.loads((root / 'out' / 'comparison.json').read_text(encoding='utf-8'))
             record: str = (root / 'out' / 'record.md').read_text(encoding='utf-8')
@@ -157,7 +158,45 @@ class CompareTests(unittest.TestCase):
         status, result, record = self.run_compare(manifests)
         self.assertEqual(status, 1)
         self.assertEqual(result['missing'], ['linux-arm64'])
+        self.assertEqual(result['outcomes'], ['host evidence missing'])
         self.assertIn('no manifest', record)
+
+    def test_a_host_never_acquired_is_missing_evidence_not_a_difference(self) -> None:
+        # A main run whose macOS runner was never acquired: 0 differences
+        # among the hosts that ran, and the gate says so and still fails.
+        manifests: dict[str, str] = {}
+        platform: str
+        for platform in engine_gate.PLATFORMS:
+            if platform != 'macos-arm64':
+                manifests[platform] = manifest_text([BULGE, GLASS])
+        needs: str = json.dumps({'changes': {'result': 'success'}, 'native-macos-arm64': {'result': 'cancelled'},
+                                 'native-linux-x64': {'result': 'success'},
+                                 'native-linux-arm64': {'result': 'success'},
+                                 'native-windows-x64': {'result': 'success'}})
+        status: int
+        result: dict
+        record: str
+        status, result, record = self.run_compare(manifests, needs)
+        self.assertEqual(status, 1)
+        self.assertEqual(result['outcomes'], ['host evidence missing'])
+        self.assertEqual(result['differences'], [])
+        self.assertEqual(result['missing_reasons']['macos-arm64'],
+                         'host evidence missing: job cancelled or not acquired (job result: cancelled)')
+        self.assertIn('macos-arm64: host evidence missing: job cancelled or not acquired', record)
+        self.assertIn('0 cross-host differences', record)
+        self.assertNotIn('DIFFERENT', record)
+
+    def test_a_successful_job_without_a_manifest_is_an_evidence_defect(self) -> None:
+        manifests: dict[str, str] = {}
+        platform: str
+        for platform in engine_gate.PLATFORMS[:3]:
+            manifests[platform] = manifest_text([BULGE, GLASS])
+        needs: str = json.dumps({'native-linux-arm64': {'result': 'success'}})
+        status: int
+        result: dict
+        status, result, _ = self.run_compare(manifests, needs)
+        self.assertEqual(status, 1)
+        self.assertIn('evidence defect', result['missing_reasons']['linux-arm64'])
 
     def test_no_manifest_at_all_fails(self) -> None:
         # A push to main whose native jobs all promoted ran no gate test (run
