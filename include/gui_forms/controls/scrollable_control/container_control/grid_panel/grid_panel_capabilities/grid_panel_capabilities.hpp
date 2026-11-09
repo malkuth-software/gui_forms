@@ -76,6 +76,40 @@ struct GridPanelAutoFlowCapability {
     }
 };
 
+// grid-auto-columns: one to 10,000 admitted track sizes, repeated over the implicit columns (else std::invalid_argument). A view onto the container style.
+template <typename Declaring>
+struct GridPanelAutoColumnsCapability {
+    PropertyView<std::vector<GridTrackSize>, GridPanelAutoColumnsCapability<Declaring>> auto_columns;
+
+    static void assign(GridPanelAutoColumnsCapability& capability, std::vector<GridTrackSize> incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.auto_columns), std::move(incoming));
+    }
+
+    static std::vector<GridTrackSize> read(const GridPanelAutoColumnsCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::vector<GridTrackSize> current = control.read_view(capability.auto_columns);
+        return current;
+    }
+};
+
+// grid-auto-rows: one to 10,000 admitted track sizes, repeated over the implicit rows (else std::invalid_argument). A view onto the container style.
+template <typename Declaring>
+struct GridPanelAutoRowsCapability {
+    PropertyView<std::vector<GridTrackSize>, GridPanelAutoRowsCapability<Declaring>> auto_rows;
+
+    static void assign(GridPanelAutoRowsCapability& capability, std::vector<GridTrackSize> incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.auto_rows), std::move(incoming));
+    }
+
+    static std::vector<GridTrackSize> read(const GridPanelAutoRowsCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::vector<GridTrackSize> current = control.read_view(capability.auto_rows);
+        return current;
+    }
+};
+
 // justify-content: normal, stretch, start, end, flex-start, flex-end, center and the three space distributions (else std::invalid_argument).
 template <typename Declaring>
 struct GridPanelJustifyContentCapability {
@@ -159,6 +193,8 @@ template <typename Declaring>
 struct GridPanelCapabilities : public GridPanelTemplateColumnsCapability<Declaring>,
                                public GridPanelTemplateRowsCapability<Declaring>,
                                public GridPanelAutoFlowCapability<Declaring>,
+                               public GridPanelAutoColumnsCapability<Declaring>,
+                               public GridPanelAutoRowsCapability<Declaring>,
                                public GridPanelJustifyContentCapability<Declaring>,
                                public GridPanelAlignContentCapability<Declaring>,
                                public GridPanelJustifyItemsCapability<Declaring>,

@@ -80,6 +80,14 @@ gui_forms::GridPanel
          (``column``), and with ``row_dense`` or ``column_dense`` goes back to fill
          earlier holes.
 
+      **auto_columns** : ``std::vector<GridTrackSize>``, default one ``auto``
+         grid-auto-columns: the sizes of implicit columns, one to 10,000 of
+         them, repeated in order (and backwards for implicit columns before
+         the explicit grid).
+
+      **auto_rows** : ``std::vector<GridTrackSize>``, default one ``auto``
+         grid-auto-rows, with the rules of :cpp:member:`auto_columns <gui_forms::GridPanel::auto_columns>`.
+
       **justify_content** : ``LayoutAlignment``, default ``LayoutAlignment::normal``
          How the columns share the content width left over: ``start``, ``end``,
          ``flex_start``, ``flex_end``, ``center``, ``space_between``, ``space_around``
@@ -129,14 +137,6 @@ gui_forms::GridPanel
          distinct, each area must lie within the template, and the spans' rules
          apply (see :cpp:func:`define_span <gui_forms::GridPanel::define_span>`). Its rows and columns add explicit tracks
          where the template lists are shorter.
-
-      **auto_columns** : ``std::span<const GridTrackSize>``, default one ``auto``
-         grid-auto-columns: the sizes of implicit columns, one to 10,000 of
-         them, repeated in order (and backwards for implicit columns before
-         the explicit grid).
-
-      **auto_rows** : ``std::span<const GridTrackSize>``, default one ``auto``
-         grid-auto-rows, with the rules of :cpp:func:`auto_columns <gui_forms::GridPanel::auto_columns>`.
 
       **layout_snapshot** : ``GridLayoutWorkspace``, read-only, read-only
          The last arrange's resolution: the columns and rows with their sizing
@@ -346,6 +346,16 @@ gui_forms::GridPanel
       (``column``), and with ``row_dense`` or ``column_dense`` goes back to fill
       earlier holes.
 
+   .. cpp:member:: std::vector<GridTrackSize> auto_columns
+
+      grid-auto-columns: the sizes of implicit columns, one to 10,000 of
+      them, repeated in order (and backwards for implicit columns before
+      the explicit grid).
+
+   .. cpp:member:: std::vector<GridTrackSize> auto_rows
+
+      grid-auto-rows, with the rules of :cpp:member:`auto_columns <gui_forms::GridPanel::auto_columns>`.
+
    .. cpp:member:: LayoutAlignment justify_content
 
       How the columns share the content width left over: ``start``, ``end``,
@@ -411,24 +421,6 @@ gui_forms::GridPanel
    .. cpp:function:: void set_template_areas(const GridTemplateAreas& areas)
 
       Sets :cpp:func:`template_areas <gui_forms::GridPanel::template_areas>`; see the property's description above.
-
-   .. cpp:function:: std::span<const GridTrackSize> auto_columns() const& noexcept
-
-      grid-auto-columns: the sizes of implicit columns, one to 10,000 of
-      them, repeated in order (and backwards for implicit columns before
-      the explicit grid).
-
-   .. cpp:function:: void set_auto_columns(std::span<const GridTrackSize> sizes)
-
-      Sets :cpp:func:`auto_columns <gui_forms::GridPanel::auto_columns>`; see the property's description above.
-
-   .. cpp:function:: std::span<const GridTrackSize> auto_rows() const& noexcept
-
-      grid-auto-rows, with the rules of :cpp:func:`auto_columns <gui_forms::GridPanel::auto_columns>`.
-
-   .. cpp:function:: void set_auto_rows(std::span<const GridTrackSize> sizes)
-
-      Sets :cpp:func:`auto_rows <gui_forms::GridPanel::auto_rows>`; see the property's description above.
 
    .. cpp:function:: const GridLayoutWorkspace& layout_snapshot() const& noexcept
 

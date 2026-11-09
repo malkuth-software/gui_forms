@@ -177,8 +177,12 @@ Related types
      - align-content: the justify-content values (else std::invalid_argument).
    * - :cpp:class:`GridPanelAlignItemsCapability <gui_forms::GridPanelAlignItemsCapability>`
      - align-items: normal and stretch stretch an auto-sized item; start, end, flex-start, flex-end, center and baseline (first-baseline alignment across a row) (else std::invalid_argument).
+   * - :cpp:class:`GridPanelAutoColumnsCapability <gui_forms::GridPanelAutoColumnsCapability>`
+     - grid-auto-columns: one to 10,000 admitted track sizes, repeated over the implicit columns (else std::invalid_argument).
    * - :cpp:class:`GridPanelAutoFlowCapability <gui_forms::GridPanelAutoFlowCapability>`
      - grid-auto-flow: row or column, sparse or dense (else std::invalid_argument).
+   * - :cpp:class:`GridPanelAutoRowsCapability <gui_forms::GridPanelAutoRowsCapability>`
+     - grid-auto-rows: one to 10,000 admitted track sizes, repeated over the implicit rows (else std::invalid_argument).
    * - :cpp:class:`GridPanelCapabilities <gui_forms::GridPanelCapabilities>`
      - Every GridPanel capability, in the order the declaring class takes them.
    * - :cpp:class:`GridPanelColumnGapCapability <gui_forms::GridPanelColumnGapCapability>`
@@ -1413,6 +1417,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> GridPanelAutoColumnsCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp>``
+
+   grid-auto-columns: one to 10,000 admitted track sizes, repeated over the implicit columns (else std::invalid_argument). A view onto the container style.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(GridPanelAutoColumnsCapability& capability, std::vector<GridTrackSize> incoming)
+
+   .. cpp:function:: static std::vector<GridTrackSize> read(const GridPanelAutoColumnsCapability& capability)
+
+   .. cpp:member:: PropertyView<std::vector<GridTrackSize>, GridPanelAutoColumnsCapability<Declaring>> auto_columns
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> GridPanelAutoFlowCapability
 
    ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp>``
@@ -1430,7 +1451,24 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> GridPanelCapabilities : public GridPanelTemplateColumnsCapability<Declaring>, public GridPanelTemplateRowsCapability<Declaring>, public GridPanelAutoFlowCapability<Declaring>, public GridPanelJustifyContentCapability<Declaring>, public GridPanelAlignContentCapability<Declaring>, public GridPanelJustifyItemsCapability<Declaring>, public GridPanelAlignItemsCapability<Declaring>, public GridPanelRowGapCapability<Declaring>, public GridPanelColumnGapCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> GridPanelAutoRowsCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp>``
+
+   grid-auto-rows: one to 10,000 admitted track sizes, repeated over the implicit rows (else std::invalid_argument). A view onto the container style.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(GridPanelAutoRowsCapability& capability, std::vector<GridTrackSize> incoming)
+
+   .. cpp:function:: static std::vector<GridTrackSize> read(const GridPanelAutoRowsCapability& capability)
+
+   .. cpp:member:: PropertyView<std::vector<GridTrackSize>, GridPanelAutoRowsCapability<Declaring>> auto_rows
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> GridPanelCapabilities : public GridPanelTemplateColumnsCapability<Declaring>, public GridPanelTemplateRowsCapability<Declaring>, public GridPanelAutoFlowCapability<Declaring>, public GridPanelAutoColumnsCapability<Declaring>, public GridPanelAutoRowsCapability<Declaring>, public GridPanelJustifyContentCapability<Declaring>, public GridPanelAlignContentCapability<Declaring>, public GridPanelJustifyItemsCapability<Declaring>, public GridPanelAlignItemsCapability<Declaring>, public GridPanelRowGapCapability<Declaring>, public GridPanelColumnGapCapability<Declaring>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp>``
 
@@ -1450,6 +1488,14 @@ Related types
    .. cpp:member:: GridAutoFlow auto_flow
 
       grid-auto-flow: row or column, sparse or dense (else std::invalid_argument). A view onto the container style.
+
+   .. cpp:member:: std::vector<GridTrackSize> auto_columns
+
+      grid-auto-columns: one to 10,000 admitted track sizes, repeated over the implicit columns (else std::invalid_argument). A view onto the container style.
+
+   .. cpp:member:: std::vector<GridTrackSize> auto_rows
+
+      grid-auto-rows: one to 10,000 admitted track sizes, repeated over the implicit rows (else std::invalid_argument). A view onto the container style.
 
    .. cpp:member:: LayoutAlignment justify_content
 

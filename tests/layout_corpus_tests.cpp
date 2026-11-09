@@ -997,8 +997,8 @@ private:
             panel.template_rows = style.grid.template_rows;
             panel.set_template_areas(style.grid.template_areas);
             panel.auto_flow = style.grid.auto_flow;
-            panel.set_auto_columns(style.grid.auto_columns);
-            panel.set_auto_rows(style.grid.auto_rows);
+            panel.auto_columns = style.grid.auto_columns;
+            panel.auto_rows = style.grid.auto_rows;
             panel.justify_content = style.alignment.justify_content;
             panel.align_content = style.alignment.align_content;
             panel.justify_items = style.alignment.justify_items;

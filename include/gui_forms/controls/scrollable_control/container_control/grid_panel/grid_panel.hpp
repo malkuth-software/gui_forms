@@ -167,14 +167,6 @@ public:
     [[nodiscard]] const GridTemplateAreas& template_areas() const& noexcept { return style_.template_areas; }
     const GridTemplateAreas& template_areas() const&& = delete;
     void set_template_areas(const GridTemplateAreas& areas);
-    // grid-auto-columns and grid-auto-rows: one or more sizes, repeated
-    // over the implicit tracks.
-    [[nodiscard]] std::span<const GridTrackSize> auto_columns() const& noexcept { return style_.auto_columns; }
-    std::span<const GridTrackSize> auto_columns() const&& = delete;
-    void set_auto_columns(std::span<const GridTrackSize> sizes);
-    [[nodiscard]] std::span<const GridTrackSize> auto_rows() const& noexcept { return style_.auto_rows; }
-    std::span<const GridTrackSize> auto_rows() const&& = delete;
-    void set_auto_rows(std::span<const GridTrackSize> sizes);
 
     // A direct child's item properties; a child without its own record has
     // the default one (auto-placed into one cell). The placement lines are
@@ -342,6 +334,8 @@ private:
     friend struct GridPanelTemplateColumnsCapability<GridPanel>;
     friend struct GridPanelTemplateRowsCapability<GridPanel>;
     friend struct GridPanelAutoFlowCapability<GridPanel>;
+    friend struct GridPanelAutoColumnsCapability<GridPanel>;
+    friend struct GridPanelAutoRowsCapability<GridPanel>;
     friend struct GridPanelJustifyContentCapability<GridPanel>;
     friend struct GridPanelAlignContentCapability<GridPanel>;
     friend struct GridPanelJustifyItemsCapability<GridPanel>;
@@ -355,6 +349,10 @@ private:
     [[nodiscard]] GridTrackList read_view(const decltype(template_rows)& cell) const;
     void write_view(const decltype(auto_flow)& cell, GridAutoFlow incoming);
     [[nodiscard]] GridAutoFlow read_view(const decltype(auto_flow)& cell) const;
+    void write_view(const decltype(auto_columns)& cell, std::vector<GridTrackSize> incoming);
+    [[nodiscard]] std::vector<GridTrackSize> read_view(const decltype(auto_columns)& cell) const;
+    void write_view(const decltype(auto_rows)& cell, std::vector<GridTrackSize> incoming);
+    [[nodiscard]] std::vector<GridTrackSize> read_view(const decltype(auto_rows)& cell) const;
     void prepare_write(const decltype(justify_content)& cell, LayoutAlignment& incoming);
     void written(const decltype(justify_content)& cell);
     void prepare_write(const decltype(align_content)& cell, LayoutAlignment& incoming);

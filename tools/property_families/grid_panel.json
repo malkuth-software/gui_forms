@@ -75,6 +75,48 @@
       ]
     },
     {
+      "name": "auto_columns",
+      "capability": "GridPanelAutoColumns",
+      "value": "std::vector<GridTrackSize>",
+      "initial": null,
+      "comment": "grid-auto-columns: one to 10,000 admitted track sizes, repeated over the implicit columns (else std::invalid_argument). A view onto the container style.",
+      "getter": "auto_columns",
+      "setter": "set_auto_columns",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::vector<GridTrackSize>{GridTrackSize{}, GridTrackSize{}}",
+      "storage": "view",
+      "hand": [
+        "a view onto style_.auto_columns: write_view keeps the setter's check and invalidation"
+      ]
+    },
+    {
+      "name": "auto_rows",
+      "capability": "GridPanelAutoRows",
+      "value": "std::vector<GridTrackSize>",
+      "initial": null,
+      "comment": "grid-auto-rows: one to 10,000 admitted track sizes, repeated over the implicit rows (else std::invalid_argument). A view onto the container style.",
+      "getter": "auto_rows",
+      "setter": "set_auto_rows",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::vector<GridTrackSize>{GridTrackSize{}, GridTrackSize{}}",
+      "storage": "view",
+      "hand": [
+        "a view onto style_.auto_rows: write_view keeps the setter's check and invalidation"
+      ]
+    },
+    {
       "name": "justify_content",
       "capability": "GridPanelJustifyContent",
       "value": "LayoutAlignment",
@@ -201,7 +243,20 @@
       ]
     }
   ],
-  "not_properties": [],
+  "not_properties": [
+    {
+      "name": "template_areas",
+      "reason": "a projection of the span list: set_template_areas replaces every span (define_span, remove_span and set_spans edit the same list) and the getter answers the spans, so it is not an independent value"
+    },
+    {
+      "name": "spans",
+      "reason": "set_spans replaces the span list and reports a GridSpanOutcome (an expected alternative, not a value write)"
+    },
+    {
+      "name": "item_layout",
+      "reason": "a per-child value (a child property later, study 10.7)"
+    }
+  ],
   "test": {
     "type": "GridPanel",
     "include": "gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp"
