@@ -1476,14 +1476,14 @@ void test_main_site_restrictions() {
                     DockRefusalReason::site_refuses_kind, DockRefusalLayer::site,
                     "and a tool docked at its edge");
     require(static_cast<bool>(apply_one(layout, DockEdit::float_subject(subject("tools.output"),
-                                                                         Rect{0.0, 0.0, 200.0, 100.0}, "")))),
+                                                                         Rect{0.0, 0.0, 200.0, 100.0}, ""))),
             "the floating sites keep their own restrictions");
 
     DockSiteRestrictions no_documents{};
     no_documents.accepts_documents = false;
     layout.set_main_site_restrictions(no_documents);
     require(static_cast<bool>(apply_one(layout, DockEdit::float_subject(subject("doc.a"),
-                                                                         Rect{0.0, 0.0, 300.0, 200.0}, "")))),
+                                                                         Rect{0.0, 0.0, 300.0, 200.0}, ""))),
             "a document may still float");
     require_refused(layout, DockEdit::dock_into(subject("doc.a"), layout.document_area()),
                     DockRefusalReason::site_refuses_kind, DockRefusalLayer::site,
@@ -1572,7 +1572,7 @@ void test_ratio_and_frame_edits() {
                     DockRefusalLayer::model, "set_ratio on an unknown node");
 
     require(static_cast<bool>(apply_one(layout, DockEdit::float_subject(subject("tools.output"),
-                                                                         Rect{10.0, 10.0, 200.0, 100.0}, "M")))),
+                                                                         Rect{10.0, 10.0, 200.0, 100.0}, "M"))),
             "output floats");
     const DockSiteId site = layout.locate(panel("tools.output")).site;
     require_refused(layout, DockEdit::set_floating_frame(site, Rect{0.0, 0.0, 0.0, 50.0}, "M"),
