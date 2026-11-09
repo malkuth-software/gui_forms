@@ -81,6 +81,11 @@ struct DataGridViewColumn final {
     // A fill column's share of the width the other columns leave, against
     // the other fill columns' weights; finite and positive.
     double fill_weight{100.0};
+    // Whether the grid shows the column (Windows Forms' Visible). A hidden
+    // column keeps its index, display index, width and values; layout,
+    // painting, hit testing, keyboard movement, selection ranges and the
+    // semantic tree pass over it.
+    bool visible{true};
 };
 
 // A column's place in the order the grid shows its columns (Windows Forms'
@@ -331,6 +336,20 @@ public:
     void add_column(DataGridViewColumn column);
     // Throws std::out_of_range for an index past the end.
     void remove_column_at(std::size_t column);
+    // Inserts a column at an index, at most the column count (the count
+    // appends, as add_column does). The columns from that index on move up
+    // one index, unbound rows' values move with their columns and the new
+    // column's cells start empty; in display order the new column takes
+    // display index `column` (the last, past it) and the columns from there
+    // move up one. As remove_column_at, it ends any edit and clears the
+    // selection, the current cell and what the grid keeps by row ID and
+    // column index (error text, styles, visited links, a sort). Throws as
+    // add_column does, and std::out_of_range for an index past the count.
+    void insert_column(std::size_t column, DataGridViewColumn inserted);
+    // A column's header text (Windows Forms' HeaderText). Throws
+    // std::out_of_range for an unknown column and std::invalid_argument for
+    // invalid UTF-8.
+    void set_column_header_text(std::size_t column, std::string text);
     [[nodiscard]] std::optional<std::size_t> column_index(std::string_view name) const noexcept;
     // Throws std::out_of_range for an unknown column and std::invalid_argument
     // for a width that is not finite or below the column's minimum. An
@@ -359,6 +378,13 @@ public:
     [[nodiscard]] double preferred_column_header_width(std::size_t column) const;
     void set_column_sort_glyph(std::size_t column, DataGridViewSortDirection direction);
     void set_column_read_only(std::size_t column, bool column_read_only);
+    // Shows or hides a column (DataGridViewColumn::visible). Hiding the
+    // current cell's column cancels any edit in it and moves the current
+    // cell to the next shown column of its row in display order (the
+    // previous one past the last), or clears it when no column is shown; a
+    // row validation handler that refuses the clear keeps the current cell
+    // where it was. Throws std::out_of_range for an unknown column.
+    void set_column_visible(std::size_t column, bool column_visible);
 
     // -- rows ------------------------------------------------------------
     [[nodiscard]] DataGridViewRowSource row_source() const noexcept { return row_source_; }
@@ -650,7 +676,8 @@ public:
     [[nodiscard]] std::optional<DataGridViewRowId> current_row_id() const;
     // Moves the current cell, committing any edit first, and selects it alone.
     // Returns false, changing nothing, when the edit does not commit. Throws
-    // std::out_of_range for a cell past the rows or columns.
+    // std::out_of_range for a cell past the rows or columns and
+    // std::logic_error for a cell in a hidden column.
     bool set_current_cell(std::optional<DataGridViewCellAddress> cell);
     [[nodiscard]] bool is_cell_selected(DataGridViewRowPosition row, std::size_t column) const;
     [[nodiscard]] bool is_row_selected(DataGridViewRowPosition row) const;
@@ -1128,6 +1155,12 @@ private:
     void reset_display_order();
     void append_display_column();
     void remove_display_column(std::size_t column);
+    void insert_display_column(std::size_t column);
+    // Rebuilds shown_order_ and shown_indices_ from the display order and
+    // the columns' visibility; every change to either calls it.
+    void refresh_shown_order();
+    // A column's width as laid out: its width when shown, zero when hidden.
+    [[nodiscard]] double shown_width(std::size_t column) const noexcept;
     [[nodiscard]] DataGridViewDisplayIndex order_target_at(double x, const GridLayout& layout) const;
     void end_column_order();
     // The row height index, rebuilt first when the rows changed since it
@@ -1528,6 +1561,14 @@ private:
     // per column.
     std::vector<std::size_t> display_order_{};
     std::vector<std::size_t> display_indices_{};
+    // The shown columns in display order: shown_order_[shown position] is a
+    // column index, one entry per shown column, and shown_indices_[column
+    // index] the number of shown columns before that column in display
+    // order (its shown position when it is shown), one entry per column.
+    // Layout, painting, hit testing, the realized items, keyboard movement
+    // and the semantic tree count positions in this order.
+    std::vector<std::size_t> shown_order_{};
+    std::vector<std::size_t> shown_indices_{};
     // A header drag in progress: where the press was, whether it moved far
     // enough to be a drag, and the display index the column would take.
     double order_start_x_{};
@@ -1600,6 +1641,12 @@ private:
     void prepare_rows_replacement(const CollectionEdit& edit, std::span<DataGridViewRow> incoming);
     void cancel_edit_before_row_edit();
     // property_codemod begin DataGridView (tools/property_families/data_grid_view.json; generated, do not edit)
+public:
+    // DataGridView's property table: Control's entries, then its own.
+    static constexpr std::size_t data_grid_view_property_count = Control::control_property_count + 4U;
+    [[nodiscard]] static const std::array<PropertyEntry, data_grid_view_property_count>& data_grid_view_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
     // raises the change event; an override calls the base. Only the

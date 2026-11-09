@@ -5,6 +5,7 @@
 // F6 region and refusals.
 
 #include "gui_forms/gui_forms.hpp"
+#include "support/theme_definition_heap.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -414,6 +415,54 @@ void arranged_within_maximum_size() {
             "a hosted control sits on its published command part");
 }
 
+// Nothing the ribbon opens falls back to the window's theme: a drop-down
+// menu (a ContextMenu, its layer and panels overlay roots) and the
+// application menu take the ribbon's theme override, an ancestor's included.
+void menus_take_the_ribbon_theme() {
+    const Commands commands;
+    std::shared_ptr<Panel> host = make_control<Panel>(StableId("host"));
+    std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
+    (*ribbon).set_requested_bounds({0.0, 0.0, 900.0, 112.0});
+    (*host).add_child(ribbon);
+    Window window(host, {900.0, 300.0});
+    window.perform_layout();
+    const std::unique_ptr<ThemeDefinition> held = test_support::professional_definition();
+    (*held).id = "ribbon-override";
+    const std::shared_ptr<const Theme> override_theme = Theme::create(*held);
+    (*host).set_theme_override(override_theme);
+    window.perform_layout();
+    require((*ribbon).show_drop_down("paste"), "the split's menu opens");
+    window.perform_layout();
+    const Control::Ptr panel = window.find("ribbon.menu.overlay.panel.0");
+    const Control::Ptr row = window.find("ribbon.menu.overlay.row.paste.special");
+    require(panel && row && (*panel).effective_theme().id() == "ribbon-override" &&
+                (*row).effective_theme().id() == "ribbon-override",
+            "a drop-down menu takes the theme override of the ribbon's ancestor");
+    (*ribbon).close_menus();
+    // Without recent items the application menu is the ribbon's one-pane
+    // menu; with them it is the two-pane overlay.
+    require((*ribbon).show_application_menu(), "the application menu opens");
+    window.perform_layout();
+    const Control::Ptr one_pane = window.find("ribbon.menu.overlay.panel.0");
+    require(one_pane && (*one_pane).effective_theme().id() == "ribbon-override",
+            "the one-pane application menu takes the ribbon's theme override");
+    (*ribbon).close_menus();
+    (*ribbon).set_recent_items({{"recent.report", "Report.txt", "C:\\Documents"}});
+    require((*ribbon).show_application_menu(), "the two-pane application menu opens");
+    window.perform_layout();
+    const Control::Ptr application = window.find("ribbon.application-menu");
+    require(application && (*application).effective_theme().id() == "ribbon-override",
+            "the application menu takes the ribbon's theme override");
+    (*ribbon).close_menus();
+    (*host).clear_theme_override();
+    require((*ribbon).show_drop_down("paste"), "the menu opens again");
+    window.perform_layout();
+    const Control::Ptr plain = window.find("ribbon.menu.overlay.panel.0");
+    require(plain && (*plain).effective_theme().id() == window.theme().id(),
+            "without an override the menu takes the window's theme");
+    (*ribbon).close_menus();
+}
+
 void refusals() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = make_control<Ribbon>(StableId("ribbon"));
@@ -458,6 +507,7 @@ int main() {
     menus_and_launchers();
     semantics_and_region();
     arranged_within_maximum_size();
+    menus_take_the_ribbon_theme();
     refusals();
     std::cout << "Ribbon: geometry, one command path, item repaint, minimizing, hosted controls, menus, launchers, "
                  "semantics, F6 region and refusals passed\n";

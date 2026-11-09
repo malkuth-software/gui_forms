@@ -137,6 +137,34 @@ gf_status owner_as(const CreateRequest& request, SlotIdentity slot, std::string_
     return GF_STATUS_OK;
 }
 
+// The window a component bound to a window binds to: a window's from
+// windows.create (before or during its run), or the window a control is in
+// (windows.run's root or any control of its tree, during the run; a created
+// window's root or tree before it). A control in no window is not an owner
+// (GF_STATUS_WRONG_HANDLE_KIND, as before 1.1).
+gf_status window_of_owner(const CreateRequest& request, SlotIdentity slot, Window*& window) {
+    if (!request.owner) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot,
+                    "this type needs an owner: a window (windows.create) or a control in a window");
+    }
+    if (!(*request.owner).is_alive()) {
+        return fail(GF_STATUS_DISPOSED, slot, "the owner has been disposed");
+    }
+    const std::shared_ptr<WindowHandle> handle = std::dynamic_pointer_cast<WindowHandle>(request.owner);
+    if (handle != nullptr) {
+        // An alive handle observes its window until the run ends it.
+        window = (*handle).window();
+        return GF_STATUS_OK;
+    }
+    const Control::Ptr control = std::dynamic_pointer_cast<Control>(request.owner);
+    if (control != nullptr && (*control).attached_window() != nullptr) {
+        window = (*control).attached_window();
+        return GF_STATUS_OK;
+    }
+    return fail(GF_STATUS_WRONG_HANDLE_KIND, slot,
+                "the owner is not a window (windows.create) or a control in a window (windows.run's root)");
+}
+
 gf_status refuse_enumeration(const CreateRequest& request, SlotIdentity slot) {
     if (request.enumeration) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "this type takes no enumeration");
@@ -253,14 +281,13 @@ gf_status create_from_request(const CreateRequest& request, StableId stable_id, 
     case Recipe::gallery_command:
         return make_extension<GalleryCommand>(request, slot, made);
     case Recipe::on_window: {
-        std::shared_ptr<WindowHandle> handle;
-        const gf_status owned = owner_as<WindowHandle>(request, slot, "a window (windows.create)", handle);
+        Window* window = nullptr;
+        const gf_status owned = window_of_owner(request, slot, window);
         if (owned != GF_STATUS_OK) {
             return owned;
         }
-        // An alive handle observes its window until the run ends it.
         const WindowMaker make = window_maker_of(catalog_type_id(request.type));
-        made = (*make)(*(*handle).window());
+        made = (*make)(*window);
         return GF_STATUS_OK;
     }
     case Recipe::as_create:

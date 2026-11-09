@@ -43,6 +43,9 @@ inline constexpr double default_numeric_width = 64.0;
 inline constexpr double default_text_box_width = 100.0;
 inline constexpr double check_box_mark_width = 24.0;
 inline constexpr double maximum_hosted_width = 1024.0;
+// The gap between a labelled field's label and its field, when the label
+// sits at the field's left.
+inline constexpr double field_label_gap = 4.0;
 // The scroll buttons at the plane's ends while it scrolls (owner decision 35).
 inline constexpr double scroll_button_width = 13.0;
 // The group overlay's gap below the ribbon.
@@ -70,6 +73,13 @@ inline constexpr double overlay_gap = 1.0;
     if (command.kind == RibbonCommandKind::font_control) return command.font_control;
     if (command.kind == RibbonCommandKind::color_picker) return command.color_picker;
     return {};
+}
+
+// A text or number field, which shows its command's text as a label part
+// beside or above the field, as Office's ribbon fields do.
+[[nodiscard]] inline bool labelled_field_kind(RibbonCommandKind kind) noexcept {
+    const bool result = kind == RibbonCommandKind::text_box || kind == RibbonCommandKind::numeric_up_down;
+    return result;
 }
 
 [[nodiscard]] inline bool has_menu(RibbonCommandKind kind) noexcept {

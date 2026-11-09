@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <optional>
 #include <span>
 #include <stdexcept>
@@ -96,7 +97,8 @@ private:
 // A collection property's only storage, as the single member of its
 // capability: PropertyCell's shape for a sequence edited in place (design
 // accepted 2026-11-07). The read is `items.read()` (a span) or `items[i]`;
-// the writes are `items = elements`, `items.insert(i, x)`,
+// the writes are `items = elements`, `items.insert(i, x)` (or a range,
+// `items.insert(i, elements)`),
 // `items.append(x)` or `items.append(elements)` (an insertion at the end),
 // `items.erase(i, n)`, `items.replace(i, x)` and `items.clear()`.
 //
@@ -180,24 +182,36 @@ public:
         insert(elements_.size(), std::move(element));
     }
 
-    // Appends every element of `elements`, in order, as one insertion at the
-    // end; an empty sequence changes nothing.
-    void append(std::vector<Element> elements) {
+    // Inserts every element of `elements`, in order, before the element at
+    // `index` (at the end when `index` is the length), as one insertion; an
+    // empty sequence changes nothing.
+    void insert(std::size_t index, std::vector<Element> elements) {
+        if (index > elements_.size()) throw std::out_of_range("collection insertion is outside the collection");
         if (elements.empty()) return;
         if (elements.size() > elements_.max_size() - elements_.size()) {
             throw std::length_error("collection is full");
         }
-        const std::size_t index = elements_.size();
         const CollectionEdit edit = CollectionEdit::inserted(index, elements.size());
-        const std::size_t length = index + elements.size();
+        const std::size_t length = elements_.size() + elements.size();
         elements_.reserve(length);
         dirty_.reserve(length);
         const std::uint64_t revision = revision_;
         Capability::prepare_edit(capability(), edit, std::span<Element>(elements));
         require_unchanged_since(revision);
-        for (Element& element : elements) elements_.push_back(std::move(element));
+        // The capacity is reserved and Element moves without throwing, so
+        // the insertion neither reallocates nor fails.
+        const typename std::vector<Element>::difference_type offset =
+            static_cast<typename std::vector<Element>::difference_type>(index);
+        elements_.insert(elements_.begin() + offset, std::make_move_iterator(elements.begin()),
+                         std::make_move_iterator(elements.end()));
         record(edit);
         Capability::written(capability(), edit);
+    }
+
+    // Appends every element of `elements`, in order, as one insertion at the
+    // end; an empty sequence changes nothing.
+    void append(std::vector<Element> elements) {
+        insert(elements_.size(), std::move(elements));
     }
 
     // Erases `count` elements from `index`; an empty erasure changes nothing.

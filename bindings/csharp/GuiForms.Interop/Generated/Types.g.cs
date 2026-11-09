@@ -1003,6 +1003,86 @@ public unsafe struct gf_rules_table
     public delegate* unmanaged[Cdecl]<gf_rule_token, gf_rule_state*, gf_status> state;
 }
 
+/// <summary>gf_data_grid_column (extensible, 104 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_data_grid_column
+{
+    public uint struct_size;
+    public gf_data_grid_column_kind kind;
+    public gf_value_kind value_kind;
+    public uint read_only;
+    public uint hidden;
+    public uint reserved;
+    public double width;
+    public double minimum_width;
+    public gf_utf8_view name;
+    public gf_utf8_view header_text;
+    public gf_utf8_view data_property_name;
+    public gf_utf8_view* items;
+    public ulong item_count;
+}
+
+/// <summary>gf_data_grid_row (extensible, 56 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_data_grid_row
+{
+    public uint struct_size;
+    public uint read_only;
+    public gf_utf8_view stable_id;
+    public gf_utf8_view header_text;
+    public gf_value* cells;
+    public ulong cell_count;
+}
+
+/// <summary>gf_data_grid_cell (record, 16 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_data_grid_cell
+{
+    public ulong row;
+    public ulong column;
+}
+
+/// <summary>gf_data_grid_table (table, 272 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_data_grid_table
+{
+    public uint struct_size;
+    public uint abi_minor;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, gf_status> column_count;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_data_grid_column*, byte*, ulong, ulong*, gf_status> column_at;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, ulong, byte*, ulong, ulong*, gf_status> column_item;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_data_grid_column*, gf_status> insert_column;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_status> remove_column;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, ulong*, gf_status> column_index;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_utf8_view, gf_status> set_column_header_text;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, double, gf_status> set_column_width;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, uint, gf_status> set_column_read_only;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, uint, gf_status> set_column_hidden;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, long*, gf_status> row_count;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_data_grid_row*, ulong, gf_status> insert_rows;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_data_grid_row*, ulong, ulong*, gf_status> append_rows;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, ulong, gf_status> erase_rows;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_data_grid_row*, gf_status> replace_row;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> clear_rows;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, byte*, ulong, ulong*, gf_status> row_id;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, ulong*, gf_status> row_position;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, ulong, gf_value_kind, gf_value*, byte*, ulong, ulong*, gf_status> cell_value;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, ulong, gf_value*, uint*, gf_status> set_cell_value;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, ulong, byte*, ulong, ulong*, gf_status> cell_text;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, ulong, ulong, gf_value*, byte*, ulong, ulong*, gf_status> read_cells;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, ulong*, ulong*, gf_status> current_cell;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, ulong, uint*, gf_status> set_current_cell;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, ulong, ulong*, gf_status> selected_rows;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_data_grid_cell*, ulong, ulong*, gf_status> selected_cells;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, uint, gf_status> set_row_selected;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, ulong, uint, gf_status> set_cell_selected;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> clear_selection;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> select_all;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, uint*, gf_status> begin_edit;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> end_edit;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> cancel_edit;
+}
+
 /// <summary>gf_windows_paint_endpoint_table (table, 104 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_paint_endpoint_table

@@ -1,6 +1,7 @@
 #include <windows.h>
 
 #include "gui_forms/c_api.h"
+#include "gui_forms/c/gf_abi.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -109,13 +110,56 @@ Function forms_entry(const char* name) noexcept {
     return result;
 }
 
+// The paint endpoint table of the stable ABI (gui_forms_abi1.dll), for a
+// process that loads the stable library instead of gui_forms_abi0.dll (the
+// swap-in launcher's facade does). Resolved once, by name, as the ABI0
+// entries are; present is false when neither the library nor the table is
+// there, and the shim then falls through to the system for every handle.
+struct StableEndpoints final {
+    bool present{};
+    gf_windows_paint_endpoint_table table{};
+};
+
+using GetStableTable = gf_status(GF_CALL*)(gf_table_id, std::uint32_t, std::uint32_t, void*, std::uint64_t);
+static_assert(std::is_same_v<GetStableTable, decltype(&gf_abi_get_table)>);
+
+StableEndpoints load_stable_endpoints() noexcept {
+    StableEndpoints loaded{};
+    HMODULE module = GetModuleHandleW(L"gui_forms_abi1.dll");
+    if (module == nullptr) return loaded;
+    FARPROC raw = GetProcAddress(module, "gf_abi_get_table");
+    GetStableTable get_table{};
+    static_assert(sizeof(get_table) == sizeof(raw));
+    std::memcpy(&get_table, &raw, sizeof(get_table));
+    if (get_table == nullptr) return loaded;
+    const gf_status negotiated = get_table(GF_TABLE_WINDOWS_PAINT_ENDPOINT, GF_ABI_MAJOR, GF_ABI_MINOR,
+                                           &loaded.table, sizeof(loaded.table));
+    loaded.present = negotiated == GF_STATUS_OK && loaded.table.get_dc != nullptr &&
+        loaded.table.release_dc != nullptr && loaded.table.publish_dc != nullptr &&
+        loaded.table.begin_write != nullptr && loaded.table.end_write != nullptr;
+    return loaded;
+}
+
+const StableEndpoints& stable_endpoints() noexcept {
+    static const StableEndpoints loaded = load_stable_endpoints();
+    return loaded;
+}
+
 bool endpoint_dc(HWND window, HDC* output) noexcept {
     static const GetEndpointDc entry = forms_entry<GetEndpointDc>(
         "gf_windows_paint_endpoint_get_dc_v1");
-    if (entry == nullptr || output == nullptr) return false;
+    if (output == nullptr) return false;
     std::uintptr_t value{};
-    if (entry(reinterpret_cast<std::uintptr_t>(window), &value) != GF_OK ||
-        value == 0U) return false;
+    if (entry != nullptr) {
+        if (entry(reinterpret_cast<std::uintptr_t>(window), &value) != GF_OK || value == 0U) return false;
+    } else {
+        const StableEndpoints& stable = stable_endpoints();
+        if (!stable.present) return false;
+        std::uint64_t device{};
+        if (stable.table.get_dc(reinterpret_cast<std::uintptr_t>(window), &device) != GF_STATUS_OK ||
+            device == 0U) return false;
+        value = static_cast<std::uintptr_t>(device);
+    }
     *output = reinterpret_cast<HDC>(value);
     remember_dc(*output, DcKind::endpoint);
     return true;
@@ -124,9 +168,13 @@ bool endpoint_dc(HWND window, HDC* output) noexcept {
 bool release_endpoint_dc(HWND window, HDC dc) noexcept {
     static const ReleaseEndpointDc entry = forms_entry<ReleaseEndpointDc>(
         "gf_windows_paint_endpoint_release_dc_v1");
-    return entry != nullptr &&
-        entry(reinterpret_cast<std::uintptr_t>(window),
-              reinterpret_cast<std::uintptr_t>(dc)) == GF_OK;
+    if (entry != nullptr) {
+        return entry(reinterpret_cast<std::uintptr_t>(window), reinterpret_cast<std::uintptr_t>(dc)) == GF_OK;
+    }
+    const StableEndpoints& stable = stable_endpoints();
+    return stable.present &&
+        stable.table.release_dc(reinterpret_cast<std::uintptr_t>(window), reinterpret_cast<std::uintptr_t>(dc)) ==
+            GF_STATUS_OK;
 }
 
 void publish_endpoint_dc(HDC dc) noexcept {
@@ -135,14 +183,21 @@ void publish_endpoint_dc(HDC dc) noexcept {
         "gf_windows_paint_endpoint_publish_dc_v1");
     if (entry != nullptr) {
         static_cast<void>(entry(reinterpret_cast<std::uintptr_t>(dc)));
+        return;
     }
+    const StableEndpoints& stable = stable_endpoints();
+    if (stable.present) static_cast<void>(stable.table.publish_dc(reinterpret_cast<std::uintptr_t>(dc)));
 }
 
 bool request_endpoint_write(HDC dc, std::uint64_t* lease) noexcept {
     static const BeginEndpointWrite entry = forms_entry<BeginEndpointWrite>(
         "gf_windows_paint_endpoint_begin_write_v1");
-    return entry != nullptr && lease != nullptr &&
-        entry(reinterpret_cast<std::uintptr_t>(dc), lease) == GF_OK &&
+    if (lease == nullptr) return false;
+    if (entry != nullptr) {
+        return entry(reinterpret_cast<std::uintptr_t>(dc), lease) == GF_OK && *lease != 0U;
+    }
+    const StableEndpoints& stable = stable_endpoints();
+    return stable.present && stable.table.begin_write(reinterpret_cast<std::uintptr_t>(dc), lease) == GF_STATUS_OK &&
         *lease != 0U;
 }
 
@@ -168,9 +223,13 @@ bool begin_endpoint_write_revalidated(HDC dc, std::uint64_t* lease) noexcept {
 void end_endpoint_write(std::uint64_t lease, bool publish) noexcept {
     static const EndEndpointWrite entry = forms_entry<EndEndpointWrite>(
         "gf_windows_paint_endpoint_end_write_v1");
-    if (entry != nullptr && lease != 0U) {
+    if (lease == 0U) return;
+    if (entry != nullptr) {
         static_cast<void>(entry(lease, publish ? 1U : 0U));
+        return;
     }
+    const StableEndpoints& stable = stable_endpoints();
+    if (stable.present) static_cast<void>(stable.table.end_write(lease, publish ? 1U : 0U));
 }
 
 bool default_text_mapping(HDC dc) noexcept {
@@ -519,6 +578,11 @@ extern "C" BOOL WINAPI gf_compat_MoveToEx(
 extern "C" BOOL WINAPI gf_compat_PolylineTo(
     HDC dc, const POINT* points, DWORD count) {
     return ::PolylineTo(dc, points, count);
+}
+
+extern "C" BOOL WINAPI gf_compat_Polygon(
+    HDC dc, const POINT* points, int count) {
+    return ::Polygon(dc, points, count);
 }
 
 extern "C" HGDIOBJ WINAPI gf_compat_SelectObject(HDC dc, HGDIOBJ object) {

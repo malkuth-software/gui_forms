@@ -262,14 +262,15 @@ Ribbon::CommandMetrics Ribbon::measure_command(const RibbonCommandSpec& command)
         return metrics;
     }
     if (hosted(command.kind)) {
-        double width = command.width;
-        if (width <= 0.0 && command.kind == RibbonCommandKind::combo_box) width = default_combo_box_width;
-        if (width <= 0.0 && command.kind == RibbonCommandKind::numeric_up_down) width = default_numeric_width;
-        if (width <= 0.0 && command.kind == RibbonCommandKind::text_box) width = default_text_box_width;
-        double measured = width * scale;
-        if (width <= 0.0) measured = check_box_mark_width * scale + text_width(command_text(command));
-        metrics.large_width = measured;
-        metrics.small_width = measured;
+        const double field = hosted_field_width(command);
+        metrics.large_width = field;
+        metrics.small_width = field;
+        // A labelled field: its label at its left (small) or above it (large).
+        if (field_labelled(command)) {
+            const double label = text_width(command_text(command));
+            metrics.large_width = std::max(field, label);
+            metrics.small_width = label + field_label_gap * scale + field;
+        }
         return metrics;
     }
     const double label = command.show_label ? text_width(command_text(command)) : 0.0;
@@ -281,6 +282,48 @@ Ribbon::CommandMetrics Ribbon::measure_command(const RibbonCommandSpec& command)
     if (has_menu(command.kind)) small += arrow_zone * scale;
     metrics.small_width = small;
     return metrics;
+}
+
+// Whether `command` is a text or number field showing its label part.
+bool Ribbon::field_labelled(const RibbonCommandSpec& command) const {
+    const bool result = labelled_field_kind(command.kind) && command.show_label && !command_text(command).empty();
+    return result;
+}
+
+// A hosted command's field width in pixels: its authored width or its kind's
+// default, at the text scale; a check box is as wide as its mark and caption.
+double Ribbon::hosted_field_width(const RibbonCommandSpec& command) const {
+    const double scale = effective_text_scale();
+    double width = command.width;
+    if (width <= 0.0 && command.kind == RibbonCommandKind::combo_box) width = default_combo_box_width;
+    if (width <= 0.0 && command.kind == RibbonCommandKind::numeric_up_down) width = default_numeric_width;
+    if (width <= 0.0 && command.kind == RibbonCommandKind::text_box) width = default_text_box_width;
+    double measured = width * scale;
+    if (width <= 0.0) measured = check_box_mark_width * scale + text_width(command_text(command));
+    return measured;
+}
+
+// Splits a hosted command's placed `bounds` into its label and its field.
+// A field two rows tall carries its label above it (one-row layouts); a
+// field one row tall carries its label at its left, the field at the right
+// end. Measures no text: the field keeps its own width and the label takes
+// the rest.
+Ribbon::FieldSplit Ribbon::split_field(const RibbonCommandSpec& command, Rect bounds) const {
+    FieldSplit split;
+    split.field = bounds;
+    if (bounds.empty() || !field_labelled(command)) return split;
+    const double scale = effective_text_scale();
+    const double row_height = row_extent * scale;
+    const double field = std::min(hosted_field_width(command), bounds.width);
+    if (bounds.height > row_height * 1.5) {
+        split.label = {bounds.x, bounds.y, bounds.width, row_height};
+        split.field = {bounds.x, bounds.y + row_height, field, bounds.height - row_height};
+        return split;
+    }
+    const double label = std::max(0.0, bounds.width - field - field_label_gap * scale);
+    split.label = {bounds.x, bounds.y, label, bounds.height};
+    split.field = {bounds.x + bounds.width - field, bounds.y, field, bounds.height};
+    return split;
 }
 
 // Measures every label and caption of `tab` once.
@@ -451,6 +494,16 @@ double Ribbon::place_group(const TabScaling& scaling, std::size_t tab, std::size
             if (gallery) width = (*item.gallery).width_for_columns(columns);
             commands[command] = {column_x, top, width, rows_height};
             column_x += width + gap;
+            continue;
+        }
+        // A labelled field in a one-row layout stacks its label above its
+        // field, two rows tall and centred in the column.
+        if (group_layout.rows == 1U && hosted(item.kind) && field_labelled(item)) {
+            const double width = scaling.commands[group][command].large_width;
+            const double height = row_height * 2.0;
+            commands[command] = {column_x, top + (rows_height - height) * 0.5, width, height};
+            column_width = std::max(column_width, width);
+            ++column_rows;
             continue;
         }
         const double width = scaling.commands[group][command].small_width;

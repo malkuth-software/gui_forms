@@ -59,5 +59,6 @@ global using gf_rule_action_kind = uint;
 global using gf_rule_flags = uint;
 global using gf_rule_state = uint;
 global using gf_rule_token = ulong;
+global using gf_data_grid_column_kind = uint;
 global using gf_paint_endpoint = ulong;
 global using gf_paint_write_lease = ulong;

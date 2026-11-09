@@ -57,6 +57,36 @@ void test_commands_and_menus(gui_forms::Window& window) {
                 window.find("gallery.commands.menu.menu.overlay.panel.0") == nullptr &&
                 window.focus_scope_depth() == 0U,
             "a MenuStrip row must execute the shared Command, report its menu and close");
+    // Ribbon: Insert's text and number fields show labels, at the left in the
+    // stacked Find group and above in the one-row Spacing group; Palette is a
+    // panel tab whose control fills the command plane.
+    const std::shared_ptr<Ribbon> ribbon = std::dynamic_pointer_cast<Ribbon>(window.find("gallery.commands.ribbon.bar"));
+    require(ribbon != nullptr, "the commands page publishes its ribbon");
+    (*ribbon).selected_tab = std::size_t{1U};
+    window.perform_layout();
+    bool left_label = false;
+    bool label_above = false;
+    for (const Ribbon::CommandItem& item : (*ribbon).realized_commands()) {
+        const Ribbon::CommandParts& parts = item.parts;
+        if (item.stable_id == "ribbon.matches") {
+            left_label = parts.command_label.present && parts.command_numeric_up_down.present &&
+                         parts.command_label.bounds.x < parts.command_numeric_up_down.bounds.x;
+        }
+        if (item.stable_id == "ribbon.indent") {
+            label_above = parts.command_label.present && parts.command_numeric_up_down.present &&
+                          parts.command_label.bounds.y < parts.command_numeric_up_down.bounds.y;
+        }
+    }
+    require(left_label && label_above, "the ribbon's number fields show labels at their left and above");
+    const Control::Ptr palette = window.find("gallery.commands.ribbon.palette");
+    (*ribbon).selected_tab = std::size_t{2U};
+    window.perform_layout();
+    require(palette && (*palette).parent() == ribbon &&
+                (*palette).committed_arranged_bounds() == (*ribbon).parts().command_plane.bounds,
+            "the Palette panel tab's control fills the ribbon's command plane");
+    (*ribbon).selected_tab = std::size_t{0U};
+    window.perform_layout();
+
     std::string semantics = window.semantic_snapshot().to_json();
     require(semantics.find("\"role\":\"menu_bar\"") != std::string::npos &&
                 semantics.find("\"role\":\"toolbar\"") != std::string::npos,

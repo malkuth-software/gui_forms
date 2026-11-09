@@ -9,6 +9,7 @@
 // golden numbers depend on no font engine.
 
 #include "gui_forms/gui_forms.hpp"
+#include "support/theme_definition_heap.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -961,12 +962,21 @@ void group_overlay() {
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, point}));
     window.perform_layout();
     require(!ribbon.overlay_group(), "a second click on the group's button closes its overlay");
+    // The overlay is an overlay root, yet takes the ribbon's theme override.
+    const std::unique_ptr<ThemeDefinition> held = test_support::professional_definition();
+    (*held).id = "ribbon-override";
+    const std::shared_ptr<const Theme> override_theme = Theme::create(*held);
+    ribbon.set_theme_override(override_theme);
     require(ribbon.show_group_overlay("font"), "the overlay opens by its group's ID");
     window.perform_layout();
+    require((*family).parent() != fixture.ribbon && (*family).effective_theme().id() == "ribbon-override",
+            "the group overlay's controls take the ribbon's theme override");
     // Widening until the group grows back closes the overlay.
     resize(fixture, {1400.0, 400.0});
     require(!ribbon.overlay_group() && (*family).parent() == fixture.ribbon && (*family).effectively_visible(),
             "an overlay whose group grows back closes");
+    ribbon.clear_theme_override();
+    require((*family).effective_theme().id() == window.theme().id(), "clearing the override restores the window's");
 }
 
 void caches() {
@@ -994,7 +1004,142 @@ void caches() {
     (*fixture.window).set_text_scale(1.5);
     (*fixture.window).perform_layout();
     require(ribbon.scaling_counters().ladder_builds == 3U, "a text-scale change rebuilds the ladder");
+    // The ribbon follows the window's theme: a new theme rebuilds the ladder
+    // once and repaints.
+    const std::unique_ptr<ThemeDefinition> held = test_support::professional_definition();
+    (*held).id = "ribbon-follow";
+    (*fixture.window).set_theme(Theme::create(*held));
+    (*fixture.window).perform_layout();
+    require(ribbon.scaling_counters().ladder_builds == 4U && ribbon.effective_theme().id() == "ribbon-follow",
+            "a window theme change rebuilds the ladder once");
+    (*fixture.window).perform_layout();
+    require(ribbon.scaling_counters().ladder_builds == 4U, "nothing more is rebuilt after the theme change");
 }
+
+// Text and number fields show their text as a label part: at the field's
+// left in a stacked layout, above it in a one-row layout; the field keeps its
+// width and its control sits on the published control part; a press on the
+// label focuses the field; an unlabelled field has no label part.
+void field_labels() {
+    FixedMetrics metrics;
+    std::vector<RibbonTabSpec> tabs;
+    RibbonTabSpec home{.stable_id = "home", .text = "&Home"};
+    RibbonGroupSpec find{.stable_id = "find-group", .caption = "Find"};
+    find.commands.push_back({.stable_id = "find", .kind = RibbonCommandKind::text_box, .text = "Find"});
+    find.commands.push_back({.stable_id = "matches", .kind = RibbonCommandKind::numeric_up_down, .text = "&Matches"});
+    find.commands.push_back(
+        {.stable_id = "bare", .kind = RibbonCommandKind::text_box, .text = "Bare", .show_label = false});
+    RibbonGroupSpec size{.stable_id = "size-group", .caption = "Size"};
+    size.commands.push_back({.stable_id = "width", .kind = RibbonCommandKind::numeric_up_down, .text = "Width"});
+    size.layouts = {layout_of(RibbonGroupSize::large, 1U)};
+    home.groups.push_back(std::move(find));
+    home.groups.push_back(std::move(size));
+    tabs.push_back(std::move(home));
+    Fixture fixture = make_fixture(std::move(tabs), {1000.0, 400.0}, metrics);
+    Ribbon& ribbon = *fixture.ribbon;
+    Window& window = *fixture.window;
+    const std::vector<Ribbon::CommandItem> items = ribbon.realized_commands();
+    const Ribbon::CommandItem* found = nullptr;
+    for (const Ribbon::CommandItem& item : items) {
+        if (item.stable_id == "matches") found = &item;
+    }
+    require(found != nullptr, "the labelled number field is realized");
+    const Ribbon::CommandParts& matches = (*found).parts;
+    const std::shared_ptr<NumericUpDown> matches_field = ribbon.numeric_up_down("matches");
+    require(matches.command_label.present && matches.command_numeric_up_down.present &&
+                matches.command_numeric_up_down.bounds.width == 64.0 &&
+                matches.command_label.bounds.y == matches.command_numeric_up_down.bounds.y &&
+                matches.command_label.bounds.x + matches.command_label.bounds.width <=
+                    matches.command_numeric_up_down.bounds.x &&
+                matches.command_numeric_up_down.bounds == (*matches_field).committed_arranged_bounds(),
+            "a stacked field's label sits at its left and its control on its field part");
+    for (const Ribbon::CommandItem& item : items) {
+        if (item.stable_id == "bare") {
+            require(!item.parts.command_label.present && item.parts.command_text_box.bounds.width == 100.0,
+                    "an unlabelled field has no label part and keeps its width");
+        }
+        if (item.stable_id == "width") {
+            const Ribbon::CommandParts& width = item.parts;
+            require(width.command_label.present && width.command_numeric_up_down.present &&
+                        width.command_label.bounds.x == width.command_numeric_up_down.bounds.x &&
+                        width.command_label.bounds.y + width.command_label.bounds.height <=
+                            width.command_numeric_up_down.bounds.y &&
+                        width.command_numeric_up_down.bounds.height == 22.0 &&
+                        width.command_numeric_up_down.bounds == (*ribbon.numeric_up_down("width")).committed_arranged_bounds(),
+                    "a one-row layout puts the field's label above the field");
+        }
+    }
+    NullPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 1000.0, 400.0}));
+    require(painted(painter, "Matches") && painted(painter, "Width") && !painted(painter, "&Matches") &&
+                !painted(painter, "Bare"),
+            "labelled fields paint their labels without mnemonic markers; an unlabelled one paints none");
+    const Rect label = matches.command_label.bounds;
+    const Point point{label.x + label.width * 0.5, label.y + label.height * 0.5};
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, point}));
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, point}));
+    // A numeric up-down gives focus to its edit part (a composite field).
+    require(window.focused_control() == SurfaceRoot::focus_target_of(matches_field),
+            "a press on a field's label focuses its field");
+    std::vector<RibbonTabSpec> icon_only;
+    RibbonTabSpec refused_tab{.stable_id = "home", .text = "&Home"};
+    RibbonGroupSpec refused_group{.stable_id = "group", .caption = "Group"};
+    refused_group.commands.push_back({.stable_id = "family", .kind = RibbonCommandKind::combo_box,
+                                      .text = "Family", .show_label = false});
+    refused_tab.groups.push_back(std::move(refused_group));
+    icon_only.push_back(std::move(refused_tab));
+    require(refused(ribbon, std::move(icon_only)), "only text and number fields may leave their label out");
+}
+
+// A panel tab: the application's control is the tab's body, the ribbon's
+// child sized to the command plane while the tab is selected, carried across
+// set_tabs by identity and removed when no longer named; refusals.
+void panel_tab() {
+    FixedMetrics metrics;
+    const std::shared_ptr<Panel> palette = make_control<Panel>(StableId("palette"));
+    std::vector<RibbonTabSpec> tabs;
+    tabs.push_back(wordpad_home(true));
+    tabs.push_back(RibbonTabSpec{.stable_id = "palette-tab", .text = "&Palette", .panel = palette});
+    Fixture fixture = make_fixture(tabs, {1400.0, 400.0}, metrics);
+    Ribbon& ribbon = *fixture.ribbon;
+    require((*palette).parent() == fixture.ribbon && !(*palette).effectively_visible(),
+            "a panel tab's control is the ribbon's child, hidden while another tab is selected");
+    ribbon.selected_tab = std::size_t{1U};
+    (*fixture.window).perform_layout();
+    const Ribbon::Parts parts = ribbon.parts();
+    require((*palette).effectively_visible() && parts.command_plane.present &&
+                (*palette).committed_arranged_bounds() == parts.command_plane.bounds &&
+                ribbon.realized_groups().empty(),
+            "the selected panel tab's control fills the command plane, with no groups");
+    resize(fixture, {700.0, 400.0});
+    require((*palette).committed_arranged_bounds() == ribbon.parts().command_plane.bounds,
+            "the panel follows the command plane's width");
+    ribbon.set_tabs(tabs);
+    (*fixture.window).perform_layout();
+    require((*palette).parent() == fixture.ribbon && ribbon.selected_tab.read() == std::size_t{1U} &&
+                (*palette).effectively_visible(),
+            "set_tabs carries the panel over by identity, with the selection");
+    std::vector<RibbonTabSpec> with_groups = tabs;
+    with_groups[1].groups.push_back(wordpad_home(true).groups[0]);
+    with_groups[1].groups[0].stable_id = "panel-group";
+    for (RibbonCommandSpec& item : with_groups[1].groups[0].commands) item.stable_id = "panel." + item.stable_id;
+    require(refused(ribbon, with_groups), "a panel tab has no groups");
+    std::vector<RibbonTabSpec> twice = tabs;
+    twice.push_back(RibbonTabSpec{.stable_id = "again", .text = "Again", .panel = palette});
+    require(refused(ribbon, twice), "a panel is used once");
+    const std::shared_ptr<Panel> owned = make_control<Panel>(StableId("owned"));
+    const std::shared_ptr<Panel> owner = make_control<Panel>(StableId("owner"));
+    (*owner).add_child(owned);
+    std::vector<RibbonTabSpec> elsewhere = tabs;
+    elsewhere[1].panel = owned;
+    require(refused(ribbon, elsewhere) && (*palette).parent() == fixture.ribbon,
+            "a panel owned elsewhere is refused, and nothing changes");
+    std::vector<RibbonTabSpec> without;
+    without.push_back(wordpad_home(true));
+    ribbon.set_tabs(std::move(without));
+    require(!(*palette).parent(), "a panel no longer named leaves the ribbon");
+}
+
 
 } // namespace
 
@@ -1011,8 +1156,11 @@ int main() {
     hide_rule();
     group_overlay();
     caches();
+    field_labels();
+    panel_tab();
     std::cout << "Ribbon scaling: generated layouts, the default cycle, the authored order, refusals, gallery "
                  "columns, the WordPad ladders, golden layouts at text scales 1 and 1.5, labels kept, scrolling at "
-                 "any width, the hide rule with hysteresis, group overlays and caches passed\n";
+                 "any width, the hide rule with hysteresis, group overlays, caches, theme following, field labels "
+                 "and panel tabs passed\n";
     return 0;
 }
