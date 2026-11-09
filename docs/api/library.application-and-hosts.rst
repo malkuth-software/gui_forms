@@ -183,6 +183,8 @@ Related types
      -  
    * - :cpp:class:`HostWindowAtResult <gui_forms::HostWindowAtResult>`
      - An accepted result whose ``window`` is invalid means no window of this run is the topmost window at the point (the desktop, or another application's window, is).
+   * - :cpp:class:`HostWindowCornersResult <gui_forms::HostWindowCornersResult>`
+     - A corner request's outcome (HostServices::apply_window_corners): the status, and what the window's corners are afterwards, which the window's band follows.
    * - :cpp:class:`HostWindowDescription <gui_forms::HostWindowDescription>`
      - What an adapter tells the windowing seam about a window it is about to create.
    * - :cpp:class:`HostWindowFrame <gui_forms::HostWindowFrame>`
@@ -1367,6 +1369,10 @@ Related types
 
       Applies a window's backdrop grant to the native window (stage T5). The window calls it only when its granted backdrop changes. ``opaque`` needs no capability, and an adapter must not fail it; ``transparent`` needs transparent_windows, and the two materials window_backdrops. A refused or failed request leaves the native window as it was.
 
+   .. cpp:function:: HostWindowCornersResult apply_window_corners(WindowCornerPreference preference)
+
+      Asks the platform to shape the window's corners (capability window_corners) and reports what they are afterwards. Refused as unsupported, with unknown corners, without the capability; refused as invalid_argument for a value outside the enumeration. A platform that cannot comply (it rounds regardless, or cannot round) reports its actual corners with ``complied`` false.
+
    .. cpp:function:: void shutdown() noexcept
 
       Idempotently enters terminal state on the UI thread and invokes concrete adapter cleanup.
@@ -1503,6 +1509,12 @@ Related types
       *Protected.*
 
       Called with a backdrop whose capability the host advertises. The default accepts ``opaque``, which needs nothing native, and refuses the rest as unsupported.
+
+   .. cpp:function:: virtual HostWindowCornersResult apply_window_corners_impl(WindowCornerPreference preference)
+
+      *Protected.*
+
+      Called with a known preference when the host advertises window_corners. The default refuses as unsupported with unknown corners.
 
    .. cpp:function:: void publish_tray_icon_event(const HostTrayIconEvent& event)
 
@@ -1911,6 +1923,18 @@ Related types
    .. cpp:member:: HostServiceStatus status
 
    .. cpp:member:: HostWindowId window
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostWindowCornersResult final
+
+   ``#include <gui_forms/host/services/host_services.hpp>``
+
+   A corner request's outcome (HostServices::apply_window_corners): the status, and what the window's corners are afterwards, which the window's band follows. A refused or failed request reports unknown corners.
+
+   .. cpp:member:: HostServiceStatus status
+
+   .. cpp:member:: WindowCornerReport report
 
 .. cpp:namespace:: gui_forms
 
@@ -3278,6 +3302,8 @@ Enumerations
    .. cpp:enumerator:: transient_surfaces
 
    .. cpp:enumerator:: opaque_transient_surfaces
+
+   .. cpp:enumerator:: window_corners
 
 .. cpp:namespace:: gui_forms
 

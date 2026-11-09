@@ -57,7 +57,10 @@ gui_forms::SurfaceRoot
          The logical client size. ``resize`` changes it.
 
       **root_slot** : ``Rect``, read-only
-         The root slot (stage B, B.2a): the client rectangle less the chrome insets, in client coordinates. The layout pass measures the root at its size and arranges it there, and a resize marks what it reaches through it; damage and clipping stay in the whole client area. The inset band is the window's own (chrome hit-testing, frame drag): no control is there. Empty on an axis the insets cover.
+         The root slot (stage B, B.2a): the client rectangle less the window's outer band (Window::declare_band) and, inside it, the chrome insets, in client coordinates. The layout pass measures the root at its size and arranges it there, and a resize marks what it reaches through it; damage and clipping stay in the whole client area. The inset band is the window's own (chrome hit-testing, frame drag): no control is there. Empty on an axis the band and insets cover.
+
+      **content_rect** : ``Rect``, read-only
+         The content rectangle: the client rectangle less the reserved outer band (the whole client area when none is reserved), in client coordinates. Live surfaces are clipped to it; points outside it hit nothing.
 
       **chrome_insets** : ``Insets``
 
@@ -604,7 +607,11 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: Rect root_slot() const noexcept
 
-      The root slot (stage B, B.2a): the client rectangle less the chrome insets, in client coordinates. The layout pass measures the root at its size and arranges it there, and a resize marks what it reaches through it; damage and clipping stay in the whole client area. The inset band is the window's own (chrome hit-testing, frame drag): no control is there. Empty on an axis the insets cover.
+      The root slot (stage B, B.2a): the client rectangle less the window's outer band (Window::declare_band) and, inside it, the chrome insets, in client coordinates. The layout pass measures the root at its size and arranges it there, and a resize marks what it reaches through it; damage and clipping stay in the whole client area. The inset band is the window's own (chrome hit-testing, frame drag): no control is there. Empty on an axis the band and insets cover.
+
+   .. cpp:function:: Rect content_rect() const noexcept
+
+      The content rectangle: the client rectangle less the reserved outer band (the whole client area when none is reserved), in client coordinates. Live surfaces are clipped to it; points outside it hit nothing.
 
    .. cpp:function:: Insets chrome_insets() const noexcept
 

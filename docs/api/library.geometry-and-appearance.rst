@@ -32,6 +32,8 @@ Types
      -  
    * - :cpp:class:`BackplaneRegion <gui_forms::BackplaneRegion>`
      - One backplane image's region (E9-B): ``extent`` device pixels at ``scale``, its top-left pixel at ``origin`` in the window's device pixels (the window's logical origin times the scale; possibly fractional).
+   * - :cpp:class:`BandDeclaration <gui_forms::BandDeclaration>`
+     - A ``window`` rule's band (owner, 2026-11-08: the window outer band): ``band-width`` (logical units, before device-pixel snapping), ``band-color`` (the rest colour), ``band-lit-color`` and ``band-effect``.
    * - :cpp:class:`BasicControlStyle <gui_forms::BasicControlStyle>`
      - BasicControlStyle retains the compact compatibility palette used by callers that do not select full role recipes.
    * - :cpp:class:`BoundedRange <gui_forms::BoundedRange>`
@@ -558,6 +560,27 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: BandDeclaration final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   A ``window`` rule's band (owner, 2026-11-08: the window outer band): ``band-width`` (logical units, before device-pixel snapping), ``band-color`` (the rest colour), ``band-lit-color`` and ``band-effect``. Each field is set only by its own declaration; the cascade takes each field from the last matching rule that sets it.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:member:: std::optional<double> width
+
+   .. cpp:member:: std::optional<Color> rest_colour
+
+   .. cpp:member:: std::optional<Color> lit_colour
+
+   .. cpp:member:: std::optional<BandEffect> effect
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: BasicControlStyle final
 
    ``#include <gui_forms/theme/types/theme_types.hpp>``
@@ -832,6 +855,10 @@ Types
    .. cpp:function:: const BackdropDeclaration* resolve_backdrop(const PartFacts& facts) const noexcept
 
       The winning backdrop of the surface ``facts`` name (PartFacts::surface, its root control's classes and ID): the last matching rule's, which belongs to the compiled rules or to the user theme's, or null where no matching rule declares one. ``backdrop: none`` wins as a chain of length 0. Linear in the number of rules.
+
+   .. cpp:function:: BandDeclaration resolve_band(const PartFacts& facts) const noexcept
+
+      The band of the window ``facts`` name (PartFacts::surface window, its root control's classes and ID): each field from the last matching rule that sets it, among the compiled rules and the user theme's. Empty where none does, and for any surface but a window. Linear in the number of rules.
 
    .. cpp:function:: Resolution resolve(const PartFacts& facts) const noexcept
 
@@ -4839,6 +4866,10 @@ Types
 
       The backdrop chain the rules selecting ``window`` declare (``window { backdrop: ... }``, owner decisions 2026-11-05): the winning ``backdrop:`` among the theme's and the user theme's rules, matched against the window's media and its root control's classes and stable ID, lowered operation by operation. A role colour in tint() is the colour the matching rules give it under the window's scheme. Nullopt where no rule declares one or the winner is ``none``. ``popup`` rules are not read here: they wait for native popup windows (stage T5).
 
+   .. cpp:function:: BandDeclaration window_band(const Window& window) const noexcept
+
+      The band the rules selecting ``window`` declare (``window { band-width: ...; band-color: ...; band-lit-color: ...; band-effect: ... }``; owner, 2026-11-08): each field from the last matching rule that sets it, among the theme's and the user theme's rules, matched as window_backdrop_chain matches. Empty where no rule sets one.
+
    .. cpp:function:: bool supports(ColourScheme scheme) const noexcept
 
       Whether the theme has a variant for ``scheme`` (T4 theme variants): its colour_schemes, which its sheet's ``color-scheme`` sets.
@@ -5279,6 +5310,10 @@ Types
 
       A surface rule's backdrop (``backdrop:``), or none.
 
+   .. cpp:member:: std::optional<BandDeclaration> band
+
+      A window rule's band (``band-*``), or none.
+
    .. cpp:member:: RuleProvenance provenance
 
       Where the rule was written. Not compared: two rules that cascade alike are equal wherever they were written.
@@ -5466,6 +5501,16 @@ Enumerations
    .. cpp:enumerator:: saturate
 
    .. cpp:enumerator:: tint
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: BandEffect
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: flash
 
 .. cpp:namespace:: gui_forms
 
@@ -6791,6 +6836,8 @@ Enumerations
 
    .. cpp:enumerator:: backdrop_invalid
 
+   .. cpp:enumerator:: band_invalid
+
    .. cpp:enumerator:: transition_property_unknown
 
    .. cpp:enumerator:: transition_property_not_animated
@@ -7450,6 +7497,10 @@ Functions, constants and aliases
 
    Whether ``backdrop`` is a chain the engine admits: its length within capacity, every amount finite and in its range, and at most one blur.
 
+.. cpp:function:: bool band_declaration_valid(const BandDeclaration& band) noexcept
+
+   Whether ``band`` is one the engine admits: a width, if set, finite from 0 to maximum_theme_band_width; an effect, if set, in the enumeration.
+
 .. cpp:function:: std::string_view text_role_name(TextRole role) noexcept
 
    The role's name in a sheet: ``ui``, ``field``, ``caption``, ``heading``, ``title``, ``monospace``.
@@ -7571,6 +7622,10 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double maximum_backdrop_saturation
 
    Value: ``4.0``.
+
+.. cpp:var:: constexpr double maximum_theme_band_width
+
+   The widest ``band-width`` a theme may declare, in logical units (the same as gui_forms::maximum_band_width, which a window checks). Value: ``32.0``.
 
 .. cpp:var:: constexpr std::string_view opacity_property
 
