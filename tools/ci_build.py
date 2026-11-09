@@ -150,6 +150,35 @@ def test_build_targets(listing: dict, outputs: dict[str, str], toolkit: Path) ->
     return sorted(targets), sorted(unbuilt)
 
 
+# The tests a pull request runs whatever it changed: the engine gate test,
+# whose manifest the engine-gate job needs from every host, and the threading
+# tests, whose executable the macOS runtime relocation proof runs.
+SMOKE_TESTS: tuple[str, ...] = ('gui_forms_engine_gate_tests', 'gui_forms_threading_tests')
+
+
+def pull_request_listing(listing: dict, changed: list[str] | None) -> dict:
+    """The tests of listing a pull request runs: those its changed paths can affect, plus SMOKE_TESTS.
+
+    changed None (no change selection) keeps every test. The areas are
+    tools/test_areas.json's (change_selection); a path every test reads, or
+    one no rule classifies, keeps every test.
+    """
+    if changed is None:
+        return listing
+    affected: dict | None = changed_tests_listing(changed, listing)
+    if affected is None:
+        return listing
+    names: set[str] = set()
+    test: dict
+    for test in affected['tests']:
+        names.add(test['name'])
+    kept: list[dict] = []
+    for test in listing.get('tests', []):
+        if test['name'] in names or test['name'] in SMOKE_TESTS:
+            kept.append(test)
+    return {'tests': kept}
+
+
 def report_stx_package(toolkit: Path, restored: bool) -> None:
     """Say whether configuring toolkit built the stx package or linked one.
 
@@ -195,18 +224,19 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     of the toolkit's own tests and writes no JUnit report: a consumer's
     smoke build at a pin whose suite GUI.Forms' CI already passed (File
     Manager's bootstrap smoke).
-    test_targets_only (a pull request) runs the whole suite, with its JUnit
+    test_targets_only (a pull request) runs the suite, with its JUnit
     report, but builds only what the tests run (test_build_targets), never
     `all`: no program, example, bundle or package no test runs. It installs
     nothing and builds no installed reference example; the merge group's and
-    main's full runs do.
+    main's full runs do. With changed_from it runs only the tests the
+    changed paths can affect, plus SMOKE_TESTS (pull_request_listing).
     """
     toolkit: Path = build / ('gui-forms-sanitize' if sanitize else 'gui-forms')
     build_record_path(toolkit).unlink(missing_ok=True)
     changed: list[str] = []
     if changed_from:
         changed = change_selection.changed_paths(ROOT / 'gui_forms', changed_from)
-        if not change_selection.any_path_read(changed, change_selection.load_rules()):
+        if not test_targets_only and not change_selection.any_path_read(changed, change_selection.load_rules()):
             reason: str = f'no test reads the {len(changed)} paths changed since {changed_from}'
             print(reason + '; nothing to build or run', flush=True)
             write_build_record(toolkit, BUILT_NOTHING, reason)
@@ -251,10 +281,19 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     selection: list[str] = ctest_selection(tests, skip_labels)
     targets: list[str] | None = None
     if test_targets_only:
+        suite: dict = test_listing(toolkit, '', skip_labels)
+        chosen: dict = pull_request_listing(suite, changed if changed_from else None)
+        if len(chosen['tests']) < len(suite.get('tests', [])):
+            chosen_names: list[str] = []
+            chosen_test: dict
+            for chosen_test in chosen['tests']:
+                chosen_names.append(chosen_test['name'])
+            print(f'pull request: {len(chosen_names)} of {len(suite["tests"])} tests are affected by the paths '
+                  f'changed since {changed_from} or always run', flush=True)
+            selection = ctest_selection(change_selection.name_pattern(chosen_names), skip_labels)
         unbuilt: list[str]
-        targets, unbuilt = test_build_targets(test_listing(toolkit, '', skip_labels), ninja_outputs(toolkit),
-                                              toolkit)
-        print(f'pull request: {len(targets)} build outputs serve the suite, not `all`; '
+        targets, unbuilt = test_build_targets(chosen, ninja_outputs(toolkit), toolkit)
+        print(f'pull request: {len(targets)} build outputs serve those tests, not `all`; '
               f'{len(unbuilt)} named paths are sources or test outputs: {", ".join(unbuilt)}', flush=True)
     elif tests or changed_from:
         listing: dict = test_listing(toolkit, tests, skip_labels)
@@ -330,8 +369,9 @@ def main() -> None:
                         help='build and run only what the tests matching this ctest -R pattern need; without '
                              '--sanitize nothing is installed (the bootstrap smoke build)')
     parser.add_argument('--changed-from', default='',
-                        help='with --sanitize, build and run only the tests the paths changed since this ref '
-                             'can affect (tools/change_selection.py); every test when a path touches everything')
+                        help='with --sanitize or --test-targets-only, build and run only the tests the paths '
+                             'changed since this ref can affect (tools/change_selection.py); every test when a '
+                             'path touches everything (--test-targets-only also runs SMOKE_TESTS)')
     parser.add_argument('--install-only', action='store_true',
                         help='build and install the SDK (with its checks and the installed reference examples) '
                              "but run none of the toolkit's tests: a consumer's smoke build at a tested pin")
@@ -346,11 +386,11 @@ def main() -> None:
         parser.error('--jobs must be positive')
     if args.test_jobs < 1:
         parser.error('--test-jobs must be positive')
-    if args.changed_from and not args.sanitize:
+    if args.changed_from and not (args.sanitize or args.test_targets_only):
         parser.error('--changed-from narrows the sanitized run only')
-    if args.test_targets_only and (args.sanitize or args.tests or args.changed_from or args.install_only):
-        parser.error('--test-targets-only is the plain full run of a pull request; '
-                     'it takes no --sanitize, --tests, --changed-from or --install-only')
+    if args.test_targets_only and (args.sanitize or args.tests or args.install_only):
+        parser.error('--test-targets-only is the plain run of a pull request; '
+                     'it takes no --sanitize, --tests or --install-only')
     if args.install_only and (args.sanitize or args.tests or args.changed_from or args.skip_labels):
         parser.error('--install-only builds and installs everything and runs no toolkit test; '
                      'it takes no --sanitize, --tests, --changed-from or --skip-labels')

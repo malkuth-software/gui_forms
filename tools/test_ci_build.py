@@ -213,6 +213,34 @@ class InstallOnlyTests(unittest.TestCase):
         self.assertEqual(self.toolkit_tests(self.commands_of(True)), [])
         self.assertEqual(len(self.toolkit_tests(self.commands_of(False))), 1)
 
+    def test_a_pull_request_runs_the_affected_tests_and_the_smoke_set(self) -> None:
+        listing: dict = {'tests': [{'name': 'gui_forms_engine_gate_tests'}, {'name': 'gui_forms_threading_tests'},
+                                   {'name': 'gui_forms_text_tests'}, {'name': 'gui_forms_tab_tests'}]}
+        affected: dict = {'tests': [{'name': 'gui_forms_text_tests'}]}
+        chosen: dict
+        with mock.patch.object(ci_build, 'changed_tests_listing', return_value=affected):
+            chosen = ci_build.pull_request_listing(listing, ['src/core/text/x.cpp'])
+        names: list[str] = []
+        test: dict
+        for test in chosen['tests']:
+            names.append(test['name'])
+        self.assertEqual(names, ['gui_forms_engine_gate_tests', 'gui_forms_threading_tests', 'gui_forms_text_tests'])
+        # A path every test reads, and no change selection at all, keep the whole suite.
+        with mock.patch.object(ci_build, 'changed_tests_listing', return_value=None):
+            self.assertEqual(ci_build.pull_request_listing(listing, ['CMakeLists.txt']), listing)
+        self.assertEqual(ci_build.pull_request_listing(listing, None), listing)
+
+    def test_a_pull_request_may_narrow_by_change_but_not_by_pattern(self) -> None:
+        with mock.patch.object(sys, 'argv', ['ci_build.py', '--test-targets-only', '--tests', 'x']), \
+                mock.patch('sys.stderr'):
+            with self.assertRaises(SystemExit):
+                ci_build.main()
+        with mock.patch.object(sys, 'argv', ['ci_build.py', '--test-targets-only', '--changed-from', 'HEAD^1']), \
+                mock.patch.object(ci_build, 'build_toolkit') as build:
+            ci_build.main()
+        self.assertEqual(build.call_args.args[10], 'HEAD^1')
+        self.assertTrue(build.call_args.args[12])
+
     def test_a_pull_request_builds_the_tests_targets_and_installs_nothing(self) -> None:
         commands: list[list[str]] = []
 

@@ -73,6 +73,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: gui_forms
+          # A pull request's merge commit and its base (HEAD^1), for the change selection.
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
       # template_harness beside gui_forms, at the commit gui_forms/harness.lock
       # pins: the reuse, promotion, cache and toolchain tools
       # (docs/building/template-harness.md).
@@ -311,7 +313,10 @@ jobs:
         if: steps.promotion.outputs.reused != 'true' && (steps.reuse.outputs.reused != 'true')
         env:
           GUI_FORMS_ENGINE_GATE_MANIFEST: ${{ github.workspace }}/.ci/engine-gate-${{ inputs.platform }}.tsv
-          SCOPE: ${{ github.event_name == 'pull_request' && '--test-targets-only' || '' }}
+          # The pull request's merge commit: its first parent is the base, so
+          # HEAD^1 names what the pull request changed (the checkout fetches
+          # two commits for that).
+          SCOPE: ${{ github.event_name == 'pull_request' && '--test-targets-only --changed-from HEAD^1' || '' }}
           GUI_FORMS_STX_PACKAGE_DIR: ${{ github.workspace }}/.ci/stx-package
           GUI_FORMS_STX_PACKAGE_RESTORED: ${{ steps.stx-package.outputs.cache-hit }}
         run: |
