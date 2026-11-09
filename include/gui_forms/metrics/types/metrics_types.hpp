@@ -180,6 +180,10 @@ struct MetricsSnapshot {
     // Paint groups begun deeper than maximum_paint_group_depth, drawn
     // without isolation (Painter::begin_group).
     std::uint64_t paint_group_refusals{};
+    // Host font lookups in this process that found no bundled font directory
+    // (bundled_font_diagnostics, read when the snapshot is taken): nonzero
+    // means some window drew no bundled text; bundled_font_refusal says why.
+    std::uint64_t bundled_font_lookups_without_source{};
     std::string renderer_name{"unbound"};
     bool cpu_only{true};
     // The renderer's backplane replay (stage T5, C6; owner decision

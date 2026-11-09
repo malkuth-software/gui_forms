@@ -185,6 +185,9 @@ private:
     // A function token's name, without its '('.
     [[nodiscard]] std::string_view function_name(std::uint32_t index) const noexcept;
     void note_unknown(std::uint32_t token, std::string_view name);
+    // Reports a part its selector's control type lacks (W106), once per
+    // part token: only that selector is left out (materialize).
+    void note_unknown_part(std::uint32_t token);
     void report(DiagnosticCode code, std::uint32_t token, std::string detail);
 
     const SelectorInput& input_;
@@ -204,6 +207,10 @@ private:
     // Whether an unknown name has dropped the rule (its one warning is
     // reported); reading goes on, since an error later still refuses.
     bool dropped_{};
+    // Selectors appended to the output, and the part token last reported
+    // by note_unknown_part (zero for none: a part token never comes first).
+    std::size_t appended_{};
+    std::uint32_t reported_part_token_{};
 };
 
 SelectorPass::SelectorPass(const SelectorInput& input, const SelectorVocabulary& vocabulary, LoweringBudget budget,
@@ -283,7 +290,9 @@ SelectorOutcome SelectorPass::run() {
     }
     // The parser balanced every group, so no group is open here.
     if (!finish_compound(end_)) return SelectorOutcome::refused;
-    if (dropped_) return SelectorOutcome::dropped;
+    // A list whose every selector named a part its type lacks appended
+    // nothing, and is dropped as one unknown name drops a rule.
+    if (dropped_ || appended_ == 0U) return SelectorOutcome::dropped;
     return SelectorOutcome::lowered;
 }
 
@@ -854,6 +863,11 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
                "a window or popup selector takes only classes and a stable ID");
         return false;
     }
+    // A part is checked against the selector's type: as CSS's `::part()`
+    // takes any name and matches nothing for a part the element lacks, an
+    // unknown part leaves out its own selector, with W106, and the rest of
+    // the list applies. Any other unknown name drops the whole rule.
+    bool part_declared = true;
     if (!selector.part.empty() && !dropped_) {
         bool declared = false;
         if (!selector.control_type.empty()) {
@@ -865,7 +879,10 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
                 if (declares_part(anatomy, selector.part)) declared = true;
             }
         }
-        if (!declared) note_unknown(part_token, token_text(part_token));
+        if (!declared) {
+            note_unknown_part(part_token);
+            part_declared = false;
+        }
     }
     // A dropped rule's selectors count too: each was built.
     const std::size_t bytes = lowered_selector_bytes(selector);
@@ -879,7 +896,10 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
     // Every theme-sheet rule at one level, ordered there by its CSS
     // specificity alone (selector step 1).
     lowered.level = CascadeLevel::theme_sheet;
-    if (!dropped_) output_.push_back(std::move(lowered));
+    if (!dropped_ && part_declared) {
+        output_.push_back(std::move(lowered));
+        ++appended_;
+    }
     ++emitted_;
     return true;
 }
@@ -949,6 +969,12 @@ void SelectorPass::note_unknown(std::uint32_t token, std::string_view name) {
     if (dropped_) return;
     dropped_ = true;
     report(DiagnosticCode::unknown_selector_name, token, clipped_theme_detail(name));
+}
+
+void SelectorPass::note_unknown_part(std::uint32_t token) {
+    if (reported_part_token_ == token) return;
+    reported_part_token_ = token;
+    report(DiagnosticCode::unknown_selector_name, token, clipped_theme_detail(token_text(token)));
 }
 
 void SelectorPass::report(DiagnosticCode code, std::uint32_t token, std::string detail) {

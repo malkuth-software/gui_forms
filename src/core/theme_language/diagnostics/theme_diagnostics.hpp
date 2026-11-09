@@ -254,7 +254,8 @@ enum class DiagnosticCode : std::uint16_t {
     // skipped, and with it a block whose only query it is.
     unknown_media_feature = 1105,
     // A control type, part, role, state or pseudo-class the vocabulary does
-    // not know; the rule is dropped.
+    // not know; the rule is dropped. A part the selector's control type
+    // lacks drops only its own selector from the list.
     unknown_selector_name = 1106,
     // A known CSS property the language leaves out, such as `float`,
     // `grid-template` or `aspect-ratio`; the declaration is dropped, with
@@ -273,6 +274,13 @@ enum class DiagnosticCode : std::uint16_t {
     // selector (owner, 2026-11-08): the outer band belongs to a top-level
     // window only. The declaration is dropped.
     band_not_on_window = 1111,
+    // A declaration in a rule naming a part a themed control does not let
+    // a rule reach: a surface property on a TextBox's face or edge, drawn
+    // only while an application overrides the field's look (its themed
+    // ground is its well), and a colour or surface property on its
+    // content, whose text runs share no part identity. The declaration is
+    // kept; the detail says what to style instead.
+    part_not_themed = 1112,
     // W3xx versions (R2-07): the sheet declares a newer engine than the
     // running one, reported once; and, in such a sheet, a keyword the
     // running engine lacks, whose declaration is dropped.

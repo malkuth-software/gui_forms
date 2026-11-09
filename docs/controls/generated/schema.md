@@ -1786,6 +1786,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
+| `face` | face |  |  |
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
@@ -1812,6 +1813,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
+| `face` | face |  |  |
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
@@ -2317,6 +2319,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
+| `face` | face |  |  |
 | `seam` | seam |  | hot, pressed, captured |
 | `grip` | grip |  | open, closed |
 
@@ -2444,6 +2447,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `vertical_increment_arrow` | actuator | `button` | hot, pressed |
 | `scroll_corner` | face |  |  |
 | `focus` | focus |  |  |
+| `face` | face |  |  |
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 

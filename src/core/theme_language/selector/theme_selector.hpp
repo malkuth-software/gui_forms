@@ -87,7 +87,10 @@ enum class SelectorOutcome : std::uint8_t {
     // The selectors were appended to the output.
     lowered,
     // A name the vocabulary does not know: one warning, and the rule is
-    // dropped (B3, R2-08). Nothing was appended.
+    // dropped (B3, R2-08). Nothing was appended. A part the selector's
+    // control type lacks leaves out only that selector, with its own
+    // warning, as CSS's `::part()` matches nothing for an unknown part; a
+    // list left with no selector is dropped.
     dropped,
     // An error: the theme is refused (B2). Nothing was appended.
     refused,

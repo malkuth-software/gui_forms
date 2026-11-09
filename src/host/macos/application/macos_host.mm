@@ -17,6 +17,7 @@
 #include "../../../core/application/splashscreen_surface.hpp"
 #include "../compositor/macos_compositor.hpp"
 #include "../../posix/fonts/sealed_pages_posix.hpp"
+#include "../../../core/resources/fonts/bundled_font_set.hpp"
 
 #include <algorithm>
 #include <array>
@@ -25,6 +26,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
+#include <dlfcn.h>
 #include <exception>
 #include <filesystem>
 #include <limits>
@@ -713,14 +716,46 @@ static std::string utf8_string(id value) {
     return bytes == nullptr ? std::string{} : std::string(bytes);
 }
 
-// The bundle's font directory (Contents/Resources/fonts), or empty when the process has no
-// bundle resources.
+// A byte in the module that holds GUI.Forms, whose address names that module to dladdr.
+static const char gui_forms_module_anchor{};
+
+// The directory of the image holding this code: the GUI.Forms dynamic library or framework
+// binary when another process (a .NET runtime, a plug-in host) loaded it, else the executable
+// it is linked into; empty when dladdr cannot say.
+static std::filesystem::path gui_forms_module_directory() {
+    Dl_info information{};
+    const int found = dladdr(&gui_forms_module_anchor, &information);
+    if (found == 0 || information.dli_fname == nullptr || information.dli_fname[0] == ' ') return {};
+    std::error_code error;
+    const std::filesystem::path module = std::filesystem::canonical(information.dli_fname, error);
+    if (error) return {};
+    return module.parent_path();
+}
+
+// The bundled font directory: the first of GUI_FORMS_FONT_DIR, the main bundle's
+// Contents/Resources/fonts, "fonts" beside the GUI.Forms image and a framework's
+// Resources/fonts next to it that holds the required faces; empty when none does, which
+// locate_bundled_fonts counts and reports (bundled_font_diagnostics, bundled_font_refusal).
 static std::filesystem::path bundle_font_directory() {
+    std::array<gui_forms::detail::BundledFontCandidate, 4> candidates{};
+    const char* override_path = std::getenv("GUI_FORMS_FONT_DIR");
+    candidates[0].source = gui_forms::BundledFontSource::environment;
+    if (override_path != nullptr) candidates[0].directory = override_path;
     NSString* resources = [[NSBundle mainBundle] resourcePath];
-    if (resources == nil) return {};
-    const std::filesystem::path directory =
-        std::filesystem::path(resources.fileSystemRepresentation) / "fonts";
-    return directory;
+    candidates[1].source = gui_forms::BundledFontSource::application_bundle;
+    if (resources != nil)
+        candidates[1].directory = std::filesystem::path(resources.fileSystemRepresentation) / "fonts";
+    const std::filesystem::path library_directory = gui_forms_module_directory();
+    candidates[2].source = gui_forms::BundledFontSource::library_module;
+    candidates[3].source = gui_forms::BundledFontSource::library_module;
+    if (!library_directory.empty()) {
+        candidates[2].directory = library_directory / "fonts";
+        // A framework's binary sits in Versions/A beside its Resources folder.
+        candidates[3].directory = library_directory / "Resources" / "fonts";
+    }
+    const gui_forms::detail::BundledFontLocation location =
+        gui_forms::detail::locate_bundled_fonts(candidates);
+    return location.directory;
 }
 
 // The process's one bundled font set, shared by every view and held by the application run:
