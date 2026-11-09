@@ -2597,6 +2597,42 @@ if(GUI_FORMS_BUILD_TESTS)
                 ${GUI_FORMS_APPKIT} ${GUI_FORMS_COREGRAPHICS})
             add_test(NAME gui_forms_macos_compositor_tests COMMAND gui_forms_macos_compositor_tests)
             set_tests_properties(gui_forms_macos_compositor_tests PROPERTIES RUN_SERIAL TRUE TIMEOUT 60)
+
+            # Native AppKit readback of the window chrome, modal windows and
+            # composite focus (Mac handoff 2026-11-09, item 2). Launched
+            # through LaunchServices so their windows can become key; serial,
+            # since they need the key window. The focus probe writes its
+            # captures to handoff_focus_captures/ in this directory.
+            foreach(handoff_probe IN ITEMS window_chrome_probe modal_probe composite_focus_probe)
+                set(handoff_target gui_forms_macos_${handoff_probe}_tests)
+                add_executable(${handoff_target} MACOSX_BUNDLE tests/macos_${handoff_probe}_tests.mm
+                    ${GUI_FORMS_GALLERY_FONTS} ${GUI_FORMS_GALLERY_FONT_NOTICES})
+                target_compile_options(${handoff_target} PRIVATE -fobjc-arc)
+                target_include_directories(${handoff_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+                target_link_libraries(${handoff_target} PRIVATE gui_forms_application ${GUI_FORMS_APPKIT})
+                add_test(NAME ${handoff_target}
+                         COMMAND ${CMAKE_COMMAND}
+                             -DBUNDLE=$<TARGET_BUNDLE_DIR:${handoff_target}>
+                             -DOUTPUT_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}
+                             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/run_macos_activated_test.cmake)
+                set_tests_properties(${handoff_target} PROPERTIES RUN_SERIAL TRUE TIMEOUT 120)
+            endforeach()
+            # Files opened through application:openURLs: (Finder, the Dock),
+            # sent as open-documents Apple Events by `open -a`, at launch and
+            # during the run.
+            add_executable(gui_forms_macos_open_files_probe_app MACOSX_BUNDLE
+                tests/macos_open_files_probe_app.mm
+                ${GUI_FORMS_GALLERY_FONTS} ${GUI_FORMS_GALLERY_FONT_NOTICES})
+            target_compile_options(gui_forms_macos_open_files_probe_app PRIVATE -fobjc-arc)
+            target_include_directories(gui_forms_macos_open_files_probe_app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+            target_link_libraries(gui_forms_macos_open_files_probe_app PRIVATE gui_forms_application ${GUI_FORMS_APPKIT})
+            set_target_properties(gui_forms_macos_open_files_probe_app PROPERTIES
+                MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.open-files-probe")
+            add_test(NAME gui_forms_macos_open_files_probe_tests
+                     COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_macos_open_files_probe.sh
+                         $<TARGET_BUNDLE_DIR:gui_forms_macos_open_files_probe_app>
+                         ${CMAKE_CURRENT_BINARY_DIR})
+            set_tests_properties(gui_forms_macos_open_files_probe_tests PROPERTIES RUN_SERIAL TRUE TIMEOUT 120)
         endif()
         # Stage DK W0 measurement (notes:results/2026-10-18-dk-w0-capture-drag/): it
         # puts windows on the desktop, so it is built but never run by ctest.
