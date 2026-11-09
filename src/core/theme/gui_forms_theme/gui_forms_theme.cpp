@@ -500,13 +500,17 @@ ribbon::part(tab):state(selected) {
 }
 
 /* The Ribbon's tab row (rendering reference §4; design language §11 item
-   4): a flat #93ADD0 rail 27 units high; the tabs abut, each three units
-   below the rail's top, the selected one standing to the top and running
-   one unit into the plane over its top line, so that it joins the plane;
-   its label bold in #173F79 and a little larger. File is the blue
-   gradient tab with white ink. No folder taper, lip or edge shadow: no
-   study calls for them in the default (an application's package may turn
-   them on). */
+   4; the owner's folder correction, 2026-11-09): a flat #93ADD0 rail 27
+   units high; the tabs abut, each three units below the rail's top, the
+   selected one standing to the top and running one unit into the plane,
+   whose top it matches, so that it flows into the plane with no lip and
+   no line between them. Every tab is a folder: its right edge tapers five
+   units from foot to top, drawn in the keyline #496C9F, and a shadow falls
+   off over eight units from that edge onto the next tab, so each tab
+   reads as tucked under its left neighbour. The keylines and casts of the
+   shared tab rule give way to the taper and its shadow. Its label bold in
+   #173F79 and a little larger. Only File (the blue gradient tab with white
+   ink) and a contextual tab (its set's tint) carry a colour of their own. */
 ribbon::part(tab-rail) {
   background: #93add0;
   border: none;
@@ -514,8 +518,11 @@ ribbon::part(tab-rail) {
 }
 ribbon::part(tab) {
   border-radius: 4px 4px 0 0;
+  box-shadow: none;
   gap: 0;
   margin-top: 3px;
+  taper: 5px #496c9f;
+  edge-shadow: 8px rgb(24 56 97 / 35%);
 }
 ribbon::part(tab):state(selected) {
   margin-top: 0;
@@ -537,12 +544,12 @@ ribbon::part(application-label) {
 }
 
 /* The Ribbon's command plane (rendering reference §5): Plan Paint's
-   #E8F2FF, #CADEFB, #A5C4F1 and #769FDF, a white top line and a shade
-   line at its foot. */
+   #E8F2FF, #CADEFB, #A5C4F1 and #769FDF and a shade line at its foot; no
+   line along its top, where the selected tab flows into it. */
 ribbon::part(command-plane) {
   background: linear-gradient(to bottom, #e8f2ff, #cadefb 28%, #a5c4f1 62%, #769fdf);
   border: none;
-  box-shadow: inset 0 1px 0 #ffffff, inset 0 -1px 0 #496c9f;
+  box-shadow: inset 0 -1px 0 #496c9f;
 }
 
 /* The Ribbon's groups (rendering reference §5; design language §11 item

@@ -2433,7 +2433,7 @@ constexpr std::array<AnatomyState, 2> arrow_states{{AnatomyState::hot, AnatomySt
 constexpr std::array<AnatomyState, 4> group_button_part_states{
     {AnatomyState::hot, AnatomyState::pressed, AnatomyState::open, AnatomyState::focus_visible}};
 
-constexpr std::array<PartField<Ribbon::Parts>, 10> ribbon_part_fields{{
+constexpr std::array<PartField<Ribbon::Parts>, 11> ribbon_part_fields{{
     {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
      .member = &Ribbon::Parts::region},
     {.declaration = {.name = "tab_rail", .role = PartRole::face, .composed_from = {}},
@@ -2458,6 +2458,13 @@ constexpr std::array<PartField<Ribbon::Parts>, 10> ribbon_part_fields{{
     {.declaration = {.name = "scroll_right_glyph", .role = PartRole::glyph, .composed_from = {},
                      .states = arrow_states},
      .member = &Ribbon::Parts::scroll_right_glyph},
+    // Reserved (owner, N4, 2026-11-09): the help button at the tab row's
+    // right end. Declared so that themes may style it now; the Ribbon
+    // neither places nor draws it until the help system's design wires it,
+    // so it is never present.
+    {.declaration = {.name = "help_button", .role = PartRole::actuator, .composed_from = "button",
+                     .states = launcher_states},
+     .member = &Ribbon::Parts::help_button},
     {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
      .member = &Ribbon::Parts::focus},
 }};
@@ -2552,7 +2559,7 @@ constexpr std::array<StateField<Ribbon::CommandStates>, 6> ribbon_command_state_
     {.state = AnatomyState::focus_visible, .member = &Ribbon::CommandStates::focus_visible},
 }};
 
-constexpr std::array<PartDeclaration, 10> ribbon_parts = part_declarations(ribbon_part_fields);
+constexpr std::array<PartDeclaration, 11> ribbon_parts = part_declarations(ribbon_part_fields);
 constexpr std::array<PartDeclaration, 3> ribbon_tab_parts = part_declarations(ribbon_tab_part_fields);
 constexpr std::array<AnatomyState, 4> ribbon_tab_states = state_declarations(ribbon_tab_state_fields);
 constexpr std::array<PartDeclaration, 11> ribbon_group_parts = part_declarations(ribbon_group_part_fields);

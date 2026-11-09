@@ -2871,6 +2871,7 @@ Properties beyond every control's: none.
 | `scroll_left_glyph` | glyph |  | hot, pressed |
 | `scroll_right` | actuator | `button` | hot, pressed |
 | `scroll_right_glyph` | glyph |  | hot, pressed |
+| `help_button` | actuator | `button` | hot, pressed, focus_visible |
 | `focus` | focus |  |  |
 
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.

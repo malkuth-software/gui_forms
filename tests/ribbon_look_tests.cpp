@@ -8,7 +8,8 @@
 // disabled state and, optionally, selection on release; the shapes (folder
 // taper, lip, edge shadow) paint where a theme turns them on; Plan Paint's
 // package compiles with them; and the default theme draws the rendering
-// reference's tab row and sets Backstage's column apart from its page.
+// reference's tab row, every tab a tapered folder tucked under its left
+// neighbour, and sets Backstage's column apart from its page.
 
 #include "../src/core/theme_language/package/theme_manifest.hpp"
 #include "gui_forms/gui_forms.hpp"
@@ -88,10 +89,15 @@ public:
         return false;
     }
     [[nodiscard]] bool lined(Color color) const {
+        const bool any = lines_in(color) > 0U;
+        return any;
+    }
+    [[nodiscard]] std::size_t lines_in(Color color) const {
+        std::size_t count = 0U;
         for (const Color& line : lines) {
-            if (line == color) return true;
+            if (line == color) ++count;
         }
-        return false;
+        return count;
     }
     [[nodiscard]] std::optional<std::size_t> text_index(std::string_view text) const {
         for (std::size_t index = 0U; index < texts.size(); ++index) {
@@ -188,10 +194,10 @@ void test_parts_are_keyed() {
         "the keyed-parts sheet compiles cleanly");
     std::shared_ptr<Ribbon> ribbon = ribbon_with(two_tabs());
     (*ribbon).set_theme_override(theme);
-    Window window(ribbon, {700.0, 112.0});
+    Window window(ribbon, {700.0, 115.0});
     window.perform_layout();
     LookPainter painter;
-    static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 112.0}));
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 115.0}));
     require(painter.filled(rail_blue), "the tab rail takes its rule");
     require(painter.filled(selected_face), "the selected tab takes its state's rule");
     require(painter.filled(plane_blue), "the command plane takes its rule");
@@ -210,16 +216,16 @@ void test_authored_face_at_rest() {
         "the raised-face sheet compiles cleanly");
     std::shared_ptr<Ribbon> ribbon = ribbon_with(two_tabs());
     (*ribbon).set_theme_override(theme);
-    Window window(ribbon, {700.0, 112.0});
+    Window window(ribbon, {700.0, 115.0});
     window.perform_layout();
     LookPainter painter;
-    static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 112.0}));
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 115.0}));
     require(painter.filled(raised_face), "an authored command face paints at rest");
     std::shared_ptr<Ribbon> stock = ribbon_with(two_tabs());
-    Window plain(stock, {700.0, 112.0});
+    Window plain(stock, {700.0, 115.0});
     plain.perform_layout();
     LookPainter flat;
-    static_cast<void>(plain.paint(flat, {0.0, 0.0, 700.0, 112.0}));
+    static_cast<void>(plain.paint(flat, {0.0, 0.0, 700.0, 115.0}));
     require(!flat.filled(raised_face), "without the rule the face stays the stock flat face");
 }
 
@@ -278,7 +284,9 @@ void test_theme_metrics() {
 }
 
 // The owner's tab capabilities: the folder taper, the lip and the edge
-// shadow paint where a theme turns them on, and not in a stock theme.
+// shadow paint where a theme turns them on. The lip stays a capability that
+// neither the stock theme nor Plan Paint uses (the owner's folder
+// correction, 2026-11-09).
 void test_tab_shapes() {
     const std::shared_ptr<const Theme> theme = theme_from_sheet(
         "ribbon::part(tab) { taper: 4px #496c9f; }\n"
@@ -286,21 +294,14 @@ void test_tab_shapes() {
         "the shapes sheet compiles cleanly");
     std::shared_ptr<Ribbon> ribbon = ribbon_with(two_tabs());
     (*ribbon).set_theme_override(theme);
-    Window window(ribbon, {700.0, 112.0});
+    Window window(ribbon, {700.0, 115.0});
     window.perform_layout();
     LookPainter painter;
-    static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 112.0}));
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 115.0}));
     require(painter.lined(keyline), "a tapered tab draws its slanted edge in the taper colour");
     require(painter.filled(selected_face), "the selected tab's lip fills in the flare colour");
     require(painter.filled_rgb(shadow_ink) && painter.gradients > 0U,
             "the edge shadow falls off from its colour beyond the trailing edge");
-    std::shared_ptr<Ribbon> stock = ribbon_with(two_tabs());
-    Window plain(stock, {700.0, 112.0});
-    plain.perform_layout();
-    LookPainter flat;
-    static_cast<void>(plain.paint(flat, {0.0, 0.0, 700.0, 112.0}));
-    require(!flat.lined(keyline) && !flat.filled_rgb(shadow_ink),
-            "the stock theme draws no taper, lip or edge shadow");
 }
 
 // Defect 4: a disabled tab shows disabled and cannot be selected.
@@ -308,7 +309,7 @@ void test_disabled_tab() {
     std::vector<RibbonTabSpec> tabs = two_tabs();
     tabs[1].enabled = false;
     std::shared_ptr<Ribbon> ribbon = ribbon_with(std::move(tabs));
-    Window window(ribbon, {700.0, 112.0});
+    Window window(ribbon, {700.0, 115.0});
     window.perform_layout();
     std::vector<Ribbon::Tab> realized = (*ribbon).realized_tabs();
     require(realized.size() == 2U && realized[1].states.disabled && !realized[0].states.disabled,
@@ -344,7 +345,7 @@ void test_disabled_tab() {
 // Defect 7: selection on release, as an option; on the press by default.
 void test_release_activation() {
     std::shared_ptr<Ribbon> ribbon = ribbon_with(two_tabs());
-    Window window(ribbon, {700.0, 112.0});
+    Window window(ribbon, {700.0, 115.0});
     window.perform_layout();
     const std::vector<Ribbon::Tab> realized = (*ribbon).realized_tabs();
     require(realized.size() == 2U, "both tabs are realized");
@@ -408,6 +409,7 @@ void test_plan_paint_package() {
         "  gap: 3px;\n"
         "  margin-top: 3px;\n"
         "  taper: 4px #496c9f;\n"
+        "  edge-shadow: 5px rgba(24, 56, 97, 0.3);\n"
         "}\n"
         "ribbon::part(tab):hover { background-color: #acc6e7; }\n"
         "ribbon::part(tab):state(selected) {\n"
@@ -416,8 +418,6 @@ void test_plan_paint_package() {
         "  box-shadow: 2px 0 0 #496c9f, 3px 1px 2px rgba(24, 56, 97, 0.22), inset 0 1px 0 #ffffff;\n"
         "  margin-top: 0;\n"
         "  margin-bottom: -2px;\n"
-        "  flare: 3px #e8f2ff;\n"
-        "  edge-shadow: 5px rgba(24, 56, 97, 0.3);\n"
         "}\n"
         "ribbon::part(tab):disabled { background-color: #b9c4d2; }\n"
         "ribbon::part(tab-label) { color: #153765; }\n"
@@ -460,7 +460,9 @@ void test_plan_paint_package() {
 
 // The default theme draws the rendering reference's tab row (§4): a
 // 27-unit rail, the tabs three units down, the selected one at the top
-// running one unit into the plane, its label in #173F79.
+// running one unit into the plane, its label in #173F79; every tab, the
+// selected one too, tapers on its right in the keyline and casts a shadow
+// onto the next (the owner's folder correction, 2026-11-09).
 void test_default_theme_row() {
     std::shared_ptr<Ribbon> ribbon = ribbon_with(two_tabs());
     (*ribbon).set_theme_override(gui_forms_theme());
@@ -476,6 +478,9 @@ void test_default_theme_row() {
     static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 200.0}));
     const std::optional<std::size_t> home = painter.text_index("Home");
     require(home && painter.text_colours[*home] == selected_ink, "the selected label is the reference's ink");
+    require(painter.lines_in(keyline) >= realized.size(), "every tab draws its tapered folder edge");
+    require(painter.filled_rgb(shadow_ink) && painter.gradients > 0U,
+            "every tab's shadow falls off beyond its tapered edge");
 }
 
 // RB decision 26: in the default theme Backstage's column takes the

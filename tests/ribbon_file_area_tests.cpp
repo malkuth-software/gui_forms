@@ -435,7 +435,7 @@ void backstage() {
     require((*ribbon).backstage_open() && (*ribbon).parts().application_button.states.contains(AnatomyState::open),
             "the File tab opens Backstage");
     const Rect bounds = (*view).committed_arranged_bounds();
-    require(bounds.y == 24.0 && bounds.height == 476.0 && bounds.width == 900.0,
+    require(bounds.y == 27.0 && bounds.height == 473.0 && bounds.width == 900.0,
             "Backstage covers everything below the tab row");
     require((*info).effectively_visible() && !(*print_button).effectively_visible() &&
                 (*info).committed_arranged_bounds().x == (*view).parts().page.bounds.x,
@@ -476,7 +476,7 @@ void backstage() {
     window.resize({700.0, 400.0});
     window.perform_layout();
     require((*view).committed_arranged_bounds().width == 700.0 &&
-                (*view).committed_arranged_bounds().height == 376.0,
+                (*view).committed_arranged_bounds().height == 373.0,
             "Backstage follows the window's size");
     const std::vector<SemanticNode> nodes = (*view).semantic_virtual_children();
     require(nodes.size() == 4U && nodes[2].role == SemanticRole::tab && nodes[0].role == SemanticRole::button &&
