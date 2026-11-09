@@ -1,4 +1,5 @@
 #include "gui_forms/gui_forms.hpp"
+#include "support/professional_theme.hpp"
 
 #include <algorithm>
 #include <array>
@@ -124,8 +125,8 @@ void set_solid_recipe(ThemeDefinition& definition, ControlVisualRole role,
 
 void test_default_theme_has_complete_state_matrix() {
     const std::shared_ptr<const Theme> theme = default_theme();
-    require(theme && (*theme).id() == "windows-professional",
-            "default theme must have stable professional identity");
+    require(theme && (*theme).id() == "gui-forms" && theme == gui_forms_theme(),
+            "the default theme is GUI.Forms' own (T4 phase 6)");
     for (std::size_t role = 0; role < control_visual_role_count; ++role) {
         for (std::size_t state = 0; state < control_surface_state_count; ++state) {
             for (bool selected : {false, true}) {
@@ -251,7 +252,7 @@ void test_window_theme_replacement_and_control_inheritance_are_atomic() {
                 !window.take_damage().empty(),
             "window replacement must be atomic, silent on identity, and inherited");
 
-    const std::shared_ptr<const Theme> local = default_theme();
+    const std::shared_ptr<const Theme> local = test_support::professional_theme();
     (*root).set_theme_override(local);
     require((*child).effective_theme().id() == "windows-professional",
             "ancestor override must be inherited by descendants");
@@ -400,10 +401,10 @@ double wcag_ratio(Color first, Color second) {
     return ratio;
 }
 
-// The accent family's text passes 4.5:1 on every gradient stop of its
+// windows-professional's accent family's text passes 4.5:1 on every gradient stop of its
 // resting, hot, pressed, pending and invalid plates, selected or not.
 void test_accent_text_contrast() {
-    const std::shared_ptr<const Theme> theme = default_theme();
+    const std::shared_ptr<const Theme> theme = test_support::professional_theme();
     const std::array<ControlSurfaceState, 5> states{
         ControlSurfaceState::normal, ControlSurfaceState::hot, ControlSurfaceState::pressed,
         ControlSurfaceState::pending, ControlSurfaceState::invalid};

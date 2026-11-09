@@ -8,8 +8,9 @@ language](theme-language) is the reference for everything a sheet may say.
 
 There are three ways to give a program its look, and they combine:
 
-1. Use a **built-in theme** as it is: GUI.Forms' own (`gui-forms`), the
-   Windows-familiar `windows-professional`, or one of the familiar themes.
+1. Use a **built-in theme** as it is: GUI.Forms' own (`gui-forms`, the
+   default), the Windows-familiar `windows-professional`, or one of the
+   familiar themes.
 2. Write a **theme package**: a sheet compiled onto a base, for the program's
    own roles and adjustments.
 3. Let the user pick a **user theme**, which the program allows and checks
@@ -17,8 +18,12 @@ There are three ways to give a program its look, and they combine:
 
 ## The built-in themes
 
-`gui-forms` is GUI.Forms' own theme, light and dark. `windows-professional`
-is the Windows-familiar theme packages compile onto by default. Both are
+`gui-forms` is GUI.Forms' own theme, light and dark, and the default: a
+window shows it until the program chooses another, and an application's
+packages compile onto it unless `ApplicationConfig::theme.base` names
+`ThemeBase::windows_professional`. `windows-professional` is a
+Windows-familiar theme, light only; the lower-level `compile_theme_package`
+still compiles onto it unless `ThemeCompileOptions::base` says otherwise. Both are
 written in the theme language: their control families come from a floor sheet
 of `:family()` blocks, read once into the theme's recipes when it is first
 built.
@@ -194,7 +199,7 @@ A control uses the first theme it finds in this order:
 1. its own override (`Control::set_theme_override`);
 2. its window's (`SurfaceRoot::set_theme`);
 3. the application's resources (`ApplicationResources::set_theme`);
-4. the built-in default theme.
+4. the built-in default theme, GUI.Forms' own (`gui-forms`) from 0.5.
 
 A user theme the program allows replaces or extends the program's theme in
 the resources ([The theme language](theme-language.md#user-themes)).

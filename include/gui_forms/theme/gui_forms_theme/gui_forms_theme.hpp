@@ -18,7 +18,8 @@ namespace gui_forms {
 // recipe draws, and a light sheet in the theme language, compiled onto the
 // floor at first use, which the parts painted through the engine draw.
 // `windows_professional_theme_definition()` stays as a Windows-familiar
-// theme; `default_theme()` changes to this one at phase 6, not before.
+// theme; `default_theme()` returns this one (phase 6, owner decision
+// 2026-11-08).
 
 // The floor: Plan Paint's action plate for push buttons, the gold active
 // tool for selected ones, recessed wells for entry fields and choices,

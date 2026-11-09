@@ -7960,7 +7960,11 @@ Functions, constants and aliases
 
 .. cpp:function:: ThemeDefinition windows_professional_theme_definition()
 
+   The Windows-familiar ``windows-professional`` theme's definition, a copy each call.
+
 .. cpp:function:: std::shared_ptr<const Theme> default_theme()
+
+   The built-in default theme: GUI.Forms' own, ``gui-forms`` (gui_forms_theme()), built once on the first call (thread-safe). It seeds ApplicationResources, a SurfaceRoot without resources and the C ABI's theme reset.
 
 .. cpp:var:: constexpr std::size_t font_field_count
 
@@ -7996,7 +8000,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr ThemeBase default_theme_base
 
-   The base of the process default theme (default_compiled_theme()), the one place that chooses it: windows_professional until default_theme() switches to gui-forms (stage T4 phase 6, an owner decision). Value: ``ThemeBase::windows_professional``.
+   The base of the process default theme (default_compiled_theme()), the one place that chooses it: gui-forms, as default_theme() (stage T4 phase 6, owner decision 2026-11-08). Value: ``ThemeBase::gui_forms``.
 
 .. cpp:var:: constexpr std::size_t maximum_theme_packages
 

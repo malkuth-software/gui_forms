@@ -106,9 +106,9 @@ private:
 enum class ThemeBase : std::uint8_t { windows_professional, gui_forms };
 
 // The base of the process default theme (default_compiled_theme()), the
-// one place that chooses it: windows_professional until default_theme()
-// switches to gui-forms (stage T4 phase 6, an owner decision).
-inline constexpr ThemeBase default_theme_base = ThemeBase::windows_professional;
+// one place that chooses it: gui-forms, as default_theme() (stage T4
+// phase 6, owner decision 2026-11-08).
+inline constexpr ThemeBase default_theme_base = ThemeBase::gui_forms;
 
 // What a compilation reads besides the package.
 struct ThemeCompileOptions final {

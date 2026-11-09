@@ -134,9 +134,10 @@ set. `Window::set_theme` replaces the theme in one transaction;
 A custom control should resolve `effective_theme().resolve(role, context)`
 rather than hard-code colours. Neither the toolkit nor its hosts read
 platform theme handles, system colours or OS appearance settings. The
-default theme follows a professional Windows 7 and 10 structure interpreted
-through the toolkit's own materials; it is not a skin of any operating
-system. Composite controls such as
+default theme is GUI.Forms' own, `gui-forms`, after the design-language
+specification; the Windows-familiar themes (`windows-professional` and the
+familiar themes) are written in the toolkit's own materials and are not
+skins of any operating system. Composite controls such as
 `CommandBar`, `ChoiceGroup` and `ExpandableSections` expose their parts
 through `part(name, index)` so a recipe can address them without
 subclassing. Text uses only the bundled faces; see

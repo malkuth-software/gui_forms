@@ -19,6 +19,7 @@
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/gui_forms.hpp"
+#include "support/professional_theme.hpp"
 #include "support/theme_definition_heap.hpp"
 
 #include "../src/core/text/localizable/gui_forms_notes.hpp"
@@ -829,6 +830,9 @@ void effects_take_colour_roles() {
     (*bar).value = 50.0;
     (*bar).visual_style = ProgressBarVisualStyle::marching_stripes;
     Window window(bar, {200.0, 40.0});
+    // A theme without colour roles: the windows-professional fixture (the
+    // default, gui-forms, has its light sheet's).
+    window.set_theme(test_support::professional_theme());
     RecordingPainter plain;
     window.perform_layout();
     (*bar).on_paint(plain, {0.0, 0.0, 200.0, 20.0});

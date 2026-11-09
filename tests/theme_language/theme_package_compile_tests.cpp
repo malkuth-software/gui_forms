@@ -424,7 +424,7 @@ void test_application_theme() {
     }
     const ThemeCompileResult plain =
         compile_theme_packages(std::span<const ThemePackage>{}, library, images, options());
-    require(plain.succeeded() && (*plain.theme()).id() == (*default_theme()).id() &&
+    require(plain.succeeded() && (*plain.theme()).id() == "windows-professional" &&
                 (*plain.theme()).definition().dark_variant == ThemeDarkVariant::none,
             "no package onto windows-professional gives it alone");
     const std::array<ThemePackage, 2> twice{{package("same", "#pad {}"), package("same", "#pad {}")}};

@@ -7,6 +7,7 @@
 
 #include "../src/core/theme_language/compiler/theme_compiler.hpp"
 #include "../src/core/theme_language/package/theme_manifest.hpp"
+#include "support/professional_theme.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "gui_forms/gui_forms.hpp"
 
@@ -308,8 +309,10 @@ void test_dark_rules_without_variant() {
 }
 
 void test_theme_supports() {
-    require((*default_theme()).supports(ColourScheme::light) && !(*default_theme()).supports(ColourScheme::dark),
+    const std::shared_ptr<const Theme> professional = test_support::professional_theme();
+    require((*professional).supports(ColourScheme::light) && !(*professional).supports(ColourScheme::dark),
             "the professional theme is light only");
+    require(default_theme() == gui_forms_theme(), "the default theme is GUI.Forms' own");
     require((*gui_forms_theme()).supports(ColourScheme::light) && (*gui_forms_theme()).supports(ColourScheme::dark),
             "GUI.Forms' own theme has both variants");
     const std::shared_ptr<const Theme> dark = theme_from(compile(":root { color-scheme: dark }").sheet, "dark-only");
@@ -344,6 +347,9 @@ void test_fallback() {
     const std::shared_ptr<Pad> pad = make_control<Pad>(StableId("pad"));
     (*root).add_child(pad);
     Window window(root, Size{200.0, 100.0});
+    // A light-only application theme: the windows-professional fixture (the
+    // default, gui-forms, has both variants and needs no fallback).
+    (*window.resources()).set_theme(test_support::professional_theme());
     ThemeChanges changes{};
     SubscriptionToken subscription = window.theme_changed().subscribe(RecordThemeChange{&changes});
     require(!window.theme_fallback() && window.theme().id() == "windows-professional",

@@ -18,7 +18,8 @@ sheets it imports (imported sheets first, as in CSS) and returns either a
 
 The sheets compile onto a built-in theme, whose recipes stand wherever they
 set nothing: `windows-professional` unless `ThemeCompileOptions::base` is
-`ThemeBase::gui_forms`. Onto GUI.Forms' own theme (`gui-forms`), its
+`ThemeBase::gui_forms`. An application's theme (`ApplicationConfig`) starts
+from `default_theme_base`, which is `gui-forms`. Onto GUI.Forms' own theme (`gui-forms`), its
 light sheet comes first in the cascade, so the package's rules override it
 and may read its colour roles, and its dark variant is derived by rule: the
 package's colours are written in light terms and darken by the same rule in
@@ -64,7 +65,8 @@ there is one, and one detail argument.
 
 The theme in effect for a control is its own override
 (`Control::set_theme_override`), else its window's, else the program's
-(`ApplicationResources::set_theme`), else the built-in default theme.
+(`ApplicationResources::set_theme`), else the built-in default theme
+(GUI.Forms' own from 0.5).
 
 Every compiled rule keeps where it was written (`ThemeRule::provenance`):
 its layer (`ThemeLayer`: built-in, library pack, project theme, user

@@ -168,7 +168,13 @@ private:
     std::shared_ptr<const detail::ThemeSourceRecord> source_{};
 };
 
+// The Windows-familiar `windows-professional` theme's definition, a copy
+// each call.
 [[nodiscard]] ThemeDefinition windows_professional_theme_definition();
+// The built-in default theme: GUI.Forms' own, `gui-forms`
+// (gui_forms_theme()), built once on the first call (thread-safe). It
+// seeds ApplicationResources, a SurfaceRoot without resources and the C
+// ABI's theme reset.
 [[nodiscard]] std::shared_ptr<const Theme> default_theme();
 
 } // namespace gui_forms

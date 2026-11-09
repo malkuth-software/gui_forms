@@ -299,6 +299,9 @@ void select_gallery_theme(Window& window) {
     ThemeCompileOptions options{};
     options.controls = stock_control_anatomies();
     options.effects = &built_in_effect_registry();
+    // The base an application gives it (ApplicationConfig's default): the
+    // process default's, gui-forms.
+    options.base = default_theme_base;
     const ThemeCompileResult result =
         (*resources).compile_theme_package(gallery_theme_package(), library, options);
     require_clean_gallery_theme(result.succeeded(), result.diagnostics());
