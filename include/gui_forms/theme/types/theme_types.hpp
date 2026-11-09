@@ -117,6 +117,11 @@ struct ControlVisualRecipe final {
     Point pressed_content_offset{1.0, 1.0};
     // The shadow under the recipe's text, if any (E9.6, data only).
     std::optional<ControlTextShadow> text_shadow{};
+    // The text's colour where it lies over a fill (`fill-text-color`, the
+    // value bar study's section 3.6), if the theme sets one; none, the
+    // built-in recipes' value, draws such text in the fill's own selected
+    // text colour.
+    std::optional<Color> fill_text{};
     friend bool operator==(const ControlVisualRecipe& left,
                            const ControlVisualRecipe& right) noexcept(noexcept(
         left.material == right.material && left.text == right.text &&
@@ -130,7 +135,7 @@ struct ControlVisualRecipe final {
         left.default_width == right.default_width &&
         left.visual_offset == right.visual_offset &&
         left.pressed_content_offset == right.pressed_content_offset &&
-        left.text_shadow == right.text_shadow)) {
+        left.text_shadow == right.text_shadow && left.fill_text == right.fill_text)) {
         return left.material == right.material && left.text == right.text &&
                left.muted_text == right.muted_text &&
                left.glyph == right.glyph &&
@@ -143,7 +148,7 @@ struct ControlVisualRecipe final {
                left.default_width == right.default_width &&
                left.visual_offset == right.visual_offset &&
                left.pressed_content_offset == right.pressed_content_offset &&
-               left.text_shadow == right.text_shadow;
+               left.text_shadow == right.text_shadow && left.fill_text == right.fill_text;
     }
 };
 

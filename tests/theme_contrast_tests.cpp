@@ -214,6 +214,47 @@ void built_in_report() {
     if (path != nullptr && path[0] != '\0') write_report(rows, path);
 }
 
+SurfaceMaterial solid_face(Color colour) {
+    SurfaceMaterial material{};
+    material.fills = {MaterialFillLayer::solid(colour)};
+    return material;
+}
+
+// The value bar's two halves (study section 3.6): dark text on a light
+// track and white text on a dark fill both pass; white on a light fill
+// fails its half only; the high-contrast floor is 7:1.
+void fill_text_halves() {
+    const std::shared_ptr<const Theme> theme = default_theme();
+    const Color dark_text = Color::rgba(27, 39, 51);
+    const Color white = Color::rgba(255, 255, 255);
+    const SurfaceMaterial track = solid_face(Color::rgba(232, 236, 240));
+    const SurfaceMaterial dark_fill = solid_face(Color::rgba(25, 82, 139));
+    const SurfaceMaterial pale_fill = solid_face(Color::rgba(170, 200, 230));
+    const ControlVisualContext ordinary{};
+    const detail::FillTextContrast readable =
+        detail::measure_fill_text_contrast(*theme, ordinary, ControlVisualRole::progress, dark_text, track, white,
+                                           dark_fill);
+    require(readable.over_track.pair == ContrastPair::text && readable.over_fill.pair == ContrastPair::fill_text,
+            "the halves are the text and the fill text");
+    require(readable.over_track.verdict == ContrastVerdict::pass && readable.over_fill.verdict == ContrastVerdict::pass,
+            "dark text on the track and white text on a dark fill pass");
+    require(readable.over_track.minimum == 4.5 && readable.over_fill.minimum == 4.5, "text halves hold 4.5:1");
+    require(readable.over_fill.background == Color::rgba(25, 82, 139), "the fill face is measured over the track");
+    const detail::FillTextContrast unreadable =
+        detail::measure_fill_text_contrast(*theme, ordinary, ControlVisualRole::progress, dark_text, track, white,
+                                           pale_fill);
+    require(unreadable.over_track.verdict == ContrastVerdict::pass &&
+                unreadable.over_fill.verdict == ContrastVerdict::fail,
+            "white on a pale fill fails its half only");
+    ControlVisualContext forced{};
+    forced.high_contrast = true;
+    const detail::FillTextContrast strict =
+        detail::measure_fill_text_contrast(*theme, forced, ControlVisualRole::progress, dark_text, track, white,
+                                           dark_fill);
+    require(strict.over_track.minimum == 7.0 && strict.over_fill.minimum == 7.0, "high contrast holds 7:1");
+    require(detail::contrast_pair_name(ContrastPair::fill_text) == "fill_text", "the pair's name");
+}
+
 } // namespace
 
 int main() {
@@ -221,6 +262,7 @@ int main() {
     compositing();
     synthetic_button();
     built_in_report();
+    fill_text_halves();
     std::cout << "theme contrast: arithmetic, compositing, gated pairs and the built-in report passed\n";
     return 0;
 }

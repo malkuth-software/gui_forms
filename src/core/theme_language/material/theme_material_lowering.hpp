@@ -93,6 +93,8 @@ enum class MaterialProperty : std::uint8_t {
     muted_color,
     glyph_color,
     default_outline,
+    // The text's colour over a fill (the value bar study, section 3.6).
+    fill_text_color,
 };
 
 // An image resource the theme's manifest lists, bound to the engine's image

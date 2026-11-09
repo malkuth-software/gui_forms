@@ -18,6 +18,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -90,6 +91,7 @@ void test_field_names() {
         "text", "outline_style", "outline_colour", "outline_width", "outline_offset", "text_shadow",
         "font_family", "font_size",     "font_weight",   "font_style",     "letter_spacing",
         "muted_text",  "glyph",         "default_outline_width", "default_outline_colour",
+        "fill_text",
     };
     require(names.size() == recipe_field_count, "every recipe field is named");
     for (std::size_t index = 0U; index < names.size(); ++index) {
@@ -347,6 +349,7 @@ void test_part_text_colour() {
     label.selector.part = "label";
     label.recipe_fields.push_back(colour_field(RecipeField::text, blue));
     label.recipe_fields.push_back(colour_field(RecipeField::glyph, green));
+    label.recipe_fields.push_back(colour_field(RecipeField::fill_text, red));
     rules.push_back(label);
     const std::unique_ptr<Fixture> fixture = make_fixture(rules);
     const Theme& theme = (*(*fixture).window).theme();
@@ -358,6 +361,8 @@ void test_part_text_colour() {
     const ResolvedControlRecipe other = theme.resolve(first, ControlVisualRole::button, context, states, "face");
     require(whole.recipe().text == red && other.recipe().text == red, "the control's text colour without the part");
     require(part.recipe().text == blue && part.recipe().glyph == green, "the part's own text and glyph colours");
+    require(part.recipe().fill_text == std::optional<Color>{red} && !whole.recipe().fill_text,
+            "the part's own colour over a fill, absent on the control");
 }
 
 void test_states() {

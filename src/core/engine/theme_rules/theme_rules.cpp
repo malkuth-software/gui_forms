@@ -1795,7 +1795,7 @@ bool in_range(double value, double minimum, double maximum) noexcept {
 constexpr std::array<std::string_view, recipe_field_count> recipe_field_names{
     "text",        "outline_style", "outline_colour", "outline_width",  "outline_offset", "text_shadow",
     "font_family", "font_size",     "font_weight",    "font_style",     "letter_spacing", "muted_text",
-    "glyph",       "default_outline_width", "default_outline_colour",
+    "glyph",       "default_outline_width", "default_outline_colour", "fill_text",
 };
 
 } // namespace
@@ -1804,7 +1804,8 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     switch (field) {
     case RecipeField::text:
     case RecipeField::muted_text:
-    case RecipeField::glyph: return ColourPosition::text;
+    case RecipeField::glyph:
+    case RecipeField::fill_text: return ColourPosition::text;
     case RecipeField::outline_colour:
     case RecipeField::default_outline_colour: return ColourPosition::edge;
     case RecipeField::outline_style:
@@ -1834,6 +1835,7 @@ bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept 
     case RecipeField::outline_colour:
     case RecipeField::muted_text:
     case RecipeField::glyph:
+    case RecipeField::fill_text:
     case RecipeField::default_outline_colour: return true;
     case RecipeField::outline_style:
         return declaration.outline_style == RecipeOutlineStyle::ring ||
@@ -1941,7 +1943,8 @@ void CompiledThemeRules::add_recipe_fields(std::vector<RuleDiagnostic>& diagnost
             continue;
         }
         const bool text_colour = declaration.field == RecipeField::text ||
-                                 declaration.field == RecipeField::muted_text || declaration.field == RecipeField::glyph;
+                                 declaration.field == RecipeField::muted_text ||
+                                 declaration.field == RecipeField::glyph || declaration.field == RecipeField::fill_text;
         if (on_role || (on_named_part && !text_colour)) {
             diagnostics.push_back(diagnostic(RuleDiagnosticKind::recipe_field_on_part, index, rule, name));
             continue;
