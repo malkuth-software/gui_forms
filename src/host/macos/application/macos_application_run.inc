@@ -849,7 +849,8 @@ int run_macos_application(std::vector<MacApplicationWindow> windows,
             MacRunEnd end{&end_application_run, &ending, false};
             // NSApp holds its delegate weakly; this local keeps it to the
             // end, and end_application_run clears it.
-            GUIFormsTerminationDelegate* termination = [[GUIFormsTerminationDelegate alloc] initWithEnd:&end];
+            GUIFormsTerminationDelegate* termination =
+                [[GUIFormsTerminationDelegate alloc] initWithEnd:&end openFiles:&application.open_files];
             [nativeApplication setDelegate:termination];
             run.mark_started();
             [nativeApplication activateIgnoringOtherApps:YES];
