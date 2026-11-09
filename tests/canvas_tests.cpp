@@ -96,6 +96,68 @@ void derived_canvas_keeps_routing_presentation_and_resource_lifetime() {
     CHECK(window.image_resource_snapshot().resource_count == 0);
 }
 
+// Records the colours of the solid fills a paint pass draws.
+class FillColourPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color color) override { colours.push_back(color); }
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+    void draw_image_region_sampled(ImageId, Rect, Rect, ImageSampling, double) override {}
+
+    [[nodiscard]] bool filled_with(Color color) const {
+        const bool found = std::find(colours.begin(), colours.end(), color) != colours.end();
+        return found;
+    }
+
+    std::vector<Color> colours;
+};
+
+// set_transparency_colors: the checkerboard under transparent pixels is
+// painted in the two colours given, a change damages the canvas, and the
+// same pair again damages nothing. Every colour is admitted, so there is no
+// refusal to test.
+void transparency_colours_repaint_the_checkerboard() {
+    std::shared_ptr<gui_forms::Control> root = make_control<Control>(StableId("canvas.checks.root"));
+    std::shared_ptr<gui_forms::RasterCanvas> canvas = make_control<RasterCanvas>(StableId("canvas.checks"));
+    (*root).set_requested_bounds({0, 0, 120, 90});
+    (*canvas).set_requested_bounds({10, 20, 80, 60});
+    (*canvas).zoom = 8.0;
+    (*canvas).transparency_cell_size = 8.0;
+    (*canvas).bitmap = std::make_shared<gui_drawing::Bitmap>(4, 4);
+    (*root).add_child(canvas);
+    Window window(root, {120, 90});
+    window.perform_layout();
+    FillColourPainter defaults;
+    static_cast<void>(window.paint(defaults, Rect{0, 0, 120, 90}));
+    CHECK(defaults.filled_with(Color::rgba(246, 247, 249)) && defaults.filled_with(Color::rgba(211, 215, 220)));
+    static_cast<void>(window.take_damage());
+
+    const Color first = Color::rgba(200, 30, 40);
+    const Color second = Color::rgba(20, 40, 220);
+    (*canvas).set_transparency_colors(first, second);
+    const DamageRegion damage = window.take_damage();
+    CHECK(!damage.empty());
+    CHECK(!Rect::intersection(damage.bounds(), Rect{10, 20, 80, 60}).empty());
+    FillColourPainter changed;
+    static_cast<void>(window.paint(changed, Rect{0, 0, 120, 90}));
+    CHECK(changed.filled_with(first) && changed.filled_with(second));
+    static_cast<void>(window.take_damage());
+
+    (*canvas).set_transparency_colors(first, second);
+    CHECK(window.take_damage().empty());
+
+    (*canvas).transparency_grid = false;
+    FillColourPainter hidden;
+    static_cast<void>(window.paint(hidden, Rect{0, 0, 120, 90}));
+    CHECK(!hidden.filled_with(first) && !hidden.filled_with(second));
+}
+
 void canvas_projects_bitmap_changes_as_local_window_damage() {
     std::shared_ptr<gui_forms::Control> root = make_control<Control>(StableId("canvas.root"));
     std::shared_ptr<gui_forms::RasterCanvas> canvas = make_control<RasterCanvas>(StableId("canvas.surface"));
@@ -387,6 +449,7 @@ void hundred_megapixel_publication_probe() {
 int main(int argc, char** argv) {
     derived_canvas_keeps_routing_presentation_and_resource_lifetime();
     canvas_projects_bitmap_changes_as_local_window_damage();
+    transparency_colours_repaint_the_checkerboard();
     canvas_uploads_bgra_storage_without_changing_document_truth();
     strided_edits_match_a_fresh_publication();
     tiled_updates_include_sampling_gutters_and_recover_resources();

@@ -602,6 +602,69 @@ void test_spans_and_placement() {
     require(refused && (*panel).spans().size() == 1U, "areas that drop a span in use are refused");
 }
 
+// set_spans replaces every span at once: the list reads back in order, the
+// template areas and the layout follow it, a list borrowed from spans()
+// itself is safe, and each refusal changes nothing.
+void test_set_spans() {
+    std::shared_ptr<GridPanel> panel = make_control<GridPanel>(StableId("grid.set-spans"));
+    (*panel).template_columns = tracks({fixed(50.0), fixed(50.0), fixed(50.0)});
+    (*panel).template_rows = tracks({fixed(20.0), fixed(20.0), fixed(20.0)});
+    std::shared_ptr<Panel> corner = box("grid.set-spans.corner", 10.0, 10.0);
+    std::shared_ptr<Panel> foot = box("grid.set-spans.foot", 10.0, 10.0);
+    std::shared_ptr<Panel> middle = box("grid.set-spans.middle", 10.0, 10.0);
+    (*panel).add_child(corner);
+    (*panel).add_child(foot);
+    (*panel).add_child(middle);
+    (*panel).cell[*corner] = GridCell{0U, 0U};
+    (*panel).cell[*middle] = GridCell{1U, 1U};
+
+    const std::vector<GridSpan> wanted{GridSpan{"foot", GridCell{2U, 0U}, 1U, 3U},
+                                       GridSpan{"", GridCell{0U, 0U}, 1U, 2U}};
+    require((*panel).set_spans(wanted) == GridSpanOutcome::applied, "a valid span list is applied");
+    require((*panel).spans().size() == 2U && (*panel).spans()[0] == wanted[0] && (*panel).spans()[1] == wanted[1],
+            "the spans read back in the order given");
+    require((*panel).template_areas().areas.size() == 1U && (*panel).template_areas().areas[0].name == "foot",
+            "the template areas are the named spans of the new list");
+    (*panel).area[*foot] = "foot";
+
+    const std::unique_ptr<Window> held = std::make_unique<Window>(panel, Size{150.0, 60.0});
+    Window& window = *held;
+    window.perform_layout();
+    require_bounds(*corner, 0.0, 0.0, 100.0, 20.0, "the child at an anonymous span's anchor takes its region");
+    require_bounds(*foot, 0.0, 40.0, 150.0, 20.0, "the child placed by name takes the named span");
+    require_bounds(*middle, 50.0, 20.0, 50.0, 20.0, "a child outside the spans keeps its cell");
+
+    const std::vector<GridSpan> current((*panel).spans().begin(), (*panel).spans().end());
+    require((*panel).set_spans((*panel).spans()) == GridSpanOutcome::applied && (*panel).spans().size() == 2U &&
+                (*panel).spans()[0] == current[0] && (*panel).spans()[1] == current[1],
+            "a list borrowed from spans() itself is applied unchanged");
+
+    const std::vector<GridSpan> overlapping{wanted[0], GridSpan{"", GridCell{2U, 1U}, 1U, 1U}};
+    const std::vector<GridSpan> repeated{wanted[0], GridSpan{"foot", GridCell{0U, 0U}, 1U, 1U}};
+    const std::vector<GridSpan> empty_extent{wanted[0], GridSpan{"", GridCell{0U, 0U}, 1U, 0U}};
+    const std::vector<GridSpan> covering{wanted[0], GridSpan{"", GridCell{1U, 0U}, 1U, 2U}};
+    const std::vector<GridSpan> dropping_foot{GridSpan{"", GridCell{0U, 0U}, 1U, 2U}};
+    require((*panel).set_spans(overlapping) == GridSpanOutcome::overlaps, "overlapping spans are refused");
+    require((*panel).set_spans(repeated) == GridSpanOutcome::name_repeated, "a repeated name is refused");
+    require((*panel).set_spans(empty_extent) == GridSpanOutcome::extent_invalid, "a span of no columns is refused");
+    require((*panel).set_spans(covering) == GridSpanOutcome::covers_placed_child,
+            "a span over a placed child's cell is refused");
+    require((*panel).set_spans(dropping_foot) == GridSpanOutcome::in_use,
+            "a list without a span a child is placed into by name is refused");
+    require((*panel).spans().size() == 2U && (*panel).spans()[0] == wanted[0] && (*panel).spans()[1] == wanted[1] &&
+                (*panel).template_areas().areas.size() == 1U,
+            "refused lists leave the spans as they were");
+
+    (*panel).cell[*foot] = GridCell{1U, 2U};
+    const std::vector<GridSpan> none{};
+    require((*panel).set_spans(none) == GridSpanOutcome::applied && (*panel).spans().empty() &&
+                (*panel).template_areas().areas.empty(),
+            "once no child is placed by name, an empty list clears every span");
+    window.perform_layout();
+    require_bounds(*corner, 0.0, 0.0, 50.0, 20.0, "without its span the corner child takes one cell");
+    require_bounds(*foot, 100.0, 20.0, 50.0, 20.0, "the former named child sits in its cell");
+}
+
 } // namespace
 
 
@@ -680,6 +743,7 @@ int main() {
         test_records_validate_and_reconcile();
         test_named_areas();
         test_spans_and_placement();
+        test_set_spans();
         test_nested_intrinsic_columns();
         test_cell_limit_refuses();
         test_documented_examples();

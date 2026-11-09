@@ -1240,6 +1240,45 @@ void test_flags_editor_form_properties() {
             "a checked name that is no flag's is refused and changes nothing");
 }
 
+// set_group_expanded: the group's expanded flag reads back through
+// groups(), a collapsed group hides its editors and shortens the content,
+// one group_changed is published per actual change, and an unknown group
+// is refused without an event.
+void test_group_expansion() {
+    std::shared_ptr<PropertyList> properties = make_properties();
+    Window window(properties, {288.0, 260.0});
+    window.perform_layout();
+    std::vector<PropertyGroupChange> changes;
+    SubscriptionToken observed = (*properties).group_changed().subscribe(
+        callbacks::PushBack<std::vector<PropertyGroupChange>, const PropertyGroupChange&>(changes));
+    const Control::Ptr name = (*properties).editor("inspection.name");
+    const double expanded_height = (*properties).content_height();
+    require(name && (*name).visible.read() && (*properties).groups()[1].expanded,
+            "the fixture starts with its groups expanded");
+
+    require((*properties).set_group_expanded("inspection.editable", false),
+            "collapsing a known group is accepted");
+    window.perform_layout();
+    require(!(*properties).groups()[1].expanded && (*properties).groups()[0].expanded,
+            "only the named group collapses");
+    require(!(*name).visible.read() && (*properties).content_height() < expanded_height,
+            "a collapsed group hides its editors and shortens the content");
+    require(changes.size() == 1U && changes[0].group_id == "inspection.editable" && !changes[0].expanded,
+            "collapsing publishes one group change");
+
+    require((*properties).set_group_expanded("inspection.editable", false) && changes.size() == 1U,
+            "collapsing a collapsed group is accepted without an event");
+    require(!(*properties).set_group_expanded("inspection.nowhere", false) && changes.size() == 1U &&
+                (*properties).groups()[0].expanded,
+            "an unknown group is refused and nothing changes");
+
+    require((*properties).set_group_expanded("inspection.editable", true), "expanding again is accepted");
+    window.perform_layout();
+    require((*name).visible.read() && (*properties).content_height() == expanded_height &&
+                changes.size() == 2U && changes[1].expanded,
+            "expanding restores the editors and the content height and publishes again");
+}
+
 int main() {
     try {
         test_grouped_editors_commit_cancel_validation_and_semantics();
@@ -1253,6 +1292,7 @@ int main() {
         test_recursive_object_and_collection_projection_and_mutation();
         test_property_typography_preserves_editors_and_updates_geometry();
         test_flags_editor_form_properties();
+        test_group_expansion();
         std::cout << "gui_forms_inspection_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

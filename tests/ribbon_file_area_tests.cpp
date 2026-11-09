@@ -8,6 +8,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -539,6 +540,47 @@ void arranged_within_maximum_size() {
             "a font control's family field sits on its published part within the control's maximum width");
 }
 
+// set_field_widths: the two widths read back, change the natural size and
+// move the fields; widths outside 16 to 512 (or not finite) are refused
+// whole, keeping both.
+bool field_widths_refused(RibbonFontControl& control, double family, double size) {
+    try {
+        control.set_field_widths(family, size);
+    } catch (const std::invalid_argument&) {
+        return true;
+    }
+    return false;
+}
+
+void font_field_widths() {
+    std::shared_ptr<RibbonFontControl> control = make_control<RibbonFontControl>(StableId("widths.font"));
+    Window window(control, {400.0, 22.0});
+    window.perform_layout();
+    require((*control).family_width() == 120.0 && (*control).size_width() == 44.0 &&
+                (*control).natural_size() == Size{166.0, 22.0},
+            "the default widths are 120 and 44 with a 2-unit gap");
+    (*control).set_field_widths(150.0, 60.0);
+    window.perform_layout();
+    const Rect family = (*control).parts().family_field.bounds;
+    const Rect size = (*control).parts().size_field.bounds;
+    require((*control).family_width() == 150.0 && (*control).size_width() == 60.0 &&
+                (*control).natural_size() == Size{212.0, 22.0},
+            "new widths read back and change the measured size");
+    require(family.width == 150.0 && size.width == 60.0 && size.x - family.x == 152.0 &&
+                (*(*control).family_box()).committed_arranged_bounds() == family &&
+                (*(*control).size_box()).committed_arranged_bounds() == size,
+            "the fields are arranged at the new widths");
+    const double not_a_number = std::numeric_limits<double>::quiet_NaN();
+    require(field_widths_refused(*control, 15.5, 60.0) && field_widths_refused(*control, 150.0, 513.0) &&
+                field_widths_refused(*control, not_a_number, 60.0) &&
+                field_widths_refused(*control, 150.0, std::numeric_limits<double>::infinity()),
+            "widths outside 16 to 512, or not finite, are refused");
+    require((*control).family_width() == 150.0 && (*control).size_width() == 60.0,
+            "a refused pair keeps both widths, even when one of them was valid");
+    (*control).set_field_widths(16.0, 512.0);
+    require((*control).family_width() == 16.0 && (*control).size_width() == 512.0, "the bounds themselves are taken");
+}
+
 } // namespace
 
 int main() {
@@ -549,6 +591,7 @@ int main() {
     recent_pane();
     backstage();
     arranged_within_maximum_size();
+    font_field_widths();
     color_palette_shrinks_while_open();
     std::cout << "Ribbon file area: value commands, font control, colour picker, hosting, recent pane and Backstage "
                  "passed\n";
