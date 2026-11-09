@@ -215,8 +215,6 @@ HostSession::HostSession(Window& window,
         // The window's corners as the host makes them, which its band
         // follows (owner, 2026-11-08).
         window.apply_corner_preference();
-        // Every chrome property the program wrote before the host came.
-        window.apply_window_chrome(WindowChromeFields{WindowChromeFields::all_bits});
         capture_observation_ = window.pointer_capture_changed().subscribe(
             Delegate<const PointerCaptureChange&>::bind<
                 HostSession, &HostSession::observe_pointer_capture>(*this));
@@ -471,6 +469,15 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
     }
     try {
         std::visit(DispatchVisitor{this, &result, &event}, event.payload);
+        // The native window exists from the attach on (a host binds the
+        // session before it creates the window, when a chrome request finds
+        // nothing to change): every chrome property the program wrote
+        // before then reaches it now, start position included, before the
+        // window is first shown. A later write of the same value sends
+        // nothing, so this is the only time they are sent.
+        if (services_ != nullptr && std::holds_alternative<HostAttachEvent>(event.payload)) {
+            (*window_).apply_window_chrome(WindowChromeFields{WindowChromeFields::all_bits});
+        }
         observed_.emit(event, result);
     } catch (...) {
         // Event callbacks are ordinary C++ and deliberately propagate through

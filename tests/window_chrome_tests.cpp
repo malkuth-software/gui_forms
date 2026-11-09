@@ -108,10 +108,20 @@ void test_host_receives_written_properties() {
     window.form_border_style = FormBorderStyle::fixed_dialog;
     window.maximize_box = false;
 
+    window.start_position = FormStartPosition::center_screen;
+
+    // Binding the host sends nothing: a real host binds before its native
+    // window exists. The attach, once it does, sends every written property.
     host::HeadlessHost host(window);
-    require(host.dispatch(HostAttachEvent{{200.0, 100.0}, 1.0}, 1).accepted(), "attach refused");
     host::HeadlessHostServices& services = host.headless_services();
+    require(services.chrome_requests() == 0U && window.applied_chrome().empty(),
+            "binding sent chrome before the native window existed");
+    require(host.dispatch(HostAttachEvent{{200.0, 100.0}, 1.0}, 1).accepted(), "attach refused");
     const WindowChrome& native = services.native_chrome();
+    require(window.applied_chrome() == window.written_chrome(),
+            "the attach applied exactly the properties written before it");
+    require(native.start_position == FormStartPosition::center_screen,
+            "the start position written before the run reached the host at attach");
     require(native.text == "Before the host" && native.form_border_style == FormBorderStyle::fixed_dialog &&
                 !native.maximize_box,
             "attaching sends the properties written before");
