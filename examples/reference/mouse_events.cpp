@@ -1,14 +1,15 @@
 // The WinForms mouse events, a context request and a rule beside them
 // (docs/user/mouse-events.md), driven headless: a window holding a panel
-// and a button, an owning component subscribed to their events, then a
-// click, a double-click and a keyboard context request, and a consuming
-// rule that withholds the button's Click.
+// and a button (forms/mouse_events.form), an owning component subscribed
+// to their events, then a click, a double-click and a keyboard context
+// request, and a consuming rule that withholds the button's Click.
 
-#include <gui_forms/basic_controls.hpp>
+#include "mouse_events_form.hpp"   // generated from forms/mouse_events.form
+
+#include <gui_forms/application.hpp>
 #include <gui_forms/component.hpp>
 #include <gui_forms/event.hpp>
 #include <gui_forms/rules.hpp>
-#include <gui_forms/window.hpp>
 
 #include <cstdint>
 #include <iostream>
@@ -79,14 +80,12 @@ void press_and_release(gf::Window& window, gf::Point position, std::uint32_t cli
     static_cast<void>(window.dispatch_pointer(up));
 }
 
-void run() {
-    const std::shared_ptr<gf::Panel> surface = gf::make_control<gf::Panel>(gf::StableId("example.surface"));
-    const std::shared_ptr<gf::Button> ok = gf::make_control<gf::Button>(gf::StableId("example.ok"), "OK");
-    (*ok).set_requested_bounds({10.0, 10.0, 100.0, 30.0});
-    (*surface).add_child(ok);
-    gf::Window window(surface, {240.0, 120.0});
+void run(gf::Application& application) {
+    reference::MouseWindow window(application);   // binds nothing, so it takes no model
+    require(application.window_count() == 1U, "the window joins the application");
     window.perform_layout();
-    Journal journal(*ok, *surface);
+    const std::shared_ptr<gf::Button> ok = window.example_ok;   // request_focus takes the shared pointer
+    Journal journal(*ok, *window.example_surface);
 
     // A click: MouseDown, Click, MouseClick, the button's activation, MouseUp.
     press_and_release(window, {20.0, 20.0}, 1U);
@@ -130,7 +129,12 @@ void run() {
 
 int main() {
     try {
-        run();
+        // The program's application first (APP_WINDOW_RULES_DESIGN A.2):
+        // the window joins it and shares its resources and theme. Making it
+        // needs no host; only Application::run does.
+        gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+        require(static_cast<bool>(created), "the application is made");
+        run(*created.application);
     } catch (const std::exception& failure) {
         std::cerr << "mouse_events: " << failure.what() << '\n';
         return 1;

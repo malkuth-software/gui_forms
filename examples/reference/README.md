@@ -9,11 +9,16 @@ document in `forms/` says what exists and where (`gui_forms_add_form`
 generates a `gui_forms::Window` subclass with the controls as typed
 members), a model header names what the document binds (`value: bind(volume)`,
 `command: bind(run)`), and the program attaches behaviour with owned
-handlers. `collection_gallery` is the complete application: it is made with
-`Application::create`, which compiles its theme package
-(`themes/collection_gallery`, embedded by `gui_forms_add_theme`), and runs
-its generated window. The others construct their windows without an
-application, as tests do.
+handlers. This directory is GUI.Forms' reference application. Every windowed program
+makes its `Application` first, with `Application::create`, and its window
+joins it (`Window(application, ...)`, the generated class's `Application&`
+overload). `collection_gallery` is the complete application: its
+application compiles its theme package (`themes/collection_gallery`,
+embedded by `gui_forms_add_theme`) and runs its generated window. The
+others drive their windows headless: making an application needs no host;
+only `run` does. A window constructed with no current application makes
+its own resources, which is how GUI.Forms' own tests run, not how a program
+starts.
 
 `cooperative_worker` links Threading alone. `audio_worker.cpp` is a static adapter
 that links only Audio. Its named Worker entry borrows the context and passes the
