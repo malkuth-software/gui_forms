@@ -519,6 +519,14 @@ struct DataGridViewDataSourceCapability {
     }
 };
 
+// DataGridViewSelectionMode as a property value; defined beside DataGridView's table.
+template <>
+struct PropertyValueTraits<DataGridViewSelectionMode> {
+    static PropertyType type();
+    static BindingValue to_binding(DataGridViewSelectionMode value);
+    static DataGridViewSelectionMode from_binding(const BindingValue& value);
+};
+
 // Every DataGridView capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapability<Declaring>,

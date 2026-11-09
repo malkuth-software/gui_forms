@@ -178,3 +178,81 @@ void gf_kit_bindings(gf_kit* kit) {
     gf_kit_status(kit, (*kit).objects.release(window), GF_STATUS_OK, "release the bindings window");
     gf_kit_status(kit, (*kit).objects.release(root), GF_STATUS_OK, "release the bindings root");
 }
+
+/* What the running root's ready callback saw. */
+typedef struct bindings_run {
+    gf_kit* kit;
+    gf_object child;
+    gf_object source;
+    gf_object child_source;
+    gf_status made_on_root;
+    gf_status made_on_child;
+    gf_status added;
+    int64_t position;
+    uint64_t count;
+    gf_status close;
+} bindings_run;
+
+static void GF_CALL on_bindings_ready(void* context, gf_event* event) {
+    bindings_run* run = (bindings_run*)context;
+    gf_kit* kit = (*run).kit;
+    gf_create_arguments arguments;
+    memset(&arguments, 0, sizeof(arguments));
+    arguments.struct_size = (uint32_t)sizeof(arguments);
+    arguments.owner = (*event).sender;
+    (*run).made_on_root = (*kit).objects.create_with(gf_kit_text("binding_source"), gf_kit_text("kit.run.source"),
+                                                     &arguments, &(*run).source);
+    arguments.owner = (*run).child;
+    (*run).made_on_child = (*kit).objects.create_with(gf_kit_text("BindingSource"),
+                                                      gf_kit_text("kit.run.child_source"), &arguments,
+                                                      &(*run).child_source);
+    uint64_t index = 0u;
+    (*run).added = add_titled(kit, (*run).source, "only", "Only", &index);
+    (void)(*kit).bindings.position((*run).source, &(*run).position, &(*run).count);
+    (*run).close = (*kit).windows.request_close((*event).sender);
+}
+
+/* A binding source made over windows.run's root (since 1.1): a C program
+ * that runs a root, not a created window, binds data from its ready
+ * callback. */
+void gf_kit_bindings_running(gf_kit* kit) {
+    bindings_run run;
+    memset(&run, 0, sizeof(run));
+    run.kit = kit;
+    run.made_on_root = -1;
+    run.made_on_child = -1;
+    run.added = -1;
+    run.position = -2;
+    run.close = -1;
+    const gf_object root = gf_kit_create(kit, "panel", "kit.run.bindings");
+    run.child = gf_kit_create(kit, "label", "kit.run.bindings.label");
+    gf_kit_status(kit, (*kit).objects.insert_child(root, run.child, 0u), GF_STATUS_OK, "build the run's tree");
+    gf_create_arguments arguments;
+    memset(&arguments, 0, sizeof(arguments));
+    arguments.struct_size = (uint32_t)sizeof(arguments);
+    arguments.owner = root;
+    gf_object early = 9u;
+    gf_kit_status(kit, (*kit).objects.create_with(gf_kit_text("binding_source"), gf_kit_text("kit.run.early"),
+                                                  &arguments, &early),
+                  GF_STATUS_WRONG_HANDLE_KIND, "a root in no window is not a binding source's owner");
+    gf_kit_check(kit, early == 9u, "the refusal leaves its output");
+
+    const gf_callback ready = gf_kit_callback(&on_bindings_ready, NULL, &run);
+    gf_run_options options;
+    memset(&options, 0, sizeof(options));
+    options.struct_size = (uint32_t)sizeof(options);
+    options.title = gf_kit_text("GUI.Forms C ABI bindings on a run");
+    options.ready = &ready;
+    gf_kit_status(kit, (*kit).windows.run(root, &options), GF_STATUS_OK, "run the root");
+    gf_kit_status(kit, run.made_on_root, GF_STATUS_OK, "a binding source over the running root");
+    gf_kit_status(kit, run.made_on_child, GF_STATUS_OK, "a binding source over a control of the running tree");
+    gf_kit_status(kit, run.added, GF_STATUS_OK, "the source takes a record during the run");
+    gf_kit_check(kit, run.position == 0 && run.count == 1u, "the source is at its one record");
+    gf_kit_status(kit, run.close, GF_STATUS_OK, "close the run");
+    gf_kit_check(kit, gf_kit_state(kit, run.source) == GF_OBJECT_STATE_ALIVE,
+                 "the source outlives the run's window, unbound");
+    gf_kit_status(kit, (*kit).objects.release(run.child_source), GF_STATUS_OK, "release the child's source");
+    gf_kit_status(kit, (*kit).objects.release(run.source), GF_STATUS_OK, "release the root's source");
+    gf_kit_status(kit, (*kit).objects.release(run.child), GF_STATUS_OK, "release the run's label");
+    gf_kit_status(kit, (*kit).objects.release(root), GF_STATUS_OK, "release the run's root");
+}
