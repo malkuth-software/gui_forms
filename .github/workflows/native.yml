@@ -492,7 +492,7 @@ jobs:
     steps:
       - name: Documentation only, nothing was built to compare
         if: needs.changes.outputs.docs_only == 'true'
-        run: echo "A documentation-only pull request: no native job built, so no manifest is compared."
+        run: echo "A documentation-only pull request, so no native job built and no manifest is compared."
       - uses: actions/checkout@v4
         if: needs.changes.outputs.docs_only != 'true'
       - uses: actions/download-artifact@v4
