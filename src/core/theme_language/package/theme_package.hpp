@@ -64,7 +64,7 @@ struct ThemeSheetImport final {
 struct VerifiedThemePack final {
     ThemeManifest manifest{};
     // The SHA-256 of the manifest's bytes.
-    detail::Sha256Digest identity{};
+    Sha256Digest identity{};
     std::string sheet{};
     // The resources' bytes, at the positions of manifest.resources.
     std::vector<std::string> resources{};

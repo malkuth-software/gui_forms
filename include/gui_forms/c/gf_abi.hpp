@@ -1215,6 +1215,49 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status set_decorations(gf_object object, uint32_t layer, const gf_text_decoration* decorations,
+                                            uint64_t count) const noexcept {
+        if (table_.struct_size < 72u || table_.set_decorations == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_decorations(object, layer, decorations, count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status replace_decorations(gf_object object, uint32_t layer, uint64_t start, uint64_t end,
+                                                const gf_text_decoration* decorations, uint64_t count) const noexcept {
+        if (table_.struct_size < 80u || table_.replace_decorations == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.replace_decorations(object, layer, start, end, decorations, count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status clear_decorations(gf_object object) const noexcept {
+        if (table_.struct_size < 88u || table_.clear_decorations == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.clear_decorations(object);
+        return called;
+    }
+
+    [[nodiscard]] gf_status decoration_count(gf_object object, uint32_t layer, uint64_t* count) const noexcept {
+        if (table_.struct_size < 96u || table_.decoration_count == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.decoration_count(object, layer, count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status decoration_at(gf_object object, uint32_t layer, uint64_t index,
+                                          gf_text_decoration* decoration) const noexcept {
+        if (table_.struct_size < 104u || table_.decoration_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.decoration_at(object, layer, index, decoration);
+        return called;
+    }
+
 private:
     gf_text_editing_table table_;
 };

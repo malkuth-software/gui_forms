@@ -641,9 +641,26 @@ public static unsafe class Layout
             failures += expect(output, "gf_controls_table.invalidate offset", (long)((byte*)&value.invalidate - start), 88);
         }
         {
+            gf_text_decoration value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_text_decoration size", sizeof(gf_text_decoration), 56);
+            failures += expect(output, "gf_text_decoration.start offset", (long)((byte*)&value.start - start), 0);
+            failures += expect(output, "gf_text_decoration.end offset", (long)((byte*)&value.end - start), 8);
+            failures += expect(output, "gf_text_decoration.fields offset", (long)((byte*)&value.fields - start), 16);
+            failures += expect(output, "gf_text_decoration.ink offset", (long)((byte*)&value.ink - start), 20);
+            failures += expect(output, "gf_text_decoration.foreground offset", (long)((byte*)&value.foreground - start), 24);
+            failures += expect(output, "gf_text_decoration.weight offset", (long)((byte*)&value.weight - start), 28);
+            failures += expect(output, "gf_text_decoration.italic offset", (long)((byte*)&value.italic - start), 32);
+            failures += expect(output, "gf_text_decoration.underline offset", (long)((byte*)&value.underline - start), 36);
+            failures += expect(output, "gf_text_decoration.underline_color offset", (long)((byte*)&value.underline_color - start), 40);
+            failures += expect(output, "gf_text_decoration.background offset", (long)((byte*)&value.background - start), 44);
+            failures += expect(output, "gf_text_decoration.tag offset", (long)((byte*)&value.tag - start), 48);
+            failures += expect(output, "gf_text_decoration.reserved offset", (long)((byte*)&value.reserved - start), 52);
+        }
+        {
             gf_text_editing_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_text_editing_table size", sizeof(gf_text_editing_table), 64);
+            failures += expect(output, "gf_text_editing_table size", sizeof(gf_text_editing_table), 104);
             failures += expect(output, "gf_text_editing_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_text_editing_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_text_editing_table.select offset", (long)((byte*)&value.select - start), 8);
@@ -653,6 +670,11 @@ public static unsafe class Layout
             failures += expect(output, "gf_text_editing_table.undo offset", (long)((byte*)&value.undo - start), 40);
             failures += expect(output, "gf_text_editing_table.redo offset", (long)((byte*)&value.redo - start), 48);
             failures += expect(output, "gf_text_editing_table.clear_undo_history offset", (long)((byte*)&value.clear_undo_history - start), 56);
+            failures += expect(output, "gf_text_editing_table.set_decorations offset", (long)((byte*)&value.set_decorations - start), 64);
+            failures += expect(output, "gf_text_editing_table.replace_decorations offset", (long)((byte*)&value.replace_decorations - start), 72);
+            failures += expect(output, "gf_text_editing_table.clear_decorations offset", (long)((byte*)&value.clear_decorations - start), 80);
+            failures += expect(output, "gf_text_editing_table.decoration_count offset", (long)((byte*)&value.decoration_count - start), 88);
+            failures += expect(output, "gf_text_editing_table.decoration_at offset", (long)((byte*)&value.decoration_at - start), 96);
         }
         {
             gf_overlays_table value = default;

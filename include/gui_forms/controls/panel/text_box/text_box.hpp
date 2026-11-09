@@ -7,6 +7,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp"
+#include "gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -170,6 +171,30 @@ public:
     // keeping the text as it is.
     void close_auto_complete();
 
+    // Styled text runs (text_box_decorations.cpp): decoration layers over
+    // the text, for syntax highlighting, diagnostics and search matches
+    // (see TextDecorations). A multiline box draws them; a single-line box
+    // keeps them but draws its text in one style. The text never changes.
+    // Ranges are UTF-8 offsets into text(); a range past the text throws
+    // std::out_of_range, and the collection's own refusals
+    // (std::invalid_argument) apply, before anything changes. Decorations
+    // follow every edit, undo, redo and assignment of the text.
+    // A change of colours, underlines or grounds repaints only the rows of
+    // the range it touched; a change of weight or italics lays the text out
+    // again, so the caret, hit testing and the accessibility layout keep to
+    // the glyphs. The selection band and its ink stay over decorations;
+    // underlines show through it.
+    void set_decorations(TextDecorationLayer layer, std::span<const TextDecoration> decorations);
+    // Replaces `layer`'s decorations within `range` only (an incremental
+    // highlighter's update; TextDecorations::replace_range).
+    void replace_decorations(TextDecorationLayer layer, Utf8Range range,
+                             std::span<const TextDecoration> decorations);
+    void clear_decorations(TextDecorationLayer layer);
+    void clear_all_decorations();
+    [[nodiscard]] const TextDecorations& decorations() const noexcept { return decorations_; }
+    // The composed runs over `range` (cleared first), as the box draws them.
+    void styled_runs(Utf8Range range, std::vector<StyledTextRun>& runs);
+
     [[nodiscard]] Event<const std::string&>& text_changed() noexcept {
         return text_changed_;
     }
@@ -257,6 +282,9 @@ private:
         std::size_t start{};
         std::size_t end{};
         double x{};
+        // The font the run was measured in: the content font, or a
+        // decoration's weight and italics over it.
+        FontSpec font{};
     };
     struct VisualLine final {
         std::vector<std::size_t> offsets{};
@@ -282,6 +310,41 @@ private:
     [[nodiscard]] Utf8Offset multiline_position_at(double x, double y);
     [[nodiscard]] Utf8Offset position_in_line(std::size_t line, double x) const;
     [[nodiscard]] double multiline_boundary_x(std::size_t line, Utf8Offset offset) const;
+
+    // Decorations (text_box_decorations.cpp).
+    // The font of the styled run holding `offset` (composed into
+    // styled_scratch_ for the logical line being laid out) and the offset
+    // where that font ends, at most `limit`.
+    struct RunFont final {
+        FontSpec font{};
+        std::size_t end{};
+    };
+    [[nodiscard]] RunFont run_font_at(std::size_t offset, std::size_t limit, FontSpec content_font) const;
+    // Checks a caller's range against the text (std::out_of_range).
+    void require_decoration_range(Utf8Range range) const;
+    // Repaints what a decoration change touched: the rows of its range, or
+    // the whole box (and its layout) when a font changed or the rows are
+    // not current.
+    void decorations_changed(const TextDecorationChange& change);
+    // The text rectangle's part showing the rows of `range`, or none when
+    // the rows are not current.
+    [[nodiscard]] std::optional<Rect> multiline_range_damage(Utf8Range range) const;
+    // One visual row with decorations: grounds, then the selection band,
+    // then each styled run's glyphs (the selection's ink inside the band),
+    // then underlines.
+    struct DecoratedRow final {
+        std::size_t line{};
+        double origin{};
+        double y{};
+        bool selected{};
+        Rect band{};
+        double clip_left{};
+        double clip_right{};
+    };
+    void paint_decorated_row(Painter& painter, const DecoratedRow& row, const PartPaint& text_part,
+                             const PartPaint& selected_part);
+    [[nodiscard]] PartPaint decorated_text_part(const PartPaint& base, const TextDecorationStyle& style) const;
+    [[nodiscard]] Color decoration_underline_color(const PartPaint& part, const TextDecorationStyle& style) const;
 
     // Auto-complete (text_box_auto_complete.cpp). The session holds the
     // typed text, the suggestions, a pending appended completion and the
@@ -359,6 +422,11 @@ private:
     double document_width_{};
     std::vector<VisualLine> visual_lines_{};
     std::uint64_t multiline_revision_{};
+    // The decorations' layout revision the rows were measured with.
+    std::uint64_t multiline_decoration_revision_{};
+    TextDecorations decorations_{};
+    // Composition scratch for layout and paint, reused across rows.
+    std::vector<StyledTextRun> styled_scratch_{};
     FontSpec multiline_font_{};
     double multiline_width_{-1.0};
     Size multiline_client_size_{-1.0, -1.0};

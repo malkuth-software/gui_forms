@@ -120,6 +120,8 @@ Related types
      - How long typing must pause before search_requested is raised, 300 ms by default; zero raises it at each change.
    * - :cpp:class:`SearchFieldTextCapability <gui_forms::SearchFieldTextCapability>`
      - The query: a view onto the inner editor's text (see TextBox).
+   * - :cpp:class:`StyledTextRun <gui_forms::StyledTextRun>`
+     - One run of uniformly styled text, as composition gives it: the fields every covering decoration set, the later layer's (and within a layer the later decoration's) standing.
    * - :cpp:class:`TextBox::Parts <gui_forms::TextBox::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`TextBox::States <gui_forms::TextBox::States>`
@@ -158,6 +160,18 @@ Related types
      - Whether the text is masked with the system's password character (UseSystemPasswordChar).
    * - :cpp:class:`TextBoxWordWrapCapability <gui_forms::TextBoxWordWrapCapability>`
      - Whether a multiline box wraps its lines at the box's width (WordWrap); a wrapped document overflows only vertically.
+   * - :cpp:class:`TextChange <gui_forms::TextChange>`
+     - One change of the text: removed_bytes at start replaced by inserted_bytes.
+   * - :cpp:class:`TextDecoration <gui_forms::TextDecoration>`
+     - One decoration: a byte range of the text (UTF-8 offsets; a bound inside a grapheme cluster applies from that cluster's next boundary) and its look.
+   * - :cpp:class:`TextDecorationChange <gui_forms::TextDecorationChange>`
+     - What a change to the decorations touched: the byte range whose look changed, whether any look changed at all, and whether a font changed (the text must be laid out again) or only colours, lines and grounds (the range's rows repaint).
+   * - :cpp:class:`TextDecorationLayer <gui_forms::TextDecorationLayer>`
+     - A producer's layer.
+   * - :cpp:class:`TextDecorations <gui_forms::TextDecorations>`
+     - The decorations of one text, by layer.
+   * - :cpp:class:`TextDecorationStyle <gui_forms::TextDecorationStyle>`
+     - The look one decoration gives its text.
    * - :cpp:class:`TextEdit <gui_forms::TextEdit>`
      - One user edit, offered to the edit filter before the TextBox changes anything: replace [start, end) of text() with ``replacement``.
    * - :cpp:class:`TextMatchRange <gui_forms::TextMatchRange>`
@@ -966,6 +980,18 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: StyledTextRun final
+
+   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+
+   One run of uniformly styled text, as composition gives it: the fields every covering decoration set, the later layer's (and within a layer the later decoration's) standing. Undecorated text has an empty style.
+
+   .. cpp:member:: Utf8Range range
+
+   .. cpp:member:: TextDecorationStyle style
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TextBox::Parts final
 
    ``#include <gui_forms/controls/panel/text_box/text_box.hpp>``
@@ -1349,6 +1375,141 @@ Related types
    .. cpp:function:: static void assign(TextBoxWordWrapCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, TextBoxWordWrapCapability<Declaring>> word_wrap
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: TextChange final
+
+   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+
+   One change of the text: removed_bytes at start replaced by inserted_bytes.
+
+   .. cpp:member:: Utf8Offset start
+
+   .. cpp:member:: std::size_t removed_bytes
+
+   .. cpp:member:: std::size_t inserted_bytes
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: TextDecoration final
+
+   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+
+   One decoration: a byte range of the text (UTF-8 offsets; a bound inside a grapheme cluster applies from that cluster's next boundary) and its look. ``tag`` belongs to the producer: a diagnostic's index, a token's kind.
+
+   .. cpp:member:: Utf8Range range
+
+   .. cpp:member:: TextDecorationStyle style
+
+   .. cpp:member:: std::uint32_t tag
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: TextDecorationChange final
+
+   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+
+   What a change to the decorations touched: the byte range whose look changed, whether any look changed at all, and whether a font changed (the text must be laid out again) or only colours, lines and grounds (the range's rows repaint).
+
+   .. cpp:member:: Utf8Range range
+
+   .. cpp:member:: bool changed
+
+   .. cpp:member:: bool layout
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: TextDecorationLayer final
+
+   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+
+   A producer's layer. Layers compose in ascending order: a later layer's fields stand over an earlier one's where both set them.
+
+   .. cpp:member:: std::uint32_t value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: TextDecorations final
+
+   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+
+   The decorations of one text, by layer. Each layer keeps its decorations in start order (equal starts in the order given); decorations of one layer may overlap. It knows nothing of the text: its owner checks ranges against the text and tells it of each edit (shift_for_edit). One execution context owns it.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t layer_count() const noexcept
+
+      The layers in ascending order, and one layer's decorations (empty for a layer without any). The spans are valid until the next change.
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:function:: bool changes_font() const noexcept
+
+      Whether any decoration changes the font.
+
+   .. cpp:function:: std::uint64_t layout_revision() const noexcept
+
+      Counts the changes that changed a font (a layout cache key).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: TextDecorationChange replace(TextDecorationLayer layer, std::span<const TextDecoration> decorations)
+
+      Replaces ``layer``'s decorations with a copy of ``decorations``. A range with end before start, or a weight outside 1 to 1000, throws std::invalid_argument before anything changes; empty ranges are dropped. An empty result removes the layer.
+
+   .. cpp:function:: TextDecorationChange replace_range(TextDecorationLayer layer, Utf8Range range, std::span<const TextDecoration> decorations)
+
+      Replaces ``layer``'s decorations within ``range`` only, as an incremental highlighter does after an edit: decorations inside the range go, decorations crossing its bounds keep their parts outside it, and ``decorations`` (each inside the range, else std::invalid_argument before anything changes) come in. The change is the range alone, and nothing changes when the range already looks that way.
+
+   .. cpp:function:: TextDecorationChange clear(TextDecorationLayer layer)
+
+   .. cpp:function:: TextDecorationChange clear_all()
+
+   .. cpp:function:: void shift_for_edit(TextChange change)
+
+      Follows one edit of the text: ranges after the edit shift; ranges the edit touches keep their outer bytes and take the replacement in (an insertion at a range's end joins it, one at its start does not); ranges the edit removes entirely are dropped.
+
+   .. cpp:function:: TextDecorationLayer layer_at(std::size_t index) const
+
+   .. cpp:function:: std::span<const TextDecoration> items(TextDecorationLayer layer) const noexcept
+
+   .. cpp:function:: void compose(Utf8Range window, std::vector<StyledTextRun>& runs)
+
+      Fills ``runs`` (cleared first) with runs covering ``window`` exactly, in order and without gaps; adjacent runs with the same style are merged. An empty window gives no runs. Reuses its own scratch storage, so composing the visible rows on each paint does not allocate once the storage has grown; ``runs`` keeps its capacity.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: TextDecorationStyle final
+
+   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+
+   The look one decoration gives its text. Each field left unset leaves that aspect as the layers under it (or the box itself) draw it. - ink: a theme ink; foreground: an authored colour, which stands over the ink except in high contrast, where the theme's colours stand (T4-1). - weight (1 to 1000) and italic change the font, so they change where glyphs fall: the box measures decorated text in its own font, and the caret, hit testing and the accessibility layout follow. - underline_color: the underline's colour; unset, or in high contrast, the text's ink. - background: a flat ground under the text, drawn under the selection band and left out in high contrast.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool changes_font() const noexcept
+
+      Whether the style changes the font (and therefore the layout).
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:member:: std::optional<TextInkRole> ink
+
+   .. cpp:member:: std::optional<Color> foreground
+
+   .. cpp:member:: std::optional<std::uint16_t> weight
+
+   .. cpp:member:: std::optional<bool> italic
+
+   .. cpp:member:: std::optional<TextUnderline> underline
+
+   .. cpp:member:: std::optional<Color> underline_color
+
+   .. cpp:member:: std::optional<Color> background
 
 .. cpp:namespace:: gui_forms
 
@@ -1766,6 +1927,22 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: TextInkRole
+
+   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+
+   .. cpp:enumerator:: text
+
+   .. cpp:enumerator:: muted
+
+   .. cpp:enumerator:: link
+
+   .. cpp:enumerator:: visited_link
+
+   .. cpp:enumerator:: notice
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: TextMatchMode
 
    ``#include <gui_forms/controls/panel/text_box/auto_complete/auto_complete.hpp>``
@@ -1773,6 +1950,18 @@ Enumerations
    .. cpp:enumerator:: prefix
 
    .. cpp:enumerator:: substring
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: TextUnderline
+
+   ``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: single
+
+   .. cpp:enumerator:: squiggle
 
 Functions, constants and aliases
 --------------------------------
@@ -1810,6 +1999,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_auto_complete_suggestions
 
    The most candidates a suggestion list shows; later matches are dropped. Value: ``256U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp>``
+
+.. cpp:function:: TextChange text_change_between(std::string_view before, std::string_view after) noexcept
+
+   The smallest change turning ``before`` into ``after``: the bytes between their common prefix and their common suffix. Equal texts give an empty change at the end. Reads both once; allocates nothing.
 
 .. cpp:namespace:: gui_forms
 

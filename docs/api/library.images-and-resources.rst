@@ -5,7 +5,7 @@
 Images and resources
 ====================
 
-The window-owned image registry and its PNG resource records.
+The window-owned image registry, its PNG resource records, and SHA-256 (one-shot and streaming) for resource and theme package integrity.
 
 Types
 -----
@@ -34,6 +34,10 @@ Types
      - PngMetadata records validated IHDR shape plus overflow-checked row and decoded byte extents.
    * - :cpp:class:`PngValidationResult <gui_forms::PngValidationResult>`
      - PngValidationResult couples a closed error code to metadata that is authoritative only on success.
+   * - :cpp:class:`Sha256Digest <gui_forms::Sha256Digest>`
+     - The digest in the standard byte order (the first byte is the high byte of the first word).
+   * - :cpp:class:`Sha256Hasher <gui_forms::Sha256Hasher>`
+     - A streaming hasher: feed the message in any number of pieces of any length, then finish.
 
 .. cpp:namespace:: gui_forms
 
@@ -419,6 +423,55 @@ Types
 
    .. cpp:member:: PngMetadata metadata
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: Sha256Digest final
+
+   ``#include <gui_forms/integrity/sha256/sha256.hpp>``
+
+   The digest in the standard byte order (the first byte is the high byte of the first word).
+
+   .. cpp:member:: std::array<std::uint8_t, sha256_digest_bytes> bytes
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: Sha256Hasher final
+
+   ``#include <gui_forms/integrity/sha256/sha256.hpp>``
+
+   A streaming hasher: feed the message in any number of pieces of any length, then finish. The digest equals sha256 over the pieces joined. It owns its 64-byte block buffer, allocates nothing and is one execution context's (it holds no lock). Copying it copies the state, so a copy finishes the prefix fed so far while the original goes on.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: Sha256Hasher() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::uint64_t byte_count() const noexcept
+
+      How many bytes the current message holds so far (modulo 2^64).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void update(std::span<const std::uint8_t> bytes) noexcept
+
+      Adds ``bytes`` (borrowed for the call) to the message. Any length, including zero.
+
+   .. cpp:function:: void update(std::string_view bytes) noexcept
+
+      The same, for text: its UTF-8 (or any) bytes as they are.
+
+   .. cpp:function:: Sha256Digest finish() noexcept
+
+      The digest of everything fed since construction or the last finish or reset. The hasher then starts a new, empty message.
+
+   .. cpp:function:: void reset() noexcept
+
+      Forgets the message fed so far.
+
 Enumerations
 ------------
 
@@ -544,6 +597,42 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/integrity/sha256/sha256.hpp>``
+
+.. cpp:function:: Sha256Digest sha256(std::span<const std::uint8_t> input) noexcept
+
+   The digest of the whole of ``input``. Reads ``input`` once and allocates nothing; any length, including zero, is accepted.
+
+.. cpp:function:: Sha256Digest sha256_of_text(std::string_view input) noexcept
+
+   The same, for text: its bytes as they are.
+
+.. cpp:function:: bool parse_sha256_hex(std::span<const char> text, Sha256Digest& digest) noexcept
+
+   Parses 64 lowercase or uppercase hexadecimal digits into ``digest``. Returns false, leaving ``digest`` unchanged, for any other length or character.
+
+.. cpp:function:: void format_sha256_hex(const Sha256Digest& digest, std::array<char, sha256_hex_digits>& text) noexcept
+
+   Writes ``digest`` as 64 lowercase hexadecimal digits into ``text``, the form manifests record.
+
+.. cpp:function:: std::string sha256_hex(const Sha256Digest& digest)
+
+   The same, as a new string.
+
+.. cpp:var:: constexpr std::size_t sha256_digest_bytes
+
+   Value: ``32U``.
+
+.. cpp:var:: constexpr std::size_t sha256_block_bytes
+
+   Value: ``64U``.
+
+.. cpp:var:: constexpr std::size_t sha256_hex_digits
+
+   A digest written as hexadecimal: two digits per byte. Value: ``sha256_digest_bytes * 2U``.
 
 .. cpp:namespace:: gui_forms
 

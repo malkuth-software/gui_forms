@@ -1,12 +1,14 @@
-#include "sha256.hpp"
+#include "gui_forms/integrity/sha256/sha256.hpp"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <span>
+#include <string>
+#include <string_view>
 
-namespace gui_forms::detail {
+namespace gui_forms {
 namespace {
 
 // FIPS 180-4 section 4.2.2: the first 32 bits of the fractional parts of the cube roots of the
@@ -111,36 +113,8 @@ unsigned hex_value(char digit) noexcept {
     return value;
 }
 
-} // namespace
-
-Sha256Digest sha256(std::span<const std::uint8_t> input) noexcept {
-    State state = initial_state;
-    const std::size_t length = input.size();
-    const std::size_t whole_blocks = length / sha256_block_bytes;
-    for (std::size_t block = 0; block < whole_blocks; ++block) {
-        compress(state, input.data() + block * sha256_block_bytes);
-    }
-
-    // Section 5.1.1 padding: the tail, a 0x80 byte, zeros, then the message length in bits as a
-    // 64-bit big-endian number. It fills one block, or two when the tail leaves fewer than nine
-    // bytes. The length is taken modulo 2^64 bits, as the standard limits messages to that.
-    std::array<std::uint8_t, sha256_block_bytes * 2U> tail{};
-    const std::size_t tail_length = length - whole_blocks * sha256_block_bytes;
-    if (tail_length != 0U) {
-        std::memcpy(tail.data(), input.data() + whole_blocks * sha256_block_bytes, tail_length);
-    }
-    tail[tail_length] = 0x80U;
-    const std::size_t tail_blocks = tail_length + 9U <= sha256_block_bytes ? 1U : 2U;
-    const std::size_t tail_bytes = tail_blocks * sha256_block_bytes;
-    const std::uint64_t bit_length = static_cast<std::uint64_t>(length) * 8U;
-    for (std::size_t index = 0; index < 8U; ++index) {
-        const unsigned shift = static_cast<unsigned>((7U - index) * 8U);
-        tail[tail_bytes - 8U + index] = static_cast<std::uint8_t>(bit_length >> shift);
-    }
-    for (std::size_t block = 0; block < tail_blocks; ++block) {
-        compress(state, tail.data() + block * sha256_block_bytes);
-    }
-
+// Writes the state's eight words, high byte first, as the digest.
+Sha256Digest digest_of_state(const State& state) noexcept {
     Sha256Digest digest{};
     for (std::size_t word = 0; word < state.size(); ++word) {
         const std::uint32_t value = state[word];
@@ -152,8 +126,96 @@ Sha256Digest sha256(std::span<const std::uint8_t> input) noexcept {
     return digest;
 }
 
+} // namespace
+
+Sha256Hasher::Sha256Hasher() noexcept : state_(initial_state) {}
+
+void Sha256Hasher::reset() noexcept {
+    state_ = initial_state;
+    buffered_ = 0U;
+    byte_count_ = 0U;
+}
+
+void Sha256Hasher::update(std::span<const std::uint8_t> bytes) noexcept {
+    const std::size_t length = bytes.size();
+    if (length == 0U) {
+        return;
+    }
+    byte_count_ += static_cast<std::uint64_t>(length);
+    std::size_t consumed = 0U;
+    // First complete a partial block, if one is waiting.
+    if (buffered_ != 0U) {
+        const std::size_t wanted = sha256_block_bytes - buffered_;
+        const std::size_t taken = length < wanted ? length : wanted;
+        std::memcpy(buffer_.data() + buffered_, bytes.data(), taken);
+        buffered_ += taken;
+        consumed = taken;
+        if (buffered_ < sha256_block_bytes) {
+            return;
+        }
+        compress(state_, buffer_.data());
+        buffered_ = 0U;
+    }
+    // Whole blocks are compressed where they lie, without a copy.
+    const std::size_t remaining = length - consumed;
+    const std::size_t whole_blocks = remaining / sha256_block_bytes;
+    for (std::size_t block = 0; block < whole_blocks; ++block) {
+        compress(state_, bytes.data() + consumed + block * sha256_block_bytes);
+    }
+    consumed += whole_blocks * sha256_block_bytes;
+    const std::size_t tail_length = length - consumed;
+    if (tail_length != 0U) {
+        std::memcpy(buffer_.data(), bytes.data() + consumed, tail_length);
+        buffered_ = tail_length;
+    }
+}
+
+void Sha256Hasher::update(std::string_view bytes) noexcept {
+    const std::span<const std::uint8_t> view(reinterpret_cast<const std::uint8_t*>(bytes.data()),
+                                             bytes.size());
+    update(view);
+}
+
+Sha256Digest Sha256Hasher::finish() noexcept {
+    // Section 5.1.1 padding: the tail, a 0x80 byte, zeros, then the message length in bits as a
+    // 64-bit big-endian number. It fills one block, or two when the tail leaves fewer than nine
+    // bytes. The length is taken modulo 2^64 bits, as the standard limits messages to that.
+    std::array<std::uint8_t, sha256_block_bytes * 2U> tail{};
+    if (buffered_ != 0U) {
+        std::memcpy(tail.data(), buffer_.data(), buffered_);
+    }
+    tail[buffered_] = 0x80U;
+    const std::size_t tail_blocks = buffered_ + 9U <= sha256_block_bytes ? 1U : 2U;
+    const std::size_t tail_bytes = tail_blocks * sha256_block_bytes;
+    const std::uint64_t bit_length = byte_count_ * 8U;
+    for (std::size_t index = 0; index < 8U; ++index) {
+        const unsigned shift = static_cast<unsigned>((7U - index) * 8U);
+        tail[tail_bytes - 8U + index] = static_cast<std::uint8_t>(bit_length >> shift);
+    }
+    for (std::size_t block = 0; block < tail_blocks; ++block) {
+        compress(state_, tail.data() + block * sha256_block_bytes);
+    }
+    const Sha256Digest digest = digest_of_state(state_);
+    reset();
+    return digest;
+}
+
+Sha256Digest sha256(std::span<const std::uint8_t> input) noexcept {
+    Sha256Hasher hasher{};
+    hasher.update(input);
+    const Sha256Digest digest = hasher.finish();
+    return digest;
+}
+
+Sha256Digest sha256_of_text(std::string_view input) noexcept {
+    Sha256Hasher hasher{};
+    hasher.update(input);
+    const Sha256Digest digest = hasher.finish();
+    return digest;
+}
+
 bool parse_sha256_hex(std::span<const char> text, Sha256Digest& digest) noexcept {
-    if (text.size() != sha256_digest_bytes * 2U) {
+    if (text.size() != sha256_hex_digits) {
         return false;
     }
     Sha256Digest parsed{};
@@ -169,4 +231,20 @@ bool parse_sha256_hex(std::span<const char> text, Sha256Digest& digest) noexcept
     return true;
 }
 
-} // namespace gui_forms::detail
+void format_sha256_hex(const Sha256Digest& digest, std::array<char, sha256_hex_digits>& text) noexcept {
+    constexpr std::string_view hex_digits = "0123456789abcdef";
+    for (std::size_t index = 0; index < sha256_digest_bytes; ++index) {
+        const std::uint8_t value = digest.bytes[index];
+        text[index * 2U] = hex_digits[value >> 4U];
+        text[index * 2U + 1U] = hex_digits[value & 0x0FU];
+    }
+}
+
+std::string sha256_hex(const Sha256Digest& digest) {
+    std::array<char, sha256_hex_digits> digits{};
+    format_sha256_hex(digest, digits);
+    const std::string text(digits.data(), digits.size());
+    return text;
+}
+
+} // namespace gui_forms

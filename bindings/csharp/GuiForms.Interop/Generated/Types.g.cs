@@ -684,7 +684,25 @@ public unsafe struct gf_controls_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_logical_rect*, gf_status> invalidate;
 }
 
-/// <summary>gf_text_editing_table (table, 64 bytes).</summary>
+/// <summary>gf_text_decoration (record, 56 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_text_decoration
+{
+    public ulong start;
+    public ulong end;
+    public gf_text_decoration_fields fields;
+    public gf_text_ink_role ink;
+    public uint foreground;
+    public uint weight;
+    public uint italic;
+    public gf_text_underline underline;
+    public uint underline_color;
+    public uint background;
+    public uint tag;
+    public uint reserved;
+}
+
+/// <summary>gf_text_editing_table (table, 104 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_text_editing_table
 {
@@ -697,6 +715,11 @@ public unsafe struct gf_text_editing_table
     public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> undo;
     public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> redo;
     public delegate* unmanaged[Cdecl]<gf_object, gf_status> clear_undo_history;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_text_decoration*, ulong, gf_status> set_decorations;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, ulong, ulong, gf_text_decoration*, ulong, gf_status> replace_decorations;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> clear_decorations;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, ulong*, gf_status> decoration_count;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, ulong, gf_text_decoration*, gf_status> decoration_at;
 }
 
 /// <summary>gf_overlays_table (table, 48 bytes).</summary>

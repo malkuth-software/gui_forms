@@ -33,7 +33,7 @@ namespace gui_forms {
 // one image. Entries whose themes or registry are gone are dropped.
 struct ThemeImageShares final {
     struct Entry final {
-        detail::Sha256Digest digest{};
+        Sha256Digest digest{};
         std::weak_ptr<detail::ThemeImageLease> lease{};
     };
     std::vector<Entry> entries{};
@@ -225,7 +225,7 @@ bool same_registry(const std::weak_ptr<detail::ImageRegistryLiveness>& left,
 std::shared_ptr<detail::ThemeImageLease> lease_image(const std::string& encoded, ImageRegistry& images,
                                                      ThemeImageShares& shares, ImageResourceError& error) {
     const std::weak_ptr<detail::ImageRegistryLiveness> registry = detail::ImageRegistryAccess::liveness(images);
-    const detail::Sha256Digest digest = theme_language::package_sha256(encoded);
+    const Sha256Digest digest = theme_language::package_sha256(encoded);
     std::size_t kept = 0U;
     std::shared_ptr<detail::ThemeImageLease> found{};
     for (std::size_t index = 0U; index < shares.entries.size(); ++index) {
@@ -550,7 +550,7 @@ struct UserSheet final {
     std::string name{};
     std::string path{};
     const std::string* text{};
-    detail::Sha256Digest identity{};
+    Sha256Digest identity{};
 };
 
 // The first error of `diagnostics`, or a manifest_invalid problem in `file`.
