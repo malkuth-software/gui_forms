@@ -1806,7 +1806,7 @@ bool in_range(double value, double minimum, double maximum) noexcept {
 constexpr std::array<std::string_view, recipe_field_count> recipe_field_names{
     "text",        "outline_style", "outline_colour", "outline_width",  "outline_offset", "text_shadow",
     "font_family", "font_size",     "font_weight",    "font_style",     "letter_spacing", "muted_text",
-    "glyph",       "default_outline_width", "default_outline_colour", "block_size", "minimum_inline_size",
+    "glyph",       "default_outline_width", "default_outline_colour", "fill_text", "block_size", "minimum_inline_size",
     "padding_inline", "gap", "margin_block_start", "margin_block_end", "taper", "taper_colour", "flare",
     "flare_colour", "edge_shadow_width", "edge_shadow_colour",
 };
@@ -1817,7 +1817,8 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     switch (field) {
     case RecipeField::text:
     case RecipeField::muted_text:
-    case RecipeField::glyph: return ColourPosition::text;
+    case RecipeField::glyph:
+    case RecipeField::fill_text: return ColourPosition::text;
     case RecipeField::outline_colour:
     case RecipeField::default_outline_colour:
     case RecipeField::taper_colour:
@@ -1859,6 +1860,7 @@ bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept 
     case RecipeField::outline_colour:
     case RecipeField::muted_text:
     case RecipeField::glyph:
+    case RecipeField::fill_text:
     case RecipeField::default_outline_colour:
     case RecipeField::taper_colour:
     case RecipeField::flare_colour:
@@ -1981,7 +1983,8 @@ void CompiledThemeRules::add_recipe_fields(std::vector<RuleDiagnostic>& diagnost
             continue;
         }
         const bool text_colour = declaration.field == RecipeField::text ||
-                                 declaration.field == RecipeField::muted_text || declaration.field == RecipeField::glyph;
+                                 declaration.field == RecipeField::muted_text || declaration.field == RecipeField::glyph ||
+                                 declaration.field == RecipeField::fill_text;
         const bool font = declaration.field >= RecipeField::font_family &&
                           declaration.field <= RecipeField::letter_spacing;
         const bool part_field = declaration.field >= RecipeField::block_size;

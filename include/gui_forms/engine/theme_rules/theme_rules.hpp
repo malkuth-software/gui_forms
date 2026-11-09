@@ -1001,7 +1001,8 @@ void assemble_material(const SurfaceMaterial& floor,
 // The fields of a control's own recipe (ControlVisualRecipe) beside its
 // material that a rule may set (T3 P6f; design language §2, §3 and §14).
 // They are the control's, not a part's: a rule naming a role sets none,
-// and a rule naming a part only the text colours (text, muted_text, glyph),
+// and a rule naming a part only the text colours (text, muted_text, glyph,
+// fill_text),
 // which the part's own resolution reads (Theme::resolve with its name);
 // any other is dropped (RuleDiagnosticKind::recipe_field_on_part). They
 // cascade as
@@ -1040,6 +1041,11 @@ enum class RecipeField : std::uint8_t {
     // perimeter (ControlVisualRecipe::default_width and default_ring).
     default_outline_width,
     default_outline_colour,
+    // `fill-text-color` (the node engine and value bar study, section 3.6):
+    // the colour of the recipe's text where it lies over a fill, such as a
+    // ValueBar's label over its value fill; drawn as text. Unset, the text
+    // over a fill takes the fill's own selected text colour.
+    fill_text,
     // A part's metrics and shape (look integration; RB, T4 rendering
     // reference section 4), read by the control that lays the part out
     // and paints it (Theme::resolve with the part's name; the Ribbon's tab
@@ -1108,8 +1114,8 @@ inline constexpr double maximum_rule_font_weight = 900.0;
 // One recipe field's declared value. `initial` is CSS's `initial`: the
 // floor's value, and the declaration still wins over those beneath it; its
 // value members are not read. Otherwise, by field:
-// - text, outline_colour, muted_text, glyph and default_outline_colour:
-//   `colour`;
+// - text, outline_colour, muted_text, glyph, default_outline_colour and
+//   fill_text: `colour`;
 // - outline_style: `outline_style`;
 // - outline_width and default_outline_width (0 to
 //   maximum_recipe_outline_width) and outline_offset

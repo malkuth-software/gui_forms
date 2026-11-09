@@ -1737,6 +1737,8 @@ void apply_recipe_fields(const CompiledThemeRules::RecipeResolution& fields, Con
     if (muted != nullptr) recipe.muted_text = (*muted).colour;
     const RecipeDeclaration* const glyph = set_recipe_field(fields, RecipeField::glyph);
     if (glyph != nullptr) recipe.glyph = (*glyph).colour;
+    const RecipeDeclaration* const fill_text = set_recipe_field(fields, RecipeField::fill_text);
+    if (fill_text != nullptr) recipe.fill_text = (*fill_text).colour;
     const RecipeDeclaration* const default_width = set_recipe_field(fields, RecipeField::default_outline_width);
     if (default_width != nullptr) recipe.default_width = (*default_width).number;
     const RecipeDeclaration* const default_colour = set_recipe_field(fields, RecipeField::default_outline_colour);
@@ -1846,9 +1848,10 @@ void Theme::provenance(const Control& control, ControlVisualRole role, ControlVi
     CompiledThemeRules::FieldProvenance pass{};
     pass.level = CascadeLevel::forced_high_contrast;
     pass.layer = ThemeLayer::forced_high_contrast;
-    const std::array<RecipeField, 6> pass_colours{RecipeField::text,        RecipeField::outline_colour,
+    const std::array<RecipeField, 7> pass_colours{RecipeField::text,        RecipeField::outline_colour,
                                                   RecipeField::text_shadow, RecipeField::muted_text,
-                                                  RecipeField::glyph,       RecipeField::default_outline_colour};
+                                                  RecipeField::glyph,       RecipeField::default_outline_colour,
+                                                  RecipeField::fill_text};
     for (const RecipeField field : pass_colours) result.recipe_fields[static_cast<std::size_t>(field)] = pass;
     for (CompiledThemeRules::FieldProvenance& field : result.recipe_fields) {
         if (!field.authored) field = pass;
@@ -2023,6 +2026,7 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
         fields.fields[static_cast<std::size_t>(RecipeField::text_shadow)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::muted_text)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::glyph)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::fill_text)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::default_outline_colour)] = nullptr;
         // Forced high contrast draws no edge shadow, and the tapered edge and
         // lip in the pass's colours.

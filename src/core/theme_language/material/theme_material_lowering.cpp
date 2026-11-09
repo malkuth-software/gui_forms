@@ -36,7 +36,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 65> material_properties{{
+constexpr std::array<NamedMaterialProperty, 66> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -74,6 +74,7 @@ constexpr std::array<NamedMaterialProperty, 65> material_properties{{
     {.name = "color", .property = MaterialProperty::color},
     {.name = "default-outline", .property = MaterialProperty::default_outline},
     {.name = "edge-shadow", .property = MaterialProperty::edge_shadow},
+    {.name = "fill-text-color", .property = MaterialProperty::fill_text_color},
     {.name = "filter", .property = MaterialProperty::filter},
     {.name = "flare", .property = MaterialProperty::flare},
     {.name = "font-family", .property = MaterialProperty::font_family},
@@ -110,7 +111,7 @@ struct RecipeLonghand final {
     RecipeField field{RecipeField::text};
 };
 
-constexpr std::array<RecipeLonghand, 19> recipe_longhands{{
+constexpr std::array<RecipeLonghand, 20> recipe_longhands{{
     {.property = MaterialProperty::height, .field = RecipeField::block_size},
     {.property = MaterialProperty::min_width, .field = RecipeField::minimum_inline_size},
     {.property = MaterialProperty::padding_inline, .field = RecipeField::padding_inline},
@@ -130,6 +131,7 @@ constexpr std::array<RecipeLonghand, 19> recipe_longhands{{
     {.property = MaterialProperty::letter_spacing, .field = RecipeField::letter_spacing},
     {.property = MaterialProperty::muted_color, .field = RecipeField::muted_text},
     {.property = MaterialProperty::glyph_color, .field = RecipeField::glyph},
+    {.property = MaterialProperty::fill_text_color, .field = RecipeField::fill_text},
 }};
 
 // CSS blend modes the engine does not composite (CSS_COVERAGE section 7).
@@ -2681,6 +2683,7 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::keylines: static_cast<void>(lower_keylines()); return;
     case MaterialProperty::muted_color: static_cast<void>(lower_recipe_colour(RecipeField::muted_text)); return;
     case MaterialProperty::glyph_color: static_cast<void>(lower_recipe_colour(RecipeField::glyph)); return;
+    case MaterialProperty::fill_text_color: static_cast<void>(lower_recipe_colour(RecipeField::fill_text)); return;
     case MaterialProperty::default_outline: static_cast<void>(lower_default_outline()); return;
     case MaterialProperty::color: static_cast<void>(lower_text_colour()); return;
     case MaterialProperty::outline: static_cast<void>(lower_outline()); return;
@@ -2821,6 +2824,7 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::keylines: fields.push_back(MaterialField::keylines); return;
     case MaterialProperty::muted_color:
     case MaterialProperty::glyph_color:
+    case MaterialProperty::fill_text_color:
     case MaterialProperty::default_outline:
     case MaterialProperty::color:
     case MaterialProperty::outline:

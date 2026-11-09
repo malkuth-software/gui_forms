@@ -93,6 +93,8 @@ enum class MaterialProperty : std::uint8_t {
     muted_color,
     glyph_color,
     default_outline,
+    // The text's colour over a fill (the value bar study, section 3.6).
+    fill_text_color,
     // A part's metrics and shape (look integration): recipe fields read by
     // the control that lays the part out (RecipeField::block_size on).
     height,

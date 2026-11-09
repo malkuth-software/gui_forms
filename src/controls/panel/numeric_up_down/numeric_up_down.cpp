@@ -4,6 +4,7 @@
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "../../../core/drag_engine/scrub_gesture.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
@@ -17,6 +18,67 @@
 
 namespace gui_forms {
 
+// The scrub mode's drag client and target for one NumericUpDown, which
+// owns it (and so outlives the gesture inside it). Every call is on the
+// control's root's thread, from the engine's dispatch.
+class NumericUpDownScrub final : public ScrubTarget {
+public:
+    explicit NumericUpDownScrub(NumericUpDown& numeric) noexcept : numeric_(&numeric), gesture(numeric, *this) {}
+
+    [[nodiscard]] bool begin_scrub(ScrubRange& range) override;
+    void preview_scrub(double value) override;
+    void end_scrub(ScrubEnd end, double value) override;
+
+private:
+    // The value shown for `value`: rounded to the decimals shown (whole in
+    // hexadecimal) and held in the range.
+    [[nodiscard]] double shown(double value) const noexcept;
+
+    NumericUpDown* numeric_;
+
+public:
+    ScrubGesture gesture;
+};
+
+// The scrub runs over the whole range at the increment per unit of travel;
+// Ctrl snaps to the increment and the keyboard mode steps by it.
+bool NumericUpDownScrub::begin_scrub(ScrubRange& range) {
+    const NumericUpDown& numeric = *numeric_;
+    if (!numeric.scrub.read() || !numeric.enabled.read()) return false;
+    range.start = numeric.value.read();
+    range.minimum = numeric.minimum.read();
+    range.maximum = numeric.maximum.read();
+    range.rate = numeric.increment.read();
+    range.snap_step = numeric.increment.read();
+    range.keyboard_step = numeric.increment.read();
+    return true;
+}
+
+double NumericUpDownScrub::shown(double value) const noexcept {
+    const NumericUpDown& numeric = *numeric_;
+    const std::int32_t decimals =
+        numeric.hexadecimal.read() ? 0 : static_cast<std::int32_t>(numeric.decimal_places.read());
+    const double scale = std::pow(10.0, static_cast<double>(decimals));
+    const double rounded = std::round(value * scale) / scale;
+    const double held = std::clamp(rounded, numeric.minimum.read(), numeric.maximum.read());
+    return held;
+}
+
+void NumericUpDownScrub::preview_scrub(double value) {
+    NumericUpDown& numeric = *numeric_;
+    const double next = shown(value);
+    if (next != numeric.value.read()) numeric.value = next;
+}
+
+// A commit keeps the last value shown; a restore writes the start value
+// back (`value` is the start).
+void NumericUpDownScrub::end_scrub(ScrubEnd end, double value) {
+    NumericUpDown& numeric = *numeric_;
+    const double next = end == ScrubEnd::committed ? shown(value) : value;
+    if (next != numeric.value.read()) numeric.value = next;
+    numeric.invalidate(Dirty::paint);
+}
+
 NumericUpDown::NumericUpDown(StableId stable_id) : Panel(std::move(stable_id)) {
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
     border_style = BorderStyle::line;
@@ -24,7 +86,10 @@ NumericUpDown::NumericUpDown(StableId stable_id) : Panel(std::move(stable_id)) {
     // (no colour written here, which would fix the light paper in every
     // scheme).
     visual_role = ControlVisualRole::editor;
+    scrub_ = std::make_unique<NumericUpDownScrub>(*this);
 }
+
+NumericUpDown::~NumericUpDown() = default;
 
 void NumericUpDown::EditorChangeCallback::operator()(
     const std::string&) const {
@@ -222,10 +287,46 @@ void NumericUpDown::on_key_preview(KeyEvent& event) {
     }
 }
 
+// The wheel steps. In scrub mode a primary press on the unfocused field
+// arms the scrub before the editor sees it, and the rest of the session's
+// pointer stream goes to the gesture; its click focuses the field with the
+// text selected.
 void NumericUpDown::on_pointer_preview(PointerEvent& event) {
-    if (!enabled.read() || event.action != PointerAction::wheel || event.wheel_delta.y == 0.0) return;
-    step(event.wheel_delta.y > 0.0 ? 1 : -1);
-    event.handled = true;
+    if (!enabled.read()) return;
+    if (event.action == PointerAction::wheel) {
+        if (event.wheel_delta.y == 0.0) return;
+        step(event.wheel_delta.y > 0.0 ? 1 : -1);
+        event.handled = true;
+        return;
+    }
+    if (!scrub_) return;
+    ScrubGesture& gesture = (*scrub_).gesture;
+    if (gesture.running()) {
+        const ScrubPointerResult result = gesture.pointer(event);
+        if (result == ScrubPointerResult::ignored) return;
+        event.handled = true;
+        if (result == ScrubPointerResult::clicked && editor_ && window() != nullptr) {
+            static_cast<void>((*window()).request_focus(editor_));
+            (*editor_).select_all();
+        }
+        return;
+    }
+    if (!scrub.read() || event.action != PointerAction::down || event.button != PointerButton::primary) return;
+    if (!editor_ || window() == nullptr || (*window()).focused_control() == editor_) return;
+    const Rect field = (*editor_).absolute_bounds();
+    if (!field.contains(event.position)) return;
+    if (gesture.press(event, ScrubPointerLock::clamped)) event.handled = true;
+}
+
+bool NumericUpDown::begin_keyboard_drag() {
+    if (!scrub.read() || !enabled.read() || !scrub_) return false;
+    const bool started = (*scrub_).gesture.begin_keyboard();
+    return started;
+}
+
+bool NumericUpDown::scrubbing() const noexcept {
+    const bool running = scrub_ && (*scrub_).gesture.state().scrubbing;
+    return running;
 }
 
 SemanticDescriptor NumericUpDown::semantic_descriptor() const {
@@ -423,6 +524,17 @@ PropertyDescriptor numeric_up_down_minimum_descriptor() {
     descriptor.description = "The lowest value; a minimum above the maximum raises the maximum to it, and the value is clamped into the range.";
     descriptor.default_value = BindingValue{0.0};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    return descriptor;
+}
+
+PropertyDescriptor numeric_up_down_scrub_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "scrub";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Drag sideways on the unfocused field to scrub the value.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::semantics;
     descriptor.bindable = false;
     descriptor.assignable_member = true;
     return descriptor;
@@ -495,6 +607,9 @@ const PropertyDescriptor& describe_numeric_up_down_decimal_places() {
 
 const std::array<PropertyEntry, NumericUpDown::numeric_up_down_property_count>& NumericUpDown::numeric_up_down_property_entries() noexcept {
     static constexpr std::array<PropertyEntry, 5U> own{{
+         nullptr, nullptr, nullptr,
+         nullptr},
+    static constexpr std::array<PropertyEntry, 2U> own{{
         {"value", &describe_numeric_up_down_value,
          &read_cell_entry<NumericUpDown, decltype(&NumericUpDown::value), &NumericUpDown::value>,
          &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::value), &NumericUpDown::value>,
@@ -518,6 +633,11 @@ const std::array<PropertyEntry, NumericUpDown::numeric_up_down_property_count>& 
         {"decimal_places", &describe_numeric_up_down_decimal_places,
          &read_cell_entry<NumericUpDown, decltype(&NumericUpDown::decimal_places), &NumericUpDown::decimal_places>,
          &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::decimal_places), &NumericUpDown::decimal_places>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"scrub", &describe_numeric_up_down_scrub,
+         &read_cell_entry<NumericUpDown, decltype(&NumericUpDown::scrub), &NumericUpDown::scrub>,
+         &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::scrub), &NumericUpDown::scrub>,
          nullptr, nullptr, nullptr,
          nullptr},
     }};
@@ -556,6 +676,14 @@ void NumericUpDown::prepare_write(const decltype(button_width)&, double& incomin
 
 void NumericUpDown::written(const decltype(button_width)&) {
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void NumericUpDown::prepare_write(const decltype(scrub)&, bool&) {
+    require_mutable();
+}
+
+void NumericUpDown::written(const decltype(scrub)&) {
+    invalidate(Dirty::semantics);
 }
 
 // property_codemod end NumericUpDown

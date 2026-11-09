@@ -2753,14 +2753,16 @@ bool CompilePass::read_backdrop_step(std::size_t function, BackdropStepKind kind
 // `initial` resets each field it sets; any other value is lowered by the
 // material lowering. A recipe property in a rule naming a part or a role
 // is dropped with a warning, since the recipe's fields are the control's;
-// the text colours (`color`, `muted-color`, `glyph-color`) are admitted on
-// a named part, whose text and marks they colour.
+// the text colours (`color`, `muted-color`, `glyph-color`,
+// `fill-text-color`) are admitted on a named part, whose text and marks
+// they colour.
 bool CompilePass::lower_material(const SyntaxNode& node) {
     // folded_ holds the property's name, which classify() found listed.
     const MaterialProperty property = *material_property(folded_);
     const bool recipe = recipe_property(property);
     const bool text_colour = property == MaterialProperty::color || property == MaterialProperty::muted_color ||
-                             property == MaterialProperty::glyph_color;
+                             property == MaterialProperty::glyph_color ||
+                             property == MaterialProperty::fill_text_color;
     // A part's metrics and shape (`height`, `gap`, `taper` and the rest) are
     // a named part's own, read by the control that lays the part out and
     // paints it, in any of its states (look integration); on a control or a
