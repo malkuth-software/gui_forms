@@ -20,6 +20,144 @@ static gd_string_view view_of(const char* text) {
     return result;
 }
 
+/* The drawing-primitives append: every entry records, validates before it
+   mutates, and traces. */
+static int check_drawing_primitives(const gd_api_v0* api) {
+    gd_handle recorder = {0};
+    gd_handle pen = {0};
+    gd_handle brush = {0};
+    gd_handle conic = {0};
+    gd_handle checker = {0};
+    gd_handle font = {0};
+    gd_handle format = {0};
+    gd_handle path = {0};
+    uint64_t count = 0;
+    uint64_t required = 0;
+    uint32_t kind = 0;
+    double ratio = 0.0;
+    gd_color chosen = {0};
+    gd_rect bounds = {0};
+    char* trace = NULL;
+    const gd_point polyline[3] = {{0, 0}, {10, 5}, {20, 0}};
+    const gd_point segments[4] = {{0, 0}, {1, 1}, {2, 2}, {3, 3}};
+    const gd_rect rects[2] = {{0, 0, 2, 2}, {4, 4, 2, 2}};
+    const gd_point centers[2] = {{5, 5}, {15, 5}};
+    const gd_color stops[3] = {{UINT32_C(0xffff0000), 0}, {UINT32_C(0xffffffff), 0}, {UINT32_C(0xff0000ff), 0}};
+    const double positions[3] = {0, 0.5, 1};
+    gd_marker_style marker;
+    gd_grid_pattern grid;
+    const gd_corner_radii radii = {5, 5, 5, 5};
+    const gd_corner_radii negative = {-1, 0, 0, 0};
+
+    memset(&marker, 0, sizeof(marker));
+    marker.shape = GD_MARKER_DIAMOND;
+    marker.size = 8.0;
+    marker.fill = (gd_color){UINT32_C(0xffffffff), 0};
+    marker.edge = (gd_color){UINT32_C(0xff000000), 0};
+    marker.edge_width = 1.0;
+    memset(&grid, 0, sizeof(grid));
+    grid.origin = (gd_point){0.5, 0.5};
+    grid.spacing = 8.0;
+    grid.major_every = 4U;
+    grid.minor = (gd_color){UINT32_C(0x40ffffff), 0};
+    grid.major = (gd_color){UINT32_C(0x80ffffff), 0};
+    grid.line_width = 1.0;
+
+    CHECK((*api).graphics_path_add_rounded_rectangle != NULL);
+    CHECK((*api).recorder_create(&recorder) == GD_OK);
+    CHECK((*api).pen_create((gd_color){UINT32_C(0xffff0000), 0}, 2.0, &pen) == GD_OK);
+    CHECK((*api).pen_set_line_join(pen, GD_LINE_JOIN_ROUND, 4.0) == GD_OK);
+    CHECK((*api).pen_set_line_cap(pen, GD_LINE_CAP_SQUARE) == GD_OK);
+    CHECK((*api).pen_set_line_join(pen, 3U, 4.0) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).pen_set_line_join(pen, GD_LINE_JOIN_MITER, 0.5) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).pen_set_line_cap(pen, 3U) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).solid_brush_create((gd_color){UINT32_C(0xff0000ff), 0}, &brush) == GD_OK);
+
+    CHECK((*api).recorder_draw_lines(recorder, pen, polyline, 3) == GD_OK);
+    CHECK((*api).recorder_fill_rectangles(recorder, brush, rects, 2) == GD_OK);
+    CHECK((*api).recorder_draw_line_segments(recorder, pen, segments, 4) == GD_OK);
+    CHECK((*api).recorder_draw_markers(recorder, centers, 2, &marker) == GD_OK);
+    CHECK((*api).recorder_fill_grid_pattern(recorder, (gd_rect){0, 0, 64, 32}, &grid) == GD_OK);
+    CHECK((*api).recorder_fill_proportion(recorder, brush, (gd_rect){0, 0, 100, 10}, radii, 1.5,
+                                          GD_FILL_RIGHT_TO_LEFT) == GD_OK);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 6U);
+
+    /* Refusals record nothing. */
+    CHECK((*api).recorder_draw_lines(recorder, pen, polyline, 1) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_draw_lines(recorder, pen, NULL, 3) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_draw_line_segments(recorder, pen, segments, 3) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_fill_rectangles(recorder, brush, rects, 0) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_draw_markers(recorder, centers, 2, NULL) == GD_ERROR_INVALID_ARGUMENT);
+    marker.shape = 10U;
+    CHECK((*api).recorder_draw_markers(recorder, centers, 2, &marker) == GD_ERROR_INVALID_ARGUMENT);
+    marker.shape = GD_MARKER_DIAMOND;
+    marker.size = 0.0;
+    CHECK((*api).recorder_draw_markers(recorder, centers, 2, &marker) == GD_ERROR_INVALID_ARGUMENT);
+    grid.spacing = 1.0;
+    CHECK((*api).recorder_fill_grid_pattern(recorder, (gd_rect){0, 0, 64, 32}, &grid) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_fill_grid_pattern(recorder, (gd_rect){0, 0, 64, 32}, NULL) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_fill_proportion(recorder, brush, (gd_rect){0, 0, 10, 10}, negative, 0.5,
+                                          GD_FILL_LEFT_TO_RIGHT) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_fill_proportion(recorder, brush, (gd_rect){0, 0, 10, 10}, radii, 0.5, 4U) ==
+          GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 6U);
+
+    CHECK((*api).conic_gradient_brush_create((gd_point){8, 8}, 30.0, stops[0], stops[2], &conic) == GD_OK);
+    CHECK((*api).object_kind(conic, &kind) == GD_OK && kind == GD_OBJECT_CONIC_GRADIENT_BRUSH);
+    CHECK((*api).conic_gradient_set_interpolation(conic, stops, positions, 3) == GD_OK);
+    CHECK((*api).conic_gradient_set_interpolation(brush, stops, positions, 3) == GD_ERROR_WRONG_HANDLE_KIND);
+    CHECK((*api).checker_brush_create(4.0, stops[1], (gd_color){UINT32_C(0xffc0c0c0), 0}, &checker) == GD_OK);
+    CHECK((*api).object_kind(checker, &kind) == GD_OK && kind == GD_OBJECT_CHECKER_BRUSH);
+    {
+        gd_handle refused = {0};
+        CHECK((*api).checker_brush_create(0.0, stops[1], stops[1], &refused) == GD_ERROR_INVALID_ARGUMENT);
+    }
+    CHECK((*api).recorder_fill_rectangle(recorder, conic, (gd_rect){0, 0, 16, 16}) == GD_OK);
+    CHECK((*api).recorder_fill_rectangles(recorder, checker, rects, 2) == GD_OK);
+
+    CHECK((*api).contrast_ratio(stops[1], (gd_color){UINT32_C(0xff000000), 0}, &ratio) == GD_OK);
+    CHECK(ratio > 20.999 && ratio < 21.001);
+    CHECK((*api).contrast_ratio(stops[1], stops[1], NULL) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).contrasting_text_color((gd_color){UINT32_C(0xffffff00), 0}, stops[1],
+                                        (gd_color){UINT32_C(0xff000000), 0}, &chosen) == GD_OK);
+    CHECK(chosen.argb == UINT32_C(0xff000000) && chosen.is_empty == 0U);
+
+    CHECK((*api).font_create(view_of("Lucida Grande"), 12.0, 0, 3, 1, &font) == GD_OK);
+    CHECK((*api).string_format_create(0, &format) == GD_OK);
+    CHECK((*api).recorder_draw_string_over_fill(recorder, view_of("50%"), font, brush, stops[1],
+                                                (gd_point){0, 0}, format, (gd_rect){10, 0, 20, 10}) == GD_OK);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 13U);
+
+    CHECK((*api).graphics_path_create(GD_FILL_ALTERNATE, &path) == GD_OK);
+    CHECK((*api).graphics_path_add_rounded_rectangle(path, (gd_rect){0, 0, 20, 10}, radii) == GD_OK);
+    CHECK((*api).graphics_path_add_rounded_rectangle(path, (gd_rect){0, 0, 20, 10}, negative) ==
+          GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).graphics_path_bounds(path, &bounds) == GD_OK);
+    CHECK(bounds.x == 0.0 && bounds.y == 0.0 && bounds.width == 20.0 && bounds.height == 10.0);
+
+    CHECK((*api).recorder_trace(recorder, NULL, 0, &required) == GD_ERROR_BUFFER_TOO_SMALL);
+    trace = (char*)malloc((size_t)required + 1U);
+    CHECK(trace != NULL);
+    CHECK((*api).recorder_trace(recorder, trace, required, &required) == GD_OK);
+    trace[required] = '\0';
+    CHECK(strstr(trace, "0|draw_lines|points=0,0;10,5;20,0|pen=ffff0000,2,0,join=2/4,cap=1|") != NULL);
+    CHECK(strstr(trace, "3|draw_markers|centers=5,5;15,5|marker=2,8,ffffffff,ff000000,1|") != NULL);
+    CHECK(strstr(trace, "5|fill_proportion|track=0,0,100,10|radii=5,5,5,5|proportion=1|direction=1|") != NULL);
+    CHECK(strstr(trace, "7|fill_rectangles|rects=0,0,2,2;4,4,2,2|brush=6,ffffffff,ffc0c0c0,") != NULL);
+    CHECK(strstr(trace, "8|draw_string|at=0,0|") != NULL);
+    free(trace);
+
+    CHECK((*api).release(path) == GD_OK);
+    CHECK((*api).release(format) == GD_OK);
+    CHECK((*api).release(font) == GD_OK);
+    CHECK((*api).release(checker) == GD_OK);
+    CHECK((*api).release(conic) == GD_OK);
+    CHECK((*api).release(brush) == GD_OK);
+    CHECK((*api).release(pen) == GD_OK);
+    CHECK((*api).release(recorder) == GD_OK);
+    return 0;
+}
+
 int main(void) {
     gd_api_v0 api;
     gd_api_v0 prefix;
@@ -364,6 +502,7 @@ int main(void) {
     CHECK(api.recorder_close(extended_recorder) == GD_OK);
     CHECK(api.recorder_command_count(extended_recorder, &count) == GD_OK && count == 10);
 
+    CHECK(check_drawing_primitives(&api) == 0);
     CHECK(api.release(recorder) == GD_OK);
     CHECK(api.release(recorder) == GD_ERROR_STALE_HANDLE);
     CHECK(api.release(format) == GD_OK);

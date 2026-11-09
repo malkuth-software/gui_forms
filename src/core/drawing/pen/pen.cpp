@@ -40,9 +40,32 @@ void Pen::set_dash_pattern(std::span<const double> pattern) {
     dash_style_ = DashStyle::custom;
 }
 
+void Pen::set_line_join(LineJoin join, double miter_limit) {
+    require_alive();
+    require_enum(join, 2U, "line join");
+    require_finite(miter_limit, "miter limit");
+    if (miter_limit < 1.0) throw std::invalid_argument("miter limit must be at least 1");
+    join_ = join;
+    miter_limit_ = miter_limit;
+}
+
+void Pen::set_line_cap(LineCap cap) {
+    require_alive();
+    require_enum(cap, 2U, "line cap");
+    cap_ = cap;
+}
+
 PenSnapshot Pen::snapshot() const {
     require_alive();
-    return {color_, width_, dash_style_, dash_pattern_};
+    PenSnapshot result;
+    result.color = color_;
+    result.width = width_;
+    result.dash_style = dash_style_;
+    result.dash_pattern = dash_pattern_;
+    result.join = join_;
+    result.miter_limit = miter_limit_;
+    result.cap = cap_;
+    return result;
 }
 
 

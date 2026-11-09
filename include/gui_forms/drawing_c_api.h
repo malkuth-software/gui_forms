@@ -109,7 +109,9 @@ typedef enum gd_object_kind {
     GD_OBJECT_HATCH_BRUSH = 10,
     GD_OBJECT_LINEAR_GRADIENT_BRUSH = 11,
     GD_OBJECT_PATH_GRADIENT_BRUSH = 12,
-    GD_OBJECT_REGION = 13
+    GD_OBJECT_REGION = 13,
+    GD_OBJECT_CONIC_GRADIENT_BRUSH = 14,
+    GD_OBJECT_CHECKER_BRUSH = 15
 } gd_object_kind;
 
 typedef enum gd_wrap_mode {
@@ -137,6 +139,75 @@ typedef enum gd_dash_style {
     GD_DASH_DASH_DOT_DOT = 4,
     GD_DASH_CUSTOM = 5
 } gd_dash_style;
+
+/* How a pen's segments meet and how its open ends are capped. */
+typedef enum gd_line_join {
+    GD_LINE_JOIN_MITER = 0,
+    GD_LINE_JOIN_BEVEL = 1,
+    GD_LINE_JOIN_ROUND = 2
+} gd_line_join;
+
+typedef enum gd_line_cap {
+    GD_LINE_CAP_FLAT = 0,
+    GD_LINE_CAP_SQUARE = 1,
+    GD_LINE_CAP_ROUND = 2
+} gd_line_cap;
+
+/* Marker glyphs; CIRCLE to TRIANGLE_RIGHT are filled, CROSS to ASTERISK
+   are strokes in the edge colour. */
+typedef enum gd_marker_shape {
+    GD_MARKER_CIRCLE = 0,
+    GD_MARKER_SQUARE = 1,
+    GD_MARKER_DIAMOND = 2,
+    GD_MARKER_TRIANGLE_UP = 3,
+    GD_MARKER_TRIANGLE_DOWN = 4,
+    GD_MARKER_TRIANGLE_LEFT = 5,
+    GD_MARKER_TRIANGLE_RIGHT = 6,
+    GD_MARKER_CROSS = 7,
+    GD_MARKER_PLUS = 8,
+    GD_MARKER_ASTERISK = 9
+} gd_marker_shape;
+
+/* The edge a proportional fill grows from. */
+typedef enum gd_fill_direction {
+    GD_FILL_LEFT_TO_RIGHT = 0,
+    GD_FILL_RIGHT_TO_LEFT = 1,
+    GD_FILL_BOTTOM_TO_TOP = 2,
+    GD_FILL_TOP_TO_BOTTOM = 3
+} gd_fill_direction;
+
+/* A marker centred on each point: size its full width (finite, positive),
+   fill its inside, edge its outline (or lines) edge_width wide (finite,
+   non-negative). An empty colour or a zero width draws nothing of that
+   part. */
+typedef struct gd_marker_style {
+    uint32_t shape;
+    double size;
+    gd_color fill;
+    gd_color edge;
+    double edge_width;
+} gd_marker_style;
+
+/* A world-aligned grid: lines spacing apart (at least 2) through origin,
+   every major_every-th line (1 or more) in major and the rest in minor,
+   each line_width wide (finite, positive). */
+typedef struct gd_grid_pattern {
+    gd_point origin;
+    double spacing;
+    uint32_t major_every;
+    gd_color minor;
+    gd_color major;
+    double line_width;
+} gd_grid_pattern;
+
+/* A rounded rectangle's corner radii, finite and non-negative; each is held
+   to half the rectangle's shorter side. */
+typedef struct gd_corner_radii {
+    double top_left;
+    double top_right;
+    double bottom_right;
+    double bottom_left;
+} gd_corner_radii;
 
 typedef enum gd_string_alignment {
     GD_STRING_NEAR = 0,
@@ -497,6 +568,58 @@ typedef struct gd_api_v0 {
      * one it is the substitution table's answer and nothing is loaded.
      */
     gd_result (*font_resolve)(gd_handle font, gd_font_resolution* resolution);
+    /*
+     * Drawing primitives, appended before the drawing ABI seals: pen joins
+     * and caps, batched marks (one command per call, the array copied
+     * once, at most 1,000,000 elements), conic and checker brushes, the
+     * world-aligned grid, the proportional fill, text over a fill with
+     * the contrast rule, and rounded path rectangles.
+     */
+    gd_result (*pen_set_line_join)(gd_handle pen, uint32_t join, double miter_limit);
+    gd_result (*pen_set_line_cap)(gd_handle pen, uint32_t cap);
+    /* An open polyline through count (2 or more) points. */
+    gd_result (*recorder_draw_lines)(gd_handle recorder, gd_handle pen,
+                                     const gd_point* points, uint64_t count);
+    gd_result (*recorder_fill_rectangles)(gd_handle recorder, gd_handle brush,
+                                          const gd_rect* rects, uint64_t count);
+    /* Independent segments: count is even, each pair one segment. */
+    gd_result (*recorder_draw_line_segments)(gd_handle recorder, gd_handle pen,
+                                             const gd_point* points, uint64_t count);
+    gd_result (*recorder_draw_markers)(gd_handle recorder, const gd_point* centers,
+                                       uint64_t count, const gd_marker_style* style);
+    /* A sweep of one full turn clockwise (y down) from start_angle degrees. */
+    gd_result (*conic_gradient_brush_create)(gd_point center, double start_angle,
+                                             gd_color first, gd_color second,
+                                             gd_handle* brush);
+    gd_result (*conic_gradient_set_interpolation)(gd_handle brush,
+                                                  const gd_color* colors,
+                                                  const double* positions,
+                                                  uint64_t count);
+    /* Square cells cell_size wide, a first cell's corner at the origin. */
+    gd_result (*checker_brush_create)(double cell_size, gd_color first,
+                                      gd_color second, gd_handle* brush);
+    gd_result (*recorder_fill_grid_pattern)(gd_handle recorder, gd_rect rect,
+                                            const gd_grid_pattern* grid);
+    /* The part of track proportion (clamped to [0, 1]) covers from
+       direction's edge, clipped to the track's rounded shape. */
+    gd_result (*recorder_fill_proportion)(gd_handle recorder, gd_handle brush,
+                                          gd_rect track, gd_corner_radii radii,
+                                          double proportion, uint32_t direction);
+    /* The string in brush's colour, and in on_fill_color where it lies over
+       fill; up to five draw_string commands. The transform must be a scale
+       and translation. */
+    gd_result (*recorder_draw_string_over_fill)(gd_handle recorder, gd_string_view text,
+                                                gd_handle font, gd_handle brush,
+                                                gd_color on_fill_color, gd_point origin,
+                                                gd_handle format, gd_rect fill);
+    /* The WCAG 2 contrast ratio, 1 to 21; alpha is ignored. */
+    gd_result (*contrast_ratio)(gd_color first, gd_color second, double* ratio);
+    /* Of light and dark, the one contrasting more with background (dark on
+       a tie). */
+    gd_result (*contrasting_text_color)(gd_color background, gd_color light,
+                                        gd_color dark, gd_color* chosen);
+    gd_result (*graphics_path_add_rounded_rectangle)(gd_handle path, gd_rect rectangle,
+                                                     gd_corner_radii radii);
 } gd_api_v0;
 
 /*

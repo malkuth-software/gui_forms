@@ -688,6 +688,8 @@ add_custom_command(
 # raster adapter so consumers can use its value/resource semantics alone.
 add_library(gui_drawing_core STATIC
     src/core/drawing/bitmap/bitmap.cpp
+    src/core/drawing/brush/checker_brush.cpp
+    src/core/drawing/brush/conic_gradient_brush.cpp
     src/core/drawing/brush/hatch_brush.cpp
     src/core/drawing/brush/linear_gradient_brush.cpp
     src/core/drawing/brush/path_gradient_brush.cpp

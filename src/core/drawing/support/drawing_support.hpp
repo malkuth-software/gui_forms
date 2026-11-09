@@ -242,6 +242,12 @@ private:
     case CommandKind::draw_path: return "draw_path";
     case CommandKind::fill_path: return "fill_path";
     case CommandKind::draw_image: return "draw_image";
+    case CommandKind::draw_lines: return "draw_lines";
+    case CommandKind::fill_rectangles: return "fill_rectangles";
+    case CommandKind::draw_line_segments: return "draw_line_segments";
+    case CommandKind::draw_markers: return "draw_markers";
+    case CommandKind::fill_grid_pattern: return "fill_grid_pattern";
+    case CommandKind::fill_proportion: return "fill_proportion";
     }
     return "unknown";
 }
@@ -394,6 +400,11 @@ void require_enum(Enum value, unsigned maximum, std::string_view field) {
             result += number(pen.dash_pattern[index]);
         }
     }
+    // Written only when not the defaults, so older traces stay as they were.
+    if (pen.join != LineJoin::miter || pen.miter_limit != 4.0) {
+        result += ",join=" + std::to_string(static_cast<unsigned>(pen.join)) + "/" + number(pen.miter_limit);
+    }
+    if (pen.cap != LineCap::flat) result += ",cap=" + std::to_string(static_cast<unsigned>(pen.cap));
     return result;
 }
 
@@ -405,6 +416,9 @@ void require_enum(Enum value, unsigned maximum, std::string_view field) {
     if (brush.kind == BrushKind::hatch) {
         return result + ",hatch=" +
             std::to_string(static_cast<unsigned>(brush.hatch_style));
+    }
+    if (brush.kind == BrushKind::checker) {
+        return result + ",checker=" + number(brush.cell_size);
     }
     if (brush.kind == BrushKind::texture) {
         return result + ",image=" + std::to_string(brush.image.stable_id) +

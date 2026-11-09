@@ -4,6 +4,8 @@
 // model. Narrow headers mirror ownership and state-machine boundaries.
 #include "gui_forms/drawing/bitmap/bitmap.hpp"
 #include "gui_forms/drawing/brush/brush.hpp"
+#include "gui_forms/drawing/brush/checker_brush.hpp"
+#include "gui_forms/drawing/brush/conic_gradient_brush.hpp"
 #include "gui_forms/drawing/brush/hatch_brush.hpp"
 #include "gui_forms/drawing/brush/linear_gradient_brush.hpp"
 #include "gui_forms/drawing/brush/path_gradient_brush.hpp"

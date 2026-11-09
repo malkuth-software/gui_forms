@@ -46,12 +46,18 @@ Types
      - gd_color projects packed straight-alpha ARGB plus explicit empty-color identity.
    * - :cpp:class:`gd_color_remap <gd_color_remap>`
      - gd_color_remap maps one exact source ARGB value to a replacement for image-attribute processing.
+   * - :cpp:class:`gd_corner_radii <gd_corner_radii>`
+     -  
    * - :cpp:class:`gd_error_view <gd_error_view>`
      - gd_error_view returns thread-local drawing result code and borrowed bounded diagnostic.
    * - :cpp:class:`gd_font_resolution <gd_font_resolution>`
      -  
+   * - :cpp:class:`gd_grid_pattern <gd_grid_pattern>`
+     -  
    * - :cpp:class:`gd_handle <gd_handle>`
      - gd_handle encodes one-based drawing registry slot plus generation for deterministic stale-object rejection.
+   * - :cpp:class:`gd_marker_style <gd_marker_style>`
+     -  
    * - :cpp:class:`gd_matrix <gd_matrix>`
      - gd_matrix projects the six coefficients of a 2D affine transform.
    * - :cpp:class:`gd_point <gd_point>`
@@ -870,6 +876,36 @@ Types
 
    .. cpp:member:: gd_result (*font_resolve)(gd_handle font, gd_font_resolution* resolution)
 
+   .. cpp:member:: gd_result (*pen_set_line_join)(gd_handle pen, uint32_t join, double miter_limit)
+
+   .. cpp:member:: gd_result (*pen_set_line_cap)(gd_handle pen, uint32_t cap)
+
+   .. cpp:member:: gd_result (*recorder_draw_lines)(gd_handle recorder, gd_handle pen, const gd_point* points, uint64_t count)
+
+   .. cpp:member:: gd_result (*recorder_fill_rectangles)(gd_handle recorder, gd_handle brush, const gd_rect* rects, uint64_t count)
+
+   .. cpp:member:: gd_result (*recorder_draw_line_segments)(gd_handle recorder, gd_handle pen, const gd_point* points, uint64_t count)
+
+   .. cpp:member:: gd_result (*recorder_draw_markers)(gd_handle recorder, const gd_point* centers, uint64_t count, const gd_marker_style* style)
+
+   .. cpp:member:: gd_result (*conic_gradient_brush_create)(gd_point center, double start_angle, gd_color first, gd_color second, gd_handle* brush)
+
+   .. cpp:member:: gd_result (*conic_gradient_set_interpolation)(gd_handle brush, const gd_color* colors, const double* positions, uint64_t count)
+
+   .. cpp:member:: gd_result (*checker_brush_create)(double cell_size, gd_color first, gd_color second, gd_handle* brush)
+
+   .. cpp:member:: gd_result (*recorder_fill_grid_pattern)(gd_handle recorder, gd_rect rect, const gd_grid_pattern* grid)
+
+   .. cpp:member:: gd_result (*recorder_fill_proportion)(gd_handle recorder, gd_handle brush, gd_rect track, gd_corner_radii radii, double proportion, uint32_t direction)
+
+   .. cpp:member:: gd_result (*recorder_draw_string_over_fill)(gd_handle recorder, gd_string_view text, gd_handle font, gd_handle brush, gd_color on_fill_color, gd_point origin, gd_handle format, gd_rect fill)
+
+   .. cpp:member:: gd_result (*contrast_ratio)(gd_color first, gd_color second, double* ratio)
+
+   .. cpp:member:: gd_result (*contrasting_text_color)(gd_color background, gd_color light, gd_color dark, gd_color* chosen)
+
+   .. cpp:member:: gd_result (*graphics_path_add_rounded_rectangle)(gd_handle path, gd_rect rectangle, gd_corner_radii radii)
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gd_bitmap_damage_summary
@@ -952,6 +988,20 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gd_corner_radii
+
+   ``#include <gui_forms/drawing_c_api.h>``
+
+   .. cpp:member:: double top_left
+
+   .. cpp:member:: double top_right
+
+   .. cpp:member:: double bottom_right
+
+   .. cpp:member:: double bottom_left
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gd_error_view
 
    ``#include <gui_forms/drawing_c_api.h>``
@@ -986,6 +1036,24 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gd_grid_pattern
+
+   ``#include <gui_forms/drawing_c_api.h>``
+
+   .. cpp:member:: gd_point origin
+
+   .. cpp:member:: double spacing
+
+   .. cpp:member:: uint32_t major_every
+
+   .. cpp:member:: gd_color minor
+
+   .. cpp:member:: gd_color major
+
+   .. cpp:member:: double line_width
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gd_handle
 
    ``#include <gui_forms/drawing_c_api.h>``
@@ -995,6 +1063,22 @@ Types
    .. cpp:member:: uint32_t slot
 
    .. cpp:member:: uint32_t generation
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gd_marker_style
+
+   ``#include <gui_forms/drawing_c_api.h>``
+
+   .. cpp:member:: uint32_t shape
+
+   .. cpp:member:: double size
+
+   .. cpp:member:: gd_color fill
+
+   .. cpp:member:: gd_color edge
+
+   .. cpp:member:: double edge_width
 
 .. cpp:namespace:: 0
 

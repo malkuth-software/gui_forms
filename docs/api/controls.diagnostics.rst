@@ -1395,6 +1395,10 @@ Related types
 
       The reading direction of a draw_text operation. Default: ``{TextOrientation::horizontal}``.
 
+   .. cpp:member:: std::size_t element_count
+
+      A batched mark's length: its points, rectangles, segments or markers (a band counts its upper points); 0 for every other operation, whose JSON leaves the field out.
+
 Enumerations
 ------------
 
@@ -1453,6 +1457,28 @@ Enumerations
    .. cpp:enumerator:: end_group
 
    .. cpp:enumerator:: draw_prepared_text
+
+   .. cpp:enumerator:: stroke_polyline
+
+   .. cpp:enumerator:: fill_polygon
+
+   .. cpp:enumerator:: fill_band
+
+   .. cpp:enumerator:: fill_rects
+
+   .. cpp:enumerator:: stroke_segments
+
+   .. cpp:enumerator:: draw_markers
+
+   .. cpp:enumerator:: fill_conic_gradient
+
+   .. cpp:enumerator:: fill_checker
+
+   .. cpp:enumerator:: fill_grid_pattern
+
+   .. cpp:enumerator:: fill_rounded_rect_corners
+
+   .. cpp:enumerator:: stroke_rounded_rect_corners
 
 Functions, constants and aliases
 --------------------------------
