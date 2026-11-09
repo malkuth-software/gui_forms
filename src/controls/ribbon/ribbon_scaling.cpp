@@ -86,7 +86,16 @@ std::vector<RibbonGroupLayout> prepare_group_layouts(const RibbonGroupSpec& grou
                 }
             }
         }
-        return group.layouts;
+        // A group never vanishes (RIBBON_SCALING_STUDY §1.1: shrink, then
+        // the collapsed button, then scrolling): authored layouts that stop
+        // short of the collapsed button gain it as their last step, except
+        // for a group of one command, which never collapses (UX7).
+        std::vector<RibbonGroupLayout> authored = group.layouts;
+        const bool ends_collapsed = authored.back().size == RibbonGroupSize::collapsed;
+        if (!ends_collapsed && count > 1U) {
+            authored.push_back(RibbonGroupLayout{RibbonGroupSize::collapsed, {}, authored.back().rows});
+        }
+        return authored;
     }
     // Generated: the commands' own sizes first; then, step by step, the
     // rightmost run of up to three large commands becomes small (after WPF's

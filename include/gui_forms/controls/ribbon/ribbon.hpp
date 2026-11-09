@@ -131,8 +131,10 @@ inline constexpr std::uint32_t ribbon_all_modes = 0xFFFFFFFFU;
 // `dialog_launcher` is set, a launcher button in the caption's corner.
 // `image` is the icon of the group's collapsed button (none: the first
 // command image). `layouts` are its size definitions, largest first; empty
-// layouts are generated (Ribbon::group_layouts). `modes` are the
-// application modes it shows in.
+// layouts are generated (Ribbon::group_layouts). Authored layouts that do
+// not end in the collapsed button gain it as their last step, so that a
+// group never vanishes from a narrow plane (a group of one command never
+// collapses). `modes` are the application modes it shows in.
 struct RibbonGroupSpec final {
     std::string stable_id{};
     GUI_FORMS_LOCALIZABLE(text) std::string caption{};

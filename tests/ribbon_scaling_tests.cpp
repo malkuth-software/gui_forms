@@ -354,6 +354,46 @@ void generated_layouts() {
     require(single_layouts.size() == 1U, "a group of one command never shrinks or collapses");
 }
 
+// Defect 8 (Plan Paint): a group whose authored layouts stop short of the
+// collapsed button gains it, so that a narrow plane collapses the group
+// rather than leaving it past the edge (RIBBON_SCALING_STUDY §1.1: shrink,
+// collapse, then scroll).
+void authored_layouts_collapse() {
+    FixedMetrics metrics;
+    std::vector<RibbonTabSpec> tabs;
+    RibbonTabSpec tab{.stable_id = "shape", .text = "Shape"};
+    for (int index = 0; index < 4; ++index) {
+        const std::string id = "paired" + std::to_string(index);
+        RibbonGroupSpec paired{.stable_id = id, .caption = "Paired"};
+        paired.layouts = {layout_of(RibbonGroupSize::large, 2U)};
+        paired.commands.push_back(large_button(id + ".a", "Apply rotation"));
+        paired.commands.push_back(large_button(id + ".b", "Start mesh"));
+        tab.groups.push_back(std::move(paired));
+    }
+    RibbonGroupSpec alone{.stable_id = "alone", .caption = "Alone"};
+    alone.layouts = {layout_of(RibbonGroupSize::large)};
+    alone.commands.push_back(large_button("alone.a", "Alone"));
+    tab.groups.push_back(std::move(alone));
+    tabs.push_back(std::move(tab));
+    Fixture fixture = make_fixture(std::move(tabs), {2000.0, 300.0}, metrics);
+    Ribbon& ribbon = *fixture.ribbon;
+    const std::span<const RibbonGroupLayout> paired = ribbon.group_layouts(0U, 0U);
+    require(paired.size() == 2U && paired[0].size == RibbonGroupSize::large &&
+                paired[1].size == RibbonGroupSize::collapsed && paired[1].rows == 2U,
+            "a single authored layout gains the collapsed button as its last step");
+    require(ribbon.group_layouts(0U, 4U).size() == 1U, "an authored group of one command still never collapses");
+    const std::vector<RibbonLadderEntry> ladder = ribbon.reduction_ladder(0U);
+    const RibbonLadderEntry& narrowest = ladder.back();
+    bool all_collapsed = true;
+    for (std::size_t group = 0; group < 4U; ++group) {
+        all_collapsed = all_collapsed && narrowest.groups[group].size == RibbonGroupSize::collapsed;
+    }
+    require(all_collapsed, "the narrowest entry collapses every authored group that can collapse");
+    resize(fixture, {narrowest.width + 1.0, 300.0});
+    require(!ribbon.scrolling() && ribbon.realized_groups().size() == 5U,
+            "where the collapsed buttons fit, every group shows and nothing scrolls");
+}
+
 void default_cycle() {
     FixedMetrics metrics;
     std::vector<RibbonTabSpec> tabs;
@@ -1145,6 +1185,7 @@ void panel_tab() {
 
 int main() {
     generated_layouts();
+    authored_layouts_collapse();
     default_cycle();
     authored_order();
     refusals();
@@ -1158,7 +1199,8 @@ int main() {
     caches();
     field_labels();
     panel_tab();
-    std::cout << "Ribbon scaling: generated layouts, the default cycle, the authored order, refusals, gallery "
+    std::cout << "Ribbon scaling: generated layouts, authored layouts collapse, the default cycle, the authored order, "
+                 "refusals, gallery "
                  "columns, the WordPad ladders, golden layouts at text scales 1 and 1.5, labels kept, scrolling at "
                  "any width, the hide rule with hysteresis, group overlays, caches, theme following, field labels "
                  "and panel tabs passed\n";
