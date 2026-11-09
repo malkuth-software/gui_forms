@@ -157,8 +157,8 @@ gf_status window_of_owner(const CreateRequest& request, SlotIdentity slot, Windo
         return GF_STATUS_OK;
     }
     const Control::Ptr control = std::dynamic_pointer_cast<Control>(request.owner);
-    if (control != nullptr && (*control).window() != nullptr) {
-        window = (*control).window();
+    if (control != nullptr && (*control).attached_window() != nullptr) {
+        window = (*control).attached_window();
         return GF_STATUS_OK;
     }
     return fail(GF_STATUS_WRONG_HANDLE_KIND, slot,
