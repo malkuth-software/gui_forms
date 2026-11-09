@@ -1044,9 +1044,10 @@ enum class RecipeField : std::uint8_t {
     // reference section 4), read by the control that lays the part out
     // and paints it (Theme::resolve with the part's name; the Ribbon's tab
     // row, tabs and command plane): CSS `height` (block_size), `min-width`
-    // (minimum_inline_size), `padding-inline`, `gap`, `margin-top` and
-    // `margin-bottom` (signed: a negative bottom margin runs the part into
-    // what lies below it); `taper: <length> [<colour>]`, the trailing edge
+    // (minimum_inline_size), `padding-inline`, `gap` (signed: a negative
+    // gap overlaps neighbouring parts, as folder tabs stack), `margin-top`
+    // and `margin-bottom` (signed: a negative bottom margin runs the part
+    // into what lies below it); `taper: <length> [<colour>]`, the trailing edge
     // leaning in by the length at the part's top (a folder tab's edge),
     // drawn in the colour; `flare: <length> <colour>`, the bottom
     // corners flaring outward by the length in a concave lip; and
@@ -1092,8 +1093,8 @@ inline constexpr double maximum_recipe_outline_offset = 64.0;
 inline constexpr double maximum_text_shadow_blur = 8.0;
 inline constexpr double maximum_text_shadow_offset = 16.0;
 // What a part metric admits (RecipeField::block_size to edge_shadow_width):
-// a size at most 512 logical units, a margin within +-64, a taper, flare or
-// edge shadow at most 64.
+// a size at most 512 logical units, a margin within +-64, a gap from -64 to
+// 512, a taper, flare or edge shadow at most 64.
 inline constexpr double maximum_part_metric = 512.0;
 inline constexpr double maximum_part_margin = 64.0;
 inline constexpr double maximum_part_shape = 64.0;

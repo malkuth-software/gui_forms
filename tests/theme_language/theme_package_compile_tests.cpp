@@ -386,6 +386,18 @@ void test_base_theme() {
         package("based", "#pad { color: role(ink-on-near-white-stock foreground) }"), library, images, onto);
     require(reads_role.succeeded() && reads_role.diagnostics().empty(),
             "the package reads a colour role gui-forms' light sheet defines");
+    // The signal group of design language 5.4 (Plan Paint's problem text
+    // reads signal-on-paper): gui-forms' palette defines it.
+    const ThemeCompileResult reads_signal = compile_theme_package(
+        package("based", "#pad { color: role(signal-on-paper) }"), library, images, onto);
+    require(reads_signal.succeeded() && reads_signal.diagnostics().empty(),
+            "the package reads signal-on-paper from gui-forms' palette");
+    if (reads_signal.succeeded()) {
+        const std::shared_ptr<Pad> pad = make_control<Pad>(StableId("pad"));
+        const ResolvedControlRecipe signal = resolved(*reads_signal.theme(), *pad);
+        require(signal.recipe().text == Color::rgba(0xb4U, 0x41U, 0x3cU, 255U),
+                "signal-on-paper is the palette's deepened coral");
+    }
     const ThemeCompileResult refused =
         compile_theme_package(package("based", "#pad {}\n#pad { opacity: 2 }"), library, images, onto);
     require(!refused.succeeded() && has(refused, "E403", "based/theme.theme.css", 2U, ""),
