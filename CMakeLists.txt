@@ -772,6 +772,31 @@ target_include_directories(gui_forms_host_headless PUBLIC
 )
 target_link_libraries(gui_forms_host_headless PUBLIC gui_forms_core)
 
+# The plots package's public primitives (IMGUI_IMPLOT_STUDY B.3): series
+# columns, scales, ticks, axes, decimation, colormaps, picking, the view
+# model, legend layout, signal programs and the batched mark painters.
+# Beside the core and the controls; the controls link it for Sparkline.
+add_library(gui_forms_plot_primitives STATIC
+    src/plots/axis/axis.cpp
+    src/plots/colormap/colormap.cpp
+    src/plots/mark_painters/mark_painters.cpp
+    src/plots/plot_legend/plot_legend.cpp
+    src/plots/plot_transform/plot_transform.cpp
+    src/plots/plot_view_model/plot_view_model.cpp
+    src/plots/scale/scale.cpp
+    src/plots/series_picker/series_picker.cpp
+    src/plots/series_ring_channel/series_ring_channel.cpp
+    src/plots/series_view/series_view.cpp
+    src/plots/signal_program/signal_program.cpp
+    src/plots/tick_generator/tick_generator.cpp
+)
+target_include_directories(gui_forms_plot_primitives PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+target_link_libraries(gui_forms_plot_primitives PUBLIC gui_forms_core)
+set_target_properties(gui_forms_plot_primitives PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 add_library(gui_forms_controls STATIC
     src/controls/basic/basic_control_rendering.cpp
     src/controls/connected_controls/connected_controls.cpp
@@ -1023,7 +1048,9 @@ endif()
 add_library(GUIForms::Core ALIAS gui_forms_core)
 add_library(GUIForms::Controls ALIAS gui_forms_controls)
 add_library(GUIForms::Drawing ALIAS gui_drawing_core)
+add_library(GUIForms::PlotPrimitives ALIAS gui_forms_plot_primitives)
 set_target_properties(gui_forms_core PROPERTIES EXPORT_NAME Core)
+set_target_properties(gui_forms_plot_primitives PROPERTIES EXPORT_NAME PlotPrimitives)
 set_target_properties(gui_forms_controls PROPERTIES EXPORT_NAME Controls)
 set_target_properties(gui_drawing_core PROPERTIES EXPORT_NAME Drawing)
 
@@ -1035,7 +1062,8 @@ endif()
 # with their headers; the main header install below leaves them to those files.
 # stx_skia_swizzle installs with them (as GUIForms::swizzle): the core and the controls link it
 # privately, so a consumer of their static archives links its archive too.
-install(TARGETS gui_forms_threading gui_forms_core gui_forms_controls gui_drawing_core stx_skia_swizzle
+install(TARGETS gui_forms_threading gui_forms_core gui_forms_controls gui_drawing_core gui_forms_plot_primitives
+                stx_skia_swizzle
         EXPORT GUIFormsTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -2319,6 +2347,12 @@ endif()
 # Built only when asked for.
 add_executable(gui_forms_shadow_frames_benchmark EXCLUDE_FROM_ALL benchmarks/shadow_frames_benchmark.cpp)
 target_link_libraries(gui_forms_shadow_frames_benchmark PRIVATE gui_forms_core)
+
+# IMGUI_IMPLOT_STUDY B.7: the plots package's costs (pyramid build, pan and
+# live frames, scatter thinning at a million points). Built only when asked
+# for; run in Release.
+add_executable(gui_forms_plot_performance_probe EXCLUDE_FROM_ALL benchmarks/plot_performance_probe.cpp)
+target_link_libraries(gui_forms_plot_performance_probe PRIVATE gui_forms_plot_primitives)
 
 # APP_WINDOW_RULES_DESIGN K.2: the creation-cost gate (a bare window, a popup
 # and a generated form window; time and allocations against the committed
@@ -4055,6 +4089,15 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_paint_marks_tests PRIVATE gui_forms_controls gui_forms_core)
     add_test(NAME gui_forms_paint_marks_tests COMMAND gui_forms_paint_marks_tests)
 
+    # The plots package's primitives, headless: numeric checks, golden tick
+    # tables and display traces, and the envelope's pixel-identity proof.
+    add_executable(gui_forms_plot_primitives_tests tests/plot_primitives_tests.cpp)
+    target_link_libraries(gui_forms_plot_primitives_tests PRIVATE gui_forms_plot_primitives)
+    add_test(NAME gui_forms_plot_primitives_tests COMMAND gui_forms_plot_primitives_tests)
+    add_executable(gui_forms_plot_decimation_raster_tests tests/plot_decimation_raster_tests.cpp)
+    target_link_libraries(gui_forms_plot_decimation_raster_tests PRIVATE gui_forms_plot_primitives)
+    add_test(NAME gui_forms_plot_decimation_raster_tests COMMAND gui_forms_plot_decimation_raster_tests)
+
     add_executable(gui_forms_frame_scheduler_tests
         tests/frame_scheduler_tests.cpp
     )
@@ -4807,6 +4850,10 @@ if(GUI_FORMS_BUILD_TESTS)
         add_executable(gui_forms_paint_marks_raster_tests tests/paint_marks_raster_tests.cpp)
         target_link_libraries(gui_forms_paint_marks_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_paint_marks_raster_tests COMMAND gui_forms_paint_marks_raster_tests)
+        add_executable(gui_forms_plot_decimation_skia_tests tests/plot_decimation_skia_tests.cpp)
+        target_link_libraries(gui_forms_plot_decimation_skia_tests PRIVATE
+            gui_forms_plot_primitives gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_plot_decimation_skia_tests COMMAND gui_forms_plot_decimation_skia_tests)
 
         add_executable(gui_forms_skia_damage_edge_tests tests/skia_damage_edge_tests.cpp)
         target_link_libraries(gui_forms_skia_damage_edge_tests PRIVATE gui_forms_skia)
