@@ -135,6 +135,15 @@
       "reason": "The drag runs on the drag engine, whose cancels never leave a model changed; the observable end of Escape is Windows Forms'. Live resizing was already GUI.Forms' behaviour, and the keyboard path is the engine's accessibility rule (every drag has a keyboard equivalent).",
       "source": "coordinator",
       "date": "2026-11-08"
+    },
+    {
+      "control": "SplitContainer",
+      "member": "seam drag (cancel, keyboard)",
+      "winforms": "Escape during a splitter drag cancels it and the distance stays where it was before the drag; losing the capture ends the drag. The focused splitter moves by SplitterIncrement with the arrow keys.",
+      "gui_forms": "Escape, losing the pointer capture and the window's deactivation cancel the drag and put back the distance from before it (SplitChangeReason::cancel). Besides the focused arrows, the begin_keyboard_drag rule action on splitter_control runs a keyboard drag (arrows by keyboard_increment, Ctrl ten steps, Shift a tenth; Enter keeps, Escape restores).",
+      "reason": "The seam drag runs on the drag engine, as the Splitter's does, and the engine's cancels never leave a model changed (before the engine a lost capture kept the dragged distance). The keyboard drag is the engine's accessibility rule.",
+      "source": "coordinator",
+      "date": "2026-11-08"
     }
   ]
 }

@@ -67,6 +67,17 @@ records every difference here with its reason and the decision behind it.
 | Reason | Focus moves before the grid learns of it (Window::focused_control_changed), and taking it back from the window's focus change would let one control veto another's focus, which no other control may do. |
 | Decision | owner, 2026-11-02 |
 
+## SplitContainer
+
+### seam drag (cancel, keyboard)
+
+| | |
+|---|---|
+| Windows Forms | Escape during a splitter drag cancels it and the distance stays where it was before the drag; losing the capture ends the drag. The focused splitter moves by SplitterIncrement with the arrow keys. |
+| GUI.Forms | Escape, losing the pointer capture and the window's deactivation cancel the drag and put back the distance from before it (SplitChangeReason::cancel). Besides the focused arrows, the begin_keyboard_drag rule action on splitter_control runs a keyboard drag (arrows by keyboard_increment, Ctrl ten steps, Shift a tenth; Enter keeps, Escape restores). |
+| Reason | The seam drag runs on the drag engine, as the Splitter's does, and the engine's cancels never leave a model changed (before the engine a lost capture kept the dragged distance). The keyboard drag is the engine's accessibility rule. |
+| Decision | coordinator, 2026-11-08 |
+
 ## Splitter
 
 ### drag (live resize, cancel, keyboard)

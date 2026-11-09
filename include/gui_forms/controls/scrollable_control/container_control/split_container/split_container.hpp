@@ -14,6 +14,8 @@
 
 namespace gui_forms {
 
+class SplitContainerDrag;
+
 struct SplitSeamSnapshot final {
     Orientation orientation{Orientation::vertical};
     SplitSeamGeometry geometry;
@@ -32,6 +34,7 @@ class SplitContainer final : public ContainerControl, public SplitContainerCapab
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit SplitContainer(StableId stable_id);
+    ~SplitContainer() override;
     void initialize_control_tree();
 
     [[nodiscard]] std::shared_ptr<SplitterPanel> first_panel() const noexcept {
@@ -68,6 +71,11 @@ public:
     void arrange(Rect final_bounds) override;
     void on_pointer_preview(PointerEvent& event) override;
     void on_key_preview(KeyEvent& event) override;
+    // Moves the seam from the keyboard through the drag engine: arrows step
+    // by keyboard_increment (Ctrl ten steps, Shift a tenth), Enter keeps the
+    // position and Escape restores it. False while the seam is fixed or a
+    // panel is collapsed.
+    bool begin_keyboard_drag() override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action,
                             std::string_view value) override;
@@ -101,6 +109,8 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    friend class SplitContainerDrag;
+    [[nodiscard]] bool seam_draggable() const noexcept;
     [[nodiscard]] double axis_extent(Rect bounds) const noexcept;
     [[nodiscard]] double pointer_axis(Point point) const noexcept;
     [[nodiscard]] double constrained_distance(double requested,
@@ -126,17 +136,23 @@ private:
     double previous_second_extent_{};
     double splitter_width_{3.0};
     double splitter_hit_width_{9.0};
-    double pointer_offset_{};
+    // The distance when the seam drag began, put back by any end but a
+    // release.
     double pointer_start_distance_{};
     bool first_collapsed_{};
     bool second_collapsed_{};
     SplitCollapseOrigin first_collapse_origin_{SplitCollapseOrigin::none};
     SplitCollapseOrigin second_collapse_origin_{SplitCollapseOrigin::none};
+    // True while the drag engine runs this container's seam drag, pointer
+    // or keyboard; previewed_ once a frame has moved the seam.
     bool pointer_tracking_{};
+    bool previewed_{};
     bool collapse_tab_tracking_{};
     bool automatic_collapse_suppressed_{};
     bool tree_initialized_{};
     Event<const SplitChangeEvent&> splitter_changed_;
+    // The seam's drag client, owned here and observed by the engine.
+    std::unique_ptr<SplitContainerDrag> drag_;
     // property_codemod begin SplitContainer (tools/property_families/split_container.json; generated, do not edit)
 private:
     friend struct SplitContainerOrientationCapability<SplitContainer>;

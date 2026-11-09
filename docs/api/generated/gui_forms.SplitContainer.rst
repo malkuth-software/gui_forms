@@ -160,7 +160,9 @@ gui_forms::SplitContainer
          and the reason: :cpp:enumerator:`SplitChangeReason::programmatic <gui_forms::SplitChangeReason::programmatic>` for
          a :cpp:member:`splitter_distance <gui_forms::SplitContainer::splitter_distance>` write, ``pointer`` for each step of a drag and its
          release, ``keyboard`` for arrow keys, ``semantic`` for accessibility actions,
-         ``cancel`` when Escape ends a drag and restores the starting distance, and
+         ``cancel`` when a drag ends other than by release (Escape, a lost pointer
+         capture or the window's deactivation) and restores the starting
+         distance, and
          ``container_resize`` when a layout pass moves the seam: to center it at
          first, to respect the panels' limits, or to keep a fixed second panel's
          extent. Collapsing or restoring a panel, by any means, always
@@ -204,9 +206,16 @@ gui_forms::SplitContainer
 
    Input: pressing the primary button on the seam's hit area starts a drag,
    focuses the seam and captures the pointer, and the panels follow the pointer
-   until release. While the seam has focus, Left and Right (for a vertical
+   until release, stopping at the distance limits. Escape, losing the capture
+   or the window's deactivation cancels the drag and puts back the distance it
+   started from. The drag runs on the window's drag engine; the
+   ``begin_keyboard_drag`` rule action on :cpp:func:`splitter_control <gui_forms::SplitContainer::splitter_control>` starts the same drag
+   from the keyboard, where the arrows along the axis step by
+   :cpp:member:`keyboard_increment <gui_forms::SplitContainer::keyboard_increment>` (Ctrl ten steps, Shift a tenth), Enter keeps the
+   position and Escape restores it, each end announced to screen readers.
+   While the seam has focus, Left and Right (for a vertical
    seam) or Up and Down (for a horizontal seam) move it by
-   :cpp:member:`keyboard_increment <gui_forms::SplitContainer::keyboard_increment>`, Escape during a drag cancels it, and, when
+   :cpp:member:`keyboard_increment <gui_forms::SplitContainer::keyboard_increment>`, and, when
    :cpp:member:`collapse_panel <gui_forms::SplitContainer::collapse_panel>` is set, Enter and Space toggle that panel, as does pressing
    and releasing the collapse tab. Dragging, the arrow keys and the
    accessibility value actions do nothing while :cpp:member:`splitter_fixed <gui_forms::SplitContainer::splitter_fixed>` is true or a
@@ -464,7 +473,9 @@ gui_forms::SplitContainer
       and the reason: :cpp:enumerator:`SplitChangeReason::programmatic <gui_forms::SplitChangeReason::programmatic>` for
       a :cpp:member:`splitter_distance <gui_forms::SplitContainer::splitter_distance>` write, ``pointer`` for each step of a drag and its
       release, ``keyboard`` for arrow keys, ``semantic`` for accessibility actions,
-      ``cancel`` when Escape ends a drag and restores the starting distance, and
+      ``cancel`` when a drag ends other than by release (Escape, a lost pointer
+      capture or the window's deactivation) and restores the starting
+      distance, and
       ``container_resize`` when a layout pass moves the seam: to center it at
       first, to respect the panels' limits, or to keep a fixed second panel's
       extent. Collapsing or restoring a panel, by any means, always
@@ -489,6 +500,10 @@ gui_forms::SplitContainer
    .. cpp:function:: void on_pointer_preview(PointerEvent& event) override
 
    .. cpp:function:: void on_key_preview(KeyEvent& event) override
+
+   .. cpp:function:: bool begin_keyboard_drag() override
+
+      Moves the seam from the keyboard through the drag engine: arrows step by keyboard_increment (Ctrl ten steps, Shift a tenth), Enter keeps the position and Escape restores it. False while the seam is fixed or a panel is collapsed.
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 

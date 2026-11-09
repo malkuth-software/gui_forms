@@ -1,9 +1,14 @@
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/container_controls.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/gui_forms.hpp"
+#include "../src/core/drag_engine/drag_engine.hpp"
 
+#include <array>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
+#include <cstdio>
 #include <iostream>
 #include <limits>
 #include <span>
@@ -746,6 +751,176 @@ void test_bounded_seam_interpolation_and_reduced_motion() {
             "over-budget seam duration must be rejected atomically");
 }
 
+// The seam on the drag engine (roadmap 2.1, step M1): every distance change
+// as "old>new reason;", so a script's trace can be compared whole.
+class SplitTrace final {
+public:
+    explicit SplitTrace(std::string& out) : out_(&out) {}
+
+    void operator()(const SplitChangeEvent& event) const {
+        std::array<char, 64> line{};
+        const int written = std::snprintf(line.data(), line.size(), "%.0f>%.0f %s;", event.old_distance,
+                                          event.new_distance, reason_name(event.reason));
+        if (written > 0) (*out_).append(line.data());
+    }
+
+private:
+    [[nodiscard]] static const char* reason_name(SplitChangeReason reason) noexcept {
+        switch (reason) {
+        case SplitChangeReason::pointer: return "pointer";
+        case SplitChangeReason::keyboard: return "keyboard";
+        case SplitChangeReason::cancel: return "cancel";
+        case SplitChangeReason::programmatic:
+        case SplitChangeReason::semantic:
+        case SplitChangeReason::collapse:
+        case SplitChangeReason::container_resize:
+        default: return "other";
+        }
+    }
+
+    std::string* out_;
+};
+
+PointerEvent seam_pointer(PointerAction action, double x) {
+    PointerEvent event;
+    event.action = action;
+    event.button = action == PointerAction::move ? PointerButton::none : PointerButton::primary;
+    event.position = {x, 70.0};
+    event.pointer_id = 11U;
+    return event;
+}
+
+KeyEvent seam_key(std::uint32_t physical_key, Modifier modifiers = Modifier::none) {
+    KeyEvent event;
+    event.action = KeyAction::down;
+    event.physical_key = physical_key;
+    event.modifiers = modifiers;
+    return event;
+}
+
+// The pointer script gives the trace the code before the engine gave: the
+// distance follows the pointer by its grab offset, one change per move, the
+// release sets the last distance. Beyond either end the distance stops at the
+// constrained range (before the engine a move left of the container asked
+// for a negative distance, which set_distance refused by throwing).
+void test_seam_drag_engine_parity() {
+    std::shared_ptr<SplitContainer> split = make_control<SplitContainer>(StableId("split.parity"));
+    (*split).splitter_distance = 120.0;
+    Window window(split, {400.0, 180.0});
+    window.perform_layout();
+    std::string trace;
+    SubscriptionToken changed = (*split).splitter_changed().subscribe(SplitTrace(trace));
+
+    require(window.dispatch_pointer(seam_pointer(PointerAction::down, 121.0)) &&
+                window.captured_control() == (*split).splitter_control() &&
+                window.drag_engine().phase() == DragPhase::dragging &&
+                (*split).splitter_seam_snapshot().state == SplitSeamState::dragging,
+            "a seam press starts the engine's drag with the grip holding the capture");
+    static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::move, 141.0)));
+    static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::move, 161.0)));
+    static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::move, 181.0)));
+    static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::up, 191.0)));
+    require(trace == "120>140 pointer;140>160 pointer;160>180 pointer;180>190 pointer;",
+            "the seam's pointer trace matches the behaviour before the engine");
+    require(!window.captured_control() && window.drag_engine().phase() == DragPhase::idle &&
+                (*split).splitter_seam_snapshot().state != SplitSeamState::dragging,
+            "the release ends the drag and its capture");
+
+    window.perform_layout();
+    const SemanticDescriptor range = (*split).semantic_descriptor();
+    static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::down, 191.0)));
+    static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::move, 1000.0)));
+    require(near((*split).splitter_distance.read(), *range.maximum_value), "a drag past the end stops at the maximum");
+    static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::move, -50.0)));
+    require(near((*split).splitter_distance.read(), *range.minimum_value),
+            "a drag past the start stops at the minimum, with no refusal");
+    static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::up, -50.0)));
+    require(near((*split).splitter_distance.read(), *range.minimum_value), "the release keeps the clamped distance");
+}
+
+// Every end but a release puts the distance back with the cancel reason:
+// Escape, a lost capture and the window's deactivation. Before the engine a
+// lost capture kept the dragged distance; the engine's cancel rule restores,
+// as the Splitter's does (recorded in the Windows Forms divergences).
+void test_seam_drag_cancels_restore() {
+    std::shared_ptr<SplitContainer> split = make_control<SplitContainer>(StableId("split.cancels"));
+    (*split).splitter_distance = 120.0;
+    Window window(split, {400.0, 180.0});
+    window.perform_layout();
+    std::string trace;
+    SubscriptionToken changed = (*split).splitter_changed().subscribe(SplitTrace(trace));
+
+    static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::down, 121.0)));
+    static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::move, 151.0)));
+    require(window.dispatch_key(seam_key(PhysicalKey::escape)) && near((*split).splitter_distance.read(), 120.0) &&
+                !window.captured_control(),
+            "Escape restores and releases the capture");
+    window.perform_layout();
+
+    trace.clear();
+    static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::down, 121.0)));
+    static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::move, 141.0)));
+    (*(*split).splitter_control()).set_pointer_capture(false);
+    require(trace == "120>140 pointer;140>120 cancel;" && window.drag_engine().phase() == DragPhase::idle,
+            "a lost capture ends the drag and restores");
+    window.perform_layout();
+
+    window.set_active(true);
+    static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::down, 121.0)));
+    static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::move, 171.0)));
+    window.set_active(false);
+    require(near((*split).splitter_distance.read(), 120.0) && window.drag_engine().phase() == DragPhase::idle,
+            "the window's deactivation cancels and restores");
+
+    // Escape before any move changed nothing, so nothing is restored.
+    window.set_active(true);
+    trace.clear();
+    static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::down, 121.0)));
+    static_cast<void>(window.dispatch_key(seam_key(PhysicalKey::escape)));
+    require(trace.empty(), "Escape right after the press reports no change");
+}
+
+// The keyboard drag through the begin_keyboard_drag rule action on the grip:
+// arrows along the axis step by keyboard_increment (Ctrl ten steps), Enter
+// keeps the position, Escape restores it, and each end is announced. A fixed
+// seam refuses.
+void test_seam_keyboard_drag() {
+    std::shared_ptr<SplitContainer> split = make_control<SplitContainer>(StableId("split.keyboard"));
+    (*split).splitter_distance = 120.0;
+    (*split).keyboard_increment = 4.0;
+    Window window(split, {400.0, 180.0});
+    window.perform_layout();
+    std::string trace;
+    SubscriptionToken changed = (*split).splitter_changed().subscribe(SplitTrace(trace));
+    Rule move_key{};
+    move_key.trigger = trigger::key_pressed(PhysicalKey::f3);
+    move_key.actions.push_back(builtin::begin_keyboard_drag(*(*split).splitter_control()));
+    require(window.rules().add(move_key).refusal == RuleRefusal::none, "a move-key rule is armed");
+
+    static_cast<void>(window.dispatch_key(seam_key(PhysicalKey::f3)));
+    DragEngine& engine = window.drag_engine();
+    require(engine.mode() == DragInputMode::keyboard &&
+                (*split).splitter_seam_snapshot().state == SplitSeamState::dragging,
+            "the rule action on the grip starts the container's keyboard drag");
+    static_cast<void>(window.dispatch_key(seam_key(PhysicalKey::right)));
+    static_cast<void>(window.dispatch_key(seam_key(PhysicalKey::right, Modifier::control)));
+    static_cast<void>(window.dispatch_key(seam_key(PhysicalKey::down)));
+    static_cast<void>(window.dispatch_key(seam_key(PhysicalKey::enter)));
+    require(trace == "120>124 keyboard;124>164 keyboard;" && engine.phase() == DragPhase::idle,
+            "arrows step by the increment, Ctrl by ten, across the axis nothing, and Enter keeps it");
+    require(engine.announcement() == "Split position 164, done", "the end is announced");
+
+    static_cast<void>(window.dispatch_key(seam_key(PhysicalKey::f3)));
+    static_cast<void>(window.dispatch_key(seam_key(PhysicalKey::left)));
+    static_cast<void>(window.dispatch_key(seam_key(PhysicalKey::escape)));
+    require(near((*split).splitter_distance.read(), 164.0) && engine.announcement() == "Split position 164, restored",
+            "Escape restores and says so");
+
+    (*split).splitter_fixed = true;
+    require(!(*(*split).splitter_control()).begin_keyboard_drag() && engine.phase() == DragPhase::idle,
+            "a fixed seam refuses the keyboard drag");
+}
+
 } // namespace
 
 int main() {
@@ -762,6 +937,9 @@ int main() {
         test_physical_hairline_asymmetric_hit_geometry_and_atomic_rejection();
         test_proximity_states_cancel_disable_detach_and_semantics();
         test_bounded_seam_interpolation_and_reduced_motion();
+        test_seam_drag_engine_parity();
+        test_seam_drag_cancels_restore();
+        test_seam_keyboard_drag();
         std::cout << "split-container-tests: pass\n";
         return 0;
     } catch (const std::exception& error) {
