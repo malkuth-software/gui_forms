@@ -186,6 +186,7 @@ public:
     explicit WindowsApplicationRun(HINSTANCE instance)
         : HostWindowing(windows_capabilities()), instance_(instance) {
         slots_.reserve(reserved_slots);
+        clocks_.reserve(reserved_slots);
     }
     WindowsApplicationRun(const WindowsApplicationRun&) = delete;
     WindowsApplicationRun& operator=(const WindowsApplicationRun&) = delete;
@@ -217,6 +218,14 @@ public:
     void reclaim();
     // Prints one window's final metrics and snapshot.
     static void publish_final_metrics(WindowsRunSlot& slot);
+    // One loop turn: waits for a message or a live frame clock, dispatches
+    // a bounded batch of messages and presents pending frames. Returns true
+    // when it took WM_QUIT (copied to `quit_message`) or the wait failed
+    // (`quit_message` cleared). Only the outermost loop (`outermost`)
+    // releases closed runtime windows: a nested loop (run_modal) runs
+    // inside a message of some window, so no window may be released under
+    // it.
+    [[nodiscard]] bool turn(MSG& quit_message, bool outermost);
 
 protected:
     HostWindowFrameResult frame_impl(HostWindowId window) override;
@@ -237,10 +246,14 @@ public:
     // SPLASH_STUDY D4) are the same popup windows, never activated, topmost,
     // and transparent to the pointer (WM_NCHITTEST answers HTTRANSPARENT).
     [[nodiscard]] bool supports_splash_windows() const noexcept override { return true; }
+    // run_modal's nested loop: the other windows are disabled
+    // (EnableWindow), as the Win32 dialog manager does for a modal dialog.
+    [[nodiscard]] bool supports_modal_windows() const noexcept override { return true; }
 
 protected:
     HostServiceStatus show_impl(HostWindowId window) override;
     HostServiceStatus hide_impl(HostWindowId window) override;
+    HostServiceStatus run_modal_impl(HostWindowId window) override;
 
 private:
     [[nodiscard]] WindowsRunSlot* slot(HostWindowId window) noexcept;
@@ -251,6 +264,11 @@ private:
     // Stable addresses: a window's callbacks may open another window while
     // its own slot is in use.
     std::vector<std::unique_ptr<WindowsRunSlot>> slots_;
+    // The live frame clocks one turn waits on, refilled at the start of
+    // every turn (a nested turn refills it too, after the turn below it has
+    // finished its wait); reserved for every slot so a turn allocates
+    // nothing.
+    std::vector<HANDLE> clocks_;
 };
 
 // The window frame in desktop logical units.
@@ -418,7 +436,7 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
     window_created(id, initially_visible);
     if (initially_visible && !floating) {
         const bool activates = kind != HostWindowKind::tool && !passive_popup;
-        ShowWindow(window, activates ? SW_SHOWNORMAL : SW_SHOWNOACTIVATE);
+        state.show_with(activates ? SW_SHOWNORMAL : SW_SHOWNOACTIVATE);
         UpdateWindow(window);
     }
     if (close_after_launch) PostMessageW(window, WM_CLOSE, 0, 0);
@@ -583,6 +601,130 @@ HostServiceStatus WindowsApplicationRun::bring_to_front_impl(HostWindowId window
     const BOOL ordered = SetWindowPos(native_window, insert_after, 0, 0, 0, 0,
                                       SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     if (ordered == FALSE) return {HostServiceError::backend_failure};
+    return {};
+}
+
+bool WindowsApplicationRun::turn(MSG& quit_message, const bool outermost) {
+    // A window opened or closed in the previous turn changes the slots;
+    // their count is read afresh in every turn.
+    clocks_.clear();
+    for (std::size_t index = 0; index < slots_.size(); ++index) {
+        const HANDLE clock = (*(*slots_[index]).state).live_frame_clock();
+        if (clock != nullptr) clocks_.push_back(clock);
+    }
+    if (clocks_.size() >= MAXIMUM_WAIT_OBJECTS) {
+        clocks_.resize(MAXIMUM_WAIT_OBJECTS - 1U);
+    }
+    const DWORD wait = MsgWaitForMultipleObjectsEx(
+        static_cast<DWORD>(clocks_.size()),
+        clocks_.empty() ? nullptr : clocks_.data(), INFINITE,
+        QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+    if (wait == WAIT_FAILED) {
+        quit_message = MSG{};
+        return true;
+    }
+    if (wait >= WAIT_OBJECT_0 && wait < WAIT_OBJECT_0 + clocks_.size()) {
+        const HANDLE ready = clocks_[wait - WAIT_OBJECT_0];
+        for (std::size_t index = 0; index < slots_.size(); ++index) {
+            WindowsHostState& state = *(*slots_[index]).state;
+            if (state.live_frame_clock() == ready) {
+                state.mark_live_frame_due();
+                break;
+            }
+        }
+    }
+
+    // Input and managed callbacks receive a bounded turn, not an unbounded
+    // queue drain, so presentation has a maximum queue latency.
+    bool quit = false;
+    const std::chrono::steady_clock::time_point batch_started = std::chrono::steady_clock::now();
+    for (std::size_t drained = 0U; drained < 32U; ++drained) {
+        MSG pending{};
+        if (!detail::take_window_message(pending, drained % 2U == 0U)) break;
+        if (pending.message == WM_QUIT) {
+            quit_message = pending;
+            quit = true;
+            break;
+        }
+        TranslateMessage(&pending);
+        DispatchMessageW(&pending);
+        // Finish an input/ordinary pair before applying the time budget.
+        if (drained % 2U == 1U && std::chrono::steady_clock::now() - batch_started >=
+            std::chrono::milliseconds(4)) {
+            break;
+        }
+    }
+    for (std::size_t index = 0; index < slots_.size(); ++index) {
+        WindowsHostState& state = *(*slots_[index]).state;
+        const HANDLE clock = state.live_frame_clock();
+        if (clock != nullptr && WaitForSingleObject(clock, 0U) == WAIT_OBJECT_0) {
+            state.mark_live_frame_due();
+        }
+    }
+    if (!quit) {
+        for (std::size_t index = 0; index < slots_.size(); ++index) {
+            (*(*slots_[index]).state).present_pending_frame();
+        }
+        // The end of an outermost turn: no message of a closed window is on
+        // the stack, so runtime windows closed in it are released.
+        if (outermost) reclaim();
+    }
+    return quit;
+}
+
+HostServiceStatus WindowsApplicationRun::run_modal_impl(HostWindowId window) {
+    WindowsRunSlot* modal = slot(window);
+    if (modal == nullptr) return {HostServiceError::after_shutdown};
+    const HWND modal_native = (*(*modal).state).native_window();
+    // Every other enabled window of the run is disabled, except windows
+    // owned (at any depth) by the modal one. The list is fixed here: a
+    // window opened during the loop keeps its own state. Capacity: one
+    // entry per slot, reserved before the loop.
+    std::vector<HWND> disabled;
+    disabled.reserve(slots_.size());
+    for (std::size_t index = 0; index < slots_.size(); ++index) {
+        WindowsRunSlot& candidate = *slots_[index];
+        if (!candidate.state || (*candidate.state).destroyed()) continue;
+        const HWND native_window = (*candidate.state).native_window();
+        if (native_window == nullptr || native_window == modal_native) continue;
+        if (!IsWindowEnabled(native_window)) continue;
+        bool owned_by_modal = false;
+        for (HWND owner_native = GetWindow(native_window, GW_OWNER); owner_native != nullptr;
+             owner_native = GetWindow(owner_native, GW_OWNER)) {
+            if (owner_native == modal_native) {
+                owned_by_modal = true;
+                break;
+            }
+        }
+        if (owned_by_modal) continue;
+        EnableWindow(native_window, FALSE);
+        disabled.push_back(native_window);
+    }
+    const std::optional<HostWindowId> owner_id = owner(window);
+    MSG quit_message{};
+    bool quit = false;
+    while (!quit && slot(window) != nullptr) {
+        quit = turn(quit_message, false);
+    }
+    // The windows are enabled again before the owner is activated, as the
+    // dialog manager does; otherwise Windows activates another
+    // application when the modal window goes.
+    for (std::size_t index = 0; index < disabled.size(); ++index) {
+        if (IsWindow(disabled[index])) EnableWindow(disabled[index], TRUE);
+    }
+    if (owner_id.has_value() && !quit) {
+        const HWND owner_native = native(*owner_id);
+        if (owner_native != nullptr) {
+            SetActiveWindow(owner_native);
+            // The keyboard goes back to the owner, whose WM_ACTIVATE gives
+            // its last focused control focus again (SurfaceRoot::restore_focus).
+            SetFocus(owner_native);
+        }
+    }
+    // The quit belongs to the outer loop: post it again for it to take.
+    if (quit && quit_message.message == WM_QUIT) {
+        PostQuitMessage(static_cast<int>(quit_message.wParam));
+    }
     return {};
 }
 

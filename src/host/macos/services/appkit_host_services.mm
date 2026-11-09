@@ -402,6 +402,76 @@ protected:
         return applied;
     }
 
+    // Window's chrome properties on this window. macOS has no per-window
+    // icon (the Dock shows the application's) and no taskbar button, so
+    // Icon and ShowInTaskbar are unsupported. A tool window frame is the
+    // ordinary frame: the utility style belongs to panels only.
+    gui_forms::WindowChromeFields supported_window_chrome() const noexcept override {
+        const std::uint32_t unsupported = static_cast<std::uint32_t>(gui_forms::WindowChromeField::icon) |
+                                          static_cast<std::uint32_t>(gui_forms::WindowChromeField::show_in_taskbar);
+        const gui_forms::WindowChromeFields supported{gui_forms::WindowChromeFields::all_bits & ~unsupported};
+        return supported;
+    }
+
+    gui_forms::HostWindowChromeResult apply_window_chrome_impl(const gui_forms::WindowChrome& chrome,
+                                                               gui_forms::WindowChromeFields fields) override {
+        using gui_forms::WindowChromeField;
+        gui_forms::HostWindowChromeResult result{};
+        NSView* const view = backdrop_view_;
+        NSWindow* const window = view == nil ? nil : view.window;
+        if (window == nil) {
+            // No window yet (or no longer): nothing is applied.
+            return result;
+        }
+        if (fields.contains(WindowChromeField::text)) {
+            NSString* title = [[NSString alloc] initWithBytes:chrome.text.data()
+                                                       length:chrome.text.size()
+                                                     encoding:NSUTF8StringEncoding];
+            if (title != nil) {
+                window.title = title;
+                result.applied.add(WindowChromeField::text);
+            }
+        }
+        const std::uint32_t frame_bits = static_cast<std::uint32_t>(WindowChromeField::form_border_style) |
+                                         static_cast<std::uint32_t>(WindowChromeField::minimize_box) |
+                                         static_cast<std::uint32_t>(WindowChromeField::maximize_box) |
+                                         static_cast<std::uint32_t>(WindowChromeField::control_box);
+        if ((fields.bits & frame_bits) != 0U) {
+            apply_frame(window, chrome, fields);
+            result.applied.bits = result.applied.bits | (fields.bits & frame_bits);
+        }
+        if (fields.contains(WindowChromeField::top_most)) {
+            window.level = chrome.top_most ? NSFloatingWindowLevel : NSNormalWindowLevel;
+            result.applied.add(WindowChromeField::top_most);
+        }
+        if (fields.contains(WindowChromeField::opacity)) {
+            window.alphaValue = static_cast<CGFloat>(chrome.opacity);
+            result.applied.add(WindowChromeField::opacity);
+        }
+        if (fields.contains(WindowChromeField::minimum_size)) {
+            // A side of zero goes back to the minimum the window opened with.
+            if (!opened_minimum_known_) {
+                opened_minimum_ = window.contentMinSize;
+                opened_minimum_known_ = true;
+            }
+            const CGFloat width = chrome.minimum_size.width > 0.0
+                ? static_cast<CGFloat>(chrome.minimum_size.width) : opened_minimum_.width;
+            const CGFloat height = chrome.minimum_size.height > 0.0
+                ? static_cast<CGFloat>(chrome.minimum_size.height) : opened_minimum_.height;
+            window.contentMinSize = NSMakeSize(width, height);
+            result.applied.add(WindowChromeField::minimum_size);
+        }
+        if (fields.contains(WindowChromeField::start_position) && !window.visible) {
+            apply_start_position(window, chrome.start_position);
+            result.applied.add(WindowChromeField::start_position);
+        }
+        if (fields.contains(WindowChromeField::window_state)) {
+            apply_window_state(window, chrome.window_state);
+            result.applied.add(WindowChromeField::window_state);
+        }
+        return result;
+    }
+
     HostServiceStatus set_cursor_impl(CursorKind cursor) override {
         [native_cursor(cursor) set];
         return {};
@@ -795,6 +865,63 @@ protected:
 private:
     void forward_tray_event(const gui_forms::HostTrayIconEvent& event) { publish_tray_icon_event(event); }
 
+    // Rewrites the style bits the named frame fields govern and keeps the
+    // others: titled, resizable, closable (the control box) and
+    // miniaturizable; the zoom button is enabled for the maximize box.
+    static void apply_frame(NSWindow* window, const gui_forms::WindowChrome& chrome,
+                            gui_forms::WindowChromeFields fields) {
+        using gui_forms::WindowChromeField;
+        NSWindowStyleMask mask = window.styleMask;
+        if (fields.contains(WindowChromeField::form_border_style)) {
+            const bool none = chrome.form_border_style == gui_forms::FormBorderStyle::none;
+            const bool sizable = gui_forms::form_border_style_is_sizable(chrome.form_border_style);
+            mask = none ? (mask & ~NSWindowStyleMaskTitled) : (mask | NSWindowStyleMaskTitled);
+            mask = sizable ? (mask | NSWindowStyleMaskResizable) : (mask & ~NSWindowStyleMaskResizable);
+        }
+        if (fields.contains(WindowChromeField::control_box)) {
+            mask = chrome.control_box ? (mask | NSWindowStyleMaskClosable) : (mask & ~NSWindowStyleMaskClosable);
+        }
+        if (fields.contains(WindowChromeField::minimize_box) || fields.contains(WindowChromeField::control_box)) {
+            const bool minimize = chrome.control_box && chrome.minimize_box;
+            mask = minimize ? (mask | NSWindowStyleMaskMiniaturizable) : (mask & ~NSWindowStyleMaskMiniaturizable);
+        }
+        window.styleMask = mask;
+        if (fields.contains(WindowChromeField::maximize_box) || fields.contains(WindowChromeField::control_box)) {
+            NSButton* const zoom = [window standardWindowButton:NSWindowZoomButton];
+            if (zoom != nil) zoom.enabled = chrome.control_box && chrome.maximize_box;
+        }
+    }
+
+    // Centres the window before it is first shown: over its parent window
+    // for center_parent when it has one, else on its screen. The other
+    // positions keep where the window was made.
+    static void apply_start_position(NSWindow* window, gui_forms::FormStartPosition position) {
+        if (position == gui_forms::FormStartPosition::center_parent && window.parentWindow != nil) {
+            const NSRect around = window.parentWindow.frame;
+            const NSRect frame = window.frame;
+            const NSPoint origin = NSMakePoint(NSMidX(around) - frame.size.width / 2.0,
+                                               NSMidY(around) - frame.size.height / 2.0);
+            [window setFrameOrigin:origin];
+            return;
+        }
+        if (position == gui_forms::FormStartPosition::center_screen ||
+            position == gui_forms::FormStartPosition::center_parent) {
+            [window center];
+        }
+    }
+
+    // Normal, minimized (miniaturized) or maximized (zoomed). The request
+    // is applied as it comes, also to a window not yet shown.
+    static void apply_window_state(NSWindow* window, gui_forms::FormWindowState state) {
+        if (state == gui_forms::FormWindowState::minimized) {
+            if (!window.miniaturized) [window miniaturize:nil];
+            return;
+        }
+        if (window.miniaturized) [window deminiaturize:nil];
+        const bool zoom = state == gui_forms::FormWindowState::maximized;
+        if (window.zoomed != zoom) [window zoom:nil];
+    }
+
     struct CursorEntry final {
         gui_forms::CursorImagesPtr images;
         double scale;
@@ -807,6 +934,9 @@ private:
     // The raster view of the window these services belong to; weak, so a
     // view that is gone applies nothing. Set once, by the view's init.
     __weak NSView* backdrop_view_{};
+    // The window's content minimum before MinimumSize was first written.
+    NSSize opened_minimum_{};
+    bool opened_minimum_known_{};
 
     friend void gui_forms::host::detail::bind_macos_backdrop_view(HostServices& services, NSView* raster);
 };

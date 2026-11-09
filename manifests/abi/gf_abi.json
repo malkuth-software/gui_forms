@@ -369,6 +369,126 @@
       "type": "uint32"
     },
     {
+      "name": "GF_OWNED_WINDOW_FLAGS_NONE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_OWNED_WINDOW_TOOL",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_RESULT_NONE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_RESULT_OK",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_RESULT_CANCEL",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_RESULT_ABORT",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_RESULT_RETRY",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_RESULT_IGNORE",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_RESULT_YES",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_RESULT_NO",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_RESULT_TRY_AGAIN",
+      "value": 10,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_RESULT_CONTINUE",
+      "value": 11,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_PROPERTY_TEXT",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_PROPERTY_ICON",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_PROPERTY_FORM_BORDER_STYLE",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_PROPERTY_MINIMIZE_BOX",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_PROPERTY_MAXIMIZE_BOX",
+      "value": 16,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_PROPERTY_CONTROL_BOX",
+      "value": 32,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_PROPERTY_WINDOW_STATE",
+      "value": 64,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_PROPERTY_TOP_MOST",
+      "value": 128,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_PROPERTY_OPACITY",
+      "value": 256,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_PROPERTY_START_POSITION",
+      "value": 512,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_PROPERTY_SHOW_IN_TASKBAR",
+      "value": 1024,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_PROPERTY_MINIMUM_SIZE",
+      "value": 2048,
+      "type": "uint32"
+    },
+    {
       "name": "GF_SCHEMA_KIND_CONTROL",
       "value": 0,
       "type": "uint32"
@@ -1174,6 +1294,41 @@
       "type": "uint32"
     },
     {
+      "name": "GF_ANCHORED_OVERLAY_FLAGS_NONE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_ANCHORED_OVERLAY_ABOVE",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_ANCHORED_OVERLAY_ALIGN_FAR",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_ANCHORED_OVERLAY_NO_FLIP",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_ANCHORED_OVERLAY_KEEP_ON_CLICK_AWAY",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_ANCHORED_OVERLAY_KEEP_ON_ESCAPE",
+      "value": 16,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_ANCHORED_OVERLAY_TAKE_FOCUS",
+      "value": 32,
+      "type": "uint32"
+    },
+    {
       "name": "GF_CUSTOM_BASE_SCROLLABLE_CONTROL",
       "value": 0,
       "type": "uint32"
@@ -1550,6 +1705,18 @@
       "type": "uint32_t"
     },
     {
+      "name": "gf_owned_window_flags",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dialog_result_code",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_window_property_flags",
+      "type": "uint32_t"
+    },
+    {
       "name": "gf_schema_kind",
       "type": "uint32_t"
     },
@@ -1659,6 +1826,10 @@
     },
     {
       "name": "gf_text_decoration_fields",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_anchored_overlay_flags",
       "type": "uint32_t"
     },
     {
@@ -3170,7 +3341,7 @@
     {
       "name": "gf_run_options",
       "kind": "extensible",
-      "size": 64,
+      "size": 80,
       "align": 8,
       "fields": [
         {
@@ -3220,13 +3391,87 @@
           "type": "const gf_callback*",
           "offset": 56,
           "size": 8
+        },
+        {
+          "name": "minimum_width",
+          "type": "double",
+          "offset": 64,
+          "size": 8
+        },
+        {
+          "name": "minimum_height",
+          "type": "double",
+          "offset": 72,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_owned_window_options",
+      "kind": "extensible",
+      "size": 72,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "flags",
+          "type": "gf_owned_window_flags",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "title",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "width",
+          "type": "double",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "height",
+          "type": "double",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "owner",
+          "type": "gf_object",
+          "offset": 40,
+          "size": 8
+        },
+        {
+          "name": "ready",
+          "type": "const gf_callback*",
+          "offset": 48,
+          "size": 8
+        },
+        {
+          "name": "closing",
+          "type": "const gf_callback*",
+          "offset": 56,
+          "size": 8
+        },
+        {
+          "name": "closed",
+          "type": "const gf_callback*",
+          "offset": 64,
+          "size": 8
         }
       ]
     },
     {
       "name": "gf_windows_table",
       "kind": "table",
-      "size": 64,
+      "size": 96,
       "align": 8,
       "fields": [
         {
@@ -3372,6 +3617,94 @@
               {
                 "name": "down",
                 "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "show_modal",
+          "type": "function",
+          "offset": 64,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "root",
+                "type": "gf_object"
+              },
+              {
+                "name": "options",
+                "type": "const gf_owned_window_options*"
+              },
+              {
+                "name": "result",
+                "type": "gf_dialog_result_code*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "show_owned",
+          "type": "function",
+          "offset": 72,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "root",
+                "type": "gf_object"
+              },
+              {
+                "name": "options",
+                "type": "const gf_owned_window_options*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "window_properties",
+          "type": "function",
+          "offset": 80,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window",
+                "type": "gf_object"
+              },
+              {
+                "name": "supported",
+                "type": "gf_window_property_flags*"
+              },
+              {
+                "name": "applied",
+                "type": "gf_window_property_flags*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "focused_control",
+          "type": "function",
+          "offset": 88,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_root",
+                "type": "gf_object"
+              },
+              {
+                "name": "control",
+                "type": "gf_object*"
               }
             ]
           },
@@ -5629,7 +5962,7 @@
     {
       "name": "gf_controls_table",
       "kind": "table",
-      "size": 96,
+      "size": 112,
       "align": 8,
       "fields": [
         {
@@ -5859,6 +6192,50 @@
             ]
           },
           "since": "1.0"
+        },
+        {
+          "name": "focus",
+          "type": "function",
+          "offset": 96,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "focused",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "focus_state",
+          "type": "function",
+          "offset": 104,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "focused",
+                "type": "uint32_t*"
+              },
+              {
+                "name": "contains_focus",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.1"
         }
       ]
     },
@@ -6259,9 +6636,53 @@
       ]
     },
     {
+      "name": "gf_anchored_overlay_options",
+      "kind": "extensible",
+      "size": 40,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "flags",
+          "type": "gf_anchored_overlay_flags",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "width",
+          "type": "double",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "height",
+          "type": "double",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "gap",
+          "type": "double",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "events",
+          "type": "const gf_callback*",
+          "offset": 32,
+          "size": 8
+        }
+      ]
+    },
+    {
       "name": "gf_overlays_table",
       "kind": "table",
-      "size": 48,
+      "size": 64,
       "align": 8,
       "fields": [
         {
@@ -6375,6 +6796,46 @@
             ]
           },
           "since": "1.0"
+        },
+        {
+          "name": "open_anchored",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "anchor",
+                "type": "gf_object"
+              },
+              {
+                "name": "content",
+                "type": "gf_object"
+              },
+              {
+                "name": "options",
+                "type": "const gf_anchored_overlay_options*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "close_anchored",
+          "type": "function",
+          "offset": 56,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "content",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.1"
         }
       ]
     },

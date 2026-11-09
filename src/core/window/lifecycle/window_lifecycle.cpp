@@ -628,6 +628,9 @@ void SurfaceRoot::set_active(bool active) {
         }
     }
     active_changed_.emit(active_);
+    // Reactivated (a modal window over it closed, or the platform gave it
+    // back the keyboard): its last focused control takes focus again.
+    if (active && active_ && root_) static_cast<void>(restore_focus());
 }
 
 // Nothing a control shows depends on the key map yet (no control displays a

@@ -53,6 +53,8 @@ gui_forms::ApplicationWindows
 
       * - :cpp:func:`open_window <gui_forms::ApplicationWindows::open_window>`
         - Opens a window during the run.
+      * - :cpp:func:`show_modal <gui_forms::ApplicationWindows::show_modal>`
+        - Opens ``window`` as open_window does and runs a nested event loop until it closes (HostWindowing::run_modal), as Form.ShowDialog does: the run's other windows refuse user input meanwhile, while posted work, timers and repaint continue everywhere.
       * - :cpp:func:`destroy_window <gui_forms::ApplicationWindows::destroy_window>`
         - Closes and destroys a window without asking its ``closing`` callback: the program has decided.
       * - :cpp:func:`window_at <gui_forms::ApplicationWindows::window_at>`
@@ -175,6 +177,10 @@ gui_forms::ApplicationWindows
       returns. A refusal found before the native request (an invalid entry, an
       unknown owner, a duplicate stable id, the window limit) leaves the entry
       unchanged; after that the entry is consumed.
+
+   .. cpp:function:: ApplicationModalResult show_modal(ApplicationWindow&& window) const
+
+      Opens ``window`` as open_window does and runs a nested event loop until it closes (HostWindowing::run_modal), as Form.ShowDialog does: the run's other windows refuse user input meanwhile, while posted work, timers and repaint continue everywhere. The entry must name an owner (owner_id) and must not be a popup or floating window (invalid_argument). A dialog result other than none set on the window's model while it is open asks the window to close (its closing handler may cancel; the window then stays and the result stays set). Returns after the window's closed callback. Unsupported where the host has no nested loop (supports_modal_windows), refused with modal_limit past HostWindowing::maximum_modal_depth.
 
    .. cpp:function:: HostServiceStatus destroy_window(const ApplicationWindowHandle& window) const
 

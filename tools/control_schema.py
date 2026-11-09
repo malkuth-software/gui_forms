@@ -371,6 +371,12 @@ def _expression_findings(expressions: object) -> list[str]:
     return findings
 
 
+# The window (windows.create's object) follows the registry's types: a
+# component the registry does not list, whose interactions are the subset of
+# Window's events the C ABI declares (window.cpp), not every public event.
+WINDOW_TYPE_ID: str = "window"
+
+
 def validate(schema: Mapping[str, object], registry: control_registry.Registry,
              classes: Mapping[str, ScannedClass]) -> list[str]:
     """Every finding; an empty list means the manifest is consistent."""
@@ -378,6 +384,13 @@ def validate(schema: Mapping[str, object], registry: control_registry.Registry,
     types: list[Mapping[str, object]] = list(schema["types"])  # type: ignore[arg-type]
     registry_ids: list[str] = [record.id for record in registry.records]
     schema_ids: list[str] = [str(record.get("id")) for record in types]
+    if not schema_ids or schema_ids[-1] != WINDOW_TYPE_ID or schema_ids.count(WINDOW_TYPE_ID) != 1:
+        findings.append(f"the schema's last type is not the one {WINDOW_TYPE_ID!r} type")
+    else:
+        window: Mapping[str, object] = types[-1]
+        if window.get("type") != "Window" or window.get("kind") != "component":
+            findings.append(f"{WINDOW_TYPE_ID}: not the component Window")
+        schema_ids = schema_ids[:-1]
     if schema_ids != registry_ids:
         missing: list[str] = [item for item in registry_ids if item not in schema_ids]
         extra: list[str] = [item for item in schema_ids if item not in registry_ids]
@@ -425,6 +438,8 @@ def validate(schema: Mapping[str, object], registry: control_registry.Registry,
         for part in record.get("parts", []):  # type: ignore[union-attr]
             if not _SNAKE.fullmatch(str(part.get("name"))):
                 findings.append(f"{identity}: part {part.get('name')!r} is not snake_case")
+        if identity == WINDOW_TYPE_ID:
+            continue
         expected: list[Interaction] = expected_interactions(str(record.get("type")), classes)
         exported: list[Interaction] = _interactions_of(record)
         if exported != expected:

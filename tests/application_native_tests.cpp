@@ -70,6 +70,51 @@ struct DirectTitleReady final {
         require(title("").accepted(), "direct title empty value rejected");
     }
 };
+// Chrome written before the run reaches the native window when it is
+// created (HostSession applies it at attach): its title, its frame and its
+// boxes, read back from the HWND in the ready callback.
+struct ChromeBeforeRunProbe final {
+    WindowChromeFields written{};
+    WindowChromeFields applied{};
+    bool found{};
+    bool no_maximize_box{};
+    bool fixed_frame{};
+};
+struct ChromeBeforeRunReady final {
+    ChromeBeforeRunProbe* probe{};
+    void operator()(Window& window, ApplicationWindowHandle handle) const {
+        ChromeBeforeRunProbe& state = *probe;
+        state.written = window.written_chrome();
+        state.applied = window.applied_chrome();
+        const HWND native = test_support::own_gui_forms_window(L"GUI.Forms chrome written before the run");
+        state.found = native != nullptr;
+        if (state.found) {
+            const LONG_PTR style = GetWindowLongPtrW(native, GWL_STYLE);
+            state.no_maximize_box = (style & WS_MAXIMIZEBOX) == 0;
+            state.fixed_frame = (style & WS_THICKFRAME) == 0;
+        }
+        require(handle.request_close().accepted(), "chrome fixture close failed");
+    }
+};
+void check_chrome_before_run() {
+    std::unique_ptr<Window> window = make_window();
+    (*window).text = "GUI.Forms chrome written before the run";
+    (*window).form_border_style = FormBorderStyle::fixed_dialog;
+    (*window).maximize_box = false;
+    (*window).start_position = FormStartPosition::center_screen;
+    ChromeBeforeRunProbe probe{};
+    ApplicationWindowOptions options{};
+    options.title = "not the window text";
+    options.initial_size = {360, 240};
+    options.print_metrics_on_close = false;
+    options.ready = ChromeBeforeRunReady{&probe};
+    const ApplicationResult result = test_application().run(std::move(window), std::move(options));
+    if (result.callback_exception) std::rethrow_exception(result.callback_exception);
+    require(result.accepted(), "chrome fixture run failed");
+    require(probe.applied == probe.written, "the chrome written before the run was not all applied");
+    require(probe.found, "the native title is not the window text written before the run");
+    require(probe.no_maximize_box && probe.fixed_frame, "the native frame does not follow the chrome written before the run");
+}
 void check_direct_title_lifetime() {
     std::function<HostServiceStatus(std::string_view)> retained{};
     host::WindowsHostOptions options{};
@@ -613,6 +658,7 @@ void run_checks() {
 #if defined(_WIN32)
     check_direct_title_lifetime();
     check_character_normalization();
+    check_chrome_before_run();
     Probe system_close{};
     system_close.system_close = true;
     const ApplicationResult system_result = run_probe(system_close);

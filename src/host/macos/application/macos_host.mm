@@ -1831,6 +1831,54 @@ static GUIFormsAccessibilityElement* reconcile_accessibility_element(
     return element;
 }
 
+// Main-thread work through the run loop rather than the main dispatch
+// queue. The main queue is serial: while one of its functions runs, a
+// nested event loop inside it (a modal window's, HostWindowing::run_modal)
+// would never see the queue's later work, so posted work, damage
+// collection and close requests would stall until the modal window closed.
+// A perform request on the main thread in the common modes is a run loop
+// source, which the modal session's run loop mode (a common mode) services
+// at any depth. Thread-safe; the target and its context are released after
+// the function runs.
+@interface GUIFormsMainWork : NSObject
+- (instancetype)initWithFunction:(void (*)(void*))function context:(void*)context;
+- (void)perform;
+@end
+
+@implementation GUIFormsMainWork {
+    void (*_function)(void*);
+    void* _context;
+}
+
+- (instancetype)initWithFunction:(void (*)(void*))function context:(void*)context {
+    self = [super init];
+    if (self != nil) {
+        _function = function;
+        _context = context;
+    }
+    return self;
+}
+
+- (void)perform {
+    void (*const function)(void*) = _function;
+    void* const context = _context;
+    _function = nullptr;
+    _context = nullptr;
+    if (function != nullptr) function(context);
+}
+@end
+
+namespace {
+// Runs function(context) on the main thread from the run loop, in the
+// common modes. The function adopts the context as dispatch_async_f's
+// would.
+void post_main_work(void* context, void (*function)(void*)) {
+    GUIFormsMainWork* const work = [[GUIFormsMainWork alloc] initWithFunction:function context:context];
+    NSArray<NSString*>* const modes = @[ NSRunLoopCommonModes ];
+    [work performSelectorOnMainThread:@selector(perform) withObject:nil waitUntilDone:NO modes:modes];
+}
+} // namespace
+
 // Main-queue work without Objective-C blocks (house style section 9, owner
 // decision V2-1). Each posting allocates one named context on the heap and
 // passes it to dispatch_async_f with a named dispatch_function_t; the
@@ -1879,7 +1927,7 @@ public:
     void operator()() const
     {
         WeakViewWork* const work = new WeakViewWork{view_};
-        dispatch_async_f(dispatch_get_main_queue(), work, &drain_posted_work_on_main);
+        post_main_work(work, &drain_posted_work_on_main);
     }
 
 private:
@@ -1894,7 +1942,7 @@ public:
     void operator()() const
     {
         WeakViewWork* const work = new WeakViewWork{view_};
-        dispatch_async_f(dispatch_get_main_queue(), work, &collect_damage_on_main);
+        post_main_work(work, &collect_damage_on_main);
     }
 
 private:
@@ -1914,7 +1962,7 @@ void perform_close_on_main(void* context) {
 
 void post_perform_close(NSWindow* window) {
     WindowWork* const work = new WindowWork{window};
-    dispatch_async_f(dispatch_get_main_queue(), work, &perform_close_on_main);
+    post_main_work(work, &perform_close_on_main);
 }
 } // namespace
 
@@ -4143,7 +4191,7 @@ public:
     void operator()() const
     {
         DispatchAndCollectWork* const work = new DispatchAndCollectWork{view_, dispatch_pending_};
-        dispatch_async_f(dispatch_get_main_queue(), work, &dispatch_and_collect_on_main);
+        post_main_work(work, &dispatch_and_collect_on_main);
     }
 
 private:
@@ -4171,7 +4219,7 @@ public:
     void operator()() const
     {
         WindowWork* const work = new WindowWork{window_};
-        dispatch_async_f(dispatch_get_main_queue(), work, &make_key_and_activate_on_main);
+        post_main_work(work, &make_key_and_activate_on_main);
     }
 
 private:
@@ -4248,7 +4296,7 @@ public:
     explicit RequestNativeFullScreen(NSWindow* window) noexcept : window_(window) {}
     void operator()() const {
         WindowWork* const work = new WindowWork{window_};
-        dispatch_async_f(dispatch_get_main_queue(), work, &toggle_full_screen_on_main);
+        post_main_work(work, &toggle_full_screen_on_main);
     }
 private:
     NSWindow* window_;
@@ -4261,7 +4309,7 @@ public:
     void operator()() const
     {
         WindowWork* const work = new WindowWork{window_};
-        dispatch_async_f(dispatch_get_main_queue(), work, &order_out_on_main);
+        post_main_work(work, &order_out_on_main);
     }
 
 private:
@@ -4461,7 +4509,7 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
             const std::uint32_t closeAttempts =
                 std::max<std::uint32_t>(1, options.close_attempts_for_testing);
             RepeatedCloseWork* const work = new RepeatedCloseWork{nativeWindow, closeAttempts};
-            dispatch_async_f(dispatch_get_main_queue(), work, &repeated_close_on_main);
+            post_main_work(work, &repeated_close_on_main);
         }
         SingleWindowRunEnd ending{view, nativeWindow, &options, &exitCode};
         MacRunEnd end{&end_single_window_run, &ending, false};

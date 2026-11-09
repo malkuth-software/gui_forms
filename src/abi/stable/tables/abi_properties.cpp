@@ -4,6 +4,8 @@
 
 #include "../registry/abi_registry.hpp"
 #include "../values/abi_values.hpp"
+#include "../windows/abi_window_handle.hpp"
+#include "../windows/abi_window_properties.hpp"
 
 #include "gui_forms/binding.hpp"
 
@@ -27,19 +29,41 @@ constexpr SlotIdentity set_slot{GF_TABLE_PROPERTIES, 1U};
 constexpr SlotIdentity reset_slot{GF_TABLE_PROPERTIES, 2U};
 constexpr SlotIdentity element_at_slot{GF_TABLE_PROPERTIES, 3U};
 
-// The live control behind object and the property name, on the UI thread.
-gf_status enter_property(gf_object object, gf_utf8_view name, SlotIdentity slot, Control::Ptr& control,
+// What a property call acts on: a live control, or a window from
+// windows.create (its chrome properties, abi_window_properties.hpp).
+struct PropertyTarget final {
+    Control::Ptr control;
+    Window* window = nullptr;
+};
+
+// The target behind object and the property name, on the UI thread. Any
+// other component is GF_STATUS_WRONG_HANDLE_KIND; a window that has been
+// disposed or whose run has ended is GF_STATUS_DISPOSED.
+gf_status enter_property(gf_object object, gf_utf8_view name, SlotIdentity slot, PropertyTarget& target,
                          std::string_view& property) {
     const gf_status entered = registry().enter_ui(slot, false);
     if (entered != GF_STATUS_OK) {
         return entered;
     }
-    const gf_status found = registry().find_object(object, slot, control);
+    Component::Ptr component;
+    const gf_status found = registry().find_component(object, slot, component);
     if (found != GF_STATUS_OK) {
         return found;
     }
-    if (!(*control).is_alive()) {
-        return fail(GF_STATUS_DISPOSED, slot, "the object has been disposed");
+    const WindowHandle* handle = dynamic_cast<const WindowHandle*>(component.get());
+    if (handle != nullptr) {
+        if (!(*handle).is_alive() || (*handle).window() == nullptr) {
+            return fail(GF_STATUS_DISPOSED, slot, "the window has been disposed or its run has ended");
+        }
+        target.window = (*handle).window();
+    } else {
+        target.control = std::dynamic_pointer_cast<Control>(component);
+        if (!target.control) {
+            return fail(GF_STATUS_WRONG_HANDLE_KIND, slot, "the object is a component, not a control or a window");
+        }
+        if (!(*target.control).is_alive()) {
+            return fail(GF_STATUS_DISPOSED, slot, "the object has been disposed");
+        }
     }
     const gf_status read = read_text(name, slot, property);
     if (read != GF_STATUS_OK) {
@@ -59,12 +83,23 @@ gf_status GF_CALL properties_get(gf_object object, gf_utf8_view name, gf_value* 
         if (checked != GF_STATUS_OK) {
             return checked;
         }
-        Control::Ptr control;
+        PropertyTarget target;
         std::string_view property;
-        const gf_status entered = enter_property(object, name, get_slot, control, property);
+        const gf_status entered = enter_property(object, name, get_slot, target, property);
         if (entered != GF_STATUS_OK) {
             return entered;
         }
+        if (target.window != nullptr) {
+            const WindowPropertyEntry* const chrome = find_window_property(property);
+            if (chrome == nullptr) {
+                return fail(GF_STATUS_NOT_FOUND, get_slot, "a window has no property of that name");
+            }
+            const BindingValue held = window_property_value(*target.window, *chrome);
+            const gf_status written =
+                write_value_output(held, value, text_buffer, text_capacity, text_required, get_slot);
+            return written;
+        }
+        Control::Ptr control = target.control;
         const std::optional<BindingValue> current = (*control).property_value(property);
         if (!current) {
             return fail(GF_STATUS_NOT_FOUND, get_slot, "the control has no readable property of that name");
@@ -80,9 +115,9 @@ gf_status GF_CALL properties_get(gf_object object, gf_utf8_view name, gf_value* 
 gf_status GF_CALL properties_set(gf_object object, gf_utf8_view name, const gf_value* value) noexcept {
     try {
         const ShadowFrameScope shadow_frame(set_slot.table_id, set_slot.slot_index);
-        Control::Ptr control;
+        PropertyTarget target;
         std::string_view property;
-        const gf_status entered = enter_property(object, name, set_slot, control, property);
+        const gf_status entered = enter_property(object, name, set_slot, target, property);
         if (entered != GF_STATUS_OK) {
             return entered;
         }
@@ -91,6 +126,15 @@ gf_status GF_CALL properties_set(gf_object object, gf_utf8_view name, const gf_v
         if (read != GF_STATUS_OK) {
             return read;
         }
+        if (target.window != nullptr) {
+            const WindowPropertyEntry* const chrome = find_window_property(property);
+            if (chrome == nullptr) {
+                return fail(GF_STATUS_NOT_FOUND, set_slot, "a window has no property of that name");
+            }
+            const gf_status written = set_window_property(*target.window, *chrome, converted, set_slot);
+            return written;
+        }
+        Control::Ptr control = target.control;
         const std::optional<PropertyDescriptor> descriptor = (*control).property_descriptor(property);
         if (!descriptor) {
             return fail(GF_STATUS_NOT_FOUND, set_slot, "the control has no property of that name");
@@ -112,12 +156,21 @@ gf_status GF_CALL properties_set(gf_object object, gf_utf8_view name, const gf_v
 gf_status GF_CALL properties_reset(gf_object object, gf_utf8_view name) noexcept {
     try {
         const ShadowFrameScope shadow_frame(reset_slot.table_id, reset_slot.slot_index);
-        Control::Ptr control;
+        PropertyTarget target;
         std::string_view property;
-        const gf_status entered = enter_property(object, name, reset_slot, control, property);
+        const gf_status entered = enter_property(object, name, reset_slot, target, property);
         if (entered != GF_STATUS_OK) {
             return entered;
         }
+        if (target.window != nullptr) {
+            const WindowPropertyEntry* const chrome = find_window_property(property);
+            if (chrome == nullptr) {
+                return fail(GF_STATUS_NOT_FOUND, reset_slot, "a window has no property of that name");
+            }
+            reset_window_property(*target.window, *chrome);
+            return GF_STATUS_OK;
+        }
+        Control::Ptr control = target.control;
         if (!(*control).property_descriptor(property)) {
             return fail(GF_STATUS_NOT_FOUND, reset_slot, "the control has no property of that name");
         }
@@ -140,12 +193,20 @@ gf_status GF_CALL properties_element_at(gf_object object, gf_utf8_view name, std
         if (checked != GF_STATUS_OK) {
             return checked;
         }
-        Control::Ptr control;
+        PropertyTarget target;
         std::string_view property;
-        const gf_status entered = enter_property(object, name, element_at_slot, control, property);
+        const gf_status entered = enter_property(object, name, element_at_slot, target, property);
         if (entered != GF_STATUS_OK) {
             return entered;
         }
+        if (target.window != nullptr) {
+            // No window property is a collection.
+            if (find_window_property(property) == nullptr) {
+                return fail(GF_STATUS_NOT_FOUND, element_at_slot, "a window has no property of that name");
+            }
+            return fail(GF_STATUS_INVALID_ARGUMENT, element_at_slot, "the property is not a collection");
+        }
+        Control::Ptr control = target.control;
         const std::optional<BindingValue> current = (*control).property_value(property);
         if (!current) {
             return fail(GF_STATUS_NOT_FOUND, element_at_slot, "the control has no readable property of that name");

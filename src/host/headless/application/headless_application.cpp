@@ -35,6 +35,11 @@ struct HeadlessRequestClose final {
     HostWindowId window{};
     void operator()() const;
 };
+struct HeadlessRestoreFocus final {
+    HeadlessApplication* application{};
+    HostWindowId window{};
+    void operator()() const;
+};
 struct HeadlessTitle final {
     HeadlessWindowing* windowing{};
     HostWindowId window{};
@@ -70,6 +75,11 @@ struct HeadlessApplicationAccess final {
         const HostServiceStatus status = application.resize(window, client_size);
         return status;
     }
+    static void restore_focus(HeadlessApplication& application, HostWindowId window) {
+        HeadlessApplication::WindowEntry* const found = application.entry(window);
+        if (found == nullptr || !(*found).model) return;
+        static_cast<void>((*(*found).model).restore_focus());
+    }
 };
 
 namespace {
@@ -78,6 +88,9 @@ void HeadlessShow::operator()() const {
 }
 void HeadlessRequestClose::operator()() const {
     HeadlessApplicationAccess::request_close(*application, window);
+}
+void HeadlessRestoreFocus::operator()() const {
+    HeadlessApplicationAccess::restore_focus(*application, window);
 }
 HostServiceStatus HeadlessClientSize::operator()(Size client_size) const {
     const HostServiceStatus status =
@@ -169,6 +182,49 @@ bool HeadlessWindowing::supports_splash_windows() const noexcept {
 
 bool HeadlessWindowing::transient_windows_translucent() const noexcept {
     return translucent_;
+}
+
+bool HeadlessWindowing::supports_modal_windows() const noexcept {
+    const bool supported = static_cast<bool>(modal_turn_);
+    return supported;
+}
+
+bool HeadlessWindowing::input_blocked(HostWindowId window) const noexcept {
+    for (std::size_t index = 0U; index < blocked_.size(); ++index) {
+        if (blocked_[index] == window) return true;
+    }
+    return false;
+}
+
+HostServiceStatus HeadlessWindowing::run_modal_impl(HostWindowId window) {
+    // Blocks every live window that is not `window` or owned by it at any
+    // depth (ownership chains are at most maximum_windows long).
+    const std::size_t blocked_before = blocked_.size();
+    for (std::size_t index = 0U; index < natives_.size(); ++index) {
+        const HostWindowId candidate = natives_[index].id;
+        bool owned_by_modal = false;
+        HostWindowId current = candidate;
+        for (std::size_t depth = 0U; depth <= maximum_windows && current.valid(); ++depth) {
+            if (current == window) {
+                owned_by_modal = true;
+                break;
+            }
+            const std::optional<HostWindowId> next = owner(current);
+            if (!next.has_value()) break;
+            current = *next;
+        }
+        if (!owned_by_modal) blocked_.push_back(candidate);
+    }
+    note("run_modal " + std::to_string(window.value));
+    // The target is copied: a turn may replace it.
+    const std::function<bool(HostWindowId)> turn = modal_turn_;
+    bool quit = false;
+    for (std::size_t count = 0U; count < maximum_modal_turns && !quit && live(window); ++count) {
+        quit = !turn(window);
+    }
+    note("run_modal_end " + std::to_string(window.value));
+    blocked_.resize(blocked_before);
+    return {};
 }
 
 void HeadlessWindowing::create_native(HostWindowId window, std::string_view stable_id,
@@ -616,6 +672,7 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     }
     state.set_title = HeadlessTitle{&windowing_, window.id};
     state.request_client_size = HeadlessClientSize{this, window.id};
+    state.restore_focus = HeadlessRestoreFocus{this, window.id};
     state.frame_changed = window.options.frame_changed;
     entries_.push_back(std::move(created));
 
@@ -675,6 +732,9 @@ void HeadlessApplication::request_close(HostWindowId window) {
 void HeadlessApplication::simulate_user_close(HostWindowId window) {
     WindowEntry* found = entry(window);
     if (found == nullptr) return;
+    // A window under a modal one refuses the user's close, as a disabled
+    // native window does.
+    if (windowing_.input_blocked(window)) return;
     HostCloseRequest request{HostCloseReason::user, false, (*found).options.hide_on_close};
     if ((*found).options.closing) (*found).options.closing(request);
     found = entry(window);

@@ -411,6 +411,40 @@ HostWindowCornersResult HostServices::apply_window_corners_impl(WindowCornerPref
     return refused;
 }
 
+HostWindowChromeResult HostServices::apply_window_chrome(const WindowChrome& chrome, WindowChromeFields fields) {
+    HostWindowChromeResult result{};
+    if (std::this_thread::get_id() != ui_thread_) {
+        result.status = reject(HostServiceError::wrong_thread);
+        return result;
+    }
+    if (snapshot_.shutdown) {
+        result.status = reject(HostServiceError::after_shutdown);
+        return result;
+    }
+    if ((fields.bits & ~WindowChromeFields::all_bits) != 0U) {
+        result.status = reject(HostServiceError::invalid_argument);
+        return result;
+    }
+    const WindowChromeFields wanted{fields.bits & supported_window_chrome().bits};
+    if (wanted.empty()) return result;
+    result = apply_window_chrome_impl(chrome, wanted);
+    // An adapter reports only what it was asked for.
+    result.applied.bits = result.applied.bits & wanted.bits;
+    return result;
+}
+
+WindowChromeFields HostServices::supported_window_chrome() const noexcept {
+    const WindowChromeFields none{};
+    return none;
+}
+
+HostWindowChromeResult HostServices::apply_window_chrome_impl(const WindowChrome& chrome, WindowChromeFields fields) {
+    static_cast<void>(chrome);
+    static_cast<void>(fields);
+    const HostWindowChromeResult nothing{};
+    return nothing;
+}
+
 HostServiceStatus HostServices::validate_request(HostCapability capability) noexcept {
     HostServiceStatus status;
     if (std::this_thread::get_id() != ui_thread_) {

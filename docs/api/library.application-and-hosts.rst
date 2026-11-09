@@ -39,6 +39,8 @@ Related types
      - Everything an application is made with.
    * - :cpp:class:`ApplicationCreateResult <gui_forms::ApplicationCreateResult>`
      - What Application::create gave: an application owned by the caller, with the theme compile's warnings in ``findings``, or a refusal with nothing made and, for theme_refused, the compile's diagnostics.
+   * - :cpp:class:`ApplicationModalResult <gui_forms::ApplicationModalResult>`
+     - What ApplicationWindows::show_modal gives back.
    * - :cpp:class:`ApplicationResult <gui_forms::ApplicationResult>`
      -  
    * - :cpp:class:`ApplicationThemeConfig <gui_forms::ApplicationThemeConfig>`
@@ -183,6 +185,8 @@ Related types
      -  
    * - :cpp:class:`HostWindowAtResult <gui_forms::HostWindowAtResult>`
      - An accepted result whose ``window`` is invalid means no window of this run is the topmost window at the point (the desktop, or another application's window, is).
+   * - :cpp:class:`HostWindowChromeResult <gui_forms::HostWindowChromeResult>`
+     - A chrome request's outcome (HostServices::apply_window_chrome): the status, and which of the requested properties the platform applied.
    * - :cpp:class:`HostWindowCornersResult <gui_forms::HostWindowCornersResult>`
      - A corner request's outcome (HostServices::apply_window_corners): the status, and what the window's corners are afterwards, which the window's band follows.
    * - :cpp:class:`HostWindowDescription <gui_forms::HostWindowDescription>`
@@ -298,6 +302,22 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ApplicationModalResult final
+
+   ``#include <gui_forms/application/application.hpp>``
+
+   What ApplicationWindows::show_modal gives back.
+
+   .. cpp:member:: HostServiceStatus status
+
+      The open's or the nested loop's refusal; accepted once the window has closed (or the run quit during the loop).
+
+   .. cpp:member:: DialogResult dialog_result
+
+      The window's dialog result when it closed: the last value its model (SurfaceRoot::dialog_result) had, or cancel when it closed without one (its close box, a destroy_window), as Form.ShowDialog reports. none when the window never opened. Default: ``{DialogResult::none}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ApplicationResult final
 
    ``#include <gui_forms/application/application.hpp>``
@@ -318,6 +338,14 @@ Related types
       Default: ``{std::numeric_limits<std::size_t>::max()}``.
 
    .. cpp:member:: std::exception_ptr callback_exception
+
+   .. cpp:member:: ApplicationWindowRefusal refusal
+
+      With invalid_argument from validation: why; for below_minimum_size, the refused entry's minimum and initial client sizes. Default: ``{ApplicationWindowRefusal::none}``.
+
+   .. cpp:member:: Size minimum_size
+
+   .. cpp:member:: Size initial_size
 
 .. cpp:namespace:: gui_forms
 
@@ -1375,6 +1403,10 @@ Related types
 
       Asks the platform to shape the window's corners (capability window_corners) and reports what they are afterwards. Refused as unsupported, with unknown corners, without the capability; refused as invalid_argument for a value outside the enumeration. A platform that cannot comply (it rounds regardless, or cannot round) reports its actual corners with ``complied`` false.
 
+   .. cpp:function:: HostWindowChromeResult apply_window_chrome(const WindowChrome& chrome, WindowChromeFields fields)
+
+      Applies the named chrome properties of ``chrome`` to the window (Window's chrome properties): applied lists those the platform honoured; the others leave the native window as it was. Any value passes through as given (Window validates); refused as invalid_argument for a field outside WindowChromeFields, wrong_thread off the UI thread, after_shutdown once shut down. No capability bit: what each host can do is supported_window_chrome.
+
    .. cpp:function:: void shutdown() noexcept
 
       Idempotently enters terminal state on the UI thread and invokes concrete adapter cleanup.
@@ -1393,6 +1425,10 @@ Related types
 
 
    .. rubric:: Extension points
+
+   .. cpp:function:: virtual WindowChromeFields supported_window_chrome() const noexcept
+
+      The chrome properties this host applies; none unless the adapter says so.
 
    .. cpp:function:: virtual CursorCapabilities cursor_capabilities_impl() const noexcept
 
@@ -1517,6 +1553,12 @@ Related types
       *Protected.*
 
       Called with a known preference when the host advertises window_corners. The default refuses as unsupported with unknown corners.
+
+   .. cpp:function:: virtual HostWindowChromeResult apply_window_chrome_impl(const WindowChrome& chrome, WindowChromeFields fields)
+
+      *Protected.*
+
+      Called with fields the host supports (supported_window_chrome), at least one. The default applies nothing.
 
    .. cpp:function:: void publish_tray_icon_event(const HostTrayIconEvent& event)
 
@@ -1928,6 +1970,18 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HostWindowChromeResult final
+
+   ``#include <gui_forms/host/services/host_services.hpp>``
+
+   A chrome request's outcome (HostServices::apply_window_chrome): the status, and which of the requested properties the platform applied.
+
+   .. cpp:member:: HostServiceStatus status
+
+   .. cpp:member:: WindowChromeFields applied
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostWindowCornersResult final
 
    ``#include <gui_forms/host/services/host_services.hpp>``
@@ -2031,6 +2085,10 @@ Related types
 
    .. rubric:: Properties
 
+   .. cpp:function:: std::size_t modal_depth() const noexcept
+
+      The number of run_modal calls under way on the stack.
+
    .. cpp:function:: HostWindowId primary() const noexcept
 
    .. cpp:function:: bool application_active() const noexcept
@@ -2080,6 +2138,10 @@ Related types
    .. cpp:function:: HostServiceStatus query_monitors(HostMonitorResult& result)
 
       As query_monitors, filling ``result`` (its monitor storage reused, so a repeated query on an unchanged table allocates nothing where the adapter fills in place) and returning its status. On a refusal ``result`` holds the status and no monitors.
+
+   .. cpp:function:: HostServiceStatus run_modal(HostWindowId window)
+
+      Runs the platform's event loop nested inside the caller until ``window`` closes, as Form.ShowDialog does: meanwhile the run's other windows that ``window`` does not own refuse user input (the adapter disables them), while posted work, timers, wakes and repaint continue in every window. Returns once ``window`` is no longer live, after its closed callback; the adapter releases the native window after the outer loop turn, never inside this call. When the run is told to quit during the nested loop (the primary window closed, a quit message), the nested loop ends at once and the quit reaches the outer loop, so this may return while ``window`` is still live (the run is ending). Needs runtime_windows and supports_modal_windows() (else unsupported); ``window`` must be live and owned and must not be a popup or floating window (invalid_argument); at most maximum_modal_depth calls nest (modal_limit). A callback inside the loop may call it again for another window.
 
    .. cpp:function:: std::optional<HostWindowId> find(std::string_view stable_id) const noexcept
 
@@ -2152,6 +2214,10 @@ Related types
 
       Whether the run's popup and Splash windows have per-pixel alpha now, so the core may draw a shadow or fade around their content. True unless the adapter says otherwise; an X11 run without a compositing manager reports false and its transient windows stay real windows, opaque, with no shadow or fade (owner, 2026-11-08: Q-S2 (b)).
 
+   .. cpp:function:: virtual bool supports_modal_windows() const noexcept
+
+      Whether the adapter runs a nested event loop for run_modal. False unless the adapter says so; run_modal is then unsupported.
+
    .. cpp:function:: virtual HostWindowFrameResult frame_impl(HostWindowId window) = 0
 
       *Protected.*
@@ -2202,6 +2268,12 @@ Related types
 
       *Protected.*
 
+   .. cpp:function:: virtual HostServiceStatus run_modal_impl(HostWindowId window)
+
+      *Protected.*
+
+      Called only after run_modal's validation, with the depth already counted: disables the other windows, runs nested loop turns until ``window`` is not live or the run quits (handing the quit on to the outer loop), restores the windows it disabled and returns accepted. The default is unsupported, for an adapter whose supports_modal_windows() is false.
+
    .. cpp:member:: constexpr std::size_t maximum_windows
 
       Default: ``64U``.
@@ -2213,6 +2285,10 @@ Related types
    .. cpp:member:: constexpr std::size_t maximum_stable_id_bytes
 
       Default: ``1024U``.
+
+   .. cpp:member:: constexpr std::size_t maximum_modal_depth
+
+      Nested run_modal calls (a modal window over a modal window), as HostServices bounds nested native dialogs. Default: ``8U``.
 
    .. cpp:member:: constexpr double maximum_desktop_coordinate
 
@@ -2353,7 +2429,7 @@ Related types
 
    .. cpp:member:: Size minimum_size
 
-      Default: ``{150.0, 150.0}``.
+      The smallest client size; a side of 0 (the default) sets no minimum there beyond the host's own (ApplicationWindowOptions::minimum_size).
 
    .. cpp:member:: std::string capture_path
 
@@ -2455,7 +2531,7 @@ Related types
 
    .. cpp:member:: Size minimum_size
 
-      Default: ``{150.0, 150.0}``.
+      The smallest client size; a side of 0 (the default) sets no minimum there beyond the host's own (ApplicationWindowOptions::minimum_size).
 
    .. cpp:member:: std::string capture_path
 
@@ -3004,7 +3080,7 @@ Related types
 
    .. cpp:member:: Size minimum_size
 
-      Default: ``{150.0, 150.0}``.
+      The smallest client size; a side of 0 (the default) sets no minimum there beyond the host's own (ApplicationWindowOptions::minimum_size).
 
    .. cpp:member:: std::string capture_path
 
@@ -3166,6 +3242,38 @@ Enumerations
    .. cpp:enumerator:: after_shutdown
 
    .. cpp:enumerator:: windows_alive
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ApplicationWindowRefusal
+
+   ``#include <gui_forms/application/application.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: window_count
+
+   .. cpp:enumerator:: no_model
+
+   .. cpp:enumerator:: invalid_text
+
+   .. cpp:enumerator:: invalid_initial_size
+
+   .. cpp:enumerator:: invalid_minimum_size
+
+   .. cpp:enumerator:: below_minimum_size
+
+   .. cpp:enumerator:: invalid_popup
+
+   .. cpp:enumerator:: invalid_floating
+
+   .. cpp:enumerator:: hidden_primary
+
+   .. cpp:enumerator:: duplicate_stable_id
+
+   .. cpp:enumerator:: invalid_owner
+
+   .. cpp:enumerator:: primary_count
 
 .. cpp:namespace:: gui_forms
 
@@ -3735,6 +3843,14 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/application/application.hpp>``
+
+.. cpp:function:: std::string_view application_window_refusal_text(ApplicationWindowRefusal refusal) noexcept
+
+   A short English sentence for ``refusal``, for logs and the C ABI's failure message. Static storage; empty for none.
 
 .. cpp:namespace:: gui_forms
 

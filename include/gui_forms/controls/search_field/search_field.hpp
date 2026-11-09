@@ -57,6 +57,9 @@ public:
 
     // The inner editor, owned as a child.
     [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept { return editor_; }
+    // Focus on the field goes to its edit part (null without one).
+    // Defined in the source: TextBox is only declared here.
+    [[nodiscard]] Ptr focus_target() const override;
     // Raises search_requested with the query now, dropping a pending one.
     void search_now();
     // Empties the field: raises cleared, then search_requested with the

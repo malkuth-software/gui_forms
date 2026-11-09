@@ -253,7 +253,7 @@ public unsafe struct gf_schema_interaction
     public gf_utf8_view payload;
 }
 
-/// <summary>gf_run_options (extensible, 64 bytes).</summary>
+/// <summary>gf_run_options (extensible, 80 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_run_options
 {
@@ -265,9 +265,26 @@ public unsafe struct gf_run_options
     public gf_callback* ready;
     public gf_callback* closing;
     public gf_callback* closed;
+    public double minimum_width;
+    public double minimum_height;
 }
 
-/// <summary>gf_windows_table (table, 64 bytes).</summary>
+/// <summary>gf_owned_window_options (extensible, 72 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_owned_window_options
+{
+    public uint struct_size;
+    public gf_owned_window_flags flags;
+    public gf_utf8_view title;
+    public double width;
+    public double height;
+    public gf_object owner;
+    public gf_callback* ready;
+    public gf_callback* closing;
+    public gf_callback* closed;
+}
+
+/// <summary>gf_windows_table (table, 96 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_table
 {
@@ -280,6 +297,10 @@ public unsafe struct gf_windows_table
     public delegate* unmanaged[Cdecl]<ulong, gf_schema_interaction*, gf_status> interaction_at;
     public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> request_help;
     public delegate* unmanaged[Cdecl]<gf_object, uint, uint*, gf_status> key_state;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_owned_window_options*, gf_dialog_result_code*, gf_status> show_modal;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_owned_window_options*, gf_status> show_owned;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_window_property_flags*, gf_window_property_flags*, gf_status> window_properties;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_object*, gf_status> focused_control;
 }
 
 /// <summary>gf_schema_type (extensible, 88 bytes).</summary>
@@ -665,7 +686,7 @@ public unsafe struct gf_scroll_snapshot
     public double event_new_value;
 }
 
-/// <summary>gf_controls_table (table, 96 bytes).</summary>
+/// <summary>gf_controls_table (table, 112 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_controls_table
 {
@@ -682,6 +703,8 @@ public unsafe struct gf_controls_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_scroll_orientation, gf_scroll_axis*, gf_status> set_scroll_axis;
     public delegate* unmanaged[Cdecl]<gf_object, gf_object, gf_status> scroll_into_view;
     public delegate* unmanaged[Cdecl]<gf_object, gf_logical_rect*, gf_status> invalidate;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> focus;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, uint*, gf_status> focus_state;
 }
 
 /// <summary>gf_text_decoration (record, 56 bytes).</summary>
@@ -722,7 +745,19 @@ public unsafe struct gf_text_editing_table
     public delegate* unmanaged[Cdecl]<gf_object, uint, ulong, gf_text_decoration*, gf_status> decoration_at;
 }
 
-/// <summary>gf_overlays_table (table, 48 bytes).</summary>
+/// <summary>gf_anchored_overlay_options (extensible, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_anchored_overlay_options
+{
+    public uint struct_size;
+    public gf_anchored_overlay_flags flags;
+    public double width;
+    public double height;
+    public double gap;
+    public gf_callback* events;
+}
+
+/// <summary>gf_overlays_table (table, 64 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_overlays_table
 {
@@ -733,6 +768,8 @@ public unsafe struct gf_overlays_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_object, gf_utf8_view, gf_status> set_tool_tip;
     public delegate* unmanaged[Cdecl]<gf_object, gf_object, ulong, gf_status> show_tool_tip;
     public delegate* unmanaged[Cdecl]<gf_object, gf_status> hide_tool_tip;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_object, gf_anchored_overlay_options*, gf_status> open_anchored;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> close_anchored;
 }
 
 /// <summary>gf_property_grid_table (table, 48 bytes).</summary>

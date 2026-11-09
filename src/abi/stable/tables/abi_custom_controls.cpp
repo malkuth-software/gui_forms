@@ -198,8 +198,8 @@ gf_status GF_CALL custom_controls_create(const gf_custom_control_spec* spec, gf_
         if (read_id != GF_STATUS_OK) {
             return read_id;
         }
-        if (id_text.empty()) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, create_slot, "a stable id is not empty");
+        if (!valid_stable_id(id_text)) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, create_slot, stable_id_rule);
         }
         std::vector<CustomPropertyDefinition> definitions;
         const gf_status read = read_spec(*spec, definitions);

@@ -44,6 +44,10 @@ public:
   [[nodiscard]] bool supports_popup_windows() const noexcept override;
   [[nodiscard]] bool supports_splash_windows() const noexcept override;
   [[nodiscard]] bool transient_windows_translucent() const noexcept override;
+  // run_modal's nested loop: Runtime::step turns, with the other windows
+  // marked modal (NativeWindow::modal drops their input, as a retained
+  // dialog does).
+  [[nodiscard]] bool supports_modal_windows() const noexcept override;
 
 protected:
   HostWindowFrameResult frame_impl(HostWindowId window) override;
@@ -56,9 +60,13 @@ protected:
   void query_monitors_into_impl(HostMonitorResult &result) override;
   HostServiceStatus show_impl(HostWindowId window) override;
   HostServiceStatus hide_impl(HostWindowId window) override;
+  HostServiceStatus run_modal_impl(HostWindowId window) override;
 
 private:
   NativeWindow *native(HostWindowId window) noexcept;
+  // Whether `window` is `ancestor` or owned by it at any depth.
+  [[nodiscard]] bool owned_by(HostWindowId window,
+                              HostWindowId ancestor) const noexcept;
   // The child of the root window that holds `window` (the window manager's
   // frame, or the window itself without a reparenting window manager).
   ::Window top_level(::Window window) const;
@@ -105,6 +113,15 @@ protected:
   // `transparent` only for a window made with the ARGB visual, and the
   // materials never (backend_failure, changing nothing).
   HostServiceStatus apply_window_backdrop_impl(WindowBackdrop backdrop) override;
+  // Window's chrome properties through ICCCM and EWMH: WM_NAME and
+  // _NET_WM_NAME, _NET_WM_ICON, _MOTIF_WM_HINTS for the frame and boxes,
+  // _NET_WM_STATE (maximized, above, skip-taskbar) and iconify for the
+  // state, _NET_WM_WINDOW_OPACITY, WM_NORMAL_HINTS for the minimum, and a
+  // centred position before the first map. A tool window frame is the
+  // ordinary frame: X has no smaller one to ask for.
+  [[nodiscard]] WindowChromeFields supported_window_chrome() const noexcept override;
+  HostWindowChromeResult apply_window_chrome_impl(const WindowChrome &chrome,
+                                                  WindowChromeFields fields) override;
   HostServiceStatus set_custom_cursor_impl(const CursorImagesPtr&, const CursorImage&) override;
   void shutdown_impl() noexcept override;
   HostServiceStatus set_pointer_capture_impl(bool captured,
@@ -196,6 +213,14 @@ public:
   // change, and when the host's own override-redirect fallback toggles. A
   // refused report is tried again on the next change.
   void report_window_state();
+  // Writes _NET_WM_STATE from the wanted states (skip-taskbar for utility
+  // windows and Window's ShowInTaskbar, above for TopMost, maximized for
+  // WindowState) while the window is unmapped: a window manager drops the
+  // property when a window is withdrawn, so it is written before every map.
+  void restate_wm_state();
+  // The client area's least size: Window's MinimumSize where a side is
+  // written non-zero, else the size the window opened with.
+  [[nodiscard]] Size minimum_size() const noexcept;
   HostDialogResult dialog(const HostDialogRequest &request);
   // The window's frame in desktop units (pixels): the client area at its
   // root position, and the outer frame from _NET_FRAME_EXTENTS when the
@@ -244,6 +269,14 @@ public:
   // puts it back (a window manager may place a remapped window anew).
   std::optional<Rect> hidden_content;
   bool modal{};
+  // Window's chrome properties the host keeps for restate_wm_state and
+  // minimum_size; shown_once is set at the first map (a start position
+  // applies only before it).
+  bool chrome_top_most{};
+  bool chrome_skip_taskbar{};
+  FormWindowState chrome_window_state{FormWindowState::normal};
+  Size chrome_minimum_size{};
+  bool shown_once{};
   bool frame_capture_completed{};
   bool frame_capture_saved{};
   bool cursor_set{};

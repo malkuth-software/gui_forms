@@ -51,6 +51,8 @@ public:
     void down_button();
 
     [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept { return editor_; }
+    // Focus on the field goes to its edit part (null without one).
+    [[nodiscard]] Ptr focus_target() const override { return editor_; }
     // Raised after the selection changes, with the new selection.
     [[nodiscard]] Event<std::optional<std::size_t>>& selected_index_changed() noexcept {
         return selected_index_changed_;
