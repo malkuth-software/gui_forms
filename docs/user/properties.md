@@ -107,7 +107,7 @@ the expression that indexes it: you cannot keep the indexed result. A grid's
 beside it, for code that needs another type:
 
 ```cpp
-const std::string shown = (*clear).visible.as_type(gf::types::string);    // "true" or "false"
+const std::string shown = (*clear).visible.as_type(gf::types::string);    // the value as text
 const std::uint64_t order = (*clear).tab_index.as_type(gf::types::uint64); // a widening, never a narrowing
 const gf::PropertyType described = (*clear).visible.type();              // the runtime description
 const std::optional<gf::BindingValue> converted = (*clear).visible.as_type(described);
