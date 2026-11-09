@@ -145,6 +145,8 @@ Related types
      - The input the bar grants its effect: none, the pointer, or the pointer and keys.
    * - :cpp:class:`ProgressBarEffectSeedCapability <gui_forms::ProgressBarEffectSeedCapability>`
      - The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce.
+   * - :cpp:class:`ProgressBarMotionPolicyCapability <gui_forms::ProgressBarMotionPolicyCapability>`
+     - Whether the bar's animation and effects move: disabled or paused stops them, keeping the phase; reduced swaps motion for a still form.
    * - :cpp:class:`ProgressBarOverlayStyleChoiceCapability <gui_forms::ProgressBarOverlayStyleChoiceCapability>`
      - The overlay drawn over the bar: none or moving stripes.
    * - :cpp:class:`ProgressBarStripeWidthCapability <gui_forms::ProgressBarStripeWidthCapability>`
@@ -949,7 +951,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ProgressBarCapabilities : public ProgressBarVisualStyleChoiceCapability<Declaring>, public ProgressBarOverlayStyleChoiceCapability<Declaring>, public ProgressBarStripeWidthCapability<Declaring>, public ProgressBarAppearanceCapability<Declaring>, public ProgressBarAnimationEnabledCapability<Declaring>, public ProgressBarAnimationPeriodCapability<Declaring>, public ProgressBarEffectCapability<Declaring>, public ProgressBarEffectSeedCapability<Declaring>, public ProgressBarEffectInputCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ProgressBarCapabilities : public ProgressBarVisualStyleChoiceCapability<Declaring>, public ProgressBarOverlayStyleChoiceCapability<Declaring>, public ProgressBarStripeWidthCapability<Declaring>, public ProgressBarAppearanceCapability<Declaring>, public ProgressBarAnimationEnabledCapability<Declaring>, public ProgressBarAnimationPeriodCapability<Declaring>, public ProgressBarEffectCapability<Declaring>, public ProgressBarEffectSeedCapability<Declaring>, public ProgressBarEffectInputCapability<Declaring>, public ProgressBarMotionPolicyCapability<Declaring>
 
    ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
 
@@ -993,6 +995,10 @@ Related types
    .. cpp:member:: EffectInputKind effect_input
 
       The input the bar grants its effect: none, the pointer, or the pointer and keys. The bar never takes focus, so a key grant delivers nothing.
+
+   .. cpp:member:: MotionPolicy motion_policy
+
+      Whether the bar's animation and effects move: disabled or paused stops them, keeping the phase; reduced swaps motion for a still form. A view onto the bar's policy; effective_motion_policy adds the window's reduced-motion setting.
 
 .. cpp:namespace:: gui_forms
 
@@ -1044,6 +1050,23 @@ Related types
    .. cpp:member:: PropertyCell<std::optional<std::uint64_t>, ProgressBarEffectSeedCapability<Declaring>> effect_seed
 
       Default: ``{std::nullopt}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarMotionPolicyCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   Whether the bar's animation and effects move: disabled or paused stops them, keeping the phase; reduced swaps motion for a still form. A view onto the bar's policy; effective_motion_policy adds the window's reduced-motion setting.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarMotionPolicyCapability& capability, MotionPolicy incoming)
+
+   .. cpp:function:: static MotionPolicy read(const ProgressBarMotionPolicyCapability& capability)
+
+   .. cpp:member:: PropertyView<MotionPolicy, ProgressBarMotionPolicyCapability<Declaring>> motion_policy
 
 .. cpp:namespace:: gui_forms
 

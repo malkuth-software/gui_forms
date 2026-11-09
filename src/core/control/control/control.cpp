@@ -427,8 +427,9 @@ void Control::set_cursor_property_value(const BindingValue& value) {
 
 BindingValue Control::classes_property_value() const {
     std::vector<BindingValue> names{};
-    names.reserve(classes_.size());
-    for (const std::string& name : classes_) names.emplace_back(name);
+    const std::vector<std::string>& current = classes.read();
+    names.reserve(current.size());
+    for (const std::string& name : current) names.emplace_back(name);
     BindingValue value{make_property_collection("String", BindingValueKind::text, std::move(names))};
     return value;
 }
@@ -442,7 +443,7 @@ void Control::set_classes_property_value(const BindingValue& value) {
     std::vector<std::string> names{};
     names.reserve(items.size());
     for (const BindingValue& item : items) names.push_back(std::get<std::string>(item));
-    set_classes(std::move(names));
+    classes = std::move(names);
 }
 
 BindingValue Control::back_color_property_value() const {
@@ -1461,9 +1462,14 @@ ControlVisualContext Control::visual_context(
     return result;
 }
 
-void Control::set_tag(std::any tag) {
+void Control::write_view(const decltype(tag)&, std::any incoming) {
     require_mutable();
-    tag_ = std::move(tag);
+    tag_ = std::move(incoming);
+}
+
+std::any Control::read_view(const decltype(tag)&) const {
+    std::any held = tag_;
+    return held;
 }
 
 namespace {
@@ -1920,12 +1926,18 @@ void Control::set_style(ControlStyles style, bool enabled) {
     styles_ = static_cast<ControlStyles>(updated);
 }
 
-void Control::set_double_buffered(bool enabled) {
+void Control::write_view(const decltype(double_buffered)&, bool incoming) {
     require_mutable();
     // Keep the two historical buffering requests synchronized. They are
     // compatibility facts; coherent retained release remains unconditional.
     set_style(ControlStyles::double_buffer | ControlStyles::optimized_double_buffer,
-              enabled);
+              incoming);
+}
+
+bool Control::read_view(const decltype(double_buffered)&) const {
+    const bool buffered = has_style(ControlStyles::double_buffer) ||
+                          has_style(ControlStyles::optimized_double_buffer);
+    return buffered;
 }
 
 namespace {
@@ -2860,13 +2872,12 @@ void Control::send_to_back() {
     }
 }
 
-void Control::set_focusable(bool focusable) {
+void Control::prepare_write(const decltype(focusable)&, bool&) {
     require_mutable();
-    if (focusable_ == focusable) {
-        return;
-    }
-    focusable_ = focusable;
-    if (surface_root_ && !focusable) {
+}
+
+void Control::written(const decltype(focusable)&) {
+    if (surface_root_ && !focusable.read()) {
         (*surface_root_).on_eligibility_changed(shared_from_this());
     }
     if (!is_alive()) {
@@ -2885,19 +2896,21 @@ bool Control::perform_validation(Control* destination, bool bulk) {
     return true;
 }
 
-void Control::set_classes(std::vector<std::string> classes) {
+void Control::prepare_write(const decltype(classes)&, std::vector<std::string>& value) {
     require_mutable();
     std::vector<std::string> unique;
-    unique.reserve(classes.size());
-    for (std::string& name : classes) {
+    unique.reserve(value.size());
+    for (std::string& name : value) {
         if (!valid_style_class_name(name)) {
             throw std::invalid_argument("GUI.Forms style class names are lowercase letters, digits, '-' and '_'");
         }
         const bool repeated = std::find(unique.begin(), unique.end(), name) != unique.end();
         if (!repeated) unique.push_back(std::move(name));
     }
-    if (unique == classes_) return;
-    classes_ = std::move(unique);
+    value = std::move(unique);
+}
+
+void Control::written(const decltype(classes)&) {
     invalidate(Dirty::style | Dirty::paint | refresh_text_font());
     // A rule with ancestor compounds reads these classes from every
     // descendant (selector step 4): they resolve again.
@@ -2912,23 +2925,25 @@ bool Control::reads_ancestors() const noexcept {
 
 void Control::restyle_descendants() {
     // The tree is finite and acyclic, so the walk ends; each child's own
-    // font is resolved again, as set_classes does for the control itself.
+    // font is resolved again, as the classes capability does for the control itself.
     for (const Ptr& child : children_) {
         (*child).invalidate(Dirty::style | Dirty::paint | (*child).refresh_text_font());
         (*child).restyle_descendants();
     }
 }
 
-void Control::set_ceremonial(bool ceremonial) {
+void Control::prepare_write(const decltype(ceremonial)&, bool&) {
     require_mutable();
-    if (ceremonial_ == ceremonial) return;
-    ceremonial_ = ceremonial;
+}
+
+// The ambient effects' area cap is decided per part over the whole subtree.
+void Control::written(const decltype(ceremonial)&) {
     invalidate_subtree(Dirty::paint);
 }
 
 bool Control::on_ceremonial_surface() const noexcept {
     for (const Control* current = this; current != nullptr;) {
-        if ((*current).ceremonial_) return true;
+        if ((*current).ceremonial.read()) return true;
         const std::shared_ptr<Control> parent = (*current).parent_.lock();
         current = parent.get();
     }
@@ -2941,22 +2956,24 @@ bool Control::add_class(std::string_view name) {
         throw std::invalid_argument("GUI.Forms style class names are lowercase letters, digits, '-' and '_'");
     }
     if (has_class(name)) return false;
-    classes_.emplace_back(name);
-    invalidate(Dirty::style | Dirty::paint | refresh_text_font());
+    std::vector<std::string> next = classes.read();
+    next.emplace_back(name);
+    classes = std::move(next);
     return true;
 }
 
 bool Control::remove_class(std::string_view name) {
     require_mutable();
-    const std::vector<std::string>::iterator found = std::find(classes_.begin(), classes_.end(), name);
-    if (found == classes_.end()) return false;
-    classes_.erase(found);
-    invalidate(Dirty::style | Dirty::paint | refresh_text_font());
+    std::vector<std::string> next = classes.read();
+    const std::vector<std::string>::iterator found = std::find(next.begin(), next.end(), name);
+    if (found == next.end()) return false;
+    next.erase(found);
+    classes = std::move(next);
     return true;
 }
 
 bool Control::has_class(std::string_view name) const noexcept {
-    for (const std::string& present : classes_) {
+    for (const std::string& present : classes.read()) {
         if (present == name) return true;
     }
     return false;
@@ -3855,7 +3872,7 @@ std::vector<SemanticNode> Control::semantic_virtual_children() const {
 }
 
 bool Control::on_semantic_action(SemanticAction action, std::string_view) {
-    if (action == SemanticAction::focus && surface_root_ != nullptr && focusable_) {
+    if (action == SemanticAction::focus && surface_root_ != nullptr && focusable.read()) {
         return (*surface_root_).request_focus(shared_from_this());
     }
     return false;

@@ -78,6 +78,10 @@ Related types
      - Top, right, bottom and left, CSS's shorthand order.
    * - :cpp:class:`CausesValidationCapability <gui_forms::CausesValidationCapability>`
      - Whether leaving the control starts validation (CausesValidation).
+   * - :cpp:class:`CeremonialCapability <gui_forms::CeremonialCapability>`
+     - Whether the control is a ceremonial surface (GIVEN B3-1): on it and its descendants the theme engine's ambient effects may cover more than 10 % of the window.
+   * - :cpp:class:`ClassesCapability <gui_forms::ClassesCapability>`
+     - Style classes (T2 plan, E4) a theme's class rules select, in order, without duplicates; 1 to 64 lowercase ASCII letters, digits, '-' and '_', starting with a letter (std::invalid_argument, nothing changed).
    * - :cpp:class:`CollapsedMargin <gui_forms::CollapsedMargin>`
      - A set of adjoining vertical margins (8.3.1): the largest positive margin and the most negative one; the collapsed margin is their sum.
    * - :cpp:class:`ComponentContainer <gui_forms::ComponentContainer>`
@@ -106,6 +110,8 @@ Related types
      - Position of an application-defined state in its control type's declaration list.
    * - :cpp:class:`DockCapability <gui_forms::DockCapability>`
      - The parent edge the control docks to (Dock).
+   * - :cpp:class:`DoubleBufferedCapability <gui_forms::DoubleBufferedCapability>`
+     - Windows Forms DoubleBuffered: a view over the double_buffer and optimized_double_buffer style bits, kept together; retained release is coherent either way.
    * - :cpp:class:`EnabledCapability <gui_forms::EnabledCapability>`
      - Whether the control receives ordinary user input (Enabled).
    * - :cpp:class:`FlexAvailableExtent <gui_forms::FlexAvailableExtent>`
@@ -130,6 +136,8 @@ Related types
      - One flex line, its items being order[first, first + count).
    * - :cpp:class:`FlexMargin <gui_forms::FlexMargin>`
      - One margin as the solver reads it: a resolved length, or ``auto``.
+   * - :cpp:class:`FocusableCapability <gui_forms::FocusableCapability>`
+     - Whether the control may receive focus; turning it off while attached gives up eligibility (focus moves on).
    * - :cpp:class:`FontCapability <gui_forms::FontCapability>`
      - The font of the control's text (Font).
    * - :cpp:class:`ForeColorCapability <gui_forms::ForeColorCapability>`
@@ -246,6 +254,8 @@ Related types
      - The control's place in its parent's tab order (TabIndex).
    * - :cpp:class:`TabStopCapability <gui_forms::TabStopCapability>`
      - Whether the Tab key stops at the control (TabStop).
+   * - :cpp:class:`TagCapability <gui_forms::TagCapability>`
+     - Application-owned metadata or lifetime anchor (Windows Forms Tag).
    * - :cpp:class:`TextCapability <gui_forms::TextCapability>`
      - The text the control shows (Text).
    * - :cpp:class:`ToolTipTextCapability <gui_forms::ToolTipTextCapability>`
@@ -756,6 +766,36 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> CeremonialCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Whether the control is a ceremonial surface (GIVEN B3-1): on it and its descendants the theme engine's ambient effects may cover more than 10 % of the window. A theme never sets it; a change repaints the subtree.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CeremonialCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, CeremonialCapability<Declaring>> ceremonial
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ClassesCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Style classes (T2 plan, E4) a theme's class rules select, in order, without duplicates; 1 to 64 lowercase ASCII letters, digits, '-' and '_', starting with a letter (std::invalid_argument, nothing changed). Repeated names are dropped.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ClassesCapability& capability, std::vector<std::string> incoming)
+
+   .. cpp:member:: PropertyCell<std::vector<std::string>, ClassesCapability<Declaring>> classes
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: CollapsedMargin final
 
    ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>``
@@ -928,7 +968,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public JustifySelfCapability<Declaring>, public AlignSelfCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public JustifySelfCapability<Declaring>, public AlignSelfCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>, public CeremonialCapability<Declaring>, public TagCapability<Declaring>, public FocusableCapability<Declaring>, public DoubleBufferedCapability<Declaring>, public ClassesCapability<Declaring>
 
    ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
 
@@ -1037,6 +1077,26 @@ Related types
 
       The description assistive technology announces.
 
+   .. cpp:member:: bool ceremonial
+
+      Whether the control is a ceremonial surface (GIVEN B3-1): on it and its descendants the theme engine's ambient effects may cover more than 10 % of the window. A theme never sets it; a change repaints the subtree.
+
+   .. cpp:member:: std::any tag
+
+      Application-owned metadata or lifetime anchor (Windows Forms Tag). Deliberately inert: a write implies no rendering, layout, semantics or binding, and stores even an equal value. A view onto the control's std::any, which has no ==.
+
+   .. cpp:member:: bool focusable
+
+      Whether the control may receive focus; turning it off while attached gives up eligibility (focus moves on).
+
+   .. cpp:member:: bool double_buffered
+
+      Windows Forms DoubleBuffered: a view over the double_buffer and optimized_double_buffer style bits, kept together; retained release is coherent either way.
+
+   .. cpp:member:: std::vector<std::string> classes
+
+      Style classes (T2 plan, E4) a theme's class rules select, in order, without duplicates; 1 to 64 lowercase ASCII letters, digits, '-' and '_', starting with a letter (std::invalid_argument, nothing changed). Repeated names are dropped.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: ControlFactory
@@ -1121,6 +1181,23 @@ Related types
    .. cpp:member:: PropertyCell<DockStyle, DockCapability<Declaring>> dock
 
       Default: ``{DockStyle::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DoubleBufferedCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Windows Forms DoubleBuffered: a view over the double_buffer and optimized_double_buffer style bits, kept together; retained release is coherent either way.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DoubleBufferedCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const DoubleBufferedCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, DoubleBufferedCapability<Declaring>> double_buffered
 
 .. cpp:namespace:: gui_forms
 
@@ -1394,6 +1471,21 @@ Related types
    .. cpp:member:: double length
 
    .. cpp:member:: bool automatic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FocusableCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Whether the control may receive focus; turning it off while attached gives up eligibility (focus moves on).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FocusableCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, FocusableCapability<Declaring>> focusable
 
 .. cpp:namespace:: gui_forms
 
@@ -2457,6 +2549,23 @@ Related types
    .. cpp:member:: PropertyCell<bool, TabStopCapability<Declaring>> tab_stop
 
       Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TagCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Application-owned metadata or lifetime anchor (Windows Forms Tag). Deliberately inert: a write implies no rendering, layout, semantics or binding, and stores even an equal value. A view onto the control's std::any, which has no ==.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TagCapability& capability, std::any incoming)
+
+   .. cpp:function:: static std::any read(const TagCapability& capability)
+
+   .. cpp:member:: PropertyView<std::any, TagCapability<Declaring>> tag
 
 .. cpp:namespace:: gui_forms
 

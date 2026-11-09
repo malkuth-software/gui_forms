@@ -598,12 +598,12 @@ void combo_drop_down_style() {
     Window& window = *fixture.window;
     ComboBox& combo = *fixture.combo;
     combo.selected_index = 1U;
-    require(!combo.editor() && combo.text.read() == "California" && combo.focusable(),
+    require(!combo.editor() && combo.text.read() == "California" && combo.focusable.read(),
             "a new combo box is a drop-down list with no editor");
     combo.drop_down_style = ComboBoxStyle::drop_down;
     const std::shared_ptr<TextBox> editor = combo.editor();
     require(editor && (*editor).text.read() == "California" && combo.selected_index.read() == 1U &&
-                !combo.focusable() && window.find("combo.edit.editor") == editor,
+                !combo.focusable.read() && window.find("combo.edit.editor") == editor,
             "the drop_down style adds an editor showing the selected item");
     window.perform_layout();
     const Rect field = (*editor).absolute_bounds();
@@ -638,7 +638,7 @@ void combo_drop_down_style() {
     require(press(window, PhysicalKey::f4) && combo.dropped_down.read() && window.focus_scope_depth() == 0U &&
                 window.focused_control() == editor,
             "F4 opens the list without taking the focus from the editor");
-    require(!(*window.find("combo.edit.overlay.list")).focusable(), "the open list never takes the focus");
+    require(!(*window.find("combo.edit.overlay.list")).focusable.read(), "the open list never takes the focus");
     require(press(window, PhysicalKey::up) && combo.selected_index.read() == 2U && combo.dropped_down.read() &&
                 (*std::static_pointer_cast<ListBox>(window.find("combo.edit.overlay.list"))).selected_index() == 2U,
             "Up moves through the open list and the field shows each item");
@@ -683,7 +683,7 @@ void combo_drop_down_style() {
     require(combo.selected_index.read() == 0U, "new items are matched against the text");
 
     combo.drop_down_style = ComboBoxStyle::drop_down_list;
-    require(!combo.editor() && !window.find("combo.edit.editor") && combo.focusable() &&
+    require(!combo.editor() && !window.find("combo.edit.editor") && combo.focusable.read() &&
                 combo.selected_index.read() == 0U && combo.text.read() == "Somewhere",
             "back in the drop_down_list style the editor is gone and the selection kept");
 }

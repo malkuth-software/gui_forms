@@ -18,11 +18,11 @@ namespace gui_forms {
 // Each is a standard-layout struct whose only member is its property's
 // cell, taken by the declaring class as a base. A write
 // `(*control).x = value;` runs `assign`: the declaring class's
-// prepare_write hook (require_mutable first, then the value's checks and,
-// where C# lets a subclass rewrite the value, the protected virtual coerce
-// hook), the compare and store, then the written hook (the touch, side
-// effects and the change event, through the protected virtual
-// on_<property>_changed() where Windows Forms has OnXChanged). A read is
+// prepare_write hook (require_mutable first, then the value's checks), the
+// compare and store, then the written hook (the touch, side effects and the
+// change event, through the protected virtual on_<property>_changed() where
+// Windows Forms has an overridable On<Property>Changed; other properties
+// have no hook, and a subclass subscribes to their change events instead). A read is
 // `(*control).x.read()`.
 
 // The value command whose value the selection follows, which a click or Enter commits and which receives previews, or null. Without one the gallery keeps its own selection and offers no preview.
@@ -94,12 +94,30 @@ struct RibbonGalleryColumnsCapability {
     }
 };
 
+// The selected item's ID: the command's value, or the gallery's own selection; a write selects without committing (the command's set_value) and throws std::invalid_argument for an ID the gallery does not have. A view onto the command or the gallery's own selection.
+template <typename Declaring>
+struct RibbonGallerySelectedIdCapability {
+    PropertyView<std::optional<std::string>, RibbonGallerySelectedIdCapability<Declaring>> selected_id;
+
+    static void assign(RibbonGallerySelectedIdCapability& capability, std::optional<std::string> incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.selected_id), std::move(incoming));
+    }
+
+    static std::optional<std::string> read(const RibbonGallerySelectedIdCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::optional<std::string> current = control.read_view(capability.selected_id);
+        return current;
+    }
+};
+
 // Every RibbonGallery capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct RibbonGalleryCapabilities : public RibbonGalleryCommandCapability<Declaring>,
                                    public RibbonGalleryItemSizeCapability<Declaring>,
                                    public RibbonGalleryShowLabelsCapability<Declaring>,
                                    public RibbonGalleryVisibleRowsCapability<Declaring>,
-                                   public RibbonGalleryColumnsCapability<Declaring> {};
+                                   public RibbonGalleryColumnsCapability<Declaring>,
+                                   public RibbonGallerySelectedIdCapability<Declaring> {};
 
 } // namespace gui_forms

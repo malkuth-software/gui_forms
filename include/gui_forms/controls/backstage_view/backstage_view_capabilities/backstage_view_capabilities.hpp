@@ -16,11 +16,11 @@ namespace gui_forms {
 // Each is a standard-layout struct whose only member is its property's
 // cell, taken by the declaring class as a base. A write
 // `(*control).x = value;` runs `assign`: the declaring class's
-// prepare_write hook (require_mutable first, then the value's checks and,
-// where C# lets a subclass rewrite the value, the protected virtual coerce
-// hook), the compare and store, then the written hook (the touch, side
-// effects and the change event, through the protected virtual
-// on_<property>_changed() where Windows Forms has OnXChanged). A read is
+// prepare_write hook (require_mutable first, then the value's checks), the
+// compare and store, then the written hook (the touch, side effects and the
+// change event, through the protected virtual on_<property>_changed() where
+// Windows Forms has an overridable On<Property>Changed; other properties
+// have no hook, and a subclass subscribes to their change events instead). A read is
 // `(*control).x.read()`.
 
 // The column's width in logical units at text scale 1 (132 by default). A width outside 48 to 480 throws std::invalid_argument.
@@ -36,8 +36,26 @@ struct BackstageViewColumnWidthCapability {
     }
 };
 
+// The topic whose page shows, or none before the first topic exists. A write past the end throws std::out_of_range; an item that is not a topic, or none, throws std::invalid_argument. A view onto the view's selection.
+template <typename Declaring>
+struct BackstageViewSelectedTopicCapability {
+    PropertyView<std::optional<std::size_t>, BackstageViewSelectedTopicCapability<Declaring>> selected_topic;
+
+    static void assign(BackstageViewSelectedTopicCapability& capability, std::optional<std::size_t> incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.selected_topic), std::move(incoming));
+    }
+
+    static std::optional<std::size_t> read(const BackstageViewSelectedTopicCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::optional<std::size_t> current = control.read_view(capability.selected_topic);
+        return current;
+    }
+};
+
 // Every BackstageView capability, in the order the declaring class takes them.
 template <typename Declaring>
-struct BackstageViewCapabilities : public BackstageViewColumnWidthCapability<Declaring> {};
+struct BackstageViewCapabilities : public BackstageViewColumnWidthCapability<Declaring>,
+                                   public BackstageViewSelectedTopicCapability<Declaring> {};
 
 } // namespace gui_forms

@@ -369,7 +369,7 @@ void grid_sends_its_cells_to_its_region() {
         added.cells = {BindingValue{row + "c0"}, BindingValue{row + "c1"}, BindingValue{row + "c2"}};
         static_cast<void>((*grid).rows.append(std::move(added)));
     }
-    (*grid).set_allow_user_to_add_rows(false);
+    (*grid).allow_user_to_add_rows = false;
     (*grid).cells_on_sub_surface = true;
     TextRaster raster(log);
     Window window(grid, Size{300.0, 200.0});
@@ -379,7 +379,7 @@ void grid_sends_its_cells_to_its_region() {
     const std::span<const Control::Ptr> children = (*grid).children();
     if (!children.empty()) host = std::dynamic_pointer_cast<SubSurfaceHost>(children[0]);
     require(static_cast<bool>(host), "the cell region is the grid's first child");
-    require((*host).hit_test_transparent.read() && !(*host).focusable(),
+    require((*host).hit_test_transparent.read() && !(*host).focusable.read(),
             "the region leaves hit testing and focus to the grid");
     require((*host).started(), "the region starts once the grid is arranged in a window");
     // The grid publishes its cells; the region adds no "Sub-surface" pane

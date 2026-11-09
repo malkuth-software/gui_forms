@@ -265,7 +265,7 @@ void sizing_modes() {
     (*tabs).size_mode = TabSizeMode::normal;
     (*tabs).alignment = TabAlignment::left;
     window.perform_layout();
-    (*tabs).set_selected_index(1U);
+    (*tabs).selected_index = 1U;
     window.perform_layout();
     const Rect side = (*tabs).tab_bounds(1U);
     require(near(side.x + side.width, 90.0) && side.height > side.width,
@@ -281,7 +281,7 @@ void overflow_keeps_the_selection_in_view() {
     window.perform_layout();
     require((*tabs).overflowing() && (*tabs).tab_bounds(29U).empty() && !(*tabs).tab_bounds(0U).empty(),
             "thirty tabs in 300 units overflow; the last is out of view");
-    (*tabs).set_selected_index(29U);
+    (*tabs).selected_index = 29U;
     window.perform_layout();
     require(!(*tabs).tab_bounds(29U).empty() && (*tabs).tab_bounds(29U).right() <= 300.0,
             "selecting the last page brings its tab into view");
@@ -300,18 +300,18 @@ void strip_is_internal() {
     Window window(tabs, {400.0, 200.0});
     window.perform_layout();
     const Control::Ptr strip = window.find("tabs.strip");
-    require(strip && !(*strip).focusable(), "the strip is a child that takes no focus");
+    require(strip && !(*strip).focusable.read(), "the strip is a child that takes no focus");
     const std::string json = window.semantic_snapshot().to_json();
     require(json.find("tabs.strip") == std::string::npos && json.find("tabs.2.tab") != std::string::npos,
             "the strip publishes nothing; the control publishes the tabs");
     click(window, centre((*tabs).tab_bounds(2U)));
-    require((*tabs).selected_index() == 2U && window.focused_control() == tabs,
+    require((*tabs).selected_index.read() == 2U && window.focused_control() == tabs,
             "a click on a tab selects it and focuses the control");
     require(window.request_focus(Control::Ptr{}), "focus can be cleared");
     click(window, centre((*tabs).tab_bounds(2U)));
     require(window.focused_control() == tabs, "a click on the selected tab focuses the control too");
-    require(window.dispatch_key(key(PhysicalKey::left)) && (*tabs).selected_index() == 1U &&
-                window.dispatch_key(key(PhysicalKey::end)) && (*tabs).selected_index() == 2U,
+    require(window.dispatch_key(key(PhysicalKey::left)) && (*tabs).selected_index.read() == 1U &&
+                window.dispatch_key(key(PhysicalKey::end)) && (*tabs).selected_index.read() == 2U,
             "the focused control's arrows and End select through the strip");
 }
 
@@ -325,13 +325,13 @@ void keys_and_commands() {
                 !window.dispatch_key(key(PhysicalKey::context_menu)) &&
                 !window.dispatch_key(key(PhysicalKey::page_down, Modifier::control | Modifier::shift)),
             "close, a tab's context menu and moving a tab are left to the controls around it");
-    require(window.dispatch_key(key(PhysicalKey::page_down, Modifier::control)) && (*tabs).selected_index() == 1U,
+    require(window.dispatch_key(key(PhysicalKey::page_down, Modifier::control)) && (*tabs).selected_index.read() == 1U,
             "Ctrl+PageDown selects the next page");
     window.rebind_key_command(KeyCommand::cycle_forward, {{PhysicalKey::j, Modifier::control}, {}});
-    require(window.dispatch_key(key(PhysicalKey::j, Modifier::control)) && (*tabs).selected_index() == 2U,
+    require(window.dispatch_key(key(PhysicalKey::j, Modifier::control)) && (*tabs).selected_index.read() == 2U,
             "the control follows a rebound cycle_forward");
     static_cast<void>(window.dispatch_key(key(PhysicalKey::tab, Modifier::control)));
-    require((*tabs).selected_index() == 2U, "Ctrl+Tab no longer cycles once cycle_forward is rebound");
+    require((*tabs).selected_index.read() == 2U, "Ctrl+Tab no longer cycles once cycle_forward is rebound");
 }
 
 // A TabControl inside a document page: Ctrl+Tab belongs to the most local
@@ -355,14 +355,14 @@ void inside_a_document_view() {
     TakeClose take{&closes};
     SubscriptionToken closing = (*(*view).strip()).page_close_requested().subscribe(take);
     require(window.request_focus(inner), "the inner control takes focus");
-    require(window.dispatch_key(key(PhysicalKey::tab, Modifier::control)) && (*inner).selected_index() == 1U &&
-                (*outer).selected_index() == 0U,
+    require(window.dispatch_key(key(PhysicalKey::tab, Modifier::control)) && (*inner).selected_index.read() == 1U &&
+                (*outer).selected_index.read() == 0U,
             "Ctrl+Tab goes to the most local TabControl");
     require(window.dispatch_key(key(PhysicalKey::f4, Modifier::control)) && closes == 1U,
             "Ctrl+F4 passes through the tab controls to the document view");
     require(window.request_focus(outer), "the outer control takes focus");
-    require(window.dispatch_key(key(PhysicalKey::tab, Modifier::control)) && (*outer).selected_index() == 1U &&
-                (*inner).selected_index() == 1U,
+    require(window.dispatch_key(key(PhysicalKey::tab, Modifier::control)) && (*outer).selected_index.read() == 1U &&
+                (*inner).selected_index.read() == 1U,
             "with the focus outside the inner control, the outer one cycles");
 }
 
@@ -375,12 +375,12 @@ void host_map_keeps_ctrl_tab() {
                                  HostCapability::keyboard_input, map});
     window.perform_layout();
     require(window.request_focus(tabs), "the control takes focus");
-    require(window.dispatch_key(key(PhysicalKey::tab, Modifier::control)) && (*tabs).selected_index() == 1U,
+    require(window.dispatch_key(key(PhysicalKey::tab, Modifier::control)) && (*tabs).selected_index.read() == 1U,
             "under the macOS map Ctrl+Tab still cycles");
     require(!window.dispatch_key(key(PhysicalKey::w, Modifier::meta)),
             "Cmd+W is a document's close, not the control's");
     static_cast<void>(window.dispatch_key(key(PhysicalKey::tab, Modifier::meta)));
-    require((*tabs).selected_index() == 1U, "Meta+Tab is not a tab key");
+    require((*tabs).selected_index.read() == 1U, "Meta+Tab is not a tab key");
 }
 
 std::size_t paint_allocations(std::size_t page_count) {

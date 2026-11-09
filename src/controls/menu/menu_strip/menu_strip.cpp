@@ -36,7 +36,7 @@ MenuStrip::MenuStrip(StableId stable_id)
     : Control(std::move(stable_id)),
       overlay_(std::make_unique<ContextMenu>(
           std::string((*this).stable_id().value()) + ".menu")) {
-    set_focusable(true);
+    focusable = true;
     cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
     // This owner retains the overlay and subscriptions. Bound handlers borrow
@@ -110,8 +110,14 @@ void MenuStrip::apply_items(std::vector<MenuStripItemSpec> items, bool merged) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-void MenuStrip::set_selected_item_id(std::string_view stable_id) {
+std::string MenuStrip::read_view(const decltype(selected_item_id)&) const {
+    std::string id = selected_item_id_;
+    return id;
+}
+
+void MenuStrip::write_view(const decltype(selected_item_id)&, std::string incoming) {
     require_mutable();
+    const std::string_view stable_id = incoming;
     if (!stable_id.empty()) {
         bool visible = false;
         for (const MenuStripItemSpec& item : items_) {
@@ -126,7 +132,7 @@ void MenuStrip::set_selected_item_id(std::string_view stable_id) {
         }
     }
     if (selected_item_id_ == stable_id) return;
-    selected_item_id_ = stable_id;
+    selected_item_id_ = std::move(incoming);
     invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
 }
 

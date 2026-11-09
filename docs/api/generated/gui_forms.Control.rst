@@ -152,6 +152,34 @@ gui_forms::Control
       **accessible_description** : ``std::string``
          A longer description for assistive technology. Empty by default.
 
+      **ceremonial** : ``bool``, default ``false``
+         Whether the application marks the control's surface ceremonial, as an
+         installer's or a first run's world (T2, decision B3-1). On it and its
+         descendants the theme engine's ambient effects may cover more than the
+         everyday 10 % of the window; nothing else changes. A theme never sets
+         it. A change repaints the control and its descendants.
+
+      **tag** : ``std::any``
+         Any value the application wants to attach, stored as ``std::any`` with its
+         exact type. The toolkit never reads it; it is released when the control
+         is disposed.
+
+      **focusable** : ``bool``, default ``false``
+         Whether the control can take keyboard focus. Interactive stock controls
+         such as buttons and text boxes turn it on.
+
+      **double_buffered** : ``bool``
+         Whether both buffering styles are set. GUI.Forms always presents whole
+         composited frames, so the flag changes nothing visible.
+
+      **classes** : ``std::vector<std::string>``, default empty
+         The style classes a theme's class rules select (T2 cascade), in the order
+         they were added, each once. A name is 1 to 64 lowercase ASCII letters,
+         digits, '-' and '_', starting with a letter. Assigning a list replaces
+         them, drops repeated names and throws ``std::invalid_argument``, changing
+         nothing, for an invalid name; :cpp:func:`add_class <gui_forms::Control::add_class>` and :cpp:func:`remove_class <gui_forms::Control::remove_class>` change one.
+         A change repaints the control.
+
       **runtime_id** : ``RuntimeId``, read-only
          A process-local number, unique among the controls of one process run.
          Use it for fast lookup within a run, for example with :cpp:func:`remove_child <gui_forms::Control::remove_child>`;
@@ -159,11 +187,6 @@ gui_forms::Control
 
       **stable_id** : ``StableId``, read-only
          The identity given at construction. It never changes.
-
-      **tag** : ``std::any``
-         Any value the application wants to attach, stored as ``std::any`` with its
-         exact type. The toolkit never reads it; it is released when the control
-         is disposed.
 
       **parent** : ``Ptr``, read-only
          The control this one is a child of, or null. A child refers to its
@@ -284,25 +307,9 @@ gui_forms::Control
          section of an expandable list. It hides the control like :cpp:member:`visible <gui_forms::Control::visible>`
          false, without changing :cpp:member:`visible <gui_forms::Control::visible>`.
 
-      **focusable** : ``bool``, default ``false``
-         Whether the control can take keyboard focus. Interactive stock controls
-         such as buttons and text boxes turn it on.
-
       **styles** : ``ControlStyles``, read-only
          The :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags kept for Windows Forms compatibility;
          :cpp:func:`set_style <gui_forms::Control::set_style>` changes them.
-
-      **double_buffered** : ``bool``
-         Whether both buffering styles are set. GUI.Forms always presents whole
-         composited frames, so the flag changes nothing visible.
-
-      **classes** : ``std::span<const std::string>``
-         The style classes a theme's class rules select (T2 cascade), in the order
-         they were added, each once. A name is 1 to 64 lowercase ASCII letters,
-         digits, '-' and '_', starting with a letter. :cpp:func:`set_classes <gui_forms::Control::set_classes>` replaces them
-         and throws ``std::invalid_argument``, changing nothing, for an invalid
-         name; :cpp:func:`add_class <gui_forms::Control::add_class>` and :cpp:func:`remove_class <gui_forms::Control::remove_class>` change one. A change repaints
-         the control.
 
       **inline_style** : ``std::string_view``
          The inline style's text in force; empty without one.
@@ -310,15 +317,8 @@ gui_forms::Control
       **inline_style_rules** : ``CompiledThemeRules*``, read-only
          Its compiled rules (CompiledThemeRules::compile_inline), or null without one; the cascade reads them for this control alone.
 
-      **ceremonial** : ``bool``, default ``false``
-         Whether the application marks the control's surface ceremonial, as an
-         installer's or a first run's world (T2, decision B3-1). On it and its
-         descendants the theme engine's ambient effects may cover more than the
-         everyday 10 % of the window; nothing else changes. A theme never sets
-         it. A change repaints the control and its descendants.
-
       **on_ceremonial_surface** : ``bool``, read-only
-         Whether this control or one of its ancestors is marked :cpp:func:`ceremonial <gui_forms::Control::ceremonial>`.
+         Whether this control or one of its ancestors is marked :cpp:member:`ceremonial <gui_forms::Control::ceremonial>`.
 
       **effective_cursor_images** : ``CursorImagesPtr``, read-only
 
@@ -543,7 +543,7 @@ gui_forms::Control
       * - :cpp:func:`has_style <gui_forms::Control::has_style>`
         - Whether every flag of a :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` mask is set.
       * - :cpp:func:`add_class <gui_forms::Control::add_class>`
-        - Adds or removes one class; false when the class was already there (or absent).
+        - tag, focusable, double_buffered (a view over the two buffering style bits) and classes (style classes, T2 plan E4; valid_style_class_name) are capabilities (control_capabilities.hpp).
       * - :cpp:func:`remove_class <gui_forms::Control::remove_class>`
         -  
       * - :cpp:func:`has_class <gui_forms::Control::has_class>`
@@ -872,6 +872,39 @@ gui_forms::Control
 
       A longer description for assistive technology. Empty by default.
 
+   .. cpp:member:: bool ceremonial
+
+      Whether the application marks the control's surface ceremonial, as an
+      installer's or a first run's world (T2, decision B3-1). On it and its
+      descendants the theme engine's ambient effects may cover more than the
+      everyday 10 % of the window; nothing else changes. A theme never sets
+      it. A change repaints the control and its descendants.
+
+   .. cpp:member:: std::any tag
+
+      Any value the application wants to attach, stored as ``std::any`` with its
+      exact type. The toolkit never reads it; it is released when the control
+      is disposed.
+
+   .. cpp:member:: bool focusable
+
+      Whether the control can take keyboard focus. Interactive stock controls
+      such as buttons and text boxes turn it on.
+
+   .. cpp:member:: bool double_buffered
+
+      Whether both buffering styles are set. GUI.Forms always presents whole
+      composited frames, so the flag changes nothing visible.
+
+   .. cpp:member:: std::vector<std::string> classes
+
+      The style classes a theme's class rules select (T2 cascade), in the order
+      they were added, each once. A name is 1 to 64 lowercase ASCII letters,
+      digits, '-' and '_', starting with a letter. Assigning a list replaces
+      them, drops repeated names and throws ``std::invalid_argument``, changing
+      nothing, for an invalid name; :cpp:func:`add_class <gui_forms::Control::add_class>` and :cpp:func:`remove_class <gui_forms::Control::remove_class>` change one.
+      A change repaints the control.
+
    .. cpp:function:: RuntimeId runtime_id() const noexcept
 
       A process-local number, unique among the controls of one process run.
@@ -881,16 +914,6 @@ gui_forms::Control
    .. cpp:function:: const StableId& stable_id() const noexcept
 
       The identity given at construction. It never changes.
-
-   .. cpp:function:: const std::any& tag() const noexcept
-
-      Any value the application wants to attach, stored as ``std::any`` with its
-      exact type. The toolkit never reads it; it is released when the control
-      is disposed.
-
-   .. cpp:function:: void set_tag(std::any tag)
-
-      Sets :cpp:func:`tag <gui_forms::Control::tag>`; see the property's description above.
 
    .. cpp:function:: Ptr parent() const noexcept
 
@@ -1056,41 +1079,10 @@ gui_forms::Control
       section of an expandable list. It hides the control like :cpp:member:`visible <gui_forms::Control::visible>`
       false, without changing :cpp:member:`visible <gui_forms::Control::visible>`.
 
-   .. cpp:function:: bool focusable() const noexcept
-
-      Whether the control can take keyboard focus. Interactive stock controls
-      such as buttons and text boxes turn it on.
-
-   .. cpp:function:: void set_focusable(bool focusable)
-
-      Sets :cpp:func:`focusable <gui_forms::Control::focusable>`; see the property's description above.
-
    .. cpp:function:: ControlStyles styles() const noexcept
 
       The :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags kept for Windows Forms compatibility;
       :cpp:func:`set_style <gui_forms::Control::set_style>` changes them.
-
-   .. cpp:function:: bool double_buffered() const noexcept
-
-      Whether both buffering styles are set. GUI.Forms always presents whole
-      composited frames, so the flag changes nothing visible.
-
-   .. cpp:function:: void set_double_buffered(bool enabled)
-
-      Sets :cpp:func:`double_buffered <gui_forms::Control::double_buffered>`; see the property's description above.
-
-   .. cpp:function:: std::span<const std::string> classes() const noexcept
-
-      The style classes a theme's class rules select (T2 cascade), in the order
-      they were added, each once. A name is 1 to 64 lowercase ASCII letters,
-      digits, '-' and '_', starting with a letter. :cpp:func:`set_classes <gui_forms::Control::set_classes>` replaces them
-      and throws ``std::invalid_argument``, changing nothing, for an invalid
-      name; :cpp:func:`add_class <gui_forms::Control::add_class>` and :cpp:func:`remove_class <gui_forms::Control::remove_class>` change one. A change repaints
-      the control.
-
-   .. cpp:function:: void set_classes(std::vector<std::string> classes)
-
-      Sets :cpp:func:`classes <gui_forms::Control::classes>`; see the property's description above.
 
    .. cpp:function:: std::string_view inline_style() const noexcept
 
@@ -1104,21 +1096,9 @@ gui_forms::Control
 
       Its compiled rules (CompiledThemeRules::compile_inline), or null without one; the cascade reads them for this control alone.
 
-   .. cpp:function:: bool ceremonial() const noexcept
-
-      Whether the application marks the control's surface ceremonial, as an
-      installer's or a first run's world (T2, decision B3-1). On it and its
-      descendants the theme engine's ambient effects may cover more than the
-      everyday 10 % of the window; nothing else changes. A theme never sets
-      it. A change repaints the control and its descendants.
-
-   .. cpp:function:: void set_ceremonial(bool ceremonial)
-
-      Sets :cpp:func:`ceremonial <gui_forms::Control::ceremonial>`; see the property's description above.
-
    .. cpp:function:: bool on_ceremonial_surface() const noexcept
 
-      Whether this control or one of its ancestors is marked :cpp:func:`ceremonial <gui_forms::Control::ceremonial>`.
+      Whether this control or one of its ancestors is marked :cpp:member:`ceremonial <gui_forms::Control::ceremonial>`.
 
    .. cpp:function:: CursorImagesPtr effective_cursor_images() const noexcept
 
@@ -1449,7 +1429,7 @@ gui_forms::Control
 
    .. cpp:function:: bool add_class(std::string_view name)
 
-      Adds or removes one class; false when the class was already there (or absent). An invalid name throws std::invalid_argument.
+      tag, focusable, double_buffered (a view over the two buffering style bits) and classes (style classes, T2 plan E4; valid_style_class_name) are capabilities (control_capabilities.hpp). Adds or removes one style class; false when the class was already there (or absent). An invalid name throws std::invalid_argument.
 
    .. cpp:function:: bool remove_class(std::string_view name)
 

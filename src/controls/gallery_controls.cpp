@@ -307,7 +307,7 @@ void GalleryContext::attach(GalleryWindow& gallery_window)
     GalleryWindow& gallery = gallery_window;
 
     // What the form language does not state yet.
-    (*pages.gallery_default_button).set_default_button(true);
+    (*pages.gallery_default_button).default_button = true;
     (*pages.gallery_radio_classic).group_name = "gallery.style-mode";
     (*pages.gallery_radio_quiet).group_name = "gallery.style-mode";
     (*pages.gallery_slider).small_change = 1.0;

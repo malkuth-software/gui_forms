@@ -351,7 +351,7 @@ CommandOverflowPanel::LayoutResult CommandOverflowPanel::layout_groups(
                 tracks, measured, std::max(0.0, inner.width - reserved),
                 group_gap.read(), device_scale);
             if (alternative.tracks[*focused_track].collapsed() &&
-                (*actuator).focusable() && (*owner).request_focus(actuator)) {
+                (*actuator).focusable.read() && (*owner).request_focus(actuator)) {
                 resolution = std::move(alternative);
             }
         }

@@ -56,6 +56,11 @@ gui_forms::RibbonGallery
          lowers one column at a time (owner decision RB-8). ``set_columns`` outside
          the range throws ``std::out_of_range``.
 
+      **selected_id** : ``std::optional<std::string>``
+         The selected item's ID: the command's value, or the gallery's own.
+         Assigning an ID selects without committing; an unknown ID throws
+         ``std::invalid_argument``.
+
       **form** : ``RibbonGalleryForm``, read-only
          The form, fixed at construction.
 
@@ -67,11 +72,6 @@ gui_forms::RibbonGallery
          category show first, then category by category in category order. A
          repeated ID or one that breaks the :cpp:class:`StableId <gui_forms::StableId>` segment rule, an item
          naming an unknown category, or invalid UTF-8 throws
-         ``std::invalid_argument``.
-
-      **selected_id** : ``std::optional<std::string>``
-         The selected item's ID: the command's value, or the gallery's own.
-         :cpp:func:`set_selected_id <gui_forms::RibbonGallery::set_selected_id>` selects without committing; an unknown ID throws
          ``std::invalid_argument``.
 
       **minimum_columns** : ``std::size_t``, default ``1``, read-only
@@ -248,6 +248,12 @@ gui_forms::RibbonGallery
       lowers one column at a time (owner decision RB-8). ``set_columns`` outside
       the range throws ``std::out_of_range``.
 
+   .. cpp:member:: std::optional<std::string> selected_id
+
+      The selected item's ID: the command's value, or the gallery's own.
+      Assigning an ID selects without committing; an unknown ID throws
+      ``std::invalid_argument``.
+
    .. cpp:function:: RibbonGalleryForm form() const noexcept
 
       The form, fixed at construction.
@@ -267,16 +273,6 @@ gui_forms::RibbonGallery
    .. cpp:function:: void set_items(std::vector<RibbonGalleryCategory> categories, std::vector<RibbonGalleryItem> items)
 
       Sets :cpp:func:`items <gui_forms::RibbonGallery::items>`; see the property's description above.
-
-   .. cpp:function:: std::optional<std::string> selected_id() const
-
-      The selected item's ID: the command's value, or the gallery's own.
-      :cpp:func:`set_selected_id <gui_forms::RibbonGallery::set_selected_id>` selects without committing; an unknown ID throws
-      ``std::invalid_argument``.
-
-   .. cpp:function:: void set_selected_id(std::optional<std::string> item_id)
-
-      Sets :cpp:func:`selected_id <gui_forms::RibbonGallery::selected_id>`; see the property's description above.
 
    .. cpp:function:: std::size_t minimum_columns() const noexcept
 

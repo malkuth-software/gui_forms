@@ -251,6 +251,27 @@
         "written: grant the effect instance the input, invalidate"
       ],
       "sample": "EffectInputKind::pointer"
+    },
+    {
+      "name": "motion_policy",
+      "capability": "ProgressBarMotionPolicy",
+      "value": "MotionPolicy",
+      "initial": null,
+      "comment": "Whether the bar's animation and effects move: disabled or paused stops them, keeping the phase; reduced swaps motion for a still form. A view onto the bar's policy; effective_motion_policy adds the window's reduced-motion setting.",
+      "getter": "motion_policy",
+      "setter": "set_motion_policy",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "MotionPolicy{true, true, false}",
+      "storage": "view",
+      "hand": [
+        "a view onto motion_policy_: write_view keeps set_motion_policy's timer registration and invalidation; set_animation_paused, set_reduced_motion and the two-flag overload were read-modify-write shorthands over it and are removed"
+      ]
     }
   ],
   "not_properties": [],

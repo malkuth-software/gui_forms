@@ -180,7 +180,7 @@ void DockSite::release_workspace() noexcept {
         collapsed_.clear();
         sync_side_strips();
         if (is_alive()) {
-            set_focusable(false);
+            focusable = false;
             invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
         }
     } catch (...) {
@@ -1179,7 +1179,7 @@ void DockSite::finish_layout_pass(const PreviousPass& previous, Size surface, bo
     if (moved) invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
     // The site takes focus (for its seams) only while it has some, and while
     // a drag runs (for its keys).
-    set_focusable(!seams_.empty() || drag_.phase != DockDragPhase::idle);
+    focusable = !seams_.empty() || drag_.phase != DockDragPhase::idle;
     for (StackSlot& slot : stacks_) supply_content(slot);
     if (drag_layer_) set_child_layout(drag_layer_, Rect{0.0, 0.0, surface.width, surface.height});
     if (drag_.phase == DockDragPhase::dragging) plan_drag_targets();

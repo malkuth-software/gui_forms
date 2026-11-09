@@ -157,13 +157,13 @@ allow_drop : default ``false``
 hit_test_transparent : default ``false``
     Whether pointer input passes through the control to what lies beneath.
     The control is still painted, and its children are still hit tested.
-classes
+classes : default empty
     The style classes a theme's class rules select (T2 cascade), in the order
     they were added, each once. A name is 1 to 64 lowercase ASCII letters,
-    digits, '-' and '_', starting with a letter. `set_classes` replaces them
-    and throws `std::invalid_argument`, changing nothing, for an invalid
-    name; `add_class` and `remove_class` change one. A change repaints
-    the control.
+    digits, '-' and '_', starting with a letter. Assigning a list replaces
+    them, drops repeated names and throws `std::invalid_argument`, changing
+    nothing, for an invalid name; `add_class` and `remove_class` change one.
+    A change repaints the control.
 ceremonial : default ``false``
     Whether the application marks the control's surface ceremonial, as an
     installer's or a first run's world (T2, decision B3-1). On it and its

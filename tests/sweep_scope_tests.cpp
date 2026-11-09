@@ -99,7 +99,7 @@ void properties() {
     std::shared_ptr<SweepScope> scope = make_control<SweepScope>(StableId("scope.properties"));
     require((*scope).caption.read() == "LEVEL", "the caption defaults to LEVEL");
     require((*scope).sweep_period.read() == std::chrono::microseconds(1'234'568), "the sweep crosses in about 1.23 s");
-    require(!(*scope).focusable(), "the scope takes no focus");
+    require(!(*scope).focusable.read(), "the scope takes no focus");
     (*scope).set_property_value("caption", BindingValue{std::string("GAIN")});
     require((*scope).caption.read() == "GAIN", "the caption property sets the caption");
     (*scope).set_property_value("sweep_period", BindingValue{2.5});

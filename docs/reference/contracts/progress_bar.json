@@ -20,34 +20,6 @@
       "reviewed": false,
       "summary": "Constructs a non-focusable, non-hit-testable range visualization with progress semantics."
     },
-    "gui_forms::ProgressBar::animation_paused|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether application policy currently freezes phase."
-    },
-    "gui_forms::ProgressBar::set_animation_paused|void (bool)": {
-      "reviewed": false,
-      "summary": "Toggles pause state without discarding deterministic phase."
-    },
-    "gui_forms::ProgressBar::reduced_motion|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports the local compatibility override for reduced motion."
-    },
-    "gui_forms::ProgressBar::set_reduced_motion|void (bool)": {
-      "reviewed": false,
-      "summary": "Toggles the local override and reconciles effective animation registration."
-    },
-    "gui_forms::ProgressBar::set_motion_policy|void (bool, bool)": {
-      "reviewed": false,
-      "summary": "Installs or clears an explicit policy override instead of inheriting the Window policy."
-    },
-    "gui_forms::ProgressBar::set_motion_policy|void (MotionPolicy)": {
-      "reviewed": false,
-      "summary": "Installs or clears an explicit policy override instead of inheriting the Window policy."
-    },
-    "gui_forms::ProgressBar::motion_policy|MotionPolicy () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the optional caller-authored motion-policy override."
-    },
     "gui_forms::ProgressBar::effective_motion_policy|MotionPolicy () const noexcept": {
       "reviewed": false,
       "summary": "Resolves local compatibility state, explicit override, and attached Window policy into one behavior."

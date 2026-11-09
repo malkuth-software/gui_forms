@@ -526,8 +526,8 @@ void GridPanel::set_style_property(const BindingValue& value) {
     template_columns = grid.template_columns;
     template_rows = grid.template_rows;
     auto_flow = grid.auto_flow;
-    set_auto_columns(grid.auto_columns);
-    set_auto_rows(grid.auto_rows);
+    auto_columns = grid.auto_columns;
+    auto_rows = grid.auto_rows;
     justify_content = read.alignment.justify_content;
     align_content = read.alignment.align_content;
     justify_items = read.alignment.justify_items;
@@ -866,24 +866,34 @@ GridAutoFlow GridPanel::read_view(const decltype(auto_flow)&) const {
     return style_.auto_flow;
 }
 
-void GridPanel::set_auto_columns(std::span<const GridTrackSize> sizes) {
+void GridPanel::write_view(const decltype(auto_columns)&, std::vector<GridTrackSize> incoming) {
     require_mutable();
-    if (sizes.empty() || sizes.size() > maximum_grid_tracks || !admitted_track_sizes(sizes)) {
+    if (incoming.empty() || incoming.size() > maximum_grid_tracks || !admitted_track_sizes(incoming)) {
         throw std::invalid_argument("GridPanel auto columns need one to 10000 admitted track sizes");
     }
-    if (std::equal(sizes.begin(), sizes.end(), style_.auto_columns.begin(), style_.auto_columns.end())) return;
-    style_.auto_columns.assign(sizes.begin(), sizes.end());
+    if (style_.auto_columns == incoming) return;
+    style_.auto_columns = std::move(incoming);
     invalidate(invalidation::bounds);
 }
 
-void GridPanel::set_auto_rows(std::span<const GridTrackSize> sizes) {
+std::vector<GridTrackSize> GridPanel::read_view(const decltype(auto_columns)&) const {
+    std::vector<GridTrackSize> sizes = style_.auto_columns;
+    return sizes;
+}
+
+void GridPanel::write_view(const decltype(auto_rows)&, std::vector<GridTrackSize> incoming) {
     require_mutable();
-    if (sizes.empty() || sizes.size() > maximum_grid_tracks || !admitted_track_sizes(sizes)) {
+    if (incoming.empty() || incoming.size() > maximum_grid_tracks || !admitted_track_sizes(incoming)) {
         throw std::invalid_argument("GridPanel auto rows need one to 10000 admitted track sizes");
     }
-    if (std::equal(sizes.begin(), sizes.end(), style_.auto_rows.begin(), style_.auto_rows.end())) return;
-    style_.auto_rows.assign(sizes.begin(), sizes.end());
+    if (style_.auto_rows == incoming) return;
+    style_.auto_rows = std::move(incoming);
     invalidate(invalidation::bounds);
+}
+
+std::vector<GridTrackSize> GridPanel::read_view(const decltype(auto_rows)&) const {
+    std::vector<GridTrackSize> sizes = style_.auto_rows;
+    return sizes;
 }
 
 void GridPanel::set_item_layout(const Control& child, const GridItemLayout& layout) {

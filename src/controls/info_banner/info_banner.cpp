@@ -103,7 +103,7 @@ constexpr ControlAnatomy info_banner_anatomy{
 } // namespace
 
 InfoBanner::InfoBanner(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(closable.read());
+    focusable = closable.read();
 }
 
 Control::Ptr InfoBanner::set_action(Control::Ptr control) {
@@ -381,7 +381,7 @@ void InfoBanner::prepare_write(const decltype(closable)&, bool&) {
 // A banner that stops being closable gives up focus and drops the close
 // mark's hot and pressed visuals (and a pointer capture it held).
 void InfoBanner::written(const decltype(closable)&) {
-    set_focusable(closable.read());
+    focusable = closable.read();
     if (pressed_close_) set_pointer_capture(false);
     hot_close_ = false;
     pressed_close_ = false;

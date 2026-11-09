@@ -4,6 +4,7 @@
 #include "gui_forms/layout/block_flow_solver/block_flow_solver.hpp"
 #include "gui_forms/layout/positioning/positioning.hpp"
 #include "gui_forms/layout/style/layout_style.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/block_panel/block_panel_capabilities/block_panel_capabilities.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -77,7 +78,7 @@ struct BlockFlowSharedMargins final {
 // auto_scroll, is not a formatting-context root: its first and last
 // children's margins collapse with its own where no padding separates them,
 // as nested CSS blocks do. Every other BlockPanel is a root.
-class BlockPanel final : public ContainerControl {
+class BlockPanel final : public ContainerControl, public BlockPanelCapabilities<BlockPanel> {
 public:
     explicit BlockPanel(StableId stable_id);
 
@@ -85,29 +86,12 @@ public:
     // CSS inline style (margin lengths stay the child's own margin).
     [[nodiscard]] std::span<const ChildPropertyEntry> child_property_table() const noexcept override;
 
-    // The line boxes' inline alignment; `start` by default. `justify` is not
-    // admitted.
-    [[nodiscard]] TextAlignment text_align() const noexcept { return text_align_; }
-    void set_text_align(TextAlignment alignment);
-    // The strut every line box starts with (CSS 2.1 section 10.8.1). A set
-    // strut is used as given (a form importer resolves a source's font and
-    // line height to one; a zero strut is a point on the baseline, CSS's
-    // strut of a zero-size font). Unset, the default, it comes from the
-    // panel's font: that font's `line-height: normal` line box
-    // (line_box_metrics) at the effective text scale (coordinator,
-    // 2026-10-26, option (a)). Its values must be finite and nonnegative.
-    [[nodiscard]] std::optional<LineStrut> line_strut() const noexcept { return line_strut_; }
-    void set_line_strut(LineStrut strut);
-    void clear_line_strut();
+    // text_align, line_strut and font are capabilities (block_panel_capabilities).
     // The strut the line boxes use: the set one, or the font's.
     [[nodiscard]] LineStrut used_line_strut() const;
     // The font the panel's inline content is set in, for the strut: the
-    // authored font, or the theme's field typography when none is set.
-    // set_font throws std::invalid_argument for an invalid FontSpec.
-    [[nodiscard]] FontSpec font() const noexcept;
-    [[nodiscard]] bool has_font_override() const noexcept { return font_override_.has_value(); }
-    void set_font(FontSpec font);
-    void clear_font();
+    // panel's font, or the theme's field typography when none is set.
+    [[nodiscard]] FontSpec resolved_font() const noexcept;
 
     // A live direct child's record; throws std::invalid_argument for any
     // other child or for a value the panel does not admit (content keywords,
@@ -198,9 +182,6 @@ private:
     void forget_departed_children();
 
     ItemMap items_{};
-    TextAlignment text_align_{TextAlignment::start};
-    std::optional<LineStrut> line_strut_;
-    std::optional<FontSpec> font_override_;
 
     std::uint64_t pass_{};
     std::vector<Control::Ptr> children_{};
@@ -222,6 +203,18 @@ public:
     static constexpr std::size_t block_panel_property_count = Control::control_property_count + 1U;
     [[nodiscard]] static const std::array<PropertyEntry, block_panel_property_count>& block_panel_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct BlockPanelTextAlignCapability<BlockPanel>;
+    friend struct BlockPanelLineStrutCapability<BlockPanel>;
+    friend struct BlockPanelFontCapability<BlockPanel>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(text_align)& cell, TextAlignment& incoming);
+    void written(const decltype(text_align)& cell);
+    void prepare_write(const decltype(line_strut)& cell, std::optional<LineStrut>& incoming);
+    void written(const decltype(line_strut)& cell);
+    void prepare_write(const decltype(font)& cell, std::optional<FontSpec>& incoming);
+    void written(const decltype(font)& cell);
     // property_codemod end BlockPanel
 };
 

@@ -96,7 +96,7 @@ void erase_day(std::vector<DateTimeValue>& dates, DateTimeValue date) {
 } // namespace
 
 MonthCalendar::MonthCalendar(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(true);
+    focusable = true;
     cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
     system_today_ = system_date();

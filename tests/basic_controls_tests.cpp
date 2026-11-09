@@ -143,7 +143,7 @@ public:
 class FocusSink final : public Control {
 public:
     explicit FocusSink(StableId stable_id) : Control(std::move(stable_id)) {
-        set_focusable(true);
+        focusable = true;
     }
 };
 
@@ -173,7 +173,7 @@ public:
         : button_(std::move(button)) {}
 
     void operator()(ButtonBase&) const {
-        (*button_).set_dialog_result(DialogResult::no);
+        (*button_).dialog_result = DialogResult::no;
     }
 
 private:
@@ -321,7 +321,7 @@ void test_public_controls_render_with_role_policy() {
     (*label).set_requested_bounds({12.0, 24.0, 140.0, 24.0});
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("controls.button"), "Apply");
     (*button).set_requested_bounds({12.0, 54.0, 90.0, 28.0});
-    (*button).set_default_button(true);
+    (*button).default_button = true;
     std::shared_ptr<gui_forms::CheckBox> check = make_control<CheckBox>(StableId("controls.check"), "Checked option");
     (*check).set_requested_bounds({12.0, 88.0, 150.0, 24.0});
     (*check).checked = true;
@@ -713,9 +713,9 @@ void test_mnemonics_and_dialog_buttons_are_retained_commands() {
 
     window.set_accept_button(accept);
     window.set_cancel_button(cancel);
-    require((*accept).default_button() && window.accept_button() == accept &&
+    require((*accept).default_button.read() && window.accept_button() == accept &&
                 window.cancel_button() == cancel &&
-                (*cancel).dialog_result() == DialogResult::cancel,
+                (*cancel).dialog_result.read() == DialogResult::cancel,
             "assigning a Window accept button must retain the target and publish its default cue");
     RecordingPainter mnemonic_painter{};
     (*run).on_paint(mnemonic_painter, (*run).client_rectangle());
@@ -752,7 +752,7 @@ void test_mnemonics_and_dialog_buttons_are_retained_commands() {
 
     SubscriptionToken rejecting =
         (*field).validating().subscribe(CancelValidation());
-    (*accept).set_dialog_result(DialogResult::yes);
+    (*accept).dialog_result = DialogResult::yes;
     std::string dialog_trace{};
     SubscriptionToken accept_order = (*accept).clicked().subscribe(
         callbacks::AppendLiteral<ButtonBase&>(dialog_trace, "click\n"));
@@ -796,7 +796,7 @@ void test_mnemonics_and_dialog_buttons_are_retained_commands() {
 
     bool invalid_result_rejected{};
     try {
-        (*accept).set_dialog_result(static_cast<DialogResult>(8));
+        (*accept).dialog_result = static_cast<DialogResult>(8);
     } catch (const std::invalid_argument&) {
         invalid_result_rejected = true;
     }
@@ -827,14 +827,14 @@ void test_mnemonics_and_dialog_buttons_are_retained_commands() {
     (*replacement).set_requested_bounds({4.0, 68.0, 70.0, 10.0});
     (*root).add_child(replacement);
     window.set_accept_button(replacement);
-    require(!(*accept).default_button() && (*replacement).default_button(),
+    require(!(*accept).default_button.read() && (*replacement).default_button.read(),
             "moving the accept role must revoke the old default cue exactly once");
     (*replacement).dispose();
     require(!window.accept_button(),
             "disposing a dialog target must synchronously clear its retained Window role");
 
     window.set_dialog_result(DialogResult::none);
-    (*accept).set_dialog_result(DialogResult::yes);
+    (*accept).dialog_result = DialogResult::yes;
     SubscriptionToken replace_result_during_click =
         (*accept).clicked().subscribe(ReplaceButtonDialogResult(accept));
     const bool operation_check_44 = (*accept).perform_click();
@@ -1564,10 +1564,10 @@ void test_public_drawing_metrics_and_control_tag() {
         std::shared_ptr<gui_forms::Panel> tagged = make_control<Panel>(StableId("controls.tagged"));
         std::shared_ptr<int> anchor = std::make_shared<int>(42);
         released_anchor = anchor;
-        (*tagged).set_tag(anchor);
+        (*tagged).tag = anchor;
         anchor.reset();
-        const std::shared_ptr<int>* retained =
-            std::any_cast<std::shared_ptr<int>>(&(*tagged).tag());
+        const std::any held = (*tagged).tag.read();
+        const std::shared_ptr<int>* retained = std::any_cast<std::shared_ptr<int>>(&held);
         require(retained != nullptr && **retained == 42,
                 "Control Tag must retain exact type-erased application metadata");
         (*tagged).dispose();
@@ -1663,12 +1663,12 @@ void test_button_disclosure_semantics() {
 
 void test_button_selected_state() {
     std::shared_ptr<Button> button = make_control<Button>(StableId("button.selected"), "Selected tab");
-    require(!(*button).selected() &&
+    require(!(*button).selected.read() &&
                 !has_semantic_state((*button).semantic_descriptor().states,
                                     SemanticState::selected),
             "ordinary Button must begin without selected state");
-    (*button).set_selected(true);
-    require((*button).selected() &&
+    (*button).selected = true;
+    require((*button).selected.read() &&
                 has_semantic_state((*button).semantic_descriptor().states,
                                    SemanticState::selected),
             "retained Button selected state must publish through semantics");

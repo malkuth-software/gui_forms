@@ -103,12 +103,16 @@ Related types
      - Whether icon alignments are mirrored.
    * - :cpp:class:`ErrorProviderSnapshot <gui_forms::ErrorProviderSnapshot>`
      - ErrorProviderSnapshot is a deterministic provider diagnostic aggregate containing every mapped icon record plus authoritative live-error and presented-overlay counts.
+   * - :cpp:class:`ErrorProviderTagCapability <gui_forms::ErrorProviderTagCapability>`
+     - The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal.
    * - :cpp:class:`HelpProviderCapabilities <gui_forms::HelpProviderCapabilities>`
      - Every HelpProvider capability, in the order the declaring class takes them.
    * - :cpp:class:`HelpProviderHelpNamespaceCapability <gui_forms::HelpProviderHelpNamespaceCapability>`
      - The help file or URL the provider's keyword and navigator requests name (Windows Forms' HelpNamespace).
    * - :cpp:class:`HelpProviderSnapshot <gui_forms::HelpProviderSnapshot>`
      - HelpProviderSnapshot is a deterministic diagnostic aggregate of authored mappings, effective mappings, total requests, and handled requests.
+   * - :cpp:class:`HelpProviderTagCapability <gui_forms::HelpProviderTagCapability>`
+     - The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal.
    * - :cpp:class:`HelpRequestEvent <gui_forms::HelpRequestEvent>`
      - HelpRequestEvent is the mutable dispatch payload for policy-free help routing.
    * - :cpp:class:`ImageListChange <gui_forms::ImageListChange>`
@@ -387,7 +391,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ErrorProviderCapabilities : public ErrorProviderIconSizeCapability<Declaring>, public ErrorProviderBlinkRateCapability<Declaring>, public ErrorProviderBlinkStyleCapability<Declaring>, public ErrorProviderRightToLeftCapability<Declaring>, public ErrorProviderIconCapability<Declaring>, public ErrorProviderDataSourceCapability<Declaring>, public ErrorProviderDataMemberCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ErrorProviderCapabilities : public ErrorProviderIconSizeCapability<Declaring>, public ErrorProviderBlinkRateCapability<Declaring>, public ErrorProviderBlinkStyleCapability<Declaring>, public ErrorProviderRightToLeftCapability<Declaring>, public ErrorProviderIconCapability<Declaring>, public ErrorProviderDataSourceCapability<Declaring>, public ErrorProviderDataMemberCapability<Declaring>, public ErrorProviderTagCapability<Declaring>
 
    ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
 
@@ -423,6 +427,10 @@ Related types
    .. cpp:member:: std::string data_member
 
       The member of the data source whose errors the provider shows, canonicalized; empty for the source's own. A name that is not valid UTF-8 throws std::invalid_argument.
+
+   .. cpp:member:: std::any tag
+
+      The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal. A view onto the provider's std::any, which has no ==.
 
 .. cpp:namespace:: gui_forms
 
@@ -533,7 +541,24 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> HelpProviderCapabilities : public HelpProviderHelpNamespaceCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ErrorProviderTagCapability
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal. A view onto the provider's std::any, which has no ==.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ErrorProviderTagCapability& capability, std::any incoming)
+
+   .. cpp:function:: static std::any read(const ErrorProviderTagCapability& capability)
+
+   .. cpp:member:: PropertyView<std::any, ErrorProviderTagCapability<Declaring>> tag
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> HelpProviderCapabilities : public HelpProviderHelpNamespaceCapability<Declaring>, public HelpProviderTagCapability<Declaring>
 
    ``#include <gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>``
 
@@ -545,6 +570,10 @@ Related types
    .. cpp:member:: std::string help_namespace
 
       The help file or URL the provider's keyword and navigator requests name (Windows Forms' HelpNamespace). Text that is not valid UTF-8 throws std::invalid_argument.
+
+   .. cpp:member:: std::any tag
+
+      The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal. A view onto the provider's std::any, which has no ==.
 
 .. cpp:namespace:: gui_forms
 
@@ -576,6 +605,23 @@ Related types
    .. cpp:member:: std::uint64_t requests
 
    .. cpp:member:: std::uint64_t handled_requests
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> HelpProviderTagCapability
+
+   ``#include <gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>``
+
+   The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal. A view onto the provider's std::any, which has no ==.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(HelpProviderTagCapability& capability, std::any incoming)
+
+   .. cpp:function:: static std::any read(const HelpProviderTagCapability& capability)
+
+   .. cpp:member:: PropertyView<std::any, HelpProviderTagCapability<Declaring>> tag
 
 .. cpp:namespace:: gui_forms
 

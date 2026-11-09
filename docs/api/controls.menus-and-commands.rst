@@ -90,6 +90,8 @@ Related types
      - Every BackstageView capability, in the order the declaring class takes them.
    * - :cpp:class:`BackstageViewColumnWidthCapability <gui_forms::BackstageViewColumnWidthCapability>`
      - The column's width in logical units at text scale 1 (132 by default).
+   * - :cpp:class:`BackstageViewSelectedTopicCapability <gui_forms::BackstageViewSelectedTopicCapability>`
+     - The topic whose page shows, or none before the first topic exists.
    * - :cpp:class:`BindingNavigatorAddNew <gui_forms::BindingNavigatorAddNew>`
      - Raised by a BindingNavigator's add command.
    * - :cpp:class:`BindingNavigatorBindingSourceCapability <gui_forms::BindingNavigatorBindingSourceCapability>`
@@ -126,6 +128,8 @@ Related types
      - The horizontal padding on each side of a top-level item's text, 4 to 64 (default 11).
    * - :cpp:class:`MenuStripItemSpec <gui_forms::MenuStripItemSpec>`
      - MenuStripItemSpec owns stable identity, mnemonic label, enabled state, and the overlay item tree for one top-level menu.
+   * - :cpp:class:`MenuStripSelectedItemIdCapability <gui_forms::MenuStripSelectedItemIdCapability>`
+     - The stable ID of the top-level item shown as selected, or empty for none; an ID that names no visible top-level item throws std::out_of_range.
    * - :cpp:class:`MenuStripUseMnemonicCapability <gui_forms::MenuStripUseMnemonicCapability>`
      - Whether an ampersand in an item's text marks its access key (Windows Forms' UseMnemonic; default true).
    * - :cpp:class:`QuickAccessToolbar::Parts <gui_forms::QuickAccessToolbar::Parts>`
@@ -226,6 +230,8 @@ Related types
      - One item: an image with an optional label shown under it.
    * - :cpp:class:`RibbonGalleryItemSizeCapability <gui_forms::RibbonGalleryItemSizeCapability>`
      - Every item's image area, in logical units at text scale 1.
+   * - :cpp:class:`RibbonGallerySelectedIdCapability <gui_forms::RibbonGallerySelectedIdCapability>`
+     - The selected item's ID: the command's value, or the gallery's own selection; a write selects without committing (the command's set_value) and throws std::invalid_argument for an ID the gallery does not have.
    * - :cpp:class:`RibbonGalleryShowLabelsCapability <gui_forms::RibbonGalleryShowLabelsCapability>`
      - Whether labels show under the images.
    * - :cpp:class:`RibbonGalleryVisibleRowsCapability <gui_forms::RibbonGalleryVisibleRowsCapability>`
@@ -250,6 +256,8 @@ Related types
      -  
    * - :cpp:class:`RibbonScalingCounters <gui_forms::RibbonScalingCounters>`
      - Structured scaling instrumentation (RIBBON_SCALING_STUDY.md §5.7).
+   * - :cpp:class:`RibbonSelectedTabCapability <gui_forms::RibbonSelectedTabCapability>`
+     - The selected tab, or none while no tab shows.
    * - :cpp:class:`RibbonState <gui_forms::RibbonState>`
      - What a ribbon window keeps between sessions: the Quick Access Toolbar's command IDs in order, its placement, and whether the ribbon is minimized.
    * - :cpp:class:`RibbonStateDiagnostic <gui_forms::RibbonStateDiagnostic>`
@@ -417,7 +425,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> BackstageViewCapabilities : public BackstageViewColumnWidthCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> BackstageViewCapabilities : public BackstageViewColumnWidthCapability<Declaring>, public BackstageViewSelectedTopicCapability<Declaring>
 
    ``#include <gui_forms/controls/backstage_view/backstage_view_capabilities/backstage_view_capabilities.hpp>``
 
@@ -429,6 +437,10 @@ Related types
    .. cpp:member:: double column_width
 
       The column's width in logical units at text scale 1 (132 by default). A width outside 48 to 480 throws std::invalid_argument.
+
+   .. cpp:member:: std::optional<std::size_t> selected_topic
+
+      The topic whose page shows, or none before the first topic exists. A write past the end throws std::out_of_range; an item that is not a topic, or none, throws std::invalid_argument. A view onto the view's selection.
 
 .. cpp:namespace:: gui_forms
 
@@ -446,6 +458,23 @@ Related types
    .. cpp:member:: PropertyCell<double, BackstageViewColumnWidthCapability<Declaring>> column_width
 
       Default: ``{132.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BackstageViewSelectedTopicCapability
+
+   ``#include <gui_forms/controls/backstage_view/backstage_view_capabilities/backstage_view_capabilities.hpp>``
+
+   The topic whose page shows, or none before the first topic exists. A write past the end throws std::out_of_range; an item that is not a topic, or none, throws std::invalid_argument. A view onto the view's selection.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BackstageViewSelectedTopicCapability& capability, std::optional<std::size_t> incoming)
+
+   .. cpp:function:: static std::optional<std::size_t> read(const BackstageViewSelectedTopicCapability& capability)
+
+   .. cpp:member:: PropertyView<std::optional<std::size_t>, BackstageViewSelectedTopicCapability<Declaring>> selected_topic
 
 .. cpp:namespace:: gui_forms
 
@@ -675,7 +704,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> MenuStripCapabilities : public MenuStripUseMnemonicCapability<Declaring>, public MenuStripItemPaddingCapability<Declaring>, public FontCapability<Declaring>, public MenuStripAllowMergeCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> MenuStripCapabilities : public MenuStripUseMnemonicCapability<Declaring>, public MenuStripItemPaddingCapability<Declaring>, public FontCapability<Declaring>, public MenuStripAllowMergeCapability<Declaring>, public MenuStripSelectedItemIdCapability<Declaring>
 
    ``#include <gui_forms/controls/menu_strip/menu_strip_capabilities/menu_strip_capabilities.hpp>``
 
@@ -704,6 +733,10 @@ Related types
    .. cpp:member:: bool allow_merge
 
       Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
+
+   .. cpp:member:: std::string selected_item_id
+
+      The stable ID of the top-level item shown as selected, or empty for none; an ID that names no visible top-level item throws std::out_of_range. set_items clears it. A view onto the strip's selection.
 
 .. cpp:namespace:: gui_forms
 
@@ -763,6 +796,23 @@ Related types
       How the menu joins another menu strip when its strip merges (MergeAction, merge_strips), and its position there; none matches by text only. Default: ``{MergeAction::append}``.
 
    .. cpp:member:: std::optional<std::size_t> merge_index
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MenuStripSelectedItemIdCapability
+
+   ``#include <gui_forms/controls/menu_strip/menu_strip_capabilities/menu_strip_capabilities.hpp>``
+
+   The stable ID of the top-level item shown as selected, or empty for none; an ID that names no visible top-level item throws std::out_of_range. set_items clears it. A view onto the strip's selection.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MenuStripSelectedItemIdCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const MenuStripSelectedItemIdCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, MenuStripSelectedItemIdCapability<Declaring>> selected_item_id
 
 .. cpp:namespace:: gui_forms
 
@@ -1112,7 +1162,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>, public RibbonDocumentMinimumHeightCapability<Declaring>, public RibbonMinimizedCapability<Declaring>, public RibbonApplicationTextCapability<Declaring>, public RibbonRecentCaptionCapability<Declaring>, public RibbonBackstageCapability<Declaring>, public RibbonFocusRegionCapability<Declaring>, public FontCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>, public RibbonDocumentMinimumHeightCapability<Declaring>, public RibbonMinimizedCapability<Declaring>, public RibbonApplicationTextCapability<Declaring>, public RibbonRecentCaptionCapability<Declaring>, public RibbonBackstageCapability<Declaring>, public RibbonFocusRegionCapability<Declaring>, public FontCapability<Declaring>, public RibbonSelectedTabCapability<Declaring>
 
    ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
 
@@ -1157,6 +1207,10 @@ Related types
    .. cpp:member:: FontSpec font
 
       The font of the control's text (Font).
+
+   .. cpp:member:: std::optional<std::size_t> selected_tab
+
+      The selected tab, or none while no tab shows. A write past the end throws std::out_of_range; a tab not shown, or none, throws std::invalid_argument. The selection rules remember it as the user's choice. A view onto the ribbon's selection.
 
 .. cpp:namespace:: gui_forms
 
@@ -1592,7 +1646,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> RibbonGalleryCapabilities : public RibbonGalleryCommandCapability<Declaring>, public RibbonGalleryItemSizeCapability<Declaring>, public RibbonGalleryShowLabelsCapability<Declaring>, public RibbonGalleryVisibleRowsCapability<Declaring>, public RibbonGalleryColumnsCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> RibbonGalleryCapabilities : public RibbonGalleryCommandCapability<Declaring>, public RibbonGalleryItemSizeCapability<Declaring>, public RibbonGalleryShowLabelsCapability<Declaring>, public RibbonGalleryVisibleRowsCapability<Declaring>, public RibbonGalleryColumnsCapability<Declaring>, public RibbonGallerySelectedIdCapability<Declaring>
 
    ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp>``
 
@@ -1620,6 +1674,10 @@ Related types
    .. cpp:member:: std::size_t columns
 
       In-ribbon form: the current column count, kept inside the column range (owner decision RB-8: the ribbon's scaling gives up one column at a time within it). A count outside the range throws std::out_of_range.
+
+   .. cpp:member:: std::optional<std::string> selected_id
+
+      The selected item's ID: the command's value, or the gallery's own selection; a write selects without committing (the command's set_value) and throws std::invalid_argument for an ID the gallery does not have. A view onto the command or the gallery's own selection.
 
 .. cpp:namespace:: gui_forms
 
@@ -1701,6 +1759,23 @@ Related types
    .. cpp:member:: PropertyCell<Size, RibbonGalleryItemSizeCapability<Declaring>> item_size
 
       Default: ``{Size{48.0, 48.0}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonGallerySelectedIdCapability
+
+   ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp>``
+
+   The selected item's ID: the command's value, or the gallery's own selection; a write selects without committing (the command's set_value) and throws std::invalid_argument for an ID the gallery does not have. A view onto the command or the gallery's own selection.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonGallerySelectedIdCapability& capability, std::optional<std::string> incoming)
+
+   .. cpp:function:: static std::optional<std::string> read(const RibbonGallerySelectedIdCapability& capability)
+
+   .. cpp:member:: PropertyView<std::optional<std::string>, RibbonGallerySelectedIdCapability<Declaring>> selected_id
 
 .. cpp:namespace:: gui_forms
 
@@ -1893,6 +1968,23 @@ Related types
    .. cpp:member:: std::uint64_t ladder_lookups
 
    .. cpp:member:: std::uint64_t text_measurements
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonSelectedTabCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   The selected tab, or none while no tab shows. A write past the end throws std::out_of_range; a tab not shown, or none, throws std::invalid_argument. The selection rules remember it as the user's choice. A view onto the ribbon's selection.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonSelectedTabCapability& capability, std::optional<std::size_t> incoming)
+
+   .. cpp:function:: static std::optional<std::size_t> read(const RibbonSelectedTabCapability& capability)
+
+   .. cpp:member:: PropertyView<std::optional<std::size_t>, RibbonSelectedTabCapability<Declaring>> selected_tab
 
 .. cpp:namespace:: gui_forms
 

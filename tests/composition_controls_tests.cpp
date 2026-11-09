@@ -321,8 +321,8 @@ void test_master_detail_ownership_and_responsive_presentation() {
     (*view).set_master_detail_layout(layout);
     std::shared_ptr<gui_forms::Panel> master = make_control<Panel>(StableId("master-detail.master"));
     std::shared_ptr<gui_forms::Panel> detail = make_control<Panel>(StableId("master-detail.detail"));
-    (*master).set_focusable(true);
-    (*detail).set_focusable(true);
+    (*master).focusable = true;
+    (*detail).focusable = true;
     require(!(*view).set_master(master) && !(*view).set_detail(detail),
             "master/detail initial role installation must not return predecessors");
     Window window(view, {900.0, 420.0});

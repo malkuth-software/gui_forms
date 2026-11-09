@@ -517,8 +517,8 @@ void ToolStripContainer::begin_drag() {
     drag_.stamp = drag_.source;
     drag_.picture = (*host).snapshot_control(strip, (*host).scale());
     drag_.focus_before = (*host).focused_control();
-    drag_.focusable_before = focusable();
-    set_focusable(true);
+    drag_.focusable_before = focusable.read();
+    focusable = true;
     static_cast<void>((*host).request_focus(shared_from_this()));
     (*drag_layer_).visible = true;
     stamp_motion_.jump_to(0.0);
@@ -564,7 +564,7 @@ void ToolStripContainer::return_focus() noexcept {
         const Control::Ptr before = drag_.focus_before.lock();
         // Focusability first: making the container unfocusable lets go of
         // the focus in its subtree.
-        set_focusable(drag_.focusable_before);
+        focusable = drag_.focusable_before;
         bool returned = false;
         if (host != nullptr && before && (*before).attached()) returned = (*host).request_focus(before);
         if (!returned && host != nullptr && before && (*host).dispatcher_snapshot().accepting) {

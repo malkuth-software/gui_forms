@@ -19,11 +19,11 @@ namespace gui_forms {
 // Each is a standard-layout struct whose only member is its property's
 // cell, taken by the declaring class as a base. A write
 // `(*control).x = value;` runs `assign`: the declaring class's
-// prepare_write hook (require_mutable first, then the value's checks and,
-// where C# lets a subclass rewrite the value, the protected virtual coerce
-// hook), the compare and store, then the written hook (the touch, side
-// effects and the change event, through the protected virtual
-// on_<property>_changed() where Windows Forms has OnXChanged). A read is
+// prepare_write hook (require_mutable first, then the value's checks), the
+// compare and store, then the written hook (the touch, side effects and the
+// change event, through the protected virtual on_<property>_changed() where
+// Windows Forms has an overridable On<Property>Changed; other properties
+// have no hook, and a subclass subscribes to their change events instead). A read is
 // `(*control).x.read()`.
 
 // The application modes now shown (one bit per mode; mode 0 by default). Changing them shows the tabs and groups that share a bit; a selected tab that no longer shows gives way as a set's tab does. Zero throws std::invalid_argument.
@@ -117,6 +117,23 @@ struct RibbonFocusRegionCapability {
     }
 };
 
+// The selected tab, or none while no tab shows. A write past the end throws std::out_of_range; a tab not shown, or none, throws std::invalid_argument. The selection rules remember it as the user's choice. A view onto the ribbon's selection.
+template <typename Declaring>
+struct RibbonSelectedTabCapability {
+    PropertyView<std::optional<std::size_t>, RibbonSelectedTabCapability<Declaring>> selected_tab;
+
+    static void assign(RibbonSelectedTabCapability& capability, std::optional<std::size_t> incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.selected_tab), std::move(incoming));
+    }
+
+    static std::optional<std::size_t> read(const RibbonSelectedTabCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::optional<std::size_t> current = control.read_view(capability.selected_tab);
+        return current;
+    }
+};
+
 // Every Ribbon capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>,
@@ -126,7 +143,8 @@ struct RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>,
                             public RibbonRecentCaptionCapability<Declaring>,
                             public RibbonBackstageCapability<Declaring>,
                             public RibbonFocusRegionCapability<Declaring>,
-                            public FontCapability<Declaring> {
+                            public FontCapability<Declaring>,
+                            public RibbonSelectedTabCapability<Declaring> {
     RibbonCapabilities() : FontCapability<Declaring>(FontSpec{FontRole::control, 10.5, 400, false, 0.12}) {}
 };
 

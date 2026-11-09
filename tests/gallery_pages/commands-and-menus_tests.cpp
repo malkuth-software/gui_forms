@@ -69,7 +69,7 @@ void test_commands_and_menus(gui_forms::Window& window) {
     const std::shared_ptr<Button> wrap_item =
         std::dynamic_pointer_cast<Button>(window.find("gallery.commands.bar.item.4"));
     const Control::Ptr context_button = window.find("gallery.commands.context.open");
-    require(wrap && wrap_item && context_button && !(*wrap).checked.read() && !(*wrap_item).selected(),
+    require(wrap && wrap_item && context_button && !(*wrap).checked.read() && !(*wrap_item).selected.read(),
             "word wrap must start off on the check box and the bar item");
     click(window, context_button);
     require(window.find("gallery.commands.context.overlay.panel.0") != nullptr &&
@@ -77,11 +77,11 @@ void test_commands_and_menus(gui_forms::Window& window) {
             "the context button must open the ContextMenu as a focus-contained overlay");
     window.perform_layout();
     click(window, window.find("gallery.commands.context.overlay.row.wrap"));
-    require((*wrap).checked.read() && (*wrap_item).selected() &&
+    require((*wrap).checked.read() && (*wrap_item).selected.read() &&
                 window.find("gallery.commands.context.overlay.panel.0") == nullptr,
             "the context-menu check row must toggle the shared state everywhere and close");
     click(window, wrap_item);
-    require(!(*wrap).checked.read() && !(*wrap_item).selected(),
+    require(!(*wrap).checked.read() && !(*wrap_item).selected.read(),
             "the bar's Word wrap item must toggle the same Value back");
     click(window, context_button);
     require(window.find("gallery.commands.context.overlay.panel.0") != nullptr,

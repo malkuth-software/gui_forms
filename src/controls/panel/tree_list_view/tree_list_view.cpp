@@ -136,7 +136,7 @@ std::string cell_identity(std::string_view node_id, std::string_view column_id) 
 } // namespace
 
 TreeListView::TreeListView(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(true);
+    focusable = true;
     set_paint_plane(PaintPlane::control);
     rebuild_structure();
 }
@@ -148,8 +148,8 @@ void TreeListView::initialize_control_tree() {
     vertical_bar_ = make_control<VScrollBar>(StableId(prefix + ".vertical-scroll-bar"));
     horizontal_bar_ = make_control<HScrollBar>(StableId(prefix + ".horizontal-scroll-bar"));
     // The bars scroll with the pointer; the keyboard scrolls the view itself.
-    (*vertical_bar_).set_focusable(false);
-    (*horizontal_bar_).set_focusable(false);
+    (*vertical_bar_).focusable = false;
+    (*horizontal_bar_).focusable = false;
     add_child(vertical_bar_);
     add_child(horizontal_bar_);
     vertical_scrolled_ = (*vertical_bar_).value_changed().subscribe(

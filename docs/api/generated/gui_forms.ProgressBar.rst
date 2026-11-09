@@ -66,22 +66,17 @@ gui_forms::ProgressBar
       **effect_input** : ``EffectInputKind``
          The input the bar grants its effect: none, the pointer, or the pointer and keys. The bar never takes focus, so a key grant delivers nothing.
 
-      **animation_paused** : ``bool``, default ``false``
-         Pauses the animation and keeps its current phase, so it resumes where it
-         stopped.
-
-      **reduced_motion** : ``bool``, default ``false``
-         Requests gentler animation: at most ten frames a second, about a third
-         of the speed and half the travel. The bar also reduces motion when the
-         window's presentation settings ask for it.
-
       **motion_policy** : ``MotionPolicy``, default ``MotionPolicy{}``
-         The whole policy: ``enabled``, ``paused`` and ``reduced``. A policy that is not
-         enabled stops the animation like a pause. :cpp:func:`set_motion_policy <gui_forms::ProgressBar::set_motion_policy>` also
-         accepts paused and reduced as two booleans.
+         The bar's own motion policy, a capability: ``enabled``, ``paused`` and
+         ``reduced``. Paused stops the animation and keeps its current phase, so it
+         resumes where it stopped; a policy that is not enabled stops it the same
+         way. Reduced asks for gentler animation: at most ten frames a second,
+         about a third of the speed and half the travel. The bar also reduces
+         motion when the window's presentation settings ask for it. To change one
+         flag, read the policy, change it and assign it back.
 
       **effective_motion_policy** : ``MotionPolicy``, read-only
-         :cpp:func:`motion_policy <gui_forms::ProgressBar::motion_policy>` combined with the window's reduced-motion setting; this
+         :cpp:member:`motion_policy <gui_forms::ProgressBar::motion_policy>` combined with the window's reduced-motion setting; this
          is what the bar animates with.
 
       **animation_phase** : ``double``, read-only
@@ -178,7 +173,9 @@ gui_forms::ProgressBar
       (*busy).accessible_name = "Synchronizing";
       (*busy).visual_style = gf::ProgressBarVisualStyle::marquee;
       gf::Window window(busy, gf::Size{160.0, 20.0});   // the band now animates
-      (*busy).set_animation_paused(true);               // it stops, keeping its phase
+      gf::MotionPolicy policy = (*busy).motion_policy.read();
+      policy.paused = true;
+      (*busy).motion_policy = policy;                   // it stops, keeping its phase
 
 
    .. rubric:: Construction
@@ -232,42 +229,19 @@ gui_forms::ProgressBar
 
       The input the bar grants its effect: none, the pointer, or the pointer and keys. The bar never takes focus, so a key grant delivers nothing.
 
-   .. cpp:function:: bool animation_paused() const noexcept
+   .. cpp:member:: MotionPolicy motion_policy
 
-      Pauses the animation and keeps its current phase, so it resumes where it
-      stopped.
-
-   .. cpp:function:: void set_animation_paused(bool paused)
-
-      Sets :cpp:func:`animation_paused <gui_forms::ProgressBar::animation_paused>`; see the property's description above.
-
-   .. cpp:function:: bool reduced_motion() const noexcept
-
-      Requests gentler animation: at most ten frames a second, about a third
-      of the speed and half the travel. The bar also reduces motion when the
-      window's presentation settings ask for it.
-
-   .. cpp:function:: void set_reduced_motion(bool reduced)
-
-      Sets :cpp:func:`reduced_motion <gui_forms::ProgressBar::reduced_motion>`; see the property's description above.
-
-   .. cpp:function:: MotionPolicy motion_policy() const noexcept
-
-      The whole policy: ``enabled``, ``paused`` and ``reduced``. A policy that is not
-      enabled stops the animation like a pause. :cpp:func:`set_motion_policy <gui_forms::ProgressBar::set_motion_policy>` also
-      accepts paused and reduced as two booleans.
-
-   .. cpp:function:: void set_motion_policy(bool paused, bool reduced_motion)
-
-      Sets :cpp:func:`motion_policy <gui_forms::ProgressBar::motion_policy>`; see the property's description above.
-
-   .. cpp:function:: void set_motion_policy(MotionPolicy policy)
-
-      Sets :cpp:func:`motion_policy <gui_forms::ProgressBar::motion_policy>`; see the property's description above.
+      The bar's own motion policy, a capability: ``enabled``, ``paused`` and
+      ``reduced``. Paused stops the animation and keeps its current phase, so it
+      resumes where it stopped; a policy that is not enabled stops it the same
+      way. Reduced asks for gentler animation: at most ten frames a second,
+      about a third of the speed and half the travel. The bar also reduces
+      motion when the window's presentation settings ask for it. To change one
+      flag, read the policy, change it and assign it back.
 
    .. cpp:function:: MotionPolicy effective_motion_policy() const noexcept
 
-      :cpp:func:`motion_policy <gui_forms::ProgressBar::motion_policy>` combined with the window's reduced-motion setting; this
+      :cpp:member:`motion_policy <gui_forms::ProgressBar::motion_policy>` combined with the window's reduced-motion setting; this
       is what the bar animates with.
 
    .. cpp:function:: double animation_phase() const noexcept

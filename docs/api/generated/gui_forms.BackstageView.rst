@@ -34,6 +34,11 @@ gui_forms::BackstageView
          The column's width in logical units at text scale 1.
          ``set_column_width`` throws ``std::invalid_argument`` outside 48 to 480.
 
+      **selected_topic** : ``std::optional<std::size_t>``
+         The topic whose page shows. Assigning an item past the end throws
+         ``std::out_of_range``; an item that is not a topic, or no value, throws
+         ``std::invalid_argument``.
+
       **items** : ``std::span<const BackstageItemSpec>``
          The column (:cpp:class:`BackstageItemSpec <gui_forms::BackstageItemSpec>`: ID, kind, Command, text with an
          optional mnemonic, image, definitive flag, page). :cpp:func:`set_items <gui_forms::BackstageView::set_items>` keeps the
@@ -43,11 +48,6 @@ gui_forms::BackstageView
          a :cpp:class:`Command <gui_forms::Command>`, a topic without a page or text, a page given twice or owned
          elsewhere, a page or definitive flag where it does not belong, or more
          than ``BackstageView::maximum_items`` (64).
-
-      **selected_topic** : ``std::optional<std::size_t>``
-         The topic whose page shows. :cpp:func:`set_selected_topic <gui_forms::BackstageView::set_selected_topic>` throws
-         ``std::out_of_range`` past the end and ``std::invalid_argument`` for an item
-         that is not a topic.
 
       **parts** : ``Parts``, read-only
 
@@ -128,6 +128,12 @@ gui_forms::BackstageView
       The column's width in logical units at text scale 1.
       ``set_column_width`` throws ``std::invalid_argument`` outside 48 to 480.
 
+   .. cpp:member:: std::optional<std::size_t> selected_topic
+
+      The topic whose page shows. Assigning an item past the end throws
+      ``std::out_of_range``; an item that is not a topic, or no value, throws
+      ``std::invalid_argument``.
+
    .. cpp:function:: std::span<const BackstageItemSpec> items() const noexcept
 
       The column (:cpp:class:`BackstageItemSpec <gui_forms::BackstageItemSpec>`: ID, kind, Command, text with an
@@ -142,16 +148,6 @@ gui_forms::BackstageView
    .. cpp:function:: void set_items(std::vector<BackstageItemSpec> items)
 
       Sets :cpp:func:`items <gui_forms::BackstageView::items>`; see the property's description above.
-
-   .. cpp:function:: std::optional<std::size_t> selected_topic() const noexcept
-
-      The topic whose page shows. :cpp:func:`set_selected_topic <gui_forms::BackstageView::set_selected_topic>` throws
-      ``std::out_of_range`` past the end and ``std::invalid_argument`` for an item
-      that is not a topic.
-
-   .. cpp:function:: void set_selected_topic(std::size_t item)
-
-      Sets :cpp:func:`selected_topic <gui_forms::BackstageView::selected_topic>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 

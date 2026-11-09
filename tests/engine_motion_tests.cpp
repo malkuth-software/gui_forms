@@ -876,10 +876,10 @@ void ambient_effects() {
 
     // The application marks the large pad's surface ceremonial: its cap is
     // lifted, for that surface only.
-    (*(*fixture).large).set_ceremonial(true);
+    (*(*fixture).large).ceremonial = true;
     repaint(window, (*fixture).painter);
     require(window.motion_clock().ambient_count() == 2U, "on a ceremonial surface the area cap is lifted");
-    (*(*fixture).large).set_ceremonial(false);
+    (*(*fixture).large).ceremonial = false;
     repaint(window, (*fixture).painter);
     require(window.motion_clock().ambient_count() == 1U && window.metrics_snapshot().engine_ambient_refusals == 2U,
             "and off it the everyday cap holds again");

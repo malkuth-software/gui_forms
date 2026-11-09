@@ -42,12 +42,14 @@ line_strut : default none
     panel uses its font's: the `line-height: normal` line box of `font`
     at the window's text scale, as CSS's strut is. With a zero strut a
     line is as tall as its items. Its values must be finite and
-    nonnegative; `clear_line_strut` returns to the font's.
-font
-    The font the panel's inline content is set in, for its strut: the one
-    given to `set_font`, or else the theme's field typography. An invalid
-    specification throws `std::invalid_argument`; `clear_font` returns to
-    the theme's font.
+    nonnegative; assigning `std::nullopt` returns to the font's.
+font : default none
+    The panel's own font for its strut. An invalid specification throws
+    `std::invalid_argument`; assigning `std::nullopt` returns to the
+    theme's font.
+resolved_font
+    The font the panel's inline content is set in, for its strut: `font`
+    when set, or else the theme's field typography.
 layout_snapshot : read-only
     The last arrange's resolution: for each laid-out child its bounds and
     its line, and the line boxes with their tops, heights, baselines and
@@ -158,8 +160,8 @@ Centre a row of 80-wide inline buttons, wrapping the third:
 
    std::shared_ptr<gf::BlockPanel> row =
        gf::make_control<gf::BlockPanel>(gf::StableId("row"));
-   (*row).set_text_align(gf::TextAlignment::center);
-   (*row).set_line_strut(gf::LineStrut{});   // lines as tall as their items
+   (*row).text_align = gf::TextAlignment::center;
+   (*row).line_strut = gf::LineStrut{};   // lines as tall as their items
    gf::BlockFlowItemLayout atomic{};
    atomic.level = gf::BlockFlowLevel::inline_level;
    atomic.width = gf::SizeValue{gf::SizeKind::length_percentage,

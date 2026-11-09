@@ -2,9 +2,11 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -98,7 +100,7 @@ void test_page_ownership_layout_and_visibility() {
     Window window(fixture.tabs, {480.0, 260.0});
     window.perform_layout();
     require((*fixture.tabs).page_count() == 3U &&
-                (*fixture.tabs).selected_index() == 0U &&
+                (*fixture.tabs).selected_index.read() == 0U &&
                 (*fixture.first).visible.read() && !(*fixture.second).visible.read() &&
                 !(*fixture.third).visible.read(),
             "TabControl must own pages and expose exactly one selected page");
@@ -112,7 +114,7 @@ void test_page_ownership_layout_and_visibility() {
     SubscriptionToken token =
         (*fixture.tabs).selected_index_changed().subscribe(
             ObserveTabSelection(observed, changes));
-    (*fixture.tabs).set_selected_index(1U);
+    (*fixture.tabs).selected_index = 1U;
     window.perform_layout();
     require(changes == 1U && observed.old_index == 0U &&
                 observed.new_index == 1U && !(*fixture.first).visible.read() &&
@@ -141,14 +143,14 @@ void test_keyboard_pointer_and_focus_restoration() {
     require(window.request_focus(fixture.first_button),
             "first page child must receive initial focus");
     KeyEvent next{KeyAction::down, PhysicalKey::tab, Modifier::control};
-    require(window.dispatch_key(next) && (*fixture.tabs).selected_index() == 1U &&
+    require(window.dispatch_key(next) && (*fixture.tabs).selected_index.read() == 1U &&
                 window.focused_control() == fixture.tabs,
             "Ctrl+Tab from page content must switch pages and retain safe focus");
     require(window.request_focus(fixture.second_button),
             "second page child must receive focus");
     KeyEvent previous{KeyAction::down, PhysicalKey::tab,
                       Modifier::control | Modifier::shift};
-    require(window.dispatch_key(previous) && (*fixture.tabs).selected_index() == 0U &&
+    require(window.dispatch_key(previous) && (*fixture.tabs).selected_index.read() == 0U &&
                 window.focused_control() == fixture.first_button,
             "Ctrl+Shift+Tab must restore the destination page's remembered focus");
 
@@ -156,14 +158,14 @@ void test_keyboard_pointer_and_focus_restoration() {
     const Point click{third.x + third.width * 0.5, third.y + third.height * 0.5};
     require(window.dispatch_pointer(
                 {PointerAction::down, PointerButton::primary, click}) &&
-                (*fixture.tabs).selected_index() == 2U &&
+                (*fixture.tabs).selected_index.read() == 2U &&
                 window.focused_control() == fixture.tabs,
             "pointer header activation must select and focus the tab strip");
     KeyEvent left{KeyAction::down, PhysicalKey::left};
-    require(window.dispatch_key(left) && (*fixture.tabs).selected_index() == 1U,
+    require(window.dispatch_key(left) && (*fixture.tabs).selected_index.read() == 1U,
             "focused horizontal tabs must traverse with arrow keys");
     KeyEvent home{KeyAction::down, PhysicalKey::home};
-    require(window.dispatch_key(home) && (*fixture.tabs).selected_index() == 0U,
+    require(window.dispatch_key(home) && (*fixture.tabs).selected_index.read() == 0U,
             "focused tabs must support Home/End boundary traversal");
 }
 
@@ -221,16 +223,16 @@ void test_selecting_events() {
     SubscriptionToken selected = (*fixture.tabs).selected().subscribe(record);
     SubscriptionToken changed = (*fixture.tabs).selected_index_changed().subscribe(RecordIndexChange(seen));
 
-    (*fixture.tabs).set_selected_index(1U);
+    (*fixture.tabs).selected_index = 1U;
     const std::vector<std::string> order{"deselecting:0", "selecting:1", "deselected:0", "selected:1", "changed:1"};
-    require(seen == order && (*fixture.tabs).selected_index() == 1U,
+    require(seen == order && (*fixture.tabs).selected_index.read() == 1U,
             "a change raises deselecting, selecting, deselected, selected, then selected_index_changed");
 
     seen.clear();
     cancel = "selecting:2";
-    (*fixture.tabs).set_selected_index(2U);
+    (*fixture.tabs).selected_index = 2U;
     require(seen == std::vector<std::string>{"deselecting:1", "selecting:2"} &&
-                (*fixture.tabs).selected_index() == 1U && (*fixture.second).visible.read(),
+                (*fixture.tabs).selected_index.read() == 1U && (*fixture.second).visible.read(),
             "a cancelled selecting keeps the page");
 
     seen.clear();
@@ -240,21 +242,21 @@ void test_selecting_events() {
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, click}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, click}));
     window.perform_layout();
-    require(seen == std::vector<std::string>{"deselecting:1"} && (*fixture.tabs).selected_index() == 1U,
+    require(seen == std::vector<std::string>{"deselecting:1"} && (*fixture.tabs).selected_index.read() == 1U,
             "a cancelled deselecting refuses a click on another tab");
 
     seen.clear();
     cancel.clear();
     require(window.request_focus(fixture.tabs), "the control takes focus");
     KeyEvent next{KeyAction::down, PhysicalKey::tab, Modifier::control};
-    require(window.dispatch_key(next) && (*fixture.tabs).selected_index() == 2U &&
+    require(window.dispatch_key(next) && (*fixture.tabs).selected_index.read() == 2U &&
                 seen == std::vector<std::string>{"deselecting:1", "selecting:2", "deselected:1", "selected:2",
                                                  "changed:2"},
             "Ctrl+Tab raises the same events");
 
     seen.clear();
     KeyEvent home{KeyAction::down, PhysicalKey::home};
-    require(window.dispatch_key(home) && (*fixture.tabs).selected_index() == 0U && seen.size() == 5U &&
+    require(window.dispatch_key(home) && (*fixture.tabs).selected_index.read() == 0U && seen.size() == 5U &&
                 seen[1] == "selecting:0",
             "the strip's keys raise them too");
 
@@ -314,27 +316,27 @@ void test_alignment_appearance_and_semantics() {
             "TabControl must publish a tab group and stable virtual tab identities");
     require(window.perform_semantic_action("tabs.third.tab",
                                            SemanticAction::select) &&
-                (*fixture.tabs).selected_index() == 2U,
+                (*fixture.tabs).selected_index.read() == 2U,
             "semantic tab selection must execute the same public selection path");
 }
 
 void test_page_removal_and_disposal_reconciliation() {
     Fixture fixture = make_fixture();
     Window window(fixture.tabs, {480.0, 260.0});
-    (*fixture.tabs).set_selected_index(1U);
+    (*fixture.tabs).selected_index = 1U;
     const std::shared_ptr<TabPage> removed = (*fixture.tabs).remove_page(*fixture.second);
     window.perform_layout();
     require(removed == fixture.second && !(*removed).attached() &&
                 (*fixture.tabs).page_count() == 2U &&
-                (*fixture.tabs).selected_tab() == fixture.third &&
-                (*fixture.tabs).selected_index() == 1U,
+                (*fixture.tabs).selected_tab.read() == fixture.third &&
+                (*fixture.tabs).selected_index.read() == 1U,
             "removing a selected page must choose its surviving successor");
 
     (*fixture.third).dispose();
     window.perform_layout();
     require((*fixture.tabs).page_count() == 1U &&
-                (*fixture.tabs).selected_tab() == fixture.first &&
-                (*fixture.tabs).selected_index() == 0U && (*fixture.first).visible.read(),
+                (*fixture.tabs).selected_tab.read() == fixture.first &&
+                (*fixture.tabs).selected_index.read() == 0U && (*fixture.first).visible.read(),
             "direct selected-page disposal must reconcile without stale ownership");
 }
 
@@ -367,6 +369,41 @@ struct SetImageList final {
     std::shared_ptr<ImageList> list{};
     void operator()() const { (*tabs).image_list = list; }
 };
+
+struct ClearSelectedIndex final {
+    TabControl* tabs{};
+    void operator()() const { (*tabs).selected_index = std::nullopt; }
+};
+
+struct SelectIndex final {
+    TabControl* tabs{};
+    std::size_t index{};
+    void operator()() const { (*tabs).selected_index = index; }
+};
+
+struct SelectTab final {
+    TabControl* tabs{};
+    std::shared_ptr<TabPage> page{};
+    void operator()() const { (*tabs).selected_tab = page; }
+};
+
+// The selection cells (owner ruling G14): selected_tab and selected_index
+// write through the one selection path, and a refused write leaves the
+// selection as it was.
+void test_selection_cells() {
+    Fixture fixture = make_fixture();
+    Window window(fixture.tabs, {480.0, 260.0});
+    TabControl* tabs = fixture.tabs.get();
+    (*fixture.tabs).selected_tab = fixture.third;
+    require((*fixture.tabs).selected_index.read() == 2U && (*fixture.third).visible.read() &&
+                !(*fixture.first).visible.read(),
+            "assigning selected_tab selects that page");
+    const std::shared_ptr<TabPage> stranger = make_control<TabPage>(StableId("tabs.stranger"), "Stranger");
+    require(throws(SelectTab{tabs, stranger}) && throws(SelectTab{tabs, nullptr}) &&
+                throws(ClearSelectedIndex{tabs}) && throws(SelectIndex{tabs, 3U}) &&
+                (*fixture.tabs).selected_tab.read() == fixture.third,
+            "refused selection writes leave the selection unchanged");
+}
 
 bool painted(const RecordingPainter& painter, ImageId image) {
     const bool found = std::find(painter.images.begin(), painter.images.end(), image) != painter.images.end();
@@ -525,6 +562,7 @@ int main() {
         test_owner_draw();
         test_tab_images();
         test_selecting_events();
+        test_selection_cells();
         std::cout << "gui_forms_tab_control_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

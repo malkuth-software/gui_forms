@@ -25,7 +25,7 @@ DateTimePicker::DateTimePicker(StableId stable_id) : Panel(std::move(stable_id))
     // scheme).
     visual_role = ControlVisualRole::editor;
     border_style = BorderStyle::sunken;
-    set_focusable(true);
+    focusable = true;
 }
 
 // Both bounds, earliest first: the crossing rule never moves the latest past
@@ -373,7 +373,7 @@ void DateTimePicker::open_drop_down() {
     const std::optional<Rect> face =
         drop_down_popup_face(*window(), picker, Size{width, height}, requested_x);
     const bool lifted = face.has_value() && lift_.lift(*window(), calendar, *face);
-    if (lifted) (*layer).set_focusable(true);
+    if (lifted) (*layer).focusable = true;
     else (*layer).add_child(calendar);
 
     overlay_layer_ = layer;

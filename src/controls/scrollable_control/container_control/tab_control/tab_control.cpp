@@ -41,7 +41,7 @@ namespace {
 class TabControlStrip final : public PageStrip {
 public:
     TabControlStrip(StableId stable_id, PageSet& pages) : PageStrip(std::move(stable_id), pages) {
-        set_focusable(false);
+        focusable = false;
     }
 
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override {
@@ -91,7 +91,7 @@ private:
 
 TabControl::TabControl(StableId stable_id)
     : ContainerControl(std::move(stable_id)), tab_set_(tab_set_options()) {
-    set_focusable(true);
+    focusable = true;
     // The tab strip and the page frame are drawn to the control's size
     // (ScrollableControl clears resize_redraw).
     Control::set_style(ControlStyles::resize_redraw, true);
@@ -180,7 +180,7 @@ std::optional<std::size_t> TabControl::index_of(
     return static_cast<std::size_t>(found - live.begin());
 }
 
-std::optional<std::size_t> TabControl::selected_index() const {
+std::optional<std::size_t> TabControl::read_view(const decltype(selected_index)&) const {
     return index_of(selected_page_.lock());
 }
 
@@ -244,7 +244,7 @@ std::shared_ptr<TabPage> TabControl::remove_page(const TabPage& page) {
         ++removed_index;
     }
     if (removed_index == live_before.size()) return {};
-    const std::optional<std::size_t> old_selected = selected_index();
+    const std::optional<std::size_t> old_selected = selected_index.read();
     const bool removing_selected = selected_page_.lock().get() == &page;
     std::vector<std::weak_ptr<TabPage>>::iterator candidate = pages_.begin();
     while (candidate != pages_.end()) {
@@ -268,7 +268,7 @@ std::shared_ptr<TabPage> TabControl::remove_page(const TabPage& page) {
         }
     }
     synchronize_tab_set();
-    const std::optional<std::size_t> new_selected = selected_index();
+    const std::optional<std::size_t> new_selected = selected_index.read();
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint |
                Dirty::hit_test | Dirty::semantics);
     if (old_selected != new_selected || removing_selected) {
@@ -303,7 +303,7 @@ void TabControl::restore_page_focus(const std::shared_ptr<TabPage>& page,
 // page held, makes the strip's set agree, moves the focus into the new page
 // when the old page held it, then raises selected_index_changed.
 void TabControl::show_selected(std::size_t index, const std::vector<std::shared_ptr<TabPage>>& live) {
-    const std::optional<std::size_t> old_index = selected_index();
+    const std::optional<std::size_t> old_index = selected_index.read();
     const std::shared_ptr<TabPage> old_page = selected_page_.lock();
     bool selection_owned_focus{};
     if (old_page && window() != nullptr) {
@@ -346,11 +346,13 @@ bool TabControl::selection_allowed(const std::shared_ptr<TabPage>& target) {
     return result;
 }
 
-void TabControl::set_selected_index(std::size_t index) {
+void TabControl::write_view(const decltype(selected_index)&, std::optional<std::size_t> incoming) {
     require_mutable();
+    if (!incoming) throw std::invalid_argument("TabControl selection cannot be cleared");
+    const std::size_t index = *incoming;
     const std::vector<std::shared_ptr<TabPage>> live = pages();
     if (index >= live.size()) throw std::out_of_range("TabControl selected index");
-    const std::optional<std::size_t> old_index = selected_index();
+    const std::optional<std::size_t> old_index = index_of(selected_page_.lock());
     if (old_index && *old_index == index) return;
     const std::shared_ptr<TabPage> target = live[index];
     if (!selection_allowed(target)) return;
@@ -361,10 +363,15 @@ void TabControl::set_selected_index(std::size_t index) {
     show_selected(*placed, now);
 }
 
-void TabControl::set_selected_tab(const std::shared_ptr<TabPage>& page) {
-    const std::optional<std::size_t> index = index_of(page);
+std::shared_ptr<TabPage> TabControl::read_view(const decltype(selected_tab)&) const {
+    std::shared_ptr<TabPage> page = selected_page_.lock();
+    return page;
+}
+
+void TabControl::write_view(const decltype(selected_tab)&, std::shared_ptr<TabPage> incoming) {
+    const std::optional<std::size_t> index = index_of(incoming);
     if (!index) throw std::invalid_argument("TabPage does not belong to TabControl");
-    set_selected_index(*index);
+    selected_index = index;
 }
 
 void TabControl::set_style(BasicControlStyle style) {
@@ -728,10 +735,10 @@ bool TabControl::nested_tab_control_has_focus() const {
 void TabControl::select_relative(int delta) {
     const std::vector<std::shared_ptr<TabPage>> live = pages();
     if (live.empty()) return;
-    const std::size_t current = selected_index().value_or(0U);
+    const std::size_t current = selected_index.read().value_or(0U);
     const std::ptrdiff_t count = static_cast<std::ptrdiff_t>(live.size());
     const std::ptrdiff_t next = (static_cast<std::ptrdiff_t>(current) + delta + count) % count;
-    set_selected_index(static_cast<std::size_t>(next));
+    selected_index = static_cast<std::size_t>(next);
 }
 
 // From anywhere inside the control, before the focused control sees them:
@@ -838,7 +845,7 @@ bool TabControl::on_semantic_child_action(std::string_view child_stable_id,
         if (window() != nullptr) {
             static_cast<void>((*window()).request_focus(shared_from_this()));
         }
-        set_selected_index(index);
+        selected_index = index;
         return true;
     }
     return false;
@@ -940,7 +947,7 @@ void TabControl::publish_realized_item_geometry(std::size_t item,
 
 AnatomyStateSet TabControl::realized_item_anatomy_states(std::size_t item) const {
     AnatomyStateSet states{};
-    const std::optional<std::size_t> selected = selected_index();
+    const std::optional<std::size_t> selected = selected_index.read();
     if (selected && *selected == item) {
         states.insert(AnatomyState::selected);
     }

@@ -434,7 +434,7 @@ void test_semantic_focus_reaches_composites() {
     const std::array<Control::Ptr, 5> composites{numeric, domain, masked, tokens, split};
     for (std::size_t index = 0; index < composites.size(); ++index) {
         const Control::Ptr& composite = composites[index];
-        require(!(*composite).focusable(), "the composite is not focusable itself");
+        require(!(*composite).focusable.read(), "the composite is not focusable itself");
         require(window.request_focus(button) && window.focused_control() == button,
                 "focus starts on the button");
         require(window.perform_semantic_action((*composite).stable_id().value(), SemanticAction::focus),

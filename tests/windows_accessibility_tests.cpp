@@ -93,7 +93,7 @@ struct Ready {
         require((*tab.value).get_accDefaultAction(self(), &action) == S_OK && action && wcscmp(action, L"Select") == 0,
             "a tab's default action is select");
         SysFreeString(action);
-        require(SUCCEEDED((*tab.value).accDoDefaultAction(self())) && (*tabs).selected_index() == 1U,
+        require(SUCCEEDED((*tab.value).accDoDefaultAction(self())) && (*tabs).selected_index.read() == 1U,
             "the default action selects the tab");
         require(handle.request_close().accepted(), "fixture closes");
     }

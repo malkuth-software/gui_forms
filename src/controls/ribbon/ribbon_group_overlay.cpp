@@ -8,7 +8,7 @@
 namespace gui_forms {
 
 RibbonGroupOverlay::RibbonGroupOverlay(StableId stable_id, Ribbon& ribbon) : Control(std::move(stable_id)), ribbon_(&ribbon) {
-    set_focusable(true);
+    focusable = true;
     set_paint_plane(PaintPlane::control);
 }
 

@@ -314,7 +314,7 @@ RibbonGallery::CategoryParts RibbonGallery::category_parts(std::size_t line, con
 AnatomyStateSet RibbonGallery::item_states(std::size_t position) const {
     AnatomyStateSet states;
     if (position >= order_.size()) return states;
-    const std::optional<std::string> selected = selected_id();
+    const std::optional<std::string> selected = selected_id.read();
     if (selected && *selected == items_[order_[position]].stable_id) states.insert(AnatomyState::selected);
     if (!item_enabled(position)) states.insert(AnatomyState::disabled);
     if (hot_ == position) states.insert(AnatomyState::hot);

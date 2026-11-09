@@ -146,7 +146,7 @@ std::shared_ptr<InstrumentRack> make_rack() {
     std::shared_ptr<gui_forms::Button> add = make_control<Button>(StableId("criteria.add"), "+ module");
     (*add).set_requested_bounds({4.0, 5.0, 92.0, 28.0});
     std::shared_ptr<gui_forms::Button> apply = make_control<Button>(StableId("criteria.apply"), "Apply 1");
-    (*apply).set_default_button(true);
+    (*apply).default_button = true;
     (*apply).visual_style = ButtonVisualStyle::accent;
     (*apply).set_requested_bounds({100.0, 5.0, 70.0, 28.0});
     (*actions).add_child(add);

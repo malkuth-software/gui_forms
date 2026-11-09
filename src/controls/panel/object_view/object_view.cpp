@@ -258,7 +258,7 @@ ObjectView::ObjectView(StableId stable_id) : Panel(std::move(stable_id)) {
     // (no colour written here, which would fix the light paper in every
     // scheme).
     visual_role = ControlVisualRole::editor;
-    set_focusable(true);
+    focusable = true;
 }
 
 void ObjectView::set_items(std::vector<ObjectViewItem> items) {

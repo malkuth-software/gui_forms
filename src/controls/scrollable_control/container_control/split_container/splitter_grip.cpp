@@ -34,7 +34,7 @@ AnimationSpec seam_transition_spec(FrameInterval duration) {
 SplitterGrip::SplitterGrip(StableId stable_id)
     : Control(std::move(stable_id)),
       transition_timeline_(seam_transition_spec(transition_duration_)) {
-    set_focusable(true);
+    focusable = true;
 }
 
 void SplitterGrip::set_orientation(Orientation orientation) {

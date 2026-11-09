@@ -33,17 +33,14 @@ animation_appearance : default ``ProgressBarAnimationAppearance{}``
 animation_enabled : default ``true``
     Whether animated styles move. When false they are drawn still and the
     bar schedules no frames.
-animation_paused : default ``false``
-    Pauses the animation and keeps its current phase, so it resumes where it
-    stopped.
-reduced_motion : default ``false``
-    Requests gentler animation: at most ten frames a second, about a third
-    of the speed and half the travel. The bar also reduces motion when the
-    window's presentation settings ask for it.
 motion_policy : default ``MotionPolicy{}``
-    The whole policy: `enabled`, `paused` and `reduced`. A policy that is not
-    enabled stops the animation like a pause. `set_motion_policy` also
-    accepts paused and reduced as two booleans.
+    The bar's own motion policy, a capability: `enabled`, `paused` and
+    `reduced`. Paused stops the animation and keeps its current phase, so it
+    resumes where it stopped; a policy that is not enabled stops it the same
+    way. Reduced asks for gentler animation: at most ten frames a second,
+    about a third of the speed and half the travel. The bar also reduces
+    motion when the window's presentation settings ask for it. To change one
+    flag, read the policy, change it and assign it back.
 effective_motion_policy
     `motion_policy` combined with the window's reduced-motion setting; this
     is what the bar animates with.
@@ -109,4 +106,6 @@ Show activity of unknown length, and pause it while the work waits:
    (*busy).accessible_name = "Synchronizing";
    (*busy).visual_style = gf::ProgressBarVisualStyle::marquee;
    gf::Window window(busy, gf::Size{160.0, 20.0});   // the band now animates
-   (*busy).set_animation_paused(true);               // it stops, keeping its phase
+   gf::MotionPolicy policy = (*busy).motion_policy.read();
+   policy.paused = true;
+   (*busy).motion_policy = policy;                   // it stops, keeping its phase

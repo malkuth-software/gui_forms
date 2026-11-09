@@ -5,6 +5,7 @@
 #include "gui_forms/components/error_provider/error_provider_values/error_provider_values.hpp"
 #include "gui_forms/types.hpp"
 
+#include <any>
 #include <chrono>
 #include <cstdint>
 #include <memory>
@@ -21,11 +22,11 @@ namespace gui_forms {
 // Each is a standard-layout struct whose only member is its property's
 // cell, taken by the declaring class as a base. A write
 // `(*control).x = value;` runs `assign`: the declaring class's
-// prepare_write hook (require_mutable first, then the value's checks and,
-// where C# lets a subclass rewrite the value, the protected virtual coerce
-// hook), the compare and store, then the written hook (the touch, side
-// effects and the change event, through the protected virtual
-// on_<property>_changed() where Windows Forms has OnXChanged). A read is
+// prepare_write hook (require_mutable first, then the value's checks), the
+// compare and store, then the written hook (the touch, side effects and the
+// change event, through the protected virtual on_<property>_changed() where
+// Windows Forms has an overridable On<Property>Changed; other properties
+// have no hook, and a subclass subscribes to their change events instead). A read is
 // `(*control).x.read()`.
 
 // The icon's side in logical units, 8 to 64. A size outside that, or not finite, throws std::invalid_argument.
@@ -123,6 +124,23 @@ struct ErrorProviderDataMemberCapability {
     }
 };
 
+// The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal. A view onto the provider's std::any, which has no ==.
+template <typename Declaring>
+struct ErrorProviderTagCapability {
+    PropertyView<std::any, ErrorProviderTagCapability<Declaring>> tag;
+
+    static void assign(ErrorProviderTagCapability& capability, std::any incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.tag), std::move(incoming));
+    }
+
+    static std::any read(const ErrorProviderTagCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::any current = control.read_view(capability.tag);
+        return current;
+    }
+};
+
 // Every ErrorProvider capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct ErrorProviderCapabilities : public ErrorProviderIconSizeCapability<Declaring>,
@@ -131,6 +149,7 @@ struct ErrorProviderCapabilities : public ErrorProviderIconSizeCapability<Declar
                                    public ErrorProviderRightToLeftCapability<Declaring>,
                                    public ErrorProviderIconCapability<Declaring>,
                                    public ErrorProviderDataSourceCapability<Declaring>,
-                                   public ErrorProviderDataMemberCapability<Declaring> {};
+                                   public ErrorProviderDataMemberCapability<Declaring>,
+                                   public ErrorProviderTagCapability<Declaring> {};
 
 } // namespace gui_forms

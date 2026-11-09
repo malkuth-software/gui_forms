@@ -186,6 +186,21 @@ void test_badge_properties() {
 
 void test_block_panel_properties() {
     std::shared_ptr<BlockPanel> control = make_control<BlockPanel>(StableId("generated.blockpanel"));
+    {
+        const TextAlignment sample = TextAlignment::center;
+        (*control).text_align = sample;
+        expect((*control).text_align.read() == sample, "BlockPanel.text_align: a write stores");
+    }
+    {
+        const std::optional<LineStrut> sample = LineStrut{4.0, 2.0, 1.0};
+        (*control).line_strut = sample;
+        expect((*control).line_strut.read() == sample, "BlockPanel.line_strut: a write stores");
+    }
+    {
+        const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "BlockPanel.font: a write stores");
+    }
     expect((*control).property_descriptor("style").has_value(), "BlockPanel.style: the table holds the hand entry");
 }
 
@@ -230,6 +245,33 @@ void test_button_properties() {
         const std::optional<BindingValue> by_name = (*control).property_value("flat_border_width");
         expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
                "Button.flat_border_width: the table reads the cell");
+    }
+    {
+        const bool sample = true;
+        (*control).default_button = sample;
+        expect((*control).default_button.read() == sample, "Button.default_button: a write stores");
+    }
+    {
+        const DialogResult sample = DialogResult::ok;
+        int raises = 0;
+        const SubscriptionToken token = (*control).dialog_result_changed().subscribe(RaiseCounter{&raises});
+        (*control).dialog_result = sample;
+        expect((*control).dialog_result.read() == sample, "Button.dialog_result: a write stores");
+        expect(raises == 1, "Button.dialog_result: a changed write raises once");
+        (*control).dialog_result = sample;
+        expect(raises == 1, "Button.dialog_result: an equal write raises nothing");
+        static_cast<void>(token);
+    }
+    {
+        const bool sample = true;
+        int raises = 0;
+        const SubscriptionToken token = (*control).selected_changed().subscribe(RaiseCounter{&raises});
+        (*control).selected = sample;
+        expect((*control).selected.read() == sample, "Button.selected: a write stores");
+        expect(raises == 1, "Button.selected: a changed write raises once");
+        (*control).selected = sample;
+        expect(raises == 1, "Button.selected: an equal write raises nothing");
+        static_cast<void>(token);
     }
 }
 

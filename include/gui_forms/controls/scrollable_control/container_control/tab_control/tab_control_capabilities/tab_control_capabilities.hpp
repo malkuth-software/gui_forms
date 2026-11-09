@@ -5,6 +5,7 @@
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
 #include "gui_forms/types.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -20,11 +21,11 @@ namespace gui_forms {
 // Each is a standard-layout struct whose only member is its property's
 // cell, taken by the declaring class as a base. A write
 // `(*control).x = value;` runs `assign`: the declaring class's
-// prepare_write hook (require_mutable first, then the value's checks and,
-// where C# lets a subclass rewrite the value, the protected virtual coerce
-// hook), the compare and store, then the written hook (the touch, side
-// effects and the change event, through the protected virtual
-// on_<property>_changed() where Windows Forms has OnXChanged). A read is
+// prepare_write hook (require_mutable first, then the value's checks), the
+// compare and store, then the written hook (the touch, side effects and the
+// change event, through the protected virtual on_<property>_changed() where
+// Windows Forms has an overridable On<Property>Changed; other properties
+// have no hook, and a subclass subscribes to their change events instead). A read is
 // `(*control).x.read()`.
 
 // The edge the tabs sit on (Windows Forms' Alignment; default top). An unknown alignment throws std::invalid_argument.
@@ -109,6 +110,40 @@ struct TabControlDrawModeCapability {
     }
 };
 
+// The selected page's index, or none without pages. A write past the end throws std::out_of_range, none throws std::invalid_argument; deselecting and selecting may cancel it (see selected_index_changed). A view onto the selected page.
+template <typename Declaring>
+struct TabControlSelectedIndexCapability {
+    PropertyView<std::optional<std::size_t>, TabControlSelectedIndexCapability<Declaring>> selected_index;
+
+    static void assign(TabControlSelectedIndexCapability& capability, std::optional<std::size_t> incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.selected_index), std::move(incoming));
+    }
+
+    static std::optional<std::size_t> read(const TabControlSelectedIndexCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::optional<std::size_t> current = control.read_view(capability.selected_index);
+        return current;
+    }
+};
+
+// The selected page, or null. A write selects a page of this control as selected_index does; a page that is not this control's, or null, throws std::invalid_argument. A view onto the selected page.
+template <typename Declaring>
+struct TabControlSelectedTabCapability {
+    PropertyView<std::shared_ptr<TabPage>, TabControlSelectedTabCapability<Declaring>> selected_tab;
+
+    static void assign(TabControlSelectedTabCapability& capability, std::shared_ptr<TabPage> incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.selected_tab), std::move(incoming));
+    }
+
+    static std::shared_ptr<TabPage> read(const TabControlSelectedTabCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::shared_ptr<TabPage> current = control.read_view(capability.selected_tab);
+        return current;
+    }
+};
+
 // Every TabControl capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct TabControlCapabilities : public TabControlAlignmentCapability<Declaring>,
@@ -116,6 +151,8 @@ struct TabControlCapabilities : public TabControlAlignmentCapability<Declaring>,
                                 public TabControlSizeModeCapability<Declaring>,
                                 public TabControlItemSizeCapability<Declaring>,
                                 public TabControlImageListCapability<Declaring>,
-                                public TabControlDrawModeCapability<Declaring> {};
+                                public TabControlDrawModeCapability<Declaring>,
+                                public TabControlSelectedIndexCapability<Declaring>,
+                                public TabControlSelectedTabCapability<Declaring> {};
 
 } // namespace gui_forms

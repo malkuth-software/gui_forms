@@ -45,7 +45,7 @@ ComboBox::ComboBox(StableId stable_id) : Panel(std::move(stable_id)) {
     list_items_source_ = std::make_shared<AutoCompleteStringCollection>();
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
-    set_focusable(true);
+    focusable = true;
     cursor = CursorKind::hand;
 }
 
@@ -192,7 +192,7 @@ void ComboBox::create_editor() {
     // shows as the field's hint on focus.
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
     // The editor takes the focus for the field.
-    set_focusable(false);
+    focusable = false;
     Window* const host = window();
     if (had_focus && host != nullptr) static_cast<void>((*host).request_focus(editor_));
 }
@@ -206,7 +206,7 @@ void ComboBox::remove_editor() {
     static_cast<void>(remove_child((*editor_).runtime_id()));
     editor_.reset();
     focused_ = false;
-    set_focusable(true);
+    focusable = true;
     set_tool_tip_presentation(ToolTipPresentation::bubble);
     Window* const host = window();
     if (had_focus && host != nullptr) static_cast<void>((*host).request_focus(shared_from_this()));
@@ -633,7 +633,7 @@ void ComboBox::open_drop_down(std::string_view pattern) {
     const std::optional<Rect> face =
         drop_down_popup_face(*window(), combo, Size{requested_width, overlay_height}, combo.x);
     const bool lifted = face.has_value() && lift_list(list, *face, PopupLiftInput::forwarded);
-    if (lifted) (*layer).set_focusable(true);
+    if (lifted) (*layer).focusable = true;
     else (*layer).add_child(list);
 
     overlay_layer_ = layer;
@@ -676,7 +676,7 @@ void ComboBox::open_field_list(double width, double height) {
     std::shared_ptr<AnchoredOverlayLayer> anchored =
         make_control<AnchoredOverlayLayer>(StableId(prefix + ".overlay.layer"), shared_from_this(), placement);
     std::shared_ptr<gui_forms::ListBox> field_list = make_control<DropDownList>(StableId(prefix + ".overlay.list"));
-    (*field_list).set_focusable(false);
+    (*field_list).focusable = false;
     (*field_list).set_paint_plane(PaintPlane::overlay);
     (*field_list).font = font.read();
     OverlayToken field_token = (*window()).open_overlay(shared_from_this(), anchored);

@@ -82,7 +82,7 @@ private:
             if (index == 2U) (*tab_page).image_index = 0;
             primary.add_page(tab_page);
         }
-        primary.set_selected_index(1U);
+        primary.selected_index = 1U;
     }
 
     // One ordinary control per retained page, proving hidden pages keep
@@ -154,7 +154,7 @@ private:
                 (*tab_page).add_child(content);
                 tabs.add_page(tab_page);
             }
-            tabs.set_selected_index(index % 3U);
+            tabs.selected_index = index % 3U;
         }
     }
 
@@ -345,7 +345,7 @@ private:
     // State event: fires for pointer, keyboard, semantic and programmatic
     // selection alike, so the status line never needs a second route.
     void on_primary_selected(const TabSelectionChange&) {
-        const std::shared_ptr<TabPage> selected = (*document_.gallery_tabs_primary).selected_tab();
+        const std::shared_ptr<TabPage> selected = (*document_.gallery_tabs_primary).selected_tab.read();
         if (!selected) return;
         (*document_.gallery_tabs_status).text = (*selected).text.read() +
                             " selected · focus and semantics reconciled";

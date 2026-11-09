@@ -198,6 +198,27 @@
       "getter": "font",
       "setter": "set_font",
       "field": "font_"
+    },
+    {
+      "name": "selected_tab",
+      "capability": "RibbonSelectedTab",
+      "value": "std::optional<std::size_t>",
+      "initial": null,
+      "comment": "The selected tab, or none while no tab shows. A write past the end throws std::out_of_range; a tab not shown, or none, throws std::invalid_argument. The selection rules remember it as the user's choice. A view onto the ribbon's selection.",
+      "getter": "selected_tab",
+      "setter": "set_selected_tab",
+      "clear": null,
+      "field": "selected_tab_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::optional<std::size_t>{0U}",
+      "storage": "view",
+      "hand": [
+        "a view: write_view keeps set_selected_tab's checks and select_tab; owner 2026-11-08 (G14: selection is a cell)"
+      ]
     }
   ],
   "not_properties": [
@@ -208,10 +229,6 @@
     {
       "name": "tab_set_availability",
       "reason": "per-item operation"
-    },
-    {
-      "name": "selected_tab",
-      "reason": "G14 selection"
     }
   ]
 }

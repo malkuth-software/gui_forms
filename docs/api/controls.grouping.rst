@@ -212,6 +212,10 @@ Related types
      - The images the pages' image_key and image_index name (Windows Forms' ImageList), or null; a tab shows its image before its text.
    * - :cpp:class:`TabControlItemSizeCapability <gui_forms::TabControlItemSizeCapability>`
      - A tab's size: its height across the row, and its width along it in TabSizeMode::fixed (default 120 by 30).
+   * - :cpp:class:`TabControlSelectedIndexCapability <gui_forms::TabControlSelectedIndexCapability>`
+     - The selected page's index, or none without pages.
+   * - :cpp:class:`TabControlSelectedTabCapability <gui_forms::TabControlSelectedTabCapability>`
+     - The selected page, or null.
    * - :cpp:class:`TabControlSizeModeCapability <gui_forms::TabControlSizeModeCapability>`
      - How wide each tab is (see TabSizeMode; default normal).
    * - :cpp:class:`TabPageCapabilities <gui_forms::TabPageCapabilities>`
@@ -1539,7 +1543,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> TabControlCapabilities : public TabControlAlignmentCapability<Declaring>, public TabControlAppearanceCapability<Declaring>, public TabControlSizeModeCapability<Declaring>, public TabControlItemSizeCapability<Declaring>, public TabControlImageListCapability<Declaring>, public TabControlDrawModeCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> TabControlCapabilities : public TabControlAlignmentCapability<Declaring>, public TabControlAppearanceCapability<Declaring>, public TabControlSizeModeCapability<Declaring>, public TabControlItemSizeCapability<Declaring>, public TabControlImageListCapability<Declaring>, public TabControlDrawModeCapability<Declaring>, public TabControlSelectedIndexCapability<Declaring>, public TabControlSelectedTabCapability<Declaring>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
 
@@ -1571,6 +1575,14 @@ Related types
    .. cpp:member:: ItemDrawMode draw_mode
 
       Content-only owner drawing of the tabs (owner decision W-Q6; Windows Forms' DrawMode with DrawItem), the strip's: in ItemDrawMode::owner_draw draw_item_content is raised for each painted tab's icon and label, with the tab's index and its page's stable ID; the tab's plate and focus cue stay painted by role. See PageStrip::draw_item_content.
+
+   .. cpp:member:: std::optional<std::size_t> selected_index
+
+      The selected page's index, or none without pages. A write past the end throws std::out_of_range, none throws std::invalid_argument; deselecting and selecting may cancel it (see selected_index_changed). A view onto the selected page.
+
+   .. cpp:member:: std::shared_ptr<TabPage> selected_tab
+
+      The selected page, or null. A write selects a page of this control as selected_index does; a page that is not this control's, or null, throws std::invalid_argument. A view onto the selected page.
 
 .. cpp:namespace:: gui_forms
 
@@ -1636,6 +1648,40 @@ Related types
    .. cpp:member:: PropertyCell<Size, TabControlItemSizeCapability<Declaring>> item_size
 
       Default: ``{Size{120.0, 30.0}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabControlSelectedIndexCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   The selected page's index, or none without pages. A write past the end throws std::out_of_range, none throws std::invalid_argument; deselecting and selecting may cancel it (see selected_index_changed). A view onto the selected page.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabControlSelectedIndexCapability& capability, std::optional<std::size_t> incoming)
+
+   .. cpp:function:: static std::optional<std::size_t> read(const TabControlSelectedIndexCapability& capability)
+
+   .. cpp:member:: PropertyView<std::optional<std::size_t>, TabControlSelectedIndexCapability<Declaring>> selected_index
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabControlSelectedTabCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   The selected page, or null. A write selects a page of this control as selected_index does; a page that is not this control's, or null, throws std::invalid_argument. A view onto the selected page.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabControlSelectedTabCapability& capability, std::shared_ptr<TabPage> incoming)
+
+   .. cpp:function:: static std::shared_ptr<TabPage> read(const TabControlSelectedTabCapability& capability)
+
+   .. cpp:member:: PropertyView<std::shared_ptr<TabPage>, TabControlSelectedTabCapability<Declaring>> selected_tab
 
 .. cpp:namespace:: gui_forms
 

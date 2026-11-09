@@ -24,12 +24,13 @@ page_count
     The number of pages.
 selected_index
     The index of the selected page, or empty when there are no pages.
-    `set_selected_index` hides the old page, shows the new one and raises
+    Assigning an index hides the old page, shows the new one and raises
     `selected_index_changed`; an index outside the pages throws
-    `std::out_of_range`. Selecting the current page does nothing.
+    `std::out_of_range` and an empty value `std::invalid_argument`.
+    Selecting the current page does nothing.
 selected_tab
-    The selected page, or null. `set_selected_tab` selects a page of this
-    control and throws `std::invalid_argument` for any other page.
+    The selected page, or null. Assigning a page of this control selects it;
+    any other page, or null, throws `std::invalid_argument`.
 alignment : default ``TabAlignment::top``
     The edge the tabs run along: top or bottom with tabs side by side, left
     or right with tabs stacked. The display area takes the rest.
@@ -207,7 +208,7 @@ Build a two-page settings dialog and select its second page:
    (*general).add_child(wrap);
    (*tabs).add_page(general);    // the first page is selected
    (*tabs).add_page(advanced);
-   (*tabs).set_selected_tab(advanced);
+   (*tabs).selected_tab = advanced;
 
 Follow the selection with an owned handler, and change it from the keyboard:
 

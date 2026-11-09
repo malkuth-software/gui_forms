@@ -86,7 +86,7 @@ const EffectEntry* scope_sweep_entry() noexcept {
 
 SweepScope::SweepScope(StableId stable_id)
     : RangeControl(std::move(stable_id)) {
-    set_focusable(false);
+    focusable = false;
 }
 
 // -- properties ----------------------------------------------------------------

@@ -36,7 +36,7 @@ using namespace input_control_detail;
 ListBox::ListBox(StableId stable_id) : Panel(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
-    set_focusable(true);
+    focusable = true;
 }
 
 BindingValue ListBox::items_property_value() const {

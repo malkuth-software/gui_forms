@@ -93,7 +93,7 @@ ToastContent checked_content(ToastContent content) {
 
 Toast::Toast(StableId stable_id, ToastContent content)
     : Control(std::move(stable_id)), content_(checked_content(std::move(content))) {
-    set_focusable(false);
+    focusable = false;
 }
 
 void Toast::initialize_control_tree() {

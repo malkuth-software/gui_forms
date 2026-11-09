@@ -539,7 +539,7 @@ HostDialogResult retained_dialog(NativeWindow &owner,
                                                     entry.options.initial_size);
   if (state.accept_button) {
     (*entry.model).set_accept_button(state.accept_button);
-    (*state.accept_button).set_default_button(true);
+    (*state.accept_button).default_button = true;
   }
   if (state.cancel_button)
     (*entry.model).set_cancel_button(state.cancel_button);

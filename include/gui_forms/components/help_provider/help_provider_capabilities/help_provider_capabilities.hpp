@@ -2,6 +2,7 @@
 
 #include "gui_forms/binding/property_cell/property_cell.hpp"
 
+#include <any>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -16,11 +17,11 @@ namespace gui_forms {
 // Each is a standard-layout struct whose only member is its property's
 // cell, taken by the declaring class as a base. A write
 // `(*control).x = value;` runs `assign`: the declaring class's
-// prepare_write hook (require_mutable first, then the value's checks and,
-// where C# lets a subclass rewrite the value, the protected virtual coerce
-// hook), the compare and store, then the written hook (the touch, side
-// effects and the change event, through the protected virtual
-// on_<property>_changed() where Windows Forms has OnXChanged). A read is
+// prepare_write hook (require_mutable first, then the value's checks), the
+// compare and store, then the written hook (the touch, side effects and the
+// change event, through the protected virtual on_<property>_changed() where
+// Windows Forms has an overridable On<Property>Changed; other properties
+// have no hook, and a subclass subscribes to their change events instead). A read is
 // `(*control).x.read()`.
 
 // The help file or URL the provider's keyword and navigator requests name (Windows Forms' HelpNamespace). Text that is not valid UTF-8 throws std::invalid_argument.
@@ -36,8 +37,26 @@ struct HelpProviderHelpNamespaceCapability {
     }
 };
 
+// The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal. A view onto the provider's std::any, which has no ==.
+template <typename Declaring>
+struct HelpProviderTagCapability {
+    PropertyView<std::any, HelpProviderTagCapability<Declaring>> tag;
+
+    static void assign(HelpProviderTagCapability& capability, std::any incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.tag), std::move(incoming));
+    }
+
+    static std::any read(const HelpProviderTagCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::any current = control.read_view(capability.tag);
+        return current;
+    }
+};
+
 // Every HelpProvider capability, in the order the declaring class takes them.
 template <typename Declaring>
-struct HelpProviderCapabilities : public HelpProviderHelpNamespaceCapability<Declaring> {};
+struct HelpProviderCapabilities : public HelpProviderHelpNamespaceCapability<Declaring>,
+                                  public HelpProviderTagCapability<Declaring> {};
 
 } // namespace gui_forms

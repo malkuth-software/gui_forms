@@ -84,9 +84,6 @@ public:
     void reset_show_help(const Control& target);
     void clear();
 
-    [[nodiscard]] const std::any& tag() const noexcept { return tag_; }
-    void set_tag(std::any tag);
-
     bool request_help(const std::shared_ptr<Control>& target, Point position,
                       bool keyboard_initiated = false);
     [[nodiscard]] Event<HelpRequestEvent&>& help_requested() noexcept {
@@ -135,9 +132,12 @@ private:
     // property_codemod begin HelpProvider (tools/property_families/help_provider.json; generated, do not edit)
 private:
     friend struct HelpProviderHelpNamespaceCapability<HelpProvider>;
+    friend struct HelpProviderTagCapability<HelpProvider>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(help_namespace)& cell, std::string& incoming);
     void written(const decltype(help_namespace)& cell);
+    void write_view(const decltype(tag)& cell, std::any incoming);
+    [[nodiscard]] std::any read_view(const decltype(tag)& cell) const;
     // property_codemod end HelpProvider
 };
 

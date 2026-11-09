@@ -23,7 +23,7 @@ namespace {
 } // namespace
 
 RasterCanvas::RasterCanvas(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(true);
+    focusable = true;
     tab_stop = true;
     cursor = CursorKind::crosshair;
 }

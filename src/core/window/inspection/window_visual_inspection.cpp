@@ -226,7 +226,7 @@ VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
             inspected.state.enabled = (*control).enabled.read();
             inspected.state.effectively_enabled =
                 (*control).effectively_enabled();
-            inspected.state.focusable = (*control).focusable_;
+            inspected.state.focusable = (*control).focusable.read();
             inspected.state.focused = focused_.lock().get() == control.get();
             inspected.state.focus_cue_visible =
                 inspected.state.focused && focus_cue_visible_;

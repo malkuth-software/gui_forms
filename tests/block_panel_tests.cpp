@@ -222,10 +222,10 @@ void test_widths_and_auto_margins() {
 void test_lines_and_shrink_to_fit() {
     std::shared_ptr<BlockPanel> root = flow("block.lines");
     std::shared_ptr<BlockPanel> line = flow("block.lines.w");
-    (*line).set_text_align(TextAlignment::center);
+    (*line).text_align = TextAlignment::center;
     // A zero strut, so a line is as tall as its items (unset, the strut
     // would come from the panel's font).
-    (*line).set_line_strut(LineStrut{});
+    (*line).line_strut = LineStrut{};
     (*root).add_child(line);
     BlockFlowItemLayout narrow{};
     narrow.width = px(100.0);
@@ -248,7 +248,7 @@ void test_lines_and_shrink_to_fit() {
     BlockFlowItemLayout atomic{};
     atomic.level = BlockFlowLevel::inline_level;
     (*root).set_item_layout(*fitted, atomic);
-    (*root).set_line_strut(LineStrut{});
+    (*root).line_strut = LineStrut{};
 
     const std::unique_ptr<Window> held = std::make_unique<Window>(root, Size{800.0, 600.0});
     (*held).perform_layout();
@@ -259,13 +259,13 @@ void test_lines_and_shrink_to_fit() {
     require_bounds(*fitted, 0.0, 20.0, 30.0, 10.0, "an inline panel shrinks to fit its content");
 
     // A strut of 10 above and below: each line is 20 tall.
-    (*line).set_line_strut(LineStrut{10.0, 10.0, 0.0});
+    (*line).line_strut = LineStrut{10.0, 10.0, 0.0};
     (*held).perform_layout();
     require_bounds(*line, 0.0, 0.0, 100.0, 40.0, "the strut sets each line's height");
     require_bounds(*boxes[2], 30.0, 20.0, 40.0, 10.0, "the item sits on the baseline");
     bool refused = false;
     try {
-        (*line).set_line_strut(LineStrut{-1.0, 0.0, 0.0});
+        (*line).line_strut = LineStrut{-1.0, 0.0, 0.0};
     } catch (const std::invalid_argument&) {
         refused = true;
     }
@@ -342,8 +342,8 @@ void test_documented_examples() {
     require_bounds(*buttons[2], 0.0, 70.0, 200.0, 20.0, "the third stacked button");
 
     std::shared_ptr<BlockPanel> row = make_control<BlockPanel>(StableId("doc.row"));
-    (*row).set_text_align(TextAlignment::center);
-    (*row).set_line_strut(LineStrut{});
+    (*row).text_align = TextAlignment::center;
+    (*row).line_strut = LineStrut{};
     const BlockFlowItemLayout atomic = inline_item(80.0, 20.0);
     std::vector<std::shared_ptr<Button>> row_buttons;
     for (int index = 0; index < 3; ++index) {
@@ -447,7 +447,7 @@ void test_style_properties() {
     std::shared_ptr<Button> item = make_control<Button>(StableId("block.style.item"), "Item");
     (*block).add_child(item);
     (*block).set_property_value("style", BindingValue{std::string{"text-align: center"}});
-    require((*block).text_align() == TextAlignment::center, "block style: text-align applied");
+    require((*block).text_align.read() == TextAlignment::center, "block style: text-align applied");
     const std::optional<BindingValue> text = (*block).property_value("style");
     require(text.has_value() && std::get<std::string>(*text) == "text-align: center", "block style: reads back");
     bool display_refused = false;
@@ -456,7 +456,7 @@ void test_style_properties() {
     } catch (const std::invalid_argument&) {
         display_refused = true;
     }
-    require(display_refused && (*block).text_align() == TextAlignment::center,
+    require(display_refused && (*block).text_align.read() == TextAlignment::center,
             "block style: a declaration it does not carry is refused");
     (*block).set_child_property_value(*item, "item_style", BindingValue{std::string{
         "display: inline-block; width: 90px; vertical-align: middle"}});

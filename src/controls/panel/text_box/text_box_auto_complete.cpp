@@ -420,7 +420,7 @@ void TextBox::open_auto_complete_list() {
         make_control<AnchoredOverlayLayer>(StableId(prefix + ".auto-complete"), anchor);
     std::shared_ptr<DropDownList> list = make_control<DropDownList>(StableId(prefix + ".auto-complete.list"));
     // The list never takes focus: typing stays in this box.
-    (*list).set_focusable(false);
+    (*list).focusable = false;
     (*list).set_paint_plane(PaintPlane::overlay);
     (*list).font = font.read();
     (*list).items = session.suggestions;

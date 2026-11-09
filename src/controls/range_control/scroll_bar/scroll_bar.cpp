@@ -20,7 +20,7 @@ using namespace range_control_detail;
 ScrollBar::ScrollBar(StableId stable_id, Orientation initial_orientation)
     : RangeControl(std::move(stable_id)) {
     orientation = initial_orientation;
-    set_focusable(true);
+    focusable = true;
     cursor = CursorKind::arrow;
 }
 

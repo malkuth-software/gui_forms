@@ -103,8 +103,9 @@ std::shared_ptr<PageContext> retained_page_context(const Window& window) {
     const std::shared_ptr<gui_forms::Panel> root =
         std::dynamic_pointer_cast<Panel>(window.root());
     if (!root) return nullptr;
+    const std::any held = (*root).tag.read();
     const std::shared_ptr<PageContext>* const retained =
-        std::any_cast<std::shared_ptr<PageContext>>(&(*root).tag());
+        std::any_cast<std::shared_ptr<PageContext>>(&held);
     if (retained == nullptr) return nullptr;
     return *retained;
 }
@@ -122,7 +123,7 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
     // the window, so a resize moves or resizes only the docked parts it
     // reaches and repaints only what changed (resize R-8).
     Panel& root = *window.gallery_shell;
-    root.set_tag(context);
+    root.tag = context;
 
     // The Gallery's own pages leave their declared boundary for their
     // bodies; the boundary was never attached, so each group is attached

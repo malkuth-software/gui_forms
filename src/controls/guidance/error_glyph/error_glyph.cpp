@@ -11,7 +11,7 @@ namespace gui_forms {
 
 ErrorGlyph::ErrorGlyph(StableId stable_id) : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::overlay);
-    set_focusable(false);
+    focusable = false;
     cursor = CursorKind::hand;
     // The glyph shows an error, so the theme draws it in its invalid
     // recipe.

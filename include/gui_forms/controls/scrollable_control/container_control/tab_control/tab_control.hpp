@@ -79,12 +79,6 @@ public:
     [[nodiscard]] std::size_t page_count() const;
     [[nodiscard]] std::shared_ptr<TabPage> page_at(std::size_t index) const;
 
-    [[nodiscard]] std::optional<std::size_t> selected_index() const;
-    [[nodiscard]] std::shared_ptr<TabPage> selected_tab() const noexcept {
-        return selected_page_.lock();
-    }
-    void set_selected_index(std::size_t index);
-    void set_selected_tab(const std::shared_ptr<TabPage>& page);
     [[nodiscard]] const BasicControlStyle& style() const noexcept { return style_; }
     void set_style(BasicControlStyle style);
     [[nodiscard]] Rect tab_bounds(std::size_t index) const;
@@ -224,6 +218,8 @@ private:
     friend struct TabControlItemSizeCapability<TabControl>;
     friend struct TabControlImageListCapability<TabControl>;
     friend struct TabControlDrawModeCapability<TabControl>;
+    friend struct TabControlSelectedIndexCapability<TabControl>;
+    friend struct TabControlSelectedTabCapability<TabControl>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(alignment)& cell, TabAlignment& incoming);
     void written(const decltype(alignment)& cell);
@@ -237,6 +233,10 @@ private:
     void written(const decltype(image_list)& cell);
     void write_view(const decltype(draw_mode)& cell, ItemDrawMode incoming);
     [[nodiscard]] ItemDrawMode read_view(const decltype(draw_mode)& cell) const;
+    void write_view(const decltype(selected_index)& cell, std::optional<std::size_t> incoming);
+    [[nodiscard]] std::optional<std::size_t> read_view(const decltype(selected_index)& cell) const;
+    void write_view(const decltype(selected_tab)& cell, std::shared_ptr<TabPage> incoming);
+    [[nodiscard]] std::shared_ptr<TabPage> read_view(const decltype(selected_tab)& cell) const;
     // property_codemod end TabControl
 };
 

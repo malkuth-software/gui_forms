@@ -47,7 +47,7 @@ inline bool contains_node(std::span<const DockNodeId> nodes, DockNodeId node) no
 
 // Whether `control` can take focus now.
 inline bool focus_candidate(const Control& control) noexcept {
-    const bool candidate = control.focusable() && control.eligible_for_input();
+    const bool candidate = control.focusable.read() && control.eligible_for_input();
     return candidate;
 }
 

@@ -54,7 +54,7 @@ void CommandBar::refresh_tab_stop() {
 }
 
 CommandBar::CommandBar(StableId id) : Panel(std::move(id)) {
-    set_focusable(false);
+    focusable = false;
     tab_stop = false;
 }
 CommandBar::~CommandBar() = default;

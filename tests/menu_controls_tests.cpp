@@ -209,7 +209,7 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
             "menu semantics must publish menu/item/check and availability facts");
     const bool operation_check_2 = static_cast<bool>(delete_row);
     require(operation_check_2, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
-    const bool operation_check_3 = !(*delete_row).focusable();
+    const bool operation_check_3 = !(*delete_row).focusable.read();
     require(operation_check_3, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
     const bool operation_check_4 = !(*delete_row).cursor.read();
     require(operation_check_4, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
@@ -286,7 +286,7 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     require(operation_check_28, "submenu with no actionable descendant must explain and enforce its disabled state");
     const bool operation_check_29 = static_cast<bool>(disabled_submenu_row);
     require(operation_check_29, "submenu with no actionable descendant must explain and enforce its disabled state");
-    const bool operation_check_30 = !(*disabled_submenu_row).focusable();
+    const bool operation_check_30 = !(*disabled_submenu_row).focusable.read();
     require(operation_check_30, "submenu with no actionable descendant must explain and enforce its disabled state");
     const bool operation_check_31 = !(*disabled_submenu_row).cursor.read();
     require(operation_check_31, "submenu with no actionable descendant must explain and enforce its disabled state");
@@ -448,8 +448,8 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
             {"view.details", MenuItemKind::radio, details},
         }},
     });
-    (*strip).set_selected_item_id("menustrip.view");
-    require((*strip).selected_item_id() == "menustrip.view",
+    (*strip).selected_item_id = std::string("menustrip.view");
+    require((*strip).selected_item_id.read() == "menustrip.view",
             "MenuStrip must retain one selected command category independently of overlay state");
     Window window(root, {420.0, 240.0});
 
@@ -570,14 +570,14 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
             {"view.icons", MenuItemKind::radio, icons},
         }},
     });
-    require((*strip).selected_item_id() == "menustrip.view",
+    require((*strip).selected_item_id.read() == "menustrip.view",
             "MenuStrip model replacement must retain a still-visible selected stable identity");
     (*strip).set_items({
         {"menustrip.file", "File", {
             {"file.open", MenuItemKind::command, open},
         }},
     });
-    require((*strip).selected_item_id().empty(),
+    require((*strip).selected_item_id.read().empty(),
             "MenuStrip model replacement must clear a selected identity that no longer exists");
     bool hidden_selection_rejected{};
     try {
@@ -586,7 +586,7 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
                 {"file.open", MenuItemKind::command, open},
             }, true, false},
         });
-        (*strip).set_selected_item_id("menustrip.file");
+        (*strip).selected_item_id = std::string("menustrip.file");
     } catch (const std::out_of_range&) {
         hidden_selection_rejected = true;
     }
@@ -775,7 +775,7 @@ void test_menu_font_controls_geometry_paint_and_hit_testing() {
     const double old_width = (*strip).semantic_virtual_children().front().bounds.width;
     const FontSpec chosen{FontRole::content, 20.0, 800, true, 1.0};
     (*strip).font = chosen;
-    (*strip).set_selected_item_id("font.first");
+    (*strip).selected_item_id = std::string("font.first");
     window.perform_layout();
     const std::vector<SemanticNode> nodes = (*strip).semantic_virtual_children();
     require((*strip).font.read() == chosen && nodes.front().bounds.width == 127.0 &&

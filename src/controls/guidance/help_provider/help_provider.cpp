@@ -231,9 +231,14 @@ void HelpProvider::clear() {
     entries_.clear();
 }
 
-void HelpProvider::set_tag(std::any tag_value) {
+void HelpProvider::write_view(const decltype(tag)&, std::any incoming) {
     require_access("HelpProvider tag mutation");
-    tag_ = std::move(tag_value);
+    tag_ = std::move(incoming);
+}
+
+std::any HelpProvider::read_view(const decltype(tag)&) const {
+    std::any held = tag_;
+    return held;
 }
 
 bool HelpProvider::request_help(const std::shared_ptr<Control>& target,

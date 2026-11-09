@@ -30,7 +30,7 @@ std::shared_ptr<const PropertyEnumDescriptor> track_bar_visual_style_enum() {
 
 TrackBar::TrackBar(StableId stable_id)
     : RangeControl(std::move(stable_id)) {
-    set_focusable(true);
+    focusable = true;
     cursor = CursorKind::hand;
 }
 

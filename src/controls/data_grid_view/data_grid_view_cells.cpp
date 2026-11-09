@@ -215,7 +215,7 @@ void paint_data_grid_view_cell_parts(Painter& painter, const Control& owner, con
 }
 
 DataGridViewCells::DataGridViewCells(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(false);
+    focusable = false;
 }
 
 bool DataGridViewCells::set_snapshot(DataGridViewCellsSnapshot snapshot) {
@@ -235,9 +235,9 @@ bool DataGridViewCells::set_snapshot(DataGridViewCellsSnapshot snapshot) {
 // style and repaints nothing beyond the snapshot's own repaint.
 void DataGridViewCells::take_look(const DataGridViewCellsLook& look) {
     if (snapshot_.look == look && snapshots_taken_ != 0U) return;
-    const std::span<const std::string> current = classes();
+    const std::span<const std::string> current = classes.read();
     const bool same_classes = std::equal(current.begin(), current.end(), look.classes.begin(), look.classes.end());
-    if (!same_classes) set_classes(look.classes);
+    if (!same_classes) classes = look.classes;
     if (inline_style() != look.inline_style) static_cast<void>(set_inline_style(look.inline_style));
     if (back_color.read() != look.back_color) back_color = look.back_color;
     if (fore_color.read() != look.fore_color) fore_color = look.fore_color;

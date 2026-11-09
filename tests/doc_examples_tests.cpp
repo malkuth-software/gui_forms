@@ -296,8 +296,8 @@ namespace doc_example_BlockPanel_2 {
 void example() {
     std::shared_ptr<gf::BlockPanel> row =
         gf::make_control<gf::BlockPanel>(gf::StableId("row"));
-    (*row).set_text_align(gf::TextAlignment::center);
-    (*row).set_line_strut(gf::LineStrut{});   // lines as tall as their items
+    (*row).text_align = gf::TextAlignment::center;
+    (*row).line_strut = gf::LineStrut{};   // lines as tall as their items
     gf::BlockFlowItemLayout atomic{};
     atomic.level = gf::BlockFlowLevel::inline_level;
     atomic.width = gf::SizeValue{gf::SizeKind::length_percentage,
@@ -370,7 +370,7 @@ void example() {
         gf::make_control<gf::Button>(gf::StableId("dialog.ok"), "OK");
     std::shared_ptr<gf::Button> cancel =
         gf::make_control<gf::Button>(gf::StableId("dialog.cancel"), "Cancel");
-    (*ok).set_dialog_result(gf::DialogResult::ok);
+    (*ok).dialog_result = gf::DialogResult::ok;
     (*ok).set_requested_bounds({8.0, 8.0, 80.0, 28.0});
     (*cancel).set_requested_bounds({96.0, 8.0, 80.0, 28.0});
     (*cancel).causes_validation = false;
@@ -2699,7 +2699,9 @@ void example() {
     (*busy).accessible_name = "Synchronizing";
     (*busy).visual_style = gf::ProgressBarVisualStyle::marquee;
     gf::Window window(busy, gf::Size{160.0, 20.0});   // the band now animates
-    (*busy).set_animation_paused(true);               // it stops, keeping its phase
+    gf::MotionPolicy policy = (*busy).motion_policy.read();
+    policy.paused = true;
+    (*busy).motion_policy = policy;                   // it stops, keeping its phase
 }
 }  // namespace doc_example_ProgressBar_2
 
@@ -3456,7 +3458,7 @@ void example() {
     (*general).add_child(wrap);
     (*tabs).add_page(general);    // the first page is selected
     (*tabs).add_page(advanced);
-    (*tabs).set_selected_tab(advanced);
+    (*tabs).selected_tab = advanced;
 }
 }  // namespace doc_example_TabControl_1
 

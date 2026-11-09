@@ -258,11 +258,15 @@ void test_records_validate_and_reconcile() {
     std::vector<GridTrackSize> none{};
     refused = false;
     try {
-        (*panel).set_auto_rows(none);
+        (*panel).auto_rows = none;
     } catch (const std::invalid_argument&) {
         refused = true;
     }
     require(refused, "grid-auto-rows needs a size");
+    require((*panel).auto_rows.read().size() == 1U, "a refused write leaves grid-auto-rows as it was");
+    const std::vector<GridTrackSize> two_columns{GridTrackSize{}, GridTrackSize{}};
+    (*panel).auto_columns = two_columns;
+    require((*panel).auto_columns.read() == two_columns, "grid-auto-columns stores the sizes it is given");
 
     (*panel).set_item_layout(*child, spanning);
     require((*panel).item_layout(*child) == spanning, "the record is kept");

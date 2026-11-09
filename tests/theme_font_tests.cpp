@@ -166,7 +166,7 @@ void test_resolution() {
     require(!resolved.themed[style], "provenance: an unset field is the control's own");
 
     window.perform_layout();
-    (*label).set_classes({"quiet"});
+    (*label).classes = {"quiet"};
     require(((*label).dirty() & Dirty::measure) == Dirty::measure, "a class that changes the font is a layout change");
     require((*label).resolved_text_font(own).font.italic, "the class rule's style");
     require((*label).resolved_text_font(own).levels[style] == CascadeLevel::theme_sheet, "provenance: a sheet rule (the class rule)");

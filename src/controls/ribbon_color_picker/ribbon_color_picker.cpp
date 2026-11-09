@@ -76,7 +76,7 @@ std::string color_name(Color color) {
 // -- construction --------------------------------------------------------------
 
 RibbonColorPicker::RibbonColorPicker(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(true);
+    focusable = true;
     set_paint_plane(PaintPlane::control);
     palette_ = standard_colors();
 }
@@ -643,7 +643,7 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
         lifted = lift_.lift(*window, palette_overlay_, *face);
         if (!lifted) (*layer_).set_content(palette_overlay_);
     }
-    (*layer_).set_focusable(lifted);
+    (*layer_).focusable = lifted;
     if (lifted) {
         lift_closed_ = (*window).popup_window_closed().subscribe(
             Delegate<std::size_t>::bind<RibbonColorPicker, &RibbonColorPicker::on_popup_window_closed>(*this));
@@ -901,7 +901,7 @@ void RibbonColorPicker::append_interactions(std::vector<InteractionDeclaration>&
 
 RibbonColorPalette::RibbonColorPalette(StableId stable_id, RibbonColorPicker& picker)
     : Control(std::move(stable_id)), picker_(&picker) {
-    set_focusable(true);
+    focusable = true;
     set_paint_plane(PaintPlane::control);
 }
 

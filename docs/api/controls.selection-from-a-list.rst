@@ -170,6 +170,8 @@ Related types
      -  
    * - :cpp:class:`DataGridView::States <gui_forms::DataGridView::States>`
      -  
+   * - :cpp:class:`DataGridViewAllowUserToAddRowsCapability <gui_forms::DataGridViewAllowUserToAddRowsCapability>`
+     - Whether unbound and bound grids show a new row after the last row (Windows Forms' new row); on by default.
    * - :cpp:class:`DataGridViewAllowUserToDeleteRowsCapability <gui_forms::DataGridViewAllowUserToDeleteRowsCapability>`
      - Whether the user may delete rows (AllowUserToDeleteRows).
    * - :cpp:class:`DataGridViewAllowUserToOrderColumnsCapability <gui_forms::DataGridViewAllowUserToOrderColumnsCapability>`
@@ -248,6 +250,8 @@ Related types
      - Whether the column header band is shown (ColumnHeadersVisible).
    * - :cpp:class:`DataGridViewDataErrorEvent <gui_forms::DataGridViewDataErrorEvent>`
      - Raised when a value does not reach its cell (Windows Forms' DataError).
+   * - :cpp:class:`DataGridViewDataSourceCapability <gui_forms::DataGridViewDataSourceCapability>`
+     - The BindingSource the grid's rows show (data_property_name names the fields); null returns to unbound rows.
    * - :cpp:class:`DataGridViewDefaultCellStyleCapability <gui_forms::DataGridViewDefaultCellStyleCapability>`
      - A level of the cell style inheritance (DefaultCellStyle).
    * - :cpp:class:`DataGridViewDisplayIndex <gui_forms::DataGridViewDisplayIndex>`
@@ -1674,6 +1678,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> DataGridViewAllowUserToAddRowsCapability
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+
+   Whether unbound and bound grids show a new row after the last row (Windows Forms' new row); on by default. Turning it off cancels an edit on the new row and moves a current cell on it to the last row. A view onto the grid's flag.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DataGridViewAllowUserToAddRowsCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const DataGridViewAllowUserToAddRowsCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, DataGridViewAllowUserToAddRowsCapability<Declaring>> allow_user_to_add_rows
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> DataGridViewAllowUserToDeleteRowsCapability
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
@@ -1823,7 +1844,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapability<Declaring>, public DataGridViewAutoSizeRowsModeCapability<Declaring>, public DataGridViewClipboardCopyModeCapability<Declaring>, public DataGridViewRowOrderPolicyCapability<Declaring>, public DataGridViewRowOrderThresholdsCapability<Declaring>, public DataGridViewAllowUserToDeleteRowsCapability<Declaring>, public DataGridViewShowCellErrorsCapability<Declaring>, public DataGridViewShowRowErrorsCapability<Declaring>, public DataGridViewShowEditingIconCapability<Declaring>, public DataGridViewDefaultCellStyleCapability<Declaring>, public DataGridViewRowsDefaultCellStyleCapability<Declaring>, public DataGridViewAlternatingRowsDefaultCellStyleCapability<Declaring>, public DataGridViewColumnHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewRowHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewEnableHeadersVisualStylesCapability<Declaring>, public DataGridViewGridColorCapability<Declaring>, public DataGridViewBackgroundColorCapability<Declaring>, public DataGridViewBorderStyleCapability<Declaring>, public DataGridViewCellBorderStyleCapability<Declaring>, public DataGridViewColumnHeadersBorderStyleCapability<Declaring>, public DataGridViewRowHeadersBorderStyleCapability<Declaring>, public DataGridViewDrawModeCapability<Declaring>, public DataGridViewColumnHeadersVisibleCapability<Declaring>, public DataGridViewRowHeadersVisibleCapability<Declaring>, public DataGridViewColumnHeadersHeightCapability<Declaring>, public DataGridViewRowHeadersWidthCapability<Declaring>, public DataGridViewRowHeightCapability<Declaring>, public FontCapability<Declaring>, public DataGridViewReadOnlyCapability<Declaring>, public DataGridViewAllowUserToResizeColumnsCapability<Declaring>, public DataGridViewAllowUserToResizeRowsCapability<Declaring>, public DataGridViewAllowUserToOrderColumnsCapability<Declaring>, public DataGridViewSelectionModeCapability<Declaring>, public DataGridViewMultiSelectCapability<Declaring>, public DataGridViewEditModeCapability<Declaring>, public DataGridViewCellsOnSubSurfaceCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapability<Declaring>, public DataGridViewAutoSizeRowsModeCapability<Declaring>, public DataGridViewClipboardCopyModeCapability<Declaring>, public DataGridViewRowOrderPolicyCapability<Declaring>, public DataGridViewRowOrderThresholdsCapability<Declaring>, public DataGridViewAllowUserToDeleteRowsCapability<Declaring>, public DataGridViewShowCellErrorsCapability<Declaring>, public DataGridViewShowRowErrorsCapability<Declaring>, public DataGridViewShowEditingIconCapability<Declaring>, public DataGridViewDefaultCellStyleCapability<Declaring>, public DataGridViewRowsDefaultCellStyleCapability<Declaring>, public DataGridViewAlternatingRowsDefaultCellStyleCapability<Declaring>, public DataGridViewColumnHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewRowHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewEnableHeadersVisualStylesCapability<Declaring>, public DataGridViewGridColorCapability<Declaring>, public DataGridViewBackgroundColorCapability<Declaring>, public DataGridViewBorderStyleCapability<Declaring>, public DataGridViewCellBorderStyleCapability<Declaring>, public DataGridViewColumnHeadersBorderStyleCapability<Declaring>, public DataGridViewRowHeadersBorderStyleCapability<Declaring>, public DataGridViewDrawModeCapability<Declaring>, public DataGridViewColumnHeadersVisibleCapability<Declaring>, public DataGridViewRowHeadersVisibleCapability<Declaring>, public DataGridViewColumnHeadersHeightCapability<Declaring>, public DataGridViewRowHeadersWidthCapability<Declaring>, public DataGridViewRowHeightCapability<Declaring>, public FontCapability<Declaring>, public DataGridViewReadOnlyCapability<Declaring>, public DataGridViewAllowUserToResizeColumnsCapability<Declaring>, public DataGridViewAllowUserToResizeRowsCapability<Declaring>, public DataGridViewAllowUserToOrderColumnsCapability<Declaring>, public DataGridViewSelectionModeCapability<Declaring>, public DataGridViewMultiSelectCapability<Declaring>, public DataGridViewEditModeCapability<Declaring>, public DataGridViewCellsOnSubSurfaceCapability<Declaring>, public DataGridViewAllowUserToAddRowsCapability<Declaring>, public DataGridViewDataSourceCapability<Declaring>
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
 
@@ -1980,6 +2001,14 @@ Related types
    .. cpp:member:: bool cells_on_sub_surface
 
       Whether the cells are painted on a threaded sub-surface (stage S7): the grid resolves each frame's visible cells into a snapshot and its cell region shows them, off the UI thread. Owner drawing keeps the cells on the UI thread.
+
+   .. cpp:member:: bool allow_user_to_add_rows
+
+      Whether unbound and bound grids show a new row after the last row (Windows Forms' new row); on by default. Turning it off cancels an edit on the new row and moves a current cell on it to the last row. A view onto the grid's flag.
+
+   .. cpp:member:: std::shared_ptr<BindingSource> data_source
+
+      The BindingSource the grid's rows show (data_property_name names the fields); null returns to unbound rows. Every write resets the rows and the row state, even an equal one. A view onto the grid's source.
 
 .. cpp:namespace:: gui_forms
 
@@ -2612,6 +2641,23 @@ Related types
    .. cpp:member:: bool cancel
 
       Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DataGridViewDataSourceCapability
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+
+   The BindingSource the grid's rows show (data_property_name names the fields); null returns to unbound rows. Every write resets the rows and the row state, even an equal one. A view onto the grid's source.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DataGridViewDataSourceCapability& capability, std::shared_ptr<BindingSource> incoming)
+
+   .. cpp:function:: static std::shared_ptr<BindingSource> read(const DataGridViewDataSourceCapability& capability)
+
+   .. cpp:member:: PropertyView<std::shared_ptr<BindingSource>, DataGridViewDataSourceCapability<Declaring>> data_source
 
 .. cpp:namespace:: gui_forms
 

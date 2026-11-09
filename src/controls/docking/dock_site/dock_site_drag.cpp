@@ -275,7 +275,7 @@ bool DockSite::begin_drag(const DockSubject& subject, DockNodeId source_stack, b
     if (flyout_panel_) close_flyout(DockFlyoutCause::programmatic);
     // The page leaves its view, or the whole stack the layout, at the next
     // layout pass.
-    set_focusable(true);
+    focusable = true;
     static_cast<void>((*host).request_focus(shared_from_this()));
     if (!keyboard) (*host).capture_pointer(shared_from_this(), drag_.pointer_id);
     (*drag_layer_).visible = true;

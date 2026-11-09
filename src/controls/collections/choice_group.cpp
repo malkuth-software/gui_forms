@@ -39,7 +39,7 @@ public:
     SemanticDescriptor semantic_descriptor() const override {
         SemanticDescriptor descriptor = Button::semantic_descriptor();
         descriptor.role = SemanticRole::radio_button;
-        if (selected()) descriptor.states |= SemanticState::checked;
+        if (selected.read()) descriptor.states |= SemanticState::checked;
         return descriptor;
     }
     [[nodiscard]] bool segment() const noexcept { return segment_; }
@@ -57,7 +57,7 @@ public:
         const AnatomyStateSet states = anatomy_states();
         // The selected segment shows the group's indicator; another shows a
         // wash while hot or pressed.
-        if (!selected() && (hovered_visual() || pressed_visual())) {
+        if (!selected.read() && (hovered_visual() || pressed_visual())) {
             PartPaint wash{.role = PartRole::face, .bounds = bounds, .states = states,
                            .family = ControlVisualRole::choice};
             paint_part(painter, *this, wash);
@@ -123,7 +123,7 @@ void ChoiceGroup::refresh_tab_stop() {
 }
 
 ChoiceGroup::ChoiceGroup(StableId id) : Panel(std::move(id)) {
-    set_focusable(false);
+    focusable = false;
     tab_stop = false;
 }
 ChoiceGroup::~ChoiceGroup() = default;
@@ -193,7 +193,7 @@ void ChoiceGroup::apply_selection(const int selected) {
     const int tab_stop = selected < 0 ? 0 : selected;
     for (std::size_t index = 0U; index < (*revision).entries.size(); ++index) {
         Button& button = *(*(*revision).entries[index]).button;
-        button.set_selected(static_cast<int>(index) == selected);
+        button.selected = static_cast<int>(index) == selected;
         button.tab_stop = static_cast<int>(index) == tab_stop;
         if (!is_alive() || revision_ != revision) return;
     }

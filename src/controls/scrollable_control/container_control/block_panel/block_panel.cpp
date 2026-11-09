@@ -205,7 +205,7 @@ std::span<const ChildPropertyEntry> BlockPanel::child_property_table() const noe
 BindingValue BlockPanel::style_property() const {
     const LayoutStyle base{};
     LayoutStyle style = base;
-    style.text_align = text_align_;
+    style.text_align = text_align.read();
     std::string text = layout_style_property::describe(style, base);
     return BindingValue{std::move(text)};
 }
@@ -218,63 +218,34 @@ void BlockPanel::set_style_property(const BindingValue& value) {
     LayoutStyle kept = base;
     kept.text_align = read.text_align;
     layout_style_property::require_admitted(read, kept, name, "the line strut and font are their own properties");
-    set_text_align(read.text_align);
-}
-
-void BlockPanel::set_text_align(TextAlignment alignment) {
-    require_mutable();
-    if (alignment > TextAlignment::center) throw std::invalid_argument("BlockPanel text-align is unknown");
-    if (text_align_ == alignment) return;
-    text_align_ = alignment;
-    invalidate(invalidation::bounds);
-}
-
-void BlockPanel::set_line_strut(LineStrut strut) {
-    require_mutable();
-    if (!admitted_strut(strut)) {
-        throw std::invalid_argument("BlockPanel line strut values must be finite and nonnegative");
-    }
-    if (line_strut_ && *line_strut_ == strut) return;
-    line_strut_ = strut;
-    invalidate(invalidation::bounds);
-}
-
-void BlockPanel::clear_line_strut() {
-    require_mutable();
-    if (!line_strut_) return;
-    line_strut_.reset();
-    invalidate(invalidation::bounds);
+    text_align = read.text_align;
 }
 
 LineStrut BlockPanel::used_line_strut() const {
-    if (line_strut_) return *line_strut_;
-    const FontSpec used = text_font((*this).font());
+    const std::optional<LineStrut>& own = line_strut.read();
+    if (own) return *own;
+    const FontSpec used = text_font(resolved_font());
     const ResolvedTextLayout primary = resolve_text_layout_utf8(" ", used);
     const LineBoxMetrics line = line_box_metrics(primary, std::nullopt);
     const LineStrut strut{line.baseline, std::max(0.0, line.height - line.baseline), line.x_height};
     return strut;
 }
 
-FontSpec BlockPanel::font() const noexcept {
-    if (font_override_) return *font_override_;
+FontSpec BlockPanel::resolved_font() const noexcept {
+    const std::optional<FontSpec>& own = font.read();
+    if (own) return *own;
     return effective_theme().structure().typography.field;
 }
 
-void BlockPanel::set_font(FontSpec font) {
+void BlockPanel::prepare_write(const decltype(font)&, std::optional<FontSpec>& incoming) {
     require_mutable();
-    if (!valid_font_spec(font)) throw std::invalid_argument("BlockPanel font is invalid");
-    set_font_from_code(true);
-    if (font_override_ && *font_override_ == font) return;
-    font_override_ = font;
-    if (!line_strut_) invalidate(invalidation::bounds);
+    if (incoming && !valid_font_spec(*incoming)) throw std::invalid_argument("BlockPanel font is invalid");
+    set_font_from_code(incoming.has_value());
 }
 
-void BlockPanel::clear_font() {
-    require_mutable();
-    if (!font_override_) return;
-    font_override_.reset();
-    set_font_from_code(false);
-    if (!line_strut_) invalidate(invalidation::bounds);
+// The font feeds only the strut, so a set strut makes a font change moot.
+void BlockPanel::written(const decltype(font)&) {
+    if (!line_strut.read()) invalidate(invalidation::bounds);
 }
 
 void BlockPanel::set_item_layout(const Control& child, const BlockFlowItemLayout& layout) {
@@ -471,7 +442,7 @@ BlockPanel::SolveResult BlockPanel::solve(const SolveRequest& request, BlockFlow
     const bool shares = shares_parent_flow();
     BlockFlowContainerInput container{};
     container.width = request.width;
-    container.text_align = text_align_;
+    container.text_align = text_align.read();
     container.strut = used_line_strut();
     container.shares_leading_margin = shares && inset.top == 0.0;
     const LayoutDirection direction = effective_layout_direction();
@@ -763,6 +734,26 @@ const std::array<PropertyEntry, BlockPanel::block_panel_property_count>& BlockPa
 std::span<const PropertyEntry> BlockPanel::property_table() const noexcept {
     const std::array<PropertyEntry, block_panel_property_count>& entries = block_panel_property_entries();
     return std::span<const PropertyEntry>(entries);
+}
+
+void BlockPanel::prepare_write(const decltype(text_align)&, TextAlignment& incoming) {
+    require_mutable();
+    if (incoming > TextAlignment::center) throw std::invalid_argument("BlockPanel text-align is unknown");
+}
+
+void BlockPanel::written(const decltype(text_align)&) {
+    invalidate(invalidation::bounds);
+}
+
+void BlockPanel::prepare_write(const decltype(line_strut)&, std::optional<LineStrut>& incoming) {
+    require_mutable();
+    if (incoming && !admitted_strut(*incoming)) {
+        throw std::invalid_argument("BlockPanel line strut values must be finite and nonnegative");
+    }
+}
+
+void BlockPanel::written(const decltype(line_strut)&) {
+    invalidate(invalidation::bounds);
 }
 
 // property_codemod end BlockPanel

@@ -223,7 +223,7 @@ private:
 // -- construction --------------------------------------------------------------
 
 NavigationPane::NavigationPane(StableId stable_id) : Control(std::move(stable_id)) {
-    set_focusable(true);
+    focusable = true;
     cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
     // The pane sizes itself: its width follows collapsing (measure).

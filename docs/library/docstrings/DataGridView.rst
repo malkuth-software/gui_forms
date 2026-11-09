@@ -61,10 +61,11 @@ row_count
     rows or cuts them from the end; virtual rows are counted by their order
     and bound rows by their source, so both refuse it with
     `std::logic_error`.
-data_source
-    The `BindingSource` whose records are the rows, or none.
-    `set_data_source` shows a source's records as rows, or returns to empty
-    unbound rows for none.
+data_source : default none
+    The `BindingSource` whose records are the rows, or none. Assigning a
+    source shows its records as rows; assigning none returns to empty
+    unbound rows. Every assignment resets the rows, even of the same
+    source.
 column_headers_visible : default ``true``
     Whether the column header row shows.
 row_headers_visible : default ``true``

@@ -72,6 +72,11 @@ gui_forms::Ribbon
       **font** : ``FontSpec``
          The font of tab, caption and command text.
 
+      **selected_tab** : ``std::optional<std::size_t>``
+         The selected tab, or none while no tab shows. Assigning a tab past the
+         end throws ``std::out_of_range``; a tab not shown, or no value, throws
+         ``std::invalid_argument``.
+
       **tabs** : ``std::span<const RibbonTabSpec>``
          The tabs, each with its groups and their commands: the core tabs, then
          the contextual tabs, each set's together in the sets' order.
@@ -115,11 +120,6 @@ gui_forms::Ribbon
       **scaling_counters** : ``RibbonScalingCounters``, read-only
          :cpp:class:`RibbonScalingCounters <gui_forms::RibbonScalingCounters>`: ladders built, the last ladder's entries and
          folded steps, ladder lookups and the ribbon's own text measurements.
-
-      **selected_tab** : ``std::optional<std::size_t>``
-         The selected tab, or none while no tab shows. :cpp:func:`set_selected_tab <gui_forms::Ribbon::set_selected_tab>` throws
-         ``std::out_of_range`` for a tab past the end and ``std::invalid_argument``
-         for a tab not shown.
 
       **application_menu** : ``std::vector<MenuItemSpec>``
          The File tab's menu. :cpp:func:`set_application_menu <gui_forms::Ribbon::set_application_menu>` throws
@@ -452,6 +452,12 @@ gui_forms::Ribbon
 
       The font of tab, caption and command text.
 
+   .. cpp:member:: std::optional<std::size_t> selected_tab
+
+      The selected tab, or none while no tab shows. Assigning a tab past the
+      end throws ``std::out_of_range``; a tab not shown, or no value, throws
+      ``std::invalid_argument``.
+
    .. cpp:function:: std::span<const RibbonTabSpec> tabs() const noexcept
 
       The tabs, each with its groups and their commands: the core tabs, then
@@ -506,16 +512,6 @@ gui_forms::Ribbon
 
       :cpp:class:`RibbonScalingCounters <gui_forms::RibbonScalingCounters>`: ladders built, the last ladder's entries and
       folded steps, ladder lookups and the ribbon's own text measurements.
-
-   .. cpp:function:: std::optional<std::size_t> selected_tab() const noexcept
-
-      The selected tab, or none while no tab shows. :cpp:func:`set_selected_tab <gui_forms::Ribbon::set_selected_tab>` throws
-      ``std::out_of_range`` for a tab past the end and ``std::invalid_argument``
-      for a tab not shown.
-
-   .. cpp:function:: void set_selected_tab(std::size_t tab)
-
-      Sets :cpp:func:`selected_tab <gui_forms::Ribbon::selected_tab>`; see the property's description above.
 
    .. cpp:function:: const std::vector<MenuItemSpec>& application_menu() const noexcept
 

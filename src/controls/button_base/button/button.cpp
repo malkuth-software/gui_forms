@@ -29,42 +29,11 @@ std::shared_ptr<const PropertyEnumDescriptor> visual_style_enum() {
 Button::Button(StableId stable_id, std::string text)
     : ButtonBase(std::move(stable_id), std::move(text)) {}
 
-void Button::set_default_button(bool is_default) {
-    require_mutable();
-    if (default_button_ == is_default) {
-        return;
-    }
-    default_button_ = is_default;
-    invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void Button::notify_default(bool value) { set_default_button(value); }
-
-void Button::set_dialog_result(DialogResult result) {
-    require_mutable();
-    switch (result) {
-    case DialogResult::none:
-    case DialogResult::ok:
-    case DialogResult::cancel:
-    case DialogResult::abort:
-    case DialogResult::retry:
-    case DialogResult::ignore:
-    case DialogResult::yes:
-    case DialogResult::no:
-    case DialogResult::try_again:
-    case DialogResult::continue_: break;
-    default:
-        throw std::invalid_argument("Button DialogResult is not a defined value");
-    }
-    if (dialog_result_ == result) return;
-    dialog_result_ = result;
-    invalidate(Dirty::semantics);
-    publish_change(dialog_result_changed_, dialog_result_);
-}
+void Button::notify_default(bool value) { default_button = value; }
 
 void Button::assign_cancel_dialog_result() {
-    if (dialog_result_ == DialogResult::none) {
-        set_dialog_result(DialogResult::cancel);
+    if (dialog_result.read() == DialogResult::none) {
+        dialog_result = DialogResult::cancel;
     }
 }
 
@@ -74,18 +43,10 @@ void Button::on_activate() {
     ButtonBase::on_activate();
     // Read the value after Click: a handler may deliberately replace or clear
     // DialogResult before the Form/Window observes it.
-    if (dialog_result_ != DialogResult::none && is_alive() &&
+    if (dialog_result.read() != DialogResult::none && is_alive() &&
         attached_window() == owner && owner != nullptr) {
-        (*owner).set_dialog_result(dialog_result_);
+        (*owner).set_dialog_result(dialog_result.read());
     }
-}
-
-void Button::set_selected(bool selected) {
-    require_mutable();
-    if (selected_ == selected) return;
-    selected_ = selected;
-    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
-    publish_change(selected_changed_, selected);
 }
 
 namespace {
@@ -151,7 +112,7 @@ const ControlAnatomy& Button::anatomy() const noexcept {
 
 Button::Parts Button::button_parts() const {
     // Paint passes the selection to the image lookup only on the themed path.
-    const bool layout_selected = selected_;
+    const bool layout_selected = selected.read();
     const bool command_alignment = visual_style.read() == ButtonVisualStyle::command;
     const ButtonBase::Parts base = push_button_parts(layout_selected, command_alignment);
     Parts record;
@@ -171,10 +132,10 @@ void Button::publish_part_geometry(std::span<PartGeometry> geometry) const {
 
 AnatomyStateSet Button::anatomy_states() const {
     AnatomyStateSet states = button_anatomy_states();
-    if (default_button_) {
+    if (default_button.read()) {
         states.insert(AnatomyState::preselect);
     }
-    if (selected_) {
+    if (selected.read()) {
         states.insert(AnatomyState::selected);
     }
     return states;
@@ -210,22 +171,22 @@ void Button::on_paint(Painter& painter, Rect) {
         const Color text = accent ? colours.paper : colours.text;
         authored = AuthoredButtonColours{face, text};
     }
-    paint_themed_button(painter, bounds, role, default_button_,
+    paint_themed_button(painter, bounds, role, default_button.read(),
                         visual_style.read() == ButtonVisualStyle::command,
-                        selected_, authored);
+                        selected.read(), authored);
 }
 
 SemanticDescriptor Button::semantic_descriptor() const {
     SemanticDescriptor descriptor = ButtonBase::semantic_descriptor();
-    if (selected_) descriptor.states |= SemanticState::selected;
+    if (selected.read()) descriptor.states |= SemanticState::selected;
     return descriptor;
 }
 
 Insets Button::visual_outsets() const noexcept {
     const ControlVisualRole role = button_visual_role(visual_style.read());
     const ControlVisualContext context = visual_context(
-        hovered_visual(), pressed_visual(), selected_, focus_cue_visible(),
-        default_button_);
+        hovered_visual(), pressed_visual(), selected.read(), focus_cue_visible(),
+        default_button.read());
     return resolved_visual_outsets(role, context);
 }
 
@@ -347,6 +308,46 @@ void Button::prepare_write(const decltype(flat_border_width)&, double& incoming)
 
 void Button::written(const decltype(flat_border_width)&) {
     invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void Button::prepare_write(const decltype(default_button)&, bool&) {
+    require_mutable();
+}
+
+void Button::written(const decltype(default_button)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void Button::prepare_write(const decltype(dialog_result)&, DialogResult& incoming) {
+    require_mutable();
+    switch (incoming) {
+    case DialogResult::none:
+    case DialogResult::ok:
+    case DialogResult::cancel:
+    case DialogResult::abort:
+    case DialogResult::retry:
+    case DialogResult::ignore:
+    case DialogResult::yes:
+    case DialogResult::no:
+    case DialogResult::try_again:
+    case DialogResult::continue_: break;
+    default:
+        throw std::invalid_argument("Button DialogResult is not a defined value");
+    }
+}
+
+void Button::written(const decltype(dialog_result)&) {
+    invalidate(Dirty::semantics);
+    publish_change(dialog_result_changed_, dialog_result.read());
+}
+
+void Button::prepare_write(const decltype(selected)&, bool&) {
+    require_mutable();
+}
+
+void Button::written(const decltype(selected)&) {
+    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
+    publish_change(selected_changed_, selected.read());
 }
 
 // property_codemod end Button

@@ -512,7 +512,7 @@ void progress_bar_hosting() {
     }
     require((*bar).effect_instance().counters().frames == 30U && (*bar).effect_instance().counters().ticks > 0U,
             "the bar advances and draws its effect");
-    (*bar).set_reduced_motion(true);
+    (*bar).motion_policy = MotionPolicy{true, false, true};
     const std::uint64_t ticks = (*bar).effect_instance().counters().ticks;
     (*bar).advance_animation(origin + std::chrono::milliseconds(1600));
     RecordingPainter reduced;

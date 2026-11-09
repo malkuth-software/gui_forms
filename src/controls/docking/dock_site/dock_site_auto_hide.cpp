@@ -101,7 +101,7 @@ public:
         cursor = CursorKind::arrow;
         // Focus lands here when the panel has nothing focusable, so Escape
         // still reaches the flyout.
-        set_focusable(true);
+        focusable = true;
     }
 
     void release_site() noexcept { site_ = nullptr; }

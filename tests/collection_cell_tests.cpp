@@ -256,7 +256,7 @@ struct GridFixture final {
     GridFixture() {
         (*grid).set_requested_bounds({0.0, 0.0, 320.0, 160.0});
         (*grid).set_columns({{.name = "name", .header_text = "Name", .width = 120.0}});
-        (*grid).set_allow_user_to_add_rows(false);
+        (*grid).allow_user_to_add_rows = false;
         std::vector<DataGridViewRow> rows;
         rows.reserve(30U);
         for (std::size_t index = 0U; index < 30U; ++index) {

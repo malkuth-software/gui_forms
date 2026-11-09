@@ -64,7 +64,7 @@ std::string hosted_key(const RibbonCommandSpec& command) {
 // -- construction --------------------------------------------------------------
 
 Ribbon::Ribbon(StableId ribbon_id) : Control(std::move(ribbon_id)) {
-    set_focusable(true);
+    focusable = true;
     set_paint_plane(PaintPlane::control);
     overlay_ = std::make_unique<ContextMenu>(std::string(stable_id().value()) + ".menu");
     overlay_invoked_ = (*overlay_).item_invoked().subscribe(
@@ -473,8 +473,14 @@ std::shared_ptr<TextBox> Ribbon::text_box(std::string_view command_id) const {
     return std::static_pointer_cast<TextBox>(hosted_control(command_id, RibbonCommandKind::text_box));
 }
 
-void Ribbon::set_selected_tab(std::size_t tab) {
+std::optional<std::size_t> Ribbon::read_view(const decltype(selected_tab)&) const {
+    return selected_tab_;
+}
+
+void Ribbon::write_view(const decltype(selected_tab)&, std::optional<std::size_t> incoming) {
     require_mutable();
+    if (!incoming) throw std::invalid_argument("Ribbon tab selection cannot be cleared");
+    const std::size_t tab = *incoming;
     if (tab >= tabs_.size()) throw std::out_of_range("Ribbon tab index is past the end");
     if (!shown(tab)) throw std::invalid_argument("Ribbon tab is not shown");
     select_tab(tab);

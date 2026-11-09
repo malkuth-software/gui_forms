@@ -242,7 +242,7 @@ void dialog_accept_from_text_box() {
     std::shared_ptr<Button> accept = make_control<Button>(StableId("enter.dialog.accept"), "OK");
     (*field).set_requested_bounds({4.0, 4.0, 120.0, 24.0});
     (*accept).set_requested_bounds({4.0, 36.0, 70.0, 28.0});
-    (*accept).set_dialog_result(DialogResult::ok);
+    (*accept).dialog_result = DialogResult::ok;
     (*root).add_child(field);
     (*root).add_child(accept);
     Window window(root, {240.0, 104.0});

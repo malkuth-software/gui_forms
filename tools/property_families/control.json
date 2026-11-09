@@ -11,7 +11,9 @@
     "gui_forms/control/control_property_traits/control_property_traits.hpp",
     "gui_forms/layout/types/layout_types.hpp",
     "gui_forms/types.hpp",
-    "gui_forms/types/cursor_image/cursor_image.hpp"
+    "gui_forms/types/cursor_image/cursor_image.hpp",
+    "<any>",
+    "<vector>"
   ],
   "properties": [
     {
@@ -487,6 +489,108 @@
       "hooks": "hand",
       "hand": [
         "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "ceremonial",
+      "capability": "Ceremonial",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the control is a ceremonial surface (GIVEN B3-1): on it and its descendants the theme engine's ambient effects may cover more than 10 % of the window. A theme never sets it; a change repaints the subtree.",
+      "getter": "ceremonial",
+      "setter": "set_ceremonial",
+      "clear": null,
+      "field": "ceremonial_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written repaints the subtree (invalidate_subtree), which a generated hook without a table entry cannot say"
+      ],
+      "sample": "true"
+    },
+    {
+      "name": "tag",
+      "capability": "Tag",
+      "value": "std::any",
+      "initial": null,
+      "comment": "Application-owned metadata or lifetime anchor (Windows Forms Tag). Deliberately inert: a write implies no rendering, layout, semantics or binding, and stores even an equal value. A view onto the control's std::any, which has no ==.",
+      "getter": "tag",
+      "setter": "set_tag",
+      "clear": null,
+      "field": "tag_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::any{7}",
+      "storage": "view",
+      "hand": [
+        "a view: std::any has no ==, so it cannot be a cell; write_view stores unconditionally, as set_tag did"
+      ]
+    },
+    {
+      "name": "focusable",
+      "capability": "Focusable",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the control may receive focus; turning it off while attached gives up eligibility (focus moves on).",
+      "getter": "focusable",
+      "setter": "set_focusable",
+      "clear": null,
+      "field": "focusable_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "true",
+      "hand": [
+        "written tells the surface root about lost eligibility, then invalidates focusability (invalidate_declared), as set_focusable did"
+      ]
+    },
+    {
+      "name": "double_buffered",
+      "capability": "DoubleBuffered",
+      "value": "bool",
+      "initial": null,
+      "comment": "Windows Forms DoubleBuffered: a view over the double_buffer and optimized_double_buffer style bits, kept together; retained release is coherent either way.",
+      "getter": "double_buffered",
+      "setter": "set_double_buffered",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "true",
+      "storage": "view",
+      "hand": [
+        "a view over styles_: read is either bit, write sets both through set_style"
+      ]
+    },
+    {
+      "name": "classes",
+      "capability": "Classes",
+      "value": "std::vector<std::string>",
+      "initial": null,
+      "comment": "Style classes (T2 plan, E4) a theme's class rules select, in order, without duplicates; 1 to 64 lowercase ASCII letters, digits, '-' and '_', starting with a letter (std::invalid_argument, nothing changed). Repeated names are dropped.",
+      "getter": "classes",
+      "setter": "set_classes",
+      "clear": null,
+      "field": "classes_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::vector<std::string>{\"accent\"}",
+      "hand": [
+        "a cell: prepare_write validates and drops repeated names (it adjusts the incoming list); written repaints and restyles descendants whose rules read ancestors, as set_classes did; add_class and remove_class write through the cell"
       ]
     }
   ],

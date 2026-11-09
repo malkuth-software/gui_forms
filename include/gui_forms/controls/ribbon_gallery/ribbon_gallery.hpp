@@ -74,12 +74,6 @@ public:
     // the more button opens shows the same categories and items.
     void set_items(std::vector<RibbonGalleryCategory> categories, std::vector<RibbonGalleryItem> items);
 
-    // The selected item's ID: the command's value, or the gallery's own.
-    [[nodiscard]] std::optional<std::string> selected_id() const;
-    // Selects an item without committing (the command's set_value). Throws
-    // std::invalid_argument for an ID the gallery does not have.
-    void set_selected_id(std::optional<std::string> item_id);
-
     // In-ribbon form: the authored column range (owner decision RB-8: the
     // ribbon's scaling gives up one column at a time within it) and the
     // current column count, kept inside the range. Throws std::out_of_range
@@ -335,6 +329,7 @@ private:
     friend struct RibbonGalleryShowLabelsCapability<RibbonGallery>;
     friend struct RibbonGalleryVisibleRowsCapability<RibbonGallery>;
     friend struct RibbonGalleryColumnsCapability<RibbonGallery>;
+    friend struct RibbonGallerySelectedIdCapability<RibbonGallery>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(command)& cell, std::shared_ptr<GalleryCommand>& incoming);
     void written(const decltype(command)& cell);
@@ -346,6 +341,8 @@ private:
     void written(const decltype(visible_rows)& cell);
     void write_view(const decltype(columns)& cell, std::size_t incoming);
     [[nodiscard]] std::size_t read_view(const decltype(columns)& cell) const;
+    void write_view(const decltype(selected_id)& cell, std::optional<std::string> incoming);
+    [[nodiscard]] std::optional<std::string> read_view(const decltype(selected_id)& cell) const;
     // property_codemod end RibbonGallery
 };
 

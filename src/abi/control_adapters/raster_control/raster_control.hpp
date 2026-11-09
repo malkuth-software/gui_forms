@@ -17,7 +17,7 @@ public:
     explicit RasterControl(StableId stable_id, bool input_transparent = false)
         : ScrollableControl(std::move(stable_id)),
           input_transparent_(input_transparent) {
-        set_focusable(!input_transparent_);
+        focusable = !input_transparent_;
     }
 
     [[nodiscard]] bool hit_test_local(gui_forms::Point point) const override {

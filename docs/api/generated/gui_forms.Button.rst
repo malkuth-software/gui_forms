@@ -16,7 +16,7 @@ gui_forms::Button
    The user clicks the button, presses Space or Enter while it has focus, or
    presses Alt with its mnemonic letter, and the button raises ``clicked``. In a
    dialog, make one button the window's accept button so that Enter activates it,
-   and another the cancel button for Escape; give each a :cpp:func:`dialog_result <gui_forms::Button::dialog_result>`, and
+   and another the cancel button for Escape; give each a :cpp:member:`dialog_result <gui_forms::Button::dialog_result>`, and
    the window records the result of the button that was used. Use a :cpp:class:`CheckBox <gui_forms::CheckBox>` for an on/off
    setting, a :cpp:class:`DropDownButton <gui_forms::DropDownButton>` for a button that opens a menu, and a :cpp:class:`CommandBar <gui_forms::CommandBar>`
    for a row of commands.
@@ -72,13 +72,13 @@ gui_forms::Button
    :Events:
 
       **dialog_result_changed** : ``Event<DialogResult>``
-         Raised after :cpp:func:`dialog_result <gui_forms::Button::dialog_result>` changes, including when the button becomes
+         Raised after :cpp:member:`dialog_result <gui_forms::Button::dialog_result>` changes, including when the button becomes
          the window's cancel button. It carries the new result.
 
       **selected_changed** : ``Event<bool>``
-         Raised after :cpp:func:`selected <gui_forms::Button::selected>` changes, whether by a setter or by a bound
+         Raised after :cpp:member:`selected <gui_forms::Button::selected>` changes, whether by an assignment or by a bound
          command. It carries the new state. A click alone does not change
-         :cpp:func:`selected <gui_forms::Button::selected>`.
+         :cpp:member:`selected <gui_forms::Button::selected>`.
 
    :Inherited:
 
@@ -115,8 +115,8 @@ gui_forms::Button
    .. rubric:: Notes
 
    When the button is activated it first raises ``clicked``. Then, if
-   :cpp:func:`dialog_result <gui_forms::Button::dialog_result>` is not ``none`` and the button is still in the same window, it
-   sets the window's :cpp:func:`dialog_result <gui_forms::Button::dialog_result>`, which raises the window's
+   :cpp:member:`dialog_result <gui_forms::Button::dialog_result>` is not ``none`` and the button is still in the same window, it
+   sets the window's :cpp:member:`dialog_result <gui_forms::Button::dialog_result>`, which raises the window's
    :cpp:func:`dialog_result_changed <gui_forms::Button::dialog_result_changed>` if the value changes. The value is read after ``clicked``, so a handler may
    change or clear it. The window does not close itself; observe its
    :cpp:func:`dialog_result_changed <gui_forms::Button::dialog_result_changed>` and close the dialog there.
@@ -131,7 +131,7 @@ gui_forms::Button
    on a Cancel button so that it works while a field holds an invalid value.
 
    The control publishes the accessibility role ``button``, with the selected
-   state while :cpp:func:`selected <gui_forms::Button::selected>` is true. Pointer, keyboard and mnemonic behaviour are
+   state while :cpp:member:`selected <gui_forms::Button::selected>` is true. Pointer, keyboard and mnemonic behaviour are
    described under :cpp:class:`ButtonBase <gui_forms::ButtonBase>`.
 
    .. rubric:: Examples
@@ -146,7 +146,7 @@ gui_forms::Button
           gf::make_control<gf::Button>(gf::StableId("dialog.ok"), "OK");
       std::shared_ptr<gf::Button> cancel =
           gf::make_control<gf::Button>(gf::StableId("dialog.cancel"), "Cancel");
-      (*ok).set_dialog_result(gf::DialogResult::ok);
+      (*ok).dialog_result = gf::DialogResult::ok;
       (*ok).set_requested_bounds({8.0, 8.0, 80.0, 28.0});
       (*cancel).set_requested_bounds({96.0, 8.0, 80.0, 28.0});
       (*cancel).causes_validation = false;
@@ -197,18 +197,14 @@ gui_forms::Button
       Border width for the ``flat`` style after ``set_style``; zero draws no
       border. A negative or non-finite width throws ``std::invalid_argument``.
 
-   .. cpp:function:: bool default_button() const noexcept
+   .. cpp:member:: bool default_button
 
       Whether the button draws the default-button cue. ``Window::set_accept_button``
       turns it on for the new accept button and off for the previous one.
       Setting it yourself changes only the appearance: Enter activates the
       window's accept button, not every button with this flag.
 
-   .. cpp:function:: void set_default_button(bool is_default)
-
-      Sets :cpp:func:`default_button <gui_forms::Button::default_button>`; see the property's description above.
-
-   .. cpp:function:: DialogResult dialog_result() const noexcept
+   .. cpp:member:: DialogResult dialog_result
 
       The result the button gives its window when it is clicked. Assigning the
       button as the window's cancel button sets it to :cpp:enumerator:`DialogResult::cancel <gui_forms::DialogResult::cancel>` if
@@ -216,21 +212,13 @@ gui_forms::Button
       ``std::invalid_argument``. Setting a different value raises
       :cpp:func:`dialog_result_changed <gui_forms::Button::dialog_result_changed>`.
 
-   .. cpp:function:: void set_dialog_result(DialogResult result)
-
-      Sets :cpp:func:`dialog_result <gui_forms::Button::dialog_result>`; see the property's description above.
-
-   .. cpp:function:: bool selected() const noexcept
+   .. cpp:member:: bool selected
 
       A persistent "on" look for a button that represents the current choice,
       such as the active tab of a custom tab strip. It is reported to
       accessibility as selected. While a :cpp:class:`Command <gui_forms::Command>` is bound, it follows the
       command's checked state, and stays false for a command that is not
       checkable. Setting a different value raises :cpp:func:`selected_changed <gui_forms::Button::selected_changed>`.
-
-   .. cpp:function:: void set_selected(bool selected)
-
-      Sets :cpp:func:`selected <gui_forms::Button::selected>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 
@@ -241,14 +229,14 @@ gui_forms::Button
 
    .. cpp:function:: Event<DialogResult>& dialog_result_changed() noexcept
 
-      Raised after :cpp:func:`dialog_result <gui_forms::Button::dialog_result>` changes, including when the button becomes
+      Raised after :cpp:member:`dialog_result <gui_forms::Button::dialog_result>` changes, including when the button becomes
       the window's cancel button. It carries the new result.
 
    .. cpp:function:: Event<bool>& selected_changed() noexcept
 
-      Raised after :cpp:func:`selected <gui_forms::Button::selected>` changes, whether by a setter or by a bound
+      Raised after :cpp:member:`selected <gui_forms::Button::selected>` changes, whether by an assignment or by a bound
       command. It carries the new state. A click alone does not change
-      :cpp:func:`selected <gui_forms::Button::selected>`.
+      :cpp:member:`selected <gui_forms::Button::selected>`.
 
 
    .. rubric:: Methods

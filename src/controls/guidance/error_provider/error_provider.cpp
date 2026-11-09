@@ -506,9 +506,14 @@ void ErrorProvider::update_binding() {
     }
 }
 
-void ErrorProvider::set_tag(std::any tag_value) {
+void ErrorProvider::write_view(const decltype(tag)&, std::any incoming) {
     require_access("ErrorProvider tag mutation");
-    tag_ = std::move(tag_value);
+    tag_ = std::move(incoming);
+}
+
+std::any ErrorProvider::read_view(const decltype(tag)&) const {
+    std::any held = tag_;
+    return held;
 }
 
 namespace {

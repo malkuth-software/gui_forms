@@ -357,21 +357,21 @@ void newer_engine_rules_fall_back() {
 void style_classes() {
     std::shared_ptr<Control> control = make_control<Control>(StableId("styled"));
     std::vector<std::string> initial{"loud", "wide", "loud"};
-    (*control).set_classes(initial);
-    require((*control).classes().size() == 2U && (*control).has_class("loud") && (*control).has_class("wide"),
+    (*control).classes = initial;
+    require((*control).classes.read().size() == 2U && (*control).has_class("loud") && (*control).has_class("wide"),
             "classes are kept once each, in order");
-    require(!(*control).add_class("loud") && (*control).add_class("tall") && (*control).classes().back() == "tall",
+    require(!(*control).add_class("loud") && (*control).add_class("tall") && (*control).classes.read().back() == "tall",
             "add_class adds a class once");
     require((*control).remove_class("wide") && !(*control).remove_class("wide") && !(*control).has_class("wide"),
             "remove_class removes it");
     bool refused = false;
     try {
         std::vector<std::string> bad{"fine", "Not Fine"};
-        (*control).set_classes(bad);
+        (*control).classes = bad;
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && (*control).classes().size() == 2U && (*control).has_class("tall"),
+    require(refused && (*control).classes.read().size() == 2U && (*control).has_class("tall"),
             "an invalid class name is refused and changes nothing");
     require(valid_style_class_name("a-b_c1") && !valid_style_class_name("1a") && !valid_style_class_name("") &&
                 !valid_style_class_name(std::string(65U, 'a')),

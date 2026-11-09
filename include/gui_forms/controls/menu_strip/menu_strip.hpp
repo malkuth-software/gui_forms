@@ -62,10 +62,6 @@ public:
     [[nodiscard]] std::optional<std::size_t> active_index() const noexcept {
         return active_index_;
     }
-    [[nodiscard]] std::string_view selected_item_id() const noexcept {
-        return selected_item_id_;
-    }
-    void set_selected_item_id(std::string_view stable_id);
     // Unknown modes throw invalid_argument before reusing or replacing an overlay.
     bool open(const std::size_t index, const MenuOpenMode mode = MenuOpenMode::keyboard);
     void close() noexcept;
@@ -167,6 +163,7 @@ private:
     friend struct MenuStripItemPaddingCapability<MenuStrip>;
     friend struct FontCapability<MenuStrip>;
     friend struct MenuStripAllowMergeCapability<MenuStrip>;
+    friend struct MenuStripSelectedItemIdCapability<MenuStrip>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(use_mnemonic)& cell, bool& incoming);
     void written(const decltype(use_mnemonic)& cell);
@@ -176,6 +173,8 @@ private:
     void written(const decltype(font)& cell);
     void prepare_write(const decltype(allow_merge)& cell, bool& incoming);
     void written(const decltype(allow_merge)& cell);
+    void write_view(const decltype(selected_item_id)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(selected_item_id)& cell) const;
     // property_codemod end MenuStrip
 };
 
