@@ -290,6 +290,19 @@ jobs:
       - name: Restore content-checked objects without reusing test results
         if: steps.seed.outputs.seeded == 'true'
         run: python template_harness/harness/ci_promote.py restore-seed
+      # The stx package (cmake/Stx.cmake, cmake/stx_package/): stx_skia, the
+      # stx libraries and the third-party sources (FreeType, HarfBuzz,
+      # SheenBidi, libunibreak, MD4C), built once per stx commit, recipe,
+      # platform and compiler and otherwise only linked. The key holds what the
+      # package's stamp holds; when a restored package's stamp still differs,
+      # configuring rebuilds it and tools/ci_build.py warns that the key misses
+      # an input. A cold build restores none.
+      - uses: actions/cache/restore@v4
+        id: stx-package
+        if: steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true' && inputs.cold_build != true
+        with:
+          path: .ci/stx-package
+          key: gui-stx-package-v1-${{ inputs.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/freetype/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
       # The engine gate test writes its manifest for the engine-gate job (T2 E11).
       # A pull request runs the whole suite but builds only what its tests run
       # (--test-targets-only: no program, example, bundle or package, and no
@@ -299,6 +312,8 @@ jobs:
         env:
           GUI_FORMS_ENGINE_GATE_MANIFEST: ${{ github.workspace }}/.ci/engine-gate-${{ inputs.platform }}.tsv
           SCOPE: ${{ github.event_name == 'pull_request' && '--test-targets-only' || '' }}
+          GUI_FORMS_STX_PACKAGE_DIR: ${{ github.workspace }}/.ci/stx-package
+          GUI_FORMS_STX_PACKAGE_RESTORED: ${{ steps.stx-package.outputs.cache-hit }}
         run: |
           ccache --zero-stats
           if [ "$RUNNER_OS" = Linux ]; then
@@ -334,10 +349,11 @@ jobs:
       - name: Prove one compression and PNG implementation in the link map
         if: steps.promotion.outputs.reused != 'true' && (steps.reuse.outputs.reused != 'true')
         run: |
-          # Every static archive the toolkit links, stx_skia's among them: no C
-          # zlib, FreeType gzip or libpng may remain (Z-stage I5, decision 3A).
+          # Every static archive the toolkit links, the stx package's (stx_skia,
+          # FreeType, HarfBuzz) among them: no C zlib, FreeType gzip or libpng
+          # may remain (Z-stage I5, decision 3A).
           build=.build/native-${{ inputs.platform }}
-          archives=$(find "$build/gui-forms" -name '*.a' -not -path '*/_deps/*' -not -name '*.dll.a')
+          archives=$(find "$build/gui-forms" .ci/stx-package -name '*.a' -not -path '*/_deps/*' -not -name '*.dll.a')
           python gui_forms/tools/audit_link_map.py --forbid-foreign $archives
       - name: Test development text-mask ownership on Windows
         if: steps.promotion.outputs.reused != 'true' && (runner.os == 'Windows' && steps.reuse.outputs.reused != 'true')
@@ -347,7 +363,7 @@ jobs:
             cp .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/SDKLastTest.log
           fi
           cmake -S gui_forms -B .build/native-${{ inputs.platform }}/gui-forms -DGUI_FORMS_ENABLE_HARFBUZZ_TEXT=ON -DGUI_FORMS_BUILD_TEXT_MASKS=ON -DGUI_FORMS_BUILD_PREPARED_TEXT=ON -DGUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT=ON
-          cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_application_text_consumer gui_forms_text_mask_lifecycle_tests gui_forms_text_mask_native_tests gui_forms_text_mask_wrapping_tests gui_forms_linebreak_conformance_tests gui_forms_prepared_text_service_tests gui_forms_prepared_display_tests gui_forms_prepared_window_input_tests gui_forms_prepared_window_batch_tests gui_forms_prepared_window_shape_tests gui_forms_prepared_window_session_tests --parallel 4
+          cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_application_text_consumer gui_forms_text_mask_lifecycle_tests gui_forms_text_mask_native_tests gui_forms_text_mask_wrapping_tests gui_forms_prepared_text_service_tests gui_forms_prepared_display_tests gui_forms_prepared_window_input_tests gui_forms_prepared_window_batch_tests gui_forms_prepared_window_shape_tests gui_forms_prepared_window_session_tests --parallel 4
           # In parallel: the two consumer configure tests (about 15 s and 9 s) each
           # configure into their own build directory.
           ctest --test-dir .build/native-${{ inputs.platform }}/gui-forms -R '^gui_forms_(application_text_(consumer|configure_accepted|configure_static_core)|text_mask_(lifecycle|native|wrapping)_tests|linebreak_conformance|prepared_text_service_tests|prepared_display_tests|prepared_window_(input|batch|shape|session)_tests)$' --output-on-failure --parallel 3
@@ -367,7 +383,7 @@ jobs:
             cp .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/SDKLastTest.log
           fi
           cmake -S gui_forms -B .build/native-${{ inputs.platform }}/gui-forms -DGUI_FORMS_ENABLE_HARFBUZZ_TEXT=ON -DGUI_FORMS_BUILD_TEXT_MASKS=ON -DGUI_FORMS_BUILD_PREPARED_TEXT=ON -DGUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT=ON
-          cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_application_text_consumer gui_forms_text_mask_lifecycle_tests gui_forms_text_mask_native_tests gui_forms_text_mask_wrapping_tests gui_forms_linebreak_conformance_tests gui_forms_prepared_text_service_tests gui_forms_prepared_text_raster_tests gui_forms_prepared_display_tests gui_forms_prepared_text_skia_tests gui_forms_opaque_live_surface_raster_tests gui_forms_prepared_window_input_tests gui_forms_prepared_window_batch_tests gui_forms_prepared_window_shape_tests gui_forms_prepared_window_session_tests --parallel 4
+          cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_application_text_consumer gui_forms_text_mask_lifecycle_tests gui_forms_text_mask_native_tests gui_forms_text_mask_wrapping_tests gui_forms_prepared_text_service_tests gui_forms_prepared_text_raster_tests gui_forms_prepared_display_tests gui_forms_prepared_text_skia_tests gui_forms_opaque_live_surface_raster_tests gui_forms_prepared_window_input_tests gui_forms_prepared_window_batch_tests gui_forms_prepared_window_shape_tests gui_forms_prepared_window_session_tests --parallel 4
           # In parallel: the two consumer configure tests (about 15 s and 9 s) each
           # configure into their own build directory.
           ctest --test-dir .build/native-${{ inputs.platform }}/gui-forms -R '^gui_forms_(application_text_(consumer|configure_accepted|configure_static_core)|text_mask_(lifecycle|native|wrapping)_tests|linebreak_conformance|prepared_text_(service|raster|skia)_tests|prepared_display_tests|opaque_live_surface_raster_tests|prepared_window_(input|batch|shape|session)_tests)$' --output-on-failure --parallel 3
@@ -414,6 +430,16 @@ jobs:
           path: |
             gui_forms/third_party/miniaudio
           key: ${{ steps.dependencies.outputs.cache-primary-key }}
+      # A package this job built is kept for the runs after it, only after
+      # every build and test step above passed (owner, 2026-11-01). Pull
+      # requests save it too: the key changes only when stx.lock or the recipe
+      # does, so the entries are rare, and the pull request's later runs then
+      # link it instead of building it again. Merge groups save nothing.
+      - uses: actions/cache/save@v4
+        if: success() && steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true' && inputs.cold_build != true && github.event_name != 'merge_group' && steps.stx-package.outputs.cache-hit != 'true' && hashFiles('.ci/stx-package/gui-forms-stx-package.stamp') != ''
+        with:
+          path: .ci/stx-package
+          key: ${{ steps.stx-package.outputs.cache-primary-key }}
       - name: Report cache statistics
         if: steps.promotion.outputs.reused != 'true' && (always())
         run: ccache --show-stats --verbose

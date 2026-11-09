@@ -321,8 +321,15 @@ jobs:
           tar -xf .ci/tested-objects/gui-programs-objects-${{ matrix.platform }}.tar
           rm -rf .ci/tested-objects
       # --- build, as tools/ci_build.py configures it, plus the programs ------------
-      # The CPU renderer (stx_skia/) and the text stack come from the pinned stx
-      # checkout that configuring fetches (cmake/Stx.cmake, stx.lock).
+      # The CPU renderer (stx_skia) and the text stack come from the stx package
+      # (cmake/Stx.cmake), restored from the cache the platform's native job
+      # keeps under the same key, and built while configuring only when no
+      # entry matches.
+      - uses: actions/cache/restore@v4
+        id: stx-package
+        with:
+          path: .ci/stx-package
+          key: gui-stx-package-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/freetype/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
       - name: Configure the programs
         run: |
           renderer="-DGUI_FORMS_ENABLE_SKIA=ON"
@@ -335,7 +342,8 @@ jobs:
             -DGUI_FORMS_ENABLE_LINUX_HOST=$([ "${{ matrix.host }}" = LINUX ] && echo ON || echo OFF) \
             -DGUI_FORMS_ENABLE_HARFBUZZ_TEXT=ON $renderer \
             -DGUI_FORMS_BUILD_TESTS=ON -DGUI_FORMS_BUILD_AUDIO=ON -DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx \
-            -DGUI_FORMS_BUILD_GALLERY=ON -DGUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD=ON
+            -DGUI_FORMS_BUILD_GALLERY=ON -DGUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD=ON \
+            -DGUI_FORMS_STX_PACKAGE_DIR="$PWD/.ci/stx-package"
       - name: Build the programs and tests
         id: compile
         run: |
@@ -424,6 +432,13 @@ jobs:
         with:
           path: .ccache
           key: ${{ steps.objects.outputs.cache-primary-key }}
+      # A package this job built (no native job's entry matched), after the
+      # tests passed; merge groups save nothing.
+      - uses: actions/cache/save@v4
+        if: success() && github.event_name != 'merge_group' && steps.stx-package.outputs.cache-hit != 'true' && hashFiles('.ci/stx-package/gui-forms-stx-package.stamp') != ''
+        with:
+          path: .ci/stx-package
+          key: ${{ steps.stx-package.outputs.cache-primary-key }}
       # --- package, then install and launch what was packaged -----------------------
       - name: Package the programs
         run: |

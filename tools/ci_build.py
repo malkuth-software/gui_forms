@@ -28,7 +28,7 @@ from ci_build_steps import (BUILT_EVERYTHING, BUILT_NOTHING, BUILT_SELECTED, DEB
                             run, sanitizer_options, selected_test_targets, test_listing, tree_relative,
                             write_build_record)
 import native_tests
-from toolkit_configure import (HOST_OPTION_NAMES, host_options, prepare_host,  # noqa: F401
+from toolkit_configure import (HOST_OPTION_NAMES, host_options, prepare_host, stx_options,  # noqa: F401
                                toolkit_options)
 
 ROOT: Path = Path(__file__).resolve().parents[2]
@@ -150,6 +150,22 @@ def test_build_targets(listing: dict, outputs: dict[str, str], toolkit: Path) ->
     return sorted(targets), sorted(unbuilt)
 
 
+def report_stx_package(toolkit: Path, restored: bool) -> None:
+    """Say whether configuring toolkit built the stx package or linked one.
+
+    restored: CI restored the package from a cache keyed by its inputs. A
+    restored package that configuring still rebuilt means the key misses an
+    input of the package's stamp (cmake/Stx.cmake), so CI is warned.
+    """
+    if not (toolkit / 'stx-package-built.txt').is_file():
+        print('stx package: linked, nothing of stx compiled', flush=True)
+        return
+    print('stx package: built while configuring (logs: stx-configure.log, stx-build.log)', flush=True)
+    if restored:
+        print('::warning::the restored stx package was rebuilt: the cache key misses an input of its stamp '
+              '(cmake/Stx.cmake)', flush=True)
+
+
 def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = False,
                   sanitize: bool = False, tests: str = '', test_jobs: int = 1,
                   debug_info: str = 'lines', skip_labels: str = '', changed_from: str = '',
@@ -209,6 +225,14 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         # (template_harness projects/gui_forms.toml), so effects are verified
         # there; a skipped plugin fails the configure.
         options.append('-DGUI_FORMS_EFFECT_VERIFY_REQUIRED=ON')
+    # The stx package (cmake/Stx.cmake): GUI_FORMS_STX_PREFIX links one built
+    # elsewhere; GUI_FORMS_STX_PACKAGE_DIR (CI: restored from a cache) is where
+    # it is built and reused, with a directory of its own for the sanitized
+    # build, whose flags differ.
+    stx_package_dir: str = os.environ.get('GUI_FORMS_STX_PACKAGE_DIR', '')
+    if stx_package_dir and sanitize:
+        stx_package_dir += '-sanitize'
+    options.extend(stx_options(os.environ.get('GUI_FORMS_STX_PREFIX', ''), stx_package_dir))
     timeout: str = '120'
     if sanitize:
         sanitizer_cmake: list[str]
@@ -222,6 +246,7 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         'cmake', '-S', str(ROOT / 'gui_forms'), '-B', str(toolkit), '-G', 'Ninja',
         *toolkit_options(ROOT / 'gui_forms', sdk, gallery, True), *options]
     configure_tree(toolkit, configure)
+    report_stx_package(toolkit, os.environ.get('GUI_FORMS_STX_PACKAGE_RESTORED', '') == 'true')
     # A narrowed run builds only what its tests read, not every program in the tree.
     selection: list[str] = ctest_selection(tests, skip_labels)
     targets: list[str] | None = None

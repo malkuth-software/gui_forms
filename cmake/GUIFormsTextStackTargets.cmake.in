@@ -1,0 +1,16 @@
+# GUIForms::FreeType and GUIForms::HarfBuzz (cmake/TextStackExport.cmake),
+# included by GUIFormsConfig.cmake, which defines PACKAGE_PREFIX_DIR and has
+# found Threads, which HarfBuzz links.
+if(NOT TARGET GUIForms::FreeType)
+    add_library(GUIForms::FreeType STATIC IMPORTED)
+    set_target_properties(GUIForms::FreeType PROPERTIES
+        IMPORTED_LOCATION "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_LIBDIR@/$<TARGET_FILE_NAME:stx_text::freetype>"
+        INTERFACE_INCLUDE_DIRECTORIES "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_INCLUDEDIR@/freetype2")
+endif()
+if(NOT TARGET GUIForms::HarfBuzz)
+    add_library(GUIForms::HarfBuzz STATIC IMPORTED)
+    set_target_properties(GUIForms::HarfBuzz PROPERTIES
+        IMPORTED_LOCATION "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_LIBDIR@/$<TARGET_FILE_NAME:stx_text::harfbuzz>"
+        INTERFACE_INCLUDE_DIRECTORIES "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_INCLUDEDIR@/harfbuzz"
+        INTERFACE_LINK_LIBRARIES "GUIForms::FreeType;Threads::Threads")
+endif()
