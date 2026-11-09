@@ -162,7 +162,7 @@ public:
     // slots below it, one per depth.
     static constexpr std::size_t picker_popup_window_slot = maximum_popup_windows - 1U;
     // While `slot` is set, every key and text event this window receives is
-    // offered first to popup_window_model(*slot), and routed here only when
+    // offered first to `popup_window_model(*slot)`, and routed here only when
     // that leaves it unhandled; none ends the forwarding. The control whose
     // Popup has the keyboard sets it (PopupLift does) and clears it when the
     // Popup hides. std::out_of_range for a slot out of range. UI thread.

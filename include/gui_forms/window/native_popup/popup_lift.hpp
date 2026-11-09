@@ -26,9 +26,9 @@ enum class PopupLiftInput : std::uint8_t {
 };
 
 // A drop-down's list or a picker's panel lifted out of its owner window
-// into the owner's warm Popup window (owner, 2026-11-08: APP_WINDOW_RULES_
-// DESIGN Part S, drop-downs and pickers are Popups before 0.5), where it may
-// extend past the owner's edges onto the desktop. The control keeps its
+// into the owner's warm Popup window (owner, 2026-11-08:
+// APP_WINDOW_RULES_DESIGN Part S, drop-downs and pickers are Popups before
+// 0.5), where it may extend past the owner's edges onto the desktop. The control keeps its
 // overlay layer in the owner (it takes outside clicks and holds the owner's
 // focus) and lifts only the content: lift shows `content` in
 // Window::picker_popup_window_slot at `face`, framed with room for the

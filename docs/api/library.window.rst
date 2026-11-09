@@ -107,7 +107,7 @@ Related types
    * - :cpp:class:`PointerSettings <gui_forms::PointerSettings>`
      - The pointer settings controls and the window read (the WinForms SystemInformation values), from the host where its platform offers them.
    * - :cpp:class:`PopupLift <gui_forms::PopupLift>`
-     - A drop-down's list or a picker's panel lifted out of its owner window into the owner's warm Popup window (owner, 2026-11-08: APP_WINDOW_RULES_ DESIGN Part S, drop-downs and pickers are Popups before 0.5), where it may extend past the owner's edges onto the desktop.
+     - A drop-down's list or a picker's panel lifted out of its owner window into the owner's warm Popup window (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S, drop-downs and pickers are Popups before 0.5), where it may extend past the owner's edges onto the desktop.
    * - :cpp:class:`PresentationAvailability <gui_forms::PresentationAvailability>`
      - The record a window publishes: the host's declaration and the live paint-lease snapshot.
    * - :cpp:class:`PresentationDeclaration <gui_forms::PresentationDeclaration>`
@@ -1046,7 +1046,7 @@ Related types
 
    ``#include <gui_forms/window/native_popup/popup_lift.hpp>``
 
-   A drop-down's list or a picker's panel lifted out of its owner window into the owner's warm Popup window (owner, 2026-11-08: APP_WINDOW_RULES_ DESIGN Part S, drop-downs and pickers are Popups before 0.5), where it may extend past the owner's edges onto the desktop. The control keeps its overlay layer in the owner (it takes outside clicks and holds the owner's focus) and lifts only the content: lift shows ``content`` in Window::picker_popup_window_slot at ``face``, framed with room for the theme's overlay shadow when the Popup is translucent, gives it the Popup's focus and forwards the owner's keys and text to it (Window::forward_input_to_popup_window). Keys it leaves unhandled (Escape) reach the owner's layer as before. release hides the Popup, takes the content out (detached again) and ends the forwarding; the destructor releases. One lift per object; a second lift replaces the first. UI thread only, on the owner window's thread.
+   A drop-down's list or a picker's panel lifted out of its owner window into the owner's warm Popup window (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S, drop-downs and pickers are Popups before 0.5), where it may extend past the owner's edges onto the desktop. The control keeps its overlay layer in the owner (it takes outside clicks and holds the owner's focus) and lifts only the content: lift shows ``content`` in Window::picker_popup_window_slot at ``face``, framed with room for the theme's overlay shadow when the Popup is translucent, gives it the Popup's focus and forwards the owner's keys and text to it (Window::forward_input_to_popup_window). Keys it leaves unhandled (Escape) reach the owner's layer as before. release hides the Popup, takes the content out (detached again) and ends the forwarding; the destructor releases. One lift per object; a second lift replaces the first. UI thread only, on the owner window's thread.
 
 
    .. rubric:: Construction

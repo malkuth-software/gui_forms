@@ -123,7 +123,7 @@ gui_forms::Window
       * - :cpp:func:`popup_window_model <gui_forms::Window::popup_window_model>`
         -  
       * - :cpp:func:`forward_input_to_popup_window <gui_forms::Window::forward_input_to_popup_window>`
-        - While ``slot`` is set, every key and text event this window receives is offered first to popup_window_model(*slot), and routed here only when that leaves it unhandled; none ends the forwarding.
+        - While ``slot`` is set, every key and text event this window receives is offered first to ``popup_window_model(*slot)``, and routed here only when that leaves it unhandled; none ends the forwarding.
       * - :cpp:func:`popup_work_area <gui_forms::Window::popup_work_area>`
         - The work area of the monitor under ``client_point`` (this window's client coordinates), in client coordinates: the region a Popup window may cover, which reaches past the client area onto the desktop.
       * - :cpp:func:`show_toast <gui_forms::Window::show_toast>`
@@ -377,7 +377,7 @@ gui_forms::Window
 
    .. cpp:function:: void forward_input_to_popup_window(std::optional<std::size_t> slot)
 
-      While ``slot`` is set, every key and text event this window receives is offered first to popup_window_model(*slot), and routed here only when that leaves it unhandled; none ends the forwarding. The control whose Popup has the keyboard sets it (PopupLift does) and clears it when the Popup hides. std::out_of_range for a slot out of range. UI thread.
+      While ``slot`` is set, every key and text event this window receives is offered first to ``popup_window_model(*slot)``, and routed here only when that leaves it unhandled; none ends the forwarding. The control whose Popup has the keyboard sets it (PopupLift does) and clears it when the Popup hides. std::out_of_range for a slot out of range. UI thread.
 
    .. cpp:function:: std::optional<Rect> popup_work_area(Point client_point)
 
