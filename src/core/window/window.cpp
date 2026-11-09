@@ -8,6 +8,7 @@
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "../dispatcher/state/dispatcher_state.hpp"
+#include "../drag_engine/drag_engine.hpp"
 #include "../display/chunk/display_chunk.hpp"
 #include "../display/recording_painter/recording_painter.hpp"
 #include "../display/replay/replay_display_chunk.hpp"
@@ -1593,6 +1594,12 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
     if (revoked && previous) {
         metrics_.record_capture_revocation();
     }
+    // A drag whose subject lost the capture ends (the engine ignores the
+    // release it makes itself). A primary release frees the capture before
+    // the release reaches the subject, which then ends the drag itself.
+    if (previous && previous != control && drag_engine_ && !defer_capture_changed_) {
+        (*drag_engine_).note_capture_lost(*previous);
+    }
     PointerCaptureChange change;
     change.captured = static_cast<bool>(control);
     change.control_id = control ? (*control).runtime_id() : RuntimeId{};
@@ -1913,6 +1920,9 @@ bool SurfaceRoot::dispatch_key(KeyEvent event) {
     interaction_state().note_key(event, input_now());
     // A lifted drop-down or picker's Popup window takes the key first.
     if (forward_to_popup(event)) return true;
+    // A running drag takes the keys it uses (Escape; the keyboard mode's
+    // arrows, Tab and Enter) before the rules and the focused control.
+    if (drag_engine_ && (*drag_engine_).key(event)) return true;
     const bool handled = route_key(std::move(event));
     // A key may have moved the keyboard within the focused control, or
     // shown the focus cue: the presenter looks at what focus is on again.

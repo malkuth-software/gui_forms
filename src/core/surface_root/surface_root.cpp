@@ -1,4 +1,5 @@
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "../drag_engine/drag_engine.hpp"
 #include "gui_forms/window.hpp"
 #include "requests/alert_route.hpp"
 
@@ -39,6 +40,12 @@ void SurfaceRoot::require_root_thread(std::string_view operation) {
     }
     metrics_.record_wrong_thread_rejection();
     throw std::logic_error("GUI.Forms rejected wrong-thread " + std::string(operation));
+}
+
+DragEngine& SurfaceRoot::drag_engine() {
+    require_root_thread("drag engine");
+    if (!drag_engine_) drag_engine_ = std::make_unique<DragEngine>(*this);
+    return *drag_engine_;
 }
 
 } // namespace gui_forms

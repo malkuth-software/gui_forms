@@ -66,6 +66,8 @@ class LiveSurface;
 class PaintFramebuffer;
 struct HelpRequestEvent;
 class RuleSet;
+// The internal drag engine (src/core/drag_engine/drag_engine.hpp).
+class DragEngine;
 namespace detail {
 struct LiveSurfaceIdleWake;
 class OverlayAttachment;
@@ -1064,6 +1066,12 @@ public:
     // MotionValue finds it here; tests install a time source on it.
     [[nodiscard]] MotionClock& motion_clock() noexcept { return motion_clock_; }
     [[nodiscard]] const MotionClock& motion_clock() const noexcept { return motion_clock_; }
+    // The window's drag engine (roadmap 2.1; internal, its header is
+    // src/core/drag_engine/drag_engine.hpp): one drag session at a time, for
+    // this root's controls. Made on first use (drag_engine); null until then
+    // (drag_engine_if_made). Root thread.
+    [[nodiscard]] DragEngine& drag_engine();
+    [[nodiscard]] const DragEngine* drag_engine_if_made() const noexcept { return drag_engine_.get(); }
     // Values the application publishes for the theme engine (T2 E6; GIVEN
     // B1-1): named, numeric and read-only to themes. A theme's expressions
     // read the ones its rule sheet names (ThemeRuleSheet::published_values);
@@ -2051,6 +2059,11 @@ private:
     // or key event; the clock it reads, borrowed (null for the steady
     // clock); and the wake for a pending hover.
     std::unique_ptr<detail::InteractionState> interaction_{};
+    // The drag engine, made on first use; it borrows this root and observes
+    // the controls of its session. dispatch_key offers it keys first,
+    // change_pointer_capture reports a lost capture, set_active(false)
+    // cancels its session.
+    std::unique_ptr<DragEngine> drag_engine_{};
     const InputTimeSource* input_time_source_{};
     FrameRequestToken hover_wake_{};
     // While dispatch_pointer releases the capture for a primary release,

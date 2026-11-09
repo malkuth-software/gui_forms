@@ -301,6 +301,7 @@ add_library(gui_forms_core STATIC
     src/core/engine/theme_rules/built_in_rules.cpp
     src/core/engine/motion_value/motion_value.cpp
     src/core/engine/motion_clock/motion_clock.cpp
+    src/core/drag_engine/drag_engine.cpp
     src/core/engine/effect_canvas/effect_canvas.cpp
     src/core/engine/effect_registry/effect_registry.cpp
     src/core/surface_material/colour_matrix/colour_matrix.cpp
