@@ -15,7 +15,7 @@ A form has no theme and no handlers:
 
 ## A document
 
-```css
+```text
 /* settings.form */
 form settings.window {
   text: "Settings";

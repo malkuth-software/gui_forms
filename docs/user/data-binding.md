@@ -9,7 +9,7 @@ formatting and validation, in the manner of Windows Forms. The types are
 [`BindingContext`](../api/generated/gui_forms.BindingContext.rst); the
 [Data binding reference](../api/library.data-binding.rst) lists the rest.
 
-```css
+```text
 /* forms/person.form */
 form person.window {
   text: "Person";
@@ -61,7 +61,7 @@ int main() {
 
 A form binds a property to a scalar `Value` or a `Command` of its model in
 the property's own slot (`checked: bind(autosave);`), when the control is
-created ([Forms](forms#bindings)). The record bindings on this page are the
+created ([Forms](forms.md#bindings)). The record bindings on this page are the
 layer under that: they take a field of a `BindingSource`'s current record.
 
 ## Records and currency

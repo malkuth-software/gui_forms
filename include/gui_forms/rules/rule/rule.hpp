@@ -192,7 +192,7 @@ struct RuleTrigger final {
 };
 
 // A condition of a rule; made by the functions in namespace condition. A
-// negated condition holds when its level does not (the not_ forms).
+// negated condition holds when its level does not (the `not_` forms).
 //   physical_key: key_down's key; modifiers: the modifiers' exact set.
 //   control: the control hovering, pressed, focused, focus_within, enabled
 //     and visible read.
@@ -400,7 +400,7 @@ template <typename T>
 
 } // namespace trigger
 
-// The conditions. Negation is through the not_ forms only; OR is two rules.
+// The conditions. Negation is through the `not_` forms only; OR is two rules.
 namespace condition {
 
 [[nodiscard]] RuleCondition key_down(std::uint32_t physical_key);

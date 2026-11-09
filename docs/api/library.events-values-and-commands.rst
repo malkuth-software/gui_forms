@@ -351,7 +351,7 @@ Related types
 
    ``#include <gui_forms/rules/rule/rule.hpp>``
 
-   A condition of a rule; made by the functions in namespace condition. A negated condition holds when its level does not (the not_ forms). physical_key: key_down's key; modifiers: the modifiers' exact set. control: the control hovering, pressed, focused, focus_within, enabled and visible read. flag: is_true's Value; number and expected: equals' Value and number. anchor: the Value is_true or equals reads, whose disposal disarms the rule (a control condition's control is anchored through ``control``).
+   A condition of a rule; made by the functions in namespace condition. A negated condition holds when its level does not (the ``not_`` forms). physical_key: key_down's key; modifiers: the modifiers' exact set. control: the control hovering, pressed, focused, focus_within, enabled and visible read. flag: is_true's Value; number and expected: equals' Value and number. anchor: the Value is_true or equals reads, whose disposal disarms the rule (a control condition's control is anchored through ``control``).
 
    .. cpp:member:: RuleConditionKind kind
 

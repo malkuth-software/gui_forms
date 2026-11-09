@@ -50,7 +50,7 @@ every Forms type to its GUI.Forms counterpart.
 
 ### Example: accept and cancel buttons
 
-```css
+```text
 /* forms/confirm.form */
 form confirm.window {
   text: "Confirm";

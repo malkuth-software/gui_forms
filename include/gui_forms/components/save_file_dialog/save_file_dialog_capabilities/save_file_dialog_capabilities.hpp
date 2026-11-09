@@ -50,7 +50,7 @@ struct SaveFileDialogInitialDirectoryCapability {
     }
 };
 
-// The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of *, *.* or *.extension throws std::invalid_argument.
+// The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of `*`, `*.*` or `*.extension` throws std::invalid_argument.
 template <typename Declaring>
 struct SaveFileDialogFilterCapability {
     PropertyCell<std::string, SaveFileDialogFilterCapability<Declaring>> filter{};

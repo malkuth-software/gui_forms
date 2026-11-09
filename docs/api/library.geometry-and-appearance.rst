@@ -4590,7 +4590,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family). ``excluded`` holds the arguments of its `:not()`s: it matches no part any of them matches.
+   ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family). ``excluded`` holds the arguments of its ``:not()`` selectors: it matches no part any of them matches.
 
    .. cpp:member:: std::string control_type
 

@@ -12,7 +12,7 @@ creates the control (`value: bind(volume);`); see [Forms](forms.md#bindings).
 The `bind` calls in the table below are the C++ spelling, for controls a
 program makes itself.
 
-```css
+```text
 /* forms/mixer.form */
 form mixer.window {
   text: "Mixer";

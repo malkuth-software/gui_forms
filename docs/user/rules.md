@@ -3,7 +3,7 @@
 A rule says "when this happens, and these things are true, do this". It has
 one **trigger**, zero or more **conditions** that must all hold, and one or
 more **actions** that run in order. A window keeps its rules in a
-[`RuleSet`](../api/generated/gui_forms.RuleSet.rst), which it makes the first
+`RuleSet`, which it makes the first
 time you call `window.rules()`.
 
 Rules are data over a closed vocabulary, much as theme rules are. The

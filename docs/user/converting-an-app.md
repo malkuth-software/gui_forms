@@ -38,7 +38,7 @@ Write one object for each control you made. Use the same stable IDs, and
 nest each object as it is nested in the tree. The property values you set
 become declarations:
 
-```css
+```text
 form example.window {
   text: "GUI.Forms example";
   client-size: 420 360;

@@ -758,7 +758,7 @@ Related types
 
    .. cpp:member:: std::string filter
 
-      The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of *, *.* or *.extension throws std::invalid_argument.
+      The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
 
    .. cpp:member:: std::size_t filter_index
 
@@ -795,7 +795,7 @@ Related types
 
    ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
 
-   The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of *, *.* or *.extension throws std::invalid_argument.
+   The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
 
 
    .. rubric:: Methods

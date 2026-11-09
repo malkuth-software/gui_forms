@@ -83,7 +83,7 @@ themes/my_app/
 
 The sheet styles the roles your forms name and adjusts the base:
 
-```css
+```text
 /* The palette: colour roles, never literal text colours, so that forced
    high contrast can replace each one by its meaning. */
 :root {

@@ -7,7 +7,7 @@ binds, a theme package gives it its look, and program code attaches the
 behaviour. It uses only the installed
 package; the CMake project in [Consume the SDK](consume-the-sdk) builds it.
 
-```css
+```text
 /* forms/greeter.form */
 form greeter.window {
   text: "GUI.Forms - first window";
