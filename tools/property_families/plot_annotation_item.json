@@ -1,0 +1,119 @@
+{
+  "family": "PlotAnnotationItem",
+  "step": "PL-1",
+  "declaring": "PlotAnnotationItem",
+  "header": "include/gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp",
+  "source": "src/controls/plots/plot_annotation_item/plot_annotation_item.cpp",
+  "capabilities_header": "include/gui_forms/controls/plots/plot_annotation_item/plot_annotation_item_capabilities/plot_annotation_item_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp"
+  ],
+  "properties": [
+    {
+      "name": "text",
+      "capability": "PlotAnnotationItemText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The annotation's words.",
+      "getter": "text",
+      "setter": "set_text",
+      "clear": null,
+      "field": "text_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The annotation's words.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written tells the owning PlotView, which lays out and repaints"
+      ],
+      "sample": "std::string(\"peak\")"
+    },
+    {
+      "name": "x",
+      "capability": "PlotAnnotationItemX",
+      "value": "double",
+      "initial": "0.0",
+      "comment": "The anchor's x in the first horizontal axis's units.",
+      "getter": "x",
+      "setter": "set_x",
+      "clear": null,
+      "field": "x_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Layout",
+        "description": "The anchor's x.",
+        "default": "BindingValue{0.0}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written tells the owning PlotView, which lays out and repaints"
+      ],
+      "sample": "2.5"
+    },
+    {
+      "name": "y",
+      "capability": "PlotAnnotationItemY",
+      "value": "double",
+      "initial": "0.0",
+      "comment": "The anchor's y in the first vertical axis's units.",
+      "getter": "y",
+      "setter": "set_y",
+      "clear": null,
+      "field": "y_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Layout",
+        "description": "The anchor's y.",
+        "default": "BindingValue{0.0}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written tells the owning PlotView, which lays out and repaints"
+      ],
+      "sample": "0.75"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "PlotAnnotationItem",
+    "include": "gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp"
+  }
+}

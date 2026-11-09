@@ -801,7 +801,10 @@ NSString* native_accessibility_role(SemanticRole role) {
     case SemanticRole::slider: return NSAccessibilitySliderRole;
     case SemanticRole::scroll_bar: return NSAccessibilityScrollBarRole;
     case SemanticRole::progress_bar: return NSAccessibilityProgressIndicatorRole;
-    case SemanticRole::image: return NSAccessibilityImageRole;
+    // AppKit has no chart role: a figure is an image with its summary as
+    // the description.
+    case SemanticRole::image:
+    case SemanticRole::figure: return NSAccessibilityImageRole;
     case SemanticRole::tab_group: return NSAccessibilityTabGroupRole;
     case SemanticRole::tab: return NSAccessibilityRadioButtonRole;
     case SemanticRole::split_pane: return NSAccessibilitySplitGroupRole;

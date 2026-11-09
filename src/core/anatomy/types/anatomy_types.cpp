@@ -43,6 +43,18 @@ constexpr std::array<std::string_view, part_role_count> part_role_names{
     "plot",
     "graticule",
     "trace",
+    "axis",
+    "tick",
+    "tick_label",
+    "grid_major",
+    "grid_minor",
+    "legend",
+    "legend_entry",
+    "marker",
+    "crosshair",
+    "annotation",
+    "color_scale",
+    "series",
 };
 static_assert(part_role_names.size() == part_role_count);
 

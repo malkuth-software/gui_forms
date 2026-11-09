@@ -100,13 +100,16 @@ public:
     def test_the_vocabulary_lists_the_instrument_atoms(self) -> None:
         # W-5: the instrument part roles and the meter semantic role, appended.
         vocabulary = cs.load_schema()["vocabulary"]
-        self.assertEqual(vocabulary["part_roles"][-3:], ["plot", "graticule", "trace"])
+        self.assertEqual(vocabulary["part_roles"][-15:-12], ["plot", "graticule", "trace"])
+        self.assertEqual(vocabulary["part_roles"][-12:],
+                         ["axis", "tick", "tick_label", "grid_major", "grid_minor", "legend",
+                          "legend_entry", "marker", "crosshair", "annotation", "color_scale", "series"])
         self.assertIn("meter", vocabulary["semantic_roles"])
 
     def test_the_vocabulary_lists_the_specialised_roles(self) -> None:
         # W-4: the switch and search roles, appended after meter.
         vocabulary = cs.load_schema()["vocabulary"]
-        self.assertEqual(vocabulary["semantic_roles"][-3:], ["meter", "toggle_switch", "search_box"])
+        self.assertEqual(vocabulary["semantic_roles"][-4:], ["meter", "toggle_switch", "search_box", "figure"])
 
     def test_the_vocabulary_lists_the_docking_atoms(self) -> None:
         schema = cs.load_schema()

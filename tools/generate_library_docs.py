@@ -127,6 +127,13 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           "document stacks, floating sites, auto-hide, placeholders, "
           "restrictions, transactions and saved layouts.",
           ("docking",)),
+    Group("plots", "Plots",
+          "The plots package's primitives in `GUIForms::PlotPrimitives`: bulk "
+          "series columns and leased views, the ring channel, scales, ticks, "
+          "axes, the plot transform, envelope decimation, colormaps, picking, "
+          "the view and gesture model, legend layout, signal programs and the "
+          "batched mark painters.",
+          ("plots",)),
     Group("xml", "XML documents",
           "The bounded first-party XML reader and writer that GUI.Forms uses "
           "for its own files, such as saved docking layouts.",

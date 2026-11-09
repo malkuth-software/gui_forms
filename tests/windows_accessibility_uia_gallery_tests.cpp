@@ -215,6 +215,7 @@ CONTROLTYPEID expected_control_type(SemanticRole role) noexcept {
     case SemanticRole::scroll_bar: return UIA_ScrollBarControlTypeId;
     case SemanticRole::progress_bar: return UIA_ProgressBarControlTypeId;
     case SemanticRole::image: return UIA_ImageControlTypeId;
+    case SemanticRole::figure: return UIA_ImageControlTypeId;
     case SemanticRole::tab_group: return UIA_TabControlTypeId;
     case SemanticRole::tab: return UIA_TabItemControlTypeId;
     case SemanticRole::split_pane: return UIA_PaneControlTypeId;
