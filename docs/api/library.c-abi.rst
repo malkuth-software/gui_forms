@@ -26,6 +26,8 @@ Types
      - gf_controls_table, negotiated as GF_TABLE_CONTROLS.
    * - :cpp:class:`CustomControlsTable <gui_forms::abi::CustomControlsTable>`
      - gf_custom_controls_table, negotiated as GF_TABLE_CUSTOM_CONTROLS.
+   * - :cpp:class:`DataGridTable <gui_forms::abi::DataGridTable>`
+     - gf_data_grid_table, negotiated as GF_TABLE_DATA_GRID.
    * - :cpp:class:`DiagnosticsTable <gui_forms::abi::DiagnosticsTable>`
      - gf_diagnostics_table, negotiated as GF_TABLE_DIAGNOSTICS.
    * - :cpp:class:`DispatchTable <gui_forms::abi::DispatchTable>`
@@ -99,6 +101,14 @@ Types
    * - :cpp:class:`gf_custom_controls_table <gf_custom_controls_table>`
      -  
    * - :cpp:class:`gf_custom_property <gf_custom_property>`
+     -  
+   * - :cpp:class:`gf_data_grid_cell <gf_data_grid_cell>`
+     -  
+   * - :cpp:class:`gf_data_grid_column <gf_data_grid_column>`
+     -  
+   * - :cpp:class:`gf_data_grid_row <gf_data_grid_row>`
+     -  
+   * - :cpp:class:`gf_data_grid_table <gf_data_grid_table>`
      -  
    * - :cpp:class:`gf_diagnostics_table <gf_diagnostics_table>`
      -  
@@ -526,6 +536,101 @@ Types
    .. cpp:function:: gf_status create(const gf_custom_control_spec* spec, gf_utf8_view stable_id, gf_object* object) const noexcept
 
    .. cpp:function:: gf_status notify_changed(gf_object object, uint64_t index) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: DataGridTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_data_grid_table, negotiated as GF_TABLE_DATA_GRID.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: DataGridTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_data_grid_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(DataGridTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static DataGridTable adopt(const gf_data_grid_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status column_count(gf_object grid, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status column_at(gf_object grid, uint64_t index, gf_data_grid_column* column, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
+
+   .. cpp:function:: gf_status column_item(gf_object grid, uint64_t column, uint64_t item, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status insert_column(gf_object grid, uint64_t index, const gf_data_grid_column* column) const noexcept
+
+   .. cpp:function:: gf_status remove_column(gf_object grid, uint64_t index) const noexcept
+
+   .. cpp:function:: gf_status column_index(gf_object grid, gf_utf8_view name, uint64_t* index) const noexcept
+
+   .. cpp:function:: gf_status row_count(gf_object grid, uint64_t* count, int64_t* new_row) const noexcept
+
+   .. cpp:function:: gf_status insert_rows(gf_object grid, uint64_t index, const gf_data_grid_row* rows, uint64_t count) const noexcept
+
+   .. cpp:function:: gf_status append_rows(gf_object grid, const gf_data_grid_row* rows, uint64_t count, uint64_t* first) const noexcept
+
+   .. cpp:function:: gf_status erase_rows(gf_object grid, uint64_t index, uint64_t count) const noexcept
+
+   .. cpp:function:: gf_status replace_row(gf_object grid, uint64_t index, const gf_data_grid_row* row) const noexcept
+
+   .. cpp:function:: gf_status clear_rows(gf_object grid) const noexcept
+
+   .. cpp:function:: gf_status row_id(gf_object grid, uint64_t position, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status row_position(gf_object grid, gf_utf8_view row_id, uint64_t* position) const noexcept
+
+   .. cpp:function:: gf_status cell_value(gf_object grid, gf_utf8_view row_id, uint64_t column, gf_value_kind as_kind, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
+
+   .. cpp:function:: gf_status cell_text(gf_object grid, gf_utf8_view row_id, uint64_t column, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status read_cells(gf_object grid, uint64_t column, uint64_t first_row, uint64_t row_count, gf_value* values, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
+
+   .. cpp:function:: gf_status current_cell(gf_object grid, uint32_t* present, uint64_t* row, uint64_t* column) const noexcept
+
+   .. cpp:function:: gf_status selected_rows(gf_object grid, uint64_t* positions, uint64_t capacity, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status selected_cells(gf_object grid, gf_data_grid_cell* cells, uint64_t capacity, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status clear_selection(gf_object grid) const noexcept
+
+   .. cpp:function:: gf_status select_all(gf_object grid) const noexcept
+
+   .. cpp:function:: gf_status begin_edit(gf_object grid, uint32_t select_all, uint32_t* began) const noexcept
+
+   .. cpp:function:: gf_status end_edit(gf_object grid, uint32_t* committed) const noexcept
+
+   .. cpp:function:: gf_status cancel_edit(gf_object grid) const noexcept
+
+   .. cpp:function:: gf_status set_column_header_text(gf_object grid, uint64_t column, gf_utf8_view text) const noexcept
+
+   .. cpp:function:: gf_status set_column_width(gf_object grid, uint64_t column, double width) const noexcept
+
+   .. cpp:function:: gf_status set_column_read_only(gf_object grid, uint64_t column, uint32_t read_only) const noexcept
+
+   .. cpp:function:: gf_status set_column_hidden(gf_object grid, uint64_t column, uint32_t hidden) const noexcept
+
+   .. cpp:function:: gf_status set_cell_value(gf_object grid, gf_utf8_view row_id, uint64_t column, const gf_value* value, uint32_t* accepted) const noexcept
+
+   .. cpp:function:: gf_status set_current_cell(gf_object grid, gf_utf8_view row_id, uint64_t column, uint32_t* moved) const noexcept
+
+   .. cpp:function:: gf_status set_row_selected(gf_object grid, gf_utf8_view row_id, uint32_t selected) const noexcept
+
+   .. cpp:function:: gf_status set_cell_selected(gf_object grid, gf_utf8_view row_id, uint64_t column, uint32_t selected) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -1617,6 +1722,145 @@ Types
    .. cpp:member:: const gf_create_choice* choices
 
    .. cpp:member:: uint64_t choice_count
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_data_grid_cell
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint64_t row
+
+   .. cpp:member:: uint64_t column
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_data_grid_column
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_data_grid_column_kind kind
+
+   .. cpp:member:: gf_value_kind value_kind
+
+   .. cpp:member:: uint32_t read_only
+
+   .. cpp:member:: uint32_t hidden
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: double minimum_width
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: gf_utf8_view header_text
+
+   .. cpp:member:: gf_utf8_view data_property_name
+
+   .. cpp:member:: const gf_utf8_view* items
+
+   .. cpp:member:: uint64_t item_count
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_data_grid_row
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t read_only
+
+   .. cpp:member:: gf_utf8_view stable_id
+
+   .. cpp:member:: gf_utf8_view header_text
+
+   .. cpp:member:: const gf_value* cells
+
+   .. cpp:member:: uint64_t cell_count
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_data_grid_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*column_count)(gf_object grid, uint64_t* count)
+
+   .. cpp:member:: gf_status (*column_at)(gf_object grid, uint64_t index, gf_data_grid_column* column, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+   .. cpp:member:: gf_status (*column_item)(gf_object grid, uint64_t column, uint64_t item, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*insert_column)(gf_object grid, uint64_t index, const gf_data_grid_column* column)
+
+   .. cpp:member:: gf_status (*remove_column)(gf_object grid, uint64_t index)
+
+   .. cpp:member:: gf_status (*column_index)(gf_object grid, gf_utf8_view name, uint64_t* index)
+
+   .. cpp:member:: gf_status (*set_column_header_text)(gf_object grid, uint64_t column, gf_utf8_view text)
+
+   .. cpp:member:: gf_status (*set_column_width)(gf_object grid, uint64_t column, double width)
+
+   .. cpp:member:: gf_status (*set_column_read_only)(gf_object grid, uint64_t column, uint32_t read_only)
+
+   .. cpp:member:: gf_status (*set_column_hidden)(gf_object grid, uint64_t column, uint32_t hidden)
+
+   .. cpp:member:: gf_status (*row_count)(gf_object grid, uint64_t* count, int64_t* new_row)
+
+   .. cpp:member:: gf_status (*insert_rows)(gf_object grid, uint64_t index, const gf_data_grid_row* rows, uint64_t count)
+
+   .. cpp:member:: gf_status (*append_rows)(gf_object grid, const gf_data_grid_row* rows, uint64_t count, uint64_t* first)
+
+   .. cpp:member:: gf_status (*erase_rows)(gf_object grid, uint64_t index, uint64_t count)
+
+   .. cpp:member:: gf_status (*replace_row)(gf_object grid, uint64_t index, const gf_data_grid_row* row)
+
+   .. cpp:member:: gf_status (*clear_rows)(gf_object grid)
+
+   .. cpp:member:: gf_status (*row_id)(gf_object grid, uint64_t position, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*row_position)(gf_object grid, gf_utf8_view row_id, uint64_t* position)
+
+   .. cpp:member:: gf_status (*cell_value)(gf_object grid, gf_utf8_view row_id, uint64_t column, gf_value_kind as_kind, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+   .. cpp:member:: gf_status (*set_cell_value)(gf_object grid, gf_utf8_view row_id, uint64_t column, const gf_value* value, uint32_t* accepted)
+
+   .. cpp:member:: gf_status (*cell_text)(gf_object grid, gf_utf8_view row_id, uint64_t column, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*read_cells)(gf_object grid, uint64_t column, uint64_t first_row, uint64_t row_count, gf_value* values, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+   .. cpp:member:: gf_status (*current_cell)(gf_object grid, uint32_t* present, uint64_t* row, uint64_t* column)
+
+   .. cpp:member:: gf_status (*set_current_cell)(gf_object grid, gf_utf8_view row_id, uint64_t column, uint32_t* moved)
+
+   .. cpp:member:: gf_status (*selected_rows)(gf_object grid, uint64_t* positions, uint64_t capacity, uint64_t* count)
+
+   .. cpp:member:: gf_status (*selected_cells)(gf_object grid, gf_data_grid_cell* cells, uint64_t capacity, uint64_t* count)
+
+   .. cpp:member:: gf_status (*set_row_selected)(gf_object grid, gf_utf8_view row_id, uint32_t selected)
+
+   .. cpp:member:: gf_status (*set_cell_selected)(gf_object grid, gf_utf8_view row_id, uint64_t column, uint32_t selected)
+
+   .. cpp:member:: gf_status (*clear_selection)(gf_object grid)
+
+   .. cpp:member:: gf_status (*select_all)(gf_object grid)
+
+   .. cpp:member:: gf_status (*begin_edit)(gf_object grid, uint32_t select_all, uint32_t* began)
+
+   .. cpp:member:: gf_status (*end_edit)(gf_object grid, uint32_t* committed)
+
+   .. cpp:member:: gf_status (*cancel_edit)(gf_object grid)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
 
 .. cpp:namespace:: 0
 

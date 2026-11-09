@@ -1722,6 +1722,321 @@ private:
     gf_rules_table table_;
 };
 
+// gf_data_grid_table, negotiated as GF_TABLE_DATA_GRID.
+class DataGridTable {
+public:
+    DataGridTable() noexcept : table_{} {}
+
+    // Negotiates the table at the header's version into output; a refusal
+    // leaves output serving nothing.
+    [[nodiscard]] static gf_status negotiate(DataGridTable& output) noexcept {
+        gf_data_grid_table negotiated_table{};
+        const gf_status negotiated = gf_abi_get_table(GF_TABLE_DATA_GRID, GF_ABI_MAJOR, GF_ABI_MINOR,
+                                                      &negotiated_table, sizeof(negotiated_table));
+        if (negotiated != GF_STATUS_OK) {
+            output = DataGridTable{};
+            return negotiated;
+        }
+        output.table_ = negotiated_table;
+        return GF_STATUS_OK;
+    }
+
+    // A table the caller negotiated through gf_abi_get_table.
+    [[nodiscard]] static DataGridTable adopt(const gf_data_grid_table& adopted_table) noexcept {
+        DataGridTable adopted;
+        adopted.table_ = adopted_table;
+        return adopted;
+    }
+
+    [[nodiscard]] const gf_data_grid_table& c_table() const noexcept { return table_; }
+
+    [[nodiscard]] gf_status column_count(gf_object grid, uint64_t* count) const noexcept {
+        if (table_.struct_size < 16u || table_.column_count == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.column_count(grid, count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status column_at(gf_object grid, uint64_t index, gf_data_grid_column* column, char* text_buffer,
+                                      uint64_t text_capacity, uint64_t* text_required) const noexcept {
+        if (table_.struct_size < 24u || table_.column_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.column_at(grid, index, column, text_buffer, text_capacity, text_required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status column_item(gf_object grid, uint64_t column, uint64_t item, char* buffer, uint64_t capacity,
+                                        uint64_t* required) const noexcept {
+        if (table_.struct_size < 32u || table_.column_item == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.column_item(grid, column, item, buffer, capacity, required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status insert_column(gf_object grid, uint64_t index,
+                                          const gf_data_grid_column* column) const noexcept {
+        if (table_.struct_size < 40u || table_.insert_column == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.insert_column(grid, index, column);
+        return called;
+    }
+
+    [[nodiscard]] gf_status remove_column(gf_object grid, uint64_t index) const noexcept {
+        if (table_.struct_size < 48u || table_.remove_column == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.remove_column(grid, index);
+        return called;
+    }
+
+    [[nodiscard]] gf_status column_index(gf_object grid, gf_utf8_view name, uint64_t* index) const noexcept {
+        if (table_.struct_size < 56u || table_.column_index == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.column_index(grid, name, index);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_column_header_text(gf_object grid, uint64_t column, gf_utf8_view text) const noexcept {
+        if (table_.struct_size < 64u || table_.set_column_header_text == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_column_header_text(grid, column, text);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_column_width(gf_object grid, uint64_t column, double width) const noexcept {
+        if (table_.struct_size < 72u || table_.set_column_width == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_column_width(grid, column, width);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_column_read_only(gf_object grid, uint64_t column, uint32_t read_only) const noexcept {
+        if (table_.struct_size < 80u || table_.set_column_read_only == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_column_read_only(grid, column, read_only);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_column_hidden(gf_object grid, uint64_t column, uint32_t hidden) const noexcept {
+        if (table_.struct_size < 88u || table_.set_column_hidden == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_column_hidden(grid, column, hidden);
+        return called;
+    }
+
+    [[nodiscard]] gf_status row_count(gf_object grid, uint64_t* count, int64_t* new_row) const noexcept {
+        if (table_.struct_size < 96u || table_.row_count == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.row_count(grid, count, new_row);
+        return called;
+    }
+
+    [[nodiscard]] gf_status insert_rows(gf_object grid, uint64_t index, const gf_data_grid_row* rows,
+                                        uint64_t count) const noexcept {
+        if (table_.struct_size < 104u || table_.insert_rows == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.insert_rows(grid, index, rows, count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status append_rows(gf_object grid, const gf_data_grid_row* rows, uint64_t count,
+                                        uint64_t* first) const noexcept {
+        if (table_.struct_size < 112u || table_.append_rows == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.append_rows(grid, rows, count, first);
+        return called;
+    }
+
+    [[nodiscard]] gf_status erase_rows(gf_object grid, uint64_t index, uint64_t count) const noexcept {
+        if (table_.struct_size < 120u || table_.erase_rows == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.erase_rows(grid, index, count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status replace_row(gf_object grid, uint64_t index, const gf_data_grid_row* row) const noexcept {
+        if (table_.struct_size < 128u || table_.replace_row == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.replace_row(grid, index, row);
+        return called;
+    }
+
+    [[nodiscard]] gf_status clear_rows(gf_object grid) const noexcept {
+        if (table_.struct_size < 136u || table_.clear_rows == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.clear_rows(grid);
+        return called;
+    }
+
+    [[nodiscard]] gf_status row_id(gf_object grid, uint64_t position, char* buffer, uint64_t capacity,
+                                   uint64_t* required) const noexcept {
+        if (table_.struct_size < 144u || table_.row_id == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.row_id(grid, position, buffer, capacity, required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status row_position(gf_object grid, gf_utf8_view row_id, uint64_t* position) const noexcept {
+        if (table_.struct_size < 152u || table_.row_position == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.row_position(grid, row_id, position);
+        return called;
+    }
+
+    [[nodiscard]] gf_status cell_value(gf_object grid, gf_utf8_view row_id, uint64_t column, gf_value_kind as_kind,
+                                       gf_value* value, char* text_buffer, uint64_t text_capacity,
+                                       uint64_t* text_required) const noexcept {
+        if (table_.struct_size < 160u || table_.cell_value == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.cell_value(grid, row_id, column, as_kind, value, text_buffer, text_capacity,
+                                                   text_required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_cell_value(gf_object grid, gf_utf8_view row_id, uint64_t column, const gf_value* value,
+                                           uint32_t* accepted) const noexcept {
+        if (table_.struct_size < 168u || table_.set_cell_value == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_cell_value(grid, row_id, column, value, accepted);
+        return called;
+    }
+
+    [[nodiscard]] gf_status cell_text(gf_object grid, gf_utf8_view row_id, uint64_t column, char* buffer,
+                                      uint64_t capacity, uint64_t* required) const noexcept {
+        if (table_.struct_size < 176u || table_.cell_text == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.cell_text(grid, row_id, column, buffer, capacity, required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status read_cells(gf_object grid, uint64_t column, uint64_t first_row, uint64_t row_count,
+                                       gf_value* values, char* text_buffer, uint64_t text_capacity,
+                                       uint64_t* text_required) const noexcept {
+        if (table_.struct_size < 184u || table_.read_cells == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.read_cells(grid, column, first_row, row_count, values, text_buffer,
+                                                   text_capacity, text_required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status current_cell(gf_object grid, uint32_t* present, uint64_t* row,
+                                         uint64_t* column) const noexcept {
+        if (table_.struct_size < 192u || table_.current_cell == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.current_cell(grid, present, row, column);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_current_cell(gf_object grid, gf_utf8_view row_id, uint64_t column,
+                                             uint32_t* moved) const noexcept {
+        if (table_.struct_size < 200u || table_.set_current_cell == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_current_cell(grid, row_id, column, moved);
+        return called;
+    }
+
+    [[nodiscard]] gf_status selected_rows(gf_object grid, uint64_t* positions, uint64_t capacity,
+                                          uint64_t* count) const noexcept {
+        if (table_.struct_size < 208u || table_.selected_rows == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.selected_rows(grid, positions, capacity, count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status selected_cells(gf_object grid, gf_data_grid_cell* cells, uint64_t capacity,
+                                           uint64_t* count) const noexcept {
+        if (table_.struct_size < 216u || table_.selected_cells == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.selected_cells(grid, cells, capacity, count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_row_selected(gf_object grid, gf_utf8_view row_id, uint32_t selected) const noexcept {
+        if (table_.struct_size < 224u || table_.set_row_selected == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_row_selected(grid, row_id, selected);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_cell_selected(gf_object grid, gf_utf8_view row_id, uint64_t column,
+                                              uint32_t selected) const noexcept {
+        if (table_.struct_size < 232u || table_.set_cell_selected == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_cell_selected(grid, row_id, column, selected);
+        return called;
+    }
+
+    [[nodiscard]] gf_status clear_selection(gf_object grid) const noexcept {
+        if (table_.struct_size < 240u || table_.clear_selection == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.clear_selection(grid);
+        return called;
+    }
+
+    [[nodiscard]] gf_status select_all(gf_object grid) const noexcept {
+        if (table_.struct_size < 248u || table_.select_all == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.select_all(grid);
+        return called;
+    }
+
+    [[nodiscard]] gf_status begin_edit(gf_object grid, uint32_t select_all, uint32_t* began) const noexcept {
+        if (table_.struct_size < 256u || table_.begin_edit == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.begin_edit(grid, select_all, began);
+        return called;
+    }
+
+    [[nodiscard]] gf_status end_edit(gf_object grid, uint32_t* committed) const noexcept {
+        if (table_.struct_size < 264u || table_.end_edit == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.end_edit(grid, committed);
+        return called;
+    }
+
+    [[nodiscard]] gf_status cancel_edit(gf_object grid) const noexcept {
+        if (table_.struct_size < 272u || table_.cancel_edit == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.cancel_edit(grid);
+        return called;
+    }
+
+private:
+    gf_data_grid_table table_;
+};
+
 // gf_windows_paint_endpoint_table, negotiated as GF_TABLE_WINDOWS_PAINT_ENDPOINT.
 class WindowsPaintEndpointTable {
 public:

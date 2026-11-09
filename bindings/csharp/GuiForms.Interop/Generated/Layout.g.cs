@@ -879,6 +879,82 @@ public static unsafe class Layout
             failures += expect(output, "gf_rules_table.state offset", (long)((byte*)&value.state - start), 24);
         }
         {
+            gf_data_grid_column value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_data_grid_column size", sizeof(gf_data_grid_column), 104);
+            failures += expect(output, "gf_data_grid_column.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_data_grid_column.kind offset", (long)((byte*)&value.kind - start), 4);
+            failures += expect(output, "gf_data_grid_column.value_kind offset", (long)((byte*)&value.value_kind - start), 8);
+            failures += expect(output, "gf_data_grid_column.read_only offset", (long)((byte*)&value.read_only - start), 12);
+            failures += expect(output, "gf_data_grid_column.hidden offset", (long)((byte*)&value.hidden - start), 16);
+            failures += expect(output, "gf_data_grid_column.reserved offset", (long)((byte*)&value.reserved - start), 20);
+            failures += expect(output, "gf_data_grid_column.width offset", (long)((byte*)&value.width - start), 24);
+            failures += expect(output, "gf_data_grid_column.minimum_width offset", (long)((byte*)&value.minimum_width - start), 32);
+            failures += expect(output, "gf_data_grid_column.name offset", (long)((byte*)&value.name - start), 40);
+            failures += expect(output, "gf_data_grid_column.header_text offset", (long)((byte*)&value.header_text - start), 56);
+            failures += expect(output, "gf_data_grid_column.data_property_name offset", (long)((byte*)&value.data_property_name - start), 72);
+            failures += expect(output, "gf_data_grid_column.items offset", (long)((byte*)&value.items - start), 88);
+            failures += expect(output, "gf_data_grid_column.item_count offset", (long)((byte*)&value.item_count - start), 96);
+        }
+        {
+            gf_data_grid_row value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_data_grid_row size", sizeof(gf_data_grid_row), 56);
+            failures += expect(output, "gf_data_grid_row.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_data_grid_row.read_only offset", (long)((byte*)&value.read_only - start), 4);
+            failures += expect(output, "gf_data_grid_row.stable_id offset", (long)((byte*)&value.stable_id - start), 8);
+            failures += expect(output, "gf_data_grid_row.header_text offset", (long)((byte*)&value.header_text - start), 24);
+            failures += expect(output, "gf_data_grid_row.cells offset", (long)((byte*)&value.cells - start), 40);
+            failures += expect(output, "gf_data_grid_row.cell_count offset", (long)((byte*)&value.cell_count - start), 48);
+        }
+        {
+            gf_data_grid_cell value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_data_grid_cell size", sizeof(gf_data_grid_cell), 16);
+            failures += expect(output, "gf_data_grid_cell.row offset", (long)((byte*)&value.row - start), 0);
+            failures += expect(output, "gf_data_grid_cell.column offset", (long)((byte*)&value.column - start), 8);
+        }
+        {
+            gf_data_grid_table value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_data_grid_table size", sizeof(gf_data_grid_table), 272);
+            failures += expect(output, "gf_data_grid_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_data_grid_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
+            failures += expect(output, "gf_data_grid_table.column_count offset", (long)((byte*)&value.column_count - start), 8);
+            failures += expect(output, "gf_data_grid_table.column_at offset", (long)((byte*)&value.column_at - start), 16);
+            failures += expect(output, "gf_data_grid_table.column_item offset", (long)((byte*)&value.column_item - start), 24);
+            failures += expect(output, "gf_data_grid_table.insert_column offset", (long)((byte*)&value.insert_column - start), 32);
+            failures += expect(output, "gf_data_grid_table.remove_column offset", (long)((byte*)&value.remove_column - start), 40);
+            failures += expect(output, "gf_data_grid_table.column_index offset", (long)((byte*)&value.column_index - start), 48);
+            failures += expect(output, "gf_data_grid_table.set_column_header_text offset", (long)((byte*)&value.set_column_header_text - start), 56);
+            failures += expect(output, "gf_data_grid_table.set_column_width offset", (long)((byte*)&value.set_column_width - start), 64);
+            failures += expect(output, "gf_data_grid_table.set_column_read_only offset", (long)((byte*)&value.set_column_read_only - start), 72);
+            failures += expect(output, "gf_data_grid_table.set_column_hidden offset", (long)((byte*)&value.set_column_hidden - start), 80);
+            failures += expect(output, "gf_data_grid_table.row_count offset", (long)((byte*)&value.row_count - start), 88);
+            failures += expect(output, "gf_data_grid_table.insert_rows offset", (long)((byte*)&value.insert_rows - start), 96);
+            failures += expect(output, "gf_data_grid_table.append_rows offset", (long)((byte*)&value.append_rows - start), 104);
+            failures += expect(output, "gf_data_grid_table.erase_rows offset", (long)((byte*)&value.erase_rows - start), 112);
+            failures += expect(output, "gf_data_grid_table.replace_row offset", (long)((byte*)&value.replace_row - start), 120);
+            failures += expect(output, "gf_data_grid_table.clear_rows offset", (long)((byte*)&value.clear_rows - start), 128);
+            failures += expect(output, "gf_data_grid_table.row_id offset", (long)((byte*)&value.row_id - start), 136);
+            failures += expect(output, "gf_data_grid_table.row_position offset", (long)((byte*)&value.row_position - start), 144);
+            failures += expect(output, "gf_data_grid_table.cell_value offset", (long)((byte*)&value.cell_value - start), 152);
+            failures += expect(output, "gf_data_grid_table.set_cell_value offset", (long)((byte*)&value.set_cell_value - start), 160);
+            failures += expect(output, "gf_data_grid_table.cell_text offset", (long)((byte*)&value.cell_text - start), 168);
+            failures += expect(output, "gf_data_grid_table.read_cells offset", (long)((byte*)&value.read_cells - start), 176);
+            failures += expect(output, "gf_data_grid_table.current_cell offset", (long)((byte*)&value.current_cell - start), 184);
+            failures += expect(output, "gf_data_grid_table.set_current_cell offset", (long)((byte*)&value.set_current_cell - start), 192);
+            failures += expect(output, "gf_data_grid_table.selected_rows offset", (long)((byte*)&value.selected_rows - start), 200);
+            failures += expect(output, "gf_data_grid_table.selected_cells offset", (long)((byte*)&value.selected_cells - start), 208);
+            failures += expect(output, "gf_data_grid_table.set_row_selected offset", (long)((byte*)&value.set_row_selected - start), 216);
+            failures += expect(output, "gf_data_grid_table.set_cell_selected offset", (long)((byte*)&value.set_cell_selected - start), 224);
+            failures += expect(output, "gf_data_grid_table.clear_selection offset", (long)((byte*)&value.clear_selection - start), 232);
+            failures += expect(output, "gf_data_grid_table.select_all offset", (long)((byte*)&value.select_all - start), 240);
+            failures += expect(output, "gf_data_grid_table.begin_edit offset", (long)((byte*)&value.begin_edit - start), 248);
+            failures += expect(output, "gf_data_grid_table.end_edit offset", (long)((byte*)&value.end_edit - start), 256);
+            failures += expect(output, "gf_data_grid_table.cancel_edit offset", (long)((byte*)&value.cancel_edit - start), 264);
+        }
+        {
             gf_windows_paint_endpoint_table value = default;
             byte* start = (byte*)&value;
             failures += expect(output, "gf_windows_paint_endpoint_table size", sizeof(gf_windows_paint_endpoint_table), 104);

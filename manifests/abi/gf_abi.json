@@ -199,6 +199,11 @@
       "type": "uint32"
     },
     {
+      "name": "GF_TABLE_DATA_GRID",
+      "value": 20,
+      "type": "uint32"
+    },
+    {
       "name": "GF_TABLE_WINDOWS_PAINT_ENDPOINT",
       "value": 256,
       "type": "uint32"
@@ -1419,6 +1424,46 @@
       "type": "uint32"
     },
     {
+      "name": "GF_DATA_GRID_COLUMN_KIND_TEXT",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DATA_GRID_COLUMN_KIND_CHECK_BOX",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DATA_GRID_COLUMN_KIND_COMBO_BOX",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DATA_GRID_COLUMN_KIND_BUTTON",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DATA_GRID_COLUMN_KIND_IMAGE",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DATA_GRID_COLUMN_KIND_LINK",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL",
+      "value": 65536,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DATA_GRID_MAXIMUM_COLUMN_ITEMS",
+      "value": 4096,
+      "type": "uint32"
+    },
+    {
       "name": "GF_PAINT_ENDPOINT_MAXIMUM_SIDE",
       "value": 32768,
       "type": "uint32"
@@ -1628,6 +1673,10 @@
     {
       "name": "gf_rule_token",
       "type": "uint64_t"
+    },
+    {
+      "name": "gf_data_grid_column_kind",
+      "type": "uint32_t"
     },
     {
       "name": "gf_paint_endpoint",
@@ -7465,6 +7514,1044 @@
               {
                 "name": "state",
                 "type": "gf_rule_state*"
+              }
+            ]
+          },
+          "since": "1.1"
+        }
+      ]
+    },
+    {
+      "name": "gf_data_grid_column",
+      "kind": "extensible",
+      "size": 104,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "kind",
+          "type": "gf_data_grid_column_kind",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "value_kind",
+          "type": "gf_value_kind",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "read_only",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "hidden",
+          "type": "uint32_t",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 20,
+          "size": 4
+        },
+        {
+          "name": "width",
+          "type": "double",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "minimum_width",
+          "type": "double",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 40,
+          "size": 16
+        },
+        {
+          "name": "header_text",
+          "type": "gf_utf8_view",
+          "offset": 56,
+          "size": 16
+        },
+        {
+          "name": "data_property_name",
+          "type": "gf_utf8_view",
+          "offset": 72,
+          "size": 16
+        },
+        {
+          "name": "items",
+          "type": "const gf_utf8_view*",
+          "offset": 88,
+          "size": 8
+        },
+        {
+          "name": "item_count",
+          "type": "uint64_t",
+          "offset": 96,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_data_grid_row",
+      "kind": "extensible",
+      "size": 56,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "read_only",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "stable_id",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "header_text",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "cells",
+          "type": "const gf_value*",
+          "offset": 40,
+          "size": 8
+        },
+        {
+          "name": "cell_count",
+          "type": "uint64_t",
+          "offset": 48,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_data_grid_cell",
+      "kind": "record",
+      "size": 16,
+      "align": 8,
+      "fields": [
+        {
+          "name": "row",
+          "type": "uint64_t",
+          "offset": 0,
+          "size": 8
+        },
+        {
+          "name": "column",
+          "type": "uint64_t",
+          "offset": 8,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_data_grid_table",
+      "kind": "table",
+      "size": 272,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "column_count",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "column_at",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "column",
+                "type": "gf_data_grid_column*"
+              },
+              {
+                "name": "text_buffer",
+                "type": "char*"
+              },
+              {
+                "name": "text_capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "text_required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "column_item",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "item",
+                "type": "uint64_t"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "insert_column",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "column",
+                "type": "const gf_data_grid_column*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "remove_column",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "column_index",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "name",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_column_header_text",
+          "type": "function",
+          "offset": 56,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "text",
+                "type": "gf_utf8_view"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_column_width",
+          "type": "function",
+          "offset": 64,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "width",
+                "type": "double"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_column_read_only",
+          "type": "function",
+          "offset": 72,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "read_only",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_column_hidden",
+          "type": "function",
+          "offset": 80,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "hidden",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "row_count",
+          "type": "function",
+          "offset": 88,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              },
+              {
+                "name": "new_row",
+                "type": "int64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "insert_rows",
+          "type": "function",
+          "offset": 96,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "rows",
+                "type": "const gf_data_grid_row*"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "append_rows",
+          "type": "function",
+          "offset": 104,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "rows",
+                "type": "const gf_data_grid_row*"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t"
+              },
+              {
+                "name": "first",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "erase_rows",
+          "type": "function",
+          "offset": 112,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "replace_row",
+          "type": "function",
+          "offset": 120,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "row",
+                "type": "const gf_data_grid_row*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "clear_rows",
+          "type": "function",
+          "offset": 128,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "row_id",
+          "type": "function",
+          "offset": 136,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "position",
+                "type": "uint64_t"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "row_position",
+          "type": "function",
+          "offset": 144,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "row_id",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "position",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "cell_value",
+          "type": "function",
+          "offset": 152,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "row_id",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "as_kind",
+                "type": "gf_value_kind"
+              },
+              {
+                "name": "value",
+                "type": "gf_value*"
+              },
+              {
+                "name": "text_buffer",
+                "type": "char*"
+              },
+              {
+                "name": "text_capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "text_required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_cell_value",
+          "type": "function",
+          "offset": 160,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "row_id",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "value",
+                "type": "const gf_value*"
+              },
+              {
+                "name": "accepted",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "cell_text",
+          "type": "function",
+          "offset": 168,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "row_id",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "read_cells",
+          "type": "function",
+          "offset": 176,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "first_row",
+                "type": "uint64_t"
+              },
+              {
+                "name": "row_count",
+                "type": "uint64_t"
+              },
+              {
+                "name": "values",
+                "type": "gf_value*"
+              },
+              {
+                "name": "text_buffer",
+                "type": "char*"
+              },
+              {
+                "name": "text_capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "text_required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "current_cell",
+          "type": "function",
+          "offset": 184,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "present",
+                "type": "uint32_t*"
+              },
+              {
+                "name": "row",
+                "type": "uint64_t*"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_current_cell",
+          "type": "function",
+          "offset": 192,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "row_id",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "moved",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "selected_rows",
+          "type": "function",
+          "offset": 200,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "positions",
+                "type": "uint64_t*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "selected_cells",
+          "type": "function",
+          "offset": 208,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "cells",
+                "type": "gf_data_grid_cell*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_row_selected",
+          "type": "function",
+          "offset": 216,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "row_id",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "selected",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_cell_selected",
+          "type": "function",
+          "offset": 224,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "row_id",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "selected",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "clear_selection",
+          "type": "function",
+          "offset": 232,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "select_all",
+          "type": "function",
+          "offset": 240,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "begin_edit",
+          "type": "function",
+          "offset": 248,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "select_all",
+                "type": "uint32_t"
+              },
+              {
+                "name": "began",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "end_edit",
+          "type": "function",
+          "offset": 256,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
+              },
+              {
+                "name": "committed",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "cancel_edit",
+          "type": "function",
+          "offset": 264,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "grid",
+                "type": "gf_object"
               }
             ]
           },

@@ -43,6 +43,7 @@ public static class Constants
     public const uint GF_TABLE_SUBSURFACES = 17u;
     public const uint GF_TABLE_APPLICATION = 18u;
     public const uint GF_TABLE_RULES = 19u;
+    public const uint GF_TABLE_DATA_GRID = 20u;
     public const uint GF_TABLE_WINDOWS_PAINT_ENDPOINT = 256u;
     public const uint GF_ABI_ENTRY_SLOT = 4294967295u;
     public const uint GF_SPLASHSCREEN_MAXIMUM_STATUS_BYTES = 512u;
@@ -287,5 +288,13 @@ public static class Constants
     public const uint GF_RULE_STATE_ARMED = 1u;
     public const uint GF_RULE_STATE_REVOKED = 2u;
     public const uint GF_RULE_STATE_STALE = 3u;
+    public const uint GF_DATA_GRID_COLUMN_KIND_TEXT = 0u;
+    public const uint GF_DATA_GRID_COLUMN_KIND_CHECK_BOX = 1u;
+    public const uint GF_DATA_GRID_COLUMN_KIND_COMBO_BOX = 2u;
+    public const uint GF_DATA_GRID_COLUMN_KIND_BUTTON = 3u;
+    public const uint GF_DATA_GRID_COLUMN_KIND_IMAGE = 4u;
+    public const uint GF_DATA_GRID_COLUMN_KIND_LINK = 5u;
+    public const uint GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL = 65536u;
+    public const uint GF_DATA_GRID_MAXIMUM_COLUMN_ITEMS = 4096u;
     public const uint GF_PAINT_ENDPOINT_MAXIMUM_SIDE = 32768u;
 }
