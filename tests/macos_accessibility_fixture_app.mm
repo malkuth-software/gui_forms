@@ -26,7 +26,8 @@
 // Gallery. While it runs it writes a dump the client compares against:
 //
 //   {"pid":N,"generation":G,"effects":E,"request":R,"settled":S,
-//    "frame_pending":F,"occluded":O,"motion_armed":M,"freeze_pending":Z,
+//    "frame_pending":F,"occluded":O,"motion_armed":M,"motion_moving":N,
+//    "ambient_effects":A,"freeze_pending":Z,
 //    "paint_passes":P,"lease":L,"content_revision":C,"rendered_revision":D,
 //    "presented_revision":V,
 //    "types":{stable id: manifest id},"snapshot":<SemanticSnapshot::to_json()>}
@@ -36,12 +37,16 @@
 // dump.
 //
 // "settled" is true when the window has painted at least once, no
-// invalidation waits for a paint (Window::needs_frame), the motion clock is
-// not armed and (Gallery) no page freeze is pending: nothing the app knows
-// of will change the tree or a value (such as a paint counter a diagnostics
-// control publishes) before the next input. Its inputs, the window's
-// occlusion and its paint lease (state and revisions) are written beside
-// it, so that a client that waits in vain can say what held it.
+// invalidation waits for a paint (Window::needs_frame), no value moves on
+// the motion clock and (Gallery) no page freeze is pending: nothing the app
+// knows of will change the tree or a value (such as a paint counter a
+// diagnostics control publishes) before the next input. An ambient effect
+// (a spinner's turn, an indeterminate ring) may keep the clock armed: it is
+// endless by design and repaints its part only, so it does not hold
+// "settled" back; the clock's arming and its effects are written beside it.
+// Its inputs, the window's occlusion and its paint lease (state and
+// revisions) are written beside it, so that a client that waits in vain can
+// say what held it.
 // "request" is the number the client last wrote to the file at the dump's
 // path plus ".request", as read by the writer's latest tick. A client that
 // writes a new number after its last action and then waits for a dump with
@@ -193,6 +198,10 @@ private:
         bool frame_pending{};
         bool occluded{};
         bool motion_armed{};
+        // Values moving on the clock (transitions), and the ambient effects
+        // it runs, which never end by themselves.
+        std::size_t motion_moving{};
+        std::size_t ambient_effects{};
         bool freeze_pending{};
         gui_forms::PaintLeaseSnapshot lease{};
         bool settled{};
@@ -204,9 +213,11 @@ private:
         state.frame_pending = window_.needs_frame();
         state.occluded = window_.occluded();
         state.motion_armed = window_.motion_clock().armed();
+        state.motion_moving = window_.motion_clock().moving_count();
+        state.ambient_effects = window_.motion_clock().ambient_count();
         state.freeze_pending = freeze_pending_;
         state.lease = window_.paint_lease_snapshot();
-        state.settled = state.paint_passes != 0U && !state.frame_pending && !state.motion_armed &&
+        state.settled = state.paint_passes != 0U && !state.frame_pending && state.motion_moving == 0U &&
                         !state.freeze_pending;
         return state;
     }
@@ -250,6 +261,8 @@ private:
                            ",\"frame_pending\":" + json_bool(settle.frame_pending) +
                            ",\"occluded\":" + json_bool(settle.occluded) +
                            ",\"motion_armed\":" + json_bool(settle.motion_armed) +
+                           ",\"motion_moving\":" + std::to_string(settle.motion_moving) +
+                           ",\"ambient_effects\":" + std::to_string(settle.ambient_effects) +
                            ",\"freeze_pending\":" + json_bool(settle.freeze_pending) +
                            ",\"paint_passes\":" + std::to_string(settle.paint_passes) +
                            ",\"lease\":\"" + lease_state_name(settle.lease.state) + "\"" +
