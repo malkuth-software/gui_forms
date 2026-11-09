@@ -438,6 +438,7 @@ void DataGridView::apply_auto_sizes() {
     const GridLayout layout = grid_layout();
     bool fills = false;
     for (std::size_t column = 0U; column < columns_.size(); ++column) {
+        if (!columns_[column].visible) continue;
         const DataGridViewAutoSizeColumnMode mode = column_auto_size_mode(column);
         if (mode == DataGridViewAutoSizeColumnMode::fill) fills = true;
         // Widths from every row or the header change only with the grid's
@@ -458,6 +459,8 @@ void DataGridView::distribute_fill_width() {
     double weights = 0.0;
     for (std::size_t column = 0U; column < columns_.size(); ++column) {
         DataGridViewColumn& definition = columns_[column];
+        // A hidden column takes no width and no share.
+        if (!definition.visible) continue;
         if (column_auto_size_mode(column) == DataGridViewAutoSizeColumnMode::fill) {
             definition.width = definition.minimum_width;
             weights += definition.fill_weight;
@@ -474,7 +477,10 @@ void DataGridView::distribute_fill_width() {
     while (changed && weights > 0.0) {
         changed = false;
         for (std::size_t column = 0U; column < columns_.size(); ++column) {
-            if (settled[column] || column_auto_size_mode(column) != DataGridViewAutoSizeColumnMode::fill) continue;
+            if (settled[column] || !columns_[column].visible ||
+                column_auto_size_mode(column) != DataGridViewAutoSizeColumnMode::fill) {
+                continue;
+            }
             const DataGridViewColumn& definition = columns_[column];
             const double share = available * definition.fill_weight / weights;
             if (share < definition.minimum_width) {
@@ -486,7 +492,10 @@ void DataGridView::distribute_fill_width() {
         }
     }
     for (std::size_t column = 0U; column < columns_.size(); ++column) {
-        if (settled[column] || column_auto_size_mode(column) != DataGridViewAutoSizeColumnMode::fill) continue;
+        if (settled[column] || !columns_[column].visible ||
+            column_auto_size_mode(column) != DataGridViewAutoSizeColumnMode::fill) {
+            continue;
+        }
         DataGridViewColumn& definition = columns_[column];
         if (weights > 0.0) definition.width = available * definition.fill_weight / weights;
     }
@@ -723,7 +732,7 @@ void DataGridView::auto_resize_columns(DataGridViewAutoSizeColumnsMode mode) {
 
 double DataGridView::content_width() const noexcept {
     double width = 0.0;
-    for (const DataGridViewColumn& column : columns_) width += column.width;
+    for (const std::size_t column : shown_order_) width += columns_[column].width;
     return width;
 }
 
@@ -776,15 +785,15 @@ DataGridView::GridLayout DataGridView::grid_layout() const {
 double DataGridView::column_left(std::size_t column, const GridLayout& layout) const noexcept {
     // The columns shown before this one, in display order.
     double x = layout.data.x - horizontal_offset_ * layout.scale;
-    const std::size_t display = column < display_indices_.size() ? display_indices_[column] : display_order_.size();
+    const std::size_t display = column < shown_indices_.size() ? shown_indices_[column] : shown_order_.size();
     for (std::size_t position = 0; position < display; ++position) {
-        x += columns_[display_order_[position]].width * layout.scale;
+        x += shown_width(shown_order_[position]) * layout.scale;
     }
     return x;
 }
 
 Rect DataGridView::column_header_bounds(std::size_t column, const GridLayout& layout) const noexcept {
-    const Rect bounds{column_left(column, layout), 0.0, columns_[column].width * layout.scale,
+    const Rect bounds{column_left(column, layout), 0.0, shown_width(column) * layout.scale,
                       layout.column_header_band.height};
     return bounds;
 }
@@ -798,45 +807,52 @@ Rect DataGridView::row_header_bounds(DataGridViewRowPosition row, const GridLayo
 Rect DataGridView::cell_bounds(DataGridViewRowPosition row, std::size_t column, const GridLayout& layout) const {
     const double height = row_heights().height(row.value) * layout.scale;
     const Rect bounds{column_left(column, layout), layout.data.y + row_offset(row.value, layout),
-                      columns_[column].width * layout.scale, height};
+                      shown_width(column) * layout.scale, height};
     return bounds;
 }
 
 std::size_t DataGridView::first_visible_display(const GridLayout& layout) const noexcept {
     double x = layout.data.x - horizontal_offset_ * layout.scale;
-    for (std::size_t position = 0; position < display_order_.size(); ++position) {
-        x += columns_[display_order_[position]].width * layout.scale;
+    for (std::size_t position = 0; position < shown_order_.size(); ++position) {
+        x += shown_width(shown_order_[position]) * layout.scale;
         if (x > layout.data.x) return position;
     }
-    return display_order_.size();
+    return shown_order_.size();
 }
 
 std::size_t DataGridView::visible_display_end(const GridLayout& layout) const noexcept {
     const double right = layout.data.x + layout.data.width;
     double x = layout.data.x - horizontal_offset_ * layout.scale;
-    for (std::size_t position = 0; position < display_order_.size(); ++position) {
+    for (std::size_t position = 0; position < shown_order_.size(); ++position) {
         if (x >= right) return position;
-        x += columns_[display_order_[position]].width * layout.scale;
+        x += shown_width(shown_order_[position]) * layout.scale;
     }
-    return display_order_.size();
+    return shown_order_.size();
 }
 
 DataGridViewDisplayIndex DataGridView::order_target_at(double x, const GridLayout& layout) const {
     // The boundary the pointer is nearest: past every column whose middle
     // is before it. Taking the dragged column out of its place shifts the
     // boundaries after it by one.
-    const std::size_t from = pressed_column_ && *pressed_column_ < display_indices_.size()
-        ? display_indices_[*pressed_column_]
+    // Positions count the shown columns; the answer is the display index of
+    // the shown column the dragged one would take the place of, so hidden
+    // columns keep their places around it.
+    const std::size_t from = pressed_column_ && *pressed_column_ < shown_indices_.size()
+        ? shown_indices_[*pressed_column_]
         : 0U;
     std::size_t boundary = 0U;
-    for (std::size_t position = 0; position < display_order_.size(); ++position) {
-        const std::size_t column = display_order_[position];
+    for (std::size_t position = 0; position < shown_order_.size(); ++position) {
+        const std::size_t column = shown_order_[position];
         const double middle = column_left(column, layout) + columns_[column].width * layout.scale * 0.5;
         if (middle < x) boundary = position + 1U;
     }
+    if (shown_order_.empty()) {
+        const DataGridViewDisplayIndex none{0U};
+        return none;
+    }
     std::size_t target = boundary > from ? boundary - 1U : boundary;
-    if (!display_order_.empty()) target = std::min(target, display_order_.size() - 1U);
-    const DataGridViewDisplayIndex result{target};
+    target = std::min(target, shown_order_.size() - 1U);
+    const DataGridViewDisplayIndex result{display_indices_[shown_order_[target]]};
     return result;
 }
 
@@ -959,6 +975,8 @@ DataGridView::Parts DataGridView::grid_parts(const GridLayout& layout) const {
     // after it.
     if (ordering_ && order_target_ && pressed_column_ && *pressed_column_ < columns_.size() &&
         (*order_target_).value < display_order_.size()) {
+        // The target is a display index (order_target_at names a shown
+        // column's).
         const std::size_t from = display_indices_[*pressed_column_];
         const std::size_t target = (*order_target_).value;
         const std::size_t neighbour = display_order_[target];
@@ -1348,7 +1366,7 @@ DataGridView::HitResult DataGridView::hit_test(Point local) const {
     const std::size_t display_end = visible_display_end(layout);
     if (!layout.column_header_band.empty() && layout.column_header_band.contains(local)) {
         for (std::size_t display = first_display; display < display_end; ++display) {
-            const std::size_t column = display_order_[display];
+            const std::size_t column = shown_order_[display];
             const ColumnParts placed = column_parts(column, layout);
             if (placed.column_grip.present && placed.column_grip.bounds.contains(local)) {
                 result.zone = HitZone::column_divider;
@@ -1357,7 +1375,7 @@ DataGridView::HitResult DataGridView::hit_test(Point local) const {
             }
         }
         for (std::size_t display = first_display; display < display_end; ++display) {
-            const std::size_t column = display_order_[display];
+            const std::size_t column = shown_order_[display];
             const ColumnParts placed = column_parts(column, layout);
             if (placed.column_header.present && placed.column_header.bounds.contains(local)) {
                 result.zone = HitZone::column_header;
@@ -1394,7 +1412,7 @@ DataGridView::HitResult DataGridView::hit_test(Point local) const {
     if (!layout.data.contains(local)) return result;
     if (row.value >= row_end) return result;
     for (std::size_t display = first_display; display < display_end; ++display) {
-        const std::size_t column = display_order_[display];
+        const std::size_t column = shown_order_[display];
         if (cell_bounds(row, column, layout).contains(local)) {
             result.zone = HitZone::cell;
             result.row = row;
@@ -1629,7 +1647,7 @@ void DataGridView::on_paint(Painter& painter, Rect) {
         // same well painted again, cut to the cells' extent, so that its
         // border stays where it was.
         const Rect last =
-            cell_bounds(DataGridViewRowPosition{row_end - 1U}, display_order_[display_end - 1U], layout);
+            cell_bounds(DataGridViewRowPosition{row_end - 1U}, shown_order_[display_end - 1U], layout);
         const Rect extent{layout.data.x, layout.data.y, last.x + last.width - layout.data.x,
                           last.y + last.height - layout.data.y};
         painter.save();
@@ -1647,7 +1665,7 @@ void DataGridView::on_paint(Painter& painter, Rect) {
         for (std::size_t position = first_row; unchanged && position < row_end; ++position) {
             const DataGridViewRowPosition row{position};
             for (std::size_t display = first_display; unchanged && display < display_end; ++display) {
-                unchanged = paint_cell(painter, row, display_order_[display], layout);
+                unchanged = paint_cell(painter, row, shown_order_[display], layout);
             }
         }
         painter.restore();
@@ -1663,7 +1681,7 @@ void DataGridView::on_paint(Painter& painter, Rect) {
         painter.save();
         painter.clip_rect({layout.data.x, 0.0, layout.column_header_band.width, layout.column_header_band.height});
         for (std::size_t display = first_display; display < display_end; ++display) {
-            paint_column_header(painter, display_order_[display], layout);
+            paint_column_header(painter, shown_order_[display], layout);
         }
         if (grid.column_drop_indicator.present) {
             surface.role = PartRole::drop;
@@ -1925,11 +1943,11 @@ DataGridView::RealizedSlot DataGridView::realized_slot(const GridLayout& layout,
         const std::size_t position = item - rows;
         slot.system = cell_system;
         slot.row = DataGridViewRowPosition{first_row_ + position / columns};
-        slot.column = display_order_[first_display + position % columns];
+        slot.column = shown_order_[first_display + position % columns];
         return slot;
     }
     slot.system = column_system;
-    slot.column = display_order_[first_display + (item - rows - cells)];
+    slot.column = shown_order_[first_display + (item - rows - cells)];
     return slot;
 }
 
@@ -1996,7 +2014,7 @@ std::vector<DataGridView::Cell> DataGridView::realized_cells() const {
         const PartGeometryBuffer published = published_realized_item_geometry(rows + position);
         Cell record;
         record.address = {DataGridViewRowPosition{first_row_ + position / columns},
-                          display_order_[first_display + position % columns]};
+                          shown_order_[first_display + position % columns]};
         record.stable_id = cell_stable_id(record.address.row, record.address.column);
         read_item_parts(anatomy().item_systems[cell_system.value], cell_part_fields, published.parts(), record.parts);
         const AnatomyStateSet states = cell_states(record.address.row, record.address.column);
@@ -2016,7 +2034,7 @@ std::vector<DataGridView::Column> DataGridView::realized_columns() const {
     records.reserve(count);
     for (std::size_t position = 0; position < count; ++position) {
         Column record;
-        record.index = display_order_[first_display + position];
+        record.index = shown_order_[first_display + position];
         record.stable_id = column_stable_id(record.index);
         record.parts = column_parts(record.index, layout);
         const AnatomyStateSet states = column_states(record.index);

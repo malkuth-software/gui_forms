@@ -28,6 +28,7 @@ namespace gui_forms::abi1 {
 [[nodiscard]] const gf_subsurfaces_table& subsurfaces_table() noexcept;
 [[nodiscard]] const gf_application_table& application_table() noexcept;
 [[nodiscard]] const gf_rules_table& rules_table() noexcept;
+[[nodiscard]] const gf_data_grid_table& data_grid_table() noexcept;
 
 // GF_TABLE_RUNTIME's splashscreen slots (since 1.1, abi_splashscreen.cpp);
 // the runtime table itself is the entry's.

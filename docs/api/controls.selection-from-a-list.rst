@@ -2552,6 +2552,10 @@ Related types
 
       A fill column's share of the width the other columns leave, against the other fill columns' weights; finite and positive. Default: ``{100.0}``.
 
+   .. cpp:member:: bool visible
+
+      Whether the grid shows the column (Windows Forms' Visible). A hidden column keeps its index, display index, width and values; layout, painting, hit testing, keyboard movement, selection ranges and the semantic tree pass over it. Default: ``{true}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: template <typename Declaring> DataGridViewColumnHeadersBorderStyleCapability

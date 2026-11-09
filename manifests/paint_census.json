@@ -35,7 +35,7 @@
     "metrics_view/metrics_view.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
     "panel/material_panel/material_panel.cpp": "authored material: MaterialPanel paints the material its application gives it, as content (owner decision, 2026-11-03)",
     "panel/picture_box/picture_box.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
-    "panel/text_box/text_box_decorations.cpp": "draws application content: the background and underline decorations of the styled runs an application gives the text box (TextBox styled runs); the text and its chrome go through the theme. Provisional, pending the owner's T4-4 ruling for styled runs",
+    "panel/text_box/text_box_decorations.cpp": "content paint (owner ruling, 2026-11-09): the backgrounds and underlines of a TextBox's styled runs are application content authored by the producer (a syntax highlighter, a spell checker), like the text itself, not chrome; the inks a decoration takes from the theme still resolve through the theme",
     "raster_canvas/raster_canvas.cpp": "draws the application's raster (RasterCanvas), not chrome",
     "typography_specimen/typography_specimen.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme; its line boxes are diagnostic inspection content (as VisualInspectorView's, owner-agreed exemption)",
     "visual_inspector_view/visual_inspector_view.cpp": "a diagnostic instrument: the inspector's dark panel stays fixed under every theme so that it reads the same while inspecting any of them (owner decision, 2026-11-03)"

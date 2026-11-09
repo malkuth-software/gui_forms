@@ -111,6 +111,7 @@ typedef uint32_t gf_table_id;
 #define GF_TABLE_SUBSURFACES 17u
 #define GF_TABLE_APPLICATION 18u
 #define GF_TABLE_RULES 19u
+#define GF_TABLE_DATA_GRID 20u
 /* Platform extension tables have ids from 0x100. A library has one only on
  * its platform, and reports it as a host capability; elsewhere
  * gf_abi_get_table gives GF_STATUS_NOT_FOUND. */
@@ -508,7 +509,11 @@ typedef struct gf_create_choice {
  * - background_worker, binding_context, binding_source, error_provider,
  *   help_provider, image_list, notify_icon, ribbon_tool_tip,
  *   semantic_feedback, timer, tool_tip: the window (windows.create) it
- *   binds to.
+ *   binds to, or (since 1.1) a control in a window, which binds it to that
+ *   control's window: windows.run's root, or a control of its tree, during
+ *   the run (from its ready callback, say), or a created window's root
+ *   before its run. A control in no window gives
+ *   GF_STATUS_WRONG_HANDLE_KIND.
  * A flags_value_editor takes no owner but an enumeration: its name, its
  * choices (1 to GF_CREATE_MAXIMUM_CHOICES, distinct non-empty names) and
  * value, its current value; objects.create also makes one, empty until its
@@ -2142,7 +2147,8 @@ typedef struct gf_custom_controls_table {
 
 /*
  * GF_TABLE_BINDINGS: data binding, as C++ binds: a binding_source (made
- * with create_with over a window) holds records of named fields and a
+ * with create_with over a window, or over a control in a running window)
+ * holds records of named fields and a
  * current position; a binding ties one property of a control to one field
  * of a source's current record (Control::data_bindings().add). A source is
  * filled and moved here; a binding's options are fixed when it is made.
@@ -2613,6 +2619,254 @@ typedef struct gf_rules_table {
     /* token's rule: GF_RULE_STATE_ARMED or GF_RULE_STATE_STALE. */
     gf_status (GF_CALL* state)(gf_rule_token token, gf_rule_state* state);
 } gf_rules_table;
+
+/*
+ * GF_TABLE_DATA_GRID (since 1.1): a data_grid_view's columns, rows, cells,
+ * current cell, selection and edit (C++ DataGridView). Its events (cell
+ * value changed, current cell changed, selection changed, cell begin and
+ * end edit, validating, user added row and the others the schema lists)
+ * are interactions: events.subscribe takes their names on the grid. Its
+ * other settings (selection_mode, multi_select, allow_user_to_add_rows,
+ * read_only, ...) are properties (GF_TABLE_PROPERTIES). Another control
+ * gives GF_STATUS_WRONG_HANDLE_KIND. UI thread only.
+ *
+ * Columns are numbered by their index, which display order does not
+ * change. Rows are named two ways: a row ID, the stable identity the grid
+ * keeps its current cell and selection by, and a position, its place in
+ * the order shown now (0 at the top), which inserting, erasing or sorting
+ * rows changes. row_id and row_position convert. Cells are named by row ID
+ * and column. The rows a program edits here are the grid's own (unbound)
+ * rows, the C++ `rows` collection; while the grid shows a binding source's
+ * records (its data_source) or virtual rows, the row edits give
+ * GF_STATUS_INVALID_STATE and the cells read and write the source's
+ * values. With allow_user_to_add_rows the grid also shows a new row after
+ * its rows: row_count counts it and names its position, and it is no row
+ * of the collection (positions for the row edits stop before it).
+ *
+ * Arrays of records the caller passes (rows, cells, values) have the
+ * stride of their first element's struct_size, the caller's sizeof, which
+ * every element repeats; each element is at least its 1.1 size (a
+ * gf_value its 1.0 size).
+ */
+
+/* gf_data_grid_column_kind: what a column's cells are. */
+typedef uint32_t gf_data_grid_column_kind;
+#define GF_DATA_GRID_COLUMN_KIND_TEXT 0u
+#define GF_DATA_GRID_COLUMN_KIND_CHECK_BOX 1u
+#define GF_DATA_GRID_COLUMN_KIND_COMBO_BOX 2u
+#define GF_DATA_GRID_COLUMN_KIND_BUTTON 3u
+#define GF_DATA_GRID_COLUMN_KIND_IMAGE 4u
+#define GF_DATA_GRID_COLUMN_KIND_LINK 5u
+
+/* The most rows one call inserts, appends or reads, and the most choices a
+ * combo box column has. */
+#define GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL 65536u
+#define GF_DATA_GRID_MAXIMUM_COLUMN_ITEMS 4096u
+
+/*
+ * A column. As input (insert_column), the caller sets struct_size to at
+ * least the 1.1 size and reserved to zero, and the library reads the record
+ * and what it references during the call: name is the column's identity
+ * (unique in the grid, not empty, without '.'); header_text the header's
+ * text; kind its cells' kind; value_kind the kind a committed text edit
+ * converts to (BOOLEAN, SIGNED, UNSIGNED, NUMBER or TEXT; NULL takes TEXT);
+ * read_only 0 or 1; hidden 0 or 1 (a hidden column keeps its place,
+ * width and values, but is not laid out, painted, hit, moved to by keys,
+ * included in selection ranges or published); width and
+ * minimum_width in logical units (zero takes the defaults, 100 and 20; a
+ * width is at least the minimum, the minimum at least 1);
+ * data_property_name the binding source field the column shows (may be
+ * empty); items and item_count a combo box column's choices (null and zero
+ * for other kinds). As output (column_at) the record is filled, its texts
+ * copied into the caller's buffer, items null and item_count the number of
+ * choices (column_item reads them).
+ */
+typedef struct gf_data_grid_column {
+    uint32_t struct_size;
+    gf_data_grid_column_kind kind;
+    gf_value_kind value_kind;
+    uint32_t read_only;
+    uint32_t hidden;
+    uint32_t reserved;
+    double width;
+    double minimum_width;
+    gf_utf8_view name;
+    gf_utf8_view header_text;
+    gf_utf8_view data_property_name;
+    const gf_utf8_view* items;
+    uint64_t item_count;
+} gf_data_grid_column;
+
+/*
+ * A row the caller gives the grid, read during the call: its stable id
+ * (unique in the grid; empty takes a generated one, "row.1", "row.2", ...),
+ * read_only (0 or 1), its header's text, and cell_count values, one per
+ * column in column order (fewer leave the rest empty; more than the columns
+ * give GF_STATUS_INVALID_ARGUMENT; cells may be null when the count is
+ * zero). A value's text is copied.
+ */
+typedef struct gf_data_grid_row {
+    uint32_t struct_size;
+    uint32_t read_only;
+    gf_utf8_view stable_id;
+    gf_utf8_view header_text;
+    const gf_value* cells;
+    uint64_t cell_count;
+} gf_data_grid_row;
+
+/* A cell by row position and column index. The record's layout is fixed:
+ * an array of them has the stride sizeof(gf_data_grid_cell). */
+typedef struct gf_data_grid_cell {
+    uint64_t row;
+    uint64_t column;
+} gf_data_grid_cell;
+
+typedef struct gf_data_grid_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* The number of columns. */
+    gf_status (GF_CALL* column_count)(gf_object grid, uint64_t* count);
+    /* Column index (below the count) into column, an output record of at
+     * least the 1.1 size; its name, header text and data property name are
+     * copied into text_buffer, one after another, and the views point
+     * there. text_required receives their total size, also with
+     * GF_STATUS_BUFFER_TOO_SMALL, which leaves the record unwritten.
+     * GF_STATUS_NOT_FOUND past the columns. */
+    gf_status (GF_CALL* column_at)(gf_object grid, uint64_t index, gf_data_grid_column* column, char* text_buffer,
+                                   uint64_t text_capacity, uint64_t* text_required);
+    /* A combo box column's choice item (below its item_count), as text.
+     * GF_STATUS_NOT_FOUND past the columns or the choices. */
+    gf_status (GF_CALL* column_item)(gf_object grid, uint64_t column, uint64_t item, char* buffer,
+                                     uint64_t capacity, uint64_t* required);
+    /* Inserts column at index, at most the count (the count appends). Later
+     * columns move up one index, the rows' values move with their columns
+     * and the new column's cells start empty. Ends any edit and clears the
+     * selection, the current cell, and the error text, styles and sort the
+     * grid keeps by column. A malformed column, a repeated name or an index
+     * past the count gives GF_STATUS_INVALID_ARGUMENT, changing nothing. */
+    gf_status (GF_CALL* insert_column)(gf_object grid, uint64_t index, const gf_data_grid_column* column);
+    /* Removes the column at index with the rows' values in it, ending the
+     * edit and the selection as insert_column does. GF_STATUS_NOT_FOUND
+     * past the columns. */
+    gf_status (GF_CALL* remove_column)(gf_object grid, uint64_t index);
+    /* The index of the column named name; GF_STATUS_NOT_FOUND for none. */
+    gf_status (GF_CALL* column_index)(gf_object grid, gf_utf8_view name, uint64_t* index);
+    /* Change one setting of the column at column, as insert_column reads
+     * it; GF_STATUS_NOT_FOUND past the columns. A width below the column's
+     * minimum gives GF_STATUS_INVALID_ARGUMENT; an auto-sized column takes
+     * its automatic width again at the next layout. Making a column
+     * read-only discards an edit in it. Hiding the current cell's column
+     * discards an edit in it and moves the current cell to the next shown
+     * column of its row (the previous one past the last), or clears it when
+     * no column is shown. */
+    gf_status (GF_CALL* set_column_header_text)(gf_object grid, uint64_t column, gf_utf8_view text);
+    gf_status (GF_CALL* set_column_width)(gf_object grid, uint64_t column, double width);
+    gf_status (GF_CALL* set_column_read_only)(gf_object grid, uint64_t column, uint32_t read_only);
+    gf_status (GF_CALL* set_column_hidden)(gf_object grid, uint64_t column, uint32_t hidden);
+    /* Every row shown (count), the new row included, and the new row's
+     * position (new_row; -1 while none is shown). */
+    gf_status (GF_CALL* row_count)(gf_object grid, uint64_t* count, int64_t* new_row);
+    /* Insert count rows at index (at most the collection's count), or
+     * append them (first receives the first one's position), in one edit.
+     * All or nothing: a repeated or malformed stable id, a malformed value,
+     * more values than columns or an index past the rows gives
+     * GF_STATUS_INVALID_ARGUMENT and adds none; more than
+     * GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL gives GF_STATUS_LIMIT_EXCEEDED.
+     * The grid makes one row of its own per row given, the copy the values
+     * need. rows may be null when count is zero. */
+    gf_status (GF_CALL* insert_rows)(gf_object grid, uint64_t index, const gf_data_grid_row* rows, uint64_t count);
+    gf_status (GF_CALL* append_rows)(gf_object grid, const gf_data_grid_row* rows, uint64_t count,
+                                     uint64_t* first);
+    /* Erases count rows from index; a range past the collection gives
+     * GF_STATUS_INVALID_ARGUMENT. Erasing the current cell's row makes the
+     * row that takes its position, or the new last row, current. */
+    gf_status (GF_CALL* erase_rows)(gf_object grid, uint64_t index, uint64_t count);
+    /* Replaces the row at index (below the collection's count) with row,
+     * whose stable id may be the replaced row's or one no other row has. */
+    gf_status (GF_CALL* replace_row)(gf_object grid, uint64_t index, const gf_data_grid_row* row);
+    /* Removes every row of any source (a data source or virtual provider is
+     * let go) and returns the grid to its own rows. */
+    gf_status (GF_CALL* clear_rows)(gf_object grid);
+    /* The ID of the row at position, copied into buffer (not terminated);
+     * GF_STATUS_NOT_FOUND past the rows. */
+    gf_status (GF_CALL* row_id)(gf_object grid, uint64_t position, char* buffer, uint64_t capacity,
+                                uint64_t* required);
+    /* The position of the row with ID row_id; GF_STATUS_NOT_FOUND for none. */
+    gf_status (GF_CALL* row_position)(gf_object grid, gf_utf8_view row_id, uint64_t* position);
+    /* A cell's value, as properties.get gives one. A row ID naming no row
+     * or a column past the columns gives GF_STATUS_NOT_FOUND, here and in
+     * the other cell slots. as_kind NULL gives the value as stored; another
+     * kind gives it converted (BindingValue's conversion: a number from its
+     * text, text from a number, ...), or GF_STATUS_INVALID_ARGUMENT, with
+     * value unwritten, when it has no form of that kind. An empty cell is
+     * NULL either way. */
+    gf_status (GF_CALL* cell_value)(gf_object grid, gf_utf8_view row_id, uint64_t column, gf_value_kind as_kind,
+                                    gf_value* value, char* text_buffer, uint64_t text_capacity,
+                                    uint64_t* text_required);
+    /* Stores value in a cell from the program (read-only does not apply),
+     * as given, raising cell_value_changed when it differs. accepted
+     * receives 0 when a binding source or virtual provider refused it. */
+    gf_status (GF_CALL* set_cell_value)(gf_object grid, gf_utf8_view row_id, uint64_t column, const gf_value* value,
+                                        uint32_t* accepted);
+    /* The text a cell shows: its value formatted (cell_formatting and the
+     * cell's style), a button or link column's text for an empty cell. */
+    gf_status (GF_CALL* cell_text)(gf_object grid, gf_utf8_view row_id, uint64_t column, char* buffer,
+                                   uint64_t capacity, uint64_t* required);
+    /* Reads one column's values in row_count rows from position first_row
+     * into values, an array of row_count records (the array rule above;
+     * fields past the 1.0 size are left alone), their text copied into
+     * text_buffer one after another, each value's view pointing there.
+     * text_required receives the total text size, also with
+     * GF_STATUS_BUFFER_TOO_SMALL, which writes no value. The grid's own rows
+     * are read in place, with no allocation per cell; a binding source's or
+     * virtual provider's values are asked of it as cell_value does (twice
+     * when the call first measures the text). A range past the rows gives
+     * GF_STATUS_NOT_FOUND; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL
+     * rows GF_STATUS_LIMIT_EXCEEDED. */
+    gf_status (GF_CALL* read_cells)(gf_object grid, uint64_t column, uint64_t first_row, uint64_t row_count,
+                                    gf_value* values, char* text_buffer, uint64_t text_capacity,
+                                    uint64_t* text_required);
+    /* The current cell's position and column; present receives 0, and row
+     * and column are left, when there is none. */
+    gf_status (GF_CALL* current_cell)(gf_object grid, uint32_t* present, uint64_t* row, uint64_t* column);
+    /* Moves the current cell to row_id's row and column (an empty row_id
+     * for none), committing any edit first, and selects it alone. moved
+     * receives 0, changing nothing, when the edit or the row's validation
+     * refuses. A cell in a hidden column gives GF_STATUS_INVALID_STATE.
+     * The grid's own settings are schema properties (properties.set and
+     * get): read_only, selection_mode (cell_select or full_row_select),
+     * multi_select and allow_user_to_add_rows. */
+    gf_status (GF_CALL* set_current_cell)(gf_object grid, gf_utf8_view row_id, uint64_t column, uint32_t* moved);
+    /* The selected rows' positions in order (full-row selections, or in
+     * cell mode the rows whose every cell is selected) into the caller's
+     * array of capacity elements; count receives their number, also with
+     * GF_STATUS_BUFFER_TOO_SMALL, which writes none. positions may be null
+     * when capacity is zero. */
+    gf_status (GF_CALL* selected_rows)(gf_object grid, uint64_t* positions, uint64_t capacity, uint64_t* count);
+    /* The selected cells by row then column, as selected_rows gives rows. */
+    gf_status (GF_CALL* selected_cells)(gf_object grid, gf_data_grid_cell* cells, uint64_t capacity,
+                                        uint64_t* count);
+    /* Selects (1) or deselects (0) a row, or a cell (in full-row mode, its
+     * row). Without multi_select, selecting clears the rest first. Raises
+     * selection_changed once when the selection changes. */
+    gf_status (GF_CALL* set_row_selected)(gf_object grid, gf_utf8_view row_id, uint32_t selected);
+    gf_status (GF_CALL* set_cell_selected)(gf_object grid, gf_utf8_view row_id, uint64_t column,
+                                           uint32_t selected);
+    gf_status (GF_CALL* clear_selection)(gf_object grid);
+    /* Selects every cell (or row); does nothing without multi_select. */
+    gf_status (GF_CALL* select_all)(gf_object grid);
+    /* Puts the current text cell in edit, or opens the current combo box
+     * cell's choices; began receives 0 for no current cell, a read-only
+     * cell, a check box or button cell, or a cancelled cell_begin_edit.
+     * select_all (0 or 1) selects the editor's text. */
+    gf_status (GF_CALL* begin_edit)(gf_object grid, uint32_t select_all, uint32_t* began);
+    /* Commits the edit in progress (cell_validating, conversion, the
+     * value): committed receives 1 when it committed or no edit was in
+     * progress, 0 when the cell stays in edit, marked invalid. */
+    gf_status (GF_CALL* end_edit)(gf_object grid, uint32_t* committed);
+    /* Discards the edit in progress. */
+    gf_status (GF_CALL* cancel_edit)(gf_object grid);
+} gf_data_grid_table;
 
 /*
  * GF_TABLE_WINDOWS_PAINT_ENDPOINT (Windows only; host capability

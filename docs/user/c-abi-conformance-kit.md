@@ -42,11 +42,16 @@ Two rules apply to the call:
   checks, which show a window briefly and need a display. They include a
   threaded sub-surface (`GF_TABLE_SUBSURFACES`, since 1.1): its build and
   posted callbacks on its own thread, objects owned by the thread that made
-  them, and stale identities once it stops.
+  them, and stale identities once it stops. They also make binding sources
+  over `windows.run`'s root and a control of its tree from the run's ready
+  callback (since 1.1).
   The rules table (`GF_TABLE_RULES`, since 1.1) is checked on a created
   window in both modes: an interaction trigger with set, toggle and callback
   actions, a negated condition, consume, duplicates, refusals, stale rules
-  and freed tokens.
+  and freed tokens. The data grid table (`GF_TABLE_DATA_GRID`, since 1.1) is
+  checked on a created window's root in both modes: columns, rows in bulk,
+  cells by row ID, the bulk read into caller storage, the current cell, the
+  selection, an edit and the change events.
   `GF_CONFORMANCE_FLAGS_NONE` leaves them out, for headless CI.
 
 A complete test program, as the SDK's own installed example builds it
