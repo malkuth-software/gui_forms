@@ -281,7 +281,8 @@ void finish(GateContext& gate) {
 }
 
 // What the window's compositor state must be on macOS: present, every
-// backdrop supported, high contrast never set (owner decision T5-Q7).
+// backdrop supported, high contrast never set (owner decision T5-Q7), the
+// colour scheme the system's Light or Dark, and an accent colour.
 void check_state(GateContext& gate) {
     const CompositorState& state = (*gate.model).compositor_state();
     std::printf("{\"gate\":\"macos_compositor\",\"state\":%s}\n", state.to_json().c_str());
@@ -295,6 +296,13 @@ void check_state(GateContext& gate) {
     if (state.high_contrast) fail(gate, "increase contrast never sets high_contrast (T5-Q7)");
     const bool workspace_reduced = NSWorkspace.sharedWorkspace.accessibilityDisplayShouldReduceTransparency == YES;
     if (state.reduced_transparency != workspace_reduced) fail(gate, "reduced transparency is the workspace's option");
+    // The system's Light or Dark, read the way the host reads it (the
+    // application's effective appearance against Dark Aqua), and an accent.
+    NSArray<NSAppearanceName>* const names = @[ NSAppearanceNameAqua, NSAppearanceNameDarkAqua ];
+    const NSAppearanceName matched = [NSApp.effectiveAppearance bestMatchFromAppearancesWithNames:names];
+    const bool system_dark = matched != nil && [matched isEqualToString:NSAppearanceNameDarkAqua];
+    if (state.dark_scheme != system_dark) fail(gate, "dark_scheme is the application's effective appearance");
+    if (!state.system_colours.accent) fail(gate, "the host reports the control accent colour");
 }
 
 void request_for(GateContext& gate, GateStep step) {

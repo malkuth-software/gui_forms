@@ -36,6 +36,29 @@ NSVisualEffectMaterial material_for(WindowBackdrop backdrop) noexcept {
     return NSVisualEffectMaterialUnderWindowBackground;
 }
 
+// A colour channel in [0, 1] as a byte, rounded; out-of-range values are
+// clamped (extended sRGB can exceed the unit range).
+std::uint8_t channel_byte(CGFloat channel) noexcept {
+    const double clamped = channel < 0.0 ? 0.0 : (channel > 1.0 ? 1.0 : static_cast<double>(channel));
+    const std::uint8_t byte = static_cast<std::uint8_t>(clamped * 255.0 + 0.5);
+    return byte;
+}
+
+// A system colour as sRGB, resolved against the current drawing appearance
+// (on the main thread, outside a draw, the application's effective
+// appearance); none when AppKit cannot convert it.
+std::optional<Color> srgb_colour(NSColor* colour) {
+    NSColor* const converted = colour == nil ? nil : [colour colorUsingColorSpace:NSColorSpace.sRGBColorSpace];
+    if (converted == nil) return std::nullopt;
+    CGFloat red = 0.0;
+    CGFloat green = 0.0;
+    CGFloat blue = 0.0;
+    CGFloat alpha = 0.0;
+    [converted getRed:&red green:&green blue:&blue alpha:&alpha];
+    const Color result = Color::rgba(channel_byte(red), channel_byte(green), channel_byte(blue), channel_byte(alpha));
+    return result;
+}
+
 } // namespace
 
 CompositorState read_macos_compositor_state(CompositorGeneration generation) {
@@ -50,6 +73,19 @@ CompositorState read_macos_compositor_state(CompositorGeneration generation) {
     NSWorkspace* const workspace = NSWorkspace.sharedWorkspace;
     state.reduced_transparency = workspace.accessibilityDisplayShouldReduceTransparency == YES;
     state.high_contrast = false;
+    // T4 theme variants: the application's effective appearance (the
+    // system's Light or Dark unless the application set its own), matched
+    // against Aqua and Dark Aqua; the accent and text-selection colours as
+    // the system reports them now.
+    NSApplication* const application = NSApp;
+    NSAppearance* const appearance = application == nil ? nil : application.effectiveAppearance;
+    if (appearance != nil) {
+        NSArray<NSAppearanceName>* const names = @[ NSAppearanceNameAqua, NSAppearanceNameDarkAqua ];
+        const NSAppearanceName matched = [appearance bestMatchFromAppearancesWithNames:names];
+        state.dark_scheme = matched != nil && [matched isEqualToString:NSAppearanceNameDarkAqua];
+    }
+    state.system_colours.accent = srgb_colour(NSColor.controlAccentColor);
+    state.system_colours.highlight = srgb_colour(NSColor.selectedTextBackgroundColor);
     return state;
 }
 

@@ -988,6 +988,7 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 // Stage T5: the accessibility display options changed (reduce
 // transparency); the compositor state is reported again.
 - (void)accessibilityDisplayOptionsChanged:(NSNotification*)notification;
+- (void)systemColoursChanged:(NSNotification*)notification;
 - (void)reportCompositorState;
 // The view the native window shows: this view, or the backdrop container
 // holding it for a window declared non-opaque (make_macos_content_view).
@@ -2001,6 +2002,12 @@ void post_perform_close(NSWindow* window) {
                selector:@selector(accessibilityDisplayOptionsChanged:)
                    name:NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification
                  object:nil];
+        // The accent and highlight colours (System Settings, Appearance).
+        [[NSNotificationCenter defaultCenter]
+            addObserver:self
+               selector:@selector(systemColoursChanged:)
+                   name:NSSystemColorsDidChangeNotification
+                 object:nil];
     }
     return self;
 }
@@ -2043,8 +2050,24 @@ void post_perform_close(NSWindow* window) {
     [self collectDamage];
 }
 
+- (void)systemColoursChanged:(NSNotification*)notification {
+    (void)notification;
+    [self reportCompositorState];
+    [self collectDamage];
+}
+
+// The system's Light or Dark reaches the view as a change of its effective
+// appearance (the host sets no appearance of its own, so the view follows
+// the application's): the state is read again, dark_scheme with it.
+- (void)viewDidChangeEffectiveAppearance {
+    [super viewDidChangeEffectiveAppearance];
+    [self reportCompositorState];
+    [self collectDamage];
+}
+
 // Reports the window server's state to the window (stage T5, C3): after
-// attach, and whenever the accessibility display options change. A reading
+// attach, and whenever the accessibility display options, the system
+// colours or the effective appearance (Light or Dark) change. A reading
 // that differs from the window's last report only by its generation is not
 // sent.
 - (void)reportCompositorState {
@@ -2742,6 +2765,7 @@ void post_perform_close(NSWindow* window) {
     [self stopDisplayLink];
     // No compositor report reaches a session that is shutting down.
     [NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:NSSystemColorsDidChangeNotification object:nil];
     if (_wakeSource != nil) {
         dispatch_source_set_timer(_wakeSource, DISPATCH_TIME_FOREVER,
                                   DISPATCH_TIME_FOREVER, 0);
