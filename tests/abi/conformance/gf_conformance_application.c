@@ -169,6 +169,20 @@ void gf_kit_application(gf_kit* kit) {
     gf_kit_check(kit, strcmp(theme, builtin) == 0, "closing returns the built-in theme");
     gf_kit_status(kit, (*kit).application.close(&alive), GF_STATUS_OK, "closing again does nothing");
 
+    /* A zero base is the default (GF_THEME_BASE_DEFAULT): with no packages
+     * the application takes the built-in theme, not compiled again. */
+    gf_application_config zeroed;
+    memset(&zeroed, 0, sizeof(zeroed));
+    zeroed.struct_size = (uint32_t)sizeof(zeroed);
+    report = empty_report();
+    gf_kit_status(kit, (*kit).application.create(&zeroed, &report), GF_STATUS_OK,
+                  "make an application from a zero-initialised configuration");
+    gf_kit_check(kit, report.outcome == GF_THEME_OUTCOME_APPLIED && state_of(kit) == GF_APPLICATION_STATE_CURRENT,
+                 "the default base makes the application");
+    read_theme(kit, theme, sizeof(theme));
+    gf_kit_check(kit, strcmp(theme, builtin) == 0, "the default base alone is the built-in theme");
+    gf_kit_status(kit, (*kit).application.close(&alive), GF_STATUS_OK, "close the default application");
+
     /* Objects made without an application keep create from making one. */
     const gf_object loose = gf_kit_create(kit, "button", "kit.application.loose");
     report = empty_report();

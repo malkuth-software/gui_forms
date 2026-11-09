@@ -1,8 +1,8 @@
 /* The Gallery's project theme (owner rulings of 2026-11-04). A form
    document is ontological: it names each object's role with `classes`,
    and this sheet gives the roles their look. The Gallery compiles it at
-   start-up (make_gallery) onto the built-in professional theme and selects
-   it for its window; gui_forms_add_theme embeds it and checks it against
+   start-up (make_gallery) onto the default base, GUI.Forms' own theme
+   `gui-forms`, and selects it for its window; gui_forms_add_theme embeds it and checks it against
    the Gallery's form documents.
 
    Light only for now: the shell's page style is still code, and a dark

@@ -476,7 +476,8 @@ TypeTally& tally_for(Report& report, const std::string& control_type) {
 // Settling. The client asks the app for a settled dump by writing a new
 // request number beside the dump; the app's writer echoes the number it
 // read and says whether it was settled (painted, nothing invalidated, no
-// motion armed). Quiet is never inferred from timing.
+// value moving on the motion clock; an endless ambient effect may run).
+// Quiet is never inferred from timing.
 
 constexpr int settle_timeout_ms = 10000;
 

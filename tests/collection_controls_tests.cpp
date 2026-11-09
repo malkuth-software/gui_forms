@@ -2,6 +2,7 @@
 #include "gui_forms/commands.hpp"
 #include "gui_forms/window.hpp"
 #include "support/named_callbacks.hpp"
+#include "support/professional_theme.hpp"
 
 #include <algorithm>
 #include <array>
@@ -184,6 +185,8 @@ void test_breadcrumb_identity_overflow_edit_and_input() {
         {"path.current", "Source", "Current location"},
     });
     Window window(trail, {160.0, 28.0});
+    // windows-professional's chevron faces and joint lines are checked here.
+    window.set_theme(test_support::professional_theme());
     window.perform_layout();
 
     require((*trail).children().size() == 1U &&
@@ -513,9 +516,17 @@ void test_object_label_wrapping_focus_and_full_name_inspection() {
     require(operation_check_32, "modified keyboard navigation must move focus independently of stable selection");
     ImageRecordingPainter keyboard_short{};
     window.paint(keyboard_short, {0.0, 0.0, 190.0, 170.0});
-    // The keyboard focus is the theme's focus ring, one more rounded stroke
-    // beside the selection plate's edge.
-    require(keyboard_short.rounded_strokes.size() == rest.rounded_strokes.size() + 2U,
+    // The keyboard focus is the theme's focus ring beside the selection
+    // plate's edge: one more rounded stroke, or, for a dotted ring (the
+    // default theme's), its dots, painted as fills.
+    const std::size_t plate_strokes = rest.rounded_strokes.size() + 1U;
+    const bool stroked_ring = keyboard_short.rounded_strokes.size() == plate_strokes + 1U;
+    const std::ptrdiff_t focused_fills = std::count(keyboard_short.paint_order.begin(),
+                                                    keyboard_short.paint_order.end(), 'F');
+    const std::ptrdiff_t unfocused_fills = std::count(pointer_focused.paint_order.begin(),
+                                                      pointer_focused.paint_order.end(), 'F');
+    const bool dotted_ring = keyboard_short.rounded_strokes.size() == plate_strokes && focused_fills > unfocused_fills;
+    require(stroked_ring || dotted_ring,
             "selection boundary and dotted keyboard focus must remain visibly distinct on separate cells");
 
     const bool operation_check_33 = window.dispatch_key({KeyAction::down, PhysicalKey::left,

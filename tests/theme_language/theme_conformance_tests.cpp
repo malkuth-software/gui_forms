@@ -583,6 +583,9 @@ void check_refusal_leaves_nothing(const Fixture& fixture) {
     ThemeCompileOptions options{};
     options.controls = controls;
     options.published_values = published;
+    // Onto windows-professional, as the fixture was written (the default
+    // base is gui-forms, T4 phase 6).
+    options.base = ThemeBase::windows_professional;
     // The registry the direct compile checks effect names against (EP-3),
     // so an unknown effect (E417) is refused as a package too.
     options.effects = &built_in_effect_registry();

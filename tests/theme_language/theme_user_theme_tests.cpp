@@ -73,6 +73,9 @@ const std::array<ControlAnatomy, 1> controls{{
 ThemeCompileOptions options() {
     ThemeCompileOptions made{};
     made.controls = controls;
+    // These expectations were written onto windows-professional's recipes;
+    // the default base is gui-forms (T4 phase 6).
+    made.base = ThemeBase::windows_professional;
     return made;
 }
 

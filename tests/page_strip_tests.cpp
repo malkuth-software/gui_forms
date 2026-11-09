@@ -720,7 +720,9 @@ void release_and_refusals() {
             "an empty set shows nothing and selects nothing");
 }
 
-std::size_t paint_allocations(std::size_t page_count) {
+// With `dark`, the window shows the default theme's dark variant, whose
+// materials are assembled for each paint.
+std::size_t paint_allocations(std::size_t page_count, bool dark) {
     PageSet pages{};
     add_pages(pages, page_count);
     std::shared_ptr<PageStrip> strip = make_control<PageStrip>(StableId("strip"), pages);
@@ -729,6 +731,11 @@ std::size_t paint_allocations(std::size_t page_count) {
     widths.fixed = 20.0;
     (*strip).item_widths = widths;
     Window window(strip, {2000.0, 26.0});
+    if (dark) {
+        PresentationSettings settings = window.presentation_settings();
+        settings.colour_scheme = ColourScheme::dark;
+        window.set_presentation_settings(settings);
+    }
     window.perform_layout();
     select(pages, "p1");
     CountingPainter painter{};
@@ -754,11 +761,14 @@ void no_allocation_per_tab_while_painting() {
         probe_check = page_strip_allocation_probe::attempts;
     }
     require(probe_check >= 1U, "the allocation probe counts this executable's allocations");
-    const std::size_t few = paint_allocations(4U);
-    const std::size_t many = paint_allocations(40U);
-    std::cout << "PageStrip paint allocations: 4 tabs " << few << ", 40 tabs " << many << '\n';
+    const std::size_t few = paint_allocations(4U, false);
+    const std::size_t many = paint_allocations(40U, false);
+    const std::size_t many_dark = paint_allocations(40U, true);
+    std::cout << "PageStrip paint allocations: 4 tabs " << few << ", 40 tabs " << many << ", 40 tabs dark "
+              << many_dark << '\n';
     require(few == many, "painting allocates nothing per tab");
     require(many == 0U, "painting from the cached layout allocates nothing");
+    require(many_dark == 0U, "painting the dark variant from the cached layout allocates nothing");
 }
 
 } // namespace

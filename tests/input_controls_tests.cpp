@@ -3,6 +3,7 @@
 #include "gui_forms/window.hpp"
 #include "headless_host.hpp"
 #include "support/named_callbacks.hpp"
+#include "support/professional_theme.hpp"
 
 #include <cmath>
 #include <cstdlib>
@@ -166,6 +167,8 @@ void test_pointer_drag_paint_and_caret_deadline() {
     std::shared_ptr<gui_forms::TextBox> field = make_control<TextBox>(StableId("input.pointer"), "abcdef");
     (*field).set_requested_bounds({0.0, 0.0, 180.0, 30.0});
     Window window(field, {180.0, 30.0});
+    // The selection colour the painter looks for is windows-professional's.
+    window.set_theme(test_support::professional_theme());
     RecordingPainter painter;
     window.paint(painter, {0.0, 0.0, 180.0, 30.0});
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary,

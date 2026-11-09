@@ -98,6 +98,9 @@ std::shared_ptr<const Theme> theme_from_sheet(std::string_view text) {
     const ThemeLibrary library{};
     ThemeCompileOptions options{};
     options.controls = stock_control_anatomies();
+    // Onto windows-professional's recipes, which the face expectations
+    // read (the default base is gui-forms, T4 phase 6).
+    options.base = ThemeBase::windows_professional;
     const ThemeCompileResult result = compile_theme_package(faces_package(text), library, images, options);
     require(result.succeeded() && result.diagnostics().empty(), "the faces sheet compiles cleanly");
     for (const ThemeCompileDiagnostic& diagnostic : result.diagnostics()) {

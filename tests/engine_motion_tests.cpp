@@ -701,7 +701,7 @@ TileFrame tile_frame(Window& window, const DockSite& site) {
     return frame;
 }
 
-constexpr std::uint64_t expected_fade_hash = 0xeaf1494d77d12d8fULL;
+constexpr std::uint64_t expected_fade_hash = 0xca644bce5d05fa2eULL;
 
 void tile_fade() {
     std::unique_ptr<DockFixture> fixture = make_dock();

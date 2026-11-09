@@ -132,15 +132,20 @@ void test_windows_join_and_close() {
 }
 
 void test_base_theme() {
+    require(default_theme_base == ThemeBase::gui_forms && ApplicationConfig{}.theme.base == ThemeBase::gui_forms,
+            "the default base is gui-forms (T4 phase 6)");
     ApplicationConfig config{};
-    config.theme.base = ThemeBase::gui_forms;
+    config.theme.base = ThemeBase::windows_professional;
     ApplicationCreateResult created = Application::create(std::move(config));
-    require(static_cast<bool>(created) && (*(*created.application).resources()).theme().id() == "gui-forms",
-            "the gui-forms base alone is the application's theme");
+    require(static_cast<bool>(created) &&
+                (*(*created.application).resources()).theme().id() == "windows-professional" &&
+                (*(*created.application).resources()).theme_ptr() != default_compiled_theme(),
+            "the windows-professional base alone is compiled as the application's theme");
     created.application.reset();
     ApplicationCreateResult plain = Application::create(ApplicationConfig{});
-    require(static_cast<bool>(plain) && (*(*plain.application).resources()).theme_ptr() == default_compiled_theme(),
-            "the default base alone is the process default theme, not compiled again");
+    require(static_cast<bool>(plain) && (*(*plain.application).resources()).theme_ptr() == default_compiled_theme() &&
+                (*(*plain.application).resources()).theme().id() == "gui-forms",
+            "the default base alone is the process default theme, gui-forms, not compiled again");
 }
 
 // Makes a window on another thread and records whether it joined.

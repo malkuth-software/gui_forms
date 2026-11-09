@@ -142,6 +142,21 @@ struct AssembledPartMaterial final {
     SurfaceMaterial material{};
 };
 
+// One of a window's assemblies for parts that keep none of their own (a
+// part without a record, and every part's derived dark variant): the
+// assembly, the role whose dark variant darkened it (none for a light
+// assembly) and whether it holds one yet.
+struct UnkeptPartAssembly final {
+    AssembledPartMaterial assembled{};
+    std::optional<ControlVisualRole> darkened{};
+    bool filled{};
+};
+
+// How many assemblies a window keeps for such parts: a strip's tabs share
+// a few identities (resting, selected, hot), so a few entries keep a
+// repeated paint from assembling, or allocating, again.
+inline constexpr std::size_t unkept_part_assembly_count = 8U;
+
 class SurfaceRoot;
 
 // One property's transition on a part (E7): an engine property or the

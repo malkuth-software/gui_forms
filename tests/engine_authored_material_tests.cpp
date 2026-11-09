@@ -662,7 +662,8 @@ void test_unkeyed_part() {
     require(assemblies(window) == 1U, "a part without a key assembles its material for its paint");
     (*(*fixture).pad).invalidate(Dirty::paint);
     repaint(*fixture);
-    require(assemblies(window) == 2U, "and again at every paint, having no record to keep it in");
+    require(assemblies(window) == 1U,
+            "and none again while its identity holds, kept in the window's unkept assemblies");
     std::unique_ptr<Fixture> written = make_fixture(written_theme());
     require(pixels_hash(*fixture) == pixels_hash(*written), "it bakes the same material");
 }

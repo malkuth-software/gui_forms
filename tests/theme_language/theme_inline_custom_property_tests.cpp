@@ -14,6 +14,7 @@
 #include "../../src/core/theme/theme/theme_access.hpp"
 #include "../../src/core/theme/theme_compiler/theme_source_record.hpp"
 #include "../../src/core/theme_language/compiler/theme_compiler.hpp"
+#include "../support/professional_theme.hpp"
 #include "../support/theme_definition_heap.hpp"
 #include "gui_forms/gui_forms.hpp"
 
@@ -315,10 +316,12 @@ void test_defining_and_reading() {
     require(amplitude_is(*held, 0.4), "the style's declaration reads the theme's name");
 }
 
-// The default theme keeps the empty sheet's source: it defines no names.
-void test_reading_under_the_default_theme() {
-    const std::unique_ptr<PadWindow> held = make_pad_window(default_theme());
-    require(detail::ThemeAccess::source(*default_theme()).text.empty(), "the default theme keeps an empty source");
+// A theme made from a definition (the windows-professional fixture) keeps
+// the empty sheet's source: it defines no names.
+void test_reading_under_a_theme_without_a_source() {
+    const std::shared_ptr<const Theme> professional = test_support::professional_theme();
+    const std::unique_ptr<PadWindow> held = make_pad_window(professional);
+    require(detail::ThemeAccess::source(*professional).text.empty(), "a theme made from a definition keeps an empty source");
     const InlineStyleResult refused = (*(*held).pad).set_inline_style("::part(face) { primitive: bulge; amplitude: var(--lift) }");
     if (refused.succeeded() || !has(refused, "E409")) print(refused);
     require(!refused.succeeded() && has(refused, "E409"), "a name nothing defines is E409");
@@ -372,7 +375,7 @@ int main() {
     test_reading_a_palette_name();
     test_reading_a_scoped_name();
     test_defining_and_reading();
-    test_reading_under_the_default_theme();
+    test_reading_under_a_theme_without_a_source();
     test_reading_across_a_theme_change();
     test_diagnostics_once();
     test_over_a_palette_name();

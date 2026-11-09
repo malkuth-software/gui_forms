@@ -4,6 +4,7 @@
 // shadow (owner decision RB-37).
 
 #include "gui_forms/control.hpp"
+#include "support/professional_theme.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "gui_forms/theme.hpp"
 
@@ -125,8 +126,19 @@ void surfaces_and_cues(const Control& control) {
     paint_part(focused, control, focus);
     const ControlVisualRecipe& recipe =
         theme.resolve(ControlVisualRole::button, part_visual_context(control, focus.states));
-    require(focused.count("stroke_rounded") == 1U && focused.operations[0].color == recipe.focus_ring,
-            "a visible focus cue strokes one ring in the recipe's focus colour");
+    if (recipe.dotted_focus) {
+        // The default theme's house ring is dotted: square dots, each in the
+        // recipe's focus colour, and no stroked ring.
+        bool every_dot_in_focus_colour = !focused.operations.empty();
+        for (const Operation& dot : focused.operations) {
+            if (!(dot.color == recipe.focus_ring)) every_dot_in_focus_colour = false;
+        }
+        require(focused.count("stroke_rounded") == 0U && every_dot_in_focus_colour,
+                "a visible dotted focus cue paints dots in the recipe's focus colour");
+    } else {
+        require(focused.count("stroke_rounded") == 1U && focused.operations[0].color == recipe.focus_ring,
+                "a visible focus cue strokes one ring in the recipe's focus colour");
+    }
 
     PartPaint preselect = focus;
     preselect.role = PartRole::preselect;
@@ -595,7 +607,7 @@ void families() {
     require(control_visual_role_name(ControlVisualRole::tool_tip) == "tool_tip" &&
                 control_visual_role_name(ControlVisualRole::count).empty(),
             "the tooltip family is registered as tool_tip");
-    const std::shared_ptr<const Theme> theme = default_theme();
+    const std::shared_ptr<const Theme> theme = test_support::professional_theme();
     const ControlVisualContext normal{};
     const ControlVisualRecipe& tool_tip = (*theme).resolve(ControlVisualRole::tool_tip, normal);
     const ControlVisualRecipe& card = (*theme).resolve(ControlVisualRole::card, normal);
@@ -603,7 +615,7 @@ void families() {
                 tool_tip.material.border && (*tool_tip.material.border).color == Color::rgba(104, 111, 118) &&
                 tool_tip.material.corner_radius == 0.0 && tool_tip.text == Color::rgba(24, 31, 38) &&
                 !(tool_tip.material == card.material),
-            "the default theme's tooltip family keeps the plain tooltip's face, edge and text");
+            "windows-professional's tooltip family keeps the plain tooltip's face, edge and text");
 
     // The link families (owner decision W-Q5): clear plates in every state,
     // the compatibility style's link colour in every enabled state (hover
@@ -642,7 +654,7 @@ void w4_vocabulary(Control& control) {
     require(part_mark_name(PartMark::search) == "search" && part_mark_name(PartMark::information) == "information" &&
                 part_mark_name(PartMark::warning) == "warning" && part_mark_name(PartMark::success) == "success",
             "the W-4 marks are registered by name");
-    const std::shared_ptr<const Theme> theme = default_theme();
+    const std::shared_ptr<const Theme> theme = test_support::professional_theme();
     ControlVisualContext resting{};
     ControlVisualContext lit{};
     lit.surface = ControlSurfaceState::hot;

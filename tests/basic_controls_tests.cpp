@@ -8,6 +8,7 @@
 #include "gui_forms/text.hpp"
 #include "../src/controls/basic/basic_control_rendering.hpp"
 #include "support/named_callbacks.hpp"
+#include "support/professional_theme.hpp"
 
 #include <algorithm>
 #include <array>
@@ -340,10 +341,16 @@ void test_public_controls_render_with_role_policy() {
     RecordingPainter painter{};
     window.paint(painter, {0.0, 0.0, 360.0, 180.0});
     require(painter.saves == painter.restores && painter.clips >= 6 &&
-                painter.gradients >= 4 && painter.rounded_clips >= 3 &&
-                painter.rounded_strokes >= 3 && painter.lines >= 2 &&
-                painter.texts.size() == 5,
+                painter.rounded_clips >= 3 && painter.rounded_strokes >= 3 &&
+                painter.lines >= 2 && painter.texts.size() == 5,
             "public controls must render through retained painter commands");
+    // The default theme is flat; windows-professional's faces are gradients.
+    window.set_theme(test_support::professional_theme());
+    RecordingPainter professional{};
+    window.paint(professional, {0.0, 0.0, 360.0, 180.0});
+    require(professional.saves == professional.restores && professional.gradients >= 4 &&
+                professional.texts.size() == 5,
+            "windows-professional's faces render through retained gradient commands");
     require(painter.roles[0] == FontRole::control &&
                 painter.roles[1] == FontRole::content,
             "group/control titles and field labels must preserve typography roles");
@@ -1342,17 +1349,32 @@ void test_owner_decoration_is_retained_and_owner_relative() {
     Window& window = *held_window;
     RecordingPainter first{};
     window.paint(first, {0.0, 0.0, 80.0, 40.0});
-    const std::vector<char> expected_order{'L', 'L', 'T', 'L', 'L'};
-    require(first.lines == 4U && (*button).owned_decorations().size() == 2U &&
+    // The same button undecorated, in the same theme: the theme's own edges
+    // may be lines too (the default theme's are). Each decoration adds its
+    // two edges, the first before the caption and the second after it.
+    std::shared_ptr<gui_forms::Button> plain = make_control<Button>(StableId("decoration.plain"), "Owner");
+    const std::unique_ptr<Window> held_plain = std::make_unique<Window>(plain, Size{80.0, 40.0});
+    RecordingPainter undecorated{};
+    (*held_plain).paint(undecorated, {0.0, 0.0, 80.0, 40.0});
+    std::vector<char> expected_order = undecorated.text_line_order;
+    const std::vector<char>::iterator caption = std::find(expected_order.begin(), expected_order.end(), 'T');
+    const std::vector<char>::iterator after_before_layer = expected_order.insert(caption, 2U, 'L');
+    static_cast<void>(after_before_layer);
+    expected_order.push_back('L');
+    expected_order.push_back('L');
+    require(first.lines == undecorated.lines + 4U && (*button).owned_decorations().size() == 2U &&
                 first.text_line_order == expected_order,
             "owner decorations must paint in distinct before-content and after-content layers");
 
     window.resize({120.0, 40.0});
     RecordingPainter second{};
     window.paint(second, {0.0, 0.0, 120.0, 40.0});
-    require(second.lines == 4U &&
-                std::abs(second.line_starts[2].x -
-                         first.line_starts[2].x - 40.0) < 0.000001,
+    // The theme's own edges come first; the after-content decoration's
+    // first edge follows the before-content decoration's two.
+    const std::size_t after_edge = static_cast<std::size_t>(undecorated.lines) + 2U;
+    require(second.lines == undecorated.lines + 4U &&
+                std::abs(second.line_starts[after_edge].x -
+                         first.line_starts[after_edge].x - 40.0) < 0.000001,
             "right-anchored owner decoration must relax against live owner width");
 
     OwnerDecorationRecipe invalid = after_recipe;

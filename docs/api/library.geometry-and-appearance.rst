@@ -372,6 +372,8 @@ Types
      - ThemeTypographyTokens defines role-aware control, field, caption, heading, title, and monospace font recipes.
    * - :cpp:class:`ThemeWindowBackdrop <gui_forms::ThemeWindowBackdrop>`
      - The theme's window backdrop (stage T5, owner decision T5-Q8, option 1): what a window showing the theme asks the compositor for, and the base its backplane is drawn from over each backdrop the window may be granted (notes:planning/stages/T5-compositor/PLAN.md §4.1).
+   * - :cpp:class:`UnkeptPartAssembly <gui_forms::UnkeptPartAssembly>`
+     - One of a window's assemblies for parts that keep none of their own (a part without a record, and every part's derived dark variant): the assembly, the role whose dark variant darkened it (none for a light assembly) and whether it holds one yet.
    * - :cpp:class:`UserThemeFiles <gui_forms::UserThemeFiles>`
      - A user theme's files (T3 user themes, notes:planning/stages/ T3-theme-language/USER_THEMES.md): its name, the stem of its main file ``themes/<name>.css``; that file's bytes; and the files of its folder ``themes/<name>/``, each by its path inside the folder, as the host read them.
    * - :cpp:class:`UserThemeHeader <gui_forms::UserThemeHeader>`
@@ -4972,7 +4974,7 @@ Types
 
    .. cpp:member:: ThemeBase base
 
-      The theme the sheets compile onto; windows_professional unless the caller chooses gui_forms. With gui_forms, ``controls`` names the stock control types too: the light sheet's rules for a type outside it are warnings that drop them, named for ``gui-forms/light.css``. Default: ``{ThemeBase::windows_professional}``.
+      The theme the sheets compile onto: the process default's base (default_theme_base, gui-forms) unless the caller chooses windows_professional. With gui_forms, ``controls`` names the stock control types too: the light sheet's rules for a type outside it are warnings that drop them, named for ``gui-forms/light.css``. Default: ``{default_theme_base}``.
 
    .. cpp:member:: const EffectRegistry* effects
 
@@ -5452,6 +5454,20 @@ Types
    .. cpp:member:: std::vector<ThemeBackdropBase> bases
 
       At most one base per non-opaque backdrop, in any order; held out of line, so the definition stays small. Over a granted non-opaque backdrop the window's backplane is drawn from that backdrop's base, typically a partly clear tint over a material, or clear around a drawn shape over ``transparent``. Without one it is drawn from the window recipe's material, as over ``opaque``, which has no base.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: UnkeptPartAssembly final
+
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+
+   One of a window's assemblies for parts that keep none of their own (a part without a record, and every part's derived dark variant): the assembly, the role whose dark variant darkened it (none for a light assembly) and whether it holds one yet.
+
+   .. cpp:member:: AssembledPartMaterial assembled
+
+   .. cpp:member:: std::optional<ControlVisualRole> darkened
+
+   .. cpp:member:: bool filled
 
 .. cpp:namespace:: gui_forms
 
@@ -7375,6 +7391,10 @@ Functions, constants and aliases
 
 ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
 
+.. cpp:var:: constexpr std::size_t unkept_part_assembly_count
+
+   How many assemblies a window keeps for such parts: a strip's tabs share a few identities (resting, selected, hot), so a few entries keep a repeated paint from assembling, or allocating, again. Value: ``8U``.
+
 .. cpp:var:: constexpr std::size_t maximum_item_part_records
 
    The most item-part records one window keeps before it evicts the least recently painted (see EnginePartTable). A record is about 800 bytes on 64-bit hosts (its preparation is about half of that); with its slot, its lookup text and its index entry it takes about 1 KB, so the cap costs at most about 4 MB per window. A part a primitive draws also has its CachedPartRaster (about 600 bytes, and a copy of its material when a material primitive draws it), two more copies of the material when the theme's rules set its fields (AssembledPartMaterial), and its raster, which the raster cache's budget bounds. The cap covers far more item parts than a window shows at once: a record evicted while its part is still on screen is only made again on the next paint. Each eviction is O(1). Value: ``4096``.
@@ -8023,7 +8043,11 @@ Functions, constants and aliases
 
 .. cpp:function:: ThemeDefinition windows_professional_theme_definition()
 
+   The Windows-familiar ``windows-professional`` theme's definition, a copy each call.
+
 .. cpp:function:: std::shared_ptr<const Theme> default_theme()
+
+   The built-in default theme: GUI.Forms' own, ``gui-forms`` (gui_forms_theme()), built once on the first call (thread-safe). It seeds ApplicationResources, a SurfaceRoot without resources and the C ABI's theme reset.
 
 .. cpp:var:: constexpr std::size_t font_field_count
 
@@ -8059,7 +8083,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr ThemeBase default_theme_base
 
-   The base of the process default theme (default_compiled_theme()), the one place that chooses it: windows_professional until default_theme() switches to gui-forms (stage T4 phase 6, an owner decision). Value: ``ThemeBase::windows_professional``.
+   The base of the process default theme (default_compiled_theme()), the one place that chooses it: gui-forms, as default_theme() (stage T4 phase 6, owner decision 2026-11-08). Value: ``ThemeBase::gui_forms``.
 
 .. cpp:var:: constexpr std::size_t maximum_theme_packages
 

@@ -5,16 +5,18 @@
 // contrast at scales 1 and 2, written as contact sheets with a hash
 // manifest, and with the contrast measured in pixels where text sits.
 //
-//   gui_forms_specimen_sheet --out <directory> [--repeat] [--theme <gui-forms|classic|modern-flat|xp-style|windows7-style|macos-style>] [--light]
+//   gui_forms_specimen_sheet --out <directory> [--repeat] [--theme <gui-forms|windows-professional|classic|modern-flat|xp-style|windows7-style|macos-style>] [--light]
 //   gui_forms_specimen_sheet --smoke
 //
 // --page <id> draws that Gallery page whole instead (page-<presentation>-
 // <scale>x.png, light and dark at scales 1 and 2); the controls-inspection
 // page is made for it.
 //
-// The Gallery's own theme (windows-professional) is drawn unless --theme
-// names the default theme `gui-forms` (stage T4, phase 3) or a
-// familiar theme (phase 7, familiar_theme_named); --light
+// The Gallery's own theme (its project sheet on the default base,
+// `gui-forms`, since T4 phase 6) is drawn unless --theme names the bare
+// default theme `gui-forms` (stage T4, phase 3), `windows-professional`
+// (the test fixture, test_support::professional_theme) or a familiar
+// theme (phase 7, familiar_theme_named); --light
 // captures light only, at scales 1 and 2.
 //
 // A full run writes, under <directory>, one PNG contact sheet per
@@ -36,6 +38,7 @@
 #include "gui_forms/gui_forms.hpp"
 #include "skia_raster.hpp"
 #include "../src/core/image/png_writer.hpp"
+#include "../support/professional_theme.hpp"
 #include "../src/core/resources/fonts/bundled_font_set.hpp"
 #if defined(_WIN32)
 #include "../src/host/windows/fonts/sealed_pages_windows.hpp"
@@ -970,6 +973,10 @@ int main(int argument_count, char** arguments) {
             options.theme = gui_forms_theme();
             ++index;
         } else if (argument == "--theme" && index + 1 < argument_count &&
+                   std::string_view(arguments[index + 1]) == "windows-professional") {
+            options.theme = test_support::professional_theme();
+            ++index;
+        } else if (argument == "--theme" && index + 1 < argument_count &&
                    familiar_theme_named(std::string_view(arguments[index + 1]))) {
             options.theme = familiar_theme(*familiar_theme_named(std::string_view(arguments[index + 1])));
             ++index;
@@ -980,12 +987,12 @@ int main(int argument_count, char** arguments) {
             options.out = std::filesystem::path(arguments[index + 1]);
             ++index;
         } else {
-            std::cerr << "usage: gui_forms_specimen_sheet (--out <directory> [--repeat] [--theme <gui-forms|classic|modern-flat|xp-style|windows7-style|macos-style>] [--light] [--page <id>] | --smoke)\n";
+            std::cerr << "usage: gui_forms_specimen_sheet (--out <directory> [--repeat] [--theme <gui-forms|windows-professional|classic|modern-flat|xp-style|windows7-style|macos-style>] [--light] [--page <id>] | --smoke)\n";
             return 2;
         }
     }
     if (!options.smoke && options.out.empty()) {
-        std::cerr << "usage: gui_forms_specimen_sheet (--out <directory> [--repeat] [--theme <gui-forms|classic|modern-flat|xp-style|windows7-style|macos-style>] [--light] [--page <id>] | --smoke)\n";
+        std::cerr << "usage: gui_forms_specimen_sheet (--out <directory> [--repeat] [--theme <gui-forms|windows-professional|classic|modern-flat|xp-style|windows7-style|macos-style>] [--light] [--page <id>] | --smoke)\n";
         return 2;
     }
     if (!options.out.empty()) std::filesystem::create_directories(options.out);

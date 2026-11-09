@@ -17,8 +17,10 @@ sheets it imports (imported sheets first, as in CSS) and returns either a
 `Theme` with any warnings or a refusal with its diagnostics.
 
 The sheets compile onto a built-in theme, whose recipes stand wherever they
-set nothing: `windows-professional` unless `ThemeCompileOptions::base` is
-`ThemeBase::gui_forms`. Onto GUI.Forms' own theme (`gui-forms`), its
+set nothing: `ThemeCompileOptions::base`, which defaults to
+`default_theme_base`, GUI.Forms' own theme `gui-forms`; or
+`ThemeBase::windows_professional`, whose recipes stand alone, with no sheet
+and no dark variant. Onto GUI.Forms' own theme (`gui-forms`), its
 light sheet comes first in the cascade, so the package's rules override it
 and may read its colour roles, and its dark variant is derived by rule: the
 package's colours are written in light terms and darken by the same rule in

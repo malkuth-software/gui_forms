@@ -76,7 +76,7 @@ std::size_t count_rows(const std::vector<ContrastRow>& rows, ControlVisualRole f
     std::size_t count = 0U;
     for (const ContrastRow& row : rows) {
         if (row.family == family && row.state == state && row.selected == selected &&
-            row.high_contrast == high_contrast && row.pair == pair) {
+            row.high_contrast == high_contrast && !row.dark && row.pair == pair) {
             ++count;
         }
     }
@@ -87,7 +87,7 @@ const ContrastRow* find_row(const std::vector<ContrastRow>& rows, ControlVisualR
                             ControlSurfaceState state, bool high_contrast, ContrastPair pair) {
     for (const ContrastRow& row : rows) {
         if (row.family == family && row.state == state && !row.selected && row.high_contrast == high_contrast &&
-            row.pair == pair) {
+            !row.dark && row.pair == pair) {
             return &row;
         }
     }
@@ -97,7 +97,8 @@ const ContrastRow* find_row(const std::vector<ContrastRow>& rows, ControlVisualR
 const ContrastRow* find_row(std::vector<ContrastRow>&& rows, ControlVisualRole family, ControlSurfaceState state,
                             bool high_contrast, ContrastPair pair) = delete;
 
-// Which pairs each family gates, and the minimum each row carries.
+// Which pairs each family gates, and the minimum each row carries, in the
+// light presentations (a theme with a dark variant repeats every row dark).
 void gated_pairs(const std::vector<ContrastRow>& rows) {
     for (const bool high_contrast : std::array<bool, 2>{false, true}) {
         for (const bool selected : std::array<bool, 2>{false, true}) {

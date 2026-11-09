@@ -383,11 +383,18 @@ void host_map_keeps_ctrl_tab() {
     require((*tabs).selected_index.read() == 1U, "Meta+Tab is not a tab key");
 }
 
-std::size_t paint_allocations(std::size_t page_count) {
+// With `dark`, the window shows the default theme's dark variant, whose
+// materials are assembled for each paint.
+std::size_t paint_allocations(std::size_t page_count, bool dark) {
     std::shared_ptr<TabControl> tabs = tab_control("tabs", numbered(page_count), {0.0, 0.0, 4000.0, 200.0});
     (*tabs).size_mode = TabSizeMode::fixed;
     (*tabs).item_size = Size{40.0, 30.0};
     Window window(tabs, {4000.0, 200.0});
+    if (dark) {
+        PresentationSettings settings = window.presentation_settings();
+        settings.colour_scheme = ColourScheme::dark;
+        window.set_presentation_settings(settings);
+    }
     window.perform_layout();
     const Control::Ptr strip = window.find("tabs.strip");
     CountingPainter painter{};
@@ -409,10 +416,13 @@ std::size_t paint_allocations(std::size_t page_count) {
 }
 
 void no_allocation_per_tab_while_painting() {
-    const std::size_t few = paint_allocations(4U);
-    const std::size_t many = paint_allocations(40U);
-    std::cout << "TabControl paint allocations: 4 tabs " << few << ", 40 tabs " << many << '\n';
+    const std::size_t few = paint_allocations(4U, false);
+    const std::size_t many = paint_allocations(40U, false);
+    const std::size_t many_dark = paint_allocations(40U, true);
+    std::cout << "TabControl paint allocations: 4 tabs " << few << ", 40 tabs " << many << ", 40 tabs dark "
+              << many_dark << '\n';
     require(few == many && many == 0U, "painting allocates nothing, per tab or otherwise");
+    require(many_dark == 0U, "painting the dark variant allocates nothing, per tab or otherwise");
 }
 
 } // namespace

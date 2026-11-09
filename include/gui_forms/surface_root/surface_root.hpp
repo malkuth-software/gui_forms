@@ -1503,6 +1503,20 @@ private:
     [[nodiscard]] EnginePartRecord* engine_part_record(PartRecordHandle handle) noexcept {
         return engine_parts_.record(handle);
     }
+    // Called by ThemeEngine::paint: the window's one assembly slot for a
+    // material made for this paint only (forced high contrast). Borrowed
+    // within one ThemeEngine::paint_planned call, which is not reentrant,
+    // so one slot serves every such part; assembling into it again keeps
+    // its vectors' capacity.
+    [[nodiscard]] SurfaceMaterial& engine_paint_material() noexcept { return engine_paint_material_; }
+    // Called by ThemeEngine::paint: the window's assemblies for parts that
+    // keep none of their own, reused while their identity holds and
+    // replaced in turn (the next index names the entry replaced next). An
+    // entry is borrowed within one paint_planned call only.
+    [[nodiscard]] std::array<UnkeptPartAssembly, unkept_part_assembly_count>& engine_unkept_assemblies() noexcept {
+        return engine_unkept_assemblies_;
+    }
+    [[nodiscard]] std::size_t& engine_unkept_next() noexcept { return engine_unkept_next_; }
     // Called by ThemeEngine::paint: runs a part's ambient effect on the
     // motion clock, its frames at least `interval` apart, or stops it.
     void run_engine_ambient(PartRecordHandle handle, FrameInterval interval);
@@ -2118,6 +2132,12 @@ private:
     // The theme engine's records of this window's keyed parts. A control's
     // records are released when it leaves the window.
     EnginePartTable engine_parts_;
+    // engine_paint_material's slot: valid only during one paint_planned call.
+    SurfaceMaterial engine_paint_material_{};
+    // engine_unkept_assemblies' entries, made with the window, and the
+    // entry replaced next.
+    std::array<UnkeptPartAssembly, unkept_part_assembly_count> engine_unkept_assemblies_{};
+    std::size_t engine_unkept_next_{};
     // One slot per attached control (property-capabilities study, decisions
     // 6 and 11): the controls touched since the last settle, by kind, and the
     // containers' resize registrations. A slot is assigned at attach and

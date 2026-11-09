@@ -8,8 +8,9 @@ language](theme-language) is the reference for everything a sheet may say.
 
 There are three ways to give a program its look, and they combine:
 
-1. Use a **built-in theme** as it is: GUI.Forms' own (`gui-forms`), the
-   Windows-familiar `windows-professional`, or one of the familiar themes.
+1. Use a **built-in theme** as it is: GUI.Forms' own (`gui-forms`, the
+   default), the Windows-familiar `windows-professional`, or one of the
+   familiar themes.
 2. Write a **theme package**: a sheet compiled onto a base, for the program's
    own roles and adjustments.
 3. Let the user pick a **user theme**, which the program allows and checks
@@ -17,11 +18,14 @@ There are three ways to give a program its look, and they combine:
 
 ## The built-in themes
 
-`gui-forms` is GUI.Forms' own theme, light and dark. `windows-professional`
-is the Windows-familiar theme packages compile onto by default. Both are
-written in the theme language: their control families come from a floor sheet
-of `:family()` blocks, read once into the theme's recipes when it is first
-built.
+`gui-forms` is GUI.Forms' own theme, light and dark, and the default: a
+window shows it until the program chooses another, and packages compile onto
+it unless the base (`ApplicationConfig::theme.base`,
+`ThemeCompileOptions::base`, or `GF_THEME_BASE_WINDOWS_PROFESSIONAL` in the
+C ABI) names `windows-professional`, a Windows-familiar theme, light only.
+Both are written in the theme language: their control families come from a
+floor sheet of `:family()` blocks, read once into the theme's recipes when
+it is first built.
 
 The **familiar themes** recreate looks that Windows and macOS users
 recognise. They are written in the theme language, and none of them uses a

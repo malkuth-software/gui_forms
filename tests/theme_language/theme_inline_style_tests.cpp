@@ -9,6 +9,7 @@
 
 #include "../../src/core/theme/theme/forced_high_contrast.hpp"
 #include "../../src/core/theme_language/compiler/theme_compiler.hpp"
+#include "../support/professional_theme.hpp"
 #include "../support/theme_definition_heap.hpp"
 #include "gui_forms/gui_forms.hpp"
 
@@ -413,7 +414,9 @@ void paint(PadWindow& held) {
 }
 
 void test_inline_with_theme() {
-    const std::unique_ptr<PadWindow> plain = make_pad_window(default_theme());
+    // windows-professional has no rules; the default, gui-forms, has its
+    // light sheet's.
+    const std::unique_ptr<PadWindow> plain = make_pad_window(test_support::professional_theme());
     require((*(*plain).pad).set_inline_style("opacity: 0.5").succeeded(), "an inline style");
     paint(*plain);
     require(!(*(*plain).window).inline_with_theme_reported(), "without a theme of rules, no warning");
