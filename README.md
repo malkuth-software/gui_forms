@@ -2,133 +2,97 @@ To the Holy One, blessed be He, from whom all good things come. We dedicate this
 
 # GUI.Forms
 
-A retained, WinForms-shaped native C++20 toolkit that paints on the CPU and
-runs the same control tree on macOS, Windows and Linux.
+GUI.Forms is a retained-mode, CPU-rendered, cross-platform GUI toolkit for
+C++20, in the Windows Forms tradition. You build a tree of controls once and
+change it imperatively; the toolkit works out exactly which layout, paint
+and hit-test work each change needs. A stable C ABI and C# bindings over it
+open the same controls to other languages.
 
 [![CI](https://github.com/malkuth-software/gui_forms/actions/workflows/native.yml/badge.svg)](https://github.com/malkuth-software/gui_forms/actions/workflows/native.yml) [![Docs](https://readthedocs.org/projects/gui-forms/badge/?version=latest)](https://gui-forms.readthedocs.io/) [![Release](https://img.shields.io/github/v/release/malkuth-software/gui_forms?display_name=tag)](https://github.com/malkuth-software/gui_forms/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C.svg) ![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)
 
-**Status: early public preview. The API is not yet stable. The macOS and
-Windows hosts are native; the Linux X11 host is opt-in. GUI.Forms is CPU-only
-by design and has no GPU backend. Text is drawn by one HarfBuzz/FreeType
-engine from bundled fonts, so the same string renders identically on every
-platform ([ADR-004](https://github.com/malkuth-software/notes/blob/gui_forms/decisions/ADR-004-one-text-rasterization-engine.md)).**
+- **Status:** 0.5, the ABI and API seal, is done. Work is now towards
+  1.0 (backend): the library, its C ABI and its C# bindings. See the
+  [release notes](https://gui-forms.readthedocs.io/en/latest/release/index.html)
+  and the [roadmap](https://gui-forms.readthedocs.io/en/latest/dev/roadmap.html).
+- **Rendering:** CPU only, by design, with no GPU backend. One
+  HarfBuzz/FreeType text engine with bundled fonts draws the same string
+  identically on every platform.
+- **Controls:** more than 120 stock controls (the Windows Forms set, a
+  ribbon, docking, data grids, plots and more), themes written in a
+  CSS-syntax theme language, form documents that generate typed window
+  classes, and native accessibility on every host.
 
-## First window
+## Platforms
 
-A form document says which controls exist; the build turns it into a window
-class whose controls are typed members, bound to a model when it is made:
+| Platform | Host | Notes |
+|---|---|---|
+| macOS 14+ | AppKit | Apple silicon (arm64) |
+| Windows 10+ | Win32 | x64; built with LLVM 22 (MSYS2 CLANG64 or clang-cl) |
+| Linux | X11 | x64 and arm64; also runs under XWayland. Enable with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` |
 
-```text
-/* forms/greeter.form */
-form greeter.window {
-  text: "First window";
-  client-size: 480 140;
-  panel greeter.root {
-    label greeter.status { text: "Ready."; bounds: 24 24 432 32; }
-    button greeter.run { text: "Run"; bounds: 24 72 120 36; command: bind(run); }
-  }
-}
+## Quick start
+
+Prerequisites are CMake 3.25+, Ninja, LLVM 22.1 and Python 3.12+. Follow
+[Install](https://gui-forms.readthedocs.io/en/latest/user/install.html) for
+each platform's preparation. Then build, test and install:
+
+```sh
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release     -DCMAKE_TOOLCHAIN_FILE=cmake/llvm22.cmake
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+cmake --install build --prefix ~/gui-forms-sdk
+```
+
+A minimal program against the installed SDK:
+
+```cmake
+cmake_minimum_required(VERSION 3.25)
+project(hello LANGUAGES CXX)
+find_package(GUIForms 0.2 CONFIG REQUIRED)
+add_executable(hello main.cpp)
+target_link_libraries(hello PRIVATE GUIForms::Application)
 ```
 
 ```cpp
-// gui_forms_add_form(greeter forms/greeter.form CLASS GreeterWindow NAMESPACE greeter
-//                    MODEL greeter::GreeterModel MODEL_HEADER greeter_model.hpp)
-#include "greeter_form.hpp"   // generated
-#include "greeter_model.hpp"  // struct GreeterModel { gui_forms::Command run{"greeter.run", "Run"}; };
-
 #include <gui_forms/application.hpp>
-#include <gui_forms/component.hpp>
-#include <gui_forms/event.hpp>
+#include <gui_forms/gui_forms.hpp>
 
 #include <memory>
 
 namespace gf = gui_forms;
 
-class Greeter final : public gf::Component {
-public:
-    Greeter(greeter::GreeterWindow& window, greeter::GreeterModel& model) : window_(window) {
-        gf::on(model.run.invoked(), *this, &Greeter::on_run); // owned: revoked with Greeter
-    }
-
-private:
-    void on_run() { (*window_.greeter_status).text = "Clicked."; }   // a property write
-    greeter::GreeterWindow& window_;
-};
-
 int main() {
     gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
     if (!created) return 1;
-    greeter::GreeterModel model{};
-    std::unique_ptr<greeter::GreeterWindow> window =
-        std::make_unique<greeter::GreeterWindow>(*created.application, model);
-    Greeter greeter(*window, model);
-    const gf::ApplicationResult result = (*created.application).run(std::move(window));
+    std::shared_ptr<gf::Label> label =
+        gf::make_control<gf::Label>(gf::StableId("hello.label"), "Hello from GUI.Forms");
+    std::unique_ptr<gf::Window> window = std::make_unique<gf::Window>(label, gf::Size{320.0, 120.0});
+    gf::ApplicationWindowOptions options{};
+    options.title = "Hello";
+    const gf::ApplicationResult result = (*created.application).run(std::move(window), options);
     return result.accepted() ? 0 : 1;
 }
 ```
 
-Controls have stable IDs, the window owns them, a property write is
-synchronous and marks only what it touches, and painting uses the accumulated
-damage. The longer walkthrough is
-in [Your first window](https://gui-forms.readthedocs.io/user/first-window.html).
+[Your first window](https://gui-forms.readthedocs.io/en/latest/user/first-window.html)
+goes further: a form document, a model and an event handler.
+
+## Learn more
+
+- **Documentation:** [gui-forms.readthedocs.io](https://gui-forms.readthedocs.io/),
+  with the user guide, the controls by function and the API reference.
+- **Template:** [`malkuth-software/template_harness`](https://github.com/malkuth-software/template_harness)
+  starts a new application on the SDK.
+- **Examples:** [`examples/reference/`](examples/reference/) is a complete
+  consumer, built against the installed SDK in CI.
+- **Gallery:** the control Gallery ([`demo/`](demo/)) shows every stock
+  control. Download it with the Explore and Correspondence previews from
+  the [latest release](https://github.com/malkuth-software/gui_forms/releases/latest).
 
 ![GUI.Forms Gallery on macOS](docs/images/gallery-macos.png)
 
-![GUI.Forms Correspondence on macOS](docs/images/correspondence-macos.png)
-
-Both frames were written by the programs themselves with `--capture`, which
-saves the first fully presented frame as a PNG and exits.
-
-## Downloads
-
-Three demonstration programs are built from `demo/` and
-`file_manager_demoboard/` using only the public headers.
-
-| Program | What it is |
-|---|---|
-| GUI.Forms Gallery | Catalogue of the stock controls on 29 pages grouped by function |
-| GUI.Forms Explore (preview) | Fixture-backed file-explorer interface from `file_manager_demoboard/`; never touches the real filesystem |
-| GUI.Forms Correspondence | Mail-client mockup over in-memory fixtures (`demo/correspondence/`); no real mail, filesystem or network |
-
-Every push to `main` that passes the build, the tests and a launch of each
-packaged program is published at
-[releases/latest](https://github.com/malkuth-software/gui_forms/releases/latest):
-one archive and one installer per program for macOS arm64, Windows x64, Linux
-x64 and Linux arm64, plus `SHA256SUMS.txt`. The `build-<sha>` pre-releases are
-compiler-cache archives for CI, not downloads.
-
-- **Linux** builds need an X11 display (XWayland works).
-- **macOS** builds are ad hoc signed, not notarized. Right-click the app and
-  choose Open on first launch.
-- **Windows** builds are unsigned. SmartScreen shows "More info", then
-  "Run anyway".
-
-See [Download](https://gui-forms.readthedocs.io/user/download.html) for the full platform notes.
-
-## Features
-
-- Retained controls with explicit ownership: the tree owns its children,
-  handlers are owned by a `Component` and revoked with it.
-- Typed layout, paint and hit-test dirtiness, with nested update scopes and
-  bounded flushes.
-- Damage-limited CPU painting. No redraw loop; nothing repaints until
-  something changes.
-- Forms-like focus, pointer, keyboard and activation behaviour on every host.
-- One text engine (HarfBuzz shaping, FreeType rasterization, bundled fonts):
-  identical glyphs on every OS.
-- Structured instrumentation counters and snapshots, plus an on-screen
-  diagnostics panel in the Gallery.
-- Stable IDs on every control, used by logs, semantics, tests and automation.
-- A C ABI seam (`include/gui_forms/c_api.h`) and an installed CMake SDK
-  (`GUIForms::Application`).
-- PNG, through the owned `stx_png` and `stx_zlib`, is the only image codec
-  in the core.
-- No GPU, no .NET, no browser engine.
-
-## Controls
-
-Every stock control, grouped by function; the table is generated from
-[`manifests/controls.json`](manifests/controls.json).
+<details>
+<summary>Stock controls</summary>
 
 <!-- controls:start -->
 | Control | Function | Description |
@@ -260,104 +224,17 @@ Every stock control, grouped by function; the table is generated from
 | [`Timer`](https://gui-forms.readthedocs.io/api/generated/gui_forms.Timer.html) |  | Timer whose callbacks are serialized with input, layout, and paint on the owning Window's UI thread and whose late ticks are coalesced. |
 <!-- controls:end -->
 
-## Supported platforms
-
-| Platform | Host | Status | Notes |
-|---|---|---|---|
-| macOS 14.0+ | AppKit | Native | Apple silicon (arm64) only; builds `GUI.Forms Gallery.app` |
-| Windows 10+ | Win32 DIB | Native | x64; native build in MSYS2 CLANG64 with LLVM 22.1.x |
-| Linux | X11 | Opt-in | `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`; Ubuntu 24.04 x64 and arm64 tested in CI; programs packaged as `.deb` and `.tar.gz` |
-
-The portable core (`Core`, `Controls`, `Drawing`, `Threading`) is host
-independent; its build still requires LLVM 22.1.x. The `Application` host is
-platform specific.
-
-## Build from source
-
-Prerequisites: CMake 3.25+, Ninja, LLVM 22.1 (selected by
-[`cmake/llvm22.cmake`](cmake/llvm22.cmake)) and Python 3.12+. Configuring fetches the stx checkout pinned in
-[`stx.lock`](stx.lock), which carries the CPU renderer and every third-party source.
-Follow [Install](https://gui-forms.readthedocs.io/user/install.html) for the platform-specific renderer,
-host and dependency preparation. CI reuses tested trees and publishes a
-compiler cache per platform; see
-[Fast, reproducible builds](https://gui-forms.readthedocs.io/building/fast-builds.html).
-
-A renderer-free build for core and control tests needs no Skia or text fetch:
-
-```sh
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_TOOLCHAIN_FILE=cmake/llvm22.cmake \
-    -DGUI_FORMS_ENABLE_SKIA=OFF -DGUI_FORMS_ENABLE_HARFBUZZ_TEXT=OFF \
-    -DGUI_FORMS_ENABLE_MACOS_HOST=OFF -DGUI_FORMS_ENABLE_WINDOWS_HOST=OFF \
-    -DGUI_FORMS_ENABLE_LINUX_HOST=OFF -DGUI_FORMS_BUILD_GALLERY=OFF
-cmake --build build --parallel
-ctest --test-dir build --output-on-failure
-```
-
-After configuring a native build as described in Install, run the Gallery:
-
-- macOS: `open "build/GUI.Forms Gallery.app"`
-- Windows: `build/GUI.Forms Gallery.exe` (keep `fonts/` beside it)
-- Linux: `build/gui-forms-gallery`; configure with
-  `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`
-
-Per-platform toolchain setup and every build option are in
-[Build from source](https://gui-forms.readthedocs.io/building/index.html).
-
-## Consume the SDK
-
-```cmake
-cmake_minimum_required(VERSION 3.25)
-project(MyForms LANGUAGES CXX)
-find_package(GUIForms 0.2 CONFIG REQUIRED COMPONENTS Application)
-add_executable(app main.cpp)
-target_compile_features(app PRIVATE cxx_std_20)
-target_link_libraries(app PRIVATE GUIForms::Application)
-```
-
-Install with `cmake --install build`, then configure your project with
-`-DCMAKE_PREFIX_PATH=<prefix>` and the same toolchain file. Never link
-`GUIForms::Core` or `GUIForms::Controls` into a program that links
-`GUIForms::Application`; CMake rejects the combination. Details and runtime
-files to ship: [Consume the SDK](https://gui-forms.readthedocs.io/user/consume-the-sdk.html).
-`examples/reference/` is a complete consumer built against the installed SDK
-in CI.
-
-## Documentation
-
-- [gui-forms.readthedocs.io](https://gui-forms.readthedocs.io/): the rendered
-  site, built from [`docs/`](docs/).
-- [Controls by function](https://gui-forms.readthedocs.io/controls/generated/by-function.html): every stock
-  control, its WinForms counterpart and a one-line description.
-- [API reference](https://gui-forms.readthedocs.io/api/index.html): every public type, member and
-  enumeration, generated from the headers.
-- [`malkuth-software/notes`, branch `gui_forms`](https://github.com/malkuth-software/notes/tree/gui_forms):
-  architecture decision records, plans, stage briefs, measurements,
-  experiments and working notes, kept as records rather than user
-  documentation.
-
-## Project boundaries
-
-GUI.Forms is a control toolkit. Deliberately excluded: GPU rendering (no Ganesh, Graphite, GL,
-Vulkan, Metal, Direct3D or WebGPU), .NET, Java, browser engines, Godot,
-immediate-mode control APIs, host font catalogues for control text, and image codecs other than
-PNG. AppKit stays in `src/host/macos/`, Win32 in `src/host/windows/`, X11 in
-`src/host/linux/` and Skia in `src/render/skia/`; tests enforce these
-boundaries.
+</details>
 
 ## Contributing
 
-CI ([`native.yml`](.github/workflows/native.yml)) must pass on every platform.
-C++ follows the house style, [`HOUSE_STYLE.md`](https://github.com/malkuth-software/notes/blob/main/HOUSE_STYLE.md);
-CI fails on any spelling finding from
-`python3 -B tools/check_house_style.py include src demo tests examples tools file_manager_demoboard`,
-so run it before you push. Build the docs with `sphinx-build -W docs <out>` so
-warnings fail.
-Boundary violations fail `ctest` before review.
+CI must pass on every platform. C++ follows the
+[house style](https://github.com/malkuth-software/notes/blob/main/HOUSE_STYLE.md);
+run `python3 -B tools/check_house_style.py include src demo tests examples tools file_manager_demoboard`
+before you push. See the
+[contributor's guide](https://gui-forms.readthedocs.io/en/latest/dev/index.html).
 
 ## License
 
 [MIT](LICENSE). Bundled fonts carry their own notices in
-[`assets/fonts/ATTRIBUTION.md`](assets/fonts/ATTRIBUTION.md): Portsmouth
-Rapids and the rest of the Portsmouth family (MIT, the owner's typefaces),
-Carlito, Cousine and the Noto fallback faces (SIL OFL 1.1).
+[`assets/fonts/ATTRIBUTION.md`](assets/fonts/ATTRIBUTION.md).

@@ -29,6 +29,7 @@ properties
 forms
 input-and-focus
 mouse-events
+styled-text
 values-commands-and-binding
 rules
 data-binding
