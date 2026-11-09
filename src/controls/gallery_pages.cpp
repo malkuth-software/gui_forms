@@ -110,6 +110,15 @@ std::shared_ptr<PageContext> retained_page_context(const Window& window) {
     return *retained;
 }
 
+// A shell label's ink from the Gallery theme's text role `role_class`
+// (gallery.theme.css), in place of a code colour, so that it follows the
+// window's scheme. The roles' light inks are the shell colours the labels
+// used before (shell_blue_dark is `heading`, muted is `muted`).
+void ink_from_theme(Label& shell_label, std::string_view role_class) {
+    shell_label.fore_color = std::nullopt;
+    static_cast<void>(shell_label.add_class(role_class));
+}
+
 } // namespace
 
 void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> compiled) {
@@ -118,7 +127,7 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
     // Pages capture the status line while they are built; the form made it.
     (*context).status = window.gallery_status_text;
     (*(*context).status).font = FontSpec{FontRole::content, 11.0, 600, false};
-    (*(*context).status).fore_color = shell_blue_dark;
+    ink_from_theme(*(*context).status, "heading");
     // The form lays the shell out (demo/gallery.form): nothing scales with
     // the window, so a resize moves or resizes only the docked parts it
     // reaches and repaints only what changed (resize R-8).
@@ -155,9 +164,11 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
     for (const NavigationEntry& entry : order) {
         if (entry.group != current_group) {
             current_group = entry.group;
-            std::shared_ptr<Label> heading = label(
-                "gallery.sidebar.group." + std::to_string(group_index),
-                std::string(entry.group), 10.0, 700, shell_blue_dark);
+            // The heading's ink is the Gallery theme's `heading` role
+            // (shell_blue_dark in light), so that it turns light in dark.
+            std::shared_ptr<Label> heading = make_control<Label>(
+                StableId("gallery.sidebar.group." + std::to_string(group_index)), std::string(entry.group));
+            static_cast<void>((*heading).add_class("heading"));
             (*heading).font = FontSpec{FontRole::control, 10.0, 700, false, 0.24};
             (*heading).set_bounds({18.0, navigation_y, 180.0, 16.0});
             sidebar.add_child(heading);
@@ -221,17 +232,20 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
         (*viewport).add_child(page);
         std::shared_ptr<Label> title = label(surface_id + ".title", std::string(spec.title),
                                              15.0, 700, shell_blue_dark);
+        ink_from_theme(*title, "heading");
         (*title).font = FontSpec{FontRole::control, 15.0, 700, false};
         (*page).add_at(title, {0.0, 4.0, 1000.0, 22.0});
         if (demonstrated.empty()) {
             std::shared_ptr<Label> summary = label(surface_id + ".summary",
                                                    std::string(spec.summary), 10.0, 400, muted);
+            ink_from_theme(*summary, "muted");
             (*page).add_at(summary, {0.0, 28.0, 1000.0, header_line_pitch});
         }
         for (std::size_t line = 0; line < demonstrated.size(); ++line) {
             std::shared_ptr<Label> control_line = label(
                 surface_id + ".control." + std::to_string(line),
                 page_control_line(*demonstrated[line]), 10.0, 400, muted);
+            ink_from_theme(*control_line, "muted");
             (*page).add_at(control_line,
                            {0.0, 28.0 + header_line_pitch * static_cast<double>(line), 1000.0,
                             header_line_pitch});

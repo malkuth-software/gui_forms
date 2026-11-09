@@ -354,6 +354,46 @@ void generated_layouts() {
     require(single_layouts.size() == 1U, "a group of one command never shrinks or collapses");
 }
 
+// Defect 8 (Plan Paint): a group whose authored layouts stop short of the
+// collapsed button gains it, so that a narrow plane collapses the group
+// rather than leaving it past the edge (RIBBON_SCALING_STUDY §1.1: shrink,
+// collapse, then scroll).
+void authored_layouts_collapse() {
+    FixedMetrics metrics;
+    std::vector<RibbonTabSpec> tabs;
+    RibbonTabSpec tab{.stable_id = "shape", .text = "Shape"};
+    for (int index = 0; index < 4; ++index) {
+        const std::string id = "paired" + std::to_string(index);
+        RibbonGroupSpec paired{.stable_id = id, .caption = "Paired"};
+        paired.layouts = {layout_of(RibbonGroupSize::large, 2U)};
+        paired.commands.push_back(large_button(id + ".a", "Apply rotation"));
+        paired.commands.push_back(large_button(id + ".b", "Start mesh"));
+        tab.groups.push_back(std::move(paired));
+    }
+    RibbonGroupSpec alone{.stable_id = "alone", .caption = "Alone"};
+    alone.layouts = {layout_of(RibbonGroupSize::large)};
+    alone.commands.push_back(large_button("alone.a", "Alone"));
+    tab.groups.push_back(std::move(alone));
+    tabs.push_back(std::move(tab));
+    Fixture fixture = make_fixture(std::move(tabs), {2000.0, 300.0}, metrics);
+    Ribbon& ribbon = *fixture.ribbon;
+    const std::span<const RibbonGroupLayout> paired = ribbon.group_layouts(0U, 0U);
+    require(paired.size() == 2U && paired[0].size == RibbonGroupSize::large &&
+                paired[1].size == RibbonGroupSize::collapsed && paired[1].rows == 2U,
+            "a single authored layout gains the collapsed button as its last step");
+    require(ribbon.group_layouts(0U, 4U).size() == 1U, "an authored group of one command still never collapses");
+    const std::vector<RibbonLadderEntry> ladder = ribbon.reduction_ladder(0U);
+    const RibbonLadderEntry& narrowest = ladder.back();
+    bool all_collapsed = true;
+    for (std::size_t group = 0; group < 4U; ++group) {
+        all_collapsed = all_collapsed && narrowest.groups[group].size == RibbonGroupSize::collapsed;
+    }
+    require(all_collapsed, "the narrowest entry collapses every authored group that can collapse");
+    resize(fixture, {narrowest.width + 1.0, 300.0});
+    require(!ribbon.scrolling() && ribbon.realized_groups().size() == 5U,
+            "where the collapsed buttons fit, every group shows and nothing scrolls");
+}
+
 void default_cycle() {
     FixedMetrics metrics;
     std::vector<RibbonTabSpec> tabs;
@@ -582,33 +622,33 @@ void golden_ladder() {
     const double widths[] = {1000.0, 760.0, 700.0, 650.0, 600.0, 560.0, 520.0, 480.0, 440.0,
                              400.0,  350.0, 300.0, 250.0, 200.0, 150.0, 100.0, 60.0};
     const std::vector<std::string> commands_one{
-        "paste 4.00,27.00 42.00x66.00",
-        "cut 48.00,27.00 43.75x22.00",
-        "copy 48.00,49.00 49.00x22.00",
-        "font-family 106.00,32.50 120.00x22.00",
-        "font-size 106.00,65.50 40.00x22.00",
-        "bold 228.00,32.50 22.00x22.00",
-        "italic 228.00,65.50 22.00x22.00",
-        "underline 252.00,32.50 22.00x22.00",
-        "strike 252.00,65.50 22.00x22.00",
-        "subscript 276.00,32.50 22.00x22.00",
-        "superscript 276.00,65.50 22.00x22.00",
-        "text-color 300.00,32.50 34.00x22.00",
-        "highlight 300.00,65.50 34.00x22.00",
-        "outdent 343.00,32.50 22.00x22.00",
-        "indent 343.00,65.50 22.00x22.00",
-        "lists 367.00,32.50 34.00x22.00",
-        "spacing 367.00,65.50 34.00x22.00",
-        "left 403.00,32.50 22.00x22.00",
-        "center 403.00,65.50 22.00x22.00",
-        "right 427.00,32.50 22.00x22.00",
-        "justify 427.00,65.50 22.00x22.00",
-        "picture 458.00,27.00 46.75x66.00",
-        "date-time 506.75,27.00 78.25x66.00",
-        "object 587.00,27.00 78.25x66.00",
-        "find 674.25,27.00 49.00x22.00",
-        "replace 674.25,49.00 64.75x22.00",
-        "select-all 674.25,71.00 80.50x22.00",
+        "paste 4.00,30.00 42.00x66.00",
+        "cut 48.00,30.00 43.75x22.00",
+        "copy 48.00,52.00 49.00x22.00",
+        "font-family 106.00,35.50 120.00x22.00",
+        "font-size 106.00,68.50 40.00x22.00",
+        "bold 228.00,35.50 22.00x22.00",
+        "italic 228.00,68.50 22.00x22.00",
+        "underline 252.00,35.50 22.00x22.00",
+        "strike 252.00,68.50 22.00x22.00",
+        "subscript 276.00,35.50 22.00x22.00",
+        "superscript 276.00,68.50 22.00x22.00",
+        "text-color 300.00,35.50 34.00x22.00",
+        "highlight 300.00,68.50 34.00x22.00",
+        "outdent 343.00,35.50 22.00x22.00",
+        "indent 343.00,68.50 22.00x22.00",
+        "lists 367.00,35.50 34.00x22.00",
+        "spacing 367.00,68.50 34.00x22.00",
+        "left 403.00,35.50 22.00x22.00",
+        "center 403.00,68.50 22.00x22.00",
+        "right 427.00,35.50 22.00x22.00",
+        "justify 427.00,68.50 22.00x22.00",
+        "picture 458.00,30.00 46.75x66.00",
+        "date-time 506.75,30.00 78.25x66.00",
+        "object 587.00,30.00 78.25x66.00",
+        "find 674.25,30.00 49.00x22.00",
+        "replace 674.25,52.00 64.75x22.00",
+        "select-all 674.25,74.00 80.50x22.00",
     };
     const std::vector<std::string> expected_one{
         "w=1000.00 step=0 clipboard L0 0.00+102.00 font L0 102.00+237.00 paragraph L0 339.00+115.00 insert L0 454.00+216.25 editing L0 670.25+89.50",
@@ -630,33 +670,33 @@ void golden_ladder() {
         "w=60.00 step=5 scroll first=0 clipboard C 0.00+47.00 right@47.00",
     };
     const std::vector<std::string> commands_one_and_half{
-        "paste 6.00,40.50 63.00x99.00",
-        "cut 72.00,40.50 65.63x33.00",
-        "copy 72.00,73.50 73.50x33.00",
-        "font-family 158.50,48.75 180.00x33.00",
-        "font-size 158.50,98.25 60.00x33.00",
-        "bold 341.50,48.75 33.00x33.00",
-        "italic 341.50,98.25 33.00x33.00",
-        "underline 377.50,48.75 33.00x33.00",
-        "strike 377.50,98.25 33.00x33.00",
-        "subscript 413.50,48.75 33.00x33.00",
-        "superscript 413.50,98.25 33.00x33.00",
-        "text-color 449.50,48.75 51.00x33.00",
-        "highlight 449.50,98.25 51.00x33.00",
-        "outdent 513.50,48.75 33.00x33.00",
-        "indent 513.50,98.25 33.00x33.00",
-        "lists 549.50,48.75 51.00x33.00",
-        "spacing 549.50,98.25 51.00x33.00",
-        "left 603.50,48.75 33.00x33.00",
-        "center 603.50,98.25 33.00x33.00",
-        "right 639.50,48.75 33.00x33.00",
-        "justify 639.50,98.25 33.00x33.00",
-        "picture 685.50,40.50 70.13x99.00",
-        "date-time 758.63,40.50 117.38x99.00",
-        "object 879.00,40.50 117.38x99.00",
-        "find 1009.38,40.50 73.50x33.00",
-        "replace 1009.38,73.50 97.13x33.00",
-        "select-all 1009.38,106.50 120.75x33.00",
+        "paste 6.00,45.00 63.00x99.00",
+        "cut 72.00,45.00 65.63x33.00",
+        "copy 72.00,78.00 73.50x33.00",
+        "font-family 158.50,53.25 180.00x33.00",
+        "font-size 158.50,102.75 60.00x33.00",
+        "bold 341.50,53.25 33.00x33.00",
+        "italic 341.50,102.75 33.00x33.00",
+        "underline 377.50,53.25 33.00x33.00",
+        "strike 377.50,102.75 33.00x33.00",
+        "subscript 413.50,53.25 33.00x33.00",
+        "superscript 413.50,102.75 33.00x33.00",
+        "text-color 449.50,53.25 51.00x33.00",
+        "highlight 449.50,102.75 51.00x33.00",
+        "outdent 513.50,53.25 33.00x33.00",
+        "indent 513.50,102.75 33.00x33.00",
+        "lists 549.50,53.25 51.00x33.00",
+        "spacing 549.50,102.75 51.00x33.00",
+        "left 603.50,53.25 33.00x33.00",
+        "center 603.50,102.75 33.00x33.00",
+        "right 639.50,53.25 33.00x33.00",
+        "justify 639.50,102.75 33.00x33.00",
+        "picture 685.50,45.00 70.13x99.00",
+        "date-time 758.63,45.00 117.38x99.00",
+        "object 879.00,45.00 117.38x99.00",
+        "find 1009.38,45.00 73.50x33.00",
+        "replace 1009.38,78.00 97.13x33.00",
+        "select-all 1009.38,111.00 120.75x33.00",
     };
     const std::vector<std::string> expected_one_and_half{
         "w=1000.00 step=1 clipboard L0 0.00+152.50 font L0 152.50+355.00 paragraph L0 507.50+172.00 insert C 679.50+76.00 editing L0 755.50+133.75",
@@ -808,28 +848,29 @@ void hide_rule() {
     FixedMetrics metrics;
     std::vector<RibbonTabSpec> tabs;
     tabs.push_back(three_groups({}));
-    Fixture fixture = make_fixture(std::move(tabs), {900.0, 112.0}, metrics);
+    Fixture fixture = make_fixture(std::move(tabs), {900.0, 115.0}, metrics);
     Ribbon& ribbon = *fixture.ribbon;
     struct Probe final {
         double height;
         bool hidden;
     };
     // No declared minimum: hidden when no document area would be left
-    // (below the ribbon's 112 units), shown again from 120 (8 more).
-    const Probe none[] = {{112.0, false}, {111.0, true}, {112.0, true}, {119.0, true},
-                          {120.0, false}, {112.0, false}, {111.5, true}, {300.0, false}};
+    // (below the ribbon's 115 units: the stock theme's 27-unit tab row over
+    // the 88-unit plane), shown again from 123 (8 more).
+    const Probe none[] = {{115.0, false}, {114.0, true}, {115.0, true}, {122.0, true},
+                          {123.0, false}, {115.0, false}, {114.5, true}, {300.0, false}};
     for (const Probe& probe : none) {
         resize(fixture, {900.0, probe.height});
         require(ribbon.plane_hidden() == probe.hidden, "the plane hides by the document area, with hysteresis");
         require(ribbon.parts().tab_rail.present && ribbon.realized_tabs().size() == 1U &&
                     ribbon.parts().command_plane.present == !probe.hidden,
                 "only the command plane hides; the tab row stays");
-        require(ribbon.measure({900.0, probe.height}).height == (probe.hidden ? 24.0 : 112.0),
+        require(ribbon.measure({900.0, probe.height}).height == (probe.hidden ? 27.0 : 115.0),
                 "a hidden plane gives its height to the document area");
     }
     ribbon.document_minimum_height = 100.0;
-    const Probe declared[] = {{212.0, false}, {211.0, true}, {219.0, true}, {219.5, true},
-                              {220.0, false}, {212.0, false}, {150.0, true}, {400.0, false}};
+    const Probe declared[] = {{215.0, false}, {214.0, true}, {222.0, true}, {222.5, true},
+                              {223.0, false}, {215.0, false}, {150.0, true}, {400.0, false}};
     for (const Probe& probe : declared) {
         resize(fixture, {900.0, probe.height});
         require(ribbon.plane_hidden() == probe.hidden,
@@ -845,13 +886,14 @@ void hide_rule() {
     }
     require(threw && ribbon.document_minimum_height.read() == 100.0, "a negative minimum is refused");
 
-    // At text scale 1.5 the ribbon is 168 units tall, and the threshold moves.
+    // At text scale 1.5 the ribbon is 172.5 units tall (1.5 times the 27-unit row and 88-unit plane),
+    // and the threshold moves.
     FixedMetrics larger_metrics;
     std::vector<RibbonTabSpec> larger_tabs;
     larger_tabs.push_back(three_groups({}));
-    Fixture larger = make_fixture(std::move(larger_tabs), {900.0, 168.0}, larger_metrics, 1.5);
-    require(!(*larger.ribbon).plane_hidden(), "at text scale 1.5 the plane fits at 168 units");
-    resize(larger, {900.0, 167.0});
+    Fixture larger = make_fixture(std::move(larger_tabs), {900.0, 172.5}, larger_metrics, 1.5);
+    require(!(*larger.ribbon).plane_hidden(), "at text scale 1.5 the plane fits at 172.5 units");
+    resize(larger, {900.0, 171.5});
     require((*larger.ribbon).plane_hidden(), "and hides one unit below");
 }
 
@@ -1145,6 +1187,7 @@ void panel_tab() {
 
 int main() {
     generated_layouts();
+    authored_layouts_collapse();
     default_cycle();
     authored_order();
     refusals();
@@ -1158,7 +1201,7 @@ int main() {
     caches();
     field_labels();
     panel_tab();
-    std::cout << "Ribbon scaling: generated layouts, the default cycle, the authored order, refusals, gallery "
+    std::cout << "Ribbon scaling: generated layouts, authored layouts collapse, the default cycle, the authored order, refusals, gallery "
                  "columns, the WordPad ladders, golden layouts at text scales 1 and 1.5, labels kept, scrolling at "
                  "any width, the hide rule with hysteresis, group overlays, caches, theme following, field labels "
                  "and panel tabs passed\n";

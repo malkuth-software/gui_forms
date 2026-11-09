@@ -10,7 +10,7 @@
     "custom_states": ["modified", "pinned"],
     "marks": ["check", "indeterminate", "radio_dot", "toggle_knob", "arrow_up", "arrow_down", "arrow_left", "arrow_right", "chevron_down", "chevron_right", "close", "grip_dots", "dialog_launcher", "more", "overflow", "customize", "pin", "dock_shape", "underline", "pencil", "asterisk", "error", "search", "information", "warning", "success"],
     "engine_inputs": ["pointer_x", "pointer_y", "time_in_state", "display_scale", "text_scale"],
-    "values": ["accent_index", "text_orientation", "dock_region", "content_color", "authored_color", "text_tone", "pointed_face"],
+    "values": ["accent_index", "text_orientation", "dock_region", "content_color", "authored_color", "text_tone", "pointed_face", "part_profile"],
     "families": ["window", "panel", "card", "button", "accent_button", "command_button", "choice", "editor", "menu_item", "selection", "progress", "tool_tip", "link", "visited_link", "notice", "badge"],
     "semantic_roles": ["generic", "group", "static_text", "button", "check_box", "radio_button", "link", "text_box", "list", "list_item", "check_list_item", "combo_box", "slider", "scroll_bar", "progress_bar", "image", "tab_group", "tab", "split_pane", "numeric_field", "tool_tip", "date_picker", "calendar", "date_cell", "property_grid", "property_group", "property_row", "menu_bar", "menu_bar_item", "menu", "menu_item", "separator", "toolbar", "radio_group", "split_button", "menu_button", "pane", "tab_panel", "tree", "tree_item", "table", "row", "cell", "column_header", "row_header", "tree_grid", "dialog", "status_bar", "live_region", "meter", "toggle_switch", "search_box"],
     "semantic_actions": ["focus", "press", "select", "increment", "decrement", "expand", "collapse", "show_menu", "set_value", "close"],
@@ -8969,6 +8969,7 @@
         {"name": "scroll_left_glyph", "role": "glyph", "composed_from": null, "states": ["hot", "pressed"]},
         {"name": "scroll_right", "role": "actuator", "composed_from": "button", "states": ["hot", "pressed"]},
         {"name": "scroll_right_glyph", "role": "glyph", "composed_from": null, "states": ["hot", "pressed"]},
+        {"name": "help_button", "role": "actuator", "composed_from": "button", "states": ["hot", "pressed", "focus_visible"]},
         {"name": "focus", "role": "focus", "composed_from": null, "states": []}
       ],
       "states": ["normal", "enabled", "disabled", "focused", "focus_visible"],
@@ -8981,7 +8982,7 @@
             {"name": "tab_label", "role": "label", "composed_from": null, "states": []},
             {"name": "tab_focus", "role": "focus", "composed_from": null, "states": []}
           ],
-          "states": ["hot", "selected", "focus_visible"],
+          "states": ["hot", "selected", "focus_visible", "disabled"],
           "custom_states": []
         },
         {

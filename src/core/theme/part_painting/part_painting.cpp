@@ -820,6 +820,83 @@ void paint_pointed_part(Painter& painter, const Control& control, const PartPain
     painter.draw_line(tip, {shoulder, bounds.y + bounds.height - 0.5}, edge, 1.0);
 }
 
+// The strips a shaped part's taper, lip and edge shadow are cut into, each
+// a rectangle, so the shape is a bounded staircase (as the pointed face's
+// nose is).
+constexpr std::size_t part_profile_strips = 12U;
+
+// Whether `part` carries a profile that draws anything.
+bool profiled(const PartPaint& part) noexcept {
+    if (!part.profile || part.point || !surface_role(part.role)) return false;
+    const PartProfile& profile = *part.profile;
+    const bool any = profile.taper > 0.0 || profile.flare > 0.0 || profile.edge_shadow > 0.0;
+    return any;
+}
+
+// A profiled part (PartPaint::profile), in order: the edge shadow beyond the
+// trailing edge, the part itself (cut to its taper: once clipped to its
+// body and once to each strip of the taper), the tapered edge's line, and
+// the lip at its bottom corners. The trailing edge at height y runs from
+// `right - taper` at the top to `right` at the bottom.
+void paint_profiled_part(Painter& painter, const Control& control, const PartPaint& part) {
+    const PartProfile& profile = *part.profile;
+    PartPaint whole = part;
+    whole.profile.reset();
+    const Rect bounds = part.bounds;
+    const double right = bounds.x + bounds.width;
+    const double bottom = bounds.y + bounds.height;
+    const double taper = std::clamp(profile.taper, 0.0, std::min(bounds.width, maximum_part_shape));
+    const double flare = std::clamp(profile.flare, 0.0, std::min(bounds.height, maximum_part_shape));
+    const double falloff = std::clamp(profile.edge_shadow, 0.0, maximum_part_shape);
+    const double strip_height = bounds.height / static_cast<double>(part_profile_strips);
+    if (falloff > 0.0) {
+        const Color clear = Color::rgba(profile.edge_shadow_colour.red, profile.edge_shadow_colour.green,
+                                        profile.edge_shadow_colour.blue, 0);
+        const std::array<GradientStop, 2> stops{GradientStop{0.0, profile.edge_shadow_colour}, GradientStop{1.0, clear}};
+        for (std::size_t strip = 0U; strip < part_profile_strips; ++strip) {
+            const double top = bounds.y + strip_height * static_cast<double>(strip);
+            const double middle = top + strip_height * 0.5;
+            const double edge = right - taper * (1.0 - (middle - bounds.y) / bounds.height);
+            const Rect band{edge, top, falloff, strip_height};
+            painter.fill_linear_gradient(band, {edge, middle}, {edge + falloff, middle}, stops);
+        }
+    }
+    if (taper <= 0.0) {
+        paint_part(painter, control, whole);
+    } else {
+        const double shoulder = right - taper;
+        painter.save();
+        painter.clip_rect({bounds.x, bounds.y, bounds.width - taper, bounds.height});
+        paint_part(painter, control, whole);
+        painter.restore();
+        for (std::size_t strip = 0U; strip < part_profile_strips; ++strip) {
+            const double top = bounds.y + strip_height * static_cast<double>(strip);
+            const double middle = top + strip_height * 0.5;
+            const double edge = right - taper * (1.0 - (middle - bounds.y) / bounds.height);
+            if (edge <= shoulder) continue;
+            painter.save();
+            painter.clip_rect({shoulder, top, edge - shoulder, strip_height});
+            paint_part(painter, control, whole);
+            painter.restore();
+        }
+        if (profile.taper_colour && part.frame != PartFrame::none) {
+            painter.draw_line({shoulder - 0.5, bounds.y + 0.5}, {right - 0.5, bottom}, *profile.taper_colour, 1.0);
+        }
+    }
+    if (flare <= 0.0) return;
+    // The lip: a concave quarter at each bottom corner, flat where it meets
+    // what lies below the part.
+    const double lip_strip = flare / static_cast<double>(part_profile_strips);
+    for (std::size_t strip = 0U; strip < part_profile_strips; ++strip) {
+        const double top = bottom - flare + lip_strip * static_cast<double>(strip);
+        const double depth = (top + lip_strip * 0.5) - (bottom - flare);
+        const double reach = flare - std::sqrt(std::max(0.0, flare * flare - depth * depth));
+        if (reach <= 0.0) continue;
+        painter.fill_rect({bounds.x - reach, top, reach, lip_strip}, profile.flare_colour);
+        painter.fill_rect({right, top, reach, lip_strip}, profile.flare_colour);
+    }
+}
+
 } // namespace
 
 namespace {
@@ -849,6 +926,28 @@ bool pointed_face_contains(Rect bounds, double point, Point position) noexcept {
     return inside;
 }
 
+namespace {
+
+// The provisional accent (design language §8.5) over a surface part a
+// theme rule's primitive drew: the built-in recipe lays it on itself
+// (paint_part_with_built_in_recipe), a primitive does not, so a contextual
+// tab or plane a theme styles keeps its tint (RB 25). The ramp colour
+// carries its own translucency and follows the recipe's corners.
+void paint_primitive_accent(Painter& painter, const Control& control, const PartPaint& part) {
+    if (!part.accent || !surface_role(part.role) || !paintable(part.bounds)) return;
+    const Theme& theme = control.effective_theme();
+    const ThemeEngine::PartPlan decided = theme.engine().plan(control, part);
+    if (decided.drawing != ThemeEngine::PartDrawing::primitive) return;
+    const ControlVisualContext context = part_visual_context(control, part.states);
+    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const ResolvedControlRecipe resolved =
+        theme.resolve(control, part.family, context, part.states, part_name, part.control_type);
+    const double radius = part_corner_radius(part, resolved.recipe());
+    painter.fill_rounded_rect(part.bounds, radius, theme.accent(*part.accent));
+}
+
+} // namespace
+
 void paint_part(Painter& painter, const Control& control, const PartPaint& part) {
     // Drawn in GUI.Forms' own theme in place of the application's (T4
     // theme variants): colours chosen against the other theme are not
@@ -866,6 +965,10 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
         paint_pointed_part(painter, control, part, length);
         return;
     }
+    if (profiled(part) && paintable(part.bounds)) {
+        paint_profiled_part(painter, control, part);
+        return;
+    }
     const Theme& theme = control.effective_theme();
     // The control's authored colours (Control::set_back_color and
     // set_fore_color) under the part's own: its own background fills every
@@ -878,12 +981,14 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
     const bool unchanged = background == part.authored_background && foreground == part.authored_foreground;
     if (unchanged) {
         theme.engine().paint(painter, control, part);
+        paint_primitive_accent(painter, control, part);
         return;
     }
     PartPaint coloured = part;
     coloured.authored_background = background;
     coloured.authored_foreground = foreground;
     theme.engine().paint(painter, control, coloured);
+    paint_primitive_accent(painter, control, coloured);
 }
 
 void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin,

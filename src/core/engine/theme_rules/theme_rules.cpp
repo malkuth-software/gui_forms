@@ -1070,10 +1070,21 @@ void walk_material_lengths(MaterialDeclaration& declaration, LengthWalk& walk) {
     }
 }
 
+// The part metrics and shape lengths (RecipeField::block_size on).
+bool part_length_field(RecipeField field) noexcept {
+    const bool length = field == RecipeField::block_size || field == RecipeField::minimum_inline_size ||
+                        field == RecipeField::padding_inline || field == RecipeField::gap ||
+                        field == RecipeField::margin_block_start || field == RecipeField::margin_block_end ||
+                        field == RecipeField::taper || field == RecipeField::flare ||
+                        field == RecipeField::edge_shadow_width;
+    return length;
+}
+
 void walk_recipe_lengths(RecipeDeclaration& declaration, LengthWalk& walk) {
     const RecipeField field = declaration.field;
     if (field == RecipeField::outline_width || field == RecipeField::outline_offset) walk.visit(declaration.number);
     if (field == RecipeField::default_outline_width) walk.visit(declaration.number);
+    if (part_length_field(field)) walk.visit(declaration.number);
     if (field == RecipeField::font_size || field == RecipeField::letter_spacing) walk.visit(declaration.number);
     if (field != RecipeField::text_shadow) return;
     walk.visit(declaration.shadow_offset.x);
@@ -1795,7 +1806,9 @@ bool in_range(double value, double minimum, double maximum) noexcept {
 constexpr std::array<std::string_view, recipe_field_count> recipe_field_names{
     "text",        "outline_style", "outline_colour", "outline_width",  "outline_offset", "text_shadow",
     "font_family", "font_size",     "font_weight",    "font_style",     "letter_spacing", "muted_text",
-    "glyph",       "default_outline_width", "default_outline_colour",
+    "glyph",       "default_outline_width", "default_outline_colour", "block_size", "minimum_inline_size",
+    "padding_inline", "gap", "margin_block_start", "margin_block_end", "taper", "taper_colour", "flare",
+    "flare_colour", "edge_shadow_width", "edge_shadow_colour",
 };
 
 } // namespace
@@ -1806,7 +1819,10 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     case RecipeField::muted_text:
     case RecipeField::glyph: return ColourPosition::text;
     case RecipeField::outline_colour:
-    case RecipeField::default_outline_colour: return ColourPosition::edge;
+    case RecipeField::default_outline_colour:
+    case RecipeField::taper_colour:
+    case RecipeField::flare_colour:
+    case RecipeField::edge_shadow_colour: return ColourPosition::edge;
     case RecipeField::outline_style:
     case RecipeField::outline_width:
     case RecipeField::outline_offset:
@@ -1817,6 +1833,15 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     case RecipeField::font_style:
     case RecipeField::letter_spacing:
     case RecipeField::default_outline_width:
+    case RecipeField::block_size:
+    case RecipeField::minimum_inline_size:
+    case RecipeField::padding_inline:
+    case RecipeField::gap:
+    case RecipeField::margin_block_start:
+    case RecipeField::margin_block_end:
+    case RecipeField::taper:
+    case RecipeField::flare:
+    case RecipeField::edge_shadow_width:
     case RecipeField::count:
     default: return ColourPosition::none;
     }
@@ -1834,7 +1859,20 @@ bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept 
     case RecipeField::outline_colour:
     case RecipeField::muted_text:
     case RecipeField::glyph:
-    case RecipeField::default_outline_colour: return true;
+    case RecipeField::default_outline_colour:
+    case RecipeField::taper_colour:
+    case RecipeField::flare_colour:
+    case RecipeField::edge_shadow_colour: return true;
+    case RecipeField::block_size:
+    case RecipeField::minimum_inline_size:
+    case RecipeField::padding_inline:
+    case RecipeField::gap: return in_range(declaration.number, 0.0, maximum_part_metric);
+    case RecipeField::margin_block_start:
+    case RecipeField::margin_block_end:
+        return in_range(declaration.number, -maximum_part_margin, maximum_part_margin);
+    case RecipeField::taper:
+    case RecipeField::flare:
+    case RecipeField::edge_shadow_width: return in_range(declaration.number, 0.0, maximum_part_shape);
     case RecipeField::outline_style:
         return declaration.outline_style == RecipeOutlineStyle::ring ||
                declaration.outline_style == RecipeOutlineStyle::solid ||
@@ -1928,8 +1966,10 @@ void CompiledThemeRules::add_band(std::vector<RuleDiagnostic>& diagnostics, std:
 void CompiledThemeRules::add_recipe_fields(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
                                            const ThemeRule& rule, CompiledRule& compiled) {
     // The recipe's fields are the control's: a selector naming a part or a
-    // role sets none, except the text colours on a named part (its text,
-    // muted text and glyphs: Theme::resolve with the part's name).
+    // role sets none, except on a named part the text colours (its text,
+    // muted text and glyphs: Theme::resolve with the part's name), its font
+    // (Theme::resolve_font with the part's name) and its metrics and shape
+    // (RecipeField::block_size on).
     const bool on_role = rule.selector.role.has_value();
     const bool on_named_part = !rule.selector.part.empty() && !on_role;
     std::array<bool, recipe_field_count> declared{};
@@ -1942,7 +1982,10 @@ void CompiledThemeRules::add_recipe_fields(std::vector<RuleDiagnostic>& diagnost
         }
         const bool text_colour = declaration.field == RecipeField::text ||
                                  declaration.field == RecipeField::muted_text || declaration.field == RecipeField::glyph;
-        if (on_role || (on_named_part && !text_colour)) {
+        const bool font = declaration.field >= RecipeField::font_family &&
+                          declaration.field <= RecipeField::letter_spacing;
+        const bool part_field = declaration.field >= RecipeField::block_size;
+        if (on_role || (on_named_part && !text_colour && !font && !part_field)) {
             diagnostics.push_back(diagnostic(RuleDiagnosticKind::recipe_field_on_part, index, rule, name));
             continue;
         }
@@ -2516,14 +2559,26 @@ CompiledThemeRules::Resolution CompiledThemeRules::resolve(const PartFacts& fact
     if (user_rules) result.user_serial = (*facts.user_rules).serial_;
     if (rules_.empty() && !inline_rules && !user_rules) return result;
     // The winner is the last matching rule that selects, rules being in
-    // ascending precedence.
+    // ascending precedence. A built-in rule's primitive (the ribbon's rise,
+    // flat at rest) is the stock default only: a theme rule that authors
+    // the part's material without naming a primitive stands over it, and
+    // the part is drawn from that material (Plan Paint's raised faces at
+    // rest).
     const CompiledRule* winner = nullptr;
+    bool authored_material = false;
     ScopedWinners winners{};
     resolve_scoped(facts, winners);
     RuleWalk walk(*this, facts, true, &winners);
     for (const CompiledRule* rule = walk.next(); rule != nullptr; rule = walk.next()) {
-        if ((*rule).selects && matches(*rule, facts)) winner = rule;
+        if (!matches(*rule, facts)) continue;
+        if ((*rule).selects) {
+            winner = rule;
+            authored_material = false;
+        } else if ((*rule).level > CascadeLevel::built_in && !(*rule).materials.empty()) {
+            authored_material = true;
+        }
     }
+    if (winner != nullptr && (*winner).level == CascadeLevel::built_in && authored_material) winner = nullptr;
     if (winner != nullptr) resolve_primitive(facts, winners, *winner, result);
     resolve_transitions(facts, winners, result);
     resolve_materials(facts, winners, result);
@@ -2669,10 +2724,18 @@ void CompiledThemeRules::resolve_provenance(const PartFacts& facts, PartProvenan
     // The primitive's winner first, as resolve() finds it: the last
     // matching rule that selects, rules being in ascending precedence.
     const CompiledRule* winner = nullptr;
+    bool authored_material = false;
     RuleWalk choosing(*this, facts, true, &winners);
     for (const CompiledRule* next = choosing.next(); next != nullptr; next = choosing.next()) {
-        if ((*next).selects && matches(*next, facts)) winner = next;
+        if (!matches(*next, facts)) continue;
+        if ((*next).selects) {
+            winner = next;
+            authored_material = false;
+        } else if ((*next).level > CascadeLevel::built_in && !(*next).materials.empty()) {
+            authored_material = true;
+        }
     }
+    if (winner != nullptr && (*winner).level == CascadeLevel::built_in && authored_material) winner = nullptr;
     const EnginePrimitive* primitive = nullptr;
     if (winner != nullptr && (*winner).primitive != nullptr &&
         paints_role((*(*winner).primitive).descriptor(), facts.role)) {

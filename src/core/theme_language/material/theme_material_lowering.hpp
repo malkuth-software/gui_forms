@@ -93,6 +93,17 @@ enum class MaterialProperty : std::uint8_t {
     muted_color,
     glyph_color,
     default_outline,
+    // A part's metrics and shape (look integration): recipe fields read by
+    // the control that lays the part out (RecipeField::block_size on).
+    height,
+    min_width,
+    padding_inline,
+    gap,
+    margin_top,
+    margin_bottom,
+    taper,
+    flare,
+    edge_shadow,
 };
 
 // An image resource the theme's manifest lists, bound to the engine's image

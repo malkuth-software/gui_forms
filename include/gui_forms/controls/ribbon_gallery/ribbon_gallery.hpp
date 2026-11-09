@@ -130,6 +130,7 @@ public:
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
+    void on_pointer_preview(PointerEvent& event) override;
     void on_pointer(PointerEvent& event) override;
     void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
@@ -295,6 +296,11 @@ private:
     std::optional<std::size_t> focused_{};
     HitZone hot_zone_{HitZone::none};
     HitZone pressed_zone_{HitZone::none};
+    // What a primary press was over before the press focused the gallery
+    // (on_pointer_preview, ahead of the window's focus move): the press acts
+    // on it, and the focus it gives does not scroll away from it. Set from
+    // the preview until the press's own on_pointer, a release or a blur.
+    std::optional<HitResult> press_hit_{};
     bool has_focus_{};
     // The item a dwell timer is running for, and its timer.
     std::string dwell_item_{};

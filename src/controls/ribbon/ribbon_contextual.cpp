@@ -22,6 +22,11 @@ bool Ribbon::shown(std::size_t tab) const noexcept {
     return result;
 }
 
+bool Ribbon::selectable(std::size_t tab) const noexcept {
+    const bool result = shown(tab) && tabs_[tab].enabled;
+    return result;
+}
+
 bool Ribbon::tab_shown(std::size_t tab) const {
     if (tab >= tabs_.size()) throw std::out_of_range("Ribbon tab index is past the end");
     return shown(tab);
@@ -47,12 +52,12 @@ std::optional<AccentIndex> Ribbon::tab_accent(std::size_t tab) const noexcept {
 // Where the selection goes when its tab stops showing: the core tab chosen
 // last, else the first core tab shown (Home), else the first tab shown.
 std::optional<std::size_t> Ribbon::fallback_tab() const noexcept {
-    if (last_core_tab_ && shown(*last_core_tab_)) return last_core_tab_;
+    if (last_core_tab_ && selectable(*last_core_tab_)) return last_core_tab_;
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
-        if (!tab_set_of_[tab] && shown(tab)) return tab;
+        if (!tab_set_of_[tab] && selectable(tab)) return tab;
     }
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
-        if (shown(tab)) return tab;
+        if (selectable(tab)) return tab;
     }
     return std::nullopt;
 }
@@ -100,9 +105,9 @@ void Ribbon::set_tab_set_availability(std::string_view set_id, RibbonTabSetAvail
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     if (availability == RibbonTabSetAvailability::active) {
         std::optional<std::size_t> target{};
-        if (state.remembered_tab && shown(*state.remembered_tab)) target = state.remembered_tab;
+        if (state.remembered_tab && selectable(*state.remembered_tab)) target = state.remembered_tab;
         for (std::size_t tab = state.first_tab; !target && tab < state.first_tab + state.tab_count; ++tab) {
-            if (shown(tab)) target = tab;
+            if (selectable(tab)) target = tab;
         }
         if (target) select_tab(*target, SelectionCause::rule);
     }
