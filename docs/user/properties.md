@@ -115,11 +115,12 @@ control.
 creates the control. [Values, commands and binding](values-commands-and-binding)
 and [Data binding](data-binding) describe the sources.
 
-## Properties not yet cells
+## Values that stay methods
 
-Most properties are cells. A few are still accessor pairs, such as a label's
-`text()` and `set_text()`, while their controls are converted. Each control's
+Most properties are cells, a label's and a button's `text` among them. A few
+values stay methods because writing them is an operation with a result, such
+as `MaskedTextBox::set_text`, which returns the mask's verdict. Each control's
 [API page](../api/index) lists its members, and the cell members are the ones
-you assign to. Accessor pairs keep the same rules: an equal value does
+you assign to. Those methods keep the same rules: an equal value does
 nothing, and a real change marks the control dirty and raises the change
 event.

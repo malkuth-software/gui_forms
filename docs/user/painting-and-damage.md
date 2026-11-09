@@ -251,7 +251,7 @@ when its focus leaves, and drops every request when its thread stops.
 `SubSurfaceHost::request_statistics` and `SubSurfaceStatistics` count both
 sides.
 
-Overlays opened with `SurfaceRoot::open_popup` inside a sub-surface stay
+Overlays opened with `SurfaceRoot::open_overlay` inside a sub-surface stay
 within its region.
 
 ### Sub-surface accessibility
