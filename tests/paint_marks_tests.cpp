@@ -5,6 +5,7 @@
 // compared exactly), the base painter's fallbacks, and the part primitives
 // composed from them (paint_recipes.hpp: C2, C3, C4).
 #include "gui_forms/gui_forms.hpp"
+#include "gui_forms/layout/radial_layout/radial_layout.hpp"
 #include "../src/core/display/recording_painter/recording_painter.hpp"
 #include "../src/core/display/replay/replay_display_chunk.hpp"
 
@@ -572,6 +573,155 @@ void test_joined_segments() {
     require(observed == expected, "a joined row rounds only its ends and draws one seam per neighbour pair");
 }
 
+// Piece C21: a radial layout of 2 to 12 items places every anchor on the
+// circle at equal angles, picks each item from its own direction, and its
+// direction ring traces as one stroke and one sector polygon.
+bool close_to(double value, double expected, double tolerance) {
+    return std::abs(value - expected) <= tolerance;
+}
+
+RadialLayout pie(std::uint32_t count) {
+    RadialLayout layout{};
+    layout.center = Point{50.0, 50.0};
+    layout.radius = 20.0;
+    layout.item_size = Size{20.0, 10.0};
+    layout.count = count;
+    return layout;
+}
+
+// The point `distance` from the pie's centre at `degrees`.
+Point pie_point(double degrees, double distance) {
+    constexpr double degrees_to_radians = 0.017453292519943295769;
+    const Point point{50.0 + distance * std::cos(degrees * degrees_to_radians),
+                      50.0 + distance * std::sin(degrees * degrees_to_radians)};
+    return point;
+}
+
+void test_radial_layout_places_and_picks() {
+    std::array<RadialSlot, maximum_radial_items> slots{};
+    for (std::uint32_t count = 2U; count <= 12U; ++count) {
+        const RadialLayout layout = pie(count);
+        require(place_radial_items(layout, slots) == count, "a valid layout places every item");
+        const double sweep = 360.0 / static_cast<double>(count);
+        for (std::uint32_t index = 0U; index < count; ++index) {
+            const RadialSlot& slot = slots[index];
+            const double distance = std::hypot(slot.anchor.x - 50.0, slot.anchor.y - 50.0);
+            require(close_to(distance, 20.0, 1e-12), "every anchor lies on the circle");
+            require(slot.direction_degrees == -90.0 + sweep * static_cast<double>(index), "equal angles from the start");
+            require(slot.sweep == sweep && slot.sweep_start == slot.direction_degrees - sweep * 0.5,
+                    "each sector is centred on its direction");
+            require(close_to(slot.bounds.x + 10.0, slot.anchor.x, 1e-12) &&
+                        close_to(slot.bounds.y + 5.0, slot.anchor.y, 1e-12),
+                    "a centred box is centred on its anchor");
+            const RadialPick at_anchor = pick_radial_item(layout, slot.anchor, 4.0);
+            require(at_anchor.picked && at_anchor.index == index, "an item's own direction picks it");
+            // Just inside each edge of the sector still picks the item.
+            const Point early = pie_point(slot.sweep_start + 0.5, 30.0);
+            const Point late = pie_point(slot.sweep_start + sweep - 0.5, 30.0);
+            require(pick_radial_item(layout, early, 4.0).index == index, "the sector's first edge picks the item");
+            require(pick_radial_item(layout, late, 4.0).index == index, "the sector's last edge picks the item");
+        }
+        require(!pick_radial_item(layout, Point{51.0, 51.0}, 4.0).picked, "the dead zone picks nothing");
+        require(!pick_radial_item(layout, Point{50.0, 50.0}, 0.0).picked, "the centre picks nothing");
+    }
+
+    // Outward boxes grow away from the centre; an axis the direction does
+    // not lean along stays centred.
+    RadialLayout outward = pie(4U);
+    outward.alignment = RadialItemAlignment::outward;
+    require(place_radial_items(outward, slots) == 4U, "an outward layout places");
+    require(close_to(slots[0].bounds.x, 40.0, 1e-12) && close_to(slots[0].bounds.y, 20.0, 1e-12),
+            "the top item sits above its anchor, centred across");
+    require(close_to(slots[1].bounds.x, 70.0, 1e-12) && close_to(slots[1].bounds.y, 45.0, 1e-12),
+            "the right item starts at its anchor");
+    require(close_to(slots[2].bounds.y, 70.0, 1e-12), "the bottom item hangs below its anchor");
+    require(close_to(slots[3].bounds.x, 10.0, 1e-12), "the left item ends at its anchor");
+
+    // Refusals write nothing.
+    slots.fill(RadialSlot{});
+    require(place_radial_items(pie(0U), slots) == 0U, "no items");
+    require(place_radial_items(pie(17U), slots) == 0U, "too many items");
+    RadialLayout flat = pie(3U);
+    flat.radius = 0.0;
+    require(place_radial_items(flat, slots) == 0U, "a zero radius");
+    RadialLayout lost = pie(3U);
+    lost.center = Point{not_a_number, 0.0};
+    require(place_radial_items(lost, slots) == 0U, "a centre that is not finite");
+    require(!pick_radial_item(lost, Point{0.0, 0.0}, 0.0).picked, "an invalid layout picks nothing");
+    require(place_radial_items(pie(3U), std::span<RadialSlot>(slots.data(), 2U)) == 0U, "storage too short");
+    require(slots[0] == RadialSlot{}, "a refusal leaves the storage alone");
+}
+
+// Keeps the polygon a ring paints.
+class RingPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+    void stroke_rounded_rect(Rect, double, Color, double) override { ++strokes; }
+    void fill_polygon(std::span<const Point> points, Color color, PolygonFillRule) override {
+        polygon.assign(points.begin(), points.end());
+        polygon_colour = color;
+    }
+
+    std::size_t strokes{};
+    std::vector<Point> polygon;
+    Color polygon_colour{};
+};
+
+void test_direction_ring_trace() {
+    const RadialLayout layout = pie(4U);
+    DirectionRingStyle style{};
+    style.inner_radius = 10.0;
+    style.outer_radius = 20.0;
+    style.track = ink;
+    style.pick = paper;
+    const RadialPick right = pick_radial_item(layout, Point{80.0, 50.0}, 4.0);
+    require(right.picked && right.index == 1U, "the right of a four-item pie picks item 1");
+
+    TracePainter idle;
+    paint_direction_ring(idle, layout, RadialPick{}, style);
+    require(idle.out.str() == "stroke_rounded_rect 35,35,30,30 15 #10.20.30.255 10\n", "an idle ring is its track");
+    TracePainter picked;
+    paint_direction_ring(picked, layout, right, style);
+    const std::string trace = picked.out.str();
+    require(trace.rfind("stroke_rounded_rect 35,35,30,30 15 #10.20.30.255 10\nfill_polygon ", 0) == 0,
+            "a picked ring is its track, then the sector");
+    require(trace.find("#240.240.240.255 nonzero\n") != std::string::npos, "the sector in the pick colour");
+
+    // The sector of item 1 runs from -45 to 45 degrees: 15 steps along each
+    // edge, outer then inner.
+    RingPainter ring;
+    paint_direction_ring(ring, layout, right, style);
+    require(ring.strokes == 1U && ring.polygon.size() == 32U, "one track and a 32-point sector");
+    require(ring.polygon_colour == paper, "the sector is filled in the pick colour");
+    for (std::size_t index = 0U; index < 16U; ++index) {
+        const Point outer = ring.polygon[index];
+        const Point inner = ring.polygon[16U + index];
+        require(close_to(std::hypot(outer.x - 50.0, outer.y - 50.0), 20.0, 1e-9), "outer edge on the outer radius");
+        require(close_to(std::hypot(inner.x - 50.0, inner.y - 50.0), 10.0, 1e-9), "inner edge on the inner radius");
+    }
+    require(close_to(ring.polygon.front().x, 50.0 + 20.0 * std::sqrt(0.5), 1e-9) &&
+                close_to(ring.polygon.front().y, 50.0 - 20.0 * std::sqrt(0.5), 1e-9),
+            "the sector starts at -45 degrees on the outer edge");
+
+    // One item: the pick is the whole annulus; a bad style paints nothing.
+    RingPainter whole;
+    paint_direction_ring(whole, pie(1U), pick_radial_item(pie(1U), Point{0.0, 0.0}, 1.0), style);
+    require(whole.strokes == 2U && whole.polygon.empty(), "a one-item pick strokes the whole ring");
+    DirectionRingStyle inverted = style;
+    inverted.inner_radius = 30.0;
+    TracePainter refused;
+    paint_direction_ring(refused, layout, right, inverted);
+    require(refused.out.str().empty(), "an inner radius past the outer paints nothing");
+}
+
 void test_operation_names() {
     require(std::string_view(visual_paint_operation_name(VisualPaintOperation::stroke_polyline)) == "stroke_polyline" &&
                 std::string_view(visual_paint_operation_name(VisualPaintOperation::fill_grid_pattern)) ==
@@ -597,6 +747,8 @@ int main() {
         test_text_over_fill_uses_complementary_clips();
         test_joined_segments();
         test_operation_names();
+        test_radial_layout_places_and_picks();
+        test_direction_ring_trace();
         std::cout << "gui_forms_paint_marks_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {
