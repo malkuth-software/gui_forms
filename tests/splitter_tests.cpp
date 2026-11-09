@@ -3,10 +3,18 @@
 // each edge, dragging with live resizing between min_size and min_extra,
 // splitter_moving adjusting a move, splitter_moved, programmatic and
 // semantic positions, a splitter without a target, anatomy and painting.
+// On the drag engine (roadmap 2.1, step M1): a parity trace of the pointer
+// script against the behaviour before the migration, cancels that restore
+// (Escape, a lost capture, deactivation) and the keyboard drag through the
+// begin_keyboard_drag rule action.
 
 #include "gui_forms/gui_forms.hpp"
+#include "../src/core/drag_engine/drag_engine.hpp"
 
+#include <array>
 #include <cmath>
+#include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -229,13 +237,171 @@ void without_a_target() {
     require((*hidden.splitter).target() == nullptr, "a hidden sibling is not a target");
 }
 
+
+// -- the drag engine (study step M1) --------------------------------------------
+
+KeyEvent key_down(std::uint32_t physical_key, Modifier modifiers = Modifier::none) {
+    KeyEvent event{};
+    event.action = KeyAction::down;
+    event.physical_key = physical_key;
+    event.modifiers = modifiers;
+    return event;
+}
+
+// One line of the parity trace: the step, the target's extent, the counts of
+// splitter_moving and splitter_moved, and whether the bar shows pressed.
+void trace_step(std::string& trace, const char* step, double x, const Fixture& fixture, const Recorder& recorder) {
+    std::array<char, 128> line{};
+    const long position = std::lround(x);
+    const long extent = std::lround((*fixture.pane).committed_arranged_bounds().width);
+    const char* const pressed = (*fixture.splitter).states().pressed ? " pressed" : "";
+    const int written = std::snprintf(line.data(), line.size(), "%s %ld extent=%ld moving=%zu moved=%zu%s\n", step,
+                                      position, extent, recorder.moving.size(), recorder.moved.size(), pressed);
+    if (written > 0) trace.append(line.data(), static_cast<std::size_t>(written));
+}
+
+// The pointer script of left_drag, traced on the engine. The golden text is
+// the behaviour before the migration, as left_drag's assertions record it
+// (a press starts the drag at once, moves resize live within the limits,
+// the release raises splitter_moved with the projected extent).
+void parity_trace() {
+    Fixture fixture = make_fixture(DockStyle::left);
+    Window& window = *fixture.window;
+    Recorder recorder;
+    on((*fixture.splitter).splitter_moving(), recorder, &Recorder::on_moving);
+    on((*fixture.splitter).splitter_moved(), recorder, &Recorder::on_moved);
+    const Point start = centre(*fixture.splitter);
+    std::string trace;
+    pointer(window, PointerAction::move, start);
+    trace_step(trace, "move", start.x, fixture, recorder);
+    pointer(window, PointerAction::down, start);
+    trace_step(trace, "down", start.x, fixture, recorder);
+    const std::array<double, 3> script{start.x + 50.0, start.x + 1000.0, start.x - 1000.0};
+    for (const double x : script) {
+        pointer(window, PointerAction::move, {x, start.y});
+        trace_step(trace, "move", x, fixture, recorder);
+    }
+    pointer(window, PointerAction::up, {start.x + 20.0, start.y});
+    trace_step(trace, "up", start.x + 20.0, fixture, recorder);
+    const std::string expected =
+        "move 102 extent=100 moving=0 moved=0\n"
+        "down 102 extent=100 moving=0 moved=0 pressed\n"
+        "move 152 extent=150 moving=1 moved=0 pressed\n"
+        "move 1102 extent=371 moving=2 moved=0 pressed\n"
+        "move -898 extent=25 moving=3 moved=0 pressed\n"
+        "up 122 extent=120 moving=3 moved=1\n";
+    if (trace != expected) std::cerr << trace;
+    require(trace == expected, "the engine-driven drag matches the behaviour before the migration");
+    const DragStatistics& statistics = window.drag_engine().statistics();
+    require(statistics.ends[static_cast<std::size_t>(DragEnd::free)] == 1U && statistics.storage_growths == 0U,
+            "the drag ended free on the engine, with no storage growth");
+}
+
+void cancels_restore() {
+    Fixture fixture = make_fixture(DockStyle::left);
+    Window& window = *fixture.window;
+    Splitter& splitter = *fixture.splitter;
+    Recorder recorder;
+    on(splitter.splitter_moved(), recorder, &Recorder::on_moved);
+    const Point start = centre(splitter);
+    pointer(window, PointerAction::down, start);
+    pointer(window, PointerAction::move, {start.x + 50.0, start.y});
+    require(near(*splitter.split_position(), 150.0), "the drag resizes live");
+    require(window.dispatch_key(key_down(PhysicalKey::escape)), "the window gives the drag Escape");
+    window.perform_layout();
+    require(near(*splitter.split_position(), 100.0) && recorder.moved.empty() && !splitter.states().pressed,
+            "Escape puts the target back at its extent before the drag, as Windows Forms does");
+
+    const Point again = centre(splitter);
+    pointer(window, PointerAction::down, again);
+    pointer(window, PointerAction::move, {again.x + 30.0, again.y});
+    require(near(*splitter.split_position(), 130.0), "a second drag resizes live");
+    splitter.set_pointer_capture(false);
+    window.perform_layout();
+    require(near(*splitter.split_position(), 100.0) && recorder.moved.empty(), "a lost capture restores as well");
+
+    window.set_active(true);
+    pointer(window, PointerAction::down, again);
+    pointer(window, PointerAction::move, {again.x + 40.0, again.y});
+    window.set_active(false);
+    window.perform_layout();
+    require(near(*splitter.split_position(), 100.0) && window.drag_engine().phase() == DragPhase::idle,
+            "the window's deactivation cancels and restores");
+
+    // Escape right after the press changed nothing, so nothing is restored.
+    pointer(window, PointerAction::down, again);
+    static_cast<void>(window.dispatch_key(key_down(PhysicalKey::escape)));
+    window.perform_layout();
+    require(near(*splitter.split_position(), 100.0), "Escape before any move leaves the extent as it was");
+}
+
+void keyboard_drag() {
+    Fixture fixture = make_fixture(DockStyle::left);
+    Window& window = *fixture.window;
+    Splitter& splitter = *fixture.splitter;
+    Recorder recorder;
+    on(splitter.splitter_moving(), recorder, &Recorder::on_moving);
+    on(splitter.splitter_moved(), recorder, &Recorder::on_moved);
+    Rule move_key{};
+    move_key.trigger = trigger::key_pressed(PhysicalKey::f3);
+    move_key.actions.push_back(builtin::begin_keyboard_drag(splitter));
+    require(window.rules().add(move_key).refusal == RuleRefusal::none, "a move-key rule is armed");
+
+    static_cast<void>(window.dispatch_key(key_down(PhysicalKey::f3)));
+    DragEngine& engine = window.drag_engine();
+    require(engine.mode() == DragInputMode::keyboard && splitter.states().pressed,
+            "the rule action starts the keyboard drag on a splitter that takes no focus");
+    static_cast<void>(window.dispatch_key(key_down(PhysicalKey::right)));
+    window.perform_layout();
+    require(near(*splitter.split_position(), 110.0) && recorder.moving.size() == 1U, "Right steps 10 and previews");
+    static_cast<void>(window.dispatch_key(key_down(PhysicalKey::right, Modifier::control)));
+    window.perform_layout();
+    require(near(*splitter.split_position(), 210.0), "Ctrl takes a coarse step");
+    static_cast<void>(window.dispatch_key(key_down(PhysicalKey::left, Modifier::shift)));
+    window.perform_layout();
+    require(near(*splitter.split_position(), 209.0), "Shift takes a fine step");
+    static_cast<void>(window.dispatch_key(key_down(PhysicalKey::up)));
+    window.perform_layout();
+    require(near(*splitter.split_position(), 209.0), "an arrow across the axis moves nothing");
+    static_cast<void>(window.dispatch_key(key_down(PhysicalKey::enter)));
+    window.perform_layout();
+    require(recorder.moved.size() == 1U && near(recorder.moved.back(), 209.0) && !splitter.states().pressed,
+            "Enter commits and raises splitter_moved");
+    require(engine.announcement() == "Split position 209, done", "the end is announced");
+
+    static_cast<void>(window.dispatch_key(key_down(PhysicalKey::f3)));
+    for (int step = 0; step < 30; ++step) static_cast<void>(window.dispatch_key(key_down(PhysicalKey::right)));
+    window.perform_layout();
+    require(near(*splitter.split_position(), 371.0), "the keyboard reaches the limit the pointer reaches");
+    static_cast<void>(window.dispatch_key(key_down(PhysicalKey::escape)));
+    window.perform_layout();
+    require(near(*splitter.split_position(), 209.0) && engine.announcement() == "Split position 209, restored",
+            "Escape restores and says so");
+
+    Fixture right = make_fixture(DockStyle::right);
+    Rule right_key{};
+    right_key.trigger = trigger::key_pressed(PhysicalKey::f3);
+    right_key.actions.push_back(builtin::begin_keyboard_drag(*right.splitter));
+    require((*right.window).rules().add(right_key).refusal == RuleRefusal::none, "a right splitter's rule is armed");
+    static_cast<void>((*right.window).dispatch_key(key_down(PhysicalKey::f3)));
+    static_cast<void>((*right.window).dispatch_key(key_down(PhysicalKey::right)));
+    static_cast<void>((*right.window).dispatch_key(key_down(PhysicalKey::enter)));
+    (*right.window).perform_layout();
+    require(near((*right.pane).committed_arranged_bounds().width, 90.0),
+            "Right moves a right splitter's bar right, narrowing its target");
+}
+
 } // namespace
 
 int main() {
     left_drag();
     other_edges();
     without_a_target();
+    parity_trace();
+    cancels_restore();
+    keyboard_drag();
     std::cout << "Splitter: targets at every edge, live drags within the limits, splitter_moving adjustment, "
-                 "splitter_moved, programmatic and semantic positions, no target, anatomy and paint passed\n";
+                 "splitter_moved, programmatic and semantic positions, no target, anatomy and paint, the engine parity "
+                 "trace, restoring cancels and the keyboard drag passed\n";
     return 0;
 }
