@@ -4933,7 +4933,7 @@ Types
 
    .. cpp:member:: ThemeBase base
 
-      The theme the sheets compile onto; windows_professional unless the caller chooses gui_forms. With gui_forms, ``controls`` names the stock control types too: the light sheet's rules for a type outside it are warnings that drop them, named for ``gui-forms/light.css``. Default: ``{ThemeBase::windows_professional}``.
+      The theme the sheets compile onto: the process default's base (default_theme_base, gui-forms) unless the caller chooses windows_professional. With gui_forms, ``controls`` names the stock control types too: the light sheet's rules for a type outside it are warnings that drop them, named for ``gui-forms/light.css``. Default: ``{default_theme_base}``.
 
    .. cpp:member:: const EffectRegistry* effects
 

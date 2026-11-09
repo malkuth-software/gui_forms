@@ -94,6 +94,9 @@ ThemePackage package(std::string_view name, std::string_view sheet, const Extras
 ThemeCompileOptions options() {
     ThemeCompileOptions made{};
     made.controls = controls;
+    // These expectations were written onto windows-professional's recipes;
+    // the default base is gui-forms (T4 phase 6).
+    made.base = ThemeBase::windows_professional;
     return made;
 }
 
@@ -334,24 +337,35 @@ void test_atomic_swap() {
 
 } // namespace
 
-// The base theme (T4 phase 6): unset, a package compiles onto
-// windows-professional as before; with ThemeBase::gui_forms, onto
-// GUI.Forms' own theme, its light sheet first in the cascade, and a
-// diagnostic in the package's sheet is still named for that sheet's line.
+// The base theme (T4 phase 6): unset, a package compiles onto the default
+// base, gui-forms; with ThemeBase::windows_professional, onto that theme's
+// recipes alone; with ThemeBase::gui_forms, onto GUI.Forms' own theme, its
+// light sheet first in the cascade, and a diagnostic in the package's sheet
+// is still named for that sheet's line.
 void test_base_theme() {
     ImageRegistry images{};
     const ThemeLibrary library{};
+    std::vector<ControlAnatomy> stock(stock_control_anatomies().begin(), stock_control_anatomies().end());
+    stock.push_back(controls[0]);
+    ThemeCompileOptions unset{};
+    unset.controls = stock;
+    require(unset.base == default_theme_base && default_theme_base == ThemeBase::gui_forms,
+            "unset, the base is the process default's, gui-forms");
+    const ThemeCompileResult defaulted =
+        compile_theme_package(package("based", "#pad { outline: 3px solid }"), library, images, unset);
+    require(defaulted.succeeded() && defaulted.diagnostics().empty() &&
+                (*defaulted.theme()).definition().dark_variant == ThemeDarkVariant::derived &&
+                (*defaulted.theme()).definition().compatibility.face == gui_forms_theme_definition().compatibility.face,
+            "unset, a package compiles onto gui-forms' recipes and dark variant");
     const ThemeCompileResult plain = compile_theme_package(package("based", "#pad { outline: 3px solid }"), library,
                                                            images, options());
-    require(plain.succeeded() && plain.diagnostics().empty(), "a package compiles onto the default base");
+    require(plain.succeeded() && plain.diagnostics().empty(), "a package compiles onto windows-professional");
     if (plain.succeeded()) {
         const ThemeDefinition& definition = (*plain.theme()).definition();
         require(definition.dark_variant == ThemeDarkVariant::none &&
                     definition.compatibility.face == windows_professional_theme_definition().compatibility.face,
-                "unset, the base is windows-professional's recipes");
+                "with windows_professional, the base is windows-professional's recipes");
     }
-    std::vector<ControlAnatomy> stock(stock_control_anatomies().begin(), stock_control_anatomies().end());
-    stock.push_back(controls[0]);
     ThemeCompileOptions onto = options();
     onto.controls = stock;
     onto.base = ThemeBase::gui_forms;

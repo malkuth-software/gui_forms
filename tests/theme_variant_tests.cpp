@@ -297,13 +297,17 @@ bool warns(const ThemeCompileResult& result, std::string_view code) {
 void test_dark_rules_without_variant() {
     ImageRegistry images{};
     const ThemeLibrary library{};
+    // Onto the light-only windows-professional base: gui-forms, the
+    // default base, derives a dark variant for every package.
+    ThemeCompileOptions professional{};
+    professional.base = ThemeBase::windows_professional;
     const ThemeCompileResult unvaried = compile_theme_package(
         package("unvaried", "@media (prefers-color-scheme: dark) { #pad { opacity: 0.5 } }"), library, images,
-        ThemeCompileOptions{});
+        professional);
     require(unvaried.succeeded() && warns(unvaried, "W402"), "dark rules without a dark variant warn");
     const ThemeCompileResult varied = compile_theme_package(
         package("varied", ":root { color-scheme: light dark } @media (prefers-color-scheme: dark) { #pad { opacity: 0.5 } }"),
-        library, images, ThemeCompileOptions{});
+        library, images, professional);
     require(varied.succeeded() && varied.diagnostics().empty() && (*varied.theme()).supports(ColourScheme::dark),
             "dark rules with a dark variant compile cleanly, and the theme has the variant");
 }

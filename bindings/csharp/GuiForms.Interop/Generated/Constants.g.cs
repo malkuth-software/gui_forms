@@ -236,8 +236,9 @@ public static class Constants
     public const uint GF_SUBSURFACE_STATE_STARTING = 1u;
     public const uint GF_SUBSURFACE_STATE_RUNNING = 2u;
     public const uint GF_SUBSURFACE_STATE_FAILED = 3u;
-    public const uint GF_THEME_BASE_WINDOWS_PROFESSIONAL = 0u;
-    public const uint GF_THEME_BASE_GUI_FORMS = 1u;
+    public const uint GF_THEME_BASE_DEFAULT = 0u;
+    public const uint GF_THEME_BASE_WINDOWS_PROFESSIONAL = 1u;
+    public const uint GF_THEME_BASE_GUI_FORMS = 2u;
     public const uint GF_PRESENTATION_SOURCE_HOST = 0u;
     public const uint GF_PRESENTATION_SOURCE_DEFAULTS = 1u;
     public const uint GF_APPLICATION_MAXIMUM_THEME_PACKAGES = 16u;

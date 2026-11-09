@@ -1164,13 +1164,18 @@
       "type": "uint32"
     },
     {
-      "name": "GF_THEME_BASE_WINDOWS_PROFESSIONAL",
+      "name": "GF_THEME_BASE_DEFAULT",
       "value": 0,
       "type": "uint32"
     },
     {
-      "name": "GF_THEME_BASE_GUI_FORMS",
+      "name": "GF_THEME_BASE_WINDOWS_PROFESSIONAL",
       "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_BASE_GUI_FORMS",
+      "value": 2,
       "type": "uint32"
     },
     {

@@ -43,7 +43,7 @@ static_assert(sizeof(gf_application_config) == application_config_size_1_1);
 
 // The configuration read from a caller's record, validated whole.
 struct ReadConfig final {
-    ThemeBase base{ThemeBase::windows_professional};
+    ThemeBase base{default_theme_base};
     std::vector<ThemePackage> packages{};
     gf_presentation_source presentation{GF_PRESENTATION_SOURCE_HOST};
 };
@@ -59,6 +59,9 @@ gf_status read_config(const gf_application_config* config, ReadConfig& made) {
     }
     ReadConfig read{};
     switch ((*config).theme_base) {
+    case GF_THEME_BASE_DEFAULT:
+        read.base = default_theme_base;
+        break;
     case GF_THEME_BASE_WINDOWS_PROFESSIONAL:
         read.base = ThemeBase::windows_professional;
         break;

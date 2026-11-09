@@ -19,14 +19,13 @@ There are three ways to give a program its look, and they combine:
 ## The built-in themes
 
 `gui-forms` is GUI.Forms' own theme, light and dark, and the default: a
-window shows it until the program chooses another, and an application's
-packages compile onto it unless `ApplicationConfig::theme.base` names
-`ThemeBase::windows_professional`. `windows-professional` is a
-Windows-familiar theme, light only; the lower-level `compile_theme_package`
-still compiles onto it unless `ThemeCompileOptions::base` says otherwise. Both are
-written in the theme language: their control families come from a floor sheet
-of `:family()` blocks, read once into the theme's recipes when it is first
-built.
+window shows it until the program chooses another, and packages compile onto
+it unless the base (`ApplicationConfig::theme.base`,
+`ThemeCompileOptions::base`, or `GF_THEME_BASE_WINDOWS_PROFESSIONAL` in the
+C ABI) names `windows-professional`, a Windows-familiar theme, light only.
+Both are written in the theme language: their control families come from a
+floor sheet of `:family()` blocks, read once into the theme's recipes when
+it is first built.
 
 The **familiar themes** recreate looks that Windows and macOS users
 recognise. They are written in the theme language, and none of them uses a

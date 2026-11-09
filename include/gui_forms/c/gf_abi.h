@@ -2005,10 +2005,13 @@ typedef struct gf_subsurfaces_table {
 /* gf_theme_base: the sheet an application's theme starts from, before its
  * packages. */
 typedef uint32_t gf_theme_base;
+/* The process default's base, whichever named base the library makes the
+ * default (GUI_FORMS in 1.1): zero, so a zero-initialised config takes it. */
+#define GF_THEME_BASE_DEFAULT 0u
 /* The Windows Professional sheet, a Windows-familiar theme's. */
-#define GF_THEME_BASE_WINDOWS_PROFESSIONAL 0u
-/* The library's own GUI.Forms sheet, the process default's base. */
-#define GF_THEME_BASE_GUI_FORMS 1u
+#define GF_THEME_BASE_WINDOWS_PROFESSIONAL 1u
+/* The library's own GUI.Forms sheet. */
+#define GF_THEME_BASE_GUI_FORMS 2u
 
 /* gf_presentation_source: how an application's windows take their
  * presentation (text scale, high contrast, reduced motion and transparency,
@@ -2035,9 +2038,8 @@ typedef uint32_t gf_presentation_source;
  * in that order, each with its
  * @import closure among the installed packages (themes.install). The
  * packages and their bytes are read during create only. With the default
- * base (GUI_FORMS) and no packages the theme is the built-in one, not
- * compiled again; WINDOWS_PROFESSIONAL, the zero value, compiles that base
- * alone.
+ * base (DEFAULT, or the named base it resolves to) and no packages the
+ * theme is the built-in one, not compiled again.
  */
 typedef struct gf_application_config {
     uint32_t struct_size;
