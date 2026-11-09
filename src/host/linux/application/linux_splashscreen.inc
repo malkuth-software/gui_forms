@@ -46,7 +46,7 @@ public:
     height_ = static_cast<unsigned>(std::ceil(size.height));
     const int x = (DisplayWidth(display_, screen) - static_cast<int>(width_)) / 2;
     const int y = (DisplayHeight(display_, screen) - static_cast<int>(height_)) / 2;
-    const Window root = RootWindow(display_, screen);
+    const ::Window root = RootWindow(display_, screen);
     colormap_ = XCreateColormap(display_, root, visual_, AllocNone);
     XSetWindowAttributes attributes{};
     attributes.override_redirect = True;
@@ -117,7 +117,7 @@ private:
   Visual *visual_{};
   int depth_{};
   Colormap colormap_{};
-  Window window_{};
+  ::Window window_{};
   GC gc_{};
   XImage *image_{};
   unsigned width_{};
