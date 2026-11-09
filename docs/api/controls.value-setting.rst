@@ -162,6 +162,8 @@ Related types
      - The highest value (Maximum).
    * - :cpp:class:`NumericUpDownMinimumCapability <gui_forms::NumericUpDownMinimumCapability>`
      - The lowest value (Minimum).
+   * - :cpp:class:`NumericUpDownScrubCapability <gui_forms::NumericUpDownScrubCapability>`
+     - Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected.
    * - :cpp:class:`NumericUpDownValueCapability <gui_forms::NumericUpDownValueCapability>`
      - The current value (Value), within minimum and maximum; anything else, or a value that is not finite, throws std::out_of_range.
    * - :cpp:class:`PropertyConversionContext <gui_forms::PropertyConversionContext>`
@@ -1187,7 +1189,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> NumericUpDownCapabilities : public NumericUpDownValueCapability<Declaring>, public NumericUpDownMinimumCapability<Declaring>, public NumericUpDownMaximumCapability<Declaring>, public NumericUpDownIncrementCapability<Declaring>, public NumericUpDownDecimalPlacesCapability<Declaring>, public NumericUpDownHexadecimalCapability<Declaring>, public NumericUpDownButtonWidthCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> NumericUpDownCapabilities : public NumericUpDownValueCapability<Declaring>, public NumericUpDownMinimumCapability<Declaring>, public NumericUpDownMaximumCapability<Declaring>, public NumericUpDownIncrementCapability<Declaring>, public NumericUpDownDecimalPlacesCapability<Declaring>, public NumericUpDownHexadecimalCapability<Declaring>, public NumericUpDownButtonWidthCapability<Declaring>, public NumericUpDownScrubCapability<Declaring>
 
    ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
 
@@ -1223,6 +1225,10 @@ Related types
    .. cpp:member:: double button_width
 
       The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).
+
+   .. cpp:member:: bool scrub
+
+      Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected. Off by default: the field then edits as a TextBox does.
 
 .. cpp:namespace:: gui_forms
 
@@ -1304,6 +1310,23 @@ Related types
    .. cpp:member:: PropertyCell<double, NumericUpDownMinimumCapability<Declaring>> minimum
 
       Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownScrubCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected. Off by default: the field then edits as a TextBox does.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownScrubCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, NumericUpDownScrubCapability<Declaring>> scrub
+
+      Default: ``{false}``.
 
 .. cpp:namespace:: gui_forms
 

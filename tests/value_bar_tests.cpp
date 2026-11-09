@@ -7,7 +7,8 @@
 // with its defect); the field style's arrows; Ctrl+wheel; the semantics of
 // both styles (study 3.7); the capabilities' dot syntax, read(), as_type
 // and the property table; and one gesture script's event trace. Headless:
-// a window that is never shown.
+// a window that is never shown. NumericUpDown's opt-in scrub mode, the
+// gesture's other adopter, is tested here too.
 
 #include "gui_forms/gui_forms.hpp"
 
@@ -427,6 +428,52 @@ void trace_script() {
     std::cout << '\n';
 }
 
+// NumericUpDown's opt-in scrub mode (the shared ScrubGesture): off, a drag
+// on the field changes nothing; on, a drag on the unfocused field scrubs
+// by the increment per unit, rounded to the shown decimals; a click focuses
+// the field with its text selected, after which the pointer edits text;
+// Escape restores.
+void numeric_up_down_scrub() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("spin.root"));
+    std::shared_ptr<NumericUpDown> spin = make_control<NumericUpDown>(StableId("spin.value"));
+    (*spin).set_requested_bounds({20.0, 40.0, 120.0, 24.0});
+    (*spin).value = 10.0;
+    std::shared_ptr<Button> other = make_control<Button>(StableId("spin.other"));
+    (*other).set_requested_bounds({200.0, 40.0, 80.0, 24.0});
+    (*root).add_child(spin);
+    (*root).add_child(other);
+    Window window(root, Size{400.0, 100.0});
+    window.perform_layout();
+    const double line = 52.0;
+    pointer(window, PointerAction::down, {40.0, line});
+    pointer(window, PointerAction::move, {60.0, line});
+    pointer(window, PointerAction::up, {60.0, line});
+    require(near((*spin).value.read(), 10.0) && !(*spin).scrubbing(), "scrub off: a drag changes nothing");
+    require(window.request_focus(other), "the focus leaves the field");
+    (*spin).scrub = true;
+    require((*spin).scrub.read(), "scrub mode on");
+    pointer(window, PointerAction::down, {40.0, line});
+    pointer(window, PointerAction::move, {50.0, line});
+    require((*spin).scrubbing() && near((*spin).value.read(), 20.0), "a drag scrubs by the increment per unit");
+    pointer(window, PointerAction::move, {53.0, line}, Modifier::shift);
+    require(near((*spin).value.read(), 20.0), "Shift: 0.3 rounds away at no decimals");
+    pointer(window, PointerAction::up, {53.0, line});
+    require(!(*spin).scrubbing() && near((*spin).value.read(), 20.0), "the release keeps the value");
+    require(window.focused_control() != (*spin).editor(), "a scrub does not focus the field");
+    pointer(window, PointerAction::down, {40.0, line});
+    pointer(window, PointerAction::move, {60.0, line});
+    key(window, PhysicalKey::escape);
+    pointer(window, PointerAction::up, {60.0, line});
+    require(near((*spin).value.read(), 20.0), "Escape restores the start value");
+    pointer(window, PointerAction::down, {40.0, line});
+    pointer(window, PointerAction::up, {41.0, line});
+    require(window.focused_control() == (*spin).editor(), "a click focuses the field");
+    pointer(window, PointerAction::down, {40.0, line});
+    pointer(window, PointerAction::move, {70.0, line});
+    pointer(window, PointerAction::up, {70.0, line});
+    require(near((*spin).value.read(), 20.0), "a focused field edits text instead of scrubbing");
+}
+
 } // namespace
 
 int main() {
@@ -443,6 +490,7 @@ int main() {
     semantics();
     capabilities();
     trace_script();
+    numeric_up_down_scrub();
     std::cout << "value bar: ranges, text, scrubbing, typing, keys, arrows, wheel, semantics and capabilities passed\n";
     return 0;
 }

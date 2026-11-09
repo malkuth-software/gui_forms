@@ -1493,6 +1493,14 @@ void test_numeric_up_down_properties() {
         (*control).button_width = sample;
         expect((*control).button_width.read() == sample, "NumericUpDown.button_width: a write stores");
     }
+    {
+        const bool sample = true;
+        (*control).scrub = sample;
+        expect((*control).scrub.read() == sample, "NumericUpDown.scrub: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("scrub");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "NumericUpDown.scrub: the table reads the cell");
+    }
 }
 
 void test_object_view_properties() {
