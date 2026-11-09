@@ -39,20 +39,6 @@ constexpr double close_side = 16.0;
 constexpr double gap = 8.0;
 constexpr double line_gap = 2.0;
 
-// The severity's keyline and icon colour until T4's floor gives the status
-// colours roles: mid-tone, so that each reads on a light face and a dark
-// one. Provisional.
-Color severity_color(NoticeSeverity severity) noexcept {
-    switch (severity) {
-    case NoticeSeverity::information: return Color::rgba(38, 114, 185);
-    case NoticeSeverity::warning: return Color::rgba(196, 132, 0);
-    case NoticeSeverity::success: return Color::rgba(46, 139, 87);
-    case NoticeSeverity::error: return Color::rgba(196, 43, 28);
-    default: break;
-    }
-    return Color::rgba(38, 114, 185);
-}
-
 PartMark severity_mark(NoticeSeverity severity) noexcept {
     switch (severity) {
     case NoticeSeverity::information: return PartMark::information;
@@ -254,7 +240,7 @@ void InfoBanner::on_paint(Painter& painter, Rect) {
     const Placement placed = placement(Size{client.width, client.height});
     const AnatomyStateSet states = anatomy_states();
     const NoticeSeverity level = severity.read();
-    const Color tone = severity_color(level);
+    const Color tone = notice_severity_colour(level);
     PartPaint face{.role = PartRole::face, .bounds = placed.face, .states = states, .family = ControlVisualRole::notice};
     paint_part(painter, *this, face);
     PartPaint keyline{.role = PartRole::keyline, .bounds = placed.keyline, .states = states,

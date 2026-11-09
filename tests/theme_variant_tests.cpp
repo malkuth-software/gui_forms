@@ -12,6 +12,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <initializer_list>
 #include <iostream>
 #include <memory>
@@ -199,6 +200,23 @@ void test_module_and_preview_grounds_follow_scheme() {
         require(!(*panel).has_background_override() && !(*panel).has_style_override(),
                 id + ": no colour or style written for the module");
         light.push_back((*panel).background());
+    }
+    // The status tints are severity states, as a notice's: the module's
+    // anatomy declares information, warning, success and error, and each
+    // tinted state holds exactly its severity's.
+    const ControlAnatomy& module_anatomy = (*module_panel(*rack, "modules.live")).anatomy();
+    require(module_anatomy.custom_states.size() == 4U && module_anatomy.custom_states[1].name == "warning" &&
+                module_anatomy.custom_states[3].name == "error",
+            "a module declares the notice severities as custom states");
+    const std::array<std::optional<std::uint8_t>, 4> severities{
+        {std::nullopt, std::uint8_t{1}, std::uint8_t{0}, std::uint8_t{3}}};
+    for (std::size_t index = 0U; index < ids.size(); ++index) {
+        const AnatomyStateSet held = (*module_panel(*rack, ids[index])).anatomy_states();
+        for (std::uint8_t state = 0U; state < 4U; ++state) {
+            const bool expected = severities[index] && *severities[index] == state;
+            require(held.contains(CustomStateIndex{state}) == expected,
+                    ids[index] + ": holds exactly its severity state");
+        }
     }
     require((*module_panel(*rack, "modules.pending")).visual_context().surface == ControlSurfaceState::pending &&
                 (*module_panel(*rack, "modules.invalid")).visual_context().surface == ControlSurfaceState::invalid,

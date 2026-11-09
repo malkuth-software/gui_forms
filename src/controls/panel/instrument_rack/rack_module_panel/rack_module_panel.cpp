@@ -1,10 +1,38 @@
 #include "rack_module_panel.hpp"
 
+#include "../../panel_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+
 #include <algorithm>
+#include <array>
 #include <numeric>
 #include <utility>
 
 namespace gui_forms::detail {
+namespace {
+
+// The severity keyline's width along the module's leading edge, in logical
+// units (InfoBanner's keyline's).
+constexpr double severity_keyline_width = 3.0;
+
+// One custom state per severity, in NoticeSeverity's order, so a
+// severity's number is its state's index, as InfoBanner's and Toast's.
+constexpr std::array<CustomStateDeclaration, 4> module_custom_states{{
+    {.name = "information"},
+    {.name = "warning"},
+    {.name = "success"},
+    {.name = "error"},
+}};
+
+// A panel's anatomy with the severity states.
+constexpr ControlAnatomy module_anatomy{
+    .control_id = "panel",
+    .parts = panel_detail::parts,
+    .states = scrollable_detail::states,
+    .custom_states = module_custom_states,
+};
+
+} // namespace
 
 RackModulePanel::RackModulePanel(StableId stable_id)
     : Panel(std::move(stable_id)) {
@@ -17,6 +45,40 @@ void RackModulePanel::set_compact(bool compact) {
     if (compact_ == compact) return;
     compact_ = compact;
     invalidate(invalidation::bounds);
+}
+
+void RackModulePanel::set_severity(std::optional<NoticeSeverity> severity) {
+    require_mutable();
+    if (severity_ == severity) return;
+    severity_ = severity;
+    invalidate(Dirty::style | Dirty::paint);
+}
+
+const ControlAnatomy& RackModulePanel::anatomy() const noexcept {
+    return module_anatomy;
+}
+
+AnatomyStateSet RackModulePanel::anatomy_states() const {
+    AnatomyStateSet states = Panel::anatomy_states();
+    if (severity_) states.insert(CustomStateIndex{static_cast<std::uint8_t>(*severity_)});
+    return states;
+}
+
+void RackModulePanel::on_paint(Painter& painter, Rect local_damage) {
+    Panel::on_paint(painter, local_damage);
+    if (!severity_) return;
+    // The keyline over the face, inside the line border, in the severity's
+    // colour as a notice's: an authored foreground over the module's role.
+    const Rect bounds = local_bounds();
+    const double border = border_style.read() == BorderStyle::none ? 0.0 : 1.0;
+    const double height = std::max(0.0, bounds.height - 2.0 * border);
+    PartPaint keyline{};
+    keyline.family = visual_role.read();
+    keyline.role = PartRole::keyline;
+    keyline.states = anatomy_states();
+    keyline.bounds = Rect{border, border, severity_keyline_width, height};
+    keyline.authored_foreground = notice_severity_colour(*severity_);
+    paint_part(painter, *this, keyline);
 }
 
 void RackModulePanel::arrange(Rect final_bounds) {

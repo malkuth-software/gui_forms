@@ -26,19 +26,6 @@ constexpr double close_side = 16.0;
 constexpr double gap = 8.0;
 constexpr double maximum_message_width = 420.0;
 
-// The severity's icon colour until T4's floor gives the status colours
-// roles; the same provisional colours as InfoBanner's keyline.
-Color severity_color(NoticeSeverity severity) noexcept {
-    switch (severity) {
-    case NoticeSeverity::information: return Color::rgba(38, 114, 185);
-    case NoticeSeverity::warning: return Color::rgba(196, 132, 0);
-    case NoticeSeverity::success: return Color::rgba(46, 139, 87);
-    case NoticeSeverity::error: return Color::rgba(196, 43, 28);
-    default: break;
-    }
-    return Color::rgba(38, 114, 185);
-}
-
 PartMark severity_mark(NoticeSeverity severity) noexcept {
     switch (severity) {
     case NoticeSeverity::information: return PartMark::information;
@@ -226,7 +213,7 @@ void Toast::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, face);
     PartPaint icon{.role = PartRole::glyph, .bounds = placed.icon, .states = states, .family = ControlVisualRole::notice};
     icon.mark = severity_mark(content_.severity);
-    icon.authored_foreground = severity_color(content_.severity);
+    icon.authored_foreground = notice_severity_colour(content_.severity);
     paint_part(painter, *this, icon);
     PartPaint label{.role = PartRole::label, .bounds = placed.label, .states = states,
                     .family = ControlVisualRole::notice};

@@ -35,7 +35,6 @@ AnimationPage::AnimationPage(const std::shared_ptr<Surface>& body,
     mount_document(body);
 
     EasingBoard& easing = *document_.gallery_animation_easing;
-    easing.set_style(page_style());
     easing.set_tracks({
         {EasingCurve::linear, "Linear", accent},
         {EasingCurve::ease_in, "Ease in", accent},

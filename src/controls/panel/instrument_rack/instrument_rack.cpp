@@ -47,6 +47,16 @@ ControlVisualRole module_role(InstrumentModuleState state) noexcept {
     return ControlVisualRole::card;
 }
 
+// The status tint a module's state keeps, as a notice severity: staged is
+// a warning (applied when committed), pending information, invalid an
+// error; a live module has none.
+std::optional<NoticeSeverity> module_severity(InstrumentModuleState state) noexcept {
+    if (state == InstrumentModuleState::staged) return NoticeSeverity::warning;
+    if (state == InstrumentModuleState::pending) return NoticeSeverity::information;
+    if (state == InstrumentModuleState::invalid) return NoticeSeverity::error;
+    return std::nullopt;
+}
+
 ControlVisualStatus module_status(InstrumentModuleState state) noexcept {
     if (state == InstrumentModuleState::pending) return ControlVisualStatus::pending;
     if (state == InstrumentModuleState::invalid) return ControlVisualStatus::invalid;
@@ -487,6 +497,7 @@ struct InstrumentRack::Impl final {
         const ControlVisualStatus status = module_status(module.spec.state);
         (*module.panel).visual_role = module_role(module.spec.state);
         (*module.panel).set_visual_status(status);
+        (*module.panel).set_severity(module_severity(module.spec.state));
         (*module.status).set_visual_status(status);
         synchronizing = true;
         (*module.enable).checked = module.spec.enabled;
