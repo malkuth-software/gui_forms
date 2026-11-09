@@ -80,7 +80,7 @@ holds. That ancestor is marked for arrange only.
 
 The three CSS containers take the property names and the initial values of
 CSS. The typed records are in `gui_forms/layout/style/layout_style.hpp`.
-Each container has container properties set with setters, and one item
+Each container has container properties, written like any property, and one item
 record per child, set with `set_item_layout(child, record)` and dropped
 when the child leaves. A child's own `margin` is its CSS margin, and its
 `minimum_size` and `maximum_size` still bound it. Lengths are logical pixels.
@@ -148,6 +148,71 @@ Each CSS container provides three inspection calls:
 - `item_positioning(child)` reads a child's positioning.
 
 Each panel's reference page lists every property, with examples.
+
+### Grid spans and placement
+
+A `GridPanel` owns its **spans**: regions that fuse cells, each a
+`GridSpan` (`gui_forms/layout/grid_span/grid_span.hpp`) with an optional
+name, an anchor cell (row first, zero-based) and its rows and columns. A
+named span is a named area; `grid-template-areas` is another spelling of the
+named spans. Each child's **placement** is one of three forms: automatic,
+into a span by name, or at a cell. Two child properties write it, and
+writing either replaces the other:
+
+```cpp
+gf::GridSpan footer{};
+footer.name = "footer";
+footer.anchor = gf::GridCell{.row = 2U, .column = 0U};
+footer.columns = 3U;
+const gf::GridSpanOutcome defined = (*table).define_span(footer);   // applied, or why not
+
+(*table).area[*ok] = "footer";                                     // into the span named footer
+(*table).cell[*title] = gf::GridCell{.row = 0U, .column = 0U};      // a single cell
+const gf::GridCell at = (*table).cell[*ok].read();                 // the anchor of the region it occupies
+(*table).area[*ok] = "";                                           // automatic again
+```
+
+- **Span edits validate first.** `define_span`, `remove_span` (by name or by
+  anchor) and `set_spans` check the whole result and, on a refusal, change
+  nothing and return the reason as a `GridSpanOutcome`: `overlaps` (two
+  spans share a cell), `name_repeated`, `extent_invalid` (no rows or columns,
+  or past 10,000 lines), `covers_placed_child` (a span would cover a cell a
+  child is placed at, other than its anchor), `in_use` (a named span with
+  children placed into it by name) and `not_found`. A span may lie past the
+  explicit tracks; implicit tracks grow to hold it, as in CSS Grid.
+- **Placement is checked when written.** The child must be a live direct
+  child, an area must name a span, and a cell must not lie inside a span
+  other than at its anchor. A child placed at an anonymous span's anchor
+  occupies the whole region.
+- **Several children in one region** stack in child order, as in CSS Grid.
+  Unplaced children are auto-placed by `auto_flow`, a span counting as one
+  region.
+- **Alignment inside the region** is the child's own: `margin`,
+  `minimum_size`, `maximum_size`, and the Control properties `justify_self`
+  and `align_self`.
+- **The item record's lines** are a third spelling: a `GridItemLayout` with
+  any line that is not automatic makes the area and cell placement
+  automatic, and writing `area` or `cell` makes the lines automatic.
+
+In a form document, spans are `span` blocks inside the grid, before its
+children, and the placement is the child's `area` or `cell`:
+
+```text
+grid-panel app.layout {
+  style: "grid-template-columns: 1fr 1fr auto; grid-template-rows: auto 1fr auto";
+  span footer { anchor: 2 0; columns: 3; }   /* named */
+  span { anchor: 0 2; rows: 2; }             /* anonymous: placed by its anchor */
+  label app.title { cell: 0 0; text: "Title"; }
+  list-box app.items { cell: 0 2; }          /* the anonymous span */
+  button app.ok { area: "footer"; text: "OK"; }
+  text-box app.note { }                      /* auto-placed */
+}
+```
+
+A span's name belongs to its grid, not to the document's stable IDs. Spans
+that overlap, or a cell inside a span, are refused with E814
+(`form_span_conflict`). `TableLayoutPanelCompat` keeps its own Windows Forms
+algorithm (see below).
 
 ### Positioning
 

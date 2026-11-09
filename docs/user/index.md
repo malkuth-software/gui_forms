@@ -11,6 +11,7 @@ found in the [API reference](../api/index).
 install
 download
 first-window
+application-and-windows
 consume-the-sdk
 c-abi-conformance-kit
 ```
@@ -32,6 +33,7 @@ values-commands-and-binding
 rules
 data-binding
 controls
+overlays-popups-and-splash
 themes
 theme-language
 ```

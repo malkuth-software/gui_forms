@@ -15,42 +15,61 @@ platform ([ADR-004](https://github.com/malkuth-software/notes/blob/gui_forms/dec
 
 ## First window
 
+A form document says which controls exist; the build turns it into a window
+class whose controls are typed members, bound to a model when it is made:
+
+```text
+/* forms/greeter.form */
+form greeter.window {
+  text: "First window";
+  client-size: 480 140;
+  panel greeter.root {
+    label greeter.status { text: "Ready."; bounds: 24 24 432 32; }
+    button greeter.run { text: "Run"; bounds: 24 72 120 36; command: bind(run); }
+  }
+}
+```
+
 ```cpp
+// gui_forms_add_form(greeter forms/greeter.form CLASS GreeterWindow NAMESPACE greeter
+//                    MODEL greeter::GreeterModel MODEL_HEADER greeter_model.hpp)
+#include "greeter_form.hpp"   // generated
+#include "greeter_model.hpp"  // struct GreeterModel { gui_forms::Command run{"greeter.run", "Run"}; };
+
 #include <gui_forms/application.hpp>
-#include <gui_forms/basic_controls.hpp>
 #include <gui_forms/component.hpp>
+#include <gui_forms/event.hpp>
 
 #include <memory>
 
 namespace gf = gui_forms;
 
-struct Greeter final : gf::Component {
-    std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("root"));
-    std::shared_ptr<gf::Label> status = gf::make_control<gf::Label>(gf::StableId("status"), "Ready.");
-    std::shared_ptr<gf::Button> run = gf::make_control<gf::Button>(gf::StableId("run"), "Run");
-    Greeter() {
-        (*status).set_bounds({24.0, 24.0, 432.0, 32.0});
-        (*run).set_bounds({24.0, 72.0, 120.0, 36.0});
-        (*root).add_child(status);
-        (*root).add_child(run);
-        gf::on((*run).clicked(), *this, &Greeter::on_run); // owned: revoked with Greeter
+class Greeter final : public gf::Component {
+public:
+    Greeter(greeter::GreeterWindow& window, greeter::GreeterModel& model) : window_(window) {
+        gf::on(model.run.invoked(), *this, &Greeter::on_run); // owned: revoked with Greeter
     }
-    void on_run() { (*status).set_text("Clicked."); }
+
+private:
+    void on_run() { (*window_.greeter_status).text = "Clicked."; }   // a property write
+    greeter::GreeterWindow& window_;
 };
 
 int main() {
     gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
     if (!created) return 1;
-    Greeter greeter{};
-    std::unique_ptr<gf::Window> window = std::make_unique<gf::Window>(greeter.root, gf::Size{480.0, 140.0});
-    return (*created.application).run(std::move(window),
-        {.title = "First window", .initial_size = {480.0, 140.0},
-         .minimum_size = {320.0, 140.0}}).accepted() ? 0 : 1;
+    greeter::GreeterModel model{};
+    std::unique_ptr<greeter::GreeterWindow> window =
+        std::make_unique<greeter::GreeterWindow>(*created.application, model);
+    Greeter greeter(*window, model);
+    const gf::ApplicationResult result = (*created.application).run(std::move(window));
+    return result.accepted() ? 0 : 1;
 }
 ```
 
-Controls are created once with a `StableId`, the tree owns them, mutation is
-imperative, and painting uses accumulated damage bounds. The longer walkthrough is
+Controls have stable IDs, the window owns them, a property write is
+synchronous and marks only what it touches, and painting uses the accumulated
+damage. The longer walkthrough is
 in [Your first window](https://gui-forms.readthedocs.io/user/first-window.html).
 
 ![GUI.Forms Gallery on macOS](docs/images/gallery-macos.png)

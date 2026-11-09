@@ -12,7 +12,7 @@ The thread that constructs a `Window` is its UI thread. `check_access()`
 returns whether the caller is on it; `verify_access()` throws when it is not.
 `Window::invoke_required()` is the inverse of `check_access()`;
 `Control::invoke_required()` reports whether dispatch to its owner is needed.
-A setter called from the wrong thread on a control attached to a window
+A property write or mutation called from the wrong thread on a control attached to a window
 throws and increments `MetricsSnapshot::rejected_wrong_thread_operations`; it
 never partially applies. A control that belongs to no window has no UI thread
 yet and is not checked, so build a tree on one thread before you attach it.

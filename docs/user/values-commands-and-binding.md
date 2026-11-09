@@ -105,7 +105,7 @@ A binding is two-way, and the model's value wins when you bind. A model value
 the control cannot represent (outside its range, past its last choice) throws
 at that point, so configure ranges and items first. Any number of controls can
 share one model: a change in one updates the model, the model updates the
-others, and the originating control's setter is not called again. Every bound
+others, and the originating control's property is not written again. Every bound
 control's constraints are checked before anything changes, so a value one of
 them rejects leaves all of them, and the model, as they were.
 

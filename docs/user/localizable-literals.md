@@ -1,6 +1,6 @@
 # Localizable literals
 
-Text a program sets after a window is built, such as `label.set_text("Ready")`
+Text a program sets after a window is built, such as `(*status).text = "Ready";`
 in an event handler, never appears in the window's initial description, so a
 translator could not see it. GUI.Forms finds that text while the program
 compiles. A Clang plugin records every string literal passed to a localizable
@@ -19,16 +19,16 @@ A parameter or field is localizable when its declaration carries
 
 | Property | Where |
 | --- | --- |
-| `text` | `set_text` of Label, ButtonBase, GroupBox, TabPage, TextBlock, RibbonColorPicker, Command and NotifyIcon; the text of menu, tool strip, menu strip, ribbon, backstage, list view, tree view, choice, section and command bar items |
+| `text` | the `text` property cell of Label, ButtonBase, GroupBox, TabPage, TextBlock, RibbonColorPicker, NotifyIcon and the other controls that take the shared `TextCapability`; `Command::set_text`; the text of menu, tool strip, menu strip, ribbon, backstage, list view, tree view, choice, section and command bar items |
 | `tool_tip` | the `Control::tool_tip_text` property cell (also a TabPage's header tooltip and a field's hint), `ToolTip::set_tool_tip`, a tool strip item's `tool_tip_text`, and `RibbonToolTipContent`'s `title`, `description` and `disabled_reason` (not its `shortcut`, which comes from the key binding) |
-| `title` | `set_title` of ColorDialog, OpenFileDialog and SaveFileDialog |
-| `placeholder` | `set_placeholder_text` of TextBox and ComboBox |
+| `title` | the `title` property cell of ColorDialog, OpenFileDialog, SaveFileDialog, InfoBanner and EmptyState |
+| `placeholder` | the `placeholder_text` property cell of TextBox and ComboBox |
 | `accessible_name`, `accessible_description` | the Control property cells, and the accessible names of choice and command bar items |
 | `header` | list view and tree list view column text, list view group headers, `DataGridViewColumn::header_text` |
 | `items` | the `items` collection cell of ComboBox, ListBox, CheckedListBox and DomainUpDown (assignment, `insert`, `append` and `replace`), and `CheckedListBox::add_item` |
 
-The text of a TextBox, ComboBox or DomainUpDown is the user's, so its
-`set_text` is not marked.
+The text of a TextBox, ComboBox or DomainUpDown is the user's, so its `text`
+view is not marked.
 
 A function of your own that passes its parameter on to a marked one is found
 when you mark its parameter too:
@@ -37,7 +37,7 @@ when you mark its parameter too:
 #include "gui_forms/text/localizable/localizable_property.hpp"
 
 void show_status(gui_forms::Label& status, GUI_FORMS_LOCALIZABLE(text) std::string_view message) {
-    status.set_text(std::string(message));
+    status.text = std::string(message);
 }
 
 show_status(status, "Saved");  // recorded
