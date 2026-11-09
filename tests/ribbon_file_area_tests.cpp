@@ -5,6 +5,7 @@
 // the document.
 
 #include "gui_forms/gui_forms.hpp"
+#include "support/theme_definition_heap.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -490,6 +491,25 @@ void backstage() {
         threw = true;
     }
     require(threw && (*view).items().size() == 4U, "a topic without a page is refused");
+
+    // Backstage takes the ribbon's theme override while open and gives it
+    // back on close; an override the application set on it stays.
+    const std::unique_ptr<ThemeDefinition> held = test_support::professional_definition();
+    (*held).id = "ribbon-override";
+    const std::shared_ptr<const Theme> override_theme = Theme::create(*held);
+    (*ribbon).set_theme_override(override_theme);
+    require((*ribbon).show_backstage(), "Backstage opens under the ribbon's override");
+    window.perform_layout();
+    require((*view).theme_override() == override_theme && (*print_button).effective_theme().id() == "ribbon-override",
+            "Backstage and its pages take the ribbon's theme override while open");
+    (*ribbon).close_backstage();
+    require(!(*view).theme_override(), "closing Backstage gives the ribbon's override back");
+    const std::shared_ptr<const Theme> own = default_theme();
+    (*view).set_theme_override(own);
+    require((*ribbon).show_backstage() && (*view).theme_override() == own,
+            "an override the application set on Backstage is kept");
+    (*ribbon).close_backstage();
+    require((*view).theme_override() == own, "and survives closing");
 }
 
 // The palette's keyboard entry outlives the entries when the recent colours

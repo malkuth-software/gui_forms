@@ -27,6 +27,19 @@ using namespace menu_detail;
 
 namespace {
 
+// The nearest theme override on `control` or an ancestor, or none: the theme
+// a menu opened from it is drawn in, though the menu's layer and panels are
+// overlay roots (or Popup windows' content), which would take the window's.
+[[nodiscard]] std::shared_ptr<const Theme> invoker_theme_override(const Control::Ptr& control) {
+    std::shared_ptr<const Theme> theme{};
+    Control::Ptr ancestor = control;
+    while (ancestor && !theme) {
+        theme = (*ancestor).theme_override();
+        ancestor = (*ancestor).parent();
+    }
+    return theme;
+}
+
 // The one character a text event types, or none when it types several, is
 // malformed or is still composing.
 [[nodiscard]] std::optional<char32_t> typed_character(
@@ -589,9 +602,12 @@ struct ContextMenu::Impl final {
         }
         window = (*invoker).attached_window();
         owner_control = invoker;
+        invoker_theme = invoker_theme_override(invoker);
         const Size client = (*window).client_size();
         layer = make_control<MenuLayer>(
             StableId(owner.stable_id_ + ".overlay.layer"), *this);
+        // Fresh controls without inline styles: the override cannot be refused.
+        if (invoker_theme) (*layer).set_theme_override(invoker_theme);
         (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
         // The layer opens first in every case: it takes outside clicks and,
         // with Popup windows, the owner's focus. The panels open in the
@@ -756,6 +772,7 @@ struct ContextMenu::Impl final {
         focus_depth = 0U;
         layer.reset();
         owner_control.reset();
+        invoker_theme.reset();
         window = nullptr;
         snapshot.clear();
         open = false;
@@ -811,6 +828,9 @@ struct ContextMenu::Impl final {
             StableId(owner.stable_id_ + ".overlay.panel." + std::to_string(depth)),
             *this, depth);
         (*state.panel).set_requested_bounds({x, y, panel_width, viewport});
+        // A panel in a Popup window is not under the layer: it carries the
+        // invoker's theme itself.
+        if (invoker_theme) (*state.panel).set_theme_override(invoker_theme);
         state.face = Rect{x, y, panel_width, viewport};
         state.rows.reserve(items.size());
         for (std::size_t index = 0; index < items.size(); ++index) {
@@ -1111,6 +1131,8 @@ struct ContextMenu::Impl final {
     ContextMenu& owner;
     Window* window{};
     Control::Ptr owner_control;
+    // The invoker's nearest theme override while open (none: the window's).
+    std::shared_ptr<const Theme> invoker_theme;
     std::shared_ptr<MenuLayer> layer;
     std::vector<MenuSnapshot> snapshot;
     std::vector<PanelState> panels;

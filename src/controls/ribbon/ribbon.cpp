@@ -162,12 +162,7 @@ void Ribbon::follow_theme() {
 // the overlay's inline styles do not compile against is refused, and the
 // overlay keeps the window's theme.
 void Ribbon::sync_overlay_themes() {
-    std::shared_ptr<const Theme> theme{};
-    Control::Ptr ancestor = shared_from_this();
-    while (ancestor && !theme) {
-        theme = (*ancestor).theme_override();
-        ancestor = (*ancestor).parent();
-    }
+    const std::shared_ptr<const Theme> theme = nearest_theme_override();
     const std::array<Control*, 2> overlays{group_layer_.get(), application_overlay_.get()};
     for (Control* const overlay : overlays) {
         if (overlay == nullptr) continue;
@@ -179,6 +174,49 @@ void Ribbon::sync_overlay_themes() {
             }
         } catch (const std::invalid_argument&) {
         }
+    }
+    if (backstage_open_) sync_backstage_theme();
+}
+
+// The nearest theme override on the ribbon or an ancestor, or none. Drop-down
+// menus find the same through ContextMenu, from the ribbon as their invoker.
+std::shared_ptr<const Theme> Ribbon::nearest_theme_override() const {
+    std::shared_ptr<const Theme> theme{};
+    std::shared_ptr<const Control> ancestor = shared_from_this();
+    while (ancestor && !theme) {
+        theme = (*ancestor).theme_override();
+        ancestor = (*ancestor).parent();
+    }
+    return theme;
+}
+
+// Backstage, an overlay root, takes the ribbon's theme as the other overlays
+// do, but it is the application's control: an override the application set
+// on it stays, and the ribbon's own is taken back when Backstage closes.
+void Ribbon::sync_backstage_theme() {
+    const std::shared_ptr<BackstageView> view = backstage.read();
+    if (!view) return;
+    const std::shared_ptr<const Theme> own = (*view).theme_override();
+    if (own && own != backstage_theme_) return;
+    const std::shared_ptr<const Theme> theme = nearest_theme_override();
+    try {
+        if (theme) {
+            (*view).set_theme_override(theme);
+        } else if (own) {
+            (*view).clear_theme_override();
+        }
+        backstage_theme_ = theme;
+    } catch (const std::invalid_argument&) {
+    }
+}
+
+void Ribbon::release_backstage_theme() noexcept {
+    const std::shared_ptr<const Theme> given = std::move(backstage_theme_);
+    const std::shared_ptr<BackstageView> view = backstage.read();
+    if (!given || !view || (*view).theme_override() != given) return;
+    try {
+        (*view).clear_theme_override();
+    } catch (...) {
     }
 }
 

@@ -753,6 +753,9 @@ private:
     void on_presentation_changed(const PresentationSettings& settings);
     void follow_theme();
     void sync_overlay_themes();
+    void sync_backstage_theme();
+    void release_backstage_theme() noexcept;
+    [[nodiscard]] std::shared_ptr<const Theme> nearest_theme_override() const;
     void tabs_shown_changed();
 
     // -- set_tabs stages (ribbon.cpp) -------------------------------------------
@@ -964,6 +967,10 @@ private:
     FocusScopeId backstage_scope_{};
     SubscriptionToken backstage_revoked_{};
     bool backstage_open_{};
+    // The theme override the ribbon gave Backstage while open (the
+    // application's control): cleared on close if still in force, and never
+    // written over an override of the application's own.
+    std::shared_ptr<const Theme> backstage_theme_{};
 
     // The window's theme and presentation notifications while attached
     // (follow_theme); disconnected on detach.

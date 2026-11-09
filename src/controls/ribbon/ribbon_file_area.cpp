@@ -168,6 +168,7 @@ bool Ribbon::show_backstage() {
     close_menus();
     close_group_overlay();
     place_backstage();
+    sync_backstage_theme();
     backstage_token_ = (*window).open_overlay(shared_from_this(), backstage.read());
     backstage_open_ = true;
     if (Event<>* closed = backstage_token_.closed_event()) {
@@ -192,6 +193,7 @@ void Ribbon::close_backstage() noexcept {
     backstage_scope_ = {};
     backstage_revoked_.disconnect();
     backstage_token_.disconnect();
+    release_backstage_theme();
     if (!is_alive()) return;
     try {
         invalidate(Dirty::paint | Dirty::semantics);
