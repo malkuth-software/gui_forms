@@ -12,6 +12,8 @@
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 
+#include "../src/core/text/localizable/gui_forms_notes.hpp"
+
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -858,6 +860,84 @@ void test_signal_programs() {
             "every program declares its budget");
 }
 
+// Each program's registration entry, and (in a build that verifies effects)
+// the effect pass's record for it: named "signal:<name>", its run's bound
+// within operations_per_sample × signal_sink_capacity, its state sizeof the
+// program.
+struct SignalRecord final {
+    std::string name;
+    std::uint32_t bound{};
+    std::uint32_t state_size{};
+};
+
+std::uint32_t read_u32(const std::vector<std::byte>& table, std::size_t& offset, bool& failed) {
+    if (table.size() - offset < 4U) {
+        failed = true;
+        return 0U;
+    }
+    std::uint32_t value = 0U;
+    for (std::size_t index = 0U; index < 4U; ++index) {
+        const std::uint32_t byte = std::to_integer<std::uint32_t>(table[offset + index]);
+        value = value | (byte << (8U * index));
+    }
+    offset = offset + 4U;
+    return value;
+}
+
+std::vector<SignalRecord> signal_records() {
+    std::vector<SignalRecord> records;
+    const std::vector<std::vector<std::byte>> tables = gui_forms_note_descriptions(effect_verification_note_type, nullptr);
+    for (const std::vector<std::byte>& table : tables) {
+        std::size_t offset = 0U;
+        bool failed = false;
+        const std::uint32_t count = read_u32(table, offset, failed);
+        for (std::uint32_t index = 0U; index < count && !failed; ++index) {
+            const std::uint32_t size = read_u32(table, offset, failed);
+            if (failed || table.size() - offset < size) break;
+            SignalRecord record;
+            record.name.assign(reinterpret_cast<const char*>(table.data() + offset), size);
+            offset = offset + size;
+            record.bound = read_u32(table, offset, failed);
+            static_cast<void>(read_u32(table, offset, failed));
+            record.state_size = read_u32(table, offset, failed);
+            if (!failed) records.push_back(record);
+        }
+    }
+    return records;
+}
+
+template <typename Program>
+void check_signal_entry(SignalKind kind, const std::vector<SignalRecord>& records) {
+    const SignalEntry entry = make_signal_entry<Program>();
+    require(entry.declaration == &Program::declaration && entry.state_size == sizeof(Program),
+            "a signal entry names its program's declaration and state size");
+    require(&signal_declaration(kind) == &Program::declaration, "signal_declaration reads the registered entry");
+    const std::string recorded = "signal:" + std::string(Program::declaration.name);
+    const SignalRecord* found = nullptr;
+    for (const SignalRecord& record : records) {
+        if (record.name == recorded) found = &record;
+    }
+#if defined(GUI_FORMS_EFFECT_TEST_VERIFIED)
+    require(found != nullptr, "the effect pass recorded the signal program");
+    const std::uint64_t budget =
+        static_cast<std::uint64_t>(Program::declaration.operations_per_sample) * signal_sink_capacity;
+    require((*found).bound > 0U && (*found).bound <= budget, "a signal run's bound fits its declared budget");
+    require((*found).state_size == sizeof(Program), "the record's state size is sizeof the program");
+#else
+    require(found == nullptr, "built without the effect pass, no signal program is recorded");
+#endif
+}
+
+void test_signal_verification() {
+    const std::vector<SignalRecord> records = signal_records();
+    check_signal_entry<SineSignal>(SignalKind::sine, records);
+    check_signal_entry<SquareSignal>(SignalKind::square, records);
+    check_signal_entry<SawSignal>(SignalKind::saw, records);
+    check_signal_entry<ChirpSignal>(SignalKind::chirp, records);
+    check_signal_entry<NoiseSignal>(SignalKind::noise, records);
+    check_signal_entry<OscillatorBank>(SignalKind::oscillators, records);
+}
+
 // -- mark painters: display traces --------------------------------------------------------------------
 
 // Writes each batched call with its arguments (the plots' display-trace
@@ -964,6 +1044,7 @@ int main() {
         test_view_model_locks_keys_and_follow();
         test_legend_and_annotations();
         test_signal_programs();
+        test_signal_verification();
         test_mark_painter_traces();
         std::cout << "gui_forms_plot_primitives_tests: all tests passed\n";
         return EXIT_SUCCESS;

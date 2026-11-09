@@ -69,14 +69,17 @@ struct SignalSink final {
 
 // A program's declaration: its registered name and its declared budget in
 // operations per sample (the effect plugin's measure, per sample instead of
-// per device pixel).
+// per device pixel). The plugin's effect pass checks the static bound of
+// one run against operations_per_sample × signal_sink_capacity, so the
+// per-sample figure also covers each sample's share of the frame's loop
+// and validation overhead.
 struct SignalDeclaration final {
     std::string_view name{};
     std::uint32_t operations_per_sample{};
 };
 
 struct SineSignal final {
-    static constexpr SignalDeclaration declaration{"sine", 40U};
+    static constexpr SignalDeclaration declaration{"sine", 80U};
     double frequency{1.0};
     double amplitude{1.0};
     // Radians.
@@ -86,7 +89,7 @@ struct SineSignal final {
 };
 
 struct SquareSignal final {
-    static constexpr SignalDeclaration declaration{"square", 12U};
+    static constexpr SignalDeclaration declaration{"square", 32U};
     double frequency{1.0};
     double amplitude{1.0};
     // The fraction of each cycle at +amplitude.
@@ -96,7 +99,7 @@ struct SquareSignal final {
 };
 
 struct SawSignal final {
-    static constexpr SignalDeclaration declaration{"saw", 10U};
+    static constexpr SignalDeclaration declaration{"saw", 32U};
     double frequency{1.0};
     double amplitude{1.0};
     double offset{};
@@ -106,7 +109,7 @@ struct SawSignal final {
 // A linear chirp from `frequency` to `end_frequency` over each sweep of
 // `sweep_seconds`, repeating.
 struct ChirpSignal final {
-    static constexpr SignalDeclaration declaration{"chirp", 48U};
+    static constexpr SignalDeclaration declaration{"chirp", 96U};
     double frequency{1.0};
     double end_frequency{10.0};
     double sweep_seconds{5.0};
@@ -116,7 +119,7 @@ struct ChirpSignal final {
 
 // Uniform noise in [-amplitude, amplitude] (plus offset), keyed by sample.
 struct NoiseSignal final {
-    static constexpr SignalDeclaration declaration{"noise", 16U};
+    static constexpr SignalDeclaration declaration{"noise", 40U};
     double amplitude{1.0};
     double offset{};
     std::uint64_t seed{0x5eedU};
@@ -133,7 +136,7 @@ struct Oscillator final {
 
 // A sum of up to maximum_oscillators sines.
 struct OscillatorBank final {
-    static constexpr SignalDeclaration declaration{"oscillators", 40U * maximum_oscillators};
+    static constexpr SignalDeclaration declaration{"oscillators", 64U * maximum_oscillators};
     std::array<Oscillator, maximum_oscillators> oscillators{};
     std::size_t count{};
     double offset{};
@@ -144,6 +147,23 @@ static_assert(std::is_trivially_copyable_v<SineSignal> && std::is_trivially_copy
               "signal programs' state must be trivially copyable");
 
 enum class SignalKind : std::uint8_t { sine, square, saw, chirp, noise, oscillators };
+
+// One registered program type: its declaration and the size of its state.
+// Each instantiation of make_signal_entry<P> registers P with the gui_forms
+// plugin's effect pass, which verifies P::run under the effect rules and
+// bounds it by the declared budget (signal_program.cpp instantiates one per
+// kind, in SignalKind order).
+struct SignalEntry final {
+    const SignalDeclaration* declaration{};
+    std::size_t state_size{};
+};
+
+template <typename Program>
+[[nodiscard]] constexpr SignalEntry make_signal_entry() noexcept {
+    static_assert(std::is_trivially_copyable_v<Program>, "signal programs' state must be trivially copyable");
+    const SignalEntry entry{&Program::declaration, sizeof(Program)};
+    return entry;
+}
 
 // One program of any kind, by value: the kind chooses which member is live
 // (a tagged record rather than a callable, so no indirect call runs).

@@ -1,9 +1,24 @@
+// Signal programs. Every function from a program's run down obeys the
+// effect rules (gui_forms/engine/effect/effect.hpp): bounded loops only, no
+// recursion, allocation, globals, clocks or host maths. The plugin's effect
+// pass verifies them through the entries in signal_entries below.
+
 #include "gui_forms/plots/signal_program/signal_program.hpp"
 
-#include "gui_forms/engine/effect/effect.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+// Built without the gui_forms plugin's effect pass (GUI_FORMS_EFFECT_VERIFY
+// OFF, or a toolchain that cannot load the plugin), CMake defines this, and
+// the programs' bounds go unchecked.
+#if defined(GUI_FORMS_EFFECTS_UNVERIFIED)
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma message("signal programs are unverified: their bounds are not checked")
+#else
+#warning "signal programs are unverified: their bounds are not checked"
+#endif
+#endif
 
-#include <algorithm>
+#include "gui_forms/engine/effect/effect.hpp"
+
+#include <array>
 #include <charconv>
 #include <chrono>
 #include <cmath>
@@ -16,8 +31,15 @@ namespace {
 
 constexpr double two_pi = 6.283185307179586477;
 
+// The registered programs, in SignalKind order: one make_signal_entry
+// instantiation each, which the effect pass verifies.
+constexpr std::array<SignalEntry, 6> signal_entries{
+    make_signal_entry<SineSignal>(),  make_signal_entry<SquareSignal>(), make_signal_entry<SawSignal>(),
+    make_signal_entry<ChirpSignal>(), make_signal_entry<NoiseSignal>(),  make_signal_entry<OscillatorBank>(),
+};
+
 // The sample index of sample `sample` of tick `tick`.
-std::uint64_t sample_index(const SignalFrame& frame, std::uint64_t tick, std::uint32_t sample) noexcept {
+std::uint64_t sample_index(const SignalFrame& frame, std::uint64_t tick, std::uint64_t sample) noexcept {
     const std::uint64_t result = tick * frame.samples_per_tick + sample;
     return result;
 }
@@ -27,18 +49,17 @@ double sample_time(const SignalFrame& frame, std::uint64_t index) noexcept {
     return result;
 }
 
-// The fraction of a cycle of `frequency` at sample `index`, in [0, 1),
-// computed from the index so long runs keep full precision: the whole
-// cycles are removed in integer arithmetic where the frequency allows.
-double cycle_fraction(double frequency, const SignalFrame& frame, std::uint64_t index) noexcept {
-    const double cycles = frequency * sample_time(frame, index);
-    const double fraction = cycles - std::floor(cycles);
+// The fraction of a cycle of `frequency` at `time` seconds, in [0, 1): the
+// cycles less their whole part (effect_fraction; 0 past 2^52 cycles). The
+// time comes from the sample index, so it never accumulates error.
+double cycle_fraction(double frequency, double time) noexcept {
+    const double fraction = effect_fraction(frequency * time);
     return fraction;
 }
 
 double sine_of_fraction(double fraction, double phase) noexcept {
-    const EngineSineCosine value = engine_sine_cosine(two_pi * fraction + phase);
-    return value.sine;
+    const double value = effect_sine(two_pi * fraction + phase);
+    return value;
 }
 
 bool usable(const SignalFrame& frame) noexcept {
@@ -49,53 +70,58 @@ bool usable(const SignalFrame& frame) noexcept {
 
 } // namespace
 
+// Each run: the frame's ticks, then each tick's samples, over bounded ranges
+// (usable() has already refused counts past their capacities).
+
 void SineSignal::run(const SignalFrame& frame, SignalSink& sink) const noexcept {
     if (!usable(frame)) return;
-    for (std::uint32_t tick = 0U; tick < frame.tick_count; ++tick) {
-        for (std::uint32_t sample = 0U; sample < frame.samples_per_tick; ++sample) {
+    for (const std::size_t tick : bounded_range<maximum_ticks_per_frame>(frame.tick_count)) {
+        for (const std::size_t sample : bounded_range<maximum_samples_per_tick>(frame.samples_per_tick)) {
             const std::uint64_t index = sample_index(frame, frame.first_tick + tick, sample);
-            const double value = offset + amplitude * sine_of_fraction(cycle_fraction(frequency, frame, index), phase);
-            static_cast<void>(sink.push(sample_time(frame, index), value));
+            const double time = sample_time(frame, index);
+            const double value = offset + amplitude * sine_of_fraction(cycle_fraction(frequency, time), phase);
+            static_cast<void>(sink.push(time, value));
         }
     }
 }
 
 void SquareSignal::run(const SignalFrame& frame, SignalSink& sink) const noexcept {
     if (!usable(frame)) return;
-    for (std::uint32_t tick = 0U; tick < frame.tick_count; ++tick) {
-        for (std::uint32_t sample = 0U; sample < frame.samples_per_tick; ++sample) {
+    for (const std::size_t tick : bounded_range<maximum_ticks_per_frame>(frame.tick_count)) {
+        for (const std::size_t sample : bounded_range<maximum_samples_per_tick>(frame.samples_per_tick)) {
             const std::uint64_t index = sample_index(frame, frame.first_tick + tick, sample);
-            const double fraction = cycle_fraction(frequency, frame, index);
+            const double time = sample_time(frame, index);
+            const double fraction = cycle_fraction(frequency, time);
             const double value = offset + (fraction < duty ? amplitude : -amplitude);
-            static_cast<void>(sink.push(sample_time(frame, index), value));
+            static_cast<void>(sink.push(time, value));
         }
     }
 }
 
 void SawSignal::run(const SignalFrame& frame, SignalSink& sink) const noexcept {
     if (!usable(frame)) return;
-    for (std::uint32_t tick = 0U; tick < frame.tick_count; ++tick) {
-        for (std::uint32_t sample = 0U; sample < frame.samples_per_tick; ++sample) {
+    for (const std::size_t tick : bounded_range<maximum_ticks_per_frame>(frame.tick_count)) {
+        for (const std::size_t sample : bounded_range<maximum_samples_per_tick>(frame.samples_per_tick)) {
             const std::uint64_t index = sample_index(frame, frame.first_tick + tick, sample);
-            const double fraction = cycle_fraction(frequency, frame, index);
+            const double time = sample_time(frame, index);
+            const double fraction = cycle_fraction(frequency, time);
             const double value = offset + amplitude * (2.0 * fraction - 1.0);
-            static_cast<void>(sink.push(sample_time(frame, index), value));
+            static_cast<void>(sink.push(time, value));
         }
     }
 }
 
 void ChirpSignal::run(const SignalFrame& frame, SignalSink& sink) const noexcept {
     if (!usable(frame) || !(sweep_seconds > 0.0)) return;
-    for (std::uint32_t tick = 0U; tick < frame.tick_count; ++tick) {
-        for (std::uint32_t sample = 0U; sample < frame.samples_per_tick; ++sample) {
+    for (const std::size_t tick : bounded_range<maximum_ticks_per_frame>(frame.tick_count)) {
+        for (const std::size_t sample : bounded_range<maximum_samples_per_tick>(frame.samples_per_tick)) {
             const std::uint64_t index = sample_index(frame, frame.first_tick + tick, sample);
             const double time = sample_time(frame, index);
-            const double sweeps = time / sweep_seconds;
-            const double within = (sweeps - std::floor(sweeps)) * sweep_seconds;
+            const double within = effect_fraction(time / sweep_seconds) * sweep_seconds;
             // Phase in cycles: f0 t + (f1 - f0) t² / 2T, within one sweep.
             const double cycles =
                 frequency * within + (end_frequency - frequency) * within * within / (2.0 * sweep_seconds);
-            const double fraction = cycles - std::floor(cycles);
+            const double fraction = effect_fraction(cycles);
             const double value = amplitude * sine_of_fraction(fraction, 0.0);
             static_cast<void>(sink.push(time, value));
         }
@@ -104,8 +130,8 @@ void ChirpSignal::run(const SignalFrame& frame, SignalSink& sink) const noexcept
 
 void NoiseSignal::run(const SignalFrame& frame, SignalSink& sink) const noexcept {
     if (!usable(frame)) return;
-    for (std::uint32_t tick = 0U; tick < frame.tick_count; ++tick) {
-        for (std::uint32_t sample = 0U; sample < frame.samples_per_tick; ++sample) {
+    for (const std::size_t tick : bounded_range<maximum_ticks_per_frame>(frame.tick_count)) {
+        for (const std::size_t sample : bounded_range<maximum_samples_per_tick>(frame.samples_per_tick)) {
             const std::uint64_t index = sample_index(frame, frame.first_tick + tick, sample);
             const std::uint64_t bits = EffectRandom::hash(seed, 0U, index) >> 11U;
             const double unit = static_cast<double>(bits) * (1.0 / 9007199254740992.0);
@@ -117,17 +143,18 @@ void NoiseSignal::run(const SignalFrame& frame, SignalSink& sink) const noexcept
 
 void OscillatorBank::run(const SignalFrame& frame, SignalSink& sink) const noexcept {
     if (!usable(frame)) return;
-    const std::size_t live = std::min(count, maximum_oscillators);
-    for (std::uint32_t tick = 0U; tick < frame.tick_count; ++tick) {
-        for (std::uint32_t sample = 0U; sample < frame.samples_per_tick; ++sample) {
+    for (const std::size_t tick : bounded_range<maximum_ticks_per_frame>(frame.tick_count)) {
+        for (const std::size_t sample : bounded_range<maximum_samples_per_tick>(frame.samples_per_tick)) {
             const std::uint64_t index = sample_index(frame, frame.first_tick + tick, sample);
+            const double time = sample_time(frame, index);
             double value = offset;
-            for (std::size_t partial = 0U; partial < live; ++partial) {
+            // count is clamped to maximum_oscillators by the range.
+            for (const std::size_t partial : bounded_range<maximum_oscillators>(count)) {
                 const Oscillator& oscillator = oscillators[partial];
-                const double fraction = cycle_fraction(oscillator.frequency, frame, index);
+                const double fraction = cycle_fraction(oscillator.frequency, time);
                 value = value + oscillator.amplitude * sine_of_fraction(fraction, oscillator.phase);
             }
-            static_cast<void>(sink.push(sample_time(frame, index), value));
+            static_cast<void>(sink.push(time, value));
         }
     }
 }
@@ -156,21 +183,9 @@ void run_signal(const SignalProgram& program, const SignalFrame& frame, SignalSi
 }
 
 const SignalDeclaration& signal_declaration(SignalKind kind) noexcept {
-    switch (kind) {
-    case SignalKind::sine:
-        return SineSignal::declaration;
-    case SignalKind::square:
-        return SquareSignal::declaration;
-    case SignalKind::saw:
-        return SawSignal::declaration;
-    case SignalKind::chirp:
-        return ChirpSignal::declaration;
-    case SignalKind::noise:
-        return NoiseSignal::declaration;
-    case SignalKind::oscillators:
-        return OscillatorBank::declaration;
-    }
-    return SineSignal::declaration;
+    const std::size_t index = static_cast<std::size_t>(kind);
+    if (index >= signal_entries.size()) return SineSignal::declaration;
+    return *signal_entries[index].declaration;
 }
 
 // -- SignalClock -------------------------------------------------------------------

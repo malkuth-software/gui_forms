@@ -132,6 +132,8 @@ Types
      - Converts frame times to ticks.
    * - :cpp:class:`SignalDeclaration <gui_forms::plots::SignalDeclaration>`
      - A program's declaration: its registered name and its declared budget in operations per sample (the effect plugin's measure, per sample instead of per device pixel).
+   * - :cpp:class:`SignalEntry <gui_forms::plots::SignalEntry>`
+     - One registered program type: its declaration and the size of its state.
    * - :cpp:class:`SignalFrame <gui_forms::plots::SignalFrame>`
      - The ticks one frame runs: [first_tick, first_tick + tick_count).
    * - :cpp:class:`SignalProgram <gui_forms::plots::SignalProgram>`
@@ -312,7 +314,7 @@ Types
 
    .. cpp:member:: constexpr SignalDeclaration declaration
 
-      Default: ``{"chirp", 48U}``.
+      Default: ``{"chirp", 96U}``.
 
    .. cpp:member:: double frequency
 
@@ -686,7 +688,7 @@ Types
 
    .. cpp:member:: constexpr SignalDeclaration declaration
 
-      Default: ``{"noise", 16U}``.
+      Default: ``{"noise", 40U}``.
 
    .. cpp:member:: double amplitude
 
@@ -753,7 +755,7 @@ Types
 
    .. cpp:member:: constexpr SignalDeclaration declaration
 
-      Default: ``{"oscillators", 40U * maximum_oscillators}``.
+      Default: ``{"oscillators", 64U * maximum_oscillators}``.
 
    .. cpp:member:: std::array<Oscillator, maximum_oscillators> oscillators
 
@@ -1048,7 +1050,7 @@ Types
 
    .. cpp:member:: constexpr SignalDeclaration declaration
 
-      Default: ``{"saw", 10U}``.
+      Default: ``{"saw", 32U}``.
 
    .. cpp:member:: double frequency
 
@@ -1572,11 +1574,23 @@ Types
 
    ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
 
-   A program's declaration: its registered name and its declared budget in operations per sample (the effect plugin's measure, per sample instead of per device pixel).
+   A program's declaration: its registered name and its declared budget in operations per sample (the effect plugin's measure, per sample instead of per device pixel). The plugin's effect pass checks the static bound of one run against operations_per_sample × signal_sink_capacity, so the per-sample figure also covers each sample's share of the frame's loop and validation overhead.
 
    .. cpp:member:: std::string_view name
 
    .. cpp:member:: std::uint32_t operations_per_sample
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:struct:: SignalEntry final
+
+   ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+
+   One registered program type: its declaration and the size of its state. Each instantiation of make_signal_entry<P> registers P with the gui_forms plugin's effect pass, which verifies P::run under the effect rules and bounds it by the declared budget (signal_program.cpp instantiates one per kind, in SignalKind order).
+
+   .. cpp:member:: const SignalDeclaration* declaration
+
+   .. cpp:member:: std::size_t state_size
 
 .. cpp:namespace:: gui_forms::plots
 
@@ -1663,7 +1677,7 @@ Types
 
    .. cpp:member:: constexpr SignalDeclaration declaration
 
-      Default: ``{"sine", 40U}``.
+      Default: ``{"sine", 80U}``.
 
    .. cpp:member:: double frequency
 
@@ -1692,7 +1706,7 @@ Types
 
    .. cpp:member:: constexpr SignalDeclaration declaration
 
-      Default: ``{"square", 12U}``.
+      Default: ``{"square", 32U}``.
 
    .. cpp:member:: double frequency
 
@@ -2472,6 +2486,8 @@ Functions, constants and aliases
 .. cpp:namespace:: gui_forms::plots
 
 ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+
+.. cpp:function:: template <typename Program> constexpr SignalEntry make_signal_entry() noexcept
 
 .. cpp:function:: void run_signal(const SignalProgram& program, const SignalFrame& frame, SignalSink& sink) noexcept
 
