@@ -17,7 +17,8 @@
 //   page ID         select Gallery page ID; answers its report
 //   report          answers the Gallery's report
 //   supplement      answers the supplement window's report
-//   reset           closes overlays and dialogs (Escape) and reselects the page
+//   reset           closes overlays and dialogs (Escape), hides a toast and
+//                   reselects the page
 //   arm STABLE_ID   counts the clicks of that ButtonBase; answers "armed 1" or "armed 0"
 //   replace STABLE_ID  disposes that Button and inserts a new Button with the
 //                   same stable identity and text at its index; answers the report
@@ -349,6 +350,12 @@ private:
             up.action = KeyAction::up;
             static_cast<void>(gallery_.dispatch_key(down));
             static_cast<void>(gallery_.dispatch_key(up));
+            settle();
+        }
+        // A toast takes no focus and Escape does not close it (it closes on
+        // its duration, its close mark or its action), so it is hidden here.
+        if (gallery_.toast_visible()) {
+            gallery_.hide_toast();
             settle();
         }
         if (overlaid()) {
