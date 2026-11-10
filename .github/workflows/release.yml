@@ -379,7 +379,7 @@ jobs:
             --changed-from HEAD^1 --pattern-out "$RUNNER_TEMP/pattern.txt" > "$RUNNER_TEMP/targets.txt"
           echo "A pull request: building $(wc -l < "$RUNNER_TEMP/targets.txt") outputs the tests run, not every program"
           if [ -s "$RUNNER_TEMP/targets.txt" ]; then
-            xargs cmake --build "$BUILD_DIR" --parallel 4 --target < "$RUNNER_TEMP/targets.txt"
+            tr -d '\r' < "$RUNNER_TEMP/targets.txt" | xargs cmake --build "$BUILD_DIR" --parallel 4 --target
           fi
       - name: Report cache statistics
         if: always()
@@ -399,7 +399,7 @@ jobs:
           selection=ALL
           if [ "$PULL_REQUEST" = true ]; then
             # The tests the build step chose: not passed by the native job, and affected by the change.
-            selection=$(cat "$RUNNER_TEMP/pattern.txt")
+            selection=$(tr -d '\r' < "$RUNNER_TEMP/pattern.txt")
           elif [ "$NARROW" = true ]; then
             selection=$(python gui_forms/tools/native_tests.py select --manifest .ci/native-manifest.json --build-dir "$BUILD_DIR")
           fi

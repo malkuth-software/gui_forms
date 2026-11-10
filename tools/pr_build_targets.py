@@ -48,15 +48,20 @@ def main(argv: list[str] | None = None) -> int:
         pattern: str = 'NONE'
         if names:
             pattern = change_selection.name_pattern(names)
-        args.pattern_out.write_text(pattern + '\n', encoding='utf-8')
+        # Unix line ends on every host: the workflow's shell reads the file, and a
+        # carriage return would end up in the pattern.
+        args.pattern_out.write_text(pattern + '\n', encoding='utf-8', newline='\n')
     targets: list[str]
     unbuilt: list[str]
     targets, unbuilt = ci_build.test_build_targets(listing, ci_build.ninja_outputs(toolkit), toolkit)
     print(f"{len(listing.get('tests', []))} tests run {len(targets)} build outputs; "
           f"{len(unbuilt)} named paths need no build: {' '.join(unbuilt)}", file=sys.stderr)
     target: str
+    # One target per line with Unix line ends on every host: xargs passes a
+    # carriage return on as part of the name, which ninja does not know.
+    sys.stdout.reconfigure(newline='\n')
     for target in targets:
-        print(target)
+        sys.stdout.write(target + '\n')
     return 0
 
 
