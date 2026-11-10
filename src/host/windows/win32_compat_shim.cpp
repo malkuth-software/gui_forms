@@ -1,6 +1,5 @@
 #include <windows.h>
 
-#include "gui_forms/c_api.h"
 #include "gui_forms/c/gf_abi.h"
 
 #include <cstdint>
@@ -13,24 +12,6 @@
 #include <unordered_set>
 
 namespace {
-
-// Pointer types for the gui_forms_abi0.dll entry points this shim resolves by
-// name at run time; it never links the ABI. Calling a function through a
-// pointer to a different function type is undefined behaviour even where the
-// calling convention agrees (an `int` return for the `gf_result` enum was
-// reported by UBSan's -fsanitize=function), so each type spells the declared
-// signature and the assertions hold it to the declaration in c_api.h. Only
-// the declarations are used; nothing here imports the ABI's symbols.
-using GetEndpointDc = gf_result (*)(std::uintptr_t, std::uintptr_t*);
-using ReleaseEndpointDc = gf_result (*)(std::uintptr_t, std::uintptr_t);
-using PublishEndpointDc = gf_result (*)(std::uintptr_t);
-using BeginEndpointWrite = gf_result (*)(std::uintptr_t, std::uint64_t*);
-using EndEndpointWrite = gf_result (*)(std::uint64_t, std::uint32_t);
-static_assert(std::is_same_v<GetEndpointDc, decltype(&gf_windows_paint_endpoint_get_dc_v1)>);
-static_assert(std::is_same_v<ReleaseEndpointDc, decltype(&gf_windows_paint_endpoint_release_dc_v1)>);
-static_assert(std::is_same_v<PublishEndpointDc, decltype(&gf_windows_paint_endpoint_publish_dc_v1)>);
-static_assert(std::is_same_v<BeginEndpointWrite, decltype(&gf_windows_paint_endpoint_begin_write_v1)>);
-static_assert(std::is_same_v<EndEndpointWrite, decltype(&gf_windows_paint_endpoint_end_write_v1)>);
 
 std::mutex bitmap_orientation_mutex;
 std::unordered_set<HBITMAP> top_down_bitmaps;
@@ -99,22 +80,12 @@ void forget_bitmap(HGDIOBJ object) noexcept {
     top_down_bitmaps.erase(reinterpret_cast<HBITMAP>(object));
 }
 
-template <typename Function>
-Function forms_entry(const char* name) noexcept {
-    HMODULE module = GetModuleHandleW(L"gui_forms_abi0.dll");
-    if (module == nullptr) return nullptr;
-    FARPROC raw = GetProcAddress(module, name);
-    Function result{};
-    static_assert(sizeof(result) == sizeof(raw));
-    std::memcpy(&result, &raw, sizeof(result));
-    return result;
-}
-
-// The paint endpoint table of the stable ABI (gui_forms_abi1.dll), for a
-// process that loads the stable library instead of gui_forms_abi0.dll (the
-// swap-in launcher's facade does). Resolved once, by name, as the ABI0
-// entries are; present is false when neither the library nor the table is
-// there, and the shim then falls through to the system for every handle.
+// The paint endpoint table of the C ABI (gui_forms_abi1.dll), resolved once,
+// by name: the shim never links the library, so a process that has not
+// loaded it falls through to the system for every handle (present is false
+// when the library or its table is missing). The entry point's type is held
+// to its declaration in gf_abi.h: a call through a pointer of another
+// function type is undefined behaviour even where the convention agrees.
 struct StableEndpoints final {
     bool present{};
     gf_windows_paint_endpoint_table table{};
@@ -146,31 +117,19 @@ const StableEndpoints& stable_endpoints() noexcept {
 }
 
 bool endpoint_dc(HWND window, HDC* output) noexcept {
-    static const GetEndpointDc entry = forms_entry<GetEndpointDc>(
-        "gf_windows_paint_endpoint_get_dc_v1");
     if (output == nullptr) return false;
-    std::uintptr_t value{};
-    if (entry != nullptr) {
-        if (entry(reinterpret_cast<std::uintptr_t>(window), &value) != GF_OK || value == 0U) return false;
-    } else {
-        const StableEndpoints& stable = stable_endpoints();
-        if (!stable.present) return false;
-        std::uint64_t device{};
-        if (stable.table.get_dc(reinterpret_cast<std::uintptr_t>(window), &device) != GF_STATUS_OK ||
-            device == 0U) return false;
-        value = static_cast<std::uintptr_t>(device);
-    }
+    const StableEndpoints& stable = stable_endpoints();
+    if (!stable.present) return false;
+    std::uint64_t device{};
+    if (stable.table.get_dc(reinterpret_cast<std::uintptr_t>(window), &device) != GF_STATUS_OK ||
+        device == 0U) return false;
+    const std::uintptr_t value = static_cast<std::uintptr_t>(device);
     *output = reinterpret_cast<HDC>(value);
     remember_dc(*output, DcKind::endpoint);
     return true;
 }
 
 bool release_endpoint_dc(HWND window, HDC dc) noexcept {
-    static const ReleaseEndpointDc entry = forms_entry<ReleaseEndpointDc>(
-        "gf_windows_paint_endpoint_release_dc_v1");
-    if (entry != nullptr) {
-        return entry(reinterpret_cast<std::uintptr_t>(window), reinterpret_cast<std::uintptr_t>(dc)) == GF_OK;
-    }
     const StableEndpoints& stable = stable_endpoints();
     return stable.present &&
         stable.table.release_dc(reinterpret_cast<std::uintptr_t>(window), reinterpret_cast<std::uintptr_t>(dc)) ==
@@ -182,23 +141,12 @@ void publish_endpoint_dc(HDC dc) noexcept {
     // The publication reads the endpoint's DIB memory; GDI may still hold
     // this thread's last drawing calls in its batch.
     static_cast<void>(GdiFlush());
-    static const PublishEndpointDc entry = forms_entry<PublishEndpointDc>(
-        "gf_windows_paint_endpoint_publish_dc_v1");
-    if (entry != nullptr) {
-        static_cast<void>(entry(reinterpret_cast<std::uintptr_t>(dc)));
-        return;
-    }
     const StableEndpoints& stable = stable_endpoints();
     if (stable.present) static_cast<void>(stable.table.publish_dc(reinterpret_cast<std::uintptr_t>(dc)));
 }
 
 bool request_endpoint_write(HDC dc, std::uint64_t* lease) noexcept {
-    static const BeginEndpointWrite entry = forms_entry<BeginEndpointWrite>(
-        "gf_windows_paint_endpoint_begin_write_v1");
     if (lease == nullptr) return false;
-    if (entry != nullptr) {
-        return entry(reinterpret_cast<std::uintptr_t>(dc), lease) == GF_OK && *lease != 0U;
-    }
     const StableEndpoints& stable = stable_endpoints();
     return stable.present && stable.table.begin_write(reinterpret_cast<std::uintptr_t>(dc), lease) == GF_STATUS_OK &&
         *lease != 0U;
@@ -224,8 +172,6 @@ bool begin_endpoint_write_revalidated(HDC dc, std::uint64_t* lease) noexcept {
 }
 
 void end_endpoint_write(std::uint64_t lease, bool publish) noexcept {
-    static const EndEndpointWrite entry = forms_entry<EndEndpointWrite>(
-        "gf_windows_paint_endpoint_end_write_v1");
     if (lease == 0U) return;
     // GDI batches Boolean drawing calls (BitBlt, FillRect) per thread. The
     // endpoint's publisher reads the DIB memory on its own thread once the
@@ -233,10 +179,6 @@ void end_endpoint_write(std::uint64_t lease, bool publish) noexcept {
     // frame can be the one before this write (a stale frame between two
     // current ones).
     if (publish) static_cast<void>(GdiFlush());
-    if (entry != nullptr) {
-        static_cast<void>(entry(lease, publish ? 1U : 0U));
-        return;
-    }
     const StableEndpoints& stable = stable_endpoints();
     if (stable.present) static_cast<void>(stable.table.end_write(lease, publish ? 1U : 0U));
 }

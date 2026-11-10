@@ -13,7 +13,6 @@
 #include "gui_forms/binding/types/binding_contract_types.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/binding/value/binding_value_kind/binding_value_kind.hpp"
-#include "gui_forms/c_api.hpp"
 #include "gui_forms/commands/color_command/color_command.hpp"
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/commands/font_command/font_command.hpp"
@@ -970,6 +969,8 @@ void append_field(EventFields& fields, std::string_view name, const BindingNavig
 void read_field(EventFields& fields, std::string_view name, BindingNavigatorAddNew& value);
 void append_field(EventFields& fields, std::string_view name, const BindingRecord& value);
 void read_field(EventFields& fields, std::string_view name, BindingRecord& value);
+void append_field(EventFields& fields, std::string_view name, const BundledFontFamily& value);
+void read_field(EventFields& fields, std::string_view name, BundledFontFamily& value);
 void append_field(EventFields& fields, std::string_view name, const CalendarDateRange& value);
 void append_field(EventFields& fields, std::string_view name, const CommandInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const CommandItem& value);
@@ -1265,6 +1266,15 @@ inline void read_field(EventFields& fields, std::string_view name, BindingRecord
     const EventFieldPrefix prefix = fields.enter(name);
     read_field(fields, "editable", value.editable);
     fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const BundledFontFamily& value) {
+    // An identity: the field is its one value.
+    append_field(fields, name, value.value);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, BundledFontFamily& value) {
+    read_field(fields, name, value.value);
 }
 
 inline void append_field(EventFields& fields, std::string_view name, const CalendarDateRange& value) {
@@ -1784,6 +1794,7 @@ inline void append_field(EventFields& fields, std::string_view name, const FontS
     append_field(fields, "weight", value.weight);
     append_field(fields, "italic", value.italic);
     append_field(fields, "letter_spacing", value.letter_spacing);
+    append_field(fields, "family", value.family);
     fields.leave(prefix);
 }
 
@@ -1794,6 +1805,7 @@ inline void read_field(EventFields& fields, std::string_view name, FontSpec& val
     read_field(fields, "weight", value.weight);
     read_field(fields, "italic", value.italic);
     read_field(fields, "letter_spacing", value.letter_spacing);
+    read_field(fields, "family", value.family);
     fields.leave(prefix);
 }
 
@@ -3175,8 +3187,8 @@ inline SubscriptionToken connect_binding_source_binding_complete(Component& sour
     return token;
 }
 
-inline SubscriptionToken connect_help_book_system_bookmarks_changed(Component& source, const EventSink& sink) {
-    HelpBookSystem* typed = dynamic_cast<HelpBookSystem*>(&source);
+inline SubscriptionToken connect_help_book_viewer_bookmarks_changed(Component& source, const EventSink& sink) {
+    HelpBookViewer* typed = dynamic_cast<HelpBookViewer*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -3184,8 +3196,8 @@ inline SubscriptionToken connect_help_book_system_bookmarks_changed(Component& s
     return token;
 }
 
-inline SubscriptionToken connect_help_book_viewer_bookmarks_changed(Component& source, const EventSink& sink) {
-    HelpBookViewer* typed = dynamic_cast<HelpBookViewer*>(&source);
+inline SubscriptionToken connect_help_book_system_bookmarks_changed(Component& source, const EventSink& sink) {
+    HelpBookSystem* typed = dynamic_cast<HelpBookSystem*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -3436,8 +3448,8 @@ inline SubscriptionToken connect_search_field_cleared(Component& source, const E
     return token;
 }
 
-inline SubscriptionToken connect_notify_icon_click(Component& source, const EventSink& sink) {
-    NotifyIcon* typed = dynamic_cast<NotifyIcon*>(&source);
+inline SubscriptionToken connect_control_click(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -3445,8 +3457,8 @@ inline SubscriptionToken connect_notify_icon_click(Component& source, const Even
     return token;
 }
 
-inline SubscriptionToken connect_control_click(Component& source, const EventSink& sink) {
-    Control* typed = dynamic_cast<Control*>(&source);
+inline SubscriptionToken connect_notify_icon_click(Component& source, const EventSink& sink) {
+    NotifyIcon* typed = dynamic_cast<NotifyIcon*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -3490,15 +3502,6 @@ inline SubscriptionToken connect_font_dialog_closed(Component& source, const Eve
     return token;
 }
 
-inline SubscriptionToken connect_about_dialog_closed(Component& source, const EventSink& sink) {
-    AboutDialog* typed = dynamic_cast<AboutDialog*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).closed(), sink);
-    return token;
-}
-
 inline SubscriptionToken connect_callout_closed(Component& source, const EventSink& sink) {
     Callout* typed = dynamic_cast<Callout*>(&source);
     if (typed == nullptr) {
@@ -3528,6 +3531,15 @@ inline SubscriptionToken connect_modal_layer_closed(Component& source, const Eve
 
 inline SubscriptionToken connect_task_dialog_closed(Component& source, const EventSink& sink) {
     TaskDialog* typed = dynamic_cast<TaskDialog*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).closed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_about_dialog_closed(Component& source, const EventSink& sink) {
+    AboutDialog* typed = dynamic_cast<AboutDialog*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -3742,8 +3754,8 @@ inline SubscriptionToken connect_quick_access_toolbar_customized(Component& sour
     return token;
 }
 
-inline SubscriptionToken connect_binding_source_data_error(Component& source, const EventSink& sink) {
-    BindingSource* typed = dynamic_cast<BindingSource*>(&source);
+inline SubscriptionToken connect_data_grid_view_data_error(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -3751,8 +3763,8 @@ inline SubscriptionToken connect_binding_source_data_error(Component& source, co
     return token;
 }
 
-inline SubscriptionToken connect_data_grid_view_data_error(Component& source, const EventSink& sink) {
-    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+inline SubscriptionToken connect_binding_source_data_error(Component& source, const EventSink& sink) {
+    BindingSource* typed = dynamic_cast<BindingSource*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -3899,8 +3911,8 @@ inline SubscriptionToken connect_dock_workspace_document_closing(Component& sour
     return token;
 }
 
-inline SubscriptionToken connect_notify_icon_double_click(Component& source, const EventSink& sink) {
-    NotifyIcon* typed = dynamic_cast<NotifyIcon*>(&source);
+inline SubscriptionToken connect_control_double_click(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -3908,8 +3920,8 @@ inline SubscriptionToken connect_notify_icon_double_click(Component& source, con
     return token;
 }
 
-inline SubscriptionToken connect_control_double_click(Component& source, const EventSink& sink) {
-    Control* typed = dynamic_cast<Control*>(&source);
+inline SubscriptionToken connect_notify_icon_double_click(Component& source, const EventSink& sink) {
+    NotifyIcon* typed = dynamic_cast<NotifyIcon*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -4232,8 +4244,8 @@ inline SubscriptionToken connect_tree_list_view_expansion_changed(Component& sou
     return token;
 }
 
-inline SubscriptionToken connect_help_book_system_external_link(Component& source, const EventSink& sink) {
-    HelpBookSystem* typed = dynamic_cast<HelpBookSystem*>(&source);
+inline SubscriptionToken connect_help_book_viewer_external_link(Component& source, const EventSink& sink) {
+    HelpBookViewer* typed = dynamic_cast<HelpBookViewer*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -4241,8 +4253,8 @@ inline SubscriptionToken connect_help_book_system_external_link(Component& sourc
     return token;
 }
 
-inline SubscriptionToken connect_help_book_viewer_external_link(Component& source, const EventSink& sink) {
-    HelpBookViewer* typed = dynamic_cast<HelpBookViewer*>(&source);
+inline SubscriptionToken connect_help_book_system_external_link(Component& source, const EventSink& sink) {
+    HelpBookSystem* typed = dynamic_cast<HelpBookSystem*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -4344,6 +4356,15 @@ inline SubscriptionToken connect_property_list_group_changed(Component& source, 
     return token;
 }
 
+inline SubscriptionToken connect_control_help_requested(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).help_requested(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_help_provider_help_requested(Component& source, const EventSink& sink) {
     HelpProvider* typed = dynamic_cast<HelpProvider*>(&source);
     if (typed == nullptr) {
@@ -4368,15 +4389,6 @@ inline SubscriptionToken connect_window_help_requested(Component& source, const 
         return SubscriptionToken{};
     }
     Window* typed = (*holder).window();
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).help_requested(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_control_help_requested(Component& source, const EventSink& sink) {
-    Control* typed = dynamic_cast<Control*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -4528,8 +4540,8 @@ inline SubscriptionToken connect_tool_strip_item_focus_changed(Component& source
     return token;
 }
 
-inline SubscriptionToken connect_context_menu_item_invoked(Component& source, const EventSink& sink) {
-    ContextMenu* typed = dynamic_cast<ContextMenu*>(&source);
+inline SubscriptionToken connect_menu_strip_item_invoked(Component& source, const EventSink& sink) {
+    MenuStrip* typed = dynamic_cast<MenuStrip*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -4537,8 +4549,8 @@ inline SubscriptionToken connect_context_menu_item_invoked(Component& source, co
     return token;
 }
 
-inline SubscriptionToken connect_menu_strip_item_invoked(Component& source, const EventSink& sink) {
-    MenuStrip* typed = dynamic_cast<MenuStrip*>(&source);
+inline SubscriptionToken connect_context_menu_item_invoked(Component& source, const EventSink& sink) {
+    ContextMenu* typed = dynamic_cast<ContextMenu*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -4555,6 +4567,15 @@ inline SubscriptionToken connect_combo_box_items_changed(Component& source, cons
     return token;
 }
 
+inline SubscriptionToken connect_control_key_down(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).key_down(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_window_key_down(Component& source, const EventSink& sink) {
     WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
     if (holder == nullptr) {
@@ -4568,12 +4589,12 @@ inline SubscriptionToken connect_window_key_down(Component& source, const EventS
     return token;
 }
 
-inline SubscriptionToken connect_control_key_down(Component& source, const EventSink& sink) {
+inline SubscriptionToken connect_control_key_press(Component& source, const EventSink& sink) {
     Control* typed = dynamic_cast<Control*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
-    SubscriptionToken token = subscribe_forwarded((*typed).key_down(), sink);
+    SubscriptionToken token = subscribe_forwarded((*typed).key_press(), sink);
     return token;
 }
 
@@ -4583,15 +4604,6 @@ inline SubscriptionToken connect_window_key_press(Component& source, const Event
         return SubscriptionToken{};
     }
     Window* typed = (*holder).window();
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).key_press(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_control_key_press(Component& source, const EventSink& sink) {
-    Control* typed = dynamic_cast<Control*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -4612,12 +4624,8 @@ inline SubscriptionToken connect_window_key_state_changed(Component& source, con
     return token;
 }
 
-inline SubscriptionToken connect_window_key_up(Component& source, const EventSink& sink) {
-    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
-    if (holder == nullptr) {
-        return SubscriptionToken{};
-    }
-    Window* typed = (*holder).window();
+inline SubscriptionToken connect_control_key_up(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -4625,8 +4633,12 @@ inline SubscriptionToken connect_window_key_up(Component& source, const EventSin
     return token;
 }
 
-inline SubscriptionToken connect_control_key_up(Component& source, const EventSink& sink) {
-    Control* typed = dynamic_cast<Control*>(&source);
+inline SubscriptionToken connect_window_key_up(Component& source, const EventSink& sink) {
+    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
+    if (holder == nullptr) {
+        return SubscriptionToken{};
+    }
+    Window* typed = (*holder).window();
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -4868,8 +4880,8 @@ inline SubscriptionToken connect_task_dialog_navigated(Component& source, const 
     return token;
 }
 
-inline SubscriptionToken connect_context_menu_open_changed(Component& source, const EventSink& sink) {
-    ContextMenu* typed = dynamic_cast<ContextMenu*>(&source);
+inline SubscriptionToken connect_menu_strip_open_changed(Component& source, const EventSink& sink) {
+    MenuStrip* typed = dynamic_cast<MenuStrip*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -4877,8 +4889,8 @@ inline SubscriptionToken connect_context_menu_open_changed(Component& source, co
     return token;
 }
 
-inline SubscriptionToken connect_menu_strip_open_changed(Component& source, const EventSink& sink) {
-    MenuStrip* typed = dynamic_cast<MenuStrip*>(&source);
+inline SubscriptionToken connect_context_menu_open_changed(Component& source, const EventSink& sink) {
+    ContextMenu* typed = dynamic_cast<ContextMenu*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5142,8 +5154,8 @@ inline SubscriptionToken connect_gallery_command_preview_requested(Component& so
     return token;
 }
 
-inline SubscriptionToken connect_help_book_system_print_requested(Component& source, const EventSink& sink) {
-    HelpBookSystem* typed = dynamic_cast<HelpBookSystem*>(&source);
+inline SubscriptionToken connect_help_book_viewer_print_requested(Component& source, const EventSink& sink) {
+    HelpBookViewer* typed = dynamic_cast<HelpBookViewer*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5151,8 +5163,8 @@ inline SubscriptionToken connect_help_book_system_print_requested(Component& sou
     return token;
 }
 
-inline SubscriptionToken connect_help_book_viewer_print_requested(Component& source, const EventSink& sink) {
-    HelpBookViewer* typed = dynamic_cast<HelpBookViewer*>(&source);
+inline SubscriptionToken connect_help_book_system_print_requested(Component& source, const EventSink& sink) {
+    HelpBookSystem* typed = dynamic_cast<HelpBookSystem*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5646,8 +5658,8 @@ inline SubscriptionToken connect_splitter_splitter_moving(Component& source, con
     return token;
 }
 
-inline SubscriptionToken connect_command_state_changed(Component& source, const EventSink& sink) {
-    Command* typed = dynamic_cast<Command*>(&source);
+inline SubscriptionToken connect_navigation_pane_state_changed(Component& source, const EventSink& sink) {
+    NavigationPane* typed = dynamic_cast<NavigationPane*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5655,8 +5667,8 @@ inline SubscriptionToken connect_command_state_changed(Component& source, const 
     return token;
 }
 
-inline SubscriptionToken connect_navigation_pane_state_changed(Component& source, const EventSink& sink) {
-    NavigationPane* typed = dynamic_cast<NavigationPane*>(&source);
+inline SubscriptionToken connect_command_state_changed(Component& source, const EventSink& sink) {
+    Command* typed = dynamic_cast<Command*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5947,33 +5959,6 @@ inline SubscriptionToken connect_property_list_value_changed(Component& source, 
     return token;
 }
 
-inline SubscriptionToken connect_color_command_value_changed(Component& source, const EventSink& sink) {
-    ColorCommand* typed = dynamic_cast<ColorCommand*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).value_changed(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_font_command_value_changed(Component& source, const EventSink& sink) {
-    FontCommand* typed = dynamic_cast<FontCommand*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).value_changed(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_gallery_command_value_changed(Component& source, const EventSink& sink) {
-    GalleryCommand* typed = dynamic_cast<GalleryCommand*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).value_changed(), sink);
-    return token;
-}
-
 inline SubscriptionToken connect_range_control_value_changed(Component& source, const EventSink& sink) {
     RangeControl* typed = dynamic_cast<RangeControl*>(&source);
     if (typed == nullptr) {
@@ -5994,6 +5979,33 @@ inline SubscriptionToken connect_ribbon_color_picker_value_changed(Component& so
 
 inline SubscriptionToken connect_ribbon_font_control_value_changed(Component& source, const EventSink& sink) {
     RibbonFontControl* typed = dynamic_cast<RibbonFontControl*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).value_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_color_command_value_changed(Component& source, const EventSink& sink) {
+    ColorCommand* typed = dynamic_cast<ColorCommand*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).value_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_font_command_value_changed(Component& source, const EventSink& sink) {
+    FontCommand* typed = dynamic_cast<FontCommand*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).value_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_gallery_command_value_changed(Component& source, const EventSink& sink) {
+    GalleryCommand* typed = dynamic_cast<GalleryCommand*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -6088,8 +6100,8 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"before_label_edit", "ListView", &connect_list_view_before_label_edit},
     {"binding_complete", "Binding", &connect_binding_binding_complete},
     {"binding_complete", "BindingSource", &connect_binding_source_binding_complete},
-    {"bookmarks_changed", "HelpBookSystem", &connect_help_book_system_bookmarks_changed},
     {"bookmarks_changed", "HelpBookViewer", &connect_help_book_viewer_bookmarks_changed},
+    {"bookmarks_changed", "HelpBookSystem", &connect_help_book_system_bookmarks_changed},
     {"built_in_language_requested", "HelpBookViewer", &connect_help_book_viewer_built_in_language_requested},
     {"button_clicked", "TaskDialog", &connect_task_dialog_button_clicked},
     {"cancelled", "TextBox", &connect_text_box_cancelled},
@@ -6117,17 +6129,17 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"checked_changed", "ToggleSwitch", &connect_toggle_switch_checked_changed},
     {"chosen", "DockNavigator", &connect_dock_navigator_chosen},
     {"cleared", "SearchField", &connect_search_field_cleared},
-    {"click", "NotifyIcon", &connect_notify_icon_click},
     {"click", "Control", &connect_control_click},
+    {"click", "NotifyIcon", &connect_notify_icon_click},
     {"clicked", "ButtonBase", &connect_button_base_clicked},
     {"close_requested", "HelpBook", &connect_help_book_close_requested},
     {"close_requested", "BackstageView", &connect_backstage_view_close_requested},
     {"closed", "FontDialog", &connect_font_dialog_closed},
-    {"closed", "AboutDialog", &connect_about_dialog_closed},
     {"closed", "Callout", &connect_callout_closed},
     {"closed", "InfoBanner", &connect_info_banner_closed},
     {"closed", "ModalLayer", &connect_modal_layer_closed},
     {"closed", "TaskDialog", &connect_task_dialog_closed},
+    {"closed", "AboutDialog", &connect_about_dialog_closed},
     {"closed", "ThreadExceptionDialog", &connect_thread_exception_dialog_closed},
     {"closing", "ModalLayer", &connect_modal_layer_closing},
     {"collection_changed", "BindingContext", &connect_binding_context_collection_changed},
@@ -6151,8 +6163,8 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"current_item_changed", "BindingSource", &connect_binding_source_current_item_changed},
     {"current_step_changed", "StepIndicator", &connect_step_indicator_current_step_changed},
     {"customized", "QuickAccessToolbar", &connect_quick_access_toolbar_customized},
-    {"data_error", "BindingSource", &connect_binding_source_data_error},
     {"data_error", "DataGridView", &connect_data_grid_view_data_error},
+    {"data_error", "BindingSource", &connect_binding_source_data_error},
     {"data_member_changed", "BindingSource", &connect_binding_source_data_member_changed},
     {"data_member_changed", "ErrorProvider", &connect_error_provider_data_member_changed},
     {"data_source_changed", "BindingSource", &connect_binding_source_data_source_changed},
@@ -6168,8 +6180,8 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"dismiss_requested", "AnchoredOverlayLayer", &connect_anchored_overlay_layer_dismiss_requested},
     {"disposed_event", "BindingSource", &connect_binding_source_disposed_event},
     {"document_closing", "DockWorkspace", &connect_dock_workspace_document_closing},
-    {"double_click", "NotifyIcon", &connect_notify_icon_double_click},
     {"double_click", "Control", &connect_control_double_click},
+    {"double_click", "NotifyIcon", &connect_notify_icon_double_click},
     {"drag_dropped", "SplitContainer", &connect_split_container_drag_dropped},
     {"drag_dropped", "Splitter", &connect_splitter_drag_dropped},
     {"drag_ended", "SplitContainer", &connect_split_container_drag_ended},
@@ -6205,8 +6217,8 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"expansion_changed", "CorrespondenceView", &connect_correspondence_view_expansion_changed},
     {"expansion_changed", "TreeView", &connect_tree_view_expansion_changed},
     {"expansion_changed", "TreeListView", &connect_tree_list_view_expansion_changed},
-    {"external_link", "HelpBookSystem", &connect_help_book_system_external_link},
     {"external_link", "HelpBookViewer", &connect_help_book_viewer_external_link},
+    {"external_link", "HelpBookSystem", &connect_help_book_system_external_link},
     {"field_changed", "InstrumentRack", &connect_instrument_rack_field_changed},
     {"field_committed", "InstrumentRack", &connect_instrument_rack_field_committed},
     {"file_ok", "OpenFileDialog", &connect_open_file_dialog_file_ok},
@@ -6217,10 +6229,10 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"focused_control_changed", "Window", &connect_window_focused_control_changed},
     {"format", "Binding", &connect_binding_format},
     {"group_changed", "PropertyList", &connect_property_list_group_changed},
+    {"help_requested", "Control", &connect_control_help_requested},
     {"help_requested", "HelpProvider", &connect_help_provider_help_requested},
     {"help_requested", "RibbonToolTip", &connect_ribbon_tool_tip_help_requested},
     {"help_requested", "Window", &connect_window_help_requested},
-    {"help_requested", "Control", &connect_control_help_requested},
     {"image_changed", "PictureBox", &connect_picture_box_image_changed},
     {"initialization_completed", "Control", &connect_control_initialization_completed},
     {"invoked", "CommandBar", &connect_command_bar_invoked},
@@ -6237,16 +6249,16 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"item_checking", "ListView", &connect_list_view_item_checking},
     {"item_clicked", "ToolStrip", &connect_tool_strip_item_clicked},
     {"item_focus_changed", "ToolStrip", &connect_tool_strip_item_focus_changed},
-    {"item_invoked", "ContextMenu", &connect_context_menu_item_invoked},
     {"item_invoked", "MenuStrip", &connect_menu_strip_item_invoked},
+    {"item_invoked", "ContextMenu", &connect_context_menu_item_invoked},
     {"items_changed", "ComboBox", &connect_combo_box_items_changed},
-    {"key_down", "Window", &connect_window_key_down},
     {"key_down", "Control", &connect_control_key_down},
-    {"key_press", "Window", &connect_window_key_press},
+    {"key_down", "Window", &connect_window_key_down},
     {"key_press", "Control", &connect_control_key_press},
+    {"key_press", "Window", &connect_window_key_press},
     {"key_state_changed", "Window", &connect_window_key_state_changed},
-    {"key_up", "Window", &connect_window_key_up},
     {"key_up", "Control", &connect_control_key_up},
+    {"key_up", "Window", &connect_window_key_up},
     {"layout_changed", "DockWorkspace", &connect_dock_workspace_layout_changed},
     {"legend_toggled", "PlotView", &connect_plot_view_legend_toggled},
     {"link_activated", "HelpBook", &connect_help_book_link_activated},
@@ -6273,8 +6285,8 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"name_changed", "Control", &connect_control_name_changed},
     {"navigated", "HelpBookViewer", &connect_help_book_viewer_navigated},
     {"navigated", "TaskDialog", &connect_task_dialog_navigated},
-    {"open_changed", "ContextMenu", &connect_context_menu_open_changed},
     {"open_changed", "MenuStrip", &connect_menu_strip_open_changed},
+    {"open_changed", "ContextMenu", &connect_context_menu_open_changed},
     {"options_requested", "NavigationPane", &connect_navigation_pane_options_requested},
     {"overflow_activated", "BreadcrumbTrail", &connect_breadcrumb_trail_overflow_activated},
     {"overlay_open_changed", "NavigationPane", &connect_navigation_pane_overlay_open_changed},
@@ -6303,8 +6315,8 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"preview_cancelled", "GalleryCommand", &connect_gallery_command_preview_cancelled},
     {"preview_key_down", "Control", &connect_control_preview_key_down},
     {"preview_requested", "GalleryCommand", &connect_gallery_command_preview_requested},
-    {"print_requested", "HelpBookSystem", &connect_help_book_system_print_requested},
     {"print_requested", "HelpBookViewer", &connect_help_book_viewer_print_requested},
+    {"print_requested", "HelpBookSystem", &connect_help_book_system_print_requested},
     {"progress_changed", "BackgroundWorker", &connect_background_worker_progress_changed},
     {"property_value_changed", "PropertyGrid", &connect_property_grid_property_value_changed},
     {"radio_button_changed", "TaskDialog", &connect_task_dialog_radio_button_changed},
@@ -6359,8 +6371,8 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"splitter_changed", "SplitContainer", &connect_split_container_splitter_changed},
     {"splitter_moved", "Splitter", &connect_splitter_splitter_moved},
     {"splitter_moving", "Splitter", &connect_splitter_splitter_moving},
-    {"state_changed", "Command", &connect_command_state_changed},
     {"state_changed", "NavigationPane", &connect_navigation_pane_state_changed},
+    {"state_changed", "Command", &connect_command_state_changed},
     {"step_clicked", "StepIndicator", &connect_step_indicator_step_clicked},
     {"stopped", "SubSurfaceHost", &connect_sub_surface_host_stopped},
     {"strip_moved", "ToolStripContainer", &connect_tool_strip_container_strip_moved},
@@ -6392,12 +6404,12 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"value_changed", "FlagsValueEditor", &connect_flags_value_editor_value_changed},
     {"value_changed", "NumericUpDown", &connect_numeric_up_down_value_changed},
     {"value_changed", "PropertyList", &connect_property_list_value_changed},
-    {"value_changed", "ColorCommand", &connect_color_command_value_changed},
-    {"value_changed", "FontCommand", &connect_font_command_value_changed},
-    {"value_changed", "GalleryCommand", &connect_gallery_command_value_changed},
     {"value_changed", "RangeControl", &connect_range_control_value_changed},
     {"value_changed", "RibbonColorPicker", &connect_ribbon_color_picker_value_changed},
     {"value_changed", "RibbonFontControl", &connect_ribbon_font_control_value_changed},
+    {"value_changed", "ColorCommand", &connect_color_command_value_changed},
+    {"value_changed", "FontCommand", &connect_font_command_value_changed},
+    {"value_changed", "GalleryCommand", &connect_gallery_command_value_changed},
     {"value_committed", "PropertyList", &connect_property_list_value_committed},
     {"value_committed", "ValueBar", &connect_value_bar_value_committed},
     {"verification_changed", "TaskDialog", &connect_task_dialog_verification_changed},

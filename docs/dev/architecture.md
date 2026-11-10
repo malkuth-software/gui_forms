@@ -42,9 +42,10 @@ that set.
 
 Some build targets are never installed. The headless host
 (`src/host/headless/`) is the deterministic reference adapter the tests link.
-The experimental C ABIs (`src/abi/`, built as `gui_forms_abi0`, and the
-separate drawing C ABI) are built and tested in the source tree; their
-libraries are not part of the package. The development text services refuse
+The experimental drawing C ABI (`src/abi/drawing_*`) is built and tested in
+the source tree; its library is not part of the package. (The experimental
+0.x C ABI, `gui_forms_abi0`, was retired before 1.0; the sealed C ABI,
+`gui_forms_abi1`, is GUI.Forms' one C surface.) The development text services refuse
 to install: configuring with them enabled makes `cmake --install` stop.
 
 ### Boundaries the build enforces

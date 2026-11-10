@@ -1,4 +1,4 @@
-#include "gui_forms/c_api.h"
+#include "gui_forms/c/gf_abi.h"
 
 #include <windows.h>
 
@@ -26,6 +26,65 @@ using ShimSelectObject = decltype(&::SelectObject);
 using ShimDeleteObject = decltype(&::DeleteObject);
 using ShimDeleteDC = decltype(&::DeleteDC);
 
+// The C ABI tables the test drives: objects (dispose and release), custom
+// controls (an endpoint binds to one) and the Windows paint endpoint.
+struct AbiTables final {
+    gf_objects_table objects{};
+    gf_custom_controls_table custom_controls{};
+    gf_windows_paint_endpoint_table endpoints{};
+};
+
+bool negotiate_tables(AbiTables* tables) {
+    (*tables).objects.struct_size = sizeof((*tables).objects);
+    (*tables).custom_controls.struct_size = sizeof((*tables).custom_controls);
+    (*tables).endpoints.struct_size = sizeof((*tables).endpoints);
+    if (gf_abi_get_table(GF_TABLE_OBJECTS, GF_ABI_MAJOR, GF_ABI_MINOR, &(*tables).objects,
+                         sizeof((*tables).objects)) != GF_STATUS_OK) return false;
+    if (gf_abi_get_table(GF_TABLE_CUSTOM_CONTROLS, GF_ABI_MAJOR, GF_ABI_MINOR, &(*tables).custom_controls,
+                         sizeof((*tables).custom_controls)) != GF_STATUS_OK) return false;
+    return gf_abi_get_table(GF_TABLE_WINDOWS_PAINT_ENDPOINT, GF_ABI_MAJOR, GF_ABI_MINOR, &(*tables).endpoints,
+                            sizeof((*tables).endpoints)) == GF_STATUS_OK;
+}
+
+// The endpoint's control paints nothing of its own (the endpoint's frames
+// replace its paint callback) and declares no properties.
+void paint_nothing(void* context, gf_object control, const gf_paint_target* target) {
+    static_cast<void>(context);
+    static_cast<void>(control);
+    static_cast<void>(target);
+}
+
+gf_status get_no_property(void* context, gf_object control, std::uint64_t index, gf_value* value) {
+    static_cast<void>(context);
+    static_cast<void>(control);
+    static_cast<void>(index);
+    static_cast<void>(value);
+    return GF_STATUS_NOT_FOUND;
+}
+
+gf_status create_custom_control(const AbiTables& tables, const char* stable_id, gf_object* control) {
+    gf_custom_control_spec spec{};
+    spec.struct_size = sizeof(spec);
+    spec.base = GF_CUSTOM_BASE_USER_CONTROL;
+    spec.property_size = sizeof(gf_custom_property);
+    spec.callbacks.struct_size = sizeof(spec.callbacks);
+    spec.callbacks.paint = &paint_nothing;
+    spec.callbacks.get_property = &get_no_property;
+    const gf_utf8_view id{stable_id, static_cast<std::uint64_t>(std::strlen(stable_id))};
+    return tables.custom_controls.create(&spec, id, control);
+}
+
+void dispose_control(const AbiTables& tables, gf_object control) {
+    static_cast<void>(tables.objects.dispose(control));
+    static_cast<void>(tables.objects.release(control));
+}
+
+// A compatibility handle is a virtual window handle the shim understands,
+// widened to 64 bits by the ABI; device contexts are widened the same way.
+HWND as_window(std::uint64_t handle) {
+    return reinterpret_cast<HWND>(static_cast<std::uintptr_t>(handle));
+}
+
 template <typename Function>
 Function entry(HMODULE module, const char* name) {
     const FARPROC raw = GetProcAddress(module, name);
@@ -52,13 +111,13 @@ void run_resize_writer(std::atomic<bool>* start,
     }
 }
 
-void run_release_writer(std::uintptr_t endpoint_dc,
+void run_release_writer(const gf_windows_paint_endpoint_table* endpoints,
+                        std::uint64_t endpoint_dc,
                         std::atomic<bool>* lease_acquired,
                         std::atomic<bool>* allow_end,
                         std::atomic<bool>* writer_ok) {
     std::uint64_t write_lease{};
-    if (gf_windows_paint_endpoint_begin_write_v1(
-            endpoint_dc, &write_lease) != GF_OK) {
+    if ((*endpoints).begin_write(endpoint_dc, &write_lease) != GF_STATUS_OK) {
         (*lease_acquired).store(true, std::memory_order_release);
         return;
     }
@@ -67,11 +126,12 @@ void run_release_writer(std::uintptr_t endpoint_dc,
         std::this_thread::yield();
     }
     (*writer_ok).store(
-        gf_windows_paint_endpoint_end_write_v1(write_lease, 0U) == GF_OK,
+        (*endpoints).end_write(write_lease, 0U) == GF_STATUS_OK,
         std::memory_order_release);
 }
 
-void run_endpoint_releaser(std::uint64_t endpoint,
+void run_endpoint_releaser(const gf_windows_paint_endpoint_table* endpoints,
+                           std::uint64_t endpoint,
                            std::atomic<bool>* lease_acquired,
                            std::atomic<bool>* release_started,
                            std::atomic<bool>* release_ok) {
@@ -80,15 +140,11 @@ void run_endpoint_releaser(std::uint64_t endpoint,
     }
     (*release_started).store(true, std::memory_order_release);
     (*release_ok).store(
-        gf_windows_paint_endpoint_release_v1(endpoint) == GF_OK,
+        (*endpoints).release(endpoint) == GF_STATUS_OK,
         std::memory_order_release);
 }
 
-gf_string_view text(const char* value) {
-    return {value, static_cast<std::uint64_t>(std::strlen(value))};
-}
-
-bool run_lifetime(const gf_api_v0& api, HMODULE shim, int lifetime,
+bool run_lifetime(const AbiTables& api, HMODULE shim, int lifetime,
                   int width, int height, int resized_width,
                   int resized_height) {
     const ShimGetDC get_dc = entry<ShimGetDC>(shim, "GetDC");
@@ -116,39 +172,38 @@ bool run_lifetime(const gf_api_v0& api, HMODULE shim, int lifetime,
         return false;
     }
 
-    gf_handle control{};
+    gf_object control{};
     std::uint64_t endpoint{};
-    std::uintptr_t window_value{};
+    std::uint64_t window_value{};
     HDC producer{};
     HBITMAP producer_bitmap{};
     HGDIOBJ producer_previous{};
     HDC endpoint_dc{};
     bool ok = false;
 
-    if (api.control_create_kind(GF_CONTROL_CUSTOM,
-                                text("shim.endpoint.test"), &control) != GF_OK) {
+    if (create_custom_control(api, "shim.endpoint.test", &control) != GF_STATUS_OK) {
         std::fprintf(stderr,
                      "shim-gate=failure|lifetime:%d|stage:control-create\n",
                      lifetime);
         goto cleanup;
     }
-    if (gf_windows_paint_endpoint_acquire_v1(
+    if (api.endpoints.acquire(
             control, static_cast<std::uint32_t>(width),
             static_cast<std::uint32_t>(height), &endpoint,
-            &window_value) != GF_OK || endpoint == 0U || window_value == 0U) {
+            &window_value) != GF_STATUS_OK || endpoint == 0U || window_value == 0U) {
         std::fprintf(stderr,
                      "shim-gate=failure|lifetime:%d|stage:endpoint-acquire\n",
                      lifetime);
         goto cleanup;
     }
-    if (IsWindow(reinterpret_cast<HWND>(window_value)) != FALSE) {
+    if (IsWindow(as_window(window_value)) != FALSE) {
         std::fprintf(stderr,
                      "shim-gate=failure|lifetime:%d|stage:allocated-hwnd\n",
                      lifetime);
         goto cleanup;
     }
 
-    endpoint_dc = get_dc(reinterpret_cast<HWND>(window_value));
+    endpoint_dc = get_dc(as_window(window_value));
     if (endpoint_dc == nullptr) {
         std::fprintf(stderr,
                      "shim-gate=failure|lifetime:%d|stage:get-dc\n", lifetime);
@@ -195,8 +250,8 @@ bool run_lifetime(const gf_api_v0& api, HMODULE shim, int lifetime,
     {
         std::array<char, 256> snapshot{};
         std::uint64_t required{};
-        if (gf_windows_paint_endpoint_snapshot_v1(
-                endpoint, snapshot.data(), snapshot.size(), &required) != GF_OK) {
+        if (api.endpoints.snapshot(
+                endpoint, snapshot.data(), snapshot.size(), &required) != GF_STATUS_OK) {
             std::fprintf(stderr,
                          "shim-gate=failure|lifetime:%d|stage:snapshot\n",
                          lifetime);
@@ -225,7 +280,7 @@ bool run_lifetime(const gf_api_v0& api, HMODULE shim, int lifetime,
         RECT exposed{};
         const COLORREF producer_pixel = GetPixel(producer, 0, 0);
         const COLORREF before_scroll = GetPixel(endpoint_dc, 0, 0);
-        if (scroll_window(reinterpret_cast<HWND>(window_value), 1, 0,
+        if (scroll_window(as_window(window_value), 1, 0,
                           &scroll_bounds, &scroll_bounds, nullptr, &exposed,
                           SW_INVALIDATE) == ERROR ||
             GetPixel(endpoint_dc, 1, 0) != marker) {
@@ -256,17 +311,17 @@ bool run_lifetime(const gf_api_v0& api, HMODULE shim, int lifetime,
                          static_cast<long>(endpoint_section.dsBmih.biHeight));
             goto cleanup;
         }
-        if (send_message(reinterpret_cast<HWND>(window_value), 0x83f1U,
+        if (send_message(as_window(window_value), 0x83f1U,
                          0, 0) != 0) {
             std::fprintf(stderr, "shim-gate=failure|stage:virtual-message\n");
             goto cleanup;
         }
     }
 
-    if (gf_windows_paint_endpoint_configure_v1(
+    if (api.endpoints.configure(
             endpoint, static_cast<std::uint32_t>(resized_width),
-            static_cast<std::uint32_t>(resized_height)) != GF_OK ||
-        get_dc(reinterpret_cast<HWND>(window_value)) != endpoint_dc) {
+            static_cast<std::uint32_t>(resized_height)) != GF_STATUS_OK ||
+        get_dc(as_window(window_value)) != endpoint_dc) {
         std::fprintf(stderr,
                      "shim-gate=failure|lifetime:%d|stage:resize-stability\n",
                      lifetime);
@@ -282,14 +337,14 @@ cleanup:
     if (producer_bitmap != nullptr) delete_object(producer_bitmap);
     if (producer != nullptr) delete_dc(producer);
     if (endpoint_dc != nullptr) {
-        release_dc(reinterpret_cast<HWND>(window_value), endpoint_dc);
+        release_dc(as_window(window_value), endpoint_dc);
     }
-    if (endpoint != 0U) gf_windows_paint_endpoint_release_v1(endpoint);
-    if (control.slot != 0U || control.generation != 0U) api.dispose(control);
+    if (endpoint != 0U) api.endpoints.release(endpoint);
+    if (control != 0U) dispose_control(api, control);
     return ok;
 }
 
-bool run_concurrent_resize_gate(const gf_api_v0& api, HMODULE shim) {
+bool run_concurrent_resize_gate(const AbiTables& api, HMODULE shim) {
     const ShimGetDC get_dc = entry<ShimGetDC>(shim, "GetDC");
     const ShimReleaseDC release_dc =
         entry<ShimReleaseDC>(shim, "ReleaseDC");
@@ -307,18 +362,17 @@ bool run_concurrent_resize_gate(const gf_api_v0& api, HMODULE shim) {
     if (!get_dc || !release_dc || !bit_blt || !create_bitmap || !create_dc ||
         !select_object || !delete_object || !delete_dc) return false;
 
-    gf_handle control{};
+    gf_object control{};
     std::uint64_t endpoint{};
-    std::uintptr_t window_value{};
-    if (api.control_create_kind(GF_CONTROL_CUSTOM, text("shim.race.test"),
-                                &control) != GF_OK ||
-        gf_windows_paint_endpoint_acquire_v1(
-            control, 332U, 324U, &endpoint, &window_value) != GF_OK) {
+    std::uint64_t window_value{};
+    if (create_custom_control(api, "shim.race.test", &control) != GF_STATUS_OK ||
+        api.endpoints.acquire(
+            control, 332U, 324U, &endpoint, &window_value) != GF_STATUS_OK) {
         std::fprintf(stderr, "shim-gate=failure|stage:race-acquire\n");
         return false;
     }
 
-    HDC endpoint_dc = get_dc(reinterpret_cast<HWND>(window_value));
+    HDC endpoint_dc = get_dc(as_window(window_value));
     HDC producer = create_dc(endpoint_dc);
     HBITMAP producer_bitmap = create_bitmap(endpoint_dc, 332, 324);
     HGDIOBJ producer_previous = producer != nullptr && producer_bitmap != nullptr
@@ -349,8 +403,8 @@ bool run_concurrent_resize_gate(const gf_api_v0& api, HMODULE shim) {
     for (int resize = 0; resize < 1200; ++resize) {
         const std::array<std::uint32_t, 2> size =
             sizes[static_cast<std::size_t>(resize) % sizes.size()];
-        if (gf_windows_paint_endpoint_configure_v1(
-                endpoint, size[0], size[1]) != GF_OK) {
+        if (api.endpoints.configure(
+                endpoint, size[0], size[1]) != GF_STATUS_OK) {
             configure_ok = false;
             break;
         }
@@ -362,9 +416,9 @@ bool run_concurrent_resize_gate(const gf_api_v0& api, HMODULE shim) {
     }
     delete_object(producer_bitmap);
     delete_dc(producer);
-    release_dc(reinterpret_cast<HWND>(window_value), endpoint_dc);
-    gf_windows_paint_endpoint_release_v1(endpoint);
-    api.dispose(control);
+    release_dc(as_window(window_value), endpoint_dc);
+    api.endpoints.release(endpoint);
+    dispose_control(api, control);
     if (!configure_ok || !writer_ok.load(std::memory_order_acquire)) {
         std::fprintf(stderr, "shim-gate=failure|stage:race-operation\n");
         return false;
@@ -410,7 +464,7 @@ enum class DibOverlapSource : std::uint8_t {
 // shim creates as a tracked top-down DIB section. Windows reports a positive
 // biHeight for both orientations, so the case verifies the orientation it
 // fills before checking the overlapping copy.
-bool run_dib_overlap_case(const gf_api_v0& api, HMODULE shim,
+bool run_dib_overlap_case(const AbiTables& api, HMODULE shim,
                           DibOverlapSource source) {
     const ShimGetDC get_dc = entry<ShimGetDC>(shim, "GetDC");
     const ShimReleaseDC release_dc =
@@ -450,9 +504,9 @@ bool run_dib_overlap_case(const gf_api_v0& api, HMODULE shim,
     } else if (source == DibOverlapSource::top_down_abi_bridge) {
         orientation = "top-down-abi-bridge";
     }
-    gf_handle endpoint_control{};
+    gf_object endpoint_control{};
     std::uint64_t endpoint{};
-    std::uintptr_t endpoint_window{};
+    std::uint64_t endpoint_window{};
     HDC endpoint_dc{};
     void* storage{};
     HBITMAP bitmap{};
@@ -469,12 +523,10 @@ bool run_dib_overlap_case(const gf_api_v0& api, HMODULE shim,
                          "shim-gate=failure|stage:dib-overlap-seed\n");
             goto cleanup;
         }
-        if (api.control_create_kind(GF_CONTROL_CUSTOM,
-                                    text("shim.top-down.overlap"),
-                                    &endpoint_control) != GF_OK ||
-            gf_windows_paint_endpoint_acquire_v1(
+        if (create_custom_control(api, "shim.top-down.overlap", &endpoint_control) != GF_STATUS_OK ||
+            api.endpoints.acquire(
                 endpoint_control, width, height, &endpoint,
-                &endpoint_window) != GF_OK) {
+                &endpoint_window) != GF_STATUS_OK) {
             std::fprintf(stderr,
                          "shim-gate=failure|stage:dib-overlap-acquire\n");
             goto cleanup;
@@ -483,12 +535,12 @@ bool run_dib_overlap_case(const gf_api_v0& api, HMODULE shim,
         // reclassifies it; on the bridge route only CreateCompatibleBitmap's
         // own ABI query keeps the shim from creating a bottom-up bitmap.
         if (source == DibOverlapSource::top_down_shim_get_dc) {
-            endpoint_dc = get_dc(reinterpret_cast<HWND>(endpoint_window));
+            endpoint_dc = get_dc(as_window(endpoint_window));
         } else {
-            std::uintptr_t bridge_dc{};
-            if (gf_windows_paint_endpoint_get_dc_v1(
-                    endpoint_window, &bridge_dc) == GF_OK) {
-                endpoint_dc = reinterpret_cast<HDC>(bridge_dc);
+            std::uint64_t bridge_dc{};
+            if (api.endpoints.get_dc(
+                    endpoint_window, &bridge_dc) == GF_STATUS_OK) {
+                endpoint_dc = reinterpret_cast<HDC>(static_cast<std::uintptr_t>(bridge_dc));
             }
         }
         if (endpoint_dc == nullptr) {
@@ -577,19 +629,17 @@ cleanup:
     if (dc != nullptr) delete_dc(dc);
     if (endpoint_dc != nullptr &&
         source == DibOverlapSource::top_down_shim_get_dc) {
-        release_dc(reinterpret_cast<HWND>(endpoint_window), endpoint_dc);
+        release_dc(as_window(endpoint_window), endpoint_dc);
     } else if (endpoint_dc != nullptr) {
-        gf_windows_paint_endpoint_release_dc_v1(
-            endpoint_window, reinterpret_cast<std::uintptr_t>(endpoint_dc));
+        api.endpoints.release_dc(
+            endpoint_window, static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(endpoint_dc)));
     }
-    if (endpoint != 0U) gf_windows_paint_endpoint_release_v1(endpoint);
-    if (endpoint_control.slot != 0U || endpoint_control.generation != 0U) {
-        api.dispose(endpoint_control);
-    }
+    if (endpoint != 0U) api.endpoints.release(endpoint);
+    if (endpoint_control != 0U) dispose_control(api, endpoint_control);
     return rows_match;
 }
 
-bool run_dib_overlap_gate(const gf_api_v0& api, HMODULE shim) {
+bool run_dib_overlap_gate(const AbiTables& api, HMODULE shim) {
     return run_dib_overlap_case(
                api, shim, DibOverlapSource::bottom_up_section) &&
         run_dib_overlap_case(
@@ -598,17 +648,16 @@ bool run_dib_overlap_gate(const gf_api_v0& api, HMODULE shim) {
             api, shim, DibOverlapSource::top_down_abi_bridge);
 }
 
-bool run_concurrent_release_gate(const gf_api_v0& api) {
-    gf_handle control{};
+bool run_concurrent_release_gate(const AbiTables& api) {
+    gf_object control{};
     std::uint64_t endpoint{};
-    std::uintptr_t window_value{};
-    std::uintptr_t endpoint_dc{};
-    if (api.control_create_kind(GF_CONTROL_CUSTOM, text("shim.release.test"),
-                                &control) != GF_OK ||
-        gf_windows_paint_endpoint_acquire_v1(
-            control, 332U, 324U, &endpoint, &window_value) != GF_OK ||
-        gf_windows_paint_endpoint_get_dc_v1(
-            window_value, &endpoint_dc) != GF_OK) {
+    std::uint64_t window_value{};
+    std::uint64_t endpoint_dc{};
+    if (create_custom_control(api, "shim.release.test", &control) != GF_STATUS_OK ||
+        api.endpoints.acquire(
+            control, 332U, 324U, &endpoint, &window_value) != GF_STATUS_OK ||
+        api.endpoints.get_dc(
+            window_value, &endpoint_dc) != GF_STATUS_OK) {
         std::fprintf(stderr, "shim-gate=failure|stage:release-acquire\n");
         return false;
     }
@@ -618,9 +667,9 @@ bool run_concurrent_release_gate(const gf_api_v0& api) {
     std::atomic<bool> release_started{};
     std::atomic<bool> writer_ok{};
     std::atomic<bool> release_ok{};
-    std::thread writer(&run_release_writer, endpoint_dc, &lease_acquired,
+    std::thread writer(&run_release_writer, &api.endpoints, endpoint_dc, &lease_acquired,
                        &allow_end, &writer_ok);
-    std::thread releaser(&run_endpoint_releaser, endpoint, &lease_acquired,
+    std::thread releaser(&run_endpoint_releaser, &api.endpoints, endpoint, &lease_acquired,
                          &release_started, &release_ok);
     while (!release_started.load(std::memory_order_acquire)) {
         std::this_thread::yield();
@@ -631,7 +680,7 @@ bool run_concurrent_release_gate(const gf_api_v0& api) {
     allow_end.store(true, std::memory_order_release);
     writer.join();
     releaser.join();
-    api.dispose(control);
+    dispose_control(api, control);
     if (!writer_ok.load(std::memory_order_acquire) ||
         !release_ok.load(std::memory_order_acquire)) {
         std::fprintf(stderr, "shim-gate=failure|stage:release-operation\n");
@@ -643,9 +692,8 @@ bool run_concurrent_release_gate(const gf_api_v0& api) {
 } // namespace
 
 int main() {
-    gf_api_v0 api{};
-    api.struct_size = sizeof(api);
-    if (gf_get_api_v0(GF_ABI_VERSION_0_24, &api) != GF_OK) {
+    AbiTables api{};
+    if (!negotiate_tables(&api)) {
         std::fprintf(stderr, "shim-gate=failure|stage:api\n");
         return 1;
     }

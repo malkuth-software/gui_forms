@@ -495,6 +495,8 @@ gui_forms::Control
 
       * - :cpp:func:`add_child <gui_forms::Control::add_child>`
         - Makes a control the frontmost child of this one, detaching it from its previous parent first.
+      * - :cpp:func:`insert_child <gui_forms::Control::insert_child>`
+        - Adds child at index counted from the top (zero is topmost), in one validated mutation; a child already here moves as set_child_index moves it.
       * - :cpp:func:`remove_child <gui_forms::Control::remove_child>`
         - Detaches the child with the given :cpp:class:`RuntimeId <gui_forms::RuntimeId>` and returns it, or returns null if there is no such child.
       * - :cpp:func:`child_index <gui_forms::Control::child_index>`
@@ -1328,6 +1330,10 @@ gui_forms::Control
       ``std::invalid_argument`` for a null child. Adding a control that is
       already a child does nothing.
 
+   .. cpp:function:: void insert_child(Ptr child, std::size_t index)
+
+      Adds child at index counted from the top (zero is topmost), in one validated mutation; a child already here moves as set_child_index moves it. On failure the tree is unchanged.
+
    .. cpp:function:: Ptr remove_child(RuntimeId child)
 
       Detaches the child with the given :cpp:class:`RuntimeId <gui_forms::RuntimeId>` and returns it, or returns
@@ -1745,6 +1751,14 @@ gui_forms::Control
 
       Override to react when the control gains or loses focus. It runs before
       :cpp:func:`focus_observed <gui_forms::Control::focus_observed>` is raised.
+
+   .. cpp:function:: virtual Dirty focus_invalidation() const noexcept
+
+      What the window invalidates on this control when it gains or loses focus, after on_focus_changed: invalidation::focus (paint, semantics, accessibility) by default. A control that repaints only its focused part itself in on_focus_changed (a ribbon's key stop) leaves paint out.
+
+   .. cpp:function:: virtual bool paints_content() const noexcept
+
+      Whether this control paints anything of its own. False for an input catcher (a transparent layer that takes outside clicks): its own invalidation and attachment damage nothing, and a resize that keeps its origin damages nothing; its children damage their own bounds.
 
    .. cpp:function:: virtual bool reveal_focused_descendant(const Control& descendant)
 

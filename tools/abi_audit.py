@@ -11,8 +11,7 @@ which binding generators read.
 Commands:
 
 - ``extract``: write the manifest (``--check``: fail when it is stale).
-- ``check``: apply the ABI rules to the header (among them that no name repeats
-  one the experimental 0.x header ``gui_forms/c_api.h`` declares), require the manifest to be
+- ``check``: apply the ABI rules to the header, require the manifest to be
   current, and compare it with the baseline the audit policy names
   (manifests/abi/audit_policy.json) in the policy's mode. Exit status 1 on
   any finding.
@@ -617,42 +616,10 @@ def previous_since(previous: dict[str, object] | None) -> dict[str, str]:
     return since
 
 
-def legacy_header(header: Path) -> Path:
-    """The experimental 0.x header beside the header's c/ directory: gui_forms/c_api.h."""
-    return header.parent.parent / "c_api.h"
-
-
-def check_legacy_names(text: str, declarations: Declarations, legacy: Path, findings: list[Finding]) -> None:
-    """Every name the header declares is disjoint from the 0.x header's, so a program
-    migrating from it can include both. The 0.x header includes only standard
-    headers, so every gf_ or GF_ identifier it mentions is one of its own."""
-    if not legacy.is_file():
-        return
-    legacy_text: str = strip_comments(legacy.read_text(encoding="utf-8"))
-    taken: set[str] = set(re.findall(r"\b([gG][fF]_\w+)", legacy_text))
-    declared: list[str] = re.findall(r"#\s*define\s+(\w+)", strip_comments(text))
-    constant: Constant
-    for constant in declarations.constants:
-        declared.append(constant.name)
-    declared.extend(declarations.scalars.keys())
-    record: Record
-    for record in declarations.records:
-        declared.append(record.name)
-    declared.extend(declarations.callbacks.keys())
-    declared.extend(declarations.exports.keys())
-    reported: set[str] = set()
-    name: str
-    for name in declared:
-        if name in taken and name not in reported:
-            reported.add(name)
-            findings.append(Finding("legacy-name", f"{name} is also declared by the 0.x header {legacy.name}"))
-
-
 def build_manifest(header: Path, include: Path, clang: str, previous: dict[str, object] | None,
                    findings: list[Finding]) -> dict[str, object]:
     text: str = header.read_text(encoding="utf-8")
     declarations: Declarations = parse_header(text, findings)
-    check_legacy_names(text, declarations, legacy_header(header), findings)
     if findings:
         # A header outside the dialect is not compiled: its findings are the result.
         return {}

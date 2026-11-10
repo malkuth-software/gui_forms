@@ -5,7 +5,7 @@
 C ABI
 =====
 
-The C function tables for GUI.Forms and GUI.Drawing and the C++ convenience wrapper over them: the stable ABI 1 (gui_forms/c/) and the experimental 0.x tables.
+The C function tables for GUI.Forms and GUI.Drawing and the C++ convenience wrapper over them: the sealed ABI 1 (gui_forms/c/) and the experimental drawing tables.
 
 Types
 -----
@@ -14,14 +14,10 @@ Types
    :class: autosummary longtable
    :widths: 35 65
 
-   * - :cpp:class:`Api <gui_forms::abi0::Api>`
-     - Api negotiates ABI 0.4 once, retains the immutable function table, and translates thread-local C diagnostics into typed C++ exceptions.
    * - :cpp:class:`ApplicationTable <gui_forms::abi::ApplicationTable>`
      - gf_application_table, negotiated as GF_TABLE_APPLICATION.
    * - :cpp:class:`BindingsTable <gui_forms::abi::BindingsTable>`
      - gf_bindings_table, negotiated as GF_TABLE_BINDINGS.
-   * - :cpp:class:`Control <gui_forms::abi0::Control>`
-     - The abi0::Control wrapper gives a generational C handle deterministic RAII retain/release, value-like copying, move transfer, bounded strings, and exception translation without becoming a retained visual object.
    * - :cpp:class:`ControlsTable <gui_forms::abi::ControlsTable>`
      - gf_controls_table, negotiated as GF_TABLE_CONTROLS.
    * - :cpp:class:`CustomControlsTable <gui_forms::abi::CustomControlsTable>`
@@ -34,8 +30,6 @@ Types
      - gf_dispatch_table, negotiated as GF_TABLE_DISPATCH.
    * - :cpp:class:`DockingTable <gui_forms::abi::DockingTable>`
      - gf_docking_table, negotiated as GF_TABLE_DOCKING.
-   * - :cpp:class:`Error <gui_forms::abi0::Error>`
-     - Error carries the exact C ABI result code alongside a conventional C++ runtime-error message.
    * - :cpp:class:`EventsTable <gui_forms::abi::EventsTable>`
      - gf_events_table, negotiated as GF_TABLE_EVENTS.
    * - :cpp:class:`gd_api_v0 <gd_api_v0>`
@@ -80,8 +74,6 @@ Types
      - gf_abi_version_info is the size-prefixed output record of the library and ABI versions.
    * - :cpp:class:`gf_anchored_overlay_options <gf_anchored_overlay_options>`
      -  
-   * - :cpp:class:`gf_api_v0 <gf_api_v0>`
-     - gf_api_v0 is the size-versioned negotiated function table for generational control ownership, properties, layout/scroll, hierarchy, input, fields, dialogs/services, property proxies, callbacks, host execution, dispatch, and deterministic retirement.
    * - :cpp:class:`gf_application_config <gf_application_config>`
      - gf_application_config (C ABI 1.1) is what application.create makes the library's application with: the theme base, up to 16 packages compiled after it, and the presentation source.
    * - :cpp:class:`gf_application_table <gf_application_table>`
@@ -140,28 +132,20 @@ Types
      -  
    * - :cpp:class:`gf_error_detail <gf_error_detail>`
      - gf_error_detail is the size-prefixed copy of the calling thread's last failure: status, table, slot and message size.
-   * - :cpp:class:`gf_error_view <gf_error_view>`
-     - gf_error_view returns the thread-local result code and borrowed bounded diagnostic for the last failed ABI operation.
    * - :cpp:class:`gf_event <gf_event>`
      -  
    * - :cpp:class:`gf_event_field <gf_event_field>`
      -  
    * - :cpp:class:`gf_events_table <gf_events_table>`
      -  
-   * - :cpp:class:`gf_field_edit_result <gf_field_edit_result>`
-     - gf_field_edit_result reports handled/change state plus resulting directional selection and viewport after one field operation.
    * - :cpp:class:`gf_file_filter <gf_file_filter>`
      -  
    * - :cpp:class:`gf_font <gf_font>`
      -  
-   * - :cpp:class:`gf_handle <gf_handle>`
-     - gf_handle encodes one-based registry slot plus nonzero generation so stale GUI.Forms handles are rejected deterministically.
    * - :cpp:class:`gf_host_capabilities <gf_host_capabilities>`
      -  
    * - :cpp:class:`gf_host_table <gf_host_table>`
      -  
-   * - :cpp:class:`gf_layout_state <gf_layout_state>`
-     - gf_layout_state projects suspension depth, deferred status, and requested/committed revisions.
    * - :cpp:class:`gf_layout_transaction <gf_layout_transaction>`
      -  
    * - :cpp:class:`gf_logical_insets <gf_logical_insets>`
@@ -180,22 +164,10 @@ Types
      -  
    * - :cpp:class:`gf_paint_target <gf_paint_target>`
      -  
-   * - :cpp:class:`gf_point <gf_point>`
-     - gf_point projects renderer-neutral logical coordinates across the stable C ABI.
    * - :cpp:class:`gf_properties_table <gf_properties_table>`
      -  
-   * - :cpp:class:`gf_property_callbacks_v1 <gf_property_callbacks_v1>`
-     - gf_property_callbacks_v1 is a size-versioned callback table for bounded foreign get/set/reset/serialize/format/parse/edit operations.
-   * - :cpp:class:`gf_property_descriptor_v1 <gf_property_descriptor_v1>`
-     - gf_property_descriptor_v1 is a size-versioned inert schema record for name/category/description/type/default/range/enum/converter/editor policy.
-   * - :cpp:class:`gf_property_enum_choice <gf_property_enum_choice>`
-     - gf_property_enum_choice pairs one numeric enum value with its bounded display label.
    * - :cpp:class:`gf_property_grid_table <gf_property_grid_table>`
      -  
-   * - :cpp:class:`gf_property_value <gf_property_value>`
-     - gf_property_value is the tagged scalar/string carrier used by foreign property getters, setters, converters, and editors.
-   * - :cpp:class:`gf_rect <gf_rect>`
-     - gf_rect projects renderer-neutral logical rectangle geometry across the stable C ABI.
    * - :cpp:class:`gf_rule <gf_rule>`
      -  
    * - :cpp:class:`gf_rule_action <gf_rule_action>`
@@ -232,22 +204,14 @@ Types
      -  
    * - :cpp:class:`gf_scroll_axis <gf_scroll_axis>`
      -  
-   * - :cpp:class:`gf_scroll_axis_state <gf_scroll_axis_state>`
-     - gf_scroll_axis_state projects one axis's bounds, viewport, change increments, current/effective maximum, and visibility.
    * - :cpp:class:`gf_scroll_snapshot <gf_scroll_snapshot>`
      -  
-   * - :cpp:class:`gf_scroll_state <gf_scroll_state>`
-     - gf_scroll_state combines both axis records with auto-scroll offset, margin, minimum size, and logical position.
    * - :cpp:class:`gf_shadow_frame <gf_shadow_frame>`
      -  
    * - :cpp:class:`gf_shadow_stack_info <gf_shadow_stack_info>`
      -  
-   * - :cpp:class:`gf_size <gf_size>`
-     - gf_size projects renderer-neutral logical dimensions across the stable C ABI.
    * - :cpp:class:`gf_splashscreen_options <gf_splashscreen_options>`
      - gf_splashscreen_options (C ABI 1.1) is what runtime.splashscreen_show shows: PNG artwork whose pixel size is the window's (160 to 1600 per extent), a UTF-8 status line and an optional progress in [0, 1], in fixed built-in styling (owner ruling Q-S1 (a)).
-   * - :cpp:class:`gf_string_view <gf_string_view>`
-     - gf_string_view is a non-owning bounded byte view; operations validate null/size and UTF-8 rules before copying.
    * - :cpp:class:`gf_subsurface_content <gf_subsurface_content>`
      -  
    * - :cpp:class:`gf_subsurfaces_table <gf_subsurfaces_table>`
@@ -304,29 +268,6 @@ Types
      - gf_windows_paint_endpoint_table, negotiated as GF_TABLE_WINDOWS_PAINT_ENDPOINT.
    * - :cpp:class:`WindowsTable <gui_forms::abi::WindowsTable>`
      - gf_windows_table, negotiated as GF_TABLE_WINDOWS.
-
-.. cpp:namespace:: gui_forms::abi0
-
-.. cpp:class:: Api final
-
-   ``#include <gui_forms/c_api.hpp>``
-
-   Api negotiates ABI 0.4 once, retains the immutable function table, and translates thread-local C diagnostics into typed C++ exceptions.
-
-
-   .. rubric:: Construction
-
-   .. cpp:function:: Api()
-
-
-   .. rubric:: Properties
-
-   .. cpp:function:: const gf_api_v0& table() const noexcept
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: void throw_last(gf_result result) const
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -415,67 +356,6 @@ Types
    .. cpp:function:: gf_status set_position(gf_object source, int64_t position, uint32_t* moved) const noexcept
 
    .. cpp:function:: gf_status set_current_field(gf_object source, gf_utf8_view field, const gf_value* value, uint32_t* accepted) const noexcept
-
-.. cpp:namespace:: gui_forms::abi0
-
-.. cpp:class:: Control final
-
-   ``#include <gui_forms/c_api.hpp>``
-
-   The abi0::Control wrapper gives a generational C handle deterministic RAII retain/release, value-like copying, move transfer, bounded strings, and exception translation without becoming a retained visual object.
-
-
-   .. rubric:: Construction
-
-   .. cpp:function:: Control() = default
-
-   .. cpp:function:: Control(const Api& api, std::string_view stable_id, std::uint32_t kind = GF_CONTROL_GENERIC)
-
-   .. cpp:function:: Control(const Control& other)
-
-   .. cpp:function:: Control(Control&& other) noexcept
-
-
-   .. rubric:: Properties
-
-   .. cpp:function:: gf_handle get() const noexcept
-
-   .. cpp:function:: bool visible() const
-
-   .. cpp:function:: void set_visible(bool visible) const
-
-   .. cpp:function:: bool enabled() const
-
-   .. cpp:function:: void set_enabled(bool enabled) const
-
-   .. cpp:function:: std::string name() const
-
-   .. cpp:function:: void set_name(std::string_view name) const
-
-   .. cpp:function:: std::string text() const
-
-   .. cpp:function:: void set_text(std::string_view text) const
-
-   .. cpp:function:: std::string last_host_trace() const
-
-   .. cpp:function:: std::uint64_t callback_fault_count() const
-
-   .. cpp:function:: std::string stable_id() const
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: void swap(Control& other) noexcept
-
-   .. cpp:function:: void reset() noexcept
-
-   .. cpp:function:: void run_window(std::uint32_t flags = GF_WINDOW_RUN_DEFAULT) const
-
-   .. cpp:function:: void add_child(const Control& child) const
-
-   .. cpp:function:: void request_close() const
-
-   .. cpp:function:: void dispose()
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -788,24 +668,6 @@ Types
    .. cpp:function:: gf_status set_options(gf_object workspace, const gf_dock_options* options) const noexcept
 
    .. cpp:function:: gf_status set_floating_window_visibility(gf_object workspace, uint32_t site, gf_dock_window_visibility visibility) const noexcept
-
-.. cpp:namespace:: gui_forms::abi0
-
-.. cpp:class:: Error final : public std::runtime_error
-
-   ``#include <gui_forms/c_api.hpp>``
-
-   Error carries the exact C ABI result code alongside a conventional C++ runtime-error message.
-
-
-   .. rubric:: Construction
-
-   .. cpp:function:: Error(gf_result result, std::string message)
-
-
-   .. rubric:: Properties
-
-   .. cpp:function:: gf_result result() const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -1419,190 +1281,6 @@ Types
    .. cpp:member:: double gap
 
    .. cpp:member:: const gf_callback* events
-
-.. cpp:namespace:: 0
-
-.. cpp:struct:: gf_api_v0
-
-   ``#include <gui_forms/c_api.h>``
-
-   gf_api_v0 is the size-versioned negotiated function table for generational control ownership, properties, layout/scroll, hierarchy, input, fields, dialogs/services, property proxies, callbacks, host execution, dispatch, and deterministic retirement.
-
-   .. cpp:member:: uint32_t struct_size
-
-   .. cpp:member:: uint32_t abi_version
-
-   .. cpp:member:: gf_result (*last_error)(gf_error_view* error)
-
-   .. cpp:member:: gf_result (*control_create)(gf_string_view stable_id, gf_handle* control)
-
-   .. cpp:member:: gf_result (*retain)(gf_handle handle)
-
-   .. cpp:member:: gf_result (*release)(gf_handle handle)
-
-   .. cpp:member:: gf_result (*dispose)(gf_handle handle)
-
-   .. cpp:member:: gf_result (*component_state)(gf_handle handle, uint32_t* state)
-
-   .. cpp:member:: gf_result (*stable_id)(gf_handle handle, char* buffer, uint64_t capacity, uint64_t* required_size)
-
-   .. cpp:member:: gf_result (*set_visible)(gf_handle handle, uint32_t visible)
-
-   .. cpp:member:: gf_result (*get_visible)(gf_handle handle, uint32_t* visible)
-
-   .. cpp:member:: gf_result (*set_bounds)(gf_handle handle, gf_rect bounds)
-
-   .. cpp:member:: gf_result (*get_bounds)(gf_handle handle, gf_rect* bounds)
-
-   .. cpp:member:: gf_result (*add_child)(gf_handle parent, gf_handle child)
-
-   .. cpp:member:: gf_result (*remove_child)(gf_handle parent, gf_handle child)
-
-   .. cpp:member:: gf_result (*subscribe)(gf_handle sender, uint32_t event_kind, gf_event_callback callback, void* context, gf_event_token* token)
-
-   .. cpp:member:: gf_result (*disconnect)(gf_event_token token)
-
-   .. cpp:member:: gf_result (*control_create_kind)(uint32_t kind, gf_string_view stable_id, gf_handle* control)
-
-   .. cpp:member:: gf_result (*set_name)(gf_handle handle, gf_string_view name)
-
-   .. cpp:member:: gf_result (*get_name)(gf_handle handle, char* buffer, uint64_t capacity, uint64_t* required_size)
-
-   .. cpp:member:: gf_result (*set_text)(gf_handle handle, gf_string_view text)
-
-   .. cpp:member:: gf_result (*get_text)(gf_handle handle, char* buffer, uint64_t capacity, uint64_t* required_size)
-
-   .. cpp:member:: gf_result (*set_enabled)(gf_handle handle, uint32_t enabled)
-
-   .. cpp:member:: gf_result (*get_enabled)(gf_handle handle, uint32_t* enabled)
-
-   .. cpp:member:: gf_result (*run_window)(gf_handle form, uint32_t flags)
-
-   .. cpp:member:: gf_result (*last_host_trace)(gf_handle form, char* buffer, uint64_t capacity, uint64_t* required_size)
-
-   .. cpp:member:: gf_result (*subscribe_v2)(gf_handle sender, uint32_t event_kind, gf_event_callback_v2 callback, void* context, gf_event_token* token)
-
-   .. cpp:member:: gf_result (*begin_invoke)(gf_handle control, gf_dispatch_callback callback, void* context)
-
-   .. cpp:member:: gf_result (*request_close)(gf_handle form)
-
-   .. cpp:member:: gf_result (*callback_fault_count)(gf_handle control, uint64_t* count)
-
-   .. cpp:member:: gf_result (*set_control_png)(gf_handle control, const uint8_t* encoded_png, uint64_t encoded_size)
-
-   .. cpp:member:: gf_result (*set_child_index)(gf_handle parent, gf_handle child, uint64_t index)
-
-   .. cpp:member:: gf_result (*set_control_colors)(gf_handle control, uint32_t foreground_argb, uint32_t background_argb)
-
-   .. cpp:member:: gf_result (*subscribe_pointer)(gf_handle sender, gf_pointer_callback callback, void* context, gf_event_token* token)
-
-   .. cpp:member:: gf_result (*set_check_state)(gf_handle control, uint32_t check_state)
-
-   .. cpp:member:: gf_result (*get_check_state)(gf_handle control, uint32_t* check_state)
-
-   .. cpp:member:: gf_result (*subscribe_key)(gf_handle sender, gf_key_callback callback, void* context, gf_event_token* token)
-
-   .. cpp:member:: gf_result (*subscribe_text)(gf_handle sender, gf_text_callback callback, void* context, gf_event_token* token)
-
-   .. cpp:member:: gf_result (*set_range)(gf_handle control, double minimum, double maximum)
-
-   .. cpp:member:: gf_result (*get_range)(gf_handle control, double* minimum, double* maximum)
-
-   .. cpp:member:: gf_result (*set_range_value)(gf_handle control, double value)
-
-   .. cpp:member:: gf_result (*get_range_value)(gf_handle control, double* value)
-
-   .. cpp:member:: gf_result (*set_pointer_capture)(gf_handle control, uint32_t captured)
-
-   .. cpp:member:: gf_result (*get_pointer_capture)(gf_handle control, uint32_t* captured)
-
-   .. cpp:member:: gf_result (*show_path_dialog)(gf_handle owner, uint32_t kind, gf_string_view title, gf_string_view initial_directory, gf_string_view suggested_name, gf_string_view default_extension, gf_string_view filter, uint32_t flags, uint32_t* accepted)
-
-   .. cpp:member:: gf_result (*last_dialog_path)(gf_handle owner, char* buffer, uint64_t capacity, uint64_t* required_size)
-
-   .. cpp:member:: gf_result (*show_tooltip)(gf_handle owner, gf_string_view text, double x, double y, uint32_t duration_milliseconds)
-
-   .. cpp:member:: gf_result (*hide_tooltip)(gf_handle owner)
-
-   .. cpp:member:: gf_result (*set_field_selection)(gf_handle control, uint64_t selection_start_utf8, uint64_t selection_length_utf8, uint32_t caret_visible)
-
-   .. cpp:member:: gf_result (*set_field_edit_state)(gf_handle control, uint64_t anchor_utf8, uint64_t caret_utf8, uint32_t caret_visible)
-
-   .. cpp:member:: gf_result (*field_position_from_point)(gf_handle control, double local_x, uint64_t* position_utf8)
-
-   .. cpp:member:: gf_result (*write_clipboard_text)(gf_handle owner, gf_string_view text)
-
-   .. cpp:member:: gf_result (*read_clipboard_text)(gf_handle owner, char* buffer, uint64_t capacity, uint64_t* required_size, uint32_t* has_text)
-
-   .. cpp:member:: gf_result (*field_navigate)(gf_handle control, uint64_t position_utf8, int32_t direction, uint64_t* result_utf8)
-
-   .. cpp:member:: gf_result (*field_replace)(gf_handle control, uint64_t start_utf8, uint64_t length_utf8, gf_string_view replacement, gf_field_edit_result* result)
-
-   .. cpp:member:: gf_result (*field_history)(gf_handle control, int32_t direction, gf_field_edit_result* result)
-
-   .. cpp:member:: gf_result (*field_clear_history)(gf_handle control)
-
-   .. cpp:member:: gf_result (*set_control_pixels)(gf_handle control, const uint8_t* pixels, uint32_t width, uint32_t height, uint64_t row_bytes, uint32_t pixel_format)
-
-   .. cpp:member:: gf_result (*get_control_absolute_bounds)(gf_handle control, gf_rect* bounds)
-
-   .. cpp:member:: gf_result (*subscribe_key_preview)(gf_handle form, gf_key_callback callback, void* context, gf_event_token* token)
-
-   .. cpp:member:: gf_result (*set_cursor)(gf_handle control, uint32_t cursor_kind)
-
-   .. cpp:member:: gf_result (*get_cursor)(gf_handle control, uint32_t* cursor_kind)
-
-   .. cpp:member:: gf_result (*set_auto_scroll_offset)(gf_handle control, gf_point offset)
-
-   .. cpp:member:: gf_result (*set_auto_scroll)(gf_handle control, uint32_t enabled)
-
-   .. cpp:member:: gf_result (*set_auto_scroll_margin)(gf_handle control, gf_size margin)
-
-   .. cpp:member:: gf_result (*set_auto_scroll_min_size)(gf_handle control, gf_size size)
-
-   .. cpp:member:: gf_result (*set_auto_scroll_position)(gf_handle control, gf_point position)
-
-   .. cpp:member:: gf_result (*get_scroll_state)(gf_handle control, gf_scroll_state* state)
-
-   .. cpp:member:: gf_result (*set_scroll_axis_state)(gf_handle control, uint32_t orientation, gf_scroll_axis_state state)
-
-   .. cpp:member:: gf_result (*scroll_control_into_view)(gf_handle control, gf_handle child)
-
-   .. cpp:member:: gf_result (*suspend_layout)(gf_handle control)
-
-   .. cpp:member:: gf_result (*resume_layout)(gf_handle control, uint32_t perform_layout)
-
-   .. cpp:member:: gf_result (*perform_control_layout)(gf_handle control)
-
-   .. cpp:member:: gf_result (*get_layout_state)(gf_handle control, gf_layout_state* state)
-
-   .. cpp:member:: gf_result (*property_grid_set_selected_controls)(gf_handle property_grid, const gf_handle* controls, uint64_t count)
-
-   .. cpp:member:: gf_result (*property_grid_set_sort)(gf_handle property_grid, uint32_t property_sort)
-
-   .. cpp:member:: gf_result (*property_grid_get_sort)(gf_handle property_grid, uint32_t* property_sort)
-
-   .. cpp:member:: gf_result (*property_grid_refresh)(gf_handle property_grid)
-
-   .. cpp:member:: gf_result (*property_object_define)(gf_handle property_object, const gf_property_descriptor_v1* descriptor, const gf_property_callbacks_v1* callbacks)
-
-   .. cpp:member:: gf_result (*property_object_notify_changed)(gf_handle property_object, gf_string_view property_name)
-
-   .. cpp:member:: gf_result (*property_grid_try_set_text)(gf_handle property_grid, gf_string_view property_name, gf_string_view text, uint32_t* committed)
-
-   .. cpp:member:: gf_result (*property_grid_reset_property)(gf_handle property_grid, gf_string_view property_name, uint32_t* committed)
-
-   .. cpp:member:: gf_result (*property_grid_activate_editor)(gf_handle property_grid, gf_string_view property_name, uint32_t* activated)
-
-   .. cpp:member:: gf_result (*set_control_text_alignment)(gf_handle control, uint32_t content_alignment)
-
-   .. cpp:member:: gf_result (*set_button_appearance)(gf_handle button, uint32_t visual_style, double flat_border_width)
-
-   .. cpp:member:: gf_result (*set_panel_border_style)(gf_handle panel, uint32_t border_style)
-
-   .. cpp:member:: gf_result (*attach_overlay)(gf_handle owner, gf_handle overlay)
-
-   .. cpp:member:: gf_result (*detach_overlay)(gf_handle overlay)
 
 .. cpp:namespace:: 0
 
@@ -2318,18 +1996,6 @@ Types
 
 .. cpp:namespace:: 0
 
-.. cpp:struct:: gf_error_view
-
-   ``#include <gui_forms/c_api.h>``
-
-   gf_error_view returns the thread-local result code and borrowed bounded diagnostic for the last failed ABI operation.
-
-   .. cpp:member:: uint32_t code
-
-   .. cpp:member:: gf_string_view message
-
-.. cpp:namespace:: 0
-
 .. cpp:struct:: gf_event
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -2387,26 +2053,6 @@ Types
 
 .. cpp:namespace:: 0
 
-.. cpp:struct:: gf_field_edit_result
-
-   ``#include <gui_forms/c_api.h>``
-
-   gf_field_edit_result reports handled/change state plus resulting directional selection and viewport after one field operation.
-
-   .. cpp:member:: uint64_t anchor_utf8
-
-   .. cpp:member:: uint64_t caret_utf8
-
-   .. cpp:member:: uint64_t revision
-
-   .. cpp:member:: uint32_t changed
-
-   .. cpp:member:: uint32_t can_undo
-
-   .. cpp:member:: uint32_t can_redo
-
-.. cpp:namespace:: 0
-
 .. cpp:struct:: gf_file_filter
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -2434,18 +2080,6 @@ Types
    .. cpp:member:: double size
 
    .. cpp:member:: double letter_spacing
-
-.. cpp:namespace:: 0
-
-.. cpp:struct:: gf_handle
-
-   ``#include <gui_forms/c_api.h>``
-
-   gf_handle encodes one-based registry slot plus nonzero generation so stale GUI.Forms handles are rejected deterministically.
-
-   .. cpp:member:: uint32_t slot
-
-   .. cpp:member:: uint32_t generation
 
 .. cpp:namespace:: 0
 
@@ -2493,22 +2127,6 @@ Types
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
-
-.. cpp:namespace:: 0
-
-.. cpp:struct:: gf_layout_state
-
-   ``#include <gui_forms/c_api.h>``
-
-   gf_layout_state projects suspension depth, deferred status, and requested/committed revisions.
-
-   .. cpp:member:: uint32_t suspend_depth
-
-   .. cpp:member:: uint32_t deferred
-
-   .. cpp:member:: uint64_t requested_revision
-
-   .. cpp:member:: uint64_t committed_revision
 
 .. cpp:namespace:: 0
 
@@ -2694,18 +2312,6 @@ Types
 
 .. cpp:namespace:: 0
 
-.. cpp:struct:: gf_point
-
-   ``#include <gui_forms/c_api.h>``
-
-   gf_point projects renderer-neutral logical coordinates across the stable C ABI.
-
-   .. cpp:member:: double x
-
-   .. cpp:member:: double y
-
-.. cpp:namespace:: 0
-
 .. cpp:struct:: gf_properties_table
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -2724,82 +2330,6 @@ Types
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
-
-.. cpp:namespace:: 0
-
-.. cpp:struct:: gf_property_callbacks_v1
-
-   ``#include <gui_forms/c_api.h>``
-
-   gf_property_callbacks_v1 is a size-versioned callback table for bounded foreign get/set/reset/serialize/format/parse/edit operations.
-
-   .. cpp:member:: uint32_t struct_size
-
-   .. cpp:member:: uint32_t reserved
-
-   .. cpp:member:: void* context
-
-   .. cpp:member:: gf_property_get_callback get
-
-   .. cpp:member:: gf_property_set_callback set
-
-   .. cpp:member:: gf_property_reset_callback reset
-
-   .. cpp:member:: gf_property_should_serialize_callback should_serialize
-
-   .. cpp:member:: gf_property_format_callback format
-
-   .. cpp:member:: gf_property_parse_callback parse
-
-   .. cpp:member:: gf_property_edit_callback edit
-
-.. cpp:namespace:: 0
-
-.. cpp:struct:: gf_property_descriptor_v1
-
-   ``#include <gui_forms/c_api.h>``
-
-   gf_property_descriptor_v1 is a size-versioned inert schema record for name/category/description/type/default/range/enum/converter/editor policy.
-
-   .. cpp:member:: uint32_t struct_size
-
-   .. cpp:member:: uint32_t kind
-
-   .. cpp:member:: uint32_t flags
-
-   .. cpp:member:: uint32_t reserved
-
-   .. cpp:member:: gf_string_view name
-
-   .. cpp:member:: gf_string_view category
-
-   .. cpp:member:: gf_string_view description
-
-   .. cpp:member:: gf_string_view enum_type_name
-
-   .. cpp:member:: const gf_property_enum_choice* enum_choices
-
-   .. cpp:member:: uint64_t enum_choice_count
-
-   .. cpp:member:: const gf_property_value* standard_values
-
-   .. cpp:member:: uint64_t standard_value_count
-
-   .. cpp:member:: gf_string_view converter_name
-
-   .. cpp:member:: gf_string_view editor_name
-
-.. cpp:namespace:: 0
-
-.. cpp:struct:: gf_property_enum_choice
-
-   ``#include <gui_forms/c_api.h>``
-
-   gf_property_enum_choice pairs one numeric enum value with its bounded display label.
-
-   .. cpp:member:: gf_string_view name
-
-   .. cpp:member:: int64_t value
 
 .. cpp:namespace:: 0
 
@@ -2823,44 +2353,6 @@ Types
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
-
-.. cpp:namespace:: 0
-
-.. cpp:struct:: gf_property_value
-
-   ``#include <gui_forms/c_api.h>``
-
-   gf_property_value is the tagged scalar/string carrier used by foreign property getters, setters, converters, and editors.
-
-   .. cpp:member:: uint32_t kind
-
-   .. cpp:member:: uint32_t boolean_value
-
-   .. cpp:member:: int64_t signed_value
-
-   .. cpp:member:: uint64_t unsigned_value
-
-   .. cpp:member:: double number_value
-
-   .. cpp:member:: uint32_t color_argb
-
-   .. cpp:member:: gf_string_view text_value
-
-.. cpp:namespace:: 0
-
-.. cpp:struct:: gf_rect
-
-   ``#include <gui_forms/c_api.h>``
-
-   gf_rect projects renderer-neutral logical rectangle geometry across the stable C ABI.
-
-   .. cpp:member:: double x
-
-   .. cpp:member:: double y
-
-   .. cpp:member:: double width
-
-   .. cpp:member:: double height
 
 .. cpp:namespace:: 0
 
@@ -3311,28 +2803,6 @@ Types
 
 .. cpp:namespace:: 0
 
-.. cpp:struct:: gf_scroll_axis_state
-
-   ``#include <gui_forms/c_api.h>``
-
-   gf_scroll_axis_state projects one axis's bounds, viewport, change increments, current/effective maximum, and visibility.
-
-   .. cpp:member:: uint32_t enabled
-
-   .. cpp:member:: uint32_t visible
-
-   .. cpp:member:: double minimum
-
-   .. cpp:member:: double maximum
-
-   .. cpp:member:: double large_change
-
-   .. cpp:member:: double small_change
-
-   .. cpp:member:: double value
-
-.. cpp:namespace:: 0
-
 .. cpp:struct:: gf_scroll_snapshot
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -3360,40 +2830,6 @@ Types
    .. cpp:member:: uint32_t event_type
 
    .. cpp:member:: gf_scroll_orientation event_orientation
-
-   .. cpp:member:: double event_old_value
-
-   .. cpp:member:: double event_new_value
-
-.. cpp:namespace:: 0
-
-.. cpp:struct:: gf_scroll_state
-
-   ``#include <gui_forms/c_api.h>``
-
-   gf_scroll_state combines both axis records with auto-scroll offset, margin, minimum size, and logical position.
-
-   .. cpp:member:: uint32_t auto_scroll
-
-   .. cpp:member:: gf_point position
-
-   .. cpp:member:: gf_size margin
-
-   .. cpp:member:: gf_size minimum_content_size
-
-   .. cpp:member:: gf_rect display_rectangle
-
-   .. cpp:member:: gf_rect viewport_rectangle
-
-   .. cpp:member:: gf_scroll_axis_state horizontal
-
-   .. cpp:member:: gf_scroll_axis_state vertical
-
-   .. cpp:member:: uint64_t event_revision
-
-   .. cpp:member:: uint32_t event_type
-
-   .. cpp:member:: uint32_t event_orientation
 
    .. cpp:member:: double event_old_value
 
@@ -3439,18 +2875,6 @@ Types
 
 .. cpp:namespace:: 0
 
-.. cpp:struct:: gf_size
-
-   ``#include <gui_forms/c_api.h>``
-
-   gf_size projects renderer-neutral logical dimensions across the stable C ABI.
-
-   .. cpp:member:: double width
-
-   .. cpp:member:: double height
-
-.. cpp:namespace:: 0
-
 .. cpp:struct:: gf_splashscreen_options
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -3468,18 +2892,6 @@ Types
    .. cpp:member:: gf_utf8_view status
 
    .. cpp:member:: double progress
-
-.. cpp:namespace:: 0
-
-.. cpp:struct:: gf_string_view
-
-   ``#include <gui_forms/c_api.h>``
-
-   gf_string_view is a non-owning bounded byte view; operations validate null/size and UTF-8 rules before copying.
-
-   .. cpp:member:: const char* data
-
-   .. cpp:member:: uint64_t size
 
 .. cpp:namespace:: 0
 
