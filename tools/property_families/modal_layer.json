@@ -1,0 +1,48 @@
+{
+  "family": "ModalLayer",
+  "step": "2.5",
+  "declaring": "ModalLayer",
+  "header": "include/gui_forms/controls/modal_layer/modal_layer.hpp",
+  "source": "src/controls/modal_layer/modal_layer.cpp",
+  "capabilities_header": "include/gui_forms/controls/modal_layer/modal_layer_capabilities/modal_layer_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [],
+  "not_properties": [],
+  "properties": [
+    {
+      "name": "close_on_escape",
+      "capability": "ModalLayerCloseOnEscape",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether Escape inside the layer asks to close it as cancelled (through closing, which may refuse).",
+      "getter": "close_on_escape",
+      "setter": "set_close_on_escape",
+      "clear": null,
+      "field": "close_on_escape_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "generated",
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether Escape asks to close the layer.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "sample": "false"
+    }
+  ],
+  "test": {
+    "type": "ModalLayer",
+    "include": "gui_forms/controls/modal_layer/modal_layer.hpp"
+  }
+}

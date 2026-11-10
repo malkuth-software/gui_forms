@@ -11,6 +11,7 @@
 #include "gui_forms/controls/button_base/link_label/link_label.hpp"
 #include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
 #include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
+#include "gui_forms/controls/callout/callout.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
 #include "gui_forms/controls/collections/expandable_sections.hpp"
 #include "gui_forms/controls/container/master_detail_view/master_detail_view.hpp"
@@ -21,10 +22,14 @@
 #include "gui_forms/controls/easing_preview/easing_preview.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
+#include "gui_forms/controls/instruments/dial/dial.hpp"
+#include "gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp"
 #include "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp"
 #include "gui_forms/controls/label/label.hpp"
+#include "gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp"
 #include "gui_forms/controls/menu_strip/menu_strip.hpp"
 #include "gui_forms/controls/metrics_view/metrics_view.hpp"
+#include "gui_forms/controls/modal_layer/modal_layer.hpp"
 #include "gui_forms/controls/pages/navigation_pane/navigation_pane.hpp"
 #include "gui_forms/controls/pages/page_strip/page_strip.hpp"
 #include "gui_forms/controls/pages/page_view/page_view.hpp"
@@ -86,12 +91,15 @@
 #include "gui_forms/controls/search_field/search_field.hpp"
 #include "gui_forms/controls/spinner/spinner.hpp"
 #include "gui_forms/controls/splitter/splitter.hpp"
+#include "gui_forms/controls/step_indicator/step_indicator.hpp"
 #include "gui_forms/controls/text_block/text_block.hpp"
 #include "gui_forms/controls/tool_strip/tool_strip.hpp"
 #include "gui_forms/controls/tool_strip_container/tool_strip_container.hpp"
 #include "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
 #include "gui_forms/controls/typography_specimen/typography_specimen.hpp"
 #include "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
+#include "gui_forms/controls/wizard/wizard.hpp"
+#include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -350,6 +358,50 @@ void test_button_base_properties() {
         (*control).expanded_state = sample;
         expect(raises == 1, "ButtonBase.expanded_state: an equal write raises nothing");
         static_cast<void>(token);
+    }
+}
+
+void test_callout_properties() {
+    std::shared_ptr<Callout> control = make_control<Callout>(StableId("generated.callout"));
+    {
+        const std::string sample = std::string{"New"};
+        (*control).title = sample;
+        expect((*control).title.read() == sample, "Callout.title: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("title");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "Callout.title: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Drag a panel here."};
+        (*control).text = sample;
+        expect((*control).text.read() == sample, "Callout.text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "Callout.text: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Got it"};
+        (*control).action_text = sample;
+        expect((*control).action_text.read() == sample, "Callout.action_text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("action_text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "Callout.action_text: the table reads the cell");
+    }
+    {
+        const bool sample = true;
+        (*control).light_dismiss = sample;
+        expect((*control).light_dismiss.read() == sample, "Callout.light_dismiss: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("light_dismiss");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Callout.light_dismiss: the table reads the cell");
+    }
+    {
+        const bool sample = true;
+        (*control).prefers_above = sample;
+        expect((*control).prefers_above.read() == sample, "Callout.prefers_above: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("prefers_above");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Callout.prefers_above: the table reads the cell");
     }
 }
 
@@ -799,6 +851,26 @@ void test_date_time_picker_properties() {
         const FontSpec sample = FontSpec{FontRole::content, 14.0, 400, false};
         (*control).font = sample;
         expect((*control).font.read() == sample, "DateTimePicker.font: a write stores");
+    }
+}
+
+void test_dial_properties() {
+    std::shared_ptr<Dial> control = make_control<Dial>(StableId("generated.dial"));
+    {
+        const double sample = 5.0;
+        (*control).tick_frequency = sample;
+        expect((*control).tick_frequency.read() == sample, "Dial.tick_frequency: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("tick_frequency");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "Dial.tick_frequency: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).show_arc = sample;
+        expect((*control).show_arc.read() == sample, "Dial.show_arc: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("show_arc");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Dial.show_arc: the table reads the cell");
     }
 }
 
@@ -1314,6 +1386,40 @@ void test_list_view_properties() {
     }
 }
 
+void test_lookup_combo_box_properties() {
+    std::shared_ptr<LookupComboBox> control = make_control<LookupComboBox>(StableId("generated.lookupcombobox"));
+    {
+        const std::string sample = std::string{};
+        int raises = 0;
+        const SubscriptionToken token = (*control).selected_key_changed().subscribe(RaiseCounter{&raises});
+        (*control).selected_key = sample;
+        expect((*control).selected_key.read() == sample, "LookupComboBox.selected_key: a write stores");
+        expect(raises == 1, "LookupComboBox.selected_key: a changed write raises once");
+        (*control).selected_key = sample;
+        expect(raises == 1, "LookupComboBox.selected_key: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("selected_key");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "LookupComboBox.selected_key: the table reads the cell");
+    }
+    {
+        const std::uint32_t sample = std::uint32_t{1U};
+        (*control).display_column = sample;
+        expect((*control).display_column.read() == sample, "LookupComboBox.display_column: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("display_column");
+        expect(by_name && *by_name == PropertyValueTraits<std::uint32_t>::to_binding(sample),
+               "LookupComboBox.display_column: the table reads the cell");
+    }
+    {
+        const std::uint32_t sample = std::uint32_t{5U};
+        (*control).max_drop_down_rows = sample;
+        expect((*control).max_drop_down_rows.read() == sample, "LookupComboBox.max_drop_down_rows: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("max_drop_down_rows");
+        expect(by_name && *by_name == PropertyValueTraits<std::uint32_t>::to_binding(sample),
+               "LookupComboBox.max_drop_down_rows: the table reads the cell");
+    }
+}
+
 void test_masked_text_box_properties() {
     std::shared_ptr<MaskedTextBox> control = make_control<MaskedTextBox>(StableId("generated.maskedtextbox"));
     {
@@ -1392,6 +1498,18 @@ void test_metrics_view_properties() {
         const double sample = 8.0;
         (*control).accent_width = sample;
         expect((*control).accent_width.read() == sample, "MetricsView.accent_width: a write stores");
+    }
+}
+
+void test_modal_layer_properties() {
+    std::shared_ptr<ModalLayer> control = make_control<ModalLayer>(StableId("generated.modallayer"));
+    {
+        const bool sample = false;
+        (*control).close_on_escape = sample;
+        expect((*control).close_on_escape.read() == sample, "ModalLayer.close_on_escape: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("close_on_escape");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ModalLayer.close_on_escape: the table reads the cell");
     }
 }
 
@@ -2067,6 +2185,40 @@ void test_search_field_properties() {
     }
 }
 
+void test_seven_segment_display_properties() {
+    std::shared_ptr<SevenSegmentDisplay> control = make_control<SevenSegmentDisplay>(StableId("generated.sevensegmentdisplay"));
+    {
+        const std::string sample = std::string{"12.5"};
+        int raises = 0;
+        const SubscriptionToken token = (*control).text_changed().subscribe(RaiseCounter{&raises});
+        (*control).text = sample;
+        expect((*control).text.read() == sample, "SevenSegmentDisplay.text: a write stores");
+        expect(raises == 1, "SevenSegmentDisplay.text: a changed write raises once");
+        (*control).text = sample;
+        expect(raises == 1, "SevenSegmentDisplay.text: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "SevenSegmentDisplay.text: the table reads the cell");
+    }
+    {
+        const std::uint32_t sample = std::uint32_t{6U};
+        (*control).digit_count = sample;
+        expect((*control).digit_count.read() == sample, "SevenSegmentDisplay.digit_count: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("digit_count");
+        expect(by_name && *by_name == PropertyValueTraits<std::uint32_t>::to_binding(sample),
+               "SevenSegmentDisplay.digit_count: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).ghost_segments = sample;
+        expect((*control).ghost_segments.read() == sample, "SevenSegmentDisplay.ghost_segments: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("ghost_segments");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "SevenSegmentDisplay.ghost_segments: the table reads the cell");
+    }
+}
+
 void test_spinner_properties() {
     std::shared_ptr<Spinner> control = make_control<Spinner>(StableId("generated.spinner"));
     {
@@ -2158,6 +2310,24 @@ void test_splitter_panel_properties() {
         const Color sample = Color::rgba(225, 235, 243);
         (*control).background = sample;
         expect((*control).background.read() == sample, "SplitterPanel.background: a write stores");
+    }
+}
+
+void test_step_indicator_properties() {
+    std::shared_ptr<StepIndicator> control = make_control<StepIndicator>(StableId("generated.stepindicator"));
+    {
+        const std::uint32_t sample = std::uint32_t{0U};
+        int raises = 0;
+        const SubscriptionToken token = (*control).current_step_changed().subscribe(RaiseCounter{&raises});
+        (*control).current_step = sample;
+        expect((*control).current_step.read() == sample, "StepIndicator.current_step: a write stores");
+        expect(raises == 1, "StepIndicator.current_step: a changed write raises once");
+        (*control).current_step = sample;
+        expect(raises == 1, "StepIndicator.current_step: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("current_step");
+        expect(by_name && *by_name == PropertyValueTraits<std::uint32_t>::to_binding(sample),
+               "StepIndicator.current_step: the table reads the cell");
     }
 }
 
@@ -2609,6 +2779,92 @@ void test_visual_inspector_view_properties() {
     }
 }
 
+void test_wizard_properties() {
+    std::shared_ptr<Wizard> control = make_control<Wizard>(StableId("generated.wizard"));
+    {
+        const std::uint32_t sample = std::uint32_t{0U};
+        int raises = 0;
+        const SubscriptionToken token = (*control).page_changed().subscribe(RaiseCounter{&raises});
+        (*control).current_page = sample;
+        expect((*control).current_page.read() == sample, "Wizard.current_page: a write stores");
+        expect(raises == 1, "Wizard.current_page: a changed write raises once");
+        (*control).current_page = sample;
+        expect(raises == 1, "Wizard.current_page: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("current_page");
+        expect(by_name && *by_name == PropertyValueTraits<std::uint32_t>::to_binding(sample),
+               "Wizard.current_page: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).show_step_indicator = sample;
+        expect((*control).show_step_indicator.read() == sample, "Wizard.show_step_indicator: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("show_step_indicator");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Wizard.show_step_indicator: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Previous"};
+        (*control).back_text = sample;
+        expect((*control).back_text.read() == sample, "Wizard.back_text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("back_text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "Wizard.back_text: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Continue"};
+        (*control).next_text = sample;
+        expect((*control).next_text.read() == sample, "Wizard.next_text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("next_text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "Wizard.next_text: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Done"};
+        (*control).finish_text = sample;
+        expect((*control).finish_text.read() == sample, "Wizard.finish_text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("finish_text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "Wizard.finish_text: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Close"};
+        (*control).cancel_text = sample;
+        expect((*control).cancel_text.read() == sample, "Wizard.cancel_text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("cancel_text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "Wizard.cancel_text: the table reads the cell");
+    }
+}
+
+void test_wizard_page_properties() {
+    std::shared_ptr<WizardPage> control = make_control<WizardPage>(StableId("generated.wizardpage"));
+    {
+        const std::string sample = std::string{"Details"};
+        (*control).title = sample;
+        expect((*control).title.read() == sample, "WizardPage.title: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("title");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "WizardPage.title: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Who is the account for?"};
+        (*control).description = sample;
+        expect((*control).description.read() == sample, "WizardPage.description: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("description");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "WizardPage.description: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).can_advance = sample;
+        expect((*control).can_advance.read() == sample, "WizardPage.can_advance: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("can_advance");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "WizardPage.can_advance: the table reads the cell");
+    }
+}
+
 } // namespace
 
 int main() {
@@ -2619,6 +2875,7 @@ int main() {
     test_breadcrumb_trail_properties();
     test_button_properties();
     test_button_base_properties();
+    test_callout_properties();
     test_card_properties();
     test_check_box_properties();
     test_checked_list_box_properties();
@@ -2630,6 +2887,7 @@ int main() {
     test_correspondence_view_properties();
     test_data_grid_view_properties();
     test_date_time_picker_properties();
+    test_dial_properties();
     test_dock_navigator_properties();
     test_dock_site_properties();
     test_domain_up_down_properties();
@@ -2650,11 +2908,13 @@ int main() {
     test_link_label_properties();
     test_list_box_properties();
     test_list_view_properties();
+    test_lookup_combo_box_properties();
     test_masked_text_box_properties();
     test_master_detail_view_properties();
     test_material_panel_properties();
     test_menu_strip_properties();
     test_metrics_view_properties();
+    test_modal_layer_properties();
     test_month_calendar_properties();
     test_navigation_pane_properties();
     test_numeric_up_down_properties();
@@ -2683,10 +2943,12 @@ int main() {
     test_scroll_bar_properties();
     test_scrollable_control_properties();
     test_search_field_properties();
+    test_seven_segment_display_properties();
     test_spinner_properties();
     test_split_container_properties();
     test_splitter_properties();
     test_splitter_panel_properties();
+    test_step_indicator_properties();
     test_sweep_scope_properties();
     test_tab_control_properties();
     test_tab_page_properties();
@@ -2704,6 +2966,8 @@ int main() {
     test_typography_specimen_properties();
     test_visual_inspector_overlay_properties();
     test_visual_inspector_view_properties();
+    test_wizard_properties();
+    test_wizard_page_properties();
     std::cout << "generated property tests passed\n";
     return EXIT_SUCCESS;
 }

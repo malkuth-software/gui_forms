@@ -1,0 +1,117 @@
+{
+  "family": "WizardPage",
+  "step": "2.5",
+  "declaring": "WizardPage",
+  "header": "include/gui_forms/controls/wizard/wizard_page/wizard_page.hpp",
+  "source": "src/controls/wizard/wizard_page/wizard_page.cpp",
+  "capabilities_header": "include/gui_forms/controls/wizard/wizard_page/wizard_page_capabilities/wizard_page_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [],
+  "not_properties": [],
+  "properties": [
+    {
+      "name": "title",
+      "capability": "WizardPageTitle",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The page's title, shown in the wizard's header and as its step's name. Must be valid UTF-8 (std::invalid_argument).",
+      "getter": "title",
+      "setter": "set_title",
+      "clear": null,
+      "field": "title_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "title",
+      "hooks": "hand",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The page's title.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hand": [
+        "written repaints the owning wizard and renames its step"
+      ],
+      "sample": "std::string{\"Details\"}"
+    },
+    {
+      "name": "description",
+      "capability": "WizardPageDescription",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The line under the title in the wizard's header; empty for none. Must be valid UTF-8 (std::invalid_argument).",
+      "getter": "description",
+      "setter": "set_description",
+      "clear": null,
+      "field": "description_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "description",
+      "hooks": "hand",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The line under the title.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hand": [
+        "written repaints the owning wizard"
+      ],
+      "sample": "std::string{\"Who is the account for?\"}"
+    },
+    {
+      "name": "can_advance",
+      "capability": "WizardPageCanAdvance",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether Next (or Finish) is available on this page: the page's validation gate.",
+      "getter": "can_advance",
+      "setter": "set_can_advance",
+      "clear": null,
+      "field": "can_advance_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "hand",
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether Next or Finish is available on this page.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hand": [
+        "written updates the owning wizard's buttons"
+      ],
+      "sample": "false"
+    }
+  ],
+  "test": {
+    "type": "WizardPage",
+    "include": "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
+  }
+}

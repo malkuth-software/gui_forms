@@ -1,0 +1,114 @@
+{
+  "family": "SevenSegmentDisplay",
+  "step": "2.5",
+  "declaring": "SevenSegmentDisplay",
+  "header": "include/gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp",
+  "source": "src/controls/instruments/seven_segment_display/seven_segment_display.cpp",
+  "capabilities_header": "include/gui_forms/controls/instruments/seven_segment_display/seven_segment_display_capabilities/seven_segment_display_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [],
+  "not_properties": [],
+  "properties": [
+    {
+      "name": "text",
+      "capability": "SevenSegmentDisplayText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The reading the cells show, right-aligned: digits, the hexadecimal letters, the letters a seven-segment cell can form, '-', '_', '=', the degree sign and spaces; '.' and ',' light the previous cell's point and ':' is a colon cell. Other characters show as blank cells. Must be valid UTF-8 (std::invalid_argument).",
+      "getter": "text",
+      "setter": "set_text",
+      "clear": null,
+      "field": "text_",
+      "event": "text_changed_",
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "generated",
+      "table": {
+        "kind": "text",
+        "category": "Behavior",
+        "description": "The reading the cells show.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "prepare": [
+        "if (!validate_utf8(incoming).valid()) throw std::invalid_argument(\"SevenSegmentDisplay text must be valid UTF-8\");"
+      ],
+      "sample": "std::string{\"12.5\"}"
+    },
+    {
+      "name": "digit_count",
+      "capability": "SevenSegmentDisplayDigitCount",
+      "value": "std::uint32_t",
+      "initial": "0U",
+      "comment": "The digit cells shown, at most 64 (std::invalid_argument); zero shows as many as the text needs. A longer reading keeps its last digits (overflowed()).",
+      "getter": "digit_count",
+      "setter": "set_digit_count",
+      "clear": null,
+      "field": "digit_count_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "generated",
+      "table": {
+        "kind": "unsigned_integer",
+        "category": "Appearance",
+        "description": "The digit cells shown; zero fits the text.",
+        "default": "BindingValue{std::uint64_t{0U}}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "prepare": [
+        "if (incoming > 64U) throw std::invalid_argument(\"SevenSegmentDisplay digit count must be at most 64\");"
+      ],
+      "sample": "std::uint32_t{6U}"
+    },
+    {
+      "name": "ghost_segments",
+      "capability": "SevenSegmentDisplayGhostSegments",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the unlit segments are drawn faintly, as on a real display.",
+      "getter": "ghost_segments",
+      "setter": "set_ghost_segments",
+      "clear": null,
+      "field": "ghost_segments_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "generated",
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether the unlit segments are drawn faintly.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "sample": "false"
+    }
+  ],
+  "test": {
+    "type": "SevenSegmentDisplay",
+    "include": "gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp"
+  }
+}

@@ -12,3 +12,4 @@
 #include "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/search_field/search_field.hpp"
+#include "gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp"

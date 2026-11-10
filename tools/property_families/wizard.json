@@ -1,0 +1,216 @@
+{
+  "family": "Wizard",
+  "step": "2.5",
+  "declaring": "Wizard",
+  "header": "include/gui_forms/controls/wizard/wizard.hpp",
+  "source": "src/controls/wizard/wizard.cpp",
+  "capabilities_header": "include/gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [],
+  "not_properties": [],
+  "properties": [
+    {
+      "name": "current_page",
+      "capability": "WizardCurrentPage",
+      "value": "std::uint32_t",
+      "initial": "0U",
+      "comment": "The page shown, counted from zero among the WizardPage children. A write moves there at once and raises page_changed, without page_changing; past the last page throws std::invalid_argument (zero is always accepted).",
+      "getter": "current_page",
+      "setter": "set_current_page",
+      "clear": null,
+      "field": "current_page_",
+      "event": "page_changed_",
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "hand",
+      "table": {
+        "kind": "unsigned_integer",
+        "category": "Behavior",
+        "description": "The page shown, counted from zero.",
+        "default": "BindingValue{std::uint64_t{0U}}",
+        "effects": "Dirty::arrange | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hand": [
+        "written shows the page, hides the others, updates the buttons and the step indicator, then raises page_changed"
+      ],
+      "sample": "std::uint32_t{0U}"
+    },
+    {
+      "name": "show_step_indicator",
+      "capability": "WizardShowStepIndicator",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the step indicator shows above the page, naming every page by its title.",
+      "getter": "show_step_indicator",
+      "setter": "set_show_step_indicator",
+      "clear": null,
+      "field": "show_step_indicator_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "hand",
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether the step indicator shows above the page.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::measure | Dirty::arrange | Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hand": [
+        "written shows or hides the indicator child"
+      ],
+      "sample": "false"
+    },
+    {
+      "name": "back_text",
+      "capability": "WizardBackText",
+      "value": "std::string",
+      "initial": "\"< Back\"",
+      "comment": "The Back button's text. Must be valid UTF-8 (std::invalid_argument).",
+      "getter": "back_text",
+      "setter": "set_back_text",
+      "clear": null,
+      "field": "back_text_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "back_text",
+      "hooks": "hand",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The Back button's text.",
+        "default": "BindingValue{std::string{\"< Back\"}}",
+        "effects": "Dirty::arrange | Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hand": [
+        "written sets the button's text"
+      ],
+      "sample": "std::string{\"Previous\"}"
+    },
+    {
+      "name": "next_text",
+      "capability": "WizardNextText",
+      "value": "std::string",
+      "initial": "\"Next >\"",
+      "comment": "The Next button's text before the last page. Must be valid UTF-8 (std::invalid_argument).",
+      "getter": "next_text",
+      "setter": "set_next_text",
+      "clear": null,
+      "field": "next_text_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "next_text",
+      "hooks": "hand",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The Next button's text.",
+        "default": "BindingValue{std::string{\"Next >\"}}",
+        "effects": "Dirty::arrange | Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hand": [
+        "written sets the button's text"
+      ],
+      "sample": "std::string{\"Continue\"}"
+    },
+    {
+      "name": "finish_text",
+      "capability": "WizardFinishText",
+      "value": "std::string",
+      "initial": "\"Finish\"",
+      "comment": "The Next button's text on the last page. Must be valid UTF-8 (std::invalid_argument).",
+      "getter": "finish_text",
+      "setter": "set_finish_text",
+      "clear": null,
+      "field": "finish_text_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "finish_text",
+      "hooks": "hand",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The Next button's text on the last page.",
+        "default": "BindingValue{std::string{\"Finish\"}}",
+        "effects": "Dirty::arrange | Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hand": [
+        "written sets the button's text"
+      ],
+      "sample": "std::string{\"Done\"}"
+    },
+    {
+      "name": "cancel_text",
+      "capability": "WizardCancelText",
+      "value": "std::string",
+      "initial": "\"Cancel\"",
+      "comment": "The Cancel button's text. Must be valid UTF-8 (std::invalid_argument).",
+      "getter": "cancel_text",
+      "setter": "set_cancel_text",
+      "clear": null,
+      "field": "cancel_text_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "cancel_text",
+      "hooks": "hand",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The Cancel button's text.",
+        "default": "BindingValue{std::string{\"Cancel\"}}",
+        "effects": "Dirty::arrange | Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hand": [
+        "written sets the button's text"
+      ],
+      "sample": "std::string{\"Close\"}"
+    }
+  ],
+  "test": {
+    "type": "Wizard",
+    "include": "gui_forms/controls/wizard/wizard.hpp"
+  }
+}
