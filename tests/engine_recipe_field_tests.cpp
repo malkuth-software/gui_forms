@@ -483,7 +483,7 @@ void test_kept_recipes() {
     first.classes = {"warm"};
     const ResolvedControlRecipe warmed = theme.resolve(first, ControlVisualRole::button, context);
     require(warmed.authored() && warmed.recipe().text == red, "a class written after a resolve is seen");
-    first.classes = {};
+    first.classes = std::vector<std::string>{};
     const ResolvedControlRecipe cleared = theme.resolve(first, ControlVisualRole::button, context);
     require(!cleared.authored(), "a class removed after a resolve is seen");
 
