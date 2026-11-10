@@ -14,6 +14,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <algorithm>
 #include <utility>
 #include <vector>
 
@@ -759,7 +760,20 @@ void WindowsAccessibility::notify(double scale) noexcept {
         source.generation = generation;
         if (source.automation_observed) publish_automation_tree(source_);
         if (!source.observed) return;
-        NotifyWinEvent(EVENT_OBJECT_REORDER, source.hwnd, OBJID_CLIENT, CHILDID_SELF);
+        // The tree's identities; a reorder only when nodes came or went.
+        std::vector<std::uint64_t> identities;
+        std::vector<const SemanticNode*> pending{tree.get()};
+        while (!pending.empty()) {
+            const SemanticNode* const node = pending.back();
+            pending.pop_back();
+            identities.push_back((*node).runtime_id);
+            for (const SemanticNode& child : (*node).children) pending.push_back(&child);
+        }
+        std::sort(identities.begin(), identities.end());
+        if (identities != source.announced_ids) {
+            source.announced_ids = std::move(identities);
+            NotifyWinEvent(EVENT_OBJECT_REORDER, source.hwnd, OBJID_CLIENT, CHILDID_SELF);
+        }
         NotifyWinEvent(EVENT_OBJECT_VALUECHANGE, source.hwnd, OBJID_CLIENT, CHILDID_SELF);
         NotifyWinEvent(EVENT_OBJECT_STATECHANGE, source.hwnd, OBJID_CLIENT, CHILDID_SELF);
         std::uint64_t focused = 0U;

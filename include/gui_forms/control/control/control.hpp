@@ -351,6 +351,10 @@ public:
     }
     [[nodiscard]] Ptr parent() const noexcept { return parent_.lock(); }
     [[nodiscard]] std::span<const Ptr> children() const noexcept { return children_; }
+    // Advances whenever the child list changes (an add, a removal, a new
+    // order, a disposal), so a walk that indexes the live list instead of
+    // copying it can tell that a callback changed it meanwhile (audit N84).
+    [[nodiscard]] std::uint64_t children_revision() const noexcept { return children_revision_; }
     [[nodiscard]] bool attached() const noexcept { return surface_root_ != nullptr; }
 
     void add_child(Ptr child);
@@ -1471,11 +1475,49 @@ private:
         std::vector<DeferredInitializationChange>;
 
     static std::atomic<std::uint64_t> next_runtime_id_;
+    // The process-wide inherited-value generation (InheritedValues):
+    // starts at 1, so a control that never computed its values (generation
+    // 0) is never current. Advanced by every write of an inherited input,
+    // on any thread; a control on another thread then only computes its
+    // values again. Relaxed: each control is read and written on its own
+    // thread, which also made the write.
+    static std::atomic<std::uint64_t> inherited_generation_;
+    static void advance_inherited_generation() noexcept;
+    [[nodiscard]] static std::uint64_t current_inherited_generation() noexcept;
     RuntimeId runtime_id_;
     StableId stable_id_;
     std::any tag_;
     WeakPtr parent_;
     ChildList children_;
+    // See children_revision(); advanced with every change of children_.
+    std::uint64_t children_revision_{};
+    // The parent's children_revision_ at this control's add_child: a child
+    // walk that began at an earlier revision leaves a child added since to
+    // a following pass, as the copied child list it replaced did (N84).
+    std::uint64_t added_at_revision_{};
+    // The inherited values (audit N87), kept as of `generation`, a value of
+    // the process-wide inherited-value generation (control.cpp), which
+    // every write of an input advances: visible, enabled, cursor, colours,
+    // layout direction, ceremonial, a theme override, layout collapse, a
+    // disposal and every change of a parent. A read whose generation is
+    // older computes them again from the parent's, so a read costs one
+    // step, not a walk to the root. `theme_override` is the nearest theme
+    // override at or above the control (null for none); its owner keeps
+    // it, and dropping it advances the generation.
+    struct InheritedValues final {
+        std::uint64_t generation{};
+        const Theme* theme_override{};
+        std::optional<Color> back_color{};
+        std::optional<Color> fore_color{};
+        CursorKind cursor{CursorKind::arrow};
+        LayoutDirection direction{LayoutDirection::left_to_right};
+        bool visible{};
+        bool enabled{};
+        bool ceremonial{};
+    };
+    // Written only by inherited_values(), on the control's thread.
+    mutable InheritedValues inherited_{};
+    [[nodiscard]] const InheritedValues& inherited_values() const noexcept;
     Window* window_{};
     SurfaceRoot* surface_root_{};
     // This control's slot in its surface root's control table while it is
@@ -1639,6 +1681,10 @@ private:
     std::uint64_t measure_pass_callbacks_{};
     std::uint32_t layout_suspend_depth_{};
     bool layout_deferred_{};
+    // The surface root whose deferred-layout list holds this control
+    // (SurfaceRoot::list_layout_deferred), or null; cleared when the
+    // request commits and when the control leaves that root.
+    SurfaceRoot* layout_deferred_listed_in_{};
     std::uint64_t layout_requested_revision_{};
     std::uint64_t layout_committed_revision_{};
 

@@ -654,6 +654,34 @@ void DataGridView::index_rows_from(std::size_t first) {
     }
 }
 
+void DataGridView::index_source_change(const BindingListChange& change) {
+    const std::size_t count = data_row_count();
+    const bool added = change.kind == BindingListChangeKind::item_added;
+    const bool removed = change.kind == BindingListChangeKind::item_removed;
+    const bool indexed = change.index >= 0 && static_cast<std::size_t>(change.index) <= count;
+    if ((!added && !removed) || !indexed) {
+        rebuild_row_index();
+        return;
+    }
+    const std::size_t first = static_cast<std::size_t>(change.index);
+    try {
+        if (removed) {
+            const RowPositions::const_iterator gone = row_positions_.find(change.stable_id);
+            if (gone != row_positions_.end()) row_positions_.erase(gone);
+        }
+        for (std::size_t position = first; position < count; ++position) {
+            const DataGridViewRowPosition row{position};
+            row_positions_.insert_or_assign(row_id_text(row), position);
+        }
+    } catch (...) {
+        rebuild_row_index();
+        return;
+    }
+    // A removal whose ID the change did not name leaves a stale entry; an
+    // index of the wrong size is rebuilt.
+    if (row_positions_.size() != count) rebuild_row_index();
+}
+
 std::optional<std::size_t> DataGridView::find_row(std::string_view row_id) const {
     if (row_source_ == DataGridViewRowSource::virtual_rows) {
         const std::optional<std::size_t> position = virtual_order_.position_of(row_id);
@@ -1535,7 +1563,7 @@ void DataGridView::on_source_list_changed(const BindingListChange& change) {
                                      change.stable_id == (*current_).row_id;
         if (current_removed || change.kind == BindingListChangeKind::reset) cancel_edit();
     }
-    rebuild_row_index();
+    index_source_change(change);
     // A record that took the new row's ID, other than the one add_new_row
     // is adding, moves the new row to another ID.
     if (!adding_row_ && row_positions_.contains(new_row_.stable_id.value)) renew_new_row_id(true);

@@ -1875,15 +1875,19 @@ static NSString* accessibility_element_key(std::uint64_t control, std::string_vi
 // element in tree order for each stable identity (the tab-to-panel
 // relation). `owner_control` is the runtime identity of the nearest control
 // node at or above `parent`, which publishes `node` when it is a virtual
-// child.
+// child. The node's children are moved out of it first, so the element
+// keeps a copy of the node's own fields only (audit N100: no element holds
+// a deep copy of its subtree); the snapshot is not read again.
 static GUIFormsAccessibilityElement* reconcile_accessibility_element(
-    const SemanticNode& node,
+    SemanticNode& node,
     GUIFormsView* owner,
     id parent,
     std::uint64_t owner_control,
     NSDictionary<NSString*, GUIFormsAccessibilityElement*>* previous,
     NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>* next,
     NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>* by_stable_id) {
+    std::vector<SemanticNode> child_nodes = std::move(node.children);
+    node.children.clear();
     const bool virtual_child = gui_forms::is_virtual_semantic_runtime_id(node.runtime_id);
     const std::uint64_t control = virtual_child ? owner_control : node.runtime_id;
     const std::string child_identity = virtual_child ? node.stable_id : std::string{};
@@ -1905,8 +1909,8 @@ static GUIFormsAccessibilityElement* reconcile_accessibility_element(
     NSString* stable_identity = native_string(node.stable_id);
     if (by_stable_id[stable_identity] == nil) by_stable_id[stable_identity] = element;
     NSMutableArray* children = [[NSMutableArray alloc]
-        initWithCapacity:node.children.size()];
-    for (const SemanticNode& childNode : node.children) {
+        initWithCapacity:child_nodes.size()];
+    for (SemanticNode& childNode : child_nodes) {
         [children addObject:reconcile_accessibility_element(
             childNode, owner, element, control, previous, next, by_stable_id)];
     }
@@ -2408,7 +2412,8 @@ void post_perform_close(NSWindow* window) {
     if (_semanticAccessibilityChildren != nil && _accessibilityCacheKey == before) {
         return _semanticAccessibilityChildren;
     }
-    const gui_forms::SemanticSnapshot snapshot = (*_model).semantic_snapshot();
+    // Not const: reconciling moves each node's children out of it.
+    gui_forms::SemanticSnapshot snapshot = (*_model).semantic_snapshot();
     // The snapshot lays the window out first, which can move the key; the
     // children describe the window as it is after that layout.
     const MacAccessibilityTreeKey after = read_accessibility_tree_key(*_model);
@@ -2420,12 +2425,13 @@ void post_perform_close(NSWindow* window) {
         [[NSMutableDictionary alloc] initWithCapacity:snapshot.node_count];
     NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>* byStableId =
         [[NSMutableDictionary alloc] initWithCapacity:snapshot.node_count];
-    for (const SemanticNode& node : snapshot.roots) {
+    for (SemanticNode& node : snapshot.roots) {
+        // Read before reconciling, which empties the node's children.
+        if (contains_live_region(node)) live_region = true;
+        if (contains_text_ranges(node)) text_ranges = true;
         GUIFormsAccessibilityElement* element = reconcile_accessibility_element(
             node, self, self, 0U, _semanticAccessibilityElements, next, byStableId);
         [result addObject:element];
-        if (contains_live_region(node)) live_region = true;
-        if (contains_text_ranges(node)) text_ranges = true;
     }
     _publishesLiveRegion = live_region ? YES : NO;
     _publishesTextRanges = text_ranges ? YES : NO;

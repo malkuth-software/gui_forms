@@ -12,6 +12,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace gui_forms {
@@ -144,6 +145,19 @@ private:
     [[nodiscard]] std::size_t visible_row_count() const noexcept;
 
     std::vector<std::string> item_stable_ids_;
+    // item_stable_ids_ by text to index (audit N46a), looked up by
+    // string_view. Built by set_item_stable_ids; an erase edit clears it
+    // (the indices after the erase moved) and on_semantic_child_action
+    // builds it again when its size differs from item_stable_ids_'s.
+    struct ItemIdHash final {
+        using is_transparent = void;
+        [[nodiscard]] std::size_t operator()(std::string_view id) const noexcept {
+            const std::size_t result = std::hash<std::string_view>{}(id);
+            return result;
+        }
+    };
+    using ItemIdIndex = std::unordered_map<std::string, std::size_t, ItemIdHash, std::equal_to<>>;
+    ItemIdIndex item_stable_index_;
     std::vector<std::size_t> selected_;
     // The selection an edit leaves, made by prepare_edit before the edit
     // is stored; after the written hook swaps it in, the selection before

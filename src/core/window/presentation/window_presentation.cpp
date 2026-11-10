@@ -154,7 +154,7 @@ std::optional<ControlSnapshot> SurfaceRoot::snapshot_control(const Control::Ptr&
     candidate.translate({-bounds.x, -bounds.y});
     for (std::size_t index = 0; index < paint_plane_count; ++index) {
         const PaintPlane plane = static_cast<PaintPlane>(index);
-        paint_recursive(control, candidate, bounds, plane, visited_nodes, painted_controls, consumed_invalidations,
+        paint_recursive(control, parent_origin_of(*control), candidate, bounds, plane, visited_nodes, painted_controls, consumed_invalidations,
                         chunks_rebuilt, chunks_reused, commands_replayed);
     }
     candidate.restore();
@@ -223,7 +223,7 @@ std::optional<WindowCapture> SurfaceRoot::capture_window(const WindowCaptureOpti
     paint_backplane_rectangle(candidate, window_bounds, backplane, starts_clear);
     for (std::size_t index = 0; index < paint_plane_count; ++index) {
         const PaintPlane plane = static_cast<PaintPlane>(index);
-        paint_recursive(root_, candidate, window_bounds, plane, visited_nodes, painted_controls,
+        paint_recursive(root_, parent_origin_of(*root_), candidate, window_bounds, plane, visited_nodes, painted_controls,
                         consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
     }
     // The overlay roots, gathered before any paints: a paint callback may
@@ -239,7 +239,7 @@ std::optional<WindowCapture> SurfaceRoot::capture_window(const WindowCaptureOpti
         if (!overlay || !(*overlay).is_alive() || (*overlay).surface_root_ != this) continue;
         for (std::size_t index = 0; index < paint_plane_count; ++index) {
             const PaintPlane plane = static_cast<PaintPlane>(index);
-            paint_recursive(overlay, candidate, window_bounds, plane, visited_nodes, painted_controls,
+            paint_recursive(overlay, parent_origin_of(*overlay), candidate, window_bounds, plane, visited_nodes, painted_controls,
                             consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
         }
     }
@@ -307,6 +307,8 @@ void SurfaceRoot::abandon_paint(std::uint64_t generation_before) {
         (*checkpoint.control).dirty_ |= Dirty::paint;
     }
     paint_checkpoints_.clear();
+    // The chunks came back wholesale; count them again once.
+    recount_display_cache();
     const std::span<const Rect> painted_rectangles = painted_rectangles_;
     if (root_ && (*root_).is_alive()) {
         static_cast<void>(recompute_subtree_dirty(root_));
@@ -550,7 +552,7 @@ std::size_t SurfaceRoot::covering_plane(const Rect rectangle, const bool explici
             explicit_request || device_aligned(plane_damage_[plane_index].bounds(), scale_).contains(rectangle);
         if (!whole) continue;
         path.clear();
-        if (find_paint_cover(root_, rectangle, static_cast<PaintPlane>(plane_index), path)) return plane_index;
+        if (find_paint_cover(root_, parent_origin_of(*root_), rectangle, static_cast<PaintPlane>(plane_index), path)) return plane_index;
     }
     return paint_plane_count;
 }
@@ -565,12 +567,12 @@ void SurfaceRoot::paint_plane_rectangle(Painter& candidate, const std::size_t in
     const PaintPlane plane = static_cast<PaintPlane>(index);
     // From the control that covers what the plane paints here, when one does.
     path.clear();
-    if (find_paint_cover(root_, plane_bounds, plane, path)) {
+    if (find_paint_cover(root_, parent_origin_of(*root_), plane_bounds, plane, path)) {
         paint_from_cover(path, candidate, plane_bounds, plane, visited_nodes, painted_controls,
                          consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
         return;
     }
-    paint_recursive(root_, candidate, plane_bounds, plane, visited_nodes, painted_controls,
+    paint_recursive(root_, parent_origin_of(*root_), candidate, plane_bounds, plane, visited_nodes, painted_controls,
                     consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
 }
 
@@ -725,7 +727,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
                     // A callback since may have changed the cover: then
                     // what it skipped is painted first.
                     cover_path.clear();
-                    if (!find_paint_cover(root_, painted[rectangle], plane, cover_path)) {
+                    if (!find_paint_cover(root_, parent_origin_of(*root_), painted[rectangle], plane, cover_path)) {
                         paint_backplane_rectangle(candidate, painted[rectangle], backplane, starts_clear);
                         for (std::size_t earlier = 0; earlier < index; ++earlier) {
                             paint_plane_rectangle(candidate, earlier, painted[rectangle], explicit_request,
@@ -752,7 +754,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
                     const Rect plane_bounds =
                         plane_paint_bounds(index, painted[rectangle], explicit_request);
                     if (plane_bounds.empty()) continue;
-                    paint_recursive(overlay, candidate, plane_bounds, plane,
+                    paint_recursive(overlay, parent_origin_of(*overlay), candidate, plane_bounds, plane,
                                     visited_nodes, painted_controls,
                                     consumed_invalidations, chunks_rebuilt,
                                     chunks_reused, commands_replayed);

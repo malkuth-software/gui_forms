@@ -593,6 +593,16 @@ void append_semantic_description(SemanticDescriptor& descriptor,
 }
 
 std::atomic<std::uint64_t> Control::next_runtime_id_{1};
+std::atomic<std::uint64_t> Control::inherited_generation_{1};
+
+void Control::advance_inherited_generation() noexcept {
+    inherited_generation_.fetch_add(1U, std::memory_order_relaxed);
+}
+
+std::uint64_t Control::current_inherited_generation() noexcept {
+    const std::uint64_t generation = inherited_generation_.load(std::memory_order_relaxed);
+    return generation;
+}
 
 Control::Control(StableId stable_id)
     : runtime_id_{next_runtime_id_.fetch_add(1, std::memory_order_relaxed)},
@@ -1203,9 +1213,12 @@ const Theme& Control::effective_theme() const noexcept {
     return fallback;
 }
 
+// The nearest override is kept (inherited_values); without one, the
+// window's application theme, read now, as the topmost ancestor shares this
+// control's surface root.
 const Theme& Control::chosen_theme() const noexcept {
-    if (theme_override_) return *theme_override_;
-    if (const Ptr visual_parent = parent_.lock()) return (*visual_parent).chosen_theme();
+    const Theme* const nearest = inherited_values().theme_override;
+    if (nearest != nullptr) return *nearest;
     if (surface_root_ != nullptr) return (*surface_root_).application_theme();
     return *default_theme();
 }
@@ -1269,6 +1282,7 @@ void Control::set_theme_override(std::shared_ptr<const Theme> theme) {
         throw std::invalid_argument(detail::inline_restyle_refusal("control theme override", diagnostics));
     }
     theme_override_ = std::move(theme);
+    advance_inherited_generation();
     commit_inline_restyles(restyles);
     invalidate_subtree(invalidation::conservative_subtree);
 }
@@ -1282,6 +1296,7 @@ void Control::clear_theme_override() {
         throw std::invalid_argument(detail::inline_restyle_refusal("control theme override removal", diagnostics));
     }
     theme_override_.reset();
+    advance_inherited_generation();
     commit_inline_restyles(restyles);
     invalidate_subtree(invalidation::conservative_subtree);
 }
@@ -1350,21 +1365,13 @@ void Control::clear_authored_surface_material() {
 }
 
 std::optional<Color> Control::ambient_back_color() const noexcept {
-    for (const Control* current = this; current != nullptr;) {
-        if ((*current).back_color.read()) return (*current).back_color.read();
-        const std::shared_ptr<Control> parent = (*current).parent_.lock();
-        current = parent.get();
-    }
-    return std::nullopt;
+    const std::optional<Color> colour = inherited_values().back_color;
+    return colour;
 }
 
 std::optional<Color> Control::ambient_fore_color() const noexcept {
-    for (const Control* current = this; current != nullptr;) {
-        if ((*current).fore_color.read()) return (*current).fore_color.read();
-        const std::shared_ptr<Control> parent = (*current).parent_.lock();
-        current = parent.get();
-    }
-    return std::nullopt;
+    const std::optional<Color> colour = inherited_values().fore_color;
+    return colour;
 }
 
 void Control::set_owned_decorations(
@@ -2110,12 +2117,17 @@ void Control::add_child(Ptr child) {
     (*child).layout_slot_.reset();
     (*child).anchor_reference_.reset();
     children_.push_back(child);
+    ++children_revision_;
+    (*child).added_at_revision_ = children_revision_;
+    advance_inherited_generation();
     if (surface_root_) {
         try {
             (*surface_root_).attach_subtree(child, weak_from_this());
         } catch (...) {
             children_.pop_back();
+            ++children_revision_;
             (*child).parent_.reset();
+            advance_inherited_generation();
             throw;
         }
     }
@@ -2148,15 +2160,17 @@ Control::Ptr Control::remove_child(RuntimeId child_id) {
     }
     if (current != children_.end()) {
         children_.erase(current);
+        ++children_revision_;
     }
     if ((*removed).parent_.lock().get() == this) {
         (*removed).parent_.reset();
     }
+    advance_inherited_generation();
     (*removed).layout_slot_.reset();
     (*removed).anchor_reference_.reset();
-    if (surface_root_) {
-        static_cast<void>((*surface_root_).recompute_subtree_dirty((*surface_root_).root_));
-    }
+    // Only this control's ancestor chain loses the removed subtree's flags
+    // (audit N77).
+    if (surface_root_) (*surface_root_).refresh_ancestor_summaries(*this);
     invalidate_declared(invalidation::visual_tree);
     return removed;
 }
@@ -2178,6 +2192,7 @@ bool Control::set_child_index(RuntimeId child_id, std::size_t index) {
     const std::size_t bounded = std::min(index, children_.size());
     children_.insert(children_.end() - static_cast<std::ptrdiff_t>(bounded),
                      std::move(child));
+    ++children_revision_;
     invalidate_declared(invalidation::visual_tree);
     return true;
 }
@@ -2200,9 +2215,31 @@ void Control::clear_children() {
         (surface_root_ != nullptr && (*surface_root_).in_lifecycle_notification_)) {
         throw std::logic_error("GUI.Forms cannot mutate the visual tree during lifecycle notification");
     }
+    if (children_.empty()) return;
+    // Each child leaves as remove_child takes it, last first, but without
+    // remove_child's search from the front for each one, and with one
+    // refresh of the ancestors' flags and one invalidation for the whole
+    // list (audit N88: clearing n children was quadratic).
     while (!children_.empty()) {
-        static_cast<void>(remove_child((*children_.back()).runtime_id()));
+        Ptr removed = children_.back();
+        child_leaving(*removed);
+        if (surface_root_) (*surface_root_).detach_subtree(removed);
+        // Normally still the last; a hook that reordered the list is
+        // followed.
+        if (!children_.empty() && children_.back() == removed) {
+            children_.pop_back();
+        } else {
+            const ChildList::iterator found = std::find(children_.begin(), children_.end(), removed);
+            if (found != children_.end()) children_.erase(found);
+        }
+        ++children_revision_;
+        if ((*removed).parent_.lock().get() == this) (*removed).parent_.reset();
+        (*removed).layout_slot_.reset();
+        (*removed).anchor_reference_.reset();
     }
+    advance_inherited_generation();
+    if (surface_root_) (*surface_root_).refresh_ancestor_summaries(*this);
+    invalidate_declared(invalidation::visual_tree);
 }
 
 void Control::set_requested_bounds(Rect bounds) {
@@ -2337,6 +2374,7 @@ void Control::prepare_write(const decltype(visible)&, bool&) {
 }
 
 void Control::written(const decltype(visible)&) {
+    advance_inherited_generation();
     if (surface_root_ && !visible.read()) {
         (*surface_root_).on_eligibility_changed(shared_from_this());
     }
@@ -2359,6 +2397,7 @@ void Control::prepare_write(const decltype(enabled)&, bool&) {
 }
 
 void Control::written(const decltype(enabled)&) {
+    advance_inherited_generation();
     if (surface_root_ && !enabled.read()) {
         (*surface_root_).on_enabled_withdrawn(shared_from_this());
     }
@@ -2435,6 +2474,7 @@ void Control::prepare_write(const decltype(cursor)&, std::optional<CursorKind>&)
 }
 
 void Control::written(const decltype(cursor)&) {
+    advance_inherited_generation();
     invalidate(Dirty::semantics);
     on_cursor_changed();
 }
@@ -2449,6 +2489,7 @@ void Control::prepare_write(const decltype(back_color)&, std::optional<Color>& v
 }
 
 void Control::written(const decltype(back_color)&) {
+    advance_inherited_generation();
     invalidate_subtree(Dirty::paint);
     on_back_color_changed();
 }
@@ -2463,6 +2504,7 @@ void Control::prepare_write(const decltype(fore_color)&, std::optional<Color>& v
 }
 
 void Control::written(const decltype(fore_color)&) {
+    advance_inherited_generation();
     invalidate_subtree(Dirty::paint);
     on_fore_color_changed();
 }
@@ -2611,6 +2653,7 @@ void Control::prepare_write(const decltype(layout_direction)&, LayoutDirection& 
 }
 
 void Control::written(const decltype(layout_direction)&) {
+    advance_inherited_generation();
     // Direction mirrors where children and text are placed, never their
     // measured sizes; every descendant that inherits it moves.
     constexpr Dirty effects = Dirty::arrange | Dirty::paint | Dirty::hit_test |
@@ -2719,6 +2762,7 @@ void Control::suspend_layout() {
         layout_deferred_ = true;
         ++layout_requested_revision_;
         if (layout_requested_revision_ == 0U) ++layout_requested_revision_;
+        if (surface_root_ != nullptr) (*surface_root_).list_layout_deferred(*this);
     }
     ++layout_suspend_depth_;
 }
@@ -2750,6 +2794,7 @@ void Control::perform_layout() {
         if (layout_requested_revision_ == 0U) ++layout_requested_revision_;
     }
     layout_deferred_ = true;
+    if (surface_root_ != nullptr) (*surface_root_).list_layout_deferred(*this);
     invalidate(Dirty::measure | Dirty::arrange | Dirty::hit_test |
                Dirty::semantics | Dirty::accessibility);
     if (surface_root_ != nullptr && layout_suspend_depth_ == 0U) {
@@ -2972,16 +3017,13 @@ void Control::prepare_write(const decltype(ceremonial)&, bool&) {
 
 // The ambient effects' area cap is decided per part over the whole subtree.
 void Control::written(const decltype(ceremonial)&) {
+    advance_inherited_generation();
     invalidate_subtree(Dirty::paint);
 }
 
 bool Control::on_ceremonial_surface() const noexcept {
-    for (const Control* current = this; current != nullptr;) {
-        if ((*current).ceremonial.read()) return true;
-        const std::shared_ptr<Control> parent = (*current).parent_.lock();
-        current = parent.get();
-    }
-    return false;
+    const bool ceremonial_surface = inherited_values().ceremonial;
+    return ceremonial_surface;
 }
 
 bool Control::add_class(std::string_view name) {
@@ -3076,41 +3118,51 @@ std::string Control::field_hint_text() const {
 }
 
 CursorKind Control::effective_cursor() const noexcept {
-    const Control* current = this;
-    Ptr owner;
-    while (current != nullptr) {
-        if ((*current).cursor.read().has_value()) {
-            return *(*current).cursor.read();
-        }
-        owner = (*current).parent_.lock();
-        current = owner.get();
+    const CursorKind kind = inherited_values().cursor;
+    return kind;
+}
+
+const Control::InheritedValues& Control::inherited_values() const noexcept {
+    const std::uint64_t now = current_inherited_generation();
+    if (inherited_.generation == now) return inherited_;
+    InheritedValues computed{};
+    computed.theme_override = theme_override_.get();
+    computed.back_color = back_color.read();
+    computed.fore_color = fore_color.read();
+    const bool alive = is_alive();
+    computed.visible = visible.read() && !layout_collapsed_ && alive;
+    computed.enabled = enabled.read() && alive;
+    computed.ceremonial = ceremonial.read();
+    const LayoutDirection own_direction = layout_direction.read();
+    const Ptr visual_parent = parent_.lock();
+    if (visual_parent) {
+        const InheritedValues& above = (*visual_parent).inherited_values();
+        if (computed.theme_override == nullptr) computed.theme_override = above.theme_override;
+        if (!computed.back_color) computed.back_color = above.back_color;
+        if (!computed.fore_color) computed.fore_color = above.fore_color;
+        computed.cursor = cursor.read() ? *cursor.read() : above.cursor;
+        computed.direction = own_direction != LayoutDirection::inherit ? own_direction : above.direction;
+        computed.visible = computed.visible && above.visible;
+        computed.enabled = computed.enabled && above.enabled;
+        computed.ceremonial = computed.ceremonial || above.ceremonial;
+    } else {
+        computed.cursor = cursor.read() ? *cursor.read() : CursorKind::arrow;
+        computed.direction = own_direction != LayoutDirection::inherit ? own_direction
+                                                                      : LayoutDirection::left_to_right;
     }
-    return CursorKind::arrow;
+    computed.generation = now;
+    inherited_ = computed;
+    return inherited_;
 }
 
 bool Control::effectively_visible() const noexcept {
-    if (!visible.read() || layout_collapsed_ || !is_alive()) {
-        return false;
-    }
-    for (Ptr ancestor = parent(); ancestor; ancestor = (*ancestor).parent()) {
-        if (!(*ancestor).visible.read() || (*ancestor).layout_collapsed_ ||
-            !(*ancestor).is_alive()) {
-            return false;
-        }
-    }
-    return true;
+    const bool shown = inherited_values().visible;
+    return shown;
 }
 
 bool Control::effectively_enabled() const noexcept {
-    if (!enabled.read() || !is_alive()) {
-        return false;
-    }
-    for (Ptr ancestor = parent(); ancestor; ancestor = (*ancestor).parent()) {
-        if (!(*ancestor).enabled.read() || !(*ancestor).is_alive()) {
-            return false;
-        }
-    }
-    return true;
+    const bool usable = inherited_values().enabled;
+    return usable;
 }
 
 bool Control::eligible_for_input() const noexcept {
@@ -3492,13 +3544,7 @@ bool Control::sizes_children_from_content() const noexcept { return true; }
 bool Control::measures_children_in_arrange() const noexcept { return false; }
 
 LayoutDirection Control::effective_layout_direction() const noexcept {
-    LayoutDirection direction = layout_direction.read();
-    Ptr ancestor = parent_.lock();
-    while (direction == LayoutDirection::inherit && ancestor) {
-        direction = (*ancestor).layout_direction.read();
-        ancestor = (*ancestor).parent_.lock();
-    }
-    if (direction == LayoutDirection::inherit) direction = LayoutDirection::left_to_right;
+    const LayoutDirection direction = inherited_values().direction;
     return direction;
 }
 
@@ -3620,6 +3666,7 @@ void Control::set_child_layout_collapsed(const Ptr& child, bool collapsed) {
     }
     if ((*child).layout_collapsed_ == collapsed) return;
     (*child).layout_collapsed_ = collapsed;
+    advance_inherited_generation();
     if (collapsed && (*child).surface_root_ != nullptr) {
         (*(*child).surface_root_).on_eligibility_changed(child);
     }
@@ -4222,6 +4269,8 @@ void Control::verify_dispose_thread() {
 }
 
 void Control::on_dispose() noexcept {
+    // The control is no longer alive, and its parent and override go.
+    advance_inherited_generation();
     if (data_bindings_) {
         (*data_bindings_).clear();
         data_bindings_.reset();
@@ -4251,12 +4300,15 @@ void Control::on_dispose() noexcept {
         }
         if (found != (*visual_parent).children_.end()) {
             (*visual_parent).children_.erase(found);
+            ++(*visual_parent).children_revision_;
         }
         parent_.reset();
+        advance_inherited_generation();
     }
 
     std::vector<Ptr> visual_children = std::move(children_);
     children_.clear();
+    ++children_revision_;
     display_chunk_.reset();
     for (const std::shared_ptr<gui_forms::Control>& child : visual_children) {
         (*child).parent_.reset();

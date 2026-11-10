@@ -1,5 +1,7 @@
 #include "gui_forms/surface_root/control_table/control_table.hpp"
 
+#include "gui_forms/control/control/control.hpp"
+
 #include <bit>
 #include <limits>
 #include <stdexcept>
@@ -13,6 +15,17 @@ constexpr std::size_t word_bits = 64U;
 [[nodiscard]] std::size_t words_for(std::size_t count) noexcept {
     const std::size_t words = (count + word_bits - 1U) / word_bits;
     return words;
+}
+
+// The capacity to reserve for `count` elements: at least double the
+// current one, so a table grown one slot at a time reallocates a
+// logarithmic number of times (an exact reserve per slot copied the
+// whole table on every attach).
+[[nodiscard]] std::size_t grown_capacity(std::size_t capacity, std::size_t count) noexcept {
+    if (count <= capacity) return capacity;
+    const std::size_t doubled = capacity > std::numeric_limits<std::size_t>::max() / 2U ? count : capacity * 2U;
+    const std::size_t result = doubled > count ? doubled : count;
+    return result;
 }
 
 } // namespace
@@ -101,6 +114,8 @@ void DirtyBitset::clear() noexcept {
 ControlSlot ControlTable::assign(Control& control) {
     if (!free_.empty()) {
         const std::uint32_t index = free_.back();
+        // The map entry first: a failed insert leaves the table as it was.
+        runtime_indices_.insert_or_assign(control.runtime_id().value, index);
         free_.pop_back();
         controls_[index] = &control;
         ++live_;
@@ -115,12 +130,14 @@ ControlSlot ControlTable::assign(Control& control) {
     const std::size_t count = controls_.size() + 1U;
     // Reserve every bitset before the table grows, so a failed allocation
     // leaves the table as it was.
-    for (DirtyBitset& bits : pending_) bits.reserve(count);
-    controls_.reserve(count);
-    generations_.reserve(count);
-    responses_.reserve(count);
-    touches_.reserve(count);
-    free_.reserve(count);
+    const std::size_t capacity = grown_capacity(controls_.capacity(), count);
+    for (DirtyBitset& bits : pending_) bits.reserve(capacity);
+    controls_.reserve(capacity);
+    generations_.reserve(capacity);
+    responses_.reserve(capacity);
+    touches_.reserve(capacity);
+    free_.reserve(capacity);
+    runtime_indices_.insert_or_assign(control.runtime_id().value, index);
     controls_.push_back(&control);
     generations_.push_back(0U);
     responses_.push_back(ResizeAxes::none);
@@ -139,6 +156,9 @@ bool ControlTable::live(ControlSlot slot) const noexcept {
 void ControlTable::release(ControlSlot slot) noexcept {
     if (!live(slot)) return;
     for (DirtyBitset& bits : pending_) bits.reset(slot.index);
+    const std::unordered_map<std::uint64_t, std::uint32_t>::const_iterator indexed =
+        runtime_indices_.find((*controls_[slot.index]).runtime_id().value);
+    if (indexed != runtime_indices_.end() && (*indexed).second == slot.index) runtime_indices_.erase(indexed);
     controls_[slot.index] = nullptr;
     responses_[slot.index] = ResizeAxes::none;
     touches_[slot.index] = PendingTouch{};
@@ -153,6 +173,12 @@ void ControlTable::release(ControlSlot slot) noexcept {
 Control* ControlTable::control_at(ControlSlot slot) const noexcept {
     if (!live(slot)) return nullptr;
     return controls_[slot.index];
+}
+
+Control* ControlTable::control_with_runtime_id(std::uint64_t runtime_id) const noexcept {
+    const std::unordered_map<std::uint64_t, std::uint32_t>::const_iterator found = runtime_indices_.find(runtime_id);
+    if (found == runtime_indices_.end()) return nullptr;
+    return controls_[(*found).second];
 }
 
 Control* ControlTable::control_at_index(std::uint32_t index) const noexcept {

@@ -614,6 +614,44 @@ void test_list_box_model_stable_item_ids() {
             "legacy append must return the collection to index-derived IDs");
 }
 
+// Audit N46/N46a: a long list publishes its shown rows (and the active row
+// when it is scrolled away), each with the whole set's size; an action
+// reaches an unpublished row by its stable ID, through the ID index, which
+// follows an erase.
+void test_list_box_publishes_a_window() {
+    std::shared_ptr<gui_forms::ListBox> list = make_control<ListBox>(StableId("input.window.list"));
+    std::vector<std::string> texts{};
+    std::vector<std::string> ids{};
+    for (std::size_t index = 0U; index < 400U; ++index) {
+        texts.push_back("Row " + std::to_string(index));
+        ids.push_back("window.row." + std::to_string(index));
+    }
+    (*list).items = texts;
+    (*list).set_item_stable_ids(ids);
+    Window window(list, {240.0, 90.0});
+    window.perform_layout();
+    const std::vector<SemanticNode> shown = (*list).semantic_virtual_children();
+    require(!shown.empty() && shown.size() < 20U, "a long list publishes about a screenful of rows");
+    require(shown.front().stable_id == "window.row.0" && shown.front().set_size == 400U &&
+                shown.front().position_in_set == std::optional<std::size_t>{1U},
+            "each published row carries its place in the whole set");
+    require(window.perform_semantic_action("window.row.250", SemanticAction::select) &&
+                (*list).selected_index() == 250U,
+            "an action reaches a row that is not published");
+    const std::vector<SemanticNode> after_select = (*list).semantic_virtual_children();
+    bool active_published = false;
+    for (const SemanticNode& node : after_select) {
+        if (node.stable_id == "window.row.250") active_published = true;
+    }
+    require(active_published, "the active row is published wherever the list is scrolled");
+    (*list).items.erase(0U, 1U);
+    require(window.perform_semantic_action("window.row.300", SemanticAction::select) &&
+                (*list).selected_index() == 299U,
+            "after an erase the ID index finds each row at its new position");
+    require(!window.perform_semantic_action("window.row.0", SemanticAction::select),
+            "an erased row's ID reaches nothing");
+}
+
 } // namespace
 
 // TextBox's properties are capabilities: a write runs the old setter's
@@ -970,6 +1008,7 @@ int main() {
         test_combo_box_scrollbar_reaches_last_item();
         test_numeric_up_down_composite_edit_spinner_and_keys();
         test_list_box_model_stable_item_ids();
+        test_list_box_publishes_a_window();
         test_text_box_property_capabilities();
         test_numeric_up_down_property_capabilities();
         test_numeric_up_down_schema_properties();

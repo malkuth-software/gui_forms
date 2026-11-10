@@ -432,8 +432,24 @@ Size ToolStrip::item_size(const ToolStripItemSpec& item) const {
     return {width, 0.0};
 }
 
-ToolStrip::Layout ToolStrip::layout() const {
-    return layout_for(client_rectangle());
+const ToolStrip::Layout& ToolStrip::layout() const {
+    const Rect surface = client_rectangle();
+    LayoutKey key{};
+    key.surface = surface;
+    key.scale = effective_text_scale();
+    key.measure_generation = measure_generation();
+    key.end_reserve = end_reserve.read();
+    key.grip_visible = grip_visible.read();
+    key.sizing_grip_visible = sizing_grip_visible.read();
+    key.valid = true;
+    if (!(key == layout_key_)) {
+        // Computed before the key is stored, so a failure keeps the old
+        // pair consistent.
+        Layout computed = layout_for(surface);
+        layout_cache_ = std::move(computed);
+        layout_key_ = key;
+    }
+    return layout_cache_;
 }
 
 ToolStrip::Layout ToolStrip::layout_for(Rect surface) const {

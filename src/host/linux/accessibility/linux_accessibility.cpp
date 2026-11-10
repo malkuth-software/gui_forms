@@ -1,6 +1,7 @@
 #include "linux_accessibility.hpp"
 #include <atk/atk.h>
 #include <atk-bridge.h>
+#include <gio/gio.h>
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -60,6 +61,106 @@ NodeData& data(gpointer object) { return *(*static_cast<NativeAccessible*>(objec
 AtkObject* application_root = nullptr;
 std::size_t bridge_count = 0;
 AtkObject* root_object() { return application_root; }
+
+// The session bus's accessibility status, org.a11y.Status on org.a11y.Bus
+// at /org/a11y/bus (audit N103): while neither IsEnabled nor
+// ScreenReaderEnabled is true, no assistive client is listening, so the
+// host's per-step update is skipped (a client's own query still publishes,
+// publish_on_query). Read asynchronously when the bridge starts and kept
+// by PropertiesChanged; until the bus answers, and when it cannot be read,
+// updates run as before. Process-wide, like the bridge: started with the
+// first window and stopped with the last (bus_status_stop). Its callbacks
+// run on the default main context, which the host iterates on the UI
+// thread; a stopped read is cancelled, and a cancelled callback touches
+// nothing.
+struct AccessibilityBusStatus final {
+    bool is_enabled = true;
+    bool screen_reader_enabled = true;
+    GCancellable* cancellable = nullptr;
+    GDBusConnection* connection = nullptr;
+    guint subscription = 0U;
+};
+AccessibilityBusStatus bus_status{};
+constexpr const gchar* bus_status_name = "org.a11y.Bus";
+constexpr const gchar* bus_status_path = "/org/a11y/bus";
+constexpr const gchar* bus_status_interface = "org.a11y.Status";
+
+bool bus_status_listening() {
+    const bool listening = bus_status.is_enabled || bus_status.screen_reader_enabled;
+    return listening;
+}
+// Takes the two properties `properties` (a{sv}) holds; one it lacks keeps
+// its value.
+void read_bus_status(GVariant* properties) {
+    gboolean value = FALSE;
+    if (g_variant_lookup(properties, "IsEnabled", "b", &value)) bus_status.is_enabled = value != FALSE;
+    if (g_variant_lookup(properties, "ScreenReaderEnabled", "b", &value)) {
+        bus_status.screen_reader_enabled = value != FALSE;
+    }
+}
+// PropertiesChanged: (s a{sv} as).
+void bus_status_changed(GDBusConnection*, const gchar*, const gchar*, const gchar*, const gchar*,
+                        GVariant* parameters, gpointer) {
+    const gchar* changed_interface = nullptr;
+    GVariant* changed = nullptr;
+    GVariant* invalidated = nullptr;
+    g_variant_get(parameters, "(&s@a{sv}@as)", &changed_interface, &changed, &invalidated);
+    if (g_strcmp0(changed_interface, bus_status_interface) == 0) read_bus_status(changed);
+    g_variant_unref(changed);
+    g_variant_unref(invalidated);
+}
+// GetAll's reply: (a{sv}). A failed or cancelled read keeps the status.
+void bus_status_received(GObject* source, GAsyncResult* result, gpointer) {
+    GError* error = nullptr;
+    GVariant* reply = g_dbus_connection_call_finish(G_DBUS_CONNECTION(source), result, &error);
+    if (reply == nullptr) {
+        g_error_free(error);
+        return;
+    }
+    GVariant* properties = nullptr;
+    g_variant_get(reply, "(@a{sv})", &properties);
+    read_bus_status(properties);
+    g_variant_unref(properties);
+    g_variant_unref(reply);
+}
+// The session bus, once connected: subscribes to the status and reads it.
+void bus_status_connected(GObject*, GAsyncResult* result, gpointer) {
+    GError* error = nullptr;
+    GDBusConnection* connection = g_bus_get_finish(result, &error);
+    if (connection == nullptr) {
+        g_error_free(error);
+        return;
+    }
+    if (bus_status.cancellable == nullptr || g_cancellable_is_cancelled(bus_status.cancellable) ||
+        bus_status.connection != nullptr) {
+        g_object_unref(connection);
+        return;
+    }
+    bus_status.connection = connection;
+    bus_status.subscription = g_dbus_connection_signal_subscribe(
+        connection, bus_status_name, "org.freedesktop.DBus.Properties", "PropertiesChanged", bus_status_path,
+        bus_status_interface, G_DBUS_SIGNAL_FLAGS_NONE, bus_status_changed, nullptr, nullptr);
+    g_dbus_connection_call(connection, bus_status_name, bus_status_path, "org.freedesktop.DBus.Properties", "GetAll",
+                           g_variant_new("(s)", bus_status_interface), G_VARIANT_TYPE("(a{sv})"),
+                           G_DBUS_CALL_FLAGS_NO_AUTO_START, -1, bus_status.cancellable, bus_status_received, nullptr);
+}
+void bus_status_start() {
+    if (bus_status.cancellable != nullptr) return;
+    bus_status.is_enabled = true;
+    bus_status.screen_reader_enabled = true;
+    bus_status.cancellable = g_cancellable_new();
+    g_bus_get(G_BUS_TYPE_SESSION, bus_status.cancellable, bus_status_connected, nullptr);
+}
+void bus_status_stop() {
+    if (bus_status.cancellable == nullptr) return;
+    g_cancellable_cancel(bus_status.cancellable);
+    if (bus_status.connection != nullptr) {
+        if (bus_status.subscription != 0U) g_dbus_connection_signal_unsubscribe(bus_status.connection, bus_status.subscription);
+        g_object_unref(bus_status.connection);
+    }
+    g_object_unref(bus_status.cancellable);
+    bus_status = AccessibilityBusStatus{};
+}
 const gchar* toolkit_name() { return "GUI.Forms"; }
 const gchar* toolkit_version() { return "0.2"; }
 
@@ -619,7 +720,12 @@ struct LinuxAccessibility::Impl {
     // Publishes `node` as child `index` of `parent`. `owner_control` is the
     // runtime identity of the nearest control at or above `parent`, which
     // owns `node` when `node` is a virtual child.
-    void sync(const SemanticNode& node, AtkObject* parent, int index, std::uint64_t owner_control) {
+    // The node's children are moved out of it before its own fields are
+    // kept (audit N100: an object keeps no copy of its subtree), so the
+    // snapshot is consumed.
+    void sync(SemanticNode& node, AtkObject* parent, int index, std::uint64_t owner_control) {
+        std::vector<SemanticNode> child_nodes = std::move(node.children);
+        node.children.clear();
         const bool virtual_child = is_virtual_semantic_runtime_id(node.runtime_id);
         NodeKey key;
         key.control = virtual_child ? owner_control : node.runtime_id;
@@ -645,7 +751,7 @@ struct LinuxAccessibility::Impl {
         const std::optional<SemanticTextSelection> old_selection = value.node.text_selection;
         std::vector<AtkObject*> previous = std::move(value.children);
         value.children.clear();
-        value.flags = flags; value.owner = this; value.key = key; value.node = node; value.node.children.clear(); value.live = true;
+        value.flags = flags; value.owner = this; value.key = key; value.node = node; value.live = true;
         order_actions(node.actions, value.actions);
         value.keybinding.clear();
         if (!node.access_key.empty()) {
@@ -674,13 +780,14 @@ struct LinuxAccessibility::Impl {
             announce_text(object, old_value, old_selection, node.value, node.text_selection);
         }
         const std::uint64_t child_owner = key.control;
-        for (std::size_t i = 0; i < node.children.size(); ++i) { sync(node.children[i], object, static_cast<int>(i), child_owner); }
+        for (std::size_t i = 0; i < child_nodes.size(); ++i) { sync(child_nodes[i], object, static_cast<int>(i), child_owner); }
         announce_children(object, previous, value.children);
     }
     void update() {
         if (model == nullptr) { return; }
         if ((*model).semantic_generation() == generation && published) { return; }
-        const SemanticSnapshot snapshot = (*model).semantic_snapshot();
+        // Not const: sync moves each node's children out of it.
+        SemanticSnapshot snapshot = (*model).semantic_snapshot();
         if (generation == snapshot.generation && published) { return; }
         generation = snapshot.generation;
         published = true;
@@ -1014,6 +1121,7 @@ LinuxAccessibility::LinuxAccessibility(Display* display, ::Window native, Window
         (*util).get_root = root_object; (*util).get_toolkit_name = toolkit_name; (*util).get_toolkit_version = toolkit_version;
         g_type_class_unref(util);
         static_cast<void>(atk_bridge_adaptor_init(nullptr, nullptr));
+        bus_status_start();
     }
     ++bridge_count;
     (*impl_).frame = make_object(0);
@@ -1047,12 +1155,14 @@ void LinuxAccessibility::detach() {
     for (std::size_t i = 0; i < frames.size(); ++i) { data(frames[i]).index = static_cast<int>(i); }
     frame.parent = nullptr; g_object_unref((*impl_).frame); (*impl_).frame = nullptr;
     if (--bridge_count == 0) {
+        bus_status_stop();
         atk_bridge_adaptor_cleanup(); g_object_unref(application_root); application_root = nullptr;
     }
 }
 void LinuxAccessibility::update() {
-    // Nothing is published, so nothing announced, until a client has asked.
-    if (!(*impl_).published) return;
+    // Nothing is published, so nothing announced, until a client has asked;
+    // nothing is kept current while the bus says no client listens.
+    if (!(*impl_).published || !bus_status_listening()) return;
     (*impl_).update();
 }
 void accessibility_dispatch() {

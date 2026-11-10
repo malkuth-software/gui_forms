@@ -185,6 +185,34 @@ void test_release_makes_handles_stale() {
     require(table.record(reused.handle) != nullptr, "the new record is live");
 }
 
+// N36: release_control visits only its control's records. Interleaved
+// controls release exactly their own, the slots come back for reuse before
+// the table grows, and a second control's records survive both releases.
+void test_release_control_visits_its_own_records() {
+    EnginePartTable table{};
+    std::vector<PartRecordHandle> first{};
+    std::vector<PartRecordHandle> second{};
+    for (std::size_t index = 0U; index < 40U; ++index) {
+        first.push_back(table.acquire("control.first", PartKey{"row", {}, index}).handle);
+        second.push_back(table.acquire("control.second", PartKey{"row", {}, index}).handle);
+    }
+    const std::size_t slots = table.slot_count();
+    require(table.release_control("control.first") == 40U, "the first control's forty records are released");
+    for (const PartRecordHandle& handle : first) {
+        require(table.record(handle) == nullptr, "each released handle is stale");
+    }
+    for (const PartRecordHandle& handle : second) {
+        require(table.record(handle) != nullptr, "the interleaved control's records stay live");
+    }
+    for (std::size_t index = 0U; index < 40U; ++index) {
+        require(table.acquire("control.third", PartKey{"row", {}, index}).created, "a new record is made");
+    }
+    require(table.slot_count() == slots, "the released slots are reused before the table grows");
+    require(table.release_control("control.second") == 40U, "the second control still owns its forty");
+    require(table.release_control("control.third") == 40U, "the reusing control owns the reused slots");
+    require(table.record_count() == 0U, "nothing is left");
+}
+
 // -- the engine in a window ----------------------------------------------------
 
 void test_keyed_parts_have_records() {
@@ -575,6 +603,7 @@ void test_scrolling_a_virtualized_control_stays_within_the_cap() {
 int main() {
     test_table_records_and_handles();
     test_release_makes_handles_stale();
+    test_release_control_visits_its_own_records();
     test_keyed_parts_have_records();
     test_key_changes_nothing_drawn();
     test_windows_share_the_application_engine();

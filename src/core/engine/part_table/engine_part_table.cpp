@@ -209,6 +209,16 @@ void EnginePartTable::release_slot(const std::uint32_t slot) noexcept {
         item_records_ = item_records_ - 1U;
     }
     index_.erase(released.lookup);
+    // Its control's slot list loses it (swap and pop: no allocation).
+    const ControlSlots::iterator owner = control_slots_.find((*released.record).control);
+    if (owner != control_slots_.end()) {
+        std::vector<std::uint32_t>& owned = (*owner).second;
+        const std::vector<std::uint32_t>::iterator listed = std::find(owned.begin(), owned.end(), slot);
+        if (listed != owned.end()) {
+            *listed = owned.back();
+            owned.pop_back();
+        }
+    }
     released.record.reset();
     released.lookup.clear();
     released.generation = released.generation + 1U;
@@ -275,12 +285,24 @@ PartRecordAcquisition EnginePartTable::acquire(std::string_view control_id, cons
     }
     if (!reuse) {
         // Room for the new slot, and for its entry in free_slots_ when it is
-        // released, so that release_control never allocates.
-        slots_.reserve(slots_.size() + 1U);
-        free_slots_.reserve(slots_.size() + 1U);
+        // released, so that release_control never allocates. Doubling, so
+        // a table grown one record at a time does not copy itself each time.
+        const std::size_t count = slots_.size() + 1U;
+        const std::size_t capacity = std::max(count, slots_.capacity() * 2U);
+        if (slots_.capacity() < count) slots_.reserve(capacity);
+        if (free_slots_.capacity() < count) free_slots_.reserve(capacity);
     }
     const std::uint32_t slot = reuse ? free_slots_.back() : static_cast<std::uint32_t>(slots_.size());
+    // The control's slot list has room for this slot before anything is
+    // committed; a failure here leaves at most an empty list.
+    ControlSlots::iterator owner = control_slots_.find(control_id);
+    if (owner == control_slots_.end()) {
+        owner = control_slots_.emplace(std::string(control_id), std::vector<std::uint32_t>{}).first;
+    }
+    (*owner).second.reserve((*owner).second.size() + 1U);
     index_.emplace(owned_lookup, slot);
+    // Reserved above: does not allocate.
+    (*owner).second.push_back(slot);
 
     // Commit: nothing below allocates.
     if (reuse) {
@@ -331,11 +353,18 @@ const EnginePartRecord* EnginePartTable::record(PartRecordHandle handle) const n
 }
 
 std::size_t EnginePartTable::release_control(std::string_view control_id) noexcept {
+    const ControlSlots::iterator owner = control_slots_.find(control_id);
+    if (owner == control_slots_.end()) return 0U;
+    // Taken out of the map first, so release_slot finds no list to edit.
+    std::vector<std::uint32_t> owned = std::move((*owner).second);
+    control_slots_.erase(owner);
+    // In slot order, as the scan of every slot released them, so the free
+    // list (and the next slots handed out) is unchanged.
+    std::sort(owned.begin(), owned.end());
     std::size_t released = 0U;
-    for (std::size_t index = 0U; index < slots_.size(); ++index) {
-        const RecordSlot& slot = slots_[index];
-        if (!slot.record || (*slot.record).control != control_id) continue;
-        release_slot(static_cast<std::uint32_t>(index));
+    for (const std::uint32_t slot : owned) {
+        if (!slots_[slot].record) continue;
+        release_slot(slot);
         released = released + 1U;
     }
     return released;

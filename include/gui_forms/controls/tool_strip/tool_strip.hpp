@@ -261,7 +261,10 @@ protected:
         // The end reserve (set_end_reserve), at the strip's far end.
         Rect end_reserve{};
     };
-    [[nodiscard]] Layout layout() const;
+    // The layout of the strip's client rectangle, kept under LayoutKey and
+    // computed again only when the key changes (audit N98). The reference
+    // is valid until the next call.
+    [[nodiscard]] const Layout& layout() const;
     [[nodiscard]] Layout layout_for(Rect surface) const;
     [[nodiscard]] bool status_layout() const noexcept { return status_layout_; }
     // Checks items before set_items changes anything. ToolStrip accepts every
@@ -332,6 +335,30 @@ private:
     bool overflow_hot_{};
     bool focused_{};
     bool status_layout_{};
+    // What layout() read: the client rectangle, the text scale, the measure
+    // generation (every item, text, font, orientation and command change
+    // marks measure) and the arrange-only settings. `valid` is false until
+    // the first layout.
+    struct LayoutKey final {
+        Rect surface{};
+        double scale{};
+        std::uint64_t measure_generation{};
+        double end_reserve{};
+        bool grip_visible{};
+        bool sizing_grip_visible{};
+        bool valid{};
+
+        friend bool operator==(const LayoutKey& left, const LayoutKey& right) noexcept {
+            const bool equal = left.surface == right.surface && left.scale == right.scale &&
+                               left.measure_generation == right.measure_generation &&
+                               left.end_reserve == right.end_reserve && left.grip_visible == right.grip_visible &&
+                               left.sizing_grip_visible == right.sizing_grip_visible && left.valid == right.valid;
+            return equal;
+        }
+    };
+    // layout()'s kept result and its key; written only by layout().
+    mutable Layout layout_cache_{};
+    mutable LayoutKey layout_key_{};
     // The merges into this strip, oldest first; none until the first.
     std::unique_ptr<detail::ToolStripMergeHistory> merge_history_{};
     SubscriptionToken overlay_invoked_{};

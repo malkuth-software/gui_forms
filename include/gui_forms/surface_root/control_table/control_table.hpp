@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <unordered_map>
 #include <vector>
 
 namespace gui_forms {
@@ -113,6 +114,10 @@ public:
     void release(ControlSlot slot) noexcept;
     // The control holding `slot`, or null when the slot was released since.
     [[nodiscard]] Control* control_at(ControlSlot slot) const noexcept;
+    // The live control with runtime identity `runtime_id` (Control::
+    // runtime_id().value), or null when none holds a slot (audit N79: a
+    // semantic action finds its control without walking the tree).
+    [[nodiscard]] Control* control_with_runtime_id(std::uint64_t runtime_id) const noexcept;
     // Sets, for a live slot, the bit of every kind `dirty` reaches (and the
     // subtree bit when `owed.subtree` is not empty), and merges `owed` into
     // the slot's pending touch.
@@ -157,6 +162,9 @@ private:
     // Released indices, reused last in, first out.
     std::vector<std::uint32_t> free_{};
     std::array<DirtyBitset, dirty_kind_count> pending_{};
+    // Runtime identity to live index; an entry per live slot, made at
+    // assign and erased at release.
+    std::unordered_map<std::uint64_t, std::uint32_t> runtime_indices_{};
     std::size_t live_{};
 };
 

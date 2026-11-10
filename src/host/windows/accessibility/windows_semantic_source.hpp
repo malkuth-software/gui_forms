@@ -128,14 +128,13 @@ using SemanticTreeRef = std::shared_ptr<const SemanticNode>;
 
 // What the source's current tree was built from. The tree is reused while
 // every field reads the same: the window's semantic generation (structure,
-// state and text), its content revision (every change that repaints,
-// including moves the semantic generation does not count), its display
-// generation (a node may describe what was painted), the focused, pressed
-// and captured controls, activation, the client area and the title.
+// state and text), its layout pass sequence (every change of arranged
+// bounds, which the semantic generation does not count; a repaint that
+// moves nothing no longer rebuilds the tree, audit N95), the focused,
+// pressed and captured controls, activation, the client area and the title.
 struct SemanticTreeKey final {
     std::uint64_t semantic_generation{};
-    std::uint64_t content_revision{};
-    std::uint64_t display_generation{};
+    std::uint64_t layout_pass{};
     std::uint64_t focused{};
     std::uint64_t pressed{};
     std::uint64_t captured{};
@@ -167,6 +166,9 @@ struct SemanticSource final {
     std::uint64_t generation{};
     // The runtime ID of the focused node last announced, or zero.
     std::uint64_t focus{};
+    // The runtime IDs of the tree last announced to MSAA, sorted: a
+    // reorder event is raised only when this set changes (audit N97).
+    std::vector<std::uint64_t> announced_ids{};
     // True once a client has asked for an MSAA object; MSAA events are
     // raised only after that.
     bool observed{};

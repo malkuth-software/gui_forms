@@ -197,6 +197,9 @@ gui_forms::Control
          the backmost; the last is the frontmost. Each child is owned by this
          control.
 
+      **children_revision** : ``std::uint64_t``, read-only
+         Advances whenever the child list changes (an add, a removal, a new order, a disposal), so a walk that indexes the live list instead of copying it can tell that a callback changed it meanwhile (audit N84).
+
       **attached** : ``bool``, read-only
          Whether the control is in a window's tree.
 
@@ -936,6 +939,10 @@ gui_forms::Control
       The children, in paint order: the first child is painted first and is
       the backmost; the last is the frontmost. Each child is owned by this
       control.
+
+   .. cpp:function:: std::uint64_t children_revision() const noexcept
+
+      Advances whenever the child list changes (an add, a removal, a new order, a disposal), so a walk that indexes the live list instead of copying it can tell that a callback changed it meanwhile (audit N84).
 
    .. cpp:function:: bool attached() const noexcept
 

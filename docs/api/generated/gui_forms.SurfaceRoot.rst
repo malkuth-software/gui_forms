@@ -323,6 +323,9 @@ gui_forms::SurfaceRoot
          A number that changes whenever the semantic (accessibility) tree may
          have changed.
 
+      **layout_pass_sequence** : ``std::uint64_t``, read-only
+         Advances with every layout pass (and once after the last of a flush), so a reader keyed on it sees every change of arranged bounds; the native accessibility trees key on it with semantic_generation (audit N95) instead of on every repaint.
+
    :Events:
 
       **presentation_changed** : ``Event<const PresentationSettings&>``
@@ -1019,6 +1022,10 @@ gui_forms::SurfaceRoot
 
       A number that changes whenever the semantic (accessibility) tree may
       have changed.
+
+   .. cpp:function:: std::uint64_t layout_pass_sequence() const noexcept
+
+      Advances with every layout pass (and once after the last of a flush), so a reader keyed on it sees every change of arranged bounds; the native accessibility trees key on it with semantic_generation (audit N95) instead of on every repaint.
 
 
    .. rubric:: Events
