@@ -767,6 +767,12 @@ void SkiaRaster::begin_frame(const DamageRegion& damage) {
     }
 }
 
+void SkiaRaster::clear_transparent() {
+    SkCanvas* const canvas = (*impl_).canvas();
+    if (canvas == nullptr) return;
+    (*canvas).clear(SK_ColorTRANSPARENT);
+}
+
 bool SkiaRaster::scroll_copy(const Rect clip, const Point offset) {
     // The frame's own surface, never an open group's layer.
     SkCanvas* canvas = nullptr;

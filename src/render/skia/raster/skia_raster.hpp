@@ -41,6 +41,10 @@ public:
     // replaced it: a host then repaints only what the resize exposed.
     [[nodiscard]] bool carried_on_resize() const noexcept;
     void begin_frame(const DamageRegion& damage);
+    // Makes every pixel of the frame begun transparent, within its damage
+    // clip: a raster reused for unrelated pictures (the Splash baker's) starts
+    // each one clear, where an ordinary frame keeps what it does not repaint.
+    void clear_transparent();
     void end_frame();
     // Intersects the current clip with damage's rectangles, rounded outward
     // to device pixels, so drawing touches those rectangles and not the span

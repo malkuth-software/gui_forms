@@ -1,6 +1,7 @@
 #pragma once
 #include "../accessibility/linux_accessibility.hpp"
 #include "../../../render/skia/raster/skia_raster.hpp"
+#include "../../../render/skia/raster/skia_splash_bake.hpp"
 #include "../services/x11_tray_icons.hpp"
 #include "../compositor/x11_compositor.hpp"
 #include "../settings/xsettings_watch.hpp"

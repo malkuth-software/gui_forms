@@ -2027,6 +2027,9 @@ int run_linux_application(std::vector<LinuxApplicationWindow> windows,
     const std::shared_ptr<gui_forms::detail::BundledFontSet> run_fonts =
         gui_forms::detail::shared_bundled_font_set(linux_detail::fonts_directory(),
                                                    posix_sealed_pages());
+    // The run's Splash baker (Part S, phase 2), after the fonts it paints with and
+    // before every window, so it outlives each tooltip that reads it.
+    const gui_forms::render::SkiaSplashBakeRun splash_baking(run_fonts);
     linux_detail::Runtime runtime;
     runtime.windowing = std::make_unique<linux_detail::X11Windowing>(runtime);
     // Ends the windowing on every exit from here, before ~Runtime closes the

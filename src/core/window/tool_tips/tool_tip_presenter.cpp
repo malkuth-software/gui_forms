@@ -3,6 +3,11 @@
 #include "tool_tip_bubble.hpp"
 #include "../../application/transient_window.hpp"
 #include "gui_forms/application.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "../../display/recording_painter/recording_painter.hpp"
+#include "../../display/snapshot/display_snapshot.hpp"
+#include "../../application/native_popup_record.hpp"
 
 #include <algorithm>
 #include <string>
@@ -69,6 +74,7 @@ void ToolTipPresenter::shutdown() noexcept {
     // bubble it showed.
     transient_.reset();
     transient_bubble_.reset();
+    pending_bake_ = PendingBake{};
 }
 
 // --- Switches and the things that may show -------------------------------
@@ -122,6 +128,7 @@ void ToolTipPresenter::wait(ToolTipOrigin origin, ToolTipSubject subject, FrameT
     Waiting waiting{};
     waiting.origin = origin;
     waiting.delay = delay;
+    prebake(subject);
     waiting.subject = std::move(subject);
     state_ = std::move(waiting);
     arm(now + delay);
@@ -295,7 +302,66 @@ bool ToolTipPresenter::show_in_splash(Showing& showing, ToolTipLines& lines) {
     // face alone: no shadow (owner, 2026-11-08: Q-S2 (b)).
     (*transient_bubble_).set_shadow(native_popup_translucent(window_.application_window_, window_));
     const bool placed = position(showing);
+    if (placed) adopt_bake();
     return placed;
+}
+
+// --- Splash baking ----------------------------------------------------------
+
+void ToolTipPresenter::prebake(const ToolTipSubject& subject) {
+    pending_bake_ = PendingBake{};
+    const SplashBakerSlot slot = current_splash_baker();
+    if (slot.baker == nullptr || subject.text.empty()) return;
+    if (!transient_ || !(*transient_).connected() || !transient_bubble_) return;
+    const SurfaceRoot* const root = (*transient_bubble_).attached_surface_root();
+    const Control::Ptr control = subject.control.lock();
+    if (root == nullptr || !control || !(*control).is_alive()) return;
+
+    // Broken and measured as open() will break them for this subject.
+    bake_lines_.font = (*control).effective_font(tool_tip_font);
+    break_tool_tip_lines(*control, subject.text, window_.tool_tip_settings().maximum_width, bake_lines_);
+    const Size face = tool_tip_face_size(bake_lines_);
+    const bool shadow = native_popup_translucent(window_.application_window_);
+    const Insets outsets = shadow ? overlay_shadow_outsets(*transient_bubble_) : Insets{};
+    const double scale = (*root).scale();
+    const Size whole{face.width + outsets.left + outsets.right, face.height + outsets.top + outsets.bottom};
+
+    // Recorded here, on the UI thread, where the theme and the text engine
+    // live; the snapshot owns everything the worker reads.
+    RecordingPainter recorder((*root).text_metrics_provider(), DeviceScale{scale});
+    recorder.save();
+    recorder.translate(Point{outsets.left, outsets.top});
+    paint_tool_tip_bubble(recorder, *transient_bubble_, face, bake_lines_, shadow);
+    recorder.restore();
+    const std::shared_ptr<const DisplayChunk> chunk =
+        recorder.finish(0U, PaintPlane::overlay, Rect{0.0, 0.0, whole.width, whole.height});
+    if (!chunk) return;
+    DisplaySnapshotResult made = make_display_snapshot(*chunk, whole, DeviceScale{scale});
+    if (!made.snapshot) return;
+
+    PendingBake pending{};
+    pending.armed = true;
+    pending.ticket = (*slot.baker).submit(std::move(made.snapshot));
+    pending.run = slot.run;
+    pending.key.text.assign(subject.text);
+    pending.key.face = face;
+    pending.key.font = bake_lines_.font;
+    pending.key.shadow = shadow;
+    pending.key.scale = scale;
+    pending_bake_ = std::move(pending);
+}
+
+void ToolTipPresenter::adopt_bake() {
+    if (!pending_bake_.armed || !transient_bubble_) return;
+    PendingBake pending = std::move(pending_bake_);
+    pending_bake_ = PendingBake{};
+    const SplashBakerSlot slot = current_splash_baker();
+    if (slot.baker == nullptr || slot.run != pending.run) return;
+    SplashBakeOutcome outcome = (*slot.baker).take(pending.ticket);
+    // A bake still painting is left to the baker's bound; this show paints
+    // live.
+    if (outcome.state != SplashBakeState::finished || !outcome.raster) return;
+    (*transient_bubble_).set_baked(std::move(outcome.raster), std::move(pending.key));
 }
 
 void ToolTipPresenter::transient_closed() {
