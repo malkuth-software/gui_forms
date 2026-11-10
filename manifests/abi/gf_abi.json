@@ -1329,6 +1329,21 @@
       "type": "uint32"
     },
     {
+      "name": "GF_TOOL_TIPS_FOLLOW",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TOOL_TIPS_SHOWN",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TOOL_TIPS_HIDDEN",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
       "name": "GF_CUSTOM_BASE_SCROLLABLE_CONTROL",
       "value": 0,
       "type": "uint32"
@@ -1830,6 +1845,10 @@
     },
     {
       "name": "gf_anchored_overlay_flags",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_tool_tips_setting",
       "type": "uint32_t"
     },
     {
@@ -6682,7 +6701,7 @@
     {
       "name": "gf_overlays_table",
       "kind": "table",
-      "size": 64,
+      "size": 80,
       "align": 8,
       "fields": [
         {
@@ -6832,6 +6851,50 @@
               {
                 "name": "content",
                 "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_tool_tips_shown",
+          "type": "function",
+          "offset": 64,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window",
+                "type": "gf_object"
+              },
+              {
+                "name": "setting",
+                "type": "gf_tool_tips_setting"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "tool_tips_shown",
+          "type": "function",
+          "offset": 72,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window",
+                "type": "gf_object"
+              },
+              {
+                "name": "shown",
+                "type": "uint32_t*"
+              },
+              {
+                "name": "setting",
+                "type": "gf_tool_tips_setting*"
               }
             ]
           },

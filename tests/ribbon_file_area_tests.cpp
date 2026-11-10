@@ -401,7 +401,7 @@ void recent_pane() {
         threw = true;
     }
     require(threw && (*ribbon).application_menu().size() == 3U,
-            "beside recent items the application menu takes commands and separators only");
+            "beside recent items the application menu takes commands, separators and submenus only");
     (*ribbon).set_recent_items({});
     click(window, centre((*ribbon).parts().application_button.bounds));
     require((*ribbon).menu_open(),

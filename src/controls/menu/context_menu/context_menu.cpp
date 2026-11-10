@@ -349,8 +349,11 @@ struct ContextMenu::Impl final {
             const bool submenu_shown = item_.kind == MenuItemKind::submenu && impl_.submenu_open(depth_, index_);
             if (submenu_shown) states.insert(AnatomyState::open);
             if (item_.kind == MenuItemKind::separator) {
+                // The panel's divider, as the two-pane application menu
+                // draws it: a menu item's own rule is its border, which is
+                // clear (items are flat at rest), so it would not show.
                 PartPaint rule;
-                rule.family = ControlVisualRole::menu_item;
+                rule.family = ControlVisualRole::panel;
                 rule.role = PartRole::divider;
                 rule.bounds = {menu_label_left, bounds.height * .5 - 0.5,
                                std::max(1.0, bounds.width - menu_label_left - 7.0), 1.0};

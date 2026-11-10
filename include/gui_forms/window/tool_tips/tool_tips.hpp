@@ -2,8 +2,15 @@
 
 #include <chrono>
 #include <string>
+#include <string_view>
 
 namespace gui_forms {
+
+// Whether tooltip text shows (owner, 2026-11-09): text that is empty or
+// holds only white space (ASCII spaces, tabs and line breaks, no-break
+// space U+00A0 and ideographic space U+3000) never shows, whoever asks:
+// the pointer, keyboard focus, show_tool_tip or a request.
+[[nodiscard]] bool tool_tip_text_shows(std::string_view text) noexcept;
 
 // How a window's one tooltip presenter behaves (owner, 2026-10-28). Every
 // window has one presenter; it shows the plain tooltip text of controls

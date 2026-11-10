@@ -712,7 +712,7 @@ public static unsafe class Layout
         {
             gf_overlays_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_overlays_table size", sizeof(gf_overlays_table), 64);
+            failures += expect(output, "gf_overlays_table size", sizeof(gf_overlays_table), 80);
             failures += expect(output, "gf_overlays_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_overlays_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_overlays_table.open_overlay offset", (long)((byte*)&value.open_overlay - start), 8);
@@ -722,6 +722,8 @@ public static unsafe class Layout
             failures += expect(output, "gf_overlays_table.hide_tool_tip offset", (long)((byte*)&value.hide_tool_tip - start), 40);
             failures += expect(output, "gf_overlays_table.open_anchored offset", (long)((byte*)&value.open_anchored - start), 48);
             failures += expect(output, "gf_overlays_table.close_anchored offset", (long)((byte*)&value.close_anchored - start), 56);
+            failures += expect(output, "gf_overlays_table.set_tool_tips_shown offset", (long)((byte*)&value.set_tool_tips_shown - start), 64);
+            failures += expect(output, "gf_overlays_table.tool_tips_shown offset", (long)((byte*)&value.tool_tips_shown - start), 72);
         }
         {
             gf_property_grid_table value = default;

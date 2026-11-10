@@ -78,6 +78,32 @@ bool ToolTipPresenter::hover_allowed() const noexcept {
     return allowed;
 }
 
+// Whether `control` lies outside the window's active focus scope: while a
+// menu, drop-down or other contained surface is open, the controls beneath
+// it (its invoker among them) show no tooltip from the pointer (owner,
+// 2026-11-09); the open surface's own items take the hover.
+bool ToolTipPresenter::outside_scope(const Control::Ptr& control) const noexcept {
+    const Control::Ptr scope = window_.active_focus_scope_root();
+    if (!scope || !control) return false;
+    for (Control::Ptr current = control; current; current = (*current).parent()) {
+        if (current == scope) return false;
+    }
+    return true;
+}
+
+void ToolTipPresenter::scope_changed() {
+    if (const Showing* showing = std::get_if<Showing>(&state_)) {
+        if ((*showing).origin != ToolTipOrigin::pointer || !outside_scope((*showing).subject.control.lock())) return;
+        raise(close(Idle{}));
+        return;
+    }
+    if (const Waiting* waiting = std::get_if<Waiting>(&state_)) {
+        if ((*waiting).origin != ToolTipOrigin::pointer || !outside_scope((*waiting).subject.control.lock())) return;
+        state_ = Idle{};
+        wake_.disconnect();
+    }
+}
+
 bool ToolTipPresenter::focus_allowed() const noexcept {
     const bool allowed = window_.tool_tips_shown() && window_.tool_tip_settings().show_on_focus;
     return allowed;
@@ -123,7 +149,7 @@ void ToolTipPresenter::woke(FrameTime now) {
             Control::Ptr hovered = window_.hit_test(pointer_);
             ToolTipSubject subject =
                 resolve_pointer_subject(hovered, pointer_, window_.tool_tip_settings(), covers_);
-            if (subject.text.empty()) {
+            if (subject.text.empty() || outside_scope(subject.control.lock())) {
                 Settled settled{};
                 settled.region = subject.anchor;
                 settled.hovered = hovered;
@@ -397,7 +423,7 @@ void ToolTipPresenter::pointer_wait(const Control::Ptr& hovered, FrameTime now) 
         if (contains_point((*waiting).subject.anchor, pointer_) && (*waiting).hovered.lock() == hovered) return;
     }
     ToolTipSubject subject = resolve_pointer_subject(hovered, pointer_, window_.tool_tip_settings(), covers_);
-    if (subject.text.empty()) {
+    if (subject.text.empty() || outside_scope(subject.control.lock())) {
         Settled settled{};
         settled.region = subject.anchor;
         settled.hovered = hovered;
@@ -538,7 +564,7 @@ void ToolTipPresenter::text_changed(const Control& control) {
         // A thing waiting to show whose text went waits no longer; the wake
         // finds the thing again, so new text needs nothing here.
         if ((*waiting).subject.item_id.empty() && (*waiting).subject.control.lock().get() == &control &&
-            control.tool_tip_text.read().empty()) {
+            !tool_tip_text_shows(control.tool_tip_text.read())) {
             state_ = Idle{};
             wake_.disconnect();
         }
@@ -549,7 +575,7 @@ void ToolTipPresenter::text_changed(const Control& control) {
         (*showing).subject.control.lock().get() != &control) {
         return;
     }
-    if (control.tool_tip_text.read().empty()) {
+    if (!tool_tip_text_shows(control.tool_tip_text.read())) {
         raise(close(Idle{}));
         return;
     }
@@ -565,7 +591,7 @@ void ToolTipPresenter::items_changed(const Control& control) {
         const std::vector<SemanticNode> items = control.tool_tip_items();
         const SemanticNode* item = item_with_id(items, (*showing).subject.item_id);
         const ToolTipOrigin origin = (*showing).origin;
-        if (item == nullptr || (*item).tool_tip.empty()) {
+        if (item == nullptr || !tool_tip_text_shows((*item).tool_tip)) {
             std::optional<ToolTipEvent> change = close(Idle{});
             // The pointer may rest over another part of the control now.
             if (origin == ToolTipOrigin::pointer) pointer_wait(window_.hit_test(pointer_), last_motion_);

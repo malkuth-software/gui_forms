@@ -3,7 +3,8 @@
 #include <string>
 #include <vector>
 
-namespace gui_forms::detail {
+namespace gui_forms {
+namespace detail {
 
 namespace {
 
@@ -42,6 +43,38 @@ const SemanticNode* node_with_state(std::vector<SemanticNode>&& nodes, SemanticS
 }
 
 } // namespace
+
+} // namespace detail
+
+bool tool_tip_text_shows(std::string_view text) noexcept {
+    std::size_t index = 0U;
+    while (index < text.size()) {
+        const unsigned char lead = static_cast<unsigned char>(text[index]);
+        const bool ascii_space = lead == 0x20U || (lead >= 0x09U && lead <= 0x0DU);
+        if (ascii_space) {
+            ++index;
+            continue;
+        }
+        // U+00A0 is C2 A0; U+3000 is E3 80 80.
+        const bool no_break = lead == 0xC2U && index + 1U < text.size() &&
+                              static_cast<unsigned char>(text[index + 1U]) == 0xA0U;
+        if (no_break) {
+            index += 2U;
+            continue;
+        }
+        const bool ideographic = lead == 0xE3U && index + 2U < text.size() &&
+                                 static_cast<unsigned char>(text[index + 1U]) == 0x80U &&
+                                 static_cast<unsigned char>(text[index + 2U]) == 0x80U;
+        if (ideographic) {
+            index += 3U;
+            continue;
+        }
+        return true;
+    }
+    return false;
+}
+
+namespace detail {
 
 bool contains_point(Rect bounds, Point point) noexcept {
     const bool inside = !bounds.empty() && point.x >= bounds.x && point.y >= bounds.y &&
@@ -94,14 +127,14 @@ ToolTipSubject resolve_pointer_subject(const Control::Ptr& hovered, Point positi
             if (node != nullptr) {
                 const bool enabled = settings.show_when_disabled ||
                                      has_semantic_state((*node).states, SemanticState::enabled);
-                if (!(*node).tool_tip.empty()) {
+                if (tool_tip_text_shows((*node).tool_tip)) {
                     if (!enabled || covered(covers, *current, (*node).stable_id)) return nothing_over((*node).bounds);
                     return tool_tip_subject_of(current, (*node).stable_id, (*node).tool_tip, (*node).bounds);
                 }
             }
         }
         if ((*current).tool_tip_presentation() != ToolTipPresentation::owner_item &&
-            !(*current).tool_tip_text.read().empty()) {
+            tool_tip_text_shows((*current).tool_tip_text.read())) {
             if (covered(covers, *current, {})) return nothing_over(bounds);
             return tool_tip_subject_of(current, {}, (*current).tool_tip_text.read(), bounds);
         }
@@ -125,13 +158,13 @@ ToolTipSubject resolve_focus_subject(const Control::Ptr& focused, const ToolTipS
             const std::vector<SemanticNode> nodes = (*current).tool_tip_items();
             const SemanticNode* node = node_with_state(nodes, SemanticState::focused);
             if (node == nullptr && current == focused) node = node_with_state(nodes, SemanticState::selected);
-            if (node != nullptr && !(*node).tool_tip.empty() && !(*node).bounds.empty()) {
+            if (node != nullptr && tool_tip_text_shows((*node).tool_tip) && !(*node).bounds.empty()) {
                 if (covered(covers, *current, (*node).stable_id)) return nothing_over((*node).bounds);
                 return tool_tip_subject_of(current, (*node).stable_id, (*node).tool_tip, (*node).bounds);
             }
         }
         if ((*current).tool_tip_presentation() != ToolTipPresentation::owner_item &&
-            !(*current).tool_tip_text.read().empty()) {
+            tool_tip_text_shows((*current).tool_tip_text.read())) {
             if (covered(covers, *current, {})) return nothing_over(bounds);
             return tool_tip_subject_of(current, {}, (*current).tool_tip_text.read(), bounds);
         }
@@ -145,4 +178,5 @@ bool same_tool_tip_thing(const ToolTipSubject& left, const ToolTipSubject& right
     return same;
 }
 
-} // namespace gui_forms::detail
+} // namespace detail
+} // namespace gui_forms

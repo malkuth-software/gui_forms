@@ -2078,6 +2078,10 @@ Types
 
    .. cpp:member:: gf_status (*close_anchored)(gf_object content)
 
+   .. cpp:member:: gf_status (*set_tool_tips_shown)(gf_object window, gf_tool_tips_setting setting)
+
+   .. cpp:member:: gf_status (*tool_tips_shown)(gf_object window, uint32_t* shown, gf_tool_tips_setting* setting)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -3402,7 +3406,11 @@ Types
 
    .. cpp:function:: gf_status close_anchored(gf_object content) const noexcept
 
+   .. cpp:function:: gf_status tool_tips_shown(gf_object window, uint32_t* shown, gf_tool_tips_setting* setting) const noexcept
+
    .. cpp:function:: gf_status set_tool_tip(gf_object tool_tip, gf_object target, gf_utf8_view text) const noexcept
+
+   .. cpp:function:: gf_status set_tool_tips_shown(gf_object window, gf_tool_tips_setting setting) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 

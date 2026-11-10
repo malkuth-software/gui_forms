@@ -64,6 +64,9 @@ public:
     // host); the thing under focus is found again when `control` has focus.
     void items_changed(const Control& control) override;
     void settings_changed() override;
+    // A pointer tooltip of a control outside the new active focus scope
+    // closes, or stops waiting.
+    void scope_changed() override;
     void cover(RuntimeId control, std::string_view item_id, bool covered) override;
 
     void show_program(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration) override;
@@ -149,6 +152,7 @@ private:
     };
 
     [[nodiscard]] bool hover_allowed() const noexcept;
+    [[nodiscard]] bool outside_scope(const Control::Ptr& control) const noexcept;
     [[nodiscard]] bool focus_allowed() const noexcept;
     [[nodiscard]] std::chrono::milliseconds show_delay(FrameTime now) const noexcept;
     void wait(ToolTipOrigin origin, ToolTipSubject subject, FrameTime now);

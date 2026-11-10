@@ -269,6 +269,9 @@ public static class Constants
     public const uint GF_ANCHORED_OVERLAY_KEEP_ON_CLICK_AWAY = 8u;
     public const uint GF_ANCHORED_OVERLAY_KEEP_ON_ESCAPE = 16u;
     public const uint GF_ANCHORED_OVERLAY_TAKE_FOCUS = 32u;
+    public const uint GF_TOOL_TIPS_FOLLOW = 0u;
+    public const uint GF_TOOL_TIPS_SHOWN = 1u;
+    public const uint GF_TOOL_TIPS_HIDDEN = 2u;
     public const uint GF_CUSTOM_BASE_SCROLLABLE_CONTROL = 0u;
     public const uint GF_CUSTOM_BASE_USER_CONTROL = 1u;
     public const uint GF_CUSTOM_CONTROL_FOCUSABLE = 1u;

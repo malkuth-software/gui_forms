@@ -107,6 +107,16 @@ struct KeepReady final {
 
 // The primary window "main", 800 x 600 at 100,100 on the headless work
 // area (0,0 1920 x 1040), with one control that has a tooltip.
+// A compositing desktop that grants the transparent backdrop: what a
+// translucent Popup window needs besides the host's per-pixel alpha.
+CompositorState compositing_desktop() {
+    CompositorState state{};
+    state.compositing = CompositorPresence::present;
+    state.support[static_cast<std::size_t>(WindowBackdrop::transparent)] = WindowBackdropSupport::supported;
+    state.transparency_enabled = true;
+    return state;
+}
+
 struct Desk final {
     ApplicationWindowHandle main{};
     Window* model{};
@@ -144,6 +154,9 @@ struct Desk final {
 
 void tooltip_shows_in_a_splash_window() {
     Desk desk;
+    // A compositing desktop, so that the Splash is translucent and framed
+    // with room for the tooltip's shadow.
+    (*desk.application).simulate_compositor_state(compositing_desktop());
     desk.windowing().clear_trace();
     (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
     require((*desk.model).tool_tip_visible(), "the tooltip shows");
@@ -453,6 +466,7 @@ void menu_falls_back_to_the_overlay() {
 // or not.
 Rect tool_tip_window(const bool translucent) {
     Desk desk;
+    (*desk.application).simulate_compositor_state(compositing_desktop());
     desk.windowing().set_transient_windows_translucent(translucent);
     require((*desk.model).popup_windows_translucent() == translucent, "the window reports its popup windows");
     (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
@@ -467,6 +481,7 @@ Rect tool_tip_window(const bool translucent) {
 // `translucent` or not.
 Rect menu_window(const bool translucent) {
     Desk desk;
+    (*desk.application).simulate_compositor_state(compositing_desktop());
     desk.windowing().set_transient_windows_translucent(translucent);
     MenuCommands commands;
     ContextMenu menu("desk.menu");

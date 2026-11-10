@@ -1397,6 +1397,23 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status set_tool_tips_shown(gf_object window, gf_tool_tips_setting setting) const noexcept {
+        if (table_.struct_size < 72u || table_.set_tool_tips_shown == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_tool_tips_shown(window, setting);
+        return called;
+    }
+
+    [[nodiscard]] gf_status tool_tips_shown(gf_object window, uint32_t* shown,
+                                            gf_tool_tips_setting* setting) const noexcept {
+        if (table_.struct_size < 80u || table_.tool_tips_shown == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.tool_tips_shown(window, shown, setting);
+        return called;
+    }
+
 private:
     gf_overlays_table table_;
 };

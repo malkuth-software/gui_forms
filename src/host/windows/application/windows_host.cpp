@@ -2936,6 +2936,27 @@ private:
             std::fflush(stdout);
             return TRUE;
         }
+        // A key to whatever has the keyboard now (an open menu, a lifted
+        // drop-down), without moving the focus: "key-focused <physical>".
+        constexpr std::string_view focused_key = "key-focused ";
+        if (command.starts_with(focused_key)) {
+            std::istringstream input(command.substr(focused_key.size()));
+            std::uint32_t physical{};
+            if (!(input >> physical)) return FALSE;
+            KeyEvent pressed;
+            pressed.action = KeyAction::down;
+            pressed.physical_key = physical;
+            const bool handled_down = dispatch(std::move(pressed)).handled;
+            KeyEvent released;
+            released.action = KeyAction::up;
+            released.physical_key = physical;
+            static_cast<void>(dispatch(std::move(released)));
+            collect_damage();
+            std::fprintf(stdout, "{\"automation\":\"key-focused\",\"physical\":%u,\"handled\":%s}\n", physical,
+                         handled_down ? "true" : "false");
+            std::fflush(stdout);
+            return TRUE;
+        }
         constexpr std::string_view key_input = "key ";
         if (command.starts_with(key_input)) {
             std::istringstream input(command.substr(key_input.size()));

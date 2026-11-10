@@ -44,6 +44,7 @@ global using gf_text_ink_role = uint;
 global using gf_text_underline = uint;
 global using gf_text_decoration_fields = uint;
 global using gf_anchored_overlay_flags = uint;
+global using gf_tool_tips_setting = uint;
 global using gf_custom_base = uint;
 global using gf_custom_control_flags = uint;
 global using gf_custom_property_flags = uint;

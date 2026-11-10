@@ -1954,6 +1954,18 @@ typedef struct gf_anchored_overlay_options {
     const gf_callback* events;
 } gf_anchored_overlay_options;
 
+/*
+ * gf_tool_tips_setting: a window's tooltip switch (since 1.1). A window
+ * that follows takes the program's switch (the current application's;
+ * shown when there is none); the others decide for the window alone.
+ * Tooltips whose text is empty or only white space never show, whatever
+ * the switches.
+ */
+typedef uint32_t gf_tool_tips_setting;
+#define GF_TOOL_TIPS_FOLLOW 0u
+#define GF_TOOL_TIPS_SHOWN 1u
+#define GF_TOOL_TIPS_HIDDEN 2u
+
 typedef struct gf_overlays_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -1981,6 +1993,17 @@ typedef struct gf_overlays_table {
     /* Closes content's anchored overlay: its "closed" event follows before
      * this returns. GF_STATUS_NOT_FOUND when it is not open (since 1.1). */
     gf_status (GF_CALL* close_anchored)(gf_object content);
+    /* Sets a window's tooltip switch, or with window null the program's
+     * (the current application's; GF_STATUS_INVALID_STATE without one),
+     * where FOLLOW is refused. Turning tooltips off closes one that shows.
+     * GF_STATUS_INVALID_ARGUMENT for an unknown setting;
+     * GF_STATUS_WRONG_HANDLE_KIND when window is not a window (since 1.1). */
+    gf_status (GF_CALL* set_tool_tips_shown)(gf_object window, gf_tool_tips_setting setting);
+    /* Whether a window's tooltips show now (its switch, else the
+     * program's), or with window null the program's switch: 1 or 0 in
+     * shown, and the window's own setting in setting, which may be null
+     * (FOLLOW for the program's) (since 1.1). */
+    gf_status (GF_CALL* tool_tips_shown)(gf_object window, uint32_t* shown, gf_tool_tips_setting* setting);
 } gf_overlays_table;
 
 /*

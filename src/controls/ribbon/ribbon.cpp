@@ -79,6 +79,7 @@ Ribbon::~Ribbon() {
     if (overlay_) (*overlay_).close();
     if (group_overlay_) (*group_overlay_).detach();
     if (application_overlay_) (*application_overlay_).detach();
+    if (application_panel_) (*application_panel_).detach();
 }
 
 void Ribbon::on_dispose() noexcept {
@@ -89,6 +90,7 @@ void Ribbon::on_dispose() noexcept {
     if (group_overlay_) (*group_overlay_).detach();
     if (group_layer_) (*group_layer_).dispose();
     if (application_overlay_) (*application_overlay_).detach();
+    if (application_panel_) (*application_panel_).detach();
 }
 
 void Ribbon::on_attachment_committed() noexcept {
@@ -1292,8 +1294,82 @@ void Ribbon::set_hot(const Hit& hit) {
     if (hot_.kind == hit.kind && hot_.index == hit.index && hot_.command == hit.command && hot_.zone == hit.zone) {
         return;
     }
+    const Hit previous = hot_;
     hot_ = hit;
-    invalidate_views(Dirty::paint);
+    repaint_part(previous.kind, previous.index, previous.command);
+    repaint_part(hit.kind, hit.index, hit.command);
+}
+
+void Ribbon::repaint_part(Hit::Kind kind, std::size_t index, CommandAddress command) {
+    if (kind == Hit::Kind::none) return;
+    const bool overlay_part = (kind == Hit::Kind::command && overlay_group_ == command.group) ||
+                              ((kind == Hit::Kind::launcher || kind == Hit::Kind::group_button) &&
+                               overlay_group_ == index);
+    if (overlay_part && group_overlay_ && (*group_overlay_).is_alive()) {
+        (*group_overlay_).invalidate(Dirty::paint);
+    }
+    const Layout placed = layout();
+    Rect bounds{};
+    switch (kind) {
+    case Hit::Kind::application:
+        bounds = placed.application;
+        break;
+    case Hit::Kind::tab:
+        if (index < placed.tabs.size()) bounds = placed.tabs[index];
+        break;
+    case Hit::Kind::command:
+        if (command.group < placed.commands.size() && command.command < placed.commands[command.group].size()) {
+            bounds = Rect::intersection(placed.commands[command.group][command.command], placed.groups_area);
+        }
+        break;
+    case Hit::Kind::launcher:
+    case Hit::Kind::group_button:
+        if (index < placed.groups.size()) bounds = Rect::intersection(placed.groups[index], placed.groups_area);
+        break;
+    case Hit::Kind::scroll_left:
+        bounds = placed.scroll_left;
+        break;
+    case Hit::Kind::scroll_right:
+        bounds = placed.scroll_right;
+        break;
+    case Hit::Kind::none:
+        return;
+    default:
+        // A part this function does not know: the whole ribbon, as before.
+        invalidate_views(Dirty::paint);
+        return;
+    }
+    if (bounds.empty()) return;
+    // The focus cue and the pressed plate's edge reach this far outside the
+    // part's own bounds.
+    constexpr double outset = 2.0;
+    invalidate(Rect{bounds.x - outset, bounds.y - outset, bounds.width + 2.0 * outset, bounds.height + 2.0 * outset});
+}
+
+void Ribbon::repaint_stop(const std::optional<Stop>& stop) {
+    if (!stop) return;
+    Hit::Kind kind = Hit::Kind::none;
+    switch ((*stop).kind) {
+    case StopKind::application:
+        kind = Hit::Kind::application;
+        break;
+    case StopKind::tab:
+        kind = Hit::Kind::tab;
+        break;
+    case StopKind::command:
+        kind = Hit::Kind::command;
+        break;
+    case StopKind::launcher:
+        kind = Hit::Kind::launcher;
+        break;
+    case StopKind::group_button:
+        kind = Hit::Kind::group_button;
+        break;
+    default:
+        invalidate_views(Dirty::paint);
+        return;
+    }
+    repaint_part(kind, (*stop).index, (*stop).command);
 }
 
 // Repaints (or otherwise invalidates) the ribbon and, while it is open, the
@@ -1367,10 +1443,10 @@ void Ribbon::press(const Hit& hit, PointerEvent& event) {
         click_tab(hit.index);
     } else if (hit.kind == Hit::Kind::launcher) {
         pressed_launcher_ = hit.index;
-        invalidate_views(Dirty::paint);
+        repaint_part(hit.kind, hit.index, hit.command);
     } else if (hit.kind == Hit::Kind::group_button) {
         pressed_group_ = hit.index;
-        invalidate_views(Dirty::paint);
+        repaint_part(hit.kind, hit.index, hit.command);
         const RibbonGroupSpec* const group = selected_group(hit.index);
         if (group != nullptr) static_cast<void>(show_group_overlay((*group).stable_id, MenuOpenMode::pointer));
     } else if (hit.kind == Hit::Kind::scroll_left || hit.kind == Hit::Kind::scroll_right) {
@@ -1392,7 +1468,7 @@ void Ribbon::press(const Hit& hit, PointerEvent& event) {
         }
         pressed_command_ = hit.command;
         pressed_zone_ = hit.zone;
-        invalidate_views(Dirty::paint);
+        repaint_part(hit.kind, hit.index, hit.command);
     }
 }
 
@@ -1403,6 +1479,8 @@ void Ribbon::release(const Hit& hit, PointerEvent& event) {
     const CommandZone zone = pressed_zone_;
     const std::optional<std::size_t> launcher = pressed_launcher_;
     const bool group = pressed_group_.has_value();
+    const std::optional<std::size_t> pressed_group = pressed_group_;
+    const Hit::Kind pressed_scroll = pressed_scroll_;
     const bool scroll = pressed_scroll_ != Hit::Kind::none;
     if (!pressed && !launcher && !group && !scroll) return;
     pressed_command_.reset();
@@ -1410,7 +1488,10 @@ void Ribbon::release(const Hit& hit, PointerEvent& event) {
     pressed_launcher_.reset();
     pressed_group_.reset();
     pressed_scroll_ = Hit::Kind::none;
-    invalidate_views(Dirty::paint);
+    if (pressed) repaint_part(Hit::Kind::command, 0U, *pressed);
+    if (launcher) repaint_part(Hit::Kind::launcher, *launcher, {});
+    if (pressed_group) repaint_part(Hit::Kind::group_button, *pressed_group, {});
+    if (scroll) repaint_part(pressed_scroll, 0U, {});
     event.handled = true;
     if (pressed && hit.kind == Hit::Kind::command && hit.command == *pressed && hit.zone == zone) {
         click_command(*pressed);
@@ -1724,7 +1805,8 @@ void Ribbon::overlay_key(KeyEvent& event) {
 void Ribbon::on_focus_changed(bool focused) {
     focused_ = focused;
     if (focused_ && !stop_) stop_ = Stop{StopKind::tab, selected_tab_.value_or(0U), {}};
-    invalidate(Dirty::paint | Dirty::semantics);
+    invalidate(Dirty::semantics);
+    repaint_stop(stop_);
 }
 
 void Ribbon::overlay_focus_changed(bool focused) {
@@ -1794,7 +1876,8 @@ bool Ribbon::show_application_menu(MenuOpenMode mode) {
                                                                                placed.application.height},
                    mode);
     application_open_ = true;
-    invalidate(Dirty::paint | Dirty::semantics);
+    invalidate(Dirty::semantics);
+    repaint_part(Hit::Kind::application, 0U, {});
     return true;
 }
 
@@ -1832,7 +1915,8 @@ bool Ribbon::show_drop_down(std::string_view command_id, MenuOpenMode mode) {
     (*overlay_).set_items(spec.drop_down);
     (*overlay_).show(shared_from_this(), {(*bounds).x, (*bounds).y + (*bounds).height}, mode);
     open_command_ = address;
-    invalidate_views(Dirty::paint | Dirty::semantics);
+    invalidate_views(Dirty::semantics);
+    repaint_part(Hit::Kind::command, 0U, *address);
     return true;
 }
 
@@ -1848,13 +1932,25 @@ bool Ribbon::menu_open() const noexcept {
 
 void Ribbon::on_overlay_open_changed(bool open) {
     if (open) return;
+    const std::optional<CommandAddress> was_open = open_command_;
+    const bool application_was_open = application_open_;
     application_open_ = false;
     open_command_.reset();
-    invalidate_views(Dirty::paint | Dirty::semantics);
+    if (application_overlay_) (*application_overlay_).submenu_closed();
+    if (application_panel_) (*application_panel_).submenu_closed();
+    // A two-pane submenu's command ran: the two-pane menu closes after it.
+    if (application_submenu_invoked_) {
+        application_submenu_invoked_ = false;
+        close_application_overlay();
+    }
+    invalidate_views(Dirty::semantics);
+    if (was_open) repaint_part(Hit::Kind::command, 0U, *was_open);
+    if (application_was_open) repaint_part(Hit::Kind::application, 0U, {});
 }
 
 void Ribbon::on_overlay_item_invoked(const MenuItemInvocation& invocation) {
     if (application_open_) {
+        if (application_overlay_open_) application_submenu_invoked_ = true;
         application_menu_item_invoked_.emit(invocation);
         return;
     }
