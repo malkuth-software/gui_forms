@@ -1438,6 +1438,12 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         target_link_libraries(gui_forms_host_linux PUBLIC X11::Xcursor)
         target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAS_XCURSOR=1)
     endif()
+    # Audit N66: RandR 1.5 lists the monitors where libXrandr is present;
+    # without it the host reports the default screen as one monitor.
+    if(TARGET X11::Xrandr)
+        target_link_libraries(gui_forms_host_linux PUBLIC X11::Xrandr)
+        target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XRANDR=1)
+    endif()
     add_library(gui_forms_application SHARED src/runtime/application_bundle.cpp src/runtime/application/application.cpp)
     add_library(GUIForms::Application ALIAS gui_forms_application)
     set_target_properties(gui_forms_application PROPERTIES EXPORT_NAME Application OUTPUT_NAME gui_forms_application VERSION 0.1.0 SOVERSION 0)
@@ -1451,6 +1457,9 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         "-Wl,--no-whole-archive" X11::X11 X11::Xfixes X11::Xrender)
     if(GUI_FORMS_XCURSOR_AVAILABLE)
         target_link_libraries(gui_forms_application PRIVATE X11::Xcursor)
+    endif()
+    if(TARGET X11::Xrandr)
+        target_link_libraries(gui_forms_application PRIVATE X11::Xrandr)
     endif()
     if(TARGET gui_forms_text_engine)
         target_link_libraries(gui_forms_application PRIVATE gui_forms_text_engine stx_text::freetype stx_text::harfbuzz)
@@ -3806,6 +3815,7 @@ if(GUI_FORMS_BUILD_TESTS)
     # tested on every platform.
     add_executable(gui_forms_xsettings_parse_tests
         tests/xsettings_parse_tests.cpp src/host/linux/settings/xsettings_parse.cpp)
+    target_include_directories(gui_forms_xsettings_parse_tests PRIVATE include)
     add_test(NAME gui_forms_xsettings_parse_tests COMMAND gui_forms_xsettings_parse_tests)
     # The X11 host's computed click counts and context keys take plain
     # values and no Xlib, so they are tested on every platform.

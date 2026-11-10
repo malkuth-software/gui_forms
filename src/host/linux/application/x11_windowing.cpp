@@ -4,11 +4,16 @@
 
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
+#if defined(GUI_FORMS_HAVE_XRANDR)
+#include <X11/extensions/Xrandr.h>
+#endif
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <optional>
 #include <stdexcept>
+#include <string>
 
 namespace gui_forms::host::linux_detail {
 namespace {
@@ -394,23 +399,27 @@ HostMonitorResult X11Windowing::query_monitors_impl() {
   return result;
 }
 
-// One record, the default screen, written into `result` in place: a
-// repeated query allocates nothing.
+// The monitors, written into `result` in place: a repeated query reuses
+// its storage.
 void X11Windowing::query_monitors_into_impl(HostMonitorResult &result) {
-  result.status = {};
-  Display *display = runtime_.display;
-  const int screen = DefaultScreen(display);
-  const Rect frame{0.0, 0.0, static_cast<double>(DisplayWidth(display, screen)),
-                   static_cast<double>(DisplayHeight(display, screen))};
-  Rect work_area = frame;
-  // _NET_WORKAREA: x, y, width, height per desktop (EWMH); the first
-  // desktop's area is used.
+  query_x11_monitors(runtime_, result);
+}
+
+namespace {
+
+// The first desktop's _NET_WORKAREA (EWMH: x, y, width, height per
+// desktop), or nullopt where the window manager publishes none. One area
+// covers every monitor, so each monitor's work area is its frame clipped
+// to it.
+std::optional<Rect> desktop_work_area(const Runtime &runtime) {
+  Display *display = runtime.display;
   Atom type{};
   int format{};
   unsigned long count{}, remaining{};
   unsigned char *data = nullptr;
+  std::optional<Rect> area{};
   if (XGetWindowProperty(display, DefaultRootWindow(display),
-                         runtime_.atom("_NET_WORKAREA"), 0, 4, False,
+                         runtime.atom("_NET_WORKAREA"), 0, 4, False,
                          XA_CARDINAL, &type, &format, &count, &remaining,
                          &data) == Success &&
       type == XA_CARDINAL && format == 32 && count >= 4 && data != nullptr) {
@@ -420,15 +429,100 @@ void X11Windowing::query_monitors_into_impl(HostMonitorResult &result) {
                          static_cast<double>(values[2]),
                          static_cast<double>(values[3])};
     if (!published.empty())
-      work_area = published;
+      area = published;
   }
   if (data != nullptr)
     XFree(data);
+  return area;
+}
+
+// A monitor's work area: its frame within the desktop's work area, or the
+// whole frame when they do not meet or there is none.
+Rect monitor_work_area(Rect frame, const std::optional<Rect> &desktop) {
+  if (!desktop)
+    return frame;
+  const Rect clipped = Rect::intersection(frame, *desktop);
+  if (clipped.empty())
+    return frame;
+  return clipped;
+}
+
+#if defined(GUI_FORMS_HAVE_XRANDR)
+// The RandR 1.5 monitors (audit N66), written into `result`; false, with
+// `result` untouched, where the server has no RandR 1.5 or reports no
+// monitor. Ids are the monitors' names (DP-1, HDMI-A-1), or
+// x11-monitor-<n> for an unnamed one; with no primary monitor the first
+// one is primary. At most 64 monitors, the session's limit.
+bool randr_monitors(const Runtime &runtime, const std::optional<Rect> &desktop,
+                    HostMonitorResult &result) {
+  Display *display = runtime.display;
+  int event_base = 0;
+  int error_base = 0;
+  if (!XRRQueryExtension(display, &event_base, &error_base))
+    return false;
+  int major = 0;
+  int minor = 0;
+  if (!XRRQueryVersion(display, &major, &minor))
+    return false;
+  if (major < 1 || (major == 1 && minor < 5))
+    return false;
+  int count = 0;
+  XRRMonitorInfo *monitors = XRRGetMonitors(display, DefaultRootWindow(display), True, &count);
+  if (monitors == nullptr)
+    return false;
+  if (count <= 0) {
+    XRRFreeMonitors(monitors);
+    return false;
+  }
+  const std::size_t used = std::min<std::size_t>(static_cast<std::size_t>(count), 64U);
+  result.monitors.resize(used);
+  bool primary_seen = false;
+  for (std::size_t i = 0; i < used; ++i) {
+    const XRRMonitorInfo &info = monitors[i];
+    HostMonitor &monitor = result.monitors[i];
+    char *name = info.name != None ? XGetAtomName(display, info.name) : nullptr;
+    if (name != nullptr) {
+      monitor.id.assign(name);
+      XFree(name);
+    } else {
+      monitor.id.assign("x11-monitor-");
+      monitor.id.append(std::to_string(i));
+    }
+    monitor.frame = Rect{static_cast<double>(info.x), static_cast<double>(info.y),
+                         static_cast<double>(info.width), static_cast<double>(info.height)};
+    monitor.work_area = monitor_work_area(monitor.frame, desktop);
+    // The X11 host renders at scale 1 (docs/user/hosts-and-capabilities.md).
+    monitor.scale = 1.0;
+    monitor.primary = info.primary != 0 && !primary_seen;
+    if (monitor.primary)
+      primary_seen = true;
+  }
+  if (!primary_seen)
+    result.monitors.front().primary = true;
+  XRRFreeMonitors(monitors);
+  return true;
+}
+#endif
+
+} // namespace
+
+void query_x11_monitors(const Runtime &runtime, HostMonitorResult &result) {
+  result.status = {};
+  const std::optional<Rect> desktop = desktop_work_area(runtime);
+#if defined(GUI_FORMS_HAVE_XRANDR)
+  if (randr_monitors(runtime, desktop, result))
+    return;
+#endif
+  // Without RandR: one record, the default screen.
+  Display *display = runtime.display;
+  const int screen = DefaultScreen(display);
+  const Rect frame{0.0, 0.0, static_cast<double>(DisplayWidth(display, screen)),
+                   static_cast<double>(DisplayHeight(display, screen))};
   result.monitors.resize(1U);
   HostMonitor &monitor = result.monitors.front();
   monitor.id.assign("x11-screen");
   monitor.frame = frame;
-  monitor.work_area = work_area;
+  monitor.work_area = desktop ? *desktop : frame;
   monitor.scale = 1.0;
   monitor.primary = true;
 }

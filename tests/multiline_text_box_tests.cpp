@@ -629,6 +629,41 @@ Rect blink_damage(Fixture& fixture) {
     return bounds;
 }
 
+// The caret follows the window's CaretSettings (audit N75): a set phase
+// times the blink, 0 keeps the caret shown with no timer, and a change to 0
+// while blinking stops at the next toggle with the caret shown.
+void caret_blink_follows_settings() {
+    Fixture fixture{};
+    CaretPainter painter{};
+    paint_retained(fixture, painter);
+    PresentationSettings fast = fixture.window.presentation_settings();
+    fast.caret = CaretSettings{200U, SettingOrigin::host};
+    fixture.window.set_presentation_settings(fast);
+    require(fixture.window.request_focus({}) && fixture.window.request_focus(fixture.field), "refocus succeeds");
+    const FrameTime before = FrameClock::now();
+    const std::optional<FrameTime> deadline = fixture.window.next_wake();
+    require(deadline.has_value() && *deadline <= before + std::chrono::milliseconds(200),
+            "a 200 ms phase times the next blink");
+
+    PresentationSettings never = fixture.window.presentation_settings();
+    never.caret = CaretSettings{0U, SettingOrigin::host};
+    fixture.window.set_presentation_settings(never);
+    static_cast<void>(fixture.window.poll_frame_schedule(*deadline));
+    static_cast<void>(fixture.window.take_damage());
+    require(!fixture.window.next_wake().has_value(), "turning blinking off stops the running timer");
+    painter.lines = 0U;
+    fixture.editor.invalidate(Dirty::paint);
+    paint_retained(fixture, painter);
+    require(painter.lines == 1U, "the caret stays shown when blinking stops");
+
+    require(fixture.window.request_focus({}) && fixture.window.request_focus(fixture.field), "refocus succeeds");
+    require(!fixture.window.next_wake().has_value(), "a caret that never blinks holds no wake");
+    painter.lines = 0U;
+    paint_retained(fixture, painter);
+    require(painter.lines == 1U && !fixture.window.next_wake().has_value(),
+            "it is drawn shown, and painting starts no timer");
+}
+
 void localized_caret_blinks() {
     const std::array<bool, 2> modes{false, true};
     for (const bool multiline : modes) {
@@ -893,6 +928,7 @@ int main() {
         dpi_transition_remeasures_same_provider();
         clear_history_establishes_save_boundary();
         localized_caret_blinks();
+        caret_blink_follows_settings();
         caret_geometry_fallbacks();
         paging_reveal_glides();
         selected_text_drawn_once();

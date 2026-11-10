@@ -1027,7 +1027,7 @@ Related types
 
    ``#include <gui_forms/host/types/host_types.hpp>``
 
-   The platform's input settings that controls read (stage W, ListView label editing): reported after attach and again whenever the system setting changes. The session copies them into the window's PresentationSettings (double_click_milliseconds, double_click_origin and pointer), leaving every other field as it is. An interval of 0 or above maximum_double_click_milliseconds, or pointer settings that are not valid_pointer_settings, are refused as invalid_payload. A host reports the pointer values its platform has with origin host and leaves the others at their defaults (origin default_value).
+   The platform's input settings that controls read (stage W, ListView label editing): reported after attach and again whenever the system setting changes. The session copies them into the window's PresentationSettings (double_click_milliseconds, double_click_origin, pointer and caret), leaving every other field as it is. An interval of 0 or above maximum_double_click_milliseconds, pointer settings that are not valid_pointer_settings, or caret settings that are not valid_caret_settings, are refused as invalid_payload. A host reports the pointer and caret values its platform has with origin host and leaves the others at their defaults (origin default_value).
 
    .. cpp:member:: std::uint32_t double_click_milliseconds
 
@@ -1038,6 +1038,10 @@ Related types
       Default: ``{SettingOrigin::host}``.
 
    .. cpp:member:: PointerSettings pointer
+
+   .. cpp:member:: CaretSettings caret
+
+      The caret's blink phase (protocol version 13, audit N75).
 
 .. cpp:namespace:: gui_forms
 
@@ -3944,7 +3948,7 @@ Functions, constants and aliases
 
    Whether the rows run consecutively from 8, each with a feature.
 
-.. cpp:var:: constexpr std::array<HostProtocolRevision, 5> host_protocol_revisions
+.. cpp:var:: constexpr std::array<HostProtocolRevision, 6> host_protocol_revisions
 
    The host protocol's versions, one row each, from version 8 (earlier versions are not recorded). The current version is the last row's. A change to the protocol adds a row at the end, so two changes that claim the same version both add the same line and conflict when merged, and the checks below refuse a skipped or repeated version.
 

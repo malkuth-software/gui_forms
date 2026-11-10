@@ -142,4 +142,23 @@ XSettingsInteger find_xsettings_integer(std::span<const std::uint8_t> property,
   return result;
 }
 
+CaretSettings xsettings_caret(XSettingsInteger blink, XSettingsInteger cycle) noexcept {
+  CaretSettings caret{};
+  if (blink.lookup == XSettingsLookup::found && blink.value == 0) {
+    caret.blink_milliseconds = 0U;
+    caret.origin = SettingOrigin::host;
+    return caret;
+  }
+  if (cycle.lookup != XSettingsLookup::found || cycle.value <= 0)
+    return caret;
+  std::uint32_t phase = static_cast<std::uint32_t>(cycle.value) / 2U;
+  if (phase == 0U)
+    phase = 1U;
+  if (phase > maximum_caret_blink_milliseconds)
+    phase = maximum_caret_blink_milliseconds;
+  caret.blink_milliseconds = phase;
+  caret.origin = SettingOrigin::host;
+  return caret;
+}
+
 } // namespace gui_forms::host::linux_detail

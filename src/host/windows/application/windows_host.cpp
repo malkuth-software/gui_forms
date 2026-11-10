@@ -1654,6 +1654,12 @@ public:
             return 0;
         case WM_MOVE: report_frame_to_run(); return 0;
         case WM_DPICHANGED: dpi_changed(wparam, lparam); return 0;
+        case WM_DISPLAYCHANGE:
+            // A display was added, removed or changed resolution (audit
+            // N62): the window hears the new monitor set, as the macOS
+            // host's screen-parameters notification reports it.
+            report_displays();
+            break;
         case WM_ACTIVATE:
             if (LOWORD(wparam) == WA_INACTIVE) { services_.revoke_cursor_interaction(); }
             if (trace_win32_input()) {
@@ -2115,12 +2121,31 @@ private:
             pointer.hover_origin = SettingOrigin::host;
         }
         pointer.native_hover = true;
+        // The caret's blink phase (audit N75): INFINITE means the user
+        // turned blinking off; 0 is a failed read, which keeps the default.
+        const UINT blink = GetCaretBlinkTime();
+        if (blink == INFINITE) {
+            input.caret = CaretSettings{0U, SettingOrigin::host};
+        } else if (blink != 0U) {
+            std::uint32_t phase = static_cast<std::uint32_t>(blink);
+            if (phase > maximum_caret_blink_milliseconds) phase = maximum_caret_blink_milliseconds;
+            input.caret = CaretSettings{phase, SettingOrigin::host};
+        }
         const bool unchanged = reported_input_settings_ &&
                                (*reported_input_settings_).double_click_milliseconds == input.double_click_milliseconds &&
-                               (*reported_input_settings_).pointer == input.pointer;
+                               (*reported_input_settings_).pointer == input.pointer &&
+                               (*reported_input_settings_).caret == input.caret;
         if (unchanged) return;
         const HostDispatchResult reported = dispatch(input);
         if (reported.accepted()) reported_input_settings_ = input;
+    }
+
+    // Sends the current monitors (HostDisplayEvent); a failed query sends
+    // nothing and the window keeps its last set.
+    void report_displays() {
+        HostMonitorResult monitors = services_.query_monitors();
+        if (!monitors.status.accepted()) return;
+        static_cast<void>(dispatch(HostDisplayEvent{std::move(monitors.monitors)}));
     }
 
     static double clamp_pointer_distance(double distance) noexcept {

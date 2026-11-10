@@ -971,6 +971,7 @@ void read_field(EventFields& fields, std::string_view name, BindingNavigatorAddN
 void append_field(EventFields& fields, std::string_view name, const BindingRecord& value);
 void read_field(EventFields& fields, std::string_view name, BindingRecord& value);
 void append_field(EventFields& fields, std::string_view name, const CalendarDateRange& value);
+void append_field(EventFields& fields, std::string_view name, const CaretSettings& value);
 void append_field(EventFields& fields, std::string_view name, const CommandInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const CommandItem& value);
 void append_field(EventFields& fields, std::string_view name, const CommandState& value);
@@ -1271,6 +1272,13 @@ inline void append_field(EventFields& fields, std::string_view name, const Calen
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "start", value.start);
     append_field(fields, "end", value.end);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const CaretSettings& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "blink_milliseconds", value.blink_milliseconds);
+    append_field(fields, "origin", value.origin);
     fields.leave(prefix);
 }
 
@@ -2491,6 +2499,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Prese
     append_field(fields, "double_click_milliseconds", value.double_click_milliseconds);
     append_field(fields, "double_click_origin", value.double_click_origin);
     append_field(fields, "pointer", value.pointer);
+    append_field(fields, "caret", value.caret);
     append_field(fields, "colour_scheme", value.colour_scheme);
     fields.leave(prefix);
 }

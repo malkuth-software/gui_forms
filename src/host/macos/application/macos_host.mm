@@ -922,6 +922,8 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     // The double-click interval last reported, in milliseconds; 0 (as the
     // runtime zeroes ivars) before the first report.
     std::uint32_t _reportedDoubleClickMilliseconds;
+    // The caret settings last reported (audit N75).
+    gui_forms::CaretSettings _reportedCaret;
     SkiaRaster _raster;
     BOOL _rasterHasContent;
     DamageRegion _pendingDamage;
@@ -2291,11 +2293,36 @@ void post_perform_close(NSWindow* window) {
     const double bounded = std::clamp(milliseconds, 1.0,
                                       static_cast<double>(gui_forms::maximum_double_click_milliseconds));
     const std::uint32_t interval = static_cast<std::uint32_t>(bounded);
-    if (interval == _reportedDoubleClickMilliseconds) return;
-    const gui_forms::HostInputSettingsEvent input{interval, gui_forms::SettingOrigin::host};
+    const gui_forms::CaretSettings caret = [self caretSettings];
+    if (interval == _reportedDoubleClickMilliseconds && caret == _reportedCaret) return;
+    gui_forms::HostInputSettingsEvent input{interval, gui_forms::SettingOrigin::host};
+    input.caret = caret;
     const HostDispatchResult reported = [self dispatchHostPayload:input
                                              timestampNanoseconds:host_now_nanoseconds()];
-    if (reported.accepted()) _reportedDoubleClickMilliseconds = interval;
+    if (reported.accepted()) {
+        _reportedDoubleClickMilliseconds = interval;
+        _reportedCaret = caret;
+    }
+}
+
+// The caret's blink phase (audit N75): the NSTextInsertionPointBlinkPeriodOn
+// user default, in milliseconds, where set; a period above the maximum is
+// the usual way to stop blinking and reports a caret that never blinks.
+// Without the default, GUI.Forms' default with origin default_value.
+- (gui_forms::CaretSettings)caretSettings {
+    gui_forms::CaretSettings caret{};
+    id stored = [NSUserDefaults.standardUserDefaults objectForKey:@"NSTextInsertionPointBlinkPeriodOn"];
+    if (![stored isKindOfClass:NSNumber.class]) return caret;
+    const double period = [(NSNumber*)stored doubleValue];
+    if (!std::isfinite(period) || period <= 0.0) return caret;
+    caret.origin = gui_forms::SettingOrigin::host;
+    if (period > static_cast<double>(gui_forms::maximum_caret_blink_milliseconds)) {
+        caret.blink_milliseconds = 0U;
+        return caret;
+    }
+    const double rounded = std::max(1.0, std::round(period));
+    caret.blink_milliseconds = static_cast<std::uint32_t>(rounded);
+    return caret;
 }
 
 - (void)notifyActivation:(BOOL)active {

@@ -186,6 +186,22 @@ its origin. `native_hover` says the host reports hover itself
 | Linux X11 | `Net/DndDragThreshold` (a rectangle twice the threshold) | the window's timer, 400 ms default |
 | Headless | the defaults | the window's timer |
 
+The record also carries `caret` (`CaretSettings`, protocol version 13): how
+long a text caret stays shown or hidden before it toggles, 530 ms by default
+(`default_caret_blink_milliseconds`, Windows' own default), at most 10000 ms;
+0 means the user turned blinking off, and the caret then stays shown with no
+timer. `TextBox` and `RichTextBox` read it whenever they start a blink (on
+focus and after each caret movement); a caret already blinking keeps its
+phase until then, except that a change to "never" stops it at the next
+toggle with the caret shown.
+
+| Host | Source | Refreshed |
+|---|---|---|
+| Windows | `GetCaretBlinkTime` (`INFINITE` is 0; a failed read keeps the default) | on `WM_SETTINGCHANGE`, with the other input settings |
+| macOS | the `NSTextInsertionPointBlinkPeriodOn` user default where set; a period above 10000 ms (the usual way to stop blinking) reports 0; otherwise the default | on each activation |
+| Linux X11 | `Net/CursorBlink` (0 is off) and `Net/CursorBlinkTime` (a whole cycle, halved into the phase) | with the other XSETTINGS values |
+| Headless | the default | never |
+
 ## Mouse events and context requests
 
 The core counts no clicks: every pointer press carries the host's click
@@ -209,6 +225,18 @@ events' order and use are in [Mouse events and context requests](mouse-events.md
 | macOS | `menuForEvent:` (right press, Control-click) | the accessibility show-menu action only (VoiceOver VO+Shift+M) |
 | Linux X11 | the right button's press, emulated by the host | the Menu key or Shift+F10, emulated by the host when no control handled the key |
 | Headless | `SurfaceRoot::dispatch_context_request` | the same |
+
+What the native hosts do not yet deliver, so a WinForms port should not
+expect it (audit N62): the extra mouse buttons (X1 and X2, Windows
+`WM_XBUTTON*`, macOS buttons 3 and up, X11 buttons 8 and 9) are dropped,
+since `PointerButton` names only the primary, secondary and middle buttons
+and adding back and forward is an ABI change left for the seal; touch and
+pen input arrive only as the platform's mouse emulation (no `WM_POINTER*`,
+`WM_TOUCH`, macOS touch events or XInput2 touch); horizontal wheel scrolling
+is delivered by every native host. Monitor changes reach the window as
+`HostDisplayEvent`: Windows on `WM_DISPLAYCHANGE`, macOS on
+`NSApplicationDidChangeScreenParametersNotification`, X11 on RandR's screen
+change notification where the build has libXrandr.
 
 ## Keyboard-command defaults
 
@@ -297,6 +325,15 @@ Linux (X11)
   whole; editable text ranges are not implemented.
   The CPU raster is presented through X11 images. There is no Wayland adapter;
   Wayland sessions run the X11 host through XWayland.
+  The host renders at scale 1: it reads no `Xft.dpi` or per-monitor scale,
+  so on a high-density X11 display the interface draws at its 96 DPI size
+  (audit N66, open). Monitors come from RandR 1.5 (`XRRGetMonitors`) where
+  the build found libXrandr and the server offers it, one record per
+  monitor named by its output (`DP-1`), each with scale 1 and its work area
+  clipped to `_NET_WORKAREA`; otherwise the default screen is one monitor.
+  One loop turn takes at most 32 X events or 4 ms before the windows update,
+  as the Windows host's turn does, and drops a pointer motion that a later
+  queued motion for the same window replaces (audit N68).
 
 Headless
 : `src/host/headless/`, built everywhere and linked by the tests. It emits

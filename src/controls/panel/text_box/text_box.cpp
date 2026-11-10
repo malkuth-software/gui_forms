@@ -1,6 +1,7 @@
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
 
 #include "text_box_auto_complete_session.hpp"
+#include "../text_editing/caret_blink.hpp"
 #include "../text_editing/text_editing_engine.hpp"
 
 #include "../input_control_utilities.hpp"
@@ -17,17 +18,12 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
 namespace gui_forms {
 
-namespace {
-
-// The caret shows and hides for this long each.
-constexpr FrameInterval caret_blink_interval = std::chrono::milliseconds(530);
-
-} // namespace
 using namespace input_control_detail;
 
 TextBox::MultilineValidation TextBox::validate_multiline_text(std::string_view source) {
@@ -1160,11 +1156,18 @@ void TextBox::schedule_caret_blink() {
         // ADR-016: a UI timer the box stops on blur and detachment and
         // replaces when the caret moves, so the caret stays visible for one
         // whole blink interval after each movement.
+        // The platform's phase (audit N75); a caret that never blinks
+        // stays shown with no timer.
+        const std::optional<FrameInterval> phase = detail::caret_blink_phase(*window());
+        if (!phase) {
+            caret_frame_.disconnect();
+            caret_visible_ = true;
+            return;
+        }
         const FrameTime now = FrameClock::now();
         const std::shared_ptr<TextBox> self =
             std::static_pointer_cast<TextBox>(shared_from_this());
-        caret_frame_ = (*window()).schedule_ui_timer(
-            *this, caret_blink_interval, now + caret_blink_interval, CaretTick{self});
+        caret_frame_ = (*window()).schedule_ui_timer(*this, *phase, now + *phase, CaretTick{self});
     }
 }
 
@@ -1198,6 +1201,12 @@ void TextBox::toggle_caret() {
         caret_frame_.disconnect();
         caret_waiting_for_paint_ = true;
         return;
+    }
+    // Blinking turned off since the timer started: the caret stays shown.
+    const bool never = window() != nullptr && !detail::caret_blink_phase(*window());
+    if (never) {
+        caret_frame_.disconnect();
+        if (caret_visible_) return;
     }
     caret_painted_ = false;
     caret_visible_ = !caret_visible_;

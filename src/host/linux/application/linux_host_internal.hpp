@@ -373,8 +373,14 @@ public:
   [[nodiscard]] std::uint32_t double_click_milliseconds() const noexcept;
   // The desktop's double-click distance (XSettingsWatch), or the default.
   [[nodiscard]] double double_click_distance() const noexcept;
+  // Reports the current monitors to every attached window
+  // (HostDisplayEvent) after RandR announced a screen change (audit N66).
+  void report_displays();
   void dispatch(XEvent &event);
   Atom atom(const char *name) const;
+  // RandR's first event number, where the build has Xrandr and the server
+  // offers it; -1 otherwise, and no screen change is reported.
+  int randr_event_base{-1};
   Display *display{};
   std::array<std::uint32_t, 256> physical_keys{};
   XIM input_method{};
@@ -417,6 +423,11 @@ public:
 };
 HostDialogResult retained_dialog(NativeWindow &owner,
                                  const HostDialogRequest &request);
+// The display's monitors into `result` (audit N66): RandR 1.5 monitors where
+// the build has Xrandr and the server offers them, otherwise the default
+// screen as one monitor; each work area is the frame within _NET_WORKAREA.
+// Every scale is 1, the X11 host's rendering scale. UI thread.
+void query_x11_monitors(const Runtime &runtime, HostMonitorResult &result);
 // The run's open operation (LinuxOpenWindow). Only the UI thread reaches the
 // windowing, and only while the run lives.
 struct RunOpenState final {

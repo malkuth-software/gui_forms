@@ -574,16 +574,19 @@ struct HostCompositorEvent final {
 // The platform's input settings that controls read (stage W, ListView label
 // editing): reported after attach and again whenever the system setting
 // changes. The session copies them into the window's PresentationSettings
-// (double_click_milliseconds, double_click_origin and pointer), leaving
-// every other field as it is. An interval of 0 or above
-// maximum_double_click_milliseconds, or pointer settings that are not
-// valid_pointer_settings, are refused as invalid_payload. A host reports
-// the pointer values its platform has with origin host and leaves the
-// others at their defaults (origin default_value).
+// (double_click_milliseconds, double_click_origin, pointer and caret),
+// leaving every other field as it is. An interval of 0 or above
+// maximum_double_click_milliseconds, pointer settings that are not
+// valid_pointer_settings, or caret settings that are not
+// valid_caret_settings, are refused as invalid_payload. A host reports the
+// pointer and caret values its platform has with origin host and leaves
+// the others at their defaults (origin default_value).
 struct HostInputSettingsEvent final {
     std::uint32_t double_click_milliseconds{default_double_click_milliseconds};
     SettingOrigin double_click_origin{SettingOrigin::host};
     PointerSettings pointer{};
+    // The caret's blink phase (protocol version 13, audit N75).
+    CaretSettings caret{};
 };
 
 // The platform asked for a context menu (owner's mouse-event rule): Windows

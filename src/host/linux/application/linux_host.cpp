@@ -13,6 +13,9 @@
 #include <X11/keysym.h>
 #include <X11/extensions/Xfixes.h>
 #include <X11/extensions/shapeconst.h>
+#if defined(GUI_FORMS_HAVE_XRANDR)
+#include <X11/extensions/Xrandr.h>
+#endif
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -34,6 +37,24 @@
 
 namespace gui_forms::host::linux_detail {
 namespace {
+// One turn takes at most this many X events, or this long, before the
+// windows update (audit N68), as the Windows host's bounded turn does: a
+// flood of input cannot starve painting and timers.
+constexpr std::size_t turn_event_limit = 32U;
+constexpr std::chrono::milliseconds turn_time_limit{4};
+// Whether `event` is a pointer motion the next queued event replaces: a
+// later MotionNotify for the same window carries the newer position and
+// state. Reads only events already queued, never blocks or flushes.
+bool superseded_motion(Display *display, const XEvent &event) {
+  if (event.type != MotionNotify)
+    return false;
+  if (XEventsQueued(display, QueuedAlready) == 0)
+    return false;
+  XEvent next{};
+  XPeekEvent(display, &next);
+  const bool replaced = next.type == MotionNotify && next.xmotion.window == event.xmotion.window;
+  return replaced;
+}
 struct WindowTitle final {
   std::weak_ptr<NativeWindow> owner{};
   const std::thread::id thread{std::this_thread::get_id()};
@@ -865,6 +886,16 @@ Runtime::Runtime() {
     if (!terminate_installed && !hangup_installed)
       session_end_wake = -1;
   }
+#if defined(GUI_FORMS_HAVE_XRANDR)
+  // Screen changes (a monitor added, removed, moved or resized) reach the
+  // windows as HostDisplayEvent (audit N66).
+  int randr_error_base = 0;
+  int event_base = 0;
+  if (XRRQueryExtension(display, &event_base, &randr_error_base)) {
+    randr_event_base = event_base;
+    XRRSelectInput(display, DefaultRootWindow(display), RRScreenChangeNotifyMask);
+  }
+#endif
 }
 Runtime::~Runtime() {
   // Restored before the wake pipe closes, so the handler never writes to a
@@ -908,7 +939,8 @@ void Runtime::report_input_settings() {
     return;
   const HostInputSettingsEvent input{(*input_settings).double_click_milliseconds(),
                                      (*input_settings).double_click_origin(),
-                                     (*input_settings).pointer_settings()};
+                                     (*input_settings).pointer_settings(),
+                                     (*input_settings).caret_settings()};
   const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
   for (std::size_t i = 0; i < snapshot.size(); ++i)
     if ((*snapshot[i]).session)
@@ -1155,7 +1187,8 @@ void NativeWindow::attach() {
   if (runtime.input_settings) {
     const HostInputSettingsEvent input{(*runtime.input_settings).double_click_milliseconds(),
                                        (*runtime.input_settings).double_click_origin(),
-                                       (*runtime.input_settings).pointer_settings()};
+                                       (*runtime.input_settings).pointer_settings(),
+                                       (*runtime.input_settings).caret_settings()};
     static_cast<void>(dispatch(input));
   }
   accessibility = std::make_unique<LinuxAccessibility>(runtime.display, xid, *entry.model, entry.options.title);
@@ -1792,7 +1825,22 @@ void NativeWindow::frame_capture_if_due(bool covers_window) {
       entry.options.capture_path, encoded);
   close(HostCloseReason::application);
 }
+void Runtime::report_displays() {
+  HostMonitorResult monitors;
+  query_x11_monitors(*this, monitors);
+  const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
+  for (std::size_t i = 0; i < snapshot.size(); ++i)
+    if ((*snapshot[i]).session)
+      static_cast<void>((*snapshot[i]).dispatch(HostDisplayEvent{monitors.monitors}));
+}
 void Runtime::dispatch(XEvent &event) {
+#if defined(GUI_FORMS_HAVE_XRANDR)
+  if (randr_event_base >= 0 && event.type == randr_event_base + RRScreenChangeNotify) {
+    XRRUpdateConfiguration(&event);
+    report_displays();
+    return;
+  }
+#endif
   // A compositing manager started or stopped: every window reports again,
   // in window-open order (PLAN.md §2.4).
   if (compositor && (*compositor).selection_event(event)) {
@@ -1863,11 +1911,22 @@ void Runtime::step(int maximum_wait) {
   }
   accessibility_dispatch();
   bool dispatched = !queued.empty();
+  // A bounded turn (audit N68): events left over stay queued, and the
+  // check at the end returns without waiting so the next turn takes them.
+  const std::chrono::steady_clock::time_point turn_start = std::chrono::steady_clock::now();
+  std::size_t turn_events = 0U;
   while (XPending(display) > 0) {
     dispatched = true;
     XEvent event{};
     XNextEvent(display, &event);
+    if (superseded_motion(display, event))
+      continue;
     dispatch(event);
+    turn_events = turn_events + 1U;
+    if (turn_events >= turn_event_limit)
+      break;
+    if (std::chrono::steady_clock::now() - turn_start >= turn_time_limit)
+      break;
   }
   const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
   int wait = maximum_wait;
