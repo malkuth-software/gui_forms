@@ -273,6 +273,9 @@ private:
     [[nodiscard]] std::optional<BindingValue> candidate_value(const ValueTokens& value,
                                                               const PropertyDescriptor& descriptor,
                                                               ValueReading& reading) const;
+    // A stable ID written bare: a name, then names and numbers joined by
+    // '.', with nothing between the tokens. None for any other value.
+    [[nodiscard]] std::optional<std::string> bare_identity(const ValueTokens& value) const;
     [[nodiscard]] std::optional<BindingValue> boolean_value(const ValueTokens& value) const;
     [[nodiscard]] std::optional<BindingValue> integer_value(const ValueTokens& value, BindingValueKind kind) const;
     [[nodiscard]] std::optional<BindingValue> font_value(const ValueTokens& value, ValueReading& reading) const;
@@ -740,6 +743,24 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
         scratch.properties.push_back(std::move(record));
         return;
     }
+    // A form's button properties name an object of the document by its
+    // stable ID, written bare as the object writes it (`accept-button:
+    // settings.ok;`) or as a string. check_form_root then checks the name.
+    const bool names_button = !object.parent && type.name == form_root_type_name &&
+                              (descriptor.name == "accept_button" || descriptor.name == "cancel_button");
+    if (names_button) {
+        const std::optional<std::string> named = bare_identity(value);
+        if (named) {
+            FormProperty record{};
+            record.object = owner;
+            record.provider = provider;
+            record.schema_property = *property;
+            record.node = node;
+            record.value = BindingValue{*named};
+            scratch.properties.push_back(std::move(record));
+            return;
+        }
+    }
     const ValueReading reading = read_value(declaration, descriptor);
     if (reading.not_expressible) {
         report(DiagnosticCode::not_yet_built, declaration.content.first.value, stable_id, written,
@@ -989,6 +1010,24 @@ ValueReading ModelBuilder::read_value(const SyntaxNode& node, const PropertyDesc
     // The descriptor's own rules: ranges, standard values.
     reading.value = convert_property_value(*candidate, descriptor);
     return reading;
+}
+
+std::optional<std::string> ModelBuilder::bare_identity(const ValueTokens& value) const {
+    if (value.count == 0U || value.overflowed) return std::nullopt;
+    const std::uint32_t first = value.indices[0];
+    if (tokens_[first].kind != TokenKind::ident) return std::nullopt;
+    for (std::size_t position = 1U; position < value.count; ++position) {
+        const std::uint32_t index = value.indices[position];
+        // Adjacent tokens only: `a . b` is not an identity.
+        if (index != first + position) return std::nullopt;
+        const TokenKind kind = tokens_[index].kind;
+        const bool dot = kind == TokenKind::delim && token_text(index) == ".";
+        const bool part = kind == TokenKind::ident || kind == TokenKind::number || kind == TokenKind::dimension;
+        if (!dot && !part) return std::nullopt;
+    }
+    const std::uint32_t end = value.indices[value.count - 1U] + 1U;
+    const std::string identity(range_text(first, end));
+    return identity;
 }
 
 std::optional<BindingValue> ModelBuilder::candidate_value(const ValueTokens& value,
