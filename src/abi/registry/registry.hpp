@@ -4,6 +4,8 @@
 #include "../error/abi_error.hpp"
 
 #include <chrono>
+#include <cstdlib>
+#include <cstring>
 #include <optional>
 
 namespace gui_forms::abi::detail {
@@ -1720,10 +1722,19 @@ public:
         return GF_OK;
     }
 
+    // Whether a run asks for the host's automation channel: the run flag
+    // GF_WINDOW_RUN_AUTOMATION, or `environment` (GUI_FORMS_AUTOMATION, null
+    // when unset) equal to "1".
+    [[nodiscard]] static bool automation_requested(std::uint32_t flags, const char* environment) noexcept {
+        if ((flags & GF_WINDOW_RUN_AUTOMATION) != 0U) return true;
+        const bool by_environment = environment != nullptr && std::strcmp(environment, "1") == 0;
+        return by_environment;
+    }
+
     gf_result run_window(gf_handle handle, std::uint32_t flags) {
         constexpr std::uint32_t known_flags =
             GF_WINDOW_RUN_AUTOMATION_CLOSE | GF_WINDOW_RUN_FORCE_HEADLESS |
-            GF_WINDOW_RUN_AUTOMATION_ACTIVATE | GF_WINDOW_RUN_POPUP;
+            GF_WINDOW_RUN_AUTOMATION_ACTIVATE | GF_WINDOW_RUN_POPUP | GF_WINDOW_RUN_AUTOMATION;
         if ((flags & ~known_flags) != 0U) {
             return fail(GF_ERROR_INVALID_ARGUMENT, "run_window received unknown flags");
         }
@@ -1775,7 +1786,9 @@ public:
             options.quit_thread_on_close = !popup;
             options.initial_position = {requested.x, requested.y};
             options.print_metrics_on_close = false;
-            options.automation_enabled = true;
+            // The WM_COPYDATA automation channel only on request: the run
+            // flag, or GUI_FORMS_AUTOMATION=1 from a test harness.
+            options.automation_enabled = automation_requested(flags, std::getenv("GUI_FORMS_AUTOMATION"));
             options.close_after_launch_for_testing = auto_close;
             const std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<Control>>> automation_controls = named_controls_snapshot(record);
             options.automation_resolve =

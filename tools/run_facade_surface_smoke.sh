@@ -93,7 +93,7 @@ for dependency in Microsoft.Win32.SystemEvents.dll System.Formats.Nrbf.dll Syste
   cp "$windows_runtime/$dependency" "$behavior_output/"
 done
 wine_log=$(mktemp "${TMPDIR:-/tmp}/gui-forms-facade-wine.XXXXXX")
-(cd "$smoke_output" && WINEDEBUG=-all \
+(cd "$smoke_output" && GUI_FORMS_AUTOMATION=1 WINEDEBUG=-all \
   "$wine_binary" 'C:\Program Files\dotnet\dotnet.exe' GuiForms.FacadeSmoke.dll \
   >"$wine_log" 2>&1) &
 wine_pid=$!
@@ -138,7 +138,7 @@ rg -q 'lifecycle-order=load>input>closing>closed\|handle-created:1\|handle-destr
 unlink "$behavior_wine_log"
 
 scroll_live_log=$(mktemp "${TMPDIR:-/tmp}/gui-forms-scroll-live.XXXXXX")
-(cd "$behavior_output" && MVK_CONFIG_LOG_LEVEL=0 WINEDEBUG=-all \
+(cd "$behavior_output" && GUI_FORMS_AUTOMATION=1 MVK_CONFIG_LOG_LEVEL=0 WINEDEBUG=-all \
   "$wine_binary" 'C:\Program Files\dotnet\dotnet.exe' \
   GuiForms.FacadeBehaviorSmoke.dll scroll-panel-live >"$scroll_live_log" 2>&1) &
 scroll_live_pid=$!

@@ -267,6 +267,43 @@ struct DibHostFixture final {
         require((opaque >> 24U) == 255U, "a frame that keeps no alpha presents every pixel opaque");
     }
 
+    // Sends one automation command to `window` as a harness would; the
+    // window procedure's answer (TRUE when the command was accepted).
+    static LRESULT send_automation(HWND window, const char* command) {
+        COPYDATASTRUCT data{};
+        data.dwData = 0x47464131U;
+        data.cbData = static_cast<DWORD>(std::strlen(command) + 1U);
+        data.lpData = const_cast<char*>(command);
+        const LRESULT answer = SendMessageW(window, WM_COPYDATA, 0, reinterpret_cast<LPARAM>(&data));
+        return answer;
+    }
+
+    // The automation channel is off by default: a WM_COPYDATA command is
+    // ignored; with automation_enabled it is accepted.
+    static void automation_gate(const wchar_t* class_name, HINSTANCE instance) {
+        for (int enabled = 0; enabled < 2; ++enabled) {
+            std::shared_ptr<DibFixtureControl> control = std::make_shared<DibFixtureControl>();
+            std::unique_ptr<Window> model = std::make_unique<Window>(control, Size{80, 60});
+            WindowsHostOptions options{};
+            options.quit_thread_on_close = false;
+            options.print_metrics_on_close = false;
+            options.automation_enabled = enabled != 0;
+            WindowsHostState state(std::move(model), options);
+            HWND window = CreateWindowExW(WS_EX_NOACTIVATE, class_name, L"Automation fixture", WS_POPUP, 0, 0,
+                                          80, 60, nullptr, nullptr, instance, &state);
+            require(window != nullptr, "automation fixture native creation");
+            const bool initialized = state.initialize(window);
+            require(initialized, "automation fixture host initialization");
+            const LRESULT answer = send_automation(window, "GUI.Forms.Automation/1 snapshot");
+            if (enabled == 0) {
+                require(answer == FALSE, "automation off by default: a WM_COPYDATA command is ignored");
+            } else {
+                require(answer == TRUE, "automation enabled: a WM_COPYDATA command is accepted");
+            }
+            DestroyWindow(window);
+        }
+    }
+
     static void run() {
         const HRESULT com_status = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
         require(SUCCEEDED(com_status), "fixture COM setup");
@@ -280,6 +317,7 @@ struct DibHostFixture final {
             native_class.lpszClassName = L"GUIForms.DibFixture.v1";
             const ATOM registered_class = RegisterClassExW(&native_class);
             require(registered_class != 0, "fixture class registration");
+            automation_gate(native_class.lpszClassName, native_class.hInstance);
             {
                 constexpr LiveSurfacePixelFormat format = LiveSurfacePixelFormat::bgra32_premultiplied_srgb;
                 std::shared_ptr<DibFixtureControl> control = std::make_shared<DibFixtureControl>();
