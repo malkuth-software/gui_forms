@@ -1853,26 +1853,32 @@ public:
         target.width = width;
         target.height = height;
         target.row_bytes = source.row_bytes;
+        // One pass over the bounding box of every area: a window full of
+        // outlines (up to maximum_invalidation_outlines, each with five
+        // areas) would otherwise cost thousands of GDI calls a fade tick.
+        DevicePixelRect box{source.width, source.height, 0, 0};
+        for (const DevicePixelRect& region : overlay_present_) {
+            box.left = std::min(box.left, std::clamp<std::int32_t>(region.left, 0, source.width));
+            box.top = std::min(box.top, std::clamp<std::int32_t>(region.top, 0, source.height));
+            box.right = std::max(box.right, std::clamp<std::int32_t>(region.right, 0, source.width));
+            box.bottom = std::max(box.bottom, std::clamp<std::int32_t>(region.bottom, 0, source.height));
+        }
+        if (box.right <= box.left || box.bottom <= box.top) {
+            overlay_drawn_.assign(overlay_regions_.begin(), overlay_regions_.end());
+            return;
+        }
+        const std::size_t row_offset = static_cast<std::size_t>(box.left) * 4U;
+        const std::size_t row_length = static_cast<std::size_t>(box.right - box.left) * 4U;
+        for (std::int32_t y = box.top; y < box.bottom; ++y) {
+            const std::size_t offset = static_cast<std::size_t>(y) * source.row_bytes + row_offset;
+            std::memcpy(overlay_scratch_.data() + offset, source.pixels + offset, row_length);
+        }
+        if (overlay != nullptr) (*overlay).compose(target, scale_, now, box);
         HDC dc = GetDC(hwnd_);
         if (dc == nullptr) return;
-        for (const DevicePixelRect& region : overlay_present_) {
-            const std::int32_t left = std::clamp<std::int32_t>(region.left, 0, source.width);
-            const std::int32_t right = std::clamp<std::int32_t>(region.right, left, source.width);
-            const std::int32_t top = std::clamp<std::int32_t>(region.top, 0, source.height);
-            const std::int32_t bottom = std::clamp<std::int32_t>(region.bottom, top, source.height);
-            if (right == left || bottom == top) continue;
-            const std::size_t row_offset = static_cast<std::size_t>(left) * 4U;
-            const std::size_t row_length = static_cast<std::size_t>(right - left) * 4U;
-            for (std::int32_t y = top; y < bottom; ++y) {
-                const std::size_t offset = static_cast<std::size_t>(y) * source.row_bytes + row_offset;
-                std::memcpy(overlay_scratch_.data() + offset, source.pixels + offset, row_length);
-            }
-            const DevicePixelRect clipped{left, top, right, bottom};
-            if (overlay != nullptr) (*overlay).compose(target, scale_, now, clipped);
-            const RECT area{left, top, right, bottom};
-            static_cast<void>(present_bgra_area(dc, overlay_scratch_.data(), source.row_bytes, source.width,
-                                                source.height, area));
-        }
+        const RECT area{box.left, box.top, box.right, box.bottom};
+        static_cast<void>(present_bgra_area(dc, overlay_scratch_.data(), source.row_bytes, source.width,
+                                            source.height, area));
         ReleaseDC(hwnd_, dc);
         overlay_drawn_.assign(overlay_regions_.begin(), overlay_regions_.end());
         if (overlay != nullptr && !(*overlay).empty()) {
