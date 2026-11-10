@@ -367,6 +367,37 @@ struct ControlSnapshot final {
     std::uint32_t pixel_height{};
 };
 
+// What Window::capture_window draws (owner request 2026-11-09, the product
+// ports: screenshots and tests).
+struct WindowCaptureOptions final {
+    // The window's in-surface overlays (menus, drop-downs, tooltips and
+    // other overlays opened in it), composited over its content as
+    // presented. Off, the capture shows the content beneath them. Windows
+    // of their own (an owned window, a splash) are captured through their
+    // own Window.
+    bool include_overlays{true};
+    // Device pixels per logical unit; 0 takes the window's own scale.
+    double scale{};
+};
+
+// A window's picture (Window::capture_window): its logical size, the scale
+// it was drawn at and its pixels, `pixel_height` rows of `pixel_width`
+// premultiplied BGRA pixels, tightly packed (pixel_width * 4 bytes a row).
+// The capture owns its pixels.
+struct WindowCapture final {
+    Size logical_size{};
+    double scale{};
+    std::uint32_t pixel_width{};
+    std::uint32_t pixel_height{};
+    std::vector<std::byte> bgra{};
+};
+
+// `capture` encoded as a PNG with its alpha (premultiplied pixels made
+// straight), into `png`, replacing its contents; false, leaving it empty,
+// for a capture without pixels or whose pixels are fewer than its size
+// needs.
+[[nodiscard]] bool encode_window_capture_png(const WindowCapture& capture, std::vector<std::byte>& png);
+
 // The root of one retained control tree and the thread that owns it (the
 // threaded sub-surfaces design, stage S1): the control table, the dirty
 // structure, update scopes and flushes, layout, paint, focus, input
@@ -511,6 +542,24 @@ public:
     // chunks the replay had to rebuild are marked for the next real paint.
     // The image lives until release_control_snapshot or the window's end.
     [[nodiscard]] std::optional<ControlSnapshot> snapshot_control(const Control::Ptr& control, double scale);
+    // The whole window as it presents itself (owner request 2026-11-09):
+    // its backplane (the theme's window material, cleared where a
+    // non-opaque backdrop is granted), every paint plane of its content,
+    // its in-surface overlays unless `options` leaves them out, and its
+    // outer band, replayed from the retained display after any pending
+    // layout into an offscreen framebuffer of the host's own CPU raster,
+    // as snapshot_control does. What the host composites outside the
+    // window's pixels (the system backdrop, native frame and shadow) is not
+    // drawn. Callable whenever the window is not painting, at any time
+    // after the host attached, so a screenshot or a test needs no timer.
+    // None, changing nothing, while no framebuffer painter is installed (a
+    // headless window, a host whose fonts are not ready), during a paint,
+    // for an empty window, for a scale outside (0, 8], or when the
+    // framebuffer refuses. Cost: one replay of the window into
+    // ceil(width * scale) by ceil(height * scale) pixels and one copy of
+    // them; chunks the replay had to rebuild are marked for the next real
+    // paint. On the UI thread (std::logic_error elsewhere).
+    [[nodiscard]] std::optional<WindowCapture> capture_window(const WindowCaptureOptions& options = {});
     // Removes a snapshot's image as remove_image does: every window sharing
     // the registry retires its retained paint, so no chunk replays the dead
     // image. False, changing nothing, for an image that is not there.

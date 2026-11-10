@@ -982,12 +982,23 @@ bool ValuePass::colour_from_role(std::uint32_t function) {
     for (char& character : lower) {
         if (character >= 'A' && character <= 'Z') character = static_cast<char>(character - 'A' + 'a');
     }
-    const std::optional<ColourRole> role = colour_role_from_name(lower);
-    if (!role) {
+    // A built-in role, else one of the theme's application roles: its
+    // slot follows the built-in ones, and it carries its fallback's
+    // meaning.
+    std::optional<ColourRole> role = colour_role_from_name(lower);
+    std::size_t position = role ? static_cast<std::size_t>(*role) : palette_slot_count;
+    bool paired = role ? colour_role_paired(*role) : false;
+    for (std::size_t index = 0U; !role && index < context_.application_roles.size(); ++index) {
+        const ApplicationRoleName& declared = context_.application_roles[index];
+        if (declared.name != lower) continue;
+        role = declared.fallback;
+        position = colour_role_count + index;
+        paired = declared.paired;
+    }
+    if (!role || position >= palette_slot_count) {
         report(DiagnosticCode::keyword_unknown, written.token, clipped_theme_detail(written.text));
         return false;
     }
-    const bool paired = colour_role_paired(*role);
     ColourRoleSide side = ColourRoleSide::foreground;
     if (children.count == 2U) {
         const ValueComponent& named = value_.components[children.index[1]];
@@ -1013,11 +1024,10 @@ bool ValuePass::colour_from_role(std::uint32_t function) {
         report(DiagnosticCode::value_form_not_admitted, token, "role() in a palette");
         return false;
     }
-    const std::size_t position = static_cast<std::size_t>(*role);
     const std::optional<RoleColours>& declared = (*context_.palette).roles[position];
-    value_.roles_read |= 1U << position;
+    value_.roles_read |= std::uint64_t{1} << position;
     if (!declared) {
-        report(DiagnosticCode::colour_role_undefined, written.token, std::string(colour_role_name(*role)));
+        report(DiagnosticCode::colour_role_undefined, written.token, lower);
         return false;
     }
     const Color colour = side == ColourRoleSide::foreground ? (*declared).foreground : (*declared).background;

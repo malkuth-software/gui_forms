@@ -156,6 +156,45 @@ stable-ID selector names no object of the listed forms: a rule that names
 nothing styles nothing. The generated header declares
 `gui_forms::ThemePackage my_app::my_app_theme()`.
 
+### Checking it at build time
+
+Add `CHECK` to `gui_forms_add_theme`, or call `gui_forms_add_theme_check`
+yourself, to compile the theme while the program builds. A bad sheet then
+fails the build with its diagnostics, before `Application::create` would
+refuse it at run time:
+
+```cmake
+gui_forms_add_theme(my_app themes/my_app CHECK FUNCTION my_app_theme NAMESPACE my_app
+                    FORMS forms/main.form)
+# or, for several packages compiled as one cascade, in order:
+gui_forms_add_theme_check(my_app themes/base themes/my_app
+                          [BASE gui-forms|windows-professional] [WARNINGS_AS_ERRORS])
+```
+
+The check runs `GUIForms::theme_check` (built and installed with
+`GUI_FORMS_BUILD_FORM_COMPILER`). It compiles the packages onto the base, with
+the stock control types and the built-in effects, the same way the
+application will. It prints each finding as
+`<file>:<line>:<column>: error E406 keyword_unknown: ...` and reruns only
+when a package changes. Warnings are printed and pass unless you add
+`WARNINGS_AS_ERRORS`.
+
+A test checks a package with the same compiler, without a window or an
+application:
+
+```cpp
+const std::array<gf::ThemePackage, 1> packages{my_app::my_app_theme()};
+gf::ThemeCompileOptions options{};
+options.controls = gf::stock_control_anatomies();
+options.effects = &gf::built_in_effect_registry();
+const gf::ThemeValidation validation =
+    gf::validate_theme_packages(packages, gf::ThemeLibrary{}, options);
+for (const gf::ThemeCompileDiagnostic& finding : validation.diagnostics) {
+    std::cerr << gf::format_theme_diagnostic(finding) << '\n';
+}
+// validation.valid is false when the theme would be refused.
+```
+
 ### Compiling it
 
 The application compiles its theme once, when it is created: the base, then

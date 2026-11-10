@@ -733,6 +733,40 @@ ThemeCompileResult compile_theme_package(const ThemePackage& package, const Them
                            root.manifest.name, std::span<const UserIcon>{});
 }
 
+ThemeValidation validate_theme_packages(std::span<const ThemePackage> packages, const ThemeLibrary& library,
+                                        const ThemeCompileOptions& options) {
+    // The registry outlives the compiled theme, whose leases remove its
+    // images from it when the theme is released at the end of this scope.
+    ImageRegistry images{};
+    ThemeValidation validation{};
+    {
+        const ThemeCompileResult result = compile_theme_packages(packages, library, images, options);
+        validation.valid = result.succeeded();
+        const std::span<const ThemeCompileDiagnostic> found = result.diagnostics();
+        validation.diagnostics.assign(found.begin(), found.end());
+    }
+    return validation;
+}
+
+std::string format_theme_diagnostic(const ThemeCompileDiagnostic& diagnostic) {
+    std::string line{};
+    if (!diagnostic.file.empty()) {
+        line += diagnostic.file;
+        if (diagnostic.line != 0U) {
+            line += ':' + std::to_string(diagnostic.line) + ':' + std::to_string(diagnostic.column);
+        }
+        line += ": ";
+    }
+    line += diagnostic.severity == ThemeDiagnosticSeverity::error ? "error " : "warning ";
+    line += diagnostic.code;
+    if (!diagnostic.name.empty()) line += ' ' + diagnostic.name;
+    if (!diagnostic.detail.empty()) line += ": " + diagnostic.detail;
+    if (!diagnostic.rule.empty()) line += " (in " + diagnostic.rule;
+    if (!diagnostic.rule.empty() && !diagnostic.property.empty()) line += ", " + diagnostic.property;
+    if (!diagnostic.rule.empty()) line += ')';
+    return line;
+}
+
 ThemeCompileResult compile_theme_packages(std::span<const ThemePackage> packages, const ThemeLibrary& library,
                                           ImageRegistry& images, const ThemeCompileOptions& options) {
     if (packages.size() > maximum_theme_packages) {

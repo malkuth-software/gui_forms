@@ -381,6 +381,20 @@ private:
     // One `:root` block's declarations, recorded under media_ when
     // `record` (a block no media query lowers is only checked).
     [[nodiscard]] bool collect_palette_block(std::size_t rule_index, bool record);
+    // The application roles (`color-roles`) of the unconditional `:root`
+    // blocks, into palette_.application_roles, before their colours are
+    // collected; false after an error.
+    [[nodiscard]] bool collect_application_roles();
+    // One `color-roles` declaration: `<name> from <built-in role>`, comma
+    // separated; false after an error.
+    [[nodiscard]] bool read_application_roles(const SyntaxNode& node);
+    // The palette slot `name` (folded) names, a built-in role or an
+    // application role, with whether it is a pair; none for another name.
+    [[nodiscard]] std::optional<std::size_t> palette_slot(std::string_view name, bool& paired) const noexcept;
+    // The application roles as the compiled sheet keeps them
+    // (sheet_.application_roles): a role without an unconditional
+    // declaration starts from its fallback's declarations.
+    void publish_application_roles();
     // `color-scheme` in the palette's block (T4 theme variants): `light`,
     // `dark` or both, written once each in any order, into
     // sheet_.colour_schemes; false after an error (another word, or the
@@ -616,8 +630,8 @@ private:
     std::optional<BackdropDeclaration> backdrop_{};
     // The band the rule being lowered declares, or none.
     std::optional<BandDeclaration> band_{};
-    // The roles the rule being lowered read, one bit a role.
-    std::uint32_t rule_roles_read_{};
+    // The palette slots the rule being lowered read, one bit a slot.
+    std::uint64_t rule_roles_read_{};
     // Whether a declaration whose var() reads a name no definition of which
     // holds is left undeclared (a rule's, P12) rather than refused; and
     // whether the value just read was so left.
@@ -1610,8 +1624,8 @@ bool CompilePass::lower_rule_palette(std::size_t rule_index) {
     const LoweringBudget budget = budget_;
     if (!lower_rule_once(rule_index)) return false;
     palette_.varying.clear();
-    for (std::size_t role = 0U; role < colour_role_count; ++role) {
-        const bool read = (rule_roles_read_ & (1U << role)) != 0U;
+    for (std::size_t role = 0U; role < palette_slot_count; ++role) {
+        const bool read = (rule_roles_read_ & (std::uint64_t{1} << role)) != 0U;
         if (read && palette_.variants[role].size() > 1U) palette_.varying.push_back(role);
     }
     if (palette_.varying.empty()) return true;
@@ -1741,6 +1755,7 @@ bool CompilePass::selects_root(std::size_t rule_index) const noexcept {
 bool CompilePass::collect_palette() {
     for (std::vector<PaletteVariant>& variants : palette_.variants) variants.clear();
     palette_.base = RolePalette{};
+    if (!collect_application_roles()) return false;
     const std::vector<SyntaxNode>& nodes = tree_.nodes;
     for (std::size_t index = 1U; index < nodes.size(); index = nodes[index].subtree_end.value) {
         const SyntaxNode& node = nodes[index];
@@ -1771,15 +1786,135 @@ bool CompilePass::collect_palette() {
             if (!collect_palette_block(child, false)) return false;
         }
     }
-    for (std::size_t role = 0U; role < colour_role_count; ++role) {
+    // An application role without an unconditional declaration of its
+    // own starts from its fallback's declarations, its own after them.
+    for (std::size_t index = 0U; index < palette_.application_roles.size(); ++index) {
+        std::vector<PaletteVariant>& variants = palette_.variants[colour_role_count + index];
+        if (!variants.empty() && media_condition_unconditional(variants[0].media)) continue;
+        const std::size_t fallback = static_cast<std::size_t>(palette_.application_roles[index].fallback);
+        const std::vector<PaletteVariant>& inherited = palette_.variants[fallback];
+        variants.insert(variants.begin(), inherited.begin(), inherited.end());
+    }
+    for (std::size_t role = 0U; role < palette_slot_count; ++role) {
         const std::vector<PaletteVariant>& variants = palette_.variants[role];
         if (variants.empty() || !media_condition_unconditional(variants[0].media)) continue;
         palette_.base.roles[role] = variants[0].colours;
     }
+    publish_application_roles();
     palette_.in_use = palette_.base;
     rule_.clear();
     property_.clear();
     return true;
+}
+
+bool CompilePass::collect_application_roles() {
+    palette_.application_roles.clear();
+    const std::vector<SyntaxNode>& nodes = tree_.nodes;
+    for (std::size_t index = 1U; index < nodes.size(); index = nodes[index].subtree_end.value) {
+        if (nodes[index].kind != SyntaxNodeKind::style_rule || !selects_root(index)) continue;
+        const std::size_t end = nodes[index].subtree_end.value;
+        rule_ = clipped_theme_detail(range_text(nodes[index].content));
+        for (std::size_t child = index + 1U; child < end; child = nodes[child].subtree_end.value) {
+            const SyntaxNode& node = nodes[child];
+            fold_ascii(token_text(node.tokens.first.value), folded_);
+            if (folded_ != "color-roles") continue;
+            property_ = "color-roles";
+            if (!read_application_roles(node)) return false;
+        }
+    }
+    rule_.clear();
+    property_.clear();
+    return true;
+}
+
+bool CompilePass::read_application_roles(const SyntaxNode& node) {
+    const std::uint32_t property = node.tokens.first.value;
+    // The words between commas: <name> from <built-in role>.
+    std::array<std::uint32_t, 3> words{};
+    std::size_t count = 0U;
+    bool shaped = true;
+    bool any = false;
+    const std::uint32_t end = node.content.end.value;
+    for (std::uint32_t index = node.content.first.value; index <= end && shaped; ++index) {
+        const bool last = index == end;
+        const TokenKind kind = last ? TokenKind::comma : tokens_.tokens[index].kind;
+        if (kind == TokenKind::whitespace || kind == TokenKind::comment) continue;
+        if (kind != TokenKind::comma) {
+            shaped = kind == TokenKind::ident && count < words.size();
+            if (shaped) words[count] = index;
+            count = count + 1U;
+            continue;
+        }
+        if (last && count == 0U && any) break;
+        shaped = count == 3U && equals_ascii_folded(token_text(words[1]), "from");
+        if (!shaped) break;
+        const std::string_view name = token_text(words[0]);
+        const std::string_view fallback_name = token_text(words[2]);
+        if (!application_colour_role_name_valid(name)) {
+            report(DiagnosticCode::value_form_not_admitted, words[0],
+                   "an application role name: lowercase letters, digits and '-', not a built-in role's");
+            return false;
+        }
+        fold_ascii(fallback_name, folded_);
+        const std::optional<ColourRole> fallback = colour_role_from_name(folded_);
+        if (!fallback) {
+            report(DiagnosticCode::keyword_unknown, words[2], clipped_theme_detail(fallback_name));
+            return false;
+        }
+        for (const ApplicationRoleName& declared : palette_.application_roles) {
+            if (declared.name != name) continue;
+            report(DiagnosticCode::value_form_not_admitted, words[0], "an application role declared twice");
+            return false;
+        }
+        if (palette_.application_roles.size() >= maximum_application_colour_roles) {
+            report(DiagnosticCode::value_form_not_admitted, words[0],
+                   "more than " + std::to_string(maximum_application_colour_roles) + " application roles");
+            return false;
+        }
+        palette_.application_roles.push_back(
+            ApplicationRoleName{.name = name, .fallback = *fallback, .paired = colour_role_paired(*fallback)});
+        any = true;
+        count = 0U;
+    }
+    if (!shaped || !any) {
+        report(DiagnosticCode::value_syntax, property, "color-roles: <name> from <role>, ...");
+        return false;
+    }
+    return true;
+}
+
+std::optional<std::size_t> CompilePass::palette_slot(std::string_view name, bool& paired) const noexcept {
+    const std::optional<ColourRole> role = colour_role_from_name(name);
+    if (role) {
+        paired = colour_role_paired(*role);
+        return static_cast<std::size_t>(*role);
+    }
+    for (std::size_t index = 0U; index < palette_.application_roles.size(); ++index) {
+        if (palette_.application_roles[index].name != name) continue;
+        paired = palette_.application_roles[index].paired;
+        return colour_role_count + index;
+    }
+    return std::nullopt;
+}
+
+void CompilePass::publish_application_roles() {
+    sheet_.application_roles.clear();
+    sheet_.application_roles.reserve(palette_.application_roles.size());
+    for (std::size_t index = 0U; index < palette_.application_roles.size(); ++index) {
+        const ApplicationRoleName& declared = palette_.application_roles[index];
+        ApplicationColourRole role{};
+        role.name = std::string(declared.name);
+        role.fallback = declared.fallback;
+        role.paired = declared.paired;
+        const std::vector<PaletteVariant>& variants = palette_.variants[colour_role_count + index];
+        role.variants.reserve(variants.size());
+        for (const PaletteVariant& variant : variants) {
+            role.variants.push_back(ApplicationColourRoleVariant{.media = variant.media,
+                                                                 .foreground = variant.colours.foreground,
+                                                                 .background = variant.colours.background});
+        }
+        sheet_.application_roles.push_back(std::move(role));
+    }
 }
 
 bool CompilePass::lower_colour_scheme(const SyntaxNode& node) {
@@ -1833,13 +1968,22 @@ bool CompilePass::collect_palette_block(std::size_t rule_index, bool record) {
             if (!lower_colour_scheme(node)) return false;
             continue;
         }
-        const std::optional<ColourRole> role = colour_role_from_name(folded_);
-        if (!role) {
+        if (folded_ == "color-roles") {
+            // Read before the palette (collect_application_roles), from
+            // the unconditional blocks alone.
+            if (!media_condition_unconditional(media_)) {
+                report(DiagnosticCode::value_form_not_admitted, property, "color-roles under @media");
+                return false;
+            }
+            continue;
+        }
+        bool paired = false;
+        const std::optional<std::size_t> slot = palette_slot(folded_, paired);
+        if (!slot) {
             // A palette declares roles and custom properties only.
             report(DiagnosticCode::property_not_admitted, property, property_ + " in the palette");
             continue;
         }
-        const bool paired = colour_role_paired(*role);
         parameter_names_.clear();
         reading_palette_ = true;
         const bool read = read_value(node);
@@ -1866,7 +2010,7 @@ bool CompilePass::collect_palette_block(std::size_t rule_index, bool record) {
         variant.colours.background =
             background.kind == ValueComponentKind::colour ? background.colour : *named_colour(background.text);
         if (!record) continue;
-        std::vector<PaletteVariant>& variants = palette_.variants[static_cast<std::size_t>(*role)];
+        std::vector<PaletteVariant>& variants = palette_.variants[*slot];
         // An unconditional declaration replaces the role's earlier ones.
         if (media_condition_unconditional(media_)) variants.clear();
         variants.push_back(variant);
@@ -3634,6 +3778,7 @@ bool CompilePass::read_value(const SyntaxNode& node) {
     context.published_values = input_.published_values.size();
     context.resources = input_.resources;
     context.palette = reading_palette_ ? nullptr : &palette_.in_use;
+    context.application_roles = palette_.application_roles;
     context.bare_side = bare_side_;
     context.system_colours = &input_.system_colours;
     const SubstitutionInput substitution{.source = input_.source,
@@ -3783,6 +3928,7 @@ CompileOutcome ThemeCompiler::compile(const ThemeCompileInput& input, ThemeRuleS
     sheet.published_values.clear();
     sheet.requires_engine = current_engine_version;
     sheet.colour_schemes.reset();
+    sheet.application_roles.clear();
     CompilePass pass(input, sheet, diagnostics, tokens_, lines_, tree_, custom_properties_, selectors_, substitution_,
                      reader_, lowered_selectors_, substituted_, value_, parameter_names_, declarations_, materials_,
                      material_lowering_, material_fields_, recipe_fields_, motion_, media_queries_, palette_,
@@ -3793,6 +3939,7 @@ CompileOutcome ThemeCompiler::compile(const ThemeCompileInput& input, ThemeRuleS
         sheet.published_values.clear();
         sheet.requires_engine = current_engine_version;
         sheet.colour_schemes.reset();
+        sheet.application_roles.clear();
     }
     return outcome;
 }

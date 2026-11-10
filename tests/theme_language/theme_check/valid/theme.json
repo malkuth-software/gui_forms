@@ -1,0 +1,7 @@
+{
+  "format": "gui-forms-theme/1",
+  "name": "theme-check-valid",
+  "version": "1.0.0",
+  "engine": ">=0.3",
+  "sheet": {"path": "valid.theme.css", "sha256": "2d0748ef819f9d25370e4a4d8833b521bd9393e9e3a4548bf099065ffe01cff9"}
+}

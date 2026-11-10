@@ -449,6 +449,14 @@ public:
     // applied, since they were chosen against the other theme. They apply
     // again when that theme is shown.
     [[nodiscard]] bool application_colours_suspended() const noexcept;
+    // The colours of the application colour role `name` (a role the theme
+    // package declares with `color-roles`, such as `syntax-keyword`) for
+    // this control's window (window_media_facts; light, unforced while
+    // detached): from effective_theme, else, where that is GUI.Forms' own
+    // in place of the chosen theme, from the chosen theme. Nullopt where
+    // neither declares the role. Code draws program-meant colours through
+    // this rather than hard-coding them (T4 theme variants).
+    [[nodiscard]] std::optional<ThemeRoleColours> theme_role_colours(std::string_view name) const noexcept;
     // Whether back_color or fore_color has been set on this control, which
     // writes the warning W404 `inline_colour` once for each (T4 theme
     // variants, stage A: colour belongs in the theme).

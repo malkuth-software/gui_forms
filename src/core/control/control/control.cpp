@@ -1216,6 +1216,18 @@ bool Control::application_colours_suspended() const noexcept {
     return suspended;
 }
 
+std::optional<ThemeRoleColours> Control::theme_role_colours(std::string_view name) const noexcept {
+    MediaFacts facts{};
+    if (surface_root_ != nullptr) facts = window_media_facts(*surface_root_);
+    const Theme& effective = effective_theme();
+    std::optional<ThemeRoleColours> colours = effective.application_role(name, facts);
+    if (colours) return colours;
+    const Theme& chosen = chosen_theme();
+    if (&chosen == &effective) return std::nullopt;
+    colours = chosen.application_role(name, facts);
+    return colours;
+}
+
 void Control::warn_inline_colour(std::string_view property) const {
     theme_language::ThemeDiagnostic warning{};
     warning.code = theme_language::DiagnosticCode::inline_colour;

@@ -1031,6 +1031,20 @@ if(GUI_FORMS_BUILD_FORM_COMPILER)
             FILE GUIFormsFormCompilerTargets.cmake
             NAMESPACE GUIForms::
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+    # The theme check (owner request 2026-11-09): a program's theme packages
+    # compiled at build time (gui_forms_add_theme_check), so a bad sheet
+    # fails the build, not Application::create. Built and installed with
+    # the form compiler, the SDK's other build-time tool.
+    add_executable(gui_forms_theme_check tools/theme_check/theme_check.cpp)
+    target_link_libraries(gui_forms_theme_check PRIVATE gui_forms_controls)
+    set_target_properties(gui_forms_theme_check PROPERTIES EXPORT_NAME theme_check)
+    add_executable(GUIForms::theme_check ALIAS gui_forms_theme_check)
+    install(TARGETS gui_forms_theme_check EXPORT GUIFormsThemeCheckTargets
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(EXPORT GUIFormsThemeCheckTargets
+            FILE GUIFormsThemeCheckTargets.cmake
+            NAMESPACE GUIForms::
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
 endif()
 # gui_forms_add_form(): form documents generated at build time, here and for
 # SDK consumers.
@@ -1785,7 +1799,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS LiveSurfacesDocument NAMESPACE gui_forms::gallery::pages)
     # The Gallery's project theme (owner rulings of 2026-11-04): the forms
     # name roles by class; the theme gives the roles their look.
-    gui_forms_add_theme(gui_forms_gallery_model demo/themes/gallery
+    gui_forms_add_theme(gui_forms_gallery_model demo/themes/gallery CHECK
         FUNCTION gallery_theme_package NAMESPACE gui_forms::gallery
         FORMS demo/gallery.form demo/gallery_form_pages.form demo/pages/typography-and-inspection.form
             demo/pages/animation-laboratory.form demo/pages/collections-and-overlays.form
@@ -3441,6 +3455,25 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_colour_role_css_tests tests/theme_language/theme_colour_role_css_tests.cpp)
     target_link_libraries(gui_forms_theme_colour_role_css_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_colour_role_css_tests COMMAND gui_forms_theme_colour_role_css_tests)
+    # Early theme validation (owner request 2026-11-09): the public
+    # validate_theme_packages, and the build-time check run on a valid and
+    # a refused package.
+    add_executable(gui_forms_theme_validation_tests tests/theme_language/theme_validation_tests.cpp)
+    target_link_libraries(gui_forms_theme_validation_tests PRIVATE gui_forms_controls)
+    gui_forms_add_theme(gui_forms_theme_validation_tests tests/theme_language/theme_check/valid
+        FUNCTION valid_theme_package NAMESPACE gui_forms_tests)
+    gui_forms_add_theme(gui_forms_theme_validation_tests tests/theme_language/theme_check/refused
+        FUNCTION refused_theme_package NAMESPACE gui_forms_tests)
+    add_test(NAME gui_forms_theme_validation_tests COMMAND gui_forms_theme_validation_tests)
+    if(TARGET gui_forms_theme_check)
+        add_test(NAME gui_forms_theme_check_accepts
+            COMMAND gui_forms_theme_check "${CMAKE_CURRENT_SOURCE_DIR}/tests/theme_language/theme_check/valid")
+        add_test(NAME gui_forms_theme_check_refuses
+            COMMAND gui_forms_theme_check "${CMAKE_CURRENT_SOURCE_DIR}/tests/theme_language/theme_check/refused")
+        set_tests_properties(gui_forms_theme_check_refuses PROPERTIES WILL_FAIL TRUE)
+        add_test(NAME gui_forms_theme_check_gallery
+            COMMAND gui_forms_theme_check "${CMAKE_CURRENT_SOURCE_DIR}/demo/themes/gallery")
+    endif()
     add_executable(gui_forms_theme_variant_tests tests/theme_variant_tests.cpp)
     target_link_libraries(gui_forms_theme_variant_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_variant_tests COMMAND gui_forms_theme_variant_tests)

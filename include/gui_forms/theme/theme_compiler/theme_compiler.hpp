@@ -227,6 +227,30 @@ inline constexpr std::size_t maximum_theme_packages = 16U;
                                                         const ThemeLibrary& library, ImageRegistry& images,
                                                         const ThemeCompileOptions& options);
 
+// What validating theme packages found (validate_theme_packages): whether
+// they compile, and every finding, warnings included.
+struct ThemeValidation final {
+    bool valid{};
+    std::vector<ThemeCompileDiagnostic> diagnostics{};
+};
+
+// Checks `packages` as compile_theme_packages would compile them, keeping
+// no theme and no image: for a test or a build step to catch a bad sheet
+// before Application::create (gui_forms_add_theme_check in
+// GUIFormsThemes.cmake runs it at build time). The images the sheets name
+// are decoded into a registry of the call's own, released before it
+// returns. Like compile_theme_package, not concurrently with another
+// compilation through `library`.
+[[nodiscard]] ThemeValidation validate_theme_packages(std::span<const ThemePackage> packages,
+                                                      const ThemeLibrary& library,
+                                                      const ThemeCompileOptions& options);
+
+// One finding as one line, `<file>:<line>:<column>: <severity> <code>
+// <name>: <detail>` (the place left out where the finding has none, then
+// the rule and property where it is inside one), as the build check and a
+// test print it.
+[[nodiscard]] std::string format_theme_diagnostic(const ThemeCompileDiagnostic& diagnostic);
+
 // The process default theme: the theme a window shows while no application
 // is current, the compiled base default_theme_base names alone. Built on
 // the first call (thread-safe) and never recompiled; every call returns

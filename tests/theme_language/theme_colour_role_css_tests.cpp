@@ -521,6 +521,140 @@ void test_light_and_dark_palette() {
     require(dark_text == Color::rgba(238, 238, 238), "switched dark, the dark palette");
 }
 
+// -- application roles (owner request 2026-11-09) ------------------------------
+
+constexpr std::string_view application_palette =
+    ":root { color-scheme: light dark; ink-on-paper: #111111 on #ffffff; signal-on-paper: #c00000 on #ffffff; "
+    "color-roles: syntax-keyword from ink-on-paper, find-mark from signal-on-paper, gutter-line from ordinary-line; "
+    "syntax-keyword: #0000c0 on #fffff0 } "
+    "@media (prefers-color-scheme: dark) { :root { ink-on-paper: #eeeeee on #000000; "
+    "syntax-keyword: #80a0ff on #101010 } } ";
+
+void test_application_roles() {
+    const Compilation compiled =
+        compile(std::string(application_palette) + "#a { color: role(syntax-keyword); "
+                                                   "background: role(syntax-keyword background) }");
+    require(compiled_clean(compiled), "a sheet declaring application roles compiles");
+    const std::vector<ApplicationColourRole>& roles = compiled.sheet.application_roles;
+    require(roles.size() == 3U, "the sheet keeps its three application roles");
+    if (roles.size() == 3U) {
+        require(roles[0].name == "syntax-keyword" && roles[0].fallback == ColourRole::ink_on_paper &&
+                    roles[0].paired && roles[0].variants.size() == 2U,
+                "a role with its own light and dark colours");
+        if (roles[0].variants.size() == 2U) {
+            require(media_condition_unconditional(roles[0].variants[0].media) &&
+                        roles[0].variants[0].foreground == Color::rgba(0, 0, 192) &&
+                        roles[0].variants[0].background == Color::rgba(255, 255, 240) &&
+                        roles[0].variants[1].media == dark() &&
+                        roles[0].variants[1].foreground == Color::rgba(128, 160, 255),
+                    "its base, then its dark declaration");
+        }
+        require(roles[1].name == "find-mark" && roles[1].fallback == ColourRole::signal_on_paper &&
+                    roles[1].variants.size() == 1U && roles[1].variants[0].foreground == Color::rgba(192, 0, 0),
+                "a role declaring no colours takes its fallback's");
+        require(roles[2].name == "gutter-line" && !roles[2].paired && roles[2].variants.empty(),
+                "a single fallback the sheet leaves undeclared gives none");
+    }
+    require(compiled.sheet.rules.size() == 2U, "a rule reading a varying application role is copied");
+    if (compiled.sheet.rules.size() == 2U) {
+        const std::vector<ThemeRule>& rules = compiled.sheet.rules;
+        require(text_of(rules[0]) == Color::rgba(0, 0, 192) && rules[1].media == dark() &&
+                    text_of(rules[1]) == Color::rgba(128, 160, 255),
+                "role() reads the application role's light and dark colours");
+        const RecipeDeclaration* text = recipe_of(rules[0], RecipeField::text);
+        require(text != nullptr &&
+                    (*text).origin == role_origin(ColourRole::ink_on_paper, ColourRoleSide::foreground),
+                "the colour remembers its fallback, which forced high contrast remaps by");
+    }
+
+    const Compilation undeclared = compile(std::string(application_palette) + "#a { color: role(gutter-line) }");
+    require(undeclared.outcome == CompileOutcome::refused &&
+                count_code(undeclared, DiagnosticCode::colour_role_undefined) == 1U,
+            "reading a role with no colours is E415");
+    const Compilation unknown = compile(":root { ink-on-paper: #111111 on #ffffff } #a { color: role(syntax-keyword) }");
+    require(unknown.outcome == CompileOutcome::refused && count_code(unknown, DiagnosticCode::keyword_unknown) == 1U,
+            "an undeclared application role is E406");
+    const Compilation bad_fallback = compile(":root { color-roles: syntax-keyword from inky }");
+    require(bad_fallback.outcome == CompileOutcome::refused &&
+                count_code(bad_fallback, DiagnosticCode::keyword_unknown) == 1U,
+            "a fallback that is not a built-in role is E406");
+    const Compilation built_in_name = compile(":root { color-roles: focus from ink-on-paper }");
+    require(built_in_name.outcome == CompileOutcome::refused &&
+                count_code(built_in_name, DiagnosticCode::value_form_not_admitted) == 1U,
+            "an application role may not take a built-in role's name");
+    const Compilation twice = compile(":root { color-roles: a-role from focus, a-role from chrome }");
+    require(twice.outcome == CompileOutcome::refused &&
+                count_code(twice, DiagnosticCode::value_form_not_admitted) == 1U,
+            "a role declared twice is refused");
+    const Compilation shapeless = compile(":root { color-roles: a-role focus }");
+    require(shapeless.outcome == CompileOutcome::refused && count_code(shapeless, DiagnosticCode::value_syntax) == 1U,
+            "a declaration without `from` is E401");
+    const Compilation conditional =
+        compile("@media (prefers-color-scheme: dark) { :root { color-roles: a-role from focus } }");
+    require(conditional.outcome == CompileOutcome::refused &&
+                count_code(conditional, DiagnosticCode::value_form_not_admitted) == 1U,
+            "color-roles under @media is refused");
+    std::string many = ":root { color-roles: ";
+    for (std::size_t index = 0U; index <= maximum_application_colour_roles; ++index) {
+        if (index != 0U) many += ", ";
+        many += "role-" + std::to_string(index) + " from focus";
+    }
+    many += " }";
+    const Compilation crowded = compile(many);
+    require(crowded.outcome == CompileOutcome::refused &&
+                count_code(crowded, DiagnosticCode::value_form_not_admitted) == 1U,
+            "more than the maximum of application roles is refused");
+    require(application_colour_role_name_valid("syntax-keyword") && !application_colour_role_name_valid("Syntax") &&
+                !application_colour_role_name_valid("9role") && !application_colour_role_name_valid("ink-on-paper") &&
+                !application_colour_role_name_valid(""),
+            "application role names: lowercase, a letter first, no built-in name");
+}
+
+void test_application_role_lookup() {
+    const Compilation compiled = compile(std::string(application_palette) +
+                                         "@media (forced-colors: active) { :root { find-mark: #ffff00 on #000000 } }");
+    require(compiled_clean(compiled), "the application palette compiles");
+    const std::unique_ptr<ThemeDefinition> definition = test_support::professional_definition();
+    (*definition).id = "theme-application-role-test";
+    (*definition).rules = compiled.sheet;
+    const std::shared_ptr<const Theme> theme = Theme::create(*definition);
+
+    const MediaFacts light_facts{};
+    MediaFacts dark_facts{};
+    dark_facts.dark_scheme = true;
+    MediaFacts forced_facts{};
+    forced_facts.forced_colours = true;
+    const std::optional<ThemeRoleColours> light = (*theme).application_role("syntax-keyword", light_facts);
+    require(light && (*light).foreground == Color::rgba(0, 0, 192) && (*light).background == Color::rgba(255, 255, 240) &&
+                (*light).fallback == ColourRole::ink_on_paper && (*light).paired,
+            "the light colours");
+    const std::optional<ThemeRoleColours> dark = (*theme).application_role("syntax-keyword", dark_facts);
+    require(dark && (*dark).foreground == Color::rgba(128, 160, 255), "the dark colours");
+    const std::optional<ThemeRoleColours> forced = (*theme).application_role("syntax-keyword", forced_facts);
+    require(forced && (*forced).foreground == Color::rgba(255, 255, 255) && (*forced).background == Color::rgba(0, 0, 0),
+            "forced colours: the fallback's high-contrast pair");
+    const std::optional<ThemeRoleColours> declared = (*theme).application_role("find-mark", forced_facts);
+    require(declared && (*declared).foreground == Color::rgba(255, 255, 0),
+            "forced colours: the role's own forced-colors declaration wins");
+    require(!(*theme).application_role("gutter-line", light_facts), "a role without colours has none");
+    require(!(*theme).application_role("missing", light_facts), "an undeclared role has none");
+
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
+    const std::shared_ptr<Pad> pad = make_control<Pad>(StableId("pad"));
+    (*root).add_child(pad);
+    Window window(root, Size{200.0, 100.0});
+    window.set_theme(theme);
+    const std::optional<ThemeRoleColours> through_control = (*pad).theme_role_colours("syntax-keyword");
+    require(through_control && (*through_control).foreground == Color::rgba(0, 0, 192),
+            "a control reads the role through its window's theme");
+    PresentationSettings settings = window.presentation_settings();
+    settings.colour_scheme = ColourScheme::dark;
+    window.set_presentation_settings(settings);
+    const std::optional<ThemeRoleColours> dark_control = (*pad).theme_role_colours("syntax-keyword");
+    require(dark_control && (*dark_control).foreground == Color::rgba(128, 160, 255),
+            "switched dark, the control reads the dark colours");
+}
+
 } // namespace
 
 int main() {
@@ -531,6 +665,8 @@ int main() {
     test_conditional_palettes();
     test_high_contrast_remap();
     test_light_and_dark_palette();
+    test_application_roles();
+    test_application_role_lookup();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;
