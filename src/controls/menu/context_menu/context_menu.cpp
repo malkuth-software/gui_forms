@@ -169,6 +169,17 @@ struct ContextMenu::Impl final {
                 paint_part(painter, *this, shadow);
             }
             Panel::on_paint(painter, local_damage);
+            // The icon gutter, inside the border and under the rows, which
+            // paint over it as children; a row's hot plate covers it.
+            const Rect bounds = local_bounds();
+            PartPaint gutter;
+            gutter.family = ControlVisualRole::menu_item;
+            gutter.role = PartRole::well;
+            gutter.control_type = menu_item_control_type;
+            gutter.key = PartKey{menu_gutter_part, {}, {}};
+            gutter.bounds = {menu_border, menu_border, menu_gutter_width,
+                             std::max(0.0, bounds.height - menu_border * 2.0)};
+            paint_part(painter, *this, gutter);
         }
 
         // Whether the panel casts its shadow (true until changed): an opaque

@@ -145,13 +145,6 @@ void HostServicesPage::mount_document(const std::shared_ptr<Surface>& body) {
         Control::Ptr moved = root.remove_child((*child).runtime_id());
         (*body).add_child(std::move(moved));
     }
-    const std::array<std::shared_ptr<ScaledGroupBox>, 5> groups{
-        document_.gallery_host_messages, document_.gallery_host_paths,
-        document_.gallery_host_services, document_.gallery_host_task_dialog,
-        document_.gallery_host_notify_icon};
-    for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-        (*group).set_style(page_style());
-    }
     status_ = document_.gallery_host_status;
     clipboard_ = document_.gallery_host_clipboard_editor;
     font_button_ = document_.gallery_host_font_choose;
@@ -241,7 +234,7 @@ void HostServicesPage::build_font_dialog() {
     choose_font_.set_description("Open the in-window font dialog");
     (*font_button_).bind(choose_font_);
     font_sample_ = label("gallery.host.font.sample", "Sample text in the chosen font", 12.0, 400,
-                         shell_blue_dark);
+                         "heading");
     (*document_.gallery_host_services).add_at(font_sample_, {650.0, 142.0, 246.0, 56.0});
     font_dialog_ = make_control<FontDialog>(StableId("gallery.host.font.dialog"));
     (*font_dialog_).font = (*font_sample_).resolved_font();

@@ -52,11 +52,6 @@ void SpinnersAndRingsPage::mount_document(const std::shared_ptr<Surface>& body) 
         Control::Ptr moved = root.remove_child((*child).runtime_id());
         (*body).add_child(std::move(moved));
     }
-    const std::array<std::shared_ptr<ScaledGroupBox>, 2> groups{document_.gallery_spinners_group,
-                                                                document_.gallery_rings_group};
-    for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-        (*group).set_style(page_style());
-    }
 }
 
 void SpinnersAndRingsPage::on_active_changed(bool active) {

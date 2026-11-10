@@ -9,8 +9,8 @@
    in design coordinates. The page keeps in code the Commands and their
    bindings, the interval Value and the ranges, the motion panel's and
    rule's backgrounds, the hand-off of the timer and tooltip targets to the
-   shell through PageContext, the BackgroundWorker, every event handler,
-   the status lines' reports and the page style. */
+   shell through PageContext, the BackgroundWorker, every event handler
+   and the status lines' reports. */
 scaled-panel gallery.timing.document {
   design-size: 1000 780;
 

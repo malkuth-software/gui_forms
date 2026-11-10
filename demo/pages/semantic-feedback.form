@@ -8,8 +8,8 @@
    surface), where each is placed by its bounds in design coordinates.
    Behaviour stays in the page (src/controls/gallery/pages/
    semantic-feedback.cpp): the Commands and the CommandBar's items, the
-   sound Value<bool>, the SemanticFeedback component and its record text,
-   and the page style. */
+   sound Value<bool> and the SemanticFeedback component and its record
+   text. */
 scaled-panel gallery.semantic-feedback.document {
   design-size: 1000 660;
 

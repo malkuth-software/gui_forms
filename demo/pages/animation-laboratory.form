@@ -7,8 +7,8 @@
    its children into the shell's page body (a 1000 x 660 design surface),
    where each is placed by its bounds in design coordinates. Behaviour stays
    in the page (src/controls/gallery/pages/animation-laboratory.cpp): the
-   board's tracks, the pause Command, the reduced-motion Value, the shell's
-   MotionPolicy and the page style. */
+   board's tracks, the pause Command, the reduced-motion Value and the shell's
+   MotionPolicy. */
 scaled-panel gallery.animation.document {
   design-size: 1000 660;
 

@@ -55,12 +55,6 @@ void NoticesAndBadgesPage::mount_document(const std::shared_ptr<Surface>& body) 
         Control::Ptr moved = root.remove_child((*child).runtime_id());
         (*body).add_child(std::move(moved));
     }
-    const std::array<std::shared_ptr<ScaledGroupBox>, 3> groups{
-        document_.gallery_notices_banners, document_.gallery_notices_badges,
-        document_.gallery_notices_empty};
-    for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-        (*group).set_style(page_style());
-    }
     banners_ = {document_.gallery_notices_information, document_.gallery_notices_warning,
                 document_.gallery_notices_success, document_.gallery_notices_error};
 }

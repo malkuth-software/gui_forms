@@ -552,7 +552,7 @@ void MenuStrip::on_dispose() noexcept {
 
 namespace {
 
-constexpr std::array<PartField<MenuStrip::Parts>, 4> menu_strip_part_fields{{
+constexpr std::array<PartField<MenuStrip::Parts>, 5> menu_strip_part_fields{{
     {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
      .member = &MenuStrip::Parts::region},
     {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
@@ -561,6 +561,8 @@ constexpr std::array<PartField<MenuStrip::Parts>, 4> menu_strip_part_fields{{
      .member = &MenuStrip::Parts::divider},
     {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
      .member = &MenuStrip::Parts::focus},
+    {.declaration = {.name = "gutter", .role = PartRole::well, .composed_from = {}},
+     .member = &MenuStrip::Parts::gutter},
 }};
 
 constexpr std::array<PartField<MenuStrip::ItemParts>, 3> menu_strip_item_part_fields{{
@@ -584,7 +586,7 @@ constexpr std::array<PartDeclaration, 3> menu_strip_item_parts =
 constexpr std::array<AnatomyState, 4> menu_strip_item_states =
     state_declarations(menu_strip_item_state_fields);
 
-constexpr std::array<PartDeclaration, 4> menu_strip_parts =
+constexpr std::array<PartDeclaration, 5> menu_strip_parts =
     part_declarations(menu_strip_part_fields);
 constexpr std::array<AnatomyState, 5> menu_strip_states{
     AnatomyState::normal,
@@ -623,6 +625,9 @@ void MenuStrip::publish_part_geometry(std::span<PartGeometry> geometry) const {
     const Rect rule{0.0, std::max(0.0, surface.height - 1.5), surface.width, 1.0};
     record.divider = PartGeometry::from_bounds(Rect::intersection(rule, surface));
     record.focus = PartGeometry::from_bounds(surface);
+    // The gutter belongs to the drop-down panels (ContextMenu's MenuPanel),
+    // not to the strip: empty here.
+    record.gutter = PartGeometry{};
     write_parts(anatomy(), menu_strip_part_fields, record, geometry);
 }
 

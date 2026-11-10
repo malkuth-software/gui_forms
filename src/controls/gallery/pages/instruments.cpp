@@ -74,11 +74,6 @@ void InstrumentsPage::mount_document(const std::shared_ptr<Surface>& body) {
         Control::Ptr moved = root.remove_child((*child).runtime_id());
         (*body).add_child(std::move(moved));
     }
-    const std::array<std::shared_ptr<ScaledGroupBox>, 3> groups{
-        document_.gallery_instruments_readouts, document_.gallery_instruments_gauges, document_.gallery_instruments_knob};
-    for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-        (*group).set_style(page_style());
-    }
 }
 
 void InstrumentsPage::on_ghosts_changed(bool ghosts) {

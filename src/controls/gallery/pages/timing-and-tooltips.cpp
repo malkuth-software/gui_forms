@@ -76,12 +76,6 @@ void TimingPage::mount_document(const std::shared_ptr<Surface>& body) {
         Control::Ptr moved = root.remove_child((*child).runtime_id());
         (*body).add_child(std::move(moved));
     }
-    const std::array<std::shared_ptr<ScaledGroupBox>, 3> groups{
-        document_.gallery_timing_timer_group, document_.gallery_timing_tooltip_group,
-        document_.gallery_timing_worker_group};
-    for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-        (*group).set_style(page_style());
-    }
     status_ = document_.gallery_timing_tick_status;
     run_button_ = document_.gallery_timing_worker_run;
     work_progress_ = document_.gallery_timing_worker_progress;
@@ -115,7 +109,6 @@ void TimingPage::build_timer(PageContext& context) {
 
     const std::shared_ptr<ScaledPanel>& motion = document_.gallery_timing_motion;
     const std::shared_ptr<Button>& motion_target = document_.gallery_timing_motion_target;
-    (*motion_target).set_style(page_style());
     context.timer_motion = motion;
     context.timer_motion_target = motion_target;
 }

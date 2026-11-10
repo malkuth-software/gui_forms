@@ -24,7 +24,7 @@
 
 // Shared by every page builder under src/controls/gallery/pages/ and by the
 // Gallery shell (src/controls/gallery_pages.cpp): the retained page context
-// stored in the shell root's Tag, the page palette and style, and the small
+// stored in the shell root's Tag, the page palette and the small
 // helpers the builders compose pages from. Builder-local classes stay inside
 // their builder.
 namespace gui_forms::gallery::pages {
@@ -41,23 +41,6 @@ constexpr Color accent = Color::rgba(39, 116, 184);
 constexpr Color green = Color::rgba(49, 139, 94);
 constexpr Color orange = Color::rgba(211, 121, 42);
 constexpr Color violet = Color::rgba(116, 82, 153);
-
-inline BasicControlStyle page_style() {
-    BasicControlStyle style;
-    style.face = Color::rgba(226, 232, 238);
-    style.face_light = Color::rgba(248, 250, 252);
-    style.paper = paper;
-    style.highlight = Color::rgba(255, 255, 255);
-    style.border = Color::rgba(144, 159, 173);
-    style.dark_border = Color::rgba(67, 86, 103);
-    style.text = ink;
-    style.disabled_text = Color::rgba(133, 143, 152);
-    style.accent = accent;
-    style.accent_light = Color::rgba(203, 229, 247);
-    style.link = Color::rgba(27, 88, 143);
-    style.visited_link = violet;
-    return style;
-}
 
 using LayoutPanel = ScaledPanel;
 using LayoutGroup = ScaledGroupBox;
@@ -201,12 +184,8 @@ struct PageContext final {
         selected_page = index;
         for (std::size_t page = 0; page < pages.size(); ++page) {
             (*pages[page]).visible = page == selected_page;
-            BasicControlStyle style = page_style();
-            if (page == selected_page) {
-                style.face = Color::rgba(198, 222, 241);
-                style.face_light = Color::rgba(235, 245, 252);
-            }
-            (*navigation[page]).set_style(style);
+            // The open page's row is a checked command: the theme draws it.
+            (*navigation[page]).selected = page == selected_page;
         }
         reveal_in_scrollable(navigation[index]);
         if (ui_timer) {
@@ -223,13 +202,16 @@ struct PageContext final {
     }
 };
 
+// A page label. `role_class` is the Gallery theme package's text role
+// class ("ink", "muted", "heading"): colour lives in the theme, with its
+// light and dark variants, never inline (W404).
 inline std::shared_ptr<Label> label(std::string id, std::string text,
                              double size = 12.0, int weight = 400,
-                             Color color = ink) {
+                             std::string_view role_class = "ink") {
     std::shared_ptr<gui_forms::Label> control = make_control<Label>(StableId(std::move(id)), std::move(text));
     (*control).font = FontSpec{FontRole::content, size,
                        static_cast<std::uint16_t>(weight), false};
-    (*control).fore_color = color;
+    static_cast<void>((*control).add_class(role_class));
     return control;
 }
 
@@ -238,8 +220,7 @@ inline std::shared_ptr<LayoutGroup> group(std::string id, std::string title,
     std::shared_ptr<gui_forms::ScaledGroupBox> control = make_control<LayoutGroup>(StableId(std::move(id)),
                                              std::move(title), design_size);
     static_cast<void>((*control).add_class("paper"));
-    (*control).set_style(page_style());
-    (*control).font = FontSpec{FontRole::control, 12.0, 700, false, 0.24};
+    static_cast<void>((*control).add_class("group-caption"));
     return control;
 }
 

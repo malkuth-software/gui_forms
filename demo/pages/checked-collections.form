@@ -8,8 +8,8 @@
    children into the shell's page body, where each is placed by its bounds
    in design coordinates. The page keeps in code the items' check states and
    initial selections, CheckOnClick, the CommandBar's items, the ListView's
-   columns, rows, check boxes and label editing, every event handler, the
-   status line's reports and the page style. */
+   columns, rows, check boxes and label editing, every event handler and the
+   status line's reports. */
 scaled-panel gallery.checked.document {
   design-size: 1000 900;
 

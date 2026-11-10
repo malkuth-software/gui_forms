@@ -75,12 +75,6 @@ void SemanticFeedbackPage::mount_document(const std::shared_ptr<Surface>& body) 
         Control::Ptr moved = root.remove_child((*child).runtime_id());
         (*body).add_child(std::move(moved));
     }
-    const std::array<std::shared_ptr<ScaledGroupBox>, 3> groups{
-        document_.gallery_semantic_transitions, document_.gallery_semantic_policy,
-        document_.gallery_semantic_records};
-    for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-        (*group).set_style(page_style());
-    }
     latest_ = document_.gallery_semantic_latest;
     trace_ = document_.gallery_semantic_trace;
     accounting_ = document_.gallery_semantic_accounting;
@@ -103,7 +97,6 @@ void SemanticFeedbackPage::connect_commands() {
         items.push_back(std::move(item));
     }
     CommandBar& bar = *document_.gallery_semantic_commands;
-    bar.set_style(page_style());
     bar.set_items(std::move(items));
 }
 

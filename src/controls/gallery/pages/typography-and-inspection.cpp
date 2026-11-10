@@ -67,14 +67,6 @@ void TypographyPage::mount_document(const std::shared_ptr<Surface>& body) {
         Control::Ptr moved = root.remove_child((*child).runtime_id());
         (*body).add_child(std::move(moved));
     }
-    // The page style stays code; the groups' paper face is the Gallery
-    // theme's `paper` class (demo/themes/gallery).
-    const std::array<std::shared_ptr<ScaledGroupBox>, 3> groups{
-        document_.gallery_typography_specimens, document_.gallery_typography_policy,
-        document_.gallery_typography_inspection};
-    for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-        (*group).set_style(page_style());
-    }
 }
 
 void TypographyPage::connect_policy() {

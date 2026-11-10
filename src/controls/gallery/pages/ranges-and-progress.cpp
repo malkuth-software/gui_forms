@@ -42,12 +42,6 @@ private:
             Control::Ptr moved = root.remove_child((*child).runtime_id());
             (*body).add_child(std::move(moved));
         }
-        const std::array<std::shared_ptr<ScaledGroupBox>, 3> groups{
-            document_.gallery_ranges_sliders, document_.gallery_ranges_progress,
-            document_.gallery_ranges_instruments};
-        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-            (*group).set_style(page_style());
-        }
         shared_ = document_.gallery_ranges_shared;
     }
 

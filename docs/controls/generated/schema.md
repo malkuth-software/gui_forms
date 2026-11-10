@@ -2642,6 +2642,7 @@ Properties beyond every control's: `large_change` (number), `maximum` (number), 
 | `face` | face |  |  |
 | `divider` | divider |  |  |
 | `focus` | focus |  |  |
+| `gutter` | well |  |  |
 
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 

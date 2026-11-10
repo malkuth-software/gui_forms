@@ -8,8 +8,7 @@
    children into the shell's page body (a 1000 x 660 design surface), where
    each is placed by its bounds in design coordinates. Behaviour stays in
    the page (src/controls/gallery/pages/control-spectrum.cpp): the click,
-   state and cue handlers, the sound Value<bool> and the style buttons'
-   page style. */
+   state and cue handlers and the sound Value<bool>. */
 scaled-panel gallery.controls.document {
   design-size: 1000 660;
 

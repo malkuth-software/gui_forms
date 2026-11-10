@@ -46,8 +46,6 @@ private:
             Control::Ptr moved = root.remove_child((*child).runtime_id());
             (*body).add_child(std::move(moved));
         }
-        (*document_.gallery_values_numeric).set_style(page_style());
-        (*document_.gallery_values_binding).set_style(page_style());
         numerics_ = {document_.gallery_values_numeric_0, document_.gallery_values_numeric_1,
                      document_.gallery_values_numeric_2, document_.gallery_values_numeric_3};
         domain_ = document_.gallery_values_domain;

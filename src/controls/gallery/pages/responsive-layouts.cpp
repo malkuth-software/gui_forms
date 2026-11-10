@@ -60,13 +60,6 @@ private:
             Control::Ptr moved = root.remove_child((*child).runtime_id());
             (*body).add_child(std::move(moved));
         }
-        const std::array<std::shared_ptr<ScaledGroupBox>, 5> groups{
-            document_.gallery_responsive_width_group, document_.gallery_responsive_tracks_group,
-            document_.gallery_responsive_shelf_group, document_.gallery_responsive_master_detail_group,
-            document_.gallery_responsive_scroll_group};
-        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-            (*group).set_style(page_style());
-        }
     }
 
     void bind_width_control() {
@@ -119,7 +112,7 @@ private:
         (*detail).dock = DockStyle::fill;
         (*detail).margin = Insets{};
         detail_text_ = label("gallery.responsive.master-detail.detail.text",
-                             "Inbox · 12 messages · detail pane", 11.0, 600, ink);
+                             "Inbox · 12 messages · detail pane", 11.0, 600, "ink");
         (*detail_text_).text_wrapping = TextWrapping::word;
         (*detail_text_).padding = {8.0, 4.0, 8.0, 4.0};
         (*detail_text_).dock = DockStyle::fill;

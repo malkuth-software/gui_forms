@@ -8,8 +8,8 @@
    gallery.dock.document is a declared boundary only: the page moves its
    children into the shell's page body, where each is placed by its bounds
    in design coordinates. The page keeps in code the canvases' and panes'
-   faces, the splitter's minimum sizes, every event handler, the status
-   line's reports and the page style. */
+   faces, the splitter's minimum sizes, every event handler and the status
+   line's reports. */
 scaled-panel gallery.dock.document {
   design-size: 1000 860;
 

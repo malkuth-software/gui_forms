@@ -65,12 +65,6 @@ private:
             Control::Ptr moved = root.remove_child((*child).runtime_id());
             (*body).add_child(std::move(moved));
         }
-        const std::array<std::shared_ptr<ScaledGroupBox>, 4> groups{
-            document_.gallery_value_editors_editors, document_.gallery_value_editors_binding,
-            document_.gallery_value_editors_record, document_.gallery_value_editors_rack_group};
-        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-            (*group).set_style(page_style());
-        }
         color_ = document_.gallery_value_editors_color;
         preview_ = document_.gallery_value_editors_preview;
         flags_ = document_.gallery_value_editors_flags;

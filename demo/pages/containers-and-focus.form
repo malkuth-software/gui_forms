@@ -11,7 +11,7 @@
    itself, so the page fills them in code; the DockSite needs its workspace
    to be made, so the page makes it and places it first in its group. The
    page also keeps the splitter's distance and minimums, the faces, the
-   navigator's entries, every event handler and the page style in code. */
+   navigator's entries and every event handler in code. */
 scaled-panel gallery.containers.document {
   design-size: 1000 1076;
 

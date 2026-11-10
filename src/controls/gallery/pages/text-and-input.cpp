@@ -49,13 +49,6 @@ private:
             Control::Ptr moved = root.remove_child((*child).runtime_id());
             (*body).add_child(std::move(moved));
         }
-        const std::array<std::shared_ptr<ScaledGroupBox>, 6> groups{
-            document_.gallery_text_editing, document_.gallery_text_commands,
-            document_.gallery_text_masked, document_.gallery_text_complete,
-            document_.gallery_text_tokens, document_.gallery_text_rich};
-        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-            (*group).set_style(page_style());
-        }
         primary_ = document_.gallery_text_primary;
         state_ = document_.gallery_text_state;
         bar_ = document_.gallery_text_command;
@@ -83,7 +76,6 @@ private:
         // Undo and Redo are Commands so their availability (the field's
         // history) projects onto the bar's retained buttons; the other five
         // items dispatch through the bar's single group notification.
-        (*bar_).set_style(page_style());
         (*bar_).set_items({
             {.id = command_select_all, .label = "Select all"},
             {.id = command_copy, .label = "Copy"},
@@ -93,9 +85,6 @@ private:
             {.id = command_undo, .label = "Undo", .command = &undo_},
             {.id = command_redo, .label = "Redo", .command = &redo_},
         });
-        for (int index = 0; index < static_cast<int>((*bar_).items().size()); ++index) {
-            (*bar_).item(index).set_style(page_style());
-        }
         (*bar_).item(4).visual_style = ButtonVisualStyle::accent;
         on((*bar_).invoked(), *this, &TextAndInputPage::on_command);
         on(undo_.invoked(), *this, &TextAndInputPage::on_undo);
@@ -155,7 +144,6 @@ private:
 
     // The search field reports each query and each clearing.
     void build_search() {
-        (*document_.gallery_text_search).set_style(page_style());
         on((*document_.gallery_text_search_field).search_requested(), *this, &TextAndInputPage::search_requested);
         on((*document_.gallery_text_search_field).cleared(), *this, &TextAndInputPage::search_cleared);
     }

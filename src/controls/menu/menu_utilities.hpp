@@ -30,6 +30,13 @@ inline constexpr double menu_trailing = 25.0;
 // both the designed hover (built_in_rules.cpp).
 inline constexpr std::string_view menu_item_control_type = "menu_strip";
 inline constexpr std::string_view menu_item_part = "menu_item";
+// A drop-down panel's icon gutter is the menu strip anatomy's `gutter`
+// part: the band from the panel's border to menu_gutter_width, behind the
+// rows' icons and check marks. It is a menu item part at rest (clear unless
+// a theme styles `menu-strip::part(gutter)`), so themes without a rule for
+// it are unchanged.
+inline constexpr std::string_view menu_gutter_part = "gutter";
+inline constexpr double menu_gutter_width = menu_label_left - 4.0;
 
 [[nodiscard]] inline std::string menu_display_text(std::string_view text) {
     return parse_mnemonic_text(text).display_text;

@@ -49,12 +49,6 @@ private:
             Control::Ptr moved = root.remove_child((*child).runtime_id());
             (*body).add_child(std::move(moved));
         }
-        const std::array<std::shared_ptr<ScaledGroupBox>, 4> groups{
-            document_.gallery_date_formats, document_.gallery_date_modes,
-            document_.gallery_date_lifecycle, document_.gallery_date_month};
-        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-            (*group).set_style(page_style());
-        }
         optional_ = document_.gallery_date_optional;
         primary_ = document_.gallery_date_primary;
         commands_ = document_.gallery_date_commands;
@@ -63,9 +57,8 @@ private:
         month_status_ = document_.gallery_date_month_status;
     }
 
-    // Every picker starts at the specimen value in the page style.
+    // Every picker starts at the specimen value.
     static void prepare_picker(DateTimePicker& picker) {
-        picker.style = page_style();
         picker.value = specimen;
     }
 

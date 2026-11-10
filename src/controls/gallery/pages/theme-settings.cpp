@@ -171,13 +171,6 @@ void ThemeSettingsPage::mount_document(const std::shared_ptr<Surface>& body) {
         Control::Ptr moved = root.remove_child((*child).runtime_id());
         (*body).add_child(std::move(moved));
     }
-    // The preview group keeps no page style: it shows the theme as it is.
-    const std::array<std::shared_ptr<ScaledGroupBox>, 4> groups{
-        document_.gallery_theme_settings_themes_group, document_.gallery_theme_settings_scheme_group,
-        document_.gallery_theme_settings_scope_group, document_.gallery_theme_settings_state_group};
-    for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-        (*group).set_style(page_style());
-    }
 }
 
 Window* ThemeSettingsPage::window() const noexcept {

@@ -41,12 +41,6 @@ private:
             Control::Ptr moved = root.remove_child((*child).runtime_id());
             (*body).add_child(std::move(moved));
         }
-        const std::array<std::shared_ptr<ScaledGroupBox>, 4> groups{
-            document_.gallery_controls_buttons, document_.gallery_controls_checks,
-            document_.gallery_controls_radios, document_.gallery_controls_typography};
-        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-            (*group).set_style(page_style());
-        }
     }
 
     void connect_buttons() {
@@ -54,7 +48,6 @@ private:
             document_.gallery_controls_button_0, document_.gallery_controls_button_1,
             document_.gallery_controls_button_2, document_.gallery_controls_button_3};
         for (std::size_t index = 0; index < buttons.size(); ++index) {
-            (*buttons[index]).set_style(page_style());
             on((*buttons[index]).clicked(), *this, &ControlSpectrumPage::on_style_button,
                static_cast<int>(index));
         }

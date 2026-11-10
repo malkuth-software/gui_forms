@@ -10,7 +10,7 @@ namespace {
 
 // The controls-inspection page (stage T4, visual inspection): every stock
 // control in each state that can be shown at rest, in a fixed labelled
-// grid, drawn by the window's theme alone (no page style), so that one
+// grid, drawn by the window's theme alone, so that one
 // capture per theme compares each control with its reference. Hot, pressed
 // and keyboard focus need pointer or keyboard input on one control at a
 // time; the specimen sheet (tests/specimen/specimen_sheet.cpp) renders

@@ -180982,7 +180982,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 99,
+          "line": 104,
           "page": "gui-forms-menustrip-parts-parts-const-c3264567c8.html"
         },
         {
@@ -180997,7 +180997,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 118,
+          "line": 123,
           "page": "gui-forms-menustrip-realized-items-std-vector-item-const-e06c9d234a.html"
         },
         {
@@ -181018,7 +181018,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 121,
+          "line": 126,
           "page": "gui-forms-menustrip-append-interactions-void-std-vector-interactiondeclaration-const-b1fcd934ea.html"
         },
         {
@@ -181033,7 +181033,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 122,
+          "line": 127,
           "page": "gui-forms-menustrip-on-dispose-void-noexcept-8998df5586.html"
         },
         {
@@ -181054,7 +181054,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 123,
+          "line": 128,
           "page": "gui-forms-menustrip-mnemonic-matches-bool-char32-t-const-noexcept-cb95e49cd0.html"
         },
         {
@@ -181075,7 +181075,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 125,
+          "line": 130,
           "page": "gui-forms-menustrip-process-mnemonic-self-bool-char32-t-f597a2fc6f.html"
         },
         {
@@ -181096,7 +181096,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 126,
+          "line": 131,
           "page": "gui-forms-menustrip-publish-part-geometry-void-std-span-partgeometry-const-3987ae6094.html"
         },
         {
@@ -181122,7 +181122,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 127,
+          "line": 132,
           "page": "gui-forms-menustrip-publish-realized-item-geometry-void-std-size-t-std-span-partgeometry-const-0c6a839a8e.html"
         },
         {
@@ -181143,7 +181143,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 130,
+          "line": 135,
           "page": "gui-forms-menustrip-realized-item-index-std-size-t-std-size-t-const-noexcept-91ef66ace9.html"
         }
       ],
@@ -181157,7 +181157,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
       "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-      "line": 111,
+      "line": 116,
       "declaration": "struct Item final",
       "comment": "",
       "access": "public",
@@ -181175,7 +181175,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 112,
+          "line": 117,
           "page": "gui-forms-menustrip-item-index-std-size-t-2a81ec8f42.html"
         },
         {
@@ -181190,7 +181190,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 113,
+          "line": 118,
           "page": "gui-forms-menustrip-item-stable-id-std-string-24c9705484.html"
         },
         {
@@ -181205,7 +181205,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 114,
+          "line": 119,
           "page": "gui-forms-menustrip-item-parts-itemparts-ba947e772c.html"
         },
         {
@@ -181220,7 +181220,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 115,
+          "line": 120,
           "page": "gui-forms-menustrip-item-states-itemstates-99ec915c4f.html"
         }
       ],
@@ -181234,7 +181234,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
       "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-      "line": 100,
+      "line": 105,
       "declaration": "struct ItemParts final",
       "comment": "",
       "access": "public",
@@ -181252,7 +181252,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 101,
+          "line": 106,
           "page": "gui-forms-menustrip-itemparts-menu-item-partgeometry-a1c6a0ba79.html"
         },
         {
@@ -181267,7 +181267,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 102,
+          "line": 107,
           "page": "gui-forms-menustrip-itemparts-menu-label-partgeometry-3a74adb8a1.html"
         },
         {
@@ -181282,7 +181282,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 103,
+          "line": 108,
           "page": "gui-forms-menustrip-itemparts-menu-focus-partgeometry-350fa1c145.html"
         }
       ],
@@ -181296,7 +181296,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
       "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-      "line": 105,
+      "line": 110,
       "declaration": "struct ItemStates final",
       "comment": "",
       "access": "public",
@@ -181314,7 +181314,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 106,
+          "line": 111,
           "page": "gui-forms-menustrip-itemstates-hot-bool-68434c45b8.html"
         },
         {
@@ -181329,7 +181329,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 107,
+          "line": 112,
           "page": "gui-forms-menustrip-itemstates-open-bool-4ad86bdc58.html"
         },
         {
@@ -181344,7 +181344,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 108,
+          "line": 113,
           "page": "gui-forms-menustrip-itemstates-selected-bool-e660db5632.html"
         },
         {
@@ -181359,7 +181359,7 @@
           "comment": "",
           "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
-          "line": 109,
+          "line": 114,
           "page": "gui-forms-menustrip-itemstates-disabled-bool-7ac4650d9f.html"
         }
       ],
@@ -181438,6 +181438,21 @@
           "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
           "line": 97,
           "page": "gui-forms-menustrip-parts-focus-partgeometry-4204f4bf28.html"
+        },
+        {
+          "id": "gui_forms::MenuStrip::Parts::gutter|PartGeometry",
+          "name": "gutter",
+          "type": "PartGeometry",
+          "namespace": "gui_forms::MenuStrip::Parts",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "PartGeometry gutter",
+          "comment": "",
+          "header": "gui_forms/controls/menu_strip/menu_strip.hpp",
+          "source": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
+          "line": 102,
+          "page": "gui-forms-menustrip-parts-gutter-partgeometry-0765905001.html"
         }
       ],
       "page": "gui-forms-menustrip-parts-adf6129267.html",

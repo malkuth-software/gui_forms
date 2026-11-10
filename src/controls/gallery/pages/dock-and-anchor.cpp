@@ -22,9 +22,6 @@ public:
         : context_(context) {
         document_.initialize_component(*this);
         mount_form_children(*document_.gallery_dock_document, *body);
-        (*document_.gallery_dock_group).set_style(page_style());
-        (*document_.gallery_anchor_group).set_style(page_style());
-        (*document_.gallery_splitter_group).set_style(page_style());
         static_cast<void>((*document_.gallery_dock_canvas).add_class("canvas-cool"));
         static_cast<void>((*document_.gallery_anchor_canvas).add_class("canvas-mist"));
         static_cast<void>((*document_.gallery_splitter_canvas).add_class("canvas-mist"));

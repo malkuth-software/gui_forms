@@ -20,7 +20,6 @@ public:
         static_cast<void>(context);
         document_.initialize_component(*this);
         mount_form_children(*document_.gallery_containers_document, *body);
-        (*document_.gallery_containers_docking_group).set_style(page_style());
         static_cast<void>((*document_.gallery_containers_base_face).add_class("container-face"));
         static_cast<void>((*document_.gallery_containers_user_face).add_class("lifecycle-face"));
         build_split();
@@ -46,7 +45,7 @@ private:
 
         std::shared_ptr<Label> first_title = label(
             "gallery.containers.first.title", "NAVIGATION PANE", 13.0, 700,
-            shell_blue_dark);
+            "heading");
         (*first_title).set_requested_bounds({20.0, 22.0, 240.0, 28.0});
         (*first).add_child(first_title);
         for (std::size_t index = 0; index < 6U; ++index) {
@@ -61,13 +60,13 @@ private:
 
         std::shared_ptr<Label> second_title = label(
             "gallery.containers.second.title", "CONTENT PANE", 13.0, 700,
-            shell_blue_dark);
+            "heading");
         (*second_title).set_requested_bounds({24.0, 22.0, 260.0, 28.0});
         (*second).add_child(second_title);
         std::shared_ptr<Label> explanation = label(
             "gallery.containers.second.copy",
             "Drag the seam continuously. Focus it and use arrow keys.\nCollapse and restore preserve allocation.",
-            12.0, 400, ink);
+            12.0, 400, "ink");
         (*explanation).text_wrapping = TextWrapping::word;
         (*explanation).vertical_alignment = VerticalAlignment::near;
         (*explanation).set_requested_bounds({24.0, 62.0, 520.0, 52.0});
@@ -156,7 +155,7 @@ private:
         std::shared_ptr<Panel> content =
             make_control<Panel>(StableId("gallery.containers.dock.content." + creation.panel.value));
         std::shared_ptr<Label> copy = label("gallery.containers.dock.copy." + creation.panel.value,
-                                            title + " · made when first shown", 11.0, 400, ink);
+                                            title + " · made when first shown", 11.0, 400, "ink");
         (*copy).set_requested_bounds({8.0, 8.0, 240.0, 22.0});
         (*content).add_child(copy);
         std::shared_ptr<TextBox> field =

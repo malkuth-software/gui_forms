@@ -691,6 +691,10 @@ Related types
 
    .. cpp:member:: PartGeometry focus
 
+   .. cpp:member:: PartGeometry gutter
+
+      The icon gutter down the left of each menu the strip opens (a drop-down's band behind the icons and check marks). The strip itself has none, so its geometry here is empty; the drop-down panels paint it as ``menu-strip::part(gutter)``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: template <typename Declaring> MenuStripAllowMergeCapability

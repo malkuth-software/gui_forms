@@ -9,8 +9,8 @@
    its bounds in design coordinates. The page keeps in code the record and
    every value drawn from it (the colour editor's value, the preview's
    colour, the list's groups and rows, the rack's module and its Reset
-   button), the flags list's width, the Commands, every event handler, the
-   status lines' reports and the page style; the flags editor's
+   button), the flags list's width, the Commands, every event handler and the
+   status lines' reports; the flags editor's
    enumeration and value are in the document. */
 scaled-panel gallery.value-editors.document {
   design-size: 1000 640;

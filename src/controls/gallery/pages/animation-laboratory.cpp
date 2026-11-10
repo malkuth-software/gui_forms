@@ -68,10 +68,6 @@ void AnimationPage::mount_document(const std::shared_ptr<Surface>& body) {
         Control::Ptr moved = root.remove_child((*child).runtime_id());
         (*body).add_child(std::move(moved));
     }
-    // The page style stays code; the group's paper face is the Gallery
-    // theme's `paper` class (demo/themes/gallery).
-    ScaledGroupBox& controls = *document_.gallery_animation_controls;
-    controls.set_style(page_style());
 }
 
 void AnimationPage::on_pause() {
