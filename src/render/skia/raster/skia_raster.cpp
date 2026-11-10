@@ -1665,8 +1665,17 @@ bool SkiaRaster::Impl::composite_part(SkCanvas& target, const PartRaster& raster
                                       const double opacity) {
     const SkMatrix matrix = target.getTotalMatrix();
     const SkScalar raster_scale = static_cast<SkScalar>(raster.scale().value);
-    if (!matrix.isScaleTranslate() || matrix.getScaleX() != raster_scale || matrix.getScaleY() != raster_scale) {
-        return false;
+    if (!matrix.isScaleTranslate() || raster_scale <= 0.0F) return false;
+    const DeviceExtent covered = raster.extent();
+    if (matrix.getScaleX() != raster_scale || matrix.getScaleY() != raster_scale) {
+        // Baked at another device scale than the target's (a window painted
+        // into a framebuffer of another scale, as an offscreen capture
+        // does): sampled over its own logical rectangle rather than lost.
+        const double logical_scale = static_cast<double>(raster_scale);
+        const Rect destination{origin.x, origin.y, static_cast<double>(covered.width) / logical_scale,
+                               static_cast<double>(covered.height) / logical_scale};
+        const bool resampled = composite_part_scaled(target, raster, destination, opacity);
+        return resampled;
     }
     // The raster's first pixel goes on the device pixel nearest its origin.
     const SkPoint device = matrix.mapPoint(SkPoint::Make(static_cast<SkScalar>(origin.x), static_cast<SkScalar>(origin.y)));
@@ -1680,14 +1689,12 @@ bool SkiaRaster::Impl::composite_part(SkCanvas& target, const PartRaster& raster
 }
 
 // As composite_part, stretched over `destination`: its corners go on the
-// device pixels nearest them, and the shared blend samples the raster.
+// device pixels nearest them, and the shared blend samples the raster, at
+// the target's scale whatever scale the raster was baked at.
 bool SkiaRaster::Impl::composite_part_scaled(SkCanvas& target, const PartRaster& raster, const Rect destination,
                                              const double opacity) {
     const SkMatrix matrix = target.getTotalMatrix();
-    const SkScalar raster_scale = static_cast<SkScalar>(raster.scale().value);
-    if (!matrix.isScaleTranslate() || matrix.getScaleX() != raster_scale || matrix.getScaleY() != raster_scale) {
-        return false;
-    }
+    if (!matrix.isScaleTranslate()) return false;
     const SkPoint first = matrix.mapPoint(SkPoint::Make(static_cast<SkScalar>(destination.x),
                                                         static_cast<SkScalar>(destination.y)));
     const SkPoint last = matrix.mapPoint(SkPoint::Make(static_cast<SkScalar>(destination.x + destination.width),

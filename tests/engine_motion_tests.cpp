@@ -174,8 +174,8 @@ PropertyTransition transition_on(std::string property, double target) {
 void machines_are_rule_data() {
     const CompiledThemeRules built_in =
         CompiledThemeRules::compile_with_built_in(ThemeRuleSheet{}, builtin_primitive_registry());
-    require(built_in.diagnostics().empty() && built_in.built_in_rule_count() == 9U && built_in.rule_count() == 9U,
-            "the engine's nine built-in rules compile cleanly");
+    require(built_in.diagnostics().empty() && built_in.built_in_rule_count() == 11U && built_in.rule_count() == 11U,
+            "the engine's eleven built-in rules compile cleanly");
     const CompiledThemeRules::Resolution face =
         built_in.resolve(facts_of("ribbon", "command_face", PartRole::face));
     require(face.outcome == CompiledThemeRules::Outcome::primitive &&
@@ -183,6 +183,15 @@ void machines_are_rule_data() {
                 (*face.transitions[0]).property == PresentationProperty::parameter && (*face.transitions[0]).parameter == 0U &&
                 face.level == CascadeLevel::built_in,
             "a ribbon command face takes the dithered bulge with its amplitude's rise, at the built-in level");
+    const CompiledThemeRules::Resolution item =
+        built_in.resolve(facts_of("ribbon_gallery", "item_face", PartRole::face));
+    const CompiledThemeRules::Resolution tab_hover = built_in.resolve(facts_of("ribbon", "tab_hover", PartRole::face));
+    require(item.outcome == CompiledThemeRules::Outcome::primitive &&
+                (*item.primitive).descriptor().name == "dithered_bulge" && item.transition_count == 1U,
+            "a gallery item's hover is the dithered rise");
+    require(tab_hover.outcome == CompiledThemeRules::Outcome::primitive &&
+                (*tab_hover.primitive).descriptor().name == "dithered_bulge" && tab_hover.transition_count == 1U,
+            "a ribbon tab's hover layer is the dithered rise");
     AnatomyStateSet checked{};
     checked.insert(AnatomyState::checked);
     const CompiledThemeRules::Resolution toggle =

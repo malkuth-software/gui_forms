@@ -42,7 +42,13 @@ class RibbonApplicationMenu;
 // - gallery holds the application's in-ribbon RibbonGallery, which gives up
 //   one column at a time as the ribbon narrows (decision 8);
 // - font_control and color_picker hold the application's RibbonFontControl
-//   or RibbonColorPicker, each bound to its value command (phase 6).
+//   or RibbonColorPicker, each bound to its value command (phase 6);
+// - label is plain text in a row, such as a hint beside the commands it
+//   explains (Plan Paint's placement and picker hints; the label item of
+//   ToolStrip and the study's command model): it takes no Command, image
+//   or menu, is never large, takes no pointer or keyboard focus and is
+//   published as static text. Its `text` is translatable like any
+//   command's.
 enum class RibbonCommandKind : std::uint8_t {
     button,
     toggle,
@@ -55,6 +61,7 @@ enum class RibbonCommandKind : std::uint8_t {
     gallery,
     font_control,
     color_picker,
+    label,
 };
 
 // A button-family command's image size: large (a 32-unit icon over its
@@ -85,6 +92,15 @@ enum class RibbonCommandSize : std::uint8_t { large, small };
 // font control's `font_control` and a colour picker's `color_picker` are,
 // likewise, the application's controls, which the ribbon adds and places on
 // one row.
+//
+// `beside_previous` places a small or hosted command in the previous
+// command's row, to its right, instead of in a row of its own (the Windows
+// Ribbon Framework's control groups, which stay together in a row): Save
+// over Undo and Redo is Save, then Undo, then Redo beside Undo. A row of
+// commands side by side counts as one of the layout's rows, and the column
+// is as wide as its widest row. It is ignored where the command, or the
+// one before it, is large or a gallery in the layout in force; the
+// group's first command may not set it.
 struct RibbonCommandSpec final {
     std::string stable_id{};
     RibbonCommandKind kind{RibbonCommandKind::button};
@@ -99,6 +115,7 @@ struct RibbonCommandSpec final {
     std::shared_ptr<RibbonGallery> gallery{};
     std::shared_ptr<RibbonFontControl> font_control{};
     std::shared_ptr<RibbonColorPicker> color_picker{};
+    bool beside_previous{};
 };
 
 // A group's size in one of its layouts, named after the Windows Ribbon
@@ -113,8 +130,10 @@ enum class RibbonGroupSize : std::uint8_t { large, medium, small, collapsed };
 // `command_sizes` holds one size per command of the group, in command order,
 // or is empty for the commands' own sizes (`RibbonCommandSpec::size`);
 // entries for hosted and gallery commands are ignored. A collapsed layout
-// has no sizes. `rows` (1 to 3) is the number of small and hosted commands
-// per column.
+// has no sizes. `rows` (1 to 3) is the number of small and hosted command
+// rows per column. The rows stand from the top of the plane at the
+// three-row pitch, so a column of one or two rows aligns with the tops of
+// the large commands beside it rather than centring in the plane.
 struct RibbonGroupLayout final {
     RibbonGroupSize size{RibbonGroupSize::large};
     std::vector<RibbonCommandSize> command_sizes{};
@@ -493,6 +512,9 @@ public:
     // The "tab" item system: one core tab on the tab row.
     struct TabParts final {
         PartGeometry tab;
+        // The hover layer over the tab's face: the engine's dithered rise
+        // (flat at rest), drawn within the tab's body.
+        PartGeometry tab_hover;
         PartGeometry tab_label;
         PartGeometry tab_focus;
     };
@@ -893,6 +915,8 @@ private:
     [[nodiscard]] Control::Ptr make_hosted(const RibbonCommandSpec& command) const;
     void configure_hosted(const RibbonCommandSpec& command, Control& control) const;
     void paint_groups(Painter& painter, const Layout& placed) const;
+    void paint_label_command(Painter& painter, PartPaint& part, const RibbonCommandSpec& spec,
+                             const CommandParts& command_part, AnatomyStateSet states) const;
     void paint_tab(Painter& painter, PartPaint& part, const Layout& placed, std::size_t tab) const;
     void append_group_node(SemanticNode& parent, const Layout& placed, std::size_t group, Rect absolute) const;
     [[nodiscard]] std::vector<Group> groups_of(const Layout& placed) const;

@@ -9378,6 +9378,7 @@
           "name": "tab",
           "parts": [
             {"name": "tab", "role": "face", "composed_from": null, "states": []},
+            {"name": "tab_hover", "role": "face", "composed_from": null, "states": []},
             {"name": "tab_label", "role": "label", "composed_from": null, "states": []},
             {"name": "tab_focus", "role": "focus", "composed_from": null, "states": []}
           ],

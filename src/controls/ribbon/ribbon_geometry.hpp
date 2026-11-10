@@ -46,6 +46,8 @@ inline constexpr double maximum_hosted_width = 1024.0;
 // The gap between a labelled field's label and its field, when the label
 // sits at the field's left.
 inline constexpr double field_label_gap = 4.0;
+// The gap between commands side by side in one row (beside_previous).
+inline constexpr double row_item_gap = 2.0;
 // The scroll buttons at the plane's ends while it scrolls (owner decision 35).
 inline constexpr double scroll_button_width = 13.0;
 // The group overlay's gap below the ribbon.
@@ -79,6 +81,12 @@ inline constexpr double overlay_gap = 1.0;
 // beside or above the field, as Office's ribbon fields do.
 [[nodiscard]] inline bool labelled_field_kind(RibbonCommandKind kind) noexcept {
     const bool result = kind == RibbonCommandKind::text_box || kind == RibbonCommandKind::numeric_up_down;
+    return result;
+}
+
+// Whether a kind is plain text (a label): drawn, never hit, focused or run.
+[[nodiscard]] inline bool text_only(RibbonCommandKind kind) noexcept {
+    const bool result = kind == RibbonCommandKind::label;
     return result;
 }
 

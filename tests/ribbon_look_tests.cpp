@@ -14,6 +14,7 @@
 #include "../src/core/theme_language/package/theme_manifest.hpp"
 #include "gui_forms/gui_forms.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -483,6 +484,55 @@ void test_default_theme_row() {
             "every tab's shadow falls off beyond its tapered edge");
 }
 
+// The folders stack (owner, 2026-11-09): in the default theme each tab
+// overlaps the next by its five-unit taper, never File; the selected tab
+// lies over both neighbours and takes the pointer there, and otherwise the
+// left tab, on top, does. A deep negative gap stops at half the narrower
+// tab, so every tab keeps a face to click.
+void test_overlapping_tabs() {
+    std::shared_ptr<Ribbon> ribbon = ribbon_with(two_tabs());
+    (*ribbon).set_theme_override(gui_forms_theme());
+    Window window(ribbon, {700.0, 200.0});
+    window.perform_layout();
+    const std::vector<Ribbon::Tab> realized = (*ribbon).realized_tabs();
+    require(realized.size() == 2U, "both tabs are realized");
+    if (realized.size() != 2U) return;
+    const Rect file = (*ribbon).parts().application_button.bounds;
+    const Rect home = realized[0].parts.tab.bounds;
+    const Rect view = realized[1].parts.tab.bounds;
+    require(home.x >= file.x + file.width, "File never overlaps the first tab");
+    require(near(view.x, home.x + home.width - 5.0), "each tab overlaps the next by the five-unit taper");
+    const Point shared{view.x + 2.0, view.y + view.height * 0.5};
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, centre(view)}));
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, centre(view)}));
+    require((*ribbon).selected_tab.read() == std::size_t{1U}, "the second tab is selected");
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, shared}));
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, shared}));
+    require((*ribbon).selected_tab.read() == std::size_t{1U}, "the selected tab lies over its left neighbour");
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, centre(home)}));
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, centre(home)}));
+    window.perform_layout();
+    const Rect raised = (*ribbon).realized_tabs()[1].parts.tab.bounds;
+    const Point overlap{raised.x + 2.0, raised.y + raised.height * 0.5};
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, overlap}));
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, overlap}));
+    require((*ribbon).selected_tab.read() == std::size_t{0U}, "otherwise the left tab is on top where they overlap");
+    LookPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 200.0}));
+    require(painter.filled_rgb(shadow_ink) && painter.gradients > 0U, "the upper tab casts its shadow onto the next");
+    const std::shared_ptr<const Theme> deep = theme_from_sheet("ribbon::part(tab) { gap: -64px; }",
+                                                               "a deep negative gap compiles cleanly");
+    (*ribbon).set_theme_override(deep);
+    window.perform_layout();
+    const std::vector<Ribbon::Tab> stacked = (*ribbon).realized_tabs();
+    require(stacked.size() == 2U, "both tabs are realized under the deep gap");
+    if (stacked.size() != 2U) return;
+    const Rect first = stacked[0].parts.tab.bounds;
+    const Rect second = stacked[1].parts.tab.bounds;
+    const double deepest = std::min(first.width, second.width) * 0.5;
+    require(near(second.x, first.x + first.width - deepest), "an overlap stops at half the narrower tab");
+}
+
 // RB decision 26: in the default theme Backstage's column takes the
 // command plane's blue against the white page.
 void test_backstage_column() {
@@ -574,6 +624,7 @@ int main() {
     test_contextual_tint();
     test_dark_tab_ink();
     test_default_theme_row();
+    test_overlapping_tabs();
     test_backstage_column();
     if (failures != 0) {
         std::cerr << failures << " ribbon look check(s) failed\n";
