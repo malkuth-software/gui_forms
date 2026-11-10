@@ -75,17 +75,13 @@ namespace {
 bool post_from_worker(const BackgroundWorkerRun& run, BackgroundWorkerDelivery delivery, bool wait_for_room) {
     for (;;) {
         if (run.stopping.load(std::memory_order_acquire)) return false;
-        try {
-            DispatchOperation operation = post_dispatch(run.dispatcher, {}, false,
-                                                        std::function<void()>(delivery));
-            static_cast<void>(operation);
-            return true;
-        } catch (const std::length_error&) {
-            if (!wait_for_room) return false;
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        } catch (const std::logic_error&) {
-            return false;
-        }
+        DispatchOperation operation;
+        const PostOutcome outcome = post_dispatch_outcome(run.dispatcher, {}, false,
+                                                          std::function<void()>(delivery), false, false,
+                                                          operation);
+        if (outcome == PostOutcome::posted) return true;
+        if (outcome != PostOutcome::queue_full || !wait_for_room) return false;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
 

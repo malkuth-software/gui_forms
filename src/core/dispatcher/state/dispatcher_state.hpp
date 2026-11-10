@@ -21,7 +21,10 @@ struct DispatchWork final {
     bool requires_owner{};
     bool synchronous{};
     std::weak_ptr<DispatcherState> dispatcher;
-    mutable std::mutex fault_mutex;
+    // Written once, by the thread that ran the callback, before it stores
+    // `state` faulted with release order; read only after a reader observes
+    // faulted with acquire order (DispatchOperation::exception). The state
+    // publishes it, so it needs no lock of its own.
     std::exception_ptr fault;
 };
 
@@ -92,6 +95,36 @@ void set_thread_revocable_invokes(std::shared_ptr<RevocableInvokes> invokes) noe
 // the next post wakes again, and the exception leaves to the caller.
 void wake_host_locked(DispatcherState& state);
 
+// What a post did (post_dispatch_outcome). Only `posted` and `refused`
+// fill the caller's operation.
+enum class PostOutcome : std::uint8_t {
+    posted,
+    // Refused by name: the window's teardown began, or the calling thread's
+    // blocking invokes were revoked. The operation is already cancelled.
+    refused,
+    // The dispatcher shut down; nothing was posted.
+    closed,
+    // The queue holds maximum_posted_callbacks; nothing was posted.
+    queue_full,
+};
+
+// Posts like post_dispatch, but returns the expected outcomes (a full queue,
+// a closed dispatcher, a refusal) instead of throwing them, for a caller that
+// must tell them apart (the background worker's thread). `operation`
+// receives the posted or refused work. A missing callback or dispatcher, a
+// synchronous post without a running host, and a failed host wake still
+// throw, as in post_dispatch, and leave nothing posted.
+[[nodiscard]] PostOutcome post_dispatch_outcome(
+    const std::shared_ptr<DispatcherState>& state,
+    Control::WeakPtr owner,
+    bool requires_owner,
+    std::function<void()> callback,
+    bool synchronous,
+    bool refuse_when_closed,
+    DispatchOperation& operation);
+
+// post_dispatch_outcome for callers that treat a closed dispatcher and a full
+// queue as errors: they throw std::logic_error and std::length_error.
 [[nodiscard]] DispatchOperation post_dispatch(
     const std::shared_ptr<DispatcherState>& state,
     Control::WeakPtr owner,
