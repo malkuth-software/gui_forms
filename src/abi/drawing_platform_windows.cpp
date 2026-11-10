@@ -248,7 +248,10 @@ gd_result capture_surface(std::uintptr_t source, std::uint32_t kind,
     HGDIOBJ previous = memory == nullptr ? nullptr : SelectObject(memory, dib);
     const bool ok = previous != nullptr && previous != HGDI_ERROR &&
         BitBlt(memory, 0, 0, static_cast<int>(width), static_cast<int>(height),
-               device, bounds.left, bounds.top, SRCCOPY | CAPTUREBLT) != 0;
+               device, bounds.left, bounds.top, SRCCOPY | CAPTUREBLT) != 0 &&
+        // The copy is read from the DIB's memory below; GDI may hold the
+        // BitBlt in this thread's batch until flushed.
+        GdiFlush() != FALSE;
     if (std::getenv("GUI_DRAWING_TRACE_NATIVE_SURFACES") != nullptr && !ok) {
         std::fprintf(stderr,
                      "gui-drawing-native-surface=capture-failed|kind:%u|size:%ux%u|dc:%p|dib:%p|memory:%p|previous:%p|error:%lu\n",
@@ -318,6 +321,12 @@ gd_result refresh_surface(std::uintptr_t source, std::uint32_t kind,
                    source_device, bounds.left, bounds.top,
                    SRCCOPY | CAPTUREBLT) == 0) {
             throw std::runtime_error("BitBlt failed");
+        }
+        // The staging DIB is read from memory next; a BitBlt still in this
+        // thread's GDI batch would leave the previous refresh there, and its
+        // stale pixels would be presented back over the newer surface.
+        if (GdiFlush() == FALSE) {
+            throw std::runtime_error("GdiFlush failed");
         }
         BitmapLockView lock = bitmap.lock(BitmapLockMode::write);
         try {
