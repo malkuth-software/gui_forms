@@ -2523,6 +2523,14 @@ void test_track_bar_properties() {
         expect(by_name && *by_name == PropertyValueTraits<TrackBarVisualStyle>::to_binding(sample),
                "TrackBar.visual_style: the table reads the cell");
     }
+    {
+        const double sample = 10.0;
+        (*control).thumb_extent = sample;
+        expect((*control).thumb_extent.read() == sample, "TrackBar.thumb_extent: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("thumb_extent");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "TrackBar.thumb_extent: the table reads the cell");
+    }
 }
 
 void test_tree_list_view_properties() {
