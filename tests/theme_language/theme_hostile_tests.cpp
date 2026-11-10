@@ -270,6 +270,26 @@ std::string combinations_of(std::size_t names) {
     return sheet + " " + reads + ") }";
 }
 
+// `roles` colour roles, each with a light and a dark palette variant, all
+// read by one rule through nested mixes: 2^roles palette combinations.
+std::string palette_roles_of(std::size_t roles) {
+    constexpr std::array<std::string_view, 14> names{
+        "ink-on-paper", "muted-ink-on-paper", "ink-on-soft-paper", "ink-on-chrome", "ink-on-chrome-low",
+        "ink-on-near-white-stock", "selection-ink-on-selection", "ink-on-gold", "on-accent-on-accent",
+        "signal-on-paper", "success-on-paper", "pending-ink-on-tint", "invalid-ink-on-tint",
+        "disabled-ink-on-chrome"};
+    std::string light = ":root {";
+    std::string dark = "@media (prefers-color-scheme: dark) { :root {";
+    std::string read = "role(" + std::string(names[0]) + ")";
+    for (std::size_t index = 0U; index < roles && index < names.size(); ++index) {
+        const std::string name(names[index]);
+        light += " " + name + ": #102030 on #f0f0e0;";
+        dark += " " + name + ": #f0f0e0 on #102030;";
+        if (index > 0U) read = "color-mix(in srgb, " + read + ", role(" + name + "))";
+    }
+    return light + " } " + dark + " } } #a { color: " + read + " }";
+}
+
 // `names` scoped names, each read by its own rule.
 std::string scoped_of(std::size_t names) {
     std::string sheet{};
@@ -311,6 +331,12 @@ void test_derived_limits() {
     // 2^7 = 128 copies of the reading rule; 2^8 is past the limit.
     require_limit(combinations_of(7U), combinations_of(8U), DiagnosticCode::too_many_variable_combinations,
                   "128 combinations per rule reading var()");
+    // N113: the palette's combinations are visited one by one, skipped or
+    // not. 2^12 - 1 visits after the base copy is within 4,096; 2^13 - 1 is
+    // past it. Before the bound a rule reading many varying roles hung the
+    // load (2^30 visits for 30 roles).
+    require_limit(palette_roles_of(12U), palette_roles_of(13U), DiagnosticCode::too_many_variable_combinations,
+                  "4,096 palette combinations per rule reading role()");
     require_limit(scoped_of(maximum_scoped_custom_properties), scoped_of(maximum_scoped_custom_properties + 1U),
                   DiagnosticCode::too_many_scoped_variables, "64 scoped custom properties");
     require_limit(keyframes_of(theme_language::maximum_keyframes_rules),

@@ -24,15 +24,16 @@ void TextEditingEngine::set_text(std::string_view text) {
     composing_ = false;
     replace_whole_text(text);
     selection_ = {store_.utf8_size(), store_.utf8_size()};
-    undo_.clear();
-    redo_.clear();
-    history_bytes_ = 0U;
+    clear_history();
 }
 
 bool TextEditingEngine::show_text(std::string_view text, TextSelection selection) {
     if (text == store_.utf8()) return false;
+    if (!shown_base_) shown_base_.emplace(store_.utf8());
     replace_whole_text(text);
     selection_ = selection;
+    // Shown back to the history's own text: nothing is outside it any more.
+    if (*shown_base_ == store_.utf8()) shown_base_.reset();
     return true;
 }
 
@@ -45,33 +46,25 @@ std::string TextEditingEngine::selected_text() const {
     return result;
 }
 
-TextEditingEngine::Snapshot TextEditingEngine::snapshot() const {
-    const std::string value(store_.utf8());
-    const Snapshot result{.text = value, .selection = selection_};
+std::size_t TextEditingEngine::history_size(const HistoryEdit& entry) noexcept {
+    const std::size_t result = entry.removed.size() + entry.inserted.size();
     return result;
 }
 
-void TextEditingEngine::apply_snapshot(Snapshot snapshot) {
-    host_.editing_restoring();
-    replace_whole_text(snapshot.text);
-    selection_ = snapshot.selection;
-    host_.editing_text_changed();
-}
-
-void TextEditingEngine::push_history(std::deque<Snapshot>& history, Snapshot snapshot) {
-    history_bytes_ += snapshot.text.size();
-    history.push_back(std::move(snapshot));
+void TextEditingEngine::push_history(std::deque<HistoryEdit>& history, HistoryEdit entry) {
+    history_bytes_ += history_size(entry);
+    history.push_back(std::move(entry));
     while (undo_.size() + redo_.size() > maximum_history_entries_ ||
            history_bytes_ > maximum_history_bytes_) {
-        std::deque<Snapshot>* source = !undo_.empty() ? &undo_ : &redo_;
-        history_bytes_ -= (*source).front().text.size();
+        std::deque<HistoryEdit>* source = !undo_.empty() ? &undo_ : &redo_;
+        history_bytes_ -= history_size((*source).front());
         (*source).pop_front();
     }
 }
 
 void TextEditingEngine::clear_redo() noexcept {
-    for (const Snapshot& entry : redo_) {
-        history_bytes_ -= entry.text.size();
+    for (const HistoryEdit& entry : redo_) {
+        history_bytes_ -= history_size(entry);
     }
     redo_.clear();
 }
@@ -80,6 +73,107 @@ void TextEditingEngine::clear_history() noexcept {
     undo_.clear();
     redo_.clear();
     history_bytes_ = 0U;
+    shown_base_.reset();
+    typing_open_ = false;
+}
+
+void TextEditingEngine::record_edit(HistoryEdit entry) {
+    clear_redo();
+    // The shown text the edit was made over becomes a step of its own, so
+    // the history's offsets stay its text's. Its selections are the edit's
+    // starting selection: the shown text is never selected by undo alone.
+    if (shown_base_) {
+        // The text before this edit is no longer at hand, but `entry`
+        // describes the edit exactly: rebuild it from the current text.
+        std::string before(store_.utf8());
+        before.replace(entry.start.value(), entry.inserted.size(), entry.removed);
+        const TextChange shown = text_change_between(*shown_base_, before);
+        HistoryEdit shown_entry{};
+        shown_entry.start = shown.start;
+        shown_entry.removed = (*shown_base_).substr(shown.start.value(), shown.removed_bytes);
+        shown_entry.inserted = before.substr(shown.start.value(), shown.inserted_bytes);
+        shown_entry.before = entry.before;
+        shown_entry.after = entry.before;
+        shown_base_.reset();
+        typing_open_ = false;
+        push_history(undo_, std::move(shown_entry));
+    }
+    if (entry.typing && typing_open_ && !undo_.empty()) {
+        HistoryEdit& previous = undo_.back();
+        const std::size_t previous_end = previous.start.value() + previous.inserted.size();
+        const bool continues = previous.after == entry.before;
+        // Appending at the end of the previous typing, unless that typing
+        // ended a word.
+        const bool word_ended = !previous.inserted.empty() &&
+            (previous.inserted.back() == ' ' || previous.inserted.back() == '\t' ||
+             previous.inserted.back() == '\n' || previous.inserted.back() == '\r');
+        // A line break is a step of its own: typing does not join it, nor it
+        // the typing before.
+        const bool line_break = !entry.inserted.empty() &&
+            (entry.inserted.front() == '
+' || entry.inserted.front() == '');
+        const bool appends = entry.removed.empty() && entry.start.value() == previous_end && !word_ended &&
+            !line_break;
+        // Replacing part of the previous step's unfinished composition.
+        const bool composes = previous.composition && entry.start.value() >= previous.start.value() &&
+            entry.start.value() + entry.removed.size() <= previous_end;
+        if (previous.typing && continues && (appends || composes)) {
+            history_bytes_ -= history_size(previous);
+            const std::size_t offset = entry.start.value() - previous.start.value();
+            previous.inserted.replace(offset, entry.removed.size(), entry.inserted);
+            previous.after = entry.after;
+            previous.composition = entry.composition;
+            history_bytes_ += history_size(previous);
+            // A merged step can still pass the byte bound: drop the oldest.
+            while (history_bytes_ > maximum_history_bytes_ && undo_.size() > 1U) {
+                history_bytes_ -= history_size(undo_.front());
+                undo_.pop_front();
+            }
+            return;
+        }
+    }
+    typing_open_ = entry.typing;
+    push_history(undo_, std::move(entry));
+}
+
+bool TextEditingEngine::step_history(std::deque<HistoryEdit>& from, std::deque<HistoryEdit>& to, bool forward) {
+    const HistoryEdit& entry = from.back();
+    const std::string_view expected = forward ? std::string_view(entry.removed) : std::string_view(entry.inserted);
+    const std::string_view replacement = forward ? std::string_view(entry.inserted) : std::string_view(entry.removed);
+    // Undo first takes back text shown outside the history; the entry's
+    // offsets are the text's before it was shown.
+    const std::string_view base = shown_base_ ? std::string_view(*shown_base_) : store_.utf8();
+    const std::size_t start = entry.start.value();
+    if (start > base.size() || expected.size() > base.size() - start ||
+        base.substr(start, expected.size()) != expected) {
+        return false;
+    }
+    std::string candidate{};
+    if (multiline_ || shown_base_) {
+        candidate.assign(base);
+        candidate.replace(start, expected.size(), replacement);
+        if (multiline_ && TextBox::validate_multiline_text(candidate) != TextBox::MultilineValidation::valid) {
+            return false;
+        }
+    }
+    host_.editing_restoring();
+    if (shown_base_) {
+        replace_whole_text(candidate);
+        shown_base_.reset();
+    } else {
+        const Utf8Offset end(start + expected.size());
+        static_cast<void>(store_.replace({entry.start, end}, replacement));
+        last_change_ = TextChange{.start = entry.start, .removed_bytes = expected.size(),
+                                  .inserted_bytes = replacement.size()};
+    }
+    selection_ = forward ? entry.after : entry.before;
+    typing_open_ = false;
+    HistoryEdit moved = std::move(from.back());
+    history_bytes_ -= history_size(moved);
+    from.pop_back();
+    push_history(to, std::move(moved));
+    host_.editing_text_changed();
+    return true;
 }
 
 bool TextEditingEngine::undo() {
@@ -87,15 +181,8 @@ bool TextEditingEngine::undo() {
     if (read_only_ || undo_.empty()) {
         return false;
     }
-    if (multiline_ && TextBox::validate_multiline_text(undo_.back().text) != TextBox::MultilineValidation::valid) {
-        return false;
-    }
-    Snapshot target = std::move(undo_.back());
-    history_bytes_ -= target.text.size();
-    undo_.pop_back();
-    push_history(redo_, snapshot());
-    apply_snapshot(std::move(target));
-    return true;
+    const bool result = step_history(undo_, redo_, false);
+    return result;
 }
 
 bool TextEditingEngine::redo() {
@@ -103,15 +190,8 @@ bool TextEditingEngine::redo() {
     if (read_only_ || redo_.empty()) {
         return false;
     }
-    if (multiline_ && TextBox::validate_multiline_text(redo_.back().text) != TextBox::MultilineValidation::valid) {
-        return false;
-    }
-    Snapshot target = std::move(redo_.back());
-    history_bytes_ -= target.text.size();
-    redo_.pop_back();
-    push_history(undo_, snapshot());
-    apply_snapshot(std::move(target));
-    return true;
+    const bool result = step_history(redo_, undo_, true);
+    return result;
 }
 
 bool TextEditingEngine::replace(Utf8Offset start, Utf8Offset end, std::string_view replacement, TextEditKind kind) {
@@ -157,17 +237,25 @@ bool TextEditingEngine::replace(Utf8Offset start, Utf8Offset end, std::string_vi
                               Utf8Offset(start.value() + replacement.size())});
         return true;
     }
-    Snapshot previous = snapshot();
+    HistoryEdit entry{};
+    entry.start = start;
+    entry.removed = std::string(existing);
+    entry.inserted = std::string(replacement);
+    entry.before = selection_;
+    // Only text input may join a typing step, never a program's
+    // replace_selection or a key's inserted Tab or line break.
+    entry.typing = kind == TextEditKind::typing && text_input_active_;
+    entry.composition = composing_;
     static_cast<void>(store_.replace({start, end}, replacement));
     last_change_ = TextChange{.start = start, .removed_bytes = end.value() - start.value(),
                               .inserted_bytes = replacement.size()};
-    clear_redo();
-    push_history(undo_, std::move(previous));
     Utf8Offset next(start.value() + replacement.size());
     // An insertion may join a following combining sequence or CRLF. Keep the
     // resulting caret on a boundary of the new text, not merely the old text.
     while (!store_.is_grapheme_boundary(next)) next = store_.next_scalar_boundary(next);
     selection_ = {next, next};
+    entry.after = selection_;
+    record_edit(std::move(entry));
     host_.editing_text_changed();
     return true;
 }
@@ -181,11 +269,16 @@ bool TextEditingEngine::apply_rewrite(std::string_view rewritten, Utf8Offset car
     if (maximum_length_ != 0U && validation.scalar_count > maximum_length_) return false;
     if (maximum_bytes_ != 0U && rewritten.size() > maximum_bytes_) return false;
     const bool changes = rewritten != store_.utf8();
+    HistoryEdit entry{};
     if (changes) {
-        Snapshot previous = snapshot();
+        // The rewrite as the one span that differs: a step of its own, never
+        // joined by typing.
+        const TextChange change = text_change_between(store_.utf8(), rewritten);
+        entry.start = change.start;
+        entry.removed = std::string(store_.utf8().substr(change.start.value(), change.removed_bytes));
+        entry.inserted = std::string(rewritten.substr(change.start.value(), change.inserted_bytes));
+        entry.before = selection_;
         replace_whole_text(rewritten);
-        clear_redo();
-        push_history(undo_, std::move(previous));
     }
     // The caret lands on a grapheme boundary at or after the requested one.
     Utf8Offset next = store_.utf8_size();
@@ -197,6 +290,8 @@ bool TextEditingEngine::apply_rewrite(std::string_view rewritten, Utf8Offset car
         return true;
     }
     selection_ = {next, next};
+    entry.after = selection_;
+    record_edit(std::move(entry));
     host_.editing_text_changed();
     return true;
 }
@@ -306,6 +401,7 @@ void TextEditingEngine::handle_key(KeyEvent& event) {
     const bool extend = includes(event.modifiers, Modifier::shift);
     const bool command = command_modifier(event.modifiers);
     if (command && event.physical_key == PhysicalKey::a) {
+        typing_open_ = false;
         host_.editing_navigating();
         host_.editing_select({Utf8Offset(0U), store_.utf8_size()});
         event.handled = true;
@@ -343,6 +439,7 @@ void TextEditingEngine::handle_key(KeyEvent& event) {
     }
     if (event.physical_key == PhysicalKey::left || event.physical_key == PhysicalKey::right) {
         // Moving the caret ends a completion and keeps the text.
+        typing_open_ = false;
         host_.editing_navigating();
         const bool line_navigation = includes(event.modifiers, Modifier::meta);
         const bool word_navigation = !line_navigation &&
@@ -366,6 +463,7 @@ void TextEditingEngine::handle_key(KeyEvent& event) {
         return;
     }
     if (event.physical_key == PhysicalKey::home || event.physical_key == PhysicalKey::end) {
+        typing_open_ = false;
         host_.editing_navigating();
         const Utf8Offset next = event.physical_key == PhysicalKey::home ? Utf8Offset(0U) : store_.utf8_size();
         host_.editing_select(extend ? TextSelection{selection_.anchor, next} : TextSelection{next, next});
@@ -422,6 +520,7 @@ void TextEditingEngine::handle_text_input(TextInputEvent& event) {
     }
     // An empty composition is the input method cancelling one.
     composing_ = event.composing && !event.text_utf8.empty();
+    const TextInputScope input_scope(text_input_active_);
     event.handled = replace(start, end, event.text_utf8, TextEditKind::typing);
     if (event.handled) host_.editing_user_edit(TextEditKind::typing, event.composing);
 }

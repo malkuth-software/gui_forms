@@ -194,6 +194,9 @@ internal static unsafe class Program
         gf_status ran = Abi.dispatch.run_pending(&invoked);
         expect(ran == Constants.GF_STATUS_OK && invoked == 1u, "the posted callback ran");
         expect(ShadowStack.depth() == 0u, "no frame is left after a posted callback threw");
+        // dispatch.run_pending returns to this method, so the failure is kept
+        // for it, never raised through unhandled (N70).
+        expect(unhandled_raised == 0, "a failure under run_pending is not raised as unhandled");
         CallbackFailure[] kept = CallbackFailure.take_pending();
         expect(kept.Length == 1, "the posted callback's exception is kept");
         if (kept.Length == 1)
@@ -254,9 +257,59 @@ internal static unsafe class Program
         expect(alive == 0u, "closing with no application counts no window");
     }
 
+    private static int unhandled_raised;
+
+    private static void count_unhandled(object? sender, CallbackFailureEventArgs arguments)
+    {
+        ++unhandled_raised;
+        arguments.handled = true;
+    }
+
+    // N70: a refused call carries the callback failures kept on its thread
+    // in its exception, instead of leaving them for a later call.
+    private static void refused_call_carries_failures()
+    {
+        using ObjectHandle check = ObjectHandle.create("check_box"u8, "csharp.carried"u8);
+        gf_callback callback = Callbacks.to_native(throwing_handler);
+        gf_subscription subscription = 0;
+        gf_status subscribed;
+        fixed (byte* name = "check_state_changed"u8)
+        {
+            subscribed = Abi.events.subscribe(check.value, Utf8.view(name, 19), &callback, &subscription);
+        }
+        if (subscribed != Constants.GF_STATUS_OK)
+        {
+            Callbacks.free_unregistered(callback);
+        }
+        Abi.check(subscribed);
+        gf_value value = default;
+        value.struct_size = (uint)sizeof(gf_value);
+        value.kind = Constants.GF_VALUE_KIND_BOOLEAN;
+        value.boolean = 1u;
+        fixed (byte* property = "checked"u8)
+        {
+            // The handler throws; its failure is kept for this thread.
+            expect(Abi.properties.set(check.value, Utf8.view(property, 7), &value) == Constants.GF_STATUS_OK,
+                   "the handler ran");
+        }
+        try
+        {
+            Abi.check(Constants.GF_STATUS_INVALID_ARGUMENT);
+            expect(false, "a refused status throws");
+        }
+        catch (GuiFormsException refused)
+        {
+            CallbackFailure[]? carried = refused.Data["callback_failures"] as CallbackFailure[];
+            expect(carried != null && carried.Length == 1, "the refusal carries the kept failure");
+        }
+        expect(CallbackFailure.take_pending().Length == 0, "nothing is left for a later call");
+        Abi.check(Abi.events.disconnect(subscription));
+    }
+
     private static int Main()
     {
         Console.OutputEncoding = Encoding.UTF8;
+        CallbackFailure.unhandled += count_unhandled;
         layout();
         negotiation();
         application();
@@ -265,7 +318,9 @@ internal static unsafe class Program
         event_thunk();
         window_help();
         posted_thunk();
+        refused_call_carries_failures();
         subsurfaces();
+        expect(unhandled_raised == 0, "no failure in these checks ran under an event loop");
         Console.WriteLine(failures == 0 ? "gui_forms_abi_csharp: all checks passed" :
                                           $"gui_forms_abi_csharp: {failures} checks failed");
         return failures == 0 ? 0 : 1;

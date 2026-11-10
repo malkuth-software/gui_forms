@@ -90,16 +90,24 @@ public static unsafe class Abi
     }
 
     /// <summary>
-    /// Throws when status is not OK, with the failing thread's error detail;
-    /// otherwise rethrows a managed callback's exception that the library's
-    /// call carried through (CallbackFailure), so it surfaces at the call
-    /// that ran the callback.
+    /// Throws when status is not OK, with the failing thread's error detail
+    /// and, in its Data["callback_failures"], any managed callback failures
+    /// the call carried through, so they do not attach to a later, unrelated
+    /// call; otherwise rethrows a managed callback's exception that the
+    /// library's call carried through (CallbackFailure), so it surfaces at
+    /// the call that ran the callback.
     /// </summary>
     public static void check(gf_status status)
     {
         if (status != Constants.GF_STATUS_OK)
         {
-            throw new GuiFormsException(status, error_message());
+            GuiFormsException refused = new GuiFormsException(status, error_message());
+            CallbackFailure[] carried = CallbackFailure.take_pending();
+            if (carried.Length != 0)
+            {
+                refused.Data["callback_failures"] = carried;
+            }
+            throw refused;
         }
         CallbackFailure.rethrow_pending();
     }

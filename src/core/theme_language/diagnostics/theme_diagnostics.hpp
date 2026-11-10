@@ -119,7 +119,8 @@ enum class DiagnosticCode : std::uint16_t {
     expression_over_budget = 507,
     // A rule reading custom properties defined in more than one place whose
     // definitions combine more than maximum_variable_combinations ways
-    // (P12, PLAN.md section 1.11).
+    // (P12, PLAN.md section 1.11), or colour roles whose palette variants
+    // combine more than maximum_variable_steps ways (P8b).
     too_many_variable_combinations = 508,
     // The derived limits of PLAN.md section 6:
     // more than maximum_is_arguments arguments in one `:is()`.

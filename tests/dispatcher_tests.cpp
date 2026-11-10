@@ -871,6 +871,49 @@ void test_wake_removal_waits_for_a_wake_under_way() {
     window.shutdown_dispatcher();
 }
 
+// A host wake that throws on its first call, then counts.
+struct FailingOnceWake final {
+    std::shared_ptr<int> calls;
+    std::shared_ptr<int> wakes;
+    void operator()() const {
+        ++(*calls);
+        if ((*calls) == 1) throw std::runtime_error("the wake could not allocate");
+        ++(*wakes);
+    }
+};
+
+// N45: a wake that throws must not leave wake_pending set. Before the fix the
+// flag stayed true, every later post counted as coalesced, and the host was
+// never woken again.
+void test_throwing_wake_leaves_the_dispatcher_awake() {
+    std::shared_ptr<gui_forms::Control> root = make_control<Control>(StableId("dispatcher.throwing.root"));
+    Window window(root, {320.0, 180.0});
+    std::shared_ptr<int> calls = std::make_shared<int>(0);
+    std::shared_ptr<int> wakes = std::make_shared<int>(0);
+    window.set_dispatch_wake_handler(FailingOnceWake{calls, wakes});
+    std::string trace;
+    bool thrown = false;
+    try {
+        static_cast<void>(window.begin_invoke(callbacks::AppendLiteral<>(trace, "lost")));
+    } catch (const std::runtime_error&) {
+        thrown = true;
+    }
+    require(thrown, "a throwing wake fails the post");
+    const DispatcherSnapshot failed = window.dispatcher_snapshot();
+    require(failed.pending == 0U && failed.posted == 0U && failed.wake_requests == 0U,
+            "a failed post leaves nothing queued and no counts behind");
+    DispatchOperation posted = window.begin_invoke(callbacks::AppendLiteral<>(trace, "A"));
+    require((*calls) == 2 && (*wakes) == 1, "the next post wakes the host again");
+    const DispatcherSnapshot queued = window.dispatcher_snapshot();
+    require(queued.pending == 1U && queued.wake_requests == 1U && queued.coalesced_wakes == 0U,
+            "the next post is not counted as coalesced");
+    static_cast<void>(window.drain_posted_work());
+    require(trace == "A" && posted.state() == DispatchOperationState::completed,
+            "only the successful post runs");
+    window.set_dispatch_wake_handler({});
+    window.shutdown_dispatcher();
+}
+
 // -- WindowDispatcher: a handle that outlives its window -------------------------
 //
 // The UI Automation Gallery client (windows_accessibility_uia_gallery_tests)
@@ -1030,6 +1073,7 @@ int main() {
         test_dispatch_order_against_input_timer_layout_and_paint();
         test_bounds_and_shutdown_revocation();
         test_wake_removal_waits_for_a_wake_under_way();
+        test_throwing_wake_leaves_the_dispatcher_awake();
         test_window_dispatcher_outlives_its_window();
         std::cout << "dispatcher-tests=pass\n";
         return EXIT_SUCCESS;

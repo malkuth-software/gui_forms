@@ -39,6 +39,7 @@
 #include <shellapi.h>
 #include <shellscalingapi.h>
 #include <dwmapi.h>
+#include <imm.h>
 
 #include <algorithm>
 #include <array>
@@ -1843,6 +1844,15 @@ public:
             if (!key(KeyAction::up, wparam, lparam) && context_key(message, wparam)) break;
             return 0;
         case WM_CHAR: character(static_cast<wchar_t>(wparam)); return 0;
+        case WM_IME_STARTCOMPOSITION:
+        case WM_IME_COMPOSITION:
+            // The system input method still draws its own composition and
+            // candidate windows, and its committed text still arrives as
+            // WM_CHAR (DefWindowProc turns WM_IME_CHAR into it); the host
+            // only places them at the focused control's caret. No preedit
+            // reaches the model, so text_composition is not advertised.
+            place_input_method_windows();
+            break;
         case WM_GETOBJECT:
             if (static_cast<LONG>(lparam) == OBJID_CLIENT) { return accessibility_.object(wparam); }
             if (WindowsAccessibility::automation_request(lparam)) {
@@ -3028,6 +3038,31 @@ private:
         return result.handled;
     }
 
+    // Places the input method's composition window at the caret and keeps
+    // its candidate window off the caret line, in device pixels of the
+    // client area: SurfaceRoot::text_input_caret, the box a host gives its
+    // input method. Nothing happens without an eligible focused control or
+    // without an input context on this window; a refused placement leaves
+    // the input method's own default.
+    void place_input_method_windows() {
+        const std::optional<Rect> caret = (*model_).text_input_caret();
+        if (!caret) return;
+        const HIMC context = ImmGetContext(hwnd_);
+        if (context == nullptr) return;
+        const RECT device = device_rect(*caret);
+        COMPOSITIONFORM composition{};
+        composition.dwStyle = CFS_POINT;
+        composition.ptCurrentPos = POINT{device.left, device.top};
+        static_cast<void>(ImmSetCompositionWindow(context, &composition));
+        CANDIDATEFORM candidate{};
+        candidate.dwIndex = 0;
+        candidate.dwStyle = CFS_EXCLUDE;
+        candidate.ptCurrentPos = POINT{device.left, device.bottom};
+        candidate.rcArea = device;
+        static_cast<void>(ImmSetCandidateWindow(context, &candidate));
+        static_cast<void>(ImmReleaseContext(hwnd_, context));
+    }
+
     void character(wchar_t character) {
         // Key events own editing commands. TranslateMessage also emits these
         // WM_CHAR values; forwarding them would insert a second newline/tab or
@@ -3640,7 +3675,6 @@ HostCapabilities windows_capabilities() {
                 HostCapability::scheduled_wake |
                 HostCapability::pointer_input |
                 HostCapability::keyboard_input |
-                HostCapability::text_composition |
                 HostCapability::monitor_geometry |
                 HostCapability::pointer_capture |
                 HostCapability::cursor |

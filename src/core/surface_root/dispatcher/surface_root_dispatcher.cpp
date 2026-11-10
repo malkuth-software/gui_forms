@@ -172,10 +172,7 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
         result.remaining = (*dispatcher_state_).queue.size();
         if ((*dispatcher_state_).accepting && result.remaining != 0U &&
             (*dispatcher_state_).wake && !(*dispatcher_state_).wake_pending) {
-            (*dispatcher_state_).wake_pending = true;
-            ++(*dispatcher_state_).wake_requests;
-            // Under the lock, as in post_dispatch.
-            (*dispatcher_state_).wake();
+            detail::wake_host_locked(*dispatcher_state_);
         }
         result.wake_requested = (*dispatcher_state_).wake_pending;
     }
@@ -228,10 +225,7 @@ void SurfaceRoot::set_dispatch_wake_handler(std::function<void()> wake_handler) 
         (*dispatcher_state_).wake_pending = false;
         if ((*dispatcher_state_).accepting && !(*dispatcher_state_).queue.empty() &&
             (*dispatcher_state_).wake) {
-            (*dispatcher_state_).wake_pending = true;
-            ++(*dispatcher_state_).wake_requests;
-            // Under the lock, as in post_dispatch.
-            (*dispatcher_state_).wake();
+            detail::wake_host_locked(*dispatcher_state_);
         }
     }
 }

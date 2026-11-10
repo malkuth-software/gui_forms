@@ -306,6 +306,9 @@ private:
 void SubSurfaceLoop::run(std::unique_ptr<SubSurfaceLoop> loop) noexcept {
     SubSurfaceState end = SubSurfaceState::stopped;
     std::string failure;
+    // This thread's synchronous invokes can be revoked by the parent's stop
+    // (SubSurfaceThread::stop), so they never hold its join.
+    detail::set_thread_revocable_invokes((*(*loop).channel_).revocable_invokes);
     try {
         (*loop).run_tree();
     } catch (const std::exception& error) {
@@ -319,6 +322,7 @@ void SubSurfaceLoop::run(std::unique_ptr<SubSurfaceLoop> loop) noexcept {
     // stays alive through the copy below.
     const std::shared_ptr<detail::SubSurfaceChannel> channel = (*loop).channel_;
     loop.reset();
+    detail::set_thread_revocable_invokes(nullptr);
     WindowDispatcher parent;
     std::weak_ptr<SubSurfaceEndListener> target;
     {
@@ -753,6 +757,29 @@ std::uint64_t SubSurfaceThread::post_input(const SubSurfaceInput& input) {
     const std::lock_guard<std::mutex> lock((*channel_).mutex);
     detail::SubSurfaceChannel& channel = *channel_;
     if (channel.stop_requested || channel.state == SubSurfaceState::failed) return 0U;
+    // As the window's deferred input (SurfaceRoot): a pointer move replaces
+    // a queued move of the same pointer at the back, taking a new sequence,
+    // so a sub-surface stuck in a slow handler replays one move, not every
+    // one; and the queue holds at most maximum_deferred_inputs events.
+    if (input.kind == SubSurfaceInputKind::pointer && input.pointer.action == PointerAction::move &&
+        !channel.inputs.empty()) {
+        detail::SubSurfaceInputRecord& previous = channel.inputs.back();
+        if (previous.input.kind == SubSurfaceInputKind::pointer &&
+            previous.input.pointer.action == PointerAction::move &&
+            previous.input.pointer.pointer_id == input.pointer.pointer_id) {
+            previous.sequence = channel.next_input_sequence;
+            previous.input = input;
+            ++channel.next_input_sequence;
+            ++channel.statistics.inputs_received;
+            ++channel.statistics.inputs_coalesced;
+            channel.wake.notify_one();
+            return previous.sequence;
+        }
+    }
+    if (channel.inputs.size() >= maximum_deferred_inputs) {
+        ++channel.statistics.inputs_rejected;
+        return 0U;
+    }
     detail::SubSurfaceInputRecord record;
     record.sequence = channel.next_input_sequence;
     record.input = input;
@@ -842,6 +869,11 @@ void SubSurfaceThread::stop() noexcept {
         unanswered.swap((*channel_).outcomes);
         (*channel_).wake.notify_one();
     }
+    // The loop sees the stop only between turns, so the join lasts as long
+    // as the user code the thread is running. Code waiting on this thread (a
+    // synchronous invoke onto the parent) would wait for ever: revoke it, and
+    // any it makes before it returns, so the join ends.
+    detail::revoke_invokes(*(*channel_).revocable_invokes);
     if (!thread_.joinable()) return;
     try {
         thread_.join();

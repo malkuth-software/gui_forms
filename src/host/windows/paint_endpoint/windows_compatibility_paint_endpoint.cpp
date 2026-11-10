@@ -307,30 +307,47 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         return result;
     }
 
+    // begin_write and end_write bracket one synchronous foreign GDI operation
+    // on one thread, and state_mutex is held from the first to the second.
+    // write_thread names the thread holding it for a write (0: none). Only
+    // that thread stores its own identity there, so a thread that reads its
+    // own identity back knows it already holds the mutex.
     bool begin_write(std::uintptr_t requested_dc) noexcept {
         if (requested_dc == 0U) return false;
-        state_mutex.lock();
+        const DWORD current = GetCurrentThreadId();
+        if (write_thread.load(std::memory_order_acquire) == current) {
+            // The previous write on this thread never reached end_write (a
+            // structured exception in the GDI call between the two). This
+            // thread still holds state_mutex; locking it again would hang.
+            // The abandoned write is closed here and this one takes it over.
+            ++abandoned_writes;
+        } else {
+            state_mutex.lock();
+        }
         if (released || memory_dc == nullptr ||
             requested_dc != reinterpret_cast<std::uintptr_t>(memory_dc)) {
+            write_thread.store(0U, std::memory_order_release);
             state_mutex.unlock();
             return false;
         }
-        write_thread = GetCurrentThreadId();
-        write_active = true;
+        write_thread.store(current, std::memory_order_release);
         return true;
     }
 
     bool end_write(std::uintptr_t requested_dc, bool should_publish) noexcept {
-        // begin_write and end_write are one synchronous shim call on the same
-        // thread. Do not attempt to acquire state_mutex here: this thread owns
-        // it until the destination GDI operation and publication are complete.
-        if (!write_active || write_thread != GetCurrentThreadId() ||
-            requested_dc != reinterpret_cast<std::uintptr_t>(memory_dc)) {
+        // Do not acquire state_mutex here: a thread that began a write holds it
+        // until this call. A thread that did not begin one returns at once.
+        if (write_thread.load(std::memory_order_acquire) != GetCurrentThreadId()) {
             return false;
         }
-        const bool result = !should_publish || request_publish_locked();
-        write_active = false;
-        write_thread = 0;
+        // A mismatched device context is the caller's error, but this thread
+        // still holds the mutex: the write ends and the mutex is released on
+        // every path, and the mismatch is reported after.
+        const bool matches =
+            requested_dc == reinterpret_cast<std::uintptr_t>(memory_dc);
+        if (!matches) ++mismatched_write_ends;
+        const bool result = matches && (!should_publish || request_publish_locked());
+        write_thread.store(0U, std::memory_order_release);
         state_mutex.unlock();
         return result;
     }
@@ -391,7 +408,9 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
                << "|epoch:" << epoch
                << "|size:" << width << 'x' << height
                << "|transport:virtual-handle-memory-dc"
-               << "|explicit:" << (explicit_present ? 1 : 0);
+               << "|explicit:" << (explicit_present ? 1 : 0)
+               << "|abandoned-writes:" << abandoned_writes
+               << "|mismatched-write-ends:" << mismatched_write_ends;
         return result.str();
     }
 
@@ -451,8 +470,11 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
     bool publisher_stop{};
     bool metrics_registered{};
     bool released{};
-    bool write_active{};
-    DWORD write_thread{};
+    // Writes closed by a later begin_write on the same thread, and writes
+    // whose end named another device context. Both guarded by state_mutex.
+    std::uint64_t abandoned_writes{};
+    std::uint64_t mismatched_write_ends{};
+    std::atomic<DWORD> write_thread{0U};
 };
 
 WindowsCompatibilityPaintEndpoint::WindowsCompatibilityPaintEndpoint(

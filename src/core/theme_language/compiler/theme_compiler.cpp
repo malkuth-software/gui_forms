@@ -1653,7 +1653,19 @@ bool CompilePass::lower_rule_palette(std::size_t rule_index) {
     // The copies' warnings are the rule's, reported once.
     diagnostics_.mute_warnings(true);
     bool lowered = true;
+    // Every combination is visited, the ones skipped below too, and their
+    // number is the product of the varying roles' variant counts: 2^25 for
+    // a rule reading 25 roles with a light and a dark variant each. A
+    // skipped combination spends no byte budget, so the visits are bounded
+    // as the variable path's steps are (maximum_variable_steps, E508).
+    std::size_t visits = 0U;
+    bool over = false;
     while (lowered && next_palette_choice()) {
+        visits = visits + 1U;
+        if (visits > maximum_variable_steps) {
+            over = true;
+            break;
+        }
         MediaCondition joined = rule_media;
         bool holds = true;
         for (std::size_t index = 0U; index < palette_.varying.size(); ++index) {
@@ -1685,6 +1697,14 @@ bool CompilePass::lower_rule_palette(std::size_t rule_index) {
     media_ = rule_media;
     palette_.in_use = palette_.base;
     diagnostics_.mute_warnings(muted);
+    if (over) {
+        const SyntaxNode& rule = tree_.nodes[rule_index];
+        rule_ = clipped_theme_detail(range_text(rule.content));
+        property_.clear();
+        report(DiagnosticCode::too_many_variable_combinations, rule.content.first.value,
+               std::to_string(maximum_variable_steps));
+        return false;
+    }
     return lowered;
 }
 
