@@ -584,6 +584,55 @@ void test_hovered_control_is_hot() {
     require(!is_hot(*pad), "a hovered control leaving the interaction is no longer hot");
 }
 
+// Hover is paint-only: the pointer moving onto and off controls that declare
+// hot, back and forth across their edges, makes them hot and repaints them but runs no
+// measure or arrange pass anywhere (the guard asked for after PlaySuite's
+// bounce, which was a present fault, not a relayout).
+void test_hover_runs_no_layout_pass() {
+    std::shared_ptr<CountingControl> root = make_control<CountingControl>(StableId("hover-layout.root"));
+    std::shared_ptr<HotPad> first = make_control<HotPad>(StableId("hover-layout.first"));
+    (*first).set_requested_bounds({0.0, 0.0, 80.0, 30.0});
+    (*first).dock = DockStyle::top;
+    std::shared_ptr<HotPad> second = make_control<HotPad>(StableId("hover-layout.second"));
+    (*second).set_requested_bounds({0.0, 0.0, 80.0, 30.0});
+    (*second).dock = DockStyle::top;
+    (*root).add_child(first);
+    (*root).add_child(second);
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{200.0, 120.0});
+    Window& window = *held_window;
+    window.perform_layout();
+    NullPainter painter;
+    DamageRegion initial = window.take_damage();
+    window.paint(painter, initial.bounds());
+    window.reset_activity_metrics();
+
+    // Across the first button's lower edge and the second's, and out of the
+    // window, three times.
+    const std::array<Point, 6> path{Point{40.0, 10.0}, Point{40.0, 29.5}, Point{40.0, 30.5},
+                                    Point{40.0, 59.5}, Point{40.0, 60.5}, Point{40.0, 100.0}};
+    bool repainted = false;
+    for (int round = 0; round < 3; ++round) {
+        for (const Point position : path) {
+            move_pointer(window, PointerAction::move, position);
+            window.perform_layout();
+            const DamageRegion damage = window.take_damage();
+            if (!damage.empty()) {
+                repainted = true;
+                window.paint(painter, damage.bounds());
+            }
+        }
+        move_pointer(window, PointerAction::leave, Point{40.0, 100.0});
+        window.perform_layout();
+        const DamageRegion left = window.take_damage();
+        if (!left.empty()) window.paint(painter, left.bounds());
+    }
+    const MetricsSnapshot metrics = window.metrics_snapshot();
+    require(repainted, "hovering controls that declare hot repaints them");
+    require(metrics.measure_passes == 0 && metrics.arrange_passes == 0,
+            "hovering in and out across control edges runs no measure or arrange pass");
+    require(metrics.resize_relayouts == 0, "and resizes nothing");
+}
+
 void test_reentrant_layout_is_bounded() {
     std::shared_ptr<ReentrantLayoutControl> root =
         make_control<ReentrantLayoutControl>(StableId("typed.reentrant"));
@@ -1163,6 +1212,7 @@ int main() {
         test_backend_replay_fault_and_retirement_never_issue_receipt();
         test_buffering_styles_are_retained_compatibility_facts();
         test_hovered_control_is_hot();
+        test_hover_runs_no_layout_pass();
         std::cout << "gui_forms_invalidation_damage_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {
