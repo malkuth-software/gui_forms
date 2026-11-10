@@ -42,7 +42,7 @@
   ],
   "exempt": {
     "basic/basic_control_rendering.cpp": "the authored-recipe path: paint_theme_cues paints the focus and default cues of a control's own override recipes (visual_recipes_override), which the theme engine does not draw (owner decision, 2026-11-03)",
-    "button_base/button_base.cpp": "the authored-colour path: paint_flat_button paints FlatStyle.Flat from the control's own back and fore colours or its style override, which the theme engine does not draw (as basic_control_rendering's authored recipes; ruling to confirm)",
+    "button_base/button_base.cpp": "the authored-colour path: paint_flat_button paints FlatStyle.Flat (WinForms FlatStyle and FlatAppearance) from the application's own colours, the control's back and fore colours or its style override, which the theme engine does not draw (owner decision, 2026-11-09, on the authored-recipe precedent)",
     "connected_controls/connected_controls.cpp": "the authored-recipe path: the public paint_connected_surface_material paints an application's own recipe, which the theme engine does not draw (owner decision, 2026-11-03)",
     "drawing_surface/drawing_surface.cpp": "draws the application's own drawing (DrawingSurface), not chrome",
     "easing_preview/easing_preview.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
