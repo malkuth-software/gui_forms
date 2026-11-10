@@ -107,6 +107,11 @@ public:
     // font valid_font_spec admits, or a size outside minimum_rule_font_size
     // to maximum_rule_font_size, it is `own` with no field themed.
     [[nodiscard]] ResolvedFont resolve_font(const Control& control, FontSpec own) const noexcept;
+    // A named part's font in `states` (a tab label's, larger while
+    // selected): the control's own font with the font fields of the rules
+    // naming the part (and the control's own) in place.
+    [[nodiscard]] ResolvedFont resolve_font(const Control& control, FontSpec own, std::string_view part,
+                                            AnatomyStateSet states) const noexcept;
     // Whether the rules matching `control` at rest (its type, classes and
     // stable ID, no part or role, the window's media and the control's user
     // theme and inline style) declare it clear (owner decision 2026-11-04):

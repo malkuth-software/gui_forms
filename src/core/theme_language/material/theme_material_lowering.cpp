@@ -36,7 +36,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 56> material_properties{{
+constexpr std::array<NamedMaterialProperty, 65> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -73,25 +73,34 @@ constexpr std::array<NamedMaterialProperty, 56> material_properties{{
     {.name = "box-shadow", .property = MaterialProperty::box_shadow},
     {.name = "color", .property = MaterialProperty::color},
     {.name = "default-outline", .property = MaterialProperty::default_outline},
+    {.name = "edge-shadow", .property = MaterialProperty::edge_shadow},
     {.name = "filter", .property = MaterialProperty::filter},
+    {.name = "flare", .property = MaterialProperty::flare},
     {.name = "font-family", .property = MaterialProperty::font_family},
     {.name = "font-size", .property = MaterialProperty::font_size},
     {.name = "font-style", .property = MaterialProperty::font_style},
     {.name = "font-weight", .property = MaterialProperty::font_weight},
+    {.name = "gap", .property = MaterialProperty::gap},
     {.name = "glow", .property = MaterialProperty::glow},
     {.name = "glow-placement", .property = MaterialProperty::glow_placement},
     {.name = "glyph-color", .property = MaterialProperty::glyph_color},
+    {.name = "height", .property = MaterialProperty::height},
     {.name = "keylines", .property = MaterialProperty::keylines},
     {.name = "letter-spacing", .property = MaterialProperty::letter_spacing},
+    {.name = "margin-bottom", .property = MaterialProperty::margin_bottom},
+    {.name = "margin-top", .property = MaterialProperty::margin_top},
     {.name = "mask-image", .property = MaterialProperty::mask_image},
+    {.name = "min-width", .property = MaterialProperty::min_width},
     {.name = "muted-color", .property = MaterialProperty::muted_color},
     {.name = "outline", .property = MaterialProperty::outline},
     {.name = "outline-color", .property = MaterialProperty::outline_color},
     {.name = "outline-offset", .property = MaterialProperty::outline_offset},
     {.name = "outline-style", .property = MaterialProperty::outline_style},
     {.name = "outline-width", .property = MaterialProperty::outline_width},
+    {.name = "padding-inline", .property = MaterialProperty::padding_inline},
     {.name = "reflection", .property = MaterialProperty::reflection},
     {.name = "surface-finish", .property = MaterialProperty::surface_finish},
+    {.name = "taper", .property = MaterialProperty::taper},
     {.name = "text-shadow", .property = MaterialProperty::text_shadow},
 }};
 
@@ -101,7 +110,13 @@ struct RecipeLonghand final {
     RecipeField field{RecipeField::text};
 };
 
-constexpr std::array<RecipeLonghand, 13> recipe_longhands{{
+constexpr std::array<RecipeLonghand, 19> recipe_longhands{{
+    {.property = MaterialProperty::height, .field = RecipeField::block_size},
+    {.property = MaterialProperty::min_width, .field = RecipeField::minimum_inline_size},
+    {.property = MaterialProperty::padding_inline, .field = RecipeField::padding_inline},
+    {.property = MaterialProperty::gap, .field = RecipeField::gap},
+    {.property = MaterialProperty::margin_top, .field = RecipeField::margin_block_start},
+    {.property = MaterialProperty::margin_bottom, .field = RecipeField::margin_block_end},
     {.property = MaterialProperty::color, .field = RecipeField::text},
     {.property = MaterialProperty::outline_color, .field = RecipeField::outline_colour},
     {.property = MaterialProperty::outline_offset, .field = RecipeField::outline_offset},
@@ -413,6 +428,8 @@ private:
     bool lower_outline_colour();
     bool lower_outline_width();
     bool lower_outline_offset();
+    bool lower_part_length(RecipeField field, double minimum, double maximum);
+    bool lower_part_shape(RecipeField length_field, RecipeField colour_field, bool colour_required);
     bool lower_text_shadow();
     bool lower_font_family();
     bool lower_font_size();
@@ -2378,6 +2395,64 @@ bool MaterialReader::lower_outline_offset() {
     return true;
 }
 
+// A part metric (`height`, `min-width`, `padding-inline`, `gap`,
+// `margin-top`, `margin-bottom`): one length, negative only for a margin,
+// within `maximum` either way.
+// A part's metric: one length in [minimum, maximum] (a negative minimum
+// admits negative lengths: a margin running the part into its neighbour, or
+// a gap overlapping the parts it separates).
+bool MaterialReader::lower_part_length(RecipeField field, double minimum, double maximum) {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one length");
+    }
+    BoxLength length{};
+    const bool negatives = minimum < 0.0;
+    if (!read_length(0U, false, negatives, length)) return false;
+    if (length.units < minimum || length.units > maximum) {
+        const ValueComponent& component = value_.components[0];
+        return fail(DiagnosticCode::value_out_of_range, component.token, clipped_theme_detail(component.text));
+    }
+    RecipeDeclaration declaration = recipe_declaration(field);
+    declaration.number = length.units;
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// A part's shape: `taper` and `flare` (a length and an optional colour) and
+// `edge-shadow` (a length and a colour), each at most once and in any
+// order. An omitted colour takes its `initial` (none: the part's own).
+bool MaterialReader::lower_part_shape(RecipeField length_field, RecipeField colour_field, bool colour_required) {
+    RecipeDeclaration length = recipe_declaration(length_field);
+    RecipeDeclaration colour = recipe_declaration(colour_field);
+    bool sized = false;
+    bool coloured = false;
+    for (std::size_t index = 0U; index < value_.components.size(); index = next(index)) {
+        const ValueComponent& component = value_.components[index];
+        if (component.kind == ValueComponentKind::number) {
+            if (sized) return fail(DiagnosticCode::value_syntax, component.token, "one length");
+            sized = true;
+            BoxLength read{};
+            if (!read_length(index, false, false, read)) return false;
+            if (read.units > maximum_part_shape) {
+                return fail(DiagnosticCode::value_out_of_range, component.token, clipped_theme_detail(component.text));
+            }
+            length.number = read.units;
+            continue;
+        }
+        if (coloured) return fail(DiagnosticCode::value_syntax, component.token, "one colour");
+        coloured = true;
+        if (!read_colour(index, colour.colour)) return false;
+    }
+    if (!sized) return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "a length");
+    if (colour_required && !coloured) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "a length and a colour");
+    }
+    colour.initial = !coloured;
+    lowering_.recipe_fields.push_back(length);
+    lowering_.recipe_fields.push_back(colour);
+    return true;
+}
+
 // `font-family` (T4 fonts): one bundled font role, `control`, `content` or
 // `monospace`. A family name, quoted or not, a generic family and a list
 // are refused: GUI.Forms draws its bundled faces, never a host font.
@@ -2623,6 +2698,33 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::font_style: static_cast<void>(lower_font_style()); return;
     case MaterialProperty::font_weight: static_cast<void>(lower_font_weight()); return;
     case MaterialProperty::letter_spacing: static_cast<void>(lower_letter_spacing()); return;
+    case MaterialProperty::height:
+        static_cast<void>(lower_part_length(RecipeField::block_size, 0.0, maximum_part_metric));
+        return;
+    case MaterialProperty::min_width:
+        static_cast<void>(lower_part_length(RecipeField::minimum_inline_size, 0.0, maximum_part_metric));
+        return;
+    case MaterialProperty::padding_inline:
+        static_cast<void>(lower_part_length(RecipeField::padding_inline, 0.0, maximum_part_metric));
+        return;
+    case MaterialProperty::gap:
+        static_cast<void>(lower_part_length(RecipeField::gap, -maximum_part_margin, maximum_part_metric));
+        return;
+    case MaterialProperty::margin_top:
+        static_cast<void>(lower_part_length(RecipeField::margin_block_start, -maximum_part_margin, maximum_part_margin));
+        return;
+    case MaterialProperty::margin_bottom:
+        static_cast<void>(lower_part_length(RecipeField::margin_block_end, -maximum_part_margin, maximum_part_margin));
+        return;
+    case MaterialProperty::taper:
+        static_cast<void>(lower_part_shape(RecipeField::taper, RecipeField::taper_colour, false));
+        return;
+    case MaterialProperty::flare:
+        static_cast<void>(lower_part_shape(RecipeField::flare, RecipeField::flare_colour, true));
+        return;
+    case MaterialProperty::edge_shadow:
+        static_cast<void>(lower_part_shape(RecipeField::edge_shadow_width, RecipeField::edge_shadow_colour, true));
+        return;
     // A value outside the enumeration names no property: nothing is lowered.
     default: return;
     }
@@ -2735,7 +2837,16 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::font_size:
     case MaterialProperty::font_style:
     case MaterialProperty::font_weight:
-    case MaterialProperty::letter_spacing: return;
+    case MaterialProperty::letter_spacing:
+    case MaterialProperty::height:
+    case MaterialProperty::min_width:
+    case MaterialProperty::padding_inline:
+    case MaterialProperty::gap:
+    case MaterialProperty::margin_top:
+    case MaterialProperty::margin_bottom:
+    case MaterialProperty::taper:
+    case MaterialProperty::flare:
+    case MaterialProperty::edge_shadow: return;
     // A value outside the enumeration names no property: it sets no field.
     default: return;
     }
@@ -2755,6 +2866,21 @@ RecipePropertyFields recipe_property_fields(MaterialProperty property) noexcept 
     }
     if (property == MaterialProperty::default_outline) {
         result.fields = {RecipeField::default_outline_width, RecipeField::default_outline_colour};
+        result.count = 2U;
+        return result;
+    }
+    if (property == MaterialProperty::taper) {
+        result.fields = {RecipeField::taper, RecipeField::taper_colour};
+        result.count = 2U;
+        return result;
+    }
+    if (property == MaterialProperty::flare) {
+        result.fields = {RecipeField::flare, RecipeField::flare_colour};
+        result.count = 2U;
+        return result;
+    }
+    if (property == MaterialProperty::edge_shadow) {
+        result.fields = {RecipeField::edge_shadow_width, RecipeField::edge_shadow_colour};
         result.count = 2U;
         return result;
     }

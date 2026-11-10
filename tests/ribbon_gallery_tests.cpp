@@ -160,6 +160,14 @@ void layout_and_columns() {
     require(validate_control_anatomy(anatomy).defect == AnatomyDefect::none &&
                 anatomy.control_id == "ribbon_gallery" && anatomy.item_systems.size() == 2U,
             "RibbonGallery publishes a valid anatomy with gallery_item and gallery_category");
+    {
+        // Given more height than two rows fill (the Ribbon's three-row
+        // plane), the gallery shows its two whole rows and no cut third.
+        std::shared_ptr<RibbonGallery> tall = in_ribbon_gallery("gallery.tall", 30U);
+        Window tall_window(tall, {6.0 * 40.0 + 20.0, 2.5 * 40.0 + 4.0});
+        tall_window.perform_layout();
+        require((*tall).realized_items().size() == 12U, "an in-ribbon gallery shows whole rows only");
+    }
     const Size wanted = (*gallery).measure({1000.0, 1000.0});
     require(wanted.width == 6.0 * 40.0 + 16.0 + 4.0 && wanted.height == 2.0 * 40.0 + 4.0,
             "an in-ribbon gallery asks for its columns and rows plus the scroll column");
@@ -307,6 +315,48 @@ void keyboard() {
     require(fixture.log.joined() == "preview:item.28 cancel:item.28 ", "losing focus withdraws the preview");
 }
 
+// Defect 9 (Plan Paint): an unfocused in-ribbon gallery scrolled away
+// from its selection takes a click on the item under the pointer. The press
+// is hit-tested before it focuses the gallery, and that focus does not
+// scroll the selection back into view.
+void click_after_scroll() {
+    Fixture fixture;
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("scrolled.root"));
+    std::shared_ptr<RibbonGallery> gallery = in_ribbon_gallery("scrolled.gallery", 30U);
+    (*gallery).command = fixture.gallery_command;
+    (*fixture.gallery_command).set_value(std::string("item.1"));
+    std::shared_ptr<Button> other = make_control<Button>(StableId("scrolled.other"), "Other");
+    (*root).add_child(gallery);
+    (*root).add_child(other);
+    (*gallery).set_requested_bounds({0.0, 0.0, 260.0, 84.0});
+    (*other).set_requested_bounds({0.0, 100.0, 80.0, 30.0});
+    Window window(root, {400.0, 200.0});
+    window.perform_layout();
+    require(window.request_focus(other), "another control holds focus");
+    (*gallery).scroll_to_line(3U);
+    window.perform_layout();
+    const std::vector<RibbonGallery::Item> scrolled = (*gallery).realized_items();
+    const RibbonGallery::Item& target = item_named(scrolled, "item.19");
+    click_at(window, centre(*gallery, target.parts.item_face.bounds));
+    window.perform_layout();
+    require((*gallery).selected_id.read() == std::string("item.19"),
+            "a click after scrolling chooses the item under the pointer");
+    require((*gallery).first_visible_line() == 3U && (*gallery).focused_id() == std::string("item.19"),
+            "the click's focus stays on the pressed item and does not scroll");
+    const std::vector<RibbonGallery::Item> wheeled_from = (*gallery).realized_items();
+    require(window.request_focus(other), "focus leaves the gallery");
+    const Point over = centre(*gallery, item_named(wheeled_from, "item.19").parts.item_face.bounds);
+    PointerEvent wheel{PointerAction::wheel, PointerButton::none, over};
+    wheel.wheel_delta = {0.0, 1.0};
+    static_cast<void>(window.dispatch_pointer(wheel));
+    window.perform_layout();
+    const std::vector<RibbonGallery::Item> wheeled = (*gallery).realized_items();
+    require((*gallery).first_visible_line() == 2U, "the wheel scrolls the unfocused gallery up a row");
+    click_at(window, centre(*gallery, item_named(wheeled, "item.13").parts.item_face.bounds));
+    require((*gallery).selected_id.read() == std::string("item.13"),
+            "a click after the wheel chooses the item under the pointer");
+}
+
 void overlays() {
     Fixture fixture;
     Log overlay_log;
@@ -405,9 +455,10 @@ int main() {
     virtualization();
     hover_preview_order();
     keyboard();
+    click_after_scroll();
     overlays();
     semantics();
-    std::cout << "RibbonGallery: value command, layout, columns, virtualization, preview order, keyboard, "
+    std::cout << "RibbonGallery: value command, layout, columns, virtualization, preview order, keyboard, click after scroll, "
                  "overlays and semantics passed\n";
     return 0;
 }

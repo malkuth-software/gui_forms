@@ -132,9 +132,11 @@ void test_lowering() {
     }
     const Compilation stated = compile("#a:hover { font-size: 20px }");
     require(has_code(stated, DiagnosticCode::property_not_admitted), "a state rule's font is not admitted");
-    const Compilation part = compile("button::part(label) { font-weight: bold }");
-    require(part.outcome == CompileOutcome::refused || has_code(part, DiagnosticCode::property_not_admitted),
-            "a part rule's font is not admitted");
+    // A named part's font is its own, in any state (look integration: a
+    // selected tab's label): Theme::resolve_font with the part reads it.
+    const Compilation part = compile("button::part(label):hover { font-weight: bold }");
+    require(part.outcome == CompileOutcome::compiled && !has_code(part, DiagnosticCode::property_not_admitted),
+            "a named part's font is admitted, in a state rule too");
     const Compilation left_out = compile("#a { font-variant: small-caps }");
     require(left_out.outcome == CompileOutcome::compiled, "the rest of the font family is still left out");
 }

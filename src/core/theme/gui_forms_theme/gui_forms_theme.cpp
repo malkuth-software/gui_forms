@@ -444,7 +444,9 @@ constexpr std::string_view light_sheet = R"css(/* gui-forms: the default theme's
    Colour roles of design language 5.4 in Plan Paint's palette
    (malkuth-software/plan-paint at 5e28a5e, src/forms/ribbon.cpp) and the
    rules for parts the engine paints. Controls painting from their family's
-   recipe draw the theme's floor (gui_forms_theme_definition). */
+   recipe draw the theme's floor (gui_forms_theme_definition). The signal
+   group (design language 5.4: signal, success, pending and invalid) is
+   the warm coral and its siblings deepened to text contrast on paper. */
 
 :root {
   ink-on-paper: #1b2733 on #ffffff;
@@ -456,6 +458,10 @@ constexpr std::string_view light_sheet = R"css(/* gui-forms: the default theme's
   selection-ink-on-selection: #1b2733 on #cfe2fa;
   ink-on-gold: #153765 on #ffcf66;
   on-accent-on-accent: #ffffff on #2f69be;
+  signal-on-paper: #b4413c on #ffffff;
+  success-on-paper: #2e7d4f on #ffffff;
+  pending-ink-on-tint: #6d5200 on #fff4d6;
+  invalid-ink-on-tint: #9b1c1c on #fde4e1;
   disabled-ink-on-chrome: #627997 on #becfe4;
   disabled-ink-on-paper: #627997 on #ffffff;
   command-link-ink-on-paper: #19528b on #ffffff;
@@ -481,7 +487,7 @@ constexpr std::string_view light_sheet = R"css(/* gui-forms: the default theme's
    corners only, where an inset shadow follows the radius and a keyline
    does not; elsewhere it is 16 or less (T4 phase 4). The tab's ink is its
    family's recipe text (a part takes no `color`). */
-tab-control::part(tab), page-strip::part(tab) {
+tab-control::part(tab), page-strip::part(tab), ribbon::part(tab) {
   background-color: #9bb6da;
   background-image: linear-gradient(to bottom, rgb(255 255 255 / 49%) 1px, transparent 1px),
     linear-gradient(to bottom, rgb(34 70 116 / 15%), rgb(34 70 116 / 0%) 72%);
@@ -489,13 +495,94 @@ tab-control::part(tab), page-strip::part(tab) {
   border-radius: 4px;
   box-shadow: inset -1px 0 0 #496c9f, inset -2px 0 0 #d1e0f5, 3px 1px 2px rgb(24 56 97 / 22%), 2px 0 0 #496c9f;
 }
-tab-control::part(tab):hover, page-strip::part(tab):hover {
+tab-control::part(tab):hover, page-strip::part(tab):hover, ribbon::part(tab):hover {
   background-color: #acc6e7;
 }
-tab-control::part(tab):state(selected), page-strip::part(tab):state(selected) {
+tab-control::part(tab):state(selected), page-strip::part(tab):state(selected),
+ribbon::part(tab):state(selected) {
   background-color: #e8f2ff;
   background-image: linear-gradient(to bottom, #ffffff 1px, transparent 1px),
     linear-gradient(to bottom, rgb(255 255 255 / 57%), rgb(255 255 255 / 0%) 72%);
+}
+
+/* The Ribbon's tab row (rendering reference §4; design language §11 item
+   4; the owner's folder corrections, 2026-11-09): a flat #93ADD0 rail 27
+   units high; the tabs stand three units below the rail's top, the
+   selected one standing to the top and running one unit into the plane,
+   whose top it matches, so that it flows into the plane with no lip and
+   no line between them. Every tab is a folder, and the folders stack:
+   each overlaps the next by five units (a negative gap), its right edge
+   tapering five units from foot to top in the keyline #496C9F and lying
+   over the next tab's left end, and a soft shadow falls off over ten
+   units from that edge onto the tab beneath. The selected tab lies over
+   both its neighbours, its label bold in #173F79 and a little larger. The
+   keylines and casts of the shared tab rule give way to the taper and its
+   shadow. Only File (the blue gradient tab with white ink) and a
+   contextual tab (its set's tint) carry a colour of their own. */
+ribbon::part(tab-rail) {
+  background: #93add0;
+  border: none;
+  height: 27px;
+}
+ribbon::part(tab) {
+  border-radius: 4px 4px 0 0;
+  box-shadow: none;
+  gap: -5px;
+  margin-top: 3px;
+  taper: 5px #496c9f;
+  edge-shadow: 10px rgb(24 56 97 / 45%);
+}
+ribbon::part(tab):state(selected) {
+  margin-top: 0;
+  margin-bottom: -1px;
+}
+ribbon::part(tab-label):state(selected) {
+  color: #173f79;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+ribbon::part(application-button) {
+  background: linear-gradient(to bottom, #528be0, #173f88);
+  border: none;
+  border-radius: 4px 4px 0 0;
+  margin-top: 3px;
+}
+ribbon::part(application-label) {
+  color: #ffffff;
+}
+
+/* The Ribbon's command plane (rendering reference §5): Plan Paint's
+   #E8F2FF, #CADEFB, #A5C4F1 and #769FDF and a shade line at its foot; no
+   line along its top, where the selected tab flows into it. */
+ribbon::part(command-plane) {
+  background: linear-gradient(to bottom, #e8f2ff, #cadefb 28%, #a5c4f1 62%, #769fdf);
+  border: none;
+  box-shadow: inset 0 -1px 0 #496c9f;
+}
+
+/* The Ribbon's groups (rendering reference §5; design language §11 item
+   4): captions in #485B70 beneath thin etched dividers, a shade line with
+   a white line beside it, fading out at both ends. */
+ribbon::part(group-caption) {
+  color: #485b70;
+}
+ribbon::part(group-divider) {
+  background: linear-gradient(to bottom, rgb(99 132 178 / 0%), #6384b2 50%, rgb(99 132 178 / 0%));
+  border: none;
+  box-shadow: 1px 0 0 rgb(255 255 255 / 60%);
+}
+
+/* Backstage (RB decision 26): the column of commands and topics in the
+   command plane's blue, set apart from the white page, as the owner's
+   note on Office 2010 asks. */
+backstage-view::part(column) {
+  background: linear-gradient(to bottom, #e8f2ff, #cadefb);
+  border: none;
+  box-shadow: inset -1px 0 0 #6384b2;
+}
+backstage-view::part(page) {
+  background: #ffffff;
+  border: none;
 }
 
 /* The command plane: near-white deepening toward Plan Paint's royale blue

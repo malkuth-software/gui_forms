@@ -8,7 +8,9 @@
 #include "gui_forms/types/painter/painter.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <span>
 #include <vector>
 
 namespace gui_forms {
@@ -820,6 +822,156 @@ void paint_pointed_part(Painter& painter, const Control& control, const PartPain
     painter.draw_line(tip, {shoulder, bounds.y + bounds.height - 0.5}, edge, 1.0);
 }
 
+// The strips a shaped part's taper, lip and edge shadow are cut into, each
+// a rectangle, so the shape is a bounded staircase (as the pointed face's
+// nose is).
+constexpr std::size_t part_profile_strips = 12U;
+
+// Whether `part` carries a profile that draws anything.
+bool profiled(const PartPaint& part) noexcept {
+    if (!part.profile || part.point || !surface_role(part.role)) return false;
+    const PartProfile& profile = *part.profile;
+    const bool any = profile.taper > 0.0 || profile.flare > 0.0 || profile.edge_shadow > 0.0;
+    return any;
+}
+
+// The rows a profiled part's trailing edge is drawn in: whole logical
+// units, so that at an integer scale no antialiased clip edge is painted
+// twice (a seam). One-unit rows through the top corner, where the outline
+// curves, then about a twelfth of the height each. At most this many rows.
+constexpr std::size_t maximum_profile_rows = part_profile_strips + 2U * static_cast<std::size_t>(maximum_part_shape);
+
+// One row of a profiled part: its top and bottom and where its outline
+// stands, the least x of the outline over the row, so that the face cut
+// at it never runs past the outline and the shadow begins exactly there.
+struct ProfileRow final {
+    double top{};
+    double bottom{};
+    double outline{};
+};
+
+// The trailing outline at height `y`: the taper's straight lean, rounded
+// into the top edge by the part's top-right radius as the face's corner
+// would be.
+double profile_outline(Rect bounds, double taper, double radius, double y) noexcept {
+    const double right = bounds.x + bounds.width;
+    const double down = std::clamp(y - bounds.y, 0.0, bounds.height);
+    const double lean = bounds.height > 0.0 ? taper * (1.0 - down / bounds.height) : 0.0;
+    double inset = 0.0;
+    if (radius > 0.0 && down < radius) {
+        const double rise = radius - down;
+        inset = radius - std::sqrt(std::max(0.0, radius * radius - rise * rise));
+    }
+    const double outline = right - lean - inset;
+    return outline;
+}
+
+// Fills `rows` (capacity maximum_profile_rows) and returns the live count.
+std::size_t profile_rows(Rect bounds, double taper, double radius, std::span<ProfileRow> rows) noexcept {
+    std::size_t count = 0U;
+    const double corner = std::min(std::ceil(radius), std::floor(bounds.height));
+    double top = bounds.y;
+    for (double step = 0.0; step < corner && count < rows.size(); step += 1.0) {
+        rows[count] = ProfileRow{top, top + 1.0, profile_outline(bounds, taper, radius, top)};
+        ++count;
+        top += 1.0;
+    }
+    const double rest = bounds.y + bounds.height - top;
+    for (std::size_t strip = 0U; strip < part_profile_strips && count < rows.size(); ++strip) {
+        const double start = top + std::round(rest * static_cast<double>(strip) / static_cast<double>(part_profile_strips));
+        const double end =
+            top + std::round(rest * static_cast<double>(strip + 1U) / static_cast<double>(part_profile_strips));
+        if (end <= start) continue;
+        rows[count] = ProfileRow{start, end, profile_outline(bounds, taper, radius, start)};
+        ++count;
+    }
+    return count;
+}
+
+// A profiled part (PartPaint::profile), in order: the edge shadow beyond the
+// trailing outline, the part itself (once clipped to its body and once to
+// each row of the outline), the outline's line, and the lip at its bottom
+// corners. The outline at height y leans from `right - taper` at the top to
+// `right` at the bottom and rounds into the top edge by the part's top-right
+// radius (owner, 2026-11-09): the shadow starts in each row exactly where
+// the face ends, so the face's edge and the shadow's falloff are one
+// continuous edge, the top corner included.
+void paint_profiled_part(Painter& painter, const Control& control, const PartPaint& part) {
+    const PartProfile& profile = *part.profile;
+    PartPaint whole = part;
+    whole.profile.reset();
+    const Rect bounds = part.bounds;
+    const double right = bounds.x + bounds.width;
+    const double bottom = bounds.y + bounds.height;
+    const double taper = std::clamp(profile.taper, 0.0, std::min(bounds.width, maximum_part_shape));
+    const double flare = std::clamp(profile.flare, 0.0, std::min(bounds.height, maximum_part_shape));
+    const double falloff = std::clamp(profile.edge_shadow, 0.0, maximum_part_shape);
+    const ControlVisualContext context = part_visual_context(control, part.states);
+    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const ResolvedControlRecipe resolved =
+        control.effective_theme().resolve(control, part.family, context, part.states, part_name, part.control_type);
+    const SurfaceMaterial& material = resolved.recipe().material;
+    double radius = part.corner_radius ? std::max(0.0, *part.corner_radius) : material.corner_radius;
+    if (!part.corner_radius && material.corner_radii) radius = (*material.corner_radii).top_right;
+    radius = std::clamp(radius, 0.0, std::min(maximum_part_shape, bounds.height));
+    // Without a taper the outline is the straight right edge; its rounded
+    // top corner is the face's own and only the shadow follows it.
+    std::array<ProfileRow, maximum_profile_rows> rows{};
+    const std::size_t row_count = profile_rows(bounds, taper, radius, rows);
+    if (falloff > 0.0) {
+        const Color clear = Color::rgba(profile.edge_shadow_colour.red, profile.edge_shadow_colour.green,
+                                        profile.edge_shadow_colour.blue, 0);
+        const std::array<GradientStop, 2> stops{GradientStop{0.0, profile.edge_shadow_colour}, GradientStop{1.0, clear}};
+        for (std::size_t index = 0U; index < row_count; ++index) {
+            const ProfileRow& row = rows[index];
+            const double middle = (row.top + row.bottom) * 0.5;
+            const Rect band{row.outline, row.top, falloff, row.bottom - row.top};
+            painter.fill_linear_gradient(band, {row.outline, middle}, {row.outline + falloff, middle}, stops);
+        }
+    }
+    if (taper <= 0.0) {
+        paint_part(painter, control, whole);
+    } else {
+        const double shoulder = std::floor(right - taper - radius);
+        painter.save();
+        painter.clip_rect({bounds.x, bounds.y, std::max(0.0, shoulder - bounds.x), bounds.height});
+        paint_part(painter, control, whole);
+        painter.restore();
+        for (std::size_t index = 0U; index < row_count; ++index) {
+            const ProfileRow& row = rows[index];
+            if (row.outline <= shoulder) continue;
+            painter.save();
+            painter.clip_rect({shoulder, row.top, row.outline - shoulder, row.bottom - row.top});
+            paint_part(painter, control, whole);
+            painter.restore();
+        }
+        if (profile.taper_colour && part.frame != PartFrame::none) {
+            // The line follows the outline: one segment per corner row,
+            // then the straight lean to the foot.
+            Point from{profile_outline(bounds, taper, radius, bounds.y) - 0.5, bounds.y + 0.5};
+            const double corner_end = bounds.y + std::min(std::ceil(radius), std::floor(bounds.height));
+            for (double y = bounds.y + 1.0; y <= corner_end; y += 1.0) {
+                const Point to{profile_outline(bounds, taper, radius, y) - 0.5, y};
+                painter.draw_line(from, to, *profile.taper_colour, 1.0);
+                from = to;
+            }
+            painter.draw_line(from, {right - 0.5, bottom}, *profile.taper_colour, 1.0);
+        }
+    }
+    if (flare <= 0.0) return;
+    // The lip: a concave quarter at each bottom corner, flat where it meets
+    // what lies below the part.
+    const double lip_strip = flare / static_cast<double>(part_profile_strips);
+    for (std::size_t strip = 0U; strip < part_profile_strips; ++strip) {
+        const double top = bottom - flare + lip_strip * static_cast<double>(strip);
+        const double depth = (top + lip_strip * 0.5) - (bottom - flare);
+        const double reach = flare - std::sqrt(std::max(0.0, flare * flare - depth * depth));
+        if (reach <= 0.0) continue;
+        painter.fill_rect({bounds.x - reach, top, reach, lip_strip}, profile.flare_colour);
+        painter.fill_rect({right, top, reach, lip_strip}, profile.flare_colour);
+    }
+}
+
 } // namespace
 
 namespace {
@@ -849,6 +1001,28 @@ bool pointed_face_contains(Rect bounds, double point, Point position) noexcept {
     return inside;
 }
 
+namespace {
+
+// The provisional accent (design language §8.5) over a surface part a
+// theme rule's primitive drew: the built-in recipe lays it on itself
+// (paint_part_with_built_in_recipe), a primitive does not, so a contextual
+// tab or plane a theme styles keeps its tint (RB 25). The ramp colour
+// carries its own translucency and follows the recipe's corners.
+void paint_primitive_accent(Painter& painter, const Control& control, const PartPaint& part) {
+    if (!part.accent || !surface_role(part.role) || !paintable(part.bounds)) return;
+    const Theme& theme = control.effective_theme();
+    const ThemeEngine::PartPlan decided = theme.engine().plan(control, part);
+    if (decided.drawing != ThemeEngine::PartDrawing::primitive) return;
+    const ControlVisualContext context = part_visual_context(control, part.states);
+    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const ResolvedControlRecipe resolved =
+        theme.resolve(control, part.family, context, part.states, part_name, part.control_type);
+    const double radius = part_corner_radius(part, resolved.recipe());
+    painter.fill_rounded_rect(part.bounds, radius, theme.accent(*part.accent));
+}
+
+} // namespace
+
 void paint_part(Painter& painter, const Control& control, const PartPaint& part) {
     // Drawn in GUI.Forms' own theme in place of the application's (T4
     // theme variants): colours chosen against the other theme are not
@@ -866,6 +1040,10 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
         paint_pointed_part(painter, control, part, length);
         return;
     }
+    if (profiled(part) && paintable(part.bounds)) {
+        paint_profiled_part(painter, control, part);
+        return;
+    }
     const Theme& theme = control.effective_theme();
     // The control's authored colours (Control::set_back_color and
     // set_fore_color) under the part's own: its own background fills every
@@ -878,12 +1056,14 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
     const bool unchanged = background == part.authored_background && foreground == part.authored_foreground;
     if (unchanged) {
         theme.engine().paint(painter, control, part);
+        paint_primitive_accent(painter, control, part);
         return;
     }
     PartPaint coloured = part;
     coloured.authored_background = background;
     coloured.authored_foreground = foreground;
     theme.engine().paint(painter, control, coloured);
+    paint_primitive_accent(painter, control, coloured);
 }
 
 void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin,

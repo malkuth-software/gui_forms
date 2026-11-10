@@ -858,6 +858,17 @@ void test_search_field_in_window() {
             "an empty, idle field publishes no clear mark and no activity strip");
     const Rect slot = (*(*field).editor()).committed_arranged_bounds();
     require(slot.width > 0.0 && slot.x > empty_parts.icon.bounds.x, "the editor sits after the search mark");
+    // The editor sits inside the well's frame, so that its ground never
+    // covers the frame's edges (Mac handoff 2026-11-09, also on Windows).
+    require(slot.y >= 1.0 && slot.y + slot.height <= 31.0 && slot.x + slot.width <= 299.0,
+            "the editor stays inside the well's frame");
+    (*field).set_requested_bounds(Rect{10.0, 10.0, 300.0, 16.0});
+    window.perform_layout();
+    const Rect tight = (*(*field).editor()).committed_arranged_bounds();
+    require(tight.y >= 1.0 && tight.y + tight.height <= 15.0,
+            "a field shorter than the editor's line still keeps its frame clear");
+    (*field).set_requested_bounds(Rect{10.0, 10.0, 300.0, 32.0});
+    window.perform_layout();
 
     (*field).text = std::string{"r"};
     (*field).text = std::string{"ri"};
