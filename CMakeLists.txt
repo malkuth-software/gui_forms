@@ -1420,6 +1420,7 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         src/host/linux/application/linux_host.cpp
         src/host/posix/fonts/sealed_pages_posix.cpp
         src/host/linux/application/x11_windowing.cpp
+        src/host/linux/application/x11_shm_present.cpp
         src/host/linux/settings/xsettings_parse.cpp
         src/host/linux/application/linux_input_rules.cpp
         src/host/linux/settings/xsettings_watch.cpp
@@ -1444,6 +1445,12 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         target_link_libraries(gui_forms_host_linux PUBLIC X11::Xrandr)
         target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XRANDR=1)
     endif()
+    # Audit G4/N67: MIT-SHM presentation where libXext is present; without
+    # it every present uses XPutImage.
+    if(TARGET X11::Xext)
+        target_link_libraries(gui_forms_host_linux PUBLIC X11::Xext)
+        target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XSHM=1)
+    endif()
     add_library(gui_forms_application SHARED src/runtime/application_bundle.cpp src/runtime/application/application.cpp)
     add_library(GUIForms::Application ALIAS gui_forms_application)
     set_target_properties(gui_forms_application PROPERTIES EXPORT_NAME Application OUTPUT_NAME gui_forms_application VERSION 0.1.0 SOVERSION 0)
@@ -1460,6 +1467,9 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
     endif()
     if(TARGET X11::Xrandr)
         target_link_libraries(gui_forms_application PRIVATE X11::Xrandr)
+    endif()
+    if(TARGET X11::Xext)
+        target_link_libraries(gui_forms_application PRIVATE X11::Xext)
     endif()
     if(TARGET gui_forms_text_engine)
         target_link_libraries(gui_forms_application PRIVATE gui_forms_text_engine stx_text::freetype stx_text::harfbuzz)
@@ -2878,6 +2888,14 @@ if(GUI_FORMS_BUILD_TESTS)
             gui_forms_controls gui_forms_host_windows)
         add_test(NAME gui_forms_windows_scroll_copy_tests
                  COMMAND gui_forms_windows_scroll_copy_tests)
+        add_executable(gui_forms_windows_live_idle_tests tests/windows_live_idle_tests.cpp)
+        target_compile_definitions(gui_forms_windows_live_idle_tests PRIVATE
+            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
+            GUI_FORMS_WINDOWS_LIVE_IDLE_TEST=1)
+        target_link_libraries(gui_forms_windows_live_idle_tests PRIVATE
+            gui_forms_controls gui_forms_host_windows)
+        add_test(NAME gui_forms_windows_live_idle_tests
+                 COMMAND gui_forms_windows_live_idle_tests)
         add_executable(gui_forms_windows_text_tests tests/windows_text_tests.cpp)
         target_compile_definitions(gui_forms_windows_text_tests PRIVATE
             WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
@@ -5679,7 +5697,7 @@ foreach(gui_forms_swizzle_target IN ITEMS gui_forms_core gui_forms_controls
         gui_forms_windows_prepared_text_tests gui_forms_windows_backplane_replay_tests
         gui_forms_windows_canvas_raster_tests gui_forms_windows_content_pixels_tests
         gui_forms_windows_control_snapshot_tests gui_forms_windows_damage_rectangles_tests
-        gui_forms_windows_scroll_copy_tests
+        gui_forms_windows_scroll_copy_tests gui_forms_windows_live_idle_tests
         gui_forms_windows_text_tests)
     if(TARGET ${gui_forms_swizzle_target})
         target_link_libraries(${gui_forms_swizzle_target} PRIVATE stx_skia::swizzle)

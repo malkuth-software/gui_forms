@@ -502,6 +502,15 @@ void TextEditingEngine::handle_text_input(TextInputEvent& event) {
     }
     Utf8Offset start = selection_.start();
     Utf8Offset end = selection_.end();
+    // A composition's next update replaces its marked text, not the caret's
+    // empty selection, so "k", "ka", "か" leave one か (audit N106).
+    const bool marked_current = composing_ && store_.revision() == marked_revision_ &&
+                                marked_start_.value() <= marked_end_.value() &&
+                                marked_end_.value() <= store_.utf8_size().value();
+    if (marked_current) {
+        start = marked_start_;
+        end = marked_end_;
+    }
     if (event.replacement_start >= 0 && event.replacement_length >= 0) {
         try {
             // Widen validated nonnegative host units before summation; never
@@ -521,6 +530,11 @@ void TextEditingEngine::handle_text_input(TextInputEvent& event) {
     composing_ = event.composing && !event.text_utf8.empty();
     const TextInputScope input_scope(text_input_active_);
     event.handled = replace(start, end, event.text_utf8, TextEditKind::typing);
+    if (event.handled && composing_) {
+        marked_start_ = start;
+        marked_end_ = Utf8Offset(std::min(start.value() + event.text_utf8.size(), store_.utf8_size().value()));
+        marked_revision_ = store_.revision();
+    }
     if (event.handled) host_.editing_user_edit(TextEditKind::typing, event.composing);
 }
 

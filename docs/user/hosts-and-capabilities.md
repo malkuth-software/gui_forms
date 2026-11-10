@@ -25,7 +25,7 @@ whole record for logs.
 | `occlusion` | window hidden/exposed notifications that gate painting | yes | no | yes |
 | `scheduled_wake` | timed wake for frames and timers | yes | yes | yes |
 | `pointer_input`, `keyboard_input` | translated pointer and key events | yes | yes | yes |
-| `text_composition` | input-method composition bridged to the window | yes | no | no |
+| `text_composition` | input-method composition bridged to the window | yes | yes | no |
 | `pointer_capture` | synchronous capture routed to one control | yes | yes | yes |
 | `cursor` | portable cursor kinds applied natively | yes | yes | yes |
 | `clipboard`, `clipboard_images` | bounded UTF-8 text and premultiplied BGRA8 images | yes | yes | yes |
@@ -152,6 +152,18 @@ backdrops").
 The headless reference host simulates these capabilities
 (`HeadlessApplication::simulate_compositor_state`).
 
+## Idle windows schedule no frames
+
+A window whose live surfaces publish nothing schedules no frames (audit E4).
+Each native host keeps its live clock running only while frames arrive:
+when a drain finds no new publication it stops the clock and arms the
+window's idle handshake (`Window::set_live_surface_idle_waiting`), and the
+producer's next publication wakes the host from its own thread (macOS: the
+display link; Windows: a posted message that re-arms the waitable timer;
+X11: the run's wake pipe, which ends the 16 ms poll's rest). Retained
+damage also ends a rest, for one drain. The Windows host counts the rests
+in its diagnostics (`live_presentations.idle_entries`).
+
 ## Input settings
 
 Every host reports the platform's double-click interval after a window
@@ -233,7 +245,8 @@ since `PointerButton` names only the primary, secondary and middle buttons
 and adding back and forward is an ABI change left for the seal; touch and
 pen input arrive only as the platform's mouse emulation (no `WM_POINTER*`,
 `WM_TOUCH`, macOS touch events or XInput2 touch); horizontal wheel scrolling
-is delivered by every native host. Monitor changes reach the window as
+is delivered by every native host (Windows `WM_MOUSEHWHEEL`, macOS
+`scrollingDeltaX`, X11 buttons 6 and 7). Monitor changes reach the window as
 `HostDisplayEvent`: Windows on `WM_DISPLAYCHANGE`, macOS on
 `NSApplicationDidChangeScreenParametersNotification`, X11 on RandR's screen
 change notification where the build has libXrandr.
@@ -307,10 +320,21 @@ Windows (Win32)
   through providers for `UiaRootObjectId` (AutomationId is the stable ID;
   Invoke, Toggle, Value, RangeValue, ExpandCollapse, SelectionItem and
   Selection patterns, and TextPattern and TextPattern2 for a text box's
-  text, units, selection, caret and bounds). The adapter does not advertise
-  `text_composition`: the system input method draws its own composition and
-  candidate windows, which the host places at the focused control's caret,
-  and committed text arrives as `WM_CHAR`; no preedit reaches the window. OLE drag/drop and native menu publication are not implemented.
+  text, units, selection, caret and bounds). Scheduled wakes nearer than
+  50 ms (theme animations, a fast caret) ride a high-resolution waitable
+  timer instead of `WM_TIMER`, whose floor and granularity made such frames
+  uneven; farther ones keep `SetTimer` (audit N63). The live clock is phased
+  to the primary display's vertical blank, or, for a window on another
+  display with a different refresh rate, runs at that display's period
+  (audit N64). The open, save and folder dialogs are the shell's common item
+  dialog (`IFileOpenDialog`, `IFileSaveDialog`): no fixed path buffer and no
+  `MAX_PATH` limit, and a chosen path that cannot be converted to UTF-8 is a
+  failure (audit N65). Input methods compose inline
+  (`text_composition`, IMM32): `WM_IME_COMPOSITION`'s composition string
+  reaches the focused control as composing text, which the control shows
+  and each update replaces, and its result string as committed input; the
+  system's own composition window is turned off and its candidate window is
+  placed below the caret. TSF is not used. OLE drag/drop and native menu publication are not implemented.
 
 Linux (X11)
 : `src/host/linux/`, built with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. Xlib
@@ -334,6 +358,16 @@ Linux (X11)
   One loop turn takes at most 32 X events or 4 ms before the windows update,
   as the Windows host's turn does, and drops a pointer motion that a later
   queued motion for the same window replaces (audit N68).
+  Presentation writes the frame into a MIT-SHM segment the server reads
+  (`XShmPutImage`) where the build found libXext and the display is local;
+  otherwise, and on a remote display, it sends the pixels with `XPutImage`.
+  The common 32-bit BGRX visual takes the raster's rows as they are, with no
+  per-pixel conversion (audit G4/N67).
+  Honest X11 limits (audit N69): the wheel is core buttons 4 to 7 at a fixed
+  40 units a notch, with no XInput2, so touchpads do not scroll smoothly and
+  touch arrives only as the server's pointer emulation; the live clock is a
+  16 ms poll, not phased to the display, and rests while no live surface
+  publishes.
 
 Headless
 : `src/host/headless/`, built everywhere and linked by the tests. It emits

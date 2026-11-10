@@ -211,6 +211,14 @@ private:
     bool read_only_{};
     bool multiline_{};
     bool composing_{};
+    // The composition's marked text (audit N106): the range the last
+    // composing input inserted, which the next update of the same
+    // composition replaces when the host names no range. Valid while
+    // composing_ and the text is still at marked_revision_; any other edit
+    // leaves it stale and the update replaces the selection instead.
+    Utf8Offset marked_start_{};
+    Utf8Offset marked_end_{};
+    std::uint64_t marked_revision_{};
 
     static constexpr std::size_t maximum_history_entries_ = 128U;
     static constexpr std::size_t maximum_history_bytes_ = 8U * 1024U * 1024U;

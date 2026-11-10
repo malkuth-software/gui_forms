@@ -188,6 +188,24 @@ void composition_takes_escape() {
             "set_text abandons the composition");
 }
 
+// Audit N106: each update of a composition replaces its marked text, and the
+// commit replaces it too, when the input method names no range.
+void composition_updates_replace_marked_text() {
+    std::shared_ptr<TextBox> box = make_control<TextBox>(StableId("esc.marked"), "x");
+    Fixture fixture = make_fixture("esc.marked", box);
+    Window& window = *fixture.window;
+    require(window.request_focus(box), "the box takes focus");
+    require(type(window, "k", true) && (*box).text.read() == "xk", "the first update inserts at the caret");
+    require(type(window, "ka", true) && (*box).text.read() == "xka", "the second update replaces the first");
+    require(type(window, "\xE3\x81\x8B", true) && (*box).text.read() == "x\xE3\x81\x8B",
+            "the converted update replaces the romaji");
+    require(type(window, "\xE3\x81\x8B") && (*box).text.read() == "x\xE3\x81\x8B",
+            "the commit replaces the marked text once");
+    require(type(window, "y") && (*box).text.read() == "x\xE3\x81\x8By", "after the commit, typing inserts");
+    require(type(window, "z", true) && type(window, "", true) && (*box).text.read() == "x\xE3\x81\x8By",
+            "an empty update cancels the composition and removes its text");
+}
+
 void selection_drag_takes_escape() {
     std::shared_ptr<TextBox> box = make_control<TextBox>(StableId("esc.drag"), "drag across this text");
     Fixture fixture = make_fixture("esc.drag", box);
@@ -291,6 +309,7 @@ int main() {
     accepting_box_takes_plain_escape();
     suggestion_list_takes_escape();
     composition_takes_escape();
+    composition_updates_replace_marked_text();
     selection_drag_takes_escape();
     composites_pass_escape_on();
     dialog_cancel_from_text_box();

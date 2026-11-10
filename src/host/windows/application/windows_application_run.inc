@@ -210,7 +210,8 @@ public:
     explicit WindowsApplicationRun(HINSTANCE instance)
         : HostWindowing(windows_capabilities()), instance_(instance) {
         slots_.reserve(reserved_slots);
-        clocks_.reserve(reserved_slots);
+        // Two clocks per window: live and scheduler.
+        clocks_.reserve(2U * reserved_slots);
     }
     WindowsApplicationRun(const WindowsApplicationRun&) = delete;
     WindowsApplicationRun& operator=(const WindowsApplicationRun&) = delete;
@@ -636,9 +637,12 @@ bool WindowsApplicationRun::turn(MSG& quit_message, const bool outermost) {
     // A window opened or closed in the previous turn changes the slots;
     // their count is read afresh in every turn.
     clocks_.clear();
+    // Each window's live clock and scheduler clock (audit N63).
     for (std::size_t index = 0; index < slots_.size(); ++index) {
         const HANDLE clock = (*(*slots_[index]).state).live_frame_clock();
         if (clock != nullptr) clocks_.push_back(clock);
+        const HANDLE scheduler = (*(*slots_[index]).state).scheduler_clock();
+        if (scheduler != nullptr) clocks_.push_back(scheduler);
     }
     if (clocks_.size() >= MAXIMUM_WAIT_OBJECTS) {
         clocks_.resize(MAXIMUM_WAIT_OBJECTS - 1U);
@@ -657,6 +661,10 @@ bool WindowsApplicationRun::turn(MSG& quit_message, const bool outermost) {
             WindowsHostState& state = *(*slots_[index]).state;
             if (state.live_frame_clock() == ready) {
                 state.mark_live_frame_due();
+                break;
+            }
+            if (state.scheduler_clock() == ready) {
+                state.scheduler_clock_signalled();
                 break;
             }
         }

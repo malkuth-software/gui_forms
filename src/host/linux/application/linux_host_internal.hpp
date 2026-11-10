@@ -1,4 +1,5 @@
 #pragma once
+#include "x11_shm_present.hpp"
 #include "../accessibility/linux_accessibility.hpp"
 #include "../../../render/skia/raster/skia_raster.hpp"
 #include "../../../render/skia/raster/skia_splash_bake.hpp"
@@ -308,6 +309,9 @@ public:
   // The last press, for the computed click count (linux_input_rules.hpp).
   LinuxClickHistory click_history{};
   std::vector<char> presentation;
+  // The shared-memory image presents use where MIT-SHM is available
+  // (audit G4/N67); released in ~NativeWindow, before the display closes.
+  X11SharedImage shared_image;
   // The invalidation overlay's present-time storage (gui_forms/diagnostics/
   // invalidation_overlay), reused: the scratch frame the outlines are
   // composited in (sized on first use), the device areas they cover now and
@@ -332,6 +336,10 @@ public:
   // A taken presentation region that was never presented: the next tick
   // repaints whole clips.
   bool live_region_lost{};
+  // The live clock rests (audit E4): the last gather found no new frame,
+  // so the run stops its 16 ms sampling for this window and the idle
+  // handshake is armed; a producer's publication writes the wake pipe.
+  bool live_idle{};
   ::Window drag_source{};
   Atom drag_type{};
   DragEvent drag;

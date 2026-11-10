@@ -452,19 +452,27 @@ bool present_raster_rectangles(NativeWindow& window, const std::span<const Rect>
   present.present_alpha = window.present_alpha;
   PresentationImage owner{};
   Display* const display = window.runtime.display;
-  // The window's own visual and depth: the ARGB visual's for a window
-  // made with it (stage T5, C4).
-  owner.value = XCreateImage(display, window.visual, static_cast<unsigned>(window.depth), ZPixmap, 0,
-      nullptr, width, height, 32, 0);
-  if (owner.value == nullptr) return false;
-  XImage& image = *owner.value;
+  // The shared-memory image where MIT-SHM works (audit G4/N67): the server
+  // reads the converted pixels from the segment instead of the socket.
+  // Otherwise a client image over window.presentation, sent by XPutImage.
+  const bool shared = window.shared_image.prepare(display, window.visual, window.depth, width, height);
+  if (!shared) {
+    // The window's own visual and depth: the ARGB visual's for a window
+    // made with it (stage T5, C4).
+    owner.value = XCreateImage(display, window.visual, static_cast<unsigned>(window.depth), ZPixmap, 0,
+        nullptr, width, height, 32, 0);
+    if (owner.value == nullptr) return false;
+  }
+  XImage& image = shared ? *window.shared_image.image() : *owner.value;
   const std::size_t maximum_row = static_cast<std::size_t>(width) * 4U;
   if (image.bytes_per_line <= 0 || image.bits_per_pixel <= 0 || image.bits_per_pixel > 32 ||
       static_cast<std::size_t>(image.bytes_per_line) > maximum_row || present.row_bytes < maximum_row) return false;
   const std::size_t bytes = static_cast<std::size_t>(image.bytes_per_line) * static_cast<std::size_t>(height);
   if (bytes > 64U * 1024U * 1024U) return false;
-  window.presentation.resize(bytes);
-  image.data = window.presentation.data();
+  if (!shared) {
+    window.presentation.resize(bytes);
+    image.data = window.presentation.data();
+  }
   // The copy alone is timed: conversion, XPutImage and the flush.
   const std::chrono::steady_clock::time_point copy_started = std::chrono::steady_clock::now();
   for (std::size_t index = 0; index < rectangles.size(); ++index) {
@@ -480,11 +488,15 @@ bool present_raster_rectangles(NativeWindow& window, const std::span<const Rect>
     if (!convert_present_rectangle(image, present, left, top, right, bottom)) return false;
     const unsigned columns = static_cast<unsigned>(right - left);
     const unsigned rows = static_cast<unsigned>(bottom - top);
-    XPutImage(display, window.xid, window.gc, &image, left, top, left, top, columns, rows);
+    if (shared) window.shared_image.put(window.xid, window.gc, left, top, columns, rows);
+    else XPutImage(display, window.xid, window.gc, &image, left, top, left, top, columns, rows);
     copied.device_pixels += static_cast<std::uint64_t>(columns) * static_cast<std::uint64_t>(rows);
     ++copied.rectangles;
   }
-  XFlush(display);
+  // The shared segment is written again by the next present, so the server
+  // must have read it first.
+  if (shared) window.shared_image.finish();
+  else XFlush(display);
   copied.copy_nanoseconds += static_cast<std::uint64_t>(
       std::chrono::duration_cast<std::chrono::nanoseconds>(
           std::chrono::steady_clock::now() - copy_started).count());
@@ -1133,7 +1145,9 @@ void NativeWindow::mark_transient(const HostPopupPlacement &popup) {
 }
 
 NativeWindow::~NativeWindow() {
+  shared_image.release();
   (*entry.model).set_dispatch_wake_handler({});
+  (*entry.model).set_live_surface_idle_wake_handler({});
   (*entry.model).set_paint_wake_handler({});
   (*entry.model).set_text_metrics_provider(nullptr);
   (*entry.model).set_framebuffer_painter(nullptr);
@@ -1174,6 +1188,8 @@ void NativeWindow::report_window_state() {
 void NativeWindow::attach() {
   (*entry.model).set_dispatch_wake_handler(Wake{runtime.wake_pipe[1]});
   (*entry.model).set_paint_wake_handler(Wake{runtime.wake_pipe[1]});
+  // A live publication while the clock rests writes the wake pipe (E4).
+  (*entry.model).set_live_surface_idle_wake_handler(Wake{runtime.wake_pipe[1]});
 #if !defined(GUI_FORMS_PREPARED_TEXT)
   // The raster keeps its pixels between ticks, so a scroll's pixels can be
   // moved instead of repainted (update). The prepared raster publishes only
@@ -1347,6 +1363,7 @@ void NativeWindow::close(HostCloseReason reason, bool force) {
   visible = false;
   static_cast<void>(dispatch(HostClosedEvent{reason}));
   (*entry.model).set_dispatch_wake_handler({});
+  (*entry.model).set_live_surface_idle_wake_handler({});
   (*entry.model).set_paint_wake_handler({});
   (*session).shutdown();
   XUnmapWindow(runtime.display, xid);
@@ -1557,6 +1574,12 @@ void NativeWindow::update() {
   // overlay's share (#69), and that damage is taken with the rest.
   const bool regions_taken = gather_live_frames();
   const DamageRegion fresh = (*entry.model).take_damage();
+  // Nothing new from any registered surface and no retained damage: the
+  // clock rests until a publication (audit E4). Arming rechecks the
+  // generations, so a frame published during this tick still wakes the run.
+  live_idle = (*entry.model).has_live_surface_presentations() && live_updates.empty() && fresh.empty();
+  if (live_idle)
+    (*entry.model).set_live_surface_idle_waiting(true);
   // The scroll copies recorded with that damage (SurfaceRoot::
   // take_scroll_copies): the damage this window still holds moves with each
   // copy's pixels before the fresh damage joins it. They are applied, in
@@ -1950,7 +1973,7 @@ void Runtime::step(int maximum_wait) {
       continue;
     // The live clock (stage DP): a registered live surface is sampled at
     // least every 16 ms, as the Windows host's waitable timer does.
-    if ((*window.entry.model).has_live_surface_presentations())
+    if ((*window.entry.model).has_live_surface_presentations() && !window.live_idle)
       wait = wait < 0 ? 16 : std::min(wait, 16);
     // The invalidation overlay's fade, while an outline shows: 33 ms, as
     // the Windows host's timer.

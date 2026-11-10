@@ -1,7 +1,7 @@
 // N61: the Windows host and the system input method.
 //
-// The host does not bridge preedit composition, so it must not advertise
-// HostCapability::text_composition. It does place the input method's
+// The host bridges inline composition (cp28), so it advertises
+// HostCapability::text_composition. It also places the input method's
 // composition window at the focused control's caret
 // (SurfaceRoot::text_input_caret) and keeps the candidate window off the
 // caret line. A fixture window with one focused text box runs in a real Win32
@@ -157,8 +157,8 @@ struct HostReady final {
 
 int main() {
     try {
-        require(!host::windows_capabilities().supports(HostCapability::text_composition),
-                "the Windows host does not advertise text_composition");
+        require(host::windows_capabilities().supports(HostCapability::text_composition),
+                "the Windows host advertises text_composition (inline composition, N61)");
         Fixture fixture;
         std::unique_ptr<Window> window = make_fixture(fixture);
         TestState state;
