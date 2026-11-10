@@ -248,7 +248,7 @@ gui_forms::Application
 
    .. cpp:function:: void set_invalidation_overlay(bool enabled) noexcept
 
-      The program's invalidation overlay switch (owner request 2026-11-09; gui_forms/diagnostics/invalidation_overlay): on, every window and popup window without a setting of its own (Window:: set_invalidation_overlay) outlines each area it presents again for 300 ms, naming the cause, until the switch is turned off or the program ends. It is the process switch (set_invalidation_overlay_ default), so windows opened later follow it too; it starts as GUI_FORMS_DEBUG_INVALIDATION asks. A window applies a change from its next damage or paint. Any thread.
+      The program's invalidation overlay switch (owner request 2026-11-09; gui_forms/diagnostics/invalidation_overlay): on, every window and popup window without a setting of its own (Window::set_invalidation_overlay) outlines each area it presents again for 300 ms, naming the cause, until the switch is turned off or the program ends. It is the process switch (set_invalidation_overlay_default), so windows opened later follow it too; it starts as GUI_FORMS_DEBUG_INVALIDATION asks. A window applies a change from its next damage or paint. Any thread.
 
 
    .. rubric:: Events

@@ -621,14 +621,29 @@ def enum_entry(record: EnumRecord, comment: str, linker: Linker) -> list[str]:
             indent("\n".join(body)), ""]
 
 
+def out_of_line_member(method: Method) -> bool:
+    """Whether a namespace-scope function is a member defined out of line
+    (`T EnvelopePyramid::reserve(...)`): its class entry already declares it."""
+    before = clean_signature(method.signature).split("(", 1)[0]
+    declarator = before.split()[-1] if before.split() else ""
+    return "::" in declarator
+
+
 def scope_entries(scopes: list[HeaderScope], linker: Linker) -> list[str]:
     lines: list[str] = []
+    # One page's scopes: a function a second header defines (a template
+    # declared in one header, defined in its kernels header) is declared once.
+    emitted: set[str] = set()
     for scope in scopes:
         lines += [namespace_directive(scope.namespace), "",
                   f"``#include <{scope.header[len('include/'):]}>``", ""]
         for function in scope.functions:
-            if is_deleted(function):
+            if is_deleted(function) or out_of_line_member(function):
                 continue
+            directive = scope.namespace + " " + function_directive(function)
+            if directive in emitted:
+                continue
+            emitted.add(directive)
             lines.append(function_directive(function))
             if function.comment:
                 lines += ["", indent(linker.prose(function.comment))]

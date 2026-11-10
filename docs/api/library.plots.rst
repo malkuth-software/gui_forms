@@ -2303,55 +2303,9 @@ Functions, constants and aliases
 
 ``#include <gui_forms/plots/decimation/decimation_kernels.hpp>``
 
-.. cpp:function:: template <typename Source> DecimationStatistics decimate_envelope(const Source& source, ElementRange range, const PlotTransform& transform, std::span<Point> out) noexcept
-
-.. cpp:function:: template <typename Source> DecimationStatistics map_all(const Source& source, ElementRange range, const PlotTransform& transform, std::span<Point> out) noexcept
-
-.. cpp:function:: inline void EnvelopePyramid::reserve(std::size_t capacity)
-
-.. cpp:function:: inline std::size_t EnvelopePyramid::bucket_count(std::size_t level) const noexcept
-
-.. cpp:function:: inline std::uint32_t EnvelopePyramid::minimum_index(std::size_t level, std::size_t bucket) const noexcept
-
-.. cpp:function:: inline std::uint32_t EnvelopePyramid::maximum_index(std::size_t level, std::size_t bucket) const noexcept
-
-.. cpp:function:: template <typename Source> void EnvelopePyramid::compute_level_zero(const Source& source, std::size_t first_bucket) noexcept
-
-.. cpp:function:: template <typename Source> void EnvelopePyramid::compute_level(const Source& source, std::size_t level, std::size_t first_bucket) noexcept
-
-.. cpp:function:: template <typename Source> PyramidOutcome EnvelopePyramid::build(const Source& source) noexcept
-
-.. cpp:function:: template <typename Source> PyramidOutcome EnvelopePyramid::extend(const Source& source, std::size_t previous_size) noexcept
-
-.. cpp:function:: template <typename Source> void EnvelopePyramid::range_extremes(const Source& source, std::size_t first, std::size_t end, std::size_t& minimum, std::size_t& maximum) const noexcept
-
-.. cpp:function:: template <typename Source> DecimationStatistics EnvelopePyramid::envelope(const Source& source, ElementRange range, const PlotTransform& transform, std::span<Point> out) const noexcept
-
-.. cpp:function:: inline void OccupancyGrid::reserve(std::size_t columns, std::size_t rows)
-
-.. cpp:function:: template <typename Source> DecimationStatistics OccupancyGrid::thin(const Source& source, const PlotTransform& transform, std::span<Point> out) noexcept
-
-.. cpp:function:: template <SeriesElement Element> BinTally bin_values(SeriesSpans<Element> values, const BinSpec& spec, std::span<std::uint64_t> counts) noexcept
-
-.. cpp:function:: template <typename Source> BinTally bin_points(const Source& source, const BinSpec& x_spec, const BinSpec& y_spec, std::span<std::uint64_t> counts) noexcept
-
 .. cpp:namespace:: gui_forms::plots
 
 ``#include <gui_forms/plots/mark_painters/mark_painter_kernels.hpp>``
-
-.. cpp:function:: template <typename Source> MarkStatistics SeriesMarkPainter::paint_line(Painter& painter, const Source& source, XOrder order, const PlotTransform& transform, const StrokeStyle& stroke, LineDecimation decimation, const EnvelopePyramid* pyramid)
-
-.. cpp:function:: template <typename Source> MarkStatistics SeriesMarkPainter::paint_stairs(Painter& painter, const Source& source, const PlotTransform& transform, const StrokeStyle& stroke, StairsMode mode)
-
-.. cpp:function:: template <typename Source> MarkStatistics SeriesMarkPainter::paint_scatter(Painter& painter, const Source& source, const PlotTransform& transform, const MarkerStyle& marker, OccupancyGrid* grid)
-
-.. cpp:function:: template <typename Upper, typename Lower> MarkStatistics SeriesMarkPainter::paint_shaded(Painter& painter, const Upper& upper, const Lower& lower, const PlotTransform& transform, Color fill)
-
-.. cpp:function:: template <typename Source> MarkStatistics SeriesMarkPainter::paint_bars(Painter& painter, const Source& source, const PlotTransform& transform, double width, double baseline, bool horizontal, Color fill)
-
-.. cpp:function:: template <typename Source, typename Errors> MarkStatistics SeriesMarkPainter::paint_error_bars(Painter& painter, const Source& source, const Errors& low, const Errors& high, const PlotTransform& transform, double cap, const StrokeStyle& stroke)
-
-.. cpp:function:: template <typename Source> MarkStatistics SeriesMarkPainter::paint_stems(Painter& painter, const Source& source, const PlotTransform& transform, double baseline, const StrokeStyle& stroke, const MarkerStyle& marker)
 
 .. cpp:namespace:: gui_forms::plots
 
@@ -2421,49 +2375,11 @@ Functions, constants and aliases
 
    Whether an element is a gap. Integer elements never are.
 
-.. cpp:function:: template <SeriesElement Element> SeriesColumn<Element>::SeriesColumn(SeriesMode mode, std::size_t capacity, XOrder order)
-
-.. cpp:function:: template <SeriesElement Element> SeriesDirtyRange SeriesColumn<Element>::take_dirty() noexcept
-
-.. cpp:function:: template <SeriesElement Element> std::size_t SeriesColumn<Element>::slot(std::size_t index) const noexcept
-
-.. cpp:function:: template <SeriesElement Element> void SeriesColumn<Element>::mark(std::uint64_t first, std::uint64_t end) noexcept
-
-.. cpp:function:: template <SeriesElement Element> std::size_t SeriesColumn<Element>::count_gaps(std::span<const Element> elements) noexcept
-
-.. cpp:function:: template <SeriesElement Element> double SeriesColumn<Element>::finite_before(std::size_t index) const noexcept
-
-.. cpp:function:: template <SeriesElement Element> double SeriesColumn<Element>::newest_finite() const noexcept
-
-.. cpp:function:: template <SeriesElement Element> double SeriesColumn<Element>::finite_from(std::size_t index) const noexcept
-
-.. cpp:function:: template <SeriesElement Element> bool SeriesColumn<Element>::keeps_order(double previous, std::span<const Element> elements) const noexcept
-
-.. cpp:function:: template <SeriesElement Element> SeriesEditOutcome SeriesColumn<Element>::reserve(std::size_t capacity)
-
-.. cpp:function:: template <SeriesElement Element> SeriesEditOutcome SeriesColumn<Element>::assign(std::span<const Element> elements)
-
-.. cpp:function:: template <SeriesElement Element> SeriesEditOutcome SeriesColumn<Element>::append(std::span<const Element> elements)
-
-.. cpp:function:: template <SeriesElement Element> SeriesEditOutcome SeriesColumn<Element>::write_range(ElementIndex first, std::span<const Element> elements)
-
-.. cpp:function:: template <SeriesElement Element> SeriesEditOutcome SeriesColumn<Element>::push_overwrite(std::span<const Element> elements)
-
-.. cpp:function:: template <SeriesElement Element> void SeriesColumn<Element>::clear() noexcept
-
-.. cpp:function:: template <SeriesElement Element> SeriesSpans<Element> SeriesColumn<Element>::read() const noexcept
-
 .. cpp:namespace:: gui_forms::plots
 
 ``#include <gui_forms/plots/series_picker/series_picker.hpp>``
 
 .. cpp:function:: RectPick pick_rect(std::span<const Rect> rects, Point device) noexcept
-
-.. cpp:function:: template <typename Source> bool SeriesPicker::nearest_monotone(const Source& source, SeriesIdentity series, const PlotTransform& transform, Point device, double radius, PickResult& result) const noexcept
-
-.. cpp:function:: template <typename Source> void SeriesPicker::build_grid(const Source& source, const PlotTransform& transform) noexcept
-
-.. cpp:function:: template <typename Source> bool SeriesPicker::nearest_unordered(const Source& source, SeriesIdentity series, std::uint64_t revision, const PlotTransform& transform, Point device, double radius, PickResult& result) noexcept
 
 .. cpp:namespace:: gui_forms::plots
 
