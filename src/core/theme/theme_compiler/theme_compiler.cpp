@@ -10,6 +10,8 @@
 #include "../../theme_language/package/theme_header.hpp"
 #include "../../theme_language/package/theme_package.hpp"
 #include "../theme/floor_sheet.hpp"
+#include "../familiar_themes/windows_professional_floor.hpp"
+#include "../familiar_themes/windows_professional_sheets.hpp"
 #include "../theme/theme_access.hpp"
 #include "built_in_theme.hpp"
 #include "control_inline_style.hpp"
@@ -339,20 +341,19 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
                                    const theme_language::InstalledThemeIndex& index, ImageRegistry& images,
                                    ThemeImageShares& shares, const ThemeCompileOptions& options, ThemeRuleSet set,
                                    std::string_view id, std::span<const UserIcon> icons) {
-    // GUI.Forms' own theme as the base: its light sheet as the first sheet
-    // of the cascade, a pack with no manifest entries of its own, held here
-    // for the whole compilation (`order` borrows it). Onto
-    // windows-professional it only names the theme's findings when there
-    // is no root, and is not part of the cascade.
+    // The base's sheet as the first sheet of the cascade: GUI.Forms' own
+    // theme's light sheet, or windows-professional's parts sheet (owner,
+    // 2026-11-10). A pack with no manifest entries of its own, held here
+    // for the whole compilation (`order` borrows it); it also names the
+    // theme's findings when there is no root.
     const bool onto_gui_forms = options.base == ThemeBase::gui_forms;
     VerifiedThemePack base_pack{};
     base_pack.manifest.name = onto_gui_forms ? "gui-forms" : "windows-professional";
+    base_pack.manifest.sheet.path = onto_gui_forms ? "light.css" : "parts.css";
+    base_pack.sheet = onto_gui_forms ? std::string(gui_forms_light_sheet())
+                                     : std::string(detail::windows_professional_parts_sheet);
     std::vector<const VerifiedThemePack*> order{};
-    if (onto_gui_forms) {
-        base_pack.manifest.sheet.path = "light.css";
-        base_pack.sheet = std::string(gui_forms_light_sheet());
-        order.push_back(&base_pack);
-    }
+    order.push_back(&base_pack);
     std::vector<const VerifiedThemePack*> reached{};
     ThemeDiagnostic problem{};
     for (std::size_t position = 0U; position < roots.size(); ++position) {
@@ -444,7 +445,7 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
     // user-agent origin under them (selector step 1). Alone, it is the
     // program's own sheet.
     std::optional<std::uint32_t> base_origin_end{};
-    if (onto_gui_forms && set == ThemeRuleSet::program && segments.size() > 1U) {
+    if (set == ThemeRuleSet::program && segments.size() > 1U) {
         base_origin_end = static_cast<std::uint32_t>(segments[1].start);
     }
     const theme_language::ThemeSource source{.file = closure_file, .text = text};
@@ -463,7 +464,7 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
                                                   .effects = options.effects};
     // The base's recipes, some 100 KB held out of line.
     std::unique_ptr<ThemeDefinition> definition(new ThemeDefinition(
-        onto_gui_forms ? gui_forms_theme_definition() : windows_professional_theme_definition()));
+        onto_gui_forms ? gui_forms_theme_definition() : detail::windows_professional_floor_definition()));
     (*definition).rule_set = set;
     theme_language::ThemeCompiler compiler{};
     theme_language::ThemeDiagnosticList diagnostics{};
@@ -476,7 +477,7 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
         found.push_back(public_diagnostic(placed));
     }
     if (outcome != theme_language::CompileOutcome::compiled) return ThemeCompileResult::refused(std::move(found));
-    place_rules((*definition).rules, segments, roots, onto_gui_forms ? &base_pack : nullptr, set);
+    place_rules((*definition).rules, segments, roots, &base_pack, set);
     // A program theme with rules for the dark scheme but no dark variant
     // (T4 theme variants): a dark window shows GUI.Forms' own dark theme,
     // so the rules apply nowhere. A user theme is layered, and has none.

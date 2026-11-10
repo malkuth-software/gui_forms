@@ -95,8 +95,11 @@ private:
 // The built-in theme a program theme is compiled onto (stage T4 phase 6):
 // its recipes are the floor every rule the sheets leave unset falls back
 // to.
-// - windows_professional: the Windows-familiar theme's recipes, with no
-//   sheet of its own and no dark variant.
+// - windows_professional: the stock Windows-familiar theme,
+//   `windows-professional` (owner, 2026-11-10): its floor's recipes, light
+//   and authored dark, and its parts sheet (named
+//   `windows-professional/parts.css` in diagnostics) placed first in the
+//   cascade, so the package's sheets override it.
 // - gui_forms: GUI.Forms' own theme, `gui-forms`: its recipes, and its light
 //   sheet (gui_forms_light_sheet(), named `gui-forms/light.css` in
 //   diagnostics) placed first in the cascade, so the package's sheets

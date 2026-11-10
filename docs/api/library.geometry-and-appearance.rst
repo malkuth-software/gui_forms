@@ -6024,6 +6024,8 @@ Enumerations
 
    .. cpp:enumerator:: macos_style
 
+   .. cpp:enumerator:: windows_professional
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -7931,7 +7933,7 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string_view familiar_theme_id(FamiliarTheme theme) noexcept
 
-   The theme's id (``classic``, ``modern-flat``, ``xp-style``, ``windows7-style``, ``macos-style``); empty for ``count``.
+   The theme's id (``classic``, ``modern-flat``, ``xp-style``, ``windows7-style``, ``macos-style``, ``windows-professional``); empty for ``count``.
 
 .. cpp:function:: std::optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept
 
