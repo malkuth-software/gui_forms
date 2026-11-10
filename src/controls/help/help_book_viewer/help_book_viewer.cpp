@@ -751,6 +751,9 @@ void HelpBookViewer::on_link(HelpLinkActivation& activation) {
         return;
     case HelpLinkKind::image:
         return;
+    default:
+        // An enumerator outside the declared set (a corrupt value) does nothing.
+        break;
     }
 }
 
@@ -825,6 +828,9 @@ void HelpBookViewer::on_key_preview(KeyEvent& event) {
                 break;
             case HelpNavigationTab::bookmarks:
                 focus_child(bookmarks_list_);
+                break;
+            default:
+                // An enumerator outside the declared set (a corrupt value) does nothing.
                 break;
             }
         } else {

@@ -25,7 +25,10 @@ DisplaySnapshotRefusal command_refusal(const DisplayCommand& command) noexcept {
     case DisplayOperation::draw_image_region_sampled:
     case DisplayOperation::fill_image_pattern: return DisplaySnapshotRefusal::image;
     case DisplayOperation::draw_prepared_text: return DisplaySnapshotRefusal::prepared_text;
-    default: break;
+    default:
+        // Every other operation reads nothing UI-thread-only by its kind;
+        // the flags below cover what it may still carry.
+        break;
     }
     if (command.live_surface) return DisplaySnapshotRefusal::live_surface;
     if (command.prepared_text) return DisplaySnapshotRefusal::prepared_text;

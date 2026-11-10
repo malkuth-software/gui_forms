@@ -108,6 +108,9 @@ void label_time(TickLabel& label, std::int64_t seconds, TimeLabel form, std::str
     case TimeLabel::years:
         append_integer(scratch, civil.year);
         break;
+    default:
+        // An enumerator outside the declared set (a corrupt value) does nothing.
+        break;
     }
     set_label(label, scratch);
 }

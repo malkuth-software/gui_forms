@@ -558,6 +558,7 @@ gf_status GF_CALL docking_apply_edit(gf_object workspace, const gf_dock_edit* ed
             }
             [[fallthrough]];
         default: {
+            // Every other edit (docking, moving, sizing) is one program transaction.
             DockTransaction transaction{};
             transaction.origin = DockEditOrigin::program;
             transaction.edits.push_back(std::move(made));

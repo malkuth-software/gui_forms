@@ -795,11 +795,16 @@ BeakCorners beak_corners(Rect box, PartMark mark) noexcept {
     const double middle_x = box.x + box.width * 0.5;
     const double middle_y = box.y + box.height * 0.5;
     BeakCorners result{};
-    switch (mark) {
-    case PartMark::arrow_up: result = BeakCorners{{middle_x, box.y}, {box.x, bottom}, {right, bottom}}; break;
-    case PartMark::arrow_down: result = BeakCorners{{middle_x, bottom}, {box.x, box.y}, {right, box.y}}; break;
-    case PartMark::arrow_left: result = BeakCorners{{box.x, middle_y}, {right, box.y}, {right, bottom}}; break;
-    default: result = BeakCorners{{right, middle_y}, {box.x, box.y}, {box.x, bottom}}; break;
+    // Geometry, not a vocabulary mapping: up, down and left have their own
+    // tips; arrow_right and every mark without a direction point right.
+    if (mark == PartMark::arrow_up) {
+        result = BeakCorners{{middle_x, box.y}, {box.x, bottom}, {right, bottom}};
+    } else if (mark == PartMark::arrow_down) {
+        result = BeakCorners{{middle_x, bottom}, {box.x, box.y}, {right, box.y}};
+    } else if (mark == PartMark::arrow_left) {
+        result = BeakCorners{{box.x, middle_y}, {right, box.y}, {right, bottom}};
+    } else {
+        result = BeakCorners{{right, middle_y}, {box.x, box.y}, {box.x, bottom}};
     }
     return result;
 }

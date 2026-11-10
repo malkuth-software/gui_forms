@@ -254,6 +254,9 @@ struct PaintOperation final {
         case PlotSeriesKind::stems:
             static_cast<void>((*marks).paint_stems(*painter, source, *transform, 0.0, stroke, marker));
             return;
+        default:
+            // An enumerator outside the declared set (a corrupt value) does nothing.
+            break;
         }
     }
 };

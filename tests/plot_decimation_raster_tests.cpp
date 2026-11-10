@@ -165,6 +165,9 @@ std::vector<double> make_series(Shape shape, std::size_t count, bool gaps) {
         case Shape::spikes:
             value = index % 1013U == 0U ? 1.0 : (unit_noise(5U, index) - 0.5) * 0.1;
             break;
+        default:
+            // An enumerator outside the declared set (a corrupt value) does nothing.
+            break;
         }
         values[index] = value;
     }

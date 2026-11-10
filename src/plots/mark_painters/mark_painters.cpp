@@ -106,6 +106,9 @@ MarkStatistics SeriesMarkPainter::paint_ticks(Painter& painter, const TickSet& t
         case AxisSide::right:
             segment = PaintSegment{Point{plot.right(), snapped}, Point{plot.right() + length, snapped}};
             break;
+        default:
+            // An enumerator outside the declared set (a corrupt value) does nothing.
+            break;
         }
         segments_[written] = segment;
         written = written + 1U;

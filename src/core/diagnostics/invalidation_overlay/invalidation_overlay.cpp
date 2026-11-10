@@ -330,6 +330,9 @@ InvalidationOutlineStyle invalidation_outline_style(InvalidationCause cause) noe
     case InvalidationCause::external_content:
         style = InvalidationOutlineStyle{Color::rgba(0, 210, 230), 1.0, 5.0, 3.0, true};
         break;
+    default:
+        // An enumerator outside the declared set (a corrupt value) does nothing.
+        break;
     }
     return style;
 }

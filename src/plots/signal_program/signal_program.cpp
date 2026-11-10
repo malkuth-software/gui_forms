@@ -179,6 +179,9 @@ void run_signal(const SignalProgram& program, const SignalFrame& frame, SignalSi
     case SignalKind::oscillators:
         program.oscillators.run(frame, sink);
         return;
+    default:
+        // An enumerator outside the declared set (a corrupt value) does nothing.
+        break;
     }
 }
 

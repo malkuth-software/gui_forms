@@ -647,6 +647,9 @@ void PlotView::take_live_notice(const detail::PlotLiveNotice& notice) {
     case detail::PlotLiveNoticeKind::legend_toggle:
         toggle_series(notice.series);
         return;
+    default:
+        // An enumerator outside the declared set (a corrupt value) does nothing.
+        break;
     }
 }
 
