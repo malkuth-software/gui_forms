@@ -15,6 +15,7 @@
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/commands/font_command/font_command.hpp"
 #include "gui_forms/commands/gallery_command/gallery_command.hpp"
+#include "gui_forms/components/about_dialog/about_dialog.hpp"
 #include "gui_forms/components/color_dialog/color_dialog.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/components/error_provider/error_provider.hpp"
@@ -36,6 +37,7 @@
 #include "gui_forms/controls/button_base/link_label/link_label.hpp"
 #include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
 #include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
+#include "gui_forms/controls/callout/callout.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
 #include "gui_forms/controls/collections/command_bar.hpp"
 #include "gui_forms/controls/collections/expandable_sections.hpp"
@@ -48,11 +50,18 @@
 #include "gui_forms/controls/easing_preview/easing_preview.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
+#include "gui_forms/controls/instruments/dial/dial.hpp"
+#include "gui_forms/controls/instruments/gauge_base/gauge_base.hpp"
+#include "gui_forms/controls/instruments/gauge_base/linear_gauge/linear_gauge.hpp"
+#include "gui_forms/controls/instruments/gauge_base/radial_gauge/radial_gauge.hpp"
+#include "gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp"
 #include "gui_forms/controls/instruments/sparkline/sparkline.hpp"
 #include "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp"
 #include "gui_forms/controls/label/label.hpp"
+#include "gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp"
 #include "gui_forms/controls/menu_strip/menu_strip.hpp"
 #include "gui_forms/controls/metrics_view/metrics_view.hpp"
+#include "gui_forms/controls/modal_layer/modal_layer.hpp"
 #include "gui_forms/controls/pages/navigation_pane/navigation_pane.hpp"
 #include "gui_forms/controls/pages/page_strip/page_strip.hpp"
 #include "gui_forms/controls/pages/page_view/page_view.hpp"
@@ -124,6 +133,7 @@
 #include "gui_forms/controls/spinner/spinner.hpp"
 #include "gui_forms/controls/splitter/splitter.hpp"
 #include "gui_forms/controls/status_strip/status_strip.hpp"
+#include "gui_forms/controls/step_indicator/step_indicator.hpp"
 #include "gui_forms/controls/task_dialog/task_dialog.hpp"
 #include "gui_forms/controls/text_block/text_block.hpp"
 #include "gui_forms/controls/toast/toast.hpp"
@@ -132,6 +142,8 @@
 #include "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
 #include "gui_forms/controls/typography_specimen/typography_specimen.hpp"
 #include "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
+#include "gui_forms/controls/wizard/wizard.hpp"
+#include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/live_surface/surface/live_surface.hpp"
@@ -142,7 +154,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 131> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 143> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button_base/button/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -249,6 +261,18 @@ inline constexpr std::array<FormCatalogEntry, 131> form_catalog{{
     {"font_dialog", "FontDialog", "gui_forms/controls/panel/font_dialog/font_dialog.hpp", &add_catalog_type<FontDialog>},
     {"task_dialog", "TaskDialog", "gui_forms/controls/task_dialog/task_dialog.hpp", &add_catalog_type<TaskDialog>},
     {"thread_exception_dialog", "ThreadExceptionDialog", "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp", &add_catalog_type<ThreadExceptionDialog>},
+    {"seven_segment_display", "SevenSegmentDisplay", "gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp", &add_catalog_type<SevenSegmentDisplay>},
+    {"gauge_base", "GaugeBase", "gui_forms/controls/instruments/gauge_base/gauge_base.hpp", &add_catalog_type<GaugeBase>},
+    {"linear_gauge", "LinearGauge", "gui_forms/controls/instruments/gauge_base/linear_gauge/linear_gauge.hpp", &add_catalog_type<LinearGauge>},
+    {"radial_gauge", "RadialGauge", "gui_forms/controls/instruments/gauge_base/radial_gauge/radial_gauge.hpp", &add_catalog_type<RadialGauge>},
+    {"dial", "Dial", "gui_forms/controls/instruments/dial/dial.hpp", &add_catalog_type<Dial>},
+    {"step_indicator", "StepIndicator", "gui_forms/controls/step_indicator/step_indicator.hpp", &add_catalog_type<StepIndicator>},
+    {"wizard", "Wizard", "gui_forms/controls/wizard/wizard.hpp", &add_catalog_type<Wizard>},
+    {"wizard_page", "WizardPage", "gui_forms/controls/wizard/wizard_page/wizard_page.hpp", &add_catalog_type<WizardPage>},
+    {"callout", "Callout", "gui_forms/controls/callout/callout.hpp", &add_catalog_type<Callout>},
+    {"modal_layer", "ModalLayer", "gui_forms/controls/modal_layer/modal_layer.hpp", &add_catalog_type<ModalLayer>},
+    {"lookup_combo_box", "LookupComboBox", "gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp", &add_catalog_type<LookupComboBox>},
+    {"about_dialog", "AboutDialog", "gui_forms/components/about_dialog/about_dialog.hpp", &add_catalog_type<AboutDialog>},
     {"folder_browser_dialog", "FolderBrowserDialog", "gui_forms/components/folder_browser_dialog/folder_browser_dialog.hpp", &add_catalog_type<FolderBrowserDialog>},
     {"color_dialog", "ColorDialog", "gui_forms/components/color_dialog/color_dialog.hpp", &add_catalog_type<ColorDialog>},
     {"tool_tip", "ToolTip", "gui_forms/components/tool_tip/tool_tip.hpp", &add_catalog_type<ToolTip>},

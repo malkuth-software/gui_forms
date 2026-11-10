@@ -1,0 +1,83 @@
+{
+  "family": "Dial",
+  "step": "2.5",
+  "declaring": "Dial",
+  "header": "include/gui_forms/controls/instruments/dial/dial.hpp",
+  "source": "src/controls/instruments/dial/dial.cpp",
+  "capabilities_header": "include/gui_forms/controls/instruments/dial/dial_capabilities/dial_capabilities.hpp",
+  "base": "RangeControl",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/range_control/range_control.hpp"
+  ],
+  "not_properties": [],
+  "properties": [
+    {
+      "name": "tick_frequency",
+      "capability": "DialTickFrequency",
+      "value": "double",
+      "initial": "10.0",
+      "comment": "Distance in value units between scale marks; zero draws none. Negative or not finite throws std::invalid_argument.",
+      "getter": "tick_frequency",
+      "setter": "set_tick_frequency",
+      "clear": null,
+      "field": "tick_frequency_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "generated",
+      "table": {
+        "kind": "number",
+        "category": "Appearance",
+        "description": "Distance in value units between scale marks.",
+        "default": "BindingValue{10.0}",
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 0.0) throw std::invalid_argument(\"dial tick frequency must be finite and not negative\");"
+      ],
+      "sample": "5.0"
+    },
+    {
+      "name": "show_arc",
+      "capability": "DialShowArc",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the scale lights the arc from the minimum to the value.",
+      "getter": "show_arc",
+      "setter": "set_show_arc",
+      "clear": null,
+      "field": "show_arc_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "generated",
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether the scale lights the arc up to the value.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "sample": "false"
+    }
+  ],
+  "test": {
+    "type": "Dial",
+    "include": "gui_forms/controls/instruments/dial/dial.hpp"
+  }
+}

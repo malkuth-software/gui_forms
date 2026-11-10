@@ -833,6 +833,18 @@ add_library(gui_forms_controls STATIC
     src/controls/folder_browser_dialog/folder_browser_dialog.cpp
     src/controls/message_box/message_box.cpp
     src/controls/thread_exception_dialog/thread_exception_dialog.cpp
+    src/controls/about_dialog/about_dialog.cpp
+    src/controls/callout/callout.cpp
+    src/controls/instruments/dial/dial.cpp
+    src/controls/instruments/gauge_base/gauge_base.cpp
+    src/controls/instruments/gauge_base/linear_gauge/linear_gauge.cpp
+    src/controls/instruments/gauge_base/radial_gauge/radial_gauge.cpp
+    src/controls/instruments/seven_segment_display/seven_segment_display.cpp
+    src/controls/lookup_combo_box/lookup_combo_box.cpp
+    src/controls/modal_layer/modal_layer.cpp
+    src/controls/step_indicator/step_indicator.cpp
+    src/controls/wizard/wizard.cpp
+    src/controls/wizard/wizard_page/wizard_page.cpp
     src/controls/ribbon_gallery/ribbon_gallery.cpp
     src/controls/ribbon_gallery/ribbon_gallery_parts.cpp
     src/controls/ribbon_font_control/ribbon_font_control.cpp
@@ -1643,6 +1655,8 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/input-and-rules.cpp
         src/controls/gallery/pages/theme-settings.cpp
         src/controls/gallery/pages/spinners-and-rings.cpp
+        src/controls/gallery/pages/instruments.cpp
+        src/controls/gallery/pages/guided-tasks.cpp
     )
     add_library(gui_forms_gallery_model STATIC
         src/controls/gallery_controls.cpp
@@ -1725,6 +1739,10 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS ThemeSettingsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/spinners-and-rings.form
         CLASS SpinnersAndRingsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/instruments.form
+        CLASS InstrumentsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/guided-tasks.form
+        CLASS GuidedTasksDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/control-spectrum.form
         CLASS ControlSpectrumDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/retained-layout-panels.form
@@ -1758,6 +1776,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
             demo/pages/notices-and-badges.form
             demo/pages/input-and-rules.form demo/pages/theme-settings.form
             demo/pages/spinners-and-rings.form
+            demo/pages/instruments.form demo/pages/guided-tasks.form
             demo/pages/retained-layout-panels.form demo/pages/responsive-layouts.form
             demo/pages/css-layout-panels.form
             demo/pages/checked-collections.form demo/pages/choices-and-sections.form
@@ -3687,6 +3706,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_display_controls_tests tests/display_controls_tests.cpp)
     target_link_libraries(gui_forms_display_controls_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_display_controls_tests COMMAND gui_forms_display_controls_tests)
+    add_executable(gui_forms_final_controls_tests tests/final_controls_tests.cpp)
+    target_link_libraries(gui_forms_final_controls_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_final_controls_tests COMMAND gui_forms_final_controls_tests)
     add_executable(gui_forms_auto_complete_tests tests/auto_complete_tests.cpp)
     target_link_libraries(gui_forms_auto_complete_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_auto_complete_tests COMMAND gui_forms_auto_complete_tests)
@@ -4458,6 +4480,8 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/input-and-rules_tests.cpp
             tests/gallery_pages/theme-settings_tests.cpp
             tests/gallery_pages/spinners-and-rings_tests.cpp
+            tests/gallery_pages/instruments_tests.cpp
+            tests/gallery_pages/guided-tasks_tests.cpp
             tests/gallery_pages/anatomy_coverage_tests.cpp
             tests/gallery_pages/schema_export_tests.cpp
         )

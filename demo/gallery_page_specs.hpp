@@ -36,7 +36,7 @@ inline constexpr std::string_view body_id_prefix = "gallery.body.";
 
 // Form-document pages first (their content is declared in gallery.form), then the
 // pages migrated from the retired Complete Showcase in their former order.
-inline constexpr std::array<GalleryPageSpec, 36> gallery_pages {{
+inline constexpr std::array<GalleryPageSpec, 38> gallery_pages {{
     {"basics", "Basic controls",
      "Form-document group of public TextBox, Button, CheckBox, RadioButton, LinkLabel and Label instances plus a composed UserControl lifecycle card.",
      false, "Information display"},
@@ -143,6 +143,12 @@ inline constexpr std::array<GalleryPageSpec, 36> gallery_pages {{
     {"spinners-and-rings", "Spinners and rings",
      "Spinner at three sizes and ProgressRing determinate and indeterminate, on the motion clock and still under reduced motion.",
      false, "Information display"},
+    {"instruments", "Instruments",
+     "SevenSegmentDisplay readouts, LinearGauge and RadialGauge with scale marks and alarms, and a Dial driving a readout and a gauge.",
+     false, "Information display"},
+    {"guided-tasks", "Guided tasks",
+     "A Wizard with a gated page and a StepIndicator, a multi-column LookupComboBox, a Callout, an in-window ModalLayer and an AboutDialog.",
+     false, "Dialogs and overlays"},
     {"controls-inspection", "Controls inspection",
      "Every stock control at rest in a fixed labelled grid of states, drawn by the window's theme alone.",
      true, "Diagnostics"},

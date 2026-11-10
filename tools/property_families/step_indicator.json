@@ -1,0 +1,51 @@
+{
+  "family": "StepIndicator",
+  "step": "2.5",
+  "declaring": "StepIndicator",
+  "header": "include/gui_forms/controls/step_indicator/step_indicator.hpp",
+  "source": "src/controls/step_indicator/step_indicator.cpp",
+  "capabilities_header": "include/gui_forms/controls/step_indicator/step_indicator_capabilities/step_indicator_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [],
+  "not_properties": [],
+  "properties": [
+    {
+      "name": "current_step",
+      "capability": "StepIndicatorCurrentStep",
+      "value": "std::uint32_t",
+      "initial": "0U",
+      "comment": "The step under way, counted from zero; the steps before it are complete. Past the last step throws std::invalid_argument (zero is always accepted).",
+      "getter": "current_step",
+      "setter": "set_current_step",
+      "clear": null,
+      "field": "current_step_",
+      "event": "current_step_changed_",
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "generated",
+      "table": {
+        "kind": "unsigned_integer",
+        "category": "Behavior",
+        "description": "The step under way, counted from zero.",
+        "default": "BindingValue{std::uint64_t{0U}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "prepare": [
+        "if (incoming != 0U && incoming >= steps_.size()) throw std::invalid_argument(\"StepIndicator current step is past the last step\");"
+      ],
+      "sample": "std::uint32_t{0U}"
+    }
+  ],
+  "test": {
+    "type": "StepIndicator",
+    "include": "gui_forms/controls/step_indicator/step_indicator.hpp"
+  }
+}
