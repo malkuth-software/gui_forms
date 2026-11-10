@@ -72,6 +72,10 @@ struct MenuItemSpec final {
     // no anatomy state names why a row is set apart (PageStrip's list sets
     // the pages it does not show in italic, owner decision DK-42, PT6).
     bool italic{};
+    // The item's icon, drawn in the row's gutter (an image of the window's
+    // registry, at 16 x 16 logical units); none draws no icon. A checked
+    // check or radio item shows its mark there instead.
+    ImageId image{};
     // How the item joins another strip's menu when its strip merges
     // (MergeAction), and its position there; none matches by text only.
     MergeAction merge_action{MergeAction::append};

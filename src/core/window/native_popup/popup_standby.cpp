@@ -89,7 +89,7 @@ bool Window::popup_windows_available() const {
 }
 
 bool Window::popup_windows_translucent() const {
-    const bool translucent = detail::native_popup_translucent(application_window_);
+    const bool translucent = detail::native_popup_translucent(application_window_, *this);
     return translucent;
 }
 

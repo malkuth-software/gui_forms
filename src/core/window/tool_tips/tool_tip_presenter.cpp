@@ -267,7 +267,7 @@ bool ToolTipPresenter::show_in_splash(Showing& showing, ToolTipLines& lines) {
     (*transient_bubble_).set_content(showing.subject.text, lines);
     // An opaque Splash window (X11 without a compositing manager) holds the
     // face alone: no shadow (owner, 2026-11-08: Q-S2 (b)).
-    (*transient_bubble_).set_shadow(native_popup_translucent(window_.application_window_));
+    (*transient_bubble_).set_shadow(native_popup_translucent(window_.application_window_, window_));
     const bool placed = position(showing);
     return placed;
 }

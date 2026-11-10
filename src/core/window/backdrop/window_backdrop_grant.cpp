@@ -30,6 +30,17 @@ bool SurfaceRoot::declare_non_opaque() {
     return true;
 }
 
+bool SurfaceRoot::declare_content_surface() {
+    require_root_thread("content surface declaration");
+    if (host_session_bound_) return false;
+    if (content_surface_declared_) return true;
+    content_surface_declared_ = true;
+    // A theme chain lowered before the declaration no longer applies.
+    if (!application_backdrop_chain_) apply_backdrop_chain(std::nullopt);
+    const bool declared = declare_non_opaque();
+    return declared;
+}
+
 void SurfaceRoot::set_compositor_state(const CompositorState& state, bool host_preferences) {
     require_root_thread("compositor state");
     const CompositorState previous = compositor_state_;
@@ -118,7 +129,9 @@ void SurfaceRoot::set_backdrop_chain(std::optional<BackdropChain> chain) {
 }
 
 void SurfaceRoot::lower_theme_backdrop_chain() {
-    if (application_backdrop_chain_) return;
+    // A content surface's content draws its own surfaces: the theme's
+    // window chain would tint the clear pixels around them.
+    if (application_backdrop_chain_ || content_surface_declared_) return;
     const Window* const window = (*root_).attached_window();
     if (window == nullptr) return;
     const std::optional<BackdropChain> chain = (*theme_).window_backdrop_chain(*window);
@@ -146,6 +159,13 @@ void SurfaceRoot::apply_backdrop_chain(const std::optional<BackdropChain>& chain
 SurfaceMaterial SurfaceRoot::backplane_base(const ControlVisualContext& context) const {
     const ThemeWindowBackdrop& themed = (*theme_).definition().window_backdrop;
     const bool clear_grant = backdrop_grant_.granted != WindowBackdrop::opaque;
+    if (content_surface_declared_ && clear_grant) {
+        // Clear: the content (a menu panel and its shadow) draws every
+        // surface the window shows (declare_content_surface).
+        SurfaceMaterial clear{};
+        clear.fills.clear();
+        return clear;
+    }
     if (backdrop_chain_.has_value() && !context.high_contrast) {
         const BackdropChainResolution resolution =
             resolve_backdrop_chain(*backdrop_chain_, backdrop_grant_, context.high_contrast);

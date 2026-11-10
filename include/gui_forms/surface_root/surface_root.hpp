@@ -630,6 +630,18 @@ public:
     // creates it. UI thread.
     [[nodiscard]] bool declare_non_opaque();
     [[nodiscard]] bool non_opaque_declared() const noexcept { return non_opaque_declared_; }
+    // Declares, before a host attaches, that this window's content draws
+    // every surface the window shows, so that over a non-opaque grant its
+    // backplane is clear: a Popup or Splash window (APP_WINDOW_RULES_DESIGN
+    // Part S) whose content is a menu panel, a drop-down list or a tooltip
+    // bubble with the overlay shadow around it. Neither the theme's window
+    // material, its base for the grant nor its window backdrop chain is
+    // drawn there; over `opaque` the backplane is the theme's window
+    // material, as for any window. Declares the window non-opaque too.
+    // False, changing nothing, once a host session has been bound. UI
+    // thread.
+    [[nodiscard]] bool declare_content_surface();
+    [[nodiscard]] bool content_surface_declared() const noexcept { return content_surface_declared_; }
     // The host's compositor state as last reported. Before any report:
     // compositing unknown and only `opaque` supported.
     [[nodiscard]] const CompositorState& compositor_state() const noexcept { return compositor_state_; }
@@ -2406,6 +2418,9 @@ private:
     // first HostSession and never cleared; it ends declare_non_opaque.
     bool host_session_bound_{};
     bool non_opaque_declared_{};
+    // declare_content_surface: the backplane is clear over a non-opaque
+    // grant and follows no theme backdrop chain.
+    bool content_surface_declared_{};
     CompositorState compositor_state_{};
     WindowBackdropRequest backdrop_request_{};
     // Whether backdrop_request_ is the application's (request_backdrop)

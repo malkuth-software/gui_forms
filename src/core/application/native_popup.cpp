@@ -86,11 +86,18 @@ NativePopupRefusal native_popup_refusal(const std::weak_ptr<ApplicationWindowSta
     return NativePopupRefusal::none;
 }
 
-bool native_popup_translucent(const std::weak_ptr<ApplicationWindowState>& owner) noexcept {
+bool native_popup_translucent(const std::weak_ptr<ApplicationWindowState>& owner, const SurfaceRoot& model) noexcept {
     const std::shared_ptr<ApplicationWindowState> state = owner.lock();
     const std::shared_ptr<ApplicationRunState> run = owner_run(state);
     if (!run || !(*run).windowing) return true;
-    const bool translucent = (*(*run).windowing).transient_windows_translucent();
+    if (!(*(*run).windowing).transient_windows_translucent()) return false;
+    // The grant a popup of the owner would have: the same host's compositor
+    // and the owner's settings, which the popup shares.
+    const PresentationSettings& settings = model.presentation_settings();
+    const WindowBackdropConditions conditions{true, settings.high_contrast, settings.reduced_transparency};
+    const WindowBackdropRequest request = WindowBackdropRequest::preferring(WindowBackdrop::transparent);
+    const WindowBackdropGrant grant = resolve_window_backdrop(request, model.compositor_state(), conditions);
+    const bool translucent = grant.granted != WindowBackdrop::opaque;
     return translucent;
 }
 
@@ -154,7 +161,10 @@ std::shared_ptr<NativePopupRecord> open_native_popup_window(const NativePopupOpe
     Window* borrowed = model.get();
     (*model).set_key_bindings(opening.key_bindings);
     // A popup's clear pixels show what lies beneath (its shadow, rounded
-    // corners): without a chain it asks for the transparent backdrop.
+    // corners): without a chain it asks for the transparent backdrop. A
+    // content surface (a menu panel, a list, a tooltip bubble) draws every
+    // surface itself, so the backplane under its shadow stays clear.
+    if (opening.content_surface) static_cast<void>((*model).declare_content_surface());
     if (opening.backdrop.has_value()) {
         (*model).set_backdrop_chain(opening.backdrop);
     } else {

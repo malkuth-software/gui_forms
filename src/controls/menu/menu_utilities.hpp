@@ -14,6 +14,22 @@ inline constexpr double menu_width = 268.0;
 inline constexpr double command_row_height = 28.0;
 inline constexpr double separator_row_height = 9.0;
 inline constexpr double menu_border = 2.0;
+// A row's columns, in logical units at text scale 1: the icon (or check
+// mark) gutter, its 16-unit icon 7 units in; the label from 30 units; and,
+// after the widest label, at least menu_shortcut_gap before the
+// right-aligned shortcut column, which ends menu_trailing before the row's
+// right edge (the submenu chevron's place).
+inline constexpr double menu_icon_left = 7.0;
+inline constexpr double menu_icon_size = 16.0;
+inline constexpr double menu_label_left = 30.0;
+inline constexpr double menu_shortcut_gap = 28.0;
+inline constexpr double menu_trailing = 25.0;
+// A drop-down row's face is the menu strip anatomy's `menu_item` part, so
+// that `menu-strip::part(menu-item)` styles the menu bar's items and the
+// rows of the menus they open alike, and the engine's built-in rule gives
+// both the designed hover (built_in_rules.cpp).
+inline constexpr std::string_view menu_item_control_type = "menu_strip";
+inline constexpr std::string_view menu_item_part = "menu_item";
 
 [[nodiscard]] inline std::string menu_display_text(std::string_view text) {
     return parse_mnemonic_text(text).display_text;
@@ -27,7 +43,23 @@ struct MenuSnapshot final {
     std::string text;
     std::vector<MenuSnapshot> children;
     bool italic{};
+    // The item's icon (MenuItemSpec::image), or none.
+    ImageId image{};
 };
+
+// A row's label font at text scale 1 (the row scales it): the control face,
+// bold for the default action.
+[[nodiscard]] inline FontSpec menu_label_font(const MenuSnapshot& item) noexcept {
+    const std::uint16_t weight = item.command_state.default_action ? 700U : 400U;
+    const FontSpec font{FontRole::control, 11.0, weight, item.italic, 0.12};
+    return font;
+}
+
+// A row's shortcut font at text scale 1.
+[[nodiscard]] inline FontSpec menu_shortcut_font() noexcept {
+    const FontSpec font{FontRole::content, 10.0, 400, false};
+    return font;
+}
 
 struct ConsecutiveSeparators final {
     [[nodiscard]] bool operator()(const MenuSnapshot& left,
@@ -118,6 +150,7 @@ inline std::vector<MenuSnapshot> snapshot_items(
         snapshot.command = spec.command;
         snapshot.text = spec.text;
         snapshot.italic = spec.italic;
+        snapshot.image = spec.image;
         if (spec.command) {
             snapshot.command_state = (*spec.command).state();
             if (!snapshot.command_state.visible) continue;
