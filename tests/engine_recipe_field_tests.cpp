@@ -91,7 +91,7 @@ void test_field_names() {
         "text", "outline_style", "outline_colour", "outline_width", "outline_offset", "text_shadow",
         "font_family", "font_size",     "font_weight",   "font_style",     "letter_spacing",
         "muted_text",  "glyph",         "default_outline_width", "default_outline_colour",
-        "fill_text",
+        "fill_text", "stroke_width", "needle_shape", "scrim_colour",
         "block_size", "minimum_inline_size", "padding_inline", "gap", "margin_block_start", "margin_block_end",
         "taper", "taper_colour", "flare", "flare_colour", "edge_shadow_width", "edge_shadow_colour",
     };

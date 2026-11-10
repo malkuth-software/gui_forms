@@ -410,7 +410,7 @@ void test_auto_scroll_extent_covers_all_content() {
 
     // Row-reverse, nowrap: the line runs left past the content box's start.
     const ScrollCase reversed =
-        scroll_case("flex.scroll.row_reverse", {100.0, 60.0}, {40.0, 20.0}, 4, FlexDirection::row_reverse,
+        scroll_case("flex.scroll.row-reverse", {100.0, 60.0}, {40.0, 20.0}, 4, FlexDirection::row_reverse,
                     FlexWrap::nowrap);
     require_extent(*reversed.panel, 160.0, 44.0, "a reversed row's overflow is scrollable");
     // It opens on the main-axis start (CSS's scroll origin): scrolled by the
@@ -427,7 +427,7 @@ void test_auto_scroll_extent_covers_all_content() {
 
     // Column-reverse, nowrap: the line runs up past the start.
     const ScrollCase upward =
-        scroll_case("flex.scroll.column_reverse", {60.0, 100.0}, {20.0, 40.0}, 4, FlexDirection::column_reverse,
+        scroll_case("flex.scroll.column-reverse", {60.0, 100.0}, {20.0, 40.0}, 4, FlexDirection::column_reverse,
                     FlexWrap::nowrap);
     require_extent(*upward.panel, 44.0, 160.0, "a reversed column's overflow is scrollable");
     require(near((*upward.panel).scroll_position().y, 60.0) && near((*upward.boxes[0]).arranged_bounds().y, 60.0) &&
@@ -436,7 +436,7 @@ void test_auto_scroll_extent_covers_all_content() {
 
     // Row, wrap-reverse: lines stack upward past the start.
     const ScrollCase stacked =
-        scroll_case("flex.scroll.wrap_reverse", {100.0, 60.0}, {40.0, 20.0}, 10, FlexDirection::row,
+        scroll_case("flex.scroll.wrap-reverse", {100.0, 60.0}, {40.0, 20.0}, 10, FlexDirection::row,
                     FlexWrap::wrap_reverse);
     require_extent(*stacked.panel, 84.0, 100.0, "wrap-reverse lines are all scrollable");
     require(near((*stacked.panel).scroll_position().y, 40.0) && near((*stacked.boxes[0]).arranged_bounds().y, 40.0) &&

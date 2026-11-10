@@ -586,113 +586,44 @@ Properties beyond every control's: `crosshair` (boolean), `live` (boolean), `sho
 | `point_picked` | `PlotPointPick` |
 | `legend_toggled` | `std::size_t` |
 
-## `plot_axis_item` (PlotAxisItem, component)
+## `plot_axis_item` (PlotAxisItem, control)
 
-| Interaction | Payload |
-|---|---|
-| `name_changed` | `std::string` |
-| `visible_changed` | `bool` |
-| `enabled_changed` | `bool` |
-| `auto_size_changed` | `bool` |
-| `causes_validation_changed` | `bool` |
-| `validating` | `ControlValidationEvent`, by reference |
-| `validated` | none |
-| `tool_tip_text_changed` | `std::string` |
-| `initialization_completed` | `Dirty, bool` |
-| `pointer_observed` | `PointerEvent` |
-| `pointer_preview_observed` | `PointerEvent` |
-| `mouse_down` | `MouseEventArgs` |
-| `mouse_up` | `MouseEventArgs` |
-| `mouse_move` | `MouseEventArgs` |
-| `mouse_wheel` | `MouseEventArgs` |
-| `mouse_enter` | none |
-| `mouse_hover` | none |
-| `mouse_leave` | none |
-| `mouse_capture_changed` | none |
-| `click` | none |
-| `mouse_click` | `MouseEventArgs` |
-| `double_click` | none |
-| `mouse_double_click` | `MouseEventArgs` |
-| `context_menu_requested` | `ContextMenuRequest`, by reference |
-| `focus_observed` | `bool` |
-| `arranged_bounds_changed` | `Rect` |
-| `help_requested` | `HelpRequestEvent`, by reference |
-| `preview_key_down` | `PreviewKeyDownEventArgs`, by reference |
-| `key_down` | `KeyEventArgs`, by reference |
-| `key_press` | `KeyPressEventArgs`, by reference |
-| `key_up` | `KeyEventArgs`, by reference |
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `focus` | focus |  |  |
 
-## `plot_series_item` (PlotSeriesItem, component)
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-| Interaction | Payload |
-|---|---|
-| `name_changed` | `std::string` |
-| `visible_changed` | `bool` |
-| `enabled_changed` | `bool` |
-| `auto_size_changed` | `bool` |
-| `causes_validation_changed` | `bool` |
-| `validating` | `ControlValidationEvent`, by reference |
-| `validated` | none |
-| `tool_tip_text_changed` | `std::string` |
-| `initialization_completed` | `Dirty, bool` |
-| `pointer_observed` | `PointerEvent` |
-| `pointer_preview_observed` | `PointerEvent` |
-| `mouse_down` | `MouseEventArgs` |
-| `mouse_up` | `MouseEventArgs` |
-| `mouse_move` | `MouseEventArgs` |
-| `mouse_wheel` | `MouseEventArgs` |
-| `mouse_enter` | none |
-| `mouse_hover` | none |
-| `mouse_leave` | none |
-| `mouse_capture_changed` | none |
-| `click` | none |
-| `mouse_click` | `MouseEventArgs` |
-| `double_click` | none |
-| `mouse_double_click` | `MouseEventArgs` |
-| `context_menu_requested` | `ContextMenuRequest`, by reference |
-| `focus_observed` | `bool` |
-| `arranged_bounds_changed` | `Rect` |
-| `help_requested` | `HelpRequestEvent`, by reference |
-| `preview_key_down` | `PreviewKeyDownEventArgs`, by reference |
-| `key_down` | `KeyEventArgs`, by reference |
-| `key_press` | `KeyPressEventArgs`, by reference |
-| `key_up` | `KeyEventArgs`, by reference |
+Properties beyond every control's: `auto_fit` (boolean), `direction` (enumeration), `follow_span` (number), `label` (text), `maximum` (number), `minimum` (number), `scale` (enumeration).
 
-## `plot_annotation_item` (PlotAnnotationItem, component)
+Interactions beyond every control's: none.
 
-| Interaction | Payload |
-|---|---|
-| `name_changed` | `std::string` |
-| `visible_changed` | `bool` |
-| `enabled_changed` | `bool` |
-| `auto_size_changed` | `bool` |
-| `causes_validation_changed` | `bool` |
-| `validating` | `ControlValidationEvent`, by reference |
-| `validated` | none |
-| `tool_tip_text_changed` | `std::string` |
-| `initialization_completed` | `Dirty, bool` |
-| `pointer_observed` | `PointerEvent` |
-| `pointer_preview_observed` | `PointerEvent` |
-| `mouse_down` | `MouseEventArgs` |
-| `mouse_up` | `MouseEventArgs` |
-| `mouse_move` | `MouseEventArgs` |
-| `mouse_wheel` | `MouseEventArgs` |
-| `mouse_enter` | none |
-| `mouse_hover` | none |
-| `mouse_leave` | none |
-| `mouse_capture_changed` | none |
-| `click` | none |
-| `mouse_click` | `MouseEventArgs` |
-| `double_click` | none |
-| `mouse_double_click` | `MouseEventArgs` |
-| `context_menu_requested` | `ContextMenuRequest`, by reference |
-| `focus_observed` | `bool` |
-| `arranged_bounds_changed` | `Rect` |
-| `help_requested` | `HelpRequestEvent`, by reference |
-| `preview_key_down` | `PreviewKeyDownEventArgs`, by reference |
-| `key_down` | `KeyEventArgs`, by reference |
-| `key_press` | `KeyPressEventArgs`, by reference |
-| `key_up` | `KeyEventArgs`, by reference |
+## `plot_series_item` (PlotSeriesItem, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `hidden` (boolean), `kind` (enumeration), `label` (text), `source` (text), `x_axis` (unsigned_integer), `y_axis` (unsigned_integer).
+
+Interactions beyond every control's: none.
+
+## `plot_annotation_item` (PlotAnnotationItem, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `text` (text), `x` (number), `y` (number).
+
+Interactions beyond every control's: none.
 
 ## `review_card` (ReviewCard, control)
 
@@ -3293,41 +3224,19 @@ Properties beyond every control's: `digit_count` (unsigned_integer), `ghost_segm
 |---|---|
 | `text_changed` | `std::string` |
 
-## `gauge_base` (GaugeBase, component)
+## `gauge_base` (GaugeBase, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `decimal_places` (unsigned_integer), `maximum` (number), `minimum` (number), `show_value` (boolean), `tick_frequency` (number), `units` (text), `value` (number).
 
 | Interaction | Payload |
 |---|---|
-| `name_changed` | `std::string` |
-| `visible_changed` | `bool` |
-| `enabled_changed` | `bool` |
-| `auto_size_changed` | `bool` |
-| `causes_validation_changed` | `bool` |
-| `validating` | `ControlValidationEvent`, by reference |
-| `validated` | none |
-| `tool_tip_text_changed` | `std::string` |
-| `initialization_completed` | `Dirty, bool` |
-| `pointer_observed` | `PointerEvent` |
-| `pointer_preview_observed` | `PointerEvent` |
-| `mouse_down` | `MouseEventArgs` |
-| `mouse_up` | `MouseEventArgs` |
-| `mouse_move` | `MouseEventArgs` |
-| `mouse_wheel` | `MouseEventArgs` |
-| `mouse_enter` | none |
-| `mouse_hover` | none |
-| `mouse_leave` | none |
-| `mouse_capture_changed` | none |
-| `click` | none |
-| `mouse_click` | `MouseEventArgs` |
-| `double_click` | none |
-| `mouse_double_click` | `MouseEventArgs` |
-| `context_menu_requested` | `ContextMenuRequest`, by reference |
-| `focus_observed` | `bool` |
-| `arranged_bounds_changed` | `Rect` |
-| `help_requested` | `HelpRequestEvent`, by reference |
-| `preview_key_down` | `PreviewKeyDownEventArgs`, by reference |
-| `key_down` | `KeyEventArgs`, by reference |
-| `key_press` | `KeyPressEventArgs`, by reference |
-| `key_up` | `KeyEventArgs`, by reference |
 | `range_changed` | `double, double` |
 | `value_changed` | `double` |
 | `scroll` | `RangeScrollEvent` |
@@ -3437,41 +3346,31 @@ Properties beyond every control's: `back_text` (text), `cancel_text` (text), `cu
 | `finished` | none |
 | `cancelled` | none |
 
-## `wizard_page` (WizardPage, component)
+## `wizard_page` (WizardPage, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `viewport` | region |  |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
+| `scroll_corner` | face |  |  |
+| `focus` | focus |  |  |
+| `face` | face |  |  |
+| `edge` | edge |  |  |
+
+States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `can_advance` (boolean), `description` (text), `title` (text).
 
 | Interaction | Payload |
 |---|---|
-| `name_changed` | `std::string` |
-| `visible_changed` | `bool` |
-| `enabled_changed` | `bool` |
-| `auto_size_changed` | `bool` |
-| `causes_validation_changed` | `bool` |
-| `validating` | `ControlValidationEvent`, by reference |
-| `validated` | none |
-| `tool_tip_text_changed` | `std::string` |
-| `initialization_completed` | `Dirty, bool` |
-| `pointer_observed` | `PointerEvent` |
-| `pointer_preview_observed` | `PointerEvent` |
-| `mouse_down` | `MouseEventArgs` |
-| `mouse_up` | `MouseEventArgs` |
-| `mouse_move` | `MouseEventArgs` |
-| `mouse_wheel` | `MouseEventArgs` |
-| `mouse_enter` | none |
-| `mouse_hover` | none |
-| `mouse_leave` | none |
-| `mouse_capture_changed` | none |
-| `click` | none |
-| `mouse_click` | `MouseEventArgs` |
-| `double_click` | none |
-| `mouse_double_click` | `MouseEventArgs` |
-| `context_menu_requested` | `ContextMenuRequest`, by reference |
-| `focus_observed` | `bool` |
-| `arranged_bounds_changed` | `Rect` |
-| `help_requested` | `HelpRequestEvent`, by reference |
-| `preview_key_down` | `PreviewKeyDownEventArgs`, by reference |
-| `key_down` | `KeyEventArgs`, by reference |
-| `key_press` | `KeyPressEventArgs`, by reference |
-| `key_up` | `KeyEventArgs`, by reference |
 | `scroll` | `ScrollEvent`, by reference |
 
 ## `callout` (Callout, control)
@@ -3788,41 +3687,19 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `close_requested` | none |
 | `section_toggled` | `HelpSectionToggle` |
 
-## `help_book_viewer` (HelpBookViewer, component)
+## `help_book_viewer` (HelpBookViewer, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: none.
 
 | Interaction | Payload |
 |---|---|
-| `name_changed` | `std::string` |
-| `visible_changed` | `bool` |
-| `enabled_changed` | `bool` |
-| `auto_size_changed` | `bool` |
-| `causes_validation_changed` | `bool` |
-| `validating` | `ControlValidationEvent`, by reference |
-| `validated` | none |
-| `tool_tip_text_changed` | `std::string` |
-| `initialization_completed` | `Dirty, bool` |
-| `pointer_observed` | `PointerEvent` |
-| `pointer_preview_observed` | `PointerEvent` |
-| `mouse_down` | `MouseEventArgs` |
-| `mouse_up` | `MouseEventArgs` |
-| `mouse_move` | `MouseEventArgs` |
-| `mouse_wheel` | `MouseEventArgs` |
-| `mouse_enter` | none |
-| `mouse_hover` | none |
-| `mouse_leave` | none |
-| `mouse_capture_changed` | none |
-| `click` | none |
-| `mouse_click` | `MouseEventArgs` |
-| `double_click` | none |
-| `mouse_double_click` | `MouseEventArgs` |
-| `context_menu_requested` | `ContextMenuRequest`, by reference |
-| `focus_observed` | `bool` |
-| `arranged_bounds_changed` | `Rect` |
-| `help_requested` | `HelpRequestEvent`, by reference |
-| `preview_key_down` | `PreviewKeyDownEventArgs`, by reference |
-| `key_down` | `KeyEventArgs`, by reference |
-| `key_press` | `KeyPressEventArgs`, by reference |
-| `key_up` | `KeyEventArgs`, by reference |
 | `navigated` | `std::string` |
 | `external_link` | `HelpLinkActivation`, by reference |
 | `popup_requested` | `HelpLinkActivation`, by reference |

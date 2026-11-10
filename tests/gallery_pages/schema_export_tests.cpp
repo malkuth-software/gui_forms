@@ -696,6 +696,27 @@ void record_control(const Control& control, std::vector<TypeRecord>& records) {
     keep_common_interactions(record.interactions, interactions);
 }
 
+// A control with no anatomy of its own (it publishes the base anatomy,
+// "control"), recorded under its registry id with that anatomy, as the C ABI
+// describes it.
+void record_control_as(std::string_view id, const Control& control, std::vector<TypeRecord>& records) {
+    const std::size_t position = catalog_position(id);
+    if (position >= records.size()) return;
+    TypeRecord& record = records[position];
+    const std::vector<PropertyDescriptor> properties = control.property_descriptors();
+    const std::vector<InteractionDeclaration> interactions = control.interactions();
+    if (!record.seen) {
+        record.anatomy = &control.anatomy();
+        record.properties = properties;
+        record.child_properties = control.child_property_descriptors();
+        record.interactions = interactions;
+        record.seen = true;
+        return;
+    }
+    keep_common_properties(record.properties, properties);
+    keep_common_interactions(record.interactions, interactions);
+}
+
 void record_tree(const Control::Ptr& root, std::vector<TypeRecord>& records) {
     std::vector<Control::Ptr> pending{root};
     while (!pending.empty()) {
@@ -854,7 +875,8 @@ void test_schema_export() {
     record_control(*toast, records);
     // Types no Gallery page shows yet: the plots and instruments packages'
     // PlotView with its item children and Sparkline, and the ValueBar. The
-    // items have no anatomy of their own and are recorded by their ids.
+    // items have no anatomy of their own: they are recorded by their ids
+    // with the base anatomy, as the C ABI describes them.
     const std::shared_ptr<PlotView> plot_view = make_control<PlotView>(StableId("schema.plot-view"));
     const std::shared_ptr<PlotAxisItem> plot_axis = make_control<PlotAxisItem>(StableId("schema.plot-axis"));
     const std::shared_ptr<PlotSeriesItem> plot_series =
@@ -864,9 +886,9 @@ void test_schema_export() {
     const std::shared_ptr<Sparkline> sparkline = make_control<Sparkline>(StableId("schema.sparkline"));
     const std::shared_ptr<ValueBar> value_bar = make_control<ValueBar>(StableId("schema.value-bar"));
     record_control(*plot_view, records);
-    record_component("plot_axis_item", *plot_axis, records);
-    record_component("plot_series_item", *plot_series, records);
-    record_component("plot_annotation_item", *plot_annotation, records);
+    record_control_as("plot_axis_item", *plot_axis, records);
+    record_control_as("plot_series_item", *plot_series, records);
+    record_control_as("plot_annotation_item", *plot_annotation, records);
     record_control(*sparkline, records);
     record_control(*value_bar, records);
     // The final controls and the help system shown only inside another or
@@ -879,11 +901,11 @@ void test_schema_export() {
     const std::shared_ptr<HelpBookViewer> help_viewer =
         make_control<HelpBookViewer>(StableId("schema.help-viewer"));
     const std::shared_ptr<HelpBook> help_book = make_control<HelpBook>(StableId("schema.help-book"));
-    record_component("gauge_base", *gauge_base, records);
-    record_component("wizard_page", *wizard_page, records);
+    record_control_as("gauge_base", *gauge_base, records);
+    record_control_as("wizard_page", *wizard_page, records);
     record_control(*callout, records);
     record_control(*modal_layer, records);
-    record_component("help_book_viewer", *help_viewer, records);
+    record_control_as("help_book_viewer", *help_viewer, records);
     record_control(*help_book, records);
 
     // Components, constructed directly.

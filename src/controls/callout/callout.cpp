@@ -332,6 +332,10 @@ void Callout::on_pointer(PointerEvent& event) {
     }
 }
 
+void Callout::on_key(KeyEvent& event) {
+    on_key_bubble(event);
+}
+
 void Callout::on_key_bubble(KeyEvent& event) {
     if (event.action != KeyAction::down || event.physical_key != PhysicalKey::escape || !shown_) return;
     event.handled = true;

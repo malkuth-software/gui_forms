@@ -41,7 +41,7 @@
       "hand": [
         "written shows the page, hides the others, updates the buttons and the step indicator, then raises page_changed"
       ],
-      "sample": "std::uint32_t{0U}"
+      "sample": "std::uint32_t{1U}"
     },
     {
       "name": "show_step_indicator",
@@ -211,6 +211,8 @@
   ],
   "test": {
     "type": "Wizard",
+    "configure": ["(*control).add_child(make_control<WizardPage>(StableId(\"generated.wizard.first\")));",
+                  "(*control).add_child(make_control<WizardPage>(StableId(\"generated.wizard.second\")));"],
     "include": "gui_forms/controls/wizard/wizard.hpp"
   }
 }

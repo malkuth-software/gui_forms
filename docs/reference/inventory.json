@@ -37012,6 +37012,27 @@
           "page": "gui-forms-callout-on-pointer-void-pointerevent-1435f27ee0.html"
         },
         {
+          "id": "gui_forms::Callout::on_key|void (KeyEvent &)",
+          "name": "on_key",
+          "type": "void (KeyEvent &)",
+          "namespace": "gui_forms::Callout",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "event",
+              "type": "KeyEvent &",
+              "declaration": "KeyEvent& event"
+            }
+          ],
+          "declaration": "void on_key(KeyEvent& event) override",
+          "comment": "",
+          "header": "gui_forms/controls/callout/callout.hpp",
+          "source": "include/gui_forms/controls/callout/callout.hpp",
+          "line": 90,
+          "page": "gui-forms-callout-on-key-void-keyevent-4620de7326.html"
+        },
+        {
           "id": "gui_forms::Callout::on_key_bubble|void (KeyEvent &)",
           "name": "on_key_bubble",
           "type": "void (KeyEvent &)",
@@ -37029,7 +37050,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 88,
+          "line": 91,
           "page": "gui-forms-callout-on-key-bubble-void-keyevent-e19570b2e2.html"
         },
         {
@@ -37044,7 +37065,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 89,
+          "line": 92,
           "page": "gui-forms-callout-semantic-descriptor-semanticdescriptor-const-700cac6e04.html"
         },
         {
@@ -37070,7 +37091,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 90,
+          "line": 93,
           "page": "gui-forms-callout-on-semantic-action-bool-semanticaction-std-string-view-48b1323928.html"
         },
         {
@@ -37085,7 +37106,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 91,
+          "line": 94,
           "page": "gui-forms-callout-anatomy-const-controlanatomy-const-noexcept-baad4f920b.html"
         },
         {
@@ -37100,7 +37121,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 92,
+          "line": 95,
           "page": "gui-forms-callout-anatomy-states-anatomystateset-const-ef959b339b.html"
         },
         {
@@ -37115,7 +37136,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 101,
+          "line": 104,
           "page": "gui-forms-callout-parts-parts-const-bbfc073587.html"
         },
         {
@@ -37136,7 +37157,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 102,
+          "line": 105,
           "page": "gui-forms-callout-hit-test-local-bool-point-const-8a561acdb5.html"
         },
         {
@@ -37157,7 +37178,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 109,
+          "line": 112,
           "page": "gui-forms-callout-publish-part-geometry-void-std-span-partgeometry-const-8e07cf939c.html"
         },
         {
@@ -37172,7 +37193,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 110,
+          "line": 113,
           "page": "gui-forms-callout-on-dispose-void-noexcept-ad82110690.html"
         },
         {
@@ -37187,7 +37208,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 166,
+          "line": 169,
           "page": "gui-forms-callout-callout-property-count-const-std-size-t-6efd37de9e.html"
         },
         {
@@ -37202,7 +37223,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 167,
+          "line": 170,
           "page": "gui-forms-callout-callout-property-entries-const-std-array-propertyentry-callout-property-count-noexcept-47f6d80e65.html"
         },
         {
@@ -37217,7 +37238,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 168,
+          "line": 171,
           "page": "gui-forms-callout-property-table-std-span-const-propertyentry-const-noexcept-c567625423.html"
         }
       ],
@@ -37231,7 +37252,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/callout/callout.hpp",
       "source": "include/gui_forms/controls/callout/callout.hpp",
-      "line": 94,
+      "line": 97,
       "declaration": "struct Parts final",
       "comment": "",
       "access": "public",
@@ -37249,7 +37270,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 95,
+          "line": 98,
           "page": "gui-forms-callout-parts-region-partgeometry-4173833b72.html"
         },
         {
@@ -37264,7 +37285,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 96,
+          "line": 99,
           "page": "gui-forms-callout-parts-face-partgeometry-1031efe18f.html"
         },
         {
@@ -37279,7 +37300,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 97,
+          "line": 100,
           "page": "gui-forms-callout-parts-beak-partgeometry-3b3763acd6.html"
         },
         {
@@ -37294,7 +37315,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 98,
+          "line": 101,
           "page": "gui-forms-callout-parts-close-partgeometry-da4bb57d87.html"
         },
         {
@@ -37309,7 +37330,7 @@
           "comment": "",
           "header": "gui_forms/controls/callout/callout.hpp",
           "source": "include/gui_forms/controls/callout/callout.hpp",
-          "line": 99,
+          "line": 102,
           "page": "gui-forms-callout-parts-actuator-partgeometry-741114cdc8.html"
         }
       ],
@@ -208849,7 +208870,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 40,
+          "line": 42,
           "page": "gui-forms-panel-on-attached-to-window-void-8dfd725ada.html"
         },
         {
@@ -208864,7 +208885,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 41,
+          "line": 43,
           "page": "gui-forms-panel-visual-outsets-insets-const-noexcept-28d7ff97d5.html"
         },
         {
@@ -208879,7 +208900,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 44,
+          "line": 46,
           "page": "gui-forms-panel-paint-depends-on-size-bool-const-noexcept-bf4cd93430.html"
         },
         {
@@ -208894,7 +208915,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 45,
+          "line": 47,
           "page": "gui-forms-panel-semantic-descriptor-semanticdescriptor-const-706ce14511.html"
         },
         {
@@ -208909,7 +208930,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 46,
+          "line": 48,
           "page": "gui-forms-panel-anatomy-const-controlanatomy-const-noexcept-f16ef754bd.html"
         },
         {
@@ -208924,7 +208945,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 53,
+          "line": 55,
           "page": "gui-forms-panel-parts-parts-const-bfbbccf1ae.html"
         },
         {
@@ -208939,7 +208960,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 56,
+          "line": 58,
           "page": "gui-forms-panel-local-bounds-rect-const-noexcept-ad6509eeeb.html"
         },
         {
@@ -208965,7 +208986,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 57,
+          "line": 59,
           "page": "gui-forms-panel-paint-panel-void-painter-rect-const-dec0c323f3.html"
         },
         {
@@ -208986,7 +209007,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 58,
+          "line": 60,
           "page": "gui-forms-panel-publish-part-geometry-void-std-span-partgeometry-const-d76f3949f7.html"
         },
         {
@@ -209001,7 +209022,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 60,
+          "line": 62,
           "page": "gui-forms-panel-panel-parts-parts-const-edf8403ffb.html"
         },
         {
@@ -209016,7 +209037,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 63,
+          "line": 65,
           "page": "gui-forms-panel-face-selected-by-rule-bool-const-noexcept-d44a4a5e07.html"
         },
         {
@@ -209031,7 +209052,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 84,
+          "line": 89,
           "page": "gui-forms-panel-panel-property-count-const-std-size-t-46b897001c.html"
         },
         {
@@ -209046,7 +209067,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 85,
+          "line": 90,
           "page": "gui-forms-panel-panel-property-entries-const-std-array-propertyentry-panel-property-count-noexcept-14c46656c9.html"
         },
         {
@@ -209061,7 +209082,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 86,
+          "line": 91,
           "page": "gui-forms-panel-property-table-std-span-const-propertyentry-const-noexcept-cca411cd72.html"
         }
       ],
@@ -209075,7 +209096,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/panel/panel.hpp",
       "source": "include/gui_forms/controls/panel/panel.hpp",
-      "line": 48,
+      "line": 50,
       "declaration": "struct Parts final",
       "comment": "",
       "access": "public",
@@ -209093,7 +209114,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 49,
+          "line": 51,
           "page": "gui-forms-panel-parts-scrollable-scrollablecontrol-parts-d43cdcc124.html"
         },
         {
@@ -209108,7 +209129,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 50,
+          "line": 52,
           "page": "gui-forms-panel-parts-face-partgeometry-3519fcf631.html"
         },
         {
@@ -209123,7 +209144,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/panel.hpp",
           "source": "include/gui_forms/controls/panel/panel.hpp",
-          "line": 51,
+          "line": 53,
           "page": "gui-forms-panel-parts-edge-partgeometry-d7e21fe477.html"
         }
       ],

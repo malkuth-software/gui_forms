@@ -41,7 +41,7 @@
       "hand": [
         "written shows the row's display cell in the field, then raises selected_key_changed"
       ],
-      "sample": "std::string{}"
+      "sample": "std::string(\"codemod.key\")"
     },
     {
       "name": "display_column",
@@ -112,6 +112,7 @@
   ],
   "test": {
     "type": "LookupComboBox",
+    "configure": ["(*control).set_rows({LookupRow{\"codemod.key\", {\"Codemod\"}}});"],
     "include": "gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp"
   }
 }

@@ -412,11 +412,15 @@ void FlexPanel::resolve_item_inputs(const SolveRequest& request) {
                                !layout.auto_margin.left && !layout.auto_margin.right;
 
         // The content query: max-content on the main axis, and on the cross
-        // axis the item's definite or stretched cross size when known.
+        // axis the item's definite or stretched cross size when known. Only
+        // a single-line container stretches an item to its own cross size
+        // (CSS Flexbox 9.4, step 8); a wrapping container's lines take their
+        // cross size from their items, which stretch to the line afterwards.
         AvailableExtent cross_query = max_content_extent();
+        const bool single_line = flex_wrap.read() == FlexWrap::nowrap;
         if (input.definite_cross) {
             cross_query = query_extent(definite_cross);
-        } else if (!horizontal && stretched && cross_basis.definite) {
+        } else if (!horizontal && stretched && single_line && cross_basis.definite) {
             cross_query = query_extent(cross_basis.extent - cross_margins);
         }
         const LayoutConstraint content_constraint = horizontal ? LayoutConstraint{max_content_extent(), cross_query}

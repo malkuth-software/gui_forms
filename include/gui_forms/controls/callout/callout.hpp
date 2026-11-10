@@ -85,6 +85,9 @@ public:
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
     void on_pointer(PointerEvent& event) override;
+    // Escape closes a shown callout, whether focus is on the callout itself
+    // (on_key; the bubble phase passes over the focused control) or within it.
+    void on_key(KeyEvent& event) override;
     void on_key_bubble(KeyEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action, std::string_view value) override;

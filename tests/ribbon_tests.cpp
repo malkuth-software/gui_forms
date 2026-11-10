@@ -293,7 +293,12 @@ bool damage_only_part_or_below(const DamageRegion& damage, Rect part) {
                              rectangle.x + rectangle.width <= part.x + part.width + slack &&
                              rectangle.y + rectangle.height <= part.y + part.height + slack;
         const bool below = rectangle.y >= part.y + part.height - shadow;
-        if (!in_part && !below) return false;
+        if (!in_part && !below) {
+            std::cerr << "damage outside the part: {" << rectangle.x << ", " << rectangle.y << ", " << rectangle.width
+                      << ", " << rectangle.height << "} part {" << part.x << ", " << part.y << ", " << part.width
+                      << ", " << part.height << "}\n";
+            return false;
+        }
     }
     return true;
 }

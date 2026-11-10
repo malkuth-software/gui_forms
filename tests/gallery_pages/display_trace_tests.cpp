@@ -562,46 +562,54 @@ struct PageDigest final {
 // code-built page left the property at zero. Recorded again:
 // values-and-spinners.
 //
+// Three Gallery pages (guided-tasks, the wizard and callout; help-book;
+// instruments, the gauges and dials) lengthen the navigation list every page
+// shows: its rows below them move and its scroll thumb shortens. Recorded
+// again: every page, in both tables (the page bodies' text is unchanged).
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
-constexpr std::array<PageDigest, 36> expected_digests{{
-    {"basics", 0x3f4caea5b270991cULL},
-    {"values", 0x5323f444482b3ee3ULL},
-    {"retained-rows", 0x9bb9e4bad7038300ULL},
-    {"instrument", 0xebd3754a7cdf176eULL},
-    {"control-spectrum", 0x9d95e3b6ac00087aULL},
-    {"ranges-and-progress", 0x1d52b34dce2b5b52ULL},
-    {"containers-and-focus", 0x9534f6ff910b45adULL},
-    {"animation-laboratory", 0x85a58efad63d2d1eULL},
-    {"states-and-diagnostics", 0xe18d8e9827f81261ULL},
-    {"text-and-input", 0xf1508da0c4b20d7cULL},
-    {"collections-and-overlays", 0x773acf08b1bac3b5ULL},
-    {"values-and-spinners", 0xf53e1d2d519990dbULL},
-    {"images-and-drawing", 0x45312707e1dbaf73ULL},
-    {"tabs-and-pages", 0xc9da4951a92ffad1ULL},
-    {"checked-collections", 0xcf52428368a7ef65ULL},
-    {"timing-and-tooltips", 0xaeaa063e89c96d4aULL},
-    {"dates-and-calendar", 0x2be4a1f8f9960307ULL},
-    {"dialogs-and-host-services", 0xb175de1a9028b52fULL},
-    {"css-layout-panels", 0xfa602af7f80c0067ULL},
-    {"retained-layout-panels", 0x21d03ca297db452bULL},
-    {"dock-and-anchor", 0xb2d6c258a3eed76cULL},
-    {"docking-workspace", 0x18ce8bf819756349ULL},
-    {"commands-and-menus", 0xddac05cb9b7eac2aULL},
-    {"tree-and-object-views", 0x4e2f22e2ede31c64ULL},
-    {"choices-and-sections", 0x5dcf776658999b86ULL},
-    {"value-editors", 0xfc1584d3a592d61dULL},
-    {"responsive-layouts", 0xa4afc283f307ac84ULL},
-    {"anchored-overlays", 0xd27c481f8d74a9c6ULL},
-    {"live-surfaces", 0x012f2a9fb133e7f2ULL},
-    {"typography-and-inspection", 0x70f85eeb6a1182e3ULL},
-    {"semantic-feedback", 0xd85a776cce29755fULL},
-    {"notices-and-badges", 0x5c1b4460aadaa8b7ULL},
-    {"input-and-rules", 0x263c3c8037deace9ULL},
-    {"theme-settings", 0xfd2f9a68893a2c38ULL},
-    {"controls-inspection", 0xced2cb535f9086e9ULL},
-    {"spinners-and-rings", 0x45387c0623ff195dULL},
+constexpr std::array<PageDigest, 39> expected_digests{{
+    {"basics", 0xd64281d6361b2b16ULL},
+    {"values", 0xc2e766667021772fULL},
+    {"retained-rows", 0x2e740cd87f353214ULL},
+    {"instrument", 0x66d0496a5e4b27b3ULL},
+    {"control-spectrum", 0x7c9845ff897c44d2ULL},
+    {"ranges-and-progress", 0x787d2981f3852dc1ULL},
+    {"containers-and-focus", 0x628f666ee4bf81daULL},
+    {"animation-laboratory", 0x7c8f4d7bfde9be1bULL},
+    {"states-and-diagnostics", 0x195f789b212f94daULL},
+    {"text-and-input", 0x4125971e7760c86bULL},
+    {"collections-and-overlays", 0x90aa75d6156c537aULL},
+    {"values-and-spinners", 0xfcd05e6cd2b74291ULL},
+    {"images-and-drawing", 0x864db6222a1b2c8dULL},
+    {"tabs-and-pages", 0xeefe6e6edd610401ULL},
+    {"checked-collections", 0xbe6e616e3922b001ULL},
+    {"timing-and-tooltips", 0xc669025066dd7022ULL},
+    {"dates-and-calendar", 0x4d2064ed92958aa9ULL},
+    {"dialogs-and-host-services", 0x8c4db42629a3676dULL},
+    {"css-layout-panels", 0x926934aabf0290a7ULL},
+    {"retained-layout-panels", 0xc3b6b5abcbf3ee41ULL},
+    {"dock-and-anchor", 0xde83423fc4608fb8ULL},
+    {"docking-workspace", 0x8d4955379c2d9199ULL},
+    {"commands-and-menus", 0xdf966bb7d632302aULL},
+    {"tree-and-object-views", 0xe099ae26295d3a92ULL},
+    {"choices-and-sections", 0xa5d41554998edbd8ULL},
+    {"value-editors", 0xa2924af01d8e4fb1ULL},
+    {"responsive-layouts", 0x671fa5758f274142ULL},
+    {"anchored-overlays", 0x6a5f21d7ae44dc10ULL},
+    {"live-surfaces", 0xd5cbe6413e68e232ULL},
+    {"typography-and-inspection", 0xb74956a84d09e2ebULL},
+    {"semantic-feedback", 0x68815d3dd93dd9b5ULL},
+    {"notices-and-badges", 0xca7ea864d9f4750bULL},
+    {"input-and-rules", 0x2a9f8b0edd41a060ULL},
+    {"theme-settings", 0x61c0ceb85c1b4356ULL},
+    {"spinners-and-rings", 0xbabd9378bdf9350dULL},
+    {"instruments", 0x031aa102824cd03fULL},
+    {"guided-tasks", 0x6e10e879c2f8f541ULL},
+    {"help-book", 0x35102514e7531996ULL},
+    {"controls-inspection", 0xe873958753d90eaeULL},
 }};
 
 // The same pages under the Gallery theme compiled onto windows-professional,
@@ -611,43 +619,46 @@ constexpr std::array<PageDigest, 36> expected_digests{{
 // windows-professional must still record them. typography-and-inspection is
 // left out (zero): it shows a RuntimeId, which counts every control made
 // before it in the process, and this pass runs after the one above.
-constexpr std::array<PageDigest, 36> professional_digests{{
-    {"basics", 0xe0febd82348c4a58ULL},
-    {"values", 0x21e77261bcf775fdULL},
-    {"retained-rows", 0x169d84709ac264cfULL},
-    {"instrument", 0xa45540583bb11d0bULL},
-    {"control-spectrum", 0xc89a2a29e095536bULL},
-    {"ranges-and-progress", 0x01bbb64cb67b67bfULL},
-    {"containers-and-focus", 0x7815703b8ac68ad7ULL},
-    {"animation-laboratory", 0x898c88f91972ea9fULL},
-    {"states-and-diagnostics", 0xe6b439263812bc97ULL},
-    {"text-and-input", 0xb5a84fcec8c31c65ULL},
-    {"collections-and-overlays", 0x4d9cadd33be58458ULL},
-    {"values-and-spinners", 0x68486685f3888432ULL},
-    {"images-and-drawing", 0xd35bd90a9b10eb2bULL},
-    {"tabs-and-pages", 0x6ec16772c5feb9c7ULL},
-    {"checked-collections", 0xb848d4918d4da402ULL},
-    {"timing-and-tooltips", 0xe13f7ca4b260e167ULL},
-    {"dates-and-calendar", 0xe6cfbbc1707d95b3ULL},
-    {"dialogs-and-host-services", 0x9ffc4035c963070bULL},
-    {"css-layout-panels", 0x228c2f16b3e00779ULL},
-    {"retained-layout-panels", 0xb8c39ffef9c78a70ULL},
-    {"dock-and-anchor", 0xa6a0787e50c1f4d8ULL},
-    {"docking-workspace", 0x048d39025e330b01ULL},
-    {"commands-and-menus", 0xdcae5fc8f1f41879ULL},
-    {"tree-and-object-views", 0x67f92d84c0debed0ULL},
-    {"choices-and-sections", 0xfdcd33314f62d119ULL},
-    {"value-editors", 0x58990ebb2bad08deULL},
-    {"responsive-layouts", 0x53382895d285c78bULL},
-    {"anchored-overlays", 0x8e3c16a10aa2d3bcULL},
-    {"live-surfaces", 0x0067b900bd060b33ULL},
-    {"typography-and-inspection", 0x0ULL},
-    {"semantic-feedback", 0xe56e8a8536ab6737ULL},
-    {"notices-and-badges", 0xada317efbe252cd0ULL},
-    {"input-and-rules", 0x290dc1d52c1a547aULL},
-    {"theme-settings", 0x66f5bd0b74e60e07ULL},
-    {"controls-inspection", 0x55323e5f10365c91ULL},
-    {"spinners-and-rings", 0x7aab081bc103539bULL},
+constexpr std::array<PageDigest, 39> professional_digests{{
+    {"basics", 0xcd6775cb06a95d02ULL},
+    {"values", 0x907dbbe40434c549ULL},
+    {"retained-rows", 0x2c59c7c5b00918c7ULL},
+    {"instrument", 0x28bdb67d032d3807ULL},
+    {"control-spectrum", 0xc4abb705e11e581cULL},
+    {"ranges-and-progress", 0xe1263ffb3aec10f6ULL},
+    {"containers-and-focus", 0x9ac1134518ecd5bcULL},
+    {"animation-laboratory", 0xb8aeb77e06302e00ULL},
+    {"states-and-diagnostics", 0x0000000000000000ULL},
+    {"text-and-input", 0x36442dc39aa50219ULL},
+    {"collections-and-overlays", 0x138e3ffb6f71e2fcULL},
+    {"values-and-spinners", 0x0518a389c033db87ULL},
+    {"images-and-drawing", 0x3e941d87a73c2920ULL},
+    {"tabs-and-pages", 0x5cff177570e2d12eULL},
+    {"checked-collections", 0x04918eff650538ddULL},
+    {"timing-and-tooltips", 0xda7abc79d29398c1ULL},
+    {"dates-and-calendar", 0xf03bfdf3be371b73ULL},
+    {"dialogs-and-host-services", 0x73a5efa7efb11b3bULL},
+    {"css-layout-panels", 0x5151f25bee4e874bULL},
+    {"retained-layout-panels", 0x064bf4dd30bcaef0ULL},
+    {"dock-and-anchor", 0x8b0d99f3b8b5275aULL},
+    {"docking-workspace", 0xfb5816ccfd84f265ULL},
+    {"commands-and-menus", 0xd1a4736c5f15186dULL},
+    {"tree-and-object-views", 0x8e64bc223c14a468ULL},
+    {"choices-and-sections", 0xbf30aa219985b927ULL},
+    {"value-editors", 0x27a60aa125ff2374ULL},
+    {"responsive-layouts", 0xb80d4d041ff8722dULL},
+    {"anchored-overlays", 0xbce5bd857b1bf5acULL},
+    {"live-surfaces", 0xb9cedc7a8ac8cc2dULL},
+    {"typography-and-inspection", 0x0000000000000000ULL},
+    {"semantic-feedback", 0x9935ee046158527fULL},
+    {"notices-and-badges", 0x3790e49093b764f9ULL},
+    {"input-and-rules", 0xdc0050230d675c09ULL},
+    {"theme-settings", 0xdfae53026ed3037bULL},
+    {"spinners-and-rings", 0x449f0e8e7b363ae2ULL},
+    {"instruments", 0x2841ceb9b00fdfdbULL},
+    {"guided-tasks", 0xf51e34435ccb3fcdULL},
+    {"help-book", 0xaa7c1adec86bd424ULL},
+    {"controls-inspection", 0x15ffff889d0dc704ULL},
 }};
 
 // The Gallery theme compiled onto `base`, as the Theme settings page
@@ -761,6 +772,10 @@ void test_display_commands_unchanged() {
 // backplane again, so the comparisons leave it out, except on the first
 // page, whose cp22 trace is a window's first paint and has it.
 void test_theme_switch_round_trip() {
+    // GUI_FORMS_GALLERY_TRACE_PRINT=1 prints the observed windows-professional
+    // table instead of checking it.
+    const char* const print_value = std::getenv("GUI_FORMS_GALLERY_TRACE_PRINT");
+    const bool printing = print_value != nullptr && std::strcmp(print_value, "1") == 0;
     std::unique_ptr<Window> owned = gallery::make_gallery();
     Window& window = *owned;
     window.perform_layout();
@@ -781,6 +796,12 @@ void test_theme_switch_round_trip() {
         (*resources).set_theme(gui_forms);
         const std::string back = without_backplane(shown_trace(window));
         first_page = false;
+        if (printing) {
+            const std::uint64_t shown = page_counts_itself(page.id) ? 0U : trace_hash(switched);
+            std::cout << "    {\"" << page.id << "\", 0x" << std::hex << std::setw(16) << std::setfill('0') << shown
+                      << std::dec << "ULL},\n";
+            continue;
+        }
         if (page_counts_itself(page.id)) continue;
         std::uint64_t expected = 0U;
         for (const PageDigest& digest : professional_digests) {

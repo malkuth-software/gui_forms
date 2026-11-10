@@ -442,9 +442,9 @@ void test_callout() {
             "presses outside pass through and leave the callout open");
     static_cast<void>(window.dispatch_pointer(release(centre_of(*elsewhere))));
     require(window.request_focus(callout), "focus can enter the callout");
-    require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) && !(*callout).is_shown() &&
-                recorder.seen.back() == "callout:1",
-            "Escape closes it");
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}), "Escape is handled");
+    require(!(*callout).is_shown(), "Escape closes it");
+    require(!recorder.seen.empty() && recorder.seen.back() == "callout:1", "Escape reports its reason");
 
     (*callout).action_text = std::string{"Got it"};
     (*callout).light_dismiss = true;

@@ -1394,8 +1394,9 @@ void test_list_view_properties() {
 
 void test_lookup_combo_box_properties() {
     std::shared_ptr<LookupComboBox> control = make_control<LookupComboBox>(StableId("generated.lookupcombobox"));
+    (*control).set_rows({LookupRow{"codemod.key", {"Codemod"}}});
     {
-        const std::string sample = std::string{};
+        const std::string sample = std::string("codemod.key");
         int raises = 0;
         const SubscriptionToken token = (*control).selected_key_changed().subscribe(RaiseCounter{&raises});
         (*control).selected_key = sample;
@@ -2554,8 +2555,9 @@ void test_splitter_panel_properties() {
 
 void test_step_indicator_properties() {
     std::shared_ptr<StepIndicator> control = make_control<StepIndicator>(StableId("generated.stepindicator"));
+    (*control).set_steps({"First", "Second"});
     {
-        const std::uint32_t sample = std::uint32_t{0U};
+        const std::uint32_t sample = std::uint32_t{1U};
         int raises = 0;
         const SubscriptionToken token = (*control).current_step_changed().subscribe(RaiseCounter{&raises});
         (*control).current_step = sample;
@@ -3109,8 +3111,10 @@ void test_visual_inspector_view_properties() {
 
 void test_wizard_properties() {
     std::shared_ptr<Wizard> control = make_control<Wizard>(StableId("generated.wizard"));
+    (*control).add_child(make_control<WizardPage>(StableId("generated.wizard.first")));
+    (*control).add_child(make_control<WizardPage>(StableId("generated.wizard.second")));
     {
-        const std::uint32_t sample = std::uint32_t{0U};
+        const std::uint32_t sample = std::uint32_t{1U};
         int raises = 0;
         const SubscriptionToken token = (*control).page_changed().subscribe(RaiseCounter{&raises});
         (*control).current_page = sample;

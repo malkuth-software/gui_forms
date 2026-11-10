@@ -921,8 +921,8 @@ void test_seam_keyboard_drag() {
 
     static_cast<void>(window.dispatch_key(seam_key(PhysicalKey::f3)));
     DragEngine& engine = window.drag_engine();
-    require(engine.mode() == DragInputMode::keyboard &&
-                (*split).splitter_seam_snapshot().state == SplitSeamState::dragging,
+    require(engine.mode() == DragInputMode::keyboard, "the rule action on the grip starts a keyboard drag");
+    require((*split).splitter_seam_snapshot().state == SplitSeamState::dragging,
             "the rule action on the grip starts the container's keyboard drag");
     static_cast<void>(window.dispatch_key(seam_key(PhysicalKey::right)));
     static_cast<void>(window.dispatch_key(seam_key(PhysicalKey::right, Modifier::control)));

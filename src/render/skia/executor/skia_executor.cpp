@@ -815,10 +815,13 @@ private:
     gui_forms::Rect result{0.0, 0.0, static_cast<double>(width), static_cast<double>(height)};
     if (!state.clip) return result;
     const RectF clip = *state.clip;
-    const double left = std::floor(clip.x + 0.5);
-    const double top = std::floor(clip.y + 0.5);
-    const double right = std::floor(clip.x + clip.width + 0.5);
-    const double bottom = std::floor(clip.y + clip.height + 0.5);
+    // Within the target: a clip may reach far beyond it (draw_string_over_fill's
+    // bands reach 2^30 units when no clip is in force), past the text
+    // compositor's coordinate range, and nothing outside the target is drawn.
+    const double left = std::clamp(std::floor(clip.x + 0.5), 0.0, result.width);
+    const double top = std::clamp(std::floor(clip.y + 0.5), 0.0, result.height);
+    const double right = std::clamp(std::floor(clip.x + clip.width + 0.5), 0.0, result.width);
+    const double bottom = std::clamp(std::floor(clip.y + clip.height + 0.5), 0.0, result.height);
     result = {left, top, std::max(0.0, right - left), std::max(0.0, bottom - top)};
     return result;
 }
@@ -1168,7 +1171,12 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
         text_target.stride = text_stride;
         std::size_t executed{};
         for (const DrawingCommand& command : commands.subspan(first_command)) {
+            // Each command draws inside a save of its own: restoreAll undoes
+            // only what lies above the base level, so the state's clip and a
+            // command's own (fill_proportion's track) are made inside it and
+            // end with the command.
             (*canvas).restoreAll();
+            (*canvas).save();
             (*canvas).resetMatrix();
             if (command.state.clip) {
                 (*canvas).clipRect(to_sk_rect(*command.state.clip),

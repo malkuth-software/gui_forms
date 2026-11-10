@@ -1,0 +1,10 @@
+compiled
+W112 part_not_themed 2:24 rule=text-box::part(face) property=background detail=a themed text-box paints no face; style text-box::part(well)
+rule 0 theme_sheet type=text_box part=face
+  label text-box::part(face)
+  decl primitive = name material
+  material background_colour colours=[#ff0000ff] origin=literal
+  material fill_positions colours=[#000000ff]
+  material fill_sizes colours=[#000000ff]
+  material fill_repeats colours=[#000000ff]
+  material fills colours=[#000000ff] origin=literal

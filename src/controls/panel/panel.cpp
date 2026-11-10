@@ -35,6 +35,10 @@ Panel::Panel(StableId stable_id) : ScrollableControl(std::move(stable_id)) {
 
 void Panel::on_attached_to_window() {
     ScrollableControl::on_attached_to_window();
+    // The constructor chose the backplane; a subclass that moved itself to
+    // the control plane keeps it.
+    const bool chosen_by_subclass = !plane_derived_ && paint_plane() != PaintPlane::backplane;
+    if (chosen_by_subclass) return;
     PaintPlane plane = PaintPlane::backplane;
     for (Control::Ptr ancestor = parent(); ancestor; ancestor = (*ancestor).parent()) {
         const bool root = !(*ancestor).parent();
@@ -44,6 +48,7 @@ void Panel::on_attached_to_window() {
         }
     }
     set_paint_plane(plane);
+    plane_derived_ = true;
 }
 
 std::optional<Color> Panel::face_colour() const noexcept {

@@ -202,6 +202,11 @@ void automatic_ports_spread_in_order() {
     const LinkRouteStatistics statistics = router.route(graph, orthogonal_options());
     const RoutedLink& to_lower = router.routes()[0];
     const RoutedLink& to_upper = router.routes()[1];
+    if (to_lower.from_side != PortSide::right || to_upper.from_side != PortSide::right) {
+        std::cerr << "automatic outputs leave by " << port_side_name(to_lower.from_side) << " and "
+                  << port_side_name(to_upper.from_side) << " with " << to_lower.bends << " and " << to_upper.bends
+                  << " bends\n";
+    }
     require(to_lower.from_side == PortSide::right && to_upper.from_side == PortSide::right,
             "both automatic outputs face the targets");
     require(to_upper.from_anchor.y < to_lower.from_anchor.y && to_upper.from_anchor.y == 100.0 / 3.0 &&

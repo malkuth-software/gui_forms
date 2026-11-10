@@ -68,7 +68,8 @@ void require(bool condition, std::string_view message) {
 // -- the vocabulary the fixtures compile against ------------------------------
 
 // A button with the parts the fixtures name, every standard state and
-// the custom states written `:state()`; a track bar for a kebab-case type.
+// the custom states written `:state()`; a track bar for a kebab-case type;
+// a text box for the parts its themed look leaves unpainted.
 constexpr std::array<AnatomyState, 2> thumb_states{{AnatomyState::pressed, AnatomyState::hot}};
 constexpr std::array<PartDeclaration, 4> button_parts{{
     {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
@@ -87,9 +88,17 @@ constexpr std::array<PartDeclaration, 2> track_parts{{
     {.name = "thumb", .role = PartRole::thumb, .composed_from = {}, .states = thumb_states},
 }};
 constexpr std::array<AnatomyState, 3> track_states{{AnatomyState::hot, AnatomyState::focused, AnatomyState::disabled}};
-const std::array<ControlAnatomy, 2> controls{{
+// A text box, whose themed look paints none of its face, edge and content
+// parts as a rule names them (W112 part_not_themed).
+constexpr std::array<PartDeclaration, 3> text_box_parts{{
+    {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
+    {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
+    {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
+}};
+const std::array<ControlAnatomy, 3> controls{{
     {.control_id = "button", .parts = button_parts, .states = button_states, .custom_states = {}, .item_systems = {}},
     {.control_id = "track_bar", .parts = track_parts, .states = track_states, .custom_states = {}, .item_systems = {}},
+    {.control_id = "text_box", .parts = text_box_parts, .states = track_states, .custom_states = {}, .item_systems = {}},
 }};
 
 // The resources a fixture's manifest would list; the images are bound to

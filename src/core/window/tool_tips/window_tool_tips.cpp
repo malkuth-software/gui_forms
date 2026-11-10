@@ -60,12 +60,15 @@ void SurfaceRoot::show_tool_tip(const Control::Ptr& target, std::optional<std::c
     if (!target || !(*target).is_alive() || (*target).attached_surface_root() != this) {
         throw std::invalid_argument("GUI.Forms tooltip target must be a live control attached to its Window");
     }
-    if (!tool_tip_text_shows((*target).tool_tip_text.read())) {
+    if ((*target).tool_tip_text.read().empty()) {
         throw std::invalid_argument("GUI.Forms tooltip target has no tooltip text");
     }
     if (duration && (*duration).count() < 0) {
         throw std::invalid_argument("GUI.Forms tooltip duration may not be negative");
     }
+    // Blank text (white space only) never shows, whoever asks (owner rule,
+    // 2026-11-09): the request is accepted and shows nothing.
+    if (!tool_tip_text_shows((*target).tool_tip_text.read())) return;
     end_tool_tip_request(true);
     (*tool_tips_).show_program(target, duration);
 }

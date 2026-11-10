@@ -1386,11 +1386,13 @@ def test_function(config):
     concrete = test["type"]
     # A control whose constructor needs more than its identity names the
     # extra arguments in "arguments" and the statements declaring them in
-    # "setup".
+    # "setup". Statements in "configure" run on the made control before the
+    # properties are written (a sample that needs state, such as a row).
     arguments = "".join(", " + argument for argument in test.get("arguments", []))
     lines = [f"void test_{snake(family)}_properties() {{"]
     lines += ["    " + statement for statement in test.get("setup", [])]
     lines.append(f"    std::shared_ptr<{concrete}> control = make_control<{concrete}>(StableId(\"generated.{family.lower()}\"){arguments});")
+    lines += ["    " + statement for statement in test.get("configure", [])]
     for prop in config["properties"]:
         if prop.get("storage") == "view":
             continue
