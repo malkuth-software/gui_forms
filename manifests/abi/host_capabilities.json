@@ -7,7 +7,7 @@
       "platform": "win32-dib",
       "capabilities": [
         "lifecycle", "scale_notifications", "monitor_geometry", "scheduled_wake", "pointer_input",
-        "keyboard_input", "text_composition", "pointer_capture", "cursor", "clipboard", "dialogs",
+        "keyboard_input", "pointer_capture", "cursor", "clipboard", "dialogs",
         "accessibility", "sound_cues", "clipboard_images", "frame_capture", "notification_area",
         "notification_area_messages", "notification_area_menus", "runtime_windows", "window_frames",
         "screen_pointer", "window_at_point", "window_ordering", "transparent_windows", "window_backdrops",

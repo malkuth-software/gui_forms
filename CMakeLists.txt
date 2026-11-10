@@ -1409,7 +1409,7 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
     endif()
     target_link_libraries(gui_forms_host_windows
         PUBLIC gui_forms_core gui_forms_skia
-        PRIVATE gui_forms_text_engine user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32
+        PRIVATE gui_forms_text_engine user32 gdi32 imm32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32
     )
     target_link_libraries(gui_forms_c_api PRIVATE gui_forms_host_windows)
     target_compile_definitions(gui_forms_c_api PRIVATE GF_C_API_HAS_WINDOWS_HOST=1)
@@ -2446,7 +2446,7 @@ if(GUI_FORMS_BUILD_TESTS)
                 WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
                 GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB=1 GUI_FORMS_DIB_LIFECYCLE_TEST=1)
             target_link_libraries(gui_forms_windows_dib_lifecycle_tests PRIVATE
-                gui_forms_core gui_forms_skia gui_forms_text_engine user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid
+                gui_forms_core gui_forms_skia gui_forms_text_engine user32 gdi32 imm32 ole32 oleaut32 oleacc uiautomationcore uuid
                 comdlg32 shell32)
             add_test(NAME gui_forms_windows_dib_lifecycle_tests
                      COMMAND gui_forms_windows_dib_lifecycle_tests)
@@ -2472,7 +2472,7 @@ if(GUI_FORMS_BUILD_TESTS)
                     GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB=1
                     GUI_FORMS_WINDOWS_PREPARED_TEXT=1 GUI_FORMS_WINDOWS_PREPARED_TEXT_TEST=1)
                 target_link_libraries(gui_forms_windows_prepared_text_tests PRIVATE
-                    gui_forms_prepared_text_impl gui_forms_skia gui_forms_text_engine user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid
+                    gui_forms_prepared_text_impl gui_forms_skia gui_forms_text_engine user32 gdi32 imm32 ole32 oleaut32 oleacc uiautomationcore uuid
                     comdlg32 shell32)
                 add_test(NAME gui_forms_windows_prepared_text_tests
                     COMMAND gui_forms_windows_prepared_text_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
@@ -5258,6 +5258,15 @@ if(WIN32 AND GUI_FORMS_ENABLE_WINDOWS_HOST AND GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_windows_input_settings_tests PRIVATE GUIForms::Application)
     add_test(NAME gui_forms_windows_input_settings_tests COMMAND gui_forms_windows_input_settings_tests)
     set_tests_properties(gui_forms_windows_input_settings_tests PROPERTIES TIMEOUT 60)
+    # N61: the host places the system input method's windows at the caret and
+    # does not advertise text_composition.
+    add_executable(gui_forms_windows_input_method_tests tests/windows_input_method_tests.cpp)
+    target_compile_definitions(gui_forms_windows_input_method_tests PRIVATE
+        WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+    target_link_libraries(gui_forms_windows_input_method_tests PRIVATE
+        gui_forms_controls gui_forms_host_windows imm32)
+    add_test(NAME gui_forms_windows_input_method_tests COMMAND gui_forms_windows_input_method_tests)
+    set_tests_properties(gui_forms_windows_input_method_tests PROPERTIES TIMEOUT 60)
     add_executable(gui_forms_windows_accessibility_tests tests/windows_accessibility_tests.cpp)
     target_link_libraries(gui_forms_windows_accessibility_tests PRIVATE GUIForms::Application oleacc uiautomationcore oleaut32 uuid)
     add_test(NAME gui_forms_windows_accessibility_tests COMMAND gui_forms_windows_accessibility_tests)
@@ -5459,6 +5468,7 @@ foreach(gui_forms_foreground_name IN ITEMS
         gui_forms_gallery_interaction_tests
         gui_forms_windows_accessibility_tests
         gui_forms_windows_dib_lifecycle_tests
+        gui_forms_windows_input_method_tests
         gui_forms_windows_prepared_text_tests)
     if(TEST ${gui_forms_foreground_name})
         gui_forms_foreground_test(${gui_forms_foreground_name})
