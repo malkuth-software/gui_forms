@@ -156,6 +156,13 @@ protected:
     // visible axis's range, for input a derived control turns into a scroll
     // (a text box's PageDown reveal). Raises no Scroll event.
     void glide_to(Point target);
+    // Paints the ground, the `face` part a ScrollableControl,
+    // ContainerControl, UserControl or SplitContainer declares, over the
+    // whole box, and only when a theme rule names that part (a rule on the
+    // panel family or the face role alone does not): nothing otherwise, as
+    // before the part was declared. A subclass declaring the ground that
+    // paints content of its own calls this first.
+    void on_paint(Painter& painter, Rect local_damage) override;
     void on_paint_overlay(Painter& painter, Rect local_damage) override;
     void on_detached_from_window() noexcept override;
     // Windows Forms' ScrollControlIntoView on activation: with auto scroll,
@@ -173,6 +180,10 @@ private:
     // update_scrollbars' repaint of the bars after a resize that kept
     // them, for a control whose other paint keeps its pixels.
     void invalidate_scroll_bar_strips(Rect previous_viewport);
+    // A scroll copy's repaint of what the bars paint over the viewport (a
+    // thumb's contact shadow reaching past the bar), where it is and where
+    // the copy moved it by `moved`.
+    void invalidate_scroll_bar_ink(Point moved);
     friend class ScrollProperties;
     enum class ScrollPart : std::uint8_t {
         none,

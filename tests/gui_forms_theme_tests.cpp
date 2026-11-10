@@ -460,6 +460,24 @@ void fill_link_family(ControlRoleRecipes& result, Color text) {
 
 // The reference floor's families, as gui_forms_theme_definition filled
 // them before the floor sheet.
+// The dial parts and the scrim (row 2.5; owner option (a)): every record
+// dims what lies behind it with the sheet's scrim, and the progress family's
+// arcs are 6 units thick.
+void fill_dial_and_scrim(ControlRoleTable& roles) {
+    const Color scrim = Color::rgba(27, 39, 51, 102);
+    for (ControlRoleRecipes& family : roles) {
+        for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
+            family.ordinary[index].scrim = scrim;
+            family.selected[index].scrim = scrim;
+        }
+    }
+    ControlRoleRecipes& progress = roles[static_cast<std::size_t>(ControlVisualRole::progress)];
+    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
+        progress.ordinary[index].stroke_width = 6.0;
+        progress.selected[index].stroke_width = 6.0;
+    }
+}
+
 void fill_families(ControlRoleTable& roles) {
     fill_stock_family(roles[static_cast<std::size_t>(ControlVisualRole::window)], stock, Color::rgba(180, 186, 194), 0.0);
     fill_stock_family(roles[static_cast<std::size_t>(ControlVisualRole::panel)], stock, Color::rgba(205, 209, 214), 0.0);
@@ -477,6 +495,7 @@ void fill_families(ControlRoleTable& roles) {
     fill_link_family(roles[static_cast<std::size_t>(ControlVisualRole::visited_link)], Color::rgba(93, 65, 145));
     fill_stock_family(roles[static_cast<std::size_t>(ControlVisualRole::notice)], paper, Color::rgba(112, 130, 156), 2.0);
     fill_badge_family(roles[static_cast<std::size_t>(ControlVisualRole::badge)]);
+    fill_dial_and_scrim(roles);
 }
 
 } // namespace reference
@@ -530,6 +549,16 @@ void print_difference(ControlVisualRole role, std::size_t state, bool selected, 
     if (evaluated.focus_width != expected.focus_width) std::cerr << " focus_width";
     if (evaluated.default_width != expected.default_width) std::cerr << " default_width";
     if (evaluated.dotted_focus != expected.dotted_focus) std::cerr << " dotted_focus";
+    if (!(evaluated.part_metrics == expected.part_metrics)) std::cerr << " part_metrics";
+    if (evaluated.fill_text != expected.fill_text) std::cerr << " fill_text";
+    if (evaluated.stroke_width != expected.stroke_width) std::cerr << " stroke_width";
+    if (evaluated.needle_shape != expected.needle_shape) std::cerr << " needle_shape";
+    if (evaluated.scrim != expected.scrim) std::cerr << " scrim";
+    if (evaluated.text_shadow != expected.text_shadow) std::cerr << " text_shadow";
+    if (evaluated.focus_offset != expected.focus_offset) std::cerr << " focus_offset";
+    if (evaluated.authored_focus_outline != expected.authored_focus_outline) std::cerr << " authored_focus_outline";
+    if (!(evaluated.visual_offset == expected.visual_offset)) std::cerr << " visual_offset";
+    if (!(evaluated.pressed_content_offset == expected.pressed_content_offset)) std::cerr << " pressed_content_offset";
     std::cerr << '\n';
 }
 

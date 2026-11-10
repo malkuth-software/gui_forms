@@ -2,6 +2,7 @@
 
 #include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/window.hpp"
+#include "../../display/snapshot/splash_baker.hpp"
 #include "tool_tip_bubble.hpp"
 #include "tool_tip_route.hpp"
 #include "tool_tip_subjects.hpp"
@@ -64,6 +65,9 @@ public:
     // host); the thing under focus is found again when `control` has focus.
     void items_changed(const Control& control) override;
     void settings_changed() override;
+    // A pointer tooltip of a control outside the new active focus scope
+    // closes, or stops waiting.
+    void scope_changed() override;
     void cover(RuntimeId control, std::string_view item_id, bool covered) override;
 
     void show_program(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration) override;
@@ -149,9 +153,20 @@ private:
     };
 
     [[nodiscard]] bool hover_allowed() const noexcept;
+    [[nodiscard]] bool outside_scope(const Control::Ptr& control) const noexcept;
     [[nodiscard]] bool focus_allowed() const noexcept;
     [[nodiscard]] std::chrono::milliseconds show_delay(FrameTime now) const noexcept;
     void wait(ToolTipOrigin origin, ToolTipSubject subject, FrameTime now);
+    // Bakes `subject`'s bubble ahead on the run's Splash baker while the
+    // wait runs (APP_WINDOW_RULES_DESIGN Part S, phase 2), replacing any
+    // earlier pending bake. Records on this thread with the kept bubble as
+    // the theme source and submits an owning snapshot; nothing when there
+    // is no baker, no kept Splash bubble attached yet (the first show paints
+    // live), or the recording cannot be snapshotted.
+    void prebake(const ToolTipSubject& subject);
+    // Offers the pending bake to the kept bubble when it finished on the
+    // run that took it; never waits. The bubble paints live otherwise.
+    void adopt_bake();
     void arm(FrameTime deadline);
     void woke(FrameTime now);
     void overlay_closed();
@@ -212,6 +227,18 @@ private:
     HostMonitorResult placement_monitors_{};
     // The host refused a Splash window once; the overlay is used from then.
     bool transient_refused_{};
+    // The bake submitted for the current wait (prebake), with the run it was
+    // submitted to (a ticket means nothing to another run's baker) and what
+    // it paints. `armed` is false when none is pending.
+    struct PendingBake final {
+        bool armed{};
+        SplashBakeTicket ticket{};
+        std::uint64_t run{};
+        ToolTipBakeKey key{};
+    };
+    PendingBake pending_bake_{};
+    // The lines a bake is broken into, kept so a warm prebake reuses them.
+    ToolTipLines bake_lines_{};
 };
 
 } // namespace gui_forms::detail

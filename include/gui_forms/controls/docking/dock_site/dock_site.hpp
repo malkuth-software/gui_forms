@@ -802,7 +802,7 @@ private:
     [[nodiscard]] Size stack_minimum(const DockNode& node) const;
     [[nodiscard]] std::vector<DockNodeId> plan_collapse(Size available) const;
     void place(DockNodeId node, Rect bounds, std::span<const DockNodeId> collapsed);
-    [[nodiscard]] CaptionGeometry caption_geometry(Rect caption, bool pin) const;
+    [[nodiscard]] CaptionGeometry caption_geometry(Rect caption, bool pin, bool close) const;
     [[nodiscard]] bool seams_moved() const noexcept;
     [[nodiscard]] double caption_height() const;
 
@@ -835,6 +835,11 @@ private:
     [[nodiscard]] AnatomyStateSet button_states(std::size_t stack, Zone zone) const;
     [[nodiscard]] bool stack_current(const StackSlot& slot) const;
     [[nodiscard]] bool pin_shown(const StackSlot& slot) const;
+    // Whether the stack's selected panel shows a close button
+    // (DockPanelDescriptor::close_button_visible).
+    [[nodiscard]] bool close_shown(const StackSlot& slot) const;
+    // Whether a document panel's tab shows its close button.
+    [[nodiscard]] bool tab_closable(const DockPanelId& panel) const;
     [[nodiscard]] SeamParts seam_parts(std::size_t seam) const;
     [[nodiscard]] StackParts stack_parts(const StackSlot& slot, std::size_t index) const;
     [[nodiscard]] std::size_t visible_stack_count() const;
@@ -899,6 +904,10 @@ private:
     void schedule_stale_check();
     // Takes the slot's view into the flyout or gives it back.
     void move_view_to_flyout(StackSlot& slot);
+    // The nearest theme override on this site or its ancestors (null when
+    // none): the flyout, an overlay root outside the site's tree, takes it so
+    // it is drawn with the theme the site is.
+    [[nodiscard]] std::shared_ptr<const Theme> inherited_theme_override() const;
     void move_view_to_site(StackSlot& slot);
     // Puts a view into the flyout (Flyout is complete only in
     // dock_site_auto_hide.cpp).

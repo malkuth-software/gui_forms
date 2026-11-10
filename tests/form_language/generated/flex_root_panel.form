@@ -1,0 +1,9 @@
+/* A control root whose type is final (stage B): FlexPanel admits no
+   subclass, so the build composes FlexRootPanel, which holds the panel as
+   its member flex_root, with gui_forms_add_form MODEL. */
+flex-panel flex.root {
+  padding: 2;
+  auto-scroll: true;
+  check-box flex.flag { text: "Flag"; checked: bind(auto_save_); tab-index: 0; }
+  button flex.go { text: "Go"; tab-index: 1; command: bind(accept_); }
+}

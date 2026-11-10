@@ -31,6 +31,7 @@ struct Jobs final {
     std::atomic<bool> release{false};
     std::atomic<bool> started{false};
     std::atomic<bool> refused_progress{false};
+    std::atomic<bool> flooded{false};
     std::atomic<int> polls{0};
 
     // Adds 1 to n for the integer argument n.
@@ -67,6 +68,16 @@ struct Jobs final {
     }
 
     void fail(BackgroundWorkerTask&) { throw std::runtime_error("malformed input"); }
+
+    // Reports more progress than the dispatcher's queue holds, so the queue
+    // is full when the work returns and posts its completion (N2).
+    void flood(BackgroundWorkerTask& task) {
+        started = true;
+        for (std::size_t report = 0; report < maximum_posted_callbacks + 64U; ++report) {
+            task.report_progress(50);
+        }
+        flooded = true;
+    }
 
     // Waits for the test to release it, then reports and completes.
     void gated(BackgroundWorkerTask& task) {
@@ -286,6 +297,38 @@ void window_shutdown_and_disposal() {
     require(disposed.completed.empty(), "no completion is raised after disposal");
 }
 
+// N2: a work function that fills the dispatcher's queue leaves its completion
+// waiting for room. Disposal on the UI thread (which is not draining) must
+// still return: before the fix the worker waited for room and the UI thread
+// waited in the join, for ever.
+void disposal_with_a_full_queue() {
+    Jobs jobs;
+    Recorder recorder;
+    std::vector<SubscriptionToken> tokens;
+    Window window(root("bw.full"), {200.0, 100.0});
+    {
+        BackgroundWorker worker(window);
+        subscribe(worker, recorder, tokens);
+        worker.set_worker_reports_progress(true);
+        worker.set_do_work(BackgroundWorker::Work::bind<Jobs, &Jobs::flood>(jobs));
+        worker.run_worker_async();
+        // Wait, without draining, until the work has filled the queue and
+        // returned; its completion is then waiting for room.
+        const std::chrono::steady_clock::time_point deadline =
+            std::chrono::steady_clock::now() + std::chrono::seconds(5);
+        while (!jobs.flooded.load() && std::chrono::steady_clock::now() < deadline) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        require(jobs.flooded.load(), "the flooding work returns");
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        worker.dispose();
+        require(!worker.is_busy(), "a worker disposed over a full queue is idle");
+    }
+    static_cast<void>(window.drain_posted_work());
+    require(recorder.completed.empty(), "no completion is raised after disposal over a full queue");
+    require(recorder.progress.empty(), "no progress is raised after disposal over a full queue");
+}
+
 } // namespace
 
 int main() {
@@ -293,6 +336,7 @@ int main() {
     progress_reports();
     cancellation_and_errors();
     window_shutdown_and_disposal();
+    disposal_with_a_full_queue();
     std::cout << "BackgroundWorker: completion, restart, progress, cancellation, errors, shutdown and disposal passed\n";
     return 0;
 }

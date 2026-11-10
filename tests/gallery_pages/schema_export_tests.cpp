@@ -1,5 +1,20 @@
 #include "support.hpp"
 
+#include "gui_forms/components/about_dialog/about_dialog.hpp"
+#include "gui_forms/controls/callout/callout.hpp"
+#include "gui_forms/controls/help/help_book/help_book.hpp"
+#include "gui_forms/controls/help/help_book_system/help_book_system.hpp"
+#include "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp"
+#include "gui_forms/controls/instruments/gauge_base/gauge_base.hpp"
+#include "gui_forms/controls/modal_layer/modal_layer.hpp"
+#include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
+#include "gui_forms/controls/instruments/sparkline/sparkline.hpp"
+#include "gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp"
+#include "gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp"
+#include "gui_forms/controls/plots/plot_series_item/plot_series_item.hpp"
+#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
+#include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
+
 #include "gui_forms/controls/toast/toast.hpp"
 #include "gui_forms/engine.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
@@ -654,6 +669,13 @@ std::size_t catalog_position(std::string_view id) {
     return gallery::control_catalog.size();
 }
 
+// GaugeBase's constructor is protected: a subclass that adds nothing stands
+// for it.
+class SchemaGauge final : public GaugeBase {
+public:
+    explicit SchemaGauge(StableId stable_id) : GaugeBase(std::move(stable_id)) {}
+};
+
 void record_control(const Control& control, std::vector<TypeRecord>& records) {
     const ControlAnatomy& anatomy = control.anatomy();
     const std::size_t position = catalog_position(anatomy.control_id);
@@ -664,6 +686,27 @@ void record_control(const Control& control, std::vector<TypeRecord>& records) {
     const std::vector<InteractionDeclaration> interactions = control.interactions();
     if (!record.seen) {
         record.anatomy = &anatomy;
+        record.properties = properties;
+        record.child_properties = control.child_property_descriptors();
+        record.interactions = interactions;
+        record.seen = true;
+        return;
+    }
+    keep_common_properties(record.properties, properties);
+    keep_common_interactions(record.interactions, interactions);
+}
+
+// A control with no anatomy of its own (it publishes the base anatomy,
+// "control"), recorded under its registry id with that anatomy, as the C ABI
+// describes it.
+void record_control_as(std::string_view id, const Control& control, std::vector<TypeRecord>& records) {
+    const std::size_t position = catalog_position(id);
+    if (position >= records.size()) return;
+    TypeRecord& record = records[position];
+    const std::vector<PropertyDescriptor> properties = control.property_descriptors();
+    const std::vector<InteractionDeclaration> interactions = control.interactions();
+    if (!record.seen) {
+        record.anatomy = &control.anatomy();
         record.properties = properties;
         record.child_properties = control.child_property_descriptors();
         record.interactions = interactions;
@@ -830,6 +873,40 @@ void test_schema_export() {
     toast_content.message = "Sample";
     const std::shared_ptr<Toast> toast = make_control<Toast>(StableId("schema.toast"), std::move(toast_content));
     record_control(*toast, records);
+    // Types no Gallery page shows yet: the plots and instruments packages'
+    // PlotView with its item children and Sparkline, and the ValueBar. The
+    // items have no anatomy of their own: they are recorded by their ids
+    // with the base anatomy, as the C ABI describes them.
+    const std::shared_ptr<PlotView> plot_view = make_control<PlotView>(StableId("schema.plot-view"));
+    const std::shared_ptr<PlotAxisItem> plot_axis = make_control<PlotAxisItem>(StableId("schema.plot-axis"));
+    const std::shared_ptr<PlotSeriesItem> plot_series =
+        make_control<PlotSeriesItem>(StableId("schema.plot-series"));
+    const std::shared_ptr<PlotAnnotationItem> plot_annotation =
+        make_control<PlotAnnotationItem>(StableId("schema.plot-annotation"));
+    const std::shared_ptr<Sparkline> sparkline = make_control<Sparkline>(StableId("schema.sparkline"));
+    const std::shared_ptr<ValueBar> value_bar = make_control<ValueBar>(StableId("schema.value-bar"));
+    record_control(*plot_view, records);
+    record_control_as("plot_axis_item", *plot_axis, records);
+    record_control_as("plot_series_item", *plot_series, records);
+    record_control_as("plot_annotation_item", *plot_annotation, records);
+    record_control(*sparkline, records);
+    record_control(*value_bar, records);
+    // The final controls and the help system shown only inside another or
+    // on demand. WizardPage and HelpBookViewer have no anatomy of their own
+    // yet and GaugeBase is a base: they are recorded by their ids.
+    const std::shared_ptr<SchemaGauge> gauge_base = make_control<SchemaGauge>(StableId("schema.gauge-base"));
+    const std::shared_ptr<WizardPage> wizard_page = make_control<WizardPage>(StableId("schema.wizard-page"));
+    const std::shared_ptr<Callout> callout = make_control<Callout>(StableId("schema.callout"));
+    const std::shared_ptr<ModalLayer> modal_layer = make_control<ModalLayer>(StableId("schema.modal-layer"));
+    const std::shared_ptr<HelpBookViewer> help_viewer =
+        make_control<HelpBookViewer>(StableId("schema.help-viewer"));
+    const std::shared_ptr<HelpBook> help_book = make_control<HelpBook>(StableId("schema.help-book"));
+    record_control_as("gauge_base", *gauge_base, records);
+    record_control_as("wizard_page", *wizard_page, records);
+    record_control(*callout, records);
+    record_control(*modal_layer, records);
+    record_control_as("help_book_viewer", *help_viewer, records);
+    record_control(*help_book, records);
 
     // Components, constructed directly.
     const std::shared_ptr<Command> command = std::make_shared<Command>();
@@ -884,6 +961,11 @@ void test_schema_export() {
     record_component("binding_source", *binding_source, records);
     record_component("binding_context", *binding_context, records);
     record_component("dock_workspace", *dock_workspace, records);
+    const std::shared_ptr<AboutDialog> about_dialog =
+        std::make_shared<AboutDialog>(StableId("schema.about"), AboutInfo{});
+    const std::shared_ptr<HelpBookSystem> help_system = std::make_shared<HelpBookSystem>();
+    record_component("about_dialog", *about_dialog, records);
+    record_component("help_book_system", *help_system, records);
 
     std::size_t services = 0;
     for (std::size_t index = 0; index < records.size(); ++index) {

@@ -79,6 +79,7 @@ Ribbon::~Ribbon() {
     if (overlay_) (*overlay_).close();
     if (group_overlay_) (*group_overlay_).detach();
     if (application_overlay_) (*application_overlay_).detach();
+    if (application_panel_) (*application_panel_).detach();
 }
 
 void Ribbon::on_dispose() noexcept {
@@ -89,6 +90,7 @@ void Ribbon::on_dispose() noexcept {
     if (group_overlay_) (*group_overlay_).detach();
     if (group_layer_) (*group_layer_).dispose();
     if (application_overlay_) (*application_overlay_).detach();
+    if (application_panel_) (*application_panel_).detach();
 }
 
 void Ribbon::on_attachment_committed() noexcept {
@@ -314,6 +316,10 @@ void validate_command(const RibbonCommandSpec& command, std::unordered_set<std::
         (command.size != RibbonCommandSize::small || command.image.value == 0U || hosted(command.kind))) {
         throw std::invalid_argument("Ribbon icon-only commands must be small and have an image");
     }
+    if (text_only(command.kind) && (command.command || command.image.value != 0U || !command.show_label ||
+                                    command.text.empty())) {
+        throw std::invalid_argument("Ribbon labels are text only: no Command or image, and their text shown");
+    }
     if (command.kind != RibbonCommandKind::combo_box && !command.choices.empty()) {
         throw std::invalid_argument("Ribbon choices belong to combo box commands only");
     }
@@ -374,6 +380,9 @@ Ribbon::PreparedTabs Ribbon::prepare_tabs(const std::vector<RibbonTabSpec>& tabs
         if (tab.groups.size() > maximum_groups_per_tab) {
             throw std::invalid_argument("Ribbon tab has more groups than maximum_groups_per_tab");
         }
+        if (tab.width && !(std::isfinite(*tab.width) && *tab.width > 0.0 && *tab.width <= maximum_tab_width)) {
+            throw std::invalid_argument("Ribbon tab width must be above zero and at most maximum_tab_width");
+        }
         if (tab.panel) {
             if (!tab.groups.empty() || !tab.reduction_order.empty()) {
                 throw std::invalid_argument("Ribbon panel tabs have no groups and no reduction order");
@@ -401,6 +410,9 @@ Ribbon::PreparedTabs Ribbon::prepare_tabs(const std::vector<RibbonTabSpec>& tabs
                 if (command.gallery) ++group_galleries;
             }
             if (group_galleries > 1U) throw std::invalid_argument("Ribbon group holds more than one gallery");
+            if (!group.commands.empty() && group.commands.front().beside_previous) {
+                throw std::invalid_argument("A Ribbon group's first command has no command to stand beside");
+            }
             prepared.layouts[tab_index].push_back(prepare_group_layouts(group));
         }
         validate_reduction_order(tab, prepared.layouts[tab_index]);
@@ -547,7 +559,7 @@ void Ribbon::set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetS
     selected_tab_.reset();
     last_core_tab_.reset();
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
-        if (tabs_[tab].stable_id == selected_id && shown(tab)) selected_tab_ = tab;
+        if (tabs_[tab].stable_id == selected_id && selectable(tab)) selected_tab_ = tab;
     }
     if (!selected_tab_) selected_tab_ = fallback_tab();
     if (selected_tab_ && !tab_set_of_[*selected_tab_]) last_core_tab_ = selected_tab_;
@@ -626,6 +638,7 @@ void Ribbon::write_view(const decltype(selected_tab)&, std::optional<std::size_t
     const std::size_t tab = *incoming;
     if (tab >= tabs_.size()) throw std::out_of_range("Ribbon tab index is past the end");
     if (!shown(tab)) throw std::invalid_argument("Ribbon tab is not shown");
+    if (!tabs_[tab].enabled) throw std::invalid_argument("Ribbon tab is disabled");
     select_tab(tab);
 }
 
@@ -791,15 +804,39 @@ void Ribbon::command_state_changed(std::size_t tab, std::size_t group, std::size
 
 // -- layout --------------------------------------------------------------------
 
-double Ribbon::tab_row_height() const noexcept {
-    const double result = tab_row_extent * effective_text_scale();
-    return result;
+double Ribbon::tab_row_height() const {
+    return row_metrics().row_height;
 }
 
-double Ribbon::plane_height() const noexcept {
-    const double rows = row_extent * static_cast<double>(rows_per_column);
-    const double result = (plane_top_padding + rows + caption_extent + plane_bottom_padding) * effective_text_scale();
-    return result;
+double Ribbon::plane_height() const {
+    return row_metrics().plane_height;
+}
+
+// The metrics and shape the theme's rules give `part` (a key's part name)
+// of `family` in `states` (ControlPartMetrics); unset where no rule sets
+// them.
+ControlPartMetrics Ribbon::part_metrics(std::string_view part, ControlVisualRole family,
+                                        AnatomyStateSet states) const {
+    const ControlVisualContext context = part_visual_context(*this, states);
+    const ResolvedControlRecipe resolved = effective_theme().resolve(*this, family, context, states, part);
+    const ControlPartMetrics metrics = resolved.recipe().part_metrics;
+    return metrics;
+}
+
+// A tab label's font in `states` (Plan Paint defect 6): the ribbon's font
+// with the font fields of the rules naming tab_label in place (a selected
+// tab's label larger and bold in the default theme), scaled with the text.
+FontSpec Ribbon::tab_label_font(AnatomyStateSet states) const {
+    const ResolvedFont resolved = effective_theme().resolve_font(*this, font.read(), "tab_label", states);
+    const FontSpec scaled = effective_font(resolved.font);
+    return scaled;
+}
+
+double Ribbon::tab_label_width(std::string_view text, AnatomyStateSet states) const {
+    if (text.empty()) return 0.0;
+    ++counters_.text_measurements;
+    const ResolvedTextLayout metrics = resolve_text_layout_utf8(text, tab_label_font(states));
+    return metrics.logical_size.width;
 }
 
 // The document-area rule (owner decisions 34 to 36). `available.height`
@@ -903,11 +940,12 @@ void Ribbon::arrange(Rect final_bounds) {
 
 Ribbon::TabParts Ribbon::tab_parts(const Layout& placed, std::size_t tab) const {
     const Rect bounds = placed.tabs[tab];
-    const double padding = tab_padding * effective_text_scale();
+    const double padding = row_metrics().padding;
     TabParts parts;
     parts.tab = PartGeometry::from_bounds(bounds);
     // A contextual tab's face carries its set's tint (owner decision 25).
     if (parts.tab.present) parts.tab.accent = tab_accent(tab);
+    parts.tab_hover = PartGeometry::from_bounds(bounds);
     parts.tab_label = PartGeometry::from_bounds(
         {bounds.x + padding, bounds.y, std::max(0.0, bounds.width - padding * 2.0), bounds.height});
     parts.tab_focus = PartGeometry::from_bounds(bounds);
@@ -1017,6 +1055,13 @@ Ribbon::CommandParts Ribbon::command_parts(const Layout& placed, CommandAddress 
         if (spec.kind == RibbonCommandKind::color_picker) parts.command_color_picker = control;
         return parts;
     }
+    if (text_only(spec.kind)) {
+        // A label is its text alone, inset as a small command's label is.
+        const double inset = icon_gap * scale * 2.0;
+        const Rect label{bounds.x + inset, bounds.y, std::max(0.0, bounds.width - inset), bounds.height};
+        parts.command_label = PartGeometry::from_bounds(Rect::intersection(label, visible));
+        return parts;
+    }
     const RibbonGroupLayout& group_layout =
         layouts_[*selected_tab_][address.group][placed.group_layouts[address.group]];
     const bool large = layout_command_size(group_layout, spec, address.command) == RibbonCommandSize::large;
@@ -1087,7 +1132,7 @@ Ribbon::Parts Ribbon::control_parts(const Layout& placed) const {
     record.region = PartGeometry::from_bounds(client_rectangle());
     record.tab_rail = PartGeometry::from_bounds(placed.tab_rail);
     record.application_button = PartGeometry::from_bounds(placed.application);
-    const double padding = tab_padding * scale;
+    const double padding = row_metrics().application_padding;
     record.application_label = PartGeometry::from_bounds(
         {placed.application.x + padding, placed.application.y, std::max(0.0, placed.application.width - padding * 2.0),
          placed.application.height});
@@ -1133,6 +1178,7 @@ AnatomyStateSet Ribbon::tab_states(std::size_t tab) const {
     AnatomyStateSet states;
     if (hot_.kind == Hit::Kind::tab && hot_.index == tab) states.insert(AnatomyState::hot);
     if (selected_tab_ == tab) states.insert(AnatomyState::selected);
+    if (!tabs_[tab].enabled) states.insert(AnatomyState::disabled);
     if (stop_focus_visible(Stop{StopKind::tab, tab, {}})) states.insert(AnatomyState::focus_visible);
     return states;
 }
@@ -1164,6 +1210,17 @@ AnatomyStateSet Ribbon::group_button_states(std::size_t group) const {
 
 // -- paint -------------------------------------------------------------------
 
+// Every part is keyed by its anatomy name, and an item's parts also by the
+// item's stable ID (Plan Paint defect 1), so that a theme's
+// `ribbon::part(...)` rules reach each of them.
+//
+// Paint order (RENDERING_REFERENCE §4): the rail; the File tab; the tabs
+// that are not selected, from the last to the first, so that each tab's
+// cast falls over its right-hand neighbour and earlier tabs sit above later
+// ones; the plane and its groups; then the selected tab over the plane's
+// top edge. Where the theme runs the selected tab into the plane (a
+// negative `margin-bottom`), its face covers that edge, so the edge breaks
+// under it and the tab joins the plane (defect 3).
 void Ribbon::on_paint(Painter& painter, Rect) {
     const Layout placed = layout();
     const FontSpec label_font = text_font(font.read());
@@ -1173,66 +1230,66 @@ void Ribbon::on_paint(Painter& painter, Rect) {
     part.family = ControlVisualRole::panel;
     part.role = PartRole::face;
     part.bounds = placed.tab_rail;
+    part.key = PartKey{"tab_rail", {}, {}};
     paint_part(painter, *this, part);
     // The File tab: a solid accent face, as the design language's File tab.
     const std::string application_label = parse_mnemonic_text(application_text.read()).display_text;
     part.family = ControlVisualRole::accent_button;
     part.states = own.application_button.states;
     part.bounds = placed.application;
+    part.key = PartKey{"application_button", {}, {}};
     paint_part(painter, *this, part);
     part.role = PartRole::label;
     part.text = application_label;
     part.alignment = PartTextAlignment::center;
+    part.bounds = own.application_label.bounds;
+    part.key = PartKey{"application_label", {}, {}};
     paint_part(painter, *this, part);
     part.text = {};
     part.role = PartRole::focus;
+    part.bounds = placed.application;
+    part.key.reset();
     paint_part(painter, *this, part);
-    // Tabs: flat at rest, a plate when hot or selected (the menu-item
-    // family) until T4 draws the tab stack.
-    part.family = ControlVisualRole::menu_item;
-    for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
-        if (!shown(tab)) continue;
-        const TabParts parts = tab_parts(placed, tab);
-        part.states = tab_states(tab);
-        part.role = PartRole::face;
-        part.bounds = parts.tab.bounds;
-        part.accent = parts.tab.accent;
-        paint_part(painter, *this, part);
-        part.accent.reset();
-        const std::string label = parse_mnemonic_text(tabs_[tab].text).display_text;
-        part.role = PartRole::label;
-        part.bounds = parts.tab_label.bounds;
-        part.text = label;
-        paint_part(painter, *this, part);
-        part.text = {};
-        part.role = PartRole::focus;
-        part.bounds = parts.tab_focus.bounds;
-        paint_part(painter, *this, part);
+    for (std::size_t index = tabs_.size(); index > 0U; --index) {
+        const std::size_t tab = index - 1U;
+        if (!shown(tab) || selected_tab_ == tab) continue;
+        paint_tab(painter, part, placed, tab);
     }
     part.alignment = PartTextAlignment::start;
-    if (placed.plane.empty() || !selected_tab_) return;
-    part.states = {};
-    part.family = ControlVisualRole::panel;
-    part.role = PartRole::face;
-    part.bounds = placed.plane;
-    part.accent = own.command_plane.accent;
-    paint_part(painter, *this, part);
-    part.accent.reset();
-    painter.save();
-    painter.clip_rect(placed.groups_area);
-    paint_groups(painter, placed);
-    painter.restore();
+    part.font = label_font;
+    const bool plane = !placed.plane.empty() && selected_tab_.has_value();
+    if (plane) {
+        part.states = {};
+        part.family = ControlVisualRole::panel;
+        part.role = PartRole::face;
+        part.bounds = placed.plane;
+        part.accent = own.command_plane.accent;
+        part.key = PartKey{"command_plane", {}, {}};
+        paint_part(painter, *this, part);
+        part.accent.reset();
+        part.key.reset();
+        painter.save();
+        painter.clip_rect(placed.groups_area);
+        paint_groups(painter, placed);
+        painter.restore();
+    }
+    if (selected_tab_ && shown(*selected_tab_)) paint_tab(painter, part, placed, *selected_tab_);
+    if (!plane) return;
+    part.alignment = PartTextAlignment::start;
+    part.font = label_font;
     // The scroll buttons, over the plane's ends (menu-item family, flat at
-    // rest, until T4).
+    // rest).
     part.family = ControlVisualRole::menu_item;
     if (own.scroll_left.present) {
         part.role = PartRole::actuator;
         part.states = own.scroll_left.states;
         part.bounds = own.scroll_left.bounds;
+        part.key = PartKey{"scroll_left", {}, {}};
         paint_part(painter, *this, part);
         part.role = PartRole::glyph;
         part.bounds = own.scroll_left_glyph.bounds;
         part.mark = PartMark::arrow_left;
+        part.key = PartKey{"scroll_left_glyph", {}, {}};
         paint_part(painter, *this, part);
     }
     if (own.scroll_right.present) {
@@ -1240,16 +1297,73 @@ void Ribbon::on_paint(Painter& painter, Rect) {
         part.states = own.scroll_right.states;
         part.bounds = own.scroll_right.bounds;
         part.mark = PartMark::none;
+        part.key = PartKey{"scroll_right", {}, {}};
         paint_part(painter, *this, part);
         part.role = PartRole::glyph;
         part.bounds = own.scroll_right_glyph.bounds;
         part.mark = PartMark::arrow_right;
+        part.key = PartKey{"scroll_right_glyph", {}, {}};
         paint_part(painter, *this, part);
     }
 }
 
+// One tab: its face, keyed by the tab, with the shape its state's rules give
+// it (PartProfile: a folder taper, the lip where the selected tab meets the
+// plane, a soft shadow beyond its trailing edge; none in the stock themes),
+// its label in its state's font (defect 6), and its focus cue. A contextual
+// tab's face carries its set's tint (owner decision 25). `part` carries the
+// alignment; its family, states, font and key are set here.
+void Ribbon::paint_tab(Painter& painter, PartPaint& part, const Layout& placed, std::size_t tab) const {
+    const TabParts parts = tab_parts(placed, tab);
+    const AnatomyStateSet states = tab_states(tab);
+    const std::string_view id = tabs_[tab].stable_id;
+    part.family = ControlVisualRole::menu_item;
+    part.states = states;
+    part.role = PartRole::face;
+    part.bounds = parts.tab.bounds;
+    part.accent = parts.tab.accent;
+    part.key = PartKey{"tab", id, {}};
+    const ControlPartMetrics metrics = part_metrics("tab", ControlVisualRole::menu_item, states);
+    const bool shaped = metrics.taper > 0.0 || metrics.flare > 0.0 || metrics.edge_shadow_width > 0.0;
+    if (shaped) {
+        PartProfile profile;
+        profile.taper = metrics.taper * effective_text_scale();
+        profile.taper_colour = metrics.taper_colour;
+        profile.flare = metrics.flare * effective_text_scale();
+        profile.flare_colour = metrics.flare_colour.value_or(Color::rgba(0, 0, 0, 0));
+        profile.edge_shadow = metrics.edge_shadow_width * effective_text_scale();
+        profile.edge_shadow_colour = metrics.edge_shadow_colour;
+        part.profile = profile;
+    }
+    paint_part(painter, *this, part);
+    part.profile.reset();
+    part.accent.reset();
+    // The hover layer: the soft dither rising over the face while the tab
+    // is hot, within the body (short of the taper and its shadow).
+    const double taper = shaped ? std::clamp(metrics.taper * effective_text_scale(), 0.0, parts.tab_hover.bounds.width) : 0.0;
+    const Rect hover = parts.tab_hover.bounds;
+    part.bounds = {hover.x, hover.y, hover.width - taper, hover.height};
+    part.key = PartKey{"tab_hover", id, {}};
+    paint_part(painter, *this, part);
+    const std::string label = parse_mnemonic_text(tabs_[tab].text).display_text;
+    part.role = PartRole::label;
+    part.bounds = parts.tab_label.bounds;
+    part.text = label;
+    part.font = tab_label_font(states);
+    part.alignment = PartTextAlignment::center;
+    part.key = PartKey{"tab_label", id, {}};
+    paint_part(painter, *this, part);
+    part.text = {};
+    part.role = PartRole::focus;
+    part.bounds = parts.tab_focus.bounds;
+    part.key = PartKey{"tab_focus", id, {}};
+    paint_part(painter, *this, part);
+    part.key.reset();
+}
+
 // Paints the shown groups of `placed` (the plane or the overlay), clipped by
-// the caller.
+// the caller. Each part is keyed by its anatomy name and its group's or
+// command's stable ID.
 void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
     const FontSpec label_font = text_font(font.read());
     PartPaint part;
@@ -1260,25 +1374,27 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
             continue;
         }
         const GroupParts parts = group_parts(placed, group);
+        const std::string_view group_id = groups[group].stable_id;
         part.family = ControlVisualRole::panel;
         part.states = {};
         part.role = PartRole::divider;
         part.bounds = parts.group_divider.bounds;
+        part.key = PartKey{"group_divider", group_id, {}};
         paint_part(painter, *this, part);
         if (group_collapsed(placed, group)) {
             part.family = ControlVisualRole::menu_item;
             part.states = parts.group_button.states;
             part.role = PartRole::face;
             part.bounds = parts.group_button.bounds;
-            // Keyed by the group (T2 GIVEN H3-1), so that the engine's
-            // built-in rules raise its dithered bulge while it is hot.
-            part.key = PartKey{"group_button", groups[group].stable_id, {}};
+            // The engine's built-in rules raise its dithered bulge while it
+            // is hot (T2 GIVEN H3-1).
+            part.key = PartKey{"group_button", group_id, {}};
             paint_part(painter, *this, part);
-            part.key.reset();
             if (parts.group_button_icon.present) {
                 part.role = PartRole::icon;
                 part.bounds = parts.group_button_icon.bounds;
                 part.image = group_image(groups[group]);
+                part.key = PartKey{"group_button_icon", group_id, {}};
                 paint_part(painter, *this, part);
                 part.image = {};
             }
@@ -1286,16 +1402,19 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
             part.bounds = parts.group_button_label.bounds;
             part.alignment = PartTextAlignment::center;
             part.text = groups[group].caption;
+            part.key = PartKey{"group_button_label", group_id, {}};
             paint_part(painter, *this, part);
             part.text = {};
             part.alignment = PartTextAlignment::start;
             part.role = PartRole::glyph;
             part.bounds = parts.group_button_glyph.bounds;
             part.mark = PartMark::chevron_down;
+            part.key = PartKey{"group_button_glyph", group_id, {}};
             paint_part(painter, *this, part);
             part.mark = PartMark::none;
             part.role = PartRole::focus;
             part.bounds = parts.group_button_focus.bounds;
+            part.key = PartKey{"group_button_focus", group_id, {}};
             paint_part(painter, *this, part);
             continue;
         }
@@ -1304,6 +1423,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
         part.bounds = parts.group_caption.bounds;
         part.alignment = PartTextAlignment::center;
         part.text = groups[group].caption;
+        part.key = PartKey{"group_caption", group_id, {}};
         paint_part(painter, *this, part);
         part.text = {};
         part.alignment = PartTextAlignment::start;
@@ -1312,14 +1432,17 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
             part.states = parts.group_launcher.states;
             part.role = PartRole::actuator;
             part.bounds = parts.group_launcher.bounds;
+            part.key = PartKey{"group_launcher", group_id, {}};
             paint_part(painter, *this, part);
             part.role = PartRole::glyph;
             part.bounds = parts.group_launcher_glyph.bounds;
             part.mark = PartMark::dialog_launcher;
+            part.key = PartKey{"group_launcher_glyph", group_id, {}};
             paint_part(painter, *this, part);
             part.mark = PartMark::none;
             part.role = PartRole::focus;
             part.bounds = parts.group_launcher_focus.bounds;
+            part.key = PartKey{"group_launcher_focus", group_id, {}};
             paint_part(painter, *this, part);
         }
         for (std::size_t command = 0; command < groups[group].commands.size(); ++command) {
@@ -1338,7 +1461,12 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
                 paint_part(painter, *this, part);
                 part.text = {};
             }
+            if (text_only(spec.kind) && command_part.command_label.present) {
+                paint_label_command(painter, part, spec, command_part, command_states(address));
+                continue;
+            }
             if (hosted(spec.kind) || !command_part.command_face.present) continue;
+            const std::string_view command_id = spec.stable_id;
             const AnatomyStateSet states = command_states(address);
             // A split's face and arrow press apart, as ToolStrip's do.
             AnatomyStateSet face_states = states;
@@ -1349,16 +1477,16 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
             part.role = PartRole::face;
             part.states = face_states;
             part.bounds = command_part.command_face.bounds;
-            // Keyed by the command (T2 GIVEN H3-1): the engine's built-in
-            // rules draw its dithered bulge, flat at rest and rising while
-            // it is hot (GIVEN D3-1, G4-1).
-            part.key = PartKey{"command_face", spec.stable_id, {}};
+            // The engine's built-in rules draw its dithered bulge, flat at
+            // rest and rising while it is hot (GIVEN D3-1, G4-1), unless a
+            // theme authors the face (defect 2).
+            part.key = PartKey{"command_face", command_id, {}};
             paint_part(painter, *this, part);
-            part.key.reset();
             if (command_part.command_arrow.present) {
                 part.role = PartRole::actuator;
                 part.states = command_part.command_arrow.states;
                 part.bounds = command_part.command_arrow.bounds;
+                part.key = PartKey{"command_arrow", command_id, {}};
                 paint_part(painter, *this, part);
             }
             part.states = states;
@@ -1366,6 +1494,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
                 part.role = PartRole::icon;
                 part.bounds = command_part.command_icon.bounds;
                 part.image = spec.image;
+                part.key = PartKey{"command_icon", command_id, {}};
                 paint_part(painter, *this, part);
                 part.image = {};
             }
@@ -1376,6 +1505,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
                 part.bounds = command_part.command_label.bounds;
                 part.text = label;
                 part.alignment = large ? PartTextAlignment::center : PartTextAlignment::start;
+                part.key = PartKey{"command_label", command_id, {}};
                 paint_part(painter, *this, part);
                 part.text = {};
                 part.alignment = PartTextAlignment::start;
@@ -1384,14 +1514,34 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
                 part.role = PartRole::glyph;
                 part.bounds = command_part.command_arrow_glyph.bounds;
                 part.mark = PartMark::arrow_down;
+                part.key = PartKey{"command_arrow_glyph", command_id, {}};
                 paint_part(painter, *this, part);
                 part.mark = PartMark::none;
             }
             part.role = PartRole::focus;
             part.bounds = command_part.command_focus.bounds;
+            part.key = PartKey{"command_focus", command_id, {}};
             paint_part(painter, *this, part);
         }
     }
+    part.key.reset();
+}
+
+// A label command: its text in the command_label part, at the start of its
+// row, in its state (disabled with the ribbon).
+void Ribbon::paint_label_command(Painter& painter, PartPaint& part, const RibbonCommandSpec& spec,
+                                 const CommandParts& command_part, AnatomyStateSet states) const {
+    part.family = ControlVisualRole::menu_item;
+    part.role = PartRole::label;
+    part.states = states;
+    part.bounds = command_part.command_label.bounds;
+    // Kept alive while the part borrows it.
+    const std::string label = command_text(spec);
+    part.text = label;
+    part.alignment = PartTextAlignment::start;
+    part.key = PartKey{"command_label", spec.stable_id, {}};
+    paint_part(painter, *this, part);
+    part.text = {};
 }
 
 void Ribbon::overlay_paint(Painter& painter, Rect panel) const {
@@ -1409,6 +1559,13 @@ Ribbon::Hit Ribbon::hit_test(const Layout& placed, Point local) const {
     Hit hit;
     if (placed.application.contains(local)) {
         hit.kind = Hit::Kind::application;
+        return hit;
+    }
+    // Overlapping tabs stack as they paint: the selected tab over both
+    // neighbours, then each tab over the one to its right.
+    if (selected_tab_ && *selected_tab_ < placed.tabs.size() && placed.tabs[*selected_tab_].contains(local)) {
+        hit.kind = Hit::Kind::tab;
+        hit.index = *selected_tab_;
         return hit;
     }
     for (std::size_t tab = 0; tab < placed.tabs.size(); ++tab) {
@@ -1445,6 +1602,8 @@ Ribbon::Hit Ribbon::hit_test(const Layout& placed, Point local) const {
         }
         for (std::size_t command = 0; command < groups[group].commands.size(); ++command) {
             if (!placed.commands[group][command].contains(local)) continue;
+            // A label is not a target: the pointer passes to the plane.
+            if (text_only(groups[group].commands[command].kind)) return hit;
             const CommandAddress address{group, command};
             const CommandParts command_part = command_parts(placed, address);
             hit.kind = Hit::Kind::command;
@@ -1462,8 +1621,82 @@ void Ribbon::set_hot(const Hit& hit) {
     if (hot_.kind == hit.kind && hot_.index == hit.index && hot_.command == hit.command && hot_.zone == hit.zone) {
         return;
     }
+    const Hit previous = hot_;
     hot_ = hit;
-    invalidate_views(Dirty::paint);
+    repaint_part(previous.kind, previous.index, previous.command);
+    repaint_part(hit.kind, hit.index, hit.command);
+}
+
+void Ribbon::repaint_part(Hit::Kind kind, std::size_t index, CommandAddress command) {
+    if (kind == Hit::Kind::none) return;
+    const bool overlay_part = (kind == Hit::Kind::command && overlay_group_ == command.group) ||
+                              ((kind == Hit::Kind::launcher || kind == Hit::Kind::group_button) &&
+                               overlay_group_ == index);
+    if (overlay_part && group_overlay_ && (*group_overlay_).is_alive()) {
+        (*group_overlay_).invalidate(Dirty::paint);
+    }
+    const Layout placed = layout();
+    Rect bounds{};
+    switch (kind) {
+    case Hit::Kind::application:
+        bounds = placed.application;
+        break;
+    case Hit::Kind::tab:
+        if (index < placed.tabs.size()) bounds = placed.tabs[index];
+        break;
+    case Hit::Kind::command:
+        if (command.group < placed.commands.size() && command.command < placed.commands[command.group].size()) {
+            bounds = Rect::intersection(placed.commands[command.group][command.command], placed.groups_area);
+        }
+        break;
+    case Hit::Kind::launcher:
+    case Hit::Kind::group_button:
+        if (index < placed.groups.size()) bounds = Rect::intersection(placed.groups[index], placed.groups_area);
+        break;
+    case Hit::Kind::scroll_left:
+        bounds = placed.scroll_left;
+        break;
+    case Hit::Kind::scroll_right:
+        bounds = placed.scroll_right;
+        break;
+    case Hit::Kind::none:
+        return;
+    default:
+        // A part this function does not know: the whole ribbon, as before.
+        invalidate_views(Dirty::paint);
+        return;
+    }
+    if (bounds.empty()) return;
+    // The focus cue and the pressed plate's edge reach this far outside the
+    // part's own bounds.
+    constexpr double outset = 2.0;
+    invalidate(Rect{bounds.x - outset, bounds.y - outset, bounds.width + 2.0 * outset, bounds.height + 2.0 * outset});
+}
+
+void Ribbon::repaint_stop(const std::optional<Stop>& stop) {
+    if (!stop) return;
+    Hit::Kind kind = Hit::Kind::none;
+    switch ((*stop).kind) {
+    case StopKind::application:
+        kind = Hit::Kind::application;
+        break;
+    case StopKind::tab:
+        kind = Hit::Kind::tab;
+        break;
+    case StopKind::command:
+        kind = Hit::Kind::command;
+        break;
+    case StopKind::launcher:
+        kind = Hit::Kind::launcher;
+        break;
+    case StopKind::group_button:
+        kind = Hit::Kind::group_button;
+        break;
+    default:
+        invalidate_views(Dirty::paint);
+        return;
+    }
+    repaint_part(kind, (*stop).index, (*stop).command);
 }
 
 // Repaints (or otherwise invalidates) the ribbon and, while it is open, the
@@ -1474,7 +1707,7 @@ void Ribbon::invalidate_views(Dirty dirty) {
 }
 
 void Ribbon::click_tab(std::size_t tab) {
-    if (tab >= tabs_.size()) return;
+    if (!selectable(tab)) return;
     // The selected tab minimizes the command plane or shows it again
     // (owner decision 19); another tab is selected and shows the plane.
     if (selected_tab_ == tab) {
@@ -1490,7 +1723,7 @@ void Ribbon::click_tab(std::size_t tab) {
 // run from a group overlay closes it, as a menu closes.
 void Ribbon::click_command(CommandAddress address) {
     const RibbonCommandSpec* const found = selected_command(address);
-    if (found == nullptr || hosted((*found).kind) || !command_enabled(*found)) return;
+    if (found == nullptr || hosted((*found).kind) || text_only((*found).kind) || !command_enabled(*found)) return;
     // A copy: running the command, or a handler of its events, may replace
     // the tabs and so the record `found` points into.
     const RibbonCommandSpec spec = *found;
@@ -1534,13 +1767,19 @@ void Ribbon::press(const Hit& hit, PointerEvent& event) {
             static_cast<void>(show_application_menu(MenuOpenMode::pointer));
         }
     } else if (hit.kind == Hit::Kind::tab) {
-        click_tab(hit.index);
+        // On the press (Office's way), or, while tabs_activate_on_release
+        // holds, on the release over the same tab.
+        if (tabs_activate_on_release.read()) {
+            if (selectable(hit.index)) pressed_tab_ = hit.index;
+        } else {
+            click_tab(hit.index);
+        }
     } else if (hit.kind == Hit::Kind::launcher) {
         pressed_launcher_ = hit.index;
-        invalidate_views(Dirty::paint);
+        repaint_part(hit.kind, hit.index, hit.command);
     } else if (hit.kind == Hit::Kind::group_button) {
         pressed_group_ = hit.index;
-        invalidate_views(Dirty::paint);
+        repaint_part(hit.kind, hit.index, hit.command);
         const RibbonGroupSpec* const group = selected_group(hit.index);
         if (group != nullptr) static_cast<void>(show_group_overlay((*group).stable_id, MenuOpenMode::pointer));
     } else if (hit.kind == Hit::Kind::scroll_left || hit.kind == Hit::Kind::scroll_right) {
@@ -1570,7 +1809,7 @@ void Ribbon::press(const Hit& hit, PointerEvent& event) {
         }
         pressed_command_ = hit.command;
         pressed_zone_ = hit.zone;
-        invalidate_views(Dirty::paint);
+        repaint_part(hit.kind, hit.index, hit.command);
     }
 }
 
@@ -1581,14 +1820,26 @@ void Ribbon::release(const Hit& hit, PointerEvent& event) {
     const CommandZone zone = pressed_zone_;
     const std::optional<std::size_t> launcher = pressed_launcher_;
     const bool group = pressed_group_.has_value();
+    const std::optional<std::size_t> pressed_group = pressed_group_;
+    const Hit::Kind pressed_scroll = pressed_scroll_;
     const bool scroll = pressed_scroll_ != Hit::Kind::none;
+    const std::optional<std::size_t> tab = pressed_tab_;
+    pressed_tab_.reset();
+    if (tab) {
+        event.handled = true;
+        if (hit.kind == Hit::Kind::tab && hit.index == *tab) click_tab(*tab);
+        return;
+    }
     if (!pressed && !launcher && !group && !scroll) return;
     pressed_command_.reset();
     pressed_zone_ = CommandZone::none;
     pressed_launcher_.reset();
     pressed_group_.reset();
     pressed_scroll_ = Hit::Kind::none;
-    invalidate_views(Dirty::paint);
+    if (pressed) repaint_part(Hit::Kind::command, 0U, *pressed);
+    if (launcher) repaint_part(Hit::Kind::launcher, *launcher, {});
+    if (pressed_group) repaint_part(Hit::Kind::group_button, *pressed_group, {});
+    if (scroll) repaint_part(pressed_scroll, 0U, {});
     event.handled = true;
     if (pressed && hit.kind == Hit::Kind::command && hit.command == *pressed && hit.zone == zone) {
         click_command(*pressed);
@@ -1650,7 +1901,7 @@ void Ribbon::on_pointer_preview(PointerEvent& event) {
         event.handled = true;
     } else if (backstage_shown && hit.kind == Hit::Kind::tab) {
         event.handled = true;
-        select_tab(hit.index);
+        if (selectable(hit.index)) select_tab(hit.index);
     }
 }
 
@@ -1685,7 +1936,7 @@ std::vector<Ribbon::Stop> Ribbon::stops_for(const Layout& placed) const {
     std::vector<Stop> result;
     result.push_back(Stop{StopKind::application, 0U, {}});
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
-        if (shown(tab)) result.push_back(Stop{StopKind::tab, tab, {}});
+        if (selectable(tab)) result.push_back(Stop{StopKind::tab, tab, {}});
     }
     if (minimized.read() || plane_hidden_ || !selected_tab_ || placed.plane.empty()) return result;
     const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_].groups;
@@ -1697,7 +1948,7 @@ std::vector<Ribbon::Stop> Ribbon::stops_for(const Layout& placed) const {
         }
         for (std::size_t command = 0; command < groups[group].commands.size(); ++command) {
             const RibbonCommandSpec& spec = groups[group].commands[command];
-            if (hosted(spec.kind) || !command_visible(spec)) continue;
+            if (hosted(spec.kind) || text_only(spec.kind) || !command_visible(spec)) continue;
             result.push_back(Stop{StopKind::command, 0U, CommandAddress{group, command}});
         }
         if (groups[group].dialog_launcher) result.push_back(Stop{StopKind::launcher, group, {}});
@@ -1718,7 +1969,7 @@ std::vector<Ribbon::Stop> Ribbon::overlay_stops() const {
     const RibbonGroupSpec& spec = tabs_[*selected_tab_].groups[group];
     for (std::size_t command = 0; command < spec.commands.size(); ++command) {
         const RibbonCommandSpec& item = spec.commands[command];
-        if (hosted(item.kind) || !command_visible(item)) continue;
+        if (hosted(item.kind) || text_only(item.kind) || !command_visible(item)) continue;
         result.push_back(Stop{StopKind::command, 0U, CommandAddress{group, command}});
     }
     if (spec.dialog_launcher) result.push_back(Stop{StopKind::launcher, group, {}});
@@ -1902,7 +2153,16 @@ void Ribbon::overlay_key(KeyEvent& event) {
 void Ribbon::on_focus_changed(bool focused) {
     focused_ = focused;
     if (focused_ && !stop_) stop_ = Stop{StopKind::tab, selected_tab_.value_or(0U), {}};
-    invalidate(Dirty::paint | Dirty::semantics);
+    invalidate(Dirty::semantics);
+    // The stop shows focus only with the focus cue (stop_focus_visible); a
+    // pointer press that focuses the ribbon changes no pixel. The window
+    // repaints the focused control when the cue appears.
+    const Window* const host = attached_window();
+    if (host != nullptr && (*host).focus_cue_visible()) repaint_stop(stop_);
+}
+
+Dirty Ribbon::focus_invalidation() const noexcept {
+    return Dirty::semantics | Dirty::accessibility;
 }
 
 void Ribbon::overlay_focus_changed(bool focused) {
@@ -1917,12 +2177,13 @@ void Ribbon::overlay_focus_changed(bool focused) {
 bool Ribbon::mnemonic_matches(char32_t character) const noexcept {
     if (is_mnemonic(character, application_text.read())) return true;
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
-        if (shown(tab) && is_mnemonic(character, tabs_[tab].text)) return true;
+        if (selectable(tab) && is_mnemonic(character, tabs_[tab].text)) return true;
     }
     if (minimized.read() || plane_hidden_ || !selected_tab_) return false;
     for (const RibbonGroupSpec& group : tabs_[*selected_tab_].groups) {
         for (const RibbonCommandSpec& command : group.commands) {
-            if (!hosted(command.kind) && is_mnemonic(character, authored_text(command))) return true;
+            if (hosted(command.kind) || text_only(command.kind)) continue;
+            if (is_mnemonic(character, authored_text(command))) return true;
         }
     }
     return false;
@@ -1936,7 +2197,7 @@ bool Ribbon::process_mnemonic_self(char32_t character) {
         return true;
     }
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
-        if (!shown(tab) || !is_mnemonic(character, tabs_[tab].text)) continue;
+        if (!selectable(tab) || !is_mnemonic(character, tabs_[tab].text)) continue;
         select_tab(tab);
         if (minimized.read()) minimized = false;
         return true;
@@ -1946,7 +2207,8 @@ bool Ribbon::process_mnemonic_self(char32_t character) {
     for (std::size_t group = 0; group < groups.size(); ++group) {
         for (std::size_t command = 0; command < groups[group].commands.size(); ++command) {
             const RibbonCommandSpec& spec = groups[group].commands[command];
-            if (hosted(spec.kind) || !is_mnemonic(character, authored_text(spec))) continue;
+            if (hosted(spec.kind) || text_only(spec.kind)) continue;
+            if (!is_mnemonic(character, authored_text(spec))) continue;
             click_command(CommandAddress{group, command});
             return true;
         }
@@ -1972,7 +2234,8 @@ bool Ribbon::show_application_menu(MenuOpenMode mode) {
                                                                                placed.application.height},
                    mode);
     application_open_ = true;
-    invalidate(Dirty::paint | Dirty::semantics);
+    invalidate(Dirty::semantics);
+    repaint_part(Hit::Kind::application, 0U, {});
     return true;
 }
 
@@ -2010,7 +2273,8 @@ bool Ribbon::show_drop_down(std::string_view command_id, MenuOpenMode mode) {
     (*overlay_).set_items(spec.drop_down);
     (*overlay_).show(shared_from_this(), {(*bounds).x, (*bounds).y + (*bounds).height}, mode);
     open_command_ = address;
-    invalidate_views(Dirty::paint | Dirty::semantics);
+    invalidate_views(Dirty::semantics);
+    repaint_part(Hit::Kind::command, 0U, *address);
     return true;
 }
 
@@ -2026,13 +2290,25 @@ bool Ribbon::menu_open() const noexcept {
 
 void Ribbon::on_overlay_open_changed(bool open) {
     if (open) return;
+    const std::optional<CommandAddress> was_open = open_command_;
+    const bool application_was_open = application_open_;
     application_open_ = false;
     open_command_.reset();
-    invalidate_views(Dirty::paint | Dirty::semantics);
+    if (application_overlay_) (*application_overlay_).submenu_closed();
+    if (application_panel_) (*application_panel_).submenu_closed();
+    // A two-pane submenu's command ran: the two-pane menu closes after it.
+    if (application_submenu_invoked_) {
+        application_submenu_invoked_ = false;
+        close_application_overlay();
+    }
+    invalidate_views(Dirty::semantics);
+    if (was_open) repaint_part(Hit::Kind::command, 0U, *was_open);
+    if (application_was_open) repaint_part(Hit::Kind::application, 0U, {});
 }
 
 void Ribbon::on_overlay_item_invoked(const MenuItemInvocation& invocation) {
     if (application_open_) {
+        if (application_overlay_open_) application_submenu_invoked_ = true;
         application_menu_item_invoked_.emit(invocation);
         return;
     }
@@ -2243,13 +2519,26 @@ void Ribbon::append_group_node(SemanticNode& parent, const Layout& placed, std::
     // the overlay).
     std::size_t set_size = 0U;
     for (std::size_t command = 0; command < spec.commands.size(); ++command) {
-        if (!hosted(spec.commands[command].kind) && !placed.commands[group][command].empty()) ++set_size;
+        const RibbonCommandKind kind = spec.commands[command].kind;
+        if (!hosted(kind) && !text_only(kind) && !placed.commands[group][command].empty()) ++set_size;
     }
     std::size_t position = 0U;
     for (std::size_t command = 0; command < spec.commands.size(); ++command) {
         const RibbonCommandSpec& item = spec.commands[command];
         const Rect bounds = Rect::intersection(placed.commands[group][command], visible);
         if (hosted(item.kind) || placed.commands[group][command].empty()) continue;
+        if (text_only(item.kind)) {
+            // A label: static text in the group, neither focusable nor
+            // actionable, outside the commands' set.
+            SemanticNode text{};
+            text.stable_id = node_identity(ribbon_id, "command", item.stable_id);
+            text.role = SemanticRole::static_text;
+            text.name = command_text(item);
+            text.bounds = to_window(absolute, bounds);
+            text.states = base;
+            group_node.children.push_back(std::move(text));
+            continue;
+        }
         ++position;
         const CommandAddress address{group, command};
         const Stop stop{StopKind::command, 0U, address};
@@ -2335,14 +2624,16 @@ std::vector<SemanticNode> Ribbon::semantic_virtual_children() const {
         node.position_in_set = place.position;
         node.set_size = place.count;
         node.bounds = to_window(absolute, placed.tabs[tab]);
-        node.states = base | SemanticState::focusable;
+        // A disabled tab is published, neither enabled nor focusable, with
+        // no action.
+        node.states = tabs_[tab].enabled ? base | SemanticState::focusable : SemanticState::visible;
         if (selected_tab_ == tab) node.states |= SemanticState::selected;
         if (focused_ && stop_ && *stop_ == Stop{StopKind::tab, tab, {}}) node.states |= SemanticState::focused;
         // The selected tab shows the command plane, its panel (owner
         // decision DK-40). Tabs publish select, not press (DK-35); a press
         // sent anyway still clicks the tab (on_semantic_child_action).
         if (selected_tab_ == tab && !placed.plane.empty()) node.controlled_panel = ribbon_id + ".command-plane";
-        node.actions = {SemanticAction::select};
+        if (tabs_[tab].enabled) node.actions = {SemanticAction::select};
         row.children.push_back(std::move(node));
     }
     nodes.push_back(std::move(row));
@@ -2433,7 +2724,7 @@ bool Ribbon::on_semantic_child_action(std::string_view id, SemanticAction action
     const std::string_view tab_id = node_suffix(id, ribbon_id, "tab");
     for (std::size_t tab = 0; tab < tabs_.size() && !tab_id.empty(); ++tab) {
         if (tabs_[tab].stable_id != tab_id) continue;
-        if (!shown(tab)) return false;
+        if (!selectable(tab)) return false;
         if (action == SemanticAction::press) {
             click_tab(tab);
             return true;
@@ -2459,6 +2750,8 @@ bool Ribbon::on_semantic_child_action(std::string_view id, SemanticAction action
     if (!command_id.empty()) {
         const std::optional<CommandAddress> address = find_command(command_id);
         if (!address || minimized.read() || plane_hidden_) return false;
+        const RibbonCommandSpec* const target = selected_command(*address);
+        if (target == nullptr || text_only((*target).kind)) return false;
         if (action == SemanticAction::press) {
             click_command(*address);
             return true;
@@ -2492,7 +2785,7 @@ constexpr std::array<AnatomyState, 2> arrow_states{{AnatomyState::hot, AnatomySt
 constexpr std::array<AnatomyState, 4> group_button_part_states{
     {AnatomyState::hot, AnatomyState::pressed, AnatomyState::open, AnatomyState::focus_visible}};
 
-constexpr std::array<PartField<Ribbon::Parts>, 10> ribbon_part_fields{{
+constexpr std::array<PartField<Ribbon::Parts>, 11> ribbon_part_fields{{
     {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
      .member = &Ribbon::Parts::region},
     {.declaration = {.name = "tab_rail", .role = PartRole::face, .composed_from = {}},
@@ -2517,23 +2810,33 @@ constexpr std::array<PartField<Ribbon::Parts>, 10> ribbon_part_fields{{
     {.declaration = {.name = "scroll_right_glyph", .role = PartRole::glyph, .composed_from = {},
                      .states = arrow_states},
      .member = &Ribbon::Parts::scroll_right_glyph},
+    // Reserved (owner, N4, 2026-11-09): the help button at the tab row's
+    // right end. Declared so that themes may style it now; the Ribbon
+    // neither places nor draws it until the help system's design wires it,
+    // so it is never present.
+    {.declaration = {.name = "help_button", .role = PartRole::actuator, .composed_from = "button",
+                     .states = launcher_states},
+     .member = &Ribbon::Parts::help_button},
     {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
      .member = &Ribbon::Parts::focus},
 }};
 
-constexpr std::array<PartField<Ribbon::TabParts>, 3> ribbon_tab_part_fields{{
+constexpr std::array<PartField<Ribbon::TabParts>, 4> ribbon_tab_part_fields{{
     {.declaration = {.name = "tab", .role = PartRole::face, .composed_from = {}},
      .member = &Ribbon::TabParts::tab},
+    {.declaration = {.name = "tab_hover", .role = PartRole::face, .composed_from = {}},
+     .member = &Ribbon::TabParts::tab_hover},
     {.declaration = {.name = "tab_label", .role = PartRole::label, .composed_from = {}},
      .member = &Ribbon::TabParts::tab_label},
     {.declaration = {.name = "tab_focus", .role = PartRole::focus, .composed_from = {}},
      .member = &Ribbon::TabParts::tab_focus},
 }};
 
-constexpr std::array<StateField<Ribbon::TabStates>, 3> ribbon_tab_state_fields{{
+constexpr std::array<StateField<Ribbon::TabStates>, 4> ribbon_tab_state_fields{{
     {.state = AnatomyState::hot, .member = &Ribbon::TabStates::hot},
     {.state = AnatomyState::selected, .member = &Ribbon::TabStates::selected},
     {.state = AnatomyState::focus_visible, .member = &Ribbon::TabStates::focus_visible},
+    {.state = AnatomyState::disabled, .member = &Ribbon::TabStates::disabled},
 }};
 
 constexpr std::array<PartField<Ribbon::GroupParts>, 11> ribbon_group_part_fields{{
@@ -2610,9 +2913,9 @@ constexpr std::array<StateField<Ribbon::CommandStates>, 6> ribbon_command_state_
     {.state = AnatomyState::focus_visible, .member = &Ribbon::CommandStates::focus_visible},
 }};
 
-constexpr std::array<PartDeclaration, 10> ribbon_parts = part_declarations(ribbon_part_fields);
-constexpr std::array<PartDeclaration, 3> ribbon_tab_parts = part_declarations(ribbon_tab_part_fields);
-constexpr std::array<AnatomyState, 3> ribbon_tab_states = state_declarations(ribbon_tab_state_fields);
+constexpr std::array<PartDeclaration, 11> ribbon_parts = part_declarations(ribbon_part_fields);
+constexpr std::array<PartDeclaration, 4> ribbon_tab_parts = part_declarations(ribbon_tab_part_fields);
+constexpr std::array<AnatomyState, 4> ribbon_tab_states = state_declarations(ribbon_tab_state_fields);
 constexpr std::array<PartDeclaration, 11> ribbon_group_parts = part_declarations(ribbon_group_part_fields);
 constexpr std::array<PartDeclaration, 13> ribbon_command_parts = part_declarations(ribbon_command_part_fields);
 constexpr std::array<AnatomyState, 6> ribbon_command_states = state_declarations(ribbon_command_state_fields);
@@ -2876,6 +3179,12 @@ void Ribbon::prepare_write(const decltype(font)&, FontSpec& incoming) {
 void Ribbon::written(const decltype(font)&) {
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
+
+void Ribbon::prepare_write(const decltype(tabs_activate_on_release)&, bool&) {
+    require_mutable();
+}
+
+void Ribbon::written(const decltype(tabs_activate_on_release)&) {}
 
 // property_codemod end Ribbon
 

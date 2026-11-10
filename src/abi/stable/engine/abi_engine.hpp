@@ -21,6 +21,7 @@
 #include "gui_forms/window.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <span>
 #include <string>
@@ -97,6 +98,10 @@ public:
     // The paths the last dialog chose.
     [[nodiscard]] std::vector<std::string>& dialog_paths() noexcept { return dialog_paths_; }
 
+    // A new identity for a dialog request: the host refuses identity zero
+    // and an identity already on its modal stack. UI thread.
+    [[nodiscard]] std::uint64_t next_dialog_request() noexcept { return next_dialog_request_++; }
+
     // Keeps owner alive while dependent lives. An owner whose dependent has
     // been destroyed is let go at the next call. Throws std::bad_alloc,
     // keeping nothing new.
@@ -118,6 +123,7 @@ private:
     std::vector<std::string> published_names_{};
     Window* running_ = nullptr;
     std::vector<std::string> dialog_paths_{};
+    std::uint64_t next_dialog_request_ = 1;
     std::vector<KeptOwner> kept_owners_{};
 };
 

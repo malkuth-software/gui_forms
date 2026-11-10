@@ -222,6 +222,15 @@ HostServiceStatus apply_windows_backdrop(HWND window, WindowBackdrop backdrop) n
     return {};
 }
 
+void apply_windows_popup_frame(HWND window) noexcept {
+    const DwmFunctions& functions = dwm();
+    if (window == nullptr || functions.set_attribute == nullptr) return;
+    const DWM_WINDOW_CORNER_PREFERENCE corners = DWMWCP_DONOTROUND;
+    static_cast<void>(functions.set_attribute(window, DWMWA_WINDOW_CORNER_PREFERENCE, &corners, sizeof(corners)));
+    const COLORREF border = DWMWA_COLOR_NONE;
+    static_cast<void>(functions.set_attribute(window, DWMWA_BORDER_COLOR, &border, sizeof(border)));
+}
+
 HostWindowCornersResult apply_windows_corners(HWND window, WindowCornerPreference preference) noexcept {
     HostWindowCornersResult result{};
     const DwmFunctions& functions = dwm();

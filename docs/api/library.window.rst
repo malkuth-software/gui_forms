@@ -54,6 +54,8 @@ Related types
      -  
    * - :cpp:class:`DeferredInputSnapshot <gui_forms::DeferredInputSnapshot>`
      - DeferredInputSnapshot preserves the route, transformed event, and target identity required to resume deferred input safely.
+   * - :cpp:class:`DevicePixelRect <gui_forms::DevicePixelRect>`
+     - A rectangle of whole device pixels: [left, right) by [top, bottom).
    * - :cpp:class:`DialogKeySnapshot <gui_forms::DialogKeySnapshot>`
      - DialogKeySnapshot reports mnemonic/default/cancel attempts and outcomes plus candidate, collision, cycle, and rejection counts.
    * - :cpp:class:`DispatchCancelledError <gui_forms::DispatchCancelledError>`
@@ -84,6 +86,14 @@ Related types
      - Where the window's input state reads the time of an input event (a held key's press time, the start of a hover).
    * - :cpp:class:`InteractionSnapshot <gui_forms::InteractionSnapshot>`
      - The state at the moment of the copy.
+   * - :cpp:class:`InvalidationOutline <gui_forms::InvalidationOutline>`
+     - One presented area: its bounds in window logical units, its cause, the control that caused it where known (its stable id; empty otherwise), and when it was presented.
+   * - :cpp:class:`InvalidationOutlineStyle <gui_forms::InvalidationOutlineStyle>`
+     - A cause's outline: its colour, its stroke width in logical units, its dash and gap lengths in logical units (no dash: solid), and whether it is drawn as two parallel lines.
+   * - :cpp:class:`InvalidationOverlay <gui_forms::InvalidationOverlay>`
+     - A window's live outlines.
+   * - :cpp:class:`InvalidationOverlayTarget <gui_forms::InvalidationOverlayTarget>`
+     - A frame's pixels the overlay composites onto: ``height`` rows of ``width`` premultiplied BGRA pixels, ``row_bytes`` apart.
    * - :cpp:class:`KeyGesture <gui_forms::KeyGesture>`
      - KeyGesture is exact portable physical-key plus modifier identity used for deterministic accelerator comparison.
    * - :cpp:class:`LiveSurfacePairingListener <gui_forms::LiveSurfacePairingListener>`
@@ -154,6 +164,10 @@ Related types
      - A window's band as it stands (Window::band_snapshot): whether it is declared and reserved, the reserved width (snapped, logical units), the colours the strips draw now, and the corners it follows.
    * - :cpp:class:`WindowCapabilities <gui_forms::WindowCapabilities>`
      - Every Window chrome capability, in the order Window takes them.
+   * - :cpp:class:`WindowCapture <gui_forms::WindowCapture>`
+     - A window's picture (Window::capture_window): its logical size, the scale it was drawn at and its pixels, ``pixel_height`` rows of ``pixel_width`` premultiplied BGRA pixels, tightly packed (pixel_width * 4 bytes a row).
+   * - :cpp:class:`WindowCaptureOptions <gui_forms::WindowCaptureOptions>`
+     - What Window::capture_window draws (owner request 2026-11-09, the product ports: screenshots and tests).
    * - :cpp:class:`WindowChrome <gui_forms::WindowChrome>`
      - What a window asks its host for.
    * - :cpp:class:`WindowChromeFields <gui_forms::WindowChromeFields>`
@@ -442,6 +456,22 @@ Related types
    .. cpp:member:: bool drain_queued
 
    .. cpp:member:: bool draining
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DevicePixelRect final
+
+   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>``
+
+   A rectangle of whole device pixels: [left, right) by [top, bottom).
+
+   .. cpp:member:: std::int32_t left
+
+   .. cpp:member:: std::int32_t top
+
+   .. cpp:member:: std::int32_t right
+
+   .. cpp:member:: std::int32_t bottom
 
 .. cpp:namespace:: gui_forms
 
@@ -804,6 +834,100 @@ Related types
       Whether MouseHover was raised on the hovered control since the pointer entered it, and whether the window's hover timer is armed.
 
    .. cpp:member:: bool hover_pending
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: InvalidationOutline final
+
+   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>``
+
+   One presented area: its bounds in window logical units, its cause, the control that caused it where known (its stable id; empty otherwise), and when it was presented.
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: InvalidationCause cause
+
+      Default: ``{InvalidationCause::control}``.
+
+   .. cpp:member:: std::string source
+
+   .. cpp:member:: InvalidationClock::time_point at
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: InvalidationOutlineStyle final
+
+   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>``
+
+   A cause's outline: its colour, its stroke width in logical units, its dash and gap lengths in logical units (no dash: solid), and whether it is drawn as two parallel lines.
+
+   .. cpp:member:: Color colour
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: double dash
+
+   .. cpp:member:: double gap
+
+   .. cpp:member:: bool double_line
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: InvalidationOverlay final
+
+   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>``
+
+   A window's live outlines. Owned by the window (SurfaceRoot), on its UI thread; the host reads it there to composite.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:function:: std::span<const InvalidationOutline> outlines() const noexcept
+
+      Oldest first.
+
+   .. cpp:function:: const std::array<std::uint64_t, invalidation_cause_count>& recorded() const noexcept
+
+      Every outline recorded, by cause, since the overlay was made.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void record(Rect bounds, InvalidationCause cause, std::string_view source, InvalidationClock::time_point at)
+
+      Adds an outline presented at ``at``; an empty or non-finite rectangle adds none. The source is cut to maximum_invalidation_label bytes.
+
+   .. cpp:function:: void expire(InvalidationClock::time_point now)
+
+      Drops the outlines older than invalidation_outline_lifetime at ``now``.
+
+   .. cpp:function:: void clear() noexcept
+
+   .. cpp:function:: void fill_regions(double scale, std::uint32_t width, std::uint32_t height, std::vector<DevicePixelRect>& regions) const
+
+      The device rectangles the overlay draws on at ``scale`` in a client of ``width`` by ``height`` device pixels, into ``regions`` (replacing its contents): each outline's four stroke bands and its label, and the legend while any outline shows. A host presents these again from its raster when the overlay changes, so that a faded outline leaves nothing behind.
+
+   .. cpp:function:: void compose(const InvalidationOverlayTarget& target, double scale, InvalidationClock::time_point now, DevicePixelRect clip) const
+
+      Composites the outlines, their labels and the legend at ``now`` onto ``target`` at ``scale``, inside ``clip`` only; each outline's opacity falls with its age. The target is a copy of what the window presents.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: InvalidationOverlayTarget final
+
+   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>``
+
+   A frame's pixels the overlay composites onto: ``height`` rows of ``width`` premultiplied BGRA pixels, ``row_bytes`` apart. Borrowed for the call.
+
+   .. cpp:member:: std::span<std::byte> pixels
+
+   .. cpp:member:: std::uint32_t width
+
+   .. cpp:member:: std::uint32_t height
+
+   .. cpp:member:: std::size_t row_bytes
 
 .. cpp:namespace:: gui_forms
 
@@ -1646,6 +1770,40 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: WindowCapture final
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+   A window's picture (Window::capture_window): its logical size, the scale it was drawn at and its pixels, ``pixel_height`` rows of ``pixel_width`` premultiplied BGRA pixels, tightly packed (pixel_width * 4 bytes a row). The capture owns its pixels.
+
+   .. cpp:member:: Size logical_size
+
+   .. cpp:member:: double scale
+
+   .. cpp:member:: std::uint32_t pixel_width
+
+   .. cpp:member:: std::uint32_t pixel_height
+
+   .. cpp:member:: std::vector<std::byte> bgra
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowCaptureOptions final
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+   What Window::capture_window draws (owner request 2026-11-09, the product ports: screenshots and tests).
+
+   .. cpp:member:: bool include_overlays
+
+      The window's in-surface overlays (menus, drop-downs, tooltips and other overlays opened in it), composited over its content as presented. Off, the capture shows the content beneath them. Windows of their own (an owned window, a splash) are captured through their own Window. Default: ``{true}``.
+
+   .. cpp:member:: double scale
+
+      Device pixels per logical unit; 0 takes the window's own scale.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: WindowChrome final
 
    ``#include <gui_forms/window/chrome/window_chrome.hpp>``
@@ -2155,6 +2313,24 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: InvalidationCause
+
+   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>``
+
+   .. cpp:enumerator:: control
+
+   .. cpp:enumerator:: layout
+
+   .. cpp:enumerator:: host_expose
+
+   .. cpp:enumerator:: scroll_copy
+
+   .. cpp:enumerator:: live_surface
+
+   .. cpp:enumerator:: external_content
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: NativePopupFallback
 
    ``#include <gui_forms/window/native_popup/native_popup.hpp>``
@@ -2388,6 +2564,50 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>``
+
+.. cpp:function:: InvalidationOutlineStyle invalidation_outline_style(InvalidationCause cause) noexcept
+
+.. cpp:function:: std::string_view invalidation_cause_name(InvalidationCause cause) noexcept
+
+   The cause's name as the legend shows it: "control", "layout", "expose", "scroll copy", "live surface", "external".
+
+.. cpp:function:: bool invalidation_overlay_requested_by_environment() noexcept
+
+   Whether GUI_FORMS_DEBUG_INVALIDATION asks for the overlay: set, and neither empty nor "0".
+
+.. cpp:function:: void set_invalidation_overlay_default(bool enabled) noexcept
+
+   The process switch every window without a setting of its own follows; on the first read it is the environment's request. Any thread.
+
+.. cpp:function:: bool invalidation_overlay_default() noexcept
+
+.. cpp:function:: std::uint64_t invalidation_overlay_default_generation() noexcept
+
+   Counts each change of the process switch, so a window notices one with a single relaxed load. Any thread.
+
+.. cpp:var:: constexpr std::size_t invalidation_cause_count
+
+   Value: ``6U``.
+
+.. cpp:var:: constexpr std::chrono::milliseconds invalidation_outline_lifetime
+
+   How long an outline shows after the area was presented; it fades linearly to nothing over this time. Value: ``{300}``.
+
+.. cpp:var:: constexpr std::size_t maximum_invalidation_outlines
+
+   The outlines a window keeps at once; the oldest is dropped for a new one. Value: ``512U``.
+
+.. cpp:var:: constexpr std::size_t maximum_invalidation_label
+
+   The characters of an outline's source label it shows. Value: ``32U``.
+
+.. cpp:type:: InvalidationClock = std::chrono::steady_clock
+
+   The time outlines are stamped and aged with.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
 
 .. cpp:function:: std::size_t copy_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept
@@ -2507,6 +2727,10 @@ Functions, constants and aliases
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+.. cpp:function:: bool encode_window_capture_png(const WindowCapture& capture, std::vector<std::byte>& png)
+
+   ``capture`` encoded as a PNG with its alpha (premultiplied pixels made straight), into ``png``, replacing its contents; false, leaving it empty, for a capture without pixels or whose pixels are fewer than its size needs.
 
 .. cpp:var:: constexpr std::size_t maximum_deferred_inputs
 
@@ -2683,3 +2907,11 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::chrono::milliseconds default_toast_duration
 
    How long a toast stays unless the call says otherwise. Value: ``{5000}``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/window/tool_tips/tool_tips.hpp>``
+
+.. cpp:function:: bool tool_tip_text_shows(std::string_view text) noexcept
+
+   Whether tooltip text shows (owner, 2026-11-09): text that is empty or holds only white space (ASCII spaces, tabs and line breaks, no-break space U+00A0 and ideographic space U+3000) never shows, whoever asks: the pointer, keyboard focus, show_tool_tip or a request.

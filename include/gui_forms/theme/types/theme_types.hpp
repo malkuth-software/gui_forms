@@ -97,6 +97,34 @@ struct ControlTextShadow final {
         return left.offset == right.offset && left.blur_radius == right.blur_radius && left.color == right.color;
     }
 };
+// A part's metrics and shape as a theme sets them (RecipeField::block_size
+// to edge_shadow_colour), each unset where no rule sets it: the control then
+// keeps its own metric and the part its rectangle. Lengths are logical
+// units; a taper, flare or edge shadow of zero draws nothing.
+struct ControlPartMetrics final {
+    std::optional<double> block_size{};
+    std::optional<double> minimum_inline_size{};
+    std::optional<double> padding_inline{};
+    std::optional<double> gap{};
+    std::optional<double> margin_block_start{};
+    std::optional<double> margin_block_end{};
+    double taper{};
+    std::optional<Color> taper_colour{};
+    double flare{};
+    std::optional<Color> flare_colour{};
+    double edge_shadow_width{};
+    Color edge_shadow_colour{};
+    friend bool operator==(const ControlPartMetrics& left, const ControlPartMetrics& right) noexcept {
+        return left.block_size == right.block_size && left.minimum_inline_size == right.minimum_inline_size &&
+               left.padding_inline == right.padding_inline && left.gap == right.gap &&
+               left.margin_block_start == right.margin_block_start &&
+               left.margin_block_end == right.margin_block_end && left.taper == right.taper &&
+               left.taper_colour == right.taper_colour && left.flare == right.flare &&
+               left.flare_colour == right.flare_colour && left.edge_shadow_width == right.edge_shadow_width &&
+               left.edge_shadow_colour == right.edge_shadow_colour;
+    }
+};
+
 struct ControlVisualRecipe final {
     SurfaceMaterial material;
     Color text{Color::rgba(27, 39, 51)};
@@ -117,6 +145,20 @@ struct ControlVisualRecipe final {
     Point pressed_content_offset{1.0, 1.0};
     // The shadow under the recipe's text, if any (E9.6, data only).
     std::optional<ControlTextShadow> text_shadow{};
+    // The part's metrics and shape, where a rule naming the part sets them.
+    ControlPartMetrics part_metrics{};
+    // The text's colour where it lies over a fill (`fill-text-color`, the
+    // value bar study's section 3.6), if the theme sets one; none, the
+    // built-in recipes' value, draws such text in the fill's own selected
+    // text colour.
+    std::optional<Color> fill_text{};
+    // The dial parts and the scrim (row 2.5; owner option (a)): an arc's
+    // thickness and a needle's width at its hub, in logical units (0 to
+    // maximum_recipe_stroke_width); the needle's outline; and the colour,
+    // its alpha the opacity, a scrim covers what lies behind with.
+    double stroke_width{4.0};
+    NeedleShape needle_shape{NeedleShape::tapered};
+    Color scrim{Color::rgba(16, 24, 32, 96)};
     friend bool operator==(const ControlVisualRecipe& left,
                            const ControlVisualRecipe& right) noexcept(noexcept(
         left.material == right.material && left.text == right.text &&
@@ -130,7 +172,9 @@ struct ControlVisualRecipe final {
         left.default_width == right.default_width &&
         left.visual_offset == right.visual_offset &&
         left.pressed_content_offset == right.pressed_content_offset &&
-        left.text_shadow == right.text_shadow)) {
+        left.text_shadow == right.text_shadow && left.part_metrics == right.part_metrics &&
+        left.fill_text == right.fill_text && left.stroke_width == right.stroke_width &&
+        left.needle_shape == right.needle_shape && left.scrim == right.scrim)) {
         return left.material == right.material && left.text == right.text &&
                left.muted_text == right.muted_text &&
                left.glyph == right.glyph &&
@@ -143,7 +187,9 @@ struct ControlVisualRecipe final {
                left.default_width == right.default_width &&
                left.visual_offset == right.visual_offset &&
                left.pressed_content_offset == right.pressed_content_offset &&
-               left.text_shadow == right.text_shadow;
+               left.text_shadow == right.text_shadow && left.part_metrics == right.part_metrics &&
+               left.fill_text == right.fill_text && left.stroke_width == right.stroke_width &&
+               left.needle_shape == right.needle_shape && left.scrim == right.scrim;
     }
 };
 

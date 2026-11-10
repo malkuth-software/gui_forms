@@ -29,15 +29,70 @@ constexpr std::size_t numbered_recent = 9U;
 
 } // namespace
 
-RibbonApplicationMenu::RibbonApplicationMenu(StableId stable_id, Ribbon& ribbon)
-    : Control(std::move(stable_id)), ribbon_(&ribbon) {
+RibbonApplicationMenu::RibbonApplicationMenu(StableId stable_id, Ribbon& ribbon, Mode mode)
+    : Control(std::move(stable_id)), ribbon_(&ribbon), mode_(mode) {
     focusable = true;
     set_paint_plane(PaintPlane::control);
+}
+
+void RibbonApplicationMenu::set_mode(Mode mode) {
+    require_mutable();
+    if (mode_ == mode) return;
+    mode_ = mode;
+    hot_row_.reset();
+    focus_row_.reset();
+    submenu_row_.reset();
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+// The panel's size: the taller pane, each pane its fixed width, inside the
+// margin.
+Size RibbonApplicationMenu::panel_size() const {
+    if (!ribbon_alive()) return Size{};
+    const Ribbon& ribbon = *ribbon_;
+    const double scale = effective_text_scale();
+    const double inner = panel_margin * scale;
+    double commands_height = 0.0;
+    for (const MenuItemSpec& item : ribbon.application_menu_) {
+        commands_height += (item.kind == MenuItemKind::separator ? separator_row : command_row) * scale;
+    }
+    const double recent_height =
+        caption_row * scale + static_cast<double>(ribbon.recent_items_.size()) * recent_row * scale;
+    const double width = (commands_width + recent_width) * scale + inner * 2.0;
+    const double height = std::max(commands_height, recent_height) + inner * 2.0;
+    const Size size{width, height};
+    return size;
+}
+
+void RibbonApplicationMenu::submenu_closed() {
+    if (!submenu_row_) return;
+    submenu_row_.reset();
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+bool RibbonApplicationMenu::submenu_open() const noexcept {
+    const bool result = submenu_row_.has_value() && ribbon_alive() && (*ribbon_).overlay_ &&
+                        (*(*ribbon_).overlay_).is_open();
+    return result;
 }
 
 bool RibbonApplicationMenu::ribbon_alive() const noexcept {
     const bool result = ribbon_ != nullptr && (*ribbon_).is_alive();
     return result;
+}
+
+// Opens the submenu of the row at `row` (an index into layout().rows) in the
+// ribbon's menu beside the row; the row shows open while it does.
+void RibbonApplicationMenu::open_submenu(std::size_t row, bool keyboard) {
+    if (!ribbon_alive()) return;
+    const Layout placed = layout();
+    if (row >= placed.rows.size() || placed.rows[row].recent) return;
+    if (submenu_open() && submenu_row_ == row) return;
+    const Control::Ptr lifetime = shared_from_this();
+    const MenuItemSpec item = (*ribbon_).application_menu_[placed.rows[row].index];
+    focus_row_ = row;
+    if ((*ribbon_).open_application_submenu(item, *this, placed.rows[row].bounds, keyboard)) submenu_row_ = row;
+    invalidate(Dirty::paint | Dirty::semantics);
 }
 
 void RibbonApplicationMenu::set_origin(Point origin) {
@@ -54,25 +109,24 @@ void RibbonApplicationMenu::reset(bool keyboard) {
 }
 
 // The panel at the origin, moved left and up only as far as the client
-// requires; the command rows down its left pane and the caption and recent
-// rows down its right.
+// requires (at 0,0 when lifted; none for a catcher); the command rows down
+// its left pane and the caption and recent rows down its right.
 RibbonApplicationMenu::Layout RibbonApplicationMenu::layout() const {
     Layout placed;
-    if (!ribbon_alive()) return placed;
+    if (!ribbon_alive() || mode_ == Mode::catcher) return placed;
     const Ribbon& ribbon = *ribbon_;
     const double scale = effective_text_scale();
     const double inner = panel_margin * scale;
-    double commands_height = 0.0;
-    for (const MenuItemSpec& item : ribbon.application_menu_) {
-        commands_height += (item.kind == MenuItemKind::separator ? separator_row : command_row) * scale;
+    const Size size = panel_size();
+    const double width = size.width;
+    const double height = mode_ == Mode::panel ? std::min(size.height, client_rectangle().height) : size.height;
+    double x = 0.0;
+    double y = 0.0;
+    if (mode_ == Mode::whole) {
+        const Rect client = client_rectangle();
+        x = std::max(0.0, std::min(origin_.x, client.width - width));
+        y = std::max(0.0, std::min(origin_.y, client.height - height));
     }
-    const double recent_height =
-        caption_row * scale + static_cast<double>(ribbon.recent_items_.size()) * recent_row * scale;
-    const double width = (commands_width + recent_width) * scale + inner * 2.0;
-    const double height = std::max(commands_height, recent_height) + inner * 2.0;
-    const Rect client = client_rectangle();
-    const double x = std::max(0.0, std::min(origin_.x, client.width - width));
-    const double y = std::max(0.0, std::min(origin_.y, client.height - height));
     placed.panel = {x, y, width, height};
     placed.commands = {x + inner, y + inner, commands_width * scale, height - inner * 2.0};
     placed.recent = {x + inner + commands_width * scale, y + inner, recent_width * scale, height - inner * 2.0};
@@ -129,7 +183,7 @@ Size RibbonApplicationMenu::measure(Size available) {
 }
 
 void RibbonApplicationMenu::on_paint(Painter& painter, Rect) {
-    if (!ribbon_alive()) return;
+    if (!ribbon_alive() || mode_ == Mode::catcher) return;
     const Layout placed = layout();
     const Window* const host = attached_window();
     const bool cue = host != nullptr && (*host).focus_cue_visible();
@@ -165,11 +219,21 @@ void RibbonApplicationMenu::on_paint(Painter& painter, Rect) {
         if (!row_enabled(entry)) states.insert(AnatomyState::disabled);
         if (hot_row_ == row && row_enabled(entry)) states.insert(AnatomyState::hot);
         if (focus_row_ == row && cue) states.insert(AnatomyState::focus_visible);
+        const bool submenu = !entry.recent && (*ribbon_).application_menu_[entry.index].kind == MenuItemKind::submenu;
+        if (submenu && submenu_row_ == row) states.insert(AnatomyState::open);
         part.family = ControlVisualRole::menu_item;
         part.states = states;
         part.role = PartRole::face;
         part.bounds = entry.bounds;
+        // A menu item as a drop-down menu's rows are (menu_utilities.hpp):
+        // the built-in rule's dithered bulge, rising while the row is hot.
+        const std::string_view row_id = entry.recent ? std::string_view((*ribbon_).recent_items_[entry.index].stable_id)
+                                                     : std::string_view((*ribbon_).application_menu_[entry.index].stable_id);
+        part.control_type = "menu_strip";
+        part.key = PartKey{"menu_item", row_id, {}};
         paint_part(painter, *this, part);
+        part.control_type = {};
+        part.key.reset();
         const double left = (entry.recent ? recent_label_left : label_left) * scale;
         const std::string label = row_text(entry);
         part.role = PartRole::label;
@@ -177,6 +241,18 @@ void RibbonApplicationMenu::on_paint(Painter& painter, Rect) {
         part.text = label;
         paint_part(painter, *this, part);
         part.text = {};
+        if (submenu) {
+            // The submenu chevron, as a drop-down menu's submenu rows draw it.
+            PartPaint chevron;
+            chevron.family = ControlVisualRole::menu_item;
+            chevron.role = PartRole::disclosure;
+            chevron.mark = PartMark::chevron_right;
+            chevron.bounds = {entry.bounds.x + entry.bounds.width - 18.0 * scale,
+                              entry.bounds.y + std::floor((entry.bounds.height - 8.0 * scale) * 0.5), 8.0 * scale,
+                              8.0 * scale};
+            chevron.states = states;
+            paint_part(painter, *this, chevron);
+        }
         part.role = PartRole::focus;
         part.bounds = entry.bounds;
         paint_part(painter, *this, part);
@@ -188,9 +264,19 @@ void RibbonApplicationMenu::on_paint(Painter& painter, Rect) {
 void RibbonApplicationMenu::activate(const Row& row) {
     if (!ribbon_alive() || !row_enabled(row)) return;
     Ribbon& ribbon = *ribbon_;
+    if (!row.recent && ribbon.application_menu_[row.index].kind == MenuItemKind::submenu) {
+        const Layout placed = layout();
+        for (std::size_t index = 0; index < placed.rows.size(); ++index) {
+            if (placed.rows[index].recent == row.recent && placed.rows[index].index == row.index) {
+                open_submenu(index, true);
+            }
+        }
+        return;
+    }
     const Control::Ptr lifetime = shared_from_this();
     const Control::Ptr owner = ribbon.shared_from_this();
-    ribbon.close_application_overlay();
+    // Closes a submenu of this menu too.
+    ribbon.close_menus();
     const std::string ribbon_id(ribbon.stable_id().value());
     if (row.recent) {
         const RibbonRecentItemInvocation invoked{ribbon_id, ribbon.recent_items_[row.index].stable_id};
@@ -211,6 +297,13 @@ void RibbonApplicationMenu::activate(const Row& row) {
 
 void RibbonApplicationMenu::on_pointer(PointerEvent& event) {
     if (!ribbon_alive()) return;
+    if (mode_ == Mode::catcher) {
+        if (event.action != PointerAction::down || event.button != PointerButton::primary) return;
+        event.handled = true;
+        const Control::Ptr lifetime = shared_from_this();
+        (*ribbon_).close_menus();
+        return;
+    }
     const Layout placed = layout();
     const Point local{event.position.x, event.position.y};
     const std::optional<std::size_t> hit = row_at(placed, local);
@@ -228,10 +321,16 @@ void RibbonApplicationMenu::on_pointer(PointerEvent& event) {
     // A press outside the panel closes the menu, as a click away does.
     if (event.action == PointerAction::down && !placed.panel.contains(local)) {
         const Control::Ptr lifetime = shared_from_this();
-        (*ribbon_).close_application_overlay();
+        (*ribbon_).close_menus();
         return;
     }
-    // A click is a release over a row, as in a menu.
+    // A press on a submenu row opens its submenu; a click is a release over
+    // a row, as in a menu.
+    if (event.action == PointerAction::down && hit && !placed.rows[*hit].recent &&
+        (*ribbon_).application_menu_[placed.rows[*hit].index].kind == MenuItemKind::submenu) {
+        if (row_enabled(placed.rows[*hit])) open_submenu(*hit, false);
+        return;
+    }
     if (event.action == PointerAction::up && hit) activate(placed.rows[*hit]);
 }
 
@@ -265,6 +364,7 @@ void RibbonApplicationMenu::switch_pane() {
 
 void RibbonApplicationMenu::on_key_preview(KeyEvent& event) {
     if (event.action != KeyAction::down || event.physical_key != PhysicalKey::escape || !ribbon_alive()) return;
+    if (submenu_open()) return;
     event.handled = true;
     const Control::Ptr lifetime = shared_from_this();
     (*ribbon_).close_application_overlay();
@@ -273,8 +373,23 @@ void RibbonApplicationMenu::on_key_preview(KeyEvent& event) {
 // Up and Down move within a pane, Left and Right between the panes, Enter
 // and Space activate; Escape closes (on_key_preview).
 void RibbonApplicationMenu::on_key(KeyEvent& event) {
-    if (event.action != KeyAction::down || !ribbon_alive()) return;
+    if (event.action != KeyAction::down || !ribbon_alive() || submenu_open()) return;
     const std::uint32_t key = event.physical_key;
+    if (key == PhysicalKey::escape) {
+        event.handled = true;
+        const Control::Ptr lifetime = shared_from_this();
+        (*ribbon_).close_application_overlay();
+        return;
+    }
+    if (key == PhysicalKey::right && focus_row_) {
+        const Layout placed = layout();
+        const Row& row = placed.rows[*focus_row_];
+        if (!row.recent && (*ribbon_).application_menu_[row.index].kind == MenuItemKind::submenu) {
+            event.handled = true;
+            open_submenu(*focus_row_, true);
+            return;
+        }
+    }
     if (key == PhysicalKey::down || (key == PhysicalKey::tab && !has_modifier(event.modifiers, Modifier::shift))) {
         move(true);
     } else if (key == PhysicalKey::up || key == PhysicalKey::tab) {
@@ -296,6 +411,7 @@ void RibbonApplicationMenu::on_key(KeyEvent& event) {
 // except the File tab, which the ribbon handles.
 bool RibbonApplicationMenu::hit_test_local(Point local_point) const {
     if (!ribbon_alive()) return false;
+    if (mode_ == Mode::panel) return layout().panel.contains(local_point);
     const Ribbon& ribbon = *ribbon_;
     const Rect ribbon_bounds = ribbon.absolute_bounds();
     const Rect file = ribbon.layout().application;
@@ -304,6 +420,7 @@ bool RibbonApplicationMenu::hit_test_local(Point local_point) const {
 }
 
 Insets RibbonApplicationMenu::visual_outsets() const noexcept {
+    if (mode_ == Mode::catcher) return Insets{};
     const Insets result = overlay_shadow_outsets(*this);
     return result;
 }
@@ -313,7 +430,8 @@ SemanticDescriptor RibbonApplicationMenu::semantic_descriptor() const {
     descriptor.role = SemanticRole::menu;
     descriptor.name = "Application menu";
     descriptor.actions = {SemanticAction::focus};
-    descriptor.exposed = true;
+    // A catcher's panel publishes from its Popup.
+    descriptor.exposed = mode_ != Mode::catcher;
     return descriptor;
 }
 
@@ -359,6 +477,10 @@ std::vector<SemanticNode> RibbonApplicationMenu::semantic_virtual_children() con
         if (row_enabled(row)) node.states |= SemanticState::enabled;
         if (focus_row_ == index) node.states |= SemanticState::focused;
         node.actions = {SemanticAction::press};
+        if (!row.recent && ribbon.application_menu_[row.index].kind == MenuItemKind::submenu) {
+            node.has_popup = true;
+            if (submenu_row_ == index) node.states |= SemanticState::expanded;
+        }
         nodes.push_back(std::move(node));
     }
     return nodes;

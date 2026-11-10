@@ -6,6 +6,7 @@
 #include "abi_records.hpp"
 
 #include "../engine/abi_engine.hpp"
+#include "../events/abi_event_fields.hpp"
 #include "../registry/abi_registry.hpp"
 #include "../windows/abi_window_handle.hpp"
 
@@ -20,6 +21,7 @@
 #include <stdexcept>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -55,12 +57,30 @@ struct RunCallbacks {
     std::unique_ptr<CallbackBinding> ready;
     std::unique_ptr<CallbackBinding> closing;
     std::unique_ptr<CallbackBinding> closed;
+    // The run's window model, from ready until run returns (observing; the
+    // run's window owns it): closed reads its host_close_reason.
+    Window* model = nullptr;
 };
 
-// Calls callback, if any, with the root as sender. Returns the event's
-// cancel field.
+// The "reason" field's text (gf_abi.h, "Run callbacks"): the names of
+// HostCloseReason, whose numbers the field's signed_integer carries.
+std::string_view close_reason_name(HostCloseReason reason) noexcept {
+    switch (reason) {
+        case HostCloseReason::user: return "user";
+        case HostCloseReason::application: return "application";
+        case HostCloseReason::session_end: return "session_end";
+        case HostCloseReason::test: return "test";
+        case HostCloseReason::quit: return "quit";
+    }
+    return "application";
+}
+
+// Calls callback, if any, with the root as sender and, for closing and
+// closed, one read-only ENUMERATION field "reason". Returns the event's
+// cancel field. The field's records live in this frame and stay valid for
+// the whole invoke.
 std::uint32_t call_run_callback(const RunCallbacks& callbacks, const CallbackBinding* callback,
-                                std::string_view name) noexcept {
+                                std::string_view name, std::optional<HostCloseReason> reason) {
     if (callback == nullptr) {
         return 0U;
     }
@@ -69,7 +89,19 @@ std::uint32_t call_run_callback(const RunCallbacks& callbacks, const CallbackBin
     event.sender = callbacks.root;
     event.name.data = name.data();
     event.name.size = name.size();
+    if (!reason.has_value()) {
+        (*callback).invoke(event);
+        return event.cancel;
+    }
+    EventFields fields;
+    gf_value& record = fields.append("reason", GF_VALUE_KIND_ENUMERATION, 0U, nullptr);
+    record.signed_integer = static_cast<std::int64_t>(*reason);
+    const std::string_view text = close_reason_name(*reason);
+    record.text.data = text.data();
+    record.text.size = text.size();
+    fields.publish(event, false);
     (*callback).invoke(event);
+    fields.end_publication();
     return event.cancel;
 }
 
@@ -80,7 +112,8 @@ struct RunReady {
     void operator()(Window& model, ApplicationWindowHandle window) const {
         registry().set_run_window(window);
         engine().attach_window(model);
-        static_cast<void>(call_run_callback(*callbacks, (*callbacks).ready.get(), "ready"));
+        (*callbacks).model = &model;
+        static_cast<void>(call_run_callback(*callbacks, (*callbacks).ready.get(), "ready", std::nullopt));
     }
 };
 
@@ -99,7 +132,8 @@ struct RunDispatchPending {
 struct RunClosing {
     RunCallbacks* callbacks = nullptr;
     void operator()(HostCloseRequest& request) const {
-        const std::uint32_t cancel = call_run_callback(*callbacks, (*callbacks).closing.get(), "closing");
+        const std::uint32_t cancel =
+            call_run_callback(*callbacks, (*callbacks).closing.get(), "closing", request.reason);
         if (cancel != 0U) {
             request.cancel = true;
         }
@@ -112,7 +146,14 @@ struct RunClosed {
         // The wake stops before the window goes (ApplicationWindowOptions).
         registry().set_run_wake(std::function<void()>{});
         engine().detach_window();
-        static_cast<void>(call_run_callback(*callbacks, (*callbacks).closed.get(), "closed"));
+        // The model outlives its closed callback; a run whose window never
+        // became ready reports the program's close.
+        std::optional<HostCloseReason> reason{HostCloseReason::application};
+        if ((*callbacks).model != nullptr && (*(*callbacks).model).host_close_reason().has_value()) {
+            reason = (*(*callbacks).model).host_close_reason();
+        }
+        (*callbacks).model = nullptr;
+        static_cast<void>(call_run_callback(*callbacks, (*callbacks).closed.get(), "closed", reason));
     }
 };
 
@@ -260,6 +301,13 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
     Size client_size = window_options.initial_size;
     if ((*options).width > 0.0) client_size.width = (*options).width;
     if ((*options).height > 0.0) client_size.height = (*options).height;
+    // Admitted first (N21): a refused run leaves a created window as it was
+    // and builds no window around a bare root.
+    const gf_status began = registry().begin_run(root, run_slot);
+    if (began != GF_STATUS_OK) {
+        disarm_all(callbacks);
+        return began;
+    }
     std::unique_ptr<Window> window;
     try {
         if (!title.empty()) window_options.title = std::string(title);
@@ -281,12 +329,8 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
         }
     } catch (...) {
         disarm_all(callbacks);
+        registry().end_run();
         throw;
-    }
-    const gf_status began = registry().begin_run(root, run_slot);
-    if (began != GF_STATUS_OK) {
-        disarm_all(callbacks);
-        return began;
     }
     // From here the callbacks are taken: they are released when this
     // function returns, whatever the run's result.

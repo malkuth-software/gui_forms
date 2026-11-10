@@ -114,7 +114,10 @@ void SplitterGrip::reset_interaction() noexcept {
 
 SplitSeamState SplitterGrip::seam_state() const noexcept {
     if (!effectively_enabled()) return SplitSeamState::disabled;
-    if (dragging_ && has_pointer_capture()) return SplitSeamState::dragging;
+    // A drag on the drag engine: a pointer drag holds the capture, a keyboard
+    // drag none; the engine ends either (end_drag clears dragging_) when the
+    // capture is lost.
+    if (dragging_) return SplitSeamState::dragging;
     if (focused_) return SplitSeamState::focused;
     if (hot_) return SplitSeamState::hot;
     if (near_) return SplitSeamState::near;
@@ -149,6 +152,13 @@ Insets SplitterGrip::visual_outsets() const noexcept {
     return {std::max(0.0, -left), std::max(0.0, -top),
             std::max(0.0, right - bounds.width),
             std::max(0.0, bottom - bounds.height)};
+}
+
+bool SplitterGrip::begin_keyboard_drag() {
+    const Control::Ptr owner = parent();
+    if (!owner) return false;
+    const bool started = (*owner).begin_keyboard_drag();
+    return started;
 }
 
 void SplitterGrip::on_pointer(PointerEvent& event) {
@@ -275,7 +285,7 @@ void SplitterGrip::advance_animation(FrameTime now) {
 }
 
 bool SplitterGrip::engaged() const noexcept {
-    return hot_ || (dragging_ && has_pointer_capture()) ||
+    return hot_ || dragging_ ||
         (actuator_pressed_ && has_pointer_capture()) ||
         (focused_ && window() != nullptr && (*window()).focus_cue_visible());
 }

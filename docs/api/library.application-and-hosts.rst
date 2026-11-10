@@ -2199,6 +2199,10 @@ Related types
 
       The program shows or hides a window. For a floating window this is the window's wanted visibility; the policy shows it only while the application is active (floating tools) and the primary window is not minimized. Other kinds are shown or hidden directly.
 
+   .. cpp:function:: HostServiceStatus set_shown_while_inactive(HostWindowId window, bool shown)
+
+      Whether a floating tool window stays shown while the application is inactive (a program's option, as owned forms behave), instead of the policy's hiding it; other kinds ignore it. Applies the policy at once.
+
 
    .. rubric:: Extension points
 
@@ -3444,6 +3448,8 @@ Enumerations
    .. cpp:enumerator:: session_end
 
    .. cpp:enumerator:: test
+
+   .. cpp:enumerator:: quit
 
 .. cpp:namespace:: gui_forms
 

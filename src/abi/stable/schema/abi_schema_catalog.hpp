@@ -15,6 +15,7 @@
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/commands/font_command/font_command.hpp"
 #include "gui_forms/commands/gallery_command/gallery_command.hpp"
+#include "gui_forms/components/about_dialog/about_dialog.hpp"
 #include "gui_forms/components/color_dialog/color_dialog.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/components/error_provider/error_provider.hpp"
@@ -36,6 +37,7 @@
 #include "gui_forms/controls/button_base/link_label/link_label.hpp"
 #include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
 #include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
+#include "gui_forms/controls/callout/callout.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
 #include "gui_forms/controls/collections/command_bar.hpp"
 #include "gui_forms/controls/collections/expandable_sections.hpp"
@@ -47,11 +49,22 @@
 #include "gui_forms/controls/drawing_surface/drawing_surface.hpp"
 #include "gui_forms/controls/easing_preview/easing_preview.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
+#include "gui_forms/controls/help/help_book/help_book.hpp"
+#include "gui_forms/controls/help/help_book_system/help_book_system.hpp"
+#include "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
+#include "gui_forms/controls/instruments/dial/dial.hpp"
+#include "gui_forms/controls/instruments/gauge_base/gauge_base.hpp"
+#include "gui_forms/controls/instruments/gauge_base/linear_gauge/linear_gauge.hpp"
+#include "gui_forms/controls/instruments/gauge_base/radial_gauge/radial_gauge.hpp"
+#include "gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp"
+#include "gui_forms/controls/instruments/sparkline/sparkline.hpp"
 #include "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp"
 #include "gui_forms/controls/label/label.hpp"
+#include "gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp"
 #include "gui_forms/controls/menu_strip/menu_strip.hpp"
 #include "gui_forms/controls/metrics_view/metrics_view.hpp"
+#include "gui_forms/controls/modal_layer/modal_layer.hpp"
 #include "gui_forms/controls/pages/navigation_pane/navigation_pane.hpp"
 #include "gui_forms/controls/pages/page_strip/page_strip.hpp"
 #include "gui_forms/controls/pages/page_view/page_view.hpp"
@@ -87,6 +100,10 @@
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
+#include "gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp"
+#include "gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp"
+#include "gui_forms/controls/plots/plot_series_item/plot_series_item.hpp"
+#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
 #include "gui_forms/controls/progress_ring/progress_ring.hpp"
 #include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
 #include "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
@@ -95,6 +112,7 @@
 #include "gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp"
 #include "gui_forms/controls/range_control/scroll_bar/v_scroll_bar/v_scroll_bar.hpp"
 #include "gui_forms/controls/range_control/track_bar/track_bar.hpp"
+#include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
 #include "gui_forms/controls/raster_canvas/raster_canvas.hpp"
 #include "gui_forms/controls/ribbon/ribbon.hpp"
 #include "gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp"
@@ -118,6 +136,7 @@
 #include "gui_forms/controls/spinner/spinner.hpp"
 #include "gui_forms/controls/splitter/splitter.hpp"
 #include "gui_forms/controls/status_strip/status_strip.hpp"
+#include "gui_forms/controls/step_indicator/step_indicator.hpp"
 #include "gui_forms/controls/task_dialog/task_dialog.hpp"
 #include "gui_forms/controls/text_block/text_block.hpp"
 #include "gui_forms/controls/toast/toast.hpp"
@@ -126,6 +145,8 @@
 #include "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
 #include "gui_forms/controls/typography_specimen/typography_specimen.hpp"
 #include "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
+#include "gui_forms/controls/wizard/wizard.hpp"
+#include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/live_surface/surface/live_surface.hpp"
@@ -136,7 +157,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 125> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 146> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
@@ -158,6 +179,11 @@ inline constexpr std::array<SchemaCatalogEntry, 125> schema_catalog{{
     {"progress_ring", "ProgressRing", &describe_type<ProgressRing>, &create_type<ProgressRing>, &is_exact_type<ProgressRing>},
     {"spinner", "Spinner", &describe_type<Spinner>, &create_type<Spinner>, &is_exact_type<Spinner>},
     {"sweep_scope", "SweepScope", &describe_type<SweepScope>, &create_type<SweepScope>, &is_exact_type<SweepScope>},
+    {"sparkline", "Sparkline", &describe_type<Sparkline>, &create_type<Sparkline>, &is_exact_type<Sparkline>},
+    {"plot_view", "PlotView", &describe_type<PlotView>, &create_type<PlotView>, &is_exact_type<PlotView>},
+    {"plot_axis_item", "PlotAxisItem", &describe_type<PlotAxisItem>, &create_type<PlotAxisItem>, &is_exact_type<PlotAxisItem>},
+    {"plot_series_item", "PlotSeriesItem", &describe_type<PlotSeriesItem>, &create_type<PlotSeriesItem>, &is_exact_type<PlotSeriesItem>},
+    {"plot_annotation_item", "PlotAnnotationItem", &describe_type<PlotAnnotationItem>, &create_type<PlotAnnotationItem>, &is_exact_type<PlotAnnotationItem>},
     {"review_card", "ReviewCard", &describe_type<ReviewCard>, &create_type<ReviewCard>, &is_exact_type<ReviewCard>},
     {"list_box", "ListBox", &describe_type<ListBox>, &create_type<ListBox>, &is_exact_type<ListBox>},
     {"checked_list_box", "CheckedListBox", &describe_type<CheckedListBox>, &create_type<CheckedListBox>, &is_exact_type<CheckedListBox>},
@@ -175,6 +201,7 @@ inline constexpr std::array<SchemaCatalogEntry, 125> schema_catalog{{
     {"toggle_switch", "ToggleSwitch", &describe_type<ToggleSwitch>, &create_type<ToggleSwitch>, &is_exact_type<ToggleSwitch>},
     {"range_control", "RangeControl", &describe_type<RangeControl>, &create_type<RangeControl>, &is_exact_type<RangeControl>},
     {"track_bar", "TrackBar", &describe_type<TrackBar>, &create_type<TrackBar>, &is_exact_type<TrackBar>},
+    {"value_bar", "ValueBar", &describe_type<ValueBar>, &create_type<ValueBar>, &is_exact_type<ValueBar>},
     {"numeric_up_down", "NumericUpDown", &describe_type<NumericUpDown>, &create_type<NumericUpDown>, &is_exact_type<NumericUpDown>},
     {"domain_up_down", "DomainUpDown", &describe_type<DomainUpDown>, &create_type<DomainUpDown>, &is_exact_type<DomainUpDown>},
     {"color_value_editor", "ColorValueEditor", &describe_type<ColorValueEditor>, &create_type<ColorValueEditor>, &is_exact_type<ColorValueEditor>},
@@ -237,6 +264,18 @@ inline constexpr std::array<SchemaCatalogEntry, 125> schema_catalog{{
     {"font_dialog", "FontDialog", &describe_type<FontDialog>, &create_type<FontDialog>, &is_exact_type<FontDialog>},
     {"task_dialog", "TaskDialog", &describe_type<TaskDialog>, &create_type<TaskDialog>, &is_exact_type<TaskDialog>},
     {"thread_exception_dialog", "ThreadExceptionDialog", &describe_type<ThreadExceptionDialog>, &create_type<ThreadExceptionDialog>, &is_exact_type<ThreadExceptionDialog>},
+    {"seven_segment_display", "SevenSegmentDisplay", &describe_type<SevenSegmentDisplay>, &create_type<SevenSegmentDisplay>, &is_exact_type<SevenSegmentDisplay>},
+    {"gauge_base", "GaugeBase", &describe_type<GaugeBase>, &create_type<GaugeBase>, &is_exact_type<GaugeBase>},
+    {"linear_gauge", "LinearGauge", &describe_type<LinearGauge>, &create_type<LinearGauge>, &is_exact_type<LinearGauge>},
+    {"radial_gauge", "RadialGauge", &describe_type<RadialGauge>, &create_type<RadialGauge>, &is_exact_type<RadialGauge>},
+    {"dial", "Dial", &describe_type<Dial>, &create_type<Dial>, &is_exact_type<Dial>},
+    {"step_indicator", "StepIndicator", &describe_type<StepIndicator>, &create_type<StepIndicator>, &is_exact_type<StepIndicator>},
+    {"wizard", "Wizard", &describe_type<Wizard>, &create_type<Wizard>, &is_exact_type<Wizard>},
+    {"wizard_page", "WizardPage", &describe_type<WizardPage>, &create_type<WizardPage>, &is_exact_type<WizardPage>},
+    {"callout", "Callout", &describe_type<Callout>, &create_type<Callout>, &is_exact_type<Callout>},
+    {"modal_layer", "ModalLayer", &describe_type<ModalLayer>, &create_type<ModalLayer>, &is_exact_type<ModalLayer>},
+    {"lookup_combo_box", "LookupComboBox", &describe_type<LookupComboBox>, &create_type<LookupComboBox>, &is_exact_type<LookupComboBox>},
+    {"about_dialog", "AboutDialog", &describe_type<AboutDialog>, &create_type<AboutDialog>, &is_exact_type<AboutDialog>},
     {"folder_browser_dialog", "FolderBrowserDialog", &describe_type<FolderBrowserDialog>, &create_type<FolderBrowserDialog>, &is_exact_type<FolderBrowserDialog>},
     {"color_dialog", "ColorDialog", &describe_type<ColorDialog>, &create_type<ColorDialog>, &is_exact_type<ColorDialog>},
     {"tool_tip", "ToolTip", &describe_type<ToolTip>, &create_type<ToolTip>, &is_exact_type<ToolTip>},
@@ -258,6 +297,9 @@ inline constexpr std::array<SchemaCatalogEntry, 125> schema_catalog{{
     {"image_list", "ImageList", &describe_type<ImageList>, &create_type<ImageList>, &is_exact_type<ImageList>},
     {"error_provider", "ErrorProvider", &describe_type<ErrorProvider>, &create_type<ErrorProvider>, &is_exact_type<ErrorProvider>},
     {"help_provider", "HelpProvider", &describe_type<HelpProvider>, &create_type<HelpProvider>, &is_exact_type<HelpProvider>},
+    {"help_book", "HelpBook", &describe_type<HelpBook>, &create_type<HelpBook>, &is_exact_type<HelpBook>},
+    {"help_book_viewer", "HelpBookViewer", &describe_type<HelpBookViewer>, &create_type<HelpBookViewer>, &is_exact_type<HelpBookViewer>},
+    {"help_book_system", "HelpBookSystem", &describe_type<HelpBookSystem>, &create_type<HelpBookSystem>, &is_exact_type<HelpBookSystem>},
     {"semantic_feedback", "SemanticFeedback", &describe_type<SemanticFeedback>, &create_type<SemanticFeedback>, &is_exact_type<SemanticFeedback>},
     {"binding", "Binding", &describe_type<Binding>, &create_type<Binding>, &is_exact_type<Binding>},
     {"binding_source", "BindingSource", &describe_type<BindingSource>, &create_type<BindingSource>, &is_exact_type<BindingSource>},

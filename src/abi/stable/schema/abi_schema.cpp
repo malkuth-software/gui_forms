@@ -276,16 +276,18 @@ Component::Ptr create_catalog_type(std::size_t index, StableId stable_id) {
 }
 
 std::string_view catalog_type_id_of(const Component& object) {
-    // An application's own subclass publishes its nearest schema type's
-    // anatomy, and with it that type's id.
-    const Control* control = dynamic_cast<const Control*>(&object);
-    if (control != nullptr) {
-        return (*control).anatomy().control_id;
-    }
+    // A schema type is found by its exact type: one with no anatomy of its
+    // own publishes its base's (a plot item the base "control", a wizard page
+    // "panel"). An application's own subclass publishes its nearest schema
+    // type's anatomy, and with it that type's id.
     for (const SchemaCatalogEntry& entry : schema_catalog) {
         if ((*entry.is_exact)(object)) {
             return entry.id;
         }
+    }
+    const Control* control = dynamic_cast<const Control*>(&object);
+    if (control != nullptr) {
+        return (*control).anatomy().control_id;
     }
     return std::string_view{};
 }

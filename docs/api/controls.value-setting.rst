@@ -21,6 +21,8 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
      - The shared base of controls that show a number within a bounded range.
    * - :cpp:class:`TrackBar <gui_forms::TrackBar>`
      - A slider the user drags, clicks or steps with the keyboard to pick a value in a range.
+   * - :cpp:class:`ValueBar <gui_forms::ValueBar>`
+     - Blender-style value bar over RangeControl: a fill or field style, drag-to-scrub within a soft range, click-to-type bounded arithmetic with units within the hard range, snapping and step arrows.
    * - :cpp:class:`NumericUpDown <gui_forms::NumericUpDown>`
      - A text field for a number, with up and down buttons that step it.
    * - :cpp:class:`DomainUpDown <gui_forms::DomainUpDown>`
@@ -35,6 +37,8 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
      - A scrolling list of named settings in collapsible groups, each with a value and an optional editor.
    * - :cpp:class:`InstrumentRack <gui_forms::InstrumentRack>`
      - A wrapping row of compact editing modules, each with an enable switch, a few fields and a status line.
+   * - :cpp:class:`Dial <gui_forms::Dial>`
+     - Rotary knob from the instruments package: a RangeControl value set by turning, dragging or the TrackBar keys over a 270-degree scale, a slider to assistive technology.
 
 .. toctree::
    :hidden:
@@ -44,6 +48,7 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
    generated/gui_forms.ToggleSwitch
    generated/gui_forms.RangeControl
    generated/gui_forms.TrackBar
+   generated/gui_forms.ValueBar
    generated/gui_forms.NumericUpDown
    generated/gui_forms.DomainUpDown
    generated/gui_forms.ColorValueEditor
@@ -51,6 +56,7 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
    generated/gui_forms.PropertyGrid
    generated/gui_forms.PropertyList
    generated/gui_forms.InstrumentRack
+   generated/gui_forms.Dial
 
 Related types
 -------------
@@ -87,6 +93,14 @@ Related types
      - The width of the colour swatch before the text, 12 to 96 (std::invalid_argument otherwise).
    * - :cpp:class:`ColorValueEditorValueCapability <gui_forms::ColorValueEditorValueCapability>`
      - The edited colour; a view, since committing the text moves it and an equal write still restores the text and the normal status.
+   * - :cpp:class:`Dial::Parts <gui_forms::Dial::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`DialCapabilities <gui_forms::DialCapabilities>`
+     - Every Dial capability, in the order the declaring class takes them.
+   * - :cpp:class:`DialShowArcCapability <gui_forms::DialShowArcCapability>`
+     - Whether the scale lights the arc from the minimum to the value.
+   * - :cpp:class:`DialTickFrequencyCapability <gui_forms::DialTickFrequencyCapability>`
+     - Distance in value units between scale marks; zero draws none.
    * - :cpp:class:`DomainUpDown::Parts <gui_forms::DomainUpDown::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`DomainUpDown::States <gui_forms::DomainUpDown::States>`
@@ -159,6 +173,12 @@ Related types
      - The highest value (Maximum).
    * - :cpp:class:`NumericUpDownMinimumCapability <gui_forms::NumericUpDownMinimumCapability>`
      - The lowest value (Minimum).
+   * - :cpp:class:`NumericUpDownScrubCapability <gui_forms::NumericUpDownScrubCapability>`
+     - Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected.
+   * - :cpp:class:`NumericUpDownTextAlignmentCapability <gui_forms::NumericUpDownTextAlignmentCapability>`
+     - Where the editor's text sits (TextAlign): near, center or far.
+   * - :cpp:class:`NumericUpDownThousandsSeparatorCapability <gui_forms::NumericUpDownThousandsSeparatorCapability>`
+     - Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way.
    * - :cpp:class:`NumericUpDownValueCapability <gui_forms::NumericUpDownValueCapability>`
      - The current value (Value), within minimum and maximum; anything else, or a value that is not finite, throws std::out_of_range.
    * - :cpp:class:`PropertyConversionContext <gui_forms::PropertyConversionContext>`
@@ -271,10 +291,42 @@ Related types
      - Every TrackBar capability, in the order the declaring class takes them.
    * - :cpp:class:`TrackBarShowTicksCapability <gui_forms::TrackBarShowTicksCapability>`
      - Whether the tick marks draw.
+   * - :cpp:class:`TrackBarThumbExtentCapability <gui_forms::TrackBarThumbExtentCapability>`
+     - The thumb's side in pixels; 0 (the default) takes the visual style's (14 classic, 12 filled, 8 compact).
    * - :cpp:class:`TrackBarTickFrequencyCapability <gui_forms::TrackBarTickFrequencyCapability>`
      - Distance in value units between tick marks; positive and finite, else std::invalid_argument.
    * - :cpp:class:`TrackBarVisualStyleChoiceCapability <gui_forms::TrackBarVisualStyleChoiceCapability>`
      - How the rail and thumb draw: classic ticks, a filled rail or a compact rail.
+   * - :cpp:class:`UnitFormat <gui_forms::UnitFormat>`
+     - A unit's formatting and parsing (study 3.2): the suffix its values are shown with (``display``, whose factor also scales a typed expression that names no unit at all), every suffix it accepts, and whether a space separates the number from the shown suffix ("1.50 m", but "50%" and "90°").
+   * - :cpp:class:`UnitSuffix <gui_forms::UnitSuffix>`
+     - One suffix a unit may be typed with: one typed ``suffix`` is ``factor`` base units.
+   * - :cpp:class:`ValueBar::Parts <gui_forms::ValueBar::Parts>`
+     - The anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`ValueBar::States <gui_forms::ValueBar::States>`
+     -  
+   * - :cpp:class:`ValueBarCapabilities <gui_forms::ValueBarCapabilities>`
+     - Every ValueBar capability, in the order the declaring class takes them.
+   * - :cpp:class:`ValueBarContrast <gui_forms::ValueBarContrast>`
+     - The two halves of a ValueBar's label for its contrast check (the value bar study, section 3.6): the ratio of the label's text over the track and of its fill text over the fill, against ``minimum`` (4.5:1, 7:1 in high contrast).
+   * - :cpp:class:`ValueBarDefaultValueCapability <gui_forms::ValueBarDefaultValueCapability>`
+     - The value Backspace resets to, clamped into the hard range when applied.
+   * - :cpp:class:`ValueBarLabelCapability <gui_forms::ValueBarLabelCapability>`
+     - The name shown at the bar's start, its value at the end (Blender's "Samples 64"); empty centres the value.
+   * - :cpp:class:`ValueBarPrecisionCapability <gui_forms::ValueBarPrecisionCapability>`
+     - The decimals the value shows, 0 to maximum_value_bar_precision (12); outside throws std::invalid_argument.
+   * - :cpp:class:`ValueBarPresentationCapability <gui_forms::ValueBarPresentationCapability>`
+     - The fill style (a slider: the value's proportion of the soft range as a fill under the text) or the field style (a number field: step arrows at both ends while hovered).
+   * - :cpp:class:`ValueBarScrubRateCapability <gui_forms::ValueBarScrubRateCapability>`
+     - Value units per logical unit of scrub travel, or none for the soft range over the bar's width.
+   * - :cpp:class:`ValueBarSnapStepCapability <gui_forms::ValueBarSnapStepCapability>`
+     - Ctrl's snapping grid while scrubbing, from the soft minimum, or none for the small change.
+   * - :cpp:class:`ValueBarSoftMaximumCapability <gui_forms::ValueBarSoftMaximumCapability>`
+     - The high end of the scrub and fill range, or none for the hard maximum; held within the hard range when used.
+   * - :cpp:class:`ValueBarSoftMinimumCapability <gui_forms::ValueBarSoftMinimumCapability>`
+     - The low end of the scrub and fill range, or none for the hard minimum; held within the hard range when used.
+   * - :cpp:class:`ValueBarUnitCapability <gui_forms::ValueBarUnitCapability>`
+     - The unit the value is shown and typed in (ValueUnit); the value is held in the unit's base.
 
 .. cpp:namespace:: gui_forms
 
@@ -553,6 +605,81 @@ Related types
    .. cpp:function:: static Color read(const ColorValueEditorValueCapability& capability)
 
    .. cpp:member:: PropertyView<Color, ColorValueEditorValueCapability<Declaring>> value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: Dial::Parts final
+
+   ``#include <gui_forms/controls/instruments/dial/dial.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). The arcs publish the square their circle is inscribed in, the needle the square inside the knob it turns in; ``value_arc`` is absent without show_arc or at the minimum.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry track
+
+   .. cpp:member:: PartGeometry value_arc
+
+   .. cpp:member:: PartGeometry graticule
+
+   .. cpp:member:: PartGeometry thumb
+
+   .. cpp:member:: PartGeometry needle
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DialCapabilities : public DialTickFrequencyCapability<Declaring>, public DialShowArcCapability<Declaring>
+
+   ``#include <gui_forms/controls/instruments/dial/dial_capabilities/dial_capabilities.hpp>``
+
+   Every Dial capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double tick_frequency
+
+      Distance in value units between scale marks; zero draws none. Negative or not finite throws std::invalid_argument.
+
+   .. cpp:member:: bool show_arc
+
+      Whether the scale lights the arc from the minimum to the value.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DialShowArcCapability
+
+   ``#include <gui_forms/controls/instruments/dial/dial_capabilities/dial_capabilities.hpp>``
+
+   Whether the scale lights the arc from the minimum to the value.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DialShowArcCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, DialShowArcCapability<Declaring>> show_arc
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DialTickFrequencyCapability
+
+   ``#include <gui_forms/controls/instruments/dial/dial_capabilities/dial_capabilities.hpp>``
+
+   Distance in value units between scale marks; zero draws none. Negative or not finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DialTickFrequencyCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, DialTickFrequencyCapability<Declaring>> tick_frequency
+
+      Default: ``{10.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1154,7 +1281,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> NumericUpDownCapabilities : public NumericUpDownValueCapability<Declaring>, public NumericUpDownMinimumCapability<Declaring>, public NumericUpDownMaximumCapability<Declaring>, public NumericUpDownIncrementCapability<Declaring>, public NumericUpDownDecimalPlacesCapability<Declaring>, public NumericUpDownHexadecimalCapability<Declaring>, public NumericUpDownButtonWidthCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> NumericUpDownCapabilities : public NumericUpDownValueCapability<Declaring>, public NumericUpDownMinimumCapability<Declaring>, public NumericUpDownMaximumCapability<Declaring>, public NumericUpDownIncrementCapability<Declaring>, public NumericUpDownDecimalPlacesCapability<Declaring>, public NumericUpDownHexadecimalCapability<Declaring>, public NumericUpDownButtonWidthCapability<Declaring>, public NumericUpDownScrubCapability<Declaring>, public NumericUpDownThousandsSeparatorCapability<Declaring>, public NumericUpDownTextAlignmentCapability<Declaring>
 
    ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
 
@@ -1190,6 +1317,18 @@ Related types
    .. cpp:member:: double button_width
 
       The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).
+
+   .. cpp:member:: bool scrub
+
+      Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected. Off by default: the field then edits as a TextBox does.
+
+   .. cpp:member:: bool thousands_separator
+
+      Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+
+   .. cpp:member:: HorizontalAlignment text_alignment
+
+      Where the editor's text sits (TextAlign): near, center or far.
 
 .. cpp:namespace:: gui_forms
 
@@ -1271,6 +1410,57 @@ Related types
    .. cpp:member:: PropertyCell<double, NumericUpDownMinimumCapability<Declaring>> minimum
 
       Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownScrubCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected. Off by default: the field then edits as a TextBox does.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownScrubCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, NumericUpDownScrubCapability<Declaring>> scrub
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownTextAlignmentCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   Where the editor's text sits (TextAlign): near, center or far.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownTextAlignmentCapability& capability, HorizontalAlignment incoming)
+
+   .. cpp:member:: PropertyCell<HorizontalAlignment, NumericUpDownTextAlignmentCapability<Declaring>> text_alignment
+
+      Default: ``{HorizontalAlignment::near}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownThousandsSeparatorCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownThousandsSeparatorCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, NumericUpDownThousandsSeparatorCapability<Declaring>> thousands_separator
+
+      Default: ``{false}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -2343,7 +2533,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> TrackBarCapabilities : public TrackBarTickFrequencyCapability<Declaring>, public TrackBarShowTicksCapability<Declaring>, public TrackBarVisualStyleChoiceCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> TrackBarCapabilities : public TrackBarTickFrequencyCapability<Declaring>, public TrackBarShowTicksCapability<Declaring>, public TrackBarVisualStyleChoiceCapability<Declaring>, public TrackBarThumbExtentCapability<Declaring>
 
    ``#include <gui_forms/controls/range_control/track_bar/track_bar_capabilities/track_bar_capabilities.hpp>``
 
@@ -2364,6 +2554,10 @@ Related types
 
       How the rail and thumb draw: classic ticks, a filled rail or a compact rail.
 
+   .. cpp:member:: double thumb_extent
+
+      The thumb's side in pixels; 0 (the default) takes the visual style's (14 classic, 12 filled, 8 compact). Finite and between 0 and 64, else std::invalid_argument.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: template <typename Declaring> TrackBarShowTicksCapability
@@ -2380,6 +2574,23 @@ Related types
    .. cpp:member:: PropertyCell<bool, TrackBarShowTicksCapability<Declaring>> show_ticks
 
       Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TrackBarThumbExtentCapability
+
+   ``#include <gui_forms/controls/range_control/track_bar/track_bar_capabilities/track_bar_capabilities.hpp>``
+
+   The thumb's side in pixels; 0 (the default) takes the visual style's (14 classic, 12 filled, 8 compact). Finite and between 0 and 64, else std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TrackBarThumbExtentCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, TrackBarThumbExtentCapability<Declaring>> thumb_extent
+
+      Default: ``{0.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -2414,6 +2625,308 @@ Related types
    .. cpp:member:: PropertyCell<TrackBarVisualStyle, TrackBarVisualStyleChoiceCapability<Declaring>> visual_style
 
       Default: ``{TrackBarVisualStyle::classic}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: UnitFormat final
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar_values/value_bar_values.hpp>``
+
+   A unit's formatting and parsing (study 3.2): the suffix its values are shown with (``display``, whose factor also scales a typed expression that names no unit at all), every suffix it accepts, and whether a space separates the number from the shown suffix ("1.50 m", but "50%" and "90°"). The views are static storage.
+
+   .. cpp:member:: ValueUnit unit
+
+      Default: ``{ValueUnit::none}``.
+
+   .. cpp:member:: UnitSuffix display
+
+   .. cpp:member:: std::span<const UnitSuffix> suffixes
+
+   .. cpp:member:: bool space_before_suffix
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: UnitSuffix final
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar_values/value_bar_values.hpp>``
+
+   One suffix a unit may be typed with: one typed ``suffix`` is ``factor`` base units.
+
+   .. cpp:member:: std::string_view suffix
+
+   .. cpp:member:: double factor
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ValueBar::Parts final
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar.hpp>``
+
+   The anatomy, as dot members (see Control::Parts).
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry track
+
+   .. cpp:member:: PartGeometry fill
+
+   .. cpp:member:: PartGeometry label
+
+   .. cpp:member:: PartGeometry value
+
+   .. cpp:member:: PartGeometry decrement_arrow
+
+   .. cpp:member:: PartGeometry increment_arrow
+
+   .. cpp:member:: PartGeometry decrement_glyph
+
+   .. cpp:member:: PartGeometry increment_glyph
+
+   .. cpp:member:: PartGeometry overrange
+
+   .. cpp:member:: PartGeometry validation
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ValueBar::States final
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar.hpp>``
+
+   .. cpp:member:: bool normal
+
+   .. cpp:member:: bool hot
+
+   .. cpp:member:: bool pressed
+
+   .. cpp:member:: bool captured
+
+   .. cpp:member:: bool enabled
+
+   .. cpp:member:: bool disabled
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: bool focus_visible
+
+   .. cpp:member:: bool invalid
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ValueBarCapabilities : public ValueBarSoftMinimumCapability<Declaring>, public ValueBarSoftMaximumCapability<Declaring>, public ValueBarSnapStepCapability<Declaring>, public ValueBarPrecisionCapability<Declaring>, public ValueBarUnitCapability<Declaring>, public ValueBarDefaultValueCapability<Declaring>, public ValueBarPresentationCapability<Declaring>, public ValueBarLabelCapability<Declaring>, public ValueBarScrubRateCapability<Declaring>
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar_capabilities/value_bar_capabilities.hpp>``
+
+   Every ValueBar capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::optional<double> soft_minimum
+
+      The low end of the scrub and fill range, or none for the hard minimum; held within the hard range when used. Non-finite throws std::invalid_argument.
+
+   .. cpp:member:: std::optional<double> soft_maximum
+
+      The high end of the scrub and fill range, or none for the hard maximum; held within the hard range when used. Non-finite throws std::invalid_argument.
+
+   .. cpp:member:: std::optional<double> snap_step
+
+      Ctrl's snapping grid while scrubbing, from the soft minimum, or none for the small change. Not positive and finite throws std::invalid_argument.
+
+   .. cpp:member:: std::int32_t precision
+
+      The decimals the value shows, 0 to maximum_value_bar_precision (12); outside throws std::invalid_argument.
+
+   .. cpp:member:: ValueUnit unit
+
+      The unit the value is shown and typed in (ValueUnit); the value is held in the unit's base.
+
+   .. cpp:member:: double default_value
+
+      The value Backspace resets to, clamped into the hard range when applied. Non-finite throws std::invalid_argument.
+
+   .. cpp:member:: ValueBarStyle presentation
+
+      The fill style (a slider: the value's proportion of the soft range as a fill under the text) or the field style (a number field: step arrows at both ends while hovered).
+
+   .. cpp:member:: std::string label
+
+      The name shown at the bar's start, its value at the end (Blender's "Samples 64"); empty centres the value.
+
+   .. cpp:member:: std::optional<double> scrub_rate
+
+      Value units per logical unit of scrub travel, or none for the soft range over the bar's width. Not positive and finite throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ValueBarContrast final
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar.hpp>``
+
+   The two halves of a ValueBar's label for its contrast check (the value bar study, section 3.6): the ratio of the label's text over the track and of its fill text over the fill, against ``minimum`` (4.5:1, 7:1 in high contrast). A ratio of 0 was not measured (a face holding an image).
+
+   .. cpp:member:: double over_track
+
+   .. cpp:member:: double over_fill
+
+   .. cpp:member:: double minimum
+
+   .. cpp:member:: bool passes
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ValueBarDefaultValueCapability
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar_capabilities/value_bar_capabilities.hpp>``
+
+   The value Backspace resets to, clamped into the hard range when applied. Non-finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ValueBarDefaultValueCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ValueBarDefaultValueCapability<Declaring>> default_value
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ValueBarLabelCapability
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar_capabilities/value_bar_capabilities.hpp>``
+
+   The name shown at the bar's start, its value at the end (Blender's "Samples 64"); empty centres the value.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ValueBarLabelCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, ValueBarLabelCapability<Declaring>> label
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ValueBarPrecisionCapability
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar_capabilities/value_bar_capabilities.hpp>``
+
+   The decimals the value shows, 0 to maximum_value_bar_precision (12); outside throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ValueBarPrecisionCapability& capability, std::int32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::int32_t, ValueBarPrecisionCapability<Declaring>> precision
+
+      Default: ``{3}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ValueBarPresentationCapability
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar_capabilities/value_bar_capabilities.hpp>``
+
+   The fill style (a slider: the value's proportion of the soft range as a fill under the text) or the field style (a number field: step arrows at both ends while hovered).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ValueBarPresentationCapability& capability, ValueBarStyle incoming)
+
+   .. cpp:member:: PropertyCell<ValueBarStyle, ValueBarPresentationCapability<Declaring>> presentation
+
+      Default: ``{ValueBarStyle::fill}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ValueBarScrubRateCapability
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar_capabilities/value_bar_capabilities.hpp>``
+
+   Value units per logical unit of scrub travel, or none for the soft range over the bar's width. Not positive and finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ValueBarScrubRateCapability& capability, std::optional<double> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<double>, ValueBarScrubRateCapability<Declaring>> scrub_rate
+
+      Default: ``{std::nullopt}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ValueBarSnapStepCapability
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar_capabilities/value_bar_capabilities.hpp>``
+
+   Ctrl's snapping grid while scrubbing, from the soft minimum, or none for the small change. Not positive and finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ValueBarSnapStepCapability& capability, std::optional<double> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<double>, ValueBarSnapStepCapability<Declaring>> snap_step
+
+      Default: ``{std::nullopt}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ValueBarSoftMaximumCapability
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar_capabilities/value_bar_capabilities.hpp>``
+
+   The high end of the scrub and fill range, or none for the hard maximum; held within the hard range when used. Non-finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ValueBarSoftMaximumCapability& capability, std::optional<double> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<double>, ValueBarSoftMaximumCapability<Declaring>> soft_maximum
+
+      Default: ``{std::nullopt}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ValueBarSoftMinimumCapability
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar_capabilities/value_bar_capabilities.hpp>``
+
+   The low end of the scrub and fill range, or none for the hard minimum; held within the hard range when used. Non-finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ValueBarSoftMinimumCapability& capability, std::optional<double> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<double>, ValueBarSoftMinimumCapability<Declaring>> soft_minimum
+
+      Default: ``{std::nullopt}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ValueBarUnitCapability
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar_capabilities/value_bar_capabilities.hpp>``
+
+   The unit the value is shown and typed in (ValueUnit); the value is held in the unit's base.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ValueBarUnitCapability& capability, ValueUnit incoming)
+
+   .. cpp:member:: PropertyCell<ValueUnit, ValueBarUnitCapability<Declaring>> unit
+
+      Default: ``{ValueUnit::none}``.
 
 Enumerations
 ------------
@@ -2534,6 +3047,62 @@ Enumerations
 
    .. cpp:enumerator:: compact
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ValueBarStyle
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar_values/value_bar_values.hpp>``
+
+   .. cpp:enumerator:: fill
+
+   .. cpp:enumerator:: field
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ValueTextDefect
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar_values/value_bar_values.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: empty
+
+   .. cpp:enumerator:: too_long
+
+   .. cpp:enumerator:: unexpected_character
+
+   .. cpp:enumerator:: unknown_unit
+
+   .. cpp:enumerator:: unknown_name
+
+   .. cpp:enumerator:: missing_operand
+
+   .. cpp:enumerator:: unexpected_token
+
+   .. cpp:enumerator:: too_deep
+
+   .. cpp:enumerator:: bad_operand
+
+   .. cpp:enumerator:: over_budget
+
+   .. cpp:enumerator:: not_finite
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ValueUnit
+
+   ``#include <gui_forms/controls/range_control/value_bar/value_bar_values/value_bar_values.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: percent
+
+   .. cpp:enumerator:: length
+
+   .. cpp:enumerator:: angle
+
+   .. cpp:enumerator:: time
+
 Functions, constants and aliases
 --------------------------------
 
@@ -2544,6 +3113,32 @@ Functions, constants and aliases
 .. cpp:var:: constexpr FrameInterval toggle_switch_thumb_duration
 
    A switch that is on or off at once (W-4): a rounded track with a thumb at its end, the label after it and, when given, the state text after the label (on_text or off_text). Unlike a CheckBox it has no third state and stands for a setting that takes effect as it is turned. Activation (a click, Space or the press action) turns ``checked`` over, which raises checked_changed, and then raises clicked and runs the bound command, as a CheckBox does. A write to ``checked`` raises checked_changed only. To assistive technology it is a toggle_switch (hosts without a mapping publish a check box), named by its label, checked while on. The thumb travels to its new end on the window's motion clock whenever ``checked`` changes; the state, the event and the semantics change at once. Under reduced motion, in an occluded window or outside a window the thumb stands at its end at once. The thumb's travel: a smoothstep move of 150 ms (design language §9.2, within motion_duration_ceiling). Value: ``std::chrono::milliseconds(150)``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/range_control/value_bar/value_bar_values/value_bar_values.hpp>``
+
+.. cpp:function:: const UnitFormat& unit_format(ValueUnit unit) noexcept
+
+   The built-in format of ``unit`` (static storage; any thread may read it).
+
+.. cpp:function:: std::string_view value_text_defect_name(ValueTextDefect defect) noexcept
+
+.. cpp:var:: constexpr std::size_t maximum_value_text_bytes
+
+   The bounds of typed text (study 3.5: bounded in length and steps). Value: ``256U``.
+
+.. cpp:var:: constexpr std::size_t maximum_value_text_depth
+
+   Value: ``16U``.
+
+.. cpp:var:: constexpr std::int32_t maximum_value_text_exponent
+
+   Value: ``64``.
+
+.. cpp:var:: constexpr std::int32_t maximum_value_bar_precision
+
+   The most decimals a ValueBar shows. Value: ``12``.
 
 .. cpp:namespace:: gui_forms
 

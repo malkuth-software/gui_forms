@@ -3,6 +3,11 @@
 #include "tool_tip_bubble.hpp"
 #include "../../application/transient_window.hpp"
 #include "gui_forms/application.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "../../display/recording_painter/recording_painter.hpp"
+#include "../../display/snapshot/display_snapshot.hpp"
+#include "../../application/native_popup_record.hpp"
 
 #include <algorithm>
 #include <string>
@@ -69,6 +74,7 @@ void ToolTipPresenter::shutdown() noexcept {
     // bubble it showed.
     transient_.reset();
     transient_bubble_.reset();
+    pending_bake_ = PendingBake{};
 }
 
 // --- Switches and the things that may show -------------------------------
@@ -76,6 +82,32 @@ void ToolTipPresenter::shutdown() noexcept {
 bool ToolTipPresenter::hover_allowed() const noexcept {
     const bool allowed = window_.tool_tips_shown() && window_.tool_tip_settings().show_on_hover;
     return allowed;
+}
+
+// Whether `control` lies outside the window's active focus scope: while a
+// menu, drop-down or other contained surface is open, the controls beneath
+// it (its invoker among them) show no tooltip from the pointer (owner,
+// 2026-11-09); the open surface's own items take the hover.
+bool ToolTipPresenter::outside_scope(const Control::Ptr& control) const noexcept {
+    const Control::Ptr scope = window_.active_focus_scope_root();
+    if (!scope || !control) return false;
+    for (Control::Ptr current = control; current; current = (*current).parent()) {
+        if (current == scope) return false;
+    }
+    return true;
+}
+
+void ToolTipPresenter::scope_changed() {
+    if (const Showing* showing = std::get_if<Showing>(&state_)) {
+        if ((*showing).origin != ToolTipOrigin::pointer || !outside_scope((*showing).subject.control.lock())) return;
+        raise(close(Idle{}));
+        return;
+    }
+    if (const Waiting* waiting = std::get_if<Waiting>(&state_)) {
+        if ((*waiting).origin != ToolTipOrigin::pointer || !outside_scope((*waiting).subject.control.lock())) return;
+        state_ = Idle{};
+        wake_.disconnect();
+    }
 }
 
 bool ToolTipPresenter::focus_allowed() const noexcept {
@@ -96,6 +128,7 @@ void ToolTipPresenter::wait(ToolTipOrigin origin, ToolTipSubject subject, FrameT
     Waiting waiting{};
     waiting.origin = origin;
     waiting.delay = delay;
+    prebake(subject);
     waiting.subject = std::move(subject);
     state_ = std::move(waiting);
     arm(now + delay);
@@ -123,7 +156,7 @@ void ToolTipPresenter::woke(FrameTime now) {
             Control::Ptr hovered = window_.hit_test(pointer_);
             ToolTipSubject subject =
                 resolve_pointer_subject(hovered, pointer_, window_.tool_tip_settings(), covers_);
-            if (subject.text.empty()) {
+            if (subject.text.empty() || outside_scope(subject.control.lock())) {
                 Settled settled{};
                 settled.region = subject.anchor;
                 settled.hovered = hovered;
@@ -267,9 +300,68 @@ bool ToolTipPresenter::show_in_splash(Showing& showing, ToolTipLines& lines) {
     (*transient_bubble_).set_content(showing.subject.text, lines);
     // An opaque Splash window (X11 without a compositing manager) holds the
     // face alone: no shadow (owner, 2026-11-08: Q-S2 (b)).
-    (*transient_bubble_).set_shadow(native_popup_translucent(window_.application_window_));
+    (*transient_bubble_).set_shadow(native_popup_translucent(window_.application_window_, window_));
     const bool placed = position(showing);
+    if (placed) adopt_bake();
     return placed;
+}
+
+// --- Splash baking ----------------------------------------------------------
+
+void ToolTipPresenter::prebake(const ToolTipSubject& subject) {
+    pending_bake_ = PendingBake{};
+    const SplashBakerSlot slot = current_splash_baker();
+    if (slot.baker == nullptr || subject.text.empty()) return;
+    if (!transient_ || !(*transient_).connected() || !transient_bubble_) return;
+    const SurfaceRoot* const root = (*transient_bubble_).attached_surface_root();
+    const Control::Ptr control = subject.control.lock();
+    if (root == nullptr || !control || !(*control).is_alive()) return;
+
+    // Broken and measured as open() will break them for this subject.
+    bake_lines_.font = (*control).effective_font(tool_tip_font);
+    break_tool_tip_lines(*control, subject.text, window_.tool_tip_settings().maximum_width, bake_lines_);
+    const Size face = tool_tip_face_size(bake_lines_);
+    const bool shadow = native_popup_translucent(window_.application_window_, window_);
+    const Insets outsets = shadow ? overlay_shadow_outsets(*transient_bubble_) : Insets{};
+    const double scale = (*root).scale();
+    const Size whole{face.width + outsets.left + outsets.right, face.height + outsets.top + outsets.bottom};
+
+    // Recorded here, on the UI thread, where the theme and the text engine
+    // live; the snapshot owns everything the worker reads.
+    RecordingPainter recorder((*root).text_metrics_provider(), DeviceScale{scale});
+    recorder.save();
+    recorder.translate(Point{outsets.left, outsets.top});
+    paint_tool_tip_bubble(recorder, *transient_bubble_, face, bake_lines_, shadow);
+    recorder.restore();
+    const std::shared_ptr<const DisplayChunk> chunk =
+        recorder.finish(0U, PaintPlane::overlay, Rect{0.0, 0.0, whole.width, whole.height});
+    if (!chunk) return;
+    DisplaySnapshotResult made = make_display_snapshot(*chunk, whole, DeviceScale{scale});
+    if (!made.snapshot) return;
+
+    PendingBake pending{};
+    pending.armed = true;
+    pending.ticket = (*slot.baker).submit(std::move(made.snapshot));
+    pending.run = slot.run;
+    pending.key.text.assign(subject.text);
+    pending.key.face = face;
+    pending.key.font = bake_lines_.font;
+    pending.key.shadow = shadow;
+    pending.key.scale = scale;
+    pending_bake_ = std::move(pending);
+}
+
+void ToolTipPresenter::adopt_bake() {
+    if (!pending_bake_.armed || !transient_bubble_) return;
+    PendingBake pending = std::move(pending_bake_);
+    pending_bake_ = PendingBake{};
+    const SplashBakerSlot slot = current_splash_baker();
+    if (slot.baker == nullptr || slot.run != pending.run) return;
+    SplashBakeOutcome outcome = (*slot.baker).take(pending.ticket);
+    // A bake still painting is left to the baker's bound; this show paints
+    // live.
+    if (outcome.state != SplashBakeState::finished || !outcome.raster) return;
+    (*transient_bubble_).set_baked(std::move(outcome.raster), std::move(pending.key));
 }
 
 void ToolTipPresenter::transient_closed() {
@@ -397,7 +489,7 @@ void ToolTipPresenter::pointer_wait(const Control::Ptr& hovered, FrameTime now) 
         if (contains_point((*waiting).subject.anchor, pointer_) && (*waiting).hovered.lock() == hovered) return;
     }
     ToolTipSubject subject = resolve_pointer_subject(hovered, pointer_, window_.tool_tip_settings(), covers_);
-    if (subject.text.empty()) {
+    if (subject.text.empty() || outside_scope(subject.control.lock())) {
         Settled settled{};
         settled.region = subject.anchor;
         settled.hovered = hovered;
@@ -538,7 +630,7 @@ void ToolTipPresenter::text_changed(const Control& control) {
         // A thing waiting to show whose text went waits no longer; the wake
         // finds the thing again, so new text needs nothing here.
         if ((*waiting).subject.item_id.empty() && (*waiting).subject.control.lock().get() == &control &&
-            control.tool_tip_text.read().empty()) {
+            !tool_tip_text_shows(control.tool_tip_text.read())) {
             state_ = Idle{};
             wake_.disconnect();
         }
@@ -549,7 +641,7 @@ void ToolTipPresenter::text_changed(const Control& control) {
         (*showing).subject.control.lock().get() != &control) {
         return;
     }
-    if (control.tool_tip_text.read().empty()) {
+    if (!tool_tip_text_shows(control.tool_tip_text.read())) {
         raise(close(Idle{}));
         return;
     }
@@ -565,7 +657,7 @@ void ToolTipPresenter::items_changed(const Control& control) {
         const std::vector<SemanticNode> items = control.tool_tip_items();
         const SemanticNode* item = item_with_id(items, (*showing).subject.item_id);
         const ToolTipOrigin origin = (*showing).origin;
-        if (item == nullptr || (*item).tool_tip.empty()) {
+        if (item == nullptr || !tool_tip_text_shows((*item).tool_tip)) {
             std::optional<ToolTipEvent> change = close(Idle{});
             // The pointer may rest over another part of the control now.
             if (origin == ToolTipOrigin::pointer) pointer_wait(window_.hit_test(pointer_), last_motion_);

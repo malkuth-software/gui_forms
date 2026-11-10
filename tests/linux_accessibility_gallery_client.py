@@ -95,7 +95,18 @@ NONVISUAL: tuple[str, ...] = (
     'help_provider', 'semantic_feedback', 'binding', 'binding_source', 'binding_context', 'live_surface',
     'dock_workspace', 'open_file_dialog', 'save_file_dialog', 'folder_browser_dialog',
     'color_dialog',
+    # A PlotView's item children, which it paints as its own parts; the
+    # About box and the help system, components shown through their dialog
+    # and viewer; and GaugeBase, the gauges' abstract base.
+    'plot_axis_item', 'plot_series_item', 'plot_annotation_item',
+    'about_dialog', 'help_book_system', 'gauge_base',
 )
+
+# Registry types whose controls still publish their base class's anatomy
+# (their own anatomies are pending), so no record names their own type: the
+# supplement places one of each. The semantic gallery test lists them as
+# unexposed containers.
+BASE_ANATOMY: tuple[str, ...] = ('wizard_page', 'help_book_viewer')
 
 # Registry types the Gallery opens on demand, and the node whose default
 # action opens one: (type, page, opener stable identity).
@@ -124,6 +135,8 @@ ACCEPTED_WITHOUT_CHANGE: dict[str, str] = {
         'the first rack module asks to move earlier on decrement; the rack keeps the order',
     'gallery.commands.ribbon-file-area.colour':
         'RibbonColorPicker press applies the current colour (Automatic) again',
+    'supplement.callout':
+        'the supplement places the callout bare and never shows it, so close leaves it closed',
 }
 
 # The Gallery's own frame (navigation, header, command row), which every
@@ -158,15 +171,15 @@ ROLE_NAMES: dict[str, str] = {
     'property_grid': 'LIST', 'property_group': 'GROUPING', 'property_row': 'LIST_ITEM', 'menu_bar': 'MENU_BAR',
     'menu_bar_item': 'MENU_ITEM', 'menu': 'MENU', 'menu_item': 'MENU_ITEM', 'separator': 'SEPARATOR',
     'toolbar': 'TOOL_BAR', 'radio_group': 'PANEL', 'split_button': 'PUSH_BUTTON', 'menu_button': 'PUSH_BUTTON',
-    'pane': 'PANEL', 'tab_panel': 'SCROLL_PANE', 'tree': 'TREE', 'tree_item': 'TREE_ITEM', 'table': 'TABLE',
+    'pane': 'PANEL', 'meter': 'LEVEL_BAR', 'tab_panel': 'SCROLL_PANE', 'tree': 'TREE', 'tree_item': 'TREE_ITEM', 'table': 'TABLE',
     'row': 'TABLE_ROW', 'cell': 'TABLE_CELL', 'column_header': 'COLUMN_HEADER', 'row_header': 'ROW_HEADER',
     'tree_grid': 'TREE_TABLE', 'dialog': 'DIALOG', 'status_bar': 'STATUS_BAR', 'live_region': 'PANEL',
-    'toggle_switch': 'TOGGLE_BUTTON', 'search_box': 'ENTRY',
+    'toggle_switch': 'TOGGLE_BUTTON', 'search_box': 'ENTRY', 'figure': 'CHART',
 }
 
 # The role whose states and interfaces a newer role shares
 # (semantic_role_fallback in semantic_types.hpp); every other role is its own.
-ROLE_FALLBACKS: dict[str, str] = {'toggle_switch': 'check_box', 'search_box': 'text_box'}
+ROLE_FALLBACKS: dict[str, str] = {'toggle_switch': 'check_box', 'search_box': 'text_box', 'figure': 'image'}
 
 
 def acting_role(node: dict[str, Any]) -> str:
@@ -965,6 +978,8 @@ def summarize(registry: list[dict[str, Any]], results: Results, reasons: dict[st
         action: str = results.actions.get(kind, reasons.get(kind, ''))
         if kind in NONVISUAL:
             status: str = 'nonvisual component (no node of its own)'
+        elif kind in BASE_ANATOMY and count == 0:
+            status = 'published under its base anatomy (own anatomy pending)'
         elif count > 0:
             status = str(count)
             compared += 1

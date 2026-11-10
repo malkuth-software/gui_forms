@@ -329,16 +329,17 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
         if (selected) plate_states.insert(AnatomyState::selected);
         if (focused_ && hot) plate_states.insert(AnatomyState::focus_visible);
         if (!items_[index].enabled) plate_states.insert(AnatomyState::disabled);
-        if (active || hot || selected) {
-            PartPaint plate;
-            plate.family = ControlVisualRole::menu_item;
-            plate.role = PartRole::face;
-            plate.bounds = {item.x + 1.0, 1.0, item.width - 2.0,
-                            std::max(0.0, item.height - 2.0)};
-            plate.states = plate_states;
-            plate.key = PartKey{"menu_item", items_[index].stable_id, index};
-            paint_part(painter, *this, plate);
-        }
+        // Painted in every state, keyed by the item: the built-in rule's
+        // dithered bulge is flat at rest and rises while the item is hot,
+        // and an open (pressed) or selected item shows the plate.
+        PartPaint plate;
+        plate.family = ControlVisualRole::menu_item;
+        plate.role = PartRole::face;
+        plate.bounds = {item.x + 1.0, 1.0, item.width - 2.0,
+                        std::max(0.0, item.height - 2.0)};
+        plate.states = plate_states;
+        plate.key = PartKey{"menu_item", items_[index].stable_id, index};
+        paint_part(painter, *this, plate);
         FontSpec item_font = text_font(font.read());
         if (active || selected) {
             item_font.weight = std::max<std::uint16_t>(item_font.weight, 700U);

@@ -127,6 +127,13 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           "document stacks, floating sites, auto-hide, placeholders, "
           "restrictions, transactions and saved layouts.",
           ("docking",)),
+    Group("plots", "Plots",
+          "The plots package's primitives in `GUIForms::PlotPrimitives`: bulk "
+          "series columns and leased views, the ring channel, scales, ticks, "
+          "axes, the plot transform, envelope decimation, colormaps, picking, "
+          "the view and gesture model, legend layout, signal programs and the "
+          "batched mark painters.",
+          ("plots",)),
     Group("xml", "XML documents",
           "The bounded first-party XML reader and writer that GUI.Forms uses "
           "for its own files, such as saved docking layouts.",
@@ -157,10 +164,20 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
 # with the dialogs.
 AREA_TO_CATEGORY: dict[str, str] = {
     "components": "Dialogs and overlays",
+    "help": "Information display",
     "inspection": "Value setting",
     "instrument": "Value setting",
     "metrics": "Diagnostics",
     "visual_inspection": "Diagnostics",
+}
+
+# Control-family directories whose headers precede their registered control
+# (the node canvas's graph model and link router arrive before NodeCanvas
+# itself); remove an entry once the directory's control is registered.
+DIRECTORY_TO_CATEGORY: dict[str, str] = {
+    "include/gui_forms/controls/node_canvas": "Drawing",
+    # The help system's support headers (printing) sit beside its controls.
+    "include/gui_forms/controls/help": "Information display",
 }
 
 CATEGORY_DESCRIPTIONS: dict[str, str] = {
@@ -279,6 +296,9 @@ def page_resolver(registry: list[dict]):
         directory = posixpath.dirname(header)
         for control_dir, category in control_dirs:
             if directory == control_dir or directory.startswith(control_dir + "/"):
+                return category_slug(category)
+        for family_dir, category in DIRECTORY_TO_CATEGORY.items():
+            if directory == family_dir or directory.startswith(family_dir + "/"):
                 return category_slug(category)
         area = area_of(header)
         if area in AREA_TO_CATEGORY:

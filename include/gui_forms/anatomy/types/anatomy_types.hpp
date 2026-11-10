@@ -70,6 +70,40 @@ enum class PartRole : std::uint8_t {
     plot,
     graticule,
     trace,
+    // The plot roles (IMGUI_IMPLOT_STUDY B.4): an axis line, its tick marks
+    // and tick labels, the major and minor grid, the legend frame and its
+    // entries, a series marker, the crosshair, an annotation label, the
+    // colour scale bar and a series' line or swatch. Before a theme binds
+    // them the built-in recipe draws the lines (axis, tick, grid_major,
+    // grid_minor, crosshair) as a divider, the texts (tick_label,
+    // legend_entry, annotation) as a label, the legend as a face, the colour
+    // scale as a well, and marker and series as an indicator.
+    axis,
+    tick,
+    tick_label,
+    grid_major,
+    grid_minor,
+    legend,
+    legend_entry,
+    marker,
+    crosshair,
+    annotation,
+    color_scale,
+    series,
+    // The dial roles (row 2.5; owner option (a), 2026-11-09), appended.
+    // `arc` is a stroked arc of the circle inscribed in the part's bounds,
+    // from PartPaint::arc's start through its sweep: a gauge's track, its
+    // value and its alarm segments. `needle` is a pointer from the centre
+    // of the part's bounds out to the inscribed circle at
+    // PartPaint::arc's start: a gauge's or a dial's pointer. `beak` is a
+    // callout's pointer, a triangle in the part's bounds whose tip lies at
+    // the middle of the edge its arrow mark names (towards the target),
+    // drawn in the face's colours. `scrim` dims what lies behind an
+    // in-window modal layer, over the part's bounds.
+    arc,
+    needle,
+    beak,
+    scrim,
     count,
 };
 

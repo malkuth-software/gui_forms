@@ -118,6 +118,30 @@ DwmGetWindowAttributeFunction load_dwm_get_window_attribute() noexcept {
     return function;
 }
 
+using DwmSetWindowAttributeFunction = decltype(&::DwmSetWindowAttribute);
+
+DwmSetWindowAttributeFunction load_dwm_set_window_attribute() noexcept {
+    HMODULE library = LoadLibraryW(L"dwmapi.dll");
+    if (library == nullptr) return nullptr;
+    const DwmSetWindowAttributeFunction function =
+        load_function<DwmSetWindowAttributeFunction>(library, "DwmSetWindowAttribute");
+    return function;
+}
+
+// A floating window takes its owner's caption scheme: the dark title bar
+// (DWMWA_USE_IMMERSIVE_DARK_MODE, 20) its owner has, whether the program or
+// GUI.Forms set it, so a torn-out panel matches its main window. Nothing
+// where dwmapi.dll or the attribute is missing (before Windows 10 20H1).
+void follow_owner_caption_scheme(HWND owner, HWND window) noexcept {
+    static const DwmGetWindowAttributeFunction get_attribute = load_dwm_get_window_attribute();
+    static const DwmSetWindowAttributeFunction set_attribute = load_dwm_set_window_attribute();
+    if (get_attribute == nullptr || set_attribute == nullptr || owner == nullptr) return;
+    constexpr DWORD immersive_dark_mode = 20U;
+    BOOL dark = FALSE;
+    if (FAILED(get_attribute(owner, immersive_dark_mode, &dark, sizeof(dark)))) return;
+    static_cast<void>(set_attribute(window, immersive_dark_mode, &dark, sizeof(dark)));
+}
+
 bool visible_window_bounds(HWND window, RECT& bounds) noexcept {
     static const DwmGetWindowAttributeFunction get_attribute = load_dwm_get_window_attribute();
     constexpr DWORD extended_frame_bounds = DWMWA_EXTENDED_FRAME_BOUNDS;
@@ -412,6 +436,10 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
         return outcome;
     }
     report_native_frame(id, window);
+    if (floating) follow_owner_caption_scheme(owner, window);
+    // A popup's alpha surface shows its content's shape and shadow alone:
+    // no DWM border or rounding around its clear pixels.
+    if (kind == HostWindowKind::popup) gui_forms::host::detail::apply_windows_popup_frame(window);
     // A popup is placed where the program put it, before it is shown.
     if (popup.has_value()) {
         const Rect content{(*popup).origin.x, (*popup).origin.y, initial_size.width, initial_size.height};
@@ -814,4 +842,146 @@ void end_run_windowing(WindowsRunOpenState& open_state, WindowsApplicationOption
                        bool published) {
     open_state.run = nullptr;
     if (published && options.windowing_ended) options.windowing_ended();
+}
+
+// One window of a composite capture (capture-composite): its presented
+// pixels and its client rectangle in device desktop pixels.
+struct CompositeLayer final {
+    WindowsRaster::PresentedView view{};
+    RECT client{};
+    std::string stable_id{};
+};
+
+// The client rectangle of `window` in device desktop pixels; false when it
+// cannot be read.
+bool device_client_rectangle(HWND window, RECT& rectangle) noexcept {
+    RECT client{};
+    POINT origin{0, 0};
+    if (!GetClientRect(window, &client) || !ClientToScreen(window, &origin)) return false;
+    rectangle = RECT{origin.x, origin.y, origin.x + client.right - client.left, origin.y + client.bottom - client.top};
+    return true;
+}
+
+// Composes `layer` over `canvas` (opaque BGRA8, `canvas_width` pixels a row,
+// its top left at `origin` on the desktop): premultiplied source over, or a
+// plain copy for a layer presented opaque. Clipped to both.
+void compose_layer(std::vector<std::uint32_t>& canvas, const int canvas_width, const int canvas_height,
+                   const POINT origin, const CompositeLayer& layer) noexcept {
+    const WindowsRaster::PresentedView& view = layer.view;
+    if (view.pixels == nullptr || view.width <= 0 || view.height <= 0) return;
+    const int width = std::min<int>(view.width, static_cast<int>(layer.client.right - layer.client.left));
+    const int height = std::min<int>(view.height, static_cast<int>(layer.client.bottom - layer.client.top));
+    for (int row = 0; row < height; ++row) {
+        const int target_row = static_cast<int>(layer.client.top - origin.y) + row;
+        if (target_row < 0 || target_row >= canvas_height) continue;
+        const std::byte* const line = view.pixels + static_cast<std::size_t>(row) * view.row_bytes;
+        for (int column = 0; column < width; ++column) {
+            const int target_column = static_cast<int>(layer.client.left - origin.x) + column;
+            if (target_column < 0 || target_column >= canvas_width) continue;
+            std::uint32_t source{};
+            std::memcpy(&source, line + static_cast<std::size_t>(column) * 4U, 4U);
+            const std::size_t target_index = static_cast<std::size_t>(target_row) * static_cast<std::size_t>(canvas_width) +
+                                             static_cast<std::size_t>(target_column);
+            const std::uint32_t target = canvas[target_index];
+            const std::uint32_t alpha = view.alpha ? (source >> 24U) : 255U;
+            if (alpha == 255U) {
+                canvas[target_index] = source | 0xff000000U;
+                continue;
+            }
+            const std::uint32_t keep = 255U - alpha;
+            std::uint32_t blended = 0xff000000U;
+            for (std::uint32_t shift = 0U; shift < 24U; shift += 8U) {
+                const std::uint32_t top = (source >> shift) & 0xffU;
+                const std::uint32_t bottom = (target >> shift) & 0xffU;
+                const std::uint32_t channel = std::min<std::uint32_t>(255U, top + (bottom * keep + 127U) / 255U);
+                blended |= channel << shift;
+            }
+            canvas[target_index] = blended;
+        }
+    }
+}
+
+bool write_composite_capture(WindowsApplicationRun* run, WindowsHostState& owner, const std::wstring& path) {
+    const HWND owner_window = owner.native_window();
+    std::vector<CompositeLayer> layers;
+    CompositeLayer own{};
+    own.view = owner.presented_view();
+    own.stable_id = "owner";
+    if (owner_window == nullptr || !device_client_rectangle(owner_window, own.client)) return false;
+    layers.push_back(own);
+    if (run != nullptr) {
+        // Slot order is opening order: a menu's depths open in turn.
+        for (std::size_t index = 0U; index < (*run).slot_count(); ++index) {
+            WindowsRunSlot& slot = (*run).slot_at(index);
+            if (!slot.state || (*slot.state).destroyed()) continue;
+            const HWND native = (*slot.state).native_window();
+            if (native == nullptr || native == owner_window || !IsWindowVisible(native)) continue;
+            if (GetWindow(native, GW_OWNER) != owner_window) continue;
+            CompositeLayer layer{};
+            layer.view = (*slot.state).presented_view();
+            layer.stable_id = slot.stable_id;
+            if (!device_client_rectangle(native, layer.client)) continue;
+            layers.push_back(std::move(layer));
+        }
+    }
+    RECT bounds = own.client;
+    for (const CompositeLayer& layer : layers) {
+        bounds.left = std::min(bounds.left, layer.client.left);
+        bounds.top = std::min(bounds.top, layer.client.top);
+        bounds.right = std::max(bounds.right, layer.client.right);
+        bounds.bottom = std::max(bounds.bottom, layer.client.bottom);
+    }
+    // A margin of checkerboard round everything, so that clear pixels show.
+    constexpr LONG margin = 24;
+    bounds.left -= margin;
+    bounds.top -= margin;
+    bounds.right += margin;
+    bounds.bottom += margin;
+    const int width = static_cast<int>(bounds.right - bounds.left);
+    const int height = static_cast<int>(bounds.bottom - bounds.top);
+    if (width <= 0 || height <= 0 || width > 16384 || height > 16384) return false;
+    std::vector<std::uint32_t> canvas(static_cast<std::size_t>(width) * static_cast<std::size_t>(height));
+    for (int row = 0; row < height; ++row) {
+        for (int column = 0; column < width; ++column) {
+            const bool light = ((row / 8) + (column / 8)) % 2 == 0;
+            canvas[static_cast<std::size_t>(row) * static_cast<std::size_t>(width) + static_cast<std::size_t>(column)] =
+                light ? 0xffd8d8d8U : 0xff9a9a9aU;
+        }
+    }
+    const POINT origin{bounds.left, bounds.top};
+    for (const CompositeLayer& layer : layers) compose_layer(canvas, width, height, origin, layer);
+    gui_forms::image::PngEncodeInput input;
+    input.width = static_cast<std::uint32_t>(width);
+    input.height = static_cast<std::uint32_t>(height);
+    input.row_bytes = static_cast<std::uint64_t>(width) * 4U;
+    input.pixels = std::span<const std::byte>(reinterpret_cast<const std::byte*>(canvas.data()),
+                                              canvas.size() * sizeof(std::uint32_t));
+    input.order = gui_forms::image::PngChannelOrder::bgra;
+    input.alpha = gui_forms::image::PngSourceAlpha::opaque;
+    std::vector<std::byte> encoded;
+    const bool encoded_ok = gui_forms::image::encode_png(input, encoded);
+    bool saved = false;
+    if (encoded_ok) {
+        const HANDLE file =
+            CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (file != INVALID_HANDLE_VALUE) {
+            DWORD written = 0U;
+            saved = WriteFile(file, encoded.data(), static_cast<DWORD>(encoded.size()), &written, nullptr) != FALSE &&
+                    written == encoded.size();
+            CloseHandle(file);
+        }
+    }
+    std::fprintf(stdout, "{\"automation\":\"capture-composite\",\"saved\":%s,\"origin\":[%ld,%ld],\"windows\":[",
+                 saved ? "true" : "false", static_cast<long>(origin.x), static_cast<long>(origin.y));
+    for (std::size_t index = 0U; index < layers.size(); ++index) {
+        const CompositeLayer& layer = layers[index];
+        std::fprintf(stdout, "%s{\"id\":\"%s\",\"client\":[%ld,%ld,%ld,%ld],\"pixels\":[%d,%d],\"alpha\":%s}",
+                     index == 0U ? "" : ",", layer.stable_id.c_str(), static_cast<long>(layer.client.left),
+                     static_cast<long>(layer.client.top), static_cast<long>(layer.client.right - layer.client.left),
+                     static_cast<long>(layer.client.bottom - layer.client.top), layer.view.width, layer.view.height,
+                     layer.view.alpha ? "true" : "false");
+    }
+    std::fprintf(stdout, "]}\n");
+    std::fflush(stdout);
+    return saved;
 }

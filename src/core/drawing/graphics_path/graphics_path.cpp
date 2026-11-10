@@ -142,6 +142,76 @@ void GraphicsPath::add_ellipse(RectF bounds) {
     append(std::move(element));
 }
 
+void GraphicsPath::add_rounded_rectangle(RectF rectangle, CornerRadii radii) {
+    require_alive();
+    require_finite(rectangle, "path rounded rectangle");
+    const std::array<double, 4> given{radii.top_left, radii.top_right, radii.bottom_right, radii.bottom_left};
+    for (const double radius : given) {
+        require_finite(radius, "path corner radius");
+        if (radius < 0.0) throw std::invalid_argument("path corner radii may not be negative");
+    }
+    if (rectangle.empty()) throw std::invalid_argument("path rounded rectangle must be nonempty");
+    // start, four edges, four corners, close.
+    constexpr std::size_t appended_count = 10U;
+    if (appended_count > maximum_elements - elements_.size()) {
+        throw std::length_error("GUI.Drawing path element limit exceeded");
+    }
+    const double limit = std::min(rectangle.width, rectangle.height) * 0.5;
+    const double top_left = std::min(radii.top_left, limit);
+    const double top_right = std::min(radii.top_right, limit);
+    const double bottom_right = std::min(radii.bottom_right, limit);
+    const double bottom_left = std::min(radii.bottom_left, limit);
+    // The control-point distance of a cubic quarter circle, per unit radius.
+    constexpr double kappa = 0.55228474983079339840;
+    const double left = rectangle.x;
+    const double top = rectangle.y;
+    const double right = rectangle.right();
+    const double bottom = rectangle.bottom();
+    std::vector<PathElement> appended;
+    appended.reserve(appended_count);
+    appended.push_back({PathVerb::start_figure});
+    PathElement edge;
+    edge.verb = PathVerb::line;
+    PathElement corner;
+    corner.verb = PathVerb::bezier;
+    // Each element starts exactly where the previous ended, so the figure
+    // stays one contour.
+    edge.first = PointF{left + top_left, top};
+    edge.second = PointF{right - top_right, top};
+    appended.push_back(edge);
+    corner.first = edge.second;
+    corner.second = PointF{right - top_right + top_right * kappa, top};
+    corner.third = PointF{right, top + top_right - top_right * kappa};
+    corner.fourth = PointF{right, top + top_right};
+    appended.push_back(corner);
+    edge.first = corner.fourth;
+    edge.second = PointF{right, bottom - bottom_right};
+    appended.push_back(edge);
+    corner.first = edge.second;
+    corner.second = PointF{right, bottom - bottom_right + bottom_right * kappa};
+    corner.third = PointF{right - bottom_right + bottom_right * kappa, bottom};
+    corner.fourth = PointF{right - bottom_right, bottom};
+    appended.push_back(corner);
+    edge.first = corner.fourth;
+    edge.second = PointF{left + bottom_left, bottom};
+    appended.push_back(edge);
+    corner.first = edge.second;
+    corner.second = PointF{left + bottom_left - bottom_left * kappa, bottom};
+    corner.third = PointF{left, bottom - bottom_left + bottom_left * kappa};
+    corner.fourth = PointF{left, bottom - bottom_left};
+    appended.push_back(corner);
+    edge.first = corner.fourth;
+    edge.second = PointF{left, top + top_left};
+    appended.push_back(edge);
+    corner.first = edge.second;
+    corner.second = PointF{left, top + top_left - top_left * kappa};
+    corner.third = PointF{left + top_left - top_left * kappa, top};
+    corner.fourth = PointF{left + top_left, top};
+    appended.push_back(corner);
+    appended.push_back({PathVerb::close_figure});
+    elements_.insert(elements_.end(), appended.begin(), appended.end());
+}
+
 void GraphicsPath::add_arc(RectF bounds, double start_angle,
                            double sweep_angle) {
     require_alive();

@@ -3,6 +3,7 @@
 #include "../../../core/damage/device_damage/device_damage.hpp"
 #include "../../../core/application/splashscreen_surface.hpp"
 #include "../../posix/fonts/sealed_pages_posix.hpp"
+#include "../../../core/resources/fonts/bundled_font_set.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 #include <thread>
@@ -13,11 +14,14 @@
 #include <X11/extensions/Xfixes.h>
 #include <X11/extensions/shapeconst.h>
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <chrono>
 #include <clocale>
 #include <cmath>
+#include <csignal>
 #include <cstring>
+#include <dlfcn.h>
 #include <fcntl.h>
 #include <filesystem>
 #include <fstream>
@@ -324,6 +328,70 @@ std::optional<NativePresentKernel> convert_present_rectangle(XImage& image, cons
 
 namespace {
 
+// The invalidation overlay at present time: copies the bounding box of the
+// requested rectangles and of the areas the outlines cover now and covered
+// at the last present from the raster's `source` pixels into the window's
+// scratch frame, composites the outlines there, and fills
+// window.overlay_present with every rectangle the present must copy.
+// Returns the scratch pixels, or null when there is nothing to draw (the
+// raster is presented as it is). The raster is never drawn on, so the
+// overlay damages nothing. UI thread.
+const unsigned char* compose_invalidation_overlay(NativeWindow& window, InvalidationOverlay* overlay,
+                                                  const std::span<const Rect> requested,
+                                                  const unsigned char* source, std::uint32_t width,
+                                                  std::uint32_t height, std::size_t row_bytes) {
+  const InvalidationClock::time_point now = InvalidationClock::now();
+  window.overlay_regions.clear();
+  if (overlay != nullptr) {
+    (*overlay).expire(now);
+    (*overlay).fill_regions(1.0, width, height, window.overlay_regions);
+  }
+  if (window.overlay_regions.empty() && window.overlay_drawn.empty()) return nullptr;
+  window.overlay_present.assign(requested.begin(), requested.end());
+  for (const DevicePixelRect& region : window.overlay_regions) {
+    window.overlay_present.push_back(Rect{static_cast<double>(region.left), static_cast<double>(region.top),
+        static_cast<double>(region.right - region.left), static_cast<double>(region.bottom - region.top)});
+  }
+  for (const DevicePixelRect& region : window.overlay_drawn) {
+    window.overlay_present.push_back(Rect{static_cast<double>(region.left), static_cast<double>(region.top),
+        static_cast<double>(region.right - region.left), static_cast<double>(region.bottom - region.top)});
+  }
+  const std::int32_t frame_width = static_cast<std::int32_t>(width);
+  const std::int32_t frame_height = static_cast<std::int32_t>(height);
+  DevicePixelRect box{frame_width, frame_height, 0, 0};
+  for (const Rect& rectangle : window.overlay_present) {
+    if (!rectangle.finite() || rectangle.empty()) continue;
+    box.left = std::min(box.left, std::clamp<std::int32_t>(
+        static_cast<std::int32_t>(std::floor(rectangle.x)), 0, frame_width));
+    box.top = std::min(box.top, std::clamp<std::int32_t>(
+        static_cast<std::int32_t>(std::floor(rectangle.y)), 0, frame_height));
+    box.right = std::max(box.right, std::clamp<std::int32_t>(
+        static_cast<std::int32_t>(std::ceil(rectangle.right())), 0, frame_width));
+    box.bottom = std::max(box.bottom, std::clamp<std::int32_t>(
+        static_cast<std::int32_t>(std::ceil(rectangle.bottom())), 0, frame_height));
+  }
+  window.overlay_drawn.swap(window.overlay_regions);
+  if (box.right <= box.left || box.bottom <= box.top) return nullptr;
+  const std::size_t frame_bytes = row_bytes * static_cast<std::size_t>(height);
+  if (window.overlay_scratch.size() != frame_bytes) window.overlay_scratch.assign(frame_bytes, std::byte{0});
+  const std::size_t row_offset = static_cast<std::size_t>(box.left) * 4U;
+  const std::size_t row_length = static_cast<std::size_t>(box.right - box.left) * 4U;
+  for (std::int32_t y = box.top; y < box.bottom; ++y) {
+    const std::size_t offset = static_cast<std::size_t>(y) * row_bytes + row_offset;
+    std::memcpy(window.overlay_scratch.data() + offset, source + offset, row_length);
+  }
+  if (overlay != nullptr) {
+    InvalidationOverlayTarget target{};
+    target.pixels = std::span<std::byte>(window.overlay_scratch);
+    target.width = width;
+    target.height = height;
+    target.row_bytes = row_bytes;
+    (*overlay).compose(target, 1.0, now, box);
+  }
+  const unsigned char* const composed = reinterpret_cast<const unsigned char*>(window.overlay_scratch.data());
+  return composed;
+}
+
 // Copies each rectangle of the raster's pixels to the window (stage DP partial
 // present): one native image for the raster, converted and submitted rectangle
 // by rectangle. Rectangles are clipped to the window and widened to whole
@@ -346,6 +414,19 @@ bool present_raster_rectangles(NativeWindow& window, const std::span<const Rect>
   NativePresentSource present{};
   present.pixels = source;
   present.row_bytes = raster.row_bytes();
+  // The invalidation overlay, while it is on or an outline was last shown:
+  // the present copies the composited scratch frame, outlines included. Off,
+  // this is one relaxed load and a size test.
+  std::span<const Rect> rectangles = requested;
+  InvalidationOverlay* const overlay = (*window.entry.model).invalidation_overlay();
+  if (overlay != nullptr || !window.overlay_drawn.empty()) {
+    const unsigned char* const composed =
+        compose_invalidation_overlay(window, overlay, requested, source, width, height, present.row_bytes);
+    if (composed != nullptr) {
+      present.pixels = composed;
+      rectangles = window.overlay_present;
+    }
+  }
   present.alpha_mask = window.alpha_mask;
   present.present_alpha = window.present_alpha;
   PresentationImage owner{};
@@ -365,8 +446,8 @@ bool present_raster_rectangles(NativeWindow& window, const std::span<const Rect>
   image.data = window.presentation.data();
   // The copy alone is timed: conversion, XPutImage and the flush.
   const std::chrono::steady_clock::time_point copy_started = std::chrono::steady_clock::now();
-  for (std::size_t index = 0; index < requested.size(); ++index) {
-    const Rect rectangle = requested[index];
+  for (std::size_t index = 0; index < rectangles.size(); ++index) {
+    const Rect rectangle = rectangles[index];
     if (!rectangle.finite()) continue;
     const Rect clipped = Rect::intersection(rectangle, extent);
     if (clipped.empty()) continue;
@@ -588,22 +669,69 @@ std::uint32_t key_usage(KeySym key) {
     return 0U;
   }
 }
+// A byte in the module that holds GUI.Forms, whose address names that module to dladdr.
+const char gui_forms_module_anchor{};
+
+// The directory of the shared object holding this code: libgui_forms when another process
+// (a .NET runtime, a plug-in host) loaded it, else the executable it is linked into; empty
+// when dladdr cannot say.
+std::filesystem::path gui_forms_module_directory() {
+  Dl_info information{};
+  const int found = dladdr(&gui_forms_module_anchor, &information);
+  if (found == 0 || information.dli_fname == nullptr ||
+      information.dli_fname[0] == '\0')
+    return {};
+  std::error_code error;
+  const std::filesystem::path module =
+      std::filesystem::canonical(information.dli_fname, error);
+  if (error)
+    return {};
+  return module.parent_path();
+}
+
+// The bundled font directory: the first of GUI_FORMS_FONT_DIR, "fonts" beside the
+// executable, "fonts" beside the GUI.Forms module, and the installed share/GUIForms/fonts
+// next to the executable's and then the module's directory that holds the required faces;
+// empty when none does, which locate_bundled_fonts counts and reports
+// (bundled_font_diagnostics, bundled_font_refusal).
 std::filesystem::path fonts_directory() {
+  std::array<gui_forms::detail::BundledFontCandidate, 5> candidates{};
   const char *override_path = std::getenv("GUI_FORMS_FONT_DIR");
+  candidates[0].source = gui_forms::BundledFontSource::environment;
   if (override_path != nullptr)
-    return override_path;
+    candidates[0].directory = override_path;
   std::error_code error;
   const std::filesystem::path executable =
       std::filesystem::read_symlink("/proc/self/exe", error);
-  const std::filesystem::path local = executable.parent_path() / "fonts";
-  if (std::filesystem::is_directory(local))
-    return local;
-  return executable.parent_path() / "../share/GUIForms/fonts";
+  const std::filesystem::path executable_directory =
+      error ? std::filesystem::path{} : executable.parent_path();
+  const std::filesystem::path library_directory = gui_forms_module_directory();
+  // A GUI.Forms linked into the executable is the executable; it is not offered twice.
+  const bool separate_library =
+      !library_directory.empty() && library_directory != executable_directory;
+  candidates[1].source = gui_forms::BundledFontSource::executable;
+  candidates[2].source = gui_forms::BundledFontSource::library_module;
+  candidates[3].source = gui_forms::BundledFontSource::install_share;
+  candidates[4].source = gui_forms::BundledFontSource::install_share;
+  if (!executable_directory.empty()) {
+    candidates[1].directory = executable_directory / "fonts";
+    candidates[3].directory = executable_directory / "../share/GUIForms/fonts";
+  }
+  if (separate_library) {
+    candidates[2].directory = library_directory / "fonts";
+    candidates[4].directory = library_directory / "../share/GUIForms/fonts";
+  }
+  const gui_forms::detail::BundledFontLocation location =
+      gui_forms::detail::locate_bundled_fonts(candidates);
+  return location.directory;
 }
 // Every window borrows the process's one bundled font set: each face is read once, checked
 // against the manifest and sealed read-only (gui_forms::detail::BundledFontSet), then shared.
+// Throws with the lookup's refusal (bundled_font_refusal) when no directory holds the faces.
 void register_fonts(render::SkiaRaster &raster) {
   const std::filesystem::path directory = fonts_directory();
+  if (directory.empty())
+    throw std::runtime_error(gui_forms::bundled_font_refusal());
   const std::shared_ptr<gui_forms::detail::BundledFontSet> set =
       gui_forms::detail::shared_bundled_font_set(directory, gui_forms::host::posix_sealed_pages());
   if (!raster.register_bundled_fonts(set))
@@ -635,6 +763,32 @@ struct WriteText final {
     return (*(*window).services).write_clipboard_text(text);
   }
 };
+// The session-ending signal handler's state (Runtime::terminate_installed):
+// the flag it sets and the wake pipe it writes, both written only while a
+// handler is installed. Async-signal-safe: a sig_atomic_t store and write.
+volatile std::sig_atomic_t session_end_signalled = 0;
+volatile int session_end_wake = -1;
+void session_end_signal(int) {
+  session_end_signalled = 1;
+  const int descriptor = session_end_wake;
+  const char byte = 1;
+  if (descriptor >= 0)
+    static_cast<void>(::write(descriptor, &byte, 1));
+}
+// Installs session_end_signal for signal_number when its disposition is the
+// default; previous receives the action to restore. Returns whether it
+// installed.
+bool install_session_end_signal(int signal_number, struct sigaction &previous) {
+  if (sigaction(signal_number, nullptr, &previous) != 0)
+    return false;
+  if ((previous.sa_flags & SA_SIGINFO) != 0 || previous.sa_handler != SIG_DFL)
+    return false;
+  struct sigaction action{};
+  action.sa_handler = session_end_signal;
+  sigemptyset(&action.sa_mask);
+  action.sa_flags = SA_RESTART;
+  return sigaction(signal_number, &action, nullptr) == 0;
+}
 } // namespace
 void Wake::operator()() const noexcept {
   const char byte = 1;
@@ -703,8 +857,24 @@ Runtime::Runtime() {
     XkbFreeKeyboard(keyboard, XkbAllComponentsMask, True);
   compositor = std::make_unique<X11CompositorWatch>(display, DefaultScreen(display));
   input_settings = std::make_unique<XSettingsWatch>(display, DefaultScreen(display));
+  if (session_end_wake < 0) {
+    session_end_signalled = 0;
+    session_end_wake = wake_pipe[1];
+    terminate_installed = install_session_end_signal(SIGTERM, previous_terminate);
+    hangup_installed = install_session_end_signal(SIGHUP, previous_hangup);
+    if (!terminate_installed && !hangup_installed)
+      session_end_wake = -1;
+  }
 }
 Runtime::~Runtime() {
+  // Restored before the wake pipe closes, so the handler never writes to a
+  // closed (or reused) descriptor.
+  if (terminate_installed)
+    sigaction(SIGTERM, &previous_terminate, nullptr);
+  if (hangup_installed)
+    sigaction(SIGHUP, &previous_hangup, nullptr);
+  if (terminate_installed || hangup_installed)
+    session_end_wake = -1;
   for (std::size_t i = 0; i < windows.size(); ++i)
     (*windows[i]).close(HostCloseReason::application, true);
   windows.clear();
@@ -972,6 +1142,12 @@ void NativeWindow::report_window_state() {
 void NativeWindow::attach() {
   (*entry.model).set_dispatch_wake_handler(Wake{runtime.wake_pipe[1]});
   (*entry.model).set_paint_wake_handler(Wake{runtime.wake_pipe[1]});
+#if !defined(GUI_FORMS_PREPARED_TEXT)
+  // The raster keeps its pixels between ticks, so a scroll's pixels can be
+  // moved instead of repainted (update). The prepared raster publishes only
+  // retained paint transactions and repaints scrolled viewports.
+  (*entry.model).set_scroll_copies_supported(true);
+#endif
   if (!dispatch(HostAttachEvent{size, 1.0}).accepted())
     throw std::runtime_error("Linux host attach rejected");
   report_compositor_state();
@@ -1117,6 +1293,10 @@ Size NativeWindow::minimum_size() const noexcept {
 void NativeWindow::close(HostCloseReason reason, bool force) {
   if (closed)
     return;
+  // A session end is told to the closing handler, which cannot refuse it
+  // here: the signal has already ended the session.
+  if (force && reason == HostCloseReason::session_end)
+    static_cast<void>(dispatch(HostCloseRequest{reason, false, false}));
   if (!force) {
     const HostDispatchResult result =
         dispatch(HostCloseRequest{reason, false, entry.options.hide_on_close});
@@ -1344,14 +1524,43 @@ void NativeWindow::update() {
   // overlay's share (#69), and that damage is taken with the rest.
   const bool regions_taken = gather_live_frames();
   const DamageRegion fresh = (*entry.model).take_damage();
+  // The scroll copies recorded with that damage (SurfaceRoot::
+  // take_scroll_copies): the damage this window still holds moves with each
+  // copy's pixels before the fresh damage joins it. They are applied, in
+  // order, by the next tick that draws.
+  taken_copies.clear();
+  (*entry.model).take_scroll_copies(taken_copies);
+  for (const ScrollCopy &copy : taken_copies) {
+    if (!damage.empty()) damage = damage_after_scroll_copy(damage, copy.clip, copy.offset);
+    pending_copies.push_back(copy);
+  }
+  taken_copies.clear();
   for (std::size_t i = 0; i < fresh.rectangles().size(); ++i)
     damage.add(fresh.rectangles()[i]);
   // A taken region stays valid only if this tick presents it.
   if (regions_taken) live_region_lost = true;
-  // The screen rectangles: retained damage and the frames drawn directly.
+  // A scroll copy can move a live surface's previous pixels: frames drawn
+  // directly cover their whole clips.
+  if (!pending_copies.empty()) {
+    for (std::size_t index = 0; index < live_regions.size(); ++index) {
+      if (!live_regions[index].empty()) live_regions[index] = live_updates[index].clip;
+    }
+  }
+  // The screen rectangles: retained damage, the frames drawn directly and
+  // the clips of the copies, which the window still shows where they were.
   DamageRegion screen = damage;
   for (std::size_t index = 0; index < live_regions.size(); ++index) {
     if (!live_regions[index].empty()) screen.add(live_regions[index]);
+  }
+  for (const ScrollCopy &copy : pending_copies) screen.add(copy.clip);
+  if (visible && screen.empty() && !overlay_drawn.empty()) {
+    // The invalidation overlay's fade: nothing owed, so the outlines alone
+    // are presented again from the raster (a faded one leaves the raster's
+    // pixels), with no paint and no report.
+    live_frames.clear();
+    PresentedArea faded;
+    static_cast<void>(present_raster_rectangles(*this, std::span<const Rect>{}, faded));
+    return;
   }
   if (!visible || screen.empty()) {
     live_frames.clear();
@@ -1377,6 +1586,21 @@ void NativeWindow::update() {
   // Compose: the new frames first, then retained painting of the damage
   // (overlay shares among it) over them, into the raster.
   raster.begin_frame(screen);
+  // The copies move the begun frame's pixels before anything is drawn. One
+  // the raster refuses damages every clip: earlier copies may have moved
+  // pixels in it, and the repaint covers each clip (the frame admits them).
+  applied_copy_clips.clear();
+  bool copies_applied = true;
+  for (const ScrollCopy &copy : pending_copies) {
+    if (copies_applied) copies_applied = raster.scroll_copy(copy.clip, copy.offset);
+    applied_copy_clips.push_back(copy.clip);
+  }
+  pending_copies.clear();
+  if (copies_applied) {
+    scroll_copies_applied += applied_copy_clips.size();
+  } else {
+    for (const Rect clip : applied_copy_clips) damage.add(clip);
+  }
   compose_live_frames();
   std::optional<PaintReceipt> receipt{};
   if (!damage.empty()) {
@@ -1387,13 +1611,18 @@ void NativeWindow::update() {
   }
   raster.end_frame();
   live_frames.clear();
-  // A declined paint presents nothing; the damage and the lost regions stay.
-  if (!damage.empty() && !receipt)
+  // A declined paint presents nothing; the damage and the lost regions stay,
+  // and the copies' clips, moved in the raster only, join the damage.
+  if (!damage.empty() && !receipt) {
+    for (const Rect clip : applied_copy_clips) damage.add(clip);
     return;
+  }
   // Present: the rectangle set, once.
   PresentedArea copied;
-  if (!present_raster_rectangles(*this, screen.rectangles(), copied))
+  if (!present_raster_rectangles(*this, screen.rectangles(), copied)) {
+    for (const Rect clip : applied_copy_clips) damage.add(clip);
     return;
+  }
   const std::uint64_t elapsed = static_cast<std::uint64_t>(
       std::chrono::duration_cast<std::chrono::nanoseconds>(
           std::chrono::steady_clock::now() - started)
@@ -1496,7 +1725,10 @@ void NativeWindow::compose_live_frames() {
     const bool drawn = raster.draw_live_surface_frame(
         live_frames[live_frame_sources[index]], live_updates[index].destination, 1.0);
     raster.restore();
-    if (drawn) continue;
+    if (drawn) {
+      (*entry.model).note_live_surface_presented(live_updates[index], region);
+      continue;
+    }
     // Retained painting draws the surface's latest frame there instead.
     live_regions[index] = {};
     damage.add(region);
@@ -1604,9 +1836,20 @@ void Runtime::dispatch(XEvent &event) {
       break;
     }
 }
+void Runtime::end_session() {
+  // A copy: a closed callback may open a replacement window.
+  const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
+  for (std::size_t i = snapshot.size(); i > 0; --i)
+    (*snapshot[i - 1]).close(HostCloseReason::session_end, true);
+}
 void Runtime::step(int maximum_wait) {
   char bytes[128];
   while (::read(wake_pipe[0], bytes, sizeof(bytes)) > 0) {
+  }
+  if ((terminate_installed || hangup_installed) && session_end_signalled != 0) {
+    session_end_signalled = 0;
+    end_session();
+    return;
   }
   std::deque<Action> queued;
   {
@@ -1650,6 +1893,10 @@ void Runtime::step(int maximum_wait) {
     // least every 16 ms, as the Windows host's waitable timer does.
     if ((*window.entry.model).has_live_surface_presentations())
       wait = wait < 0 ? 16 : std::min(wait, 16);
+    // The invalidation overlay's fade, while an outline shows: 33 ms, as
+    // the Windows host's timer.
+    if (!window.overlay_drawn.empty())
+      wait = wait < 0 ? 33 : std::min(wait, 33);
     const std::optional<FrameTime> deadline = (*window.entry.model).next_wake();
     if (deadline) {
       const long long delay =
@@ -1780,6 +2027,9 @@ int run_linux_application(std::vector<LinuxApplicationWindow> windows,
     const std::shared_ptr<gui_forms::detail::BundledFontSet> run_fonts =
         gui_forms::detail::shared_bundled_font_set(linux_detail::fonts_directory(),
                                                    posix_sealed_pages());
+    // The run's Splash baker (Part S, phase 2), after the fonts it paints with and
+    // before every window, so it outlives each tooltip that reads it.
+    const gui_forms::render::SkiaSplashBakeRun splash_baking(run_fonts);
     linux_detail::Runtime runtime;
     runtime.windowing = std::make_unique<linux_detail::X11Windowing>(runtime);
     // Ends the windowing on every exit from here, before ~Runtime closes the

@@ -5,14 +5,16 @@
    `gui-forms`, and selects it for its window; gui_forms_add_theme embeds it and checks it against
    the Gallery's form documents.
 
-   Light only for now: the shell's page style is still code, and a dark
-   variant waits until it is themed too. */
+   Light and dark: the dark variant's palette and grounds follow at the
+   end of the sheet, so that a dark window shows the Gallery's own pages
+   in dark rather than its light papers over GUI.Forms' dark controls. */
 
 /* Text roles: colour roles, never literals, so that forced high contrast
    replaces each by meaning (a literal text colour warns, W201). The role
    names are the theme language's fixed vocabulary; this package's palette
    gives them the Gallery's own colours, and its rules alone read them. */
 :root {
+  color-scheme: light dark;
   ink-on-paper: #182d42 on #ffffff;
   muted-ink-on-paper: #5b6b79 on #ffffff;
   success-on-paper: #318b5e on #ffffff;
@@ -76,3 +78,34 @@
 .shell-canvas::part(face) { background: #eff3f7; }
 .navigation-paper::part(face) { background: #dce5ed; }
 .status-strip::part(face) { background: #e1e8ee; }
+
+/* The dark variant: the same roles and grounds, each a dark paper with a
+   light ink, in the order of the light rules above. The grounds keep
+   their light order of depth (the canvas darkest, the navigation paper
+   and the status strip a step lighter), and the specimen faces keep their
+   hue at low lightness. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    ink-on-paper: #dce6f0 on #1f252b;
+    muted-ink-on-paper: #9eacb9 on #1f252b;
+    success-on-paper: #63c494 on #1f252b;
+    ink-on-soft-paper: #d6dee6 on #1f252b;
+    command-link-ink-on-paper: #74b4ee on #1f252b;
+  }
+  .paper::part(face) { background: #1f252b; }
+  .specimen-navigation::part(face) { background: #1d2b38; }
+  .specimen-inspector::part(face) { background: #2e2b21; }
+  .specimen-activity::part(face) { background: #212d22; }
+  .canvas-cool::part(face) { background: #1a1f24; }
+  .canvas-mist::part(face) { background: #1c2126; }
+  .container-face::part(face) { background: #232a31; }
+  .lifecycle-face::part(face) { background: #212d22; }
+  .picture-light::part(face) { background: #262d34; }
+  .picture-dark::part(face) { background: #1b2025; }
+  .picture-ground::part(face) { background: #22292f; }
+  .border-tint::part(face) { background: #242c34; }
+  .rule-line::part(face) { background: #4b5763; }
+  .shell-canvas::part(face) { background: #1a1f24; }
+  .navigation-paper::part(face) { background: #232a31; }
+  .status-strip::part(face) { background: #20262c; }
+}

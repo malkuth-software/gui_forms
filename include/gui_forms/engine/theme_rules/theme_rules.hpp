@@ -337,6 +337,61 @@ inline constexpr std::size_t colour_role_count = static_cast<std::size_t>(Colour
 // Which colour of a pair; a single role's colour is its foreground.
 enum class ColourRoleSide : std::uint8_t { foreground, background };
 
+// Application colour roles (owner request 2026-11-09, the product ports):
+// roles a theme package declares beside the built-in ones, for colours its
+// program means, such as `syntax-keyword`. A sheet declares them in an
+// unconditional `:root` block,
+//   :root { color-roles: syntax-keyword from ink-on-paper, ... }
+// each with the built-in role it falls back to, which also gives its
+// meaning: a pair or a single colour, and the colour forced high contrast
+// shows for it unless the sheet declares a `forced-colors` variant. Its
+// colours are then declared like a built-in role's, in `:root` and under
+// `@media (prefers-color-scheme: dark)` or `(forced-colors: active)`; a
+// role without an unconditional declaration of its own starts from its
+// fallback's declarations, its own after them. Rules read it with role(),
+// and program code through Theme::application_role or
+// Control::theme_role_colours. Names are 1 to 64 characters of lowercase
+// ASCII letters, digits and '-', the first a letter, none a built-in
+// role's; at most maximum_application_colour_roles in one theme.
+inline constexpr std::size_t maximum_application_colour_roles = 32U;
+inline constexpr std::size_t maximum_application_colour_role_name = 64U;
+
+// One declaration of an application role's colours: its foreground and,
+// for a pair, its background, where `media` holds.
+struct ApplicationColourRoleVariant final {
+    MediaCondition media{};
+    Color foreground{};
+    Color background{};
+
+    friend bool operator==(const ApplicationColourRoleVariant& left,
+                           const ApplicationColourRoleVariant& right) noexcept {
+        return left.media == right.media && left.foreground == right.foreground &&
+               left.background == right.background;
+    }
+};
+
+// An application role as the theme compiled it: its name, its fallback
+// built-in role, whether it is a pair (its fallback's shape), and its
+// declarations in sheet order from its last unconditional one (the base
+// colours, where there is one), each later one holding where its condition
+// does. A role without an unconditional declaration carries its fallback's
+// declarations before its own.
+struct ApplicationColourRole final {
+    std::string name{};
+    ColourRole fallback{ColourRole::ink_on_paper};
+    bool paired{};
+    std::vector<ApplicationColourRoleVariant> variants{};
+
+    friend bool operator==(const ApplicationColourRole& left, const ApplicationColourRole& right) noexcept {
+        return left.name == right.name && left.fallback == right.fallback && left.paired == right.paired &&
+               left.variants == right.variants;
+    }
+};
+
+// Whether `name` is a valid application role name (above), whatever the
+// theme declares.
+[[nodiscard]] bool application_colour_role_name_valid(std::string_view name) noexcept;
+
 // Where a declaration's colour came from (EC4): none (the declaration
 // holds no colour, or is `initial`); a literal (a hexadecimal, functional
 // or named colour, or a colour mixed from others); or a role. A
@@ -1001,7 +1056,9 @@ void assemble_material(const SurfaceMaterial& floor,
 // The fields of a control's own recipe (ControlVisualRecipe) beside its
 // material that a rule may set (T3 P6f; design language §2, §3 and §14).
 // They are the control's, not a part's: a rule naming a role sets none,
-// and a rule naming a part only the text colours (text, muted_text, glyph),
+// and a rule naming a part only the text colours (text, muted_text, glyph,
+// fill_text) and the dial and scrim fields (stroke_width, needle_shape,
+// scrim_colour),
 // which the part's own resolution reads (Theme::resolve with its name);
 // any other is dropped (RuleDiagnosticKind::recipe_field_on_part). They
 // cascade as
@@ -1040,6 +1097,47 @@ enum class RecipeField : std::uint8_t {
     // perimeter (ControlVisualRecipe::default_width and default_ring).
     default_outline_width,
     default_outline_colour,
+    // `fill-text-color` (the node engine and value bar study, section 3.6):
+    // the colour of the recipe's text where it lies over a fill, such as a
+    // ValueBar's label over its value fill; drawn as text. Unset, the text
+    // over a fill takes the fill's own selected text colour.
+    fill_text,
+    // The dial parts' geometry and the scrim (row 2.5; owner option (a),
+    // 2026-11-09), admitted on a named part as on the control:
+    // `stroke-width`, the arc's thickness and the needle's width at its
+    // hub (ControlVisualRecipe::stroke_width); `needle-shape`, the
+    // needle's outline (NeedleShape); and `scrim-color`, the colour, with
+    // its opacity, a scrim dims what lies behind with.
+    stroke_width,
+    needle_shape,
+    scrim_colour,
+    // A part's metrics and shape (look integration; RB, T4 rendering
+    // reference section 4), read by the control that lays the part out
+    // and paints it (Theme::resolve with the part's name; the Ribbon's tab
+    // row, tabs and command plane): CSS `height` (block_size), `min-width`
+    // (minimum_inline_size), `padding-inline`, `gap` (signed: a negative
+    // gap overlaps neighbouring parts, as folder tabs stack), `margin-top`
+    // and `margin-bottom` (signed: a negative bottom margin runs the part
+    // into what lies below it); `taper: <length> [<colour>]`, the trailing edge
+    // leaning in by the length at the part's top (a folder tab's edge),
+    // drawn in the colour; `flare: <length> <colour>`, the bottom
+    // corners flaring outward by the length in a concave lip; and
+    // `edge-shadow: <length> <colour>`, a soft shadow falling off over the
+    // length beyond the trailing edge, following its taper. A control
+    // keeps its own metric where no rule sets one; every stock theme
+    // leaves the shape fields unset.
+    block_size,
+    minimum_inline_size,
+    padding_inline,
+    gap,
+    margin_block_start,
+    margin_block_end,
+    taper,
+    taper_colour,
+    flare,
+    flare_colour,
+    edge_shadow_width,
+    edge_shadow_colour,
     count,
 };
 
@@ -1058,13 +1156,28 @@ inline constexpr std::size_t recipe_field_count = static_cast<std::size_t>(Recip
 // (CSS's `dotted`), or none (a width of 0).
 enum class RecipeOutlineStyle : std::uint8_t { ring, solid, none, dotted };
 
+// A needle's outline (CSS-like `needle-shape`): a line of the stroke width
+// from hub to tip (`line`), a blade narrowing from the stroke width at the
+// hub to a point at the tip (`tapered`), or a round dot of the stroke width
+// at the tip alone, with no hub (`dot`). A line and a blade have a round
+// hub one and a half stroke widths across.
+enum class NeedleShape : std::uint8_t { line, tapered, dot };
+
 // What a recipe admits (valid_recipe): an outline at most 16 logical units
 // wide, offset at most 64 either way; a text shadow offset at most 16 on
 // each axis and blurred by at most 8.
 inline constexpr double maximum_recipe_outline_width = 16.0;
 inline constexpr double maximum_recipe_outline_offset = 64.0;
+// An arc or needle at most 32 logical units thick (stroke-width).
+inline constexpr double maximum_recipe_stroke_width = 32.0;
 inline constexpr double maximum_text_shadow_blur = 8.0;
 inline constexpr double maximum_text_shadow_offset = 16.0;
+// What a part metric admits (RecipeField::block_size to edge_shadow_width):
+// a size at most 512 logical units, a margin within +-64, a gap from -64 to
+// 512, a taper, flare or edge shadow at most 64.
+inline constexpr double maximum_part_metric = 512.0;
+inline constexpr double maximum_part_margin = 64.0;
+inline constexpr double maximum_part_shape = 64.0;
 // What a font field admits (T4 fonts): a size of 4 to 96 logical units
 // once its em part is resolved, a weight of 100 to 900, and a letter
 // spacing valid_font_spec admits at the size.
@@ -1076,8 +1189,8 @@ inline constexpr double maximum_rule_font_weight = 900.0;
 // One recipe field's declared value. `initial` is CSS's `initial`: the
 // floor's value, and the declaration still wins over those beneath it; its
 // value members are not read. Otherwise, by field:
-// - text, outline_colour, muted_text, glyph and default_outline_colour:
-//   `colour`;
+// - text, outline_colour, muted_text, glyph, default_outline_colour and
+//   fill_text: `colour`;
 // - outline_style: `outline_style`;
 // - outline_width and default_outline_width (0 to
 //   maximum_recipe_outline_width) and outline_offset
@@ -1094,6 +1207,7 @@ struct RecipeDeclaration final {
     Color colour{};
     double number{};
     RecipeOutlineStyle outline_style{RecipeOutlineStyle::ring};
+    NeedleShape needle_shape{NeedleShape::tapered};
     bool shadowed{};
     Point shadow_offset{};
     double shadow_blur{};
@@ -1114,6 +1228,7 @@ struct RecipeDeclaration final {
         return left.field == right.field && left.initial == right.initial && left.colour == right.colour &&
                left.font_role == right.font_role && left.italic == right.italic &&
                left.number == right.number && left.outline_style == right.outline_style &&
+               left.needle_shape == right.needle_shape &&
                left.shadowed == right.shadowed && left.shadow_offset == right.shadow_offset &&
                left.shadow_blur == right.shadow_blur && left.origin == right.origin &&
                left.em_lengths == right.em_lengths && left.inherit == right.inherit &&
@@ -1310,10 +1425,14 @@ struct ThemeRuleSheet final {
     // T4 theme variants), or none where it declares none. Theme::create
     // takes a declared set as the theme's (ThemeDefinition::colour_schemes).
     std::optional<ColourSchemeSet> colour_schemes{};
+    // The application colour roles the sheet declares (`color-roles`), in
+    // declaration order; at most maximum_application_colour_roles.
+    std::vector<ApplicationColourRole> application_roles{};
 
     friend bool operator==(const ThemeRuleSheet& left, const ThemeRuleSheet& right) noexcept {
         return left.requires_engine == right.requires_engine && left.rules == right.rules &&
-               left.published_values == right.published_values && left.colour_schemes == right.colour_schemes;
+               left.published_values == right.published_values && left.colour_schemes == right.colour_schemes &&
+               left.application_roles == right.application_roles;
     }
 };
 

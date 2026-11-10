@@ -24,9 +24,10 @@ void bring_to_front(std::vector<DockPanelId>& history, const DockPanelId& panel)
 }
 
 // The events DockWorkspace adds to those of Component, in declaration order.
-constexpr std::array<InteractionDeclaration, 2> workspace_interactions{{
+constexpr std::array<InteractionDeclaration, 3> workspace_interactions{{
     {.name = "document_closing", .payload = "DockDocumentClosing", .mutable_payload = true},
     {.name = "activation_changed", .payload = "DockActivationChange", .mutable_payload = false},
+    {.name = "layout_changed", .payload = "DockLayoutChange", .mutable_payload = false},
 }};
 
 // The smallest client area a floating window is opened with.
@@ -207,6 +208,76 @@ bool DockWorkspace::set_panel_title(const DockPanelId& panel, std::string title)
         static_cast<void>(window.handle.set_title(window.title));
     }
     return true;
+}
+
+bool DockWorkspace::update_panel(const DockPanelDescriptor& descriptor) {
+    PanelEntry* const entry = find_entry(descriptor.id);
+    if (entry == nullptr || !layout_.update_panel(descriptor)) return false;
+    (*entry).registration.descriptor = descriptor;
+    realize_sites();
+    return true;
+}
+
+void DockWorkspace::realize_sites() {
+    const std::vector<DockSite*> sites = bound_sites();
+    for (DockSite* const site : sites) {
+        if (bound(site)) (*site).realize();
+    }
+}
+
+void DockWorkspace::set_floats_shown_while_inactive(bool shown) {
+    if (floats_shown_while_inactive_ == shown) return;
+    floats_shown_while_inactive_ = shown;
+    for (const FloatingWindow& window : windows_) {
+        if (!window.destroying) apply_window_visibility(window);
+    }
+}
+
+void DockWorkspace::set_floating_window_shown_while_inactive(DockSiteId site, std::optional<bool> shown) {
+    std::size_t index = 0U;
+    while (index < floating_visibility_.size() && !(floating_visibility_[index].site == site)) ++index;
+    if (shown) {
+        if (index == floating_visibility_.size()) {
+            FloatingVisibility entry{};
+            entry.site = site;
+            floating_visibility_.push_back(entry);
+        }
+        floating_visibility_[index].shown = *shown;
+    } else if (index < floating_visibility_.size()) {
+        floating_visibility_.erase(floating_visibility_.begin() + static_cast<std::ptrdiff_t>(index));
+    }
+    const FloatingWindow* const window = find_window(site);
+    if (window != nullptr && !(*window).destroying) apply_window_visibility(*window);
+}
+
+bool DockWorkspace::window_shown_while_inactive(DockSiteId site) const noexcept {
+    for (const FloatingVisibility& entry : floating_visibility_) {
+        if (entry.site == site) return entry.shown;
+    }
+    return floats_shown_while_inactive_;
+}
+
+void DockWorkspace::apply_window_visibility(const FloatingWindow& window) const {
+    if (!window.handle.active()) return;
+    // Refused before the window is ready; on_window_ready applies it again.
+    static_cast<void>(window.handle.set_shown_while_inactive(window_shown_while_inactive(window.site)));
+}
+
+void DockWorkspace::set_document_tabs_shown(bool shown) {
+    if (document_tabs_shown_ == shown) return;
+    document_tabs_shown_ = shown;
+    realize_sites();
+}
+
+void DockWorkspace::set_auto_hide_opens_on_hover(bool opens) { auto_hide_opens_on_hover_ = opens; }
+
+void DockWorkspace::set_area_background(std::optional<Color> colour) {
+    if (area_background_ == colour) return;
+    area_background_ = colour;
+    const std::vector<DockSite*> sites = bound_sites();
+    for (DockSite* const site : sites) {
+        if (bound(site)) (*site).invalidate(Dirty::paint);
+    }
 }
 
 std::string DockWorkspace::panel_title(const DockPanelId& panel) const {
@@ -991,6 +1062,7 @@ void DockWorkspace::open_window(const DockFloatingSite& site, WorkspaceTransacti
     if (kept == nullptr) return;
     (*kept).handle = opened.window;
     static_cast<void>((*kept).handle.request_frame(frame));
+    apply_window_visibility(*kept);
 }
 
 void DockWorkspace::on_window_ready(DockSiteId site, Window& window, const ApplicationWindowHandle& handle) {
@@ -998,6 +1070,10 @@ void DockWorkspace::on_window_ready(DockSiteId site, Window& window, const Appli
     if (record == nullptr) return;
     (*record).model = &window;
     (*record).handle = handle;
+    // The frame and the inactive-visibility option asked for at opening
+    // reach the host now: before the window is ready both are refused.
+    static_cast<void>((*record).handle.request_frame((*record).frame));
+    apply_window_visibility(*record);
     publish_command_targets();
 }
 
@@ -1033,6 +1109,13 @@ void DockWorkspace::on_window_closed(DockSiteId site) noexcept {
 // Drops the record of a site's floating window and unbinds the DockSite that
 // realized it (the window's root, which then shows nothing).
 void DockWorkspace::forget_window(DockSiteId site) noexcept {
+    if (layout_.find_floating_site(site) == nullptr) {
+        for (std::size_t entry = 0; entry < floating_visibility_.size(); ++entry) {
+            if (!(floating_visibility_[entry].site == site)) continue;
+            floating_visibility_.erase(floating_visibility_.begin() + static_cast<std::ptrdiff_t>(entry));
+            break;
+        }
+    }
     for (std::size_t index = 0; index < windows_.size(); ++index) {
         if (!(windows_[index].site == site)) continue;
         windows_.erase(windows_.begin() + static_cast<std::ptrdiff_t>(index));

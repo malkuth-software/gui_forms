@@ -1043,46 +1043,114 @@ void find_borrowing_members(clang::QualType type, const std::string& path,
     }
 }
 
-// One registered effect type: its class, its type as make_effect_entry
-// names it, and where that instantiation was made.
+// One registered type (an effect or a signal program): its class, its type
+// as the registering template names it, and where that instantiation was
+// made.
 struct RegisteredEffect final {
     const clang::CXXRecordDecl* record{};
     clang::QualType type;
     clang::SourceLocation location;
 };
 
-// Every effect type registered in the unit: each E of an instantiated
-// gui_forms::make_effect_entry<E>.
-std::vector<RegisteredEffect> registered_effects(clang::ASTContext& context) {
-    std::vector<RegisteredEffect> effects;
-    const clang::TranslationUnitDecl* unit = context.getTranslationUnitDecl();
-    for (const clang::NamedDecl* space_candidate : (*unit).lookup(&context.Idents.get("gui_forms"))) {
-        const clang::NamespaceDecl* space = llvm::dyn_cast<clang::NamespaceDecl>(space_candidate);
-        if (space == nullptr) continue;
-        for (const clang::NamedDecl* candidate : (*space).lookup(&context.Idents.get("make_effect_entry"))) {
-            const clang::FunctionTemplateDecl* maker = llvm::dyn_cast<clang::FunctionTemplateDecl>(candidate);
-            if (maker == nullptr) continue;
-            for (const clang::FunctionDecl* specialization : (*maker).specializations()) {
+// The namespaces named `path` (outermost first) under the translation unit:
+// every declaration of each, since a namespace may be reopened.
+std::vector<const clang::DeclContext*> namespaces_at(clang::ASTContext& context,
+                                                     const std::vector<llvm::StringRef>& path) {
+    std::vector<const clang::DeclContext*> current;
+    current.push_back(context.getTranslationUnitDecl());
+    for (const llvm::StringRef name : path) {
+        std::vector<const clang::DeclContext*> next;
+        for (const clang::DeclContext* scope : current) {
+            for (const clang::NamedDecl* candidate : (*scope).lookup(&context.Idents.get(name))) {
+                const clang::NamespaceDecl* space = llvm::dyn_cast<clang::NamespaceDecl>(candidate);
+                if (space != nullptr) next.push_back(space);
+            }
+        }
+        current = next;
+    }
+    return current;
+}
+
+// Every type registered in the unit through the function template `maker`
+// in the namespace `path`: each T of an instantiated maker<T>.
+std::vector<RegisteredEffect> registered_types(clang::ASTContext& context, const std::vector<llvm::StringRef>& path,
+                                               llvm::StringRef maker) {
+    std::vector<RegisteredEffect> found;
+    const std::vector<const clang::DeclContext*> spaces = namespaces_at(context, path);
+    for (const clang::DeclContext* space : spaces) {
+        for (const clang::NamedDecl* candidate : (*space).lookup(&context.Idents.get(maker))) {
+            const clang::FunctionTemplateDecl* maker_template = llvm::dyn_cast<clang::FunctionTemplateDecl>(candidate);
+            if (maker_template == nullptr) continue;
+            for (const clang::FunctionDecl* specialization : (*maker_template).specializations()) {
                 const clang::TemplateArgumentList* arguments = (*specialization).getTemplateSpecializationArgs();
                 if (arguments == nullptr || (*arguments).size() < 1U) continue;
                 const clang::TemplateArgument& argument = (*arguments).get(0U);
                 if (argument.getKind() != clang::TemplateArgument::Type) continue;
-                const clang::CXXRecordDecl* effect = record_of(argument.getAsType());
-                if (effect == nullptr) continue;
+                const clang::CXXRecordDecl* registered_record = record_of(argument.getAsType());
+                if (registered_record == nullptr) continue;
                 bool seen = false;
-                for (const RegisteredEffect& known : effects) {
-                    if (known.record == (*effect).getCanonicalDecl()) seen = true;
+                for (const RegisteredEffect& known : found) {
+                    if (known.record == (*registered_record).getCanonicalDecl()) seen = true;
                 }
                 if (seen) continue;
                 RegisteredEffect registered;
-                registered.record = (*effect).getCanonicalDecl();
+                registered.record = (*registered_record).getCanonicalDecl();
                 registered.type = argument.getAsType().getCanonicalType();
                 registered.location = (*specialization).getPointOfInstantiation();
-                effects.push_back(registered);
+                found.push_back(registered);
             }
         }
     }
-    return effects;
+    return found;
+}
+
+// The fields of a SignalDeclaration the pass needs, read from the
+// program's `declaration` constant.
+struct DeclaredSignal final {
+    std::string name;
+    std::uint64_t operations_per_sample{};
+};
+
+std::optional<DeclaredSignal> read_signal_declaration(const clang::CXXRecordDecl* program,
+                                                      clang::ASTContext& context) {
+    const clang::DeclContext::lookup_result found = (*program).lookup(&context.Idents.get("declaration"));
+    const clang::VarDecl* variable = nullptr;
+    for (const clang::NamedDecl* candidate : found) {
+        variable = llvm::dyn_cast<clang::VarDecl>(candidate);
+        if (variable != nullptr) break;
+    }
+    if (variable == nullptr) return std::nullopt;
+    const clang::APValue* value = (*variable).evaluateValue();
+    const clang::RecordDecl* record = (*(*variable).getType().getCanonicalType()).getAsRecordDecl();
+    if (value == nullptr || record == nullptr || !(*value).isStruct()) return std::nullopt;
+    const clang::FieldDecl* name = field_named(record, "name");
+    if (name == nullptr) return std::nullopt;
+    const std::optional<std::string> text =
+        string_view_text((*value).getStructField((*name).getFieldIndex()), (*name).getType());
+    const std::optional<std::uint64_t> per_sample = unsigned_field(*value, record, "operations_per_sample");
+    if (!text || !per_sample) return std::nullopt;
+    DeclaredSignal declared;
+    declared.name = *text;
+    declared.operations_per_sample = *per_sample;
+    return declared;
+}
+
+// The samples one signal run may write: gui_forms::plots::signal_sink_capacity,
+// a constant.
+std::optional<std::uint64_t> signal_sink_capacity(clang::ASTContext& context) {
+    const std::vector<llvm::StringRef> path{"gui_forms", "plots"};
+    const std::vector<const clang::DeclContext*> spaces = namespaces_at(context, path);
+    for (const clang::DeclContext* space : spaces) {
+        for (const clang::NamedDecl* candidate : (*space).lookup(&context.Idents.get("signal_sink_capacity"))) {
+            const clang::VarDecl* variable = llvm::dyn_cast<clang::VarDecl>(candidate);
+            if (variable == nullptr || !(*variable).isConstexpr()) continue;
+            const clang::APValue* value = (*variable).evaluateValue();
+            if (value == nullptr || !(*value).isInt()) continue;
+            const std::uint64_t capacity = (*value).getInt().getZExtValue();
+            return capacity;
+        }
+    }
+    return std::nullopt;
 }
 
 std::string decimal(std::uint64_t value) {
@@ -1090,12 +1158,102 @@ std::string decimal(std::uint64_t value) {
     return text;
 }
 
+// The state rules every registered type obeys: trivially copyable, no
+// pointer or reference members. `kind` is "effect" or "signal program".
+bool state_obeys(EffectWalker& walker, const clang::CXXRecordDecl* record, clang::QualType type,
+                 const std::string& kind, const std::string& name) {
+    bool obeys = true;
+    if (!(*record).isTriviallyCopyable()) {
+        walker.error((*record).getLocation(), kind + " '" + name + "': its state is not trivially copyable");
+        obeys = false;
+    }
+    std::vector<std::pair<std::string, std::string>> borrows;
+    find_borrowing_members(type, std::string(), borrows, 0U);
+    for (const std::pair<std::string, std::string>& borrow : borrows) {
+        walker.error((*record).getLocation(), kind + " '" + name + "': its state member '" + borrow.first +
+                                                  "' is a pointer or reference ('" + borrow.second + "')");
+        obeys = false;
+    }
+    return obeys;
+}
+
+// The error for an entry point over its budget, with a note per loop.
+void report_over_budget(EffectWalker& walker, const clang::CXXMethodDecl* entry, const std::string& subject,
+                        std::uint64_t bound, const std::string& budget_name, std::uint64_t budget) {
+    walker.error((*entry).getLocation(), subject + " is " + decimal(bound) + " operations, over its declared " +
+                                             budget_name + " of " + decimal(budget));
+    std::set<const clang::FunctionDecl*> seen;
+    std::vector<LoopCost> loops;
+    walker.collect_loops(entry, seen, loops);
+    for (const LoopCost& loop : loops) {
+        walker.note(loop.location, "this loop: " + decimal(loop.passes) + " passes × " + decimal(loop.per_pass) +
+                                       " operations a pass = " +
+                                       decimal(saturating_multiply(loop.passes, loop.per_pass)));
+    }
+}
+
+// The signal programs registered in the unit (each instantiation of
+// gui_forms::plots::make_signal_entry<P>): the state rules, then P::run's
+// bound against its declared operations per sample times the sink's
+// capacity. Records are named "signal:<name>".
+void verify_signals(clang::ASTContext& context, EffectWalker& walker, std::vector<EffectRecord>& records) {
+    const std::vector<llvm::StringRef> path{"gui_forms", "plots"};
+    const std::vector<RegisteredEffect> programs = registered_types(context, path, "make_signal_entry");
+    if (programs.empty()) return;
+    const std::optional<std::uint64_t> capacity = signal_sink_capacity(context);
+    for (const RegisteredEffect& registered : programs) {
+        const clang::CXXRecordDecl* program = (*registered.record).getDefinition();
+        if (program == nullptr) continue;
+        const std::string type_name = (*program).getQualifiedNameAsString();
+        walker.begin_effect(type_name, (*program).getLocation());
+        const std::optional<DeclaredSignal> declared = read_signal_declaration(program, context);
+        if (!declared) {
+            walker.error(registered.location, "signal program '" + type_name +
+                                                  "': its declaration is not a constant the effect pass can read");
+            continue;
+        }
+        if (!capacity) {
+            walker.error(registered.location, "signal program '" + type_name +
+                                                  "': gui_forms::plots::signal_sink_capacity is not a constant the "
+                                                  "effect pass can read");
+            continue;
+        }
+        walker.begin_effect("signal:" + (*declared).name, (*program).getLocation());
+        bool passed = state_obeys(walker, program, registered.type, "signal program", (*declared).name);
+        const clang::CXXMethodDecl* run = method_named(program, "run", 2U, context);
+        if (run == nullptr) {
+            walker.error((*program).getLocation(), "signal program '" + (*declared).name + "' has no run(frame, sink)");
+            continue;
+        }
+        const FunctionCost result = walker.entry_cost(run);
+        if (!result.obeys) continue;
+        const std::uint64_t budget = saturating_multiply((*declared).operations_per_sample, *capacity);
+        if (result.operations > budget) {
+            report_over_budget(walker, run, "signal program '" + (*declared).name + "': the static bound of run",
+                               result.operations,
+                               "budget (operations_per_sample " + decimal((*declared).operations_per_sample) +
+                                   " × signal_sink_capacity " + decimal(*capacity) + ")",
+                               budget);
+            passed = false;
+        }
+        if (!passed) continue;
+        const std::uint64_t state_size =
+            static_cast<std::uint64_t>(context.getTypeSizeInChars(registered.type).getQuantity());
+        EffectRecord record;
+        record.name = "signal:" + (*declared).name;
+        record.bound = static_cast<std::uint32_t>(result.operations);
+        record.state_size = static_cast<std::uint32_t>(state_size);
+        records.push_back(record);
+    }
+}
+
 } // namespace
 
 std::vector<EffectRecord> verify_effects(clang::ASTContext& context, clang::DiagnosticsEngine& diagnostics) {
     std::vector<EffectRecord> records;
     EffectWalker walker(context, diagnostics);
-    const std::vector<RegisteredEffect> effects = registered_effects(context);
+    const std::vector<llvm::StringRef> path{"gui_forms"};
+    const std::vector<RegisteredEffect> effects = registered_types(context, path, "make_effect_entry");
     for (const RegisteredEffect& registered : effects) {
         const clang::CXXRecordDecl* effect = (*registered.record).getDefinition();
         const clang::SourceLocation where = registered.location;
@@ -1109,24 +1267,11 @@ std::vector<EffectRecord> verify_effects(clang::ASTContext& context, clang::Diag
             continue;
         }
         walker.begin_effect((*declared).name, (*effect).getLocation());
-        bool passed = true;
 
         // State: trivially copyable, no borrows, within its budget.
         const std::uint64_t state_size = static_cast<std::uint64_t>(
             context.getTypeSizeInChars(registered.type).getQuantity());
-        if (!(*effect).isTriviallyCopyable()) {
-            walker.error((*effect).getLocation(), "effect '" + (*declared).name +
-                                                      "': its state is not trivially copyable");
-            passed = false;
-        }
-        std::vector<std::pair<std::string, std::string>> borrows;
-        find_borrowing_members(registered.type, std::string(), borrows, 0U);
-        for (const std::pair<std::string, std::string>& borrow : borrows) {
-            walker.error((*effect).getLocation(), "effect '" + (*declared).name + "': its state member '" +
-                                                      borrow.first + "' is a pointer or reference ('" +
-                                                      borrow.second + "')");
-            passed = false;
-        }
+        bool passed = state_obeys(walker, effect, registered.type, "effect", (*declared).name);
         if (state_size > (*declared).state_budget) {
             walker.error((*effect).getLocation(), "effect '" + (*declared).name + "': its state is " +
                                                       decimal(state_size) + " bytes, over its state budget of " +
@@ -1156,18 +1301,9 @@ std::vector<EffectRecord> verify_effects(clang::ASTContext& context, clang::Diag
             }
             bounds[index] = result.operations;
             if (result.operations <= budgets[index]) continue;
-            walker.error((*entry).getLocation(),
-                         "effect '" + (*declared).name + "': the static bound of " + labels[index] + " is " +
-                             decimal(result.operations) + " operations, over its declared " + budget_names[index] +
-                             " of " + decimal(budgets[index]));
-            std::set<const clang::FunctionDecl*> seen;
-            std::vector<LoopCost> loops;
-            walker.collect_loops(entry, seen, loops);
-            for (const LoopCost& loop : loops) {
-                walker.note(loop.location, "this loop: " + decimal(loop.passes) + " passes × " +
-                                               decimal(loop.per_pass) + " operations a pass = " +
-                                               decimal(saturating_multiply(loop.passes, loop.per_pass)));
-            }
+            report_over_budget(walker, entry,
+                               "effect '" + (*declared).name + "': the static bound of " + labels[index],
+                               result.operations, budget_names[index], budgets[index]);
             passed = false;
         }
         if (!passed) continue;
@@ -1178,6 +1314,7 @@ std::vector<EffectRecord> verify_effects(clang::ASTContext& context, clang::Diag
         record.state_size = static_cast<std::uint32_t>(state_size);
         records.push_back(record);
     }
+    verify_signals(context, walker, records);
     return records;
 }
 

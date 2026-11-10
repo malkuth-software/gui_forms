@@ -4,6 +4,7 @@ W201 literal_colour_unremappable 2:45 rule=button property=glyph-color detail=#1
 W201 literal_colour_unremappable 2:75 rule=button property=default-outline detail=#214b81
 W201 literal_colour_unremappable 3:30 rule=track-bar property=default-outline detail=#19528b
 W201 literal_colour_unremappable 4:32 rule=button::part(face) property=keylines detail=#ffffffe6
+W201 literal_colour_unremappable 6:40 rule=button::part(label) property=fill-text-color detail=#ffffff
 rule 0 theme_sheet type=button
   label button
   recipe muted_text colour=#4a545fff number=0 outline=0 origin=literal
@@ -22,3 +23,6 @@ rule 3 theme_sheet type=track_bar part=track
   label track-bar::part(track)
   decl primitive = name material
   material keylines colours=[#000000ff]
+rule 4 theme_sheet type=button part=label
+  label button::part(label)
+  recipe fill_text colour=#ffffffff number=0 outline=0 origin=literal

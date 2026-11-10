@@ -58,6 +58,40 @@ struct DispatcherState final {
     bool closing{};
 };
 
+// The blocking invokes of one thread that its owner may revoke: a
+// sub-surface's thread, which its parent joins on the parent's UI thread
+// (SubSurfaceThread::stop). While the parent is in that join it cannot run a
+// synchronous invoke the sub-surface made onto it, so the stop revokes them:
+// the invoke waiting now is cancelled, and every later one is refused as
+// cancelled, never queued. `mutex` guards the other fields and is a leaf
+// lock: post_dispatch takes it under a dispatcher's, and nothing is taken
+// under it.
+struct RevocableInvokes final {
+    std::mutex mutex;
+    bool revoked{};
+    // The synchronous invoke this thread queued last; expired or terminal
+    // once it ran.
+    std::weak_ptr<DispatchWork> waiting{};
+};
+
+// Revokes `invokes` (see RevocableInvokes). Any thread; idempotent.
+void revoke_invokes(RevocableInvokes& invokes) noexcept;
+
+// Names the calling thread's revocable invokes (null: none, the default).
+// Set by the thread itself, at its start, and cleared before it ends.
+void set_thread_revocable_invokes(std::shared_ptr<RevocableInvokes> invokes) noexcept;
+
+// Wakes the host: sets wake_pending, counts the request and calls `wake`.
+// Call with `mutex` held, `wake` set and wake_pending clear. The host's wake
+// runs under the lock, so that a host removing its handler
+// (set_dispatch_wake_handler, shutdown_dispatcher) waits for a wake already
+// under way and is never called after it returns. Every host's wake only
+// signals (a flag, a posted message, a pipe byte, a queued block) and never
+// re-enters the dispatcher. A wake that throws (it could not allocate its
+// message or block) leaves wake_pending clear and the request uncounted, so
+// the next post wakes again, and the exception leaves to the caller.
+void wake_host_locked(DispatcherState& state);
+
 [[nodiscard]] DispatchOperation post_dispatch(
     const std::shared_ptr<DispatcherState>& state,
     Control::WeakPtr owner,

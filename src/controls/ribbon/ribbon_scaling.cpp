@@ -6,10 +6,13 @@
 
 #include "ribbon_geometry.hpp"
 
+#include "gui_forms/engine/theme_engine/theme_engine.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -22,7 +25,7 @@ namespace {
 // Whether a generated layout step may make `command` small: a button-family
 // command whose size so far, `size`, is large.
 bool convertible(const RibbonCommandSpec& command, RibbonCommandSize size) noexcept {
-    const bool result = !hosted(command.kind) && size == RibbonCommandSize::large;
+    const bool result = !hosted(command.kind) && !text_only(command.kind) && size == RibbonCommandSize::large;
     return result;
 }
 
@@ -45,6 +48,8 @@ namespace ribbon_detail {
 
 RibbonCommandSize layout_command_size(const RibbonGroupLayout& layout, const RibbonCommandSpec& command,
                                       std::size_t index) noexcept {
+    // A label is text in a row at every size.
+    if (text_only(command.kind)) return RibbonCommandSize::small;
     if (index < layout.command_sizes.size()) return layout.command_sizes[index];
     return command.size;
 }
@@ -84,7 +89,16 @@ std::vector<RibbonGroupLayout> prepare_group_layouts(const RibbonGroupSpec& grou
                 }
             }
         }
-        return group.layouts;
+        // A group never vanishes (RIBBON_SCALING_STUDY §1.1: shrink, then
+        // the collapsed button, then scrolling): authored layouts that stop
+        // short of the collapsed button gain it as their last step, except
+        // for a group of one command, which never collapses (UX7).
+        std::vector<RibbonGroupLayout> authored = group.layouts;
+        const bool ends_collapsed = authored.back().size == RibbonGroupSize::collapsed;
+        if (!ends_collapsed && count > 1U) {
+            authored.push_back(RibbonGroupLayout{RibbonGroupSize::collapsed, {}, authored.back().rows});
+        }
+        return authored;
     }
     // Generated: the commands' own sizes first; then, step by step, the
     // rightmost run of up to three large commands becomes small (after WPF's
@@ -196,6 +210,11 @@ Ribbon::ScalingKey Ribbon::current_scaling_key() const {
     const Window* const host = attached_window();
     key.provider = host != nullptr ? (*host).text_metrics_provider() : nullptr;
     key.font = font.read();
+    if (host != nullptr) {
+        key.media = window_media_facts(*host);
+        key.user_rules = (*host).user_theme_rules();
+    }
+    key.inline_rules = inline_style_rules();
     return key;
 }
 
@@ -209,18 +228,58 @@ void Ribbon::refresh_scaling_key() const {
     for (TabScaling& scaling : scaling_) scaling.built = false;
 }
 
+// The tab row's metrics: the theme's where its rules set them (look
+// integration, Plan Paint defect 5), else the ribbon's own; each scaled by
+// the text scale. A tab is as wide as its authored width, or as its label
+// at the wider of its resting and selected fonts plus the padding, so that
+// selecting a tab never moves the others; then at least the theme's
+// minimum width.
 const Ribbon::RowMetrics& Ribbon::row_metrics() const {
     refresh_scaling_key();
     if (row_metrics_.built) return row_metrics_;
     const double scale = effective_text_scale();
-    const double padding = tab_padding * scale * 2.0;
+    AnatomyStateSet selected;
+    selected.insert(AnatomyState::selected);
+    const ControlPartMetrics rail = part_metrics("tab_rail", ControlVisualRole::panel, {});
+    const ControlPartMetrics plane = part_metrics("command_plane", ControlVisualRole::panel, {});
+    const ControlPartMetrics application = part_metrics("application_button", ControlVisualRole::accent_button, {});
+    const ControlPartMetrics rest = part_metrics("tab", ControlVisualRole::menu_item, {});
+    const ControlPartMetrics chosen = part_metrics("tab", ControlVisualRole::menu_item, selected);
+    const double row = std::max(1.0, rail.block_size.value_or(tab_row_extent)) * scale;
+    const double rows = row_extent * static_cast<double>(rows_per_column);
+    const double stock_plane = plane_top_padding + rows + caption_extent + plane_bottom_padding;
+    row_metrics_.row_height = row;
+    row_metrics_.plane_height = std::max(1.0, plane.block_size.value_or(stock_plane)) * scale;
+    row_metrics_.padding = rest.padding_inline.value_or(tab_padding) * scale;
+    row_metrics_.application_padding = application.padding_inline.value_or(tab_padding) * scale;
+    row_metrics_.gap = rest.gap.value_or(tab_gap) * scale;
+    // A top margin leaves at least one unit of the tab; a bottom margin
+    // may be negative, running the tab below the rail into the plane.
+    const double highest = std::max(0.0, row - 1.0);
+    row_metrics_.application_margins.top = std::clamp(application.margin_block_start.value_or(0.0) * scale, 0.0, highest);
+    row_metrics_.application_margins.bottom = application.margin_block_end.value_or(0.0) * scale;
+    row_metrics_.rest.top = std::clamp(rest.margin_block_start.value_or(0.0) * scale, 0.0, highest);
+    row_metrics_.rest.bottom = rest.margin_block_end.value_or(0.0) * scale;
+    row_metrics_.selected.top = std::clamp(chosen.margin_block_start.value_or(0.0) * scale, 0.0, highest);
+    row_metrics_.selected.bottom = chosen.margin_block_end.value_or(0.0) * scale;
+    const double application_minimum = application.minimum_inline_size.value_or(application_minimum_width) * scale;
     const double application_width = text_width(parse_mnemonic_text(application_text.read()).display_text);
-    row_metrics_.application = std::max(application_minimum_width * scale, application_width + padding);
+    row_metrics_.application =
+        std::max(application_minimum, application_width + row_metrics_.application_padding * 2.0);
+    const double tab_minimum = rest.minimum_inline_size.value_or(0.0) * scale;
     row_metrics_.tabs.clear();
     row_metrics_.tabs.reserve(tabs_.size());
     for (const RibbonTabSpec& tab : tabs_) {
-        const double label = text_width(parse_mnemonic_text(tab.text).display_text);
-        row_metrics_.tabs.push_back(label + padding);
+        double width = 0.0;
+        if (tab.width) {
+            width = *tab.width * scale;
+        } else {
+            const std::string label = parse_mnemonic_text(tab.text).display_text;
+            const double resting = tab_label_width(label, {});
+            const double raised = tab_label_width(label, selected);
+            width = std::max(resting, raised) + row_metrics_.padding * 2.0;
+        }
+        row_metrics_.tabs.push_back(std::max(width, tab_minimum));
     }
     row_metrics_.built = true;
     return row_metrics_;
@@ -247,7 +306,7 @@ const Ribbon::TabScaling& Ribbon::tab_scaling(std::size_t tab) const {
     return scaling;
 }
 
-Ribbon::CommandMetrics Ribbon::measure_command(const RibbonCommandSpec& command) const {
+Ribbon::CommandMetrics Ribbon::measure_command(const RibbonCommandSpec& command, const CheckBox* box) const {
     const double scale = effective_text_scale();
     CommandMetrics metrics;
     if (command.kind == RibbonCommandKind::gallery) return metrics;
@@ -262,7 +321,25 @@ Ribbon::CommandMetrics Ribbon::measure_command(const RibbonCommandSpec& command)
         return metrics;
     }
     if (hosted(command.kind)) {
-        const double field = hosted_field_width(command);
+        double field = hosted_field_width(command);
+        if (command.width <= 0.0 && box != nullptr) {
+            // As the CheckBox lays itself out: its well (1 + 15 + 1 units, or
+            // 1 + 30 + 1 for the toggle, unscaled), then its content padding
+            // around the label, which it draws in its own text font (a theme
+            // may size that apart from the ribbon's labels).
+            const std::string shown = command_text(command);
+            double box_label = 0.0;
+            if (!shown.empty()) {
+                ++counters_.text_measurements;
+                const FontSpec box_font = (*box).text_font((*box).font.read());
+                const ResolvedTextLayout metrics_of_label = resolve_text_layout_utf8(shown, box_font);
+                box_label = std::ceil(metrics_of_label.logical_size.width);
+            }
+            const bool toggle = (*box).indicator_style.read() == ChoiceIndicatorStyle::toggle;
+            const double well = toggle ? check_box_toggle_text_start : check_box_text_start;
+            const Insets padding = (*box).content_padding.read();
+            field = well + padding.left + padding.right + box_label;
+        }
         metrics.large_width = field;
         metrics.small_width = field;
         // A labelled field: its label at its left (small) or above it (large).
@@ -340,7 +417,12 @@ void Ribbon::measure_tab(std::size_t tab, TabScaling& scaling) const {
         std::vector<CommandMetrics>& commands = scaling.commands[group];
         commands.clear();
         commands.reserve(spec.commands.size());
-        for (const RibbonCommandSpec& command : spec.commands) commands.push_back(measure_command(command));
+        const std::vector<CommandRecord>& records = records_[tab][group];
+        for (std::size_t index = 0; index < spec.commands.size(); ++index) {
+            const bool box = spec.commands[index].kind == RibbonCommandKind::check_box && index < records.size();
+            const CheckBox* const hosted = box ? static_cast<const CheckBox*>(records[index].hosted.get()) : nullptr;
+            commands.push_back(measure_command(spec.commands[index], hosted));
+        }
         const double caption = text_width(spec.caption);
         double row = caption + caption_padding * scale;
         if (spec.dialog_launcher) row += (launcher_size + launcher_gap) * scale;
@@ -454,9 +536,11 @@ void Ribbon::build_ladder(std::size_t tab, TabScaling& scaling) const {
 // Measures no text: widths come from `scaling`.
 //
 // Columns: a large command or a gallery is a column of its own; small and
-// hosted commands stack `rows` to a column, centred in equal row pitches, a
-// column as wide as its widest. The group is as wide as its columns or its
-// caption row, whichever is wider, plus padding and the divider.
+// hosted commands stack `rows` rows to a column from the top, at the
+// three-row pitch, a command `beside_previous` continuing the row before it
+// to the right, and a column is as wide as its widest row. The group is as
+// wide as its columns or its caption row, whichever is wider, plus padding
+// and the divider.
 double Ribbon::place_group(const TabScaling& scaling, std::size_t tab, std::size_t group,
                            const RibbonGroupLayout& group_layout, std::size_t columns, double x, double top,
                            std::vector<Rect>& commands) const {
@@ -473,17 +557,29 @@ double Ribbon::place_group(const TabScaling& scaling, std::size_t tab, std::size
     }
     const double rows_height = row_extent * scale * static_cast<double>(rows_per_column);
     const double row_height = row_extent * scale;
-    const double pitch = rows_height / static_cast<double>(group_layout.rows);
-    const double row_offset = (pitch - row_height) * 0.5;
+    const double beside_gap = row_item_gap * scale;
     double column_x = x + padding;
     double column_width = 0.0;
     std::size_t column_rows = 0U;
+    // The right edge of the row last placed in this column, which a command
+    // beside it continues; none after a large command or a gallery.
+    std::optional<double> row_end{};
     for (std::size_t command = 0; command < spec.commands.size(); ++command) {
         const RibbonCommandSpec& item = spec.commands[command];
         if (!command_visible(item)) continue;
         const bool gallery = item.kind == RibbonCommandKind::gallery;
         const bool large =
             !hosted(item.kind) && layout_command_size(group_layout, item, command) == RibbonCommandSize::large;
+        const bool beside = item.beside_previous && !gallery && !large && row_end.has_value();
+        if (beside) {
+            const double width = scaling.commands[group][command].small_width;
+            const double y = top + static_cast<double>(column_rows - 1U) * row_height;
+            const double left = *row_end + beside_gap;
+            commands[command] = {left, y, width, row_height};
+            row_end = left + width;
+            column_width = std::max(column_width, left + width - column_x);
+            continue;
+        }
         if ((gallery || large || column_rows == group_layout.rows) && column_rows != 0U) {
             column_x += column_width + gap;
             column_width = 0.0;
@@ -494,6 +590,7 @@ double Ribbon::place_group(const TabScaling& scaling, std::size_t tab, std::size
             if (gallery) width = (*item.gallery).width_for_columns(columns);
             commands[command] = {column_x, top, width, rows_height};
             column_x += width + gap;
+            row_end.reset();
             continue;
         }
         // A labelled field in a one-row layout stacks its label above its
@@ -507,8 +604,9 @@ double Ribbon::place_group(const TabScaling& scaling, std::size_t tab, std::size
             continue;
         }
         const double width = scaling.commands[group][command].small_width;
-        const double y = top + static_cast<double>(column_rows) * pitch + row_offset;
+        const double y = top + static_cast<double>(column_rows) * row_height;
         commands[command] = {column_x, y, width, row_height};
+        row_end = column_x + width;
         column_width = std::max(column_width, width);
         ++column_rows;
     }
@@ -603,22 +701,37 @@ Ribbon::Layout Ribbon::layout() const {
 }
 
 Ribbon::Layout Ribbon::layout_for(Rect client) const {
-    const double scale = effective_text_scale();
     const RowMetrics& row_widths = row_metrics();
     Layout placed;
-    const double row = tab_row_height();
+    const double row = row_widths.row_height;
     placed.tab_rail = {client.x, client.y, client.width, row};
-    placed.application = {client.x, client.y, row_widths.application, row};
-    double x = client.x + row_widths.application + tab_gap * scale;
+    const TabMargins file = row_widths.application_margins;
+    placed.application = {client.x, client.y + file.top, row_widths.application,
+                          std::max(1.0, row - file.top - file.bottom)};
+    // A negative gap overlaps the tabs like stacked folders: each tab's
+    // trailing (tapered) edge lies over the next one's leading part, never
+    // more than half the narrower tab, so every tab keeps a face to click.
+    // File never overlaps the first tab.
+    double x = client.x + row_widths.application + std::max(0.0, row_widths.gap);
     placed.tabs.reserve(tabs_.size());
+    // A tab's top and bottom follow its state's margins: the selected tab
+    // stands taller than the rest and may run into the plane (RENDERING_
+    // REFERENCE §4).
+    std::optional<double> previous_width;
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
         if (!shown(tab)) {
             placed.tabs.push_back(Rect{});
             continue;
         }
         const double width = row_widths.tabs[tab];
-        placed.tabs.push_back({x, client.y, width, row});
-        x += width + tab_gap * scale;
+        if (previous_width) {
+            const double deepest = std::min(*previous_width, width) * 0.5;
+            x += std::max(row_widths.gap, -deepest);
+        }
+        const TabMargins margins = selected_tab_ == tab ? row_widths.selected : row_widths.rest;
+        placed.tabs.push_back({x, client.y + margins.top, width, std::max(1.0, row - margins.top - margins.bottom)});
+        x += width;
+        previous_width = width;
     }
     if (!selected_tab_) return placed;
     reset_layout_groups(placed);

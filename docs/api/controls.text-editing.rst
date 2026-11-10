@@ -154,6 +154,8 @@ Related types
      - The hint shown in the empty field.
    * - :cpp:class:`TextBoxReadOnlyCapability <gui_forms::TextBoxReadOnlyCapability>`
      - Whether the user may select and copy the text but not change it (ReadOnly); a view onto the editing engine.
+   * - :cpp:class:`TextBoxTextAlignmentCapability <gui_forms::TextBoxTextAlignmentCapability>`
+     - Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
    * - :cpp:class:`TextBoxTextCapability <gui_forms::TextBoxTextCapability>`
      - The edited text (Text); a view onto the editing engine.
    * - :cpp:class:`TextBoxUseSystemPasswordCharacterCapability <gui_forms::TextBoxUseSystemPasswordCharacterCapability>`
@@ -1151,7 +1153,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> TextBoxCapabilities : public TextBoxTextCapability<Declaring>, public TextBoxPlaceholderTextCapability<Declaring>, public TextBoxReadOnlyCapability<Declaring>, public TextBoxMultilineCapability<Declaring>, public TextBoxWordWrapCapability<Declaring>, public TextBoxNewlineSequenceCapability<Declaring>, public TextBoxAcceptsTabCapability<Declaring>, public TextBoxAcceptsEnterCapability<Declaring>, public TextBoxAcceptsEscapeCapability<Declaring>, public TextBoxMaximumLengthCapability<Declaring>, public TextBoxPasswordCharacterCapability<Declaring>, public TextBoxUseSystemPasswordCharacterCapability<Declaring>, public FontCapability<Declaring>, public TextBoxAutoCompleteModeCapability<Declaring>, public TextBoxAutoCompleteSourceCapability<Declaring>, public TextBoxAutoCompleteCustomSourceCapability<Declaring>, public TextBoxAutoCompleteCaseSensitiveCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> TextBoxCapabilities : public TextBoxTextCapability<Declaring>, public TextBoxPlaceholderTextCapability<Declaring>, public TextBoxReadOnlyCapability<Declaring>, public TextBoxMultilineCapability<Declaring>, public TextBoxWordWrapCapability<Declaring>, public TextBoxNewlineSequenceCapability<Declaring>, public TextBoxAcceptsTabCapability<Declaring>, public TextBoxAcceptsEnterCapability<Declaring>, public TextBoxAcceptsEscapeCapability<Declaring>, public TextBoxMaximumLengthCapability<Declaring>, public TextBoxPasswordCharacterCapability<Declaring>, public TextBoxUseSystemPasswordCharacterCapability<Declaring>, public FontCapability<Declaring>, public TextBoxAutoCompleteModeCapability<Declaring>, public TextBoxAutoCompleteSourceCapability<Declaring>, public TextBoxAutoCompleteCustomSourceCapability<Declaring>, public TextBoxAutoCompleteCaseSensitiveCapability<Declaring>, public TextBoxTextAlignmentCapability<Declaring>
 
    ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
 
@@ -1232,6 +1234,10 @@ Related types
    .. cpp:member:: bool auto_complete_case_sensitive
 
       Whether completion matches ASCII case exactly; off by default.
+
+   .. cpp:member:: HorizontalAlignment text_alignment
+
+      Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
 
 .. cpp:namespace:: gui_forms
 
@@ -1328,6 +1334,23 @@ Related types
    .. cpp:function:: static bool read(const TextBoxReadOnlyCapability& capability)
 
    .. cpp:member:: PropertyView<bool, TextBoxReadOnlyCapability<Declaring>> read_only
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBoxTextAlignmentCapability
+
+   ``#include <gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp>``
+
+   Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBoxTextAlignmentCapability& capability, HorizontalAlignment incoming)
+
+   .. cpp:member:: PropertyCell<HorizontalAlignment, TextBoxTextAlignmentCapability<Declaring>> text_alignment
+
+      Default: ``{HorizontalAlignment::near}``.
 
 .. cpp:namespace:: gui_forms
 

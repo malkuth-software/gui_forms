@@ -79,6 +79,10 @@ struct NativePopupOpening final {
     // A warm transient window (TransientWindow) opens hidden.
     bool initially_visible{true};
     std::optional<BackdropChain> backdrop{};
+    // The content draws every surface the window shows: the popup model's
+    // backplane is clear over its transparent grant
+    // (SurfaceRoot::declare_content_surface). Warm transient windows set it.
+    bool content_surface{};
     // The owner's keyboard-command keys and resources (theme, fonts,
     // images), shared with the popup.
     std::shared_ptr<KeyBindings> key_bindings{};
@@ -99,10 +103,18 @@ struct NativePopupOpening final {
 [[nodiscard]] std::optional<Rect> client_work_area(const std::weak_ptr<ApplicationWindowState>& owner,
                                                    Point client_point, HostMonitorResult& monitors);
 
-// Whether the owner's run draws its popup and Splash windows translucent
-// (HostWindowing::transient_windows_translucent): true when it does or when
-// there is no live run, false when they are opaque, with no shadow or fade.
-[[nodiscard]] bool native_popup_translucent(const std::weak_ptr<ApplicationWindowState>& owner) noexcept;
+// Whether the owner's popup and Splash windows show translucent now, so
+// that content shown in them may cast its shadow into clear pixels around
+// it: the run's host draws them translucent
+// (HostWindowing::transient_windows_translucent) and a popup of the owner
+// would be granted the transparent backdrop under the owner's compositor
+// state and presentation settings (high contrast and reduced transparency
+// withdraw it). True when there is no live run (the content opens as an
+// overlay, which casts its shadow into the owner); false when popups are
+// opaque, where the content is shown alone with no shadow or fade.
+// `model` is the owner window's model.
+[[nodiscard]] bool native_popup_translucent(const std::weak_ptr<ApplicationWindowState>& owner,
+                                            const SurfaceRoot& model) noexcept;
 
 // `bounds` in the owner's client area as a desktop rectangle in logical
 // units, moved the least distance that keeps it inside the work area of

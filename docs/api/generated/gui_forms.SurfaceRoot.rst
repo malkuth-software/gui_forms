@@ -96,6 +96,8 @@ gui_forms::SurfaceRoot
       **overrides** : ``WindowOverrides*``, read-only
          Everything the window overrides, or null when it overrides nothing (no record is allocated until the first override).
 
+      **invalidation_overlay_setting** : ``std::optional<bool>``, read-only
+
       **text_metrics_provider** : ``TextMetricsProvider*``
 
       **theme** : ``Theme``
@@ -129,6 +131,8 @@ gui_forms::SurfaceRoot
          inactive state when it is false. Setting it raises :cpp:func:`active_changed <gui_forms::SurfaceRoot::active_changed>`.
 
       **non_opaque_declared** : ``bool``, read-only
+
+      **content_surface_declared** : ``bool``, read-only
 
       **compositor_state** : ``CompositorState``
          The host's compositor state as last reported. Before any report: compositing unknown and only ``opaque`` supported.
@@ -301,6 +305,8 @@ gui_forms::SurfaceRoot
          has settled it schedules nothing. Tests install a :cpp:class:`MotionTimeSource <gui_forms::MotionTimeSource>` on
          it so that motion is sampled from their own time.
 
+      **drag_engine_if_made** : ``DragEngine*``, read-only
+
       **layout_diagnostics** : ``std::span<const LayoutDiagnostic>``, read-only
          Nonfatal layout diagnostics (stage L, phase L5; PLAN section 2.5), in the order the layout passes recorded them: at most maximum_layout_diagnostics, the later ones counted in dropped_layout_diagnostics(). Clearing empties both. The span is valid until the next layout pass or clear.
 
@@ -406,6 +412,14 @@ gui_forms::SurfaceRoot
         -  
       * - :cpp:func:`snapshot_control <gui_forms::SurfaceRoot::snapshot_control>`
         - A picture of a control and its descendants as last laid out: their retained painting is replayed, every paint plane in order, into an offscreen framebuffer of the host's own CPU raster at the given scale, and the pixels are registered as one of the window's images (premultiplied BGRA).
+      * - :cpp:func:`capture_window <gui_forms::SurfaceRoot::capture_window>`
+        - The whole window as it presents itself (owner request 2026-11-09): its backplane (the theme's window material, cleared where a non-opaque backdrop is granted), every paint plane of its content, its in-surface overlays unless ``options`` leaves them out, and its outer band, replayed from the retained display after any pending layout into an offscreen framebuffer of the host's own CPU raster, as snapshot_control does.
+      * - :cpp:func:`invalidation_overlay_enabled <gui_forms::SurfaceRoot::invalidation_overlay_enabled>`
+        - Whether the overlay is on now, after the process switch's last change.
+      * - :cpp:func:`invalidation_overlay <gui_forms::SurfaceRoot::invalidation_overlay>`
+        - The window's outlines while the overlay is on, for its host to composite at present time (InvalidationOverlay::compose); null while it is off.
+      * - :cpp:func:`record_presented_area <gui_forms::SurfaceRoot::record_presented_area>`
+        - Records an area the host presented without a paint of the window's (a live frame, external content), with its cause and source, while the overlay is on; nothing while it is off.
       * - :cpp:func:`release_control_snapshot <gui_forms::SurfaceRoot::release_control_snapshot>`
         - Removes a snapshot's image; false when it is not there.
       * - :cpp:func:`resolve_text_layout_utf8 <gui_forms::SurfaceRoot::resolve_text_layout_utf8>`
@@ -416,6 +430,8 @@ gui_forms::SurfaceRoot
         -  
       * - :cpp:func:`declare_non_opaque <gui_forms::SurfaceRoot::declare_non_opaque>`
         - Compositor cooperation (stage T5, notes:planning/stages/T5-compositor/ PLAN.md §2).
+      * - :cpp:func:`declare_content_surface <gui_forms::SurfaceRoot::declare_content_surface>`
+        - Declares, before a host attaches, that this window's content draws every surface the window shows, so that over a non-opaque grant its backplane is clear: a Popup or Splash window (APP_WINDOW_RULES_DESIGN Part S) whose content is a menu panel, a drop-down list or a tooltip bubble with the overlay shadow around it.
       * - :cpp:func:`request_backdrop <gui_forms::SurfaceRoot::request_backdrop>`
         - Asks for a backdrop (owner decisions T5-Q3 and T5-Q5) and returns the grant now in force: the request's first entry this window may be given under the host's state and its presentation settings, else ``opaque``, with the reason the preferred entry was or was not given.
       * - :cpp:func:`share_key_bindings <gui_forms::SurfaceRoot::share_key_bindings>`
@@ -546,6 +562,8 @@ gui_forms::SurfaceRoot
         -  
       * - :cpp:func:`motion_clock <gui_forms::SurfaceRoot::motion_clock>`
         - The window's :cpp:class:`MotionClock <gui_forms::MotionClock>`: one frame request, armed only while some control's :cpp:class:`MotionValue <gui_forms::MotionValue>` is moving, however many are.
+      * - :cpp:func:`drag_engine <gui_forms::SurfaceRoot::drag_engine>`
+        - The window's drag engine (roadmap 2.1; internal, its header is src/core/drag_engine/drag_engine.hpp): one drag session at a time, for this root's controls.
       * - :cpp:func:`publish_value <gui_forms::SurfaceRoot::publish_value>`
         - Publishes a named number for the theme engine, such as a meter's ``level``.
       * - :cpp:func:`withdraw_value <gui_forms::SurfaceRoot::withdraw_value>`
@@ -572,6 +590,8 @@ gui_forms::SurfaceRoot
         - Shows :cpp:func:`theme <gui_forms::SurfaceRoot::theme>` in this window alone, whatever its resources' theme (ApplicationResources::set_theme no longer reaches it); null returns to the resources' theme.
       * - :cpp:func:`set_framebuffer_painter <gui_forms::SurfaceRoot::set_framebuffer_painter>`
         - Native host borrows its painter until shutdown; clear before destroying it.
+      * - :cpp:func:`set_invalidation_overlay <gui_forms::SurfaceRoot::set_invalidation_overlay>`
+        - The invalidation overlay (owner request 2026-11-09; see invalidation_overlay.hpp).
       * - :cpp:func:`set_paint_wake_handler <gui_forms::SurfaceRoot::set_paint_wake_handler>`
         - Host adapters also install a paint wake seam.
       * - :cpp:func:`set_command_target <gui_forms::SurfaceRoot::set_command_target>`
@@ -690,6 +710,8 @@ gui_forms::SurfaceRoot
 
       Everything the window overrides, or null when it overrides nothing (no record is allocated until the first override).
 
+   .. cpp:function:: std::optional<bool> invalidation_overlay_setting() const noexcept
+
    .. cpp:function:: TextMetricsProvider* text_metrics_provider() const noexcept
 
    .. cpp:function:: void set_text_metrics_provider(TextMetricsProvider* provider)
@@ -741,6 +763,8 @@ gui_forms::SurfaceRoot
       Sets :cpp:func:`active <gui_forms::SurfaceRoot::active>`; see the property's description above.
 
    .. cpp:function:: bool non_opaque_declared() const noexcept
+
+   .. cpp:function:: bool content_surface_declared() const noexcept
 
    .. cpp:function:: const CompositorState& compositor_state() const noexcept
 
@@ -975,6 +999,8 @@ gui_forms::SurfaceRoot
       has settled it schedules nothing. Tests install a :cpp:class:`MotionTimeSource <gui_forms::MotionTimeSource>` on
       it so that motion is sampled from their own time.
 
+   .. cpp:function:: const DragEngine* drag_engine_if_made() const noexcept
+
    .. cpp:function:: std::span<const LayoutDiagnostic> layout_diagnostics() const& noexcept
 
       Nonfatal layout diagnostics (stage L, phase L5; PLAN section 2.5), in the order the layout passes recorded them: at most maximum_layout_diagnostics, the later ones counted in dropped_layout_diagnostics(). Clearing empties both. The span is valid until the next layout pass or clear.
@@ -1148,6 +1174,22 @@ gui_forms::SurfaceRoot
       the image lives until :cpp:func:`release_control_snapshot <gui_forms::SurfaceRoot::release_control_snapshot>` or the window's end.
       The docking drag's stamp uses it.
 
+   .. cpp:function:: std::optional<WindowCapture> capture_window(const WindowCaptureOptions& options = {})
+
+      The whole window as it presents itself (owner request 2026-11-09): its backplane (the theme's window material, cleared where a non-opaque backdrop is granted), every paint plane of its content, its in-surface overlays unless ``options`` leaves them out, and its outer band, replayed from the retained display after any pending layout into an offscreen framebuffer of the host's own CPU raster, as snapshot_control does. What the host composites outside the window's pixels (the system backdrop, native frame and shadow) is not drawn. Callable whenever the window is not painting, at any time after the host attached, so a screenshot or a test needs no timer. None, changing nothing, while no framebuffer painter is installed (a headless window, a host whose fonts are not ready), during a paint, for an empty window, for a scale outside (0, 8], or when the framebuffer refuses. Cost: one replay of the window into ceil(width * scale) by ceil(height * scale) pixels and one copy of them; chunks the replay had to rebuild are marked for the next real paint. On the UI thread (std::logic_error elsewhere).
+
+   .. cpp:function:: bool invalidation_overlay_enabled() noexcept
+
+      Whether the overlay is on now, after the process switch's last change. UI thread.
+
+   .. cpp:function:: InvalidationOverlay* invalidation_overlay() noexcept
+
+      The window's outlines while the overlay is on, for its host to composite at present time (InvalidationOverlay::compose); null while it is off. Valid until the overlay is turned off. UI thread.
+
+   .. cpp:function:: void record_presented_area(Rect bounds, InvalidationCause cause, std::string_view source)
+
+      Records an area the host presented without a paint of the window's (a live frame, external content), with its cause and source, while the overlay is on; nothing while it is off. UI thread.
+
    .. cpp:function:: bool release_control_snapshot(ImageId image)
 
       Removes a snapshot's image; false when it is not there.
@@ -1163,6 +1205,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: bool declare_non_opaque()
 
       Compositor cooperation (stage T5, notes:planning/stages/T5-compositor/ PLAN.md §2). Declares, before a host attaches, that this window may be presented non-opaque (owner decision T5-Q4); ApplicationWindowOptions::non_opaque does it for an application window. False, changing nothing, once a host session has been bound to the window: a host fixes what a native window can show when it creates it. UI thread.
+
+   .. cpp:function:: bool declare_content_surface()
+
+      Declares, before a host attaches, that this window's content draws every surface the window shows, so that over a non-opaque grant its backplane is clear: a Popup or Splash window (APP_WINDOW_RULES_DESIGN Part S) whose content is a menu panel, a drop-down list or a tooltip bubble with the overlay shadow around it. Neither the theme's window material, its base for the grant nor its window backdrop chain is drawn there; over ``opaque`` the backplane is the theme's window material, as for any window. Declares the window non-opaque too. False, changing nothing, once a host session has been bound. UI thread.
 
    .. cpp:function:: WindowBackdropGrant request_backdrop(const WindowBackdropRequest& request)
 
@@ -1491,6 +1537,10 @@ gui_forms::SurfaceRoot
       has settled it schedules nothing. Tests install a :cpp:class:`MotionTimeSource <gui_forms::MotionTimeSource>` on
       it so that motion is sampled from their own time.
 
+   .. cpp:function:: DragEngine& drag_engine()
+
+      The window's drag engine (roadmap 2.1; internal, its header is src/core/drag_engine/drag_engine.hpp): one drag session at a time, for this root's controls. Made on first use (drag_engine); null until then (drag_engine_if_made). Root thread.
+
    .. cpp:function:: bool publish_value(std::string_view name, double value)
 
       Publishes a named number for the theme engine, such as a meter's
@@ -1568,6 +1618,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: void set_framebuffer_painter(Painter* painter)
 
       Native host borrows its painter until shutdown; clear before destroying it. Created framebuffers own their rendering state independently of the host.
+
+   .. cpp:function:: void set_invalidation_overlay(std::optional<bool> enabled)
+
+      The invalidation overlay (owner request 2026-11-09; see invalidation_overlay.hpp). The window's own setting: on, off, or none to follow the process switch (set_invalidation_overlay_default, read from GUI_FORMS_DEBUG_INVALIDATION at first). Turning it off drops the outlines; turning it on records from the next damage. Neither damages the window. UI thread.
 
    .. cpp:function:: void set_paint_wake_handler(std::function<void()> wake)
 

@@ -67,6 +67,10 @@ enum class ContrastPair : std::uint8_t {
     focus_inner,
     // The focus ring against the surface around the control.
     focus_outer,
+    // Text drawn over a fill (`fill-text-color`, the value bar study's
+    // section 3.6) against the fill. Only measure_fill_text_contrast makes
+    // it; the theme report has no fill to measure it against.
+    fill_text,
 };
 
 // `exempt`: a pair the gate does not hold, measured for the record: a
@@ -117,6 +121,25 @@ struct ContrastCounts final {
 void measure_theme_contrast(const Theme& theme, std::vector<ContrastRow>& rows);
 
 [[nodiscard]] ContrastCounts count_contrast_verdicts(std::span<const ContrastRow> rows) noexcept;
+
+// The two halves of one text drawn over a fill (the value bar study, section
+// 3.6: a ValueBar's label crosses its value fill). `over_track` is the text
+// in `text` over the track's face (pair text); `over_fill` the text in
+// `over_fill` over the fill's face (pair fill_text). The track is sampled
+// over the surface around a control in the presentation (as the report
+// samples it) and the fill over the track, so both faces are what is drawn.
+// Both are text pairs: 4.5:1, 7:1 in high contrast. A face that cannot be
+// sampled (an image or procedural layer) leaves its row not measured.
+// `family` and `state` label the rows.
+struct FillTextContrast final {
+    ContrastRow over_track{};
+    ContrastRow over_fill{};
+};
+
+[[nodiscard]] FillTextContrast measure_fill_text_contrast(const Theme& theme, ControlVisualContext presentation,
+                                                          ControlVisualRole family, Color text,
+                                                          const SurfaceMaterial& track, Color over_fill,
+                                                          const SurfaceMaterial& fill);
 
 [[nodiscard]] std::string_view contrast_pair_name(ContrastPair pair) noexcept;
 [[nodiscard]] std::string_view contrast_verdict_name(ContrastVerdict verdict) noexcept;

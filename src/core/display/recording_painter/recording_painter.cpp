@@ -3,6 +3,7 @@
 #include "../../engine/primitives/material/material_raster.hpp"
 #include "../../theme/theme/material_layers.hpp"
 #include <cmath>
+#include <memory>
 #include <new>
 
 #include <stdexcept>
@@ -13,8 +14,11 @@ namespace gui_forms::detail {
 namespace {
 
 // Whether a new command may take the renderer cache of `previous`: the same
-// horizontal text in the same font, or a box shadow with every parameter
-// equal. The memo a renderer keeps in the cache validates its own inputs
+// horizontal text in the same font, or a box shadow of the same size with
+// every other parameter equal. A shadow's coverage does not depend on where
+// it lies (the renderer's memo checks the device scale and subpixel phase),
+// so a shadow that moved, as a panned canvas's sheet does every step, keeps
+// its cache. The memo a renderer keeps in the cache validates its own inputs
 // as well; this keeps a cache from following a different drawing.
 bool same_cached_drawing(const DisplayCommand& previous, const DisplayCommand& recorded) noexcept {
     if (previous.operation != recorded.operation || !previous.retained_cache) return false;
@@ -25,7 +29,8 @@ bool same_cached_drawing(const DisplayCommand& previous, const DisplayCommand& r
         return same;
     }
     if (recorded.operation == DisplayOperation::draw_box_shadow) {
-        const bool same = previous.rect == recorded.rect && previous.first == recorded.first &&
+        const bool same = previous.rect.width == recorded.rect.width &&
+                          previous.rect.height == recorded.rect.height && previous.first == recorded.first &&
                           previous.color == recorded.color && previous.scalar == recorded.scalar &&
                           previous.secondary_scalar == recorded.secondary_scalar &&
                           previous.tertiary_scalar == recorded.tertiary_scalar;
@@ -295,6 +300,137 @@ void RecordingPainter::draw_line(Point from, Point to, Color color, double width
     command.operation = DisplayOperation::draw_line;
     command.first = from;
     command.second = to;
+    command.color = color;
+    command.scalar = width;
+    commands_.push_back(std::move(command));
+}
+
+namespace {
+
+// A batched command with an empty payload of its own: the caller fills the
+// spans and style it names.
+DisplayCommand marks_command(DisplayOperation operation, std::shared_ptr<DisplayMarks>& marks) {
+    marks = std::make_shared<DisplayMarks>();
+    DisplayCommand command;
+    command.operation = operation;
+    return command;
+}
+
+} // namespace
+
+void RecordingPainter::stroke_polyline(std::span<const Point> points, const StrokeStyle& style) {
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::stroke_polyline, marks);
+    (*marks).points.assign(points.begin(), points.end());
+    (*marks).stroke = style;
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::fill_polygon(std::span<const Point> points, Color color, PolygonFillRule rule) {
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::fill_polygon, marks);
+    (*marks).points.assign(points.begin(), points.end());
+    (*marks).fill_rule = rule;
+    command.color = color;
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color) {
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::fill_band, marks);
+    (*marks).points.assign(upper.begin(), upper.end());
+    (*marks).lower_points.assign(lower.begin(), lower.end());
+    command.color = color;
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::fill_rects(std::span<const Rect> rects, Color color) {
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::fill_rects, marks);
+    (*marks).rects.assign(rects.begin(), rects.end());
+    command.color = color;
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::fill_rects_each(std::span<const Rect> rects, std::span<const Color> colors) {
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::fill_rects_each, marks);
+    (*marks).rects.assign(rects.begin(), rects.end());
+    (*marks).colors.assign(colors.begin(), colors.end());
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::stroke_segments(std::span<const PaintSegment> segments, const StrokeStyle& style) {
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::stroke_segments, marks);
+    (*marks).segments.assign(segments.begin(), segments.end());
+    (*marks).stroke = style;
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::draw_markers(std::span<const Point> centers, const MarkerStyle& style) {
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::draw_markers, marks);
+    (*marks).points.assign(centers.begin(), centers.end());
+    (*marks).marker = style;
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::fill_conic_gradient(Rect rect, Point center, double start_degrees,
+                                           std::span<const GradientStop> stops) {
+    if (!valid_gradient_stops(stops)) {
+        throw std::invalid_argument("display gradient stops are invalid");
+    }
+    DisplayCommand command;
+    command.operation = DisplayOperation::fill_conic_gradient;
+    command.rect = rect;
+    command.first = center;
+    command.scalar = start_degrees;
+    command.gradient_stops.assign(stops.begin(), stops.end());
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::fill_checker(Rect rect, const CheckerPattern& pattern) {
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::fill_checker, marks);
+    (*marks).checker = pattern;
+    command.rect = rect;
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::fill_grid_pattern(Rect rect, const GridPattern& pattern) {
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::fill_grid_pattern, marks);
+    (*marks).grid = pattern;
+    command.rect = rect;
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::fill_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color) {
+    DisplayCommand command;
+    command.operation = DisplayOperation::fill_rounded_rect_corners;
+    command.rect = rect;
+    command.first = Point{radii.top_left, radii.top_right};
+    command.second = Point{radii.bottom_right, radii.bottom_left};
+    command.color = color;
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::stroke_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color, double width) {
+    DisplayCommand command;
+    command.operation = DisplayOperation::stroke_rounded_rect_corners;
+    command.rect = rect;
+    command.first = Point{radii.top_left, radii.top_right};
+    command.second = Point{radii.bottom_right, radii.bottom_left};
     command.color = color;
     command.scalar = width;
     commands_.push_back(std::move(command));

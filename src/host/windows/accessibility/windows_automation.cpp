@@ -187,7 +187,10 @@ CONTROLTYPEID control_type(SemanticRole role) noexcept {
     case SemanticRole::slider: return UIA_SliderControlTypeId;
     case SemanticRole::scroll_bar: return UIA_ScrollBarControlTypeId;
     case SemanticRole::progress_bar: return UIA_ProgressBarControlTypeId;
-    case SemanticRole::image: return UIA_ImageControlTypeId;
+    // UIA has no chart control type: a figure is an image that names
+    // itself (UIA_LocalizedControlTypePropertyId).
+    case SemanticRole::image:
+    case SemanticRole::figure: return UIA_ImageControlTypeId;
     case SemanticRole::tab_group: return UIA_TabControlTypeId;
     case SemanticRole::tab: return UIA_TabItemControlTypeId;
     case SemanticRole::split_pane: return UIA_PaneControlTypeId;
@@ -600,6 +603,7 @@ HRESULT UiaElement::property_value(const SemanticNode& client, const SemanticLoc
     case UIA_LocalizedControlTypePropertyId:
         // Empty leaves UI Automation the control type's own name.
         if (node.role == SemanticRole::search_box) return set_text(out, "search box");
+        if (node.role == SemanticRole::figure) return set_text(out, "figure");
         return S_OK;
     case UIA_NamePropertyId: return set_text(out, node.name);
     case UIA_AutomationIdPropertyId: return set_text(out, node.stable_id);

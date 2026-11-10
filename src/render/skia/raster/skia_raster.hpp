@@ -41,6 +41,10 @@ public:
     // replaced it: a host then repaints only what the resize exposed.
     [[nodiscard]] bool carried_on_resize() const noexcept;
     void begin_frame(const DamageRegion& damage);
+    // Makes every pixel of the frame begun transparent, within its damage
+    // clip: a raster reused for unrelated pictures (the Splash baker's) starts
+    // each one clear, where an ordinary frame keeps what it does not repaint.
+    void clear_transparent();
     void end_frame();
     // Intersects the current clip with damage's rectangles, rounded outward
     // to device pixels, so drawing touches those rectangles and not the span
@@ -132,6 +136,24 @@ public:
                                double blur_radius, double spread,
                                Color color) override;
     void draw_line(Point from, Point to, Color color, double width) override;
+    // The batched marks draw as one Skia path per call (markers: one path,
+    // built once, placed at each centre), antialiased; strokes take the
+    // style's joins, caps and dashes. fill_rects, fill_rects_each,
+    // fill_checker and fill_grid_pattern keep the base implementations,
+    // which draw through fill_rect and so snap every edge to device pixels.
+    void stroke_polyline(std::span<const Point> points, const StrokeStyle& style) override;
+    void fill_polygon(std::span<const Point> points, Color color, PolygonFillRule rule) override;
+    void fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color) override;
+    void stroke_segments(std::span<const PaintSegment> segments, const StrokeStyle& style) override;
+    void draw_markers(std::span<const Point> centers, const MarkerStyle& style) override;
+    // A sweep shader from the start angle through one full turn, over the
+    // snapped rectangle.
+    void fill_conic_gradient(Rect rect, Point center, double start_degrees,
+                             std::span<const GradientStop> stops) override;
+    // As fill_rounded_rect and stroke_rounded_rect, with each corner's
+    // radius; a corner of radius 0 stays square on both sides of a stroke.
+    void fill_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color) override;
+    void stroke_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color, double width) override;
     void draw_text_utf8(Point origin,
                         std::string_view text,
                         FontSpec font,
@@ -153,6 +175,16 @@ public:
     void draw_image(ImageId image, Rect destination, double opacity) override;
     void draw_live_surface(const std::shared_ptr<LiveSurface> surface,
                            const Rect destination, const double opacity) override;
+    // The device pixels whose centres lie inside `destination`, when the
+    // newest frame is opaque premultiplied BGRA, the opacity is one, the
+    // transform is a scale and translation and no soft (rounded) clip is in
+    // force: draw_live_surface_frame then writes each of them from the frame
+    // (a copy, or a source-mode draw without antialiasing). A frame
+    // published between this answer and the draw is drawn the same way
+    // unless the producer reconfigured the surface as not opaque meanwhile;
+    // its publication repaints the surface's area.
+    [[nodiscard]] Rect opaque_live_surface_cover(const std::shared_ptr<LiveSurface>& surface,
+                                                 Rect destination, double opacity) override;
     // Composites the raster into the canvas pixels with the shared blend
     // (detail::composite_part_raster) under the recorded clips, as text is
     // composited. Draws nothing when the canvas is not a plain scale and
@@ -196,9 +228,15 @@ public:
 
 private:
     friend struct SkiaLiveSurfaceTestAccess;
+    friend struct SkiaCanvasTestAccess;
     class Impl;
     std::unique_ptr<Impl> impl_;
     bool fail_next_live_image_{};
+    // Tests only: fill_image_pattern always samples directly, so the kept
+    // device tile can be compared with it; and the covers
+    // opaque_live_surface_cover has promised.
+    bool direct_patterns_{};
+    std::uint64_t covers_promised_{};
 };
 
 } // namespace gui_forms::render

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstring>
 
 namespace gui_forms::detail {
 namespace {
@@ -398,6 +399,62 @@ bool part_source_fits(const PartRasterSource& source) noexcept {
     return fits;
 }
 
+// The source's red, green, blue and alpha bytes within a BGRA pixel.
+constexpr std::array<std::size_t, 4> part_bytes{2U, 1U, 0U, 3U};
+
+// Unscaled pixels [from, to) of target row y, each weighted by the clip's
+// coverage of it. Every other blend than copy leaves the target as it is
+// under a transparent source pixel.
+void composite_part_edge_span(const PartRasterSource& source, const TextCompositeTarget& target,
+                              const PreparedClip& prepared, const std::int64_t y, const std::int64_t from,
+                              const std::int64_t to, const std::uint64_t opacity_weight) noexcept {
+    const bool skip_transparent = source.blend != PartCompositeBlend::copy;
+    const std::size_t source_row = static_cast<std::size_t>(y - source.top) * source.row_bytes;
+    const std::size_t target_row = static_cast<std::size_t>(y) * target.stride;
+    for (std::int64_t x = from; x < to; ++x) {
+        const std::size_t offset = source_row + static_cast<std::size_t>(x - source.left) * 4U;
+        const std::uint64_t source_alpha = source.pixels[offset + part_bytes[3]];
+        if (skip_transparent && source_alpha == 0) continue;
+        const std::uint64_t clipped = static_cast<std::uint64_t>(prepared_clip_coverage(prepared, x, y));
+        if (clipped == 0) continue;
+        // One weight for opacity x clip (unit = 256), applied to every
+        // premultiplied channel with one rounding each.
+        const std::array<std::uint64_t, 4> colour{source.pixels[offset + part_bytes[0]],
+                                                source.pixels[offset + part_bytes[1]],
+                                                source.pixels[offset + part_bytes[2]], source_alpha};
+        blend_part_pixel(target.pixels[target_row + static_cast<std::size_t>(x)], colour, opacity_weight * clipped,
+                         bgra_shifts, target.opaque, source.blend);
+    }
+}
+
+// As composite_part_edge_span, for pixels wholly inside a rectangular
+// clip: their coverage is a whole unit. With `copy_opaque` (source-over at
+// full opacity) an opaque source pixel is the result itself: its weighted
+// channels are its own and the target keeps no share, so its BGRA bytes
+// are stored as the target's BGRA word.
+void composite_part_interior_span(const PartRasterSource& source, const TextCompositeTarget& target,
+                                  const std::int64_t y, const std::int64_t from, const std::int64_t to,
+                                  const std::uint64_t opacity_weight, const bool copy_opaque) noexcept {
+    const bool skip_transparent = source.blend != PartCompositeBlend::copy;
+    const std::uint64_t weight = opacity_weight * static_cast<std::uint64_t>(unit);
+    const std::size_t source_row = static_cast<std::size_t>(y - source.top) * source.row_bytes;
+    const std::size_t target_row = static_cast<std::size_t>(y) * target.stride;
+    for (std::int64_t x = from; x < to; ++x) {
+        const std::size_t offset = source_row + static_cast<std::size_t>(x - source.left) * 4U;
+        const std::uint64_t source_alpha = source.pixels[offset + part_bytes[3]];
+        if (skip_transparent && source_alpha == 0) continue;
+        std::uint32_t& pixel = target.pixels[target_row + static_cast<std::size_t>(x)];
+        if (copy_opaque && source_alpha == 255U) {
+            std::memcpy(&pixel, &source.pixels[offset], sizeof(std::uint32_t));
+            continue;
+        }
+        const std::array<std::uint64_t, 4> colour{source.pixels[offset + part_bytes[0]],
+                                                source.pixels[offset + part_bytes[1]],
+                                                source.pixels[offset + part_bytes[2]], source_alpha};
+        blend_part_pixel(pixel, colour, weight, bgra_shifts, target.opaque, source.blend);
+    }
+}
+
 } // namespace
 
 TextCompositeStatus composite_part_raster(const PartRasterSource source, const TextCompositeTarget target,
@@ -442,22 +499,28 @@ TextCompositeStatus composite_part_raster(const PartRasterSource source, const T
     // source pixel; copy writes it.
     const bool skip_transparent = source.blend != PartCompositeBlend::copy;
     if (!scaled) {
+        // Under a rectangular clip, the pixels wholly inside it skip the
+        // coverage arithmetic; the rows and columns it cuts take it. A
+        // rounded clip leaves no interior: every pixel takes it.
+        std::int64_t inner_left = right;
+        std::int64_t inner_right = right;
+        std::int64_t inner_top = bottom;
+        std::int64_t inner_bottom = bottom;
+        if (!prepared.rounded) {
+            inner_left = std::min(right, std::max(left, ceil_pixel(limit.left)));
+            inner_right = std::max(inner_left, std::min(right, floor_pixel(limit.right)));
+            inner_top = std::min(bottom, std::max(top, ceil_pixel(limit.top)));
+            inner_bottom = std::max(inner_top, std::min(bottom, floor_pixel(limit.bottom)));
+        }
+        const bool copy_opaque = source.blend == PartCompositeBlend::source_over && opacity == 255U;
         for (std::int64_t y = top; y < bottom; ++y) {
-            const std::size_t source_row = static_cast<std::size_t>(y - source.top) * source.row_bytes;
-            const std::size_t target_row = static_cast<std::size_t>(y) * target.stride;
-            for (std::int64_t x = left; x < right; ++x) {
-                const std::size_t offset = source_row + static_cast<std::size_t>(x - source.left) * 4U;
-                const std::uint64_t source_alpha = source.pixels[offset + 3U];
-                if (skip_transparent && source_alpha == 0) continue;
-                const std::uint64_t clipped = static_cast<std::uint64_t>(prepared_clip_coverage(prepared, x, y));
-                if (clipped == 0) continue;
-                // One weight for opacity x clip (unit = 256), applied to
-                // every premultiplied channel with one rounding each.
-                const std::array<std::uint64_t, 4> colour{source.pixels[offset + red_byte], source.pixels[offset + 1U],
-                                                        source.pixels[offset + blue_byte], source_alpha};
-                blend_part_pixel(target.pixels[target_row + static_cast<std::size_t>(x)], colour,
-                                 opacity_weight * clipped, shifts, target.opaque, source.blend);
+            if (y < inner_top || y >= inner_bottom) {
+                composite_part_edge_span(source, target, prepared, y, left, right, opacity_weight);
+                continue;
             }
+            composite_part_edge_span(source, target, prepared, y, left, inner_left, opacity_weight);
+            composite_part_interior_span(source, target, y, inner_left, inner_right, opacity_weight, copy_opaque);
+            composite_part_edge_span(source, target, prepared, y, inner_right, right, opacity_weight);
         }
         return TextCompositeStatus::success;
     }

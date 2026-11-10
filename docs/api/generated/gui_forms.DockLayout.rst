@@ -70,6 +70,8 @@ gui_forms::DockLayout
 
       * - :cpp:func:`register_panel <gui_forms::DockLayout::register_panel>`
         - Registers a panel's descriptor.
+      * - :cpp:func:`update_panel <gui_forms::DockLayout::update_panel>`
+        - Replaces a registered panel's descriptor (its restrictions, defaults and close button); where it stands is unchanged, and later edits obey the new restrictions.
       * - :cpp:func:`find_descriptor <gui_forms::DockLayout::find_descriptor>`
         - The registered descriptor for a panel ID, or null.
       * - :cpp:func:`apply <gui_forms::DockLayout::apply>`
@@ -271,6 +273,10 @@ gui_forms::DockLayout
 
       Registers a panel's descriptor. Registering does not place the panel:
       ``DockEdit::show`` does. Returns false for an empty or repeated ID.
+
+   .. cpp:function:: bool update_panel(const DockPanelDescriptor& descriptor)
+
+      Replaces a registered panel's descriptor (its restrictions, defaults and close button); where it stands is unchanged, and later edits obey the new restrictions. False for an unregistered identity.
 
    .. cpp:function:: const DockPanelDescriptor* find_descriptor(const DockPanelId& panel) const noexcept
 

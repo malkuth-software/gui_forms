@@ -1,5 +1,9 @@
 #include "support.hpp"
 
+#include "gallery_theme_package.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
+
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -9,6 +13,7 @@
 #include <iomanip>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace gallery_pages_tests {
 namespace {
@@ -543,6 +548,9 @@ struct PageDigest final {
 // The dialogs page's native-popup toggle (gallery.host.task-dialog.native)
 // is one control more in the window, which states-and-diagnostics' live
 // control count follows. Recorded again: states-and-diagnostics.
+// The diagnostics panel's invalidation overlay check box
+// (gallery.diagnostics.invalidation) is one control more in the window:
+// states-and-diagnostics' live control count follows, recorded again.
 //
 // responsive-layouts became a form document (FD6.3): its four track tiles
 // name their faces by class, so the Gallery theme paints them as parts
@@ -554,47 +562,162 @@ struct PageDigest final {
 // code-built page left the property at zero. Recorded again:
 // values-and-spinners.
 //
+// Three Gallery pages (guided-tasks, the wizard and callout; help-book;
+// instruments, the gauges and dials) lengthen the navigation list every page
+// shows: its rows below them move and its scroll thumb shortens. Recorded
+// again: every page, in both tables (the page bodies' text is unchanged).
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
-constexpr std::array<PageDigest, 36> expected_digests{{
-    {"basics", 0x3f4caea5b270991cULL},
-    {"values", 0x5323f444482b3ee3ULL},
-    {"retained-rows", 0x9bb9e4bad7038300ULL},
-    {"instrument", 0xebd3754a7cdf176eULL},
-    {"control-spectrum", 0x9d95e3b6ac00087aULL},
-    {"ranges-and-progress", 0x1d52b34dce2b5b52ULL},
-    {"containers-and-focus", 0x9534f6ff910b45adULL},
-    {"animation-laboratory", 0x85a58efad63d2d1eULL},
-    {"states-and-diagnostics", 0x53c0508337f05c6aULL},
-    {"text-and-input", 0xf1508da0c4b20d7cULL},
-    {"collections-and-overlays", 0x773acf08b1bac3b5ULL},
-    {"values-and-spinners", 0xf53e1d2d519990dbULL},
-    {"images-and-drawing", 0x45312707e1dbaf73ULL},
-    {"tabs-and-pages", 0xc9da4951a92ffad1ULL},
-    {"checked-collections", 0xcf52428368a7ef65ULL},
-    {"timing-and-tooltips", 0xaeaa063e89c96d4aULL},
-    {"dates-and-calendar", 0x2be4a1f8f9960307ULL},
-    {"dialogs-and-host-services", 0xb175de1a9028b52fULL},
-    {"css-layout-panels", 0xfa602af7f80c0067ULL},
-    {"retained-layout-panels", 0x21d03ca297db452bULL},
-    {"dock-and-anchor", 0xb2d6c258a3eed76cULL},
-    {"docking-workspace", 0x18ce8bf819756349ULL},
-    {"commands-and-menus", 0xddac05cb9b7eac2aULL},
-    {"tree-and-object-views", 0x4e2f22e2ede31c64ULL},
-    {"choices-and-sections", 0x5dcf776658999b86ULL},
-    {"value-editors", 0xfc1584d3a592d61dULL},
-    {"responsive-layouts", 0xa4afc283f307ac84ULL},
-    {"anchored-overlays", 0xd27c481f8d74a9c6ULL},
-    {"live-surfaces", 0x012f2a9fb133e7f2ULL},
-    {"typography-and-inspection", 0x70f85eeb6a1182e3ULL},
-    {"semantic-feedback", 0xd85a776cce29755fULL},
-    {"notices-and-badges", 0x5c1b4460aadaa8b7ULL},
-    {"input-and-rules", 0x263c3c8037deace9ULL},
-    {"theme-settings", 0xfd2f9a68893a2c38ULL},
-    {"controls-inspection", 0xced2cb535f9086e9ULL},
-    {"spinners-and-rings", 0x45387c0623ff195dULL},
+constexpr std::array<PageDigest, 39> expected_digests{{
+    {"basics", 0xd64281d6361b2b16ULL},
+    {"values", 0xc2e766667021772fULL},
+    {"retained-rows", 0x2e740cd87f353214ULL},
+    {"instrument", 0x66d0496a5e4b27b3ULL},
+    {"control-spectrum", 0x7c9845ff897c44d2ULL},
+    {"ranges-and-progress", 0x787d2981f3852dc1ULL},
+    {"containers-and-focus", 0x628f666ee4bf81daULL},
+    {"animation-laboratory", 0x7c8f4d7bfde9be1bULL},
+    {"states-and-diagnostics", 0x195f789b212f94daULL},
+    {"text-and-input", 0x4125971e7760c86bULL},
+    {"collections-and-overlays", 0x90aa75d6156c537aULL},
+    {"values-and-spinners", 0xfcd05e6cd2b74291ULL},
+    {"images-and-drawing", 0x864db6222a1b2c8dULL},
+    {"tabs-and-pages", 0xeefe6e6edd610401ULL},
+    {"checked-collections", 0xbe6e616e3922b001ULL},
+    {"timing-and-tooltips", 0xc669025066dd7022ULL},
+    {"dates-and-calendar", 0x4d2064ed92958aa9ULL},
+    {"dialogs-and-host-services", 0x8c4db42629a3676dULL},
+    {"css-layout-panels", 0x926934aabf0290a7ULL},
+    {"retained-layout-panels", 0xc3b6b5abcbf3ee41ULL},
+    {"dock-and-anchor", 0xde83423fc4608fb8ULL},
+    {"docking-workspace", 0x8d4955379c2d9199ULL},
+    {"commands-and-menus", 0xdf966bb7d632302aULL},
+    {"tree-and-object-views", 0xe099ae26295d3a92ULL},
+    {"choices-and-sections", 0xa5d41554998edbd8ULL},
+    {"value-editors", 0xa2924af01d8e4fb1ULL},
+    {"responsive-layouts", 0x671fa5758f274142ULL},
+    {"anchored-overlays", 0x6a5f21d7ae44dc10ULL},
+    {"live-surfaces", 0xd5cbe6413e68e232ULL},
+    {"typography-and-inspection", 0xb74956a84d09e2ebULL},
+    {"semantic-feedback", 0x68815d3dd93dd9b5ULL},
+    {"notices-and-badges", 0xca7ea864d9f4750bULL},
+    {"input-and-rules", 0x2a9f8b0edd41a060ULL},
+    {"theme-settings", 0x61c0ceb85c1b4356ULL},
+    {"spinners-and-rings", 0xbabd9378bdf9350dULL},
+    {"instruments", 0x031aa102824cd03fULL},
+    {"guided-tasks", 0x6e10e879c2f8f541ULL},
+    {"help-book", 0x35102514e7531996ULL},
+    {"controls-inspection", 0xe873958753d90eaeULL},
 }};
+
+// The same pages under the Gallery theme compiled onto windows-professional,
+// as recorded on cp22 (c9b11f0a), when windows-professional was the default
+// base and the table above was this one. Nothing the Gallery paints changed
+// between cp22 and the default switch but the base, so a window switched to
+// windows-professional must still record them. typography-and-inspection is
+// left out (zero): it shows a RuntimeId, which counts every control made
+// before it in the process, and this pass runs after the one above.
+constexpr std::array<PageDigest, 39> professional_digests{{
+    {"basics", 0xcd6775cb06a95d02ULL},
+    {"values", 0x907dbbe40434c549ULL},
+    {"retained-rows", 0x2c59c7c5b00918c7ULL},
+    {"instrument", 0x28bdb67d032d3807ULL},
+    {"control-spectrum", 0xc4abb705e11e581cULL},
+    {"ranges-and-progress", 0xe1263ffb3aec10f6ULL},
+    {"containers-and-focus", 0x9ac1134518ecd5bcULL},
+    {"animation-laboratory", 0xb8aeb77e06302e00ULL},
+    {"states-and-diagnostics", 0x0000000000000000ULL},
+    {"text-and-input", 0x36442dc39aa50219ULL},
+    {"collections-and-overlays", 0x138e3ffb6f71e2fcULL},
+    {"values-and-spinners", 0x0518a389c033db87ULL},
+    {"images-and-drawing", 0x3e941d87a73c2920ULL},
+    {"tabs-and-pages", 0x5cff177570e2d12eULL},
+    {"checked-collections", 0x04918eff650538ddULL},
+    {"timing-and-tooltips", 0xda7abc79d29398c1ULL},
+    {"dates-and-calendar", 0xf03bfdf3be371b73ULL},
+    {"dialogs-and-host-services", 0x73a5efa7efb11b3bULL},
+    {"css-layout-panels", 0x5151f25bee4e874bULL},
+    {"retained-layout-panels", 0x064bf4dd30bcaef0ULL},
+    {"dock-and-anchor", 0x8b0d99f3b8b5275aULL},
+    {"docking-workspace", 0xfb5816ccfd84f265ULL},
+    {"commands-and-menus", 0xd1a4736c5f15186dULL},
+    {"tree-and-object-views", 0x8e64bc223c14a468ULL},
+    {"choices-and-sections", 0xbf30aa219985b927ULL},
+    {"value-editors", 0x27a60aa125ff2374ULL},
+    {"responsive-layouts", 0xb80d4d041ff8722dULL},
+    {"anchored-overlays", 0xbce5bd857b1bf5acULL},
+    {"live-surfaces", 0xb9cedc7a8ac8cc2dULL},
+    {"typography-and-inspection", 0x0000000000000000ULL},
+    {"semantic-feedback", 0x9935ee046158527fULL},
+    {"notices-and-badges", 0x3790e49093b764f9ULL},
+    {"input-and-rules", 0xdc0050230d675c09ULL},
+    {"theme-settings", 0xdfae53026ed3037bULL},
+    {"spinners-and-rings", 0x449f0e8e7b363ae2ULL},
+    {"instruments", 0x2841ceb9b00fdfdbULL},
+    {"guided-tasks", 0xf51e34435ccb3fcdULL},
+    {"help-book", 0xaa7c1adec86bd424ULL},
+    {"controls-inspection", 0x15ffff889d0dc704ULL},
+}};
+
+// The Gallery theme compiled onto `base`, as the Theme settings page
+// compiles it (ThemeSettingsPage::build_theme).
+std::shared_ptr<const Theme> gallery_theme_on(Window& window, ThemeBase base) {
+    ThemeCompileOptions options{};
+    options.controls = stock_control_anatomies();
+    options.effects = &built_in_effect_registry();
+    options.base = base;
+    const ThemeLibrary library{};
+    const ThemeCompileResult result =
+        (*window.resources()).compile_theme_package(gallery::gallery_theme_package(), library, options);
+    require(result.succeeded(), "the Gallery theme compiles onto either base");
+    return result.theme();
+}
+
+// What `window` shows now, as a display trace.
+std::string shown_trace(Window& window) {
+    window.perform_layout();
+    TracePainter painter;
+    window.paint(painter, {0.0, 0.0, 1280.0, 820.0});
+    return painter.trace;
+}
+
+// `trace` without the window's backplane, the block a full paint opens with
+// when the backplane is drawn again: after a theme change, or on the
+// window's first paint, and not otherwise (the backplane plane is kept).
+// Its five lines follow the opening save: the clip, the fill, the edge, a
+// restore and the next save.
+std::string without_backplane(const std::string& trace) {
+    std::vector<std::size_t> line_starts;
+    std::size_t position = 0U;
+    while (position < trace.size() && line_starts.size() < 7U) {
+        line_starts.push_back(position);
+        const std::size_t end = trace.find('\n', position);
+        if (end == std::string::npos) return trace;
+        position = end + 1U;
+    }
+    if (line_starts.size() < 7U) return trace;
+    const std::string_view text(trace);
+    const std::string_view clip = text.substr(line_starts[1], line_starts[2] - line_starts[1]);
+    const std::string_view fill = text.substr(line_starts[2], line_starts[3] - line_starts[2]);
+    const std::string_view restore = text.substr(line_starts[4], line_starts[5] - line_starts[4]);
+    const std::string_view save = text.substr(line_starts[5], line_starts[6] - line_starts[5]);
+    const bool backplane = clip.starts_with("clip_rect 0 0 ") && fill.starts_with("fill_rect 0 0 ") &&
+                           restore == "restore\n" && save == "save\n";
+    if (!backplane) return trace;
+    std::string stripped = trace.substr(0U, line_starts[1]);
+    stripped += trace.substr(line_starts[6]);
+    return stripped;
+}
+
+// Pages whose trace changes from one paint to the next whatever the theme:
+// states-and-diagnostics shows the window's paint and input counters, and
+// typography-and-inspection a RuntimeId.
+bool page_counts_itself(std::string_view page) {
+    const bool counts = page == "states-and-diagnostics" || page == "typography-and-inspection";
+    return counts;
+}
 
 std::uint64_t expected_digest(std::string_view page) {
     for (const PageDigest& digest : expected_digests) {
@@ -638,6 +761,63 @@ void test_display_commands_unchanged() {
         std::cerr << "display commands differ on pages: " << mismatches << '\n';
     }
     require(mismatches.empty(), "every Gallery page records the commands it recorded before the theme engine");
+}
+
+// Switching the Gallery's theme gui-forms -> windows-professional ->
+// gui-forms (as the Theme settings page does, for every window) on each
+// page in turn: under windows-professional the page records what it
+// recorded when that was the default base (professional_digests), and back
+// on gui-forms what it recorded before the switch, so nothing either theme
+// drew or measured is kept across a switch. A theme change draws the
+// backplane again, so the comparisons leave it out, except on the first
+// page, whose cp22 trace is a window's first paint and has it.
+void test_theme_switch_round_trip() {
+    // GUI_FORMS_GALLERY_TRACE_PRINT=1 prints the observed windows-professional
+    // table instead of checking it.
+    const char* const print_value = std::getenv("GUI_FORMS_GALLERY_TRACE_PRINT");
+    const bool printing = print_value != nullptr && std::strcmp(print_value, "1") == 0;
+    std::unique_ptr<Window> owned = gallery::make_gallery();
+    Window& window = *owned;
+    window.perform_layout();
+    const std::shared_ptr<ApplicationResources> resources = window.resources();
+    const std::shared_ptr<const Theme> gui_forms = gallery_theme_on(window, ThemeBase::gui_forms);
+    const std::shared_ptr<const Theme> professional = gallery_theme_on(window, ThemeBase::windows_professional);
+    (*resources).set_theme(gui_forms);
+    std::string professional_mismatches;
+    std::string return_mismatches;
+    bool first_page = true;
+    for (const gallery::GalleryPageSpec& page : gallery::gallery_pages) {
+        select_page(window, page.id);
+        pin_today(window.root());
+        const std::string before = without_backplane(shown_trace(window));
+        (*resources).set_theme(professional);
+        const std::string switched_trace = shown_trace(window);
+        const std::string switched = first_page ? switched_trace : without_backplane(switched_trace);
+        (*resources).set_theme(gui_forms);
+        const std::string back = without_backplane(shown_trace(window));
+        first_page = false;
+        if (printing) {
+            const std::uint64_t shown = page_counts_itself(page.id) ? 0U : trace_hash(switched);
+            std::cout << "    {\"" << page.id << "\", 0x" << std::hex << std::setw(16) << std::setfill('0') << shown
+                      << std::dec << "ULL},\n";
+            continue;
+        }
+        if (page_counts_itself(page.id)) continue;
+        std::uint64_t expected = 0U;
+        for (const PageDigest& digest : professional_digests) {
+            if (digest.page == page.id) expected = digest.hash;
+        }
+        if (trace_hash(switched) != expected) professional_mismatches += std::string(page.id) + " ";
+        if (back != before) return_mismatches += std::string(page.id) + " ";
+    }
+    if (!professional_mismatches.empty()) {
+        std::cerr << "windows-professional differs from cp22 on pages: " << professional_mismatches << '\n';
+    }
+    if (!return_mismatches.empty()) {
+        std::cerr << "gui-forms differs after a round trip on pages: " << return_mismatches << '\n';
+    }
+    require(professional_mismatches.empty(), "a window switched to windows-professional paints as it did on cp22");
+    require(return_mismatches.empty(), "a window switched back to gui-forms paints as it did before");
 }
 
 } // namespace gallery_pages_tests

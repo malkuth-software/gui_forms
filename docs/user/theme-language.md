@@ -130,8 +130,11 @@ more than 256 levels up are not matched.
 
 `:has()`, `:nth-*()`, attribute selectors, the sibling combinators `+`
 and `~`, a combinator inside a group, and `&` are errors, as are a
-`:not()` inside a `:not()` and a part, role or surface in one. An unknown control type, part, state or pseudo-class is a
-warning that drops the rule. Specificity is CSS's: stable IDs, then
+`:not()` inside a `:not()` and a part, role or surface in one. An unknown control type, state or pseudo-class is a
+warning (W106) that drops the rule. A part the selector's control type lacks
+is a warning too, but, as CSS's `::part()` matches nothing for a part the
+element lacks, it leaves out only its own selector: in
+`user-control::part(lid), panel::part(face)` the panel rule still applies. Specificity is CSS's: stable IDs, then
 classes and states (pseudo-classes) together, then control types and parts
 (the part's name and role, as pseudo-elements). `:family()` counts as a
 pseudo-class, `:is()` and `:not()` as their most specific argument and
@@ -174,6 +177,25 @@ specificity.
   colour. A literal colour in a text or edge position (`color`, borders,
   outlines) is a warning: forced high contrast can only replace it by its
   position.
+- **Application colour roles:** a theme package may declare roles of its
+  own beside the built-in ones, for colours its program means, in an
+  unconditional `:root` block:
+  `:root { color-roles: syntax-keyword from ink-on-paper, find-mark from signal-on-paper }`.
+  Each names the built-in role it falls back to, which gives its shape (a
+  pair or a single colour) and the colour forced high contrast shows for
+  it. Its colours are declared like a built-in role's, in `:root` and
+  under `@media (prefers-color-scheme: dark)` or `(forced-colors: active)`
+  (`syntax-keyword: #0000c0 on #fffff0`); without an unconditional
+  declaration of its own it starts from its fallback's. Rules read it with
+  `role(syntax-keyword)`; program code reads it with
+  `Control::theme_role_colours("syntax-keyword")` (or
+  `Theme::application_role(name, facts)`), so a program's colours follow
+  the light, dark and high-contrast variants instead of being hard-coded.
+  Names are lowercase letters, digits and `-`, a letter first, at most 64
+  characters and none a built-in role's; at most 32 per theme. A built-in
+  role name, a repeated name, a fallback that is not a built-in role
+  (E406), a missing `from` (E401) and `color-roles` under `@media` are
+  errors; reading a role that has no colours is E415.
 - **System colours:** `env(system-accent, <colour>)` and
   `env(system-highlight, <colour>)` read the host's accent and
   text-selection colours as hints, in any colour position. The fallback
@@ -220,7 +242,8 @@ only material fields selects the `material` primitive.
 | filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` |
 | presentation | `opacity`, `scale`, `translate` |
 | effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; given the effect registry (`ThemeCompileOptions::effects`, `ApplicationThemeConfig::effects`, usually `built_in_effect_registry()`), a name it does not hold refuses the theme with E417 at the name; the control also checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
-| text | `color`, `muted-color` and `glyph-color` (the recipe's secondary text and glyph colours, on a control or a named part, such as `group-box::part(caption)`; not on a role), `font: <role>` (`ui`, `field`, `caption`, `heading`, `title`, `monospace`) |
+| text | `color`, `muted-color`, `glyph-color` and `fill-text-color` (the recipe's secondary text and glyph colours, and its text's colour where it lies over a fill such as a value bar's, on a control or a named part, such as `group-box::part(caption)`; not on a role), `font: <role>` (`ui`, `field`, `caption`, `heading`, `title`, `monospace`) |
+| dials and overlays | `stroke-width` (0 to 32px: an `arc` part's thickness and a `needle` part's width at its hub), `needle-shape` (`line`, `tapered`, `dot`), `scrim-color` (the colour, with its alpha as the opacity, a `scrim` part dims what lies behind with); each on a control or a named part, such as `radial-gauge::part(value-arc)`; not on a role |
 | fonts | `font-family` (`control`, `content`, `monospace`), `font-size` (4px to 96px, or em of the control's own size), `font-weight` (`normal`, `bold`, 100 to 900), `font-style` (`normal`, `italic`), `letter-spacing` (`normal`, px or em) |
 
 `pattern(<name>, <ground>, <figure> [, <tile>])` is a built-in procedural
@@ -294,7 +317,21 @@ colour by default) and `band-effect` `none` or `flash` (a lit band flashes,
 at most twice a second). Each property comes from the last matching rule
 that sets it. A CSS-wide keyword is an error. In any other rule, including
 `popup` rules, a band property is warning W111 (`band_not_on_window`) and is
-dropped. Under forced high contrast the band draws the high-contrast
+dropped.
+
+A themed TextBox paints its field as one part, `text-box::part(well)`: a
+background there is the field's ground, and the control's own colour
+(`text-box { color: ... }`) is its text's. Its `face` and `edge` are painted
+only while the application overrides the field's look (its background or
+style), and its text runs share no part identity, so a surface property on
+the face or edge, and a colour or surface property on `::part(content)`, is
+warning W112
+(`part_not_themed`), saying what to style instead; the declaration is
+kept. The containers `scrollable-control`,
+`container-control`, `user-control` and `split-container` have a ground,
+`::part(face)`, over their whole box, painted only when a rule names that
+part (`user-control::part(face) { background: #202020 }`); a rule on the
+panel family or the face role alone paints none. Under forced high contrast the band draws the high-contrast
 palette's focus colour, solid and unflashing; reduced motion and turned-off
 ambient motion still a flash at its lit colour. For example,
 `window { band-width: 2px; band-lit-color: #c0392b; band-effect: flash }`.

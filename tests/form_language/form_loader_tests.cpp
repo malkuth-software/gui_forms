@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -75,6 +76,7 @@ FormSchema sample_schema() {
     schema.types.push_back(form_control_type<gui_forms::Button>("button"));
     schema.types.push_back(form_control_type<gui_forms::NumericUpDown>("numeric_up_down"));
     schema.types.push_back(form_control_type<gui_forms::TextBox>("text_box"));
+    schema.types.push_back(form_control_type<gui_forms::ValueBar>("value_bar"));
     schema.types.push_back(form_component_type<gui_forms::Command>("command"));
     // A type a document may describe but the loader cannot make.
     const std::shared_ptr<gui_forms::Panel> panel = gui_forms::make_control<gui_forms::Panel>(gui_forms::StableId("prototype"));
@@ -173,6 +175,50 @@ void test_load() {
                 (*check).tab_index.read() == 2U,
             "load: the check box's properties");
     require(std::dynamic_pointer_cast<gui_forms::Command>(loaded.objects[4]) != nullptr, "load: the command");
+}
+
+// A ValueBar from a document (the value bar study, section 3.8): the range
+// family's bounds, then its own properties, enumerations by their kebab
+// names and a nullable soft limit as a number.
+void test_value_bar() {
+    const FormSchema schema = sample_schema();
+    const std::string_view document = "user-control render.root {\n"
+                                      "  value-bar render.samples {\n"
+                                      "    minimum: 1;\n"
+                                      "    maximum: 4096;\n"
+                                      "    soft-maximum: 256;\n"
+                                      "    value: 64;\n"
+                                      "    precision: 0;\n"
+                                      "    presentation: field;\n"
+                                      "    label: \"Samples\";\n"
+                                      "  }\n"
+                                      "  value-bar render.opacity { unit: percent; maximum: 1; value: 0.5; }\n"
+                                      "}\n";
+    Workspace workspace{};
+    LoadedForm loaded{};
+    const FormLoadOutcome outcome = load(workspace, document, schema, loaded);
+    print_diagnostics(workspace);
+    require(outcome == FormLoadOutcome::loaded, "value bar: loaded");
+    require(loaded.objects.size() == 3U, "value bar: every object");
+    if (loaded.objects.size() != 3U) return;
+    const std::shared_ptr<gui_forms::ValueBar> samples =
+        std::dynamic_pointer_cast<gui_forms::ValueBar>(loaded.objects[1]);
+    require(samples != nullptr, "value bar: the type");
+    if (samples == nullptr) return;
+    require((*samples).minimum.read() == 1.0 && (*samples).maximum.read() == 4096.0 &&
+                (*samples).value.read() == 64.0,
+            "value bar: the range family's values");
+    require((*samples).soft_maximum.read() == std::optional<double>{256.0} && !(*samples).soft_minimum.read(),
+            "value bar: the soft limits");
+    require((*samples).presentation.read() == gui_forms::ValueBarStyle::field &&
+                (*samples).precision.read() == 0 && (*samples).label.read() == "Samples",
+            "value bar: its own properties");
+    require((*samples).formatted_value() == "64", "value bar: shown at its precision");
+    const std::shared_ptr<gui_forms::ValueBar> opacity =
+        std::dynamic_pointer_cast<gui_forms::ValueBar>(loaded.objects[2]);
+    require(opacity != nullptr && (*opacity).unit.read() == gui_forms::ValueUnit::percent &&
+                (*opacity).formatted_value() == "50.000%",
+            "value bar: a unit by name");
 }
 
 // Counts a command's invocations.
@@ -385,6 +431,51 @@ void test_form_root() {
             "form root: no object for the form, the command kept");
 }
 
+// The button properties written bare, as the object writes its stable ID
+// and as the guides write them; a bare name naming no object is still
+// refused, and spaced names are not one identity.
+void test_form_root_bare_buttons() {
+    const FormSchema schema = sample_schema();
+    const std::string_view document = "form settings.dialog {\n"
+                                      "  accept-button: settings.ok;\n"
+                                      "  cancel-button: settings.cancel-2;\n"
+                                      "  user-control settings.body {\n"
+                                      "    button settings.ok { text: \"OK\"; }\n"
+                                      "    button settings.cancel-2 { text: \"Cancel\"; }\n"
+                                      "  }\n"
+                                      "}\n";
+    Workspace workspace{};
+    LoadedForm loaded{};
+    const FormLoadOutcome outcome = load(workspace, document, schema, loaded);
+    print_diagnostics(workspace);
+    require(outcome == FormLoadOutcome::loaded, "bare buttons: loaded");
+    require(loaded.window.has_value() && (*loaded.window).accept_button == "settings.ok" &&
+                (*loaded.window).cancel_button == "settings.cancel-2",
+            "bare buttons: the window's buttons");
+
+    const std::string_view refused_document = "form app.window {\n"
+                                              "  accept-button: app.missing;\n"
+                                              "  cancel-button: app . b;\n"
+                                              "  user-control app.b { }\n"
+                                              "}\n";
+    Workspace refused{};
+    refused.text = std::string(refused_document);
+    refused.source.file = "test.form";
+    refused.source.text = refused.text;
+    static_cast<void>(tokenize_theme_sheet(refused.source, refused.tokens, refused.lines, refused.diagnostics));
+    static_cast<void>(parse_theme_sheet(refused.source, refused.tokens, refused.lines, refused.tree,
+                                        refused.diagnostics, ThemeSheetForm::form_document));
+    const FormModelOutcome built = build_form_model(refused.source, refused.tokens, refused.lines, refused.tree,
+                                                    schema, refused.model, refused.diagnostics);
+    std::size_t invalid = 0U;
+    for (const ThemeDiagnostic& record : refused.diagnostics.records()) {
+        if (record.code == DiagnosticCode::form_value_invalid) ++invalid;
+    }
+    if (invalid != 2U) print_diagnostics(refused);
+    require(built == FormModelOutcome::refused && invalid == 2U,
+            "bare buttons: a missing and a spaced name refused");
+}
+
 // What the model refuses of a form root: a second control, a form below
 // the root, and a button property naming no object.
 void test_form_root_defects() {
@@ -587,8 +678,10 @@ int main() {
     test_refusals();
     test_form_root();
     test_form_root_defects();
+    test_form_root_bare_buttons();
     test_spans();
     test_table_placement();
+    test_value_bar();
     test_load_window();
     test_load_window_application();
     if (failures != 0) {

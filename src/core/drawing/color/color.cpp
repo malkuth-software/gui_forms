@@ -119,6 +119,25 @@ LinearSrgb srgb_to_linear(Color color) {
             color.alpha() / 255.0};
 }
 
+double contrast_ratio(Color first, Color second) {
+    const LinearSrgb first_linear = srgb_to_linear(first);
+    const LinearSrgb second_linear = srgb_to_linear(second);
+    const double first_luminance =
+        0.2126 * first_linear.red + 0.7152 * first_linear.green + 0.0722 * first_linear.blue;
+    const double second_luminance =
+        0.2126 * second_linear.red + 0.7152 * second_linear.green + 0.0722 * second_linear.blue;
+    const double lighter = std::max(first_luminance, second_luminance);
+    const double darker = std::min(first_luminance, second_luminance);
+    const double ratio = (lighter + 0.05) / (darker + 0.05);
+    return ratio;
+}
+
+Color contrasting_text_color(Color background, Color light, Color dark) {
+    const double light_ratio = contrast_ratio(background, light);
+    const double dark_ratio = contrast_ratio(background, dark);
+    return light_ratio > dark_ratio ? light : dark;
+}
+
 SrgbConversion linear_to_srgb(LinearSrgb color) {
     require_linear(color);
     constexpr double epsilon = 5e-7;

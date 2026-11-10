@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <optional>
 #include <string>
@@ -211,8 +212,15 @@ gf_status GF_CALL custom_controls_create(const gf_custom_control_spec* spec, gf_
             return entered;
         }
         // The control copies the callbacks at their 1.0 size; until it
-        // exists, a failure calls none of them, release among them.
-        gf_custom_control_callbacks callbacks = (*spec).callbacks;
+        // exists, a failure calls none of them, release among them. Only
+        // the bytes the caller declared are read (N14): a later minor's
+        // larger record leaves an older caller's fields zero, not read past
+        // its record.
+        gf_custom_control_callbacks callbacks{};
+        const std::size_t declared = static_cast<std::size_t>((*spec).callbacks.struct_size);
+        const std::size_t copied = declared < sizeof(gf_custom_control_callbacks) ? declared
+                                                                                   : sizeof(gf_custom_control_callbacks);
+        std::memcpy(&callbacks, &(*spec).callbacks, copied);
         callbacks.struct_size = callbacks_size_1_0;
         const bool focusable = ((*spec).flags & GF_CUSTOM_CONTROL_FOCUSABLE) != 0U;
         Component::Ptr made;
@@ -226,7 +234,13 @@ gf_status GF_CALL custom_controls_create(const gf_custom_control_spec* spec, gf_
         *object = registry().add_reference(made);
         return GF_STATUS_OK;
     } catch (...) {
-        return fail_with_current_exception(create_slot);
+        const gf_status failed = fail_with_current_exception(create_slot);
+        // As objects.create (N10): a throw after enter_ui leaves no binding.
+        try {
+            registry().unbind_if_idle();
+        } catch (...) {
+        }
+        return failed;
     }
 }
 

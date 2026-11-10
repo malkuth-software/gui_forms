@@ -226,6 +226,9 @@ private:
     // subclass of the root's type otherwise.
     void write_derived_window(std::string& out) const;
     void write_derived_control(std::string& out) const;
+    // The derived class of a control root whose type is final: a class
+    // that holds the root as a member instead of deriving from it.
+    void write_composed_control(std::string& out) const;
     // The window's title and client size, as static constants.
     void write_window_constants(std::string& out) const;
     // Makes every object in document order, adding each control to its
@@ -263,6 +266,9 @@ private:
     SourcePositionCursor cursor_;
     // Whether the root is the reserved form type.
     bool form_root_{};
+    // Whether a derived class composes its control root, whose type is
+    // final, instead of deriving from it.
+    bool composed_{};
     // The member name of each object, at its FormModel::objects index
     // (empty for a form root).
     std::vector<std::string> members_{};
@@ -282,6 +288,7 @@ FormGenerator::FormGenerator(const theme_language::ThemeSource& source, const th
 
 bool FormGenerator::run(std::string& scratch) {
     form_root_ = type_of(0U).name == form_root_type_name;
+    composed_ = options_.derived && !form_root_ && type_of(0U).final_type;
     check_objects();
     check_values();
     if (options_.derived && options_.model_type.empty() && binds()) {
@@ -368,6 +375,8 @@ void FormGenerator::write(std::string& out) const {
     if (options_.derived) {
         if (form_root_) {
             write_derived_window(out);
+        } else if (composed_) {
+            write_composed_control(out);
         } else {
             write_derived_control(out);
         }
@@ -491,14 +500,14 @@ void FormGenerator::write_initialize(std::string& out) const {
 }
 
 std::string FormGenerator::object_reference(std::size_t index, ObjectAccess access) const {
-    // A derived control is its document's root.
-    if (index == 0U && options_.derived && !form_root_) return "(*this)";
+    // A derived control is its document's root (a composed one holds it).
+    if (index == 0U && options_.derived && !form_root_ && !composed_) return "(*this)";
     const std::string reference = "(*" + object_pointer(index, access) + ")";
     return reference;
 }
 
 std::string FormGenerator::object_argument(std::size_t index, ObjectAccess access) const {
-    if (index == 0U && options_.derived && !form_root_) return "*this";
+    if (index == 0U && options_.derived && !form_root_ && !composed_) return "*this";
     const std::string argument = "*" + object_pointer(index, access);
     return argument;
 }
@@ -520,8 +529,9 @@ bool FormGenerator::binds() const noexcept {
 
 void FormGenerator::write_objects(std::string& out, ObjectAccess access) const {
     for (std::size_t index = 0U; index < model_.objects.size(); ++index) {
-        // A form root is the window; a derived control's root is the class.
-        if (index == 0U && (form_root_ || options_.derived)) continue;
+        // A form root is the window; a derived control's root is the class,
+        // unless the class composes it.
+        if (index == 0U && (form_root_ || (options_.derived && !composed_))) continue;
         const FormObject& object = model_.objects[index];
         const FormSchemaType& type = type_of(index);
         const std::string pointer = object_pointer(index, access);
@@ -754,6 +764,46 @@ void FormGenerator::write_derived_control(std::string& out) const {
         out += "    // The bindings' sources; it outlives the control.\n";
         out += "    " + model + "& model_;\n";
     }
+    out += "};\n";
+}
+
+void FormGenerator::write_composed_control(std::string& out) const {
+    const std::string& name = options_.class_name;
+    const bool bound = binds();
+    const std::string& model = options_.model_type;
+    const std::string& base = type_of(0U).cpp_type;
+    const std::string& root = member(0U);
+    out += "// The control " + options_.source_name + " describes (stage B), composed: its root's type,\n";
+    out += "// " + base + ", is final, so the class holds the root as its member " + root + "\n";
+    out += "// instead of deriving from it. make() makes the root, then the document's other objects\n";
+    out += "// in document order, each control added to its parent, then sets or binds each property\n";
+    out += "// in document order";
+    if (bound) {
+        out += ", reading the model's members as sources. Each bound control keeps\n";
+        out += "// its binding, so the model must outlive the controls: declare it first";
+    }
+    out += ". A throw leaves nothing made.\n";
+    out += "class " + name + " final {\n";
+    out += "public:\n";
+    out += "    // The document's root, then its other objects, in document order. The root is\n";
+    out += "    // the control a window shows or a parent adds; the tree owns the controls with\n";
+    out += "    // this class.\n";
+    for (std::size_t index = 0U; index < model_.objects.size(); ++index) {
+        out += "    std::shared_ptr<" + type_of(index).cpp_type + "> " + member(index) + "{};\n";
+    }
+    out += '\n';
+    out += "    // The objects, made and set; the root has the document's stable ID.\n";
+    out += "    [[nodiscard]] static " + name + " make(" + (bound ? model + "& model" : "") + ") {\n";
+    out += "        " + name + " made{};\n";
+    write_objects(out, ObjectAccess::through_made);
+    write_values(out, ObjectAccess::through_made, "model.");
+    out += "        return made;\n";
+    out += "    }\n\n";
+    out += "    // The root control: the one a window shows.\n";
+    out += "    [[nodiscard]] gui_forms::Control::Ptr root_control() const {\n";
+    out += "        const gui_forms::Control::Ptr shown = " + root + ";\n";
+    out += "        return shown;\n";
+    out += "    }\n";
     out += "};\n";
 }
 

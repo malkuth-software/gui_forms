@@ -5,7 +5,7 @@
   "header": "include/gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.hpp",
   "source": "src/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.cpp",
   "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_capabilities/flow_layout_panel_compat_capabilities.hpp",
-  "base": "Control",
+  "base": "ScrollableControl",
   "includes": [
     "gui_forms/controls/scrollable_control/container_control/container_control.hpp",
     "gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_values/flow_layout_panel_compat_values.hpp"

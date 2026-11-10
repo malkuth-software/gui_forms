@@ -30,6 +30,13 @@
 
 #include "demo/gallery.hpp"
 #include "demo/gallery_page_specs.hpp"
+#include "gui_forms/controls/callout/callout.hpp"
+#include "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp"
+#include "gui_forms/controls/instruments/sparkline/sparkline.hpp"
+#include "gui_forms/controls/modal_layer/modal_layer.hpp"
+#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
+#include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
+#include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
 #include "gui_forms/gui_forms.hpp"
 #include "headless_host.hpp"
 
@@ -203,7 +210,12 @@ struct ClickCounter final {
 
 // The supplement window: the registry types the Gallery shows only through
 // subclasses (ButtonBase, RangeControl, ScrollBar), one of each, as the
-// anatomy coverage test adds them.
+// anatomy coverage test adds them; and the visual registry controls no
+// Gallery page attaches (the instruments and the plot, and the wizard page,
+// callout, modal layer and help viewer), each placed bare, as the Windows
+// accessibility tests' off-tree fixture places them.
+inline constexpr Size supplement_size{800.0, 600.0};
+
 inline std::unique_ptr<Window> make_supplement() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("supplement"));
     std::shared_ptr<ButtonBase> button_base = make_control<ButtonBase>(StableId("supplement.button-base"), "Base");
@@ -215,7 +227,29 @@ inline std::unique_ptr<Window> make_supplement() {
     (*root).add_child(button_base);
     (*root).add_child(scroll_bar);
     (*root).add_child(range_control);
-    std::unique_ptr<Window> window = std::make_unique<Window>(root, Size{320.0, 140.0});
+    std::shared_ptr<Sparkline> sparkline = make_control<Sparkline>(StableId("supplement.sparkline"));
+    std::shared_ptr<ValueBar> value_bar = make_control<ValueBar>(StableId("supplement.value-bar"));
+    std::shared_ptr<PlotView> plot_view = make_control<PlotView>(StableId("supplement.plot-view"));
+    std::shared_ptr<WizardPage> wizard_page = make_control<WizardPage>(StableId("supplement.wizard-page"));
+    std::shared_ptr<Callout> callout = make_control<Callout>(StableId("supplement.callout"));
+    std::shared_ptr<ModalLayer> modal_layer = make_control<ModalLayer>(StableId("supplement.modal-layer"));
+    std::shared_ptr<HelpBookViewer> help_book_viewer =
+        make_control<HelpBookViewer>(StableId("supplement.help-book-viewer"));
+    (*sparkline).set_requested_bounds({330, 10, 160, 30});
+    (*value_bar).set_requested_bounds({330, 50, 160, 24});
+    (*plot_view).set_requested_bounds({10, 150, 300, 150});
+    (*wizard_page).set_requested_bounds({330, 150, 200, 100});
+    (*callout).set_requested_bounds({550, 150, 200, 80});
+    (*modal_layer).set_requested_bounds({550, 250, 160, 80});
+    (*help_book_viewer).set_requested_bounds({10, 320, 500, 260});
+    (*root).add_child(sparkline);
+    (*root).add_child(value_bar);
+    (*root).add_child(plot_view);
+    (*root).add_child(wizard_page);
+    (*root).add_child(callout);
+    (*root).add_child(modal_layer);
+    (*root).add_child(help_book_viewer);
+    std::unique_ptr<Window> window = std::make_unique<Window>(root, supplement_size);
     (*window).perform_layout();
     return window;
 }

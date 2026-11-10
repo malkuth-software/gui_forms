@@ -8,6 +8,7 @@
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "../dispatcher/state/dispatcher_state.hpp"
+#include "../drag_engine/drag_engine.hpp"
 #include "../display/chunk/display_chunk.hpp"
 #include "../display/recording_painter/recording_painter.hpp"
 #include "../display/replay/replay_display_chunk.hpp"
@@ -21,8 +22,6 @@
 #include <array>
 #include <atomic>
 #include <cmath>
-#include <cstdio>
-#include <cstdlib>
 #include <exception>
 #include <functional>
 #include <stdexcept>
@@ -363,7 +362,7 @@ void SurfaceRoot::FocusChangePublication::operator()() const {
     }
     if (!(*control).is_alive()) return;
     if (!focused || (*root).eligible(control)) {
-        (*control).invalidate(invalidation::focus);
+        (*control).invalidate((*control).focus_invalidation());
         if (focused) (*root).reveal_focused(control);
     } else {
         (*root).focused_.reset();
@@ -1306,6 +1305,7 @@ FocusScopeId SurfaceRoot::begin_focus_scope(const Control::Ptr& root,
     change.depth = depth;
     change.opened = true;
     focus_scope_changed_.emit(change);
+    if (tool_tips_) (*tool_tips_).scope_changed();
 
     bool remains_active = false;
     for (const FocusScopeState& candidate : focus_scopes_) {
@@ -1641,6 +1641,12 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
     }
     if (revoked && previous) {
         metrics_.record_capture_revocation();
+    }
+    // A drag whose subject lost the capture ends (the engine ignores the
+    // release it makes itself). A primary release frees the capture before
+    // the release reaches the subject, which then ends the drag itself.
+    if (previous && previous != control && drag_engine_ && !defer_capture_changed_) {
+        (*drag_engine_).note_capture_lost(*previous);
     }
     PointerCaptureChange change;
     change.captured = static_cast<bool>(control);
@@ -1990,6 +1996,9 @@ bool SurfaceRoot::dispatch_key(KeyEvent event) {
     }
     // A lifted drop-down or picker's Popup window takes the key first.
     if (forward_to_popup(event)) return true;
+    // A running drag takes the keys it uses (Escape; the keyboard mode's
+    // arrows, Tab and Enter) before the rules and the focused control.
+    if (drag_engine_ && (*drag_engine_).key(event)) return true;
     const bool handled = route_key(std::move(event));
     // A key may have moved the keyboard within the focused control, or
     // shown the focus cue: the presenter looks at what focus is on again.
@@ -3071,6 +3080,38 @@ void SurfaceRoot::mark_child_layout_slot(Control& control) {
     if (in_layout_ || in_paint_) settle_dirty();
 }
 
+// The drag engine's live region (roadmap 2.1, phase E4): once the window has
+// made its engine, the latest drag announcement names a live region below
+// the root control's node (a top-level node when the root publishes none,
+// as under a modal scope or for an unexposed root), so a screen reader
+// hears each step and the end. It is always
+// present from then on, so a reader knows it before it changes; it covers
+// the window and takes no action. The engine invalidates the root's
+// semantics whenever the text changes.
+void SurfaceRoot::append_drag_announcements(SemanticSnapshot& snapshot) const {
+    if (!drag_engine_ || !root_) return;
+    SemanticNode region{};
+    region.stable_id = std::string((*root_).stable_id().value()) + ".drag-announcements";
+    region.runtime_id = virtual_semantic_runtime_id(region.stable_id);
+    region.role = SemanticRole::live_region;
+    region.name = std::string((*drag_engine_).announcement());
+    region.bounds = (*root_).absolute_bounds();
+    region.states = SemanticState::visible | SemanticState::enabled;
+    const std::uint64_t root_runtime_id = (*root_).runtime_id().value;
+    SemanticNode* holder = nullptr;
+    for (SemanticNode& node : snapshot.roots) {
+        if (node.runtime_id != root_runtime_id) continue;
+        holder = &node;
+        break;
+    }
+    if (holder != nullptr) {
+        (*holder).children.push_back(std::move(region));
+    } else {
+        snapshot.roots.push_back(std::move(region));
+    }
+    ++snapshot.node_count;
+}
+
 SemanticSnapshot SurfaceRoot::semantic_snapshot() {
     require_root_thread("semantic snapshot");
     if (in_semantic_snapshot_) {
@@ -3106,6 +3147,7 @@ SemanticSnapshot SurfaceRoot::semantic_snapshot() {
             append_semantic_nodes(root, root == scoped ? (*root).parent().get() : nullptr, this, focused, snapshot.roots,
                                   snapshot.node_count, unowned);
         }
+        append_drag_announcements(snapshot);
         if (generation == semantic_generation_) {
             return snapshot;
         }
@@ -3270,11 +3312,12 @@ void SurfaceRoot::apply_subtree_dirty(Control& control, Dirty requested_dirty,
     }
     if (has_dirty(requested_dirty, Dirty::paint)) {
         Rect bounds = paint_damage_bounds_of(control);
-        if (bounds.empty()) {
+        if (bounds.empty() && control.paints_content() && arranged_in_window(control)) {
             bounds = control.requested_bounds_;
         }
         // Structural invalidation recomposes every plane so vacated pixels
         // cannot survive beneath a transparent or detached control.
+        const DamageCauseScope cause(*this, InvalidationCause::control, &control);
         add_damage_all_planes(bounds);
         requested_damage_area += bounds.area();
     }
@@ -3350,6 +3393,7 @@ bool SurfaceRoot::covered_by_pending_subtree(const Control& control, Dirty kinds
 void SurfaceRoot::change_paint_plane(Control& control, PaintPlane plane) {
     require_root_thread("paint-plane mutation");
     const Rect bounds = paint_damage_bounds_of(control);
+    const DamageCauseScope cause(*this, InvalidationCause::control, &control);
     add_damage_all_planes(bounds);
     control.paint_plane_ = plane;
     control.display_chunk_.reset();
@@ -3363,6 +3407,8 @@ void SurfaceRoot::add_damage(Rect damage, PaintPlane plane) {
     // plane only when its painted bounds contain the pending bounds.
     damage = Rect::intersection(damage, {0.0, 0.0, client_size_.width, client_size_.height});
     if (damage.empty()) return;
+    sync_invalidation_overlay();
+    if (invalidation_overlay_ != nullptr) note_damage_cause(damage, false);
     DamageRegion& region = plane_damage_[paint_plane_index(plane)];
     const std::uint64_t compactions = region.compaction_count();
     const std::uint64_t collapses = region.collapse_count();
@@ -3372,6 +3418,91 @@ void SurfaceRoot::add_damage(Rect damage, PaintPlane plane) {
         region.collapse_count() - collapses);
     // Glass over the damaged backplane shows it changed (E9-B).
     if (plane == PaintPlane::backplane) damage_backplane_readers(&damage);
+}
+
+void SurfaceRoot::sync_invalidation_overlay() {
+    const std::uint64_t generation = invalidation_overlay_default_generation();
+    if (generation == invalidation_overlay_generation_) return;
+    invalidation_overlay_generation_ = generation;
+    const bool enabled = invalidation_overlay_setting_.value_or(invalidation_overlay_default());
+    if (enabled && invalidation_overlay_ == nullptr) {
+        invalidation_overlay_ = std::make_unique<InvalidationOverlay>();
+    } else if (!enabled && invalidation_overlay_ != nullptr) {
+        invalidation_overlay_.reset();
+        invalidation_causes_.clear();
+    }
+}
+
+void SurfaceRoot::set_invalidation_overlay(std::optional<bool> enabled) {
+    require_root_thread("invalidation overlay setting");
+    invalidation_overlay_setting_ = enabled;
+    // Applied by the next sync, as a process switch change is.
+    invalidation_overlay_generation_ = 0U;
+    sync_invalidation_overlay();
+}
+
+bool SurfaceRoot::invalidation_overlay_enabled() noexcept {
+    sync_invalidation_overlay();
+    return invalidation_overlay_ != nullptr;
+}
+
+InvalidationOverlay* SurfaceRoot::invalidation_overlay() noexcept {
+    sync_invalidation_overlay();
+    return invalidation_overlay_.get();
+}
+
+void SurfaceRoot::record_presented_area(Rect bounds, InvalidationCause cause, std::string_view source) {
+    sync_invalidation_overlay();
+    if (invalidation_overlay_ == nullptr) return;
+    (*invalidation_overlay_).record(bounds, cause, source, InvalidationClock::now());
+}
+
+void SurfaceRoot::note_damage_cause(Rect damage, bool presented_whole) {
+    const std::string_view source =
+        damage_source_ != nullptr ? (*damage_source_).stable_id().value() : std::string_view{};
+    // add_damage_all_planes notes one rectangle once a plane: keep one.
+    if (!invalidation_causes_.empty()) {
+        const InvalidationCauseRecord& last = invalidation_causes_.back();
+        if (last.bounds == damage && last.cause == damage_cause_ && last.source == source &&
+            last.presented_whole == presented_whole) {
+            return;
+        }
+    }
+    if (invalidation_causes_.size() >= maximum_invalidation_causes) return;
+    InvalidationCauseRecord record{};
+    record.bounds = damage;
+    record.cause = damage_cause_;
+    record.source = std::string(source);
+    record.presented_whole = presented_whole;
+    invalidation_causes_.push_back(std::move(record));
+}
+
+void SurfaceRoot::attribute_painted_damage(std::span<const Rect> painted) {
+    InvalidationOverlay& overlay = *invalidation_overlay_;
+    const InvalidationClock::time_point now = InvalidationClock::now();
+    overlay.expire(now);
+    for (const InvalidationCauseRecord& record : invalidation_causes_) {
+        if (record.presented_whole) {
+            overlay.record(record.bounds, record.cause, record.source, now);
+            continue;
+        }
+        for (const Rect& rectangle : painted) {
+            const Rect shown = Rect::intersection(record.bounds, rectangle);
+            if (!shown.empty()) overlay.record(shown, record.cause, record.source, now);
+        }
+    }
+    for (const Rect& rectangle : painted) {
+        bool asked = false;
+        for (const InvalidationCauseRecord& record : invalidation_causes_) {
+            if (record.presented_whole) continue;
+            if (!Rect::intersection(record.bounds, rectangle).empty()) {
+                asked = true;
+                break;
+            }
+        }
+        if (!asked) overlay.record(rectangle, InvalidationCause::host_expose, std::string_view{}, now);
+    }
+    invalidation_causes_.clear();
 }
 
 void SurfaceRoot::add_damage_all_planes(Rect damage) {
@@ -3412,9 +3543,16 @@ void SurfaceRoot::damage_resized(Control& control, Rect old_bounds, Rect new_bou
     // recorded again at the new size either way (paint_recursive).
     // `control` and `relaid` are for the hot-paths strip rules (material
     // bands, viewports).
-    static_cast<void>(control);
     static_cast<void>(relaid);
+    const DamageCauseScope cause(*this, InvalidationCause::layout, &control);
     const bool same_origin = old_bounds.x == new_bounds.x && old_bounds.y == new_bounds.y;
+    // A control that paints nothing damages only what its children paint.
+    if (same_origin && !control.paints_content()) {
+        for (const Control::Ptr& child : control.children_) {
+            add_subtree_damage(child);
+        }
+        return;
+    }
     if (same_origin && !escalate) {
         add_resize_strip_damage(old_bounds, new_bounds, 0.0);
     } else {
@@ -3573,6 +3711,9 @@ bool SurfaceRoot::request_scroll_copy(Control& scroller, Point offset) {
         plane = damage_after_scroll_copy(plane, clip, offset);
     }
     scroll_copies_.push_back(ScrollCopy{clip, offset});
+    const DamageCauseScope cause(*this, InvalidationCause::scroll_copy, &scroller);
+    sync_invalidation_overlay();
+    if (invalidation_overlay_ != nullptr) note_damage_cause(clip, true);
     scroll_translating_ = &scroller;
     scroll_translation_ = offset;
     const double band_x = offset.x < 0.0 ? clip.x + clip.width + offset.x : clip.x;
@@ -3653,6 +3794,7 @@ PaintLeaseState SurfaceRoot::paint_lease_state() const noexcept {
 }
 
 void SurfaceRoot::add_subtree_damage(const Control::Ptr& control) {
+    const DamageCauseScope cause(*this, InvalidationCause::control, control.get());
     add_damage_all_planes(paint_damage_bounds_of(*control));
     for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
         add_subtree_damage(child);
@@ -3696,9 +3838,10 @@ void SurfaceRoot::settle_touch(Control& control, detail::PendingTouch owed) {
     }
     if (owed.damages_bounds) {
         Rect bounds = paint_damage_bounds_of(control);
-        if (bounds.empty()) {
+        if (bounds.empty() && control.paints_content() && arranged_in_window(control)) {
             bounds = control.requested_bounds_;
         }
+        const DamageCauseScope cause(*this, InvalidationCause::control, &control);
         add_damage(bounds, control.paint_plane_);
         metrics_.record_requested_damage(bounds.area());
     }
@@ -3763,6 +3906,7 @@ void SurfaceRoot::settle_dirty() {
         const Rect bounds = absolute_bounds_of(*control);
         const Rect window_damage{bounds.x + pending.local_damage.x, bounds.y + pending.local_damage.y,
                                  pending.local_damage.width, pending.local_damage.height};
+        const DamageCauseScope cause(*this, InvalidationCause::control, control);
         add_damage(window_damage, (*control).paint_plane_);
         metrics_.record_requested_damage(window_damage.area());
     }
@@ -4616,6 +4760,14 @@ Rect SurfaceRoot::absolute_bounds_of(const Control& control) const {
     return result;
 }
 
+bool SurfaceRoot::arranged_in_window(const Control& control) const {
+    if (control.arranged_bounds_.empty()) return false;
+    for (Control::Ptr ancestor = control.parent(); ancestor; ancestor = (*ancestor).parent()) {
+        if ((*ancestor).arranged_bounds_.empty()) return false;
+    }
+    return true;
+}
+
 Rect SurfaceRoot::visual_bounds_of(const Control& control, Insets outsets) const {
     outsets = {bounded_visual_outset(outsets.left),
                bounded_visual_outset(outsets.top),
@@ -4628,6 +4780,11 @@ Rect SurfaceRoot::visual_bounds_of(const Control& control, Insets outsets) const
 }
 
 Rect SurfaceRoot::paint_damage_bounds_of(const Control& control) const {
+    if (!control.paints_content()) return Rect{};
+    // A control not arranged yet (it or an ancestor has empty bounds) has
+    // painted nothing: its outsets (a shadow) round an empty rectangle at
+    // its parent's origin would damage pixels it never touches.
+    if (!arranged_in_window(control)) return Rect{};
     return Rect::united(
         visual_bounds_of(control, control.effective_visual_outsets()),
         visual_bounds_of(control, control.last_painted_visual_outsets_));
@@ -4637,6 +4794,8 @@ bool SurfaceRoot::eligible(const Control::Ptr& control) const noexcept {
     return control && (*control).surface_root_ == this && (*control).eligible_for_input();
 }
 
-
+std::optional<HostCloseReason> Window::host_close_reason() const noexcept {
+    return host_close_reason_;
+}
 
 } // namespace gui_forms

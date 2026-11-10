@@ -17,12 +17,21 @@
 
 namespace gui_drawing {
 
+// A bitmap's pixels: owned (bytes) or borrowed (borrowed, row_bytes apart,
+// owned by the native object a borrowing bitmap wraps, which outlives it).
+// Never copied while borrowed: a copy of a borrowed storage would alias the
+// native memory (Bitmap::snapshot copies the pixels instead).
 struct PixelStorage final {
     std::uint32_t width{};
     std::uint32_t height{};
     PixelFormat pixel_format{PixelFormat::bgra32_premultiplied};
     std::size_t row_bytes{};
     std::vector<std::byte> bytes;
+    std::byte* borrowed{};
+
+    [[nodiscard]] std::byte* data() noexcept { return borrowed != nullptr ? borrowed : bytes.data(); }
+    [[nodiscard]] const std::byte* data() const noexcept { return borrowed != nullptr ? borrowed : bytes.data(); }
+    [[nodiscard]] std::size_t size() const noexcept { return row_bytes * static_cast<std::size_t>(height); }
 };
 
 namespace {
@@ -242,6 +251,12 @@ private:
     case CommandKind::draw_path: return "draw_path";
     case CommandKind::fill_path: return "fill_path";
     case CommandKind::draw_image: return "draw_image";
+    case CommandKind::draw_lines: return "draw_lines";
+    case CommandKind::fill_rectangles: return "fill_rectangles";
+    case CommandKind::draw_line_segments: return "draw_line_segments";
+    case CommandKind::draw_markers: return "draw_markers";
+    case CommandKind::fill_grid_pattern: return "fill_grid_pattern";
+    case CommandKind::fill_proportion: return "fill_proportion";
     }
     return "unknown";
 }
@@ -341,23 +356,23 @@ void store_color(PixelStorage& storage, std::uint32_t x, std::uint32_t y,
     const std::uint8_t red = premultiply(color.red(), alpha);
     const std::uint8_t green = premultiply(color.green(), alpha);
     const std::uint8_t blue = premultiply(color.blue(), alpha);
-    storage.bytes[offset] = static_cast<std::byte>(blue);
-    storage.bytes[offset + 1U] = static_cast<std::byte>(green);
-    storage.bytes[offset + 2U] = static_cast<std::byte>(red);
-    storage.bytes[offset + 3U] = static_cast<std::byte>(alpha);
+    storage.data()[offset] = static_cast<std::byte>(blue);
+    storage.data()[offset + 1U] = static_cast<std::byte>(green);
+    storage.data()[offset + 2U] = static_cast<std::byte>(red);
+    storage.data()[offset + 3U] = static_cast<std::byte>(alpha);
 }
 
 [[nodiscard]] Color load_color(const PixelStorage& storage,
                                std::uint32_t x,
                                std::uint32_t y) noexcept {
     const std::size_t offset = pixel_offset(storage, x, y);
-    const std::uint8_t blue = std::to_integer<std::uint8_t>(storage.bytes[offset]);
+    const std::uint8_t blue = std::to_integer<std::uint8_t>(storage.data()[offset]);
     const std::uint8_t green =
-        std::to_integer<std::uint8_t>(storage.bytes[offset + 1U]);
+        std::to_integer<std::uint8_t>(storage.data()[offset + 1U]);
     const std::uint8_t red =
-        std::to_integer<std::uint8_t>(storage.bytes[offset + 2U]);
+        std::to_integer<std::uint8_t>(storage.data()[offset + 2U]);
     const std::uint8_t alpha =
-        std::to_integer<std::uint8_t>(storage.bytes[offset + 3U]);
+        std::to_integer<std::uint8_t>(storage.data()[offset + 3U]);
     return Color::from_argb(alpha, unpremultiply(red, alpha),
                             unpremultiply(green, alpha), unpremultiply(blue, alpha));
 }
@@ -370,10 +385,10 @@ void store_color(PixelStorage& storage, std::uint32_t x, std::uint32_t y,
     const std::uint8_t red = premultiply(color.red(), alpha);
     const std::uint8_t green = premultiply(color.green(), alpha);
     const std::uint8_t blue = premultiply(color.blue(), alpha);
-    return std::to_integer<std::uint8_t>(storage.bytes[offset]) == blue &&
-        std::to_integer<std::uint8_t>(storage.bytes[offset + 1U]) == green &&
-        std::to_integer<std::uint8_t>(storage.bytes[offset + 2U]) == red &&
-        std::to_integer<std::uint8_t>(storage.bytes[offset + 3U]) == alpha;
+    return std::to_integer<std::uint8_t>(storage.data()[offset]) == blue &&
+        std::to_integer<std::uint8_t>(storage.data()[offset + 1U]) == green &&
+        std::to_integer<std::uint8_t>(storage.data()[offset + 2U]) == red &&
+        std::to_integer<std::uint8_t>(storage.data()[offset + 3U]) == alpha;
 }
 
 template <typename Enum>
@@ -394,6 +409,11 @@ void require_enum(Enum value, unsigned maximum, std::string_view field) {
             result += number(pen.dash_pattern[index]);
         }
     }
+    // Written only when not the defaults, so older traces stay as they were.
+    if (pen.join != LineJoin::miter || pen.miter_limit != 4.0) {
+        result += ",join=" + std::to_string(static_cast<unsigned>(pen.join)) + "/" + number(pen.miter_limit);
+    }
+    if (pen.cap != LineCap::flat) result += ",cap=" + std::to_string(static_cast<unsigned>(pen.cap));
     return result;
 }
 
@@ -405,6 +425,9 @@ void require_enum(Enum value, unsigned maximum, std::string_view field) {
     if (brush.kind == BrushKind::hatch) {
         return result + ",hatch=" +
             std::to_string(static_cast<unsigned>(brush.hatch_style));
+    }
+    if (brush.kind == BrushKind::checker) {
+        return result + ",checker=" + number(brush.cell_size);
     }
     if (brush.kind == BrushKind::texture) {
         return result + ",image=" + std::to_string(brush.image.stable_id) +

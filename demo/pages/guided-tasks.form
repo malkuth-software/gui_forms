@@ -1,0 +1,139 @@
+/* The Gallery's guided-tasks page (roadmap row 2.5): StepIndicator,
+   Wizard and WizardPage, LookupComboBox, Callout, ModalLayer and
+   AboutDialog. gui_forms_add_form() compiles this document into
+   guided-tasks_form.hpp at build time.
+
+   gallery.guided-tasks.document is a declared boundary only: the page
+   moves its children into the shell's page body (a 1000 x 660 design
+   surface). gallery.guided.modal-content is the modal layer's content,
+   shown only while the layer is open. Behaviour stays in the page
+   (src/controls/gallery/pages/guided-tasks.cpp): the lookup's rows, the
+   wizard's gate and outcome, and the buttons that open the callout, the
+   modal layer and the About box. */
+scaled-panel gallery.guided-tasks.document {
+  design-size: 1000 660;
+
+  label gallery.guided-tasks.heading {
+    text: "GUIDED TASKS";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.guided-tasks.lead {
+    text: "Wizards and steps, a multi-column lookup, a teaching callout, an in-window modal layer and an About box.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.guided.wizard-group {
+    text: "Wizard · pages, a step indicator, a gate on Next";
+    classes: "paper" "group-caption";
+    design-size: 580 540;
+    bounds: 24 92 580 540;
+    wizard gallery.guided.wizard {
+      accessible-name: "New account";
+      bounds: 14 36 552 420;
+      wizard-page gallery.guided.wizard.account {
+        title: "Account";
+        description: "Choose a name for the account.";
+        check-box gallery.guided.wizard.agree {
+          text: "I accept the terms (enables Next)";
+          bounds: 0 8 320 24;
+        }
+      }
+      wizard-page gallery.guided.wizard.details {
+        title: "Details";
+        description: "Where is the account based?";
+        lookup-combo-box gallery.guided.wizard.country {
+          accessible-name: "Country";
+          display-column: 1;
+          bounds: 0 8 260 24;
+        }
+      }
+      wizard-page gallery.guided.wizard.review {
+        title: "Review";
+        description: "Finish creates the account.";
+        label gallery.guided.wizard.summary {
+          text: "Everything is ready.";
+          bounds: 0 8 360 24;
+        }
+      }
+    }
+    label gallery.guided.wizard.outcome {
+      text: "Not finished yet.";
+      classes: "muted" "note";
+      bounds: 14 470 552 24;
+    }
+  }
+
+  scaled-group-box gallery.guided.side {
+    text: "StepIndicator, LookupComboBox and overlays";
+    classes: "paper" "group-caption";
+    design-size: 350 540;
+    bounds: 624 92 350 540;
+    step-indicator gallery.guided.steps {
+      accessible-name: "Order progress";
+      current-step: 0;
+      bounds: 14 40 322 52;
+    }
+    label gallery.guided.lookup.label {
+      text: "Currency";
+      classes: "heading" "note-strong";
+      bounds: 14 116 200 20;
+    }
+    lookup-combo-box gallery.guided.lookup {
+      accessible-name: "Currency";
+      display-column: 1;
+      bounds: 14 138 260 24;
+    }
+    button gallery.guided.callout-target {
+      text: "Show a callout";
+      bounds: 14 200 200 32;
+    }
+    callout gallery.guided.callout {
+      title: "New: callouts";
+      text: "A callout points out a control without blocking the window. Press Escape or the close mark to dismiss it.";
+      action-text: "Got it";
+    }
+    button gallery.guided.open-modal {
+      text: "Open a modal layer";
+      bounds: 14 250 200 32;
+    }
+    button gallery.guided.about {
+      text: "About this Gallery";
+      bounds: 14 300 200 32;
+    }
+    label gallery.guided.result {
+      text: "";
+      classes: "muted" "note";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 14 350 322 80;
+    }
+  }
+
+  panel gallery.guided.modal-content {
+    accessible-name: "Modal layer";
+    border-style: raised;
+    bounds: 0 0 320 160;
+    label gallery.guided.modal.title {
+      text: "An in-window modal layer";
+      classes: "heading" "body-strong";
+      bounds: 14 12 290 22;
+    }
+    label gallery.guided.modal.note {
+      text: "The window behind takes no input until this closes. Tab stays inside; Escape cancels.";
+      classes: "muted" "note";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 14 40 290 60;
+    }
+    button gallery.guided.modal.ok {
+      text: "OK";
+      bounds: 104 116 96 30;
+    }
+    button gallery.guided.modal.cancel {
+      text: "Cancel";
+      bounds: 208 116 96 30;
+    }
+  }
+}

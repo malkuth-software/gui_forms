@@ -89,6 +89,9 @@ void test_registry_pages_gallery() {
     test_semantic_feedback(window);
     test_notices_and_badges(window);
     test_spinners_and_rings(window);
+    test_instruments(window);
+    test_guided_tasks(window);
+    test_help_book(window);
     test_retained_layout_panels(window);
     test_css_layout_panels(window);
     test_control_spectrum(window);
@@ -117,6 +120,7 @@ int main(int argc, char** argv) {
         // process made before it, so no other test may run first.
         if (argc == 2 && std::string_view(argv[1]) == "--display-trace") {
             test_display_commands_unchanged();
+            test_theme_switch_round_trip();
             std::cout << "gui_forms_gallery_pages_tests --display-trace: passed\n";
             return EXIT_SUCCESS;
         }

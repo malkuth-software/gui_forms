@@ -1,0 +1,113 @@
+/* The Gallery's instruments page (roadmap row 2.5, W-5b and W-9): the
+   instruments package's readouts, gauges and knob. gui_forms_add_form()
+   compiles this document into instruments_form.hpp at build time.
+
+   gallery.instruments.document is a declared boundary only: the page moves
+   its children into the shell's page body (a 1000 x 660 design surface),
+   where each is placed by its bounds in design coordinates. Behaviour stays
+   in the page (src/controls/gallery/pages/instruments.cpp): the alarm
+   limits, which are not form properties, and the dial that drives the
+   linked readout and gauge. */
+scaled-panel gallery.instruments.document {
+  design-size: 1000 660;
+
+  label gallery.instruments.heading {
+    text: "INSTRUMENTS";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.instruments.lead {
+    text: "Readouts, gauges and a knob from the instruments package; an alarm turns a reading to the warning colours.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.instruments.readouts {
+    text: "SevenSegmentDisplay · digits, points, colons and letters";
+    classes: "paper" "group-caption";
+    design-size: 450 250;
+    bounds: 24 92 450 250;
+    seven-segment-display gallery.instruments.clock {
+      accessible-name: "Clock";
+      text: "12:45";
+      bounds: 24 44 200 64;
+    }
+    seven-segment-display gallery.instruments.reading {
+      accessible-name: "Reading";
+      text: "-3.14";
+      digit-count: 6;
+      bounds: 240 52 190 48;
+    }
+    seven-segment-display gallery.instruments.word {
+      accessible-name: "Status word";
+      text: "CAFE";
+      bounds: 24 132 160 48;
+    }
+    check-box gallery.instruments.ghosts {
+      text: "Ghost segments";
+      checked: true;
+      bounds: 240 144 190 24;
+    }
+  }
+
+  scaled-group-box gallery.instruments.gauges {
+    text: "LinearGauge and RadialGauge · scale marks, units and alarms";
+    classes: "paper" "group-caption";
+    design-size: 480 250;
+    bounds: 494 92 480 250;
+    linear-gauge gallery.instruments.pressure {
+      accessible-name: "Pressure";
+      units: "kPa";
+      tick-frequency: 20;
+      bounds: 20 44 260 32;
+    }
+    linear-gauge gallery.instruments.temperature {
+      accessible-name: "Temperature";
+      units: "°C";
+      tick-frequency: 25;
+      bounds: 20 100 260 32;
+    }
+    linear-gauge gallery.instruments.level {
+      accessible-name: "Tank level";
+      units: "%";
+      tick-frequency: 25;
+      bounds: 20 150 56 90;
+    }
+    radial-gauge gallery.instruments.speed {
+      accessible-name: "Speed";
+      units: "rpm";
+      tick-frequency: 1000;
+      bounds: 300 40 160 160;
+    }
+  }
+
+  scaled-group-box gallery.instruments.knob {
+    text: "Dial · turn by dragging, the wheel or the arrow keys";
+    classes: "paper" "group-caption";
+    design-size: 950 270;
+    bounds: 24 362 950 270;
+    dial gallery.instruments.dial {
+      accessible-name: "Gain";
+      tick-frequency: 10;
+      bounds: 30 44 160 160;
+    }
+    seven-segment-display gallery.instruments.dial.readout {
+      accessible-name: "Gain readout";
+      digit-count: 3;
+      bounds: 230 80 150 64;
+    }
+    radial-gauge gallery.instruments.dial.gauge {
+      accessible-name: "Gain level";
+      units: "dB";
+      tick-frequency: 10;
+      bounds: 420 40 170 170;
+    }
+    label gallery.instruments.dial.note {
+      text: "The gauge goes into alarm above 80. Gauges take no focus and to assistive technology are meters with their value text; the dial is a slider.";
+      classes: "muted" "note";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 620 60 300 120;
+    }
+  }
+}

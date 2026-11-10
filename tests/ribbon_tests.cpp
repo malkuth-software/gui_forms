@@ -147,18 +147,20 @@ bool key(Window& window, std::uint32_t physical, Modifier modifiers = Modifier::
 void geometry() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     const ControlAnatomy& anatomy = (*ribbon).anatomy();
     require(validate_control_anatomy(anatomy).defect == AnatomyDefect::none && anatomy.control_id == "ribbon" &&
                 anatomy.item_systems.size() == 3U,
             "Ribbon publishes a valid anatomy with tab, group and command systems");
-    require((*ribbon).measure({900.0, 400.0}).height == 24.0 + 88.0,
+    require((*ribbon).measure({900.0, 400.0}).height == 27.0 + 88.0,
             "the ribbon is its tab row over its command plane");
     const Ribbon::Parts parts = (*ribbon).parts();
     require(parts.tab_rail.present && parts.application_button.present && parts.command_plane.present &&
                 parts.command_plane.bounds.y == parts.tab_rail.bounds.height,
             "the tab row is above the command plane");
+    require(find_part(anatomy, "help_button") && !parts.help_button.present,
+            "the help button's part is reserved and not yet placed (owner, N4)");
     const std::vector<Ribbon::Tab> tabs = (*ribbon).realized_tabs();
     require(tabs.size() == 2U && tabs[0].states.selected && !tabs[1].states.selected &&
                 tabs[0].parts.tab.bounds.x >= parts.application_button.bounds.x + parts.application_button.bounds.width,
@@ -189,7 +191,7 @@ void geometry() {
     require((*copy).parts.command_label.present, "labels are shown at every size");
 
     RecordingPainter painter;
-    static_cast<void>(window.paint(painter, {0.0, 0.0, 900.0, 112.0}));
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 900.0, 115.0}));
     require(painted(painter, "File") && painted(painter, "Home") && painted(painter, "Clipboard") &&
                 painted(painter, "Paste") && painted(painter, "Copy") && !painted(painter, "&Copy") &&
                 !painted(painter, "Bold") && painter.images >= 2 && painter.lines >= 5,
@@ -199,7 +201,7 @@ void geometry() {
 void one_command_path() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     int pastes = 0;
     int cuts = 0;
@@ -241,7 +243,7 @@ void one_command_path() {
 void tab_navigation() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     std::vector<std::string> launches;
     SubscriptionToken launched = (*ribbon).dialog_launcher_clicked().subscribe(RecordLaunch{&launches});
@@ -266,7 +268,7 @@ void tab_navigation() {
 void state_repaints_only_its_command() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     static_cast<void>(window.take_damage());
     const std::vector<Ribbon::CommandItem> items = (*ribbon).realized_commands();
@@ -280,17 +282,86 @@ void state_repaints_only_its_command() {
             "an enabled change repaints only its command");
 }
 
+// Each damaged rectangle lies within `part` (with a small outset) or below
+// it, where the menu shows (a drop-down opens below its command); nothing
+// else of the ribbon, its tab row and its other commands, repaints.
+// `shadow` is how far the menu's shadow reaches above the menu (the theme's
+// overlay shadow outsets).
+bool damage_only_part_or_below(const DamageRegion& damage, Rect part, double shadow) {
+    constexpr double slack = 3.0;
+    for (const Rect& rectangle : damage.rectangles()) {
+        const bool in_part = rectangle.x >= part.x - slack && rectangle.y >= part.y - slack &&
+                             rectangle.x + rectangle.width <= part.x + part.width + slack &&
+                             rectangle.y + rectangle.height <= part.y + part.height + slack;
+        const bool below = rectangle.y >= part.y + part.height - shadow;
+        if (!in_part && !below) {
+            std::cerr << "damage outside the part: {" << rectangle.x << ", " << rectangle.y << ", " << rectangle.width
+                      << ", " << rectangle.height << "} part {" << part.x << ", " << part.y << ", " << part.width
+                      << ", " << part.height << "}\n";
+            return false;
+        }
+    }
+    return true;
+}
+
+// Owner, 2026-11-09: opening the menu under Paste repainted the whole ribbon.
+// Opening and closing a drop-down, and the hover and press changes that come
+// with them, repaint only the invoking command; the menu is its own surface.
+void menus_repaint_only_their_command() {
+    const Commands commands;
+    std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
+    // Tall enough that the menus open below their commands.
+    Window window(ribbon, {900.0, 400.0});
+    window.perform_layout();
+    const std::vector<Ribbon::CommandItem> items = (*ribbon).realized_commands();
+    const Ribbon::CommandItem paste = *find_command(items, "paste");
+    const Rect arrow = paste.parts.command_arrow.bounds;
+    const Rect part = Rect::united(paste.parts.command_face.bounds, arrow);
+    const double shadow = overlay_shadow_outsets(*ribbon).top + 1.0;
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, centre(arrow)}));
+    window.perform_layout();
+    static_cast<void>(window.take_damage());
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, centre(arrow)}));
+    window.perform_layout();
+    require((*ribbon).menu_open(), "the split's arrow opens its menu");
+    const DamageRegion opened = window.take_damage();
+    require(!opened.empty() && damage_only_part_or_below(opened, part, shadow),
+            "opening a drop-down repaints its command and the menu, not the ribbon");
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, centre(arrow)}));
+    window.perform_layout();
+    static_cast<void>(window.take_damage());
+    (*ribbon).close_menus();
+    window.perform_layout();
+    const DamageRegion closed = window.take_damage();
+    require(!closed.empty() && damage_only_part_or_below(closed, part, shadow),
+            "closing it repaints its command and where the menu was, not the ribbon");
+    // The table drop-down is on the Insert tab: select it first.
+    (*ribbon).selected_tab = std::size_t{1U};
+    window.perform_layout();
+    const std::vector<Ribbon::CommandItem> closed_items = (*ribbon).realized_commands();
+    const Rect table = command_named(closed_items, "table").parts.command_face.bounds;
+    static_cast<void>(window.take_damage());
+    require((*ribbon).show_drop_down("table"), "a drop-down opens from the program");
+    window.perform_layout();
+    const DamageRegion table_opened = window.take_damage();
+    (*ribbon).close_menus();
+    window.perform_layout();
+    const DamageRegion table_closed = window.take_damage();
+    require(damage_only_part_or_below(table_opened, table, shadow) && damage_only_part_or_below(table_closed, table, shadow),
+            "the same for a plain drop-down opened by the program");
+}
+
 void minimize_by_tab_click() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     const std::shared_ptr<ComboBox> font = (*ribbon).combo_box("font-name");
     const std::vector<Ribbon::Tab> tabs = (*ribbon).realized_tabs();
     click(window, centre(tabs[0].parts.tab.bounds));
     window.perform_layout();
     require((*ribbon).minimized.read() && !(*ribbon).parts().command_plane.present &&
-                (*ribbon).measure({900.0, 400.0}).height == 24.0 && (*ribbon).realized_tabs().size() == 2U &&
+                (*ribbon).measure({900.0, 400.0}).height == 27.0 && (*ribbon).realized_tabs().size() == 2U &&
                 !(*font).effectively_visible(),
             "clicking the selected tab minimizes the plane, keeping the tabs");
     click(window, centre(tabs[0].parts.tab.bounds));
@@ -309,7 +380,7 @@ void minimize_by_tab_click() {
 void hosted_controls() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     const std::shared_ptr<ComboBox> font = (*ribbon).combo_box("font-name");
     const std::shared_ptr<NumericUpDown> size = (*ribbon).numeric_up_down("font-size");
@@ -336,7 +407,7 @@ void hosted_controls() {
 void menus_and_launchers() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     std::vector<std::string> launches;
     SubscriptionToken launched = (*ribbon).dialog_launcher_clicked().subscribe(RecordLaunch{&launches});
@@ -362,7 +433,7 @@ void menus_and_launchers() {
 void semantics_and_region() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     const std::vector<Control::Ptr> regions = window.focus_regions();
     require(regions.size() == 1U && regions[0] == ribbon, "an attached ribbon registers itself as an F6 region");
@@ -403,7 +474,7 @@ void arranged_within_maximum_size() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
     (*ribbon).maximum_size = {150.0, 0.0};
-    Window window(ribbon, {900.0, 112.0});
+    Window window(ribbon, {900.0, 115.0});
     window.perform_layout();
     require((*ribbon).committed_arranged_bounds().width == 150.0, "the ribbon is arranged at its maximum width");
     const std::vector<Ribbon::CommandItem> items = (*ribbon).realized_commands();
@@ -463,6 +534,108 @@ void menus_take_the_ribbon_theme() {
     (*ribbon).close_menus();
 }
 
+// Plan Paint's port, items 10 to 12: a label is plain text in a row (no
+// hit, focus or action; static text); commands beside_previous continue a
+// row (Save over Undo and Redo); and a two-row stack stands from the top,
+// level with the large command beside it.
+void labels_and_rows() {
+    const Commands commands;
+    std::shared_ptr<Command> save = std::make_shared<Command>("save", "Save");
+    std::shared_ptr<Command> undo = std::make_shared<Command>("undo", "Undo");
+    std::shared_ptr<Command> redo = std::make_shared<Command>("redo", "Redo");
+    int pastes = 0;
+    SubscriptionToken counted = (*commands.paste).invoked().subscribe(CountInvocation{&pastes});
+    RibbonTabSpec home{.stable_id = "home", .text = "Home"};
+    RibbonGroupSpec history{.stable_id = "history", .caption = "History"};
+    history.commands.push_back({.stable_id = "paste", .command = commands.paste});
+    history.commands.push_back({.stable_id = "save", .size = RibbonCommandSize::small, .command = save});
+    history.commands.push_back({.stable_id = "undo", .size = RibbonCommandSize::small, .command = undo});
+    history.commands.push_back(
+        {.stable_id = "redo", .size = RibbonCommandSize::small, .command = redo, .beside_previous = true});
+    history.commands.push_back({.stable_id = "hint", .kind = RibbonCommandKind::label, .text = "Click to place"});
+    RibbonGroupSpec pair{.stable_id = "pair", .caption = "Pair"};
+    pair.commands.push_back({.stable_id = "cut", .command = commands.cut});
+    pair.commands.push_back({.stable_id = "copy", .size = RibbonCommandSize::small, .command = commands.copy});
+    pair.commands.push_back({.stable_id = "bold", .size = RibbonCommandSize::small, .command = commands.bold});
+    pair.layouts.push_back(RibbonGroupLayout{RibbonGroupSize::large, {}, 2U});
+    home.groups.push_back(std::move(history));
+    home.groups.push_back(std::move(pair));
+    std::vector<RibbonTabSpec> tabs;
+    tabs.push_back(std::move(home));
+    std::shared_ptr<Ribbon> ribbon = make_control<Ribbon>(StableId("ribbon"));
+    (*ribbon).set_tabs(std::move(tabs));
+    Window window(ribbon, {900.0, 115.0});
+    window.perform_layout();
+    const std::vector<Ribbon::CommandItem> items = (*ribbon).realized_commands();
+    const Rect paste_box = command_named(items, "paste").parts.command_focus.bounds;
+    const Rect save_box = command_named(items, "save").parts.command_focus.bounds;
+    const Rect undo_box = command_named(items, "undo").parts.command_focus.bounds;
+    const Rect redo_box = command_named(items, "redo").parts.command_focus.bounds;
+    require(save_box.y == paste_box.y && undo_box.x == save_box.x && undo_box.y == save_box.y + save_box.height,
+            "Save stands in the column's first row, Undo in the second");
+    require(redo_box.y == undo_box.y && redo_box.x >= undo_box.x + undo_box.width,
+            "Redo continues Undo's row to its right");
+    const Ribbon::CommandItem& hint = command_named(items, "hint");
+    require(hint.parts.command_label.present && !hint.parts.command_focus.present &&
+                !hint.parts.command_face.present && hint.parts.command_label.bounds.y == undo_box.y + undo_box.height,
+            "the label is text alone, in the column's third row");
+    const Rect cut_box = command_named(items, "cut").parts.command_focus.bounds;
+    const Rect copy_box = command_named(items, "copy").parts.command_focus.bounds;
+    const Rect bold_box = command_named(items, "bold").parts.command_focus.bounds;
+    require(copy_box.y == cut_box.y && bold_box.y == copy_box.y + copy_box.height,
+            "a two-row stack stands from the top, level with the large command");
+    RecordingPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 900.0, 115.0}));
+    require(painted(painter, "Click to place"), "the label paints its text");
+    click(window, centre(hint.parts.command_label.bounds));
+    require(pastes == 0 && (*ribbon).realized_commands().size() == items.size(), "a click on a label runs nothing");
+    require(window.request_focus(ribbon), "the ribbon takes focus");
+    bool label_focused = false;
+    for (int step = 0; step < 12; ++step) {
+        static_cast<void>(key(window, PhysicalKey::tab));
+        const std::vector<Ribbon::CommandItem> now = (*ribbon).realized_commands();
+        if (command_named(now, "hint").states.focus_visible) label_focused = true;
+    }
+    require(!label_focused, "Tab never stops on a label");
+    const std::vector<SemanticNode> nodes = (*ribbon).semantic_virtual_children();
+    bool static_text = false;
+    for (const SemanticNode& node : nodes) {
+        for (const SemanticNode& group : node.children) {
+            for (const SemanticNode& child : group.children) {
+                if (child.name != "Click to place") continue;
+                static_text = child.role == SemanticRole::static_text && child.actions.empty() &&
+                              !has_semantic_state(child.states, SemanticState::focusable);
+            }
+        }
+    }
+    require(static_text, "the label is published as static text, neither focusable nor actionable");
+    std::vector<RibbonTabSpec> refused;
+    refused.push_back(RibbonTabSpec{.stable_id = "home", .text = "Home"});
+    RibbonGroupSpec bad{.stable_id = "bad", .caption = "Bad"};
+    bad.commands.push_back({.stable_id = "hint", .kind = RibbonCommandKind::label, .command = save, .text = "Hint"});
+    refused[0].groups.push_back(std::move(bad));
+    bool threw = false;
+    try {
+        (*ribbon).set_tabs(std::move(refused));
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    require(threw, "a label with a Command is refused");
+    std::vector<RibbonTabSpec> first;
+    first.push_back(RibbonTabSpec{.stable_id = "home", .text = "Home"});
+    RibbonGroupSpec leading{.stable_id = "leading", .caption = "Leading"};
+    leading.commands.push_back(
+        {.stable_id = "save", .size = RibbonCommandSize::small, .command = save, .beside_previous = true});
+    first[0].groups.push_back(std::move(leading));
+    threw = false;
+    try {
+        (*ribbon).set_tabs(std::move(first));
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    require(threw, "a group's first command may not stand beside another");
+}
+
 void refusals() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = make_control<Ribbon>(StableId("ribbon"));
@@ -502,6 +675,7 @@ int main() {
     one_command_path();
     tab_navigation();
     state_repaints_only_its_command();
+    menus_repaint_only_their_command();
     minimize_by_tab_click();
     hosted_controls();
     menus_and_launchers();
@@ -509,6 +683,7 @@ int main() {
     arranged_within_maximum_size();
     menus_take_the_ribbon_theme();
     refusals();
+    labels_and_rows();
     std::cout << "Ribbon: geometry, one command path, item repaint, minimizing, hosted controls, menus, launchers, "
                  "semantics, F6 region and refusals passed\n";
     return 0;

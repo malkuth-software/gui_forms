@@ -128,8 +128,8 @@ private:
     bool workspace_busy_{};
     // property_codemod begin FlowLayoutPanelCompat (tools/property_families/flow_layout_panel_compat.json; generated, do not edit)
 public:
-    // FlowLayoutPanelCompat's property table: Control's entries, then its own.
-    static constexpr std::size_t flow_layout_panel_compat_property_count = Control::control_property_count + 5U;
+    // FlowLayoutPanelCompat's property table: ScrollableControl's entries, then its own.
+    static constexpr std::size_t flow_layout_panel_compat_property_count = ScrollableControl::scrollable_control_property_count + 5U;
     [[nodiscard]] static const std::array<PropertyEntry, flow_layout_panel_compat_property_count>& flow_layout_panel_compat_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 

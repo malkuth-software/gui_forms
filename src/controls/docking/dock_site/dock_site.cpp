@@ -398,7 +398,7 @@ void DockSite::sync_pages(StackSlot& slot, const DockNode& node) {
                 PageRecord record{};
                 record.id = page;
                 record.title = title;
-                record.closable = node.kind == DockNodeKind::document_stack;
+                record.closable = node.kind == DockNodeKind::document_stack && tab_closable(panel);
                 static_cast<void>(view.add_page(record, (*workspace_).panel_content(panel),
                                                 PagePlacement::at(PagePosition{place_index})));
                 continue;
@@ -406,6 +406,11 @@ void DockSite::sync_pages(StackSlot& slot, const DockNode& node) {
             if ((*found).value != place_index) static_cast<void>(pages.move(page, PagePosition{place_index}));
             if (pages.record_at(PagePosition{place_index}).title != title) {
                 static_cast<void>(pages.set_title(page, title));
+            }
+            // A descriptor updated after the page was made (update_panel).
+            const bool closable = node.kind == DockNodeKind::document_stack && tab_closable(panel);
+            if (pages.record_at(PagePosition{place_index}).closable != closable) {
+                static_cast<void>(pages.set_closable(page, closable));
             }
         }
         if (!node.panels.empty() && node.selected < node.panels.size() &&
@@ -420,7 +425,10 @@ void DockSite::sync_pages(StackSlot& slot, const DockNode& node) {
     slot.title = panel ? (*workspace_).panel_title(*panel) : std::string{};
     // A tool stack shows its tabs only with two or more panels; behind side
     // tabs and in the flyout, never (the side tabs choose the panel).
-    const bool strip_shown = (node.kind == DockNodeKind::document_stack || pages.count() >= 2U) &&
+    // A document stack shows its tabs unless the workspace is a single
+    // document interface (DockWorkspace::document_tabs_shown).
+    const bool document_tabs = node.kind == DockNodeKind::document_stack && (*workspace_).document_tabs_shown();
+    const bool strip_shown = (document_tabs || (node.kind == DockNodeKind::tool_stack && pages.count() >= 2U)) &&
                              !slot.auto_hidden && !slot.in_flyout;
     PageStrip& strip = *view.strip();
     if (strip.visible.read() != strip_shown) {
@@ -851,7 +859,7 @@ Size DockSite::stack_minimum(const DockNode& node) const {
     if (node.kind == DockNodeKind::tool_stack) {
         height += caption_height();
         if (node.panels.size() >= 2U) height += strip_extent(*this);
-    } else {
+    } else if ((*workspace_).document_tabs_shown()) {
         height += strip_extent(*this);
     }
     const Size minimum{width, height};
@@ -1188,7 +1196,7 @@ void DockSite::finish_layout_pass(const PreviousPass& previous, Size surface, bo
     if (drag_.phase == DockDragPhase::idle) refocus_if_lost(focus_was_inside);
 }
 
-DockSite::CaptionGeometry DockSite::caption_geometry(Rect caption, bool pin) const {
+DockSite::CaptionGeometry DockSite::caption_geometry(Rect caption, bool pin, bool close) const {
     const double scale = effective_text_scale();
     CaptionGeometry placed{};
     placed.caption = caption;
@@ -1199,15 +1207,20 @@ DockSite::CaptionGeometry DockSite::caption_geometry(Rect caption, bool pin) con
     const double gap = button_gap * scale;
     const double top = caption.y + (caption.height - button) * 0.5;
     const double end = caption.x + caption.width - button_end_inset * scale;
-    placed.close = {end - button, top, button, button};
-    double next = placed.close.x - gap;
+    // Without a close button the buttons before it move to the end; its
+    // rectangle stays empty, so nothing hits or paints there.
+    double next = end;
+    if (close) {
+        placed.close = {end - button, top, button, button};
+        next = placed.close.x - gap;
+    }
     if (pin) {
         placed.pin = {next - button, top, button, button};
         next = placed.pin.x - gap;
     }
     placed.menu = {next - button, top, button, button};
     const double glyph = glyph_side * scale;
-    placed.close_glyph = centred(placed.close, glyph, glyph);
+    if (close) placed.close_glyph = centred(placed.close, glyph, glyph);
     if (pin) placed.pin_glyph = centred(placed.pin, glyph, glyph);
     placed.menu_glyph = centred(placed.menu, glyph, glyph);
     const double label_start = placed.key.x + key + key_gap * scale;
@@ -1239,6 +1252,22 @@ bool DockSite::pin_shown(const StackSlot& slot) const {
     const std::optional<DockNodeId> owner = (*workspace_).layout().pin_owner(*panel);
     const bool shown = owner.has_value() && *owner == slot.stack;
     return shown;
+}
+
+bool DockSite::close_shown(const StackSlot& slot) const {
+    if (workspace_ == nullptr) return true;
+    const std::optional<DockPanelId> panel = selected_panel(slot);
+    if (!panel) return true;
+    const DockPanelDescriptor* const descriptor = (*workspace_).layout().find_descriptor(*panel);
+    const bool shown = descriptor == nullptr || (*descriptor).close_button_visible;
+    return shown;
+}
+
+bool DockSite::tab_closable(const DockPanelId& panel) const {
+    if (workspace_ == nullptr) return true;
+    const DockPanelDescriptor* const descriptor = (*workspace_).layout().find_descriptor(panel);
+    const bool closable = descriptor == nullptr || (*descriptor).close_button_visible;
+    return closable;
 }
 
 AnatomyStateSet DockSite::seam_states(std::size_t seam) const {
@@ -1297,6 +1326,10 @@ void DockSite::on_paint(Painter& painter, Rect) {
     part.family = ControlVisualRole::panel;
     part.role = PartRole::well;
     part.bounds = document_area_;
+    // The workspace's area colour (DockBackColor) is the well's authored
+    // background; the theme engine paints it (and withdraws it under high
+    // contrast).
+    if (workspace_ != nullptr) part.authored_background = (*workspace_).area_background();
     paint_part(painter, *this, part);
     for (std::size_t seam = 0; seam < seams_.size(); ++seam) {
         const SeamParts parts = seam_parts(seam);
@@ -1322,7 +1355,7 @@ void DockSite::on_paint(Painter& painter, Rect) {
 // `offset` into the surface's (the site's own, or the flyout's).
 void DockSite::paint_caption(Painter& painter, const Control& surface, const StackSlot& slot, std::size_t index,
                              Point offset) const {
-    const CaptionGeometry placed = caption_geometry(slot.caption, pin_shown(slot));
+    const CaptionGeometry placed = caption_geometry(slot.caption, pin_shown(slot), close_shown(slot));
     const AnatomyStateSet states = stack_states(slot);
     PartPaint part{};
     part.font = caption_font();
@@ -1383,7 +1416,7 @@ DockSite::Hit DockSite::hit_at(Point local) const {
     for (std::size_t index = 0; index < stacks_.size(); ++index) {
         const StackSlot& slot = stacks_[index];
         if (slot.collapsed || slot.kind != DockNodeKind::tool_stack || !slot.caption.contains(local)) continue;
-        const CaptionGeometry placed = caption_geometry(slot.caption, pin_shown(slot));
+        const CaptionGeometry placed = caption_geometry(slot.caption, pin_shown(slot), close_shown(slot));
         hit.index = index;
         hit.zone = Zone::caption;
         if (placed.menu.contains(local)) hit.zone = Zone::menu;
@@ -2121,7 +2154,7 @@ bool DockSite::show_position_menu(const DockPanelId& panel, MenuOpenMode mode) {
     // From the flyout, focus in the menu does not count as leaving it.
     menu_from_flyout_ = from_flyout;
     if (slot.kind == DockNodeKind::tool_stack) {
-        const CaptionGeometry placed = caption_geometry(slot.caption, pin_shown(slot));
+        const CaptionGeometry placed = caption_geometry(slot.caption, pin_shown(slot), close_shown(slot));
         anchor = {absolute.x + placed.menu.x, absolute.y + placed.menu.y + placed.menu.height};
     } else {
         anchor.y += strip_extent(*this);
@@ -2375,7 +2408,7 @@ std::vector<SemanticNode> DockSite::caption_nodes(const StackSlot& slot, std::si
     std::vector<SemanticNode> nodes{};
     const bool shown = !slot.collapsed || slot.in_flyout;
     if (!shown || slot.kind != DockNodeKind::tool_stack || slot.caption.empty() || !slot.view) return nodes;
-    const CaptionGeometry placed = caption_geometry(slot.caption, pin_shown(slot));
+    const CaptionGeometry placed = caption_geometry(slot.caption, pin_shown(slot), close_shown(slot));
     const Rect absolute = absolute_bounds();
     const std::string prefix((*slot.view).stable_id().value());
     nodes.reserve(3U);
@@ -2407,6 +2440,7 @@ std::vector<SemanticNode> DockSite::caption_nodes(const StackSlot& slot, std::si
         }
         nodes.push_back(std::move(pin));
     }
+    if (!close_shown(slot)) return nodes;
     SemanticNode close{};
     close.stable_id = prefix + ".close";
     close.runtime_id = virtual_semantic_runtime_id(close.stable_id);
@@ -2665,7 +2699,7 @@ DockSite::StackParts DockSite::stack_parts(const StackSlot& slot, std::size_t in
     StackParts record{};
     record.stack_area = PartGeometry::from_bounds(slot.bounds);
     if (slot.kind != DockNodeKind::tool_stack || slot.caption.empty()) return record;
-    const CaptionGeometry placed = caption_geometry(slot.caption, pin_shown(slot));
+    const CaptionGeometry placed = caption_geometry(slot.caption, pin_shown(slot), close_shown(slot));
     record.caption = PartGeometry::from_bounds(placed.caption);
     if (stack_current(slot)) record.caption_accent = PartGeometry::from_bounds(placed.accent);
     record.caption_key = PartGeometry::from_bounds(placed.key);

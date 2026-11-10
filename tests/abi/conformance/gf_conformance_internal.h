@@ -35,6 +35,7 @@ typedef struct gf_kit {
     gf_application_table application;
     gf_rules_table rules;
     gf_data_grid_table data_grid;
+    gf_docking_table docking;
     /* Loaded by the custom part where the library has it (Windows). */
     gf_windows_paint_endpoint_table windows_paint_endpoint;
 } gf_kit;
@@ -119,6 +120,9 @@ void gf_kit_rules(gf_kit* kit);
 /* A data grid view's columns, rows, cells and selection (GF_TABLE_DATA_GRID),
  * on a created window's root. */
 void gf_kit_data_grid(gf_kit* kit);
+/* A dock workspace's panels and layout (GF_TABLE_DOCKING), with no window
+ * running. */
+void gf_kit_docking(gf_kit* kit);
 void gf_kit_splashscreen_refusals(gf_kit* kit);
 void gf_kit_splashscreen(gf_kit* kit);
 void gf_kit_host(gf_kit* kit);

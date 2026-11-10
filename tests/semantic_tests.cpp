@@ -670,15 +670,20 @@ void test_specialised_roles() {
             "the switch and search roles have their names");
     const std::size_t meter = static_cast<std::size_t>(SemanticRole::meter);
     require(static_cast<std::size_t>(SemanticRole::toggle_switch) == meter + 1U &&
-                static_cast<std::size_t>(SemanticRole::search_box) + 1U == semantic_role_count,
+                static_cast<std::size_t>(SemanticRole::search_box) == meter + 2U,
             "the switch and search roles are appended after meter");
+    require(static_cast<std::size_t>(SemanticRole::figure) + 1U == semantic_role_count &&
+                std::string_view(semantic_role_name(SemanticRole::figure)) == "figure" &&
+                semantic_role_fallback(SemanticRole::figure) == SemanticRole::image,
+            "the plots' figure role is appended last and falls back to image");
     require(semantic_role_fallback(SemanticRole::toggle_switch) == SemanticRole::check_box &&
                 semantic_role_fallback(SemanticRole::search_box) == SemanticRole::text_box,
             "a switch falls back to a check box, a search box to a text box");
     bool own = true;
     for (std::size_t index = 0U; index < semantic_role_count; ++index) {
         const SemanticRole role = static_cast<SemanticRole>(index);
-        const bool specialised = role == SemanticRole::toggle_switch || role == SemanticRole::search_box;
+        const bool specialised = role == SemanticRole::toggle_switch || role == SemanticRole::search_box ||
+                                 role == SemanticRole::figure;
         if (!specialised && semantic_role_fallback(role) != role) own = false;
     }
     require(own, "every other role is its own fallback");

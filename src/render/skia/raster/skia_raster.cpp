@@ -33,6 +33,7 @@
 #include "include/core/SkRRect.h"
 #include "include/core/SkStream.h"
 #include "include/core/SkSurface.h"
+#include "include/effects/SkDashPathEffect.h"
 #include "include/effects/SkShaderMaskFilter.h"
 #include "include/effects/SkGradient.h"
 
@@ -339,6 +340,12 @@ public:
     struct DecodedImage final {
         std::uint64_t content_hash{};
         sk_sp<SkImage> image;
+        // fill_image_pattern's tile, resampled once to the device tile size
+        // it was last drawn at; null until a pattern needs it. Replacing the
+        // image replaces the record, and the tile with it.
+        sk_sp<SkImage> device_tile;
+        // Every pixel of device_tile has alpha 255.
+        bool device_tile_opaque{};
     };
 
     using ImageMap = std::unordered_map<std::uint64_t, DecodedImage>;
@@ -758,6 +765,12 @@ void SkiaRaster::begin_frame(const DamageRegion& damage) {
     } else {
         (*impl_).reset_text_clips(*canvas, nullptr);
     }
+}
+
+void SkiaRaster::clear_transparent() {
+    SkCanvas* const canvas = (*impl_).canvas();
+    if (canvas == nullptr) return;
+    (*canvas).clear(SK_ColorTRANSPARENT);
 }
 
 bool SkiaRaster::scroll_copy(const Rect clip, const Point offset) {
@@ -1334,8 +1347,14 @@ void SkiaRaster::draw_retained_box_shadow(const Rect rect, const double corner_r
     if (canvas == nullptr || rect.empty() || color.alpha == 0U ||
         std::isnan(blur_radius) || blur_radius < 0.0) return;
     const SkMatrix matrix = (*canvas).getTotalMatrix();
-    // Unblurred shadows, rotations and reflections draw directly.
-    if (!cache || blur_radius == 0.0 || !matrix.isScaleTranslate() ||
+    // Unblurred shadows, rotations and reflections draw directly. So do
+    // square-cornered ones: Skia blurs a rectangle as nine patches it keeps
+    // itself, whatever the rectangle's size, while a kept coverage mask is
+    // as large as the shadow and is applied through a shader at every
+    // pixel (a panned canvas's sheet shadow, benchmarks/
+    // canvas_pan_benchmark.cpp).
+    const bool square = !(corner_radius + spread > 0.0);
+    if (!cache || blur_radius == 0.0 || square || !matrix.isScaleTranslate() ||
         matrix.getScaleX() <= 0.0F || matrix.getScaleY() <= 0.0F) {
         draw_box_shadow(rect, corner_radius, offset, blur_radius, spread, color);
         return;
@@ -1664,8 +1683,17 @@ bool SkiaRaster::Impl::composite_part(SkCanvas& target, const PartRaster& raster
                                       const double opacity) {
     const SkMatrix matrix = target.getTotalMatrix();
     const SkScalar raster_scale = static_cast<SkScalar>(raster.scale().value);
-    if (!matrix.isScaleTranslate() || matrix.getScaleX() != raster_scale || matrix.getScaleY() != raster_scale) {
-        return false;
+    if (!matrix.isScaleTranslate() || raster_scale <= 0.0F) return false;
+    const DeviceExtent covered = raster.extent();
+    if (matrix.getScaleX() != raster_scale || matrix.getScaleY() != raster_scale) {
+        // Baked at another device scale than the target's (a window painted
+        // into a framebuffer of another scale, as an offscreen capture
+        // does): sampled over its own logical rectangle rather than lost.
+        const double logical_scale = static_cast<double>(raster_scale);
+        const Rect destination{origin.x, origin.y, static_cast<double>(covered.width) / logical_scale,
+                               static_cast<double>(covered.height) / logical_scale};
+        const bool resampled = composite_part_scaled(target, raster, destination, opacity);
+        return resampled;
     }
     // The raster's first pixel goes on the device pixel nearest its origin.
     const SkPoint device = matrix.mapPoint(SkPoint::Make(static_cast<SkScalar>(origin.x), static_cast<SkScalar>(origin.y)));
@@ -1679,14 +1707,12 @@ bool SkiaRaster::Impl::composite_part(SkCanvas& target, const PartRaster& raster
 }
 
 // As composite_part, stretched over `destination`: its corners go on the
-// device pixels nearest them, and the shared blend samples the raster.
+// device pixels nearest them, and the shared blend samples the raster, at
+// the target's scale whatever scale the raster was baked at.
 bool SkiaRaster::Impl::composite_part_scaled(SkCanvas& target, const PartRaster& raster, const Rect destination,
                                              const double opacity) {
     const SkMatrix matrix = target.getTotalMatrix();
-    const SkScalar raster_scale = static_cast<SkScalar>(raster.scale().value);
-    if (!matrix.isScaleTranslate() || matrix.getScaleX() != raster_scale || matrix.getScaleY() != raster_scale) {
-        return false;
-    }
+    if (!matrix.isScaleTranslate()) return false;
     const SkPoint first = matrix.mapPoint(SkPoint::Make(static_cast<SkScalar>(destination.x),
                                                         static_cast<SkScalar>(destination.y)));
     const SkPoint last = matrix.mapPoint(SkPoint::Make(static_cast<SkScalar>(destination.x + destination.width),
@@ -1954,6 +1980,45 @@ void SkiaRaster::draw_live_surface(const std::shared_ptr<LiveSurface> surface,
     static_cast<void>(draw_live_surface_frame(frame, destination, opacity));
 }
 
+Rect SkiaRaster::opaque_live_surface_cover(const std::shared_ptr<LiveSurface>& surface,
+                                           const Rect destination, const double opacity) {
+    const Rect nothing{};
+    SkCanvas* const canvas = (*impl_).canvas();
+    if (!surface || canvas == nullptr || destination.empty() || !destination.finite() ||
+        !(opacity >= 1.0) || fail_next_live_image_) {
+        return nothing;
+    }
+    const LiveSurfaceFrame frame = (*surface).acquire_latest();
+    if (!frame || !frame.opaque() || frame.width() == 0U || frame.height() == 0U ||
+        frame.pixel_format() != LiveSurfacePixelFormat::bgra32_premultiplied_srgb ||
+        frame.row_bytes() < static_cast<std::uint64_t>(frame.width()) * 4U || frame.pixels().empty()) {
+        return nothing;
+    }
+    // Rectangle clips are hard-edged (clip_rect); a rounded clip blends its
+    // edge pixels with what lies beneath. Untracked clips are refused too.
+    const Impl::TextClipState* const clip = (*impl_).current_text_clip(*canvas);
+    if (clip == nullptr || (*clip).rounded) return nothing;
+    const SkMatrix matrix = (*canvas).getTotalMatrix();
+    if (!matrix.isScaleTranslate() || !(matrix.getScaleX() > 0.0F) || !(matrix.getScaleY() > 0.0F)) {
+        return nothing;
+    }
+    const double scale_x = matrix.getScaleX();
+    const double scale_y = matrix.getScaleY();
+    const double translate_x = matrix.getTranslateX();
+    const double translate_y = matrix.getTranslateY();
+    // Whole device pixels inside the destination: a hard-edged draw writes
+    // every pixel whose centre lies inside, so at least these.
+    const double left = std::ceil(destination.x * scale_x + translate_x);
+    const double top = std::ceil(destination.y * scale_y + translate_y);
+    const double right = std::floor((destination.x + destination.width) * scale_x + translate_x);
+    const double bottom = std::floor((destination.y + destination.height) * scale_y + translate_y);
+    if (!(right > left) || !(bottom > top)) return nothing;
+    const Rect cover{(left - translate_x) / scale_x, (top - translate_y) / scale_y, (right - left) / scale_x,
+                     (bottom - top) / scale_y};
+    ++covers_promised_;
+    return cover;
+}
+
 bool SkiaRaster::draw_live_surface_frame(const LiveSurfaceFrame& frame,
                                          const Rect destination, const double opacity) {
     SkCanvas* const canvas = (*impl_).canvas();
@@ -2054,10 +2119,133 @@ void SkiaRaster::draw_image_region_sampled(
                           SkCanvas::kStrict_SrcRectConstraint);
 }
 
+// fill_image_pattern where a tile spans whole device pixels and starts on
+// one, under a scale and translation: the tile is resampled once to device
+// resolution (linear, wrapping, as the direct draw samples it) and repeated
+// without further sampling. Each device pixel then takes the value the
+// direct draw would compute there, rounded to a byte before blending rather
+// than after (at most one level apart where the pattern is translucent;
+// equal where it is opaque, up to the float rounding of sample positions).
+// An opaque tile at full opacity under a hard rectangular clip is then
+// copied row by row (copy_opaque_tile) rather than shaded. Resampling a
+// 128-pixel felt at device scale 2 for every pixel of a 2560 x 1294 canvas
+// cost some 230 ms a frame on the Windows test machine (benchmarks/
+// canvas_pan_benchmark.cpp); the kept tile costs one 256 x 256 resample.
+// False when the conditions do not hold; the caller draws directly.
+namespace {
+
+// Whether every pixel of a premultiplied BGRA pixmap has alpha 255.
+bool every_pixel_opaque(const SkPixmap& pixels) {
+    for (int y = 0; y < pixels.height(); ++y) {
+        const std::uint8_t* row = static_cast<const std::uint8_t*>(pixels.addr(0, y));
+        for (int x = 0; x < pixels.width(); ++x) {
+            if (row[static_cast<std::size_t>(x) * 4U + 3U] != 255U) return false;
+        }
+    }
+    return true;
+}
+
+// Repeats an opaque device tile, whose pixel (0, 0) lies at device
+// (origin_x, origin_y), over `target` (device pixels, inside `pixels`) by
+// copying rows: what a source-over draw of an opaque tile without sampling
+// writes, byte for byte, without a shader per pixel.
+void copy_opaque_tile(const SkPixmap& pixels, const SkPixmap& tile, const long long origin_x,
+                      const long long origin_y, const SkIRect target) {
+    const long long tile_width = tile.width();
+    const long long tile_height = tile.height();
+    const long long first_column = ((target.left() - origin_x) % tile_width + tile_width) % tile_width;
+    for (int y = target.top(); y < target.bottom(); ++y) {
+        const long long tile_row = ((y - origin_y) % tile_height + tile_height) % tile_height;
+        const std::byte* source = static_cast<const std::byte*>(tile.addr(0, static_cast<int>(tile_row)));
+        std::byte* written = static_cast<std::byte*>(pixels.writable_addr(target.left(), y));
+        long long remaining = target.width();
+        long long column = first_column;
+        while (remaining > 0) {
+            const long long run = std::min(remaining, tile_width - column);
+            std::memcpy(written, source + column * 4, static_cast<std::size_t>(run) * 4U);
+            written += run * 4;
+            remaining -= run;
+            column = 0;
+        }
+    }
+}
+
+bool fill_device_pattern(SkCanvas& canvas, const SkImage& image, sk_sp<SkImage>& device_tile,
+                         bool& device_tile_opaque, const Rect destination, const Size logical_tile_size,
+                         const double opacity) {
+    const SkMatrix matrix = canvas.getTotalMatrix();
+    if (!matrix.isScaleTranslate() || !(matrix.getScaleX() > 0.0F) || !(matrix.getScaleY() > 0.0F)) return false;
+    const double tile_width = logical_tile_size.width * matrix.getScaleX();
+    const double tile_height = logical_tile_size.height * matrix.getScaleY();
+    const double origin_x = destination.x * matrix.getScaleX() + matrix.getTranslateX();
+    const double origin_y = destination.y * matrix.getScaleY() + matrix.getTranslateY();
+    // A kept tile larger than this (4 MB) is not worth its memory.
+    constexpr double largest_device_tile = 1024.0;
+    if (tile_width != std::round(tile_width) || tile_height != std::round(tile_height) ||
+        origin_x != std::round(origin_x) || origin_y != std::round(origin_y) || !(tile_width >= 1.0) ||
+        !(tile_height >= 1.0) || !(tile_width <= largest_device_tile) || !(tile_height <= largest_device_tile) ||
+        !(std::abs(origin_x) <= 1.0e9) || !(std::abs(origin_y) <= 1.0e9)) {
+        return false;
+    }
+    const int width = static_cast<int>(tile_width);
+    const int height = static_cast<int>(tile_height);
+    const bool current = device_tile && (*device_tile).width() == width && (*device_tile).height() == height;
+    if (!current) {
+        const SkImageInfo info = SkImageInfo::Make(width, height, kBGRA_8888_SkColorType, kPremul_SkAlphaType,
+                                                   SkColorSpace::MakeSRGB());
+        sk_sp<SkSurface> tile = SkSurfaces::Raster(info);
+        if (!tile) return false;
+        const SkMatrix resample = SkMatrix::Scale(
+            static_cast<SkScalar>(tile_width / image.width()),
+            static_cast<SkScalar>(tile_height / image.height()));
+        SkPaint fill;
+        fill.setAntiAlias(false);
+        fill.setBlendMode(SkBlendMode::kSrc);
+        fill.setShader(image.makeShader(SkTileMode::kRepeat, SkTileMode::kRepeat,
+                                        SkSamplingOptions(SkFilterMode::kLinear), resample));
+        (*(*tile).getCanvas()).drawRect(SkRect::MakeIWH(width, height), fill);
+        device_tile = (*tile).makeImageSnapshot();
+        if (!device_tile) return false;
+        const std::optional<SkPixmap> kept = (*device_tile).peekPixels();
+        device_tile_opaque = kept && every_pixel_opaque(*kept);
+    }
+    const SkRect device = matrix.mapRect(to_sk_rect(destination));
+    // An opaque tile at full opacity under a hard rectangular clip is copied
+    // (the non-antialiased rectangle covers the pixels its rounded edges
+    // enclose, as Skia rounds them).
+    if (device_tile_opaque && opacity >= 1.0 && canvas.isClipRect()) {
+        const std::optional<SkPixmap> peeked = canvas.peekPixels();
+        const std::optional<SkPixmap> tile_pixels = (*device_tile).peekPixels();
+        if (peeked && tile_pixels && (*peeked).colorType() == kBGRA_8888_SkColorType) {
+            SkIRect target = device.round();
+            const bool inside = target.intersect(canvas.getDeviceClipBounds()) &&
+                                target.intersect(SkIRect::MakeWH((*peeked).width(), (*peeked).height()));
+            if (inside) {
+                copy_opaque_tile(*peeked, *tile_pixels, static_cast<long long>(origin_x),
+                                 static_cast<long long>(origin_y), target);
+            }
+            return true;
+        }
+    }
+    const SkMatrix placement = SkMatrix::Translate(static_cast<SkScalar>(origin_x), static_cast<SkScalar>(origin_y));
+    SkPaint paint;
+    paint.setAlphaf(static_cast<float>(std::clamp(opacity, 0.0, 1.0)));
+    paint.setAntiAlias(false);
+    paint.setShader((*device_tile).makeShader(SkTileMode::kRepeat, SkTileMode::kRepeat,
+                                              SkSamplingOptions(SkFilterMode::kNearest), placement));
+    canvas.save();
+    canvas.resetMatrix();
+    canvas.drawRect(device, paint);
+    canvas.restore();
+    return true;
+}
+
+} // namespace
+
 void SkiaRaster::fill_image_pattern(
     ImageId image, Size source_pixel_size, Rect destination,
     Size logical_tile_size, ImagePatternWrap wrap, double opacity) {
-    const Impl::ImageMap::const_iterator found = (*impl_).images.find(image.value);
+    const Impl::ImageMap::iterator found = (*impl_).images.find(image.value);
     SkCanvas* canvas = (*impl_).canvas();
     if (canvas == nullptr || found == (*impl_).images.end() ||
         wrap != ImagePatternWrap::tile || destination.empty() ||
@@ -2069,6 +2257,11 @@ void SkiaRaster::fill_image_pattern(
         source_pixel_size.height != (*(*found).second.image).height() ||
         logical_tile_size.width <= 0.0 || logical_tile_size.height <= 0.0 ||
         !std::isfinite(opacity) || opacity <= 0.0) {
+        return;
+    }
+    if (!direct_patterns_ && fill_device_pattern(*canvas, *(*found).second.image, (*found).second.device_tile,
+                                                 (*found).second.device_tile_opaque, destination, logical_tile_size,
+                                                 opacity)) {
         return;
     }
     SkMatrix local;
@@ -2086,6 +2279,285 @@ void SkiaRaster::fill_image_pattern(
         SkTileMode::kRepeat, SkTileMode::kRepeat,
         SkSamplingOptions(SkFilterMode::kLinear), local));
     (*canvas).drawRect(to_sk_rect(destination), paint);
+}
+
+namespace {
+
+SkPoint to_sk_point(Point point) noexcept {
+    return SkPoint::Make(static_cast<SkScalar>(point.x), static_cast<SkScalar>(point.y));
+}
+
+bool finite_mark_point(Point point) noexcept {
+    return std::isfinite(point.x) && std::isfinite(point.y);
+}
+
+SkPaint::Join to_sk_join(StrokeJoin join) noexcept {
+    switch (join) {
+    case StrokeJoin::miter: return SkPaint::kMiter_Join;
+    case StrokeJoin::round: return SkPaint::kRound_Join;
+    case StrokeJoin::bevel: return SkPaint::kBevel_Join;
+    }
+    return SkPaint::kMiter_Join;
+}
+
+SkPaint::Cap to_sk_cap(StrokeCap cap) noexcept {
+    switch (cap) {
+    case StrokeCap::butt: return SkPaint::kButt_Cap;
+    case StrokeCap::round: return SkPaint::kRound_Cap;
+    case StrokeCap::square: return SkPaint::kSquare_Cap;
+    }
+    return SkPaint::kButt_Cap;
+}
+
+// Configures `paint` to stroke as `style` says (validated). False when
+// stx_skia refuses the dash pattern; the call then draws nothing rather than
+// a solid line.
+bool configure_mark_stroke(SkPaint& paint, const StrokeStyle& style) {
+    paint = make_paint(style.color);
+    paint.setStyle(SkPaint::kStroke_Style);
+    paint.setStrokeWidth(static_cast<SkScalar>(style.width));
+    paint.setStrokeJoin(to_sk_join(style.join));
+    paint.setStrokeMiter(static_cast<SkScalar>(style.miter_limit));
+    paint.setStrokeCap(to_sk_cap(style.cap));
+    if (style.dash_count == 0U) return true;
+    std::array<SkScalar, maximum_dash_intervals> intervals{};
+    for (std::size_t index = 0U; index < style.dash_count; ++index) {
+        intervals[index] = static_cast<SkScalar>(style.dashes[index]);
+    }
+    SkDashPathEffectResult made = SkDashPathEffect::Make(
+        SkSpan<const SkScalar>(intervals.data(), style.dash_count), static_cast<SkScalar>(style.dash_phase));
+    if (made.rejection != SkDashRejection::kNone) return false;
+    paint.setPathEffect(std::move(made.effect));
+    return true;
+}
+
+// The marker shape at the origin, built once per draw_markers call.
+SkPath marker_path(const MarkerStyle& style) {
+    SkPathBuilder builder;
+    const double half = style.size * 0.5;
+    if (style.shape == MarkerShape::circle) {
+        builder.addOval(SkRect::MakeLTRB(static_cast<SkScalar>(-half), static_cast<SkScalar>(-half),
+                                         static_cast<SkScalar>(half), static_cast<SkScalar>(half)));
+        return builder.detach();
+    }
+    std::array<Point, maximum_marker_vertices> outline{};
+    const std::size_t vertex_count = marker_outline(style.shape, Point{}, style.size, outline);
+    if (vertex_count != 0U) {
+        builder.moveTo(to_sk_point(outline[0]));
+        for (std::size_t index = 1U; index < vertex_count; ++index) builder.lineTo(to_sk_point(outline[index]));
+        builder.close();
+        return builder.detach();
+    }
+    std::array<PaintSegment, maximum_marker_lines> lines{};
+    const std::size_t line_count = marker_lines(style.shape, Point{}, style.size, lines);
+    for (std::size_t index = 0U; index < line_count; ++index) {
+        builder.moveTo(to_sk_point(lines[index].from));
+        builder.lineTo(to_sk_point(lines[index].to));
+    }
+    return builder.detach();
+}
+
+bool marker_is_stroked(MarkerShape shape) noexcept {
+    return shape == MarkerShape::cross || shape == MarkerShape::plus || shape == MarkerShape::asterisk;
+}
+
+// The point count a path builder reserves for a batch, held within int.
+int reserved_points(std::size_t count) noexcept {
+    constexpr std::size_t limit = std::size_t{1} << 24U;
+    const std::size_t bounded = std::min(count, limit);
+    return static_cast<int>(bounded);
+}
+
+} // namespace
+
+void SkiaRaster::stroke_polyline(std::span<const Point> points, const StrokeStyle& style) {
+    SkCanvas* canvas = (*impl_).canvas();
+    if (canvas == nullptr || points.size() < 2U || !valid_stroke_style(style)) return;
+    for (const Point point : points) {
+        if (std::isinf(point.x) || std::isinf(point.y)) return;
+    }
+    SkPaint paint;
+    if (!configure_mark_stroke(paint, style)) return;
+    // Each run of finite points is one contour; a NaN starts the next.
+    SkPathBuilder builder;
+    builder.incReserve(reserved_points(points.size()));
+    bool in_run = false;
+    for (const Point point : points) {
+        if (!finite_mark_point(point)) {
+            in_run = false;
+            continue;
+        }
+        if (in_run) {
+            builder.lineTo(to_sk_point(point));
+        } else {
+            builder.moveTo(to_sk_point(point));
+        }
+        in_run = true;
+    }
+    (*canvas).drawPath(builder.detach(), paint);
+}
+
+void SkiaRaster::fill_polygon(std::span<const Point> points, Color color, PolygonFillRule rule) {
+    SkCanvas* canvas = (*impl_).canvas();
+    const bool known_rule = rule == PolygonFillRule::nonzero || rule == PolygonFillRule::even_odd;
+    if (canvas == nullptr || !known_rule || points.size() < 3U) return;
+    for (const Point point : points) {
+        if (!finite_mark_point(point)) return;
+    }
+    SkPathBuilder builder(rule == PolygonFillRule::even_odd ? SkPathFillType::kEvenOdd : SkPathFillType::kWinding);
+    builder.incReserve(reserved_points(points.size()));
+    builder.moveTo(to_sk_point(points[0]));
+    for (std::size_t index = 1U; index < points.size(); ++index) builder.lineTo(to_sk_point(points[index]));
+    builder.close();
+    (*canvas).drawPath(builder.detach(), make_paint(color));
+}
+
+void SkiaRaster::fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color) {
+    SkCanvas* canvas = (*impl_).canvas();
+    if (canvas == nullptr || upper.size() < 2U || upper.size() != lower.size()) return;
+    for (std::size_t index = 0U; index < upper.size(); ++index) {
+        if (!finite_mark_point(upper[index]) || !finite_mark_point(lower[index])) return;
+    }
+    SkPathBuilder builder(SkPathFillType::kWinding);
+    builder.incReserve(reserved_points(upper.size() * 2U));
+    builder.moveTo(to_sk_point(upper[0]));
+    for (std::size_t index = 1U; index < upper.size(); ++index) builder.lineTo(to_sk_point(upper[index]));
+    for (std::size_t index = lower.size(); index > 0U; --index) builder.lineTo(to_sk_point(lower[index - 1U]));
+    builder.close();
+    (*canvas).drawPath(builder.detach(), make_paint(color));
+}
+
+void SkiaRaster::stroke_segments(std::span<const PaintSegment> segments, const StrokeStyle& style) {
+    SkCanvas* canvas = (*impl_).canvas();
+    if (canvas == nullptr || segments.empty() || !valid_stroke_style(style)) return;
+    SkPaint paint;
+    if (!configure_mark_stroke(paint, style)) return;
+    // One contour per segment: caps end each, dashes start again on each.
+    SkPathBuilder builder;
+    builder.incReserve(reserved_points(segments.size() * 2U));
+    for (const PaintSegment segment : segments) {
+        if (!finite_mark_point(segment.from) || !finite_mark_point(segment.to)) continue;
+        builder.moveTo(to_sk_point(segment.from));
+        builder.lineTo(to_sk_point(segment.to));
+    }
+    (*canvas).drawPath(builder.detach(), paint);
+}
+
+void SkiaRaster::draw_markers(std::span<const Point> centers, const MarkerStyle& style) {
+    SkCanvas* canvas = (*impl_).canvas();
+    if (canvas == nullptr || centers.empty() || !valid_marker_style(style)) return;
+    const bool stroked = marker_is_stroked(style.shape);
+    const bool draw_fill = !stroked && style.fill.alpha != 0U;
+    const bool draw_edge = style.edge.alpha != 0U && style.edge_width > 0.0;
+    if (!draw_fill && !draw_edge) return;
+    const SkPath shape = marker_path(style);
+    SkPaint fill = make_paint(style.fill);
+    SkPaint edge = make_paint(style.edge);
+    edge.setStyle(SkPaint::kStroke_Style);
+    edge.setStrokeWidth(static_cast<SkScalar>(style.edge_width));
+    // A transparent paint draws nothing visible; each marker is its fill
+    // then its edge, so a later marker covers an earlier one whole.
+    if (!draw_fill) fill.setColor(SK_ColorTRANSPARENT);
+    if (!draw_edge) edge.setColor(SK_ColorTRANSPARENT);
+    for (const Point center : centers) {
+        if (!finite_mark_point(center)) continue;
+        (*canvas).save();
+        (*canvas).translate(static_cast<SkScalar>(center.x), static_cast<SkScalar>(center.y));
+        (*canvas).drawPath(shape, fill);
+        (*canvas).drawPath(shape, edge);
+        (*canvas).restore();
+    }
+}
+
+void SkiaRaster::fill_conic_gradient(Rect rect, Point center, double start_degrees,
+                                     std::span<const GradientStop> stops) {
+    SkCanvas* canvas = (*impl_).canvas();
+    if (canvas == nullptr || rect.empty() || !rect.finite() || !finite_mark_point(center) ||
+        !std::isfinite(start_degrees) || !valid_gradient_stops(stops)) {
+        return;
+    }
+    // One full turn from the start angle; the sweep runs clockwise from +x
+    // in y-down coordinates, as the painter contract does.
+    const double start = std::fmod(start_degrees, 360.0);
+    const SkGradientData data = to_sk_gradient(stops);
+    SkGradientShaderResult made = SkShaders::SweepGradient(to_sk_point(center), static_cast<SkScalar>(start),
+                                                           static_cast<SkScalar>(start + 360.0),
+                                                           make_sk_gradient(data));
+    if (made.rejection != SkGradientRejection::kNone) return;
+    SkPaint paint;
+    paint.setAntiAlias(true);
+    paint.setShader(std::move(made.shader));
+    const SkRect box = snapped_box((*impl_).snap_transform_of(*canvas), rect, paint);
+    (*canvas).drawRect(box, paint);
+}
+
+void SkiaRaster::fill_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color) {
+    SkCanvas* canvas = (*impl_).canvas();
+    if (canvas == nullptr || rect.empty()) return;
+    // As fill_rounded_rect: the bounds snap in device space and the corners
+    // keep their antialiasing.
+    const SnapTransform transform = (*impl_).snap_transform_of(*canvas);
+    SkRect device{};
+    if (!snapped_device_rect(transform, rect, device)) {
+        (*canvas).drawRRect(to_sk_rrect_corners(rect, radii), make_paint(color));
+        return;
+    }
+    const double limit = std::max(0.0, std::min(rect.width, rect.height) * 0.5);
+    const std::array<double, 4> written{radii.top_left, radii.top_right, radii.bottom_right, radii.bottom_left};
+    std::array<SkVector, 4> corners{};
+    for (std::size_t index = 0U; index < corners.size(); ++index) {
+        corners[index] = device_radii(transform, std::clamp(written[index], 0.0, limit), device);
+    }
+    SkRRect shape;
+    shape.setRectRadii(device, corners.data());
+    (*canvas).save();
+    (*canvas).resetMatrix();
+    (*canvas).drawRRect(shape, make_paint(color));
+    (*canvas).restore();
+}
+
+void SkiaRaster::stroke_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color, double width) {
+    SkCanvas* canvas = (*impl_).canvas();
+    if (canvas == nullptr || rect.empty() || !std::isfinite(width) || width <= 0.0) return;
+    // The ring between the snapped outer and inner bounds, as
+    // stroke_rounded_rect draws it; a square corner stays square on both
+    // sides, a rounded one grows by half the width outside and shrinks by
+    // it inside.
+    const double half = width * 0.5;
+    const SnapTransform transform = (*impl_).snap_transform_of(*canvas);
+    SkRect outer{};
+    SkRect inner{};
+    const bool snapped = snapped_device_rect(transform, outset_rect(rect, half), outer) &&
+                         snapped_device_rect(transform, outset_rect(rect, -half), inner);
+    SkPaint paint = make_paint(color);
+    if (!snapped) {
+        paint.setStyle(SkPaint::kStroke_Style);
+        paint.setStrokeWidth(static_cast<SkScalar>(width));
+        (*canvas).drawRRect(to_sk_rrect_corners(rect, radii), paint);
+        return;
+    }
+    const double limit = std::max(0.0, std::min(rect.width, rect.height) * 0.5);
+    const std::array<double, 4> written{radii.top_left, radii.top_right, radii.bottom_right, radii.bottom_left};
+    std::array<SkVector, 4> outer_corners{};
+    std::array<SkVector, 4> inner_corners{};
+    for (std::size_t index = 0U; index < outer_corners.size(); ++index) {
+        const double bounded = std::clamp(written[index], 0.0, limit);
+        const double outside = bounded > 0.0 ? bounded + half : 0.0;
+        outer_corners[index] = device_radii(transform, outside, outer);
+        inner_corners[index] = device_radii(transform, std::max(0.0, bounded - half), inner);
+    }
+    SkRRect outer_shape;
+    outer_shape.setRectRadii(outer, outer_corners.data());
+    (*canvas).save();
+    (*canvas).resetMatrix();
+    if (inner.isEmpty()) {
+        (*canvas).drawRRect(outer_shape, paint);
+    } else {
+        SkRRect inner_shape;
+        inner_shape.setRectRadii(inner, inner_corners.data());
+        (*canvas).drawDRRect(outer_shape, inner_shape, paint);
+    }
+    (*canvas).restore();
 }
 
 void shutdown_skia_library() {

@@ -412,11 +412,15 @@ void FlexPanel::resolve_item_inputs(const SolveRequest& request) {
                                !layout.auto_margin.left && !layout.auto_margin.right;
 
         // The content query: max-content on the main axis, and on the cross
-        // axis the item's definite or stretched cross size when known.
+        // axis the item's definite or stretched cross size when known. Only
+        // a single-line container stretches an item to its own cross size
+        // (CSS Flexbox 9.4, step 8); a wrapping container's lines take their
+        // cross size from their items, which stretch to the line afterwards.
         AvailableExtent cross_query = max_content_extent();
+        const bool single_line = flex_wrap.read() == FlexWrap::nowrap;
         if (input.definite_cross) {
             cross_query = query_extent(definite_cross);
-        } else if (!horizontal && stretched && cross_basis.definite) {
+        } else if (!horizontal && stretched && single_line && cross_basis.definite) {
             cross_query = query_extent(cross_basis.extent - cross_margins);
         }
         const LayoutConstraint content_constraint = horizontal ? LayoutConstraint{max_content_extent(), cross_query}
@@ -542,10 +546,32 @@ void FlexPanel::publish_slots(const FlexLayoutWorkspace& workspace, Size content
         if (index >= results.size() || !is_current_layout_child(child)) continue;
         const Rect bounds = results[index].bounds;
         const Point shift = relative_position_offset(record_for(*child).positioning, content_box, direction);
-        const Rect slot{inset.left + bounds.x - offset.x + shift.x, inset.top + bounds.y - offset.y + shift.y,
-                        bounds.width, bounds.height};
+        const Rect slot{inset.left + bounds.x + overflow_shift_.x - offset.x + shift.x,
+                        inset.top + bounds.y + overflow_shift_.y - offset.y + shift.y, bounds.width, bounds.height};
         set_child_layout(child, slot);
     }
+}
+
+Rect FlexPanel::content_margin_bounds(const FlexLayoutWorkspace& workspace) const noexcept {
+    const std::span<const FlexItemResult> results = workspace.items();
+    const std::size_t count = std::min(results.size(), inputs_.size());
+    if (count == 0U) return Rect{};
+    // Every item counts, an empty one too: its position still extends the
+    // content.
+    double left = std::numeric_limits<double>::infinity();
+    double top = std::numeric_limits<double>::infinity();
+    double right = -std::numeric_limits<double>::infinity();
+    double bottom = -std::numeric_limits<double>::infinity();
+    for (std::size_t index = 0U; index < count; ++index) {
+        const Rect bounds = results[index].bounds;
+        const BoxSides<FlexMargin>& margin = inputs_[index].margin;
+        left = std::min(left, bounds.x - margin.left.length);
+        top = std::min(top, bounds.y - margin.top.length);
+        right = std::max(right, bounds.x + bounds.width + margin.right.length);
+        bottom = std::max(bottom, bounds.y + bounds.height + margin.bottom.length);
+    }
+    const Rect result{left, top, right - left, bottom - top};
+    return result;
 }
 
 Size FlexPanel::solve(const SolveRequest& request, FlexLayoutWorkspace& workspace) {
@@ -689,6 +715,11 @@ void FlexPanel::arrange(Rect final_bounds) {
     // With auto_scroll, the bars a content overflow needs narrow the
     // viewport; lay out against it until the two settle (at most three
     // passes, as FlowLayoutPanelCompat).
+    // The scroll extent is every item's margin box, on both axes, whatever
+    // the direction and wrap: lines wrapped below the viewport, a nowrap
+    // line running past it, and content a reversed axis pushes past the
+    // content box's start (moved inside by overflow_shift_).
+    overflow_shift_ = Point{};
     if (auto_scroll.read()) {
         for (int pass = 0; pass < 3; ++pass) {
             SolveRequest request{};
@@ -696,16 +727,33 @@ void FlexPanel::arrange(Rect final_bounds) {
             request.height = FlexAvailableExtent{std::max(0.0, available.height - inset.top - inset.bottom), true};
             const Size used = solve(request, arranged_);
             if (!is_alive()) return;
+            const Rect items = content_margin_bounds(arranged_);
+            const double low_x = std::min(0.0, items.x);
+            const double low_y = std::min(0.0, items.y);
+            const double high_x = std::max(used.width, items.x + items.width);
+            const double high_y = std::max(used.height, items.y + items.height);
+            overflow_shift_ = Point{-low_x, -low_y};
             const Size extra = auto_scroll_margin.read();
-            const Size content{std::max(arranged_.content_main(), used.width) + inset.left + inset.right + extra.width,
-                               used.height + inset.top + inset.bottom + extra.height};
+            const Size content{high_x - low_x + inset.left + inset.right + extra.width,
+                               high_y - low_y + inset.top + inset.bottom + extra.height};
             arrange_scroll_viewport(client, content);
             const Rect viewport = scroll_snapshot().viewport_rectangle;
             const Size next{viewport.width, viewport.height};
             if (next == available) break;
             available = next;
         }
+        // Keep the view on the same content when the shift changes (and on
+        // the main-axis start at first): the position moves with the shift,
+        // clamped to the range the viewport just set.
+        const Point moved{overflow_shift_.x - scrolled_shift_.x, overflow_shift_.y - scrolled_shift_.y};
+        scrolled_shift_ = overflow_shift_;
+        if (moved != Point{}) {
+            const Point position = scroll_position();
+            static_cast<void>(scroll_to(Point{position.x + moved.x, position.y + moved.y}));
+            if (!is_alive()) return;
+        }
     } else {
+        scrolled_shift_ = Point{};
         arrange_scroll_viewport(client, client);
     }
     SolveRequest request{};
@@ -804,7 +852,7 @@ const std::array<PropertyEntry, FlexPanel::flex_panel_property_count>& FlexPanel
     }};
     static_assert(property_names_distinct(own), "FlexPanel's property table names a property twice");
     static const std::array<PropertyEntry, flex_panel_property_count> entries =
-        join_property_tables(Control::control_property_entries(), own);
+        join_property_tables(ScrollableControl::scrollable_control_property_entries(), own);
     return entries;
 }
 

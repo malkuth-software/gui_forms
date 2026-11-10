@@ -134,6 +134,10 @@ public:
     // (HostWindowing::request_frame). As with request_client_size, the
     // model and frame_changed follow only when the host reports the change.
     [[nodiscard]] HostServiceStatus request_frame(Rect content) const;
+    // Whether this floating tool window stays shown while the application
+    // is inactive (HostWindowing::set_shown_while_inactive). Available from
+    // the window's admission, before it is ready; other kinds ignore it.
+    [[nodiscard]] HostServiceStatus set_shown_while_inactive(bool shown) const;
     // Orders the window above the run's other windows, never above other
     // applications' windows, without activating it (window_ordering).
     [[nodiscard]] HostServiceStatus bring_to_front() const;
@@ -413,6 +417,19 @@ public:
     // closes. Any thread.
     void set_tool_tips_shown(bool shown) noexcept;
     [[nodiscard]] bool tool_tips_shown() const noexcept;
+
+    // The program's invalidation overlay switch (owner request 2026-11-09;
+    // gui_forms/diagnostics/invalidation_overlay): on, every window and
+    // popup window without a setting of its own
+    // (Window::set_invalidation_overlay) outlines each area it presents
+    // again for 300 ms, naming the cause, until the switch is turned off or
+    // the program ends. It is the process switch
+    // (set_invalidation_overlay_default), so windows opened later follow it
+    // too; it starts as
+    // GUI_FORMS_DEBUG_INVALIDATION asks. A window applies a change from
+    // its next damage or paint. Any thread.
+    void set_invalidation_overlay(bool enabled) noexcept;
+    [[nodiscard]] bool invalidation_overlay() const noexcept;
 
     // -- files the platform asks the application to open -----------------
     // The most paths the application holds untaken; a request beyond it is

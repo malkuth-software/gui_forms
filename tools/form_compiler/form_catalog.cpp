@@ -77,6 +77,10 @@ void add_application_type(form_language::FormSchema& schema, std::string_view de
     type.cpp_type = std::string(cpp_type);
     type.header = std::string(header);
     type.create = nullptr;
+    // The application's class derives from the base, so it is not the
+    // base's final class; whether it is final itself the schema cannot
+    // know, and the generator derives from it.
+    type.final_type = false;
     schema.types.push_back(std::move(type));
 }
 

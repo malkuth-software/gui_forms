@@ -329,8 +329,13 @@ void test_editor_selection_menu_and_progress_roles_reach_stock_controls() {
                      ControlSurfaceState::normal, false, editor_color);
     set_solid_recipe(definition, ControlVisualRole::selection,
                      ControlSurfaceState::normal, true, selection_color);
+    // A hot menu item rises in the built-in dithered bulge (owner: the soft
+    // dither is the menu hover); a selected item keeps the plate, which
+    // draws the family's selected record.
     set_solid_recipe(definition, ControlVisualRole::menu_item,
-                     ControlSurfaceState::hot, false, menu_color);
+                     ControlSurfaceState::normal, true, menu_color);
+    set_solid_recipe(definition, ControlVisualRole::menu_item,
+                     ControlSurfaceState::hot, true, menu_color);
     set_solid_recipe(definition, ControlVisualRole::progress,
                      ControlSurfaceState::normal, false, progress_track);
     set_solid_recipe(definition, ControlVisualRole::progress,
@@ -356,6 +361,7 @@ void test_editor_selection_menu_and_progress_roles_reach_stock_controls() {
     std::shared_ptr<gui_forms::Command> menu_command = std::make_shared<Command>("theme.stock.open", "Open");
     (*menu).set_items({{"file", "File",
                       {{"open", MenuItemKind::command, menu_command, "Open", {}}}}});
+    (*menu).selected_item_id = "file";
     (*root).add_child(editor);
     (*root).add_child(list);
     (*root).add_child(combo);
@@ -370,6 +376,11 @@ void test_editor_selection_menu_and_progress_roles_reach_stock_controls() {
 
     ThemePainter painter;
     window.paint(painter, {0.0, 0.0, 300.0, 144.0});
+    if (!contains_color(painter, editor_color)) std::cerr << "missing: editor\n";
+    if (!contains_color(painter, selection_color)) std::cerr << "missing: selection\n";
+    if (!contains_color(painter, menu_color)) std::cerr << "missing: menu\n";
+    if (!contains_color(painter, progress_track)) std::cerr << "missing: progress track\n";
+    if (!contains_color(painter, progress_fill)) std::cerr << "missing: progress fill\n";
     require(contains_color(painter, editor_color) &&
                 contains_color(painter, selection_color) &&
                 contains_color(painter, menu_color) &&

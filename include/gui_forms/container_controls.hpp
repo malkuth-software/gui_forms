@@ -23,3 +23,6 @@
 #include "gui_forms/controls/docking/dock_navigator/dock_navigator.hpp"
 #include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
 #include "gui_forms/controls/docking/dock_site/dock_site.hpp"
+#include "gui_forms/controls/step_indicator/step_indicator.hpp"
+#include "gui_forms/controls/wizard/wizard.hpp"
+#include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"

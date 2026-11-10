@@ -727,7 +727,7 @@ const std::array<PropertyEntry, BlockPanel::block_panel_property_count>& BlockPa
     }};
     static_assert(property_names_distinct(own), "BlockPanel's property table names a property twice");
     static const std::array<PropertyEntry, block_panel_property_count> entries =
-        join_property_tables(Control::control_property_entries(), own);
+        join_property_tables(ScrollableControl::scrollable_control_property_entries(), own);
     return entries;
 }
 

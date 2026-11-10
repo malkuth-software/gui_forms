@@ -37,6 +37,9 @@ public:
     // that shows, waits or is under the pointer or focus is found again.
     virtual void items_changed(const Control& control) = 0;
     virtual void settings_changed() = 0;
+    // A focus scope opened (a menu, a drop-down): what the pointer showed
+    // beneath it closes.
+    virtual void scope_changed() = 0;
     virtual void cover(RuntimeId control, std::string_view item_id, bool covered) = 0;
 
     // SurfaceRoot::show_tool_tip and hide_tool_tip; the root validated the

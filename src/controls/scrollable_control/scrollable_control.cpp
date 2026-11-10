@@ -6,6 +6,8 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/engine/theme_engine/theme_engine.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "../range_control/scroll_bar/scroll_bar_painting.hpp"
 
 #include <array>
@@ -379,8 +381,31 @@ void ScrollableControl::arrange(Rect final_bounds) {
     if (unchanged && !copied && surface_root() != nullptr) {
         copied = (*surface_root()).request_scroll_copy(*this, moved);
     }
-    // The bars were repainted by the scroll (apply_axis_value).
+    // The bars were repainted by the scroll (apply_axis_value); what they
+    // paint over the viewport was copied with it.
+    if (copied && moved != Point{}) invalidate_scroll_bar_ink(moved);
     if (!copied) invalidate(Dirty::paint);
+}
+
+// The bars are this control's overlay paint, drawn over the viewport's
+// edge: their ink there (a thumb's contact shadow) moved with the copy. The
+// theme states no bound on that ink, so a band of one bar thickness inside
+// each bar is repainted, where it is and where the copy moved it, in local
+// coordinates (Control::invalidate clips them to the client area).
+void ScrollableControl::invalidate_scroll_bar_ink(const Point moved) {
+    const double margin = scrollbar_thickness_;
+    const double right = viewport_rectangle_.width;
+    const double bottom = viewport_rectangle_.height;
+    if (vscroll()) {
+        const Rect band{right - margin, 0.0, margin, bottom};
+        invalidate(band);
+        invalidate(Rect{band.x + moved.x, band.y + moved.y, band.width, band.height});
+    }
+    if (hscroll()) {
+        const Rect band{0.0, bottom - margin, right, margin};
+        invalidate(band);
+        invalidate(Rect{band.x + moved.x, band.y + moved.y, band.width, band.height});
+    }
 }
 
 // The scroll position rounded to whole device pixels, where the children are
@@ -1197,7 +1222,7 @@ namespace {
 
 constexpr ControlAnatomy scrollable_control_anatomy{
     .control_id = "scrollable_control",
-    .parts = scrollable_detail::parts,
+    .parts = scrollable_detail::grounded_parts,
     .states = scrollable_detail::states,
     .custom_states = {},
 };
@@ -1265,6 +1290,60 @@ ScrollableControl::Parts ScrollableControl::scrollable_parts() const {
 void ScrollableControl::publish_part_geometry(std::span<PartGeometry> geometry) const {
     const Parts record = scrollable_parts();
     write_parts(anatomy(), scrollable_detail::part_fields, record, geometry);
+    // The ground, where the anatomy declares it (write_parts skips it
+    // elsewhere): the whole box.
+    scrollable_detail::GroundParts ground{};
+    const Rect arranged = committed_arranged_bounds();
+    ground.face = PartGeometry::from_bounds(Rect{0.0, 0.0, arranged.width, arranged.height});
+    write_parts(anatomy(), scrollable_detail::ground_fields, ground, geometry);
+}
+
+namespace {
+
+// Whether `anatomy` declares the ground (scrollable_detail::GroundParts).
+bool declares_ground(const ControlAnatomy& anatomy) noexcept {
+    for (const PartDeclaration& part : anatomy.parts) {
+        if (part.name == "face") return true;
+    }
+    return false;
+}
+
+// Whether a theme rule names the ground (`user-control::part(face)`,
+// `::part(face)`): the part keyed "face" resolves otherwise than the same
+// part without a key, which only the rules naming no part match. A rule on
+// the panel family or the face role alone matches both, so it paints no
+// ground: containers kept no face before they declared one, and a theme
+// must ask for it.
+bool ground_named_by_rule(const Control& control, const PartPaint& keyed) noexcept {
+    const ThemeEngine& engine = control.effective_theme().engine();
+    const ThemeEngine::PartPlan named = engine.plan(control, keyed);
+    if (named.drawing != ThemeEngine::PartDrawing::primitive) return false;
+    PartPaint unkeyed = keyed;
+    unkeyed.key.reset();
+    const ThemeEngine::PartPlan broad = engine.plan(control, unkeyed);
+    if (broad.drawing != named.drawing || broad.resolution.primitive != named.resolution.primitive ||
+        broad.resolution.level != named.resolution.level) {
+        return true;
+    }
+    for (std::size_t field = 0; field < named.resolution.materials.size(); ++field) {
+        if (broad.resolution.materials[field] != named.resolution.materials[field]) return true;
+    }
+    return false;
+}
+
+} // namespace
+
+void ScrollableControl::on_paint(Painter& painter, Rect) {
+    if (!declares_ground(anatomy())) return;
+    const Rect arranged = committed_arranged_bounds();
+    PartPaint ground;
+    ground.family = ControlVisualRole::panel;
+    ground.role = PartRole::face;
+    ground.bounds = Rect{0.0, 0.0, arranged.width, arranged.height};
+    ground.states = anatomy_states();
+    ground.key = PartKey{"face", {}, {}};
+    if (!ground_named_by_rule(*this, ground)) return;
+    paint_part(painter, *this, ground);
 }
 
 AnatomyStateSet ScrollableControl::anatomy_states() const {

@@ -30,8 +30,10 @@ namespace gui_forms {
 // search_box (W-4; a SearchField, a text box whose text is a query) are
 // specialisations: a host without a mapping of its own publishes them as
 // their fallbacks, check_box and text_box (semantic_role_fallback), and
-// both act as their fallbacks do. `count` is not a role; it sizes tables
-// over the roles.
+// both act as their fallbacks do. figure (IMGUI_IMPLOT_STUDY B.4) is a
+// plot or chart: an image whose description summarises the data it shows,
+// with a keyboard point cursor and a table companion; its fallback is
+// image. `count` is not a role; it sizes tables over the roles.
 enum class SemanticRole : std::uint8_t {
     generic, group, static_text, button, check_box, radio_button, link,
     text_box, list, list_item, check_list_item, combo_box, slider,
@@ -41,7 +43,7 @@ enum class SemanticRole : std::uint8_t {
     separator, toolbar, radio_group, split_button, menu_button, pane,
     tab_panel, tree, tree_item, table, row, cell, column_header, row_header,
     tree_grid, dialog, status_bar, live_region, meter, toggle_switch, search_box,
-    count,
+    figure, count,
 };
 
 inline constexpr std::size_t semantic_role_count = static_cast<std::size_t>(SemanticRole::count);
@@ -49,10 +51,11 @@ inline constexpr std::size_t semantic_role_count = static_cast<std::size_t>(Sema
 // The role `role` specialises, which a host without a mapping for `role`
 // publishes, and whose behaviour (patterns, interfaces, checked value and
 // text) `role` shares: check_box for toggle_switch, text_box for
-// search_box. Every other role is its own fallback.
+// search_box, image for figure. Every other role is its own fallback.
 [[nodiscard]] constexpr SemanticRole semantic_role_fallback(SemanticRole role) noexcept {
     if (role == SemanticRole::toggle_switch) return SemanticRole::check_box;
     if (role == SemanticRole::search_box) return SemanticRole::text_box;
+    if (role == SemanticRole::figure) return SemanticRole::image;
     // Every other role is its own fallback.
     return role;
 }

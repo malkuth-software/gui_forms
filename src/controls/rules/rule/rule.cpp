@@ -109,6 +109,8 @@ std::string_view rule_condition_kind_name(RuleConditionKind kind) noexcept {
     case RuleConditionKind::window_active: return "window_active";
     case RuleConditionKind::is_true: return "is_true";
     case RuleConditionKind::equals: return "equals";
+    case RuleConditionKind::dragging: return "dragging";
+    case RuleConditionKind::drop_candidate: return "drop_candidate";
     case RuleConditionKind::none:
     default:
         break;
@@ -123,6 +125,7 @@ std::string_view rule_action_kind_name(RuleActionKind kind) noexcept {
     case RuleActionKind::set: return "set";
     case RuleActionKind::toggle: return "toggle";
     case RuleActionKind::focus: return "focus";
+    case RuleActionKind::begin_keyboard_drag: return "begin_keyboard_drag";
     case RuleActionKind::none:
     default:
         break;
@@ -214,6 +217,14 @@ RuleCondition visible(Control& control) { return control_condition(RuleCondition
 RuleCondition not_visible(Control& control) { return control_condition(RuleConditionKind::visible, control, true); }
 RuleCondition window_active() { return active_condition(false); }
 RuleCondition not_window_active() { return active_condition(true); }
+RuleCondition dragging(Control& control) { return control_condition(RuleConditionKind::dragging, control, false); }
+RuleCondition not_dragging(Control& control) { return control_condition(RuleConditionKind::dragging, control, true); }
+RuleCondition drop_candidate(Control& control) {
+    return control_condition(RuleConditionKind::drop_candidate, control, false);
+}
+RuleCondition not_drop_candidate(Control& control) {
+    return control_condition(RuleConditionKind::drop_candidate, control, true);
+}
 RuleCondition is_true(Value<bool>& flag) { return flag_condition(flag, false); }
 RuleCondition not_true(Value<bool>& flag) { return flag_condition(flag, true); }
 RuleCondition equals(Value<int>& number, int expected) { return number_condition(number, expected, false); }
@@ -245,6 +256,13 @@ RuleAction toggle(Value<bool>& value) {
 RuleAction focus(Control& control) {
     RuleAction made{};
     made.kind = RuleActionKind::focus;
+    made.control = control.weak_from_this();
+    return made;
+}
+
+RuleAction begin_keyboard_drag(Control& control) {
+    RuleAction made{};
+    made.kind = RuleActionKind::begin_keyboard_drag;
     made.control = control.weak_from_this();
     return made;
 }

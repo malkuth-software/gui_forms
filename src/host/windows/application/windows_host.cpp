@@ -10,6 +10,8 @@
 #include "../input/windows_message_queue.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
 #include "../fonts/sealed_pages_windows.hpp"
+#include "../../../core/resources/fonts/bundled_font_set.hpp"
+#include "../raster/dib_band_present.hpp"
 #if defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
 #include "../raster/dib_frame_store.hpp"
 #endif
@@ -19,6 +21,7 @@
 #endif
 // The window's painter (stage SK3): the private Skia CPU raster.
 #include "skia_raster.hpp"
+#include "skia_splash_bake.hpp"
 #include "../../../core/application/splashscreen_surface.hpp"
 
 #include "gui_forms/engine/part_raster/part_raster.hpp"
@@ -37,6 +40,7 @@
 #include <shellapi.h>
 #include <shellscalingapi.h>
 #include <dwmapi.h>
+#include <imm.h>
 
 #include <algorithm>
 #include <array>
@@ -73,6 +77,38 @@ namespace {
 constexpr wchar_t window_class_name[] = L"GUIForms.Window.v1";
 constexpr UINT_PTR scheduler_timer = 1;
 constexpr UINT_PTR modal_live_surface_timer = 2;
+// The invalidation overlay's fade (invalidation_overlay.hpp): while outlines
+// show, the overlay is presented again at this period, from the raster,
+// without a paint; the timer stops with the last outline.
+constexpr UINT_PTR invalidation_overlay_timer = 3;
+constexpr UINT invalidation_overlay_period_milliseconds = 33;
+
+// Copies `area` (device pixels, inside the frame) of a top-down 32-bit BGRA
+// frame to `target`; false when GDI refuses. The frame is borrowed.
+bool present_bgra_area(HDC target, const std::byte* pixels, std::size_t row_bytes, int width, int height,
+                       const RECT& area) noexcept {
+    if (target == nullptr || pixels == nullptr || width <= 0 || height <= 0 || row_bytes % 4U != 0U) return false;
+    const int left = std::clamp<int>(area.left, 0, width);
+    const int top = std::clamp<int>(area.top, 0, height);
+    const int right = std::clamp<int>(area.right, left, width);
+    const int bottom = std::clamp<int>(area.bottom, top, height);
+    if (right == left || bottom == top) return true;
+    BITMAPINFO info{};
+    info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    info.bmiHeader.biWidth = static_cast<LONG>(row_bytes / 4U);
+    info.bmiHeader.biHeight = -height;
+    info.bmiHeader.biPlanes = 1;
+    info.bmiHeader.biBitCount = 32;
+    info.bmiHeader.biCompression = BI_RGB;
+    const int columns = right - left;
+    const int rows = bottom - top;
+    // GDI measures a top-down source's y from its bottom row.
+    const int source_y = height - bottom;
+    const int copied = StretchDIBits(target, left, top, columns, rows, left, source_y, columns, rows, pixels, &info,
+                                     DIB_RGB_COLORS, SRCCOPY);
+    const bool presented = copied != 0 && copied != static_cast<int>(GDI_ERROR);
+    return presented;
+}
 constexpr UINT live_surface_period_milliseconds = 16;
 // The live frame clock's cadence when the display's composition timing is
 // unavailable: 60 Hz, in milliseconds per thousand frames.
@@ -550,7 +586,34 @@ GetDpiForMonitorFunction load_get_dpi_for_monitor() noexcept {
     return function;
 }
 
+// The run's fixed device scale, or 0 to follow each monitor: the
+// scale_override (WindowsHostOptions) of the window run_windows opens, or of
+// the first window run_windows_application opens, which every window of the
+// run then takes, popups included, and in which the monitors are reported.
+// One scale for the whole desktop keeps desktop logical units and every
+// window's logical units the same, so a popup lands where its owner put it
+// (a capture at scale 1 on a 2x display). Set on the UI thread before the
+// first window exists and read there only.
+double& run_scale_override() noexcept {
+    static double scale = 0.0;
+    return scale;
+}
+
+// Development hook (GUI_FORMS_WINDOWS_SCALE, a number from 1 to 4): the
+// fixed device scale of an application run whose first window asks for
+// none, so that a program run through Application::run can be captured at
+// one scale whatever the display; 0 when unset or out of range.
+double development_scale_override() noexcept {
+    const char* const value = std::getenv("GUI_FORMS_WINDOWS_SCALE");
+    if (value == nullptr) return 0.0;
+    char* end = nullptr;
+    const double scale = std::strtod(value, &end);
+    const bool valid = end != value && *end == '\0' && std::isfinite(scale) && scale >= 1.0 && scale <= 4.0;
+    return valid ? scale : 0.0;
+}
+
 double native_monitor_scale(HMONITOR monitor) noexcept {
+    if (run_scale_override() > 0.0) return run_scale_override();
     static const GetDpiForMonitorFunction get_dpi_for_monitor =
         load_get_dpi_for_monitor();
     UINT x = 96U;
@@ -603,6 +666,7 @@ Function load_function(HMODULE module, const char* name) noexcept {
 }
 
 double query_scale(HWND window) noexcept {
+    if (run_scale_override() > 0.0) return run_scale_override();
     using GetDpiForWindowFunction = decltype(&::GetDpiForWindow);
     if (HMODULE user32 = GetModuleHandleW(L"user32.dll")) {
         const GetDpiForWindowFunction function =
@@ -646,17 +710,57 @@ void enable_best_dpi_awareness() noexcept {
     }
 }
 
-// The bundled font directory: GUI_FORMS_FONT_DIR when it is set, as on Linux, else "fonts"
-// beside the executable; empty when neither is known.
-std::filesystem::path bundled_font_directory() {
-    const wchar_t* override_directory = _wgetenv(L"GUI_FORMS_FONT_DIR");
-    if (override_directory != nullptr) return std::filesystem::path(override_directory);
-    wchar_t executable[MAX_PATH]{};
-    const DWORD count = GetModuleFileNameW(nullptr, executable, MAX_PATH);
-    if (count == 0 || count >= MAX_PATH) return {};
+// A byte in the module that holds GUI.Forms, whose address names that module to
+// GetModuleHandleExW.
+const char gui_forms_module_anchor{};
+
+// The longest path GetModuleFileNameW can return with long paths enabled, in UTF-16 units.
+constexpr DWORD maximum_module_path_units = 32768U;
+
+// The directory of `module`'s file (null for the executable); empty when Windows cannot say.
+std::filesystem::path module_directory(HMODULE module) {
+    std::vector<wchar_t> path(maximum_module_path_units, L'\0');
+    const DWORD count = GetModuleFileNameW(module, path.data(), maximum_module_path_units);
+    if (count == 0U || count >= maximum_module_path_units) return {};
     const std::filesystem::path directory =
-        std::filesystem::path(std::wstring(executable, count)).parent_path() / L"fonts";
+        std::filesystem::path(std::wstring(path.data(), count)).parent_path();
     return directory;
+}
+
+// The directory of the module holding this code: the GUI.Forms DLL when another process (a
+// .NET runtime, a plug-in host) loaded it, else the executable it is linked into; empty when
+// Windows cannot say. The handle is borrowed without a reference.
+std::filesystem::path gui_forms_module_directory() {
+    HMODULE module = nullptr;
+    const DWORD flags =
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
+    const BOOL found =
+        GetModuleHandleExW(flags, reinterpret_cast<LPCWSTR>(&gui_forms_module_anchor), &module);
+    if (found == FALSE || module == nullptr) return {};
+    const std::filesystem::path directory = module_directory(module);
+    return directory;
+}
+
+// The bundled font directory: the first of GUI_FORMS_FONT_DIR, "fonts" beside the executable
+// and "fonts" beside the GUI.Forms module that holds the required faces; empty when none does,
+// which locate_bundled_fonts counts and reports (bundled_font_diagnostics,
+// bundled_font_refusal).
+std::filesystem::path bundled_font_directory() {
+    std::array<gui_forms::detail::BundledFontCandidate, 3> candidates{};
+    const wchar_t* override_directory = _wgetenv(L"GUI_FORMS_FONT_DIR");
+    candidates[0].source = gui_forms::BundledFontSource::environment;
+    if (override_directory != nullptr) candidates[0].directory = std::filesystem::path(override_directory);
+    const std::filesystem::path executable_directory = module_directory(nullptr);
+    candidates[1].source = gui_forms::BundledFontSource::executable;
+    if (!executable_directory.empty()) candidates[1].directory = executable_directory / L"fonts";
+    const std::filesystem::path library_directory = gui_forms_module_directory();
+    candidates[2].source = gui_forms::BundledFontSource::library_module;
+    // A GUI.Forms linked into the executable is the executable; it is not offered twice.
+    if (!library_directory.empty() && library_directory != executable_directory)
+        candidates[2].directory = library_directory / L"fonts";
+    const gui_forms::detail::BundledFontLocation location =
+        gui_forms::detail::locate_bundled_fonts(candidates);
+    return location.directory;
 }
 
 // The bundled font set in gui_forms::detail::bundled_face_uses() order, as every host
@@ -908,25 +1012,13 @@ public:
         area.right = std::clamp<int>(damage.right, area.left, width_);
         area.bottom = std::clamp<int>(damage.bottom, area.top, height_);
         if (area.right == area.left || area.bottom == area.top) return true;
-        BITMAPINFO info{};
-        info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        info.bmiHeader.biWidth = static_cast<LONG>(row_bytes / 4U);
-        info.bmiHeader.biHeight = -height_;
-        info.bmiHeader.biPlanes = 1;
-        info.bmiHeader.biBitCount = 32;
-        info.bmiHeader.biCompression = BI_RGB;
-        const int columns = area.right - area.left;
-        const int rows = area.bottom - area.top;
-        // GDI measures the source rectangle's y from the bottom row even for
-        // a top-down DIB, so the rows above it are counted from there.
-        const int source_y = height_ - area.bottom;
-        const int copied = StretchDIBits(target, area.left, area.top, columns, rows,
-                                         area.left, source_y, columns, rows,
-                                         source, &info, DIB_RGB_COLORS, SRCCOPY);
-        // StretchDIBits reports the scan lines it copied, or 0 or GDI_ERROR
-        // on failure; for a partial source rectangle the count is not the
-        // rectangle's height, so only failure is tested.
-        const bool presented = copied != 0 && copied != static_cast<int>(GDI_ERROR);
+        detail::DibBandSource band_source{};
+        band_source.pixels = static_cast<const std::byte*>(source);
+        band_source.row_bytes = row_bytes;
+        band_source.width = width_;
+        band_source.height = height_;
+        const RECT band{area.left, area.top, area.right, area.bottom};
+        const bool presented = detail::present_dib_band(target, band_source, band);
         return presented;
     }
 
@@ -1047,9 +1139,26 @@ public:
     }
     [[nodiscard]] bool bundled_fonts_ready() const noexcept { return bundled_fonts_ready_; }
 
-private:
-    // The pixels a capture reads: the committed front (transactional), else
-    // the painter's last frame.
+    // What the window last presented, for a composite capture
+    // (capture-composite): premultiplied BGRA8 rows `row_bytes` apart,
+    // borrowed until the next frame; `alpha` false when every pixel is
+    // presented opaque.
+    struct PresentedView final {
+        const std::byte* pixels{};
+        std::size_t row_bytes{};
+        int width{};
+        int height{};
+        bool alpha{};
+    };
+    [[nodiscard]] PresentedView presented_view() const noexcept {
+        const PresentedPixels saved = presented_pixels();
+        const PresentedView view{saved.pixels, saved.row_bytes, saved.width, saved.height, frame_alpha_};
+        return view;
+    }
+
+public:
+    // The pixels a capture and the invalidation overlay read: the committed
+    // front (transactional), else the painter's last frame.
     struct PresentedPixels final {
         const std::byte* pixels{};
         std::size_t row_bytes{};
@@ -1072,6 +1181,8 @@ private:
 #endif
         return result;
     }
+
+private:
 
 #if defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
     // Copies the painter's ended frame into a new DIB candidate (the
@@ -1157,6 +1268,11 @@ struct RequestWindowTitle final {
 };
 class WindowsHostState;
 class WindowsApplicationRun;
+// Writes what `owner` and the visible windows it owns show, composed in
+// their desktop places over a checkerboard, as one PNG at `path`, and
+// prints their client rectangles (capture-composite). Defined in
+// windows_application_run.inc; `run` is null outside an application run.
+bool write_composite_capture(WindowsApplicationRun* run, WindowsHostState& owner, const std::wstring& path);
 // As TitleCallbackState: only the UI thread reads or revokes host. The
 // operation owns no host; it reaches the host only while the window lives.
 struct ClientSizeCallbackState final {
@@ -1175,6 +1291,9 @@ class WindowsHostState final {
 #endif
 #if defined(GUI_FORMS_WINDOWS_PREPARED_TEXT_TEST)
     friend struct PreparedHostFixture;
+#endif
+#if defined(GUI_FORMS_WINDOWS_SCROLL_COPY_TEST)
+    friend struct ScrollCopyHostFixture;
 #endif
 public:
     WindowsHostState(std::unique_ptr<Window> model, WindowsHostOptions options)
@@ -1285,6 +1404,13 @@ public:
             gui_forms::detail::BoundMemberFunction<
                 void (WindowsHostState::*)() noexcept>(
                     *this, &WindowsHostState::request_render_wake));
+#if !defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
+        // The painter keeps its pixels between frames, so a scroll's pixels
+        // can be moved instead of repainted (apply_scroll_copies). The
+        // transactional store presents committed DIB candidates instead and
+        // repaints scrolled viewports.
+        (*model_).set_scroll_copies_supported(true);
+#endif
         if (options_.host_ready) {
             options_.host_ready(
                 gui_forms::detail::BoundMemberFunction<
@@ -1427,6 +1553,7 @@ public:
         native_phase_ = NativePhase::closing;
         DestroyWindow(hwnd_);
     }
+    [[nodiscard]] WindowsRaster::PresentedView presented_view() const noexcept { return raster_.presented_view(); }
     // Defined in windows_application_run.inc.
     void report_frame_to_run();
     void retire_from_run() noexcept;
@@ -1655,6 +1782,10 @@ public:
                 GetUpdateRect(hwnd_, nullptr, FALSE) != FALSE;
             return 0;
         case WM_TIMER:
+            if (wparam == invalidation_overlay_timer) {
+                present_invalidation_overlay();
+                return 0;
+            }
             if (wparam == modal_live_surface_timer) {
                 // Do not enter retained polling/layout from the native modal
                 // loop. Sample and present only the newest live generation,
@@ -1698,7 +1829,8 @@ public:
             return DefWindowProcW(hwnd_, message, wparam, lparam);
         case WM_CONTEXTMENU: context_request(lparam); return 0;
         case WM_MOUSEHOVER: hover(lparam); return 0;
-        case WM_MOUSEWHEEL: wheel(wparam, lparam); return 0;
+        case WM_MOUSEWHEEL: wheel(wparam, lparam, false); return 0;
+        case WM_MOUSEHWHEEL: wheel(wparam, lparam, true); return 0;
         case WM_SYSKEYDOWN:
             // Preserve the native close gesture. Swallowing all system keys
             // prevents DefWindowProc from producing the ordinary WM_CLOSE,
@@ -1713,6 +1845,15 @@ public:
             if (!key(KeyAction::up, wparam, lparam) && context_key(message, wparam)) break;
             return 0;
         case WM_CHAR: character(static_cast<wchar_t>(wparam)); return 0;
+        case WM_IME_STARTCOMPOSITION:
+        case WM_IME_COMPOSITION:
+            // The system input method still draws its own composition and
+            // candidate windows, and its committed text still arrives as
+            // WM_CHAR (DefWindowProc turns WM_IME_CHAR into it); the host
+            // only places them at the focused control's caret. No preedit
+            // reaches the model, so text_composition is not advertised.
+            place_input_method_windows();
+            break;
         case WM_GETOBJECT:
             if (static_cast<LONG>(lparam) == OBJID_CLIENT) { return accessibility_.object(wparam); }
             if (WindowsAccessibility::automation_request(lparam)) {
@@ -1722,6 +1863,8 @@ public:
         case WM_GETMINMAXINFO: minimum_size(reinterpret_cast<MINMAXINFO*>(lparam)); return 0;
         case WM_COPYDATA: return automation(reinterpret_cast<const COPYDATASTRUCT*>(lparam));
         case WM_CLOSE: return close();
+        case WM_QUERYENDSESSION: return query_end_session();
+        case WM_ENDSESSION: return end_session(wparam != FALSE);
         case WM_DESTROY:
             (*title_state_).window = nullptr;
             (*size_state_).host = nullptr;
@@ -1776,6 +1919,87 @@ public:
                ",\"retained_deferred\":" +
                    std::to_string(live_sequence_retained_deferred_) +
                "}}";
+    }
+
+    // The invalidation overlay at present time (invalidation_overlay.hpp):
+    // the areas the overlay draws on now and drew on last are copied from
+    // the presented frame into a scratch frame, the outlines are composited
+    // there, and those areas reach the window from it. The raster is never
+    // drawn on, so the overlay damages nothing and a faded outline leaves
+    // the raster's pixels behind. Off, with nothing left drawn, this is one
+    // relaxed load and a size test.
+    void present_invalidation_overlay() {
+        if (hwnd_ == nullptr || !model_) return;
+        InvalidationOverlay* const overlay = (*model_).invalidation_overlay();
+        if (overlay == nullptr && overlay_drawn_.empty()) {
+            disarm_invalidation_overlay_timer();
+            return;
+        }
+        const WindowsRaster::PresentedPixels source = raster_.presented_pixels();
+        if (source.pixels == nullptr || source.width <= 0 || source.height <= 0) return;
+        const std::uint32_t width = static_cast<std::uint32_t>(source.width);
+        const std::uint32_t height = static_cast<std::uint32_t>(source.height);
+        const InvalidationClock::time_point now = InvalidationClock::now();
+        overlay_regions_.clear();
+        if (overlay != nullptr) {
+            (*overlay).expire(now);
+            (*overlay).fill_regions(scale_, width, height, overlay_regions_);
+        }
+        overlay_present_.assign(overlay_regions_.begin(), overlay_regions_.end());
+        overlay_present_.insert(overlay_present_.end(), overlay_drawn_.begin(), overlay_drawn_.end());
+        if (overlay_present_.empty()) {
+            disarm_invalidation_overlay_timer();
+            return;
+        }
+        const std::size_t frame_bytes = source.row_bytes * static_cast<std::size_t>(height);
+        if (overlay_scratch_.size() != frame_bytes) overlay_scratch_.assign(frame_bytes, std::byte{0});
+        InvalidationOverlayTarget target{};
+        target.pixels = std::span<std::byte>(overlay_scratch_);
+        target.width = width;
+        target.height = height;
+        target.row_bytes = source.row_bytes;
+        // One pass over the bounding box of every area: a window full of
+        // outlines (up to maximum_invalidation_outlines, each with five
+        // areas) would otherwise cost thousands of GDI calls a fade tick.
+        DevicePixelRect box{source.width, source.height, 0, 0};
+        for (const DevicePixelRect& region : overlay_present_) {
+            box.left = std::min(box.left, std::clamp<std::int32_t>(region.left, 0, source.width));
+            box.top = std::min(box.top, std::clamp<std::int32_t>(region.top, 0, source.height));
+            box.right = std::max(box.right, std::clamp<std::int32_t>(region.right, 0, source.width));
+            box.bottom = std::max(box.bottom, std::clamp<std::int32_t>(region.bottom, 0, source.height));
+        }
+        if (box.right <= box.left || box.bottom <= box.top) {
+            overlay_drawn_.assign(overlay_regions_.begin(), overlay_regions_.end());
+            return;
+        }
+        const std::size_t row_offset = static_cast<std::size_t>(box.left) * 4U;
+        const std::size_t row_length = static_cast<std::size_t>(box.right - box.left) * 4U;
+        for (std::int32_t y = box.top; y < box.bottom; ++y) {
+            const std::size_t offset = static_cast<std::size_t>(y) * source.row_bytes + row_offset;
+            std::memcpy(overlay_scratch_.data() + offset, source.pixels + offset, row_length);
+        }
+        if (overlay != nullptr) (*overlay).compose(target, scale_, now, box);
+        HDC dc = GetDC(hwnd_);
+        if (dc == nullptr) return;
+        const RECT area{box.left, box.top, box.right, box.bottom};
+        static_cast<void>(present_bgra_area(dc, overlay_scratch_.data(), source.row_bytes, source.width,
+                                            source.height, area));
+        ReleaseDC(hwnd_, dc);
+        overlay_drawn_.assign(overlay_regions_.begin(), overlay_regions_.end());
+        if (overlay != nullptr && !(*overlay).empty()) {
+            if (!overlay_timer_armed_) {
+                SetTimer(hwnd_, invalidation_overlay_timer, invalidation_overlay_period_milliseconds, nullptr);
+                overlay_timer_armed_ = true;
+            }
+        } else {
+            disarm_invalidation_overlay_timer();
+        }
+    }
+
+    void disarm_invalidation_overlay_timer() noexcept {
+        if (!overlay_timer_armed_) return;
+        overlay_timer_armed_ = false;
+        if (hwnd_ != nullptr) KillTimer(hwnd_, invalidation_overlay_timer);
     }
 
     void present_pending_frame() {
@@ -1938,8 +2162,9 @@ private:
     }
 
     void dpi_changed(WPARAM wparam, LPARAM lparam) {
-        const double next = options_.scale_override > 0.0 ? options_.scale_override
-                                                          : std::max(1.0, HIWORD(wparam) / 96.0);
+        double next = std::max(1.0, HIWORD(wparam) / 96.0);
+        if (run_scale_override() > 0.0) next = run_scale_override();
+        if (options_.scale_override > 0.0) next = options_.scale_override;
         if (next != scale_) { scale_ = next; dispatch(HostScaleEvent{scale_}); }
         if (const RECT* suggested = reinterpret_cast<const RECT*>(lparam)) {
             SetWindowPos(hwnd_, nullptr, (*suggested).left, (*suggested).top,
@@ -2045,10 +2270,73 @@ private:
         return added;
     }
 
+    // Takes the scroll copies the model recorded with the damage just taken
+    // (SurfaceRoot::take_scroll_copies), before that damage joins the held
+    // damage: what this host still holds moves with each copy's pixels. The
+    // next frame applies them in order (apply_scroll_copies). The
+    // transactional profile records none.
+    void take_scroll_copies() {
+        taken_copies_.clear();
+        (*model_).take_scroll_copies(taken_copies_);
+        for (const ScrollCopy& copy : taken_copies_) {
+            if (!pending_damage_.empty()) {
+                pending_damage_ = gui_forms::damage_after_scroll_copy(pending_damage_, copy.clip, copy.offset);
+            }
+            pending_copies_.push_back(copy);
+        }
+        taken_copies_.clear();
+    }
+
+#if !defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
+    // Applies the pending scroll copies to the frame begun (`frame_begun`)
+    // before its damage is painted, and leaves the clips of those applied in
+    // applied_copy_clips_: the frame presents them whole, since the window
+    // still shows their pixels where they were. A copy that cannot be applied
+    // (no frame, or the raster refuses it) damages every pending clip
+    // instead: copies earlier in the list may have moved pixels in it, and
+    // the repaint covers each clip. Without a frame the clips are also
+    // invalidated, so a later WM_PAINT paints them.
+    void apply_scroll_copies(const bool frame_begun) {
+        applied_copy_clips_.clear();
+        if (pending_copies_.empty()) return;
+        bool applied = frame_begun;
+        for (const ScrollCopy& copy : pending_copies_) {
+            if (applied) applied = raster_.painter().scroll_copy(copy.clip, copy.offset);
+            applied_copy_clips_.push_back(copy.clip);
+        }
+        pending_copies_.clear();
+        if (applied) {
+            scroll_copies_applied_ += applied_copy_clips_.size();
+            return;
+        }
+        for (const Rect clip : applied_copy_clips_) {
+            pending_damage_.add(clip);
+            if (frame_begun) continue;
+            const RECT native_clip = device_rect(clip);
+            InvalidateRect(hwnd_, &native_clip, FALSE);
+        }
+        scroll_copies_refused_ += applied_copy_clips_.size();
+        applied_copy_clips_.clear();
+    }
+
+    // A frame that applied copies but did not reach the window leaves the
+    // window's pixels behind the raster's in their clips: they are damaged
+    // and painted again.
+    void damage_unpresented_copies() {
+        for (const Rect clip : applied_copy_clips_) {
+            pending_damage_.add(clip);
+            const RECT native_clip = device_rect(clip);
+            InvalidateRect(hwnd_, &native_clip, FALSE);
+        }
+        applied_copy_clips_.clear();
+    }
+#endif
+
     void collect_damage() {
         static_cast<void>((*model_).poll_frame_schedule(FrameClock::now()));
         accessibility_.notify(scale_);
         DamageRegion damage = (*model_).take_damage();
+        take_scroll_copies();
         // Each rectangle is invalidated on its own (stage DP): Windows keeps
         // them as one update region, so distant changes do not repaint what
         // lies between them.
@@ -2198,6 +2486,7 @@ private:
         const std::chrono::steady_clock::time_point started =
             std::chrono::steady_clock::now();
         const DamageRegion taken = (*model_).take_damage();
+        take_scroll_copies();
         const std::span<const Rect> taken_rectangles = taken.rectangles();
         for (std::size_t index = 0; index < taken_rectangles.size(); ++index) {
             pending_damage_.add(taken_rectangles[index]);
@@ -2211,8 +2500,12 @@ private:
         prepare_frame_alpha();
         static_cast<void>(raster_.synchronize_images((*model_).image_resources()));
         const bool frame_begun = raster_.begin_frame();
-        const bool regions_usable = !live_region_lost_;
+        // A scroll copy can move a live surface's previous pixels: frames
+        // are then drawn over their whole clips.
+        const bool regions_usable = !live_region_lost_ && pending_copies_.empty();
+        apply_scroll_copies(frame_begun);
         DamageRegion screen;
+        for (const Rect clip : applied_copy_clips_) screen.add(clip);
         std::uint64_t live_pixels = 0U;
         bool regions_taken = false;
         live_frames_.clear();
@@ -2252,6 +2545,7 @@ private:
                 ++live_updates_failed_;
                 continue;
             }
+            (*model_).note_live_surface_presented(update, region);
             screen.add(region);
             const std::uint64_t pixels = device_pixels(device_rect(region));
             composed_live_pixels_[source] += pixels;
@@ -2285,6 +2579,7 @@ private:
         HDC target = GetDC(hwnd_);
         if (target == nullptr) {
             live_updates_failed_ += live_composed;
+            damage_unpresented_copies();
             return;
         }
         bool presented = true;
@@ -2305,6 +2600,7 @@ private:
             }
         }
         ReleaseDC(hwnd_, target);
+        present_invalidation_overlay();
         if (expose_whole && presented) expose_whole_raster_ = false;
         copied.copy_nanoseconds = static_cast<std::uint64_t>(
             std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -2315,6 +2611,11 @@ private:
         // A region taken from a surface is cleared; only a presented raster
         // keeps it valid, so after a failure the next tick copies whole clips.
         if (regions_taken) live_region_lost_ = !presented;
+        if (presented) {
+            applied_copy_clips_.clear();
+        } else {
+            damage_unpresented_copies();
+        }
         // Live frames are copied inside this one present: their regions are
         // reported as live and the rest as retained, and the duration is
         // split between them by pixel share.
@@ -2404,6 +2705,7 @@ private:
                 std::chrono::steady_clock::now();
             if (raster_.present_live_surface(target, update)) {
                 ++live_updates_presented_;
+                (*model_).note_live_surface_presented(update, update.clip);
                 PresentedArea copied;
                 copied.device_pixels = device_pixels(device_rect(update.clip));
                 copied.rectangles = copied.device_pixels != 0U ? 1U : 0U;
@@ -2419,6 +2721,7 @@ private:
             }
         }
         ReleaseDC(hwnd_, target);
+        present_invalidation_overlay();
 #else
         present_live_frame_sequence(updates);
 #endif
@@ -2511,6 +2814,7 @@ private:
             recovery_expose_pending_ = true;
             InvalidateRect(hwnd_, nullptr, FALSE);
         }
+        present_invalidation_overlay();
         collect_damage();
 #else
         // After a resize the raster is current outside the pending damage, so
@@ -2525,11 +2829,33 @@ private:
         // Match the whole device pixels that the update region covers. A
         // narrower fractional clip can leave stripes from previous frames.
         if (!update_region_read) pending_damage_.add(logical_rect(paint_state.rcPaint));
-        // Present exactly the rectangles painted: the raster keeps the last
-        // frame everywhere else, and the window already shows it there.
+        prepare_frame_alpha();
+        static_cast<void>(raster_.synchronize_images((*model_).image_resources()));
+        // Scroll copies move pixels the frame then presents whole, so the
+        // frame's surface admits their clips too; the paint itself stays
+        // clipped to the damage.
+        const bool copies_pending = !pending_copies_.empty();
+        DamageRegion frame_damage = pending_damage_;
+        for (const ScrollCopy& copy : pending_copies_) frame_damage.add(copy.clip);
+        std::optional<PaintReceipt> receipt{};
+        const bool frame_begun = raster_.begin_frame(frame_damage);
+        apply_scroll_copies(frame_begun);
+        if (frame_begun) {
+            render::SkiaRaster& painter = raster_.painter();
+            if (copies_pending) {
+                painter.save();
+                painter.clip_damage(pending_damage_);
+            }
+            receipt = (*model_).paint(painter, pending_damage_.rectangles());
+            if (copies_pending) painter.restore();
+            raster_.end_frame();
+        }
+        // Present exactly the rectangles painted and the copies' clips: the
+        // raster keeps the last frame everywhere else, and the window already
+        // shows it there.
         const std::span<const Rect> painted_rectangles = pending_damage_.rectangles();
         std::vector<RECT> present_rectangles;
-        present_rectangles.reserve(painted_rectangles.size() + 1U);
+        present_rectangles.reserve(painted_rectangles.size() + applied_copy_clips_.size() + 1U);
         if (expose_whole) {
             RECT client{};
             GetClientRect(hwnd_, &client);
@@ -2538,21 +2864,27 @@ private:
             for (std::size_t index = 0; index < painted_rectangles.size(); ++index) {
                 present_rectangles.push_back(device_rect(painted_rectangles[index]));
             }
-        }
-        prepare_frame_alpha();
-        static_cast<void>(raster_.synchronize_images((*model_).image_resources()));
-        std::optional<PaintReceipt> receipt{};
-        if (raster_.begin_frame(pending_damage_)) {
-            receipt = (*model_).paint(raster_.painter(), pending_damage_.rectangles());
-            raster_.end_frame();
+            for (const Rect clip : applied_copy_clips_) present_rectangles.push_back(device_rect(clip));
         }
         // With no damage pending there is nothing to paint, and an exposure
         // still copies the raster as it stands.
         bool presented = receipt.has_value() || (expose_whole && pending_damage_.empty());
         const std::chrono::steady_clock::time_point copy_started =
             std::chrono::steady_clock::now();
+        // BeginPaint's device context is clipped to the update region, which
+        // need not hold a copy's clip: a frame that applied copies presents
+        // through the window's own device context.
+        const bool copied_clips = !applied_copy_clips_.empty();
+        HDC present_dc = copied_clips ? GetDC(hwnd_) : dc;
+        if (present_dc == nullptr) presented = false;
         for (std::size_t index = 0; presented && index < present_rectangles.size(); ++index) {
-            presented = raster_.present(dc, present_rectangles[index]);
+            presented = raster_.present(present_dc, present_rectangles[index]);
+        }
+        if (copied_clips && present_dc != nullptr) ReleaseDC(hwnd_, present_dc);
+        if (presented) {
+            applied_copy_clips_.clear();
+        } else {
+            damage_unpresented_copies();
         }
         if (presented && expose_whole) expose_whole_raster_ = false;
         const std::uint64_t copy_nanoseconds = static_cast<std::uint64_t>(
@@ -2575,6 +2907,7 @@ private:
             pending_damage_.clear();
             complete_frame_capture_if_due(paint_state.rcPaint);
         }
+        present_invalidation_overlay();
         collect_damage();
 #endif
     }
@@ -2621,13 +2954,20 @@ private:
         collect_damage();
     }
 
-    void wheel(WPARAM wparam, LPARAM lparam) {
+    // WM_MOUSEWHEEL (vertical) or WM_MOUSEHWHEEL (horizontal: a tilt wheel,
+    // a precision touchpad's sideways pan). Both carry WHEEL_DELTA per
+    // notch, or a fraction of one from a smooth device, as lines. A
+    // positive vertical delta scrolls up and a positive horizontal one
+    // right; the portable horizontal delta is positive to scroll left (as
+    // the other hosts report it), so the horizontal sign is flipped.
+    void wheel(WPARAM wparam, LPARAM lparam, bool horizontal) {
         POINT point{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
         ScreenToClient(hwnd_, &point);
         PointerEvent event;
         event.action = PointerAction::wheel;
         event.position = {point.x / scale_, point.y / scale_};
-        event.wheel_delta = {0.0, GET_WHEEL_DELTA_WPARAM(wparam) / static_cast<double>(WHEEL_DELTA)};
+        const double lines = GET_WHEEL_DELTA_WPARAM(wparam) / static_cast<double>(WHEEL_DELTA);
+        event.wheel_delta = horizontal ? Point{-lines, 0.0} : Point{0.0, lines};
         event.modifiers = modifiers();
         event.pointer_id = 1;
         dispatch(std::move(event));
@@ -2697,6 +3037,31 @@ private:
         const HostDispatchResult result = dispatch(std::move(event));
         collect_damage();
         return result.handled;
+    }
+
+    // Places the input method's composition window at the caret and keeps
+    // its candidate window off the caret line, in device pixels of the
+    // client area: SurfaceRoot::text_input_caret, the box a host gives its
+    // input method. Nothing happens without an eligible focused control or
+    // without an input context on this window; a refused placement leaves
+    // the input method's own default.
+    void place_input_method_windows() {
+        const std::optional<Rect> caret = (*model_).text_input_caret();
+        if (!caret) return;
+        const HIMC context = ImmGetContext(hwnd_);
+        if (context == nullptr) return;
+        const RECT device = device_rect(*caret);
+        COMPOSITIONFORM composition{};
+        composition.dwStyle = CFS_POINT;
+        composition.ptCurrentPos = POINT{device.left, device.top};
+        static_cast<void>(ImmSetCompositionWindow(context, &composition));
+        CANDIDATEFORM candidate{};
+        candidate.dwIndex = 0;
+        candidate.dwStyle = CFS_EXCLUDE;
+        candidate.ptCurrentPos = POINT{device.left, device.bottom};
+        candidate.rcArea = device;
+        static_cast<void>(ImmSetCandidateWindow(context, &candidate));
+        static_cast<void>(ImmReleaseContext(hwnd_, context));
     }
 
     void character(wchar_t character) {
@@ -2775,6 +3140,35 @@ private:
         return 0;
     }
 
+    // WM_QUERYENDSESSION: the user is logging off or the system is shutting
+    // down or restarting. Ask the window's closing handler with
+    // HostCloseReason::session_end; TRUE lets the session end, FALSE asks
+    // Windows to hold it (Windows may still end it). An allowed request
+    // leaves the window attached and visible, since WM_ENDSESSION may yet
+    // report that the session's end was called off.
+    LRESULT query_end_session() {
+        if (closed_ || native_phase_ == NativePhase::closing) return TRUE;
+        HostCloseRequest request{HostCloseReason::session_end, false, false};
+        if (options_.close_request) options_.close_request(request);
+        request.hide_on_accept = false;
+        const HostDispatchResult result = dispatch(request);
+        if (result.accepted() && !result.close_allowed) return FALSE;
+        return TRUE;
+    }
+
+    // WM_ENDSESSION: ending is TRUE when the session ends after this message
+    // returns (the process may be terminated without further messages), so
+    // the window closes now and WM_DESTROY reports HostCloseReason::
+    // session_end. FALSE means the session's end was called off; the window
+    // stays as it was.
+    LRESULT end_session(bool ending) {
+        if (!ending || closed_ || native_phase_ == NativePhase::closing) return 0;
+        destroy_reason_ = HostCloseReason::session_end;
+        native_phase_ = NativePhase::closing;
+        DestroyWindow(hwnd_);
+        return 0;
+    }
+
     LRESULT automation(const COPYDATASTRUCT* data) {
         if (!options_.automation_enabled || data == nullptr || (*data).lpData == nullptr ||
             (*data).cbData == 0 || (*data).cbData > maximum_automation_command) return FALSE;
@@ -2819,6 +3213,13 @@ private:
                          saved ? "true" : "false",
                          command.size() == capture.size() ? "false" : "true");
             std::fflush(stdout);
+            return saved ? TRUE : FALSE;
+        }
+        constexpr std::string_view composite = "capture-composite ";
+        if (command.starts_with(composite)) {
+            const std::wstring path = wide_from_utf8(command.substr(composite.size()));
+            if (path.empty()) return FALSE;
+            const bool saved = write_composite_capture(run_, *this, path);
             return saved ? TRUE : FALSE;
         }
         if (command == "close") { PostMessageW(hwnd_, WM_CLOSE, 0, 0); return TRUE; }
@@ -2874,6 +3275,27 @@ private:
             std::fprintf(stdout,
                          "{\"automation\":\"text\",\"id\":\"%s\",\"bytes\":%zu,\"handled\":%s}\n",
                          id.c_str(), text.size(), handled ? "true" : "false");
+            std::fflush(stdout);
+            return TRUE;
+        }
+        // A key to whatever has the keyboard now (an open menu, a lifted
+        // drop-down), without moving the focus: "key-focused <physical>".
+        constexpr std::string_view focused_key = "key-focused ";
+        if (command.starts_with(focused_key)) {
+            std::istringstream input(command.substr(focused_key.size()));
+            std::uint32_t physical{};
+            if (!(input >> physical)) return FALSE;
+            KeyEvent pressed;
+            pressed.action = KeyAction::down;
+            pressed.physical_key = physical;
+            const bool handled_down = dispatch(std::move(pressed)).handled;
+            KeyEvent released;
+            released.action = KeyAction::up;
+            released.physical_key = physical;
+            static_cast<void>(dispatch(std::move(released)));
+            collect_damage();
+            std::fprintf(stdout, "{\"automation\":\"key-focused\",\"physical\":%u,\"handled\":%s}\n", physical,
+                         handled_down ? "true" : "false");
             std::fflush(stdout);
             return TRUE;
         }
@@ -3087,6 +3509,16 @@ private:
     WINDOWPLACEMENT restore_placement_{};
     WindowsRaster raster_;
     DamageRegion pending_damage_;
+    // Scroll copies taken from the model and not yet applied to the raster,
+    // in order (take_scroll_copies); scratch for the take; the clips the
+    // current frame applied, presented whole by it or damaged again.
+    std::vector<ScrollCopy> pending_copies_;
+    std::vector<ScrollCopy> taken_copies_;
+#if !defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
+    std::vector<Rect> applied_copy_clips_;
+    std::uint64_t scroll_copies_applied_{};
+    std::uint64_t scroll_copies_refused_{};
+#endif
     // The frame sequence's per-tick storage, reused across ticks: each
     // surface's frame, the frame each presentation draws from, and the device
     // pixels and rectangles composed per frame.
@@ -3097,6 +3529,14 @@ private:
     // A taken presentation region that was never presented: the next tick
     // copies whole clips.
     bool live_region_lost_{};
+    // The invalidation overlay's present-time storage, reused: the scratch
+    // frame it composites in (allocated on its first use), the areas it
+    // draws on now, those it drew on last, and both together.
+    std::vector<std::byte> overlay_scratch_;
+    std::vector<DevicePixelRect> overlay_regions_;
+    std::vector<DevicePixelRect> overlay_drawn_;
+    std::vector<DevicePixelRect> overlay_present_;
+    bool overlay_timer_armed_{};
     // The last compositor state report's generation; 0 before the first.
     CompositorGeneration compositor_generation_{};
 #if defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
@@ -3168,7 +3608,8 @@ private:
     // mark_splash: transparent to the pointer.
     bool splash_{};
     // The reason WM_DESTROY reports: user for every native close, application
-    // when the run destroys the window (HostWindowing::destroy_window).
+    // when the run destroys the window (HostWindowing::destroy_window),
+    // session_end when WM_ENDSESSION closes it.
     HostCloseReason destroy_reason_{HostCloseReason::user};
 };
 
@@ -3235,7 +3676,6 @@ HostCapabilities windows_capabilities() {
                 HostCapability::scheduled_wake |
                 HostCapability::pointer_input |
                 HostCapability::keyboard_input |
-                HostCapability::text_composition |
                 HostCapability::monitor_geometry |
                 HostCapability::pointer_capture |
                 HostCapability::cursor |
@@ -3264,6 +3704,7 @@ HostCapabilities windows_capabilities() {
 }
 
 int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
+    run_scale_override() = options.scale_override > 0.0 ? options.scale_override : 0.0;
     if (!model || !options.initially_visible || options.hide_on_close) return 2;
     const HRESULT com_status = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     enable_best_dpi_awareness();
@@ -3395,6 +3836,9 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
     std::shared_ptr<gui_forms::detail::BundledFontSet> run_fonts;
     if (!font_directory.empty())
         run_fonts = gui_forms::detail::shared_bundled_font_set(font_directory, windows_sealed_pages());
+    // The run's Splash baker (Part S, phase 2), after the fonts it paints with and
+    // before every window, so it outlives each tooltip that reads it.
+    const gui_forms::render::SkiaSplashBakeRun splash_baking(run_fonts);
     std::unordered_set<std::string> identities;
     std::size_t primary_count{};
     for (const WindowsApplicationWindow& entry : windows) {
@@ -3412,6 +3856,14 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
         if (!entry.owner_id.empty() && !identities.contains(entry.owner_id)) return 2;
     }
     if (primary_count != 1U) return 2;
+    run_scale_override() = windows.front().options.scale_override > 0.0 ? windows.front().options.scale_override
+                                                                         : development_scale_override();
+    // Development hook (GUI_FORMS_WINDOWS_AUTOMATION=1): a program run
+    // through Application::run, whose portable options cannot ask for it,
+    // answers the automation channel in every window (menu probes).
+    if (environment_flag("GUI_FORMS_WINDOWS_AUTOMATION")) {
+        for (WindowsApplicationWindow& entry : windows) entry.options.automation_enabled = true;
+    }
 
     const HRESULT com_status = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     enable_best_dpi_awareness();

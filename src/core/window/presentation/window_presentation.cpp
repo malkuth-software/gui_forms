@@ -9,6 +9,7 @@
 #include "../../display/recording_painter/recording_painter.hpp"
 #include "../../display/replay/replay_display_chunk.hpp"
 #include "../../engine/primitives/material/material_raster.hpp"
+#include "../../image/png_writer.hpp"
 #include "../../theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../overlay/overlay_attachment.hpp"
 
@@ -189,6 +190,96 @@ bool SurfaceRoot::release_control_snapshot(ImageId image) {
     // in a retained chunk.
     const bool removed = (*resources_).remove_image(image);
     return removed;
+}
+
+// The sequence paint() presents, over the whole window and without its
+// damage bookkeeping: the backplane, the content's planes, the overlays'
+// planes, then the band; replayed offscreen and copied out.
+std::optional<WindowCapture> SurfaceRoot::capture_window(const WindowCaptureOptions& options) {
+    require_root_thread("capture_window");
+    if (in_paint_ || framebuffer_painter_ == nullptr || !root_ || !(*root_).is_alive()) return std::nullopt;
+    const double scale = options.scale == 0.0 ? scale_ : options.scale;
+    if (!std::isfinite(scale) || scale <= 0.0 || scale > 8.0) return std::nullopt;
+    ensure_layout(true);
+    if (!(*root_).is_alive()) return std::nullopt;
+    const Size logical = client_size_;
+    const Rect window_bounds{0.0, 0.0, logical.width, logical.height};
+    if (window_bounds.empty() || !window_bounds.finite()) return std::nullopt;
+    const std::unique_ptr<PaintFramebuffer> framebuffer = create_framebuffer(logical, scale);
+    if (!framebuffer) return std::nullopt;
+    detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale});
+    std::uint64_t visited_nodes = 0;
+    std::uint64_t painted_controls = 0;
+    std::uint64_t consumed_invalidations = 0;
+    std::uint64_t chunks_rebuilt = 0;
+    std::uint64_t chunks_reused = 0;
+    std::uint64_t commands_replayed = 0;
+    ControlVisualContext backplane_context;
+    backplane_context.surface = active_ ? ControlSurfaceState::normal : ControlSurfaceState::deactivated;
+    backplane_context.high_contrast = presentation_settings_.high_contrast;
+    backplane_context.dark = presentation_settings_.colour_scheme == ColourScheme::dark;
+    const SurfaceMaterial backplane = backplane_base(backplane_context);
+    const bool starts_clear = backdrop_grant_.granted != WindowBackdrop::opaque;
+    paint_backplane_rectangle(candidate, window_bounds, backplane, starts_clear);
+    for (std::size_t index = 0; index < paint_plane_count; ++index) {
+        const PaintPlane plane = static_cast<PaintPlane>(index);
+        paint_recursive(root_, candidate, window_bounds, plane, visited_nodes, painted_controls,
+                        consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
+    }
+    // The overlay roots, gathered before any paints: a paint callback may
+    // close one, which the liveness check below then skips.
+    std::vector<Control::Ptr> overlay_roots;
+    if (options.include_overlays) {
+        overlay_roots.reserve(overlays_.size());
+        for (const std::shared_ptr<detail::OverlayAttachment>& overlay : overlays_) {
+            overlay_roots.push_back((*overlay).overlay());
+        }
+    }
+    for (const Control::Ptr& overlay : overlay_roots) {
+        if (!overlay || !(*overlay).is_alive() || (*overlay).surface_root_ != this) continue;
+        for (std::size_t index = 0; index < paint_plane_count; ++index) {
+            const PaintPlane plane = static_cast<PaintPlane>(index);
+            paint_recursive(overlay, candidate, window_bounds, plane, visited_nodes, painted_controls,
+                            consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
+        }
+    }
+    const std::array<Rect, 1> whole{window_bounds};
+    paint_band(candidate, whole);
+    const std::shared_ptr<const detail::DisplayChunk> recorded =
+        candidate.finish(display_generation_, PaintPlane::control, window_bounds);
+    // Rebuilt chunks consumed their paint dirt without reaching the screen.
+    if (consumed_invalidations > 0U && (*root_).is_alive()) mark_subtree_dirty(*root_, Dirty::paint);
+    for (const Control::Ptr& overlay : overlay_roots) {
+        if (consumed_invalidations == 0U || !overlay || !(*overlay).is_alive()) continue;
+        mark_subtree_dirty(*overlay, Dirty::paint);
+    }
+    if (!(*framebuffer).begin(image_resources(), window_bounds)) return std::nullopt;
+    static_cast<void>(detail::replay_display_chunk(*recorded, (*framebuffer).painter()));
+    (*framebuffer).end();
+    WindowCapture capture{};
+    if (!detail::copy_framebuffer_bgra(*framebuffer, capture.bgra)) return std::nullopt;
+    capture.logical_size = logical;
+    capture.scale = scale;
+    capture.pixel_width = (*framebuffer).width();
+    capture.pixel_height = (*framebuffer).height();
+    return capture;
+}
+
+bool encode_window_capture_png(const WindowCapture& capture, std::vector<std::byte>& png) {
+    png.clear();
+    const std::uint64_t row = static_cast<std::uint64_t>(capture.pixel_width) * 4U;
+    const std::uint64_t needed = row * capture.pixel_height;
+    if (capture.pixel_width == 0U || capture.pixel_height == 0U || capture.bgra.size() < needed) return false;
+    image::PngEncodeInput input;
+    input.width = capture.pixel_width;
+    input.height = capture.pixel_height;
+    input.row_bytes = row;
+    input.pixels = std::span<const std::byte>(capture.bgra.data(), static_cast<std::size_t>(needed));
+    input.order = image::PngChannelOrder::bgra;
+    input.alpha = image::PngSourceAlpha::premultiplied;
+    const bool encoded = image::encode_png(input, png);
+    if (!encoded) png.clear();
+    return encoded;
 }
 
 std::unique_ptr<PaintFramebuffer> SurfaceRoot::create_framebuffer(const Size logical_size, const double scale) {
@@ -679,7 +770,10 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
             abandon_paint(generation_before);
             return std::nullopt;
         }
-        static_cast<void>(detail::replay_display_chunk(*transaction, painter));
+        // The frame's recording is replayed into the terminal painter, which
+        // alone can say whether an opaque live surface hides what lies
+        // beneath it (a panned canvas's sheet over its surround).
+        static_cast<void>(detail::replay_display_chunk_occluded(*transaction, painter, window_bounds));
         // A backend painter may enter a native callback while replaying. A
         // resize, scale transition, or owner retirement at that boundary
         // invalidates the candidate even though every draw command returned.
@@ -696,6 +790,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
     // The pass is complete: the checkpoints release their controls.
     paint_checkpoints_.clear();
     in_paint_ = false;
+    if (invalidation_overlay_ != nullptr) attribute_painted_damage(painted);
     ++paint_leases_completed_;
     rendered_revision_ = lease_revision;
 
@@ -818,6 +913,22 @@ PaintLeaseSnapshot SurfaceRoot::paint_lease_snapshot() const noexcept {
             paint_wakes_coalesced_, presentation_receipts_accepted_,
             presentation_receipts_rejected_, paint_wake_pending_,
             dirty_after_render_};
+}
+
+void Window::note_live_surface_presented(const LiveSurfacePresentation& presentation, const Rect presented) {
+    InvalidationOverlay* const overlay = invalidation_overlay();
+    if (overlay == nullptr) return;
+    InvalidationCause cause = InvalidationCause::live_surface;
+    if (presentation.surface &&
+        (*presentation.surface).snapshot().description.origin == LiveSurfaceOrigin::compatibility_paint) {
+        cause = InvalidationCause::external_content;
+    }
+    std::string_view source{};
+    Control::Ptr control{};
+    const LiveSurfaceRegistrationMap::const_iterator entry = live_surface_registrations_.find(presentation.control.value);
+    if (entry != live_surface_registrations_.end()) control = (*entry).second.control.lock();
+    if (control) source = (*control).stable_id().value();
+    (*overlay).record(presented, cause, source, InvalidationClock::now());
 }
 
 bool Window::queue_live_surface_presentation(

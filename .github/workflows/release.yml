@@ -368,7 +368,7 @@ jobs:
             cmake --build "$BUILD_DIR" --parallel 4
             exit 0
           fi
-          selection=$(python gui_forms/tools/native_tests.py select --manifest .ci/native-manifest.json --build-dir "$BUILD_DIR")
+          selection=$(python gui_forms/tools/native_tests.py select --manifest .ci/native-manifest.json --build-dir "$BUILD_DIR" | tr -d '\r')
           case "$selection" in
             NONE) echo "The native job passed every test of this build; nothing to build"; echo NONE > "$RUNNER_TEMP/pattern.txt"; exit 0 ;;
             ALL) pattern="" ;;
@@ -379,7 +379,8 @@ jobs:
             --changed-from HEAD^1 --pattern-out "$RUNNER_TEMP/pattern.txt" > "$RUNNER_TEMP/targets.txt"
           echo "A pull request: building $(wc -l < "$RUNNER_TEMP/targets.txt") outputs the tests run, not every program"
           if [ -s "$RUNNER_TEMP/targets.txt" ]; then
-            xargs cmake --build "$BUILD_DIR" --parallel 4 --target < "$RUNNER_TEMP/targets.txt"
+            # Windows' Python may end each line with CR; ninja would take it as part of the name.
+            tr -d '\r' < "$RUNNER_TEMP/targets.txt" | xargs cmake --build "$BUILD_DIR" --parallel 4 --target
           fi
       - name: Report cache statistics
         if: always()
@@ -399,9 +400,9 @@ jobs:
           selection=ALL
           if [ "$PULL_REQUEST" = true ]; then
             # The tests the build step chose: not passed by the native job, and affected by the change.
-            selection=$(cat "$RUNNER_TEMP/pattern.txt")
+            selection=$(tr -d '\r' < "$RUNNER_TEMP/pattern.txt")
           elif [ "$NARROW" = true ]; then
-            selection=$(python gui_forms/tools/native_tests.py select --manifest .ci/native-manifest.json --build-dir "$BUILD_DIR")
+            selection=$(python gui_forms/tools/native_tests.py select --manifest .ci/native-manifest.json --build-dir "$BUILD_DIR" | tr -d '\r')
           fi
           set -- --test-dir "$BUILD_DIR" --output-on-failure --timeout 120 --output-junit "$PWD/dist/ctest-${{ matrix.platform }}.xml"
           case "$selection" in

@@ -531,6 +531,8 @@ gui_forms::Control
         - The attached window's line-break opportunities (Window::fill_line_break_opportunities_utf8), or the estimate while detached.
       * - :cpp:func:`snap_text_baseline <gui_forms::Control::snap_text_baseline>`
         -  
+      * - :cpp:func:`theme_role_colours <gui_forms::Control::theme_role_colours>`
+        - The colours of the application colour role :cpp:member:`name <gui_forms::Control::name>` (a role the theme package declares with ``color-roles``, such as ``syntax-keyword``) for this control's window (window_media_facts; light, unforced while detached): from effective_theme, else, where that is GUI.Forms' own in place of the chosen theme, from the chosen theme.
       * - :cpp:func:`clear_theme_override <gui_forms::Control::clear_theme_override>`
         - Removes :cpp:func:`theme_override <gui_forms::Control::theme_override>`, so the subtree inherits its theme again.
       * - :cpp:func:`clear_authored_surface_material <gui_forms::Control::clear_authored_surface_material>`
@@ -1402,6 +1404,10 @@ gui_forms::Control
 
    .. cpp:function:: double snap_text_baseline(double logical_baseline) const noexcept
 
+   .. cpp:function:: std::optional<ThemeRoleColours> theme_role_colours(std::string_view name) const noexcept
+
+      The colours of the application colour role :cpp:member:`name <gui_forms::Control::name>` (a role the theme package declares with ``color-roles``, such as ``syntax-keyword``) for this control's window (window_media_facts; light, unforced while detached): from effective_theme, else, where that is GUI.Forms' own in place of the chosen theme, from the chosen theme. Nullopt where neither declares the role. Code draws program-meant colours through this rather than hard-coding them (T4 theme variants).
+
    .. cpp:function:: void clear_theme_override()
 
       Removes :cpp:func:`theme_override <gui_forms::Control::theme_override>`, so the subtree inherits its theme again.
@@ -1709,6 +1715,10 @@ gui_forms::Control
 
    .. cpp:function:: virtual std::vector<SemanticNode> semantic_virtual_children() const
 
+   .. cpp:function:: virtual bool begin_keyboard_drag()
+
+      Enters the control's keyboard drag mode (the window's drag engine, roadmap 2.1) on its subject: the begin_keyboard_drag rule action and the move command reach it. True when a keyboard drag started; false for a control that declares no drag (the default) or has nothing to drag now.
+
    .. cpp:function:: virtual std::vector<SemanticNode> tool_tip_items() const
 
       The parts whose tooltips the root's tooltip route looks for, in root coordinates, read only when publishes_item_tool_tips is set: the semantic virtual children by default. A control whose tooltip parts are not semantic children (SubSurfaceHost: its sub-surface's requests) returns them here.
@@ -1735,6 +1745,14 @@ gui_forms::Control
 
       Override to react when the control gains or loses focus. It runs before
       :cpp:func:`focus_observed <gui_forms::Control::focus_observed>` is raised.
+
+   .. cpp:function:: virtual Dirty focus_invalidation() const noexcept
+
+      What the window invalidates on this control when it gains or loses focus, after on_focus_changed: invalidation::focus (paint, semantics, accessibility) by default. A control that repaints only its focused part itself in on_focus_changed (a ribbon's key stop) leaves paint out.
+
+   .. cpp:function:: virtual bool paints_content() const noexcept
+
+      Whether this control paints anything of its own. False for an input catcher (a transparent layer that takes outside clicks): its own invalidation and attachment damage nothing, and a resize that keeps its origin damages nothing; its children damage their own bounds.
 
    .. cpp:function:: virtual bool reveal_focused_descendant(const Control& descendant)
 

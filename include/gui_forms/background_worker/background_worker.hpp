@@ -90,7 +90,12 @@ public:
 
     // Construct on the window's UI thread.
     explicit BackgroundWorker(Window& window);
-    // Requests cancellation and waits for a running work function to return.
+    // Requests cancellation and waits for a running work function to return
+    // (as dispose does). Cancellation is cooperative, so the UI thread is
+    // blocked for as long as the work takes to notice it; a work function
+    // must therefore never wait on the UI thread (a synchronous invoke onto
+    // its window). Once stopping begins the run posts nothing more, so a
+    // full dispatcher queue cannot hold the join.
     ~BackgroundWorker() override;
 
     // The work function, run on the worker thread. Changing it affects the
@@ -139,7 +144,8 @@ private:
     void require_ui(std::string_view operation) const;
     void deliver_progress(const std::shared_ptr<Run>& run, const BackgroundWorkerProgress& progress);
     void deliver_completion(const std::shared_ptr<Run>& run);
-    // Requests cancellation of a running work function and waits for it.
+    // Marks the run as stopping, requests cancellation of a running work
+    // function and waits for it.
     void stop_run() noexcept;
     static void run_entry(const CancellationFlag& cancellation, void* context);
 

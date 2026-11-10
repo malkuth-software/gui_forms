@@ -32,6 +32,14 @@ public:
     void clear_style();
 
     void on_paint(Painter& painter, Rect local_damage) override;
+    // A panel paints on the backplane (under the window's controls) while
+    // every ancestor below the root does too; under a control that paints
+    // on the control plane (a custom control hosting it, as a docking
+    // pane hosts its content) it paints on the control plane, so it shows
+    // over that ancestor as a WinForms child does. Decided at attach, unless
+    // a subclass chose the control plane itself (a field, a list, an
+    // up-down: they always paint with the controls).
+    void on_attached_to_window() override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
     // False for a borderless panel without scroll bars whose face is a
     // solid colour or a size-invariant material (surface_material_size_invariant).
@@ -72,6 +80,9 @@ private:
 
     std::optional<BasicControlStyle> style_override_;
     std::optional<Color> background_override_;
+    // Whether the paint plane is the one on_attached_to_window derived (and
+    // may derive again at the next attach), not a subclass's own choice.
+    bool plane_derived_{};
     // property_codemod begin Panel (tools/property_families/panel.json; generated, do not edit)
 public:
     // Panel's property table: ScrollableControl's entries, then its own.

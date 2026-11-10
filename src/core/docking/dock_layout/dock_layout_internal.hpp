@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace gui_forms::detail {
@@ -27,12 +28,17 @@ enum class DockRegion : std::uint8_t { main_tools, document_area, floating, auto
 struct DockNodePlace final {
     DockRegion region{DockRegion::detached};
     DockSiteId site{};
+    // main_tools: the side of the document area the node stands on (none
+    // without a document area beside it); auto_hidden: the window edge.
+    std::optional<DockSide> side{};
 };
 
 // Lookups. Pointers borrow from the state and are invalidated by any change
 // to the vector they point into (adding a node can reallocate nodes). A
 // temporary state is refused (house style section 1).
 [[nodiscard]] DockNode* find_dock_node(DockLayoutState& state, DockNodeId id) noexcept;
+// Whether the subtree under `node` holds the document area.
+[[nodiscard]] bool dock_subtree_holds_document_area(const DockLayoutState& state, DockNodeId node) noexcept;
 [[nodiscard]] const DockNode* find_dock_node(const DockLayoutState& state, DockNodeId id) noexcept;
 const DockNode* find_dock_node(DockLayoutState&& state, DockNodeId id) = delete;
 [[nodiscard]] DockPanelRecord* find_dock_record(DockLayoutState& state, const DockPanelId& id) noexcept;

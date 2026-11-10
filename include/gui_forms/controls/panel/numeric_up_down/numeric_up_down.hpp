@@ -11,10 +11,23 @@
 
 namespace gui_forms {
 
+class NumericUpDownScrub;
+
+// Scrub mode (scrub, off by default; the value bar study, section 3.2):
+// a primary press on the unfocused field arms the shared scrub gesture on
+// the window's drag engine. Dragging sideways past its threshold changes
+// the value by the increment per logical unit of travel (Shift a tenth,
+// Ctrl snapped to the increment), within the range and rounded to the
+// shown decimals, raising value_changed as it goes; Escape or a right
+// press restores the start value. A release before the threshold is a
+// click: the field is focused with its text selected. Once the field has
+// focus the pointer edits text as before. The begin_keyboard_drag rule
+// action scrubs from the keyboard in this mode.
 class NumericUpDown final : public Panel, public NumericUpDownCapabilities<NumericUpDown> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit NumericUpDown(StableId stable_id);
+    ~NumericUpDown() override;
     void initialize_control_tree();
 
     // Sets both bounds; they must be finite and ordered (std::invalid_argument).
@@ -30,6 +43,10 @@ public:
     void on_paint_overlay(Painter& painter, Rect local_damage) override;
     void on_key_preview(KeyEvent& event) override;
     void on_pointer_preview(PointerEvent& event) override;
+    bool begin_keyboard_drag() override;
+    // Whether a scrub (scrub mode) is past its threshold or in the keyboard
+    // mode.
+    [[nodiscard]] bool scrubbing() const noexcept;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action,
                             std::string_view value_text) override;
@@ -65,6 +82,8 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    friend class NumericUpDownScrub;
+
     struct EditorChangeCallback final {
         std::weak_ptr<NumericUpDown> target;
         void operator()(const std::string&) const;
@@ -90,10 +109,13 @@ private:
     // leaves the text as the user typed it.
     bool committing_{};
     Event<double> value_changed_;
+    // The scrub mode's drag client and target, made with the control
+    // (numeric_up_down.cpp); idle unless scrub is on.
+    std::unique_ptr<NumericUpDownScrub> scrub_;
     // property_codemod begin NumericUpDown (tools/property_families/numeric_up_down.json; generated, do not edit)
 public:
     // NumericUpDown's property table: Panel's entries, then its own.
-    static constexpr std::size_t numeric_up_down_property_count = Panel::panel_property_count + 5U;
+    static constexpr std::size_t numeric_up_down_property_count = Panel::panel_property_count + 8U;
     [[nodiscard]] static const std::array<PropertyEntry, numeric_up_down_property_count>& numeric_up_down_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
@@ -111,6 +133,9 @@ private:
     friend struct NumericUpDownDecimalPlacesCapability<NumericUpDown>;
     friend struct NumericUpDownHexadecimalCapability<NumericUpDown>;
     friend struct NumericUpDownButtonWidthCapability<NumericUpDown>;
+    friend struct NumericUpDownScrubCapability<NumericUpDown>;
+    friend struct NumericUpDownThousandsSeparatorCapability<NumericUpDown>;
+    friend struct NumericUpDownTextAlignmentCapability<NumericUpDown>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(value)& cell, double& incoming);
     void written(const decltype(value)& cell);
@@ -126,6 +151,12 @@ private:
     void written(const decltype(hexadecimal)& cell);
     void prepare_write(const decltype(button_width)& cell, double& incoming);
     void written(const decltype(button_width)& cell);
+    void prepare_write(const decltype(scrub)& cell, bool& incoming);
+    void written(const decltype(scrub)& cell);
+    void prepare_write(const decltype(thousands_separator)& cell, bool& incoming);
+    void written(const decltype(thousands_separator)& cell);
+    void prepare_write(const decltype(text_alignment)& cell, HorizontalAlignment& incoming);
+    void written(const decltype(text_alignment)& cell);
     // property_codemod end NumericUpDown
 };
 

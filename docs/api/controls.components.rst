@@ -27,6 +27,8 @@ Nonvisual components: bindings, providers, image lists, timers and semantic feed
      - A component that marks controls with validation errors.
    * - :cpp:class:`HelpProvider <gui_forms::HelpProvider>`
      - A component that attaches help text and help topics to controls and routes F1.
+   * - :cpp:class:`HelpBookSystem <gui_forms::HelpBookSystem>`
+     - The program's help: catalog of help fields, helpbook compile, F1 walking up to the window page, What's This, window cards, paper popups and the help window; external links go to the program.
    * - :cpp:class:`SemanticFeedback <gui_forms::SemanticFeedback>`
      - A component that turns application events into sound cues and a bounded history.
    * - :cpp:class:`Binding <gui_forms::Binding>`
@@ -47,6 +49,7 @@ Nonvisual components: bindings, providers, image lists, timers and semantic feed
    generated/gui_forms.ImageList
    generated/gui_forms.ErrorProvider
    generated/gui_forms.HelpProvider
+   generated/gui_forms.HelpBookSystem
    generated/gui_forms.SemanticFeedback
    generated/gui_forms.Binding
    generated/gui_forms.BindingSource
@@ -105,6 +108,12 @@ Related types
      - ErrorProviderSnapshot is a deterministic provider diagnostic aggregate containing every mapped icon record plus authoritative live-error and presented-overlay counts.
    * - :cpp:class:`ErrorProviderTagCapability <gui_forms::ErrorProviderTagCapability>`
      - The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal.
+   * - :cpp:class:`HelpBookSystemOptions <gui_forms::HelpBookSystemOptions>`
+     -  
+   * - :cpp:class:`HelpBookSystemSnapshot <gui_forms::HelpBookSystemSnapshot>`
+     -  
+   * - :cpp:class:`HelpBookWindow <gui_forms::HelpBookWindow>`
+     - HelpBookWindow: a HelpBookViewer in a window of its own (help system study, section 6), owned by one of the program's windows.
    * - :cpp:class:`HelpProviderCapabilities <gui_forms::HelpProviderCapabilities>`
      - Every HelpProvider capability, in the order the declaring class takes them.
    * - :cpp:class:`HelpProviderHelpNamespaceCapability <gui_forms::HelpProviderHelpNamespaceCapability>`
@@ -115,6 +124,8 @@ Related types
      - The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal.
    * - :cpp:class:`HelpRequestEvent <gui_forms::HelpRequestEvent>`
      - HelpRequestEvent is the mutable dispatch payload for policy-free help routing.
+   * - :cpp:class:`HelpTarget <gui_forms::HelpTarget>`
+     - Where help for a control is: the page and the anchor on it.
    * - :cpp:class:`ImageListChange <gui_forms::ImageListChange>`
      - ImageListChange identifies revision, mutation kind, entry index, and key affected by one retained resource mutation.
    * - :cpp:class:`ImageListResolution <gui_forms::ImageListResolution>`
@@ -558,6 +569,108 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HelpBookSystemOptions final
+
+   ``#include <gui_forms/controls/help/help_book_system/help_book_system.hpp>``
+
+   .. cpp:member:: std::string stable_id
+
+      The prefix of every stable ID the system makes (its window, viewer and popups). Default: ``{"help"}``.
+
+   .. cpp:member:: std::string window_title
+
+      Default: ``{"Help"}``.
+
+   .. cpp:member:: Size window_size
+
+      Default: ``{900.0, 640.0}``.
+
+   .. cpp:member:: std::string home
+
+      The home page; empty takes the contents' first page.
+
+   .. cpp:member:: HelpBookViewerLabels labels
+
+   .. cpp:member:: HelpBookLabels book_labels
+
+   .. cpp:member:: std::string more
+
+      Default: ``{"More..."}``.
+
+   .. cpp:member:: std::vector<HelpBookImage> images
+
+   .. cpp:member:: HelpBookCompileOptions compile
+
+   .. cpp:member:: double popup_width
+
+      The paper popup's width; its height follows the page. Default: ``{360.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpBookSystemSnapshot final
+
+   ``#include <gui_forms/controls/help/help_book_system/help_book_system.hpp>``
+
+   .. cpp:member:: std::uint64_t compiles
+
+   .. cpp:member:: std::size_t rejections
+
+   .. cpp:member:: std::uint64_t requests
+
+   .. cpp:member:: std::uint64_t pages_shown
+
+   .. cpp:member:: std::uint64_t popups
+
+   .. cpp:member:: std::uint64_t help_mode_entries
+
+   .. cpp:member:: std::uint64_t external_links
+
+   .. cpp:member:: std::size_t attached_windows
+
+   .. cpp:member:: bool popup_open
+
+   .. cpp:member:: bool help_mode
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: HelpBookWindow final
+
+   ``#include <gui_forms/controls/help/help_book_system/help_book_system.hpp>``
+
+   HelpBookWindow: a HelpBookViewer in a window of its own (help system study, section 6), owned by one of the program's windows. The window hides when the user closes it and is shown again on the next open, so its history, tab and pane width carry over; it is destroyed with its owner or by close(). Without application windowing (a headless run) open refuses.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit HelpBookWindow(std::string stable_id)
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool is_open() const noexcept
+
+   .. cpp:function:: std::shared_ptr<HelpBookViewer> viewer() const noexcept
+
+      The window's viewer while the window exists, else null. A new viewer is made for each new window: created() says when.
+
+
+   .. rubric:: Events
+
+   .. cpp:function:: Event<HelpBookViewer&>& created() noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: HostServiceStatus open(Window& owner, const ApplicationWindowHandle& owner_handle, std::string_view owner_id, std::string_view title, Size size)
+
+      Opens the window, owned by window ``owner_id`` of the run ``owner_handle`` belongs to, with ``owner``'s resources and key bindings, or shows and raises it when it is open. ``title`` and ``size`` apply to a new window. Returns the open's status; on acceptance viewer() is the window's.
+
+   .. cpp:function:: void close()
+
+      Destroys the window (the viewer goes with it).
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> HelpProviderCapabilities : public HelpProviderHelpNamespaceCapability<Declaring>, public HelpProviderTagCapability<Declaring>
 
    ``#include <gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>``
@@ -648,6 +761,22 @@ Related types
    .. cpp:member:: bool keyboard_initiated
 
    .. cpp:member:: bool handled
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpTarget final
+
+   ``#include <gui_forms/controls/help/help_book_system/help_book_system.hpp>``
+
+   Where help for a control is: the page and the anchor on it.
+
+   .. cpp:member:: std::string page
+
+   .. cpp:member:: std::string anchor
+
+   .. cpp:member:: bool home
+
+      Nothing on the way up had help: ``page`` is the home page.
 
 .. cpp:namespace:: gui_forms
 

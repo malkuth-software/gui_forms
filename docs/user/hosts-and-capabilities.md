@@ -25,7 +25,7 @@ whole record for logs.
 | `occlusion` | window hidden/exposed notifications that gate painting | yes | no | yes |
 | `scheduled_wake` | timed wake for frames and timers | yes | yes | yes |
 | `pointer_input`, `keyboard_input` | translated pointer and key events | yes | yes | yes |
-| `text_composition` | input-method composition bridged to the window | yes | yes | no |
+| `text_composition` | input-method composition bridged to the window | yes | no | no |
 | `pointer_capture` | synchronous capture routed to one control | yes | yes | yes |
 | `cursor` | portable cursor kinds applied natively | yes | yes | yes |
 | `clipboard`, `clipboard_images` | bounded UTF-8 text and premultiplied BGRA8 images | yes | yes | yes |
@@ -269,14 +269,20 @@ Windows (Win32)
   automation channel, off unless the host options set `automation_enabled`
   (the gallery sets it from `--automation`), addresses controls by stable
   ID; it accepts commands of at most 4096 bytes with the prefix
-  `GUI.Forms.Automation/1`.
+  `GUI.Forms.Automation/1`. A C ABI window turns it on only for the run flag
+  `GF_WINDOW_RUN_AUTOMATION` or `GUI_FORMS_AUTOMATION=1` in the process
+  environment, which the test harnesses set. Security note: while it is on,
+  any process on the same desktop can drive the window and ask for a capture
+  written to a path it names, so ship with it off. It is a test channel;
+  automation is to move to an MCP integration rather than grow here.
   MSAA publication is implemented through `IAccessible`, and UI Automation
   through providers for `UiaRootObjectId` (AutomationId is the stable ID;
   Invoke, Toggle, Value, RangeValue, ExpandCollapse, SelectionItem and
   Selection patterns, and TextPattern and TextPattern2 for a text box's
-  text, units, selection, caret and bounds). The adapter advertises `text_composition`, but
-  its current input path forwards committed `WM_CHAR` text rather than a TSF
-  preedit session. OLE drag/drop and native menu publication are not implemented.
+  text, units, selection, caret and bounds). The adapter does not advertise
+  `text_composition`: the system input method draws its own composition and
+  candidate windows, which the host places at the focused control's caret,
+  and committed text arrives as `WM_CHAR`; no preedit reaches the window. OLE drag/drop and native menu publication are not implemented.
 
 Linux (X11)
 : `src/host/linux/`, built with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. Xlib

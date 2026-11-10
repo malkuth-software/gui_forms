@@ -504,6 +504,224 @@ void test_a_per_corner_clip_replays_its_radii() {
             "a per-corner rounded clip must replay with each corner's radius in place");
 }
 
+// Occluded replay (replay_display_chunk_occluded). The live surface's
+// pixels never matter here: the painter answers whether it covers.
+std::shared_ptr<LiveSurface> occluder_surface() {
+    LiveSurfaceDescription description{};
+    description.width = 4U;
+    description.height = 4U;
+    description.opaque = true;
+    return LiveSurface::create(description);
+}
+
+void test_a_chunk_finds_its_occluding_surface() {
+    const std::shared_ptr<LiveSurface> surface = occluder_surface();
+    const Rect sheet{10.0, 10.0, 50.0, 40.0};
+    const Rect area{0.0, 0.0, 100.0, 80.0};
+    {
+        detail::RecordingPainter recorder;
+        recorder.fill_rect(area, face_color);
+        recorder.draw_live_surface(surface, sheet, 1.0);
+        recorder.fill_rect({0.0, 0.0, 4.0, 4.0}, face_color);
+        const std::shared_ptr<const detail::DisplayChunk> chunk = recorder.finish(1U, PaintPlane::control, area);
+        const std::optional<detail::DisplayOccluder>& found = (*chunk).occluder();
+        require(found && (*found).group_start == 1U && (*found).command == 1U && !(*found).clipped,
+                "a top-level surface must be the chunk's occluder, hiding what precedes it");
+    }
+    {
+        detail::RecordingPainter recorder;
+        recorder.fill_rect(area, face_color);
+        recorder.save();
+        recorder.clip_rect({20.0, 0.0, 30.0, 80.0});
+        recorder.clip_rect({0.0, 15.0, 100.0, 20.0});
+        recorder.draw_live_surface(surface, sheet, 1.0);
+        recorder.restore();
+        const std::shared_ptr<const detail::DisplayChunk> chunk = recorder.finish(1U, PaintPlane::control, area);
+        const std::optional<detail::DisplayOccluder>& found = (*chunk).occluder();
+        require(found && (*found).group_start == 1U && (*found).command == 4U && (*found).clipped &&
+                    (*found).clip == Rect{20.0, 15.0, 30.0, 20.0},
+                "a surface in a clipped save must hide from the save on, within its clips");
+    }
+    {
+        detail::RecordingPainter recorder;
+        recorder.clip_rect({0.0, 0.0, 50.0, 50.0});
+        recorder.fill_rect(area, face_color);
+        recorder.draw_live_surface(surface, sheet, 1.0);
+        const std::shared_ptr<const detail::DisplayChunk> chunk = recorder.finish(1U, PaintPlane::control, area);
+        require(!(*chunk).occluder(), "a surface after a top-level clip must not occlude");
+    }
+    {
+        detail::RecordingPainter recorder;
+        recorder.fill_rect(area, face_color);
+        recorder.draw_live_surface(surface, sheet, 1.0);
+        recorder.translate({5.0, 5.0});
+        recorder.draw_live_surface(surface, sheet, 1.0);
+        const std::shared_ptr<const detail::DisplayChunk> chunk = recorder.finish(1U, PaintPlane::control, area);
+        const std::optional<detail::DisplayOccluder>& found = (*chunk).occluder();
+        require(found && (*found).command == 1U,
+                "a surface after a top-level translation must not occlude; the one before it still does");
+    }
+    {
+        detail::RecordingPainter recorder;
+        recorder.fill_rect(area, face_color);
+        recorder.save();
+        recorder.clip_rounded_rect(sheet, 4.0);
+        recorder.draw_live_surface(surface, sheet, 1.0);
+        recorder.restore();
+        PaintGroup group{};
+        group.bounds = area;
+        group.opacity = 0.5;
+        recorder.begin_group(group);
+        recorder.draw_live_surface(surface, sheet, 1.0);
+        recorder.end_group();
+        const std::shared_ptr<const detail::DisplayChunk> chunk = recorder.finish(1U, PaintPlane::control, area);
+        require(!(*chunk).occluder(), "a surface under a rounded clip or in a paint group must not occlude");
+    }
+}
+
+// Records what replay asks of it and answers a fixed cover.
+class CoverPainter final : public Painter {
+public:
+    Rect cover{};
+    std::vector<std::string> calls;
+    std::vector<Rect> clips;
+
+    void save() override { calls.emplace_back("save"); }
+    void restore() override { calls.emplace_back("restore"); }
+    void translate(Point) override { calls.emplace_back("translate"); }
+    void clip_rect(Rect rect) override {
+        calls.emplace_back("clip");
+        clips.push_back(rect);
+    }
+    void fill_rect(Rect, Color) override { calls.emplace_back("fill"); }
+    void stroke_rect(Rect, Color, double) override { calls.emplace_back("stroke"); }
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+    void draw_live_surface(std::shared_ptr<LiveSurface>, Rect, double) override { calls.emplace_back("surface"); }
+    Rect opaque_live_surface_cover(const std::shared_ptr<LiveSurface>&, Rect, double) override { return cover; }
+};
+
+void test_occluded_replay_paints_beneath_only_where_it_shows() {
+    const std::shared_ptr<LiveSurface> surface = occluder_surface();
+    const Rect area{0.0, 0.0, 100.0, 100.0};
+    detail::RecordingPainter recorder;
+    recorder.fill_rect(area, face_color);
+    recorder.stroke_rect(area, face_color, 1.0);
+    recorder.draw_live_surface(surface, {20.0, 30.0, 50.0, 40.0}, 1.0);
+    const std::shared_ptr<const detail::DisplayChunk> chunk = recorder.finish(1U, PaintPlane::control, area);
+
+    CoverPainter partial;
+    partial.cover = {20.0, 30.0, 50.0, 40.0};
+    const std::uint64_t replayed = detail::replay_display_chunk_occluded(*chunk, partial, area);
+    const std::vector<std::string> band{"save", "clip", "fill", "stroke", "restore"};
+    std::vector<std::string> expected;
+    for (int index = 0; index < 4; ++index) expected.insert(expected.end(), band.begin(), band.end());
+    expected.emplace_back("surface");
+    require(partial.calls == expected && replayed == 9U,
+            "what lies beneath a partial cover must replay once in each band around it, then the surface");
+    const std::vector<Rect> bands{{0.0, 0.0, 100.0, 30.0}, {0.0, 70.0, 100.0, 30.0},
+                                  {0.0, 30.0, 20.0, 40.0}, {70.0, 30.0, 30.0, 40.0}};
+    require(partial.clips == bands, "the bands must be the clip less the hidden rectangle");
+
+    CoverPainter whole;
+    whole.cover = {-10.0, -10.0, 200.0, 200.0};
+    require(detail::replay_display_chunk_occluded(*chunk, whole, area) == 1U &&
+                whole.calls == std::vector<std::string>{"surface"},
+            "nothing beneath a surface covering the clip may replay");
+
+    CoverPainter none;
+    require(detail::replay_display_chunk_occluded(*chunk, none, area) == 3U &&
+                none.calls == std::vector<std::string>{"fill", "stroke", "surface"},
+            "a painter that promises no cover must replay the chunk whole");
+
+    CoverPainter outside;
+    outside.cover = {200.0, 200.0, 10.0, 10.0};
+    require(detail::replay_display_chunk_occluded(*chunk, outside, area) == 3U,
+            "a cover outside the clip must replay the chunk whole");
+}
+
+// A box shadow that moved keeps its renderer cache; one that changed size
+// does not.
+void test_a_moved_shadow_keeps_its_cache() {
+    const Rect area{0.0, 0.0, 200.0, 200.0};
+    detail::RecordingPainter first;
+    first.draw_box_shadow({10.0, 10.0, 80.0, 60.0}, 0.0, {1.5, 2.5}, 6.0, 0.0, face_color);
+    const std::shared_ptr<const detail::DisplayChunk> before = first.finish(1U, PaintPlane::control, area);
+    const std::shared_ptr<RetainedDrawCache> cache = (*before).commands()[0].retained_cache;
+    require(static_cast<bool>(cache), "a recorded shadow must own a cache");
+
+    detail::RecordingPainter moved;
+    moved.inherit_caches(before);
+    moved.draw_box_shadow({18.0, 4.0, 80.0, 60.0}, 0.0, {1.5, 2.5}, 6.0, 0.0, face_color);
+    const std::shared_ptr<const detail::DisplayChunk> after = moved.finish(2U, PaintPlane::control, area);
+    require((*after).commands()[0].retained_cache == cache, "a shadow that only moved must keep its cache");
+
+    detail::RecordingPainter resized;
+    resized.inherit_caches(after);
+    resized.draw_box_shadow({18.0, 4.0, 81.0, 60.0}, 0.0, {1.5, 2.5}, 6.0, 0.0, face_color);
+    const std::shared_ptr<const detail::DisplayChunk> grown = resized.finish(3U, PaintPlane::control, area);
+    require((*grown).commands()[0].retained_cache != cache, "a shadow that changed size must not keep its cache");
+}
+
+// A surface inside a translated, clipped save (as a window's frame records
+// each control): the cover is asked in the chunk's coordinates, the bands
+// close the save they leave open, and the save is reopened without drawing
+// before the surface.
+class OffsetCoverPainter final : public Painter {
+public:
+    Rect cover{};
+    Rect asked{};
+    std::vector<std::string> calls;
+
+    void save() override { calls.emplace_back("save"); }
+    void restore() override { calls.emplace_back("restore"); }
+    void translate(Point) override { calls.emplace_back("translate"); }
+    void clip_rect(Rect) override { calls.emplace_back("clip"); }
+    void fill_rect(Rect, Color) override { calls.emplace_back("fill"); }
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+    void draw_live_surface(std::shared_ptr<LiveSurface>, Rect, double) override { calls.emplace_back("surface"); }
+    Rect opaque_live_surface_cover(const std::shared_ptr<LiveSurface>&, Rect destination, double) override {
+        asked = destination;
+        return cover;
+    }
+};
+
+void test_a_nested_occluder_reopens_its_saves() {
+    const std::shared_ptr<LiveSurface> surface = occluder_surface();
+    const Rect area{0.0, 0.0, 100.0, 100.0};
+    detail::RecordingPainter recorder;
+    recorder.fill_rect(area, face_color);
+    recorder.save();
+    recorder.translate({10.0, 10.0});
+    recorder.clip_rect({0.0, 0.0, 50.0, 50.0});
+    recorder.fill_rect({0.0, 0.0, 50.0, 50.0}, face_color);
+    recorder.draw_live_surface(surface, {5.0, 5.0, 20.0, 20.0}, 1.0);
+    recorder.restore();
+    const std::shared_ptr<const detail::DisplayChunk> chunk = recorder.finish(1U, PaintPlane::control, area);
+    const std::optional<detail::DisplayOccluder>& found = (*chunk).occluder();
+    require(found && (*found).command == 5U && (*found).group_start == 1U && (*found).open_saves == 1U &&
+                (*found).offset == Point{10.0, 10.0} && (*found).clipped &&
+                (*found).clip == Rect{10.0, 10.0, 50.0, 50.0},
+            "a surface in a translated save must carry the translation and its clip in the chunk's coordinates");
+
+    OffsetCoverPainter painter;
+    painter.cover = {15.0, 15.0, 20.0, 20.0};
+    const std::uint64_t replayed = detail::replay_display_chunk_occluded(*chunk, painter, area);
+    require(painter.asked == Rect{15.0, 15.0, 20.0, 20.0}, "the cover must be asked in the chunk's coordinates");
+    const std::vector<std::string> band{"save", "clip", "fill", "save", "translate", "clip", "fill", "restore",
+                                        "restore"};
+    std::vector<std::string> expected;
+    for (int index = 0; index < 4; ++index) expected.insert(expected.end(), band.begin(), band.end());
+    const std::vector<std::string> tail{"save", "translate", "clip", "surface", "restore"};
+    expected.insert(expected.end(), tail.begin(), tail.end());
+    require(painter.calls == expected && replayed == 25U,
+            "bands must close the save open at the surface, which is then reopened without drawing");
+}
+
 } // namespace
 
 int main() {
@@ -522,6 +740,10 @@ int main() {
         test_a_nested_cover_starts_the_paint_and_later_siblings_follow();
         test_recorded_covers_follow_the_painter_state();
         test_a_per_corner_clip_replays_its_radii();
+        test_a_chunk_finds_its_occluding_surface();
+        test_occluded_replay_paints_beneath_only_where_it_shows();
+        test_a_moved_shadow_keeps_its_cache();
+        test_a_nested_occluder_reopens_its_saves();
         std::cout << "gui_forms_display_chunk_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

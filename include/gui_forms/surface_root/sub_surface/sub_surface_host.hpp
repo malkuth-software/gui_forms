@@ -120,6 +120,11 @@ public:
     // resize rule 2). A running sub-surface is stopped and joined first.
     // Null content stops it and leaves the region empty.
     void set_content(std::unique_ptr<SubSurfaceContent> content, bool opaque);
+    // As set_content, moving from `content` only once nothing before the
+    // take can fail: a throw before it leaves `content` holding the
+    // content, so a caller that promised not to take it on failure (the C
+    // ABI) can give it back. After the take the host holds it.
+    void adopt_content(std::unique_ptr<SubSurfaceContent>& content, bool opaque);
     [[nodiscard]] bool opaque() const noexcept { return opaque_; }
     // The parent's redraw-all (design note section 2): sends a configuration
     // under a new content epoch carrying `update` (null for none), so that

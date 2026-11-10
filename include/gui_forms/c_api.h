@@ -319,7 +319,11 @@ typedef enum gf_window_run_flag {
     GF_WINDOW_RUN_FORCE_HEADLESS = 1 << 1,
     GF_WINDOW_RUN_AUTOMATION_ACTIVATE = 1 << 2,
     /* Run an unattached custom surface as a transient retained overlay. */
-    GF_WINDOW_RUN_POPUP = 1 << 3
+    GF_WINDOW_RUN_POPUP = 1 << 3,
+    /* Accept the Windows host's WM_COPYDATA test-automation commands
+       (GUI.Forms.Automation/1). Off unless this flag is passed or the
+       process environment sets GUI_FORMS_AUTOMATION=1 (test harnesses). */
+    GF_WINDOW_RUN_AUTOMATION = 1 << 4
 } gf_window_run_flag;
 
 typedef enum gf_path_dialog_kind {

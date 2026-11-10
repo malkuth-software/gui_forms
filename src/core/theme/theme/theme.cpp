@@ -9,6 +9,8 @@
 #include "forced_high_contrast.hpp"
 #include "material_layers.hpp"
 #include "theme_access.hpp"
+#include "../contrast/theme_contrast.hpp"
+#include "../dark_variant/dark_variant.hpp"
 #include "../theme_compiler/theme_source_record.hpp"
 
 #include <algorithm>
@@ -715,6 +717,12 @@ ControlVisualRecipe derived_high_contrast(const ControlVisualRecipe& ordinary, C
     result.glyph = text;
     result.muted_text = text;
     result.focus_ring = focus;
+    // High contrast draws no blends: a scrim covers what lies behind in the
+    // plate, opaque, and the content's edge sets the content apart. An arc
+    // or needle is at least two units thick, and a needle a plain line.
+    result.scrim = Color::rgba(plate.red, plate.green, plate.blue, 255);
+    result.stroke_width = std::max(ordinary.stroke_width, 2.0);
+    result.needle_shape = NeedleShape::line;
     return result;
 }
 
@@ -758,7 +766,10 @@ bool valid_recipe(const ControlVisualRecipe& value) noexcept {
            std::abs(value.visual_offset.y) <= 32.0 &&
            finite(value.pressed_content_offset) &&
            std::abs(value.pressed_content_offset.x) <= 32.0 &&
-           std::abs(value.pressed_content_offset.y) <= 32.0;
+           std::abs(value.pressed_content_offset.y) <= 32.0 && std::isfinite(value.stroke_width) &&
+           value.stroke_width >= 0.0 && value.stroke_width <= maximum_recipe_stroke_width &&
+           (value.needle_shape == NeedleShape::line || value.needle_shape == NeedleShape::tapered ||
+            value.needle_shape == NeedleShape::dot);
 }
 
 // An image fill layer in its mode.
@@ -1489,6 +1500,38 @@ std::optional<ImageId> Theme::icon_override(std::string_view identifier) const n
     return std::nullopt;
 }
 
+std::optional<ThemeRoleColours> Theme::application_role(std::string_view name,
+                                                        const MediaFacts& facts) const noexcept {
+    const std::vector<ApplicationColourRole>& roles = definition_.rules.application_roles;
+    const ApplicationColourRole* found = nullptr;
+    for (const ApplicationColourRole& role : roles) {
+        if (role.name == name) found = &role;
+    }
+    if (found == nullptr) return std::nullopt;
+    ThemeRoleColours colours{};
+    colours.fallback = (*found).fallback;
+    colours.paired = (*found).paired;
+    bool chosen = false;
+    bool forced_declared = false;
+    for (const ApplicationColourRoleVariant& variant : (*found).variants) {
+        if (!media_condition_holds(variant.media, facts)) continue;
+        colours.foreground = variant.foreground;
+        colours.background = variant.background;
+        chosen = true;
+        forced_declared = forced_declared || variant.media.forced_colours.value_or(false);
+    }
+    if (facts.forced_colours && !forced_declared) {
+        // GUI.Forms' own high contrast remaps a role by its meaning, as it
+        // does the colours rules read from the role.
+        const HighContrastPair pair = high_contrast_role((*found).fallback);
+        colours.foreground = pair.foreground;
+        colours.background = pair.background;
+        chosen = true;
+    }
+    if (!chosen) return std::nullopt;
+    return colours;
+}
+
 const detail::ThemeSourceRecord& detail::ThemeAccess::source(const Theme& theme) noexcept {
     return *theme.source_;
 }
@@ -1696,6 +1739,35 @@ Color inherited_text(const Control& control, Color fallback) {
     return fallback;
 }
 
+// The part metrics and shape `fields` sets (RecipeField::block_size on),
+// over `metrics`, in place.
+void apply_part_metrics(const CompiledThemeRules::RecipeResolution& fields, ControlPartMetrics& metrics) noexcept {
+    const RecipeDeclaration* const block = set_recipe_field(fields, RecipeField::block_size);
+    if (block != nullptr) metrics.block_size = (*block).number;
+    const RecipeDeclaration* const minimum = set_recipe_field(fields, RecipeField::minimum_inline_size);
+    if (minimum != nullptr) metrics.minimum_inline_size = (*minimum).number;
+    const RecipeDeclaration* const padding = set_recipe_field(fields, RecipeField::padding_inline);
+    if (padding != nullptr) metrics.padding_inline = (*padding).number;
+    const RecipeDeclaration* const gap = set_recipe_field(fields, RecipeField::gap);
+    if (gap != nullptr) metrics.gap = (*gap).number;
+    const RecipeDeclaration* const start = set_recipe_field(fields, RecipeField::margin_block_start);
+    if (start != nullptr) metrics.margin_block_start = (*start).number;
+    const RecipeDeclaration* const end = set_recipe_field(fields, RecipeField::margin_block_end);
+    if (end != nullptr) metrics.margin_block_end = (*end).number;
+    const RecipeDeclaration* const taper = set_recipe_field(fields, RecipeField::taper);
+    if (taper != nullptr) metrics.taper = (*taper).number;
+    const RecipeDeclaration* const taper_colour = set_recipe_field(fields, RecipeField::taper_colour);
+    if (taper_colour != nullptr) metrics.taper_colour = (*taper_colour).colour;
+    const RecipeDeclaration* const flare = set_recipe_field(fields, RecipeField::flare);
+    if (flare != nullptr) metrics.flare = (*flare).number;
+    const RecipeDeclaration* const flare_colour = set_recipe_field(fields, RecipeField::flare_colour);
+    if (flare_colour != nullptr) metrics.flare_colour = (*flare_colour).colour;
+    const RecipeDeclaration* const shadow_width = set_recipe_field(fields, RecipeField::edge_shadow_width);
+    if (shadow_width != nullptr) metrics.edge_shadow_width = (*shadow_width).number;
+    const RecipeDeclaration* const shadow_colour = set_recipe_field(fields, RecipeField::edge_shadow_colour);
+    if (shadow_colour != nullptr) metrics.edge_shadow_colour = (*shadow_colour).colour;
+}
+
 // The recipe fields `fields` sets, over `recipe` (the floor's copy), in
 // place. The outline's style comes first: a ring has no offset, and no
 // outline no width.
@@ -1706,10 +1778,18 @@ void apply_recipe_fields(const CompiledThemeRules::RecipeResolution& fields, Con
     if (muted != nullptr) recipe.muted_text = (*muted).colour;
     const RecipeDeclaration* const glyph = set_recipe_field(fields, RecipeField::glyph);
     if (glyph != nullptr) recipe.glyph = (*glyph).colour;
+    const RecipeDeclaration* const fill_text = set_recipe_field(fields, RecipeField::fill_text);
+    if (fill_text != nullptr) recipe.fill_text = (*fill_text).colour;
     const RecipeDeclaration* const default_width = set_recipe_field(fields, RecipeField::default_outline_width);
     if (default_width != nullptr) recipe.default_width = (*default_width).number;
     const RecipeDeclaration* const default_colour = set_recipe_field(fields, RecipeField::default_outline_colour);
     if (default_colour != nullptr) recipe.default_ring = (*default_colour).colour;
+    const RecipeDeclaration* const stroke = set_recipe_field(fields, RecipeField::stroke_width);
+    if (stroke != nullptr) recipe.stroke_width = (*stroke).number;
+    const RecipeDeclaration* const needle = set_recipe_field(fields, RecipeField::needle_shape);
+    if (needle != nullptr) recipe.needle_shape = (*needle).needle_shape;
+    const RecipeDeclaration* const scrim = set_recipe_field(fields, RecipeField::scrim_colour);
+    if (scrim != nullptr) recipe.scrim = (*scrim).colour;
     const RecipeDeclaration* const style = set_recipe_field(fields, RecipeField::outline_style);
     const bool no_outline = style != nullptr && (*style).outline_style == RecipeOutlineStyle::none;
     if (style != nullptr) {
@@ -1739,6 +1819,7 @@ void apply_recipe_fields(const CompiledThemeRules::RecipeResolution& fields, Con
     if (width != nullptr && !no_outline) recipe.focus_width = (*width).number;
     const RecipeDeclaration* const offset = set_recipe_field(fields, RecipeField::outline_offset);
     if (offset != nullptr && recipe.authored_focus_outline) recipe.focus_offset = (*offset).number;
+    apply_part_metrics(fields, recipe.part_metrics);
     const RecipeDeclaration* const shadow = set_recipe_field(fields, RecipeField::text_shadow);
     if (shadow == nullptr) return;
     if (!(*shadow).shadowed) {
@@ -1814,9 +1895,10 @@ void Theme::provenance(const Control& control, ControlVisualRole role, ControlVi
     CompiledThemeRules::FieldProvenance pass{};
     pass.level = CascadeLevel::forced_high_contrast;
     pass.layer = ThemeLayer::forced_high_contrast;
-    const std::array<RecipeField, 6> pass_colours{RecipeField::text,        RecipeField::outline_colour,
+    const std::array<RecipeField, 8> pass_colours{RecipeField::text,        RecipeField::outline_colour,
                                                   RecipeField::text_shadow, RecipeField::muted_text,
-                                                  RecipeField::glyph,       RecipeField::default_outline_colour};
+                                                  RecipeField::glyph,       RecipeField::default_outline_colour,
+                                                  RecipeField::fill_text, RecipeField::scrim_colour};
     for (const RecipeField field : pass_colours) result.recipe_fields[static_cast<std::size_t>(field)] = pass;
     for (CompiledThemeRules::FieldProvenance& field : result.recipe_fields) {
         if (!field.authored) field = pass;
@@ -1827,6 +1909,12 @@ void Theme::provenance(const Control& control, ControlVisualRole role, ControlVi
 }
 
 ResolvedFont Theme::resolve_font(const Control& control, FontSpec own) const noexcept {
+    const ResolvedFont result = resolve_font(control, own, {}, visual_context_states(ControlVisualContext{}));
+    return result;
+}
+
+ResolvedFont Theme::resolve_font(const Control& control, FontSpec own, std::string_view part,
+                                 AnatomyStateSet states) const noexcept {
     ResolvedFont result{};
     result.font = own;
     CompiledThemeRules::PartFacts facts{};
@@ -1834,7 +1922,8 @@ ResolvedFont Theme::resolve_font(const Control& control, FontSpec own) const noe
     facts.stable_id = control.stable_id().value();
     facts.classes = control.classes.read();
     facts.inline_rules = control.inline_style_rules();
-    facts.states = visual_context_states(ControlVisualContext{});
+    facts.part = part;
+    facts.states = states;
     const Window* const window = control.attached_window();
     if (window != nullptr) facts.media = window_media_facts(*window);
     if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
@@ -1984,7 +2073,15 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
         fields.fields[static_cast<std::size_t>(RecipeField::text_shadow)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::muted_text)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::glyph)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::fill_text)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::default_outline_colour)] = nullptr;
+        // Forced high contrast draws no edge shadow, and the tapered edge and
+        // lip in the pass's colours.
+        fields.fields[static_cast<std::size_t>(RecipeField::edge_shadow_width)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::edge_shadow_colour)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::taper_colour)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::flare_colour)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::scrim_colour)] = nullptr;
         bool any = false;
         for (const RecipeDeclaration* field : fields.fields) any = any || field != nullptr;
         fields.authored = any;
@@ -1997,8 +2094,54 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     if (written != nullptr) text = (*written).inherit ? inherited_text(control, floor.text) : (*written).colour;
     // The fields relative to the control, copied: an inherited text colour,
     // currentcolor, and lengths in em at the control's em.
+    // At most two copies per field (darkened, then made relative): the
+    // reserve keeps every pointer into the copies valid.
     std::vector<RecipeDeclaration> scaled{};
-    scaled.reserve(recipe_field_count);
+    scaled.reserve(recipe_field_count * 2U);
+    // A theme that derives its dark variant writes its rules in light terms:
+    // in dark, a dark ink a rule authors for text (a named part's, such as a
+    // selected Ribbon tab's label) turns to the dark variant's ink by the
+    // primitives' rule, rather than staying light-scheme ink on a dark face.
+    // A light text colour (white on the File tab) is kept: the derivation
+    // would darken it as a face. An inherited colour and currentcolor are
+    // the resolved text already.
+    if (context.dark && definition().dark_variant == ThemeDarkVariant::derived) {
+        for (const RecipeDeclaration*& field : fields.fields) {
+            if (field == nullptr || (*field).initial || (*field).inherit || (*field).current_colour) continue;
+            // A part's shape colours (the folder edge's keyline, its shadow
+            // and the lip) lie beside the face and darken with it: the
+            // keyline as a dark outer edge, the shadow as a shade and the
+            // lip as the face. Each keeps its alpha.
+            const RecipeField shape_field = (*field).field;
+            const bool shape_colour = shape_field == RecipeField::taper_colour ||
+                                      shape_field == RecipeField::edge_shadow_colour ||
+                                      shape_field == RecipeField::flare_colour;
+            if (shape_colour) {
+                const Color light = (*field).colour;
+                detail::DarkColourClass shape_class = detail::DarkColourClass::shade;
+                if (shape_field == RecipeField::taper_colour) shape_class = detail::DarkColourClass::deep_line;
+                Color dark = detail::dark_colour(light, shape_class);
+                if (shape_field == RecipeField::flare_colour) {
+                    dark = detail::dark_parameter_colour(light, (*field).origin, role);
+                }
+                scaled.push_back(*field);
+                RecipeDeclaration& darkened = scaled.back();
+                darkened.colour = Color::rgba(dark.red, dark.green, dark.blue, light.alpha);
+                field = &darkened;
+                continue;
+            }
+            if (recipe_field_colour_position((*field).field) != ColourPosition::text) continue;
+            const Color light = (*field).colour;
+            const Color dark = detail::dark_parameter_colour(light, (*field).origin, role);
+            if (!(detail::relative_luminance(dark) > detail::relative_luminance(light))) continue;
+            scaled.push_back(*field);
+            RecipeDeclaration& darkened = scaled.back();
+            darkened.colour = dark;
+            field = &darkened;
+        }
+        const RecipeDeclaration* const ink = set_recipe_field(fields, RecipeField::text);
+        if (ink != nullptr && !(*ink).inherit && !(*ink).current_colour) text = (*ink).colour;
+    }
     bool reads_em = false;
     for (const RecipeDeclaration*& field : fields.fields) {
         if (field == nullptr || (*field).initial) continue;
@@ -2025,6 +2168,25 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
                                 fields.levels[text_position] >= CascadeLevel::important_user_theme;
     return ResolvedControlRecipe(floor, std::move(authored), important_text);
 }
+
+namespace {
+
+// The dial parts and the scrim in windows-professional (row 2.5; owner
+// option (a)): a 3-unit arc and a plain line needle, as Windows' own meters
+// are drawn thin; a scrim of the window ink at 30 %. Every state and the
+// selected records alike; the high-contrast records are derived.
+void fill_professional_dials(ControlRoleRecipes& role) {
+    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
+        role.ordinary[index].stroke_width = 3.0;
+        role.ordinary[index].needle_shape = NeedleShape::line;
+        role.ordinary[index].scrim = Color::rgba(27, 39, 51, 77);
+        role.selected[index].stroke_width = 3.0;
+        role.selected[index].needle_shape = NeedleShape::line;
+        role.selected[index].scrim = Color::rgba(27, 39, 51, 77);
+    }
+}
+
+} // namespace
 
 ThemeDefinition windows_professional_theme_definition() {
     ThemeDefinition result;
@@ -2110,6 +2272,7 @@ ThemeDefinition windows_professional_theme_definition() {
                           Color::rgba(250, 251, 252),
                           Color::rgba(151, 166, 179), ink, 2.0);
     fill_badge_role(result.roles[static_cast<std::size_t>(ControlVisualRole::badge)]);
+    for (ControlRoleRecipes& role : result.roles) fill_professional_dials(role);
     result.overlay_shadow = provisional_overlay_shadow();
     result.high_contrast_overlay_shadow.clear();
     return result;

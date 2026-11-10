@@ -65,6 +65,8 @@ gui_forms::ApplicationWindowHandle
         - Orders the window above the run's other windows without activating it.
       * - :cpp:func:`set_title <gui_forms::ApplicationWindowHandle::set_title>`
         - Changes the native title bar text.
+      * - :cpp:func:`set_shown_while_inactive <gui_forms::ApplicationWindowHandle::set_shown_while_inactive>`
+        - Whether this floating tool window stays shown while the application is inactive (HostWindowing::set_shown_while_inactive).
 
    .. seealso::
 
@@ -234,3 +236,7 @@ gui_forms::ApplicationWindowHandle
       65536 bytes, malformed UTF-8 or an embedded NUL returns
       :cpp:enumerator:`HostServiceError::invalid_argument <gui_forms::HostServiceError::invalid_argument>` and is not sent to the host. The
       text is only borrowed for the call.
+
+   .. cpp:function:: HostServiceStatus set_shown_while_inactive(bool shown) const
+
+      Whether this floating tool window stays shown while the application is inactive (HostWindowing::set_shown_while_inactive). Available from the window's admission, before it is ready; other kinds ignore it.

@@ -7,6 +7,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/display.hpp"
 #include "gui_forms/dispatcher.hpp"
+#include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/engine/part_table/engine_part_table.hpp"
 #include "gui_forms/live_surface/wake_connection/live_surface_wake_connection.hpp"
@@ -66,6 +67,8 @@ class LiveSurface;
 class PaintFramebuffer;
 struct HelpRequestEvent;
 class RuleSet;
+// The internal drag engine (src/core/drag_engine/drag_engine.hpp).
+class DragEngine;
 namespace detail {
 struct LiveSurfaceIdleWake;
 class OverlayAttachment;
@@ -365,6 +368,37 @@ struct ControlSnapshot final {
     std::uint32_t pixel_height{};
 };
 
+// What Window::capture_window draws (owner request 2026-11-09, the product
+// ports: screenshots and tests).
+struct WindowCaptureOptions final {
+    // The window's in-surface overlays (menus, drop-downs, tooltips and
+    // other overlays opened in it), composited over its content as
+    // presented. Off, the capture shows the content beneath them. Windows
+    // of their own (an owned window, a splash) are captured through their
+    // own Window.
+    bool include_overlays{true};
+    // Device pixels per logical unit; 0 takes the window's own scale.
+    double scale{};
+};
+
+// A window's picture (Window::capture_window): its logical size, the scale
+// it was drawn at and its pixels, `pixel_height` rows of `pixel_width`
+// premultiplied BGRA pixels, tightly packed (pixel_width * 4 bytes a row).
+// The capture owns its pixels.
+struct WindowCapture final {
+    Size logical_size{};
+    double scale{};
+    std::uint32_t pixel_width{};
+    std::uint32_t pixel_height{};
+    std::vector<std::byte> bgra{};
+};
+
+// `capture` encoded as a PNG with its alpha (premultiplied pixels made
+// straight), into `png`, replacing its contents; false, leaving it empty,
+// for a capture without pixels or whose pixels are fewer than its size
+// needs.
+[[nodiscard]] bool encode_window_capture_png(const WindowCapture& capture, std::vector<std::byte>& png);
+
 // The root of one retained control tree and the thread that owns it (the
 // threaded sub-surfaces design, stage S1): the control table, the dirty
 // structure, update scopes and flushes, layout, paint, focus, input
@@ -509,6 +543,46 @@ public:
     // chunks the replay had to rebuild are marked for the next real paint.
     // The image lives until release_control_snapshot or the window's end.
     [[nodiscard]] std::optional<ControlSnapshot> snapshot_control(const Control::Ptr& control, double scale);
+    // The whole window as it presents itself (owner request 2026-11-09):
+    // its backplane (the theme's window material, cleared where a
+    // non-opaque backdrop is granted), every paint plane of its content,
+    // its in-surface overlays unless `options` leaves them out, and its
+    // outer band, replayed from the retained display after any pending
+    // layout into an offscreen framebuffer of the host's own CPU raster,
+    // as snapshot_control does. What the host composites outside the
+    // window's pixels (the system backdrop, native frame and shadow) is not
+    // drawn. Callable whenever the window is not painting, at any time
+    // after the host attached, so a screenshot or a test needs no timer.
+    // None, changing nothing, while no framebuffer painter is installed (a
+    // headless window, a host whose fonts are not ready), during a paint,
+    // for an empty window, for a scale outside (0, 8], or when the
+    // framebuffer refuses. Cost: one replay of the window into
+    // ceil(width * scale) by ceil(height * scale) pixels and one copy of
+    // them; chunks the replay had to rebuild are marked for the next real
+    // paint. On the UI thread (std::logic_error elsewhere).
+    [[nodiscard]] std::optional<WindowCapture> capture_window(const WindowCaptureOptions& options = {});
+
+    // The invalidation overlay (owner request 2026-11-09; see
+    // invalidation_overlay.hpp). The window's own setting: on, off, or none
+    // to follow the process switch (set_invalidation_overlay_default, read
+    // from GUI_FORMS_DEBUG_INVALIDATION at first). Turning it off drops
+    // the outlines; turning it on records from the next damage. Neither
+    // damages the window. UI thread.
+    void set_invalidation_overlay(std::optional<bool> enabled);
+    [[nodiscard]] std::optional<bool> invalidation_overlay_setting() const noexcept {
+        return invalidation_overlay_setting_;
+    }
+    // Whether the overlay is on now, after the process switch's last
+    // change. UI thread.
+    [[nodiscard]] bool invalidation_overlay_enabled() noexcept;
+    // The window's outlines while the overlay is on, for its host to
+    // composite at present time (InvalidationOverlay::compose); null while
+    // it is off. Valid until the overlay is turned off. UI thread.
+    [[nodiscard]] InvalidationOverlay* invalidation_overlay() noexcept;
+    // Records an area the host presented without a paint of the window's
+    // (a live frame, external content), with its cause and source, while
+    // the overlay is on; nothing while it is off. UI thread.
+    void record_presented_area(Rect bounds, InvalidationCause cause, std::string_view source);
     // Removes a snapshot's image as remove_image does: every window sharing
     // the registry retires its retained paint, so no chunk replays the dead
     // image. False, changing nothing, for an image that is not there.
@@ -579,6 +653,18 @@ public:
     // creates it. UI thread.
     [[nodiscard]] bool declare_non_opaque();
     [[nodiscard]] bool non_opaque_declared() const noexcept { return non_opaque_declared_; }
+    // Declares, before a host attaches, that this window's content draws
+    // every surface the window shows, so that over a non-opaque grant its
+    // backplane is clear: a Popup or Splash window (APP_WINDOW_RULES_DESIGN
+    // Part S) whose content is a menu panel, a drop-down list or a tooltip
+    // bubble with the overlay shadow around it. Neither the theme's window
+    // material, its base for the grant nor its window backdrop chain is
+    // drawn there; over `opaque` the backplane is the theme's window
+    // material, as for any window. Declares the window non-opaque too.
+    // False, changing nothing, once a host session has been bound. UI
+    // thread.
+    [[nodiscard]] bool declare_content_surface();
+    [[nodiscard]] bool content_surface_declared() const noexcept { return content_surface_declared_; }
     // The host's compositor state as last reported. Before any report:
     // compositing unknown and only `opaque` supported.
     [[nodiscard]] const CompositorState& compositor_state() const noexcept { return compositor_state_; }
@@ -1106,6 +1192,12 @@ public:
     // MotionValue finds it here; tests install a time source on it.
     [[nodiscard]] MotionClock& motion_clock() noexcept { return motion_clock_; }
     [[nodiscard]] const MotionClock& motion_clock() const noexcept { return motion_clock_; }
+    // The window's drag engine (roadmap 2.1; internal, its header is
+    // src/core/drag_engine/drag_engine.hpp): one drag session at a time, for
+    // this root's controls. Made on first use (drag_engine); null until then
+    // (drag_engine_if_made). Root thread.
+    [[nodiscard]] DragEngine& drag_engine();
+    [[nodiscard]] const DragEngine* drag_engine_if_made() const noexcept { return drag_engine_.get(); }
     // Values the application publishes for the theme engine (T2 E6; GIVEN
     // B1-1): named, numeric and read-only to themes. A theme's expressions
     // read the ones its rule sheet names (ThemeRuleSheet::published_values);
@@ -1813,6 +1905,8 @@ private:
     // lies in an overlay whose owner does (the reach of the stable-identity
     // overload's virtual-child search).
     [[nodiscard]] bool semantic_scope_reaches(const Control::Ptr& control) const;
+    // Appends the drag engine's live region to a snapshot (phase E4).
+    void append_drag_announcements(SemanticSnapshot& snapshot) const;
     using DeferredInput = std::variant<
         PointerEvent, KeyEvent, TextInputEvent, DragEvent,
         DeferredSemanticInput>;
@@ -1933,6 +2027,11 @@ private:
     void update_display_cache_metrics() noexcept;
     void compact_frame_requests() noexcept;
     [[nodiscard]] Rect absolute_bounds_of(const Control& control) const;
+    // Whether `control` and every ancestor have been arranged (non-empty
+    // arranged bounds): before that a control has painted nothing and its
+    // window position is not known, so its invalidation damages nothing;
+    // the layout that arranges it damages where it lands.
+    [[nodiscard]] bool arranged_in_window(const Control& control) const;
     [[nodiscard]] Rect visual_bounds_of(const Control& control,
                                         Insets outsets) const;
     [[nodiscard]] Rect paint_damage_bounds_of(const Control& control) const;
@@ -2135,6 +2234,11 @@ private:
     // or key event; the clock it reads, borrowed (null for the steady
     // clock); and the wake for a pending hover.
     std::unique_ptr<detail::InteractionState> interaction_{};
+    // The drag engine, made on first use; it borrows this root and observes
+    // the controls of its session. dispatch_key offers it keys first,
+    // change_pointer_capture reports a lost capture, set_active(false)
+    // cancels its session.
+    std::unique_ptr<DragEngine> drag_engine_{};
     const InputTimeSource* input_time_source_{};
     FrameRequestToken hover_wake_{};
     // While dispatch_pointer releases the capture for a primary release,
@@ -2151,6 +2255,52 @@ private:
     // damage nothing, until its arrange descent ends.
     bool scroll_copies_supported_{};
     std::vector<ScrollCopy> scroll_copies_;
+
+    // The invalidation overlay (set_invalidation_overlay). While it is on,
+    // each damage rectangle the window records is noted with the cause in
+    // force (damage_cause_, set by a DamageCauseScope around the damage) and
+    // the control that caused it, until a paint attributes the rectangles
+    // it painted to them (attribute_painted_damage); a painted rectangle no
+    // damage asked for is the host's expose.
+    struct InvalidationCauseRecord final {
+        Rect bounds{};
+        InvalidationCause cause{InvalidationCause::control};
+        std::string source{};
+        // Presented whole whatever is painted: a scroll copy's moved area.
+        bool presented_whole{};
+    };
+    static constexpr std::size_t maximum_invalidation_causes = 256U;
+    class DamageCauseScope final {
+    public:
+        DamageCauseScope(SurfaceRoot& root, InvalidationCause cause, const Control* source) noexcept
+            : root_(&root), cause_(root.damage_cause_), source_(root.damage_source_) {
+            root.damage_cause_ = cause;
+            root.damage_source_ = source;
+        }
+        ~DamageCauseScope() {
+            (*root_).damage_cause_ = cause_;
+            (*root_).damage_source_ = source_;
+        }
+        DamageCauseScope(const DamageCauseScope&) = delete;
+        DamageCauseScope& operator=(const DamageCauseScope&) = delete;
+
+    private:
+        SurfaceRoot* root_;
+        InvalidationCause cause_;
+        const Control* source_;
+    };
+    // Follows a change of the process switch: one relaxed load when there
+    // is none.
+    void sync_invalidation_overlay();
+    void note_damage_cause(Rect damage, bool presented_whole);
+    void attribute_painted_damage(std::span<const Rect> painted);
+    std::unique_ptr<InvalidationOverlay> invalidation_overlay_{};
+    std::optional<bool> invalidation_overlay_setting_{};
+    std::uint64_t invalidation_overlay_generation_{};
+    std::vector<InvalidationCauseRecord> invalidation_causes_{};
+    InvalidationCause damage_cause_{InvalidationCause::control};
+    // Borrowed for the scope that set it; the damage reads only its id.
+    const Control* damage_source_{};
     const Control* scroll_translating_{};
     Point scroll_translation_{};
     // Whether `control`'s current recorded paint draws nothing (a layer
@@ -2342,6 +2492,9 @@ private:
     // first HostSession and never cleared; it ends declare_non_opaque.
     bool host_session_bound_{};
     bool non_opaque_declared_{};
+    // declare_content_surface: the backplane is clear over a non-opaque
+    // grant and follows no theme backdrop chain.
+    bool content_surface_declared_{};
     CompositorState compositor_state_{};
     WindowBackdropRequest backdrop_request_{};
     // Whether backdrop_request_ is the application's (request_backdrop)

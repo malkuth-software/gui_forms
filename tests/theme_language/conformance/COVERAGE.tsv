@@ -72,6 +72,7 @@ diagnostic.W106	diagnostic-W106
 diagnostic.W107	diagnostic-W107
 diagnostic.W110	diagnostic-W110
 diagnostic.W111	diagnostic-W111
+diagnostic.W112	diagnostic-W112
 diagnostic.W201	diagnostic-W201
 diagnostic.W301	newer-engine
 diagnostic.W302	newer-engine
@@ -154,6 +155,7 @@ property.default-outline	recipe-colours
 property.effect	effects
 property.effect-colours	effects
 property.effect-none	effects
+property.fill-text-color	recipe-colours
 property.filter-blur	shadows-opacity-filters
 property.filter-colour	shadows-opacity-filters
 property.filter-drop-shadow	shadows-opacity-filters

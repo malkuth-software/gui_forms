@@ -47,6 +47,32 @@ Related types
      - Whether pointer input hits the surface (default false: it passes through to what lies beneath).
    * - :cpp:class:`DrawingSurfaceSemanticRoleCapability <gui_forms::DrawingSurfaceSemanticRoleCapability>`
      - The role the surface publishes to accessibility (default image).
+   * - :cpp:class:`GraphResult <gui_forms::GraphResult>`
+     - An operation's result: the status and, for add_node and connect, the new record's identity (zero otherwise).
+   * - :cpp:class:`LinkId <gui_forms::LinkId>`
+     - A link's identity, as NodeId.
+   * - :cpp:class:`LinkRecord <gui_forms::LinkRecord>`
+     - A link slot, as NodeRecord.
+   * - :cpp:class:`LinkRouter <gui_forms::LinkRouter>`
+     -  
+   * - :cpp:class:`LinkRouterOptions <gui_forms::LinkRouterOptions>`
+     -  
+   * - :cpp:class:`LinkRouteStatistics <gui_forms::LinkRouteStatistics>`
+     -  
+   * - :cpp:class:`NodeGraph <gui_forms::NodeGraph>`
+     - Owned by its consumer and borrowed by the canvases that draw it, on one thread (the consumer's UI thread).
+   * - :cpp:class:`NodeId <gui_forms::NodeId>`
+     - A node's identity: its slot and the slot's generation when it was added.
+   * - :cpp:class:`NodeRecord <gui_forms::NodeRecord>`
+     - A node slot.
+   * - :cpp:class:`NodeSpec <gui_forms::NodeSpec>`
+     - What add_node takes: the node's title, its bounds in world units and its ports, copied into the node's record.
+   * - :cpp:class:`PortIndex <gui_forms::PortIndex>`
+     - A port's position in its node's port list (not an identity: the list is fixed when the node is added).
+   * - :cpp:class:`PortRecord <gui_forms::PortRecord>`
+     - A port: its name (shown and announced), direction, edge, its position along a fixed edge as a fraction from the edge's start (left to right, top to bottom; ignored for an automatic port), its lamp and its socket type (the consumer's number; type conversion arrives with N0's tables).
+   * - :cpp:class:`PortRef <gui_forms::PortRef>`
+     - One port of one node.
    * - :cpp:class:`RasterCanvas::Parts <gui_forms::RasterCanvas::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`RasterCanvas::States <gui_forms::RasterCanvas::States>`
@@ -67,6 +93,8 @@ Related types
      - The bitmap point shown at the client's top-left corner.
    * - :cpp:class:`RasterCanvasZoomCapability <gui_forms::RasterCanvasZoomCapability>`
      - Client units per bitmap pixel, 1/64 to 256 (default 1).
+   * - :cpp:class:`RoutedLink <gui_forms::RoutedLink>`
+     - One routed link.
    * - :cpp:class:`SubSurface <gui_forms::SubSurface>`
      - A SurfaceRoot whose output is a LiveSurface and whose host is a control of its parent window (design note section 2).
    * - :cpp:class:`SubSurfaceConfiguration <gui_forms::SubSurfaceConfiguration>`
@@ -101,6 +129,10 @@ Related types
      - How a host's sub-surface thread ended (SubSurfaceHost::stopped): stopped when the host stopped it (new content, leaving the window), failed when the content threw or built no root, with what it threw.
    * - :cpp:class:`SubSurfaceThread <gui_forms::SubSurfaceThread>`
      - The parent's side of one sub-surface: owns its thread (owner decision 9, the library's thread) and the channel the two sides share.
+   * - :cpp:class:`WorldPoint <gui_forms::WorldPoint>`
+     - A point in graph space (world units, float64).
+   * - :cpp:class:`WorldRect <gui_forms::WorldRect>`
+     - An axis-aligned rectangle in graph space: its top-left corner and size.
 
 .. cpp:namespace:: gui_forms
 
@@ -203,6 +235,317 @@ Related types
    .. cpp:member:: PropertyCell<SemanticRole, DrawingSurfaceSemanticRoleCapability<Declaring>> semantic_role
 
       Default: ``{SemanticRole::image}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GraphResult final
+
+   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+   An operation's result: the status and, for add_node and connect, the new record's identity (zero otherwise).
+
+   .. cpp:member:: GraphStatus status
+
+      Default: ``{GraphStatus::ok}``.
+
+   .. cpp:member:: NodeId node
+
+   .. cpp:member:: LinkId link
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LinkId final
+
+   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+   A link's identity, as NodeId.
+
+   .. cpp:member:: std::uint32_t index
+
+   .. cpp:member:: std::uint32_t generation
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LinkRecord final
+
+   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+   A link slot, as NodeRecord.
+
+   .. cpp:member:: PortRef from
+
+   .. cpp:member:: PortRef to
+
+   .. cpp:member:: std::uint32_t generation
+
+   .. cpp:member:: bool live
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: LinkRouter final
+
+   ``#include <gui_forms/controls/node_canvas/link_router/link_router.hpp>``
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::span<const RoutedLink> routes() const noexcept
+
+      The routes in link slot order; borrowed until the next route().
+
+   .. cpp:function:: std::uint64_t routed_revision() const noexcept
+
+      The revision of the graph the routes were made from (zero before any).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void reserve(std::size_t nodes, std::size_t links)
+
+      Reserves for a graph of ``nodes`` nodes and ``links`` links (the grid's storage grows on first use as needed).
+
+   .. cpp:function:: LinkRouteStatistics route(const NodeGraph& graph, const LinkRouterOptions& options)
+
+      Routes every live link of ``graph``, replacing the previous routes. Options outside their ranges (non-finite, negative, a zero tolerance) are taken at their defaults.
+
+   .. cpp:function:: std::span<const WorldPoint> points(const RoutedLink& route) const noexcept
+
+   .. cpp:function:: std::span<const WorldPoint> drawn(const RoutedLink& route) const noexcept
+
+   .. cpp:function:: const RoutedLink* find(LinkId link) const noexcept
+
+      The route of a link, or null.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LinkRouterOptions final
+
+   ``#include <gui_forms/controls/node_canvas/link_router/link_router.hpp>``
+
+   .. cpp:member:: LinkRouteStyle style
+
+      Default: ``{LinkRouteStyle::soft}``.
+
+   .. cpp:member:: double obstacle_margin
+
+      The clearance kept round every node, and each port stub's length. Default: ``{12.0}``.
+
+   .. cpp:member:: double bend_penalty
+
+      What a turn costs, in world units of length. Default: ``{40.0}``.
+
+   .. cpp:member:: double crossing_penalty
+
+      What crossing an earlier route costs, in world units of length. Default: ``{80.0}``.
+
+   .. cpp:member:: double nudge_spacing
+
+      The distance between parallel links sharing a channel. Default: ``{6.0}``.
+
+   .. cpp:member:: double corner_radius
+
+      The soft style's largest corner radius. Default: ``{10.0}``.
+
+   .. cpp:member:: double flatten_tolerance
+
+      The soft style's largest distance between a drawn point and its curve. Default: ``{0.25}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LinkRouteStatistics final
+
+   ``#include <gui_forms/controls/node_canvas/link_router/link_router.hpp>``
+
+   .. cpp:member:: std::size_t routed
+
+   .. cpp:member:: std::size_t fallbacks
+
+   .. cpp:member:: std::size_t grid_columns
+
+   .. cpp:member:: std::size_t grid_rows
+
+   .. cpp:member:: std::size_t expanded
+
+      A* states expanded over all searches.
+
+   .. cpp:member:: std::size_t crossings
+
+      Perpendicular crossings between different links after nudging.
+
+   .. cpp:member:: std::size_t nudged
+
+      Segments moved by nudging.
+
+   .. cpp:member:: std::size_t storage_growths
+
+      Times any of the router's storage grew during this call.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: NodeGraph final
+
+   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+   Owned by its consumer and borrowed by the canvases that draw it, on one thread (the consumer's UI thread). Not copyable: identities name slots of one graph.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: NodeGraph() = default
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::span<const NodeRecord> node_slots() const noexcept
+
+      Every slot, live or free, in slot order (the order the canvas paints and the router routes in); an identity is {index, record.generation}.
+
+   .. cpp:function:: std::span<const LinkRecord> link_slots() const noexcept
+
+   .. cpp:function:: std::size_t node_count() const noexcept
+
+   .. cpp:function:: std::size_t link_count() const noexcept
+
+   .. cpp:function:: std::uint64_t revision() const noexcept
+
+      Advances on every successful operation; never zero.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void reserve(std::size_t nodes, std::size_t links)
+
+      Reserves slot storage so that loading ``nodes`` nodes and ``links`` links reallocates nothing (ports and titles are each node's own storage).
+
+   .. cpp:function:: GraphResult add_node(const NodeSpec& spec)
+
+   .. cpp:function:: GraphResult remove_node(NodeId node)
+
+      Removes the node and every link to or from it.
+
+   .. cpp:function:: GraphResult move_nodes(std::span<const NodeId> nodes, WorldPoint delta)
+
+      Moves every node in ``nodes`` by ``delta``. All identities are checked first; one stale identity refuses the whole move. A node listed twice moves once.
+
+   .. cpp:function:: GraphResult connect(PortRef from, PortRef to)
+
+      Links ``from`` (an output) to ``to`` (an input of another node, which has no link yet).
+
+   .. cpp:function:: GraphResult disconnect(LinkId link)
+
+   .. cpp:function:: const NodeRecord* node(NodeId node) const noexcept
+
+      The record of a live identity, or null for a stale one. Borrowed until the next operation.
+
+   .. cpp:function:: const LinkRecord* link(LinkId link) const noexcept
+
+   .. cpp:function:: const PortRecord* port(PortRef port) const noexcept
+
+   .. cpp:function:: LinkId link_into(PortRef input) const noexcept
+
+      The link into an input, or a stale identity when it has none.
+
+   .. cpp:function:: GraphResult set_node_bounds(NodeId node, WorldRect bounds)
+
+      Gives the node new bounds (a resize or a placement).
+
+   .. cpp:function:: GraphResult set_title(NodeId node, std::string_view title)
+
+   .. cpp:function:: GraphResult set_port_lamp(PortRef port, PortLamp lamp)
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NodeId final
+
+   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+   A node's identity: its slot and the slot's generation when it was added.
+
+   .. cpp:member:: std::uint32_t index
+
+   .. cpp:member:: std::uint32_t generation
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NodeRecord final
+
+   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+   A node slot. ``live`` is false for a free slot, whose fields are stale.
+
+   .. cpp:member:: std::string title
+
+   .. cpp:member:: WorldRect bounds
+
+   .. cpp:member:: std::vector<PortRecord> ports
+
+   .. cpp:member:: std::uint32_t generation
+
+   .. cpp:member:: bool live
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NodeSpec final
+
+   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+   What add_node takes: the node's title, its bounds in world units and its ports, copied into the node's record.
+
+   .. cpp:member:: std::string title
+
+   .. cpp:member:: WorldRect bounds
+
+   .. cpp:member:: std::vector<PortRecord> ports
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PortIndex final
+
+   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+   A port's position in its node's port list (not an identity: the list is fixed when the node is added).
+
+   .. cpp:member:: std::uint16_t value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PortRecord final
+
+   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+   A port: its name (shown and announced), direction, edge, its position along a fixed edge as a fraction from the edge's start (left to right, top to bottom; ignored for an automatic port), its lamp and its socket type (the consumer's number; type conversion arrives with N0's tables). An input takes one link; an output any number.
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: PortDirection direction
+
+      Default: ``{PortDirection::input}``.
+
+   .. cpp:member:: PortSide side
+
+      Default: ``{PortSide::left}``.
+
+   .. cpp:member:: double offset
+
+      Default: ``{0.5}``.
+
+   .. cpp:member:: PortLamp lamp
+
+      Default: ``{PortLamp::off}``.
+
+   .. cpp:member:: std::uint16_t socket_type
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PortRef final
+
+   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+   One port of one node.
+
+   .. cpp:member:: NodeId node
+
+   .. cpp:member:: PortIndex port
 
 .. cpp:namespace:: gui_forms
 
@@ -393,6 +736,40 @@ Related types
    .. cpp:function:: static double read(const RasterCanvasZoomCapability& capability)
 
    .. cpp:member:: PropertyView<double, RasterCanvasZoomCapability<Declaring>> zoom
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RoutedLink final
+
+   ``#include <gui_forms/controls/node_canvas/link_router/link_router.hpp>``
+
+   One routed link. ``points`` are its orthogonal polyline from the output's anchor to the input's, after nudging, as a range of LinkRouter::points; ``drawn`` is what is painted and hit-tested (the same polyline, or the soft style's flattened curve), as a range of LinkRouter::drawn. A fallback route found no orthogonal path (a port inside another node's margin, or the grid cap) and is the straight line between the stub ends.
+
+   .. cpp:member:: LinkId link
+
+   .. cpp:member:: PortSide from_side
+
+      Default: ``{PortSide::right}``.
+
+   .. cpp:member:: PortSide to_side
+
+      Default: ``{PortSide::left}``.
+
+   .. cpp:member:: WorldPoint from_anchor
+
+   .. cpp:member:: WorldPoint to_anchor
+
+   .. cpp:member:: std::uint32_t first_point
+
+   .. cpp:member:: std::uint32_t point_count
+
+   .. cpp:member:: std::uint32_t first_drawn
+
+   .. cpp:member:: std::uint32_t drawn_count
+
+   .. cpp:member:: std::uint32_t bends
+
+   .. cpp:member:: bool fallback
 
 .. cpp:namespace:: gui_forms
 
@@ -767,9 +1144,13 @@ Related types
 
    .. cpp:member:: std::uint64_t inputs_received
 
-      Input (design note section 4): events posted, events the tree dispatched (in posting order, never dropped while running), the sequence of the newest dispatched, and the unhandled keys sent back to the parent.
+      Input (design note section 4): events posted, events the tree dispatched (in posting order), the sequence of the newest dispatched, and the unhandled keys sent back to the parent. A queued pointer move replaced by a newer one of the same pointer is coalesced (received but never dispatched); an event refused because the queue held maximum_deferred_inputs is rejected (not received). Nothing else is dropped while running.
 
    .. cpp:member:: std::uint64_t inputs_dispatched
+
+   .. cpp:member:: std::uint64_t inputs_coalesced
+
+   .. cpp:member:: std::uint64_t inputs_rejected
 
    .. cpp:member:: std::uint64_t last_input_sequence
 
@@ -850,7 +1231,7 @@ Related types
 
    .. cpp:function:: std::uint64_t post_input(const SubSurfaceInput& input)
 
-      Queues one input event for the sub-surface's tree and wakes it; the thread dispatches queued events in this order, after applying the newest configuration and before its next flush. Returns the event's sequence: 1 for the first, growing by one. After stop() or a failure the event is discarded and 0 is returned.
+      Queues one input event for the sub-surface's tree and wakes it; the thread dispatches queued events in this order, after applying the newest configuration and before its next flush. Returns the event's sequence: 1 for the first, growing by one. A pointer move replaces a queued move of the same pointer at the back and takes the new sequence. After stop() or a failure, or while maximum_deferred_inputs events are queued, the event is discarded and 0 is returned.
 
    .. cpp:function:: void post_request_outcome(const SurfaceRequestOutcome& outcome)
 
@@ -880,8 +1261,120 @@ Related types
 
       Where the notice of the thread ending on its own goes: posted through ``parent`` to ``target``, held weakly, as set_key_return. Replaces any earlier target. A thread that already failed posts nothing for a target set afterwards; the parent reads state() then.
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WorldPoint final
+
+   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+   A point in graph space (world units, float64).
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double y
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WorldRect final
+
+   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+   An axis-aligned rectangle in graph space: its top-left corner and size.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: double right() const noexcept
+
+   .. cpp:function:: double bottom() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: bool contains(WorldPoint point) const noexcept
+
+      Whether ``point`` lies inside or on the edge.
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double y
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: double height
+
 Enumerations
 ------------
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: GraphStatus
+
+   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+   .. cpp:enumerator:: ok
+
+   .. cpp:enumerator:: stale_identity
+
+   .. cpp:enumerator:: bad_port
+
+   .. cpp:enumerator:: wrong_direction
+
+   .. cpp:enumerator:: occupied
+
+   .. cpp:enumerator:: same_node
+
+   .. cpp:enumerator:: invalid_argument
+
+   .. cpp:enumerator:: capacity
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: LinkRouteStyle
+
+   ``#include <gui_forms/controls/node_canvas/link_router/link_router.hpp>``
+
+   .. cpp:enumerator:: orthogonal
+
+   .. cpp:enumerator:: soft
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PortDirection
+
+   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+   .. cpp:enumerator:: input
+
+   .. cpp:enumerator:: output
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PortLamp
+
+   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+   .. cpp:enumerator:: off
+
+   .. cpp:enumerator:: on
+
+   .. cpp:enumerator:: error
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PortSide
+
+   ``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+   .. cpp:enumerator:: left
+
+   .. cpp:enumerator:: right
+
+   .. cpp:enumerator:: top
+
+   .. cpp:enumerator:: bottom
+
+   .. cpp:enumerator:: automatic
 
 .. cpp:namespace:: gui_forms
 
@@ -948,3 +1441,34 @@ Enumerations
    .. cpp:enumerator:: keyboard
 
    .. cpp:enumerator:: program
+
+Functions, constants and aliases
+--------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/node_canvas/link_router/link_router.hpp>``
+
+.. cpp:function:: void append_link_route_trace(std::string& out, const LinkRouter& router)
+
+   Appends one line per route to ``out``: the link's slot and generation, its resolved edges, bend count, a fallback mark and its orthogonal points with coordinates rounded to 1/64 (the drag trace's rounding), for golden traces.
+
+.. cpp:function:: std::string_view port_side_name(PortSide side) noexcept
+
+.. cpp:var:: constexpr std::size_t maximum_route_grid_vertices
+
+   Value: ``1048576U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/node_canvas/node_graph/node_graph.hpp>``
+
+.. cpp:function:: std::string_view graph_status_name(GraphStatus status) noexcept
+
+.. cpp:function:: WorldPoint port_anchor(const NodeRecord& node, PortSide side, double offset) noexcept
+
+   Where a port sits on its node's edge ``side`` (left, right, top or bottom; a fixed port's own side and offset, or, for an automatic port, ``side`` with ``offset``), in world units, on the node's boundary.
+
+.. cpp:var:: constexpr std::size_t maximum_node_ports
+
+   Value: ``256U``.

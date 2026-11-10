@@ -22,7 +22,43 @@ typedef struct window_run {
     int worker_started;
     pthread_t worker;
     gf_callback request_callback;
+    /* The "reason" fields of the closing and closed events, in order, and
+     * the events without a well-formed one. */
+    int64_t reasons[4];
+    uint32_t reason_count;
+    uint32_t malformed_reasons;
 } window_run;
+
+/* Records event's "reason" field (gf_abi.h, gf_event): a read-only
+ * ENUMERATION whose text names its number. A program's request_close is
+ * "user" (0) on a host that posts the native close message and
+ * "application" (1) on one that closes directly. */
+static void count_reason(window_run* run, const gf_event* event) {
+    for (uint64_t index = 0u; index < (*event).field_count; ++index) {
+        const gf_event_field* field = &(*event).fields[index];
+        if ((*field).name.size != 6u || memcmp((*field).name.data, "reason", 6u) != 0) {
+            continue;
+        }
+        const gf_value* value = (*field).value;
+        if ((*field).kind != GF_VALUE_KIND_ENUMERATION || ((*field).flags & GF_EVENT_FIELD_WRITABLE) != 0u ||
+            value == NULL) {
+            break;
+        }
+        const int is_user = (*value).signed_integer == 0 && (*value).text.size == 4u &&
+                            memcmp((*value).text.data, "user", 4u) == 0;
+        const int is_application = (*value).signed_integer == 1 && (*value).text.size == 11u &&
+                                   memcmp((*value).text.data, "application", 11u) == 0;
+        if (!is_user && !is_application) {
+            break;
+        }
+        if ((*run).reason_count < 4u) {
+            (*run).reasons[(*run).reason_count] = (*value).signed_integer;
+        }
+        ++(*run).reason_count;
+        return;
+    }
+    ++(*run).malformed_reasons;
+}
 
 enum { release_ready, release_closing, release_closed, release_request };
 
@@ -69,6 +105,7 @@ static void GF_CALL on_ready(void* context, gf_event* event) {
 static void GF_CALL on_closing(void* context, gf_event* event) {
     window_run* run = (window_run*)context;
     note(run, 'C');
+    count_reason(run, event);
     if ((*run).request_count == 1u) {
         /* Keep the window once, and ask again from the UI thread. */
         (*event).cancel = 1u;
@@ -79,8 +116,8 @@ static void GF_CALL on_closing(void* context, gf_event* event) {
 
 static void GF_CALL on_closed(void* context, gf_event* event) {
     window_run* run = (window_run*)context;
-    (void)event;
     note(run, 'D');
+    count_reason(run, event);
 }
 
 static void GF_CALL release_ready_callback(void* context) {
@@ -147,6 +184,9 @@ void gf_kit_window(gf_kit* kit) {
     gf_kit_status(kit, run.worker_post, GF_STATUS_OK, "a worker posts to the running window");
     gf_kit_check(kit, strcmp(run.order, "RQCXQCD") == 0,
                  "ready, a posted close, a cancelled closing, a second close, closing, closed");
+    gf_kit_check(kit, run.reason_count == 3u && run.malformed_reasons == 0u && run.reasons[0] == run.reasons[1] &&
+                          run.reasons[1] == run.reasons[2],
+                 "both closing events and closed carry one close reason for request_close");
     gf_kit_status(kit, run.requests[0], GF_STATUS_OK, "the first close request");
     gf_kit_status(kit, run.requests[1], GF_STATUS_OK, "the second close request");
     gf_kit_check(kit, run.releases[release_ready] == 1u && run.releases[release_closing] == 1u &&

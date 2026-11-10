@@ -15,6 +15,7 @@
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/commands/font_command/font_command.hpp"
 #include "gui_forms/commands/gallery_command/gallery_command.hpp"
+#include "gui_forms/components/about_dialog/about_dialog.hpp"
 #include "gui_forms/components/color_dialog/color_dialog.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/components/error_provider/error_provider.hpp"
@@ -36,6 +37,7 @@
 #include "gui_forms/controls/button_base/link_label/link_label.hpp"
 #include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
 #include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
+#include "gui_forms/controls/callout/callout.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
 #include "gui_forms/controls/collections/command_bar.hpp"
 #include "gui_forms/controls/collections/expandable_sections.hpp"
@@ -47,11 +49,22 @@
 #include "gui_forms/controls/drawing_surface/drawing_surface.hpp"
 #include "gui_forms/controls/easing_preview/easing_preview.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
+#include "gui_forms/controls/help/help_book/help_book.hpp"
+#include "gui_forms/controls/help/help_book_system/help_book_system.hpp"
+#include "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
+#include "gui_forms/controls/instruments/dial/dial.hpp"
+#include "gui_forms/controls/instruments/gauge_base/gauge_base.hpp"
+#include "gui_forms/controls/instruments/gauge_base/linear_gauge/linear_gauge.hpp"
+#include "gui_forms/controls/instruments/gauge_base/radial_gauge/radial_gauge.hpp"
+#include "gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp"
+#include "gui_forms/controls/instruments/sparkline/sparkline.hpp"
 #include "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp"
 #include "gui_forms/controls/label/label.hpp"
+#include "gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp"
 #include "gui_forms/controls/menu_strip/menu_strip.hpp"
 #include "gui_forms/controls/metrics_view/metrics_view.hpp"
+#include "gui_forms/controls/modal_layer/modal_layer.hpp"
 #include "gui_forms/controls/pages/navigation_pane/navigation_pane.hpp"
 #include "gui_forms/controls/pages/page_strip/page_strip.hpp"
 #include "gui_forms/controls/pages/page_view/page_view.hpp"
@@ -87,6 +100,10 @@
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
+#include "gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp"
+#include "gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp"
+#include "gui_forms/controls/plots/plot_series_item/plot_series_item.hpp"
+#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
 #include "gui_forms/controls/progress_ring/progress_ring.hpp"
 #include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
 #include "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
@@ -95,6 +112,7 @@
 #include "gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp"
 #include "gui_forms/controls/range_control/scroll_bar/v_scroll_bar/v_scroll_bar.hpp"
 #include "gui_forms/controls/range_control/track_bar/track_bar.hpp"
+#include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
 #include "gui_forms/controls/raster_canvas/raster_canvas.hpp"
 #include "gui_forms/controls/ribbon/ribbon.hpp"
 #include "gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp"
@@ -118,6 +136,7 @@
 #include "gui_forms/controls/spinner/spinner.hpp"
 #include "gui_forms/controls/splitter/splitter.hpp"
 #include "gui_forms/controls/status_strip/status_strip.hpp"
+#include "gui_forms/controls/step_indicator/step_indicator.hpp"
 #include "gui_forms/controls/task_dialog/task_dialog.hpp"
 #include "gui_forms/controls/text_block/text_block.hpp"
 #include "gui_forms/controls/toast/toast.hpp"
@@ -126,6 +145,8 @@
 #include "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
 #include "gui_forms/controls/typography_specimen/typography_specimen.hpp"
 #include "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
+#include "gui_forms/controls/wizard/wizard.hpp"
+#include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/live_surface/surface/live_surface.hpp"
@@ -136,7 +157,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 125> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 146> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button_base/button/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -158,6 +179,11 @@ inline constexpr std::array<FormCatalogEntry, 125> form_catalog{{
     {"progress_ring", "ProgressRing", "gui_forms/controls/progress_ring/progress_ring.hpp", &add_catalog_type<ProgressRing>},
     {"spinner", "Spinner", "gui_forms/controls/spinner/spinner.hpp", &add_catalog_type<Spinner>},
     {"sweep_scope", "SweepScope", "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp", &add_catalog_type<SweepScope>},
+    {"sparkline", "Sparkline", "gui_forms/controls/instruments/sparkline/sparkline.hpp", &add_catalog_type<Sparkline>},
+    {"plot_view", "PlotView", "gui_forms/controls/plots/plot_view/plot_view.hpp", &add_catalog_type<PlotView>},
+    {"plot_axis_item", "PlotAxisItem", "gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp", &add_catalog_type<PlotAxisItem>},
+    {"plot_series_item", "PlotSeriesItem", "gui_forms/controls/plots/plot_series_item/plot_series_item.hpp", &add_catalog_type<PlotSeriesItem>},
+    {"plot_annotation_item", "PlotAnnotationItem", "gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp", &add_catalog_type<PlotAnnotationItem>},
     {"review_card", "ReviewCard", "gui_forms/controls/panel/card/review_card/review_card.hpp", &add_catalog_type<ReviewCard>},
     {"list_box", "ListBox", "gui_forms/controls/panel/list_box/list_box.hpp", &add_catalog_type<ListBox>},
     {"checked_list_box", "CheckedListBox", "gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp", &add_catalog_type<CheckedListBox>},
@@ -175,6 +201,7 @@ inline constexpr std::array<FormCatalogEntry, 125> form_catalog{{
     {"toggle_switch", "ToggleSwitch", "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp", &add_catalog_type<ToggleSwitch>},
     {"range_control", "RangeControl", "gui_forms/controls/range_control/range_control.hpp", &add_catalog_type<RangeControl>},
     {"track_bar", "TrackBar", "gui_forms/controls/range_control/track_bar/track_bar.hpp", &add_catalog_type<TrackBar>},
+    {"value_bar", "ValueBar", "gui_forms/controls/range_control/value_bar/value_bar.hpp", &add_catalog_type<ValueBar>},
     {"numeric_up_down", "NumericUpDown", "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp", &add_catalog_type<NumericUpDown>},
     {"domain_up_down", "DomainUpDown", "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp", &add_catalog_type<DomainUpDown>},
     {"color_value_editor", "ColorValueEditor", "gui_forms/controls/panel/color_value_editor/color_value_editor.hpp", &add_catalog_type<ColorValueEditor>},
@@ -237,6 +264,18 @@ inline constexpr std::array<FormCatalogEntry, 125> form_catalog{{
     {"font_dialog", "FontDialog", "gui_forms/controls/panel/font_dialog/font_dialog.hpp", &add_catalog_type<FontDialog>},
     {"task_dialog", "TaskDialog", "gui_forms/controls/task_dialog/task_dialog.hpp", &add_catalog_type<TaskDialog>},
     {"thread_exception_dialog", "ThreadExceptionDialog", "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp", &add_catalog_type<ThreadExceptionDialog>},
+    {"seven_segment_display", "SevenSegmentDisplay", "gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp", &add_catalog_type<SevenSegmentDisplay>},
+    {"gauge_base", "GaugeBase", "gui_forms/controls/instruments/gauge_base/gauge_base.hpp", &add_catalog_type<GaugeBase>},
+    {"linear_gauge", "LinearGauge", "gui_forms/controls/instruments/gauge_base/linear_gauge/linear_gauge.hpp", &add_catalog_type<LinearGauge>},
+    {"radial_gauge", "RadialGauge", "gui_forms/controls/instruments/gauge_base/radial_gauge/radial_gauge.hpp", &add_catalog_type<RadialGauge>},
+    {"dial", "Dial", "gui_forms/controls/instruments/dial/dial.hpp", &add_catalog_type<Dial>},
+    {"step_indicator", "StepIndicator", "gui_forms/controls/step_indicator/step_indicator.hpp", &add_catalog_type<StepIndicator>},
+    {"wizard", "Wizard", "gui_forms/controls/wizard/wizard.hpp", &add_catalog_type<Wizard>},
+    {"wizard_page", "WizardPage", "gui_forms/controls/wizard/wizard_page/wizard_page.hpp", &add_catalog_type<WizardPage>},
+    {"callout", "Callout", "gui_forms/controls/callout/callout.hpp", &add_catalog_type<Callout>},
+    {"modal_layer", "ModalLayer", "gui_forms/controls/modal_layer/modal_layer.hpp", &add_catalog_type<ModalLayer>},
+    {"lookup_combo_box", "LookupComboBox", "gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp", &add_catalog_type<LookupComboBox>},
+    {"about_dialog", "AboutDialog", "gui_forms/components/about_dialog/about_dialog.hpp", &add_catalog_type<AboutDialog>},
     {"folder_browser_dialog", "FolderBrowserDialog", "gui_forms/components/folder_browser_dialog/folder_browser_dialog.hpp", &add_catalog_type<FolderBrowserDialog>},
     {"color_dialog", "ColorDialog", "gui_forms/components/color_dialog/color_dialog.hpp", &add_catalog_type<ColorDialog>},
     {"tool_tip", "ToolTip", "gui_forms/components/tool_tip/tool_tip.hpp", &add_catalog_type<ToolTip>},
@@ -258,6 +297,9 @@ inline constexpr std::array<FormCatalogEntry, 125> form_catalog{{
     {"image_list", "ImageList", "gui_forms/image_list/image_list/image_list.hpp", &add_catalog_type<ImageList>},
     {"error_provider", "ErrorProvider", "gui_forms/components/error_provider/error_provider.hpp", &add_catalog_type<ErrorProvider>},
     {"help_provider", "HelpProvider", "gui_forms/components/help_provider/help_provider.hpp", &add_catalog_type<HelpProvider>},
+    {"help_book", "HelpBook", "gui_forms/controls/help/help_book/help_book.hpp", &add_catalog_type<HelpBook>},
+    {"help_book_viewer", "HelpBookViewer", "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp", &add_catalog_type<HelpBookViewer>},
+    {"help_book_system", "HelpBookSystem", "gui_forms/controls/help/help_book_system/help_book_system.hpp", &add_catalog_type<HelpBookSystem>},
     {"semantic_feedback", "SemanticFeedback", "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp", &add_catalog_type<SemanticFeedback>},
     {"binding", "Binding", "gui_forms/binding/binding/binding.hpp", &add_catalog_type<Binding>},
     {"binding_source", "BindingSource", "gui_forms/binding/binding_source/binding_source.hpp", &add_catalog_type<BindingSource>},

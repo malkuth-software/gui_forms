@@ -125,6 +125,11 @@ Related types
 
    What a panel permits (the first of the three restriction layers). Each field defaults to permitted.
 
+
+   .. rubric:: Methods
+
+   .. cpp:function:: bool allows_side(DockSide side) const noexcept
+
    .. cpp:member:: bool docked
 
       In a tool stack of the main site, outside the document area. Default: ``{true}``.
@@ -150,6 +155,22 @@ Related types
       Default: ``{true}``.
 
    .. cpp:member:: bool closed
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool left
+
+      The sides of the document area a docked stack holding the panel may stand on, and the window edges it may be auto-hidden to (DockPanel Suite's DockLeft, DockTop, DockRight and DockBottom areas). Default: ``{true}``.
+
+   .. cpp:member:: bool top
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool right
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool bottom
 
       Default: ``{true}``.
 

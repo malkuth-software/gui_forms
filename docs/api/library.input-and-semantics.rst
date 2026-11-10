@@ -24,6 +24,10 @@ Types
      - DragEvent carries phase, geometry, allowed/proposed effects, typed payload, and mutable handled/result state through preview/target/bubble routing.
    * - :cpp:class:`DragFileListData <gui_forms::DragFileListData>`
      - DragFileListData owns a bounded list of local path strings without implying remote discovery.
+   * - :cpp:class:`DragInteraction <gui_forms::DragInteraction>`
+     - One drag interaction.
+   * - :cpp:class:`DragInteractionEvents <gui_forms::DragInteractionEvents>`
+     - The four events of a drag client, held by the control and raised by the window's drag engine on the window's thread.
    * - :cpp:class:`DragLimits <gui_forms::DragLimits>`
      - DragLimits bounds payload bytes, path count, path length, and advertised format count before foreign drag data enters retained routing.
    * - :cpp:class:`DragTextData <gui_forms::DragTextData>`
@@ -164,6 +168,48 @@ Types
    DragFileListData owns a bounded list of local path strings without implying remote discovery.
 
    .. cpp:member:: std::vector<std::string> paths_utf8
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DragInteraction final
+
+   ``#include <gui_forms/events/drag_events/drag_events.hpp>``
+
+   One drag interaction. ``candidate`` is the client's token for the selected drop candidate (an index into its own table) when ``has_candidate``; ``value`` is a continuous drag's value when ``has_value``; an end that restores carries neither (zero and false). ``pointer`` is in the window's coordinates (the virtual pointer for a keyboard drag). ``end`` is none except in drag_dropped and drag_ended.
+
+   .. cpp:member:: DragInputMode mode
+
+      Default: ``{DragInputMode::pointer}``.
+
+   .. cpp:member:: bool has_candidate
+
+   .. cpp:member:: std::uint32_t candidate
+
+   .. cpp:member:: bool has_value
+
+   .. cpp:member:: double value
+
+   .. cpp:member:: Point pointer
+
+   .. cpp:member:: DragEnd end
+
+      Default: ``{DragEnd::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DragInteractionEvents final
+
+   ``#include <gui_forms/events/drag_events/drag_events.hpp>``
+
+   The four events of a drag client, held by the control and raised by the window's drag engine on the window's thread. The control exposes each by its schema name.
+
+   .. cpp:member:: Event<const DragInteraction&> started
+
+   .. cpp:member:: Event<const DragInteraction&> target_changed
+
+   .. cpp:member:: Event<const DragInteraction&> dropped
+
+   .. cpp:member:: Event<const DragInteraction&> ended
 
 .. cpp:namespace:: gui_forms
 
@@ -1052,6 +1098,40 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: DragEnd
+
+   ``#include <gui_forms/events/drag_events/drag_events.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: dropped
+
+   .. cpp:enumerator:: free
+
+   .. cpp:enumerator:: rejected
+
+   .. cpp:enumerator:: escaped
+
+   .. cpp:enumerator:: capture_lost
+
+   .. cpp:enumerator:: deactivated
+
+   .. cpp:enumerator:: model_changed
+
+   .. cpp:enumerator:: subject_gone
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DragInputMode
+
+   ``#include <gui_forms/events/drag_events/drag_events.hpp>``
+
+   .. cpp:enumerator:: pointer
+
+   .. cpp:enumerator:: keyboard
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: EventPhase
 
    ``#include <gui_forms/events/input_events/input_events.hpp>``
@@ -1308,6 +1388,8 @@ Enumerations
 
    .. cpp:enumerator:: search_box
 
+   .. cpp:enumerator:: figure
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -1437,7 +1519,7 @@ Functions, constants and aliases
 
 .. cpp:function:: constexpr SemanticRole semantic_role_fallback(SemanticRole role) noexcept
 
-   The role ``role`` specialises, which a host without a mapping for ``role`` publishes, and whose behaviour (patterns, interfaces, checked value and text) ``role`` shares: check_box for toggle_switch, text_box for search_box. Every other role is its own fallback.
+   The role ``role`` specialises, which a host without a mapping for ``role`` publishes, and whose behaviour (patterns, interfaces, checked value and text) ``role`` shares: check_box for toggle_switch, text_box for search_box, image for figure. Every other role is its own fallback.
 
 .. cpp:function:: constexpr bool has_semantic_state(SemanticState states, SemanticState requested) noexcept
 

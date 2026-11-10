@@ -28,10 +28,16 @@ Types
      - BrushSnapshot is the complete renderer-neutral union record for solid, hatch, gradient, path-gradient, or texture recipes.
    * - :cpp:class:`BundledFontFace <gui_drawing::BundledFontFace>`
      -  
+   * - :cpp:class:`CheckerBrush <gui_drawing::CheckerBrush>`
+     - An alpha checkerboard brush (piece C7): square cells ``cell_size`` units wide in the recorder's coordinates, alternating ``first`` and ``second``, with the corner of a ``first`` cell at the coordinate origin, so the pattern stays put as the filled shape moves.
    * - :cpp:class:`Color <gui_drawing::Color>`
      - gui_drawing::Color is a compact empty/known/ARGB value with deterministic named/HTML parsing and explicit linear-sRGB, XYZ D65, OKLab, and OKLCH conversion support.
    * - :cpp:class:`ColorBlend <gui_drawing::ColorBlend>`
      - ColorBlend owns equal-length color and monotonic position vectors validated by consuming brushes.
+   * - :cpp:class:`ConicGradientBrush <gui_drawing::ConicGradientBrush>`
+     - A conic (sweep) gradient (piece C9, a hue wheel): the colour at a point is the blend's colour at its angle about ``center``, measured clockwise (y down) from ``start_angle`` degrees (0 along +x), one full turn from position 0 to position 1.
+   * - :cpp:class:`CornerRadii <gui_drawing::CornerRadii>`
+     - A rounded rectangle's corner radii: top-left, top-right, bottom-right, bottom-left.
    * - :cpp:class:`DrawingCommand <gui_drawing::DrawingCommand>`
      - DrawingCommand owns one complete command kind, sampled GraphicsState, geometry, resource snapshots, points, and text.
    * - :cpp:class:`DrawingObject <gui_drawing::DrawingObject>`
@@ -54,6 +60,8 @@ Types
      - GraphicsState is the complete transform, optional clip, smoothing, interpolation, pixel-offset, compositing, and compositing-quality state.
    * - :cpp:class:`GraphicsStateToken <gui_drawing::GraphicsStateToken>`
      - GraphicsStateToken is the nonzero exact LIFO identity of one saved recorder state.
+   * - :cpp:class:`GridPatternStyle <gui_drawing::GridPatternStyle>`
+     - A world-aligned grid for GraphicsRecorder::fill_grid_pattern: lines ``spacing`` apart through ``origin`` (the recorder's coordinates), every ``major_every``-th line from the origin in ``major``, the rest in ``minor``, each ``line_width`` wide.
    * - :cpp:class:`HatchBrush <gui_drawing::HatchBrush>`
      - HatchBrush retains one validated hatch vocabulary value plus foreground/background colors.
    * - :cpp:class:`ImageAttributes <gui_drawing::ImageAttributes>`
@@ -88,6 +96,8 @@ Types
      - LiveSurfaceWakeConnection is the move-only revocable ownership edge between a producer publication and a retained consumer's best-effort scheduling signal.
    * - :cpp:class:`LiveSurfaceWriteLease <gui_forms::LiveSurfaceWriteLease>`
      - LiveSurfaceWriteLease is a move-only exclusive producer candidate; publish commits complete pixels atomically, while destruction or abandon returns the slot without publishing.
+   * - :cpp:class:`MarkerStyle <gui_drawing::MarkerStyle>`
+     - A marker centred on each point: ``size`` its full width, ``fill`` its inside, ``edge`` its outline (or lines) ``edge_width`` wide.
    * - :cpp:class:`Matrix <gui_drawing::Matrix>`
      - Matrix is an immutable-value 2D affine transform with finite validation, point/bounds transformation, explicit composition order, and inspectable coefficients.
    * - :cpp:class:`Oklab <gui_drawing::Oklab>`
@@ -159,6 +169,12 @@ Types
 
    .. rubric:: Properties
 
+   .. cpp:function:: bool borrows_memory() const
+
+   .. cpp:function:: const std::byte* borrowed_memory() const
+
+      The borrowed memory, or nullptr for a bitmap that owns its pixels.
+
    .. cpp:function:: std::uint32_t width() const
 
       Requires liveness and returns pixel width.
@@ -185,6 +201,10 @@ Types
 
 
    .. rubric:: Methods
+
+   .. cpp:function:: static std::unique_ptr<Bitmap> borrow(std::uint32_t width, std::uint32_t height, std::size_t row_bytes, std::byte* memory)
+
+      A bitmap over memory it does not own: width x height premultiplied BGRA rows, row_bytes apart, at memory (a native DIB section's pixels). The caller keeps the memory alive and unmoved for the bitmap's life. Drawing writes those pixels in place; a snapshot copies them.
 
    .. cpp:function:: Color get_pixel(std::uint32_t x, std::uint32_t y) const
 
@@ -389,6 +409,10 @@ Types
 
    .. cpp:member:: Matrix transform
 
+   .. cpp:member:: double cell_size
+
+      A checker brush's cell width; 0 for every other kind.
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:struct:: BundledFontFace final
@@ -404,6 +428,24 @@ Types
    .. cpp:member:: std::string_view file
 
       A file name inside the bundled font directory.
+
+.. cpp:namespace:: gui_drawing
+
+.. cpp:class:: CheckerBrush final : public Brush
+
+   ``#include <gui_forms/drawing/brush/checker_brush.hpp>``
+
+   An alpha checkerboard brush (piece C7): square cells ``cell_size`` units wide in the recorder's coordinates, alternating ``first`` and ``second``, with the corner of a ``first`` cell at the coordinate origin, so the pattern stays put as the filled shape moves. ``cell_size`` is finite and positive.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: CheckerBrush(double cell_size, Color first, Color second)
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: BrushSnapshot snapshot() const override
 
 .. cpp:namespace:: gui_drawing
 
@@ -500,6 +542,45 @@ Types
 
 .. cpp:namespace:: gui_drawing
 
+.. cpp:class:: ConicGradientBrush final : public Brush
+
+   ``#include <gui_forms/drawing/brush/conic_gradient_brush.hpp>``
+
+   A conic (sweep) gradient (piece C9, a hue wheel): the colour at a point is the blend's colour at its angle about ``center``, measured clockwise (y down) from ``start_angle`` degrees (0 along +x), one full turn from position 0 to position 1. The blend holds 2 through 4096 colours at ascending positions from 0 to 1, as LinearGradientBrush::set_interpolation_colors requires; the default is ``first`` to ``second``.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ConicGradientBrush(PointF center, double start_angle, Color first, Color second)
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void set_interpolation_colors(const ColorBlend& blend)
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: BrushSnapshot snapshot() const override
+
+.. cpp:namespace:: gui_drawing
+
+.. cpp:struct:: CornerRadii final
+
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+
+   A rounded rectangle's corner radii: top-left, top-right, bottom-right, bottom-left. Each is held to half the rectangle's shorter side.
+
+   .. cpp:member:: double top_left
+
+   .. cpp:member:: double top_right
+
+   .. cpp:member:: double bottom_right
+
+   .. cpp:member:: double bottom_left
+
+.. cpp:namespace:: gui_drawing
+
 .. cpp:struct:: DrawingCommand final
 
    ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>``
@@ -537,6 +618,28 @@ Types
    .. cpp:member:: std::vector<PointF> points
 
    .. cpp:member:: std::string text
+
+   .. cpp:member:: std::vector<RectF> rects
+
+      fill_rectangles: the rectangles.
+
+   .. cpp:member:: MarkerStyle marker
+
+      draw_markers: the style (the centres are in ``points``).
+
+   .. cpp:member:: GridPatternStyle grid
+
+      fill_grid_pattern: the grid (the area is ``rect``).
+
+   .. cpp:member:: CornerRadii radii
+
+      fill_proportion: the track's corner radii, the proportion in ``scalar`` and the edge it grows from (the track is ``rect``).
+
+   .. cpp:member:: double scalar
+
+   .. cpp:member:: FillDirection direction
+
+      Default: ``{FillDirection::left_to_right}``.
 
 .. cpp:namespace:: gui_drawing
 
@@ -823,6 +926,10 @@ Types
 
       Validates and appends an ellipse element.
 
+   .. cpp:function:: void add_rounded_rectangle(RectF rectangle, CornerRadii radii)
+
+      One closed figure: ``rectangle`` with each corner rounded by its own radius (held to half the shorter side), clockwise from the end of the top-left corner. Each rounded corner is a cubic Bezier quarter (the standard 0.5523 approximation, within 0.03 % of the radius of a circle); a corner of radius 0 is square. Joined segments round only a row's outer ends this way.
+
    .. cpp:function:: void add_arc(RectF bounds, double start_angle, double sweep_angle)
 
       Validates bounds/angles and appends an arc element.
@@ -956,6 +1063,34 @@ Types
 
       Owns ImageReference or Bitmap snapshot, validated source/destination geometry, and ImageAttributes snapshot.
 
+   .. cpp:function:: void draw_lines(const Pen& pen, std::span<const PointF> points)
+
+      An open polyline through 2 or more points, with the pen's joins, caps and dashes.
+
+   .. cpp:function:: void fill_rectangles(const Brush& brush, std::span<const RectF> rects)
+
+      Each of 1 or more rectangles filled with the brush.
+
+   .. cpp:function:: void draw_line_segments(const Pen& pen, std::span<const PointF> points)
+
+      Independent segments, each a pair of points (an even count, 2 or more), with the pen's caps and dashes and no joins.
+
+   .. cpp:function:: void draw_markers(std::span<const PointF> centers, const MarkerStyle& style)
+
+      A marker centred on each of 1 or more points. The style's size is finite and positive, its edge width finite and non-negative.
+
+   .. cpp:function:: void fill_grid_pattern(RectF rect, const GridPatternStyle& style)
+
+      The grid lines that cross ``rect``, clipped to it (the blueprint background, piece C17). The spacing is at least 2 units, majors fall every 1 or more lines, the width is finite and positive, and neither axis may cross more than 65536 lines.
+
+   .. cpp:function:: void fill_proportion(const Brush& brush, RectF track, CornerRadii radii, double proportion, FillDirection direction)
+
+      Piece C3: the part of ``track`` a fill of ``proportion`` (clamped to [0, 1]) covers from ``direction``'s edge, filled with the brush and clipped to the track's rounded shape (``radii``, finite and non-negative).
+
+   .. cpp:function:: void draw_string_over_fill(std::string_view utf8, const Font& font, const SolidBrush& brush, const SolidBrush& on_fill_brush, PointF origin, const StringFormat& format, RectF fill)
+
+      Piece C4: the string drawn twice under complementary clips, with ``on_fill_brush`` where it lies over ``fill`` and ``brush`` elsewhere. It records up to five draw_string commands, each with its own clip within the current one: the fill's part, and the bands above, below, left and right of it, which share its edges exactly. The transform must be a scale and translation (the clips are rectangles).
+
    .. cpp:function:: void close()
 
       Requires balanced saved state and enters terminal closed state.
@@ -992,6 +1127,10 @@ Types
    .. cpp:member:: constexpr std::size_t maximum_text_bytes
 
       Default: ``1U << 20U``.
+
+   .. cpp:member:: constexpr std::size_t maximum_batch_elements
+
+      Batched commands (the GUI.Forms Painter's batch calls; one command per call, the span copied once). Every point and rectangle must be finite, and each span holds at most maximum_batch_elements. Default: ``1'000'000``.
 
 .. cpp:namespace:: gui_drawing
 
@@ -1034,6 +1173,32 @@ Types
    GraphicsStateToken is the nonzero exact LIFO identity of one saved recorder state.
 
    .. cpp:member:: std::uint64_t value
+
+.. cpp:namespace:: gui_drawing
+
+.. cpp:struct:: GridPatternStyle final
+
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+
+   A world-aligned grid for GraphicsRecorder::fill_grid_pattern: lines ``spacing`` apart through ``origin`` (the recorder's coordinates), every ``major_every``-th line from the origin in ``major``, the rest in ``minor``, each ``line_width`` wide.
+
+   .. cpp:member:: PointF origin
+
+   .. cpp:member:: double spacing
+
+      Default: ``{16.0}``.
+
+   .. cpp:member:: std::uint32_t major_every
+
+      Default: ``{4U}``.
+
+   .. cpp:member:: Color minor
+
+   .. cpp:member:: Color major
+
+   .. cpp:member:: double line_width
+
+      Default: ``{1.0}``.
 
 .. cpp:namespace:: gui_drawing
 
@@ -1317,6 +1482,10 @@ Types
 
       The producer promises every pixel has alpha 255; the presenter may copy instead of blend, and need not paint what lies under it.
 
+   .. cpp:member:: LiveSurfaceOrigin origin
+
+      Default: ``{LiveSurfaceOrigin::producer}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: LiveSurfaceFrame final
@@ -1537,6 +1706,30 @@ Types
    .. cpp:function:: void abandon() noexcept
 
       Clears the writing slot only when this lease still owns the current epoch and releases candidate state without changing publication identity.
+
+.. cpp:namespace:: gui_drawing
+
+.. cpp:struct:: MarkerStyle final
+
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+
+   A marker centred on each point: ``size`` its full width, ``fill`` its inside, ``edge`` its outline (or lines) ``edge_width`` wide. An empty or transparent colour, or a zero edge width, draws nothing of that part.
+
+   .. cpp:member:: MarkerShape shape
+
+      Default: ``{MarkerShape::circle}``.
+
+   .. cpp:member:: double size
+
+      Default: ``{6.0}``.
+
+   .. cpp:member:: Color fill
+
+   .. cpp:member:: Color edge
+
+   .. cpp:member:: double edge_width
+
+      Default: ``{1.0}``.
 
 .. cpp:namespace:: gui_drawing
 
@@ -1806,6 +1999,12 @@ Types
 
       Validates a bounded even/positive custom sequence and selects custom dash mode.
 
+   .. cpp:function:: void set_line_join(LineJoin join, double miter_limit)
+
+      How segments meet; ``miter_limit`` (finite, at least 1) bounds a miter's length as a multiple of the pen width before it is bevelled. The default, a miter limited to 4, is the stroker's own, so pens recorded before joins were settable draw as they did.
+
+   .. cpp:function:: void set_line_cap(LineCap cap)
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:struct:: PenSnapshot final
@@ -1825,6 +2024,18 @@ Types
       Default: ``{DashStyle::solid}``.
 
    .. cpp:member:: std::vector<double> dash_pattern
+
+   .. cpp:member:: LineJoin join
+
+      Default: ``{LineJoin::miter}``.
+
+   .. cpp:member:: double miter_limit
+
+      Default: ``{4.0}``.
+
+   .. cpp:member:: LineCap cap
+
+      Default: ``{LineCap::flat}``.
 
 .. cpp:namespace:: gui_drawing
 
@@ -2363,6 +2574,10 @@ Enumerations
 
    .. cpp:enumerator:: texture
 
+   .. cpp:enumerator:: conic_gradient
+
+   .. cpp:enumerator:: checker
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:enum-class:: CommandKind
@@ -2404,6 +2619,18 @@ Enumerations
    .. cpp:enumerator:: fill_path
 
    .. cpp:enumerator:: draw_image
+
+   .. cpp:enumerator:: draw_lines
+
+   .. cpp:enumerator:: fill_rectangles
+
+   .. cpp:enumerator:: draw_line_segments
+
+   .. cpp:enumerator:: draw_markers
+
+   .. cpp:enumerator:: fill_grid_pattern
+
+   .. cpp:enumerator:: fill_proportion
 
 .. cpp:namespace:: gui_drawing
 
@@ -2448,6 +2675,20 @@ Enumerations
    .. cpp:enumerator:: dash_dot_dot
 
    .. cpp:enumerator:: custom
+
+.. cpp:namespace:: gui_drawing
+
+.. cpp:enum-class:: FillDirection
+
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+
+   .. cpp:enumerator:: left_to_right
+
+   .. cpp:enumerator:: right_to_left
+
+   .. cpp:enumerator:: bottom_to_top
+
+   .. cpp:enumerator:: top_to_bottom
 
 .. cpp:namespace:: gui_drawing
 
@@ -2595,6 +2836,30 @@ Enumerations
 
    .. cpp:enumerator:: high_quality_bicubic
 
+.. cpp:namespace:: gui_drawing
+
+.. cpp:enum-class:: LineCap
+
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+
+   .. cpp:enumerator:: flat
+
+   .. cpp:enumerator:: square
+
+   .. cpp:enumerator:: round
+
+.. cpp:namespace:: gui_drawing
+
+.. cpp:enum-class:: LineJoin
+
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+
+   .. cpp:enumerator:: miter
+
+   .. cpp:enumerator:: bevel
+
+   .. cpp:enumerator:: round
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: LivePacingOutcome
@@ -2608,6 +2873,16 @@ Enumerations
    .. cpp:enumerator:: pending
 
    .. cpp:enumerator:: stopped
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: LiveSurfaceOrigin
+
+   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>``
+
+   .. cpp:enumerator:: producer
+
+   .. cpp:enumerator:: compatibility_paint
 
 .. cpp:namespace:: gui_forms
 
@@ -2630,6 +2905,32 @@ Enumerations
    .. cpp:enumerator:: phased_timer
 
    .. cpp:enumerator:: fallback
+
+.. cpp:namespace:: gui_drawing
+
+.. cpp:enum-class:: MarkerShape
+
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+
+   .. cpp:enumerator:: circle
+
+   .. cpp:enumerator:: square
+
+   .. cpp:enumerator:: diamond
+
+   .. cpp:enumerator:: triangle_up
+
+   .. cpp:enumerator:: triangle_down
+
+   .. cpp:enumerator:: triangle_left
+
+   .. cpp:enumerator:: triangle_right
+
+   .. cpp:enumerator:: cross
+
+   .. cpp:enumerator:: plus
+
+   .. cpp:enumerator:: asterisk
 
 .. cpp:namespace:: gui_drawing
 
@@ -2759,6 +3060,14 @@ Functions, constants and aliases
 ``#include <gui_forms/drawing/color/color.hpp>``
 
 .. cpp:function:: LinearSrgb srgb_to_linear(Color color)
+
+.. cpp:function:: double contrast_ratio(Color first, Color second)
+
+   The WCAG 2 contrast ratio of two colours' sRGB channels, from 1 (equal) to 21 (black and white). Alpha is ignored; an empty colour counts as black.
+
+.. cpp:function:: Color contrasting_text_color(Color background, Color light, Color dark)
+
+   The contrast rule for text over a fill: of ``light`` and ``dark``, the one with the greater contrast ratio against ``background`` (dark on a tie).
 
 .. cpp:function:: SrgbConversion linear_to_srgb(LinearSrgb color)
 

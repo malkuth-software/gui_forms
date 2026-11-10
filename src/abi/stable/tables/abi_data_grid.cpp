@@ -2,6 +2,7 @@
 // cell, selection and edit, over the C++ DataGridView. See gf_abi.h.
 
 #include "abi_control_entry.hpp"
+#include "abi_records.hpp"
 #include "abi_tables.hpp"
 
 #include "../values/abi_values.hpp"
@@ -75,53 +76,7 @@ using GridPtr = std::shared_ptr<DataGridView>;
 
 // -- caller arrays -------------------------------------------------------------
 
-// Element index of a caller's array whose stride is its first element's
-// struct_size. The stride and index are bounded by the callers (a u32 times
-// at most GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL or a column count), so the
-// offset cannot overflow.
-template <typename Record>
-const Record& element_at(const Record* first, std::uint32_t stride, std::uint64_t index) noexcept {
-    const unsigned char* base = reinterpret_cast<const unsigned char*>(first);
-    const std::uint64_t offset = static_cast<std::uint64_t>(stride) * index;
-    const Record* element = reinterpret_cast<const Record*>(base + offset);
-    return *element;
-}
-
-template <typename Record>
-Record& mutable_element_at(Record* first, std::uint32_t stride, std::uint64_t index) noexcept {
-    unsigned char* base = reinterpret_cast<unsigned char*>(first);
-    const std::uint64_t offset = static_cast<std::uint64_t>(stride) * index;
-    Record* element = reinterpret_cast<Record*>(base + offset);
-    return *element;
-}
-
-// Checks a caller's array of count records, validated whole before any is
-// read: first may be null only for none, and every element repeats the
-// first one's struct_size, at least minimum and a multiple of 8. stride
-// receives it.
-template <typename Record>
-gf_status check_array(const Record* first, std::uint64_t count, std::uint32_t minimum, SlotIdentity slot,
-                      std::uint32_t& stride) {
-    if (count == 0U) {
-        stride = minimum;
-        return GF_STATUS_OK;
-    }
-    if (first == nullptr) {
-        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "an array with elements needs its first element");
-    }
-    const std::uint32_t declared = (*first).struct_size;
-    if (declared < minimum || declared % 8U != 0U) {
-        return fail(GF_STATUS_INVALID_ARGUMENT, slot,
-                    "an array's stride is its first element's struct_size, at least the record's size");
-    }
-    for (std::uint64_t index = 1U; index < count; ++index) {
-        if (element_at(first, declared, index).struct_size != declared) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "every element of an array repeats its struct_size");
-        }
-    }
-    stride = declared;
-    return GF_STATUS_OK;
-}
+// element_at, mutable_element_at and check_array: abi_records.hpp.
 
 // -- records ---------------------------------------------------------------------
 

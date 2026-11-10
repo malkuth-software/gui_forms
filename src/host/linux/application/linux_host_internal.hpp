@@ -1,11 +1,14 @@
 #pragma once
 #include "../accessibility/linux_accessibility.hpp"
 #include "../../../render/skia/raster/skia_raster.hpp"
+#include "../../../render/skia/raster/skia_splash_bake.hpp"
 #include "../services/x11_tray_icons.hpp"
 #include "../compositor/x11_compositor.hpp"
 #include "../settings/xsettings_watch.hpp"
+#include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 #include "gui_forms/platform/linux_host.hpp"
 #include <X11/Xlib.h>
+#include <signal.h>
 #include <array>
 #include <atomic>
 #include <deque>
@@ -292,11 +295,28 @@ public:
   std::unique_ptr<HostSession> session;
   render::SkiaRaster raster;
   DamageRegion damage;
+  // Scroll copies taken from the model and not yet applied to the raster, in
+  // order (SurfaceRoot::take_scroll_copies); scratch for the take; the clips
+  // the current tick applied, damaged again if it presents nothing; and the
+  // count applied.
+  std::vector<ScrollCopy> pending_copies;
+  std::vector<ScrollCopy> taken_copies;
+  std::vector<Rect> applied_copy_clips;
+  std::uint64_t scroll_copies_applied{};
   SubscriptionToken closing_token;
   std::uint64_t sequence{};
   // The last press, for the computed click count (linux_input_rules.hpp).
   LinuxClickHistory click_history{};
   std::vector<char> presentation;
+  // The invalidation overlay's present-time storage (gui_forms/diagnostics/
+  // invalidation_overlay), reused: the scratch frame the outlines are
+  // composited in (sized on first use), the device areas they cover now and
+  // those they covered at the last present, and the rectangles a present
+  // copies with them. Window pixels are device pixels here (scale 1).
+  std::vector<std::byte> overlay_scratch;
+  std::vector<DevicePixelRect> overlay_regions;
+  std::vector<DevicePixelRect> overlay_drawn;
+  std::vector<Rect> overlay_present;
   // Per tick, reused across ticks. Each surface's frame is taken once
   // (`live_frames`, holding its read lease until the tick is composed), with
   // the device pixels and rectangles presented for it. Each fragment of a
@@ -359,6 +379,19 @@ public:
   std::array<std::uint32_t, 256> physical_keys{};
   XIM input_method{};
   int wake_pipe[2]{-1, -1};
+  // SIGTERM and SIGHUP end the session (a log-out or shut-down sends them;
+  // HostCloseReason::session_end). Runtime() installs a handler for each
+  // only where the disposition is still the default, so an application's
+  // own handler stays in force, and ~Runtime restores the previous action.
+  // The handler sets a flag and writes to wake_pipe; step() then closes
+  // every window. With two runtimes at once only the first installs.
+  struct sigaction previous_terminate{};
+  struct sigaction previous_hangup{};
+  bool terminate_installed{};
+  bool hangup_installed{};
+  // Closes every window, newest first, with HostCloseReason::session_end
+  // (step(), after a session-ending signal).
+  void end_session();
   std::shared_ptr<ActionQueue> actions;
   std::vector<std::shared_ptr<NativeWindow>> windows;
   // Created by run_linux_application right after the runtime; destroyed

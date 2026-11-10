@@ -1,9 +1,57 @@
 #include "replay_display_chunk.hpp"
 #include "../../text/prepared/prepared_storage.hpp"
 
+#include <array>
+#include <cstddef>
+#include <optional>
+#include <vector>
+
 namespace gui_forms::detail {
 
 namespace {
+
+// The per-corner radii a command keeps in `first` and `second`.
+PaintCornerRadii recorded_radii(const DisplayCommand& command) noexcept {
+    PaintCornerRadii radii{};
+    radii.top_left = command.first.x;
+    radii.top_right = command.first.y;
+    radii.bottom_right = command.second.x;
+    radii.bottom_left = command.second.y;
+    return radii;
+}
+
+// Replays one batched mark or pattern; one without its payload draws
+// nothing.
+void replay_marks(const DisplayCommand& command, Painter& painter) {
+    if (command.operation == DisplayOperation::fill_conic_gradient) {
+        painter.fill_conic_gradient(command.rect, command.first, command.scalar, command.gradient_stops);
+        return;
+    }
+    if (command.operation == DisplayOperation::fill_rounded_rect_corners) {
+        painter.fill_rounded_rect_corners(command.rect, recorded_radii(command), command.color);
+        return;
+    }
+    if (command.operation == DisplayOperation::stroke_rounded_rect_corners) {
+        painter.stroke_rounded_rect_corners(command.rect, recorded_radii(command), command.color, command.scalar);
+        return;
+    }
+    if (!command.marks) return;
+    const DisplayMarks& marks = *command.marks;
+    switch (command.operation) {
+    case DisplayOperation::stroke_polyline: painter.stroke_polyline(marks.points, marks.stroke); return;
+    case DisplayOperation::fill_polygon: painter.fill_polygon(marks.points, command.color, marks.fill_rule); return;
+    case DisplayOperation::fill_band: painter.fill_band(marks.points, marks.lower_points, command.color); return;
+    case DisplayOperation::fill_rects: painter.fill_rects(marks.rects, command.color); return;
+    case DisplayOperation::fill_rects_each: painter.fill_rects_each(marks.rects, marks.colors); return;
+    case DisplayOperation::stroke_segments: painter.stroke_segments(marks.segments, marks.stroke); return;
+    case DisplayOperation::draw_markers: painter.draw_markers(marks.points, marks.marker); return;
+    case DisplayOperation::fill_checker: painter.fill_checker(command.rect, marks.checker); return;
+    case DisplayOperation::fill_grid_pattern: painter.fill_grid_pattern(command.rect, marks.grid); return;
+    default:
+        // Not a batched operation: replay_command handles it.
+        return;
+    }
+}
 
 // Replays one recorded command onto `painter`.
 void replay_command(const DisplayCommand& command, Painter& painter) {
@@ -27,15 +75,23 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
     case DisplayOperation::clip_rounded_rect:
         painter.clip_rounded_rect(command.rect, command.scalar);
         return;
-    case DisplayOperation::clip_rounded_rect_corners: {
-        PaintCornerRadii radii{};
-        radii.top_left = command.first.x;
-        radii.top_right = command.first.y;
-        radii.bottom_right = command.second.x;
-        radii.bottom_left = command.second.y;
-        painter.clip_rounded_rect_corners(command.rect, radii);
+    case DisplayOperation::clip_rounded_rect_corners:
+        painter.clip_rounded_rect_corners(command.rect, recorded_radii(command));
         return;
-    }
+    case DisplayOperation::stroke_polyline:
+    case DisplayOperation::fill_polygon:
+    case DisplayOperation::fill_band:
+    case DisplayOperation::fill_rects:
+    case DisplayOperation::fill_rects_each:
+    case DisplayOperation::stroke_segments:
+    case DisplayOperation::draw_markers:
+    case DisplayOperation::fill_conic_gradient:
+    case DisplayOperation::fill_checker:
+    case DisplayOperation::fill_grid_pattern:
+    case DisplayOperation::fill_rounded_rect_corners:
+    case DisplayOperation::stroke_rounded_rect_corners:
+        replay_marks(command, painter);
+        return;
     case DisplayOperation::fill_rect:
         painter.fill_rect(command.rect, command.color);
         return;
@@ -170,6 +226,70 @@ std::uint64_t replay_display_chunk(const DisplayChunk& chunk, Painter& painter) 
         replay_command(command, painter);
     }
     return chunk.commands().size();
+}
+
+namespace {
+
+// Whether a command changes only the painter's state (what a replay of the
+// saves open at an occluder must reproduce without drawing). Paint groups
+// are excluded: none is open at an occluder, and a closed one leaves no
+// state behind.
+bool state_only(const DisplayOperation operation) noexcept {
+    const bool state = operation == DisplayOperation::save || operation == DisplayOperation::restore ||
+                       operation == DisplayOperation::translate || operation == DisplayOperation::clip_rect ||
+                       operation == DisplayOperation::clip_rounded_rect ||
+                       operation == DisplayOperation::clip_rounded_rect_corners;
+    return state;
+}
+
+} // namespace
+
+std::uint64_t replay_display_chunk_occluded(const DisplayChunk& chunk, Painter& painter, const Rect clip) {
+    const std::optional<DisplayOccluder>& occluder = chunk.occluder();
+    const std::vector<DisplayCommand>& commands = chunk.commands();
+    if (!occluder || (*occluder).command == 0U || clip.empty()) {
+        return replay_display_chunk(chunk, painter);
+    }
+    const DisplayOccluder& found = *occluder;
+    const DisplayCommand& surface = commands[found.command];
+    // Asked in the chunk's coordinates: the translations between differ
+    // from them only by `offset`.
+    const Rect destination{surface.rect.x + found.offset.x, surface.rect.y + found.offset.y, surface.rect.width,
+                           surface.rect.height};
+    Rect cover = painter.opaque_live_surface_cover(surface.live_surface, destination, surface.scalar);
+    if (found.clipped) cover = Rect::intersection(cover, found.clip);
+    const Rect hidden = Rect::intersection(cover, clip);
+    if (hidden.empty()) return replay_display_chunk(chunk, painter);
+    // The clip less the hidden rectangle: full-width bands above and below
+    // it, and the parts beside it between them. In each, everything before
+    // the surface is replayed, and the saves still open there are closed.
+    const std::array<Rect, 4> bands{{
+        {clip.x, clip.y, clip.width, hidden.y - clip.y},
+        {clip.x, hidden.bottom(), clip.width, clip.bottom() - hidden.bottom()},
+        {clip.x, hidden.y, hidden.x - clip.x, hidden.height},
+        {hidden.right(), hidden.y, clip.right() - hidden.right(), hidden.height},
+    }};
+    std::uint64_t replayed = 0U;
+    std::size_t index = 0U;
+    for (const Rect band : bands) {
+        if (band.empty()) continue;
+        painter.save();
+        painter.clip_rect(band);
+        for (index = 0U; index < found.command; ++index) replay_command(commands[index], painter);
+        for (index = 0U; index < found.open_saves; ++index) painter.restore();
+        painter.restore();
+        replayed += found.command;
+    }
+    // The state the surface is drawn in, without drawing what it hides;
+    // then the surface and everything after it.
+    for (index = found.group_start; index < found.command; ++index) {
+        if (!state_only(commands[index].operation)) continue;
+        replay_command(commands[index], painter);
+        ++replayed;
+    }
+    for (index = found.command; index < commands.size(); ++index) replay_command(commands[index], painter);
+    replayed += commands.size() - found.command;
+    return replayed;
 }
 
 } // namespace gui_forms::detail

@@ -1,6 +1,8 @@
 #include "../src/host/linux/application/linux_host_internal.hpp"
 #include "../src/core/host/image/host_image_pixels.hpp"
 #include "gui_forms/live_surface.hpp"
+#include "gui_forms/basic_controls.hpp"
+#include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
@@ -614,6 +616,120 @@ void damage_rectangles_gate(Runtime &runtime) {
   (*window).close(HostCloseReason::application, true);
   runtime.step(0);
 }
+// A window of 200 x 120 with a 100 x 80 viewport over a column of twenty
+// distinctly coloured stripes (400 tall): the scroll copy gate's scene.
+struct ScrollCopyScene final {
+  std::shared_ptr<Panel> root;
+  std::shared_ptr<ScrollableControl> viewport;
+};
+ScrollCopyScene scroll_copy_scene() {
+  ScrollCopyScene scene{};
+  scene.root = make_control<Panel>(StableId("copy.root"));
+  // An opaque solid ground whose paint does not depend on its size: the
+  // copy's precondition beneath the viewport.
+  (*scene.root).set_background(Color::rgba(240, 240, 240));
+  scene.viewport = make_control<ScrollableControl>(StableId("copy.viewport"));
+  (*scene.viewport).auto_scroll = true;
+  (*scene.viewport).set_requested_bounds({10.0, 10.0, 100.0, 80.0});
+  const std::shared_ptr<Panel> column = make_control<Panel>(StableId("copy.column"));
+  (*column).set_requested_bounds({0.0, 0.0, 80.0, 400.0});
+  (*column).set_background(Color::rgba(250, 250, 250));
+  for (std::size_t index = 0U; index < 20U; ++index) {
+    const std::shared_ptr<Panel> stripe = make_control<Panel>(StableId("copy.stripe." + std::to_string(index)));
+    (*stripe).set_requested_bounds({4.0, static_cast<double>(index) * 20.0 + 2.0, 72.0, 16.0});
+    (*stripe).set_background(Color::rgba(static_cast<std::uint8_t>(40U + index * 10U),
+                                         static_cast<std::uint8_t>(200U - index * 8U),
+                                         static_cast<std::uint8_t>((index * 37U) % 256U)));
+    (*column).add_child(stripe);
+  }
+  (*scene.viewport).add_child(column);
+  (*scene.root).add_child(scene.viewport);
+  return scene;
+}
+// A fresh whole-window paint of the scene scrolled to `position`.
+std::vector<std::uint32_t> scroll_copy_reference(const Point position, const std::size_t width,
+                                                 const std::size_t height) {
+  const ScrollCopyScene scene = scroll_copy_scene();
+  gui_forms::Window window(scene.root, {static_cast<double>(width), static_cast<double>(height)});
+  window.perform_layout();
+  static_cast<void>((*scene.viewport).scroll_to(position));
+  window.perform_layout();
+  render::SkiaRaster raster;
+  require(raster.resize({static_cast<double>(width), static_cast<double>(height)}, 1.0),
+          "Reference raster not allocated");
+  require(raster.synchronize_images(window.image_resources()), "Reference images not synchronized");
+  raster.begin_frame(DamageRegion{});
+  require(window.paint(raster).has_value(), "Reference did not paint");
+  raster.end_frame();
+  std::vector<std::uint32_t> pixels(width * height);
+  const unsigned char *const base = static_cast<const unsigned char *>(raster.pixels());
+  for (std::size_t y = 0; y < height; ++y) {
+    std::memcpy(pixels.data() + y * width, base + y * raster.row_bytes(), width * 4U);
+  }
+  return pixels;
+}
+// Scroll copies: a scroll that only moves the viewport's children by whole
+// pixels moves the raster's pixels and paints only the band it exposed; the
+// raster then equals a fresh whole-window paint, and the screen the raster,
+// for one scroll per tick and for two scrolls taken in one tick.
+void scroll_copy_gate(Runtime &runtime) {
+  const ScrollCopyScene scene = scroll_copy_scene();
+  host::LinuxApplicationWindow entry;
+  entry.stable_id = "copy";
+  entry.options.title = "GUI.Forms X11 scroll copy check";
+  entry.options.initial_size = {200, 120};
+  entry.model = std::make_unique<gui_forms::Window>(scene.root, entry.options.initial_size);
+  const std::shared_ptr<NativeWindow> window = runtime.add(std::move(entry));
+  (*window).ready();
+  gui_forms::Window &model = *(*window).entry.model;
+  for (int tick = 0; tick < 8; ++tick) runtime.step(10);
+  require((*window).visible, "Scroll copy window is not shown");
+#if defined(GUI_FORMS_PREPARED_TEXT)
+  require(!model.scroll_copies_supported(), "The prepared raster turned scroll copies on");
+#else
+  require(model.scroll_copies_supported(), "The Linux raster did not turn scroll copies on");
+  const std::size_t width = 200U;
+  const std::size_t height = 120U;
+  require((*scene.viewport).scroll_by({0.0, 10.0}), "The viewport did not scroll");
+  (*window).update();
+  require((*window).scroll_copies_applied == 1U, "One scroll did not apply one copy");
+  require((*window).damage.empty(), "The copied frame was not presented");
+  const std::vector<std::uint32_t> raster_once = raster_copy(*window, width, height);
+  require(raster_once == scroll_copy_reference({0.0, 10.0}, width, height),
+          "After one scroll the raster differs from a whole-window paint");
+  const std::vector<unsigned long> screen_once = screen_copy(*window, width, height);
+  for (std::size_t index = 0; index < raster_once.size(); ++index) {
+    require((screen_once[index] & 0x00ffffffUL) == (raster_once[index] & 0x00ffffffU),
+            "After one scroll the screen differs from the raster");
+  }
+
+  // Two scrolls taken before one tick draws: the band the first exposed
+  // moves with the second copy.
+  require((*scene.viewport).scroll_by({0.0, 14.0}), "The viewport did not scroll again");
+  // Taken as the window's own update would, without drawing: the damage
+  // joins what the window holds (nothing, after a presented tick) and the
+  // copy waits for the next tick.
+  const DamageRegion first_damage = model.take_damage();
+  std::vector<ScrollCopy> first;
+  model.take_scroll_copies(first);
+  require(first.size() == 1U, "The second scroll did not record a copy");
+  for (const Rect rectangle : first_damage.rectangles()) (*window).damage.add(rectangle);
+  (*window).pending_copies.push_back(first[0]);
+  require((*scene.viewport).scroll_by({0.0, -6.0}), "The viewport did not scroll back");
+  (*window).update();
+  require((*window).scroll_copies_applied == 3U, "Two scrolls did not apply two copies");
+  const std::vector<std::uint32_t> raster_twice = raster_copy(*window, width, height);
+  require(raster_twice == scroll_copy_reference({0.0, 18.0}, width, height),
+          "After two scrolls the raster differs from a whole-window paint");
+  const std::vector<unsigned long> screen_twice = screen_copy(*window, width, height);
+  for (std::size_t index = 0; index < raster_twice.size(); ++index) {
+    require((screen_twice[index] & 0x00ffffffUL) == (raster_twice[index] & 0x00ffffffU),
+            "After two scrolls the screen differs from the raster");
+  }
+#endif
+  (*window).close(HostCloseReason::application, true);
+  runtime.step(0);
+}
 struct KeepClientSize final {
   std::function<HostServiceStatus(Size)> *retained{};
   void operator()(std::function<HostServiceStatus(Size)> request) const { *retained = std::move(request); }
@@ -902,6 +1018,7 @@ int main() {
     std::filesystem::remove_all(directory);
     live_frame_sequence(runtime);
     damage_rectangles_gate(runtime);
+    scroll_copy_gate(runtime);
     client_size_request(runtime);
     (*window).close(HostCloseReason::application, true);
     std::cout << "X11 services: cross-process text and PNG INCR, preserved "

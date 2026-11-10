@@ -1,0 +1,9 @@
+:root {
+    color-scheme: light dark;
+    color-roles: syntax-keyword from ink-on-paper;
+    syntax-keyword: #0000c0 on #fffff0;
+}
+@media (prefers-color-scheme: dark) {
+    :root { syntax-keyword: #80a0ff on #101010; }
+}
+label { color: role(syntax-keyword); }

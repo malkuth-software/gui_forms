@@ -54,6 +54,13 @@ enum class CommandKind : std::uint8_t {
     draw_path,
     fill_path,
     draw_image,
+    // The batched commands (appended; their fields are in DrawingCommand).
+    draw_lines,
+    fill_rectangles,
+    draw_line_segments,
+    draw_markers,
+    fill_grid_pattern,
+    fill_proportion,
 };
 
 struct DrawingCommand final {
@@ -73,6 +80,17 @@ struct DrawingCommand final {
     BrushSnapshot brush;
     std::vector<PointF> points;
     std::string text;
+    // fill_rectangles: the rectangles.
+    std::vector<RectF> rects;
+    // draw_markers: the style (the centres are in `points`).
+    MarkerStyle marker;
+    // fill_grid_pattern: the grid (the area is `rect`).
+    GridPatternStyle grid;
+    // fill_proportion: the track's corner radii, the proportion in
+    // `scalar` and the edge it grows from (the track is `rect`).
+    CornerRadii radii;
+    double scalar{};
+    FillDirection direction{FillDirection::left_to_right};
 };
 
 class TextMetricsProvider {
@@ -126,6 +144,42 @@ public:
                     RectF source, const ImageAttributes& attributes);
     void draw_image(const Bitmap& image, RectF destination,
                     RectF source, const ImageAttributes& attributes);
+
+    // Batched commands (the GUI.Forms Painter's batch calls; one command
+    // per call, the span copied once). Every point and rectangle must be
+    // finite, and each span holds at most maximum_batch_elements.
+    static constexpr std::size_t maximum_batch_elements = 1'000'000;
+    // An open polyline through 2 or more points, with the pen's joins, caps
+    // and dashes.
+    void draw_lines(const Pen& pen, std::span<const PointF> points);
+    // Each of 1 or more rectangles filled with the brush.
+    void fill_rectangles(const Brush& brush, std::span<const RectF> rects);
+    // Independent segments, each a pair of points (an even count, 2 or
+    // more), with the pen's caps and dashes and no joins.
+    void draw_line_segments(const Pen& pen, std::span<const PointF> points);
+    // A marker centred on each of 1 or more points. The style's size is
+    // finite and positive, its edge width finite and non-negative.
+    void draw_markers(std::span<const PointF> centers, const MarkerStyle& style);
+    // The grid lines that cross `rect`, clipped to it (the blueprint
+    // background, piece C17). The spacing is at least 2 units, majors fall
+    // every 1 or more lines, the width is finite and positive, and neither
+    // axis may cross more than 65536 lines.
+    void fill_grid_pattern(RectF rect, const GridPatternStyle& style);
+    // Piece C3: the part of `track` a fill of `proportion` (clamped to
+    // [0, 1]) covers from `direction`'s edge, filled with the brush and
+    // clipped to the track's rounded shape (`radii`, finite and
+    // non-negative).
+    void fill_proportion(const Brush& brush, RectF track, CornerRadii radii, double proportion,
+                         FillDirection direction);
+    // Piece C4: the string drawn twice under complementary clips, with
+    // `on_fill_brush` where it lies over `fill` and `brush` elsewhere. It
+    // records up to five draw_string commands, each with its own clip
+    // within the current one: the fill's part, and the bands above, below,
+    // left and right of it, which share its edges exactly. The transform
+    // must be a scale and translation (the clips are rectangles).
+    void draw_string_over_fill(std::string_view utf8, const Font& font, const SolidBrush& brush,
+                               const SolidBrush& on_fill_brush, PointF origin, const StringFormat& format,
+                               RectF fill);
 
     void close();
     [[nodiscard]] bool closed() const;

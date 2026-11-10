@@ -4,6 +4,7 @@
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "../../../core/drag_engine/scrub_gesture.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
@@ -16,15 +17,123 @@
 #include <utility>
 
 namespace gui_forms {
+namespace {
+
+// text_alignment's schema: HorizontalAlignment's values (Label's names).
+std::shared_ptr<const PropertyEnumDescriptor> numeric_text_alignment_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "horizontal_alignment", {{"near", 0}, {"center", 1}, {"far", 2}}, false});
+    return value;
+}
+
+// Groups the integer digits of a fixed-point decimal in threes with commas:
+// "-1234567.50" becomes "-1,234,567.50". digits is the formatted number.
+std::string group_thousands(const std::string& digits) {
+    const std::size_t sign = !digits.empty() && digits.front() == '-' ? 1U : 0U;
+    const std::size_t point = digits.find('.');
+    const std::size_t integer_end = point == std::string::npos ? digits.size() : point;
+    const std::size_t integer_length = integer_end - sign;
+    std::string grouped;
+    grouped.reserve(digits.size() + integer_length / 3U);
+    grouped.append(digits, 0U, sign);
+    for (std::size_t index = 0U; index < integer_length; ++index) {
+        if (index != 0U && (integer_length - index) % 3U == 0U) grouped.push_back(',');
+        grouped.push_back(digits[sign + index]);
+    }
+    grouped.append(digits, integer_end, std::string::npos);
+    return grouped;
+}
+
+// The typed text without group commas, for parsing a decimal.
+std::string without_commas(std::string_view text) {
+    std::string plain;
+    plain.reserve(text.size());
+    for (const char character : text) {
+        if (character != ',') plain.push_back(character);
+    }
+    return plain;
+}
+
+} // namespace
+
+// The scrub mode's drag client and target for one NumericUpDown, which
+// owns it (and so outlives the gesture inside it). Every call is on the
+// control's root's thread, from the engine's dispatch.
+class NumericUpDownScrub final : public ScrubTarget {
+public:
+    explicit NumericUpDownScrub(NumericUpDown& numeric) noexcept : numeric_(&numeric), gesture(numeric, *this) {}
+
+    [[nodiscard]] bool begin_scrub(ScrubRange& range) override;
+    void preview_scrub(double value) override;
+    void end_scrub(ScrubEnd end, double value) override;
+
+private:
+    // The value shown for `value`: rounded to the decimals shown (whole in
+    // hexadecimal) and held in the range.
+    [[nodiscard]] double shown(double value) const noexcept;
+
+    NumericUpDown* numeric_;
+
+public:
+    ScrubGesture gesture;
+};
+
+// The scrub runs over the whole range at the increment per unit of travel;
+// Ctrl snaps to the increment and the keyboard mode steps by it.
+bool NumericUpDownScrub::begin_scrub(ScrubRange& range) {
+    const NumericUpDown& numeric = *numeric_;
+    if (!numeric.scrub.read() || !numeric.enabled.read()) return false;
+    range.start = numeric.value.read();
+    range.minimum = numeric.minimum.read();
+    range.maximum = numeric.maximum.read();
+    range.rate = numeric.increment.read();
+    range.snap_step = numeric.increment.read();
+    range.keyboard_step = numeric.increment.read();
+    return true;
+}
+
+double NumericUpDownScrub::shown(double value) const noexcept {
+    const NumericUpDown& numeric = *numeric_;
+    const std::int32_t decimals =
+        numeric.hexadecimal.read() ? 0 : static_cast<std::int32_t>(numeric.decimal_places.read());
+    const double scale = std::pow(10.0, static_cast<double>(decimals));
+    const double rounded = std::round(value * scale) / scale;
+    const double held = std::clamp(rounded, numeric.minimum.read(), numeric.maximum.read());
+    return held;
+}
+
+void NumericUpDownScrub::preview_scrub(double value) {
+    NumericUpDown& numeric = *numeric_;
+    const double next = shown(value);
+    if (next != numeric.value.read()) numeric.value = next;
+}
+
+// A commit keeps the last value shown; a restore writes the start value
+// back (`value` is the start).
+void NumericUpDownScrub::end_scrub(ScrubEnd end, double value) {
+    NumericUpDown& numeric = *numeric_;
+    const double next = end == ScrubEnd::committed ? shown(value) : value;
+    if (next != numeric.value.read()) numeric.value = next;
+    numeric.invalidate(Dirty::paint);
+}
 
 NumericUpDown::NumericUpDown(StableId stable_id) : Panel(std::move(stable_id)) {
+    // A field paints with the controls, not on the window's backplane as a
+    // container panel does: a parent that paints its own face (a Ribbon
+    // hosting it) would otherwise cover its border and spin buttons, which
+    // still take the pointer.
+    set_paint_plane(PaintPlane::control);
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
     border_style = BorderStyle::line;
     // A field's ground: the theme's editor role, resolved per colour scheme
     // (no colour written here, which would fix the light paper in every
     // scheme).
     visual_role = ControlVisualRole::editor;
+    scrub_ = std::make_unique<NumericUpDownScrub>(*this);
 }
+
+NumericUpDown::~NumericUpDown() = default;
 
 void NumericUpDown::EditorChangeCallback::operator()(
     const std::string&) const {
@@ -44,6 +153,7 @@ void NumericUpDown::initialize_control_tree() {
     editor_ = make_control<TextBox>(StableId(prefix + ".editor"));
     (*editor_).border_style = BorderStyle::none;
     spinner_ = make_control<SpinButtons>(StableId(prefix + ".spinner"));
+    (*editor_).text_alignment = text_alignment.read();
     add_child(editor_);
     add_child(spinner_);
     const std::weak_ptr<NumericUpDown> weak =
@@ -141,6 +251,7 @@ std::string NumericUpDown::formatted_value() const {
         stream << std::uppercase << std::hex << static_cast<std::int64_t>(std::llround(value.read()));
     } else {
         stream << std::fixed << std::setprecision(decimal_places.read()) << value.read();
+        if (thousands_separator.read()) return group_thousands(stream.str());
     }
     return stream.str();
 }
@@ -155,15 +266,17 @@ void NumericUpDown::synchronize_editor() {
 void NumericUpDown::commit_editor_text() {
     if (!editor_ || (*editor_).text.read().empty()) return;
     try {
+        // Group commas are accepted whether or not the editor shows them.
+        const std::string typed = hexadecimal.read() ? std::string((*editor_).text.read())
+                                                     : without_commas((*editor_).text.read());
         std::size_t consumed{};
         double parsed{};
         if (hexadecimal.read()) {
-            parsed = static_cast<double>(std::stoll(std::string((*editor_).text.read()),
-                                                    &consumed, 16));
+            parsed = static_cast<double>(std::stoll(typed, &consumed, 16));
         } else {
-            parsed = std::stod(std::string((*editor_).text.read()), &consumed);
+            parsed = std::stod(typed, &consumed);
         }
-        if (consumed == (*editor_).text.read().size() && std::isfinite(parsed) &&
+        if (consumed == typed.size() && std::isfinite(parsed) &&
             parsed >= minimum.read() && parsed <= maximum.read() && parsed != value.read()) {
             // The user's text stays as typed: the write does not reformat it.
             committing_ = true;
@@ -222,10 +335,46 @@ void NumericUpDown::on_key_preview(KeyEvent& event) {
     }
 }
 
+// The wheel steps. In scrub mode a primary press on the unfocused field
+// arms the scrub before the editor sees it, and the rest of the session's
+// pointer stream goes to the gesture; its click focuses the field with the
+// text selected.
 void NumericUpDown::on_pointer_preview(PointerEvent& event) {
-    if (!enabled.read() || event.action != PointerAction::wheel || event.wheel_delta.y == 0.0) return;
-    step(event.wheel_delta.y > 0.0 ? 1 : -1);
-    event.handled = true;
+    if (!enabled.read()) return;
+    if (event.action == PointerAction::wheel) {
+        if (event.wheel_delta.y == 0.0) return;
+        step(event.wheel_delta.y > 0.0 ? 1 : -1);
+        event.handled = true;
+        return;
+    }
+    if (!scrub_) return;
+    ScrubGesture& gesture = (*scrub_).gesture;
+    if (gesture.running()) {
+        const ScrubPointerResult result = gesture.pointer(event);
+        if (result == ScrubPointerResult::ignored) return;
+        event.handled = true;
+        if (result == ScrubPointerResult::clicked && editor_ && window() != nullptr) {
+            static_cast<void>((*window()).request_focus(editor_));
+            (*editor_).select_all();
+        }
+        return;
+    }
+    if (!scrub.read() || event.action != PointerAction::down || event.button != PointerButton::primary) return;
+    if (!editor_ || window() == nullptr || (*window()).focused_control() == editor_) return;
+    const Rect field = (*editor_).absolute_bounds();
+    if (!field.contains(event.position)) return;
+    if (gesture.press(event, ScrubPointerLock::clamped)) event.handled = true;
+}
+
+bool NumericUpDown::begin_keyboard_drag() {
+    if (!scrub.read() || !enabled.read() || !scrub_) return false;
+    const bool started = (*scrub_).gesture.begin_keyboard();
+    return started;
+}
+
+bool NumericUpDown::scrubbing() const noexcept {
+    const bool running = scrub_ && (*scrub_).gesture.state().scrubbing;
+    return running;
 }
 
 SemanticDescriptor NumericUpDown::semantic_descriptor() const {
@@ -428,6 +577,19 @@ PropertyDescriptor numeric_up_down_minimum_descriptor() {
     return descriptor;
 }
 
+PropertyDescriptor numeric_up_down_scrub_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "scrub";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Drag sideways on the unfocused field to scrub the value.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
 const PropertyDescriptor& describe_numeric_up_down_minimum() {
     static const PropertyDescriptor descriptor = property_table_descriptor(
         numeric_up_down_minimum_descriptor(), PropertyOperations{true, true, false, false});
@@ -491,10 +653,54 @@ const PropertyDescriptor& describe_numeric_up_down_decimal_places() {
     return descriptor;
 }
 
+const PropertyDescriptor& describe_numeric_up_down_scrub() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        numeric_up_down_scrub_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor numeric_up_down_thousands_separator_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "thousands_separator";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Data";
+    descriptor.description = "Whether the editor groups digits in threes.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_numeric_up_down_thousands_separator() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        numeric_up_down_thousands_separator_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor numeric_up_down_text_alignment_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "text_alignment";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "Where the editor's text sits.";
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = numeric_text_alignment_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_numeric_up_down_text_alignment() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        numeric_up_down_text_alignment_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
 } // namespace
 
 const std::array<PropertyEntry, NumericUpDown::numeric_up_down_property_count>& NumericUpDown::numeric_up_down_property_entries() noexcept {
-    static constexpr std::array<PropertyEntry, 5U> own{{
+    static constexpr std::array<PropertyEntry, 8U> own{{
         {"value", &describe_numeric_up_down_value,
          &read_cell_entry<NumericUpDown, decltype(&NumericUpDown::value), &NumericUpDown::value>,
          &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::value), &NumericUpDown::value>,
@@ -520,6 +726,21 @@ const std::array<PropertyEntry, NumericUpDown::numeric_up_down_property_count>& 
          &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::decimal_places), &NumericUpDown::decimal_places>,
          nullptr, nullptr, nullptr,
          nullptr},
+        {"scrub", &describe_numeric_up_down_scrub,
+         &read_cell_entry<NumericUpDown, decltype(&NumericUpDown::scrub), &NumericUpDown::scrub>,
+         &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::scrub), &NumericUpDown::scrub>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"thousands_separator", &describe_numeric_up_down_thousands_separator,
+         &read_cell_entry<NumericUpDown, decltype(&NumericUpDown::thousands_separator), &NumericUpDown::thousands_separator>,
+         &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::thousands_separator), &NumericUpDown::thousands_separator>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"text_alignment", &describe_numeric_up_down_text_alignment,
+         &read_cell_entry<NumericUpDown, decltype(&NumericUpDown::text_alignment), &NumericUpDown::text_alignment>,
+         &write_cell_entry<NumericUpDown, decltype(&NumericUpDown::text_alignment), &NumericUpDown::text_alignment>,
+         nullptr, nullptr, nullptr,
+         nullptr},
     }};
     static_assert(property_names_distinct(own), "NumericUpDown's property table names a property twice");
     static const std::array<PropertyEntry, numeric_up_down_property_count> entries =
@@ -530,6 +751,27 @@ const std::array<PropertyEntry, NumericUpDown::numeric_up_down_property_count>& 
 std::span<const PropertyEntry> NumericUpDown::property_table() const noexcept {
     const std::array<PropertyEntry, numeric_up_down_property_count>& entries = numeric_up_down_property_entries();
     return std::span<const PropertyEntry>(entries);
+}
+
+void NumericUpDown::prepare_write(const decltype(thousands_separator)&, bool&) {
+    require_mutable();
+}
+
+void NumericUpDown::written(const decltype(thousands_separator)&) {
+    synchronize_editor();
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void NumericUpDown::prepare_write(const decltype(text_alignment)&, HorizontalAlignment& incoming) {
+    require_mutable();
+    if (incoming > HorizontalAlignment::far) {
+        throw std::invalid_argument("NumericUpDown text alignment is unknown");
+    }
+}
+
+void NumericUpDown::written(const decltype(text_alignment)&) {
+    if (editor_) (*editor_).text_alignment = text_alignment.read();
+    invalidate(Dirty::paint | Dirty::semantics);
 }
 
 void NumericUpDown::on_value_changed() {
@@ -556,6 +798,14 @@ void NumericUpDown::prepare_write(const decltype(button_width)&, double& incomin
 
 void NumericUpDown::written(const decltype(button_width)&) {
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void NumericUpDown::prepare_write(const decltype(scrub)&, bool&) {
+    require_mutable();
+}
+
+void NumericUpDown::written(const decltype(scrub)&) {
+    invalidate(Dirty::semantics);
 }
 
 // property_codemod end NumericUpDown

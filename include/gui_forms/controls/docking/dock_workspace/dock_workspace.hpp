@@ -185,6 +185,36 @@ public:
     // Retitles a registered panel's caption, tab and navigator row. False
     // for an unregistered panel.
     bool set_panel_title(const DockPanelId& panel, std::string title);
+    // Replaces a registered panel's descriptor (DockLayout::update_panel):
+    // its restrictions, defaults and close button. The sites show the new
+    // close button at once; where the panel stands is unchanged. False for
+    // an unregistered panel.
+    bool update_panel(const DockPanelDescriptor& descriptor);
+
+    // Options a program sets for the whole workspace (a DockPanel Suite
+    // DockPanel's). Each takes effect at once.
+    //
+    // Whether floating tool windows stay shown while the application is
+    // inactive, as owned forms do; off, the host's floating policy hides
+    // them (HostWindowing). A per-window override stands over it.
+    void set_floats_shown_while_inactive(bool shown);
+    [[nodiscard]] bool floats_shown_while_inactive() const noexcept { return floats_shown_while_inactive_; }
+    // One floating site's override of the option above (none: the
+    // workspace's). Kept for the site while it exists, through a window
+    // opened again for it.
+    void set_floating_window_shown_while_inactive(DockSiteId site, std::optional<bool> shown);
+    // Whether document stacks show their tab strip; off is a single
+    // document interface (DockPanel Suite's DocumentStyle.DockingSdi).
+    void set_document_tabs_shown(bool shown);
+    [[nodiscard]] bool document_tabs_shown() const noexcept { return document_tabs_shown_; }
+    // Whether resting the pointer on an auto-hidden panel's side tab opens
+    // its flyout; off, a press opens it.
+    void set_auto_hide_opens_on_hover(bool opens);
+    [[nodiscard]] bool auto_hide_opens_on_hover() const noexcept { return auto_hide_opens_on_hover_; }
+    // The colour the sites paint their document area with in place of the
+    // theme's well (DockPanel Suite's DockBackColor); none: the theme's.
+    void set_area_background(std::optional<Color> colour);
+    [[nodiscard]] std::optional<Color> area_background() const noexcept { return area_background_; }
     // The registered title, or the identity for a panel without one.
     [[nodiscard]] std::string panel_title(const DockPanelId& panel) const;
 
@@ -342,6 +372,11 @@ public:
     // Raised after a track changed: the panel track first, then the document
     // track when both change. Handlers may activate other panels.
     [[nodiscard]] Event<const DockActivationChange&>& activation_changed() noexcept { return activation_changed_; }
+    // The layout's change, once per applied transaction or restore, after
+    // the model is committed (DockLayout::changed, offered as the
+    // workspace's layout_changed interaction for C ABI programs, which
+    // reach the workspace but not its layout).
+    [[nodiscard]] Event<const DockLayoutChange&>& layout_changed() noexcept { return layout_.changed(); }
 
     // The bound main site, or null.
     [[nodiscard]] DockSite* site() const noexcept { return site_; }
@@ -370,6 +405,17 @@ private:
         std::string title{};
         bool destroying{};
     };
+    // A floating site's override of floats_shown_while_inactive.
+    struct FloatingVisibility final {
+        DockSiteId site{};
+        bool shown{};
+    };
+    // Whether `site`'s window stays shown while the application is inactive.
+    [[nodiscard]] bool window_shown_while_inactive(DockSiteId site) const noexcept;
+    // Tells the window's host the option above (best effort before ready).
+    void apply_window_visibility(const FloatingWindow& window) const;
+    // Every bound site realizes the panels again (titles, buttons, strips).
+    void realize_sites();
     // The floating windows' callbacks reach the workspace only through this
     // record, which the workspace clears when it detaches or goes, so a
     // window outliving the workspace calls nothing.
@@ -489,6 +535,13 @@ private:
     std::vector<PendingFrame> pending_frames_{};
     std::optional<CloseRequest> close_request_{};
     std::vector<DockNamedLayout> named_layouts_{};
+    // The workspace options (set_floats_shown_while_inactive and on).
+    bool floats_shown_while_inactive_{false};
+    // At most one entry per floating site.
+    std::vector<FloatingVisibility> floating_visibility_{};
+    bool document_tabs_shown_{true};
+    bool auto_hide_opens_on_hover_{true};
+    std::optional<Color> area_background_{};
     Event<const DockActivationChange&> activation_changed_{};
     Event<DockDocumentClosing&> document_closing_{};
     // property_codemod begin DockWorkspace (tools/property_families/dock_workspace.json; generated, do not edit)

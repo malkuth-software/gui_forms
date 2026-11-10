@@ -1,6 +1,7 @@
 #include "dock_layout_internal.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <string>
 #include <utility>
@@ -107,6 +108,9 @@ DockNodePlace dock_place_of(const DockLayoutState& state, DockNodeId node) noexc
     const DockNode* current = find_dock_node(state, node);
     if (current == nullptr) return place;
     bool inside_document_area = false;
+    // The first split on the way up whose other branch holds the document
+    // area gives the side the node stands on.
+    std::optional<DockSide> side{};
     // The walk is bounded by the node count, so a corrupted parent cycle
     // cannot loop forever.
     std::size_t steps = 0;
@@ -114,12 +118,24 @@ DockNodePlace dock_place_of(const DockLayoutState& state, DockNodeId node) noexc
         const DockNode* parent = find_dock_node(state, (*current).parent);
         if (parent == nullptr || steps > state.nodes.size()) return place;
         if ((*parent).kind == DockNodeKind::document_area) inside_document_area = true;
+        if (!side && !inside_document_area && (*parent).kind == DockNodeKind::split) {
+            const bool on_first = (*parent).first == (*current).id;
+            const DockNodeId other = on_first ? (*parent).second : (*parent).first;
+            if (dock_subtree_holds_document_area(state, other)) {
+                if ((*parent).axis == DockAxis::horizontal) {
+                    side = on_first ? DockSide::left : DockSide::right;
+                } else {
+                    side = on_first ? DockSide::top : DockSide::bottom;
+                }
+            }
+        }
         current = parent;
         ++steps;
     }
     const DockNodeId root = (*current).id;
     if (root == state.main_root) {
         place.region = inside_document_area ? DockRegion::document_area : DockRegion::main_tools;
+        if (!inside_document_area) place.side = side;
         return place;
     }
     for (const DockFloatingSite& site : state.floating_sites) {
@@ -129,8 +145,38 @@ DockNodePlace dock_place_of(const DockLayoutState& state, DockNodeId node) noexc
             return place;
         }
     }
-    if (find_dock_auto_hidden(state, root) != nullptr) place.region = DockRegion::auto_hidden;
+    const DockAutoHideEntry* const pinned = find_dock_auto_hidden(state, root);
+    if (pinned != nullptr) {
+        place.region = DockRegion::auto_hidden;
+        place.side = (*pinned).edge;
+    }
     return place;
+}
+
+// Depth first over the subtree with a fixed stack; each step visits one
+// node, and the walk stops after as many steps as the layout has nodes.
+bool dock_subtree_holds_document_area(const DockLayoutState& state, DockNodeId node) noexcept {
+    std::array<DockNodeId, 64> pending{};
+    std::size_t count = 0U;
+    pending[count] = node;
+    ++count;
+    std::size_t visited = 0U;
+    while (count > 0U && visited <= state.nodes.size()) {
+        --count;
+        const DockNode* const current = find_dock_node(state, pending[count]);
+        ++visited;
+        if (current == nullptr) continue;
+        if ((*current).kind == DockNodeKind::document_area) return true;
+        if ((*current).kind != DockNodeKind::split) continue;
+        // A tree deeper than the stack is read as not holding it: the side
+        // is then unknown and no side restriction applies.
+        if (count + 2U > pending.size()) return false;
+        pending[count] = (*current).first;
+        ++count;
+        pending[count] = (*current).second;
+        ++count;
+    }
+    return false;
 }
 
 DockPanelLocation locate_dock_panel(const DockLayoutState& state, const DockPanelId& panel) noexcept {

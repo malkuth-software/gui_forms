@@ -66,6 +66,23 @@ inline constexpr std::array<StateField<ScrollableControl::States>, 7> state_fiel
 inline constexpr std::size_t part_count = 12;
 inline constexpr std::array<PartDeclaration, part_count> parts =
     part_declarations(part_fields);
+
+// A container's ground (owner, 2026-11-08): the face over the whole box that
+// a ScrollableControl, ContainerControl, UserControl or SplitContainer
+// paints only when a theme rule names it (ScrollableControl::on_paint), so
+// that `user-control::part(face)` styles the container as
+// `panel::part(face)` styles a Panel. It has no member in
+// ScrollableControl::Parts, whose record a Panel extends with a face of its
+// own.
+struct GroundParts final {
+    PartGeometry face;
+};
+inline constexpr std::array<PartField<GroundParts>, 1> ground_fields{{
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+     .member = &GroundParts::face},
+}};
+inline constexpr std::array<PartDeclaration, part_count + 1> grounded_parts =
+    joined_declarations(parts, part_declarations(ground_fields));
 inline constexpr std::array<AnatomyState, 7> states =
     state_declarations(state_fields);
 

@@ -254,6 +254,9 @@ add_library(gui_forms_core STATIC
     src/core/binding/binding_context/binding_context.cpp
     src/core/types/damage_region/damage_region.cpp
     src/core/types/painter/painter.cpp
+    src/core/types/painter/painter_marks.cpp
+    src/core/types/paint_marks/paint_marks.cpp
+    src/core/types/paint_recipes/paint_recipes.cpp
     src/core/types/rect/rect.cpp
     src/core/theme/theme/theme.cpp
     src/core/theme/contrast/theme_contrast.cpp
@@ -298,6 +301,8 @@ add_library(gui_forms_core STATIC
     src/core/engine/theme_rules/built_in_rules.cpp
     src/core/engine/motion_value/motion_value.cpp
     src/core/engine/motion_clock/motion_clock.cpp
+    src/core/drag_engine/drag_engine.cpp
+    src/core/drag_engine/scrub_gesture.cpp
     src/core/engine/effect_canvas/effect_canvas.cpp
     src/core/engine/effect_registry/effect_registry.cpp
     src/core/surface_material/colour_matrix/colour_matrix.cpp
@@ -305,6 +310,11 @@ add_library(gui_forms_core STATIC
     src/core/surface_material/presets/material_presets.cpp
     src/core/surface_material/types/surface_material_types.cpp
     src/core/text/markdown/markdown.cpp
+    src/core/help/help_records/help_records.cpp
+    src/core/help/help_contents/help_contents.cpp
+    src/core/help/helpbook_section/helpbook_section.cpp
+    src/core/help/help_search/help_search.cpp
+    src/core/help/help_page/help_page.cpp
     src/core/text/markdown/rtf_conversion.cpp
     src/core/text/text_store/text_store.cpp
     src/core/text/prepared/prepared_storage.cpp
@@ -322,10 +332,12 @@ add_library(gui_forms_core STATIC
     src/core/layout/flex_solver/flex_solver.cpp
     src/core/layout/grid_solver/grid_solver.cpp
     src/core/layout/grid_span/grid_span.cpp
+    src/core/layout/radial_layout/radial_layout.cpp
     src/core/layout/block_flow_solver/block_flow_solver.cpp
     src/core/layout/positioning/positioning.cpp
     src/core/layout/diagnostics/layout_diagnostics.cpp
     src/core/diagnostics/shadow_frames/shadow_frames.cpp
+    src/core/diagnostics/invalidation_overlay/invalidation_overlay.cpp
     src/core/metrics/metrics/metrics.cpp
     src/core/metrics/snapshot/metrics_snapshot.cpp
     src/core/visual_inspection/snapshot/visual_inspection_snapshot.cpp
@@ -406,6 +418,8 @@ add_library(gui_forms_core STATIC
     src/core/display/chunk/display_chunk.cpp
     src/core/display/recording_painter/recording_painter.cpp
     src/core/display/replay/replay_display_chunk.cpp
+    src/core/display/snapshot/display_snapshot.cpp
+    src/core/display/snapshot/splash_baker.cpp
     src/core/dispatcher/operation/dispatch_operation.cpp
     src/core/dispatcher/state/post_dispatch.cpp
     src/core/dispatcher/window_dispatcher/dispatcher_handle.cpp
@@ -629,6 +643,8 @@ add_custom_command(
 # raster adapter so consumers can use its value/resource semantics alone.
 add_library(gui_drawing_core STATIC
     src/core/drawing/bitmap/bitmap.cpp
+    src/core/drawing/brush/checker_brush.cpp
+    src/core/drawing/brush/conic_gradient_brush.cpp
     src/core/drawing/brush/hatch_brush.cpp
     src/core/drawing/brush/linear_gradient_brush.cpp
     src/core/drawing/brush/path_gradient_brush.cpp
@@ -710,6 +726,35 @@ target_include_directories(gui_forms_host_headless PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/host/headless
 )
 target_link_libraries(gui_forms_host_headless PUBLIC gui_forms_core)
+
+# The plots package's public primitives (IMGUI_IMPLOT_STUDY B.3): series
+# columns, scales, ticks, axes, decimation, colormaps, picking, the view
+# model, legend layout, signal programs and the batched mark painters.
+# Beside the core and the controls; the controls link it for Sparkline.
+add_library(gui_forms_plot_primitives STATIC
+    src/plots/axis/axis.cpp
+    src/plots/colormap/colormap.cpp
+    src/plots/mark_painters/mark_painters.cpp
+    src/plots/plot_legend/plot_legend.cpp
+    src/plots/plot_transform/plot_transform.cpp
+    src/plots/plot_view_model/plot_view_model.cpp
+    src/plots/scale/scale.cpp
+    src/plots/series_picker/series_picker.cpp
+    src/plots/series_ring_channel/series_ring_channel.cpp
+    src/plots/series_view/series_view.cpp
+    src/plots/signal_program/signal_program.cpp
+    src/plots/tick_generator/tick_generator.cpp
+)
+target_include_directories(gui_forms_plot_primitives PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+target_link_libraries(gui_forms_plot_primitives PUBLIC gui_forms_core)
+set_target_properties(gui_forms_plot_primitives PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# The signal programs, verified by the plugin's effect pass like the effect
+# programs (make_signal_entry; cmake/LocalizablePlugin.cmake).
+gui_forms_verify_effects(gui_forms_plot_primitives
+    SOURCES src/plots/signal_program/signal_program.cpp)
 
 add_library(gui_forms_controls STATIC
     src/controls/basic/basic_control_rendering.cpp
@@ -795,6 +840,18 @@ add_library(gui_forms_controls STATIC
     src/controls/folder_browser_dialog/folder_browser_dialog.cpp
     src/controls/message_box/message_box.cpp
     src/controls/thread_exception_dialog/thread_exception_dialog.cpp
+    src/controls/about_dialog/about_dialog.cpp
+    src/controls/callout/callout.cpp
+    src/controls/instruments/dial/dial.cpp
+    src/controls/instruments/gauge_base/gauge_base.cpp
+    src/controls/instruments/gauge_base/linear_gauge/linear_gauge.cpp
+    src/controls/instruments/gauge_base/radial_gauge/radial_gauge.cpp
+    src/controls/instruments/seven_segment_display/seven_segment_display.cpp
+    src/controls/lookup_combo_box/lookup_combo_box.cpp
+    src/controls/modal_layer/modal_layer.cpp
+    src/controls/step_indicator/step_indicator.cpp
+    src/controls/wizard/wizard.cpp
+    src/controls/wizard/wizard_page/wizard_page.cpp
     src/controls/ribbon_gallery/ribbon_gallery.cpp
     src/controls/ribbon_gallery/ribbon_gallery_parts.cpp
     src/controls/ribbon_font_control/ribbon_font_control.cpp
@@ -823,6 +880,8 @@ add_library(gui_forms_controls STATIC
     src/controls/scrollable_control/container_control/split_container/splitter_grip.cpp
     src/controls/scrollable_control/container_control/split_container/split_container.cpp
     src/controls/splitter/splitter.cpp
+    src/controls/node_canvas/node_graph/node_graph.cpp
+    src/controls/node_canvas/link_router/link_router.cpp
     src/controls/panel/date_time_picker/date_time_utilities.cpp
     src/controls/panel/date_time_picker/calendar_grid/calendar_grid.cpp
     src/controls/panel/date_time_picker/date_time_value/date_time_value.cpp
@@ -874,14 +933,27 @@ add_library(gui_forms_controls STATIC
     src/controls/guidance/error_glyph/error_glyph.cpp
     src/controls/guidance/error_provider/error_provider.cpp
     src/controls/guidance/help_provider/help_provider.cpp
+    src/controls/help/help_book/help_book.cpp
+    src/controls/help/help_book_viewer/help_book_viewer.cpp
+    src/controls/help/help_book_system/help_book_system.cpp
+    src/controls/help/help_print/help_print.cpp
     src/controls/panel/material_panel/material_panel.cpp
     src/controls/range_control/range_control_rendering.cpp
     src/controls/range_control/progress_bar/progress_bar_effects.cpp
     src/controls/range_control/range_control.cpp
+    src/controls/range_control/value_bar/value_text.cpp
+    src/controls/range_control/value_bar/value_bar.cpp
     src/controls/range_control/track_bar/track_bar.cpp
     src/controls/range_control/progress_bar/progress_bar.cpp
     src/controls/instruments/sweep_scope/sweep_scope.cpp
     src/controls/instruments/sweep_scope/sweep_scope_effects.cpp
+    src/controls/instruments/sparkline/sparkline.cpp
+    src/controls/plots/plot_axis_item/plot_axis_item.cpp
+    src/controls/plots/plot_series_item/plot_series_item.cpp
+    src/controls/plots/plot_annotation_item/plot_annotation_item.cpp
+    src/controls/plots/plot_view/plot_engine.cpp
+    src/controls/plots/plot_view/plot_view.cpp
+    src/controls/plots/plot_view/plot_view_live.cpp
     src/controls/built_in_effect_registry/built_in_effect_registry.cpp
     src/controls/range_control/scroll_bar/scroll_bar.cpp
     src/controls/range_control/scroll_bar/h_scroll_bar/h_scroll_bar.cpp
@@ -897,7 +969,9 @@ target_include_directories(gui_forms_controls PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_link_libraries(gui_forms_controls PUBLIC gui_forms_core gui_drawing_core)
+# The plots package's controls (PlotView, its items, Sparkline) draw through
+# the public plot primitives.
+target_link_libraries(gui_forms_controls PUBLIC gui_forms_core gui_drawing_core gui_forms_plot_primitives)
 set_target_properties(gui_forms_controls gui_forms_host_headless PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 # The files that register effect programs, verified by the plugin's effect
@@ -921,6 +995,20 @@ if(GUI_FORMS_BUILD_FORM_COMPILER)
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
     install(EXPORT GUIFormsFormCompilerTargets
             FILE GUIFormsFormCompilerTargets.cmake
+            NAMESPACE GUIForms::
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+    # The theme check (owner request 2026-11-09): a program's theme packages
+    # compiled at build time (gui_forms_add_theme_check), so a bad sheet
+    # fails the build, not Application::create. Built and installed with
+    # the form compiler, the SDK's other build-time tool.
+    add_executable(gui_forms_theme_check tools/theme_check/theme_check.cpp)
+    target_link_libraries(gui_forms_theme_check PRIVATE gui_forms_controls)
+    set_target_properties(gui_forms_theme_check PROPERTIES EXPORT_NAME theme_check)
+    add_executable(GUIForms::theme_check ALIAS gui_forms_theme_check)
+    install(TARGETS gui_forms_theme_check EXPORT GUIFormsThemeCheckTargets
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(EXPORT GUIFormsThemeCheckTargets
+            FILE GUIFormsThemeCheckTargets.cmake
             NAMESPACE GUIForms::
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
 endif()
@@ -964,7 +1052,9 @@ endif()
 add_library(GUIForms::Core ALIAS gui_forms_core)
 add_library(GUIForms::Controls ALIAS gui_forms_controls)
 add_library(GUIForms::Drawing ALIAS gui_drawing_core)
+add_library(GUIForms::PlotPrimitives ALIAS gui_forms_plot_primitives)
 set_target_properties(gui_forms_core PROPERTIES EXPORT_NAME Core)
+set_target_properties(gui_forms_plot_primitives PROPERTIES EXPORT_NAME PlotPrimitives)
 set_target_properties(gui_forms_controls PROPERTIES EXPORT_NAME Controls)
 set_target_properties(gui_drawing_core PROPERTIES EXPORT_NAME Drawing)
 
@@ -978,7 +1068,7 @@ endif()
 # their static archives links its archive too: it is installed beside them, and GUIFormsConfig
 # imports it as stx_skia::swizzle, the name GUIFormsTargets refers to.
 install(FILES $<TARGET_FILE:stx_skia::swizzle> DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(TARGETS gui_forms_threading gui_forms_core gui_forms_controls gui_drawing_core
+install(TARGETS gui_forms_threading gui_forms_core gui_forms_controls gui_drawing_core gui_forms_plot_primitives
         EXPORT GUIFormsTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -1120,6 +1210,7 @@ endif()
 if(GUI_FORMS_ENABLE_SKIA)
     add_library(gui_forms_skia STATIC
         src/render/skia/raster/skia_raster.cpp
+        src/render/skia/raster/skia_splash_bake.cpp
     )
     target_include_directories(gui_forms_skia
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/render/skia/raster
@@ -1340,7 +1431,9 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         src/host/linux/compositor/x11_compositor.cpp)
     set_target_properties(gui_forms_host_linux PROPERTIES POSITION_INDEPENDENT_CODE ON)
     target_link_libraries(gui_forms_host_linux PUBLIC gui_forms_core gui_forms_controls gui_forms_skia
-        PRIVATE X11::X11 X11::Xfixes X11::Xrender PkgConfig::GUI_FORMS_ATK)
+        PRIVATE X11::X11 X11::Xfixes X11::Xrender PkgConfig::GUI_FORMS_ATK
+        # dladdr, for the fonts beside the GUI.Forms library (glibc before 2.34 keeps it in libdl).
+        ${CMAKE_DL_LIBS})
     if(GUI_FORMS_XCURSOR_AVAILABLE)
         target_link_libraries(gui_forms_host_linux PUBLIC X11::Xcursor)
         target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAS_XCURSOR=1)
@@ -1409,7 +1502,7 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
     endif()
     target_link_libraries(gui_forms_host_windows
         PUBLIC gui_forms_core gui_forms_skia
-        PRIVATE gui_forms_text_engine user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32
+        PRIVATE gui_forms_text_engine user32 gdi32 imm32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32
     )
     target_link_libraries(gui_forms_c_api PRIVATE gui_forms_host_windows)
     target_compile_definitions(gui_forms_c_api PRIVATE GF_C_API_HAS_WINDOWS_HOST=1)
@@ -1574,6 +1667,9 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/input-and-rules.cpp
         src/controls/gallery/pages/theme-settings.cpp
         src/controls/gallery/pages/spinners-and-rings.cpp
+        src/controls/gallery/pages/instruments.cpp
+        src/controls/gallery/pages/guided-tasks.cpp
+        src/controls/gallery/pages/help-book.cpp
     )
     add_library(gui_forms_gallery_model STATIC
         src/controls/gallery_controls.cpp
@@ -1656,6 +1752,12 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS ThemeSettingsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/spinners-and-rings.form
         CLASS SpinnersAndRingsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/instruments.form
+        CLASS InstrumentsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/guided-tasks.form
+        CLASS GuidedTasksDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/help-book.form
+        CLASS HelpBookPageDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/control-spectrum.form
         CLASS ControlSpectrumDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/retained-layout-panels.form
@@ -1680,7 +1782,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS LiveSurfacesDocument NAMESPACE gui_forms::gallery::pages)
     # The Gallery's project theme (owner rulings of 2026-11-04): the forms
     # name roles by class; the theme gives the roles their look.
-    gui_forms_add_theme(gui_forms_gallery_model demo/themes/gallery
+    gui_forms_add_theme(gui_forms_gallery_model demo/themes/gallery CHECK
         FUNCTION gallery_theme_package NAMESPACE gui_forms::gallery
         FORMS demo/gallery.form demo/gallery_form_pages.form demo/pages/typography-and-inspection.form
             demo/pages/animation-laboratory.form demo/pages/collections-and-overlays.form
@@ -1689,6 +1791,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
             demo/pages/notices-and-badges.form
             demo/pages/input-and-rules.form demo/pages/theme-settings.form
             demo/pages/spinners-and-rings.form
+            demo/pages/instruments.form demo/pages/guided-tasks.form demo/pages/help-book.form
             demo/pages/retained-layout-panels.form demo/pages/responsive-layouts.form
             demo/pages/css-layout-panels.form
             demo/pages/checked-collections.form demo/pages/choices-and-sections.form
@@ -2008,6 +2111,21 @@ if(GUI_FORMS_BUILD_GALLERY)
             OUTPUT_NAME "GUI.Forms Gallery"
         )
 
+        # The Gallery under Application::run, so menus open in Popup
+        # windows (tools/menu_probe.py drives it).
+        # Application::run is built in (not the shared application
+        # library), since the Gallery model links the static controls.
+        add_executable(gui_forms_menu_probe_windows
+            src/host/windows/menu_probe_main.cpp
+            src/runtime/application/application.cpp
+        )
+        target_compile_definitions(gui_forms_menu_probe_windows PRIVATE
+            GUI_FORMS_APPLICATION_WINDOWS=1 GUI_FORMS_APPLICATION_SKIA=1)
+        target_link_libraries(gui_forms_menu_probe_windows PRIVATE
+            gui_forms_gallery_model
+            gui_forms_host_windows
+        )
+
         add_executable(gui_forms_vsync_lab_windows
             src/host/windows/vsync_lab_main.cpp
         )
@@ -2269,6 +2387,12 @@ endif()
 add_executable(gui_forms_shadow_frames_benchmark EXCLUDE_FROM_ALL benchmarks/shadow_frames_benchmark.cpp)
 target_link_libraries(gui_forms_shadow_frames_benchmark PRIVATE gui_forms_core)
 
+# IMGUI_IMPLOT_STUDY B.7: the plots package's costs (pyramid build, pan and
+# live frames, scatter thinning at a million points). Built only when asked
+# for; run in Release.
+add_executable(gui_forms_plot_performance_probe EXCLUDE_FROM_ALL benchmarks/plot_performance_probe.cpp)
+target_link_libraries(gui_forms_plot_performance_probe PRIVATE gui_forms_plot_primitives)
+
 # APP_WINDOW_RULES_DESIGN K.2: the creation-cost gate (a bare window, a popup
 # and a generated form window; time and allocations against the committed
 # baseline benchmarks/creation/creation_baseline.txt). Built only when asked
@@ -2415,6 +2539,12 @@ if(GUI_FORMS_BUILD_TESTS)
         target_include_directories(gui_forms_windows_key_translation_tests PRIVATE src/host/windows/input)
         target_link_libraries(gui_forms_windows_key_translation_tests PRIVATE gui_forms_core)
         add_test(NAME gui_forms_windows_key_translation_tests COMMAND gui_forms_windows_key_translation_tests)
+        add_executable(gui_forms_windows_dib_band_present_tests tests/windows_dib_band_present_tests.cpp)
+        target_include_directories(gui_forms_windows_dib_band_present_tests PRIVATE src/host/windows/raster)
+        target_compile_definitions(gui_forms_windows_dib_band_present_tests PRIVATE
+            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+        target_link_libraries(gui_forms_windows_dib_band_present_tests PRIVATE gdi32 user32)
+        add_test(NAME gui_forms_windows_dib_band_present COMMAND gui_forms_windows_dib_band_present_tests)
         if(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
             add_executable(gui_forms_windows_dib_frame_store_tests
                 tests/windows_dib_frame_store_tests.cpp
@@ -2446,7 +2576,7 @@ if(GUI_FORMS_BUILD_TESTS)
                 WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
                 GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB=1 GUI_FORMS_DIB_LIFECYCLE_TEST=1)
             target_link_libraries(gui_forms_windows_dib_lifecycle_tests PRIVATE
-                gui_forms_core gui_forms_skia gui_forms_text_engine user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid
+                gui_forms_core gui_forms_skia gui_forms_text_engine user32 gdi32 imm32 ole32 oleaut32 oleacc uiautomationcore uuid
                 comdlg32 shell32)
             add_test(NAME gui_forms_windows_dib_lifecycle_tests
                      COMMAND gui_forms_windows_dib_lifecycle_tests)
@@ -2472,7 +2602,7 @@ if(GUI_FORMS_BUILD_TESTS)
                     GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB=1
                     GUI_FORMS_WINDOWS_PREPARED_TEXT=1 GUI_FORMS_WINDOWS_PREPARED_TEXT_TEST=1)
                 target_link_libraries(gui_forms_windows_prepared_text_tests PRIVATE
-                    gui_forms_prepared_text_impl gui_forms_skia gui_forms_text_engine user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid
+                    gui_forms_prepared_text_impl gui_forms_skia gui_forms_text_engine user32 gdi32 imm32 ole32 oleaut32 oleacc uiautomationcore uuid
                     comdlg32 shell32)
                 add_test(NAME gui_forms_windows_prepared_text_tests
                     COMMAND gui_forms_windows_prepared_text_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
@@ -2731,6 +2861,14 @@ if(GUI_FORMS_BUILD_TESTS)
             gui_forms_controls gui_forms_host_windows)
         add_test(NAME gui_forms_windows_damage_rectangles_tests
                  COMMAND gui_forms_windows_damage_rectangles_tests)
+        add_executable(gui_forms_windows_scroll_copy_tests tests/windows_scroll_copy_tests.cpp)
+        target_compile_definitions(gui_forms_windows_scroll_copy_tests PRIVATE
+            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
+            GUI_FORMS_WINDOWS_SCROLL_COPY_TEST=1)
+        target_link_libraries(gui_forms_windows_scroll_copy_tests PRIVATE
+            gui_forms_controls gui_forms_host_windows)
+        add_test(NAME gui_forms_windows_scroll_copy_tests
+                 COMMAND gui_forms_windows_scroll_copy_tests)
         add_executable(gui_forms_windows_text_tests tests/windows_text_tests.cpp)
         target_compile_definitions(gui_forms_windows_text_tests PRIVATE
             WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
@@ -2931,7 +3069,8 @@ if(GUI_FORMS_BUILD_TESTS)
     if(GUI_FORMS_EFFECTS_VERIFIED)
         set(_gf_effect_cases
             passes while_loop unbounded_for loop_variable_written recursion virtual_call function_pointer
-            allocation global_write cmath_call opaque_call pointer_state oversized_state over_budget unverified)
+            allocation global_write cmath_call opaque_call pointer_state oversized_state over_budget unverified
+            signal_passes signal_over_budget signal_cmath_call)
         foreach(_gf_case IN LISTS _gf_effect_cases)
             set(_gf_case_target gui_forms_effect_case_${_gf_case})
             add_library(${_gf_case_target} OBJECT EXCLUDE_FROM_ALL tests/effect_pass/${_gf_case}.cpp)
@@ -3062,6 +3201,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_damage_clip_tests tests/damage_clip_tests.cpp)
     target_link_libraries(gui_forms_damage_clip_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_damage_clip_tests COMMAND gui_forms_damage_clip_tests)
+    add_executable(gui_forms_invalidation_overlay_tests tests/invalidation_overlay_tests.cpp)
+    target_link_libraries(gui_forms_invalidation_overlay_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_invalidation_overlay_tests COMMAND gui_forms_invalidation_overlay_tests)
 
     add_executable(gui_forms_control_table_tests tests/control_table_tests.cpp)
     target_link_libraries(gui_forms_control_table_tests PRIVATE gui_forms_controls)
@@ -3191,6 +3333,14 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_document_view_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_document_view_tests COMMAND gui_forms_document_view_tests)
 
+    add_executable(gui_forms_help_system_core_tests tests/help_system_core_tests.cpp)
+    target_link_libraries(gui_forms_help_system_core_tests PRIVATE gui_forms_controls gui_forms_core)
+    add_test(NAME gui_forms_help_system_core_tests COMMAND gui_forms_help_system_core_tests)
+    add_executable(gui_forms_helpbook_section_fuzz_tests fuzz/helpbook_section_fuzz.cpp)
+    target_link_libraries(gui_forms_helpbook_section_fuzz_tests PRIVATE gui_forms_core)
+    target_compile_definitions(gui_forms_helpbook_section_fuzz_tests PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
+    add_test(NAME gui_forms_helpbook_section_fuzz_tests COMMAND gui_forms_helpbook_section_fuzz_tests)
+
     add_executable(gui_forms_xml_tests tests/xml_tests.cpp)
     target_link_libraries(gui_forms_xml_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_xml_tests COMMAND gui_forms_xml_tests)
@@ -3275,6 +3425,10 @@ if(GUI_FORMS_BUILD_TESTS)
                 MODEL form_generated::SampleModel MODEL_HEADER generated/sample_model.hpp)
             gui_forms_add_form(gui_forms_form_derived_class_tests tests/form_language/generated/plain_panel.form
                 CLASS PlainPanel NAMESPACE form_generated DERIVED)
+            # A final root type (a layout panel), composed instead of derived.
+            gui_forms_add_form(gui_forms_form_derived_class_tests tests/form_language/generated/flex_root_panel.form
+                CLASS FlexRootPanel NAMESPACE form_generated
+                MODEL form_generated::SampleModel MODEL_HEADER generated/sample_model.hpp)
             add_test(NAME gui_forms_form_derived_class_tests COMMAND gui_forms_form_derived_class_tests)
         endif()
     endif()
@@ -3327,6 +3481,25 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_colour_role_css_tests tests/theme_language/theme_colour_role_css_tests.cpp)
     target_link_libraries(gui_forms_theme_colour_role_css_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_colour_role_css_tests COMMAND gui_forms_theme_colour_role_css_tests)
+    # Early theme validation (owner request 2026-11-09): the public
+    # validate_theme_packages, and the build-time check run on a valid and
+    # a refused package.
+    add_executable(gui_forms_theme_validation_tests tests/theme_language/theme_validation_tests.cpp)
+    target_link_libraries(gui_forms_theme_validation_tests PRIVATE gui_forms_controls)
+    gui_forms_add_theme(gui_forms_theme_validation_tests tests/theme_language/theme_check/valid
+        FUNCTION valid_theme_package NAMESPACE gui_forms_tests)
+    gui_forms_add_theme(gui_forms_theme_validation_tests tests/theme_language/theme_check/refused
+        FUNCTION refused_theme_package NAMESPACE gui_forms_tests)
+    add_test(NAME gui_forms_theme_validation_tests COMMAND gui_forms_theme_validation_tests)
+    if(TARGET gui_forms_theme_check)
+        add_test(NAME gui_forms_theme_check_accepts
+            COMMAND gui_forms_theme_check "${CMAKE_CURRENT_SOURCE_DIR}/tests/theme_language/theme_check/valid")
+        add_test(NAME gui_forms_theme_check_refuses
+            COMMAND gui_forms_theme_check "${CMAKE_CURRENT_SOURCE_DIR}/tests/theme_language/theme_check/refused")
+        set_tests_properties(gui_forms_theme_check_refuses PROPERTIES WILL_FAIL TRUE)
+        add_test(NAME gui_forms_theme_check_gallery
+            COMMAND gui_forms_theme_check "${CMAKE_CURRENT_SOURCE_DIR}/demo/themes/gallery")
+    endif()
     add_executable(gui_forms_theme_variant_tests tests/theme_variant_tests.cpp)
     target_link_libraries(gui_forms_theme_variant_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_variant_tests COMMAND gui_forms_theme_variant_tests)
@@ -3568,6 +3741,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_display_controls_tests tests/display_controls_tests.cpp)
     target_link_libraries(gui_forms_display_controls_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_display_controls_tests COMMAND gui_forms_display_controls_tests)
+    add_executable(gui_forms_final_controls_tests tests/final_controls_tests.cpp)
+    target_link_libraries(gui_forms_final_controls_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_final_controls_tests COMMAND gui_forms_final_controls_tests)
     add_executable(gui_forms_auto_complete_tests tests/auto_complete_tests.cpp)
     target_link_libraries(gui_forms_auto_complete_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_auto_complete_tests COMMAND gui_forms_auto_complete_tests)
@@ -3593,6 +3769,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_sweep_scope_tests tests/sweep_scope_tests.cpp)
     target_link_libraries(gui_forms_sweep_scope_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_sweep_scope_tests COMMAND gui_forms_sweep_scope_tests)
+    add_executable(gui_forms_plot_view_tests tests/plot_view_tests.cpp)
+    target_link_libraries(gui_forms_plot_view_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_plot_view_tests COMMAND gui_forms_plot_view_tests)
     add_executable(gui_forms_event_payload_lifetime_tests tests/event_payload_lifetime_tests.cpp)
     target_link_libraries(gui_forms_event_payload_lifetime_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_event_payload_lifetime_tests COMMAND gui_forms_event_payload_lifetime_tests)
@@ -3680,6 +3859,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_ribbon_tool_tip_tests tests/ribbon_tool_tip_tests.cpp)
     target_link_libraries(gui_forms_ribbon_tool_tip_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_ribbon_tool_tip_tests COMMAND gui_forms_ribbon_tool_tip_tests)
+    add_executable(gui_forms_ribbon_look_tests tests/ribbon_look_tests.cpp)
+    target_link_libraries(gui_forms_ribbon_look_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_ribbon_look_tests COMMAND gui_forms_ribbon_look_tests)
     add_executable(gui_forms_overlay_shadow_tests tests/overlay_shadow_tests.cpp)
     target_link_libraries(gui_forms_overlay_shadow_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_overlay_shadow_tests COMMAND gui_forms_overlay_shadow_tests)
@@ -3728,6 +3910,9 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_binding_navigator_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_binding_navigator_tests COMMAND gui_forms_binding_navigator_tests)
 
+    add_executable(gui_forms_help_system_tests tests/help_system_tests.cpp)
+    target_link_libraries(gui_forms_help_system_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_help_system_tests COMMAND gui_forms_help_system_tests)
     add_executable(gui_forms_font_dialog_tests tests/font_dialog_tests.cpp)
     target_link_libraries(gui_forms_font_dialog_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_font_dialog_tests COMMAND gui_forms_font_dialog_tests)
@@ -3796,6 +3981,24 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_splitter_tests tests/splitter_tests.cpp)
     target_link_libraries(gui_forms_splitter_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_splitter_tests COMMAND gui_forms_splitter_tests)
+    add_executable(gui_forms_node_graph_tests tests/node_graph_tests.cpp)
+    target_link_libraries(gui_forms_node_graph_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_node_graph_tests COMMAND gui_forms_node_graph_tests)
+    add_executable(gui_forms_link_router_tests tests/link_router_tests.cpp)
+    target_link_libraries(gui_forms_link_router_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_link_router_tests COMMAND gui_forms_link_router_tests)
+    add_executable(gui_forms_drag_engine_tests tests/drag_engine_tests.cpp)
+    target_link_libraries(gui_forms_drag_engine_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_drag_engine_tests COMMAND gui_forms_drag_engine_tests)
+    add_executable(gui_forms_scrub_gesture_tests tests/scrub_gesture_tests.cpp)
+    target_link_libraries(gui_forms_scrub_gesture_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_scrub_gesture_tests COMMAND gui_forms_scrub_gesture_tests)
+    add_executable(gui_forms_value_text_tests tests/value_text_tests.cpp)
+    target_link_libraries(gui_forms_value_text_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_value_text_tests COMMAND gui_forms_value_text_tests)
+    add_executable(gui_forms_value_bar_tests tests/value_bar_tests.cpp)
+    target_link_libraries(gui_forms_value_bar_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_value_bar_tests COMMAND gui_forms_value_bar_tests)
 
     add_executable(gui_forms_layout_contract_tests
         tests/layout_contract_tests.cpp
@@ -4065,6 +4268,35 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_display_chunk_tests PRIVATE gui_forms_controls gui_forms_core)
     add_test(NAME gui_forms_display_chunk_tests COMMAND gui_forms_display_chunk_tests)
 
+    add_executable(gui_forms_paint_marks_tests
+        tests/paint_marks_tests.cpp
+    )
+    target_link_libraries(gui_forms_paint_marks_tests PRIVATE gui_forms_controls gui_forms_core)
+    add_test(NAME gui_forms_paint_marks_tests COMMAND gui_forms_paint_marks_tests)
+
+    # The plots package's primitives, headless: numeric checks, golden tick
+    # tables and display traces, and the envelope's pixel-identity proof.
+    add_executable(gui_forms_plot_primitives_tests tests/plot_primitives_tests.cpp)
+    target_link_libraries(gui_forms_plot_primitives_tests PRIVATE gui_forms_plot_primitives)
+    if(GUI_FORMS_EFFECTS_VERIFIED)
+        target_compile_definitions(gui_forms_plot_primitives_tests PRIVATE GUI_FORMS_EFFECT_TEST_VERIFIED)
+    endif()
+    add_test(NAME gui_forms_plot_primitives_tests COMMAND gui_forms_plot_primitives_tests)
+    add_executable(gui_forms_plot_decimation_raster_tests tests/plot_decimation_raster_tests.cpp)
+    target_link_libraries(gui_forms_plot_decimation_raster_tests PRIVATE gui_forms_plot_primitives)
+    add_test(NAME gui_forms_plot_decimation_raster_tests COMMAND gui_forms_plot_decimation_raster_tests)
+
+    add_executable(gui_forms_splash_baker_tests tests/splash_baker_tests.cpp)
+    target_link_libraries(gui_forms_splash_baker_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_splash_baker_tests COMMAND gui_forms_splash_baker_tests)
+    set_tests_properties(gui_forms_splash_baker_tests PROPERTIES TIMEOUT 30)
+    if(TARGET gui_forms_skia)
+        add_executable(gui_forms_skia_splash_bake_tests tests/skia_splash_bake_tests.cpp)
+        target_link_libraries(gui_forms_skia_splash_bake_tests PRIVATE gui_forms_skia gui_forms_core)
+        add_test(NAME gui_forms_skia_splash_bake_tests COMMAND gui_forms_skia_splash_bake_tests)
+        set_tests_properties(gui_forms_skia_splash_bake_tests PROPERTIES TIMEOUT 30)
+    endif()
+
     add_executable(gui_forms_frame_scheduler_tests
         tests/frame_scheduler_tests.cpp
     )
@@ -4159,6 +4391,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_splash_window_tests tests/splash_window_tests.cpp)
     target_link_libraries(gui_forms_splash_window_tests PRIVATE gui_forms_host_headless gui_forms_controls)
     add_test(NAME gui_forms_splash_window_tests COMMAND gui_forms_splash_window_tests)
+    add_executable(gui_forms_menu_popup_tests tests/menu_popup_tests.cpp)
+    target_link_libraries(gui_forms_menu_popup_tests PRIVATE gui_forms_host_headless gui_forms_controls)
+    add_test(NAME gui_forms_menu_popup_tests COMMAND gui_forms_menu_popup_tests)
     add_executable(gui_forms_shared_resources_tests tests/shared_resources_tests.cpp)
     target_link_libraries(gui_forms_shared_resources_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_shared_resources_tests COMMAND gui_forms_shared_resources_tests)
@@ -4294,11 +4529,17 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/input-and-rules_tests.cpp
             tests/gallery_pages/theme-settings_tests.cpp
             tests/gallery_pages/spinners-and-rings_tests.cpp
+            tests/gallery_pages/instruments_tests.cpp
+            tests/gallery_pages/guided-tasks_tests.cpp
+            tests/gallery_pages/help-book_tests.cpp
             tests/gallery_pages/anatomy_coverage_tests.cpp
             tests/gallery_pages/schema_export_tests.cpp
         )
+        # The theme switch test compiles the Gallery's embedded theme package
+        # (gui_forms_add_theme writes its header there).
         target_include_directories(gui_forms_gallery_pages_tests PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_CURRENT_BINARY_DIR}/gui_forms_themes
         )
         target_link_libraries(gui_forms_gallery_pages_tests PRIVATE
             gui_forms_gallery_model
@@ -4731,6 +4972,10 @@ if(GUI_FORMS_BUILD_TESTS)
     if(TARGET gui_forms_skia)
         add_executable(gui_forms_live_surface_benchmark EXCLUDE_FROM_ALL benchmarks/live_surface_benchmark.cpp)
         target_link_libraries(gui_forms_live_surface_benchmark PRIVATE gui_forms_skia)
+        # The canvas pan workload (felt pattern, gradient, sheet shadow and live
+        # surface, panned in 8-unit steps at scales 1 and 2); run by hand.
+        add_executable(gui_forms_canvas_pan_benchmark EXCLUDE_FROM_ALL benchmarks/canvas_pan_benchmark.cpp)
+        target_link_libraries(gui_forms_canvas_pan_benchmark PRIVATE gui_forms_skia)
         # Threaded sub-surfaces measurements M1, M2, M4-M9 for the grid's cell
         # region (stage S7); run by hand, not by ctest.
         add_executable(gui_forms_sub_surface_cells_benchmark EXCLUDE_FROM_ALL benchmarks/sub_surface_cells_benchmark.cpp)
@@ -4738,9 +4983,19 @@ if(GUI_FORMS_BUILD_TESTS)
         add_executable(gui_forms_opaque_live_surface_raster_tests tests/opaque_live_surface_raster_tests.cpp)
         target_link_libraries(gui_forms_opaque_live_surface_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_opaque_live_surface_raster_tests COMMAND gui_forms_opaque_live_surface_raster_tests)
+        add_executable(gui_forms_canvas_occlusion_raster_tests tests/canvas_occlusion_raster_tests.cpp)
+        target_link_libraries(gui_forms_canvas_occlusion_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_canvas_occlusion_raster_tests COMMAND gui_forms_canvas_occlusion_raster_tests)
         add_executable(gui_forms_part_composite_identity_tests tests/part_composite_identity_tests.cpp)
         target_link_libraries(gui_forms_part_composite_identity_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_part_composite_identity_tests COMMAND gui_forms_part_composite_identity_tests)
+        add_executable(gui_forms_ribbon_scale_raster_tests tests/ribbon_scale_raster_tests.cpp
+            ${gui_forms_sealed_pages_source})
+        target_compile_definitions(gui_forms_ribbon_scale_raster_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        target_include_directories(gui_forms_ribbon_scale_raster_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+        target_link_libraries(gui_forms_ribbon_scale_raster_tests PRIVATE gui_forms_gallery_model gui_forms_skia)
+        add_test(NAME gui_forms_ribbon_scale_raster_tests COMMAND gui_forms_ribbon_scale_raster_tests)
         add_executable(gui_forms_surface_material_kernel_tests tests/surface_material_kernel_tests.cpp)
         target_link_libraries(gui_forms_surface_material_kernel_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_surface_material_kernel_tests COMMAND gui_forms_surface_material_kernel_tests)
@@ -4813,6 +5068,14 @@ if(GUI_FORMS_BUILD_TESTS)
         add_executable(gui_forms_skia_edge_snapping_tests tests/skia_edge_snapping_tests.cpp)
         target_link_libraries(gui_forms_skia_edge_snapping_tests PRIVATE gui_forms_skia)
         add_test(NAME gui_forms_skia_edge_snapping_tests COMMAND gui_forms_skia_edge_snapping_tests)
+
+        add_executable(gui_forms_paint_marks_raster_tests tests/paint_marks_raster_tests.cpp)
+        target_link_libraries(gui_forms_paint_marks_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_paint_marks_raster_tests COMMAND gui_forms_paint_marks_raster_tests)
+        add_executable(gui_forms_plot_decimation_skia_tests tests/plot_decimation_skia_tests.cpp)
+        target_link_libraries(gui_forms_plot_decimation_skia_tests PRIVATE
+            gui_forms_plot_primitives gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_plot_decimation_skia_tests COMMAND gui_forms_plot_decimation_skia_tests)
 
         add_executable(gui_forms_skia_damage_edge_tests tests/skia_damage_edge_tests.cpp)
         target_link_libraries(gui_forms_skia_damage_edge_tests PRIVATE gui_forms_skia)
@@ -5258,6 +5521,15 @@ if(WIN32 AND GUI_FORMS_ENABLE_WINDOWS_HOST AND GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_windows_input_settings_tests PRIVATE GUIForms::Application)
     add_test(NAME gui_forms_windows_input_settings_tests COMMAND gui_forms_windows_input_settings_tests)
     set_tests_properties(gui_forms_windows_input_settings_tests PROPERTIES TIMEOUT 60)
+    # N61: the host places the system input method's windows at the caret and
+    # does not advertise text_composition.
+    add_executable(gui_forms_windows_input_method_tests tests/windows_input_method_tests.cpp)
+    target_compile_definitions(gui_forms_windows_input_method_tests PRIVATE
+        WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+    target_link_libraries(gui_forms_windows_input_method_tests PRIVATE
+        gui_forms_controls gui_forms_host_windows imm32)
+    add_test(NAME gui_forms_windows_input_method_tests COMMAND gui_forms_windows_input_method_tests)
+    set_tests_properties(gui_forms_windows_input_method_tests PROPERTIES TIMEOUT 60)
     add_executable(gui_forms_windows_accessibility_tests tests/windows_accessibility_tests.cpp)
     target_link_libraries(gui_forms_windows_accessibility_tests PRIVATE GUIForms::Application oleacc uiautomationcore oleaut32 uuid)
     add_test(NAME gui_forms_windows_accessibility_tests COMMAND gui_forms_windows_accessibility_tests)
@@ -5390,13 +5662,14 @@ endif()
 
 # The targets that compile the red/blue swap loops' replacements link stx_skia::swizzle: the
 # core (material images), the controls (the raster canvas), the Windows drawing C API, and
-# the Windows host with the tests that compile windows_host.cpp, the last six by including it textually.
+# the Windows host with the tests that compile windows_host.cpp, the last seven by including it textually.
 foreach(gui_forms_swizzle_target IN ITEMS gui_forms_core gui_forms_controls
         gui_drawing_c_api gui_forms_host_windows
         gui_forms_windows_dib_lifecycle_tests
         gui_forms_windows_prepared_text_tests gui_forms_windows_backplane_replay_tests
         gui_forms_windows_canvas_raster_tests gui_forms_windows_content_pixels_tests
         gui_forms_windows_control_snapshot_tests gui_forms_windows_damage_rectangles_tests
+        gui_forms_windows_scroll_copy_tests
         gui_forms_windows_text_tests)
     if(TARGET ${gui_forms_swizzle_target})
         target_link_libraries(${gui_forms_swizzle_target} PRIVATE stx_skia::swizzle)
@@ -5459,6 +5732,7 @@ foreach(gui_forms_foreground_name IN ITEMS
         gui_forms_gallery_interaction_tests
         gui_forms_windows_accessibility_tests
         gui_forms_windows_dib_lifecycle_tests
+        gui_forms_windows_input_method_tests
         gui_forms_windows_prepared_text_tests)
     if(TEST ${gui_forms_foreground_name})
         gui_forms_foreground_test(${gui_forms_foreground_name})

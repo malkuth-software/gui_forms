@@ -61,7 +61,9 @@ int main() {
     const ::Window gallery_native = XCreateSimpleWindow(display, DefaultRootWindow(display), 0, 0,
         static_cast<unsigned int>(gui_forms::gallery::gallery_default_size.width),
         static_cast<unsigned int>(gui_forms::gallery::gallery_default_size.height), 0, 0, 0xffffff);
-    const ::Window supplement_native = XCreateSimpleWindow(display, DefaultRootWindow(display), 0, 0, 320, 140, 0, 0, 0xffffff);
+    const ::Window supplement_native = XCreateSimpleWindow(display, DefaultRootWindow(display), 0, 0,
+        static_cast<unsigned int>(gui_forms::accessibility_session::supplement_size.width),
+        static_cast<unsigned int>(gui_forms::accessibility_session::supplement_size.height), 0, 0, 0xffffff);
     XMapWindow(display, gallery_native);
     XMapWindow(display, supplement_native);
     XFlush(display);

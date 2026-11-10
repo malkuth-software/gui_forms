@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <utility>
 
 namespace gui_forms {
@@ -538,6 +539,15 @@ bool DockSite::open_flyout(const DockPanelId& panel, DockFlyoutCause cause) {
     pointer_in_flyout_ = false;
     flyout_focused_ = false;
     flyout_ = make_control<Flyout>(StableId(std::string(stable_id().value()) + ".flyout"), *this);
+    const std::shared_ptr<const Theme> site_theme = inherited_theme_override();
+    if (site_theme) (*flyout_).set_theme_override(site_theme);
+    // The flyout is an overlay root, so the colours the program set on the
+    // form (WinForms ambient BackColor and ForeColor) stop at it; it takes
+    // the site's.
+    const std::optional<Color> site_back = ambient_back_color();
+    if (site_back) (*flyout_).back_color = site_back;
+    const std::optional<Color> site_fore = ambient_fore_color();
+    if (site_fore) (*flyout_).fore_color = site_fore;
     flyout_root_ = flyout_;
     move_view_to_flyout(*slot);
     // The slide starts under the strip; under reduced motion or in an
@@ -637,9 +647,18 @@ void DockSite::stale_flyout_elapsed() {
     if (!behind_tabs) close_flyout(DockFlyoutCause::layout);
 }
 
+std::shared_ptr<const Theme> DockSite::inherited_theme_override() const {
+    std::shared_ptr<const Theme> found = theme_override();
+    for (Control::Ptr ancestor = parent(); !found && ancestor; ancestor = (*ancestor).parent()) {
+        found = (*ancestor).theme_override();
+    }
+    return found;
+}
+
 // -- hover, leave and outside presses ------------------------------------------------------------
 
 void DockSite::start_hover(const DockPanelId& panel) {
+    if (workspace_ != nullptr && !(*workspace_).auto_hide_opens_on_hover()) return;
     if (hover_panel_ == panel && hover_timer_.connected()) return;
     stop_hover();
     Window* const host = attached_window();
@@ -761,7 +780,7 @@ DockSite::Hit DockSite::flyout_hit(Point local) const {
         return hit;
     }
     if (!placed.caption.contains(local)) return hit;
-    const CaptionGeometry caption = caption_geometry(placed.caption, pin_shown(stacks_[index]));
+    const CaptionGeometry caption = caption_geometry(placed.caption, pin_shown(stacks_[index]), close_shown(stacks_[index]));
     hit.zone = Zone::caption;
     if (caption.menu.contains(local)) hit.zone = Zone::menu;
     if (caption.pin.contains(local)) hit.zone = Zone::pin;

@@ -1,5 +1,7 @@
 #include "display_link_trace.hpp"
 #import <AppKit/AppKit.h>
+// kAEQuitReason and the session-end reasons (AERegistry.h); constants only.
+#import <CoreServices/CoreServices.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <QuartzCore/CABase.h>
 #import <QuartzCore/CADisplayLink.h>
@@ -9,14 +11,17 @@
 #include "application_menu.hpp"
 #include "front_reuse.hpp"
 #include "live_surface_damage.hpp"
+#include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
 #include "../../../render/skia/raster/skia_raster.hpp"
+#include "../../../render/skia/raster/skia_splash_bake.hpp"
 #include "../../../core/host/frame_capture/frame_capture.hpp"
 #include "../../../core/application/splashscreen_surface.hpp"
 #include "../compositor/macos_compositor.hpp"
 #include "../../posix/fonts/sealed_pages_posix.hpp"
+#include "../../../core/resources/fonts/bundled_font_set.hpp"
 
 #include <algorithm>
 #include <array>
@@ -25,11 +30,15 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <dlfcn.h>
 #include <exception>
 #include <filesystem>
 #include <limits>
 #include <memory>
 #include <optional>
+#include <span>
 #include <time.h>
 #include <string>
 #include <string_view>
@@ -713,14 +722,46 @@ static std::string utf8_string(id value) {
     return bytes == nullptr ? std::string{} : std::string(bytes);
 }
 
-// The bundle's font directory (Contents/Resources/fonts), or empty when the process has no
-// bundle resources.
+// A byte in the module that holds GUI.Forms, whose address names that module to dladdr.
+static const char gui_forms_module_anchor{};
+
+// The directory of the image holding this code: the GUI.Forms dynamic library or framework
+// binary when another process (a .NET runtime, a plug-in host) loaded it, else the executable
+// it is linked into; empty when dladdr cannot say.
+static std::filesystem::path gui_forms_module_directory() {
+    Dl_info information{};
+    const int found = dladdr(&gui_forms_module_anchor, &information);
+    if (found == 0 || information.dli_fname == nullptr || information.dli_fname[0] == '\0') return {};
+    std::error_code error;
+    const std::filesystem::path module = std::filesystem::canonical(information.dli_fname, error);
+    if (error) return {};
+    return module.parent_path();
+}
+
+// The bundled font directory: the first of GUI_FORMS_FONT_DIR, the main bundle's
+// Contents/Resources/fonts, "fonts" beside the GUI.Forms image and a framework's
+// Resources/fonts next to it that holds the required faces; empty when none does, which
+// locate_bundled_fonts counts and reports (bundled_font_diagnostics, bundled_font_refusal).
 static std::filesystem::path bundle_font_directory() {
+    std::array<gui_forms::detail::BundledFontCandidate, 4> candidates{};
+    const char* override_path = std::getenv("GUI_FORMS_FONT_DIR");
+    candidates[0].source = gui_forms::BundledFontSource::environment;
+    if (override_path != nullptr) candidates[0].directory = override_path;
     NSString* resources = [[NSBundle mainBundle] resourcePath];
-    if (resources == nil) return {};
-    const std::filesystem::path directory =
-        std::filesystem::path(resources.fileSystemRepresentation) / "fonts";
-    return directory;
+    candidates[1].source = gui_forms::BundledFontSource::application_bundle;
+    if (resources != nil)
+        candidates[1].directory = std::filesystem::path(resources.fileSystemRepresentation) / "fonts";
+    const std::filesystem::path library_directory = gui_forms_module_directory();
+    candidates[2].source = gui_forms::BundledFontSource::library_module;
+    candidates[3].source = gui_forms::BundledFontSource::library_module;
+    if (!library_directory.empty()) {
+        candidates[2].directory = library_directory / "fonts";
+        // A framework's binary sits in Versions/A beside its Resources folder.
+        candidates[3].directory = library_directory / "Resources" / "fonts";
+    }
+    const gui_forms::detail::BundledFontLocation location =
+        gui_forms::detail::locate_bundled_fonts(candidates);
+    return location.directory;
 }
 
 // The process's one bundled font set, shared by every view and held by the application run:
@@ -764,7 +805,10 @@ NSString* native_accessibility_role(SemanticRole role) {
     case SemanticRole::slider: return NSAccessibilitySliderRole;
     case SemanticRole::scroll_bar: return NSAccessibilityScrollBarRole;
     case SemanticRole::progress_bar: return NSAccessibilityProgressIndicatorRole;
-    case SemanticRole::image: return NSAccessibilityImageRole;
+    // AppKit has no chart role: a figure is an image with its summary as
+    // the description.
+    case SemanticRole::image:
+    case SemanticRole::figure: return NSAccessibilityImageRole;
     case SemanticRole::tab_group: return NSAccessibilityTabGroupRole;
     case SemanticRole::tab: return NSAccessibilityRadioButtonRole;
     case SemanticRole::split_pane: return NSAccessibilitySplitGroupRole;
@@ -974,6 +1018,15 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     std::string _frameCapturePath;
     BOOL _frameCaptureCompleted;
     BOOL _frameCaptureSaved;
+    // The invalidation overlay's present-time storage (gui_forms/diagnostics/
+    // invalidation_overlay), reused: the scratch frame the outlines are
+    // composited in (sized on first use), the device areas they cover now,
+    // those they covered at the last fade tick, and the fade timer, nil
+    // while nothing shows. The timer retains a weak proxy, not the view.
+    std::vector<std::byte> _overlayScratch;
+    std::vector<gui_forms::DevicePixelRect> _overlayRegions;
+    std::vector<gui_forms::DevicePixelRect> _overlayDrawn;
+    NSTimer* _overlayTimer;
 }
 - (instancetype)initWithModel:(std::unique_ptr<Window>)model
        transparentFullSizeContent:(BOOL)transparentFullSizeContent
@@ -985,7 +1038,7 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 - (void)completeFrameCaptureIfDue:(NSRect)dirtyRect presented:(BOOL)presented;
 - (HostDispatchResult)dispatchHostPayload:(HostEventPayload)payload
                          timestampNanoseconds:(std::uint64_t)timestamp;
-- (BOOL)requestCloseHiding:(BOOL)hiding;
+- (BOOL)requestCloseHiding:(BOOL)hiding reason:(HostCloseReason)reason;
 - (void)notifyClosed;
 - (void)notifyClosedWithReason:(HostCloseReason)reason;
 - (void)notifyActivation:(BOOL)active;
@@ -997,6 +1050,7 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 // Stage T5: the accessibility display options changed (reduce
 // transparency); the compositor state is reported again.
 - (void)accessibilityDisplayOptionsChanged:(NSNotification*)notification;
+- (void)systemColoursChanged:(NSNotification*)notification;
 - (void)reportCompositorState;
 // The view the native window shows: this view, or the backdrop container
 // holding it for a window declared non-opaque (make_macos_content_view).
@@ -1010,6 +1064,9 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 - (void)startDisplayLinkIfNeeded;
 - (void)stopDisplayLink;
 - (void)displayLinkTick;
+- (void)armInvalidationOverlayTimer;
+- (void)stopInvalidationOverlayTimer;
+- (void)invalidationOverlayTick;
 - (void)setDisplayTraceEnabled:(BOOL)enabled;
 - (MacDisplayLinkTrace)displayTraceSnapshot;
 - (void)recordNativeCallbackFault:(const char*)operation
@@ -1067,6 +1124,32 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
         return;
     }
     [view displayLinkTick];
+}
+@end
+
+// NSTimer retains its target: this proxy observes the view weakly, so the
+// invalidation overlay's fade timer cannot keep a closed window's view
+// alive, and a tick after the view is gone stops the timer.
+@interface GUIFormsOverlayTimerTarget : NSObject {
+    __weak GUIFormsView* _view;
+}
+- (instancetype)initWithView:(GUIFormsView*)view;
+- (void)tick:(NSTimer*)sender;
+@end
+
+@implementation GUIFormsOverlayTimerTarget
+- (instancetype)initWithView:(GUIFormsView*)view {
+    self = [super init];
+    if (self != nil) _view = view;
+    return self;
+}
+- (void)tick:(NSTimer*)sender {
+    GUIFormsView* view = _view;
+    if (view == nil) {
+        [sender invalidate];
+        return;
+    }
+    [view invalidationOverlayTick];
 }
 @end
 
@@ -2058,6 +2141,12 @@ void post_perform_close(NSWindow* window) {
                selector:@selector(accessibilityDisplayOptionsChanged:)
                    name:NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification
                  object:nil];
+        // The accent and highlight colours (System Settings, Appearance).
+        [[NSNotificationCenter defaultCenter]
+            addObserver:self
+               selector:@selector(systemColoursChanged:)
+                   name:NSSystemColorsDidChangeNotification
+                 object:nil];
     }
     return self;
 }
@@ -2100,8 +2189,24 @@ void post_perform_close(NSWindow* window) {
     [self collectDamage];
 }
 
+- (void)systemColoursChanged:(NSNotification*)notification {
+    (void)notification;
+    [self reportCompositorState];
+    [self collectDamage];
+}
+
+// The system's Light or Dark reaches the view as a change of its effective
+// appearance (the host sets no appearance of its own, so the view follows
+// the application's): the state is read again, dark_scheme with it.
+- (void)viewDidChangeEffectiveAppearance {
+    [super viewDidChangeEffectiveAppearance];
+    [self reportCompositorState];
+    [self collectDamage];
+}
+
 // Reports the window server's state to the window (stage T5, C3): after
-// attach, and whenever the accessibility display options change. A reading
+// attach, and whenever the accessibility display options, the system
+// colours or the effective appearance (Light or Dark) change. A reading
 // that differs from the window's last report only by its generation is not
 // sent.
 - (void)reportCompositorState {
@@ -2137,10 +2242,10 @@ void post_perform_close(NSWindow* window) {
     return (*_hostSession).dispatch(std::move(event));
 }
 
-- (BOOL)requestCloseHiding:(BOOL)hiding {
+- (BOOL)requestCloseHiding:(BOOL)hiding reason:(HostCloseReason)reason {
     if (_hostAttached == NO) return NO;
     const HostDispatchResult result = [self dispatchHostPayload:
-        HostCloseRequest{HostCloseReason::user, false, hiding == YES}
+        HostCloseRequest{reason, false, hiding == YES}
                                            timestampNanoseconds:host_now_nanoseconds()];
     return result.accepted() && result.close_allowed;
 }
@@ -2416,6 +2521,7 @@ void post_perform_close(NSWindow* window) {
     if (newWindow == nil) {
         [_displayLink invalidate];
         _displayLink = nil;
+        [self stopInvalidationOverlayTimer];
     }
     [super viewWillMoveToWindow:newWindow];
 }
@@ -2426,6 +2532,7 @@ void post_perform_close(NSWindow* window) {
     [self stopDisplayLink];
     [_displayLink invalidate];
     _displayLink = nil;
+    [self stopInvalidationOverlayTimer];
     if (_wakeSource != nil) {
         dispatch_source_cancel(_wakeSource);
         _wakeSource = nil;
@@ -2622,6 +2729,58 @@ void post_perform_close(NSWindow* window) {
     }
 }
 
+// The invalidation overlay's fade (invalidation_overlay.hpp): while outlines
+// show, every tick asks AppKit to draw the areas they cover now and those
+// they covered at the last tick. With nothing owed, such a draw is a copy of
+// the raster (copy_only_draw), composited at present time, so the overlay
+// causes no paint of its own; a faded outline leaves the raster's pixels.
+// The timer stops once nothing shows. UI thread.
+- (void)armInvalidationOverlayTimer {
+    if (_overlayTimer != nil || self.window == nil) return;
+    GUIFormsOverlayTimerTarget* proxy = [[GUIFormsOverlayTimerTarget alloc] initWithView:self];
+    _overlayTimer = [NSTimer timerWithTimeInterval:(1.0 / 30.0)
+                                            target:proxy
+                                          selector:@selector(tick:)
+                                          userInfo:nil
+                                           repeats:YES];
+    [[NSRunLoop currentRunLoop] addTimer:_overlayTimer forMode:NSRunLoopCommonModes];
+}
+
+- (void)stopInvalidationOverlayTimer {
+    if (_overlayTimer == nil) return;
+    [_overlayTimer invalidate];
+    _overlayTimer = nil;
+}
+
+- (void)invalidationOverlayTick {
+    if (!_model) {
+        [self stopInvalidationOverlayTimer];
+        return;
+    }
+    const double scale = self.window == nil ? 1.0 : self.window.backingScaleFactor;
+    const double width = std::max(0.0, self.bounds.size.width) * scale;
+    const double height = std::max(0.0, self.bounds.size.height) * scale;
+    _overlayRegions.clear();
+    gui_forms::InvalidationOverlay* const overlay = (*_model).invalidation_overlay();
+    if (overlay != nullptr) {
+        (*overlay).expire(gui_forms::InvalidationClock::now());
+        (*overlay).fill_regions(scale, static_cast<std::uint32_t>(std::ceil(width)),
+                                static_cast<std::uint32_t>(std::ceil(height)), _overlayRegions);
+    }
+    for (const gui_forms::DevicePixelRect& region : _overlayRegions) {
+        [self setNeedsDisplayInRect:NSMakeRect(region.left / scale, region.top / scale,
+                                               (region.right - region.left) / scale,
+                                               (region.bottom - region.top) / scale)];
+    }
+    for (const gui_forms::DevicePixelRect& region : _overlayDrawn) {
+        [self setNeedsDisplayInRect:NSMakeRect(region.left / scale, region.top / scale,
+                                               (region.right - region.left) / scale,
+                                               (region.bottom - region.top) / scale)];
+    }
+    _overlayDrawn.swap(_overlayRegions);
+    if (_overlayDrawn.empty()) [self stopInvalidationOverlayTimer];
+}
+
 - (void)displayLinkTick {
     if (_displayTrace) {
         MacDisplayLinkTrace& trace = *_displayTrace;
@@ -2799,6 +2958,7 @@ void post_perform_close(NSWindow* window) {
     [self stopDisplayLink];
     // No compositor report reaches a session that is shutting down.
     [NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:NSSystemColorsDidChangeNotification object:nil];
     if (_wakeSource != nil) {
         dispatch_source_set_timer(_wakeSource, DISPATCH_TIME_FOREVER,
                                   DISPATCH_TIME_FOREVER, 0);
@@ -3176,6 +3336,7 @@ void post_perform_close(NSWindow* window) {
                 frame, update.destination, 1.0);
             _raster.restore();
             if (!liveDrawsSucceeded) break;
+            (*_model).note_live_surface_presented(update, _liveRegions[index]);
         }
         _raster.end_frame();
     }
@@ -3225,6 +3386,50 @@ void post_perform_close(NSWindow* window) {
     bool presented = false;
     std::uint64_t copyNanoseconds = 0U;
     const void* pixels = _raster.pixels();
+    // The invalidation overlay at present time: the dirty rectangle's pixels
+    // are copied into a scratch frame and the outlines composited there, and
+    // that frame is drawn instead of the raster. AppKit clips the draw to the
+    // dirty rectangles, so the scratch frame's pixels outside them are never
+    // shown. The raster is never drawn on, so the overlay damages nothing.
+    // Off, this is one relaxed load.
+    gui_forms::InvalidationOverlay* const overlay = (*_model).invalidation_overlay();
+    if (overlay != nullptr && pixels != nullptr && _rasterHasContent == YES && presentationSize.width > 0.0) {
+        const std::size_t frameBytes = _raster.byte_size();
+        const std::int32_t frameWidth = static_cast<std::int32_t>(_raster.pixel_width());
+        const std::int32_t frameHeight = static_cast<std::int32_t>(_raster.pixel_height());
+        const std::size_t rowBytes = _raster.row_bytes();
+        const double frameScale = static_cast<double>(frameWidth) / presentationSize.width;
+        if (_overlayScratch.size() != frameBytes) _overlayScratch.assign(frameBytes, std::byte{0});
+        // The dirty rectangle in device pixels, outward (the view is flipped,
+        // so its rows are the raster's).
+        gui_forms::DevicePixelRect box{};
+        box.left = std::clamp<std::int32_t>(
+            static_cast<std::int32_t>(std::floor(dirtyRect.origin.x * frameScale)), 0, frameWidth);
+        box.top = std::clamp<std::int32_t>(
+            static_cast<std::int32_t>(std::floor(dirtyRect.origin.y * frameScale)), 0, frameHeight);
+        box.right = std::clamp<std::int32_t>(
+            static_cast<std::int32_t>(std::ceil((dirtyRect.origin.x + dirtyRect.size.width) * frameScale)),
+            box.left, frameWidth);
+        box.bottom = std::clamp<std::int32_t>(
+            static_cast<std::int32_t>(std::ceil((dirtyRect.origin.y + dirtyRect.size.height) * frameScale)),
+            box.top, frameHeight);
+        const std::byte* const source = static_cast<const std::byte*>(pixels);
+        const std::size_t rowOffset = static_cast<std::size_t>(box.left) * 4U;
+        const std::size_t rowLength = static_cast<std::size_t>(box.right - box.left) * 4U;
+        for (std::int32_t y = box.top; y < box.bottom; ++y) {
+            const std::size_t offset = static_cast<std::size_t>(y) * rowBytes + rowOffset;
+            std::memcpy(_overlayScratch.data() + offset, source + offset, rowLength);
+        }
+        const gui_forms::InvalidationClock::time_point now = gui_forms::InvalidationClock::now();
+        (*overlay).expire(now);
+        gui_forms::InvalidationOverlayTarget target{};
+        target.pixels = std::span<std::byte>(_overlayScratch);
+        target.width = static_cast<std::uint32_t>(frameWidth);
+        target.height = static_cast<std::uint32_t>(frameHeight);
+        target.row_bytes = rowBytes;
+        (*overlay).compose(target, frameScale, now, box);
+        pixels = _overlayScratch.data();
+    }
     // Native exposure/snapshot callbacks can precede unocclusion. The model
     // intentionally declines painting then; the last complete raster is still
     // valid and must be copied into AppKit's newly supplied backing context.
@@ -3296,6 +3501,11 @@ void post_perform_close(NSWindow* window) {
     // timing of this pass (threaded sub-surfaces design note sections 7 and
     // 8), once per pass, before the presentations are released.
     if (livePresented) [self reportLivePresentations];
+    // Outlines recorded by this draw may reach outside its dirty rectangles
+    // (labels, the legend): the fade timer's first tick presents them.
+    if ((overlay != nullptr && !(*overlay).empty()) || !_overlayDrawn.empty()) {
+        [self armInvalidationOverlayTimer];
+    }
     if (presented) {
 #if defined(GUI_FORMS_PREPARED_TEXT)
         if (committed) _pendingLivePresentations.clear();
@@ -3893,7 +4103,8 @@ void finish_run(MacRunEnd& end) {
     gui_forms::host::MacApplicationRun* _run;
     gui_forms::HostWindowId _windowId;
     // The reason the closed event reports: user for every native close,
-    // application when the run destroys the window.
+    // application when the run destroys the window, quit or session_end
+    // when a quit request closes it (closeForTermination:reason:).
     HostCloseReason _closeReason;
 }
 - (instancetype)initWithView:(GUIFormsView*)view
@@ -3906,9 +4117,11 @@ void finish_run(MacRunEnd& end) {
 // Closes without asking the closing handler (HostWindowing::destroy_window).
 - (void)closeWindowForApplication:(NSWindow*)window;
 // A quit request (Cmd-Q, the Dock, a quit Apple event, a log-out): for the
-// window that ends the run, asks the closing handler as the close button
-// does and closes the window when it agrees.
-- (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window;
+// window that ends the run, asks the closing handler with reason (quit, or
+// session_end for a log-out, restart or shut-down) and closes the window
+// when it agrees. A hide-on-close window closes rather than hides.
+- (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window
+                                                     reason:(HostCloseReason)reason;
 @end
 
 @implementation GUIFormsWindowDelegate
@@ -3947,7 +4160,7 @@ void finish_run(MacRunEnd& end) {
     gui_forms::host::mac_run_report_frame(_run, _windowId);
 }
 - (BOOL)windowShouldClose:(NSWindow*)sender {
-    if (_view != nil && ![_view requestCloseHiding:_hideOnClose]) return NO;
+    if (_view != nil && ![_view requestCloseHiding:_hideOnClose reason:HostCloseReason::user]) return NO;
     if (_hideOnClose) {
         [sender orderOut:nil];
         gui_forms::host::mac_run_hidden_on_close(_run, _windowId);
@@ -4009,11 +4222,19 @@ void finish_run(MacRunEnd& end) {
 - (void)windowDidExitFullScreen:(NSNotification*)notification {
     [_view notifyWindowState];
 }
-- (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window {
+- (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window
+                                                     reason:(HostCloseReason)reason {
     if (!_stopsApplicationOnClose) return gui_forms::host::MacTerminationClose::not_ending;
-    // windowShouldClose: rather than performClose:, which beeps and does
-    // nothing for a window without a close button.
-    if (![self windowShouldClose:window]) return gui_forms::host::MacTerminationClose::refused;
+    // Asked directly rather than through performClose:, which beeps and does
+    // nothing for a window without a close button, or windowShouldClose:,
+    // which would report a user close.
+    if (_view != nil && ![_view requestCloseHiding:NO reason:reason]) {
+        return gui_forms::host::MacTerminationClose::refused;
+    }
+    _hideOnClose = NO;
+    _closeReason = reason;
+    // NSWindow close does not ask windowShouldClose:; windowWillClose:
+    // reports _closeReason before it returns.
     [window close];
     return gui_forms::host::MacTerminationClose::closed;
 }
@@ -4076,12 +4297,39 @@ void finish_run(MacRunEnd& end) {
     if (paths.empty()) return;
     (*_openFiles)(std::move(paths));
 }
+// The reason of the quit request being handled: session_end when the quit
+// Apple event says the session is ending (log out, restart, shut down, with
+// or without the system's confirmation dialog), otherwise quit (Cmd-Q, the
+// Dock, another application's plain quit event, or no Apple event at all).
+static HostCloseReason termination_close_reason() {
+    NSAppleEventDescriptor* event = [[NSAppleEventManager sharedAppleEventManager] currentAppleEvent];
+    if (event == nil) return HostCloseReason::quit;
+    NSAppleEventDescriptor* reason = [event attributeDescriptorForKeyword:kAEQuitReason];
+    if (reason == nil) return HostCloseReason::quit;
+    // The reason is an enumerated value; some senders type it as a type code.
+    OSType code = [reason enumCodeValue];
+    if (code == 0) code = [reason typeCodeValue];
+    switch (code) {
+        case kAELogOut:
+        case kAEReallyLogOut:
+        case kAEShowRestartDialog:
+        case kAERestart:
+        case kAEShowShutdownDialog:
+        case kAEShutDown:
+            return HostCloseReason::session_end;
+        default:
+            return HostCloseReason::quit;
+    }
+}
+
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)sender {
+    const HostCloseReason reason = termination_close_reason();
     for (NSWindow* window in [sender windows]) {
         const id delegate = [window delegate];
         if (![delegate isKindOfClass:[GUIFormsWindowDelegate class]]) continue;
         GUIFormsWindowDelegate* windowDelegate = static_cast<GUIFormsWindowDelegate*>(delegate);
-        const gui_forms::host::MacTerminationClose outcome = [windowDelegate closeForTermination:window];
+        const gui_forms::host::MacTerminationClose outcome =
+            [windowDelegate closeForTermination:window reason:reason];
         if (outcome == gui_forms::host::MacTerminationClose::not_ending) continue;
         if (outcome == gui_forms::host::MacTerminationClose::refused) return NSTerminateCancel;
         if (_end != nullptr) gui_forms::host::finish_run(*_end);

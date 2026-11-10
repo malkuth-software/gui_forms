@@ -50,6 +50,51 @@ enum class DisplayOperation : std::uint8_t {
     // radii in `first` (x, y) and the bottom-right and bottom-left in
     // `second`.
     clip_rounded_rect_corners = 26,
+    // Batched marks (Painter::stroke_polyline and the calls after it): the
+    // spans and styles are in `marks`.
+    stroke_polyline = 27,
+    fill_polygon = 28,
+    fill_band = 29,
+    fill_rects = 30,
+    fill_rects_each = 31,
+    stroke_segments = 32,
+    draw_markers = 33,
+    // A conic gradient: `rect`, `first` its centre, `scalar` its start angle
+    // in degrees, and `gradient_stops`.
+    fill_conic_gradient = 34,
+    // Patterns: `rect`, with the pattern in `marks`.
+    fill_checker = 35,
+    fill_grid_pattern = 36,
+    // Per-corner rounded rectangles: `rect`, the radii as for
+    // clip_rounded_rect_corners, `color`, and for the stroke `scalar` its
+    // width.
+    fill_rounded_rect_corners = 37,
+    stroke_rounded_rect_corners = 38,
+};
+
+// The payload of a batched mark or pattern command: the caller's spans,
+// copied once when the command is recorded, and the style. Shared read-only
+// by every copy of the recording. Only the fields the operation names are
+// set:
+// - stroke_polyline: `points`, `stroke`;
+// - fill_polygon: `points`, `color` on the command, `fill_rule`;
+// - fill_band: `points` (upper), `lower_points`, `color` on the command;
+// - fill_rects: `rects`, `color` on the command;
+// - fill_rects_each: `rects`, `colors`;
+// - stroke_segments: `segments`, `stroke`;
+// - draw_markers: `points`, `marker`;
+// - fill_checker: `checker`; fill_grid_pattern: `grid`.
+struct DisplayMarks final {
+    std::vector<Point> points;
+    std::vector<Point> lower_points;
+    std::vector<Rect> rects;
+    std::vector<Color> colors;
+    std::vector<PaintSegment> segments;
+    StrokeStyle stroke{};
+    MarkerStyle marker{};
+    CheckerPattern checker{};
+    GridPattern grid{};
+    PolygonFillRule fill_rule{PolygonFillRule::nonzero};
 };
 
 struct DisplayCommand final {
@@ -86,6 +131,8 @@ struct DisplayCommand final {
     // otherwise.
     std::shared_ptr<const SurfaceMaterial> surface_material{};
     std::shared_ptr<const PreparedTextStorage> prepared_text{};
+    // The spans and styles of a batched mark or pattern, else null.
+    std::shared_ptr<const DisplayMarks> marks{};
     LayoutAuthority prepared_authority{};
 };
 

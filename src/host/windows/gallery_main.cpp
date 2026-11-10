@@ -9,12 +9,18 @@
 #include <utility>
 
 int main(int argc, char** argv) {
-    // The program's application before anything else (APP_WINDOW_RULES_DESIGN
-    // A.5): the Gallery window joins it and takes the theme it sets.
-    const std::unique_ptr<gui_forms::Application> application = gui_forms::gallery::create_gallery_application();
     const std::optional<gui_forms::demo::ProgramOptions> program =
         gui_forms::demo::parse_program_options(argc, argv);
     if (!program) return 2;
+    const std::optional<gui_forms::ThemeBase> base = gui_forms::gallery::gallery_theme_base((*program).theme);
+    if (!base) {
+        std::fprintf(stderr, "unknown Gallery theme: %s\n", (*program).theme.c_str());
+        return 2;
+    }
+    // The program's application before any window (APP_WINDOW_RULES_DESIGN
+    // A.5): the Gallery window joins it and takes the theme it sets.
+    const std::unique_ptr<gui_forms::Application> application =
+        gui_forms::gallery::create_gallery_application(*base);
     gui_forms::host::WindowsHostOptions options;
     options.title = std::string(gui_forms::gallery::gallery_program_name);
     options.initial_size = gui_forms::gallery::gallery_default_size;

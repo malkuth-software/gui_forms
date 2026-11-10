@@ -99,11 +99,31 @@ declared.
   and opened files. A termination fixture covers the quit, logout and
   restart checks.
 
-### Pending (checkpoint 26, pull request #476, not yet on main)
+### Checkpoint 26 (pull request #476)
 - The data grid in the C ABI.
 - The ribbon gaps: its drop-down menus and Backstage take the ribbon's
   theme.
+
+### Pending (checkpoint 27, not yet on main)
 - The look integration.
 - The declarative drag engine (Splitter and SplitContainer on it), the
   Blender-style value bar, the new drawing primitives (batch and polyline
-  drawing, a conic gradient) and the plots package.
+  drawing, a conic gradient) and the plots package (PlotView, its items and
+  Sparkline).
+- Themes: application colour roles, a build-time theme check and window
+  capture.
+- FlexPanel: a reversed axis opens on its main-axis start, and the
+  auto-scroll extent covers all wrapped content; the layout panels take
+  scroll properties in the form language.
+- Docking: floating panels shown while inactive, side restrictions, a close
+  button, SDI mode, hover and the area colour; the C ABI docking table
+  (`GF_TABLE_DOCKING`) with stable panel ids and floating windows owned by
+  the main window.
+- The C ABI host gives each `show_dialog` request an identity; the
+  conformance kit edits text through an editable combo box; Button paints
+  the flat visual style.
+- Menus open in Popup windows with the menu frame and the theme's look.
+- Windows: canvas panning replays occluded content under opaque live
+  surfaces and reuses cached moved shadows, horizontal wheel input
+  (`WM_MOUSEHWHEEL`); each damaged band is presented as a whole-height
+  top-down DIB.

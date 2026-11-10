@@ -135,6 +135,9 @@ gui_forms::TextBox
          Whether matching compares the case of ASCII letters. Other characters
          always compare exactly.
 
+      **text_alignment** : ``HorizontalAlignment``
+         Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
+
       **scroll_offset** : ``Point``, read-only
 
       **password_protected** : ``bool``, read-only
@@ -538,6 +541,10 @@ gui_forms::TextBox
 
       Whether matching compares the case of ASCII letters. Other characters
       always compare exactly.
+
+   .. cpp:member:: HorizontalAlignment text_alignment
+
+      Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
 
    .. cpp:function:: Point scroll_offset() const noexcept
 

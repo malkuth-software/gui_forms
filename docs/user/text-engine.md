@@ -115,10 +115,11 @@ public headers.
 ## Text input
 
 Committed text arrives through `Window::dispatch_text` as UTF-8. Composition
-(IME) is a host capability. macOS bridges preedit composition. Windows also
-advertises `HostCapability::text_composition`, but currently forwards committed
-`WM_CHAR` text without a preedit session; the X11 host does not advertise the
-flag. Multiline `TextBox` reports its document extent through the
+(IME) is a host capability. macOS bridges preedit composition. Windows does
+not advertise `HostCapability::text_composition`: the system input method
+draws its own composition and candidate windows, placed at the focused
+control's caret, and committed `WM_CHAR` text arrives without a preedit
+session. The X11 host does not advertise the flag either. Multiline `TextBox` reports its document extent through the
 shared scrolling base, so it gets real scrollbars, wheel and keyboard paging.
 
 ## Open edges

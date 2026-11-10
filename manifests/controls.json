@@ -239,6 +239,61 @@
       "doc": "api/generated/gui_forms.SweepScope.rst"
     },
     {
+      "id": "sparkline",
+      "type": "Sparkline",
+      "header": "gui_forms/controls/instruments/sparkline/sparkline.hpp",
+      "category": "Information display",
+      "purpose": "Read-only word-sized trend line from the instruments package: the newest values of a ring drawn through the plot primitives, with an optional shaded band and a dot on the newest value.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.Sparkline.rst"
+    },
+    {
+      "id": "plot_view",
+      "type": "PlotView",
+      "header": "gui_forms/controls/plots/plot_view/plot_view.hpp",
+      "category": "Information display",
+      "purpose": "Retained declarative plot from the plots package: axes, series and annotations declared as item children, with pan, zoom, box zoom, query and point picking, a keyboard point cursor, a figure node with a summary and a table view, and an optional live sub-surface.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.PlotView.rst"
+    },
+    {
+      "id": "plot_axis_item",
+      "type": "PlotAxisItem",
+      "header": "gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp",
+      "category": "Information display",
+      "purpose": "Item child of a PlotView declaring one axis: direction, scale, initial range, title, fitting and following.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.PlotAxisItem.rst"
+    },
+    {
+      "id": "plot_series_item",
+      "type": "PlotSeriesItem",
+      "header": "gui_forms/controls/plots/plot_series_item/plot_series_item.hpp",
+      "category": "Information display",
+      "purpose": "Item child of a PlotView declaring one series: its kind, legend label, axes and data (copied, a ring, borrowed views, a signal program or a producer's ring channel).",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.PlotSeriesItem.rst"
+    },
+    {
+      "id": "plot_annotation_item",
+      "type": "PlotAnnotationItem",
+      "header": "gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp",
+      "category": "Information display",
+      "purpose": "Item child of a PlotView declaring a text label anchored at a data point.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.PlotAnnotationItem.rst"
+    },
+    {
       "id": "review_card",
       "type": "ReviewCard",
       "header": "gui_forms/controls/panel/card/review_card/review_card.hpp",
@@ -424,6 +479,17 @@
       "status": "stable",
       "gallery_page": "ranges-and-progress",
       "doc": "api/generated/gui_forms.TrackBar.rst"
+    },
+    {
+      "id": "value_bar",
+      "type": "ValueBar",
+      "header": "gui_forms/controls/range_control/value_bar/value_bar.hpp",
+      "category": "Value setting",
+      "purpose": "Blender-style value bar over RangeControl: a fill or field style, drag-to-scrub within a soft range, click-to-type bounded arithmetic with units within the hard range, snapping and step arrows.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.ValueBar.rst"
     },
     {
       "id": "numeric_up_down",
@@ -1110,6 +1176,138 @@
       "doc": "api/generated/gui_forms.ThreadExceptionDialog.rst"
     },
     {
+      "id": "seven_segment_display",
+      "type": "SevenSegmentDisplay",
+      "header": "gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp",
+      "category": "Information display",
+      "purpose": "Read-only seven-segment readout from the instruments package: digits, hexadecimal and the letters a cell can form, decimal points and colons, right-aligned in a fixed or fitted number of cells, unlit segments drawn faintly.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "instruments",
+      "doc": "api/generated/gui_forms.SevenSegmentDisplay.rst"
+    },
+    {
+      "id": "gauge_base",
+      "type": "GaugeBase",
+      "header": "gui_forms/controls/instruments/gauge_base/gauge_base.hpp",
+      "category": "Information display",
+      "purpose": "Shared read-only gauge authority from the instruments package: a RangeControl value with scale marks, units, decimals and low and high alarm limits, a meter to assistive technology, that LinearGauge and RadialGauge draw.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "instruments",
+      "doc": "api/generated/gui_forms.GaugeBase.rst"
+    },
+    {
+      "id": "linear_gauge",
+      "type": "LinearGauge",
+      "header": "gui_forms/controls/instruments/gauge_base/linear_gauge/linear_gauge.hpp",
+      "category": "Information display",
+      "purpose": "Bar gauge from the instruments package: the value filling a horizontal or vertical scale with marks, alarm segments along it and the value as text at its end.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "instruments",
+      "doc": "api/generated/gui_forms.LinearGauge.rst"
+    },
+    {
+      "id": "radial_gauge",
+      "type": "RadialGauge",
+      "header": "gui_forms/controls/instruments/gauge_base/radial_gauge/radial_gauge.hpp",
+      "category": "Information display",
+      "purpose": "Dial gauge from the instruments package: the value lighting a 270-degree scale arc with marks, alarm segments and a needle, the value as text below the centre.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "instruments",
+      "doc": "api/generated/gui_forms.RadialGauge.rst"
+    },
+    {
+      "id": "dial",
+      "type": "Dial",
+      "header": "gui_forms/controls/instruments/dial/dial.hpp",
+      "category": "Value setting",
+      "purpose": "Rotary knob from the instruments package: a RangeControl value set by turning, dragging or the TrackBar keys over a 270-degree scale, a slider to assistive technology.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "instruments",
+      "doc": "api/generated/gui_forms.Dial.rst"
+    },
+    {
+      "id": "step_indicator",
+      "type": "StepIndicator",
+      "header": "gui_forms/controls/step_indicator/step_indicator.hpp",
+      "category": "Information display",
+      "purpose": "Row of numbered steps joined by connectors, completed steps checked and the current step highlighted, a press on a completed step reported for going back.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "guided-tasks",
+      "doc": "api/generated/gui_forms.StepIndicator.rst"
+    },
+    {
+      "id": "wizard",
+      "type": "Wizard",
+      "header": "gui_forms/controls/wizard/wizard.hpp",
+      "category": "Grouping",
+      "purpose": "Guided sequence of WizardPage children shown one at a time, with the page's title and description, a step indicator, Back, Next or Finish and Cancel, and a cancellable page_changing.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "guided-tasks",
+      "doc": "api/generated/gui_forms.Wizard.rst"
+    },
+    {
+      "id": "wizard_page",
+      "type": "WizardPage",
+      "header": "gui_forms/controls/wizard/wizard_page/wizard_page.hpp",
+      "category": "Grouping",
+      "purpose": "One page of a Wizard: a Panel with the title and description the wizard shows and can_advance, the gate on its Next button.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "guided-tasks",
+      "doc": "api/generated/gui_forms.WizardPage.rst"
+    },
+    {
+      "id": "callout",
+      "type": "Callout",
+      "header": "gui_forms/controls/callout/callout.hpp",
+      "category": "Dialogs and overlays",
+      "purpose": "Non-modal teaching callout at a target control: a card with a beak pointing at the target, a title, wrapped text, a close mark and an optional action, placed below or above the target in an overlay, with optional light dismiss.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "guided-tasks",
+      "doc": "api/generated/gui_forms.Callout.rst"
+    },
+    {
+      "id": "modal_layer",
+      "type": "ModalLayer",
+      "header": "gui_forms/controls/modal_layer/modal_layer.hpp",
+      "category": "Dialogs and overlays",
+      "purpose": "In-window modal layer: any control shown centred over a scrim dimming its owner's window, taking every press outside it and holding focus, closed with a DialogResult through a cancellable closing.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "guided-tasks",
+      "doc": "api/generated/gui_forms.ModalLayer.rst"
+    },
+    {
+      "id": "lookup_combo_box",
+      "type": "LookupComboBox",
+      "header": "gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp",
+      "category": "Selection from a list",
+      "purpose": "Multi-column lookup: a drop-down field choosing a row by key and showing one of its cells, with a headed list of every column filtered by typing.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "guided-tasks",
+      "doc": "api/generated/gui_forms.LookupComboBox.rst"
+    },
+    {
+      "id": "about_dialog",
+      "type": "AboutDialog",
+      "header": "gui_forms/components/about_dialog/about_dialog.hpp",
+      "category": "Dialogs and overlays",
+      "purpose": "An application's About box: a TaskDialog preset with the information icon, the product and version, description and copyright, credits behind an expander, and OK.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "guided-tasks",
+      "doc": "api/generated/gui_forms.AboutDialog.rst"
+    },
+    {
       "id": "folder_browser_dialog",
       "type": "FolderBrowserDialog",
       "header": "gui_forms/components/folder_browser_dialog/folder_browser_dialog.hpp",
@@ -1339,6 +1537,39 @@
       "status": "stable",
       "gallery_page": "timing-and-tooltips",
       "doc": "api/generated/gui_forms.HelpProvider.rst"
+    },
+    {
+      "id": "help_book",
+      "type": "HelpBook",
+      "header": "gui_forms/controls/help/help_book/help_book.hpp",
+      "category": "Information display",
+      "purpose": "Paper pane showing one help page: title, markdown body with callouts and collapsible sections, topic, popup and external links, keyboard link stops, and a print layout.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "help-book",
+      "doc": "api/generated/gui_forms.HelpBook.rst"
+    },
+    {
+      "id": "help_book_viewer",
+      "type": "HelpBookViewer",
+      "header": "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp",
+      "category": "Information display",
+      "purpose": "Three-pane help viewer: toolbar, Contents, Index, Search and Bookmarks tabs and a HelpBook, with history and contents sync, over one compiled helpbook section.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "help-book",
+      "doc": "api/generated/gui_forms.HelpBookViewer.rst"
+    },
+    {
+      "id": "help_book_system",
+      "type": "HelpBookSystem",
+      "header": "gui_forms/controls/help/help_book_system/help_book_system.hpp",
+      "category": "Components",
+      "purpose": "The program's help: catalog of help fields, helpbook compile, F1 walking up to the window page, What's This, window cards, paper popups and the help window; external links go to the program.",
+      "winforms": "Help",
+      "status": "provisional",
+      "gallery_page": "help-book",
+      "doc": "api/generated/gui_forms.HelpBookSystem.rst"
     },
     {
       "id": "semantic_feedback",

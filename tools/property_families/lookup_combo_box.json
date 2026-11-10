@@ -1,0 +1,118 @@
+{
+  "family": "LookupComboBox",
+  "step": "2.5",
+  "declaring": "LookupComboBox",
+  "header": "include/gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp",
+  "source": "src/controls/lookup_combo_box/lookup_combo_box.cpp",
+  "capabilities_header": "include/gui_forms/controls/lookup_combo_box/lookup_combo_box_capabilities/lookup_combo_box_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [],
+  "not_properties": [],
+  "properties": [
+    {
+      "name": "selected_key",
+      "capability": "LookupComboBoxSelectedKey",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The key of the chosen row, or empty for none. A write of a key no row has throws std::invalid_argument; the field then shows the chosen row's display cell.",
+      "getter": "selected_key",
+      "setter": "set_selected_key",
+      "clear": null,
+      "field": "selected_key_",
+      "event": "selected_key_changed_",
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "hand",
+      "table": {
+        "kind": "text",
+        "category": "Behavior",
+        "description": "The key of the chosen row; empty for none.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hand": [
+        "written shows the row's display cell in the field, then raises selected_key_changed"
+      ],
+      "sample": "std::string(\"codemod.key\")"
+    },
+    {
+      "name": "display_column",
+      "capability": "LookupComboBoxDisplayColumn",
+      "value": "std::uint32_t",
+      "initial": "0U",
+      "comment": "The column whose cell the field shows for the chosen row. A column the rows lack shows nothing.",
+      "getter": "display_column",
+      "setter": "set_display_column",
+      "clear": null,
+      "field": "display_column_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "hand",
+      "table": {
+        "kind": "unsigned_integer",
+        "category": "Appearance",
+        "description": "The column the field shows.",
+        "default": "BindingValue{std::uint64_t{0U}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hand": [
+        "written shows the chosen row's new display cell in the field"
+      ],
+      "sample": "std::uint32_t{1U}"
+    },
+    {
+      "name": "max_drop_down_rows",
+      "capability": "LookupComboBoxMaxDropDownRows",
+      "value": "std::uint32_t",
+      "initial": "8U",
+      "comment": "The rows the open list shows before it scrolls, from 1 to 64 (std::invalid_argument).",
+      "getter": "max_drop_down_rows",
+      "setter": "set_max_drop_down_rows",
+      "clear": null,
+      "field": "max_drop_down_rows_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "generated",
+      "table": {
+        "kind": "unsigned_integer",
+        "category": "Behavior",
+        "description": "The rows the open list shows before it scrolls.",
+        "default": "BindingValue{std::uint64_t{8U}}",
+        "effects": "Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "prepare": [
+        "if (incoming == 0U || incoming > 64U) throw std::invalid_argument(\"LookupComboBox drop-down rows must be from 1 to 64\");"
+      ],
+      "sample": "std::uint32_t{5U}"
+    }
+  ],
+  "test": {
+    "type": "LookupComboBox",
+    "configure": ["(*control).set_rows({LookupRow{\"codemod.key\", {\"Codemod\"}}});"],
+    "include": "gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp"
+  }
+}

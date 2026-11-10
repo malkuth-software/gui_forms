@@ -33,6 +33,8 @@ Lists, trees, combo boxes, choice groups and breadcrumbs.
      - A row of buttons from which the user picks exactly one choice.
    * - :cpp:class:`BreadcrumbTrail <gui_forms::BreadcrumbTrail>`
      - A location bar that shows the path to the current place as clickable segments.
+   * - :cpp:class:`LookupComboBox <gui_forms::LookupComboBox>`
+     - Multi-column lookup: a drop-down field choosing a row by key and showing one of its cells, with a headed list of every column filtered by typing.
 
 .. toctree::
    :hidden:
@@ -48,6 +50,7 @@ Lists, trees, combo boxes, choice groups and breadcrumbs.
    generated/gui_forms.DataGridView
    generated/gui_forms.ChoiceGroup
    generated/gui_forms.BreadcrumbTrail
+   generated/gui_forms.LookupComboBox
 
 Related types
 -------------
@@ -412,6 +415,20 @@ Related types
      - A change of the selected items, after it happened.
    * - :cpp:class:`ListViewViewCapability <gui_forms::ListViewViewCapability>`
      - How the items are arranged (see ListViewView).
+   * - :cpp:class:`LookupColumn <gui_forms::LookupColumn>`
+     - One column of a LookupComboBox's list: its header and its width in logical units.
+   * - :cpp:class:`LookupComboBox::Parts <gui_forms::LookupComboBox::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`LookupComboBoxCapabilities <gui_forms::LookupComboBoxCapabilities>`
+     - Every LookupComboBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`LookupComboBoxDisplayColumnCapability <gui_forms::LookupComboBoxDisplayColumnCapability>`
+     - The column whose cell the field shows for the chosen row.
+   * - :cpp:class:`LookupComboBoxMaxDropDownRowsCapability <gui_forms::LookupComboBoxMaxDropDownRowsCapability>`
+     - The rows the open list shows before it scrolls, from 1 to 64 (std::invalid_argument).
+   * - :cpp:class:`LookupComboBoxSelectedKeyCapability <gui_forms::LookupComboBoxSelectedKeyCapability>`
+     - The key of the chosen row, or empty for none.
+   * - :cpp:class:`LookupRow <gui_forms::LookupRow>`
+     - One row of a LookupComboBox: the key the application stores and the cells shown, one per column (missing cells show empty).
    * - :cpp:class:`ObjectColumnId <gui_forms::ObjectColumnId>`
      -  
    * - :cpp:class:`ObjectContextRequest <gui_forms::ObjectContextRequest>`
@@ -4174,6 +4191,124 @@ Related types
    .. cpp:member:: PropertyCell<ListViewView, ListViewViewCapability<Declaring>> view
 
       Default: ``{ListViewView::details}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LookupColumn final
+
+   ``#include <gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp>``
+
+   One column of a LookupComboBox's list: its header and its width in logical units.
+
+   .. cpp:member:: std::string header
+
+   .. cpp:member:: double width
+
+      Default: ``{100.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LookupComboBox::Parts final
+
+   ``#include <gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts).
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry well
+
+   .. cpp:member:: PartGeometry label
+
+   .. cpp:member:: PartGeometry actuator
+
+   .. cpp:member:: PartGeometry glyph
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LookupComboBoxCapabilities : public LookupComboBoxSelectedKeyCapability<Declaring>, public LookupComboBoxDisplayColumnCapability<Declaring>, public LookupComboBoxMaxDropDownRowsCapability<Declaring>
+
+   ``#include <gui_forms/controls/lookup_combo_box/lookup_combo_box_capabilities/lookup_combo_box_capabilities.hpp>``
+
+   Every LookupComboBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string selected_key
+
+      The key of the chosen row, or empty for none. A write of a key no row has throws std::invalid_argument; the field then shows the chosen row's display cell.
+
+   .. cpp:member:: std::uint32_t display_column
+
+      The column whose cell the field shows for the chosen row. A column the rows lack shows nothing.
+
+   .. cpp:member:: std::uint32_t max_drop_down_rows
+
+      The rows the open list shows before it scrolls, from 1 to 64 (std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LookupComboBoxDisplayColumnCapability
+
+   ``#include <gui_forms/controls/lookup_combo_box/lookup_combo_box_capabilities/lookup_combo_box_capabilities.hpp>``
+
+   The column whose cell the field shows for the chosen row. A column the rows lack shows nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LookupComboBoxDisplayColumnCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, LookupComboBoxDisplayColumnCapability<Declaring>> display_column
+
+      Default: ``{0U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LookupComboBoxMaxDropDownRowsCapability
+
+   ``#include <gui_forms/controls/lookup_combo_box/lookup_combo_box_capabilities/lookup_combo_box_capabilities.hpp>``
+
+   The rows the open list shows before it scrolls, from 1 to 64 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LookupComboBoxMaxDropDownRowsCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, LookupComboBoxMaxDropDownRowsCapability<Declaring>> max_drop_down_rows
+
+      Default: ``{8U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LookupComboBoxSelectedKeyCapability
+
+   ``#include <gui_forms/controls/lookup_combo_box/lookup_combo_box_capabilities/lookup_combo_box_capabilities.hpp>``
+
+   The key of the chosen row, or empty for none. A write of a key no row has throws std::invalid_argument; the field then shows the chosen row's display cell.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LookupComboBoxSelectedKeyCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, LookupComboBoxSelectedKeyCapability<Declaring>> selected_key
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LookupRow final
+
+   ``#include <gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp>``
+
+   One row of a LookupComboBox: the key the application stores and the cells shown, one per column (missing cells show empty).
+
+   .. cpp:member:: std::string key
+
+   .. cpp:member:: std::vector<std::string> cells
 
 .. cpp:namespace:: gui_forms
 

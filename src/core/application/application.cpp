@@ -4,6 +4,7 @@
 
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
+#include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -499,6 +500,15 @@ bool Application::tool_tips_shown() const noexcept {
     return shown;
 }
 
+void Application::set_invalidation_overlay(bool enabled) noexcept {
+    set_invalidation_overlay_default(enabled);
+}
+
+bool Application::invalidation_overlay() const noexcept {
+    const bool enabled = invalidation_overlay_default();
+    return enabled;
+}
+
 bool Application::request_open_files(std::vector<std::string> paths) {
     if (paths.empty() || paths.size() > maximum_pending_open_files - pending_open_files_.size()) return false;
     pending_open_files_.reserve(pending_open_files_.size() + paths.size());
@@ -656,6 +666,20 @@ HostServiceStatus ApplicationWindowHandle::request_frame(const Rect content) con
         // A native request may report the new frame synchronously and its
         // handlers may close this window; `state` is held through the call.
         status = (*windowing).request_frame((*state).id, content);
+    } catch (...) { status.error = HostServiceError::backend_failure; }
+    return status;
+}
+
+HostServiceStatus ApplicationWindowHandle::set_shown_while_inactive(const bool shown) const {
+    HostServiceStatus status;
+    const std::shared_ptr<detail::ApplicationWindowState> state = ready_state(state_, status);
+    if (!state) return status;
+    HostWindowing* windowing = run_windowing(*state, status);
+    if (windowing == nullptr) return status;
+    try {
+        // A native show may reach handlers that close this window; `state`
+        // is held through the call.
+        status = (*windowing).set_shown_while_inactive((*state).id, shown);
     } catch (...) { status.error = HostServiceError::backend_failure; }
     return status;
 }

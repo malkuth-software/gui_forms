@@ -2,12 +2,16 @@
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/event.hpp"
+#include "gui_forms/events/drag_events/drag_events.hpp"
 #include "gui_forms/controls/splitter/splitter_capabilities/splitter_capabilities.hpp"
 
+#include <memory>
 #include <optional>
 #include <span>
 
 namespace gui_forms {
+
+class SplitterDrag;
 
 // A move of a Splitter by the user. `pointer` is the pointer in the parent's
 // coordinates. In splitter_moving, `split_position` is the target's proposed
@@ -31,9 +35,21 @@ struct SplitterMoveEvent final {
 // for the rest of the parent's dock area. A splitter docked none or fill, or
 // one with no target, does nothing. The bar is painted by role (a face
 // plate) and takes no focus, as in Windows Forms.
+//
+// The drag runs on the window's drag engine (roadmap 2.1, the study's step
+// M1) as a projection along the axis: the press starts it at once, each move
+// previews the extent live (splitter_moving), the release commits it
+// (splitter_moved). Escape, a lost capture and the window's deactivation
+// cancel and put the target back at its extent before the drag, as Windows
+// Forms' Escape does. The begin_keyboard_drag rule action moves it from the
+// keyboard: the arrows along the axis step by 10 (Ctrl 100, Shift 1), Enter
+// commits, Escape cancels. The engine raises the typed drag interactions
+// (drag_started, drag_dropped, drag_ended; a splitter has no candidates, so
+// no drag_target_changed) after the splitter's own events.
 class Splitter final : public Control, public SplitterCapabilities<Splitter> {
 public:
     explicit Splitter(StableId stable_id);
+    ~Splitter() override;
 
     // The target's extent along the splitter's axis, or none without a
     // target (Windows Forms' SplitPosition, -1 there).
@@ -46,12 +62,19 @@ public:
 
     [[nodiscard]] Event<SplitterMoveEvent&>& splitter_moving() noexcept { return splitter_moving_; }
     [[nodiscard]] Event<const SplitterMoveEvent&>& splitter_moved() noexcept { return splitter_moved_; }
+    [[nodiscard]] Event<const DragInteraction&>& drag_started() noexcept { return drag_interactions_.started; }
+    [[nodiscard]] Event<const DragInteraction&>& drag_target_changed() noexcept {
+        return drag_interactions_.target_changed;
+    }
+    [[nodiscard]] Event<const DragInteraction&>& drag_dropped() noexcept { return drag_interactions_.dropped; }
+    [[nodiscard]] Event<const DragInteraction&>& drag_ended() noexcept { return drag_interactions_.ended; }
 
     [[nodiscard]] Size measure(Size available) override;
     void on_pointer(PointerEvent& event) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action, std::string_view value) override;
+    bool begin_keyboard_drag() override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
 
@@ -76,6 +99,8 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    friend class SplitterDrag;
+
     // The limits a split position is clamped to, for the current target.
     struct SplitLimits final {
         double minimum{};
@@ -88,17 +113,22 @@ private:
     [[nodiscard]] SplitLimits limits(const Control& target) const;
     [[nodiscard]] double clamped(double extent, const Control& target) const;
     void apply(Control& target, double extent);
-    void end_drag();
+    // Records the target and its extent before a drag; false without one.
+    bool prepare_drag();
 
     bool hot_{};
     bool dragging_{};
-    // The drag's start: the pointer along the axis, in window coordinates,
-    // and the target's extent then.
-    double drag_start_axis_{};
+    // Whether a preview changed the target's extent (a cancel restores it).
+    bool previewed_{};
+    // The target's extent when the drag started, and the target.
     double drag_start_extent_{};
     Control::WeakPtr drag_target_{};
+    // The drag engine's client for this splitter (splitter.cpp).
+    std::unique_ptr<SplitterDrag> drag_{};
     Event<SplitterMoveEvent&> splitter_moving_{};
     Event<const SplitterMoveEvent&> splitter_moved_{};
+    // The typed drag interactions, raised by the drag engine.
+    DragInteractionEvents drag_interactions_{};
     // property_codemod begin Splitter (tools/property_families/splitter.json; generated, do not edit)
 private:
     friend struct SplitterMinSizeCapability<Splitter>;

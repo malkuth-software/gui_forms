@@ -302,11 +302,16 @@ struct SubSurfaceStatistics final {
     std::uint64_t deadline_wakes{};
     std::uint64_t missed_frames{};
     // Input (design note section 4): events posted, events the tree
-    // dispatched (in posting order, never dropped while running), the
-    // sequence of the newest dispatched, and the unhandled keys sent back
-    // to the parent.
+    // dispatched (in posting order), the sequence of the newest dispatched,
+    // and the unhandled keys sent back to the parent. A queued pointer move
+    // replaced by a newer one of the same pointer is coalesced (received
+    // but never dispatched); an event refused because the queue held
+    // maximum_deferred_inputs is rejected (not received). Nothing else is
+    // dropped while running.
     std::uint64_t inputs_received{};
     std::uint64_t inputs_dispatched{};
+    std::uint64_t inputs_coalesced{};
+    std::uint64_t inputs_rejected{};
     std::uint64_t last_input_sequence{};
     std::uint64_t keys_returned{};
     // Requests (design note section 15): posted to the parent, revoked by
@@ -396,7 +401,12 @@ public:
                      std::shared_ptr<const Theme> theme,
                      std::unique_ptr<PaintFramebuffer> text_measure,
                      std::shared_ptr<const Theme> layered_user_theme = {});
-    // Stops and joins (stop()).
+    // Stops and joins (stop()). The join waits for the user code the thread
+    // is running (a build, a handler, a paint) to return; a synchronous
+    // invoke that code made, or makes, onto any window is cancelled by the
+    // stop (WindowDispatcher::invoke reports window_gone, Window::invoke
+    // throws DispatchCancelledError) so it cannot hold the join. Content
+    // must not otherwise block on its parent.
     ~SubSurfaceThread();
     SubSurfaceThread(const SubSurfaceThread&) = delete;
     SubSurfaceThread& operator=(const SubSurfaceThread&) = delete;
@@ -409,8 +419,10 @@ public:
     // Queues one input event for the sub-surface's tree and wakes it; the
     // thread dispatches queued events in this order, after applying the
     // newest configuration and before its next flush. Returns the event's
-    // sequence: 1 for the first, growing by one. After stop() or a failure
-    // the event is discarded and 0 is returned.
+    // sequence: 1 for the first, growing by one. A pointer move replaces a
+    // queued move of the same pointer at the back and takes the new
+    // sequence. After stop() or a failure, or while maximum_deferred_inputs
+    // events are queued, the event is discarded and 0 is returned.
     std::uint64_t post_input(const SubSurfaceInput& input);
     // Where unhandled keys go: posted through `parent` (the dispatcher of
     // the window that owns this object) to `target`, held weakly. Replaces

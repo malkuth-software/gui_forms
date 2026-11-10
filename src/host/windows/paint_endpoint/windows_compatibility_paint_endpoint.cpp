@@ -108,12 +108,43 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         return 0U;
     }
 
+    // The endpoint is an opaque WinForms Control surface: every published
+    // pixel has alpha 255 (copy_opaque forces it), so the presenter copies
+    // the frame instead of blending it over what lies beneath.
+    static LiveSurfaceDescription opaque_description(std::uint32_t surface_width,
+                                                     std::uint32_t surface_height) noexcept {
+        LiveSurfaceDescription description{};
+        description.width = surface_width;
+        description.height = surface_height;
+        description.opaque = true;
+        return description;
+    }
+
+    // Copies the DIB into a write lease of the same size, forcing alpha to
+    // 255 in the same pass: conventional GDI drawing does not preserve the
+    // alpha byte. Caller holds state_mutex (the DIB is coherent) and
+    // surface_publish_mutex (the lease is the only writer). False when the
+    // lease's size is not the DIB's.
+    bool copy_opaque(LiveSurfaceWriteLease& lease) const noexcept {
+        std::span<std::byte> destination = lease.pixels();
+        const std::size_t pixel_count = static_cast<std::size_t>(width) * height;
+        if (destination.size() != pixel_count * 4U) return false;
+        std::uint32_t* target = reinterpret_cast<std::uint32_t*>(destination.data());
+        const std::uint32_t* source = pixels;
+        for (std::size_t index = 0; index < pixel_count; ++index) {
+            target[index] = source[index] | 0xff000000U;
+        }
+        return true;
+    }
+
     bool create(std::uint32_t requested_width,
                 std::uint32_t requested_height) noexcept {
         owner_thread = GetCurrentThreadId();
         width = std::max<std::uint32_t>(1U, requested_width);
         height = std::max<std::uint32_t>(1U, requested_height);
-        surface = LiveSurface::create({width, height});
+        LiveSurfaceDescription description = opaque_description(width, height);
+        description.origin = LiveSurfaceOrigin::compatibility_paint;
+        surface = LiveSurface::create(description);
         if (!surface || !create_backing(width, height)) return false;
         compatibility_handle = allocate_compatibility_handle();
         if (compatibility_handle == 0U) return false;
@@ -168,7 +199,7 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         if (released || compatibility_handle == 0U) return false;
         if (width == next_width && height == next_height) return true;
         std::scoped_lock publish_lock(surface_publish_mutex);
-        if (!(*surface).reconfigure({next_width, next_height}) ||
+        if (!(*surface).reconfigure(opaque_description(next_width, next_height)) ||
             !create_backing(next_width, next_height)) {
             return false;
         }
@@ -185,71 +216,13 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         std::scoped_lock publish_lock(surface_publish_mutex);
         LiveSurfaceWriteLease lease = (*surface).try_acquire_write(false);
         if (!lease) return false;
-        std::span<std::byte> destination = lease.pixels();
-        if (destination.size() !=
-            static_cast<std::size_t>(width) * height * 4U) return false;
-        const std::byte* source = reinterpret_cast<const std::byte*>(pixels);
-        std::memcpy(destination.data(), source, destination.size());
-        // Conventional GDI drawing does not preserve the alpha byte. The
-        // endpoint is an opaque WinForms Control surface, so publish opaque
-        // premultiplied pixels into the retained compositor contract.
-        for (std::size_t index = 3; index < destination.size(); index += 4U) {
-            destination[index] = std::byte{0xff};
-        }
+        if (!copy_opaque(lease)) return false;
         const bool result = lease.publish() != 0U;
         record_compatibility_copy_duration(
             static_cast<std::uint64_t>(
                 std::chrono::duration_cast<std::chrono::nanoseconds>(
                     std::chrono::steady_clock::now() - started).count()));
         return result;
-    }
-
-    struct PendingFrame final {
-        std::shared_ptr<LiveSurface> target;
-        std::vector<std::byte> pixels;
-        std::uint32_t width{};
-        std::uint32_t height{};
-        std::uint64_t epoch{};
-        std::uint64_t revision{};
-    };
-
-    bool capture_pending_locked(PendingFrame& pending) noexcept {
-        if (released || pixels == nullptr || !surface) return false;
-        const std::size_t byte_count =
-            static_cast<std::size_t>(width) * height * 4U;
-        pending.target = surface;
-        try {
-            pending.pixels.resize(byte_count);
-        } catch (...) {
-            return false;
-        }
-        std::memcpy(pending.pixels.data(), pixels, byte_count);
-        pending.width = width;
-        pending.height = height;
-        pending.epoch = epoch;
-        pending.revision = content_revision;
-        return true;
-    }
-
-    bool publish_pending(PendingFrame& pending) noexcept {
-        if (!pending.target || pending.pixels.empty()) return false;
-        // GDI owns an opaque RGB surface and is permitted to leave alpha
-        // undefined. Normalize the private snapshot, not the GDI backing and
-        // not while holding the producer's state mutex.
-        for (std::size_t index = 3; index < pending.pixels.size(); index += 4U) {
-            pending.pixels[index] = std::byte{0xff};
-        }
-        std::scoped_lock publish_lock(surface_publish_mutex);
-        LiveSurfaceWriteLease lease =
-            (*pending.target).try_acquire_write(false);
-        if (!lease || lease.width() != pending.width ||
-            lease.height() != pending.height ||
-            lease.pixels().size() != pending.pixels.size()) {
-            return false;
-        }
-        std::memcpy(lease.pixels().data(), pending.pixels.data(),
-                    pending.pixels.size());
-        return lease.publish() != 0U;
     }
 
     bool request_publish_locked(bool explicit_boundary = false) noexcept {
@@ -271,7 +244,6 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
 
     void publisher_loop() noexcept {
         std::unique_lock lock(state_mutex);
-        PendingFrame pending;
         for (;;) {
             while (!publisher_stop && !publish_requested) {
                 publish_wake.wait(lock);
@@ -281,23 +253,31 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
             publish_requested = false;
             const std::chrono::steady_clock::time_point started =
                 std::chrono::steady_clock::now();
-            const bool captured = capture_pending_locked(pending);
-
-            // The endpoint DIB is the producer-owned mutable object. Only its
-            // coherent snapshot needs state_mutex. Alpha conversion, copying
-            // into the triple-buffered live surface, and publication are
-            // consumer work and must not serialize subsequent GDI calls.
-            lock.unlock();
-            const bool published = captured && publish_pending(pending);
+            // One copy: the DIB straight into the live surface's write lease
+            // (alpha forced in the same pass), under state_mutex so the DIB
+            // is coherent, then publication after GDI writes may resume. The
+            // epoch and revision are read with the copy.
+            const std::uint64_t copied_epoch = epoch;
+            const std::uint64_t copied_revision = content_revision;
+            bool published = false;
+            if (!released && pixels != nullptr && surface) {
+                std::unique_lock publish_lock(surface_publish_mutex);
+                LiveSurfaceWriteLease lease = (*surface).try_acquire_write(false);
+                const bool copied = lease && copy_opaque(lease);
+                lock.unlock();
+                published = copied && lease.publish() != 0U;
+            } else {
+                lock.unlock();
+            }
             const std::uint64_t duration = static_cast<std::uint64_t>(
                 std::chrono::duration_cast<std::chrono::nanoseconds>(
                     std::chrono::steady_clock::now() - started).count());
             record_compatibility_copy_duration(duration);
             lock.lock();
 
-            if (published && !released && pending.epoch == epoch) {
+            if (published && !released && copied_epoch == epoch) {
                 published_revision = (std::max)(
-                    published_revision, pending.revision);
+                    published_revision, copied_revision);
                 ++publish_commits;
                 compatibility_paint_metrics.commits.fetch_add(
                     1U, std::memory_order_relaxed);
@@ -327,30 +307,47 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         return result;
     }
 
+    // begin_write and end_write bracket one synchronous foreign GDI operation
+    // on one thread, and state_mutex is held from the first to the second.
+    // write_thread names the thread holding it for a write (0: none). Only
+    // that thread stores its own identity there, so a thread that reads its
+    // own identity back knows it already holds the mutex.
     bool begin_write(std::uintptr_t requested_dc) noexcept {
         if (requested_dc == 0U) return false;
-        state_mutex.lock();
+        const DWORD current = GetCurrentThreadId();
+        if (write_thread.load(std::memory_order_acquire) == current) {
+            // The previous write on this thread never reached end_write (a
+            // structured exception in the GDI call between the two). This
+            // thread still holds state_mutex; locking it again would hang.
+            // The abandoned write is closed here and this one takes it over.
+            ++abandoned_writes;
+        } else {
+            state_mutex.lock();
+        }
         if (released || memory_dc == nullptr ||
             requested_dc != reinterpret_cast<std::uintptr_t>(memory_dc)) {
+            write_thread.store(0U, std::memory_order_release);
             state_mutex.unlock();
             return false;
         }
-        write_thread = GetCurrentThreadId();
-        write_active = true;
+        write_thread.store(current, std::memory_order_release);
         return true;
     }
 
     bool end_write(std::uintptr_t requested_dc, bool should_publish) noexcept {
-        // begin_write and end_write are one synchronous shim call on the same
-        // thread. Do not attempt to acquire state_mutex here: this thread owns
-        // it until the destination GDI operation and publication are complete.
-        if (!write_active || write_thread != GetCurrentThreadId() ||
-            requested_dc != reinterpret_cast<std::uintptr_t>(memory_dc)) {
+        // Do not acquire state_mutex here: a thread that began a write holds it
+        // until this call. A thread that did not begin one returns at once.
+        if (write_thread.load(std::memory_order_acquire) != GetCurrentThreadId()) {
             return false;
         }
-        const bool result = !should_publish || request_publish_locked();
-        write_active = false;
-        write_thread = 0;
+        // A mismatched device context is the caller's error, but this thread
+        // still holds the mutex: the write ends and the mutex is released on
+        // every path, and the mismatch is reported after.
+        const bool matches =
+            requested_dc == reinterpret_cast<std::uintptr_t>(memory_dc);
+        if (!matches) ++mismatched_write_ends;
+        const bool result = matches && (!should_publish || request_publish_locked());
+        write_thread.store(0U, std::memory_order_release);
         state_mutex.unlock();
         return result;
     }
@@ -411,7 +408,9 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
                << "|epoch:" << epoch
                << "|size:" << width << 'x' << height
                << "|transport:virtual-handle-memory-dc"
-               << "|explicit:" << (explicit_present ? 1 : 0);
+               << "|explicit:" << (explicit_present ? 1 : 0)
+               << "|abandoned-writes:" << abandoned_writes
+               << "|mismatched-write-ends:" << mismatched_write_ends;
         return result.str();
     }
 
@@ -471,8 +470,11 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
     bool publisher_stop{};
     bool metrics_registered{};
     bool released{};
-    bool write_active{};
-    DWORD write_thread{};
+    // Writes closed by a later begin_write on the same thread, and writes
+    // whose end named another device context. Both guarded by state_mutex.
+    std::uint64_t abandoned_writes{};
+    std::uint64_t mismatched_write_ends{};
+    std::atomic<DWORD> write_thread{0U};
 };
 
 WindowsCompatibilityPaintEndpoint::WindowsCompatibilityPaintEndpoint(

@@ -2,13 +2,16 @@
 
 #include "built_in_recipe.hpp"
 #include "gui_forms/control/control/control.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/engine/theme_engine/theme_engine.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <span>
 #include <vector>
 
 namespace gui_forms {
@@ -35,6 +38,8 @@ bool surface_role(PartRole role) noexcept {
     case PartRole::activity:
     case PartRole::selection:
     case PartRole::plot:
+    case PartRole::legend:
+    case PartRole::color_scale:
         return true;
     case PartRole::region:
     case PartRole::shadow:
@@ -60,6 +65,20 @@ bool surface_role(PartRole role) noexcept {
     case PartRole::image:
     case PartRole::graticule:
     case PartRole::trace:
+    case PartRole::axis:
+    case PartRole::tick:
+    case PartRole::tick_label:
+    case PartRole::grid_major:
+    case PartRole::grid_minor:
+    case PartRole::legend_entry:
+    case PartRole::marker:
+    case PartRole::crosshair:
+    case PartRole::annotation:
+    case PartRole::series:
+    case PartRole::arc:
+    case PartRole::needle:
+    case PartRole::beak:
+    case PartRole::scrim:
     case PartRole::count:
         return false;
     }
@@ -636,6 +655,203 @@ void paint_text(Painter& painter, const PartPaint& part, Color color) {
     painter.restore();
 }
 
+// -- the dial and overlay roles (row 2.5; owner option (a)) ---------------------
+
+constexpr double whole_turn = 6.283185307179586476925;
+
+// The circle inscribed in a part's bounds: centred in them, its radius half
+// their shorter side.
+struct InscribedCircle final {
+    Point centre{};
+    double radius{};
+};
+
+InscribedCircle inscribed_circle(Rect bounds) noexcept {
+    InscribedCircle result{};
+    result.centre = Point{bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.5};
+    result.radius = std::min(bounds.width, bounds.height) * 0.5;
+    return result;
+}
+
+// The point `radius` from `centre` at `angle` radians clockwise from twelve
+// o'clock, with the engine's sine and cosine, so that a dial is the same on
+// every host.
+Point point_at_angle(Point centre, double radius, double angle) noexcept {
+    const EngineSineCosine turned = engine_sine_cosine(angle);
+    const Point result{centre.x + radius * turned.sine, centre.y - radius * turned.cosine};
+    return result;
+}
+
+// A round dot `side` across centred on `centre`.
+void fill_round_dot(Painter& painter, Point centre, double side, Color colour) {
+    const double half = side * 0.5;
+    const Rect dot{centre.x - half, centre.y - half, side, side};
+    painter.fill_rounded_rect(dot, half, colour);
+}
+
+// The colour a material's face shows at its top (`top`) or bottom: a solid
+// fill's colour, or a gradient's first or last stop; transparent where the
+// material has no fill.
+Color material_face_colour(const SurfaceMaterial& material, bool top) noexcept {
+    if (material.fills.empty()) return Color::rgba(0, 0, 0, 0);
+    const MaterialFillLayer& fill = material.fills.front();
+    if (fill.kind == MaterialFillKind::solid || fill.stops.empty()) return fill.color;
+    const Color result = top ? fill.stops.front().color : fill.stops.back().color;
+    return result;
+}
+
+// An arc: a stroke `recipe.stroke_width` thick along the inscribed circle,
+// inset by half the stroke so that it lies inside the bounds. An unselected
+// arc (a track, an alarm segment) is stroked in the border's colour, else
+// the glyph's; a selected arc (the value) in the face's colour, the plate a
+// selected progress fill shows. The circle is drawn as straight segments,
+// one per three units of arc length (2 to 128), and a thick stroke's joints
+// are closed with round dots of its width (a translucent colour is
+// therefore slightly deeper at the joints).
+void paint_arc(Painter& painter, const PartPaint& part, const ControlVisualRecipe& recipe) {
+    if (!part.arc) return;
+    const double width = recipe.stroke_width;
+    const double start = (*part.arc).start;
+    const double sweep = std::clamp((*part.arc).sweep, -whole_turn, whole_turn);
+    if (width <= 0.0 || !std::isfinite(start) || !std::isfinite(sweep) || sweep == 0.0) return;
+    const InscribedCircle circle = inscribed_circle(part.bounds);
+    const double radius = circle.radius - width * 0.5;
+    if (radius <= 0.0) return;
+    Color colour = recipe.glyph;
+    if (part.states.contains(AnatomyState::selected)) {
+        colour = material_face_colour(recipe.material, false);
+    } else if (recipe.material.border) {
+        colour = (*recipe.material.border).color;
+    }
+    const double length = std::abs(sweep) * radius;
+    const double wanted = std::ceil(length / 3.0);
+    const std::size_t segments = static_cast<std::size_t>(std::clamp(wanted, 2.0, 128.0));
+    const double step = sweep / static_cast<double>(segments);
+    const bool joined = width > 2.0;
+    Point from = point_at_angle(circle.centre, radius, start);
+    for (std::size_t index = 1U; index <= segments; ++index) {
+        const double angle = start + step * static_cast<double>(index);
+        const Point to = point_at_angle(circle.centre, radius, angle);
+        painter.draw_line(from, to, colour, width);
+        if (joined && index < segments) fill_round_dot(painter, to, width, colour);
+        from = to;
+    }
+}
+
+// A needle: from the inscribed circle's centre out to the circle at the
+// arc's start, in the glyph's colour, shaped by `recipe.needle_shape`. A
+// blade is drawn as eight sections narrowing from the stroke width towards
+// one unit.
+void paint_needle(Painter& painter, const PartPaint& part, const ControlVisualRecipe& recipe) {
+    if (!part.arc) return;
+    const double width = recipe.stroke_width;
+    const double angle = (*part.arc).start;
+    if (width <= 0.0 || !std::isfinite(angle)) return;
+    const InscribedCircle circle = inscribed_circle(part.bounds);
+    if (circle.radius <= 0.0) return;
+    const Color colour = recipe.glyph;
+    switch (recipe.needle_shape) {
+    case NeedleShape::dot: {
+        const double reach = std::max(0.0, circle.radius - width * 0.5);
+        fill_round_dot(painter, point_at_angle(circle.centre, reach, angle), width, colour);
+        return;
+    }
+    case NeedleShape::line: {
+        const Point tip = point_at_angle(circle.centre, circle.radius, angle);
+        painter.draw_line(circle.centre, tip, colour, width);
+        break;
+    }
+    case NeedleShape::tapered: {
+        constexpr std::size_t sections = 8U;
+        Point from = circle.centre;
+        for (std::size_t index = 0U; index < sections; ++index) {
+            const double reached = static_cast<double>(index + 1U) / static_cast<double>(sections);
+            const Point to = point_at_angle(circle.centre, circle.radius * reached, angle);
+            const double remaining = 1.0 - (static_cast<double>(index) + 0.5) / static_cast<double>(sections);
+            const double section_width = std::max(1.0, width * remaining);
+            painter.draw_line(from, to, colour, section_width);
+            from = to;
+        }
+        break;
+    }
+    default:
+        // A shape outside the enumeration, which valid_recipe refuses,
+        // draws nothing.
+        return;
+    }
+    fill_round_dot(painter, circle.centre, width * 1.5, colour);
+}
+
+// The three corners of a beak in `box` pointing as `mark` names.
+struct BeakCorners final {
+    Point tip{};
+    Point first{};
+    Point second{};
+};
+
+BeakCorners beak_corners(Rect box, PartMark mark) noexcept {
+    const double right = box.x + box.width;
+    const double bottom = box.y + box.height;
+    const double middle_x = box.x + box.width * 0.5;
+    const double middle_y = box.y + box.height * 0.5;
+    BeakCorners result{};
+    // Geometry, not a vocabulary mapping: up, down and left have their own
+    // tips; arrow_right and every mark without a direction point right.
+    if (mark == PartMark::arrow_up) {
+        result = BeakCorners{{middle_x, box.y}, {box.x, bottom}, {right, bottom}};
+    } else if (mark == PartMark::arrow_down) {
+        result = BeakCorners{{middle_x, bottom}, {box.x, box.y}, {right, box.y}};
+    } else if (mark == PartMark::arrow_left) {
+        result = BeakCorners{{box.x, middle_y}, {right, box.y}, {right, bottom}};
+    } else {
+        result = BeakCorners{{right, middle_y}, {box.x, box.y}, {box.x, bottom}};
+    }
+    return result;
+}
+
+// A beak: a triangle filling the part's bounds, its tip at the middle of
+// the edge the arrow mark names and its base along the opposite edge, in
+// the colour of the face side it meets (the top for a beak pointing up,
+// else the bottom), its two slanted sides in the border's colour. It is
+// laid as at most 64 strips across the direction it points. A beak with no
+// arrow mark draws nothing.
+void paint_beak(Painter& painter, const PartPaint& part, const ControlVisualRecipe& recipe) {
+    const Rect box = part.bounds;
+    const PartMark mark = part.mark;
+    const bool up = mark == PartMark::arrow_up;
+    const bool down = mark == PartMark::arrow_down;
+    const bool left = mark == PartMark::arrow_left;
+    const bool right = mark == PartMark::arrow_right;
+    if (!up && !down && !left && !right) return;
+    const bool vertical = up || down;
+    const Color face = material_face_colour(recipe.material, up);
+    const double depth = vertical ? box.height : box.width;
+    const double span = vertical ? box.width : box.height;
+    const std::size_t strips = static_cast<std::size_t>(std::clamp(std::ceil(depth), 1.0, 64.0));
+    const double strip = depth / static_cast<double>(strips);
+    for (std::size_t index = 0U; index < strips; ++index) {
+        // How far the strip's middle lies from the tip, as a fraction of
+        // the depth, and so its half width.
+        const double from_tip = (static_cast<double>(index) + 0.5) / static_cast<double>(strips);
+        const double half = span * 0.5 * from_tip;
+        const double offset = strip * static_cast<double>(index);
+        const double across_x = box.x + box.width * 0.5 - half;
+        const double across_y = box.y + box.height * 0.5 - half;
+        Rect band{};
+        if (up) band = Rect{across_x, box.y + offset, half * 2.0, strip};
+        if (down) band = Rect{across_x, box.y + box.height - offset - strip, half * 2.0, strip};
+        if (left) band = Rect{box.x + offset, across_y, strip, half * 2.0};
+        if (right) band = Rect{box.x + box.width - offset - strip, across_y, strip, half * 2.0};
+        painter.fill_rect(band, face);
+    }
+    if (!recipe.material.border) return;
+    const Color edge = (*recipe.material.border).color;
+    const double edge_width = std::max(1.0, (*recipe.material.border).width);
+    const BeakCorners corners = beak_corners(box, mark);
+    painter.draw_line(corners.first, corners.tip, edge, edge_width);
+    painter.draw_line(corners.second, corners.tip, edge, edge_width);
+}
+
 // A fill part's content colour (owner decision W-7): flat, in the part's
 // shape, as given; a disabled part's at 45 % of its opacity, as a disabled
 // icon is drawn.
@@ -656,7 +872,8 @@ bool ground_role(const PartPaint& part) noexcept {
     if (surface_role(part.role)) return true;
     const bool marked = part.mark != PartMark::none;
     const bool pointer_like = part.role == PartRole::indicator || part.role == PartRole::trace ||
-                              part.role == PartRole::glyph;
+                              part.role == PartRole::glyph || part.role == PartRole::marker ||
+                              part.role == PartRole::series;
     const bool ground = pointer_like && !marked;
     return ground;
 }
@@ -678,6 +895,9 @@ void apply_authored_colours(const PartPaint& part, bool disabled, bool important
     case PartRole::label:
     case PartRole::content:
     case PartRole::caret:
+    case PartRole::tick_label:
+    case PartRole::legend_entry:
+    case PartRole::annotation:
         if (!important_text) {
             recipe.text = ink;
             recipe.muted_text = ink;
@@ -685,15 +905,32 @@ void apply_authored_colours(const PartPaint& part, bool disabled, bool important
         return;
     case PartRole::indicator:
     case PartRole::trace:
+    case PartRole::marker:
+    case PartRole::series:
     case PartRole::glyph:
     case PartRole::disclosure:
     case PartRole::grip:
+    case PartRole::needle:
         recipe.glyph = ink;
+        return;
+    case PartRole::arc:
+        // paint_arc strokes an unselected arc in the border's colour, else
+        // the glyph's.
+        if (recipe.material.border) {
+            (*recipe.material.border).color = ink;
+        } else {
+            recipe.glyph = ink;
+        }
         return;
     case PartRole::keyline:
     case PartRole::divider:
     case PartRole::seam:
     case PartRole::graticule:
+    case PartRole::axis:
+    case PartRole::tick:
+    case PartRole::grid_major:
+    case PartRole::grid_minor:
+    case PartRole::crosshair:
         // paint_rule draws in the border's colour, else the muted text's.
         if (recipe.material.border) {
             (*recipe.material.border).color = ink;
@@ -820,6 +1057,156 @@ void paint_pointed_part(Painter& painter, const Control& control, const PartPain
     painter.draw_line(tip, {shoulder, bounds.y + bounds.height - 0.5}, edge, 1.0);
 }
 
+// The strips a shaped part's taper, lip and edge shadow are cut into, each
+// a rectangle, so the shape is a bounded staircase (as the pointed face's
+// nose is).
+constexpr std::size_t part_profile_strips = 12U;
+
+// Whether `part` carries a profile that draws anything.
+bool profiled(const PartPaint& part) noexcept {
+    if (!part.profile || part.point || !surface_role(part.role)) return false;
+    const PartProfile& profile = *part.profile;
+    const bool any = profile.taper > 0.0 || profile.flare > 0.0 || profile.edge_shadow > 0.0;
+    return any;
+}
+
+// The rows a profiled part's trailing edge is drawn in: whole logical
+// units, so that at an integer scale no antialiased clip edge is painted
+// twice (a seam). One-unit rows through the top corner, where the outline
+// curves, then about a twelfth of the height each. At most this many rows.
+constexpr std::size_t maximum_profile_rows = part_profile_strips + 2U * static_cast<std::size_t>(maximum_part_shape);
+
+// One row of a profiled part: its top and bottom and where its outline
+// stands, the least x of the outline over the row, so that the face cut
+// at it never runs past the outline and the shadow begins exactly there.
+struct ProfileRow final {
+    double top{};
+    double bottom{};
+    double outline{};
+};
+
+// The trailing outline at height `y`: the taper's straight lean, rounded
+// into the top edge by the part's top-right radius as the face's corner
+// would be.
+double profile_outline(Rect bounds, double taper, double radius, double y) noexcept {
+    const double right = bounds.x + bounds.width;
+    const double down = std::clamp(y - bounds.y, 0.0, bounds.height);
+    const double lean = bounds.height > 0.0 ? taper * (1.0 - down / bounds.height) : 0.0;
+    double inset = 0.0;
+    if (radius > 0.0 && down < radius) {
+        const double rise = radius - down;
+        inset = radius - std::sqrt(std::max(0.0, radius * radius - rise * rise));
+    }
+    const double outline = right - lean - inset;
+    return outline;
+}
+
+// Fills `rows` (capacity maximum_profile_rows) and returns the live count.
+std::size_t profile_rows(Rect bounds, double taper, double radius, std::span<ProfileRow> rows) noexcept {
+    std::size_t count = 0U;
+    const double corner = std::min(std::ceil(radius), std::floor(bounds.height));
+    double top = bounds.y;
+    for (double step = 0.0; step < corner && count < rows.size(); step += 1.0) {
+        rows[count] = ProfileRow{top, top + 1.0, profile_outline(bounds, taper, radius, top)};
+        ++count;
+        top += 1.0;
+    }
+    const double rest = bounds.y + bounds.height - top;
+    for (std::size_t strip = 0U; strip < part_profile_strips && count < rows.size(); ++strip) {
+        const double start = top + std::round(rest * static_cast<double>(strip) / static_cast<double>(part_profile_strips));
+        const double end =
+            top + std::round(rest * static_cast<double>(strip + 1U) / static_cast<double>(part_profile_strips));
+        if (end <= start) continue;
+        rows[count] = ProfileRow{start, end, profile_outline(bounds, taper, radius, start)};
+        ++count;
+    }
+    return count;
+}
+
+// A profiled part (PartPaint::profile), in order: the edge shadow beyond the
+// trailing outline, the part itself (once clipped to its body and once to
+// each row of the outline), the outline's line, and the lip at its bottom
+// corners. The outline at height y leans from `right - taper` at the top to
+// `right` at the bottom and rounds into the top edge by the part's top-right
+// radius (owner, 2026-11-09): the shadow starts in each row exactly where
+// the face ends, so the face's edge and the shadow's falloff are one
+// continuous edge, the top corner included.
+void paint_profiled_part(Painter& painter, const Control& control, const PartPaint& part) {
+    const PartProfile& profile = *part.profile;
+    PartPaint whole = part;
+    whole.profile.reset();
+    const Rect bounds = part.bounds;
+    const double right = bounds.x + bounds.width;
+    const double bottom = bounds.y + bounds.height;
+    const double taper = std::clamp(profile.taper, 0.0, std::min(bounds.width, maximum_part_shape));
+    const double flare = std::clamp(profile.flare, 0.0, std::min(bounds.height, maximum_part_shape));
+    const double falloff = std::clamp(profile.edge_shadow, 0.0, maximum_part_shape);
+    const ControlVisualContext context = part_visual_context(control, part.states);
+    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const ResolvedControlRecipe resolved =
+        control.effective_theme().resolve(control, part.family, context, part.states, part_name, part.control_type);
+    const SurfaceMaterial& material = resolved.recipe().material;
+    double radius = part.corner_radius ? std::max(0.0, *part.corner_radius) : material.corner_radius;
+    if (!part.corner_radius && material.corner_radii) radius = (*material.corner_radii).top_right;
+    radius = std::clamp(radius, 0.0, std::min(maximum_part_shape, bounds.height));
+    // Without a taper the outline is the straight right edge; its rounded
+    // top corner is the face's own and only the shadow follows it.
+    std::array<ProfileRow, maximum_profile_rows> rows{};
+    const std::size_t row_count = profile_rows(bounds, taper, radius, rows);
+    if (falloff > 0.0) {
+        const Color clear = Color::rgba(profile.edge_shadow_colour.red, profile.edge_shadow_colour.green,
+                                        profile.edge_shadow_colour.blue, 0);
+        const std::array<GradientStop, 2> stops{GradientStop{0.0, profile.edge_shadow_colour}, GradientStop{1.0, clear}};
+        for (std::size_t index = 0U; index < row_count; ++index) {
+            const ProfileRow& row = rows[index];
+            const double middle = (row.top + row.bottom) * 0.5;
+            const Rect band{row.outline, row.top, falloff, row.bottom - row.top};
+            painter.fill_linear_gradient(band, {row.outline, middle}, {row.outline + falloff, middle}, stops);
+        }
+    }
+    if (taper <= 0.0) {
+        paint_part(painter, control, whole);
+    } else {
+        const double shoulder = std::floor(right - taper - radius);
+        painter.save();
+        painter.clip_rect({bounds.x, bounds.y, std::max(0.0, shoulder - bounds.x), bounds.height});
+        paint_part(painter, control, whole);
+        painter.restore();
+        for (std::size_t index = 0U; index < row_count; ++index) {
+            const ProfileRow& row = rows[index];
+            if (row.outline <= shoulder) continue;
+            painter.save();
+            painter.clip_rect({shoulder, row.top, row.outline - shoulder, row.bottom - row.top});
+            paint_part(painter, control, whole);
+            painter.restore();
+        }
+        if (profile.taper_colour && part.frame != PartFrame::none) {
+            // The line follows the outline: one segment per corner row,
+            // then the straight lean to the foot.
+            Point from{profile_outline(bounds, taper, radius, bounds.y) - 0.5, bounds.y + 0.5};
+            const double corner_end = bounds.y + std::min(std::ceil(radius), std::floor(bounds.height));
+            for (double y = bounds.y + 1.0; y <= corner_end; y += 1.0) {
+                const Point to{profile_outline(bounds, taper, radius, y) - 0.5, y};
+                painter.draw_line(from, to, *profile.taper_colour, 1.0);
+                from = to;
+            }
+            painter.draw_line(from, {right - 0.5, bottom}, *profile.taper_colour, 1.0);
+        }
+    }
+    if (flare <= 0.0) return;
+    // The lip: a concave quarter at each bottom corner, flat where it meets
+    // what lies below the part.
+    const double lip_strip = flare / static_cast<double>(part_profile_strips);
+    for (std::size_t strip = 0U; strip < part_profile_strips; ++strip) {
+        const double top = bottom - flare + lip_strip * static_cast<double>(strip);
+        const double depth = (top + lip_strip * 0.5) - (bottom - flare);
+        const double reach = flare - std::sqrt(std::max(0.0, flare * flare - depth * depth));
+        if (reach <= 0.0) continue;
+        painter.fill_rect({bounds.x - reach, top, reach, lip_strip}, profile.flare_colour);
+        painter.fill_rect({right, top, reach, lip_strip}, profile.flare_colour);
+    }
+}
+
 } // namespace
 
 namespace {
@@ -849,6 +1236,28 @@ bool pointed_face_contains(Rect bounds, double point, Point position) noexcept {
     return inside;
 }
 
+namespace {
+
+// The provisional accent (design language §8.5) over a surface part a
+// theme rule's primitive drew: the built-in recipe lays it on itself
+// (paint_part_with_built_in_recipe), a primitive does not, so a contextual
+// tab or plane a theme styles keeps its tint (RB 25). The ramp colour
+// carries its own translucency and follows the recipe's corners.
+void paint_primitive_accent(Painter& painter, const Control& control, const PartPaint& part) {
+    if (!part.accent || !surface_role(part.role) || !paintable(part.bounds)) return;
+    const Theme& theme = control.effective_theme();
+    const ThemeEngine::PartPlan decided = theme.engine().plan(control, part);
+    if (decided.drawing != ThemeEngine::PartDrawing::primitive) return;
+    const ControlVisualContext context = part_visual_context(control, part.states);
+    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const ResolvedControlRecipe resolved =
+        theme.resolve(control, part.family, context, part.states, part_name, part.control_type);
+    const double radius = part_corner_radius(part, resolved.recipe());
+    painter.fill_rounded_rect(part.bounds, radius, theme.accent(*part.accent));
+}
+
+} // namespace
+
 void paint_part(Painter& painter, const Control& control, const PartPaint& part) {
     // Drawn in GUI.Forms' own theme in place of the application's (T4
     // theme variants): colours chosen against the other theme are not
@@ -866,6 +1275,10 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
         paint_pointed_part(painter, control, part, length);
         return;
     }
+    if (profiled(part) && paintable(part.bounds)) {
+        paint_profiled_part(painter, control, part);
+        return;
+    }
     const Theme& theme = control.effective_theme();
     // The control's authored colours (Control::set_back_color and
     // set_fore_color) under the part's own: its own background fills every
@@ -878,12 +1291,14 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
     const bool unchanged = background == part.authored_background && foreground == part.authored_foreground;
     if (unchanged) {
         theme.engine().paint(painter, control, part);
+        paint_primitive_accent(painter, control, part);
         return;
     }
     PartPaint coloured = part;
     coloured.authored_background = background;
     coloured.authored_foreground = foreground;
     theme.engine().paint(painter, control, coloured);
+    paint_primitive_accent(painter, control, coloured);
 }
 
 void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin,
@@ -976,10 +1391,14 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
     case PartRole::drop:
     case PartRole::validation:
     case PartRole::plot:
+    case PartRole::legend:
+    case PartRole::color_scale:
         paint_surface(painter, part, recipe);
         return;
     case PartRole::indicator:
     case PartRole::trace:
+    case PartRole::marker:
+    case PartRole::series:
     case PartRole::glyph:
         if (part.mark == PartMark::none) {
             paint_surface(painter, part, recipe);
@@ -991,7 +1410,25 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
     case PartRole::divider:
     case PartRole::seam:
     case PartRole::graticule:
+    case PartRole::axis:
+    case PartRole::tick:
+    case PartRole::grid_major:
+    case PartRole::grid_minor:
+    case PartRole::crosshair:
         paint_rule(painter, part.bounds, recipe);
+        return;
+    case PartRole::arc:
+        paint_arc(painter, part, recipe);
+        return;
+    case PartRole::needle:
+        paint_needle(painter, part, recipe);
+        return;
+    case PartRole::beak:
+        paint_beak(painter, part, recipe);
+        return;
+    case PartRole::scrim:
+        // A scrim is drawn in its colour as given, disabled or not.
+        painter.fill_rect(part.bounds, recipe.scrim);
         return;
     case PartRole::grip: {
         PartPaint dots = part;
@@ -1002,6 +1439,9 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
     case PartRole::caption:
     case PartRole::label:
     case PartRole::content:
+    case PartRole::tick_label:
+    case PartRole::legend_entry:
+    case PartRole::annotation:
         // The recipe is resolved in the disabled state, so its text is the
         // theme's own disabled text (owner ruling, 2026-11-02).
         // A secondary text is drawn in the muted ink; disabled text of either

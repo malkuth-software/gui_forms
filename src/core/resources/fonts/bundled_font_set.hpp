@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/metrics/font_sources/bundled_font_sources.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/integrity/sha256/sha256.hpp"
 #include "codepoint_coverage.hpp"
@@ -180,5 +181,30 @@ private:
 // the shared one. UI thread only.
 [[nodiscard]] std::shared_ptr<BundledFontSet> shared_bundled_font_set(
     const std::filesystem::path& directory, const SealedPageFunctions& pages);
+
+// One directory a host offers to locate_bundled_fonts, and the source it stands for. An empty
+// directory (the host could not work it out) is skipped.
+struct BundledFontCandidate final {
+    BundledFontSource source{BundledFontSource::none};
+    std::filesystem::path directory{};
+};
+
+// Where locate_bundled_fonts found the fonts: the source and its directory, or none and an
+// empty directory.
+struct BundledFontLocation final {
+    BundledFontSource source{BundledFontSource::none};
+    std::filesystem::path directory{};
+};
+
+// Whether `directory` holds a regular file for every required face of bundled_face_uses. Only
+// the names are checked; the set checks each face's size and digest when it reads it.
+[[nodiscard]] bool directory_holds_required_faces(const std::filesystem::path& directory);
+
+// The first of `candidates`, in order, whose directory holds the required faces. Records the
+// lookup in bundled_font_diagnostics; when no candidate qualifies it also records the refusal
+// (bundled_font_refusal) naming every directory tried, and the process's first such lookup
+// writes that refusal to stderr. UI thread, as the hosts' window setup is.
+[[nodiscard]] BundledFontLocation locate_bundled_fonts(
+    std::span<const BundledFontCandidate> candidates);
 
 } // namespace gui_forms::detail

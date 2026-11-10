@@ -8,6 +8,8 @@
 #include "../src/core/theme_language/package/theme_manifest.hpp"
 #include "gui_forms/gui_forms.hpp"
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -188,11 +190,128 @@ void test_rule_faces() {
     require((*heading).foreground() == Color::rgba(1, 2, 3), "code's own foreground stands over the rule");
 }
 
+// The package's compile result, diagnostics and all.
+ThemeCompileResult compiled_sheet(std::string_view text) {
+    ImageRegistry images{};
+    const ThemeLibrary library{};
+    ThemeCompileOptions options{};
+    options.controls = stock_control_anatomies();
+    ThemeCompileResult result = compile_theme_package(faces_package(text), library, images, options);
+    return result;
+}
+
+// How many of `result`'s diagnostics are `code` with a detail containing
+// `detail`.
+std::size_t count_diagnostics(const ThemeCompileResult& result, std::string_view code, std::string_view detail) {
+    std::size_t count = 0U;
+    for (const ThemeCompileDiagnostic& diagnostic : result.diagnostics()) {
+        if (diagnostic.code == code && diagnostic.detail.find(detail) != std::string::npos) ++count;
+    }
+    return count;
+}
+
+constexpr Color well_purple = Color::rgba(0xa0, 0x10, 0x80);
+constexpr Color ground_amber = Color::rgba(0xd0, 0x90, 0x10);
+constexpr Color family_teal = Color::rgba(0x10, 0x70, 0x70);
+
+// A themed TextBox's field is its well: `text-box::part(well)` paints its
+// ground, as `:family(editor)` does (the well is keyed by its part's name,
+// so a rule naming the part reaches it). Its face, edge and content are
+// left alone by its themed look, so a rule styling them warns W112 with the
+// part to style instead, and the rule is still kept.
+void test_text_box_parts() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("probe.root"));
+    const std::shared_ptr<TextBox> field = make_control<TextBox>(StableId("probe.field"), "Field");
+    (*field).set_requested_bounds({10.0, 10.0, 160.0, 24.0});
+    (*root).add_child(field);
+    Window window(root, Size{200.0, 60.0});
+    window.set_theme(theme_from_sheet("text-box::part(well) { background: #a01080; }\n"));
+    window.perform_layout();
+    ColourPainter painter{};
+    window.paint(painter);
+    require(painter.filled(well_purple), "text-box::part(well) paints the field's ground");
+
+    const ThemeCompileResult face = compiled_sheet(":root { ink-on-paper: #c01020 on #ffffff; }\n"
+                                                   "text-box::part(face) { background: #a01080; }\n"
+                                                   "text-box::part(content) { color: role(ink-on-paper); }\n"
+                                                   "text-box::part(well) { background: #a01080; }\n");
+    require(face.succeeded(), "a sheet styling a text box's unthemed parts still compiles");
+    require(count_diagnostics(face, "W112", "text-box::part(well)") == 2U,
+            "the face's background and the content's colour each warn W112, naming the well");
+    require(face.diagnostics().size() == 2U, "the well's own rule warns nothing");
+}
+
+// The four containers side by side in a fresh window under `sheet`: whether
+// painting it fills `colour`.
+bool containers_fill(std::string_view sheet, Color colour) {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("probe.root"));
+    const std::shared_ptr<UserControl> user = make_control<UserControl>(StableId("probe.user"));
+    (*user).set_requested_bounds({10.0, 10.0, 60.0, 40.0});
+    (*root).add_child(user);
+    const std::shared_ptr<ContainerControl> container = make_control<ContainerControl>(StableId("probe.container"));
+    (*container).set_requested_bounds({80.0, 10.0, 60.0, 40.0});
+    (*root).add_child(container);
+    const std::shared_ptr<ScrollableControl> scrollable =
+        make_control<ScrollableControl>(StableId("probe.scrollable"));
+    (*scrollable).set_requested_bounds({150.0, 10.0, 60.0, 40.0});
+    (*root).add_child(scrollable);
+    const std::shared_ptr<SplitContainer> split = make_control<SplitContainer>(StableId("probe.split"));
+    (*split).set_requested_bounds({220.0, 10.0, 60.0, 40.0});
+    (*root).add_child(split);
+    Window window(root, Size{300.0, 60.0});
+    window.set_theme(theme_from_sheet(sheet));
+    window.perform_layout();
+    ColourPainter painter{};
+    window.paint(painter);
+    const bool filled = painter.filled(colour);
+    return filled;
+}
+
+// The containers have a ground, `::part(face)` over the whole box, painted
+// only when a rule names it: a rule on the panel family alone paints none,
+// as before the part was declared.
+void test_container_grounds() {
+    const std::array<std::string_view, 4> types{{"user-control", "container-control", "scrollable-control",
+                                                 "split-container"}};
+    for (const std::string_view type : types) {
+        const std::string sheet = std::string(type) + "::part(face) { background: #d09010; }\n";
+        require(containers_fill(sheet, ground_amber), std::string(type) + "::part(face) paints the container's ground");
+    }
+    const std::shared_ptr<UserControl> alone = make_control<UserControl>(StableId("probe.alone"));
+    Window bare(alone, Size{100.0, 60.0});
+    bare.set_theme(theme_from_sheet(":family(panel) { background: #107070; }\n"));
+    bare.perform_layout();
+    ColourPainter unnamed{};
+    bare.paint(unnamed);
+    require(!unnamed.filled(family_teal), "a panel-family rule alone paints no container ground");
+}
+
+// A part the selector's type lacks leaves out only its own selector, as
+// CSS's `::part()` matches nothing for an unknown part: the rest of the
+// list still styles its controls.
+void test_unknown_part_in_a_list() {
+    const ThemeCompileResult result =
+        compiled_sheet("user-control::part(lid), panel::part(face) { background: #d09010; }\n");
+    require(result.succeeded(), "the list compiles");
+    require(count_diagnostics(result, "W106", "lid") == 1U && result.diagnostics().size() == 1U,
+            "the unknown part warns once (W106)");
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("probe.root"));
+    Window window(root, Size{100.0, 60.0});
+    window.set_theme(result.theme());
+    window.perform_layout();
+    ColourPainter painter{};
+    window.paint(painter);
+    require(painter.filled(ground_amber), "the list's other selector still styles the panel's face");
+}
+
 } // namespace
 
 int main() {
     test_classes_property();
     test_rule_faces();
+    test_text_box_parts();
+    test_container_grounds();
+    test_unknown_part_in_a_list();
     if (failures != 0) {
         std::cerr << failures << " theme rule face check(s) failed\n";
         return 1;

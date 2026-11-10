@@ -449,6 +449,14 @@ public:
     // applied, since they were chosen against the other theme. They apply
     // again when that theme is shown.
     [[nodiscard]] bool application_colours_suspended() const noexcept;
+    // The colours of the application colour role `name` (a role the theme
+    // package declares with `color-roles`, such as `syntax-keyword`) for
+    // this control's window (window_media_facts; light, unforced while
+    // detached): from effective_theme, else, where that is GUI.Forms' own
+    // in place of the chosen theme, from the chosen theme. Nullopt where
+    // neither declares the role. Code draws program-meant colours through
+    // this rather than hard-coding them (T4 theme variants).
+    [[nodiscard]] std::optional<ThemeRoleColours> theme_role_colours(std::string_view name) const noexcept;
     // Whether back_color or fore_color has been set on this control, which
     // writes the warning W404 `inline_colour` once for each (T4 theme
     // variants, stage A: colour belongs in the theme).
@@ -921,6 +929,12 @@ public:
     // particular base implementation.
     void apply_provider_semantics(SemanticDescriptor& descriptor) const;
     [[nodiscard]] virtual std::vector<SemanticNode> semantic_virtual_children() const;
+    // Enters the control's keyboard drag mode (the window's drag engine,
+    // roadmap 2.1) on its subject: the begin_keyboard_drag rule action and
+    // the move command reach it. True when a keyboard drag started; false
+    // for a control that declares no drag (the default) or has nothing to
+    // drag now.
+    virtual bool begin_keyboard_drag();
     // The parts whose tooltips the root's tooltip route looks for, in root
     // coordinates, read only when publishes_item_tool_tips is set: the
     // semantic virtual children by default. A control whose tooltip parts
@@ -952,6 +966,16 @@ public:
     virtual void on_drag(DragEvent& event);
     virtual void on_drag_bubble(DragEvent& event);
     virtual void on_focus_changed(bool focused);
+    // What the window invalidates on this control when it gains or loses
+    // focus, after on_focus_changed: invalidation::focus (paint, semantics,
+    // accessibility) by default. A control that repaints only its focused
+    // part itself in on_focus_changed (a ribbon's key stop) leaves paint out.
+    [[nodiscard]] virtual Dirty focus_invalidation() const noexcept;
+    // Whether this control paints anything of its own. False for an input
+    // catcher (a transparent layer that takes outside clicks): its own
+    // invalidation and attachment damage nothing, and a resize that keeps its
+    // origin damages nothing; its children damage their own bounds.
+    [[nodiscard]] virtual bool paints_content() const noexcept;
     // Focus moved to `descendant`, a control inside this one: the window
     // calls this on each ancestor of a newly focused control, innermost
     // first, after the focused control's on_focus_changed (Windows Forms'

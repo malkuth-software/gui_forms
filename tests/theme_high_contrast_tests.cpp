@@ -8,6 +8,7 @@
 #include "gui_forms/theme.hpp"
 #include "support/theme_definition_heap.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdlib>
@@ -98,6 +99,17 @@ StateRecipes reference_high_contrast_selected(double radius) {
     return result;
 }
 
+// The dial and scrim fields of a derived record (row 2.5), which the records
+// above predate: the scrim is the record's plate, opaque; an arc or needle is
+// at least two units thick, as thick as the ordinary record's; and a needle
+// is a plain line.
+void apply_dial_and_scrim(ControlVisualRecipe& record, const ControlVisualRecipe& ordinary) {
+    const Color plate = record.material.fills.front().color;
+    record.scrim = Color::rgba(plate.red, plate.green, plate.blue, 255);
+    record.stroke_width = std::max(ordinary.stroke_width, 2.0);
+    record.needle_shape = NeedleShape::line;
+}
+
 // -- tests ---------------------------------------------------------------------
 
 void derived_records_match_the_authored_ones() {
@@ -127,6 +139,10 @@ void derived_records_match_the_authored_ones() {
             }
         }
         for (std::size_t state = 0; state < control_surface_state_count; ++state) {
+            apply_dial_and_scrim(expected[state], role.ordinary[state]);
+            apply_dial_and_scrim(expected_selected[state], role.selected[state]);
+        }
+        for (std::size_t state = 0; state < control_surface_state_count; ++state) {
             require(role.high_contrast[state] == expected[state],
                     "every family's derived high-contrast record equals the hand-authored one");
             require(role.high_contrast_selected[state] == expected_selected[state],
@@ -140,7 +156,11 @@ void derived_records_match_the_authored_ones() {
     context.high_contrast = true;
     context.surface = ControlSurfaceState::pressed;
     const ControlVisualRecipe& resolved = (*theme).resolve(ControlVisualRole::button, context);
-    require(resolved == reference_high_contrast(3.0)[at(ControlSurfaceState::pressed)],
+    ControlVisualRecipe expected_resolved = reference_high_contrast(3.0)[at(ControlSurfaceState::pressed)];
+    apply_dial_and_scrim(expected_resolved,
+                         definition.roles[static_cast<std::size_t>(ControlVisualRole::button)]
+                             .ordinary[at(ControlSurfaceState::pressed)]);
+    require(resolved == expected_resolved,
             "Theme::resolve serves the derived record");
 }
 

@@ -70,7 +70,7 @@ private:
     // property_codemod begin TrackBar (tools/property_families/track_bar.json; generated, do not edit)
 public:
     // TrackBar's property table: RangeControl's entries, then its own.
-    static constexpr std::size_t track_bar_property_count = RangeControl::range_control_property_count + 2U;
+    static constexpr std::size_t track_bar_property_count = RangeControl::range_control_property_count + 3U;
     [[nodiscard]] static const std::array<PropertyEntry, track_bar_property_count>& track_bar_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
@@ -78,6 +78,7 @@ private:
     friend struct TrackBarTickFrequencyCapability<TrackBar>;
     friend struct TrackBarShowTicksCapability<TrackBar>;
     friend struct TrackBarVisualStyleChoiceCapability<TrackBar>;
+    friend struct TrackBarThumbExtentCapability<TrackBar>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(tick_frequency)& cell, double& incoming);
     void written(const decltype(tick_frequency)& cell);
@@ -85,6 +86,8 @@ private:
     void written(const decltype(show_ticks)& cell);
     void prepare_write(const decltype(visual_style)& cell, TrackBarVisualStyle& incoming);
     void written(const decltype(visual_style)& cell);
+    void prepare_write(const decltype(thumb_extent)& cell, double& incoming);
+    void written(const decltype(thumb_extent)& cell);
     // property_codemod end TrackBar
 };
 

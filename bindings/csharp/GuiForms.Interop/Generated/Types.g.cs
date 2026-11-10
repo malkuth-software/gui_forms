@@ -632,13 +632,15 @@ public unsafe struct gf_shadow_stack_info
     public ulong dropped;
 }
 
-/// <summary>gf_diagnostics_table (table, 16 bytes).</summary>
+/// <summary>gf_diagnostics_table (table, 32 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_diagnostics_table
 {
     public uint struct_size;
     public uint abi_minor;
     public delegate* unmanaged[Cdecl]<gf_shadow_frame*, ulong, ulong*, gf_shadow_stack_info*, gf_status> shadow_frames;
+    public delegate* unmanaged[Cdecl]<uint, gf_status> set_invalidation_overlay;
+    public delegate* unmanaged[Cdecl]<uint*, gf_status> invalidation_overlay;
 }
 
 /// <summary>gf_layout_transaction (extensible, 32 bytes).</summary>
@@ -757,7 +759,7 @@ public unsafe struct gf_anchored_overlay_options
     public gf_callback* events;
 }
 
-/// <summary>gf_overlays_table (table, 64 bytes).</summary>
+/// <summary>gf_overlays_table (table, 80 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_overlays_table
 {
@@ -770,6 +772,8 @@ public unsafe struct gf_overlays_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_status> hide_tool_tip;
     public delegate* unmanaged[Cdecl]<gf_object, gf_object, gf_anchored_overlay_options*, gf_status> open_anchored;
     public delegate* unmanaged[Cdecl]<gf_object, gf_status> close_anchored;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_tool_tips_setting, gf_status> set_tool_tips_shown;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_tool_tips_setting*, gf_status> tool_tips_shown;
 }
 
 /// <summary>gf_property_grid_table (table, 48 bytes).</summary>
@@ -1081,6 +1085,95 @@ public unsafe struct gf_data_grid_table
     public delegate* unmanaged[Cdecl]<gf_object, uint, uint*, gf_status> begin_edit;
     public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> end_edit;
     public delegate* unmanaged[Cdecl]<gf_object, gf_status> cancel_edit;
+}
+
+/// <summary>gf_dock_panel (extensible, 136 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_dock_panel
+{
+    public uint struct_size;
+    public gf_dock_panel_kind kind;
+    public gf_dock_allowed allowed;
+    public uint dock_as_document;
+    public gf_dock_placement default_placement;
+    public gf_dock_side default_side;
+    public double default_ratio;
+    public double default_extent;
+    public gf_logical_rect default_frame;
+    public gf_logical_size minimum_size;
+    public gf_utf8_view id;
+    public gf_utf8_view title;
+    public gf_object content;
+    public ulong reserved;
+}
+
+/// <summary>gf_dock_edit (extensible, 104 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_dock_edit
+{
+    public uint struct_size;
+    public gf_dock_edit_kind kind;
+    public uint subject_is_stack;
+    public uint subject_stack;
+    public uint target_node;
+    public uint site;
+    public gf_dock_side side;
+    public uint index;
+    public double ratio;
+    public double extent;
+    public gf_logical_rect frame;
+    public gf_utf8_view panel;
+    public ulong reserved;
+}
+
+/// <summary>gf_dock_location (extensible, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_dock_location
+{
+    public uint struct_size;
+    public gf_dock_placement placement;
+    public uint stack;
+    public uint index;
+    public uint site;
+    public gf_dock_node_kind stack_kind;
+    public gf_dock_side side;
+    public uint selected;
+    public uint stack_panel_count;
+    public uint reserved;
+}
+
+/// <summary>gf_dock_options (extensible, 16 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_dock_options
+{
+    public uint struct_size;
+    public gf_dock_option_flags flags;
+    public uint area_background;
+    public uint reserved;
+}
+
+/// <summary>gf_docking_table (table, 136 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_docking_table
+{
+    public uint struct_size;
+    public uint abi_minor;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_dock_panel*, gf_status> register_panel;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_object, gf_status> set_panel_content;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_utf8_view, gf_status> set_panel_title;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_dock_edit*, gf_dock_refusal*, gf_status> apply_edit;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_dock_location*, gf_status> locate;
+    public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> save_layout;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, ulong*, gf_status> load_layout;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_status> activate_panel;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> attach_windows;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> document_area;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, ulong, byte*, ulong, ulong*, gf_status> panel_at;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, ulong, ulong*, gf_status> floating_sites;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_logical_rect*, uint*, gf_status> floating_site;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_dock_panel*, gf_status> update_panel;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_dock_options*, gf_status> set_options;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_dock_window_visibility, gf_status> set_floating_window_visibility;
 }
 
 /// <summary>gf_windows_paint_endpoint_table (table, 104 bytes).</summary>

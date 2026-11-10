@@ -95,6 +95,9 @@ void shadow_masks_match_direct_blur() {
                 require(built == direct, "cached shadow mask matches the direct blur");
                 require(reused == direct, "reused shadow mask matches the direct blur");
             }
+            // Square corners draw as Skia's kept nine patches, never a mask.
+            const bool square = !(shadow.radius + shadow.spread > 0.0);
+            require(!square || !(*cache).memo, "a square-cornered shadow keeps no coverage mask");
         }
     }
 }

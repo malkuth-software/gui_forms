@@ -497,11 +497,30 @@ struct HostModalTransition final {
     bool entering{};
 };
 
+// Why a window is asked to close, or closed (HostCloseRequest,
+// HostClosedEvent; the C ABI's run events carry it as the field "reason").
 enum class HostCloseReason : std::uint8_t {
+    // The user closed this window: its close button, Alt+F4, the window
+    // menu, the window manager's delete request.
     user,
+    // The program closed it (destroy_window, the run ending, the headless
+    // runtime's own close).
     application,
+    // The user's session is ending: log out, restart or shut down (Windows
+    // WM_QUERYENDSESSION then WM_ENDSESSION; a macOS quit Apple event whose
+    // reason is a log-out, restart or shut-down; SIGTERM or SIGHUP on the
+    // Linux host). A closing handler may cancel where the platform lets an
+    // application refuse (Windows, macOS); the Linux host tells it and
+    // closes anyway. An allowed request leaves the window attached until
+    // the host reports it closed, since the platform may still call the
+    // session's end off (WM_ENDSESSION with FALSE).
     session_end,
+    // Tests.
     test,
+    // The user quit the whole application from the system rather than
+    // closing a window: macOS Cmd-Q, the Dock's Quit, a quit Apple event
+    // without a session reason.
+    quit,
 };
 
 struct HostAttachEvent final {

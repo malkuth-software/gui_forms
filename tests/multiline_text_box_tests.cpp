@@ -12,6 +12,7 @@
 #include <iostream>
 #include <optional>
 #include <stdexcept>
+#include <string>
 
 namespace {
 using namespace gui_forms;
@@ -825,6 +826,60 @@ void selected_text_drawn_once() {
     require(unselected.count("hello world") == 1U, "without a selection the line is one draw");
 }
 
+// Types `text` as one text input event, as an input method or a key would.
+void type_text(Fixture& f, const char* text) {
+    TextInputEvent input{};
+    input.text_utf8 = text;
+    const bool handled = f.window.dispatch_text(input);
+    require(handled, "text input must be handled");
+}
+
+// N52: consecutive typing is one undo step per word; a caret move, undo and
+// redo end the step.
+void typing_undoes_a_word_at_a_time() {
+    Fixture f{};
+    f.editor.text = "";
+    type_text(f, "h");
+    type_text(f, "i");
+    type_text(f, " ");
+    type_text(f, "y");
+    type_text(f, "o");
+    require(f.editor.text.read() == "hi yo", "typed two words");
+    require(f.editor.undo() && f.editor.text.read() == "hi " && f.caret() == 3, "undo takes the last word");
+    require(f.editor.undo() && f.editor.text.read().empty() && f.caret() == 0, "undo takes the first word");
+    require(!f.editor.can_undo(), "two words are two steps");
+    require(f.editor.redo() && f.editor.redo() && f.editor.text.read() == "hi yo", "redo restores both");
+    type_text(f, "u");
+    require(f.editor.undo() && f.editor.text.read() == "hi yo", "typing after redo is a step of its own");
+    f.caret(2);
+    type_text(f, "!");
+    type_text(f, "?");
+    f.key(PhysicalKey::end);
+    type_text(f, "s");
+    require(f.editor.text.read() == "hi!? yos", "typed around a caret move");
+    require(f.editor.undo() && f.editor.text.read() == "hi!? yo", "the caret move ended the step");
+    require(f.editor.undo() && f.editor.text.read() == "hi yo", "the inner typing is one step");
+}
+
+// N52: the history keeps edits, not texts, so a large text keeps its full
+// depth (whole-text copies of 1 MiB held at most eight steps in 8 MiB).
+void deep_history_for_a_large_text() {
+    Fixture f{};
+    f.editor.multiline = false;
+    const std::string large(1024U * 1024U, 'a');
+    f.editor.text = large;
+    constexpr std::size_t edits = 40U;
+    for (std::size_t index = 0U; index < edits; ++index) {
+        f.caret(index * 2U);
+        const bool replaced = f.editor.replace_selection("b");
+        require(replaced, "edit a large text");
+    }
+    std::size_t undone = 0U;
+    while (f.editor.undo()) ++undone;
+    require(undone == edits, "every edit of a large text stays undoable");
+    require(f.editor.text.read() == large, "undo restores the large text exactly");
+}
+
 int main() {
     try {
         exact_editing();
@@ -842,6 +897,8 @@ int main() {
         paging_reveal_glides();
         selected_text_drawn_once();
         bounded_workload();
+        typing_undoes_a_word_at_a_time();
+        deep_history_for_a_large_text();
         std::cout << "gui_forms_multiline_text_box_tests: passed\n";
         return 0;
     } catch (const std::exception& error) {

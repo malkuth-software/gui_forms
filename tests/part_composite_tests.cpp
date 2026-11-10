@@ -536,6 +536,65 @@ void test_copy_blend() {
             "the copy group composite has the copy blend");
 }
 
+// The pixels wholly inside a rectangular clip skip the coverage arithmetic
+// (and an opaque source-over pixel at full opacity is stored as it is):
+// the result equals the per-pixel path, which a rounded clip of radius 0
+// around the whole target forces on every pixel.
+void test_interior_shortcut_matches_coverage() {
+    constexpr std::uint32_t width = 13U;
+    constexpr std::uint32_t height = 9U;
+    // Premultiplied pixels of varied alpha: opaque, clear and between.
+    std::vector<std::uint8_t> bytes{};
+    bytes.reserve(static_cast<std::size_t>(width) * height * 4U);
+    for (std::uint32_t index = 0U; index < width * height; ++index) {
+        const std::uint32_t alpha_choice = index % 5U;
+        unsigned alpha = 255U;
+        if (alpha_choice == 1U) alpha = 0U;
+        if (alpha_choice == 2U) alpha = 128U;
+        if (alpha_choice == 3U) alpha = 37U;
+        const unsigned red = (index * 7U) % (alpha + 1U);
+        const unsigned green = (index * 13U) % (alpha + 1U);
+        const unsigned blue = (index * 29U) % (alpha + 1U);
+        bytes.push_back(static_cast<std::uint8_t>(blue));
+        bytes.push_back(static_cast<std::uint8_t>(green));
+        bytes.push_back(static_cast<std::uint8_t>(red));
+        bytes.push_back(static_cast<std::uint8_t>(alpha));
+    }
+    constexpr std::array<detail::PartCompositeBlend, 5> blends{
+        detail::PartCompositeBlend::source_over, detail::PartCompositeBlend::plus,
+        detail::PartCompositeBlend::multiply, detail::PartCompositeBlend::screen, detail::PartCompositeBlend::copy};
+    constexpr std::array<std::uint8_t, 2> opacities{255U, 128U};
+    constexpr std::array<Rect, 3> clips{{{1.25, 0.5, 10.5, 7.75}, {0.0, 0.0, 15.0, 11.0}, {3.0, 2.0, 6.0, 4.0}}};
+    for (const detail::PartCompositeBlend blend : blends) {
+        for (const std::uint8_t opacity : opacities) {
+            for (const Rect clip_rect : clips) {
+                for (const bool opaque : {false, true}) {
+                    PartRasterSource source = source_of(bytes, width, height, 1, 1);
+                    source.blend = blend;
+                    const std::uint32_t fill = opaque ? pack(90U, 140U, 200U, 255U) : pack(40U, 60U, 20U, 120U);
+                    TestTarget shortcut = make_target(width + 2U, height + 2U, fill, opaque);
+                    TestTarget covered = make_target(width + 2U, height + 2U, fill, opaque);
+                    TextCompositeClip rectangular{};
+                    rectangular.rect = clip_rect;
+                    TextCompositeClip rounded = rectangular;
+                    rounded.rounded = true;
+                    rounded.rounded_rect = {0.0, 0.0, static_cast<double>(width + 2U),
+                                            static_cast<double>(height + 2U)};
+                    rounded.radius = 0.0;
+                    require(detail::composite_part_raster(source, shortcut.target, rectangular, opacity) ==
+                                TextCompositeStatus::success,
+                            "the rectangular clip composites");
+                    require(detail::composite_part_raster(source, covered.target, rounded, opacity) ==
+                                TextCompositeStatus::success,
+                            "the rounded clip composites");
+                    require(shortcut.pixels == covered.pixels,
+                            "the interior shortcut matches the per-pixel coverage path");
+                }
+            }
+        }
+    }
+}
+
 int main() {
     test_opacity_quantization();
     test_blend_arithmetic();
@@ -547,6 +606,7 @@ int main() {
     test_plus_blend();
     test_separable_blends();
     test_copy_blend();
+    test_interior_shortcut_matches_coverage();
     test_part_raster();
     test_command_is_recorded_replayed_and_inspected();
     std::cout << "part composite tests passed\n";

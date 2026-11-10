@@ -33,6 +33,13 @@
 #include "gallery.hpp"
 #include "gallery_catalog.hpp"
 #include "gallery_page_specs.hpp"
+#include "gui_forms/controls/instruments/sparkline/sparkline.hpp"
+#include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
+#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
+#include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
+#include "gui_forms/controls/callout/callout.hpp"
+#include "gui_forms/controls/modal_layer/modal_layer.hpp"
+#include "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp"
 #include "gui_forms/gui_forms.hpp"
 
 #include <array>
@@ -66,7 +73,7 @@ constexpr std::string_view off_tree_page = "off-tree-controls";
 
 // Registry entries that are not controls (nonvisual components and the
 // LiveSurface service type), as the anatomy coverage test lists them.
-constexpr std::array<std::string_view, 24> nonvisual_entries{
+constexpr std::array<std::string_view, 30> nonvisual_entries{
     "command", "gallery_command", "font_command", "color_command", "context_menu",
     "tool_tip", "ribbon_tool_tip", "timer", "background_worker", "notify_icon",
     "thread_exception_dialog", "image_list", "error_provider", "help_provider", "semantic_feedback", "binding",
@@ -74,6 +81,11 @@ constexpr std::array<std::string_view, 24> nonvisual_entries{
     "save_file_dialog",
     "color_dialog",
     "folder_browser_dialog",
+    // A PlotView's item children, which it paints as its own parts; the
+    // About box and the help system, components shown through their
+    // dialog and viewer; and GaugeBase, the gauges' abstract base.
+    "plot_axis_item", "plot_series_item", "plot_annotation_item",
+    "about_dialog", "help_book_system", "gauge_base",
 };
 
 // Registry controls that publish no node of their own: presentational
@@ -83,10 +95,13 @@ constexpr std::array<std::string_view, 24> nonvisual_entries{
 // whose subclasses (track bar, scroll bars) publish their own roles. The
 // test fails when this list and the published tree disagree in either
 // direction.
-constexpr std::array<std::string_view, 8> unexposed_entries{
+constexpr std::array<std::string_view, 11> unexposed_entries{
     "scaled_panel", "splitter_panel", "tool_strip_panel", "property_grid",
     "scrollable_control", "anchored_overlay_layer", "visual_inspector_overlay",
     "range_control",
+    // A wizard page and the help viewer, containers whose content publishes
+    // in their place, and the modal layer, which hosts its dialog.
+    "wizard_page", "help_book_viewer", "modal_layer",
 };
 
 // The notices page with its toast shown (walk_toast): walked for coverage
@@ -495,6 +510,16 @@ std::unique_ptr<Window> make_off_tree_fixture() {
     place(*root, make_control<PropertyGrid>(StableId("off-tree.property-grid")), Rect{10.0, 130.0, 300.0, 240.0});
     place(*root, make_control<TaskDialog>(StableId("off-tree.task-dialog")), Rect{330.0, 130.0, 420.0, 240.0});
     place(*root, make_control<FontDialog>(StableId("off-tree.font-dialog")), Rect{10.0, 390.0, 640.0, 400.0});
+    // The visual registry controls no Gallery page attaches: the instruments
+    // and the plot, and the wizard, callout, modal layer and help viewer
+    // controls, each placed bare (a callout and a modal layer not shown).
+    place(*root, make_control<Sparkline>(StableId("off-tree.sparkline")), Rect{670.0, 390.0, 160.0, 30.0});
+    place(*root, make_control<ValueBar>(StableId("off-tree.value-bar")), Rect{850.0, 390.0, 160.0, 24.0});
+    place(*root, make_control<PlotView>(StableId("off-tree.plot-view")), Rect{670.0, 430.0, 300.0, 150.0});
+    place(*root, make_control<WizardPage>(StableId("off-tree.wizard-page")), Rect{990.0, 430.0, 200.0, 100.0});
+    place(*root, make_control<Callout>(StableId("off-tree.callout")), Rect{670.0, 600.0, 200.0, 80.0});
+    place(*root, make_control<ModalLayer>(StableId("off-tree.modal-layer")), Rect{890.0, 600.0, 160.0, 80.0});
+    place(*root, make_control<HelpBookViewer>(StableId("off-tree.help-book-viewer")), Rect{1060.0, 600.0, 200.0, 190.0});
     const Size size{1280.0, 820.0};
     std::unique_ptr<Window> window = std::make_unique<Window>(root, size);
     return window;

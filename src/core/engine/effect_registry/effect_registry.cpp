@@ -267,6 +267,10 @@ EffectRegistrationOutcome EffectRegistry::add(const EffectEntry& entry) noexcept
     if (!backdrop_margin_in_range((*declaration).backdrop_margin)) {
         return EffectRegistrationOutcome::backdrop_out_of_range;
     }
+    const std::uint32_t version = (*declaration).engine_version;
+    if (version == 0U || version > current_effect_vocabulary_version) {
+        return EffectRegistrationOutcome::vocabulary_version_unknown;
+    }
     if (find((*declaration).name) != nullptr) return EffectRegistrationOutcome::duplicate_name;
     if (count_ == entries_.size()) return EffectRegistrationOutcome::registry_full;
     EffectEntry registered = entry;

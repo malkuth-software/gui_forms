@@ -92,6 +92,40 @@
       },
       "hooks": "generated",
       "sample": "TrackBarVisualStyle::filled"
+    },
+    {
+      "capability": "TrackBarThumbExtent",
+      "clear": null,
+      "comment": "The thumb's side in pixels; 0 (the default) takes the visual style's (14 classic, 12 filled, 8 compact). Finite and between 0 and 64, else std::invalid_argument.",
+      "event": null,
+      "field": "thumb_extent_",
+      "getter": "thumb_extent",
+      "hooks": "generated",
+      "initial": "0.0",
+      "localizable": null,
+      "name": "thumb_extent",
+      "on_changed": false,
+      "prepare": [
+        "require_finite(incoming, \"thumb extent must be finite\");",
+        "if (incoming < 0.0 || incoming > 64.0) throw std::invalid_argument(\"thumb extent must be between 0 and 64\");"
+      ],
+      "sample": "10.0",
+      "setter": "set_thumb_extent",
+      "table": {
+        "bindable": false,
+        "browsable": true,
+        "category": "Appearance",
+        "default": "BindingValue{0.0}",
+        "description": "The thumb's side in pixels; 0 takes the visual style's.",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "enumeration": null,
+        "kind": "number",
+        "nullable": false,
+        "registry": false,
+        "reset": null,
+        "subtree": false
+      },
+      "value": "double"
     }
   ],
   "not_properties": [],

@@ -816,6 +816,99 @@ void test_capability_assignment() {
     require(too_wide, "assigned value: a value outside the cell's narrower type is refused");
 }
 
+// The scroll properties on every layout panel that scrolls its content
+// (flex, grid, block and flow): a document sets them, the loader makes the
+// panel with them, and the generator writes them.
+void test_panel_scroll_properties() {
+    const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    const std::string_view panel_types[] = {"flex-panel", "grid-panel", "block-panel", "flow-layout-panel-compat"};
+    for (const std::string_view panel_type : panel_types) {
+        const std::string what = "scroll properties on " + std::string(panel_type) + ": ";
+        const std::string document = std::string(panel_type) +
+                                     " app.root {\n"
+                                     "  auto-scroll: true;\n"
+                                     "  auto-scroll-margin: 4 8;\n"
+                                     "  auto-scroll-min-size: 200 300;\n"
+                                     "  button app.a { text: \"A\"; }\n"
+                                     "}\n";
+        Workspace workspace{};
+        const bool read = read_document(workspace, "scroll.form", document, schema);
+        if (!read) print_diagnostics(workspace);
+        require(read, what + "the model builds");
+        if (!read) continue;
+        const FormSources no_sources{};
+        LoadedForm loaded{};
+        const FormLoadOutcome outcome = gui_forms::form_language::load_form(
+            workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, no_sources,
+            loaded, workspace.diagnostics);
+        require(outcome == FormLoadOutcome::loaded, what + "the document loads");
+        const std::shared_ptr<gui_forms::ScrollableControl> panel =
+            std::dynamic_pointer_cast<gui_forms::ScrollableControl>(loaded.root);
+        require(panel != nullptr, what + "the root is a scrollable control");
+        if (panel == nullptr) continue;
+        require((*panel).auto_scroll.read(), what + "auto-scroll set");
+        require((*panel).auto_scroll_margin.read() == gui_forms::Size{4.0, 8.0}, what + "auto-scroll-margin set");
+        require((*panel).auto_scroll_min_size.read() == gui_forms::Size{200.0, 300.0},
+                what + "auto-scroll-min-size set");
+        FormGeneratorOptions options = sample_options();
+        options.class_name = "ScrollForm";
+        options.source_name = "scroll.form";
+        std::string generated{};
+        require(generate(workspace, schema, options, generated) == FormGenerateOutcome::generated,
+                what + "the generator writes the document");
+        require(generated.find("(*made.app_root).auto_scroll = ") != std::string::npos,
+                what + "the generator assigns auto_scroll");
+    }
+}
+
+// A derived class of a control root whose type is final (a layout panel)
+// composes the root instead of deriving from it; a root type that admits
+// subclasses is still derived from.
+void test_composed_root() {
+    const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    const std::string_view document = "flex-panel app.root {\n"
+                                      "  auto-scroll: true;\n"
+                                      "  button app.a { text: \"A\"; }\n"
+                                      "}\n";
+    Workspace workspace{};
+    const bool read = read_document(workspace, "flex.form", document, schema);
+    if (!read) print_diagnostics(workspace);
+    require(read, "composed root: the model builds");
+    if (!read) return;
+    FormGeneratorOptions options = sample_options();
+    options.class_name = "FlexForm";
+    options.source_name = "flex.form";
+    options.derived = true;
+    std::string generated{};
+    require(generate(workspace, schema, options, generated) == FormGenerateOutcome::generated,
+            "composed root: the generator writes the document");
+    require(generated.find("class FlexForm final {") != std::string::npos &&
+                generated.find(": public gui_forms::FlexPanel") == std::string::npos,
+            "composed root: a class of its own, not a FlexPanel subclass");
+    require(generated.find("std::shared_ptr<gui_forms::FlexPanel> app_root{};") != std::string::npos,
+            "composed root: the root is a member");
+    require(generated.find("made.app_root = gui_forms::make_control<gui_forms::FlexPanel>(") != std::string::npos &&
+                generated.find("(*made.app_root).add_child(made.app_a);") != std::string::npos,
+            "composed root: make() makes the root, then adds its children");
+    require(generated.find("(*made.app_root).auto_scroll = ") != std::string::npos,
+            "composed root: the root's values set through the member");
+    require(generated.find("[[nodiscard]] static FlexForm make() {") != std::string::npos,
+            "composed root: binding nothing, make() takes no model");
+
+    const std::string_view user = "user-control app.root {\n"
+                                  "  button app.a { text: \"A\"; }\n"
+                                  "}\n";
+    const bool user_read = read_document(workspace, "user.form", user, schema);
+    require(user_read, "derived root: the model builds");
+    if (!user_read) return;
+    options.class_name = "UserForm";
+    options.source_name = "user.form";
+    std::string derived{};
+    require(generate(workspace, schema, options, derived) == FormGenerateOutcome::generated &&
+                derived.find("class UserForm final : public gui_forms::UserControl {") != std::string::npos,
+            "derived root: a type that admits subclasses is derived from");
+}
+
 void test_member_names() {
     require(gui_forms::form_language::form_member_name("settings.auto-save") == "settings_auto_save",
             "member names: '.' and '-' spelled '_'");
@@ -843,6 +936,8 @@ int main() {
     test_binding_spelling();
     test_string_escapes();
     test_capability_assignment();
+    test_panel_scroll_properties();
+    test_composed_root();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

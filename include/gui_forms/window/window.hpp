@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/window/toasts/toasts.hpp"
 #include "gui_forms/window/chrome/window_capabilities.hpp"
@@ -112,6 +113,12 @@ public:
 
     [[nodiscard]] bool queue_live_surface_presentation(
         const Control::Ptr& control, std::shared_ptr<LiveSurface> surface);
+    // A host presented `presented` (window logical units) of `presentation`'s
+    // frame: recorded for the invalidation overlay while it is on, as a live
+    // surface's presentation, or external content's for a compatibility
+    // paint endpoint's surface, named for the surface's control. Nothing
+    // while the overlay is off. UI thread.
+    void note_live_surface_presented(const LiveSurfacePresentation& presentation, Rect presented);
     // Content pairing (stage S2, design note section 6): the surface
     // registered for `control` must next show a frame published with a
     // content tag of at least `content_tag`. Until one is published, the next
@@ -190,6 +197,11 @@ public:
     void hide_popup_window(std::size_t slot) noexcept;
     [[nodiscard]] Window* popup_window_model(std::size_t slot) const noexcept;
     [[nodiscard]] Event<std::size_t>& popup_window_closed();
+    // Why the host closed this window (the accepted HostClosedEvent's
+    // reason: the user, the program, the session ending, a quit), once it
+    // has; empty until then. Readable from the window's closed callback
+    // (ApplicationWindowOptions::closed). Set only by HostSession.
+    [[nodiscard]] std::optional<HostCloseReason> host_close_reason() const noexcept;
     // The slot drop-downs and pickers lift their lists and panels into
     // (PopupLift; owner, 2026-11-08: Part S scope for 0.5). Menus use the
     // slots below it, one per depth.
@@ -326,6 +338,9 @@ private:
     // The warm Popup windows, made on first use (popup_standby()). Shared
     // so that its deleter is bound where it is made.
     std::shared_ptr<detail::PopupStandby> popup_standby_{};
+    // host_close_reason(): written by HostSession when it accepts the
+    // closed event.
+    std::optional<HostCloseReason> host_close_reason_{};
     [[nodiscard]] detail::PopupStandby& popup_standby();
     // Sends the corner preference to the attached host, if any, and takes
     // its report; changed corners repaint the band's strips. Called by

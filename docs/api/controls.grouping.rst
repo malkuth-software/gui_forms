@@ -37,6 +37,10 @@ Panels, group boxes, cards, tabs and expandable sections.
      - An Outlook-style navigation pane: the selected page's content above a stack of large page buttons.
    * - :cpp:class:`TabPage <gui_forms::TabPage>`
      - One page of a tab control, with the caption shown on its tab.
+   * - :cpp:class:`Wizard <gui_forms::Wizard>`
+     - Guided sequence of WizardPage children shown one at a time, with the page's title and description, a step indicator, Back, Next or Finish and Cancel, and a cancellable page_changing.
+   * - :cpp:class:`WizardPage <gui_forms::WizardPage>`
+     - One page of a Wizard: a Panel with the title and description the wizard shows and can_advance, the gate on its Next button.
 
 .. toctree::
    :hidden:
@@ -54,6 +58,8 @@ Panels, group boxes, cards, tabs and expandable sections.
    generated/gui_forms.PageView
    generated/gui_forms.NavigationPane
    generated/gui_forms.TabPage
+   generated/gui_forms.Wizard
+   generated/gui_forms.WizardPage
 
 Related types
 -------------
@@ -230,6 +236,32 @@ Related types
      - An ordered list of text items edited in place (in-place collections design, owner 2026-11-07; the ListBox pilot): ``(*list).items.read()``, ``(*list).items[i]``, ``(*list).items = {...}``, ``items.insert(i, x)``, ``items.erase(i, n)``, ``items.replace(i, x)`` and ``items.clear()``.
    * - :cpp:class:`VisualRoleCapability <gui_forms::VisualRoleCapability>`
      - The recipe family the panel paints with: window, panel, card, editor (the recessed field ground of the Panel-derived editors such as NumericUpDown and TreeView), or notice (a staged InstrumentRack module).
+   * - :cpp:class:`Wizard::Parts <gui_forms::Wizard::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`WizardBackTextCapability <gui_forms::WizardBackTextCapability>`
+     - The Back button's text.
+   * - :cpp:class:`WizardCancelTextCapability <gui_forms::WizardCancelTextCapability>`
+     - The Cancel button's text.
+   * - :cpp:class:`WizardCapabilities <gui_forms::WizardCapabilities>`
+     - Every Wizard capability, in the order the declaring class takes them.
+   * - :cpp:class:`WizardCurrentPageCapability <gui_forms::WizardCurrentPageCapability>`
+     - The page shown, counted from zero among the WizardPage children.
+   * - :cpp:class:`WizardFinishTextCapability <gui_forms::WizardFinishTextCapability>`
+     - The Next button's text on the last page.
+   * - :cpp:class:`WizardNextTextCapability <gui_forms::WizardNextTextCapability>`
+     - The Next button's text before the last page.
+   * - :cpp:class:`WizardPageCanAdvanceCapability <gui_forms::WizardPageCanAdvanceCapability>`
+     - Whether Next (or Finish) is available on this page: the page's validation gate.
+   * - :cpp:class:`WizardPageCapabilities <gui_forms::WizardPageCapabilities>`
+     - Every WizardPage capability, in the order the declaring class takes them.
+   * - :cpp:class:`WizardPageChangingEvent <gui_forms::WizardPageChangingEvent>`
+     - The argument of Wizard::page_changing: the page shown, the page asked for, and whether a handler refuses the move.
+   * - :cpp:class:`WizardPageDescriptionCapability <gui_forms::WizardPageDescriptionCapability>`
+     - The line under the title in the wizard's header; empty for none.
+   * - :cpp:class:`WizardPageTitleCapability <gui_forms::WizardPageTitleCapability>`
+     - The page's title, shown in the wizard's header and as its step's name.
+   * - :cpp:class:`WizardShowStepIndicatorCapability <gui_forms::WizardShowStepIndicatorCapability>`
+     - Whether the step indicator shows above the page, naming every page by its title.
 
 .. cpp:namespace:: gui_forms
 
@@ -1817,6 +1849,249 @@ Related types
    .. cpp:member:: PropertyCell<ControlVisualRole, VisualRoleCapability<Declaring>> visual_role
 
       Default: ``{ControlVisualRole::panel}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: Wizard::Parts final
+
+   ``#include <gui_forms/controls/wizard/wizard.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts).
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry caption
+
+   .. cpp:member:: PartGeometry label
+
+   .. cpp:member:: PartGeometry divider
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WizardBackTextCapability
+
+   ``#include <gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp>``
+
+   The Back button's text. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WizardBackTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, WizardBackTextCapability<Declaring>> back_text
+
+      Default: ``{"< Back"}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WizardCancelTextCapability
+
+   ``#include <gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp>``
+
+   The Cancel button's text. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WizardCancelTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, WizardCancelTextCapability<Declaring>> cancel_text
+
+      Default: ``{"Cancel"}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WizardCapabilities : public WizardCurrentPageCapability<Declaring>, public WizardShowStepIndicatorCapability<Declaring>, public WizardBackTextCapability<Declaring>, public WizardNextTextCapability<Declaring>, public WizardFinishTextCapability<Declaring>, public WizardCancelTextCapability<Declaring>
+
+   ``#include <gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp>``
+
+   Every Wizard capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::uint32_t current_page
+
+      The page shown, counted from zero among the WizardPage children. A write moves there at once and raises page_changed, without page_changing; past the last page throws std::invalid_argument (zero is always accepted).
+
+   .. cpp:member:: bool show_step_indicator
+
+      Whether the step indicator shows above the page, naming every page by its title.
+
+   .. cpp:member:: std::string back_text
+
+      The Back button's text. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: std::string next_text
+
+      The Next button's text before the last page. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: std::string finish_text
+
+      The Next button's text on the last page. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: std::string cancel_text
+
+      The Cancel button's text. Must be valid UTF-8 (std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WizardCurrentPageCapability
+
+   ``#include <gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp>``
+
+   The page shown, counted from zero among the WizardPage children. A write moves there at once and raises page_changed, without page_changing; past the last page throws std::invalid_argument (zero is always accepted).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WizardCurrentPageCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, WizardCurrentPageCapability<Declaring>> current_page
+
+      Default: ``{0U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WizardFinishTextCapability
+
+   ``#include <gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp>``
+
+   The Next button's text on the last page. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WizardFinishTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, WizardFinishTextCapability<Declaring>> finish_text
+
+      Default: ``{"Finish"}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WizardNextTextCapability
+
+   ``#include <gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp>``
+
+   The Next button's text before the last page. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WizardNextTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, WizardNextTextCapability<Declaring>> next_text
+
+      Default: ``{"Next >"}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WizardPageCanAdvanceCapability
+
+   ``#include <gui_forms/controls/wizard/wizard_page/wizard_page_capabilities/wizard_page_capabilities.hpp>``
+
+   Whether Next (or Finish) is available on this page: the page's validation gate.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WizardPageCanAdvanceCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, WizardPageCanAdvanceCapability<Declaring>> can_advance
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WizardPageCapabilities : public WizardPageTitleCapability<Declaring>, public WizardPageDescriptionCapability<Declaring>, public WizardPageCanAdvanceCapability<Declaring>
+
+   ``#include <gui_forms/controls/wizard/wizard_page/wizard_page_capabilities/wizard_page_capabilities.hpp>``
+
+   Every WizardPage capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string title
+
+      The page's title, shown in the wizard's header and as its step's name. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: std::string description
+
+      The line under the title in the wizard's header; empty for none. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: bool can_advance
+
+      Whether Next (or Finish) is available on this page: the page's validation gate.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WizardPageChangingEvent final
+
+   ``#include <gui_forms/controls/wizard/wizard.hpp>``
+
+   The argument of Wizard::page_changing: the page shown, the page asked for, and whether a handler refuses the move.
+
+   .. cpp:member:: std::uint32_t from
+
+      Default: ``{0U}``.
+
+   .. cpp:member:: std::uint32_t to
+
+      Default: ``{0U}``.
+
+   .. cpp:member:: bool cancel
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WizardPageDescriptionCapability
+
+   ``#include <gui_forms/controls/wizard/wizard_page/wizard_page_capabilities/wizard_page_capabilities.hpp>``
+
+   The line under the title in the wizard's header; empty for none. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WizardPageDescriptionCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, WizardPageDescriptionCapability<Declaring>> description
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WizardPageTitleCapability
+
+   ``#include <gui_forms/controls/wizard/wizard_page/wizard_page_capabilities/wizard_page_capabilities.hpp>``
+
+   The page's title, shown in the wizard's header and as its step's name. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WizardPageTitleCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, WizardPageTitleCapability<Declaring>> title
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> WizardShowStepIndicatorCapability
+
+   ``#include <gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp>``
+
+   Whether the step indicator shows above the page, naming every page by its title.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(WizardShowStepIndicatorCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, WizardShowStepIndicatorCapability<Declaring>> show_step_indicator
+
+      Default: ``{true}``.
 
 Enumerations
 ------------

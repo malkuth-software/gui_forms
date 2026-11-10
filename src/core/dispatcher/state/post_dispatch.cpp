@@ -10,6 +10,59 @@
 namespace gui_forms {
 namespace detail {
 
+namespace {
+
+// The calling thread's revocable invokes, if it has any (a sub-surface's
+// thread). Each thread reads and writes only its own.
+thread_local std::shared_ptr<RevocableInvokes> thread_revocable_invokes{};
+
+// An operation that is already cancelled and holds no callback: what a
+// refused post returns.
+DispatchOperation refused_operation(const std::shared_ptr<DispatcherState>& state) {
+    std::shared_ptr<DispatchWork> refused = std::make_shared<DispatchWork>();
+    (*refused).state.store(DispatchOperationState::cancelled, std::memory_order_release);
+    (*refused).dispatcher = state;
+    return DispatchOperation(std::move(refused));
+}
+
+} // namespace
+
+void revoke_invokes(RevocableInvokes& invokes) noexcept {
+    std::shared_ptr<DispatchWork> waiting;
+    {
+        std::scoped_lock lock(invokes.mutex);
+        invokes.revoked = true;
+        waiting = invokes.waiting.lock();
+        invokes.waiting.reset();
+    }
+    if (!waiting) return;
+    // A work that already ran (or was cancelled) keeps its state; a pending
+    // one is cancelled, which wakes its waiter. The owning dispatcher's turn
+    // skips it, and its callback goes with the work.
+    DispatchOperationState expected = DispatchOperationState::pending;
+    if ((*waiting).state.compare_exchange_strong(expected, DispatchOperationState::cancelled,
+                                                  std::memory_order_acq_rel,
+                                                  std::memory_order_acquire)) {
+        (*waiting).state.notify_all();
+    }
+}
+
+void set_thread_revocable_invokes(std::shared_ptr<RevocableInvokes> invokes) noexcept {
+    thread_revocable_invokes = std::move(invokes);
+}
+
+void wake_host_locked(DispatcherState& state) {
+    state.wake_pending = true;
+    ++state.wake_requests;
+    try {
+        state.wake();
+    } catch (...) {
+        state.wake_pending = false;
+        --state.wake_requests;
+        throw;
+    }
+}
+
 DispatchOperation post_dispatch(const std::shared_ptr<DispatcherState>& state,
                                 Control::WeakPtr owner,
                                 bool requires_owner,
@@ -37,12 +90,9 @@ DispatchOperation post_dispatch(const std::shared_ptr<DispatcherState>& state,
             // The teardown refusal: an operation that is already cancelled
             // and holds no callback. The callback is released with this
             // call's argument.
-            std::shared_ptr<DispatchWork> refused = std::make_shared<DispatchWork>();
-            (*refused).state.store(DispatchOperationState::cancelled, std::memory_order_release);
-            (*refused).dispatcher = state;
             ++(*state).cancelled;
             ++(*state).teardown_refusals;
-            return DispatchOperation(std::move(refused));
+            return refused_operation(state);
         }
         if (!(*state).accepting) {
             throw std::logic_error("GUI.Forms dispatcher is shut down");
@@ -55,6 +105,16 @@ DispatchOperation post_dispatch(const std::shared_ptr<DispatcherState>& state,
             throw std::length_error("GUI.Forms posted callback limit reached");
         }
         work = std::make_shared<DispatchWork>();
+        if (synchronous && thread_revocable_invokes) {
+            // Under the leaf lock, so a revocation either sees this work as
+            // waiting or this post sees the revocation.
+            std::scoped_lock revocable_lock((*thread_revocable_invokes).mutex);
+            if ((*thread_revocable_invokes).revoked) {
+                ++(*state).cancelled;
+                return refused_operation(state);
+            }
+            (*thread_revocable_invokes).waiting = work;
+        }
         (*work).sequence = (*state).next_sequence++;
         if ((*state).next_sequence == 0U) (*state).next_sequence = 1U;
         (*work).callback = std::move(callback);
@@ -72,15 +132,22 @@ DispatchOperation post_dispatch(const std::shared_ptr<DispatcherState>& state,
                                           (*state).queue.size());
         if ((*state).wake) {
             if (!(*state).wake_pending) {
-                (*state).wake_pending = true;
-                ++(*state).wake_requests;
-                // The host's wake runs under the lock, so that a host removing
-                // its handler (set_dispatch_wake_handler, shutdown_dispatcher)
-                // waits for a wake already under way and is never called
-                // after it returns. Every host's wake only signals (a flag, a
-                // posted message, a pipe byte, a queued block) and never
-                // re-enters the dispatcher.
-                (*state).wake();
+                try {
+                    wake_host_locked(*state);
+                } catch (...) {
+                    // The post fails as a whole: its work leaves the queue
+                    // (the last entry, under this lock) and the counters
+                    // return to what they were, so the caller's exception
+                    // means nothing was posted. The callback is released
+                    // with `work` as the exception leaves.
+                    (*state).queue.pop_back();
+                    --(*state).posted;
+                    if (synchronous) {
+                        --(*state).synchronous_invocations;
+                        --(*state).marshalled_invocations;
+                    }
+                    throw;
+                }
             } else {
                 ++(*state).coalesced_wakes;
             }

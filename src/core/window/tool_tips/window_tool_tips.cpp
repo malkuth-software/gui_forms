@@ -66,6 +66,9 @@ void SurfaceRoot::show_tool_tip(const Control::Ptr& target, std::optional<std::c
     if (duration && (*duration).count() < 0) {
         throw std::invalid_argument("GUI.Forms tooltip duration may not be negative");
     }
+    // Blank text (white space only) never shows, whoever asks (owner rule,
+    // 2026-11-09): the request is accepted and shows nothing.
+    if (!tool_tip_text_shows((*target).tool_tip_text.read())) return;
     end_tool_tip_request(true);
     (*tool_tips_).show_program(target, duration);
 }
@@ -76,7 +79,7 @@ std::uint64_t SurfaceRoot::request_tool_tip(const Control::Ptr& owner, ToolTipRe
     if (!owner || !(*owner).is_alive() || (*owner).attached_surface_root() != this) {
         throw std::invalid_argument("GUI.Forms tooltip request owner must be a live control attached to its root");
     }
-    if (request.text.empty() || !validate_utf8(request.text).valid()) {
+    if (!tool_tip_text_shows(request.text) || !validate_utf8(request.text).valid()) {
         throw std::invalid_argument("GUI.Forms tooltip request text must be non-empty valid UTF-8");
     }
     if (!finite_rect(request.anchor)) {
