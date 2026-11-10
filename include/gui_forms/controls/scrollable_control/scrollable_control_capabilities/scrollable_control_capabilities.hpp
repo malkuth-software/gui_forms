@@ -80,11 +80,25 @@ struct AutoScrollPositionCapability {
     }
 };
 
+// Whether a wheel turn over the control, or bubbling unhandled from a descendant, scrolls the control natively; false leaves the wheel to the consumer (a compatibility layer's OnMouseWheel).
+template <typename Declaring>
+struct WheelScrollsCapability {
+    PropertyCell<bool, WheelScrollsCapability<Declaring>> wheel_scrolls{true};
+
+    static void assign(WheelScrollsCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.wheel_scrolls), incoming);
+        if (!capability.wheel_scrolls.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.wheel_scrolls));
+    }
+};
+
 // Every ScrollableControl capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct ScrollableControlCapabilities : public AutoScrollCapability<Declaring>,
                                        public AutoScrollMarginCapability<Declaring>,
                                        public AutoScrollMinSizeCapability<Declaring>,
-                                       public AutoScrollPositionCapability<Declaring> {};
+                                       public AutoScrollPositionCapability<Declaring>,
+                                       public WheelScrollsCapability<Declaring> {};
 
 } // namespace gui_forms

@@ -55,6 +55,9 @@ gui_forms::ScrollableControl
          takes positive offsets, clamps negative ones to zero and scrolls without
          raising :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`.
 
+      **wheel_scrolls** : ``bool``
+         Whether a wheel turn over the control, or bubbling unhandled from a descendant, scrolls the control natively; false leaves the wheel to the consumer (a compatibility layer's OnMouseWheel).
+
       **scroll_position** : ``Point``, read-only
          How far the content is scrolled, as positive offsets from the origin.
          Change it with :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>` or a write of :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`.
@@ -281,6 +284,10 @@ gui_forms::ScrollableControl
       offsets (scrolled 40 pixels down reads ``{0, -40}``), while the setter
       takes positive offsets, clamps negative ones to zero and scrolls without
       raising :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`.
+
+   .. cpp:member:: bool wheel_scrolls
+
+      Whether a wheel turn over the control, or bubbling unhandled from a descendant, scrolls the control natively; false leaves the wheel to the consumer (a compatibility layer's OnMouseWheel).
 
    .. cpp:function:: Point scroll_position() const noexcept
 
@@ -549,4 +556,4 @@ gui_forms::ScrollableControl
 
    .. cpp:member:: constexpr std::size_t scrollable_control_property_count
 
-      ScrollableControl's property table: Control's entries, then its own. Default: ``Control::control_property_count + 4U``.
+      ScrollableControl's property table: Control's entries, then its own. Default: ``Control::control_property_count + 5U``.

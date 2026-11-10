@@ -329,7 +329,7 @@ private:
     // property_codemod begin ScrollableControl (tools/property_families/scrollable_control.json; generated, do not edit)
 public:
     // ScrollableControl's property table: Control's entries, then its own.
-    static constexpr std::size_t scrollable_control_property_count = Control::control_property_count + 4U;
+    static constexpr std::size_t scrollable_control_property_count = Control::control_property_count + 5U;
     [[nodiscard]] static const std::array<PropertyEntry, scrollable_control_property_count>& scrollable_control_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
@@ -338,6 +338,7 @@ private:
     friend struct AutoScrollMarginCapability<ScrollableControl>;
     friend struct AutoScrollMinSizeCapability<ScrollableControl>;
     friend struct AutoScrollPositionCapability<ScrollableControl>;
+    friend struct WheelScrollsCapability<ScrollableControl>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(auto_scroll)& cell, bool& incoming);
     void written(const decltype(auto_scroll)& cell);
@@ -347,6 +348,8 @@ private:
     void written(const decltype(auto_scroll_min_size)& cell);
     void write_view(const decltype(auto_scroll_position)& cell, Point incoming);
     [[nodiscard]] Point read_view(const decltype(auto_scroll_position)& cell) const;
+    void prepare_write(const decltype(wheel_scrolls)& cell, bool& incoming);
+    void written(const decltype(wheel_scrolls)& cell);
     // property_codemod end ScrollableControl
 };
 

@@ -2386,6 +2386,14 @@ void test_scrollable_control_properties() {
         expect(by_name && *by_name == PropertyValueTraits<Size>::to_binding(sample),
                "ScrollableControl.auto_scroll_min_size: the table reads the cell");
     }
+    {
+        const bool sample = false;
+        (*control).wheel_scrolls = sample;
+        expect((*control).wheel_scrolls.read() == sample, "ScrollableControl.wheel_scrolls: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("wheel_scrolls");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ScrollableControl.wheel_scrolls: the table reads the cell");
+    }
 }
 
 void test_search_field_properties() {

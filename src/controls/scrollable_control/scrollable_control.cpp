@@ -123,6 +123,14 @@ Point ScrollableControl::read_view(const decltype(auto_scroll_position)&) const 
     return negated;
 }
 
+// wheel_scrolls is read by handle_wheel at each wheel turn, so a write has
+// nothing to touch: a glide already under way finishes.
+void ScrollableControl::prepare_write(const decltype(wheel_scrolls)&, bool&) {
+    require_mutable();
+}
+
+void ScrollableControl::written(const decltype(wheel_scrolls)&) {}
+
 Rect ScrollableControl::display_rectangle() const noexcept {
     const Rect viewport = effective_viewport_rectangle();
     return {viewport.x - scroll_position_.x,
@@ -969,6 +977,10 @@ bool ScrollableControl::reveal_focused_descendant(const Control& descendant) {
 
 bool ScrollableControl::handle_wheel(PointerEvent& event) {
     if (event.action != PointerAction::wheel || event.handled) return false;
+    // With wheel_scrolls off the consumer owns wheel scrolling (a
+    // compatibility layer raising OnMouseWheel up the parent chain), so the
+    // turn passes through unhandled.
+    if (!wheel_scrolls.read()) return false;
     const double vertical_delta = -normalize_wheel_delta(event.wheel_delta.y, event.wheel_unit);
     const double horizontal_delta = -normalize_wheel_delta(event.wheel_delta.x, event.wheel_unit);
     // A detented wheel's lines add to the axis's glide target. A precise
@@ -1469,10 +1481,29 @@ const PropertyDescriptor& describe_scrollable_control_auto_scroll_position() {
     return descriptor;
 }
 
+PropertyDescriptor scrollable_control_wheel_scrolls_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "wheel_scrolls";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Whether an unhandled wheel turn scrolls the control natively.";
+    descriptor.default_value = BindingValue{true};
+    descriptor.invalidation_effects = Dirty::none;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_scrollable_control_wheel_scrolls() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        scrollable_control_wheel_scrolls_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
 } // namespace
 
 const std::array<PropertyEntry, ScrollableControl::scrollable_control_property_count>& ScrollableControl::scrollable_control_property_entries() noexcept {
-    static constexpr std::array<PropertyEntry, 4U> own{{
+    static constexpr std::array<PropertyEntry, 5U> own{{
         {"auto_scroll", &describe_scrollable_control_auto_scroll,
          &read_cell_entry<ScrollableControl, decltype(&ScrollableControl::auto_scroll), &ScrollableControl::auto_scroll>,
          &write_cell_entry<ScrollableControl, decltype(&ScrollableControl::auto_scroll), &ScrollableControl::auto_scroll>,
@@ -1491,6 +1522,11 @@ const std::array<PropertyEntry, ScrollableControl::scrollable_control_property_c
         {"auto_scroll_position", &describe_scrollable_control_auto_scroll_position,
          &read_cell_entry<ScrollableControl, decltype(&ScrollableControl::auto_scroll_position), &ScrollableControl::auto_scroll_position>,
          &write_cell_entry<ScrollableControl, decltype(&ScrollableControl::auto_scroll_position), &ScrollableControl::auto_scroll_position>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"wheel_scrolls", &describe_scrollable_control_wheel_scrolls,
+         &read_cell_entry<ScrollableControl, decltype(&ScrollableControl::wheel_scrolls), &ScrollableControl::wheel_scrolls>,
+         &write_cell_entry<ScrollableControl, decltype(&ScrollableControl::wheel_scrolls), &ScrollableControl::wheel_scrolls>,
          nullptr, nullptr, nullptr,
          nullptr},
     }};
