@@ -1853,7 +1853,10 @@ ResolvedFont Theme::resolve_font(const Control& control, FontSpec own) const noe
     }
     // The size before the spacing, whose em is the resolved size.
     const RecipeDeclaration* const family = set_recipe_field(fields, RecipeField::font_family);
-    if (family != nullptr) themed.font.role = (*family).font_role;
+    if (family != nullptr) {
+        themed.font.role = (*family).font_role;
+        themed.font.family = (*family).font_family;
+    }
     const RecipeDeclaration* const size = set_recipe_field(fields, RecipeField::font_size);
     if (size != nullptr) {
         double resolved = (*size).number;

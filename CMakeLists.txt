@@ -1041,7 +1041,10 @@ if(GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD)
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansHebrew-Regular.ttf
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansDevanagari-Regular.ttf
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansBengali-Regular.ttf
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansGurmukhi-Regular.ttf)
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansGurmukhi-Regular.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Regular.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Semibold.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Bold.ttf)
     set(GUI_FORMS_DEMOBOARD_FONT_NOTICES
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/ATTRIBUTION.md
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/LICENSE-PortsmouthRapids.txt
@@ -1049,7 +1052,8 @@ if(GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD)
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Carlito.txt
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Cousine.txt
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoSansCJKjp.txt
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt)
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Selawik.txt)
 
     if(GUI_FORMS_ENABLE_MACOS_HOST)
         set_source_files_properties(
@@ -1523,6 +1527,9 @@ if(GUI_FORMS_BUILD_GALLERY OR (GUI_FORMS_BUILD_TESTS AND GUI_FORMS_ENABLE_MACOS_
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansDevanagari-Regular.ttf
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansBengali-Regular.ttf
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansGurmukhi-Regular.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Regular.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Semibold.ttf
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Bold.ttf
     )
     set(GUI_FORMS_GALLERY_FONT_NOTICES
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/ATTRIBUTION.md
@@ -1532,6 +1539,7 @@ if(GUI_FORMS_BUILD_GALLERY OR (GUI_FORMS_BUILD_TESTS AND GUI_FORMS_ENABLE_MACOS_
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Cousine.txt
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoSansCJKjp.txt
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Selawik.txt
     )
 
 endif()
@@ -3439,6 +3447,8 @@ if(GUI_FORMS_BUILD_TESTS)
             GUI_FORMS_TEST_NOTO_HEBREW_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansHebrew-Regular.ttf"
             GUI_FORMS_TEST_NOTO_CJK_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoSansCJKjp-Regular.otf"
             GUI_FORMS_TEST_NOTO_EMOJI="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoEmoji-Regular.ttf"
+            GUI_FORMS_TEST_SELAWIK_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Regular.ttf"
+            GUI_FORMS_TEST_SELAWIK_BOLD="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Selawik-Bold.ttf"
         )
         target_link_libraries(gui_forms_harfbuzz_font_engine_tests PRIVATE
             gui_forms_text_engine)

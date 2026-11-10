@@ -55,7 +55,7 @@ source files carry "Copyright (C) 1996-2025".)
 | Cousine font | `c0fbdb43` | SIL OFL 1.1 | all | `fonts/OFL-Cousine.txt` | font directory |
 | Arimo font | 1.33, `4a6255f2` | SIL OFL 1.1 | all (the SDK and the GUI.Drawing raster module, not program packages) | `fonts/OFL-Arimo.txt` | font directory |
 | Tinos font | 1.340, `3b4482a9` | SIL OFL 1.1 | all (the SDK and the GUI.Drawing raster module, not program packages) | `fonts/OFL-Tinos.txt` | font directory |
-| Selawik font | 1.01, release archive SHA-256 `3f62c51e` | SIL OFL 1.1 | all (the SDK and the GUI.Drawing raster module, not program packages) | `fonts/OFL-Selawik.txt` | font directory |
+| Selawik font | 1.01, release archive SHA-256 `3f62c51e` | SIL OFL 1.1 | all (program packages since themes may name it; the windows-professional theme does) | `fonts/OFL-Selawik.txt` | font directory |
 | Noto Sans CJK JP font | `f8d15753` | SIL OFL 1.1 | all | `fonts/OFL-NotoSansCJKjp.txt` | font directory |
 | Noto Emoji font | 1.05, `9a5261d8` | SIL OFL 1.1 | all | `fonts/OFL-NotoEmoji.txt` | font directory |
 | Noto Sans Arabic, Hebrew, Devanagari, Bengali and Gurmukhi fonts | `assets/fonts/language-font-provenance.json` | SIL OFL 1.1 | all | `fonts/OFL-Noto.txt` | font directory |

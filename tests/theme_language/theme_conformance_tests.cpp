@@ -360,6 +360,9 @@ std::string recipe_text(const RecipeDeclaration& declaration) {
     // The font fields' own values (T4 fonts): the bundled role and the style.
     if (declaration.field == RecipeField::font_family) {
         text += " role=" + std::to_string(static_cast<unsigned int>(declaration.font_role));
+        if (declaration.font_family.value != 0U) {
+            text += " family=" + std::to_string(static_cast<unsigned int>(declaration.font_family.value));
+        }
     }
     if (declaration.field == RecipeField::font_style && declaration.italic) text += " italic";
     if (declaration.shadowed) {

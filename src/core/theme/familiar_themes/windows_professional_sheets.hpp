@@ -31,11 +31,11 @@ namespace gui_forms::detail {
 // face); disabled controls are exempt. High contrast is derived from the
 // role model, as for every theme, and is not authored here.
 //
-// Fonts: the bundled content face (Carlito, Calibri-compatible) at 12 px
-// stands in for Segoe UI 9 pt. Selawik, the bundled Segoe UI-like face, is
-// not reachable from a sheet (font-family names only the control, content
-// and monospace roles), and no Tahoma-like face is bundled (the body-face
-// gate in AGENTS.md).
+// Fonts: Selawik, the bundled near metric match for Segoe UI, at 12 px
+// stands in for Segoe UI 9 pt (`font-family: Selawik`, a named bundled
+// family; owner decision of 2026-11-10). Selawik has Regular, Semibold and
+// Bold and no italic; the content role (Carlito) covers what it lacks. No
+// Tahoma-like face is bundled (the body-face gate in AGENTS.md).
 
 // The floor (light): every family in every surface state.
 inline constexpr std::string_view windows_professional_floor_sheet =
@@ -653,7 +653,7 @@ inline constexpr std::string_view windows_professional_dark_floor_sheet =
 inline constexpr std::string_view windows_professional_parts_sheet =
     R"css(/* windows-professional: parts (owner, 2026-11-10). */
 * {
-  font-family: content;
+  font-family: Selawik;
   font-size: 12px;
 }
 

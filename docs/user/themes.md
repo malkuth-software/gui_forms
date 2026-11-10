@@ -36,7 +36,7 @@ docking captions) and Office 2007 (light blue ribbon tabs and command plane,
 a restrained split gloss, rounded highlights), touched toward Windows 10:
 crisp one-unit borders, low saturation, flat large surfaces and a solid
 focus rectangle, with depth kept in gentle gradients and shadows. Its text
-is the bundled content face (Carlito) at 12 px, standing in for Segoe UI.
+is Selawik, the bundled Segoe UI-like face, at 12 px (`font-family: Selawik`).
 
 The **familiar themes** recreate looks that Windows and macOS users
 recognise. They are written in the theme language, and none of them uses a

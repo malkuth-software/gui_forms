@@ -221,7 +221,7 @@ only material fields selects the `material` primitive.
 | presentation | `opacity`, `scale`, `translate` |
 | effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; given the effect registry (`ThemeCompileOptions::effects`, `ApplicationThemeConfig::effects`, usually `built_in_effect_registry()`), a name it does not hold refuses the theme with E417 at the name; the control also checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
 | text | `color`, `muted-color` and `glyph-color` (the recipe's secondary text and glyph colours, on a control or a named part, such as `group-box::part(caption)`; not on a role), `font: <role>` (`ui`, `field`, `caption`, `heading`, `title`, `monospace`) |
-| fonts | `font-family` (`control`, `content`, `monospace`), `font-size` (4px to 96px, or em of the control's own size), `font-weight` (`normal`, `bold`, 100 to 900), `font-style` (`normal`, `italic`), `letter-spacing` (`normal`, px or em) |
+| fonts | `font-family` (`control`, `content`, `monospace`, or a bundled family: `Portsmouth Rapids`, `Carlito`, `Cousine`, `Selawik`), `font-size` (4px to 96px, or em of the control's own size), `font-weight` (`normal`, `bold`, 100 to 900), `font-style` (`normal`, `italic`), `letter-spacing` (`normal`, px or em) |
 
 `pattern(<name>, <ground>, <figure> [, <tile>])` is a built-in procedural
 pattern in two colours: `checker` (a checkerboard; its default 2px tile is a
@@ -251,9 +251,16 @@ For example, `reflection: below 1px 6px 40% 0` or `reflection: below 6px 30% bac
 built-in recipe's value.
 
 The font properties style a control's own text, the font it holds; its
-fixed secondary text keeps its fonts. `font-family` names one of the
-bundled faces by its role, never a host font, so a family name, a generic
-family or a list is an error. They belong to rules that match a control:
+fixed secondary text keeps its fonts. `font-family` names a bundled face,
+never a host font: one of the three roles, or the name of a family bundled
+with every program, quoted or not and in any case (`font-family: Selawik`,
+`font-family: "Portsmouth Rapids"`). The names of the roles' faces stand for
+their roles (`Portsmouth Rapids` is `control`, `Carlito` is `content`,
+`Cousine` is `monospace`). Selawik, the Segoe UI-like face, draws its
+Regular, Semibold and Bold faces first, by weight (it has no italic), and
+the content faces for any character it lacks. Any other name, a generic
+family such as `sans-serif`, and a list are errors (E406 for a name no
+bundled family has). They belong to rules that match a control:
 a rule naming a part, or a state such as `:hover`, may not declare them,
 since a font is a layout input and states change without a layout. They
 may differ by colour scheme under `@media (prefers-color-scheme: dark)`.

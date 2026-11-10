@@ -6,6 +6,7 @@
 // (cmake/expect_fault.cmake checks how it ended).
 
 #include "../src/core/resources/fonts/bundled_font_set.hpp"
+#include "../src/core/resources/fonts/bundled_font_families.hpp"
 #if defined(_WIN32)
 #include "../src/host/windows/fonts/sealed_pages_windows.hpp"
 #else
@@ -104,11 +105,11 @@ void write_file(const std::filesystem::path& path, std::string_view text) {
     stream.write(text.data(), static_cast<std::streamsize>(text.size()));
 }
 
-// The compiled manifest is the 17 faces of bundled-fonts.sha256, and each record matches the
+// The compiled manifest is the 20 faces of bundled-fonts.sha256, and each record matches the
 // file in assets/fonts.
 bool compiled_manifest_matches() {
     const std::span<const BundledFaceRecord> manifest = gui_forms::detail::bundled_face_manifest();
-    if (!require(manifest.size() == 17U, "the compiled manifest does not list 17 faces")) return false;
+    if (!require(manifest.size() == 20U, "the compiled manifest does not list 20 faces")) return false;
     std::ifstream listing(std::filesystem::path(GUI_FORMS_TEST_FONT_DIRECTORY) / "bundled-fonts.sha256");
     std::string line;
     std::size_t index = 0;
@@ -264,13 +265,32 @@ bool construction_is_validated() {
     return passed;
 }
 
-// Every face a host registers is in the manifest, once, and exactly the seven primaries a
-// window cannot do without are required.
+// Every face a host registers is in the manifest, once, as a role or fallback face or as a
+// face of a numbered family a theme may name; every manifest face is one of them; and exactly
+// the seven primaries a window cannot do without are required.
 bool face_uses_match_the_manifest() {
     const std::span<const BundledFaceRecord> manifest = gui_forms::detail::bundled_face_manifest();
     const std::span<const gui_forms::detail::BundledFaceUse> uses = gui_forms::detail::bundled_face_uses();
-    if (!require(uses.size() == manifest.size(), "the face uses and the manifest differ in length"))
+    const std::span<const gui_forms::detail::BundledFamilyFace> family_faces(gui_forms::detail::bundled_family_faces);
+    if (!require(uses.size() + family_faces.size() == manifest.size(),
+                 "the face uses and family faces differ from the manifest in length"))
         return false;
+    for (const BundledFaceRecord& record : manifest) {
+        std::size_t registered = 0;
+        for (const gui_forms::detail::BundledFaceUse& use : uses) {
+            if (use.file_name == record.file_name) ++registered;
+        }
+        for (const gui_forms::detail::BundledFamilyFace& family_face : family_faces) {
+            if (family_face.file_name == record.file_name) ++registered;
+        }
+        if (!require(registered == 1U, "a manifest face is not registered exactly once")) return false;
+    }
+    for (const gui_forms::detail::BundledFamilyFace& family_face : family_faces) {
+        if (!require(family_face.family.value != 0U &&
+                         gui_forms::detail::valid_bundled_family(family_face.family),
+                     "a family face names no numbered family"))
+            return false;
+    }
     std::size_t required = 0;
     for (std::size_t index = 0; index < uses.size(); ++index) {
         std::size_t listed = 0;
@@ -286,6 +306,29 @@ bool face_uses_match_the_manifest() {
         }
     }
     const bool passed = require(required == 7U, "not seven required faces");
+    return passed;
+}
+
+// Theme family names (font-family): a role's face name stands for the role, Selawik is a
+// numbered family, names match without regard to ASCII case, and a font that is not bundled
+// with every program (a host font, or a drawing-only face such as Arimo) has no name here.
+bool family_names_resolve_bundled_faces_only() {
+    const gui_forms::detail::BundledFamilyName* const selawik = gui_forms::detail::bundled_family_named("selawik");
+    if (!require(selawik != nullptr && !(*selawik).role && (*selawik).family == gui_forms::detail::selawik_family,
+                 "Selawik is not a numbered family"))
+        return false;
+    const gui_forms::detail::BundledFamilyName* const rapids =
+        gui_forms::detail::bundled_family_named("PORTSMOUTH RAPIDS");
+    if (!require(rapids != nullptr && (*rapids).role == gui_forms::FontRole::control && (*rapids).family.value == 0U,
+                 "Portsmouth Rapids does not stand for the control role"))
+        return false;
+    const char* const unknown[] = {"Arial", "Segoe UI", "Arimo", "Tinos", "Selawik Semibold", "", "Selawik "};
+    for (const char* const name : unknown) {
+        if (!require(gui_forms::detail::bundled_family_named(name) == nullptr, "a name outside the bundle resolved"))
+            return false;
+    }
+    const bool passed = require(!gui_forms::detail::valid_bundled_family(gui_forms::BundledFontFamily{200U}),
+                                "an unlisted family number is valid");
     return passed;
 }
 
@@ -340,6 +383,7 @@ int main(int argument_count, char** arguments) {
     passed = refusals_name_their_cause() && passed;
     passed = construction_is_validated() && passed;
     passed = face_uses_match_the_manifest() && passed;
+    passed = family_names_resolve_bundled_faces_only() && passed;
     passed = shared_set_is_shared() && passed;
     if (!passed) return 1;
     std::printf("bundled_font_set: manifest, loading, sharing, refusals and page release passed\n");

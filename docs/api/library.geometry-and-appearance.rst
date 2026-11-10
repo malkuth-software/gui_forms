@@ -42,6 +42,8 @@ Types
      -  
    * - :cpp:class:`BoxLength <gui_forms::BoxLength>`
      - A length along one axis of the part's box: ``fraction`` of the box's extent on that axis plus ``units`` logical units, as CSS's <length-percentage> (a percentage, a length, or the calc() of both).
+   * - :cpp:class:`BundledFontFamily <gui_forms::BundledFontFamily>`
+     - A bundled font family a theme names in place of a role's faces (theme-language ``font-family: Selawik``).
    * - :cpp:class:`CachedPartRaster <gui_forms::CachedPartRaster>`
      - A part's cached raster and what drew it: the primitive, every parameter (animated ones included, since they change the pixels), the target with its states restricted to those the primitive reads, and the extent.
    * - :cpp:class:`Color <gui_forms::Color>`
@@ -679,6 +681,16 @@ Types
    .. cpp:member:: double fraction
 
    .. cpp:member:: double units
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BundledFontFamily
+
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+
+   A bundled font family a theme names in place of a role's faces (theme-language ``font-family: Selawik``). Zero is none: the role's own faces. Only families bundled with the library have numbers (the table in src/core/resources/fonts/bundled_font_families.hpp); a host font never has one, so a family can never reach a font the application did not ship.
+
+   .. cpp:member:: std::uint8_t value
 
 .. cpp:namespace:: gui_forms
 
@@ -2449,6 +2461,10 @@ Types
    .. cpp:member:: double letter_spacing
 
       Additional logical pixels inserted between shaped grapheme clusters. This is a layout input: painters and measurement must apply the same value. Zero preserves the typeface's native spacing.
+
+   .. cpp:member:: BundledFontFamily family
+
+      A named bundled family whose faces draw before the role's. The role still chooses the faces for characters the family does not cover, and a family whose faces could not be loaded leaves the role's faces in charge.
 
 .. cpp:namespace:: gui_forms
 
@@ -4340,7 +4356,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph and default_outline_colour: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``; font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``.
+   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph and default_outline_colour: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``, and ``font_family`` for a numbered bundled family (FontSpec::family, zero for a role); font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``.
 
    .. cpp:member:: RecipeField field
 
@@ -4381,6 +4397,8 @@ Types
    .. cpp:member:: FontRole font_role
 
       Default: ``{FontRole::control}``.
+
+   .. cpp:member:: BundledFontFamily font_family
 
    .. cpp:member:: bool italic
 
