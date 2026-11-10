@@ -49,6 +49,9 @@
 #include "gui_forms/controls/drawing_surface/drawing_surface.hpp"
 #include "gui_forms/controls/easing_preview/easing_preview.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
+#include "gui_forms/controls/help/help_book/help_book.hpp"
+#include "gui_forms/controls/help/help_book_system/help_book_system.hpp"
+#include "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
 #include "gui_forms/controls/instruments/dial/dial.hpp"
 #include "gui_forms/controls/instruments/gauge_base/gauge_base.hpp"
@@ -154,7 +157,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 143> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 146> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button_base/button/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -294,6 +297,9 @@ inline constexpr std::array<FormCatalogEntry, 143> form_catalog{{
     {"image_list", "ImageList", "gui_forms/image_list/image_list/image_list.hpp", &add_catalog_type<ImageList>},
     {"error_provider", "ErrorProvider", "gui_forms/components/error_provider/error_provider.hpp", &add_catalog_type<ErrorProvider>},
     {"help_provider", "HelpProvider", "gui_forms/components/help_provider/help_provider.hpp", &add_catalog_type<HelpProvider>},
+    {"help_book", "HelpBook", "gui_forms/controls/help/help_book/help_book.hpp", &add_catalog_type<HelpBook>},
+    {"help_book_viewer", "HelpBookViewer", "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp", &add_catalog_type<HelpBookViewer>},
+    {"help_book_system", "HelpBookSystem", "gui_forms/controls/help/help_book_system/help_book_system.hpp", &add_catalog_type<HelpBookSystem>},
     {"semantic_feedback", "SemanticFeedback", "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp", &add_catalog_type<SemanticFeedback>},
     {"binding", "Binding", "gui_forms/binding/binding/binding.hpp", &add_catalog_type<Binding>},
     {"binding_source", "BindingSource", "gui_forms/binding/binding_source/binding_source.hpp", &add_catalog_type<BindingSource>},

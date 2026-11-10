@@ -117,6 +117,10 @@ void add_input_and_rules(const std::shared_ptr<Surface>& page,
 void add_theme_settings(const std::shared_ptr<Surface>& page,
                         const std::shared_ptr<PageContext>& context);
 
+// help-book
+void add_help_book(const std::shared_ptr<Surface>& page,
+                   const std::shared_ptr<PageContext>& context);
+
 // spinners-and-rings
 void add_spinners_and_rings(const std::shared_ptr<Surface>& page,
                             const std::shared_ptr<PageContext>& context);
@@ -144,7 +148,7 @@ struct PageBuilderEntry final {
 // (demo/gallery_page_specs.hpp, which places it in the navigation) and one
 // row here; the shell refuses a page with neither a form page nor a row
 // (std::logic_error at construction).
-inline constexpr std::array<PageBuilderEntry, 34> page_builders{{
+inline constexpr std::array<PageBuilderEntry, 35> page_builders{{
     {"control-spectrum", &add_control_spectrum},
     {"ranges-and-progress", &add_ranges},
     {"containers-and-focus", &add_containers},
@@ -178,6 +182,7 @@ inline constexpr std::array<PageBuilderEntry, 34> page_builders{{
     {"spinners-and-rings", &add_spinners_and_rings},
     {"instruments", &add_instruments},
     {"guided-tasks", &add_guided_tasks},
+    {"help-book", &add_help_book},
     {"controls-inspection", &add_controls_inspection},
 }};
 

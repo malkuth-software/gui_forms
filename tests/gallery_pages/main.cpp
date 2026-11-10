@@ -91,6 +91,7 @@ void test_registry_pages_gallery() {
     test_spinners_and_rings(window);
     test_instruments(window);
     test_guided_tasks(window);
+    test_help_book(window);
     test_retained_layout_panels(window);
     test_css_layout_panels(window);
     test_control_spectrum(window);

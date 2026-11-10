@@ -34,6 +34,7 @@
 #include "gui_forms/components/open_file_dialog/open_file_dialog.hpp"
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 #include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
+#include "gui_forms/controls/help/help_book_system/help_book_system.hpp"
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/controls/docking/dock_site/dock_site.hpp"
@@ -146,6 +147,7 @@ template <> void describe_type<ErrorProvider>(SchemaSample& sample);
 template <> void describe_type<FolderBrowserDialog>(SchemaSample& sample);
 template <> void describe_type<FontCommand>(SchemaSample& sample);
 template <> void describe_type<GalleryCommand>(SchemaSample& sample);
+template <> void describe_type<HelpBookSystem>(SchemaSample& sample);
 template <> void describe_type<HelpProvider>(SchemaSample& sample);
 template <> void describe_type<ImageList>(SchemaSample& sample);
 template <> void describe_type<NotifyIcon>(SchemaSample& sample);
