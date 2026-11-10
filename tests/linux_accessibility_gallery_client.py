@@ -102,6 +102,12 @@ NONVISUAL: tuple[str, ...] = (
     'about_dialog', 'help_book_system', 'gauge_base',
 )
 
+# Registry types whose controls still publish their base class's anatomy
+# (their own anatomies are pending), so no record names their own type: the
+# supplement places one of each. The semantic gallery test lists them as
+# unexposed containers.
+BASE_ANATOMY: tuple[str, ...] = ('wizard_page', 'help_book_viewer')
+
 # Registry types the Gallery opens on demand, and the node whose default
 # action opens one: (type, page, opener stable identity).
 OPENERS: tuple[tuple[str, str, str], ...] = (
@@ -129,6 +135,8 @@ ACCEPTED_WITHOUT_CHANGE: dict[str, str] = {
         'the first rack module asks to move earlier on decrement; the rack keeps the order',
     'gallery.commands.ribbon-file-area.colour':
         'RibbonColorPicker press applies the current colour (Automatic) again',
+    'supplement.callout':
+        'the supplement places the callout bare and never shows it, so close leaves it closed',
 }
 
 # The Gallery's own frame (navigation, header, command row), which every
@@ -970,6 +978,8 @@ def summarize(registry: list[dict[str, Any]], results: Results, reasons: dict[st
         action: str = results.actions.get(kind, reasons.get(kind, ''))
         if kind in NONVISUAL:
             status: str = 'nonvisual component (no node of its own)'
+        elif kind in BASE_ANATOMY and count == 0:
+            status = 'published under its base anatomy (own anatomy pending)'
         elif count > 0:
             status = str(count)
             compared += 1
