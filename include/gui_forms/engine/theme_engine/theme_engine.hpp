@@ -136,6 +136,11 @@ public:
     [[nodiscard]] Rect text_slot(const Control& control, const PartPaint& part) const noexcept;
 
 private:
+    // plan() without the control's kept plans; sets `reads_ancestor_states`
+    // where the cascade read an ancestor's live states (an inherited font's
+    // em).
+    [[nodiscard]] PartPlan plan_from_rules(const Control& control, const PartPaint& part,
+                                           bool& reads_ancestor_states) const noexcept;
     // paint(), once the part's plan is decided and its blend group begun.
     void paint_planned(Painter& painter, const Control& control, const PartPaint& part,
                        const PartPlan& decided) const;

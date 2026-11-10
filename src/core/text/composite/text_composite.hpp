@@ -133,6 +133,16 @@ struct PartRasterSource final {
 [[nodiscard]] TextCompositeStatus composite_part_raster(PartRasterSource source, TextCompositeTarget target,
                                                         TextCompositeClip clip, std::uint8_t opacity) noexcept;
 
+// (value + 127) / 255 without a division, for value in 0..65535: the
+// blends' rounding of a product of two bytes (and of a sum of two such
+// products that stays within 65535). Exact over that whole range, which a
+// test checks value by value.
+[[nodiscard]] constexpr unsigned rounded_quotient_by_255(const unsigned value) noexcept {
+    const unsigned biased = value + 128U;
+    const unsigned quotient = (biased + (biased >> 8U)) >> 8U;
+    return quotient;
+}
+
 // The blend a paint group's composite composites through, for the hosts'
 // painters. A value outside the enumeration is source-over.
 [[nodiscard]] PartCompositeBlend part_composite_blend(PaintGroupComposite composite) noexcept;

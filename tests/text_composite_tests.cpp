@@ -168,7 +168,65 @@ void source_mode_replaces() {
     }
 }
 
+// The blends' division by 255 is replaced by a shift identity: it gives
+// (value + 127) / 255 for every value the blends produce, and beyond.
+void quotient_identity_is_exact() {
+    for (unsigned value = 0U; value <= 65535U; ++value) {
+        if (detail::rounded_quotient_by_255(value) != (value + 127U) / 255U) {
+            require(false, "the quotient identity differs from the division");
+        }
+    }
+}
+
+// The pixels wholly inside a rectangular clip take the alpha from a table
+// per coverage byte: the result equals the per-pixel coverage path, which a
+// rounded clip of radius 0 around the whole target forces on every pixel.
+void interior_table_matches_coverage() {
+    constexpr std::uint32_t width = 11U;
+    constexpr std::uint32_t height = 7U;
+    std::vector<std::uint8_t> coverage(static_cast<std::size_t>(width) * height);
+    for (std::size_t index = 0U; index < coverage.size(); ++index) {
+        coverage[index] = static_cast<std::uint8_t>((index * 53U + 7U) % 256U);
+    }
+    constexpr std::array<Rect, 3> clips{{{1.25, 0.5, 9.5, 6.25}, {0.0, 0.0, 13.0, 9.0}, {3.0, 2.0, 4.0, 3.0}}};
+    const std::array<Color, 3> colours{Color::rgba(200, 40, 90, 255), Color::rgba(10, 220, 130, 128),
+                                       Color::rgba(0, 0, 0, 0)};
+    constexpr std::array<detail::TextCompositeMode, 2> modes{detail::TextCompositeMode::source_over,
+                                                             detail::TextCompositeMode::source};
+    constexpr std::array<bool, 2> opacities{false, true};
+    for (const Rect clip_rect : clips) {
+        for (const Color colour : colours) {
+            for (const detail::TextCompositeMode mode : modes) {
+                for (const bool opaque : opacities) {
+                    std::vector<std::uint32_t> table((width + 2U) * (height + 2U), 0x80406020U);
+                    std::vector<std::uint32_t> covered = table;
+                    const TextCoverage source{.pixels = coverage, .width = width, .height = height, .left = 1,
+                                              .top = 1};
+                    TextCompositeClip rectangular{.rect = clip_rect};
+                    TextCompositeClip rounded = rectangular;
+                    rounded.rounded = true;
+                    rounded.rounded_rect = {0.0, 0.0, static_cast<double>(width + 2U), static_cast<double>(height + 2U)};
+                    rounded.radius = 0.0;
+                    const TextCompositeStatus first = detail::composite_text_coverage(
+                        source, {.pixels = table, .width = width + 2U, .height = height + 2U, .stride = width + 2U,
+                                 .opaque = opaque},
+                        rectangular, colour, mode);
+                    const TextCompositeStatus second = detail::composite_text_coverage(
+                        source, {.pixels = covered, .width = width + 2U, .height = height + 2U, .stride = width + 2U,
+                                 .opaque = opaque},
+                        rounded, colour, mode);
+                    require(first == TextCompositeStatus::success && second == TextCompositeStatus::success,
+                            "both clips composite");
+                    require(table == covered, "the interior table matches the per-pixel coverage path");
+                }
+            }
+        }
+    }
+}
+
 int main() {
+    quotient_identity_is_exact();
+    interior_table_matches_coverage();
     unclipped_alpha_matches_previous_rule();
     pixels_are_bgra();
     alpha_channel_modes();

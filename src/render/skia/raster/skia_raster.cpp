@@ -39,6 +39,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstring>
 #include <cmath>
 #include <cstdint>
@@ -46,6 +47,7 @@
 #include <fstream>
 #include <limits>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
@@ -333,6 +335,75 @@ sk_sp<SkData> read_font_file(const char* path) {
     return data;
 }
 
+// N56/S4: shaped runs and resolved layouts kept across measure and draw.
+// A result depends on the text, the FontSpec and the faces the engine holds;
+// faces are only ever added, so a table is cleared whenever face_count
+// changes, as ShapedTextMemo is. Each table is bounded in entries and in
+// the text length it keeps, and is cleared, not evicted, when full: a frame
+// asks for the same few hundred strings again, and clearing costs one
+// reshape of each.
+constexpr std::size_t maximum_kept_text_entries = 2048;
+constexpr std::size_t maximum_kept_text_bytes = 256;
+
+struct KeptTextKey final {
+    std::string text;
+    FontSpec font{};
+};
+
+// A lookup key that borrows its text for the duration of one find.
+struct KeptTextProbe final {
+    std::string_view text;
+    FontSpec font{};
+};
+
+// FontSpec == compares doubles by value, so -0.0 and 0.0 are one key; adding
+// 0.0 folds them to one bit pattern before hashing. Only valid specs, whose
+// fields are finite, are kept, so NaN never reaches the table.
+[[nodiscard]] std::uint64_t kept_double_bits(const double value) noexcept {
+    const double folded = value + 0.0;
+    const std::uint64_t bits = std::bit_cast<std::uint64_t>(folded);
+    return bits;
+}
+
+[[nodiscard]] std::size_t kept_text_hash_value(const std::string_view text, const FontSpec font) noexcept {
+    std::uint64_t hash = static_cast<std::uint64_t>(std::hash<std::string_view>{}(text));
+    const std::uint64_t multiplier = 0x9E3779B97F4A7C15ULL;
+    hash = (hash ^ static_cast<std::uint64_t>(font.role)) * multiplier;
+    hash = (hash ^ kept_double_bits(font.size)) * multiplier;
+    hash = (hash ^ static_cast<std::uint64_t>(font.weight)) * multiplier;
+    hash = (hash ^ static_cast<std::uint64_t>(font.italic ? 1U : 0U)) * multiplier;
+    hash = (hash ^ kept_double_bits(font.letter_spacing)) * multiplier;
+    const std::size_t result = static_cast<std::size_t>(hash ^ (hash >> 32U));
+    return result;
+}
+
+struct KeptTextHash final {
+    using is_transparent = void;
+    [[nodiscard]] std::size_t operator()(const KeptTextKey& key) const noexcept {
+        return kept_text_hash_value(key.text, key.font);
+    }
+    [[nodiscard]] std::size_t operator()(const KeptTextProbe& probe) const noexcept {
+        return kept_text_hash_value(probe.text, probe.font);
+    }
+};
+
+struct KeptTextEqual final {
+    using is_transparent = void;
+    [[nodiscard]] bool operator()(const KeptTextKey& left, const KeptTextKey& right) const noexcept {
+        return left.font == right.font && left.text == right.text;
+    }
+    [[nodiscard]] bool operator()(const KeptTextProbe& left, const KeptTextKey& right) const noexcept {
+        return left.font == right.font && left.text == std::string_view(right.text);
+    }
+    [[nodiscard]] bool operator()(const KeptTextKey& left, const KeptTextProbe& right) const noexcept {
+        return left.font == right.font && std::string_view(left.text) == right.text;
+    }
+};
+
+[[nodiscard]] bool keepable_text(const std::string_view text, const FontSpec font) noexcept {
+    return text.size() <= maximum_kept_text_bytes && valid_font_spec(font);
+}
+
 } // namespace
 
 class SkiaRaster::Impl {
@@ -377,6 +448,19 @@ public:
     // Identity of text_engine for shaped-text memos. A memo holding an
     // expired or different identity was shaped by another raster.
     std::shared_ptr<const bool> text_engine_identity{std::make_shared<const bool>(true)};
+    // Kept shaped runs and resolved layouts (N56/S4), valid while the engine
+    // holds kept_face_count faces. References returned by shaped_text and
+    // resolved_layout stay valid until the next call to either.
+    std::unordered_map<KeptTextKey, text::ShapedText, KeptTextHash, KeptTextEqual> kept_shapes;
+    std::unordered_map<KeptTextKey, ResolvedTextLayout, KeptTextHash, KeptTextEqual> kept_layouts;
+    std::size_t kept_face_count{};
+    // Clears both tables when the engine's faces have changed since they were filled.
+    void refresh_kept_text();
+    [[nodiscard]] const text::ShapedText& shaped_text(std::string_view text, FontSpec font);
+    [[nodiscard]] const ResolvedTextLayout& resolved_layout(std::string_view text, FontSpec font);
+    // The result for text that is not kept, so shaped_text can return a reference.
+    text::ShapedText unkept_shape;
+    ResolvedTextLayout unkept_layout;
     // Draws the run's shared-rasterizer coverage through Skia as an alpha
     // mask. Used only when the canvas pixels cannot be composited directly;
     // Skia then blends, so the bytes may differ from the shared rule.
@@ -1528,6 +1612,53 @@ void SkiaRaster::Impl::draw_shaped_text(SkCanvas& target, const text::ShapedText
     target.restore();
 }
 
+
+void SkiaRaster::Impl::refresh_kept_text() {
+    const std::size_t faces = text_engine.face_count();
+    if (faces == kept_face_count) return;
+    kept_shapes.clear();
+    kept_layouts.clear();
+    kept_face_count = faces;
+}
+
+const text::ShapedText& SkiaRaster::Impl::shaped_text(const std::string_view text, const FontSpec font) {
+    refresh_kept_text();
+    if (!keepable_text(text, font)) {
+        unkept_shape = text_engine.shape(text, font);
+        return unkept_shape;
+    }
+    const KeptTextProbe probe{text, font};
+    const std::unordered_map<KeptTextKey, text::ShapedText, KeptTextHash, KeptTextEqual>::const_iterator found =
+        kept_shapes.find(probe);
+    if (found != kept_shapes.end()) return (*found).second;
+    // Shaping may open a lazy face; that does not change face_count, and the
+    // run it gives is the run every later shaping gives.
+    text::ShapedText shaped = text_engine.shape(text, font);
+    if (kept_shapes.size() >= maximum_kept_text_entries) kept_shapes.clear();
+    KeptTextKey key{std::string(text), font};
+    const std::pair<std::unordered_map<KeptTextKey, text::ShapedText, KeptTextHash, KeptTextEqual>::iterator, bool>
+        inserted = kept_shapes.emplace(std::move(key), std::move(shaped));
+    return (*inserted.first).second;
+}
+
+const ResolvedTextLayout& SkiaRaster::Impl::resolved_layout(const std::string_view text, const FontSpec font) {
+    refresh_kept_text();
+    if (!keepable_text(text, font)) {
+        unkept_layout = text_engine.resolve(text, font);
+        return unkept_layout;
+    }
+    const KeptTextProbe probe{text, font};
+    const std::unordered_map<KeptTextKey, ResolvedTextLayout, KeptTextHash, KeptTextEqual>::const_iterator found =
+        kept_layouts.find(probe);
+    if (found != kept_layouts.end()) return (*found).second;
+    ResolvedTextLayout layout = text_engine.resolve(text, font);
+    if (kept_layouts.size() >= maximum_kept_text_entries) kept_layouts.clear();
+    KeptTextKey key{std::string(text), font};
+    const std::pair<std::unordered_map<KeptTextKey, ResolvedTextLayout, KeptTextHash, KeptTextEqual>::iterator, bool>
+        inserted = kept_layouts.emplace(std::move(key), std::move(layout));
+    return (*inserted.first).second;
+}
+
 namespace {
 
 // Shaping of one retained draw_text_utf8 command. Text and font are fixed by
@@ -1569,7 +1700,7 @@ void SkiaRaster::draw_retained_text_utf8(const Point origin, const std::string_v
         (*replacement).face_count = face_count;
         (*replacement).font = font_spec;
         (*replacement).text_bytes = text.size();
-        (*replacement).shaped = (*impl_).text_engine.shape(text, font_spec);
+        (*replacement).shaped = (*impl_).shaped_text(text, font_spec);
         memo = replacement.get();
         (*cache).memo = std::move(replacement);
     }
@@ -1762,7 +1893,7 @@ void SkiaRaster::draw_text_utf8(Point origin,
                                 FontSpec font_spec,
                                 Color color) {
     if (SkCanvas* canvas = (*impl_).canvas(); canvas && !text.empty()) {
-        const text::ShapedText shaped = (*impl_).text_engine.shape(text, font_spec);
+        const text::ShapedText& shaped = (*impl_).shaped_text(text, font_spec);
         if ((*impl_).composite_run(*canvas, shaped, font_spec, origin, color, nullptr, nullptr, nullptr)) return;
         (*impl_).draw_shaped_text(*canvas, shaped, origin, font_spec, color);
     }
@@ -1776,7 +1907,7 @@ void SkiaRaster::draw_turned_text_utf8(const Point origin, const std::string_vie
     }
     SkCanvas* const canvas = (*impl_).canvas();
     if (canvas == nullptr || text.empty()) return;
-    const text::ShapedText shaped = (*impl_).text_engine.shape(text, font_spec);
+    const text::ShapedText& shaped = (*impl_).shaped_text(text, font_spec);
     // A positive Skia rotation turns clockwise on the y-down surface:
     // bottom_to_top is a quarter turn anticlockwise, top_to_bottom clockwise.
     const SkScalar degrees = orientation == TextOrientation::bottom_to_top ? -90.0F : 90.0F;
@@ -1791,13 +1922,15 @@ void SkiaRaster::draw_turned_text_utf8(const Point origin, const std::string_vie
 Size SkiaRaster::measure_text_utf8(std::string_view text,
                                    FontSpec font_spec) {
     if (text.empty()) return {0.0, font_spec.size};
-    const text::ShapedText shaped = (*impl_).text_engine.shape(text, font_spec);
-    return {std::max(0.0, shaped.width), std::max(0.0, shaped.height)};
+    const text::ShapedText& shaped = (*impl_).shaped_text(text, font_spec);
+    const Size measured{std::max(0.0, shaped.width), std::max(0.0, shaped.height)};
+    return measured;
 }
 
 ResolvedTextLayout SkiaRaster::resolve_text_layout_utf8(
     std::string_view text, FontSpec font_spec) {
-    return (*impl_).text_engine.resolve(text, font_spec);
+    const ResolvedTextLayout& layout = (*impl_).resolved_layout(text, font_spec);
+    return layout;
 }
 
 TextResolutionStatus SkiaRaster::fill_line_break_opportunities_utf8(

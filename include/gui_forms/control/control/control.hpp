@@ -59,6 +59,9 @@ struct HelpRequestEvent;
 
 namespace detail {
 class DisplayChunk;
+class KeptResolutions;
+// The control's kept cascade results (src/core/theme/theme/kept_resolutions.hpp).
+[[nodiscard]] KeptResolutions& kept_resolutions_of(const Control& control);
 struct DispatcherState;
 struct ControlInlineStyle;
 struct InlineRestyle;
@@ -1278,6 +1281,7 @@ private:
     // error: the theme's rules reading its names then keep the theme's
     // definitions (CompiledThemeRules::theme_serial differs).
     void refresh_inline_style();
+    friend detail::KeptResolutions& detail::kept_resolutions_of(const Control& control);
     friend class Window;
     friend class SurfaceRoot;
     friend class ContentRegion;
@@ -1612,6 +1616,10 @@ private:
     Event<HelpRequestEvent&> help_requested_;
     BindablePropertyMap bindable_properties_;
     mutable std::unique_ptr<ControlBindingsCollection> data_bindings_;
+    // The recipes and part plans the cascade gave this control, kept
+    // while the style epoch stands (kept_resolutions.hpp); made on first
+    // use by the const resolution calls, hence mutable.
+    mutable std::unique_ptr<detail::KeptResolutions> kept_resolutions_;
     // The form bindings' links, in the order they were made. Declared after
     // the events they subscribe to, so they end first.
     std::vector<std::unique_ptr<PropertyLink>> property_links_;

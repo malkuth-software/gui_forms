@@ -90,6 +90,63 @@ struct Utf8OffsetBeforeStyleSpan final {
   return grows ? value + magnitude : value - magnitude;
 }
 
+// The largest text a store holds, whatever its limits: its offsets are
+// stored in 32 bits.
+constexpr std::size_t maximum_offset_bytes =
+    std::numeric_limits<std::uint32_t>::max();
+
+// `relative`, each plus `base`, into `offsets` (replacing its contents).
+// Every sum is at most maximum_offset_bytes.
+void fill_offsets(std::vector<std::uint32_t> &offsets,
+                  std::span<const std::size_t> relative, std::size_t base) {
+  offsets.resize(relative.size());
+  for (std::size_t index = 0; index < relative.size(); ++index) {
+    offsets[index] = static_cast<std::uint32_t>(relative[index] + base);
+  }
+}
+
+// One offset table's change for an edit (N50): entries [first, last) are
+// replaced by `relative` (each plus `base`), and the entries after them,
+// which lie past the edit, move by the edit's size change.
+struct OffsetSplice final {
+  std::size_t first{};
+  std::size_t last{};
+  std::span<const std::size_t> relative{};
+  std::size_t base{};
+};
+
+[[nodiscard]] std::size_t spliced_size(const std::vector<std::uint32_t> &offsets,
+                                       const OffsetSplice &splice) noexcept {
+  return offsets.size() - (splice.last - splice.first) + splice.relative.size();
+}
+
+// Applies `splice` to `offsets`, whose capacity is at least
+// spliced_size(offsets, splice), so that nothing is allocated and nothing
+// throws. An entry past the edit is at least `removed` bytes beyond its
+// start, so the subtraction never wraps.
+void apply_offset_splice(std::vector<std::uint32_t> &offsets,
+                         const OffsetSplice &splice, std::size_t removed,
+                         std::size_t inserted) noexcept {
+  const std::uint32_t removed_bytes = static_cast<std::uint32_t>(removed);
+  const std::uint32_t inserted_bytes = static_cast<std::uint32_t>(inserted);
+  for (std::size_t index = splice.last; index < offsets.size(); ++index) {
+    offsets[index] = offsets[index] - removed_bytes + inserted_bytes;
+  }
+  const std::size_t replaced = splice.last - splice.first;
+  const std::size_t wanted = splice.relative.size();
+  const std::vector<std::uint32_t>::iterator gap =
+      offsets.begin() + static_cast<std::ptrdiff_t>(splice.last);
+  if (wanted > replaced) {
+    offsets.insert(gap, wanted - replaced, 0U);
+  } else if (wanted < replaced) {
+    offsets.erase(gap - static_cast<std::ptrdiff_t>(replaced - wanted), gap);
+  }
+  for (std::size_t index = 0; index < wanted; ++index) {
+    offsets[splice.first + index] =
+        static_cast<std::uint32_t>(splice.relative[index] + splice.base);
+  }
+}
+
 } // namespace
 
 struct TextStore::Metadata final {
@@ -194,16 +251,17 @@ std::string_view grapheme_unicode_version() noexcept {
 
 TextStore::TextStore(std::string_view text, TextStoreLimits limits)
     : limits_(limits) {
-  if (text.size() > limits_.maximum_utf8_bytes) {
+  if (text.size() > limits_.maximum_utf8_bytes ||
+      text.size() > maximum_offset_bytes) {
     throw std::length_error("GUI.Forms initial text exceeds its byte limit");
   }
-  Metadata metadata = analyze(text);
+  const Metadata metadata = analyze(text);
   text_.assign(text);
   scalar_count_ = metadata.scalars;
   utf16_units_ = metadata.utf16_units;
-  line_starts_ = std::move(metadata.line_starts);
-  line_content_ends_ = std::move(metadata.line_content_ends);
-  grapheme_boundaries_ = std::move(metadata.grapheme_boundaries);
+  fill_offsets(line_starts_, metadata.line_starts, 0U);
+  fill_offsets(line_content_ends_, metadata.line_content_ends, 0U);
+  fill_offsets(grapheme_boundaries_, metadata.grapheme_boundaries, 0U);
   metadata_rebuild_count_ = 1;
 }
 
@@ -226,7 +284,8 @@ TextEditResult TextStore::replace(Utf8Range range, std::string_view replacement,
     const std::size_t removed_bytes = end - start;
     const std::size_t next_size =
         checked_new_size(text_.size(), removed_bytes, replacement.size());
-    if (next_size > limits_.maximum_utf8_bytes) {
+    if (next_size > limits_.maximum_utf8_bytes ||
+        next_size > maximum_offset_bytes) {
       throw std::length_error("GUI.Forms text edit exceeds its byte limit");
     }
     if (removed_bytes == 0 && replacement.empty() && !inserted_style) {
@@ -235,27 +294,84 @@ TextEditResult TextStore::replace(Utf8Range range, std::string_view replacement,
 
     const Utf8ValidationResult removed_validation =
         validate_utf8(std::string_view(text_).substr(start, removed_bytes));
-    std::string candidate;
-    candidate.reserve(next_size);
-    candidate.append(text_.data(), start);
-    candidate.append(replacement);
-    candidate.append(text_.data() + end, text_.size() - end);
-    Metadata metadata = analyze(candidate);
-    std::vector<TextStyleSpan> transformed = transform_style_spans(
-        range, replacement.size(), inserted_style, candidate);
-    if (transformed.size() > limits_.maximum_style_spans) {
-      throw std::length_error(
-          "GUI.Forms text edit exceeds its style-span limit");
-    }
 
-    const bool styles_changed = transformed != style_spans_;
-    text_ = std::move(candidate);
-    line_starts_ = std::move(metadata.line_starts);
-    line_content_ends_ = std::move(metadata.line_content_ends);
-    grapheme_boundaries_ = std::move(metadata.grapheme_boundaries);
-    scalar_count_ = metadata.scalars;
-    utf16_units_ = metadata.utf16_units;
-    style_spans_ = std::move(transformed);
+    // The bytes the analysis must see again (N50): from the start of the
+    // line holding the byte before the edit to the first line start after
+    // it. A line break ends every grapheme cluster and every line, and the
+    // break before the region and the one ending it lie outside the edit
+    // (a CR before the region has the region's first byte after it, which
+    // the edit leaves alone), so the metadata outside the region stays.
+    const std::size_t old_size = text_.size();
+    std::size_t region_start = 0U;
+    if (start > 0U) {
+      const std::size_t line = detail::upper_bound_index(
+          std::span<const std::uint32_t>(line_starts_), start - 1U);
+      region_start = line_starts_[line - 1U];
+    }
+    const std::size_t next_line = detail::upper_bound_index(
+        std::span<const std::uint32_t>(line_starts_), end);
+    const std::size_t region_old_end =
+        next_line == line_starts_.size() ? old_size : line_starts_[next_line];
+    const bool region_reaches_end = region_old_end == old_size;
+    const std::size_t region_new_end =
+        region_old_end - removed_bytes + replacement.size();
+
+    // The edit is made in place within capacity reserved first, so that
+    // undoing it on a failure below allocates nothing.
+    const std::string removed_text(text_, start, removed_bytes);
+    text_.reserve(std::max(old_size, next_size));
+    text_.replace(start, removed_bytes, replacement);
+    bool styles_changed = false;
+    try {
+      std::vector<TextStyleSpan> transformed = transform_style_spans(
+          range, replacement.size(), inserted_style, text_);
+      if (transformed.size() > limits_.maximum_style_spans) {
+        throw std::length_error(
+            "GUI.Forms text edit exceeds its style-span limit");
+      }
+      const Metadata region = analyze(std::string_view(text_).substr(
+          region_start, region_new_end - region_start));
+      // analyze() closes its last line at the region's end; that is a
+      // line's content end only where the region ends the text.
+      std::span<const std::size_t> region_content_ends = region.line_content_ends;
+      if (!region_reaches_end) {
+        region_content_ends = region_content_ends.first(region_content_ends.size() - 1U);
+      }
+      const std::span<const std::uint32_t> old_starts(line_starts_);
+      const std::span<const std::uint32_t> old_ends(line_content_ends_);
+      const std::span<const std::uint32_t> old_boundaries(grapheme_boundaries_);
+      const OffsetSplice starts{
+          detail::lower_bound_index(old_starts, region_start),
+          detail::upper_bound_index(old_starts, region_old_end),
+          region.line_starts, region_start};
+      const OffsetSplice ends{
+          detail::lower_bound_index(old_ends, region_start),
+          region_reaches_end ? old_ends.size()
+                             : detail::lower_bound_index(old_ends, region_old_end),
+          region_content_ends, region_start};
+      const OffsetSplice boundaries{
+          detail::lower_bound_index(old_boundaries, region_start),
+          detail::upper_bound_index(old_boundaries, region_old_end),
+          region.grapheme_boundaries, region_start};
+      line_starts_.reserve(spliced_size(line_starts_, starts));
+      line_content_ends_.reserve(spliced_size(line_content_ends_, ends));
+      grapheme_boundaries_.reserve(spliced_size(grapheme_boundaries_, boundaries));
+
+      // Nothing below throws.
+      apply_offset_splice(line_starts_, starts, removed_bytes, replacement.size());
+      apply_offset_splice(line_content_ends_, ends, removed_bytes, replacement.size());
+      apply_offset_splice(grapheme_boundaries_, boundaries, removed_bytes, replacement.size());
+      styles_changed = transformed != style_spans_;
+      style_spans_ = std::move(transformed);
+    } catch (...) {
+      // Within the reserved capacity: restores the text without allocating.
+      text_.replace(start, replacement.size(), removed_text);
+      throw;
+    }
+    scalar_count_ = scalar_count_ - removed_validation.scalar_count +
+                    replacement_validation.scalar_count;
+    utf16_units_ = utf16_units_ - removed_validation.utf16_unit_count +
+                   replacement_validation.utf16_unit_count;
     ++revision_;
     ++edit_count_;
     ++metadata_rebuild_count_;
@@ -329,7 +445,7 @@ bool TextStore::is_scalar_boundary(Utf8Offset position) const noexcept {
 
 bool TextStore::is_grapheme_boundary(Utf8Offset position) const noexcept {
   return detail::binary_search_contains(
-      std::span<const std::size_t>(grapheme_boundaries_), position.value());
+      std::span<const std::uint32_t>(grapheme_boundaries_), position.value());
 }
 
 Utf8Offset TextStore::utf8_offset(Utf16Offset position) const {
@@ -399,7 +515,7 @@ ScalarIndex TextStore::scalar_index(Utf8Offset position) const {
 GraphemeIndex TextStore::grapheme_index(Utf8Offset position) const {
   validate_position(position);
   const std::size_t boundary_position = detail::lower_bound_index(
-      std::span<const std::size_t>(grapheme_boundaries_), position.value());
+      std::span<const std::uint32_t>(grapheme_boundaries_), position.value());
   if (boundary_position == grapheme_boundaries_.size() ||
       grapheme_boundaries_[boundary_position] != position.value()) {
     ++rejected_position_query_count_;

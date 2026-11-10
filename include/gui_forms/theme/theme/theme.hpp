@@ -189,6 +189,13 @@ public:
                                                                    const MediaFacts& facts) const noexcept;
 
 private:
+    // The six-argument resolve() without the control's kept results; sets
+    // `reads_ancestor_states` where the cascade read an ancestor's live
+    // states (an inherited text colour or font).
+    [[nodiscard]] ResolvedControlRecipe resolve_from_rules(const Control& control, ControlVisualRole role,
+                                                           ControlVisualContext context, AnatomyStateSet states,
+                                                           std::string_view part, std::string_view control_type,
+                                                           bool& reads_ancestor_states) const;
     // The engine compiles the definition's rules: a theme is made whole or
     // not at all, so the theme it replaces stays in force until it exists.
     // The copy is made straight into the theme's heap storage.

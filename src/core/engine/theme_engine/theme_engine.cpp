@@ -9,6 +9,7 @@
 #include "../../theme/dark_variant/dark_variant.hpp"
 #include "../../theme/theme/ancestor_facts.hpp"
 #include "../../theme/theme/forced_high_contrast.hpp"
+#include "../../theme/theme/kept_resolutions.hpp"
 
 #include <algorithm>
 #include <array>
@@ -16,8 +17,10 @@
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <new>
 #include <optional>
 #include <span>
+#include <string>
 
 // The values a part is drawn with (expressions, transitions, inputs) must
 // have the same bits on every host: no fused multiply-add here either.
@@ -875,6 +878,61 @@ ThemeEngine::ThemeEngine(const ThemeRuleSheet& sheet, ThemeRuleSet set)
     : registry_(&builtin_primitive_registry()), rules_(compiled_as(sheet, set, *registry_)) {}
 
 ThemeEngine::PartPlan ThemeEngine::plan(const Control& control, const PartPaint& part) const noexcept {
+    bool reads_ancestor_states = false;
+    const SurfaceRoot* const window = control.attached_surface_root();
+    if (rules_.empty() || window == nullptr || !part_bounds_paintable(part.bounds)) {
+        const PartPlan unkept = plan_from_rules(control, part, reads_ancestor_states);
+        return unkept;
+    }
+    // The control's kept plan in these facts (N1), else the cascade's, kept
+    // for the next call. paint, text_slot and hit_region each ask for the
+    // same part's plan. Keeping allocates; where it cannot, the plan is
+    // made and not kept.
+    try {
+        detail::KeptResolutions& kept = detail::kept_resolutions_of(control);
+        const detail::KeptPlacement placement = detail::kept_placement_of(control);
+        const std::string_view control_type = part.control_type;
+        const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+        const ControlVisualContext context = part_visual_context(control, part.states);
+        for (const detail::KeptPlan& entry : kept.plans) {
+            const bool same = entry.resolver == this && entry.placement == placement && entry.role == part.role &&
+                              entry.states == part.states && entry.family == part.family &&
+                              entry.context == context && entry.width == part.bounds.width &&
+                              entry.height == part.bounds.height && entry.control_type == control_type &&
+                              entry.part == part_name;
+            if (!same) continue;
+            if (entry.reads_ancestor_states && !detail::ancestor_states_match(control, entry.ancestor_states)) {
+                continue;
+            }
+            return entry.plan;
+        }
+        const PartPlan made = plan_from_rules(control, part, reads_ancestor_states);
+        if (kept.plans.size() >= detail::maximum_kept_plans) kept.plans.clear();
+        detail::KeptPlan entry{};
+        entry.resolver = this;
+        entry.placement = placement;
+        entry.control_type = std::string(control_type);
+        entry.part = std::string(part_name);
+        entry.role = part.role;
+        entry.states = part.states;
+        entry.family = part.family;
+        entry.context = context;
+        entry.width = part.bounds.width;
+        entry.height = part.bounds.height;
+        entry.reads_ancestor_states = reads_ancestor_states;
+        if (reads_ancestor_states) detail::fill_ancestor_states(control, entry.ancestor_states);
+        entry.plan = made;
+        kept.plans.push_back(std::move(entry));
+        return made;
+    } catch (const std::bad_alloc&) {
+        const PartPlan unkept = plan_from_rules(control, part, reads_ancestor_states);
+        return unkept;
+    }
+}
+
+ThemeEngine::PartPlan ThemeEngine::plan_from_rules(const Control& control, const PartPaint& part,
+                                                   bool& reads_ancestor_states) const noexcept {
+    reads_ancestor_states = false;
     PartPlan result{};
     if (rules_.empty()) return result;
     const SurfaceRoot* const window = control.attached_surface_root();
@@ -910,6 +968,7 @@ ThemeEngine::PartPlan ThemeEngine::plan(const Control& control, const PartPaint&
     }
     if (result.resolution.parameters_read_em) {
         // A number parameter in em, at the part's em within its range (P8c).
+        if (result.resolution.font.inherit) reads_ancestor_states = true;
         const double em = text_role_em(control, resolved_text_role(control, result.resolution.font));
         const PrimitiveDescriptor& described = (*result.resolution.primitive).descriptor();
         for (std::size_t index = 0; index < result.resolution.parameters.count; ++index) {
