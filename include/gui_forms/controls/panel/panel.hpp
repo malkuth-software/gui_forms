@@ -32,6 +32,12 @@ public:
     void clear_style();
 
     void on_paint(Painter& painter, Rect local_damage) override;
+    // A panel paints on the backplane (under the window's controls) while
+    // every ancestor below the root does too; under a control that paints
+    // on the control plane (a custom control hosting it, as a docking
+    // pane hosts its content) it paints on the control plane, so it shows
+    // over that ancestor as a WinForms child does. Decided at attach.
+    void on_attached_to_window() override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
     // False for a borderless panel without scroll bars whose face is a
     // solid colour or a size-invariant material (surface_material_size_invariant).

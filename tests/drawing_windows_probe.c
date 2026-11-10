@@ -70,6 +70,28 @@ int main(void) {
     CHECK(api.bitmap_get_pixel(imported, 2, 1, &pixel) == GD_OK);
     CHECK((pixel.argb & UINT32_C(0x00ffffff)) == UINT32_C(0x000000ff));
 
+    /* Alpha through a lease is explicit, not a colour key: black GDI writes
+     * onto a transparent bitmap become opaque black, and untouched
+     * transparent pixels stay transparent. */
+    {
+        gd_handle clear = {0};
+        uintptr_t clear_hdc = 0;
+        uint64_t clear_token = 0;
+        CHECK(api.bitmap_create(3, 1, GD_PIXEL_BGRA32_PREMULTIPLIED, &clear) == GD_OK);
+        CHECK(api.bitmap_acquire_hdc(clear, &clear_hdc, &clear_token) == GD_OK);
+        CHECK(SetPixel((HDC)clear_hdc, 0, 0, RGB(0, 0, 0)) != CLR_INVALID);
+        CHECK(SetPixel((HDC)clear_hdc, 2, 0, RGB(0, 128, 0)) != CLR_INVALID);
+        CHECK(api.bitmap_release_hdc(clear, clear_token) == GD_OK);
+        CHECK(api.bitmap_get_pixel(clear, 0, 0, &pixel) == GD_OK);
+        CHECK(pixel.argb == UINT32_C(0xff000000));
+        CHECK(api.bitmap_get_pixel(clear, 1, 0, &pixel) == GD_OK);
+        CHECK((pixel.argb >> 24) == 0U);
+        CHECK(api.bitmap_get_pixel(clear, 2, 0, &pixel) == GD_OK);
+        CHECK(pixel.argb == UINT32_C(0xff008000));
+        CHECK(api.dispose(clear) == GD_OK);
+        puts("drawing-windows-lease-alpha=pass");
+    }
+
     /* Bitmaps are BGRA8 only: the value RGBA had (1) is outside the enum. */
     CHECK(api.bitmap_create(2, 1, UINT32_C(1), &rejected) == GD_ERROR_INVALID_ARGUMENT);
     puts("drawing-windows-bgra-only=pass");

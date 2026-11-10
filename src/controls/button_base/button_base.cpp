@@ -851,6 +851,55 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
                          command_alignment);
 }
 
+void ButtonBase::paint_flat_button(Painter& painter, Rect bounds, double border_width) const {
+    // The face: the control's own back colour, else the style override's
+    // light face, else none. The ink: its fore colour, else the override's
+    // text, else the theme's.
+    const bool authored = style_override_.has_value();
+    const BasicControlStyle& colours = style();
+    const std::optional<Color> own_face = back_color.read();
+    const std::optional<Color> own_ink = fore_color.read();
+    if (own_face) {
+        painter.fill_rect(bounds, *own_face);
+    } else if (authored && (*style_override_).face_light.alpha != 0U) {
+        painter.fill_rect(bounds, (*style_override_).face_light);
+    }
+    const Color ink = own_ink ? *own_ink : authored ? (*style_override_).text : colours.text;
+    // WinForms derives the hover and pressed faces from the face; a veil of
+    // the ink stands for both (12% hot, 24% pressed).
+    if (effectively_enabled() && (hovered_ || pressed_visual())) {
+        const std::uint8_t veil = pressed_visual() ? std::uint8_t{61} : std::uint8_t{31};
+        painter.fill_rect(bounds, Color::rgba(ink.red, ink.green, ink.blue, veil));
+    }
+    if (border_width > 0.0) {
+        const Color edge = own_ink || authored ? ink : colours.border;
+        const double inset = border_width / 2.0;
+        const Rect stroke{bounds.x + inset, bounds.y + inset,
+                          std::max(0.0, bounds.width - border_width),
+                          std::max(0.0, bounds.height - border_width)};
+        painter.stroke_rect(stroke, edge, border_width);
+    }
+    AnatomyStateSet states;
+    if (hovered_) states.insert(AnatomyState::hot);
+    if (pressed_visual()) states.insert(AnatomyState::pressed);
+    if (focus_cue_visible()) states.insert(AnatomyState::focus_visible);
+    if (!effectively_enabled()) states.insert(AnatomyState::disabled);
+    PartPaint cue;
+    cue.family = ControlVisualRole::button;
+    cue.bounds = bounds;
+    cue.states = states;
+    cue.corner_radius = 0.0;
+    cue.role = PartRole::focus;
+    cue.key = PartKey{"focus", {}, {}};
+    paint_part(painter, *this, cue);
+    ButtonContentInk content_ink;
+    content_ink.family = ControlVisualRole::button;
+    content_ink.states = states;
+    if (own_ink || authored) content_ink.authored = ink;
+    const std::string display = display_text();
+    paint_button_content(painter, bounds, display, content_ink, Point{}, false, false);
+}
+
 const ControlVisualRecipe& ButtonBase::resolve_visual_recipe(
     ControlVisualRole role, ControlVisualContext context) const noexcept {
     if (visual_recipes_override_ && !context.high_contrast) {

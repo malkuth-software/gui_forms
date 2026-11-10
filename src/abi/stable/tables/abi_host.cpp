@@ -526,6 +526,7 @@ gf_status GF_CALL host_show_dialog(const gf_dialog_request* request, gf_dialog_r
         if (found != GF_STATUS_OK) {
             return found;
         }
+        made.request_id = engine().next_dialog_request();
         // Modal: the window's events and posted callbacks run until it closes.
         const HostDialogResult shown = (*services).show_dialog(made);
         const gf_status status = service_status(shown.status, show_dialog_slot);
