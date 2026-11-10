@@ -970,6 +970,8 @@ void append_field(EventFields& fields, std::string_view name, const BindingNavig
 void read_field(EventFields& fields, std::string_view name, BindingNavigatorAddNew& value);
 void append_field(EventFields& fields, std::string_view name, const BindingRecord& value);
 void read_field(EventFields& fields, std::string_view name, BindingRecord& value);
+void append_field(EventFields& fields, std::string_view name, const BundledFontFamily& value);
+void read_field(EventFields& fields, std::string_view name, BundledFontFamily& value);
 void append_field(EventFields& fields, std::string_view name, const CalendarDateRange& value);
 void append_field(EventFields& fields, std::string_view name, const CommandInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const CommandItem& value);
@@ -1265,6 +1267,15 @@ inline void read_field(EventFields& fields, std::string_view name, BindingRecord
     const EventFieldPrefix prefix = fields.enter(name);
     read_field(fields, "editable", value.editable);
     fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const BundledFontFamily& value) {
+    // An identity: the field is its one value.
+    append_field(fields, name, value.value);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, BundledFontFamily& value) {
+    read_field(fields, name, value.value);
 }
 
 inline void append_field(EventFields& fields, std::string_view name, const CalendarDateRange& value) {
@@ -1784,6 +1795,7 @@ inline void append_field(EventFields& fields, std::string_view name, const FontS
     append_field(fields, "weight", value.weight);
     append_field(fields, "italic", value.italic);
     append_field(fields, "letter_spacing", value.letter_spacing);
+    append_field(fields, "family", value.family);
     fields.leave(prefix);
 }
 
@@ -1794,6 +1806,7 @@ inline void read_field(EventFields& fields, std::string_view name, FontSpec& val
     read_field(fields, "weight", value.weight);
     read_field(fields, "italic", value.italic);
     read_field(fields, "letter_spacing", value.letter_spacing);
+    read_field(fields, "family", value.family);
     fields.leave(prefix);
 }
 
