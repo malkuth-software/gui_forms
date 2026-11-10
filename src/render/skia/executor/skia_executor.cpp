@@ -938,10 +938,21 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
         const std::span<const DrawingCommand> commands = recorder.commands();
         if (first_command > commands.size()) return {RasterError::invalid_argument};
         if (first_command == commands.size()) return {};
-        std::unique_ptr<Bitmap> scratch = target.clone({0, 0, static_cast<std::int32_t>(target.width()),
-                                      static_cast<std::int32_t>(target.height())});
-        const BitmapLockView scratch_lock = (*scratch).lock(BitmapLockMode::write);
-        BitmapUnlock unlock_scratch(*scratch, scratch_lock.token);
+        // An owned target is drawn through a scratch copy, so a failed list
+        // leaves it untouched. A target borrowing native memory (a DIB under
+        // Graphics.FromHdc) is drawn in place: the native surface is the
+        // program's own buffer, which GDI also writes without transactions,
+        // and copying it in and out per flush was the cost this avoids.
+        const bool in_place = target.borrows_memory();
+        std::unique_ptr<Bitmap> scratch;
+        Bitmap* drawn = &target;
+        if (!in_place) {
+            scratch = target.clone({0, 0, static_cast<std::int32_t>(target.width()),
+                                    static_cast<std::int32_t>(target.height())});
+            drawn = scratch.get();
+        }
+        const BitmapLockView scratch_lock = (*drawn).lock(BitmapLockMode::write);
+        BitmapUnlock unlock_scratch(*drawn, scratch_lock.token);
         const SkImageInfo info = image_info(scratch_lock.width, scratch_lock.height);
         sk_sp<SkSurface> surface = SkSurfaces::WrapPixels(
             info, scratch_lock.writable_data, scratch_lock.row_bytes);
@@ -1078,6 +1089,7 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
             ++executed;
         }
         unlock_scratch.release();
+        if (in_place) return {RasterError::none, executed};
         const ImageSnapshot rendered = (*scratch).snapshot();
         const BitmapLockView target_lock = target.lock(BitmapLockMode::write);
         BitmapUnlock unlock_target(target, target_lock.token);

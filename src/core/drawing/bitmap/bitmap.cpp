@@ -26,6 +26,41 @@ Bitmap::Bitmap(std::uint32_t width, std::uint32_t height,
     }
 }
 
+std::unique_ptr<Bitmap> Bitmap::borrow(std::uint32_t width, std::uint32_t height,
+                                       std::size_t row_bytes, std::byte* memory) {
+    if (memory == nullptr) throw std::invalid_argument("a borrowing bitmap needs memory");
+    if (width == 0U || height == 0U || width > maximum_dimension ||
+        height > maximum_dimension) {
+        throw std::invalid_argument("bitmap dimensions must be nonzero and bounded");
+    }
+    if (row_bytes < static_cast<std::size_t>(width) * 4U || row_bytes % 4U != 0U ||
+        row_bytes > std::numeric_limits<std::size_t>::max() / height) {
+        throw std::invalid_argument("a borrowing bitmap's row bytes must hold its row");
+    }
+    // Made at 1 x 1 (a one-pixel owned buffer, released below), then
+    // pointed at the borrowed pixels: the constructor keeps the identity and
+    // damage bookkeeping in one place.
+    std::unique_ptr<Bitmap> result = std::make_unique<Bitmap>(1U, 1U, PixelFormat::bgra32_premultiplied);
+    PixelStorage& storage = *(*result).storage_;
+    storage.bytes.clear();
+    storage.bytes.shrink_to_fit();
+    storage.width = width;
+    storage.height = height;
+    storage.row_bytes = row_bytes;
+    storage.borrowed = memory;
+    return result;
+}
+
+bool Bitmap::borrows_memory() const {
+    require_alive();
+    return (*storage_).borrowed != nullptr;
+}
+
+const std::byte* Bitmap::borrowed_memory() const {
+    require_alive();
+    return (*storage_).borrowed;
+}
+
 std::uint32_t Bitmap::width() const {
     require_alive();
     return (*storage_).width;
@@ -141,9 +176,9 @@ std::unique_ptr<Bitmap> Bitmap::clone(RectI source) const {
             *storage_, static_cast<std::uint32_t>(source.x),
             static_cast<std::uint32_t>(source.y + y));
         const std::size_t output = static_cast<std::size_t>(y) * (*(*result).storage_).row_bytes;
-        std::copy_n((*storage_).bytes.begin() + static_cast<std::ptrdiff_t>(input),
+        std::copy_n((*storage_).data() + input,
                     (*(*result).storage_).row_bytes,
-                    (*(*result).storage_).bytes.begin() + static_cast<std::ptrdiff_t>(output));
+                    (*(*result).storage_).data() + output);
     }
     return result;
 }
@@ -235,8 +270,8 @@ BitmapLockView Bitmap::lock(BitmapLockMode mode) {
         throw std::overflow_error("bitmap lock token space exhausted");
     }
     lock_mode_ = mode;
-    return {(*storage_).bytes.data(),
-            mode == BitmapLockMode::read ? nullptr : (*storage_).bytes.data(),
+    return {(*storage_).data(),
+            mode == BitmapLockMode::read ? nullptr : (*storage_).data(),
             (*storage_).row_bytes, (*storage_).width, (*storage_).height,
             (*storage_).pixel_format, active_lock_token_};
 }
@@ -284,7 +319,7 @@ BitmapEditView Bitmap::begin_edit(RectI bounds) {
         const std::size_t source = pixel_offset(
             *storage_, static_cast<std::uint32_t>(bounds.x),
             static_cast<std::uint32_t>(bounds.y + row));
-        std::copy_n((*storage_).bytes.data() + source, edit_row_bytes,
+        std::copy_n((*storage_).data() + source, edit_row_bytes,
                     active_edit_backup_.data() +
                         static_cast<std::size_t>(row) * edit_row_bytes);
     }
@@ -300,7 +335,7 @@ BitmapEditView Bitmap::begin_edit(RectI bounds) {
     const std::size_t origin = pixel_offset(
         *storage_, static_cast<std::uint32_t>(bounds.x),
         static_cast<std::uint32_t>(bounds.y));
-    return {(*storage_).bytes.data() + origin, (*storage_).bytes.data() + origin,
+    return {(*storage_).data() + origin, (*storage_).data() + origin,
             (*storage_).row_bytes, bounds, (*storage_).pixel_format,
             active_lock_token_};
 }
@@ -317,7 +352,7 @@ std::uint64_t Bitmap::commit_edit(std::uint64_t token) {
         const std::size_t storage_row = pixel_offset(
             *storage_, static_cast<std::uint32_t>(active_edit_bounds_.x),
             static_cast<std::uint32_t>(active_edit_bounds_.y + row));
-        const std::byte* current = (*storage_).bytes.data() + storage_row;
+        const std::byte* current = (*storage_).data() + storage_row;
         const std::byte* original = active_edit_backup_.data() +
             static_cast<std::size_t>(row) * edit_row_bytes;
         std::optional<std::int32_t> run_start;
@@ -380,7 +415,7 @@ void Bitmap::cancel_edit(std::uint64_t token) {
             static_cast<std::uint32_t>(active_edit_bounds_.y + row));
         std::copy_n(active_edit_backup_.data() +
                         static_cast<std::size_t>(row) * edit_row_bytes,
-                    edit_row_bytes, (*storage_).bytes.data() + destination);
+                    edit_row_bytes, (*storage_).data() + destination);
     }
     finish_edit();
 }
@@ -429,7 +464,24 @@ ImageSnapshot Bitmap::snapshot() const {
     result.height = (*storage_).height;
     result.pixel_format = (*storage_).pixel_format;
     result.generation = generation_;
-    result.storage_ = storage_;
+    if ((*storage_).borrowed == nullptr) {
+        result.storage_ = storage_;
+        return result;
+    }
+    // Borrowed pixels change under the native object's own drawing, so an
+    // immutable snapshot of them is a copy (packed rows, owned).
+    std::shared_ptr<PixelStorage> copy = std::make_shared<PixelStorage>();
+    (*copy).width = (*storage_).width;
+    (*copy).height = (*storage_).height;
+    (*copy).pixel_format = (*storage_).pixel_format;
+    (*copy).row_bytes = static_cast<std::size_t>((*storage_).width) * 4U;
+    (*copy).bytes.resize((*copy).size());
+    for (std::uint32_t y = 0; y < (*storage_).height; ++y) {
+        std::copy_n((*storage_).data() + static_cast<std::size_t>(y) * (*storage_).row_bytes,
+                    (*copy).row_bytes,
+                    (*copy).bytes.data() + static_cast<std::size_t>(y) * (*copy).row_bytes);
+    }
+    result.storage_ = std::move(copy);
     return result;
 }
 
@@ -465,7 +517,9 @@ void Bitmap::prepare_write() {
     if (generation_ == std::numeric_limits<std::uint64_t>::max()) {
         throw std::overflow_error("bitmap generation space exhausted");
     }
-    if (storage_.use_count() != 1) {
+    // Copy on write for owned pixels a snapshot shares. Borrowed pixels are
+    // never shared (snapshot copies them), so they are written in place.
+    if (storage_.use_count() != 1 && (*storage_).borrowed == nullptr) {
         storage_ = std::make_shared<PixelStorage>(*storage_);
     }
 }

@@ -6,6 +6,7 @@
 #include <windows.h>
 
 #include "gui_forms/c_api.h"
+#include "gui_forms/c/gf_abi.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -212,8 +213,173 @@ gd_result import_hbitmap(std::uintptr_t source, std::unique_ptr<Bitmap>& output)
     return GD_OK;
 }
 
+// Zero-copy drawing on a program's own DIB section. When the device
+// context Graphics.FromHdc wraps is a memory DC holding a 32-bit top-down
+// DIB section, unclipped, that is not a paint endpoint's, the GUI.Drawing
+// bitmap borrows the section's pixels: GDI and GUI.Drawing then draw the
+// same memory, and a flush neither captures nor presents. A paint
+// endpoint's DC is excluded: its publisher reads those pixels on another
+// thread under a write lease, and drawing them outside one would tear the
+// published frame.
+struct BorrowableDib final {
+    std::byte* pixels{};
+    std::uint32_t width{};
+    std::uint32_t height{};
+    std::size_t row_bytes{};
+};
+
+using BeginWriteV1 = decltype(&gf_windows_paint_endpoint_begin_write_v1);
+using EndWriteV1 = decltype(&gf_windows_paint_endpoint_end_write_v1);
+using GetStableTable = gf_status (GF_CALL*)(gf_table_id, std::uint32_t, std::uint32_t, void*, std::uint64_t);
+
+struct EndpointProbe final {
+    BeginWriteV1 begin_write_v1{};
+    EndWriteV1 end_write_v1{};
+    gf_windows_paint_endpoint_table table{};
+    bool table_present{};
+};
+
+// Resolved on first use. The libraries are loaded before any endpoint
+// exists (an endpoint is made through them), so a library absent here has
+// no endpoints to exclude.
+EndpointProbe load_endpoint_probe() noexcept {
+    EndpointProbe probe{};
+    const HMODULE forms = GetModuleHandleW(L"gui_forms_abi0.dll");
+    if (forms != nullptr) {
+        FARPROC begin_raw = GetProcAddress(forms, "gf_windows_paint_endpoint_begin_write_v1");
+        FARPROC end_raw = GetProcAddress(forms, "gf_windows_paint_endpoint_end_write_v1");
+        if (begin_raw != nullptr && end_raw != nullptr) {
+            std::memcpy(&probe.begin_write_v1, &begin_raw, sizeof(probe.begin_write_v1));
+            std::memcpy(&probe.end_write_v1, &end_raw, sizeof(probe.end_write_v1));
+        }
+    }
+    const HMODULE stable = GetModuleHandleW(L"gui_forms_abi1.dll");
+    if (stable != nullptr) {
+        FARPROC raw = GetProcAddress(stable, "gf_abi_get_table");
+        GetStableTable get_table{};
+        static_assert(sizeof(get_table) == sizeof(raw));
+        std::memcpy(&get_table, &raw, sizeof(get_table));
+        if (get_table != nullptr) {
+            const gf_status negotiated = get_table(GF_TABLE_WINDOWS_PAINT_ENDPOINT, GF_ABI_MAJOR, GF_ABI_MINOR,
+                                                   &probe.table, sizeof(probe.table));
+            probe.table_present = negotiated == GF_STATUS_OK && probe.table.begin_write != nullptr &&
+                probe.table.end_write != nullptr;
+        }
+    }
+    return probe;
+}
+
+// True when device is a paint endpoint's DC: a write lease begins on it.
+// The probe lease ends at once without publishing.
+bool is_endpoint_dc(HDC device) noexcept {
+    static const EndpointProbe probe = load_endpoint_probe();
+    const std::uintptr_t value = reinterpret_cast<std::uintptr_t>(device);
+    if (probe.begin_write_v1 != nullptr) {
+        std::uint64_t lease{};
+        if (probe.begin_write_v1(value, &lease) == GF_OK) {
+            probe.end_write_v1(lease, 0U);
+            return true;
+        }
+    }
+    if (probe.table_present) {
+        gf_paint_write_lease lease{};
+        if (probe.table.begin_write(static_cast<std::uint64_t>(value), &lease) == GF_STATUS_OK) {
+            probe.table.end_write(lease, 0U);
+            return true;
+        }
+    }
+    return false;
+}
+
+// True when the section's memory starts at its top row. GetObject reports
+// a DIB section's height as positive whichever way it was made, so the
+// first pixel word is changed for a moment and read back through GDI at
+// (0, 0): only a top-down section shows the change there. One section is
+// remembered per thread (the waterfall flushes the same one every frame).
+// Single-row sections have one orientation.
+bool top_down_section(HDC device, HGDIOBJ selected, const DIBSECTION& section) noexcept {
+    struct Remembered final {
+        HGDIOBJ bitmap{};
+        void* bits{};
+        bool top_down{};
+    };
+    thread_local Remembered remembered{};
+    if (remembered.bitmap == selected && remembered.bits == section.dsBm.bmBits) return remembered.top_down;
+    bool top_down = true;
+    if (section.dsBm.bmHeight > 1) {
+        std::uint32_t* const first = static_cast<std::uint32_t*>(section.dsBm.bmBits);
+        if (GdiFlush() == FALSE) return false;
+        const std::uint32_t original = *first;
+        const std::uint32_t probe = original ^ 0x00808080U;
+        *first = probe;
+        const COLORREF read = GetPixel(device, 0, 0);
+        *first = original;
+        // The DIB word is 0x00RRGGBB in memory order B, G, R; COLORREF is
+        // 0x00BBGGRR.
+        const COLORREF expected = RGB((probe >> 16) & 0xffU, (probe >> 8) & 0xffU, probe & 0xffU);
+        top_down = read == expected;
+    }
+    remembered.bitmap = selected;
+    remembered.bits = section.dsBm.bmBits;
+    remembered.top_down = top_down;
+    return top_down;
+}
+
+// Fills dib when device's selected bitmap can be borrowed; false otherwise
+// (the copying path then serves the surface).
+bool borrowable_dib(HDC device, BorrowableDib& dib) noexcept {
+    if (std::getenv("GUI_DRAWING_NO_BORROW") != nullptr) return false;
+    if (GetObjectType(device) != OBJ_MEMDC) return false;
+    const HGDIOBJ selected = GetCurrentObject(device, OBJ_BITMAP);
+    if (selected == nullptr) return false;
+    DIBSECTION section{};
+    if (GetObjectW(selected, sizeof(section), &section) != static_cast<int>(sizeof(section))) return false;
+    if (section.dsBm.bmBits == nullptr || section.dsBm.bmBitsPixel != 32 ||
+        section.dsBmih.biCompression != BI_RGB || section.dsBm.bmWidth <= 0 || section.dsBm.bmHeight <= 0) {
+        return false;
+    }
+    if (section.dsBm.bmWidth > static_cast<LONG>(Bitmap::maximum_dimension) ||
+        section.dsBm.bmHeight > static_cast<LONG>(Bitmap::maximum_dimension)) {
+        return false;
+    }
+    // Only an unclipped DC: the borrowed bitmap is the whole section, and a
+    // clipped one must keep GDI's clip.
+    RECT clip{};
+    if (GetClipBox(device, &clip) != SIMPLEREGION || clip.left != 0 || clip.top != 0 ||
+        clip.right != section.dsBm.bmWidth || clip.bottom != section.dsBm.bmHeight) {
+        return false;
+    }
+    if (!top_down_section(device, selected, section)) return false;
+    if (is_endpoint_dc(device)) return false;
+    dib.pixels = static_cast<std::byte*>(section.dsBm.bmBits);
+    dib.width = static_cast<std::uint32_t>(section.dsBm.bmWidth);
+    dib.height = static_cast<std::uint32_t>(section.dsBm.bmHeight);
+    dib.row_bytes = static_cast<std::size_t>(section.dsBm.bmWidthBytes);
+    return true;
+}
+
+// GDI clears the alpha byte of what it draws; the surface is opaque, so
+// every pixel becomes alpha 255 before GUI.Drawing composites over it.
+void force_opaque(std::byte* pixels, std::uint32_t width, std::uint32_t height,
+                  std::size_t row_bytes) noexcept {
+    for (std::uint32_t y = 0; y < height; ++y) {
+        std::uint32_t* row = reinterpret_cast<std::uint32_t*>(pixels + static_cast<std::size_t>(y) * row_bytes);
+        for (std::uint32_t x = 0; x < width; ++x) row[x] |= 0xff000000U;
+    }
+}
+
 gd_result capture_surface(std::uintptr_t source, std::uint32_t kind,
                           CapturedSurface& output) {
+    if (kind != GD_NATIVE_SURFACE_HWND) {
+        BorrowableDib dib{};
+        if (borrowable_dib(reinterpret_cast<HDC>(source), dib)) {
+            if (GdiFlush() == FALSE) throw std::runtime_error("GdiFlush failed");
+            force_opaque(dib.pixels, dib.width, dib.height, dib.row_bytes);
+            output.bitmap = Bitmap::borrow(dib.width, dib.height, dib.row_bytes, dib.pixels);
+            output.bounds = {0.0, 0.0, static_cast<double>(dib.width), static_cast<double>(dib.height)};
+            return GD_OK;
+        }
+    }
     const bool window_surface = kind == GD_NATIVE_SURFACE_HWND;
     const HWND window = window_surface ? reinterpret_cast<HWND>(source) : nullptr;
     CompatibilityUser32& compatibility = compatibility_user32();
@@ -290,6 +456,23 @@ gd_result capture_surface(std::uintptr_t source, std::uint32_t kind,
 
 gd_result refresh_surface(std::uintptr_t source, std::uint32_t kind,
                           Bitmap& bitmap, RectF& output_bounds) {
+    if (bitmap.borrows_memory()) {
+        // The bitmap already is the surface: only GDI's batch and its
+        // cleared alpha need settling. A section replaced or resized since
+        // the capture is reported as changed, so the caller captures anew.
+        BorrowableDib dib{};
+        if (kind == GD_NATIVE_SURFACE_HWND || !borrowable_dib(reinterpret_cast<HDC>(source), dib) ||
+            dib.pixels != bitmap.borrowed_memory() || dib.width != bitmap.width() ||
+            dib.height != bitmap.height()) {
+            throw std::invalid_argument("native surface dimensions changed");
+        }
+        if (GdiFlush() == FALSE) throw std::runtime_error("GdiFlush failed");
+        BitmapLockView lock = bitmap.lock(BitmapLockMode::write);
+        force_opaque(reinterpret_cast<std::byte*>(lock.writable_data), dib.width, dib.height, lock.row_bytes);
+        bitmap.unlock(lock.token);
+        output_bounds = {0.0, 0.0, static_cast<double>(dib.width), static_cast<double>(dib.height)};
+        return GD_OK;
+    }
     const bool window_surface = kind == GD_NATIVE_SURFACE_HWND;
     const HWND window = window_surface ? reinterpret_cast<HWND>(source) : nullptr;
     CompatibilityUser32& compatibility = compatibility_user32();
@@ -383,6 +566,18 @@ gd_result publish_retained_surface(std::uintptr_t destination,
 
 gd_result present_surface(std::uintptr_t destination, std::uint32_t kind,
                           Bitmap& bitmap) {
+    if (bitmap.borrows_memory() && kind != GD_NATIVE_SURFACE_HWND) {
+        // Presenting a borrowed bitmap to the DC whose section it borrows
+        // is a no-op: the pixels are already there.
+        const HDC device = reinterpret_cast<HDC>(destination);
+        const HGDIOBJ selected = GetCurrentObject(device, OBJ_BITMAP);
+        DIBSECTION section{};
+        if (selected != nullptr &&
+            GetObjectW(selected, sizeof(section), &section) == static_cast<int>(sizeof(section)) &&
+            static_cast<const std::byte*>(section.dsBm.bmBits) == bitmap.borrowed_memory()) {
+            return GD_OK;
+        }
+    }
     const ImageSnapshot snapshot = bitmap.snapshot();
     // The bitmap is BGRA8, the DIB's own order.
     const void* const pixels = snapshot.pixels().data();
