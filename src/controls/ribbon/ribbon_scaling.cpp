@@ -367,6 +367,20 @@ bool Ribbon::field_labelled(const RibbonCommandSpec& command) const {
     return result;
 }
 
+bool Ribbon::labels_next_field(const RibbonGroupSpec& group, const RibbonGroupLayout& group_layout,
+                               std::size_t command) const {
+    const RibbonCommandSpec& item = group.commands[command];
+    const bool text_label = !hosted(item.kind) && item.show_label && item.image.value == 0U && !command_text(item).empty();
+    if (!text_label || layout_command_size(group_layout, item, command) != RibbonCommandSize::small) return false;
+    std::size_t next = command + 1U;
+    while (next < group.commands.size() && !command_visible(group.commands[next])) ++next;
+    if (next == group.commands.size()) return false;
+    const RibbonCommandSpec& field = group.commands[next];
+    const bool result = hosted(field.kind) && field.kind != RibbonCommandKind::check_box &&
+                        field.kind != RibbonCommandKind::gallery && !field.beside_previous;
+    return result;
+}
+
 // A hosted command's field width in pixels: its authored width or its kind's
 // default, at the text scale; a check box is as wide as its mark and caption.
 double Ribbon::hosted_field_width(const RibbonCommandSpec& command) const {
@@ -538,7 +552,10 @@ void Ribbon::build_ladder(std::size_t tab, TabScaling& scaling) const {
 // Columns: a large command or a gallery is a column of its own; small and
 // hosted commands stack `rows` rows to a column from the top, at the
 // three-row pitch, a command `beside_previous` continuing the row before it
-// to the right, and a column is as wide as its widest row. The group is as
+// to the right, and a column is as wide as its widest row. A text label for
+// the field after it never takes a column's last row below other commands:
+// it starts the next column, so that the label stands above its field. The
+// group is as
 // wide as its columns or its caption row, whichever is wider, plus padding
 // and the divider.
 double Ribbon::place_group(const TabScaling& scaling, std::size_t tab, std::size_t group,
@@ -580,7 +597,9 @@ double Ribbon::place_group(const TabScaling& scaling, std::size_t tab, std::size
             column_width = std::max(column_width, left + width - column_x);
             continue;
         }
-        if ((gallery || large || column_rows == group_layout.rows) && column_rows != 0U) {
+        const bool full = column_rows == group_layout.rows;
+        const bool label_last = column_rows + 1U == group_layout.rows && labels_next_field(spec, group_layout, command);
+        if ((gallery || large || full || label_last) && column_rows != 0U) {
             column_x += column_width + gap;
             column_width = 0.0;
             column_rows = 0U;
