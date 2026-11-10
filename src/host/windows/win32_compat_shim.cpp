@@ -179,6 +179,9 @@ bool release_endpoint_dc(HWND window, HDC dc) noexcept {
 
 void publish_endpoint_dc(HDC dc) noexcept {
     if (cached_dc_kind(dc) == DcKind::ordinary) return;
+    // The publication reads the endpoint's DIB memory; GDI may still hold
+    // this thread's last drawing calls in its batch.
+    static_cast<void>(GdiFlush());
     static const PublishEndpointDc entry = forms_entry<PublishEndpointDc>(
         "gf_windows_paint_endpoint_publish_dc_v1");
     if (entry != nullptr) {
@@ -224,6 +227,12 @@ void end_endpoint_write(std::uint64_t lease, bool publish) noexcept {
     static const EndEndpointWrite entry = forms_entry<EndEndpointWrite>(
         "gf_windows_paint_endpoint_end_write_v1");
     if (lease == 0U) return;
+    // GDI batches Boolean drawing calls (BitBlt, FillRect) per thread. The
+    // endpoint's publisher reads the DIB memory on its own thread once the
+    // lease ends, so the write is flushed first: otherwise the published
+    // frame can be the one before this write (a stale frame between two
+    // current ones).
+    if (publish) static_cast<void>(GdiFlush());
     if (entry != nullptr) {
         static_cast<void>(entry(lease, publish ? 1U : 0U));
         return;
