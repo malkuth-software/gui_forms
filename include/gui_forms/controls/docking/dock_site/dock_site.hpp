@@ -904,6 +904,10 @@ private:
     void schedule_stale_check();
     // Takes the slot's view into the flyout or gives it back.
     void move_view_to_flyout(StackSlot& slot);
+    // The nearest theme override on this site or its ancestors (null when
+    // none): the flyout, an overlay root outside the site's tree, takes it so
+    // it is drawn with the theme the site is.
+    [[nodiscard]] std::shared_ptr<const Theme> inherited_theme_override() const;
     void move_view_to_site(StackSlot& slot);
     // Puts a view into the flyout (Flyout is complete only in
     // dock_site_auto_hide.cpp).

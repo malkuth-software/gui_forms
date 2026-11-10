@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <span>
 #include <string_view>
+#include <vector>
 
 namespace gui_forms::dock_site_detail {
 
@@ -51,12 +52,24 @@ inline bool focus_candidate(const Control& control) noexcept {
     return candidate;
 }
 
-// The first control in `root`'s subtree, in child order, that can take
-// focus, or null.
+// Whether `left` comes before `right` in keyboard order (tab_index; equal
+// indexes keep child order under a stable sort).
+inline bool tab_index_before(const Control::Ptr& left, const Control::Ptr& right) noexcept {
+    if (!left) return false;
+    if (!right) return true;
+    return (*left).tab_index.read() < (*right).tab_index.read();
+}
+
+// The first control in `root`'s subtree, in keyboard (tab) order, that can
+// take focus, or null. Tab order, not child order: a panel's first child
+// may sit at its bottom, and focusing it would scroll an auto-scrolling
+// content to the end.
 inline Control::Ptr first_focusable(const Control::Ptr& root) {
     if (!root) return {};
     const std::span<const Control::Ptr> children = (*root).children();
-    for (const Control::Ptr& child : children) {
+    std::vector<Control::Ptr> ordered(children.begin(), children.end());
+    std::stable_sort(ordered.begin(), ordered.end(), &tab_index_before);
+    for (const Control::Ptr& child : ordered) {
         if (!child) continue;
         if (focus_candidate(*child)) return child;
         Control::Ptr nested = first_focusable(child);

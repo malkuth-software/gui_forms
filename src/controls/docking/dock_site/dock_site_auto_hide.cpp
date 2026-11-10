@@ -538,6 +538,8 @@ bool DockSite::open_flyout(const DockPanelId& panel, DockFlyoutCause cause) {
     pointer_in_flyout_ = false;
     flyout_focused_ = false;
     flyout_ = make_control<Flyout>(StableId(std::string(stable_id().value()) + ".flyout"), *this);
+    const std::shared_ptr<const Theme> site_theme = inherited_theme_override();
+    if (site_theme) (*flyout_).set_theme_override(site_theme);
     flyout_root_ = flyout_;
     move_view_to_flyout(*slot);
     // The slide starts under the strip; under reduced motion or in an
@@ -635,6 +637,14 @@ void DockSite::stale_flyout_elapsed() {
     const StackSlot* const slot = slot_for(flyout_stack_);
     const bool behind_tabs = slot != nullptr && ((*slot).auto_hidden || (*slot).side_tabbed);
     if (!behind_tabs) close_flyout(DockFlyoutCause::layout);
+}
+
+std::shared_ptr<const Theme> DockSite::inherited_theme_override() const {
+    std::shared_ptr<const Theme> found = theme_override();
+    for (Control::Ptr ancestor = parent(); !found && ancestor; ancestor = (*ancestor).parent()) {
+        found = (*ancestor).theme_override();
+    }
+    return found;
 }
 
 // -- hover, leave and outside presses ------------------------------------------------------------
