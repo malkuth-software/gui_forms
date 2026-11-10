@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace {
@@ -75,9 +76,55 @@ void paint_and_publish(
         reinterpret_cast<std::uintptr_t>(destination)), "(*endpoint).publish_device_context( reinterpret_cast<std::uintptr_t>(destination))");
 }
 
+bool snapshot_has(const std::string& snapshot, const char* field) {
+    return snapshot.find(field) != std::string::npos;
+}
+
+// N48: a write whose end names another device context, and a write that never
+// reaches its end, must both leave the endpoint usable from the same thread.
+// Before the fix the first returned with state_mutex held, and the next
+// begin_write on that thread locked it again (a hang).
+void check_write_lease_recovery() {
+    using gui_forms::host::WindowsCompatibilityPaintEndpoint;
+    std::shared_ptr<WindowsCompatibilityPaintEndpoint> endpoint =
+        WindowsCompatibilityPaintEndpoint::acquire(64U, 32U);
+    require(static_cast<bool>(endpoint), "recovery endpoint");
+    const std::uintptr_t device = (*endpoint).device_context();
+    require(device != 0U, "recovery device context");
+    const std::uintptr_t other = device + 1U;
+
+    // A write ended with the wrong device context fails, and ends the write.
+    require((*endpoint).begin_device_context_write(device), "mismatch begin");
+    require(!(*endpoint).end_device_context_write(other, true),
+            "a mismatched end reports failure");
+    // A second end has no write to close.
+    require(!(*endpoint).end_device_context_write(device, true),
+            "an end without a write reports failure");
+    // The mutex is free: snapshot locks it, and a new write begins and ends.
+    require(snapshot_has((*endpoint).snapshot(), "|mismatched-write-ends:1"),
+            "the mismatch is counted");
+    require((*endpoint).begin_device_context_write(device), "begin after mismatch");
+    require((*endpoint).end_device_context_write(device, false), "end after mismatch");
+
+    // A write abandoned without its end is closed by the next begin on the
+    // same thread instead of locking the held mutex again.
+    require((*endpoint).begin_device_context_write(device), "abandoned begin");
+    require((*endpoint).begin_device_context_write(device), "begin over an abandoned write");
+    require((*endpoint).end_device_context_write(device, false), "end after abandoned write");
+    require(snapshot_has((*endpoint).snapshot(), "|abandoned-writes:1"),
+            "the abandoned write is counted");
+
+    // A begin with the wrong device context fails and holds nothing.
+    require(!(*endpoint).begin_device_context_write(other), "a wrong begin fails");
+    require((*endpoint).configure(48U, 24U), "configure after a failed begin");
+    (*endpoint).release();
+}
+
 } // namespace
 
 int main() {
+    check_write_lease_recovery();
+
     using gui_forms::host::WindowsCompatibilityPaintEndpoint;
 
     constexpr std::array<std::array<int, 2>, 6> sizes{{
