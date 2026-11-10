@@ -334,9 +334,11 @@ void test_scroll_copies_damage_only_the_exposed_band() {
     const Rect clip{10.0, 10.0, 84.0, 80.0};
     require(copies.size() == 1U && copies[0].clip == clip && copies[0].offset == Point{0.0, -10.0},
             "a scroll by whole pixels must record one copy of the viewport");
-    const double band_and_bar = 84.0 * 10.0 + 16.0 * 80.0;
+    // The band, the bar, and the bar's ink over the viewport: one bar
+    // thickness inside it (invalidate_scroll_bar_ink).
+    const double band_and_bar = 84.0 * 10.0 + 16.0 * 80.0 + 16.0 * 80.0;
     require(damage.area() <= band_and_bar + 1.0e-6 && damage.area() >= 84.0 * 10.0,
-            "a copied scroll must damage only the exposed band and the bar");
+            "a copied scroll must damage only the exposed band, the bar and its ink");
     require((*child).committed_arranged_bounds() == Rect{0.0, -10.0, 80.0, 400.0},
             "the children move by the scroll");
 
@@ -363,7 +365,7 @@ void test_scroll_copies_damage_only_the_exposed_band() {
     window.take_scroll_copies(copies);
     const double repainted_cover = 2.0 * 30.0 * 20.0;
     require(copies.size() == 1U && copies[0].offset == Point{0.0, -12.0} &&
-                covered.area() <= 84.0 * 12.0 + 16.0 * 80.0 + repainted_cover + 1.0e-6,
+                covered.area() <= 84.0 * 12.0 + 2.0 * 16.0 * 80.0 + repainted_cover + 1.0e-6,
             "a control over the viewport must be repainted, and the viewport still copied");
     bool cover_damaged = false;
     for (const Rect rect : covered.rectangles()) {

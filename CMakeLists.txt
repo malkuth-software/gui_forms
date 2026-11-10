@@ -2858,6 +2858,14 @@ if(GUI_FORMS_BUILD_TESTS)
             gui_forms_controls gui_forms_host_windows)
         add_test(NAME gui_forms_windows_damage_rectangles_tests
                  COMMAND gui_forms_windows_damage_rectangles_tests)
+        add_executable(gui_forms_windows_scroll_copy_tests tests/windows_scroll_copy_tests.cpp)
+        target_compile_definitions(gui_forms_windows_scroll_copy_tests PRIVATE
+            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
+            GUI_FORMS_WINDOWS_SCROLL_COPY_TEST=1)
+        target_link_libraries(gui_forms_windows_scroll_copy_tests PRIVATE
+            gui_forms_controls gui_forms_host_windows)
+        add_test(NAME gui_forms_windows_scroll_copy_tests
+                 COMMAND gui_forms_windows_scroll_copy_tests)
         add_executable(gui_forms_windows_text_tests tests/windows_text_tests.cpp)
         target_compile_definitions(gui_forms_windows_text_tests PRIVATE
             WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
@@ -5628,13 +5636,14 @@ endif()
 
 # The targets that compile the red/blue swap loops' replacements link stx_skia::swizzle: the
 # core (material images), the controls (the raster canvas), the Windows drawing C API, and
-# the Windows host with the tests that compile windows_host.cpp, the last six by including it textually.
+# the Windows host with the tests that compile windows_host.cpp, the last seven by including it textually.
 foreach(gui_forms_swizzle_target IN ITEMS gui_forms_core gui_forms_controls
         gui_drawing_c_api gui_forms_host_windows
         gui_forms_windows_dib_lifecycle_tests
         gui_forms_windows_prepared_text_tests gui_forms_windows_backplane_replay_tests
         gui_forms_windows_canvas_raster_tests gui_forms_windows_content_pixels_tests
         gui_forms_windows_control_snapshot_tests gui_forms_windows_damage_rectangles_tests
+        gui_forms_windows_scroll_copy_tests
         gui_forms_windows_text_tests)
     if(TARGET ${gui_forms_swizzle_target})
         target_link_libraries(${gui_forms_swizzle_target} PRIVATE stx_skia::swizzle)

@@ -1142,6 +1142,12 @@ void NativeWindow::report_window_state() {
 void NativeWindow::attach() {
   (*entry.model).set_dispatch_wake_handler(Wake{runtime.wake_pipe[1]});
   (*entry.model).set_paint_wake_handler(Wake{runtime.wake_pipe[1]});
+#if !defined(GUI_FORMS_PREPARED_TEXT)
+  // The raster keeps its pixels between ticks, so a scroll's pixels can be
+  // moved instead of repainted (update). The prepared raster publishes only
+  // retained paint transactions and repaints scrolled viewports.
+  (*entry.model).set_scroll_copies_supported(true);
+#endif
   if (!dispatch(HostAttachEvent{size, 1.0}).accepted())
     throw std::runtime_error("Linux host attach rejected");
   report_compositor_state();
@@ -1518,15 +1524,35 @@ void NativeWindow::update() {
   // overlay's share (#69), and that damage is taken with the rest.
   const bool regions_taken = gather_live_frames();
   const DamageRegion fresh = (*entry.model).take_damage();
+  // The scroll copies recorded with that damage (SurfaceRoot::
+  // take_scroll_copies): the damage this window still holds moves with each
+  // copy's pixels before the fresh damage joins it. They are applied, in
+  // order, by the next tick that draws.
+  taken_copies.clear();
+  (*entry.model).take_scroll_copies(taken_copies);
+  for (const ScrollCopy &copy : taken_copies) {
+    if (!damage.empty()) damage = damage_after_scroll_copy(damage, copy.clip, copy.offset);
+    pending_copies.push_back(copy);
+  }
+  taken_copies.clear();
   for (std::size_t i = 0; i < fresh.rectangles().size(); ++i)
     damage.add(fresh.rectangles()[i]);
   // A taken region stays valid only if this tick presents it.
   if (regions_taken) live_region_lost = true;
-  // The screen rectangles: retained damage and the frames drawn directly.
+  // A scroll copy can move a live surface's previous pixels: frames drawn
+  // directly cover their whole clips.
+  if (!pending_copies.empty()) {
+    for (std::size_t index = 0; index < live_regions.size(); ++index) {
+      if (!live_regions[index].empty()) live_regions[index] = live_updates[index].clip;
+    }
+  }
+  // The screen rectangles: retained damage, the frames drawn directly and
+  // the clips of the copies, which the window still shows where they were.
   DamageRegion screen = damage;
   for (std::size_t index = 0; index < live_regions.size(); ++index) {
     if (!live_regions[index].empty()) screen.add(live_regions[index]);
   }
+  for (const ScrollCopy &copy : pending_copies) screen.add(copy.clip);
   if (visible && screen.empty() && !overlay_drawn.empty()) {
     // The invalidation overlay's fade: nothing owed, so the outlines alone
     // are presented again from the raster (a faded one leaves the raster's
@@ -1560,6 +1586,21 @@ void NativeWindow::update() {
   // Compose: the new frames first, then retained painting of the damage
   // (overlay shares among it) over them, into the raster.
   raster.begin_frame(screen);
+  // The copies move the begun frame's pixels before anything is drawn. One
+  // the raster refuses damages every clip: earlier copies may have moved
+  // pixels in it, and the repaint covers each clip (the frame admits them).
+  applied_copy_clips.clear();
+  bool copies_applied = true;
+  for (const ScrollCopy &copy : pending_copies) {
+    if (copies_applied) copies_applied = raster.scroll_copy(copy.clip, copy.offset);
+    applied_copy_clips.push_back(copy.clip);
+  }
+  pending_copies.clear();
+  if (copies_applied) {
+    scroll_copies_applied += applied_copy_clips.size();
+  } else {
+    for (const Rect clip : applied_copy_clips) damage.add(clip);
+  }
   compose_live_frames();
   std::optional<PaintReceipt> receipt{};
   if (!damage.empty()) {
@@ -1570,13 +1611,18 @@ void NativeWindow::update() {
   }
   raster.end_frame();
   live_frames.clear();
-  // A declined paint presents nothing; the damage and the lost regions stay.
-  if (!damage.empty() && !receipt)
+  // A declined paint presents nothing; the damage and the lost regions stay,
+  // and the copies' clips, moved in the raster only, join the damage.
+  if (!damage.empty() && !receipt) {
+    for (const Rect clip : applied_copy_clips) damage.add(clip);
     return;
+  }
   // Present: the rectangle set, once.
   PresentedArea copied;
-  if (!present_raster_rectangles(*this, screen.rectangles(), copied))
+  if (!present_raster_rectangles(*this, screen.rectangles(), copied)) {
+    for (const Rect clip : applied_copy_clips) damage.add(clip);
     return;
+  }
   const std::uint64_t elapsed = static_cast<std::uint64_t>(
       std::chrono::duration_cast<std::chrono::nanoseconds>(
           std::chrono::steady_clock::now() - started)

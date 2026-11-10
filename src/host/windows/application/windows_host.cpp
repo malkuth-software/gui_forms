@@ -1290,6 +1290,9 @@ class WindowsHostState final {
 #if defined(GUI_FORMS_WINDOWS_PREPARED_TEXT_TEST)
     friend struct PreparedHostFixture;
 #endif
+#if defined(GUI_FORMS_WINDOWS_SCROLL_COPY_TEST)
+    friend struct ScrollCopyHostFixture;
+#endif
 public:
     WindowsHostState(std::unique_ptr<Window> model, WindowsHostOptions options)
         : model_(std::move(model)), options_(std::move(options)),
@@ -1399,6 +1402,13 @@ public:
             gui_forms::detail::BoundMemberFunction<
                 void (WindowsHostState::*)() noexcept>(
                     *this, &WindowsHostState::request_render_wake));
+#if !defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
+        // The painter keeps its pixels between frames, so a scroll's pixels
+        // can be moved instead of repainted (apply_scroll_copies). The
+        // transactional store presents committed DIB candidates instead and
+        // repaints scrolled viewports.
+        (*model_).set_scroll_copies_supported(true);
+#endif
         if (options_.host_ready) {
             options_.host_ready(
                 gui_forms::detail::BoundMemberFunction<
@@ -2249,10 +2259,73 @@ private:
         return added;
     }
 
+    // Takes the scroll copies the model recorded with the damage just taken
+    // (SurfaceRoot::take_scroll_copies), before that damage joins the held
+    // damage: what this host still holds moves with each copy's pixels. The
+    // next frame applies them in order (apply_scroll_copies). The
+    // transactional profile records none.
+    void take_scroll_copies() {
+        taken_copies_.clear();
+        (*model_).take_scroll_copies(taken_copies_);
+        for (const ScrollCopy& copy : taken_copies_) {
+            if (!pending_damage_.empty()) {
+                pending_damage_ = gui_forms::damage_after_scroll_copy(pending_damage_, copy.clip, copy.offset);
+            }
+            pending_copies_.push_back(copy);
+        }
+        taken_copies_.clear();
+    }
+
+#if !defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
+    // Applies the pending scroll copies to the frame begun (`frame_begun`)
+    // before its damage is painted, and leaves the clips of those applied in
+    // applied_copy_clips_: the frame presents them whole, since the window
+    // still shows their pixels where they were. A copy that cannot be applied
+    // (no frame, or the raster refuses it) damages every pending clip
+    // instead: copies earlier in the list may have moved pixels in it, and
+    // the repaint covers each clip. Without a frame the clips are also
+    // invalidated, so a later WM_PAINT paints them.
+    void apply_scroll_copies(const bool frame_begun) {
+        applied_copy_clips_.clear();
+        if (pending_copies_.empty()) return;
+        bool applied = frame_begun;
+        for (const ScrollCopy& copy : pending_copies_) {
+            if (applied) applied = raster_.painter().scroll_copy(copy.clip, copy.offset);
+            applied_copy_clips_.push_back(copy.clip);
+        }
+        pending_copies_.clear();
+        if (applied) {
+            scroll_copies_applied_ += applied_copy_clips_.size();
+            return;
+        }
+        for (const Rect clip : applied_copy_clips_) {
+            pending_damage_.add(clip);
+            if (frame_begun) continue;
+            const RECT native_clip = device_rect(clip);
+            InvalidateRect(hwnd_, &native_clip, FALSE);
+        }
+        scroll_copies_refused_ += applied_copy_clips_.size();
+        applied_copy_clips_.clear();
+    }
+
+    // A frame that applied copies but did not reach the window leaves the
+    // window's pixels behind the raster's in their clips: they are damaged
+    // and painted again.
+    void damage_unpresented_copies() {
+        for (const Rect clip : applied_copy_clips_) {
+            pending_damage_.add(clip);
+            const RECT native_clip = device_rect(clip);
+            InvalidateRect(hwnd_, &native_clip, FALSE);
+        }
+        applied_copy_clips_.clear();
+    }
+#endif
+
     void collect_damage() {
         static_cast<void>((*model_).poll_frame_schedule(FrameClock::now()));
         accessibility_.notify(scale_);
         DamageRegion damage = (*model_).take_damage();
+        take_scroll_copies();
         // Each rectangle is invalidated on its own (stage DP): Windows keeps
         // them as one update region, so distant changes do not repaint what
         // lies between them.
@@ -2402,6 +2475,7 @@ private:
         const std::chrono::steady_clock::time_point started =
             std::chrono::steady_clock::now();
         const DamageRegion taken = (*model_).take_damage();
+        take_scroll_copies();
         const std::span<const Rect> taken_rectangles = taken.rectangles();
         for (std::size_t index = 0; index < taken_rectangles.size(); ++index) {
             pending_damage_.add(taken_rectangles[index]);
@@ -2415,8 +2489,12 @@ private:
         prepare_frame_alpha();
         static_cast<void>(raster_.synchronize_images((*model_).image_resources()));
         const bool frame_begun = raster_.begin_frame();
-        const bool regions_usable = !live_region_lost_;
+        // A scroll copy can move a live surface's previous pixels: frames
+        // are then drawn over their whole clips.
+        const bool regions_usable = !live_region_lost_ && pending_copies_.empty();
+        apply_scroll_copies(frame_begun);
         DamageRegion screen;
+        for (const Rect clip : applied_copy_clips_) screen.add(clip);
         std::uint64_t live_pixels = 0U;
         bool regions_taken = false;
         live_frames_.clear();
@@ -2490,6 +2568,7 @@ private:
         HDC target = GetDC(hwnd_);
         if (target == nullptr) {
             live_updates_failed_ += live_composed;
+            damage_unpresented_copies();
             return;
         }
         bool presented = true;
@@ -2521,6 +2600,11 @@ private:
         // A region taken from a surface is cleared; only a presented raster
         // keeps it valid, so after a failure the next tick copies whole clips.
         if (regions_taken) live_region_lost_ = !presented;
+        if (presented) {
+            applied_copy_clips_.clear();
+        } else {
+            damage_unpresented_copies();
+        }
         // Live frames are copied inside this one present: their regions are
         // reported as live and the rest as retained, and the duration is
         // split between them by pixel share.
@@ -2734,11 +2818,33 @@ private:
         // Match the whole device pixels that the update region covers. A
         // narrower fractional clip can leave stripes from previous frames.
         if (!update_region_read) pending_damage_.add(logical_rect(paint_state.rcPaint));
-        // Present exactly the rectangles painted: the raster keeps the last
-        // frame everywhere else, and the window already shows it there.
+        prepare_frame_alpha();
+        static_cast<void>(raster_.synchronize_images((*model_).image_resources()));
+        // Scroll copies move pixels the frame then presents whole, so the
+        // frame's surface admits their clips too; the paint itself stays
+        // clipped to the damage.
+        const bool copies_pending = !pending_copies_.empty();
+        DamageRegion frame_damage = pending_damage_;
+        for (const ScrollCopy& copy : pending_copies_) frame_damage.add(copy.clip);
+        std::optional<PaintReceipt> receipt{};
+        const bool frame_begun = raster_.begin_frame(frame_damage);
+        apply_scroll_copies(frame_begun);
+        if (frame_begun) {
+            render::SkiaRaster& painter = raster_.painter();
+            if (copies_pending) {
+                painter.save();
+                painter.clip_damage(pending_damage_);
+            }
+            receipt = (*model_).paint(painter, pending_damage_.rectangles());
+            if (copies_pending) painter.restore();
+            raster_.end_frame();
+        }
+        // Present exactly the rectangles painted and the copies' clips: the
+        // raster keeps the last frame everywhere else, and the window already
+        // shows it there.
         const std::span<const Rect> painted_rectangles = pending_damage_.rectangles();
         std::vector<RECT> present_rectangles;
-        present_rectangles.reserve(painted_rectangles.size() + 1U);
+        present_rectangles.reserve(painted_rectangles.size() + applied_copy_clips_.size() + 1U);
         if (expose_whole) {
             RECT client{};
             GetClientRect(hwnd_, &client);
@@ -2747,21 +2853,27 @@ private:
             for (std::size_t index = 0; index < painted_rectangles.size(); ++index) {
                 present_rectangles.push_back(device_rect(painted_rectangles[index]));
             }
-        }
-        prepare_frame_alpha();
-        static_cast<void>(raster_.synchronize_images((*model_).image_resources()));
-        std::optional<PaintReceipt> receipt{};
-        if (raster_.begin_frame(pending_damage_)) {
-            receipt = (*model_).paint(raster_.painter(), pending_damage_.rectangles());
-            raster_.end_frame();
+            for (const Rect clip : applied_copy_clips_) present_rectangles.push_back(device_rect(clip));
         }
         // With no damage pending there is nothing to paint, and an exposure
         // still copies the raster as it stands.
         bool presented = receipt.has_value() || (expose_whole && pending_damage_.empty());
         const std::chrono::steady_clock::time_point copy_started =
             std::chrono::steady_clock::now();
+        // BeginPaint's device context is clipped to the update region, which
+        // need not hold a copy's clip: a frame that applied copies presents
+        // through the window's own device context.
+        const bool copied_clips = !applied_copy_clips_.empty();
+        HDC present_dc = copied_clips ? GetDC(hwnd_) : dc;
+        if (present_dc == nullptr) presented = false;
         for (std::size_t index = 0; presented && index < present_rectangles.size(); ++index) {
-            presented = raster_.present(dc, present_rectangles[index]);
+            presented = raster_.present(present_dc, present_rectangles[index]);
+        }
+        if (copied_clips && present_dc != nullptr) ReleaseDC(hwnd_, present_dc);
+        if (presented) {
+            applied_copy_clips_.clear();
+        } else {
+            damage_unpresented_copies();
         }
         if (presented && expose_whole) expose_whole_raster_ = false;
         const std::uint64_t copy_nanoseconds = static_cast<std::uint64_t>(
@@ -3361,6 +3473,16 @@ private:
     WINDOWPLACEMENT restore_placement_{};
     WindowsRaster raster_;
     DamageRegion pending_damage_;
+    // Scroll copies taken from the model and not yet applied to the raster,
+    // in order (take_scroll_copies); scratch for the take; the clips the
+    // current frame applied, presented whole by it or damaged again.
+    std::vector<ScrollCopy> pending_copies_;
+    std::vector<ScrollCopy> taken_copies_;
+#if !defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
+    std::vector<Rect> applied_copy_clips_;
+    std::uint64_t scroll_copies_applied_{};
+    std::uint64_t scroll_copies_refused_{};
+#endif
     // The frame sequence's per-tick storage, reused across ticks: each
     // surface's frame, the frame each presentation draws from, and the device
     // pixels and rectangles composed per frame.

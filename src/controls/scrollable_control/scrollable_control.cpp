@@ -381,8 +381,31 @@ void ScrollableControl::arrange(Rect final_bounds) {
     if (unchanged && !copied && surface_root() != nullptr) {
         copied = (*surface_root()).request_scroll_copy(*this, moved);
     }
-    // The bars were repainted by the scroll (apply_axis_value).
+    // The bars were repainted by the scroll (apply_axis_value); what they
+    // paint over the viewport was copied with it.
+    if (copied && moved != Point{}) invalidate_scroll_bar_ink(moved);
     if (!copied) invalidate(Dirty::paint);
+}
+
+// The bars are this control's overlay paint, drawn over the viewport's
+// edge: their ink there (a thumb's contact shadow) moved with the copy. The
+// theme states no bound on that ink, so a band of one bar thickness inside
+// each bar is repainted, where it is and where the copy moved it, in local
+// coordinates (Control::invalidate clips them to the client area).
+void ScrollableControl::invalidate_scroll_bar_ink(const Point moved) {
+    const double margin = scrollbar_thickness_;
+    const double right = viewport_rectangle_.width;
+    const double bottom = viewport_rectangle_.height;
+    if (vscroll()) {
+        const Rect band{right - margin, 0.0, margin, bottom};
+        invalidate(band);
+        invalidate(Rect{band.x + moved.x, band.y + moved.y, band.width, band.height});
+    }
+    if (hscroll()) {
+        const Rect band{0.0, bottom - margin, right, margin};
+        invalidate(band);
+        invalidate(Rect{band.x + moved.x, band.y + moved.y, band.width, band.height});
+    }
 }
 
 // The scroll position rounded to whole device pixels, where the children are

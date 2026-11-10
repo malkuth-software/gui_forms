@@ -180,6 +180,10 @@ private:
     // update_scrollbars' repaint of the bars after a resize that kept
     // them, for a control whose other paint keeps its pixels.
     void invalidate_scroll_bar_strips(Rect previous_viewport);
+    // A scroll copy's repaint of what the bars paint over the viewport (a
+    // thumb's contact shadow reaching past the bar), where it is and where
+    // the copy moved it by `moved`.
+    void invalidate_scroll_bar_ink(Point moved);
     friend class ScrollProperties;
     enum class ScrollPart : std::uint8_t {
         none,
