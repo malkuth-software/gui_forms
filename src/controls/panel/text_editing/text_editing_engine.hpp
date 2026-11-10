@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <deque>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -96,6 +97,12 @@ public:
     // control does the rest. No host call.
     [[nodiscard]] bool show_text(std::string_view text, TextSelection selection);
 
+    // Undo and redo keep edits, not copies of the text (N52): each history
+    // step is the bytes one edit removed and inserted at an offset, so its
+    // cost is the edit's size, and consecutive typing at the caret is one
+    // step, broken after whitespace (a word at a time), by any other edit,
+    // by a selection or caret move, and by undo or redo. An unfinished
+    // composition's updates join the step that holds it.
     [[nodiscard]] bool can_undo() const noexcept {
         const bool result = !undo_.empty();
         return result;
@@ -136,15 +143,35 @@ public:
     void handle_text_input(TextInputEvent& event);
 
 private:
-    struct Snapshot final {
-        std::string text{};
-        TextSelection selection{};
+    // One history step: at `start` (a byte offset of the text before it), the
+    // edit replaced `removed` with `inserted`, moving the selection from
+    // `before` to `after`. Undo puts `removed` back over `inserted` and
+    // selects `before`; redo does the reverse and selects `after`.
+    struct HistoryEdit final {
+        Utf8Offset start{};
+        std::string removed{};
+        std::string inserted{};
+        TextSelection before{};
+        TextSelection after{};
+        // Whether later typing may join this step: a typing edit's, not a
+        // filter's rewrite or another kind's.
+        bool typing{};
+        // Whether `inserted` ends in an unfinished composition, whose next
+        // update replaces it inside this step.
+        bool composition{};
     };
 
-    [[nodiscard]] Snapshot snapshot() const;
-    void apply_snapshot(Snapshot snapshot);
-    void push_history(std::deque<Snapshot>& history, Snapshot snapshot);
+    // The history bytes an entry holds.
+    [[nodiscard]] static std::size_t history_size(const HistoryEdit& entry) noexcept;
+    // Records an applied edit on the undo history (merging typing), and
+    // empties the redo history.
+    void record_edit(HistoryEdit entry);
+    void push_history(std::deque<HistoryEdit>& history, HistoryEdit entry);
     void clear_redo() noexcept;
+    // Moves the top of `from` through the text (undo: backward; redo:
+    // forward) onto `to`. False, changing nothing, when the text no longer
+    // holds what the entry expects or the result is refused.
+    bool step_history(std::deque<HistoryEdit>& from, std::deque<HistoryEdit>& to, bool forward);
     // Replaces the whole text with a filter's rewrite, as one history step.
     bool apply_rewrite(std::string_view rewritten, Utf8Offset caret);
 
@@ -155,9 +182,29 @@ private:
     TextStore store_{};
     TextChange last_change_{};
     TextSelection selection_{};
-    std::deque<Snapshot> undo_{};
-    std::deque<Snapshot> redo_{};
+    std::deque<HistoryEdit> undo_{};
+    std::deque<HistoryEdit> redo_{};
     std::size_t history_bytes_{};
+    // The text before show_text first changed it since the last history
+    // step, while shown text is outside the history (an auto-complete
+    // completion); none otherwise. The history's offsets are this text's:
+    // the next recorded edit first records the shown change as a step of its
+    // own, and undo first takes it back.
+    std::optional<std::string> shown_base_{};
+    // Whether the newest undo step is typing the next typing may join.
+    bool typing_open_{};
+    // True while a text input event's replacement runs: the only edits that
+    // may join a typing step.
+    bool text_input_active_{};
+    // Sets a flag for one scope and clears it on every exit, a throwing
+    // filter or host callback included.
+    struct TextInputScope final {
+        explicit TextInputScope(bool& flag) noexcept : flag_(flag) { flag_ = true; }
+        ~TextInputScope() { flag_ = false; }
+        TextInputScope(const TextInputScope&) = delete;
+        TextInputScope& operator=(const TextInputScope&) = delete;
+        bool& flag_;
+    };
     Delegate<TextEdit&> edit_filter_{};
     std::size_t maximum_length_{};
     std::size_t maximum_bytes_{};
