@@ -80,6 +80,11 @@ void NumericUpDownScrub::end_scrub(ScrubEnd end, double value) {
 }
 
 NumericUpDown::NumericUpDown(StableId stable_id) : Panel(std::move(stable_id)) {
+    // A field paints with the controls, not on the window's backplane as a
+    // container panel does: a parent that paints its own face (a Ribbon
+    // hosting it) would otherwise cover its border and spin buttons, which
+    // still take the pointer.
+    set_paint_plane(PaintPlane::control);
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
     border_style = BorderStyle::line;
     // A field's ground: the theme's editor role, resolved per colour scheme

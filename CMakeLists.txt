@@ -4975,7 +4975,10 @@ if(GUI_FORMS_BUILD_TESTS)
         add_executable(gui_forms_part_composite_identity_tests tests/part_composite_identity_tests.cpp)
         target_link_libraries(gui_forms_part_composite_identity_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_part_composite_identity_tests COMMAND gui_forms_part_composite_identity_tests)
-        add_executable(gui_forms_ribbon_scale_raster_tests tests/ribbon_scale_raster_tests.cpp)
+        add_executable(gui_forms_ribbon_scale_raster_tests tests/ribbon_scale_raster_tests.cpp
+            ${gui_forms_sealed_pages_source})
+        target_compile_definitions(gui_forms_ribbon_scale_raster_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
         target_include_directories(gui_forms_ribbon_scale_raster_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
         target_link_libraries(gui_forms_ribbon_scale_raster_tests PRIVATE gui_forms_gallery_model gui_forms_skia)
         add_test(NAME gui_forms_ribbon_scale_raster_tests COMMAND gui_forms_ribbon_scale_raster_tests)
