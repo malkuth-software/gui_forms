@@ -358,6 +358,11 @@ struct ContextMenu::Impl final {
             const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                               committed_arranged_bounds().height};
             const BasicControlStyle style;
+            // The gutters, marks and chevron follow the text scale, as the
+            // label's font and the row's height do (audit N111); the
+            // plate's 2 by 1 inset is the edge and stays.
+            const double scale = impl_.text_scale();
+            const double label_left = menu_label_left * scale;
             // The separator rule, the hot plate, the check or radio mark,
             // the label and the submenu chevron are menu item parts the
             // theme's engine draws; a row is hot while hot or focused and
@@ -374,8 +379,8 @@ struct ContextMenu::Impl final {
                 PartPaint rule;
                 rule.family = ControlVisualRole::panel;
                 rule.role = PartRole::divider;
-                rule.bounds = {menu_label_left, bounds.height * .5 - 0.5,
-                               std::max(1.0, bounds.width - menu_label_left - 7.0), 1.0};
+                rule.bounds = {label_left, bounds.height * .5 - 0.5,
+                               std::max(1.0, bounds.width - label_left - 7.0 * scale), 1.0};
                 paint_part(painter, *this, rule);
                 return;
             }
@@ -402,8 +407,9 @@ struct ContextMenu::Impl final {
                 icon.role = PartRole::icon;
                 icon.states = states;
                 icon.image = item_.image;
-                icon.bounds = {menu_icon_left, std::floor((bounds.height - menu_icon_size) * 0.5),
-                               menu_icon_size, menu_icon_size};
+                const double icon_size = menu_icon_size * scale;
+                icon.bounds = {menu_icon_left * scale, std::floor((bounds.height - icon_size) * 0.5),
+                               icon_size, icon_size};
                 paint_part(painter, *this, icon);
             }
             if (checked) {
@@ -415,10 +421,12 @@ struct ContextMenu::Impl final {
                 // Centred on the row, in the icon gutter.
                 if (item_.kind == MenuItemKind::check) {
                     mark.mark = PartMark::check;
-                    mark.bounds = {7.0, std::floor((bounds.height - 14.0) * 0.5), 14.0, 14.0};
+                    mark.bounds = {7.0 * scale, std::floor((bounds.height - 14.0 * scale) * 0.5), 14.0 * scale,
+                                   14.0 * scale};
                 } else {
                     mark.mark = PartMark::radio_dot;
-                    mark.bounds = {9.0, std::floor((bounds.height - 12.0) * 0.5), 12.0, 12.0};
+                    mark.bounds = {9.0 * scale, std::floor((bounds.height - 12.0 * scale) * 0.5), 12.0 * scale,
+                                   12.0 * scale};
                 }
                 paint_part(painter, *this, mark);
             }
@@ -435,8 +443,8 @@ struct ContextMenu::Impl final {
             // A destructive command's red ink, provisionally an authored
             // colour until the theme has a text tone for it (asked).
             if (item_.command_state.destructive) label.authored_foreground = menu_ink(item_, style);
-            paint_text_part_at(painter, *this, label, {menu_label_left, baseline},
-                               std::max(0.0, bounds.width - menu_label_left));
+            paint_text_part_at(painter, *this, label, {label_left, baseline},
+                               std::max(0.0, bounds.width - label_left));
             if (!item_.command_state.shortcut.empty()) {
                 const FontSpec shortcut_font = effective_font(menu_shortcut_font());
                 const Size size = painter.measure_text_utf8(
@@ -452,7 +460,7 @@ struct ContextMenu::Impl final {
                 // Right-aligned in the shortcut column, before the chevron's
                 // trailing space.
                 paint_text_part_at(painter, *this, shortcut,
-                                   {std::max(menu_label_left + 4.0, bounds.width - size.width - menu_trailing),
+                                   {std::max(label_left + 4.0 * scale, bounds.width - size.width - menu_trailing * scale),
                                     baseline},
                                    size.width);
             }
@@ -461,7 +469,8 @@ struct ContextMenu::Impl final {
                 chevron.family = ControlVisualRole::menu_item;
                 chevron.role = PartRole::disclosure;
                 chevron.mark = PartMark::chevron_right;
-                chevron.bounds = {bounds.width - 18.0, std::floor((bounds.height - 8.0) * 0.5), 8.0, 8.0};
+                chevron.bounds = {bounds.width - 18.0 * scale, std::floor((bounds.height - 8.0 * scale) * 0.5),
+                                  8.0 * scale, 8.0 * scale};
                 chevron.states = states;
                 paint_part(painter, *this, chevron);
             }
@@ -848,8 +857,10 @@ struct ContextMenu::Impl final {
                 (*window).resolve_text_layout_utf8(item.command_state.shortcut, shortcut_font);
             shortcuts = std::max(shortcuts, shortcut.logical_size.width);
         }
-        const double shortcut_column = shortcuts > 0.0 ? menu_shortcut_gap + shortcuts : 0.0;
-        const double width = menu_border * 2.0 + 2.0 + menu_label_left + labels + shortcut_column + menu_trailing;
+        // The gutters scale with the text, as the rows draw them (N111).
+        const double shortcut_column = shortcuts > 0.0 ? menu_shortcut_gap * scale + shortcuts : 0.0;
+        const double width = menu_border * 2.0 + 2.0 + menu_label_left * scale + labels + shortcut_column +
+                             menu_trailing * scale;
         return std::ceil(width);
     }
 
@@ -1120,13 +1131,14 @@ struct ContextMenu::Impl final {
             open_submenu(depth, index, true);
             return;
         }
-        if (item.kind == MenuItemKind::separator || !item.command ||
-            !item.command_state.enabled) return;
+        if (item.kind == MenuItemKind::separator || !item.command_state.enabled) return;
         const std::string source_id = std::string(
             (*panels[depth].rows[index]).stable_id().value());
         const std::string item_id = item.stable_id;
-        const std::string command_id = (*item.command).stable_id();
+        // An item without a Command (GAPS E9) is chosen with an empty
+        // command_id; there is nothing to execute.
         const std::shared_ptr<Command> command = item.command;
+        const std::string command_id = command ? (*command).stable_id() : std::string{};
         // Release containment and restore the invoker before application code
         // runs. A command may deliberately focus its resulting surface; doing
         // this after execution would overwrite that destination with the menu
@@ -1135,10 +1147,10 @@ struct ContextMenu::Impl final {
             static_cast<void>((*window).end_focus_scope(focus_scope));
         }
         focus_scope = {};
-        bool executed = false;
-        if (window != nullptr) {
+        bool executed = !command;
+        if (command && window != nullptr) {
             executed = (*command).execute_routed(*window, source_id);
-        } else {
+        } else if (command) {
             executed = (*command).execute(source_id);
         }
         if (executed && owner.is_alive()) {

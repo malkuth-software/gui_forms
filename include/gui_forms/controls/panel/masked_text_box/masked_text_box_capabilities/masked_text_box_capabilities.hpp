@@ -58,6 +58,23 @@ struct MaskedTextBoxCultureCapability {
     }
 };
 
+// The text in text_mask_format (Text); a view onto the provider (under an empty mask, the editor's text). A write clears the box and places the text from the first position, literals in it matching the mask's literals, as place_text does; refused text leaves the box unchanged and raises mask_input_rejected instead of throwing (place_text reports the result). A placed text raises text_changed.
+template <typename Declaring>
+struct MaskedTextBoxTextCapability {
+    PropertyView<std::string, MaskedTextBoxTextCapability<Declaring>> text;
+
+    static void assign(MaskedTextBoxTextCapability& capability, std::string incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.text), std::move(incoming));
+    }
+
+    static std::string read(const MaskedTextBoxTextCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::string current = control.read_view(capability.text);
+        return current;
+    }
+};
+
 // What text includes (TextMaskFormat): literals, prompts, both or neither. A change raises text_changed when text changes; an unknown format throws std::invalid_argument.
 template <typename Declaring>
 struct MaskedTextBoxTextMaskFormatCapability {
@@ -216,6 +233,7 @@ struct MaskedTextBoxReadOnlyCapability {
 template <typename Declaring>
 struct MaskedTextBoxCapabilities : public MaskedTextBoxMaskCapability<Declaring>,
                                    public MaskedTextBoxCultureCapability<Declaring>,
+                                   public MaskedTextBoxTextCapability<Declaring>,
                                    public MaskedTextBoxTextMaskFormatCapability<Declaring>,
                                    public MaskedTextBoxPromptCharacterCapability<Declaring>,
                                    public MaskedTextBoxAllowPromptAsInputCapability<Declaring>,

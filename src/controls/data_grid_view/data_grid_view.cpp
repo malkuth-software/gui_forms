@@ -648,6 +648,35 @@ void DataGridView::rebuild_row_index() {
     row_positions_.swap(index);
 }
 
+// A bound source's one-record insertion or removal re-indexes only the rows
+// from its position (audit N47): an append is one insertion, not a rebuild.
+// The source has already changed. Anything the index cannot follow exactly
+// (a reset, a missing or mismatched identity, a repeated ID, an index out of
+// range) rebuilds the whole index, as before.
+void DataGridView::reindex_source_change(const BindingListChange& change) {
+    const std::size_t count = data_row_count();
+    const bool positioned = change.index >= 0 && !change.stable_id.empty();
+    const std::size_t first = positioned ? static_cast<std::size_t>(change.index) : 0U;
+    if (positioned && change.kind == BindingListChangeKind::item_added && first < count &&
+        row_positions_.size() + 1U == count && row_id_text(DataGridViewRowPosition{first}) == change.stable_id) {
+        for (std::size_t position = first; position < count; ++position) {
+            row_positions_.insert_or_assign(row_id_text(DataGridViewRowPosition{position}), position);
+        }
+        if (row_positions_.size() == count) return;
+    } else if (positioned && change.kind == BindingListChangeKind::item_removed && first <= count &&
+               row_positions_.size() == count + 1U) {
+        const RowPositions::const_iterator removed = row_positions_.find(change.stable_id);
+        if (removed != row_positions_.end() && (*removed).second == first) {
+            row_positions_.erase(removed);
+            for (std::size_t position = first; position < count; ++position) {
+                row_positions_.insert_or_assign(row_id_text(DataGridViewRowPosition{position}), position);
+            }
+            if (row_positions_.size() == count) return;
+        }
+    }
+    rebuild_row_index();
+}
+
 void DataGridView::index_rows_from(std::size_t first) {
     for (std::size_t position = first; position < rows.read().size(); ++position) {
         row_positions_.insert_or_assign(rows.read()[position].stable_id.value, position);
@@ -1535,7 +1564,7 @@ void DataGridView::on_source_list_changed(const BindingListChange& change) {
                                      change.stable_id == (*current_).row_id;
         if (current_removed || change.kind == BindingListChangeKind::reset) cancel_edit();
     }
-    rebuild_row_index();
+    reindex_source_change(change);
     // A record that took the new row's ID, other than the one add_new_row
     // is adding, moves the new row to another ID.
     if (!adding_row_ && row_positions_.contains(new_row_.stable_id.value)) renew_new_row_id(true);

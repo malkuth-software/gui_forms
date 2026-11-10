@@ -171,7 +171,8 @@ remain functions are not properties: operations (`perform_click()`), the
 tree's structure (`add_child`, `remove_child`), records with identities of
 their own (`set_items` of the menu, strip and ribbon families), geometry with
 flags (`set_bounds(rect, specified)`), a write that returns a result
-(`MaskedTextBox::set_text` returns a `MaskEditResult`) and settings of
+(`MaskedTextBox::place_text` returns a `MaskEditResult`; its `text`
+property writes the same way without one) and settings of
 objects that are not controls (`Command::set_enabled`,
 `Application::set_theme`). Each control's [API page](../api/index) lists its
 members.

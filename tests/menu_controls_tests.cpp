@@ -386,6 +386,57 @@ void test_context_menu_scroll_and_validation_bounds() {
             "menu model validation must reject duplicate stable identities");
 }
 
+struct RecordMenuInvocation final {
+    std::vector<MenuItemInvocation>* invocations{};
+    void operator()(const MenuItemInvocation& invocation) const { (*invocations).push_back(invocation); }
+};
+
+// GAPS E9: an item without a Command shows its own text and state, and
+// choosing it raises item_invoked with an empty command_id.
+void test_context_menu_items_without_commands() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("plain.root"));
+    std::shared_ptr<gui_forms::Button> owner = make_control<Button>(StableId("plain.owner"), "Menu");
+    (*owner).set_requested_bounds({4.0, 4.0, 80.0, 30.0});
+    (*root).add_child(owner);
+    Window window(root, {320.0, 190.0});
+    require(window.request_focus(owner), "the plain menu owner takes focus");
+    MenuItemSpec off{};
+    off.stable_id = "off";
+    off.kind = MenuItemKind::command;
+    off.text = "Off";
+    off.enabled = false;
+    MenuItemSpec plain{};
+    plain.stable_id = "plain";
+    plain.kind = MenuItemKind::check;
+    plain.text = "Plain";
+    plain.checked = true;
+    ContextMenu menu("plain.menu");
+    menu.set_items({off, plain});
+    std::vector<MenuItemInvocation> invocations{};
+    SubscriptionToken recorded = menu.item_invoked().subscribe(RecordMenuInvocation{&invocations});
+    menu.show(owner, {20.0, 20.0});
+    require(window.find("plain.menu.overlay.row.plain") != nullptr && window.find("plain.menu.overlay.row.off") != nullptr,
+            "items without a Command are shown");
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::end}) &&
+                (*window.focused_control()).stable_id().value() == "plain.menu.overlay.row.plain",
+            "End reaches the command-less item");
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::enter}), "Enter chooses the command-less item");
+    require(invocations.size() == 1U && invocations[0].item_id == "plain" && invocations[0].command_id.empty() &&
+                !menu.is_open(),
+            "choosing it raises item_invoked with an empty command_id and closes the menu");
+    MenuItemSpec empty{};
+    empty.stable_id = "empty";
+    empty.kind = MenuItemKind::command;
+    bool refused = false;
+    try {
+        menu.set_items({empty});
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused, "an item with neither a Command nor text is refused");
+    static_cast<void>(recorded);
+}
+
 // Item IDs that become part of a StableId are checked when they are set,
 // not later, when an overlay row or hosted control is made from them.
 void test_item_ids_follow_the_stable_id_segment_rule() {
@@ -824,6 +875,7 @@ int main() {
     try {
         test_context_menu_command_snapshot_keyboard_nesting_and_restore();
         test_context_menu_scroll_and_validation_bounds();
+        test_context_menu_items_without_commands();
         test_item_ids_follow_the_stable_id_segment_rule();
         test_menu_strip_retained_switching_commands_and_semantics();
         test_menu_mnemonics_strip_markers_and_overlay_activation();

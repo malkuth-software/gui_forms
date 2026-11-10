@@ -7,6 +7,9 @@
 #include <utility>
 #include <vector>
 
+// Private to the library: not an installed header (audit F10). The one
+// production caller is CorrespondenceView; the sort lab and its test measure
+// the candidates.
 namespace gui_forms::detail {
 
 // Stable insertion is the deliberately small candidate. It is useful when the

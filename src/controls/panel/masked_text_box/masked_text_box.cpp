@@ -47,7 +47,7 @@ MaskedTextBox::MaskedTextBox(StableId stable_id, std::string initial_mask)
     : Panel(std::move(stable_id)), provider_(std::move(initial_mask)) {
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
     border_style = BorderStyle::none;
-    published_text_ = text();
+    published_text_ = text.read();
 }
 
 MaskedTextBox::~MaskedTextBox() {
@@ -284,7 +284,7 @@ void MaskedTextBox::place_caret() {
 }
 
 void MaskedTextBox::publish_text_if_changed() {
-    std::string now = text();
+    std::string now = text.read();
     if (now == published_text_) return;
     published_text_ = std::move(now);
     invalidate(Dirty::paint | Dirty::semantics);
@@ -309,7 +309,7 @@ void MaskedTextBox::replace_provider(MaskedTextProvider next) {
     // under an empty mask, the plain text.
     std::string kept{};
     if (provider_.length() == 0U) {
-        kept = text();
+        kept = text.read();
     } else {
         kept = provider_.to_string(MaskTextFormat::exclude_prompt_and_literals);
     }
@@ -355,7 +355,14 @@ void MaskedTextBox::write_view(const decltype(culture)&, MaskCulture incoming) {
     replace_provider(std::move(next));
 }
 
-std::string MaskedTextBox::text() const {
+// The text property's view (GAPS E5): the read is the text in
+// text_mask_format; the write places the text and drops the result (a
+// refusal has raised mask_input_rejected).
+void MaskedTextBox::write_view(const decltype(text)&, std::string incoming) {
+    static_cast<void>(place_text(incoming));
+}
+
+std::string MaskedTextBox::read_view(const decltype(text)&) const {
     // Under an empty mask the editor's text is the text.
     if (provider_.length() == 0U) {
         const std::string plain = editor_ ? std::string((*editor_).text.read()) : std::string{};
@@ -364,17 +371,17 @@ std::string MaskedTextBox::text() const {
     return provider_.to_string(text_mask_format.read());
 }
 
-MaskEditResult MaskedTextBox::set_text(std::string_view text) {
+MaskEditResult MaskedTextBox::place_text(std::string_view incoming) {
     require_mutable();
     if (provider_.length() == 0U) {
-        if (!validate_utf8(text).valid()) {
+        if (!validate_utf8(incoming).valid()) {
             const MaskEditResult invalid{MaskResultHint::invalid_input, MaskPosition(0U)};
             reject(invalid, {});
             return invalid;
         }
         if (editor_) {
             synchronizing_ = true;
-            (*editor_).text = std::string(text);
+            (*editor_).text = std::string(incoming);
             synchronizing_ = false;
         }
         publish_text_if_changed();
@@ -382,9 +389,9 @@ MaskEditResult MaskedTextBox::set_text(std::string_view text) {
         return accepted;
     }
     MaskedTextProvider candidate = provider_;
-    const MaskEditResult result = candidate.set_text(text);
+    const MaskEditResult result = candidate.set_text(incoming);
     if (!result.succeeded()) {
-        reject(result, text);
+        reject(result, incoming);
         return result;
     }
     provider_ = std::move(candidate);
@@ -492,7 +499,7 @@ void MaskedTextBox::written(const decltype(read_only)&) {
 
 MaskValidation MaskedTextBox::run_validation() {
     MaskValidation validation;
-    validation.text = text();
+    validation.text = text.read();
     validation.mask_completed = provider_.mask_completed();
     if (!validator_) return validation;
     validator_(validation);
@@ -531,7 +538,7 @@ SemanticDescriptor MaskedTextBox::semantic_descriptor() const {
     descriptor.role = SemanticRole::text_box;
     descriptor.name = accessible_name.read();
     // The value is what the field shows: prompts and literals in place.
-    descriptor.value = provider_.length() == 0U ? text() : provider_.display_text();
+    descriptor.value = provider_.length() == 0U ? text.read() : provider_.display_text();
     // The editor shows the value, so its selection and caret index it; they
     // are forwarded only while the two agree.
     if (editor_ && (*editor_).text.read() == descriptor.value) {
@@ -553,7 +560,7 @@ SemanticDescriptor MaskedTextBox::semantic_descriptor() const {
 bool MaskedTextBox::on_semantic_action(SemanticAction action, std::string_view value) {
     if (action == SemanticAction::set_value) {
         if (read_only.read()) return false;
-        const MaskEditResult result = set_text(value);
+        const MaskEditResult result = place_text(value);
         return result.succeeded();
     }
     Window* const host = window();
@@ -566,7 +573,7 @@ bool MaskedTextBox::on_semantic_action(SemanticAction action, std::string_view v
 
 bool MaskedTextBox::editor_shows_published_value() const {
     if (!editor_) return false;
-    const std::string published = provider_.length() == 0U ? text() : provider_.display_text();
+    const std::string published = provider_.length() == 0U ? text.read() : provider_.display_text();
     const bool same = (*editor_).text.read() == published;
     return same;
 }

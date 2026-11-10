@@ -413,8 +413,35 @@ void PageStrip::measure_tabs() const {
             if (tab.reserves_slot) content += slot;
             natural = std::clamp(content, minimum, maximum);
         }
+        tab.measured = natural;
         tab.natural = natural;
         tab.width = natural;
+    }
+    layout_.measured_font = label_font;
+    layout_.measured_valid = true;
+}
+
+// The natural widths depend on the pages, the settings, the scale, the
+// expanded pinned tab and the label font, not on the surface or the scroll
+// position (audit N112): a scroll or a resize reuses them instead of shaping
+// every label again.
+bool PageStrip::measured_widths_current(const LayoutKey& previous, const LayoutKey& key) const {
+    const bool same_inputs = layout_.measured_valid && previous.scale == key.scale &&
+                             previous.set_revision == key.set_revision &&
+                             previous.settings_revision == key.settings_revision &&
+                             previous.page_count == key.page_count && previous.expanded == key.expanded &&
+                             previous.bound == key.bound && layout_.tabs.size() == key.page_count;
+    if (!same_inputs) return false;
+    const bool same_font = layout_.measured_font == text_font(font.read());
+    return same_font;
+}
+
+void PageStrip::restore_measured_widths() const {
+    for (TabSlot& tab : layout_.tabs) {
+        tab.natural = tab.measured;
+        tab.width = tab.measured;
+        tab.settled = false;
+        tab.bounds = {};
     }
 }
 
@@ -699,6 +726,7 @@ void PageStrip::compute_layout(const LayoutKey& key) const {
     // Anything but a scroll scrolls the selected (or keyboard) page back
     // into view.
     const LayoutKey previous = layout_.key;
+    const bool measured_current = layout_.valid && measured_widths_current(previous, key);
     const bool scroll_only = layout_.valid && previous.surface == key.surface && previous.scale == key.scale &&
                              previous.set_revision == key.set_revision &&
                              previous.settings_revision == key.settings_revision &&
@@ -724,9 +752,14 @@ void PageStrip::compute_layout(const LayoutKey& key) const {
     layout_.tabs.resize(count);
     if (count == 0U) {
         first_visible_ = 0U;
+        layout_.measured_valid = false;
         return;
     }
-    measure_tabs();
+    if (measured_current) {
+        restore_measured_widths();
+    } else {
+        measure_tabs();
+    }
     if (item_sizing.read() == PageItemSizing::fill) {
         const double scale = key.scale;
         const double available = std::max(0.0, main_extent() - edge_inset * scale * 2.0);

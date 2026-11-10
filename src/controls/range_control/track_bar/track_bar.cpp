@@ -4,6 +4,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "../../basic/number_text.hpp"
 
 #include <algorithm>
 #include <array>
@@ -409,12 +410,11 @@ bool TrackBar::on_semantic_action(SemanticAction action, std::string_view value_
         return true;
     }
     if (action == SemanticAction::set_value) {
+        double parsed{};
+        if (!number_text::parse_finite_decimal(value_text, parsed)) return false;
+        // A refusal by a bound value's validation fails the client's request.
         try {
-            std::size_t consumed{};
-            const double parsed = std::stod(std::string(value_text), &consumed);
-            if (consumed != value_text.size() || !std::isfinite(parsed)) return false;
-            return set_value_from_input(parsed, RangeAction::thumb_position) ||
-                   parsed == value.read();
+            return set_value_from_input(parsed, RangeAction::thumb_position) || parsed == value.read();
         } catch (const std::exception&) {
             return false;
         }

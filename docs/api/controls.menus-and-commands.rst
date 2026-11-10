@@ -617,9 +617,17 @@ Related types
 
    .. cpp:member:: std::shared_ptr<Command> command
 
+      The shared Command a command, check or radio item runs and follows (text, enabled, checked, shortcut). Optional (GAPS E9): an item without one shows its own text, ``enabled`` and ``checked``, and choosing it raises item_invoked with an empty command_id; the application updates ``checked`` itself (set_items).
+
    .. cpp:member:: std::string text
 
    .. cpp:member:: std::vector<MenuItemSpec> children
+
+   .. cpp:member:: bool enabled
+
+      Used only by an item without a Command: whether it can be chosen, and whether a check or radio item shows its mark. Default: ``{true}``.
+
+   .. cpp:member:: bool checked
 
    .. cpp:member:: bool italic
 

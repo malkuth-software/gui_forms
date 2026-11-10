@@ -54,6 +54,27 @@
       "storage": "view"
     },
     {
+      "name": "text",
+      "capability": "MaskedTextBoxText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The text in text_mask_format (Text); a view onto the provider (under an empty mask, the editor's text). A write clears the box and places the text from the first position, literals in it matching the mask's literals, as place_text does; refused text leaves the box unchanged and raises mask_input_rejected instead of throwing (place_text reports the result). A placed text raises text_changed.",
+      "getter": "text",
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto provider_: read_view is the text in text_mask_format; write_view runs place_text and drops its result"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
       "name": "text_mask_format",
       "capability": "MaskedTextBoxTextMaskFormat",
       "value": "MaskTextFormat",
@@ -261,8 +282,8 @@
   ],
   "not_properties": [
     {
-      "name": "text / set_text",
-      "reason": "set_text reports a MaskEditResult and raises mask_input_rejected instead of throwing: an expected alternative, not a value write; the text is derived from the provider (G2)"
+      "name": "place_text",
+      "reason": "reports a MaskEditResult and raises mask_input_rejected instead of throwing: an expected alternative; the text property's write runs it and drops the result (GAPS E5)"
     },
     {
       "name": "set_validator",

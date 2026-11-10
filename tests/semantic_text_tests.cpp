@@ -321,7 +321,7 @@ void masked_text_box_forwards() {
     Window window(box, {200.0, 30.0});
     (*box).set_requested_bounds({0.0, 0.0, 200.0, 30.0});
     window.perform_layout();
-    const MaskEditResult typed = (*box).set_text("1234");
+    const MaskEditResult typed = (*box).place_text("1234");
     require(typed.succeeded(), "the mask takes four digits");
     SemanticTextLayout layout;
     const SemanticTextResult result = window.semantic_text_layout((*box).runtime_id(), layout);

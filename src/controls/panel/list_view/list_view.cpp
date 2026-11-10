@@ -383,6 +383,47 @@ void ListView::refresh_virtual_items() {
     reset_after_model_change(count);
 }
 
+// A splice of the source's items (audit N94): `removed` items at `first`
+// left and `inserted` took their place. The selection, focus, anchor and top
+// item move with their items (an index inside the removed range loses its
+// selection, focus or anchor), so the cost is the selection flags' move, not
+// a re-read of the source. The source must already report the new count.
+void ListView::splice_virtual_items(std::size_t first, std::size_t removed, std::size_t inserted) {
+    require_mutable();
+    if (!source_) throw std::logic_error("ListView is not in virtual mode");
+    const std::size_t old_count = virtual_count_;
+    if (first > old_count || removed > old_count - first) {
+        throw std::out_of_range("ListView splice lies outside the items");
+    }
+    const std::size_t count = old_count - removed + inserted;
+    if (count > maximum_items) throw std::invalid_argument("ListView source has more items than maximum_items");
+    if ((*source_).item_count() != count) {
+        throw std::logic_error("ListView source count does not match the splice");
+    }
+    const std::ptrdiff_t at = static_cast<std::ptrdiff_t>(first);
+    selected_.erase(selected_.begin() + at, selected_.begin() + at + static_cast<std::ptrdiff_t>(removed));
+    selected_.insert(selected_.begin() + at, inserted, static_cast<std::uint8_t>(0U));
+    const std::size_t removed_end = first + removed;
+    ListViewSpliceRemap remap{first, removed_end, inserted};
+    focused_index_ = remap.apply(focused_index_);
+    anchor_index_ = remap.apply(anchor_index_);
+    if (top_item_ >= removed_end) {
+        top_item_ = top_item_ - removed + inserted;
+    } else if (top_item_ > first) {
+        top_item_ = first;
+    }
+    virtual_count_ = count;
+    reset_after_model_change(count);
+}
+
+std::optional<std::size_t> ListViewSpliceRemap::apply(std::optional<std::size_t> index) const noexcept {
+    if (!index) return index;
+    if (*index < first) return index;
+    if (*index < removed_end) return std::nullopt;
+    const std::size_t moved = *index - (removed_end - first) + inserted;
+    return moved;
+}
+
 const ListViewItem& ListView::item_at(std::size_t index, ListViewItem& scratch) const {
     if (!source_) return items_[index];
     (*source_).retrieve_item(index, scratch);

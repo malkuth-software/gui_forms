@@ -1120,6 +1120,7 @@ private:
     // and is rebuilt whenever rows are added, removed or reordered; a lookup
     // is checked against the row at the position it finds.
     void rebuild_row_index();
+    void reindex_source_change(const BindingListChange& change);
     // Writes the positions of the rows from `first` to the end (unbound).
     void index_rows_from(std::size_t first);
     [[nodiscard]] std::optional<std::size_t> find_row(std::string_view row_id) const;

@@ -1,4 +1,4 @@
-#include "gui_forms/detail/algorithm/sort.hpp"
+#include "../src/core/algorithm/sort.hpp"
 
 #include <algorithm>
 #include <chrono>

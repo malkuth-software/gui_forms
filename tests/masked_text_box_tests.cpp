@@ -298,20 +298,20 @@ void masked_typing_and_refusal() {
             "digits are taken");
     require(editor.text.read() == "(555) ___-____" && editor.selection().caret == Utf8Offset(6U),
             "after the third digit the caret passes over the literals");
-    require(box.text() == "(555" && texts.size() == 3U && texts.back() == "(555",
+    require(box.text.read() == "(555" && texts.size() == 3U && texts.back() == "(555",
             "text follows text_mask_format and text_changed reports each change");
     require(!window.dispatch_text({"x"}) && rejected.size() == 1U &&
                 rejected[0].position == MaskPosition(6U) && rejected[0].hint == MaskResultHint::digit_expected &&
                 rejected[0].text == "x" && editor.text.read() == "(555) ___-____",
             "a letter is refused with its position and reason and the field is unchanged");
     require(window.dispatch_text({"1234567"}) && box.mask_completed() && box.mask_full() &&
-                box.text() == "(555) 123-4567",
+                box.text.read() == "(555) 123-4567",
             "composed input of several characters is placed in turn");
     require(!window.dispatch_text({"8"}) && rejected.size() == 2U &&
                 rejected[1].hint == MaskResultHint::unavailable_edit_position,
             "input past the end is refused");
     box.text_mask_format = MaskTextFormat::exclude_prompt_and_literals;
-    require(box.text() == "5551234567" && texts.back() == "5551234567",
+    require(box.text.read() == "5551234567" && texts.back() == "5551234567",
             "changing the text format republishes the text");
 }
 
@@ -320,7 +320,7 @@ void masked_deletion_overwrite_and_undo() {
     Window& window = *fixture.window;
     MaskedTextBox& box = *fixture.box;
     TextBox& editor = *box.editor();
-    require(box.set_text("123456").succeeded() && editor.text.read() == "123-456", "program text placed");
+    require(box.place_text("123456").succeeded() && editor.text.read() == "123-456", "program text placed");
     require(window.request_focus(box.editor()), "the editor takes focus");
     editor.select(Utf8Offset(4U), Utf8Offset(4U));
     require(window.dispatch_key({KeyAction::down, PhysicalKey::backspace}) &&
@@ -332,7 +332,7 @@ void masked_deletion_overwrite_and_undo() {
     require(window.dispatch_key({KeyAction::down, PhysicalKey::delete_forward}) &&
                 editor.text.read() == "125-6__",
             "Delete removes the character after the caret");
-    require(editor.undo() && editor.text.read() == "124-56_" && box.text() == "124-56",
+    require(editor.undo() && editor.text.read() == "124-56_" && box.text.read() == "124-56",
             "undo restores the field and the provider follows it");
 
     std::vector<bool> modes;
@@ -371,10 +371,10 @@ void masked_paste_and_program_text() {
     require(editor.text.read() == "123-___" && rejected.size() == 3U && rejected[2].position == MaskPosition(1U),
             "with reject_input_on_first_failure one refused character refuses the paste");
 
-    const MaskEditResult refused = box.set_text("12x");
+    const MaskEditResult refused = box.place_text("12x");
     require(!refused.succeeded() && editor.text.read() == "123-___" && rejected.size() == 4U,
             "refused program text leaves the box unchanged and is reported");
-    require(box.set_text("123456").succeeded() && box.text() == "123-456", "program text placed");
+    require(box.place_text("123456").succeeded() && box.text.read() == "123-456", "program text placed");
     std::vector<std::string> masks;
     SubscriptionToken mask_token = box.mask_changed().subscribe(RecordText{&masks});
     box.mask = "00/00/00";
@@ -384,7 +384,7 @@ void masked_paste_and_program_text() {
     require(editor.text.read() == "__" && masks.size() == 2U, "a mask that refuses the old characters starts empty");
     box.mask = "";
     require(window.request_focus(box.editor()) && window.dispatch_text({"any text"}) &&
-                box.text() == "any text",
+                box.text.read() == "any text",
             "an empty mask takes any text");
     box.prompt_character = U'#';
     box.mask = "00";
@@ -403,7 +403,7 @@ void masked_validation_semantics_and_anatomy() {
     require(!window.request_focus(fixture.other) && window.focused_control() == box.editor() &&
                 results.size() == 1U && !results[0],
             "an invalid date keeps the focus when the hook asks to cancel");
-    require(box.set_text("1201").succeeded() && box.validate_text() && results.size() == 2U && results[1],
+    require(box.place_text("1201").succeeded() && box.validate_text() && results.size() == 2U && results[1],
             "validate_text runs the hook and reports the result");
     require(window.request_focus(fixture.other), "a valid date lets the focus go");
     box.set_validator(Delegate<MaskValidation&>{});
@@ -412,9 +412,9 @@ void masked_validation_semantics_and_anatomy() {
     require(descriptor.role == SemanticRole::text_box && descriptor.value == "12/01" &&
                 !descriptor.include_descendants,
             "a masked box is one text box to accessibility, valued as shown");
-    require(box.on_semantic_action(SemanticAction::set_value, "0315") && box.text() == "03/15",
+    require(box.on_semantic_action(SemanticAction::set_value, "0315") && box.text.read() == "03/15",
             "set_value goes through the mask");
-    require(!box.on_semantic_action(SemanticAction::set_value, "ab") && box.text() == "03/15",
+    require(!box.on_semantic_action(SemanticAction::set_value, "ab") && box.text.read() == "03/15",
             "set_value refuses text the mask refuses");
 
     const ControlAnatomy& anatomy = box.anatomy();
@@ -447,9 +447,9 @@ void masked_property_capabilities() {
     std::vector<bool> modes;
     const SubscriptionToken mask_token = box.mask_changed().subscribe(RecordText{&masks});
     const SubscriptionToken mode_token = box.overwrite_mode_changed().subscribe(RecordBool{&modes});
-    require(box.set_text("1234").succeeded() && box.text() == "12-34", "the box starts with a placed text");
+    require(box.place_text("1234").succeeded() && box.text.read() == "12-34", "the box starts with a placed text");
     box.mask = "0000";
-    require(box.mask.read() == "0000" && box.text() == "1234" && masks.size() == 1U && masks[0] == "0000",
+    require(box.mask.read() == "0000" && box.text.read() == "1234" && masks.size() == 1U && masks[0] == "0000",
             "a new mask keeps the assigned characters and raises mask_changed");
     box.mask = "0000";
     require(masks.size() == 1U, "writing the current mask raises nothing");
@@ -494,6 +494,12 @@ void masked_property_capabilities() {
     box.overwrite_mode = true;
     require(box.overwrite_mode.read() && modes.size() == 1U && modes[0],
             "overwrite_mode raises overwrite_mode_changed once per change");
+    // GAPS E5: text is a property; assigning it places the text through
+    // the mask, as place_text does.
+    box.text = "5678";
+    require(box.text.read() == "56-78", "assigning text places it through the mask");
+    box.text = "9";
+    require(box.text.read().substr(0U, 1U) == "9", "a short text fills from the start");
     box.read_only = true;
     require(box.read_only.read() && (*box.editor()).read_only.read() && box.states().read_only,
             "read_only reaches the editor");

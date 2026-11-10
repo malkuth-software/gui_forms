@@ -764,6 +764,13 @@ public:
     // property_table) together; a registration replaces a table entry of the
     // same name.
     [[nodiscard]] bool has_bindable_property(std::string_view name) const;
+    // Whether the instance registry holds `canonical_name` (a registered,
+    // snake_case name), which then replaces the table entry of that name.
+    // The form schema asks it once per type (audit S7).
+    [[nodiscard]] bool registry_holds_property(const std::string& canonical_name) const {
+        const bool held = bindable_properties_.find(canonical_name) != bindable_properties_.end();
+        return held;
+    }
     [[nodiscard]] std::vector<std::string> bindable_property_names() const;
     [[nodiscard]] std::optional<PropertyDescriptor> property_descriptor(
         std::string_view name) const;

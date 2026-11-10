@@ -64,7 +64,7 @@ void test_text_and_input(gui_forms::Window& window,
     require(phone && masked_status && (*(*phone).editor()).text.read() == "(___) ___-____",
             "the masked specimen shows its prompts and literals");
     require(window.request_focus((*phone).editor()) && window.dispatch_text({"555"}) &&
-                (*phone).text() == "(555" &&
+                (*phone).text.read() == "(555" &&
                 (*masked_status).text.read() == "Telephone (555 · incomplete",
             "typed digits pass the mask and report to the page");
     require(!window.dispatch_text({"x"}) &&

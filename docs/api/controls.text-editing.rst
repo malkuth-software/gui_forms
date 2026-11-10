@@ -78,6 +78,8 @@ Related types
      - Whether typing a space clears the position (ResetOnSpace); a view onto the provider.
    * - :cpp:class:`MaskedTextBoxSkipLiteralsCapability <gui_forms::MaskedTextBoxSkipLiteralsCapability>`
      - Whether input matching a literal passes over it (SkipLiterals); a view onto the provider.
+   * - :cpp:class:`MaskedTextBoxTextCapability <gui_forms::MaskedTextBoxTextCapability>`
+     - The text in text_mask_format (Text); a view onto the provider (under an empty mask, the editor's text).
    * - :cpp:class:`MaskedTextBoxTextMaskFormatCapability <gui_forms::MaskedTextBoxTextMaskFormatCapability>`
      - What text includes (TextMaskFormat): literals, prompts, both or neither.
    * - :cpp:class:`MaskInputRejection <gui_forms::MaskInputRejection>`
@@ -345,7 +347,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> MaskedTextBoxCapabilities : public MaskedTextBoxMaskCapability<Declaring>, public MaskedTextBoxCultureCapability<Declaring>, public MaskedTextBoxTextMaskFormatCapability<Declaring>, public MaskedTextBoxPromptCharacterCapability<Declaring>, public MaskedTextBoxAllowPromptAsInputCapability<Declaring>, public MaskedTextBoxAsciiOnlyCapability<Declaring>, public MaskedTextBoxSkipLiteralsCapability<Declaring>, public MaskedTextBoxResetOnPromptCapability<Declaring>, public MaskedTextBoxResetOnSpaceCapability<Declaring>, public MaskedTextBoxRejectInputOnFirstFailureCapability<Declaring>, public MaskedTextBoxOverwriteModeCapability<Declaring>, public MaskedTextBoxReadOnlyCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxCapabilities : public MaskedTextBoxMaskCapability<Declaring>, public MaskedTextBoxCultureCapability<Declaring>, public MaskedTextBoxTextCapability<Declaring>, public MaskedTextBoxTextMaskFormatCapability<Declaring>, public MaskedTextBoxPromptCharacterCapability<Declaring>, public MaskedTextBoxAllowPromptAsInputCapability<Declaring>, public MaskedTextBoxAsciiOnlyCapability<Declaring>, public MaskedTextBoxSkipLiteralsCapability<Declaring>, public MaskedTextBoxResetOnPromptCapability<Declaring>, public MaskedTextBoxResetOnSpaceCapability<Declaring>, public MaskedTextBoxRejectInputOnFirstFailureCapability<Declaring>, public MaskedTextBoxOverwriteModeCapability<Declaring>, public MaskedTextBoxReadOnlyCapability<Declaring>
 
    ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
 
@@ -361,6 +363,10 @@ Related types
    .. cpp:member:: MaskCulture culture
 
       The culture whose separators and currency symbol the mask's placeholders show (Culture); a view onto the provider. A change keeps as much of the text as the mask takes.
+
+   .. cpp:member:: std::string text
+
+      The text in text_mask_format (Text); a view onto the provider (under an empty mask, the editor's text). A write clears the box and places the text from the first position, literals in it matching the mask's literals, as place_text does; refused text leaves the box unchanged and raises mask_input_rejected instead of throwing (place_text reports the result). A placed text raises text_changed.
 
    .. cpp:member:: MaskTextFormat text_mask_format
 
@@ -548,6 +554,23 @@ Related types
    .. cpp:function:: static bool read(const MaskedTextBoxSkipLiteralsCapability& capability)
 
    .. cpp:member:: PropertyView<bool, MaskedTextBoxSkipLiteralsCapability<Declaring>> skip_literals
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxTextCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   The text in text_mask_format (Text); a view onto the provider (under an empty mask, the editor's text). A write clears the box and places the text from the first position, literals in it matching the mask's literals, as place_text does; refused text leaves the box unchanged and raises mask_input_rejected instead of throwing (place_text reports the result). A placed text raises text_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxTextCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const MaskedTextBoxTextCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, MaskedTextBoxTextCapability<Declaring>> text
 
 .. cpp:namespace:: gui_forms
 
