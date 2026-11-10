@@ -123,14 +123,16 @@ def test_build_targets(listing: dict, outputs: dict[str, str], toolkit: Path) ->
     A test runs the build outputs its command names (its executable, the
     libraries and programs a script inspects), plus every shared and module
     library (LOADED_LIBRARY_RULES), which a test may load through a directory
-    it names. A named path ninja does not build is a source the configure
+    it names. A named directory whose files ninja builds (a macOS .app bundle
+    a probe launches, Contents/MacOS/<program> and the rest) stands for all of
+    them. A named path ninja builds nothing under is a source the configure
     fetched or a file the test writes (gf_abi/...), so it needs no build; the
     second list names them. Unlike ci_build_steps.targets_for_tests, which
     builds everything for such a path, this list never falls back to `all`:
     it is the pull request build, which a merge group's full build checks.
     """
     targets: set[str] = set()
-    unbuilt: set[str] = set()
+    named_directories: set[str] = set()
     test: dict
     for test in listing.get('tests', []):
         argument: str
@@ -141,9 +143,19 @@ def test_build_targets(listing: dict, outputs: dict[str, str], toolkit: Path) ->
             if relative in outputs:
                 targets.add(relative)
             else:
-                unbuilt.add(relative)
+                named_directories.add(relative)
+    # Each output is checked once against the named directories (a few), not each directory against
+    # every output.
+    unbuilt: set[str] = set(named_directories)
     output: str
     rule: str
+    for output in outputs:
+        directory: str = output
+        while '/' in directory:
+            directory = directory.rpartition('/')[0]
+            if directory in named_directories:
+                targets.add(output)
+                unbuilt.discard(directory)
     for output, rule in outputs.items():
         if rule.startswith(LOADED_LIBRARY_RULES):
             targets.add(output)

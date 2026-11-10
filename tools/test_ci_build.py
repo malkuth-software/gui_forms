@@ -252,11 +252,14 @@ class InstallOnlyTests(unittest.TestCase):
             toolkit: Path = build / 'gui-forms'
             listing: dict = {'tests': [
                 {'name': 'a', 'command': [str(toolkit / 'a_tests'), str(toolkit / '_deps/x-src/corpus')]},
-                {'name': 'b', 'command': ['cmake', '-DLIBRARY=' + str(toolkit / 'libabi.so'), '-P', 'x.cmake']}]}
+                {'name': 'b', 'command': ['cmake', '-DLIBRARY=' + str(toolkit / 'libabi.so'), '-P', 'x.cmake']},
+                {'name': 'c', 'command': [str(toolkit / 'probe_runner'), str(toolkit / 'probe.app')]}]}
             outputs: dict[str, str] = {'a_tests': 'CXX_EXECUTABLE_LINKER__a_tests_',
                                        'gallery': 'CXX_EXECUTABLE_LINKER__gallery_',
                                        'libabi.so': 'CXX_SHARED_LIBRARY_LINKER__abi_',
                                        'libplugin.so': 'CXX_MODULE_LIBRARY_LINKER__plugin_',
+                                       'probe_runner': 'CXX_EXECUTABLE_LINKER__probe_runner_',
+                                       'probe.app/Contents/MacOS/probe': 'CXX_EXECUTABLE_LINKER__probe_',
                                        'package': 'phony'}
             with mock.patch.object(ci_build, 'run', side_effect=record), \
                     mock.patch.object(ci_build, 'configure_tree'), \
@@ -265,7 +268,8 @@ class InstallOnlyTests(unittest.TestCase):
                     mock.patch.object(ci_build, 'ninja_outputs', return_value=outputs):
                 ci_build.build_toolkit('linux', build, build / 'sdk', 1, test_targets_only=True)
         self.assertIn(['cmake', '--build', str(toolkit), '--parallel', '1', '--target',
-                       'a_tests', 'libabi.so', 'libplugin.so'], commands)
+                       'a_tests', 'libabi.so', 'libplugin.so', 'probe.app/Contents/MacOS/probe', 'probe_runner'],
+                      commands)
         self.assertEqual(len(self.toolkit_tests(commands)), 1)
         self.assertIn('--output-junit', self.toolkit_tests(commands)[0])
         command: list[str]

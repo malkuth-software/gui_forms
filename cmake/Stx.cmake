@@ -232,6 +232,9 @@ if(GUI_FORMS_BUILD_FUZZERS AND GUI_FORMS_STX_SOURCE_DIR STREQUAL "")
     _gui_stx_fetch_source()
 endif()
 
+# The package root this configure links, which nested generations of this
+# source (cmake/ApplicationText.cmake's consumer checks) link as their prefix.
+set(GUI_FORMS_STX_PACKAGE_ROOT "${_gui_stx_package}")
 set(GUI_FORMS_STX_PREFIX_DIR "${_gui_stx_package}/stx")
 set(GUI_FORMS_STX_BUILD_PREFIX_DIR "${_gui_stx_package}/build")
 list(PREPEND CMAKE_PREFIX_PATH "${GUI_FORMS_STX_PREFIX_DIR}" "${GUI_FORMS_STX_BUILD_PREFIX_DIR}")

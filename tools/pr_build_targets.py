@@ -15,6 +15,7 @@ step. The build-tree paths the tests name that ninja builds none of
 """
 from __future__ import annotations
 import argparse
+import contextlib
 from pathlib import Path
 import sys
 
@@ -35,7 +36,10 @@ def main(argv: list[str] | None = None) -> int:
     listing: dict = ci_build.test_listing(toolkit, args.tests, '')
     if args.changed_from:
         changed: list[str] = change_selection.changed_paths(ci_build.ROOT / 'gui_forms', args.changed_from)
-        listing = ci_build.pull_request_listing(listing, changed)
+        # The change selection says why each path selects what it does on standard output, which here
+        # carries only the targets.
+        with contextlib.redirect_stdout(sys.stderr):
+            listing = ci_build.pull_request_listing(listing, changed)
     if args.pattern_out is not None:
         names: list[str] = []
         test: dict
