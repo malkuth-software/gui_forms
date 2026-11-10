@@ -512,6 +512,9 @@ public:
     // The "tab" item system: one core tab on the tab row.
     struct TabParts final {
         PartGeometry tab;
+        // The hover layer over the tab's face: the engine's dithered rise
+        // (flat at rest), drawn within the tab's body.
+        PartGeometry tab_hover;
         PartGeometry tab_label;
         PartGeometry tab_focus;
     };

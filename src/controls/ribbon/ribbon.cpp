@@ -943,6 +943,7 @@ Ribbon::TabParts Ribbon::tab_parts(const Layout& placed, std::size_t tab) const 
     parts.tab = PartGeometry::from_bounds(bounds);
     // A contextual tab's face carries its set's tint (owner decision 25).
     if (parts.tab.present) parts.tab.accent = tab_accent(tab);
+    parts.tab_hover = PartGeometry::from_bounds(bounds);
     parts.tab_label = PartGeometry::from_bounds(
         {bounds.x + padding, bounds.y, std::max(0.0, bounds.width - padding * 2.0), bounds.height});
     parts.tab_focus = PartGeometry::from_bounds(bounds);
@@ -1335,6 +1336,13 @@ void Ribbon::paint_tab(Painter& painter, PartPaint& part, const Layout& placed, 
     paint_part(painter, *this, part);
     part.profile.reset();
     part.accent.reset();
+    // The hover layer: the soft dither rising over the face while the tab
+    // is hot, within the body (short of the taper and its shadow).
+    const double taper = shaped ? std::clamp(metrics.taper * effective_text_scale(), 0.0, parts.tab_hover.bounds.width) : 0.0;
+    const Rect hover = parts.tab_hover.bounds;
+    part.bounds = {hover.x, hover.y, hover.width - taper, hover.height};
+    part.key = PartKey{"tab_hover", id, {}};
+    paint_part(painter, *this, part);
     const std::string label = parse_mnemonic_text(tabs_[tab].text).display_text;
     part.role = PartRole::label;
     part.bounds = parts.tab_label.bounds;
@@ -1551,6 +1559,13 @@ Ribbon::Hit Ribbon::hit_test(const Layout& placed, Point local) const {
     Hit hit;
     if (placed.application.contains(local)) {
         hit.kind = Hit::Kind::application;
+        return hit;
+    }
+    // Overlapping tabs stack as they paint: the selected tab over both
+    // neighbours, then each tab over the one to its right.
+    if (selected_tab_ && *selected_tab_ < placed.tabs.size() && placed.tabs[*selected_tab_].contains(local)) {
+        hit.kind = Hit::Kind::tab;
+        hit.index = *selected_tab_;
         return hit;
     }
     for (std::size_t tab = 0; tab < placed.tabs.size(); ++tab) {
@@ -2704,9 +2719,11 @@ constexpr std::array<PartField<Ribbon::Parts>, 11> ribbon_part_fields{{
      .member = &Ribbon::Parts::focus},
 }};
 
-constexpr std::array<PartField<Ribbon::TabParts>, 3> ribbon_tab_part_fields{{
+constexpr std::array<PartField<Ribbon::TabParts>, 4> ribbon_tab_part_fields{{
     {.declaration = {.name = "tab", .role = PartRole::face, .composed_from = {}},
      .member = &Ribbon::TabParts::tab},
+    {.declaration = {.name = "tab_hover", .role = PartRole::face, .composed_from = {}},
+     .member = &Ribbon::TabParts::tab_hover},
     {.declaration = {.name = "tab_label", .role = PartRole::label, .composed_from = {}},
      .member = &Ribbon::TabParts::tab_label},
     {.declaration = {.name = "tab_focus", .role = PartRole::focus, .composed_from = {}},
@@ -2795,7 +2812,7 @@ constexpr std::array<StateField<Ribbon::CommandStates>, 6> ribbon_command_state_
 }};
 
 constexpr std::array<PartDeclaration, 11> ribbon_parts = part_declarations(ribbon_part_fields);
-constexpr std::array<PartDeclaration, 3> ribbon_tab_parts = part_declarations(ribbon_tab_part_fields);
+constexpr std::array<PartDeclaration, 4> ribbon_tab_parts = part_declarations(ribbon_tab_part_fields);
 constexpr std::array<AnatomyState, 4> ribbon_tab_states = state_declarations(ribbon_tab_state_fields);
 constexpr std::array<PartDeclaration, 11> ribbon_group_parts = part_declarations(ribbon_group_part_fields);
 constexpr std::array<PartDeclaration, 13> ribbon_command_parts = part_declarations(ribbon_command_part_fields);

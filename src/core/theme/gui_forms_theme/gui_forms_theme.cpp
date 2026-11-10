@@ -506,17 +506,19 @@ ribbon::part(tab):state(selected) {
 }
 
 /* The Ribbon's tab row (rendering reference §4; design language §11 item
-   4; the owner's folder correction, 2026-11-09): a flat #93ADD0 rail 27
-   units high; the tabs abut, each three units below the rail's top, the
+   4; the owner's folder corrections, 2026-11-09): a flat #93ADD0 rail 27
+   units high; the tabs stand three units below the rail's top, the
    selected one standing to the top and running one unit into the plane,
    whose top it matches, so that it flows into the plane with no lip and
-   no line between them. Every tab is a folder: its right edge tapers five
-   units from foot to top, drawn in the keyline #496C9F, and a shadow falls
-   off over eight units from that edge onto the next tab, so each tab
-   reads as tucked under its left neighbour. The keylines and casts of the
-   shared tab rule give way to the taper and its shadow. Its label bold in
-   #173F79 and a little larger. Only File (the blue gradient tab with white
-   ink) and a contextual tab (its set's tint) carry a colour of their own. */
+   no line between them. Every tab is a folder, and the folders stack:
+   each overlaps the next by five units (a negative gap), its right edge
+   tapering five units from foot to top in the keyline #496C9F and lying
+   over the next tab's left end, and a soft shadow falls off over ten
+   units from that edge onto the tab beneath. The selected tab lies over
+   both its neighbours, its label bold in #173F79 and a little larger. The
+   keylines and casts of the shared tab rule give way to the taper and its
+   shadow. Only File (the blue gradient tab with white ink) and a
+   contextual tab (its set's tint) carry a colour of their own. */
 ribbon::part(tab-rail) {
   background: #93add0;
   border: none;
@@ -525,10 +527,10 @@ ribbon::part(tab-rail) {
 ribbon::part(tab) {
   border-radius: 4px 4px 0 0;
   box-shadow: none;
-  gap: 0;
+  gap: -5px;
   margin-top: 3px;
   taper: 5px #496c9f;
-  edge-shadow: 8px rgb(24 56 97 / 35%);
+  edge-shadow: 10px rgb(24 56 97 / 45%);
 }
 ribbon::part(tab):state(selected) {
   margin-top: 0;

@@ -404,12 +404,14 @@ void RibbonGallery::on_paint(Painter& painter, Rect) {
         const ItemParts item = item_parts(position, layout);
         const RibbonGalleryItem& record = items_[order_[position]];
         part.states = item_states(position);
-        // Items are flat at rest: the dithered button look is the theme's
-        // (owner decision RB-15, T4).
+        // Items are flat at rest and rise in the soft dither while hot (the
+        // engine's built-in rule for this key; owner decision RB-15, T4).
         part.family = ControlVisualRole::menu_item;
         part.role = PartRole::face;
         part.bounds = item.item_face.bounds;
+        part.key = PartKey{"item_face", record.stable_id, {}};
         paint_part(painter, *this, part);
+        part.key.reset();
         part.family = ControlVisualRole::selection;
         part.role = PartRole::selection;
         part.bounds = item.item_selection.bounds;
