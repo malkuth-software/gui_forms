@@ -10,6 +10,18 @@
 namespace gui_forms {
 namespace detail {
 
+void wake_host_locked(DispatcherState& state) {
+    state.wake_pending = true;
+    ++state.wake_requests;
+    try {
+        state.wake();
+    } catch (...) {
+        state.wake_pending = false;
+        --state.wake_requests;
+        throw;
+    }
+}
+
 DispatchOperation post_dispatch(const std::shared_ptr<DispatcherState>& state,
                                 Control::WeakPtr owner,
                                 bool requires_owner,
@@ -72,15 +84,22 @@ DispatchOperation post_dispatch(const std::shared_ptr<DispatcherState>& state,
                                           (*state).queue.size());
         if ((*state).wake) {
             if (!(*state).wake_pending) {
-                (*state).wake_pending = true;
-                ++(*state).wake_requests;
-                // The host's wake runs under the lock, so that a host removing
-                // its handler (set_dispatch_wake_handler, shutdown_dispatcher)
-                // waits for a wake already under way and is never called
-                // after it returns. Every host's wake only signals (a flag, a
-                // posted message, a pipe byte, a queued block) and never
-                // re-enters the dispatcher.
-                (*state).wake();
+                try {
+                    wake_host_locked(*state);
+                } catch (...) {
+                    // The post fails as a whole: its work leaves the queue
+                    // (the last entry, under this lock) and the counters
+                    // return to what they were, so the caller's exception
+                    // means nothing was posted. The callback is released
+                    // with `work` as the exception leaves.
+                    (*state).queue.pop_back();
+                    --(*state).posted;
+                    if (synchronous) {
+                        --(*state).synchronous_invocations;
+                        --(*state).marshalled_invocations;
+                    }
+                    throw;
+                }
             } else {
                 ++(*state).coalesced_wakes;
             }

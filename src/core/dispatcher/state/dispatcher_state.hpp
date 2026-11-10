@@ -58,6 +58,17 @@ struct DispatcherState final {
     bool closing{};
 };
 
+// Wakes the host: sets wake_pending, counts the request and calls `wake`.
+// Call with `mutex` held, `wake` set and wake_pending clear. The host's wake
+// runs under the lock, so that a host removing its handler
+// (set_dispatch_wake_handler, shutdown_dispatcher) waits for a wake already
+// under way and is never called after it returns. Every host's wake only
+// signals (a flag, a posted message, a pipe byte, a queued block) and never
+// re-enters the dispatcher. A wake that throws (it could not allocate its
+// message or block) leaves wake_pending clear and the request uncounted, so
+// the next post wakes again, and the exception leaves to the caller.
+void wake_host_locked(DispatcherState& state);
+
 [[nodiscard]] DispatchOperation post_dispatch(
     const std::shared_ptr<DispatcherState>& state,
     Control::WeakPtr owner,
