@@ -2465,6 +2465,12 @@ if(GUI_FORMS_BUILD_TESTS)
         target_include_directories(gui_forms_windows_key_translation_tests PRIVATE src/host/windows/input)
         target_link_libraries(gui_forms_windows_key_translation_tests PRIVATE gui_forms_core)
         add_test(NAME gui_forms_windows_key_translation_tests COMMAND gui_forms_windows_key_translation_tests)
+        add_executable(gui_forms_windows_dib_band_present_tests tests/windows_dib_band_present_tests.cpp)
+        target_include_directories(gui_forms_windows_dib_band_present_tests PRIVATE src/host/windows/raster)
+        target_compile_definitions(gui_forms_windows_dib_band_present_tests PRIVATE
+            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+        target_link_libraries(gui_forms_windows_dib_band_present_tests PRIVATE gdi32 user32)
+        add_test(NAME gui_forms_windows_dib_band_present COMMAND gui_forms_windows_dib_band_present_tests)
         if(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
             add_executable(gui_forms_windows_dib_frame_store_tests
                 tests/windows_dib_frame_store_tests.cpp
