@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <utility>
 
 namespace gui_forms {
@@ -540,6 +541,13 @@ bool DockSite::open_flyout(const DockPanelId& panel, DockFlyoutCause cause) {
     flyout_ = make_control<Flyout>(StableId(std::string(stable_id().value()) + ".flyout"), *this);
     const std::shared_ptr<const Theme> site_theme = inherited_theme_override();
     if (site_theme) (*flyout_).set_theme_override(site_theme);
+    // The flyout is an overlay root, so the colours the program set on the
+    // form (WinForms ambient BackColor and ForeColor) stop at it; it takes
+    // the site's.
+    const std::optional<Color> site_back = ambient_back_color();
+    if (site_back) (*flyout_).back_color = site_back;
+    const std::optional<Color> site_fore = ambient_fore_color();
+    if (site_fore) (*flyout_).fore_color = site_fore;
     flyout_root_ = flyout_;
     move_view_to_flyout(*slot);
     // The slide starts under the strip; under reduced motion or in an
