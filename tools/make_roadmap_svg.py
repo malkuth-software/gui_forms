@@ -52,7 +52,7 @@ STAGES = [
         "Damage-preserving painting",
         "More Windows Forms controls",
     ]),
-    ("0.5", "ABI seal", "stage", [
+    ("0.5", "ABI seal", "shipped", [
         "C ABI 1.1, audited",
         "Properties as capabilities",
         "Application, windows and rules",
@@ -60,7 +60,10 @@ STAGES = [
         "Smooth scrolling",
     ]),
     ("1.0", "Backend", "stage", [
-        "Final controls",
+        "In progress",
+        "C ABI additions, keys to focus",
+        "Theming and the look integration",
+        "Final controls, help system",
         "C# bindings",
     ]),
     ("Tools", "Designers", "after", [

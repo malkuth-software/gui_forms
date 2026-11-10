@@ -2,8 +2,9 @@
 
 This repository carries no third-party sources (owner, 2026-11-05). They are
 kept in the stx repository (malkuth-software/stx) at the commit `stx.lock`
-names, and `cmake/Stx.cmake` fetches that commit in every configuration and
-hands its `third_party/` to the build as `GUI_FORMS_STX_THIRD_PARTY_DIR`:
+names. `cmake/Stx.cmake` builds them once, at that commit, into the stx
+package (`cmake/stx_package/`), which the build links; it fetches the stx
+source only when the package must be built:
 
 | stx path | What | GUI.Forms uses it for |
 |---|---|---|
@@ -13,7 +14,7 @@ hands its `third_party/` to the build as `GUI_FORMS_STX_THIRD_PARTY_DIR`:
 | `third_party/md4c/` | MD4C 0.6.0 | the markdown framework's CommonMark parser |
 | `third_party/sheenbidi/` | SheenBidi 2.9.0 | bidirectional ordering in the text adapter |
 | `third_party/unicode/` | the Unicode 17 licence and the provenance of GUI.Forms' generated grapheme tables | the tables' attribution |
-| `stx_skia/` | the CPU Skia derivative (Skia `chrome/m152`, pruned and converted) | the Skia adapters, built by this build with its flags (`add_subdirectory`) |
+| `stx_skia/` | the CPU Skia derivative (Skia `chrome/m152`, pruned and converted) | the Skia adapters, linked from the stx package |
 
 Each stx directory keeps its licence, its PROVENANCE file and its intake
 record (stx `third_party/README.md`), unchanged from when they were here. The

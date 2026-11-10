@@ -161,22 +161,18 @@ if(WIN32 AND NOT MSVC)
     add_link_options(-static)
 endif()
 include(CMakePackageConfigHelpers)
-# The stx libraries (malkuth-software/stx at stx.lock's commit): stx_zlib,
-# stx_png, stx_conv with its SIMD level (stx_auxlib::simd), the rich-text
-# library stx_rtf2md (notes:planning/stages/RT-rich-text/PLAN.md) and, for
-# audio builds, stx_vorbis, installed into a prefix and found by find_package;
-# and the stx source, from which this build adds stx_skia and the third-party
-# sources (GUI_FORMS_STX_THIRD_PARTY_DIR; owner, 2026-11-05: this repository
-# carries no third-party sources).
+# Everything from malkuth-software/stx at stx.lock's commit, as one built
+# package this build links and never compiles (cmake/Stx.cmake,
+# cmake/stx_package/): the stx libraries (stx_zlib, stx_png, stx_conv with its
+# SIMD level stx_auxlib::simd, the rich-text library stx_rtf2md of
+# notes:planning/stages/RT-rich-text/PLAN.md and, for audio builds, stx_vorbis);
+# stx_skia, the CPU Skia derivative the Skia adapters draw with (without the
+# adapters only its red/blue swap kernel, stx_skia::swizzle, with which the
+# core, the controls and the hosts swap RGBA and BGRA rows); and stx_text, the
+# third-party sources of stx third_party/ (owner, 2026-11-05: this repository
+# carries none) compiled with GUI.Forms' options. Imported targets' headers are
+# system headers here.
 include(cmake/Stx.cmake)
-# stx_skia (the stx source's stx_skia/) is the CPU Skia derivative the Skia adapters draw with,
-# built from source as part of this build, with its flags; its headers are system headers here. Without the
-# adapters only its red/blue swap kernel, stx_skia::swizzle, is built: it links no Skia code,
-# and the core, the controls and the hosts swap RGBA and BGRA rows with it.
-if(NOT GUI_FORMS_ENABLE_SKIA)
-    set(STX_SKIA_SWIZZLE_ONLY ON)
-endif()
-add_subdirectory("${GUI_FORMS_STX_SOURCE_DIR}/stx_skia" "${CMAKE_CURRENT_BINARY_DIR}/stx_skia" SYSTEM)
 
 if(GUI_FORMS_ENABLE_MACOS_HOST AND NOT APPLE)
     message(FATAL_ERROR "GUI_FORMS_ENABLE_MACOS_HOST requires Apple AppKit")
@@ -464,14 +460,12 @@ target_link_libraries(gui_forms_core PRIVATE stx_conv::stx_conv)
 # rtf_conversion's reader and writer; no stx_rtf2md type is public.
 target_link_libraries(gui_forms_core PRIVATE stx_rtf2md::stx_rtf2md)
 # MD4C 0.6.0 (stx third_party/md4c, MIT; stx third_party/MD4C_INTAKE_2026-10-28.md), the
-# markdown framework's CommonMark parser. Its objects are part of Core, so no
-# target is added to the exports; its header stays private to markdown.cpp.
-add_library(gui_forms_md4c OBJECT "${GUI_FORMS_STX_THIRD_PARTY_DIR}/md4c/md4c.c"
-    "${GUI_FORMS_STX_THIRD_PARTY_DIR}/md4c/entity.c")
-set_target_properties(gui_forms_md4c PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_sources(gui_forms_core PRIVATE $<TARGET_OBJECTS:gui_forms_md4c>)
+# markdown framework's CommonMark parser, compiled in the stx package. Its
+# objects are part of Core, so no target is added to the exports; its header
+# stays private to markdown.cpp.
+target_sources(gui_forms_core PRIVATE $<TARGET_OBJECTS:stx_text::md4c>)
 set_source_files_properties(src/core/text/markdown/markdown.cpp PROPERTIES
-    INCLUDE_DIRECTORIES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/md4c")
+    INCLUDE_DIRECTORIES "${GUI_FORMS_STX_BUILD_PREFIX_DIR}/include/md4c")
 set_property(TARGET gui_forms_core PROPERTY INTERFACE_GUI_FORMS_CORE_LINKAGE static)
 set_property(TARGET gui_forms_core APPEND PROPERTY COMPATIBLE_INTERFACE_STRING GUI_FORMS_CORE_LINKAGE)
 # Compatibility properties alone do not traverse LINK_ONLY dependencies of
@@ -500,62 +494,10 @@ endif()
 set_target_properties(gui_forms_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
-    set(GUI_FORMS_HARFBUZZ_ROOT
-        "${GUI_FORMS_STX_THIRD_PARTY_DIR}/harfbuzz")
-    set(GUI_FORMS_FREETYPE_ROOT
-        "${GUI_FORMS_STX_THIRD_PARTY_DIR}/freetype")
-    if(NOT EXISTS "${GUI_FORMS_HARFBUZZ_ROOT}/CMakeLists.txt" OR
-       NOT EXISTS "${GUI_FORMS_FREETYPE_ROOT}/CMakeLists.txt")
-        message(FATAL_ERROR
-            "The stx source at ${GUI_FORMS_STX_SOURCE_DIR} has no third_party/harfbuzz or third_party/freetype")
-    endif()
-
-    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-    set(FT_DISABLE_ZLIB ON CACHE BOOL "" FORCE)
-    set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
-    set(FT_DISABLE_PNG ON CACHE BOOL "" FORCE)
-    set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE)
-    set(FT_DISABLE_BROTLI ON CACHE BOOL "" FORCE)
-    set(FT_ENABLE_ERROR_STRINGS OFF CACHE BOOL "" FORCE)
-    # Neither subproject's own install rules are used (EXCLUDE_FROM_ALL keeps
-    # them out of the install); skipping them also keeps their export sets
-    # from claiming freetype, which cmake/TextStackExport.cmake exports.
-    set(SKIP_INSTALL_ALL ON)
-    add_subdirectory("${GUI_FORMS_FREETYPE_ROOT}"
-                     "${CMAKE_CURRENT_BINARY_DIR}/third_party/freetype"
-                     EXCLUDE_FROM_ALL)
-    # Decision 3A: FT_DISABLE_ZLIB only stops a system zlib search; the stock
-    # options still compile FreeType's bundled inflate. This options header
-    # undefines FT_CONFIG_OPTION_USE_ZLIB for the library's own compile.
-    target_include_directories(freetype BEFORE PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/freetype")
-    target_compile_definitions(freetype PRIVATE
-        "FT_CONFIG_OPTIONS_H=<gui_forms_ftoption.h>")
-
-    set(HB_HAVE_CAIRO OFF CACHE BOOL "" FORCE)
-    set(HB_HAVE_CORETEXT OFF CACHE BOOL "" FORCE)
-    set(HB_HAVE_FREETYPE ON CACHE BOOL "" FORCE)
-    set(HB_HAVE_GRAPHITE2 OFF CACHE BOOL "" FORCE)
-    set(HB_HAVE_GLIB OFF CACHE BOOL "" FORCE)
-    set(HB_HAVE_ICU OFF CACHE BOOL "" FORCE)
-    set(HB_HAVE_GOBJECT OFF CACHE BOOL "" FORCE)
-    set(HB_HAVE_INTROSPECTION OFF CACHE BOOL "" FORCE)
-    set(HB_BUILD_UTILS OFF CACHE BOOL "" FORCE)
-    set(HB_BUILD_SUBSET OFF CACHE BOOL "" FORCE)
-    set(HB_BUILD_RASTER OFF CACHE BOOL "" FORCE)
-    set(HB_BUILD_VECTOR OFF CACHE BOOL "" FORCE)
-    set(HB_BUILD_GPU OFF CACHE BOOL "" FORCE)
-    add_subdirectory("${GUI_FORMS_HARFBUZZ_ROOT}"
-                     "${CMAKE_CURRENT_BINARY_DIR}/third_party/harfbuzz"
-                     EXCLUDE_FROM_ALL)
-    unset(SKIP_INSTALL_ALL)
-
-    add_library(gui_forms_bidi STATIC "${GUI_FORMS_STX_THIRD_PARTY_DIR}/sheenbidi/Source/SheenBidi.c")
-    target_include_directories(gui_forms_bidi PUBLIC "${GUI_FORMS_STX_THIRD_PARTY_DIR}/sheenbidi/Headers")
-    target_compile_definitions(gui_forms_bidi PRIVATE SB_CONFIG_UNITY)
-    set_target_properties(gui_forms_bidi PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    # UAX #14 line breaking (libunibreak 8.0), admitted to the text engine by
-    # the owner on 2026-10-26 (stx third_party/LIBUNIBREAK_INTAKE_2026-10-01.md).
+    # FreeType, HarfBuzz, SheenBidi and libunibreak 8.0 (UAX #14 line breaking,
+    # admitted to the text engine by the owner on 2026-10-26; stx
+    # third_party/LIBUNIBREAK_INTAKE_2026-10-01.md) come compiled from the stx
+    # package (stx_text::), with the options cmake/stx_package/ gives them.
     include(cmake/LineBreak.cmake)
     add_library(gui_forms_text_engine STATIC
         src/render/text/harfbuzz/harfbuzz_font_engine.cpp
@@ -567,7 +509,7 @@ if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
     )
     target_link_libraries(gui_forms_text_engine
         PUBLIC gui_forms_core
-        PRIVATE freetype harfbuzz gui_forms_bidi gui_forms_linebreak
+        PRIVATE stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi stx_text::linebreak
     )
     target_compile_features(gui_forms_text_engine PUBLIC cxx_std_20)
     if(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
@@ -601,7 +543,7 @@ if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tools/font_metrics_differential)
     target_link_libraries(gui_forms_font_metrics_differential
         PUBLIC gui_forms_core
-        PRIVATE gui_forms_text_engine freetype)
+        PRIVATE gui_forms_text_engine stx_text::freetype)
     add_executable(gui_forms_font_metrics_differential_tool
         tools/font_metrics_differential/font_metrics_differential_main.cpp)
     set_target_properties(gui_forms_font_metrics_differential_tool PROPERTIES
@@ -629,7 +571,7 @@ if(GUI_FORMS_BUILD_PREPARED_TEXT)
         src/render/text/prepared_raster.cpp)
     target_link_libraries(gui_forms_prepared_text_impl
         PUBLIC gui_forms_core
-        PRIVATE gui_forms_text_engine freetype Threads::Threads)
+        PRIVATE gui_forms_text_engine stx_text::freetype Threads::Threads)
     target_compile_features(gui_forms_prepared_text_impl PUBLIC cxx_std_20)
     set_target_properties(gui_forms_prepared_text_impl PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
@@ -650,7 +592,7 @@ if(GUI_FORMS_BUILD_TEXT_MASKS)
         src/render/text/text_mask/text_mask_layout.cpp)
     target_link_libraries(gui_forms_text_masks_impl
         PUBLIC gui_forms_core
-        PRIVATE Threads::Threads freetype harfbuzz gui_forms_bidi gui_forms_linebreak)
+        PRIVATE Threads::Threads stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi stx_text::linebreak)
     target_compile_features(gui_forms_text_masks_impl PUBLIC cxx_std_20)
     set_target_properties(gui_forms_text_masks_impl PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
@@ -1032,9 +974,11 @@ endif()
 # The audio loop transport and the text masks install as the AudioLoopTransport
 # and TextMasks components (cmake/Audio.cmake, cmake/ApplicationText.cmake),
 # with their headers; the main header install below leaves them to those files.
-# stx_skia_swizzle installs with them (as GUIForms::swizzle): the core and the controls link it
-# privately, so a consumer of their static archives links its archive too.
-install(TARGETS gui_forms_threading gui_forms_core gui_forms_controls gui_drawing_core stx_skia_swizzle
+# The core and the controls link the stx package's stx_skia::swizzle privately, so a consumer of
+# their static archives links its archive too: it is installed beside them, and GUIFormsConfig
+# imports it as stx_skia::swizzle, the name GUIFormsTargets refers to.
+install(FILES $<TARGET_FILE:stx_skia::swizzle> DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS gui_forms_threading gui_forms_core gui_forms_controls gui_drawing_core
         EXPORT GUIFormsTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -1050,6 +994,12 @@ install(EXPORT GUIFormsTargets
         FILE GUIFormsTargets.cmake
         NAMESPACE GUIForms::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+# The swap kernel's archive name, which GUIFormsConfig imports (the package
+# was built in one configuration, so the first one it lists is the one).
+get_target_property(gui_forms_swizzle_configurations stx_skia::swizzle IMPORTED_CONFIGURATIONS)
+list(GET gui_forms_swizzle_configurations 0 gui_forms_swizzle_configuration)
+get_target_property(gui_forms_swizzle_archive stx_skia::swizzle IMPORTED_LOCATION_${gui_forms_swizzle_configuration})
+get_filename_component(GUI_FORMS_SWIZZLE_ARCHIVE_NAME "${gui_forms_swizzle_archive}" NAME)
 configure_package_config_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/GUIFormsConfig.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/GUIFormsConfig.cmake
@@ -1224,7 +1174,7 @@ if(GUI_FORMS_ENABLE_SKIA)
         PRIVATE
             gui_forms_text_engine
             gui_forms_core
-            freetype
+            stx_text::freetype
             stx_skia::stx_skia
     )
     if(APPLE)
@@ -1343,7 +1293,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     )
     if(TARGET gui_forms_text_engine)
         target_link_libraries(gui_forms_application PRIVATE
-            gui_forms_text_engine freetype harfbuzz)
+            gui_forms_text_engine stx_text::freetype stx_text::harfbuzz)
         target_link_options(gui_forms_application PRIVATE
             "LINKER:-force_load,$<TARGET_FILE:gui_forms_text_engine>")
     endif()
@@ -1410,7 +1360,7 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         target_link_libraries(gui_forms_application PRIVATE X11::Xcursor)
     endif()
     if(TARGET gui_forms_text_engine)
-        target_link_libraries(gui_forms_application PRIVATE gui_forms_text_engine freetype harfbuzz)
+        target_link_libraries(gui_forms_application PRIVATE gui_forms_text_engine stx_text::freetype stx_text::harfbuzz)
     endif()
     install(TARGETS gui_forms_application EXPORT GUIFormsApplicationTargets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
@@ -1480,7 +1430,7 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         target_link_libraries(gui_forms_application PRIVATE
             "-Wl,--whole-archive" gui_forms_core gui_drawing_core
             gui_forms_controls gui_forms_host_windows gui_forms_skia "-Wl,--no-whole-archive"
-            gui_forms_text_engine freetype harfbuzz gui_forms_bidi
+            gui_forms_text_engine stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi
             user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32)
         target_link_options(gui_forms_application PRIVATE "-Wl,--export-all-symbols")
         install(TARGETS gui_forms_application EXPORT GUIFormsApplicationTargets
@@ -2274,7 +2224,7 @@ if(GUI_FORMS_BUILD_TEXT_PAINT_PROBE)
         src/render/text/worker_probe/worker_probe.cpp)
     target_include_directories(gui_forms_text_paint_probe PRIVATE
         src/render/text/paint_probe src/render/text/worker_probe)
-    target_link_libraries(gui_forms_text_paint_probe PRIVATE gui_forms_text_engine freetype Threads::Threads)
+    target_link_libraries(gui_forms_text_paint_probe PRIVATE gui_forms_text_engine stx_text::freetype Threads::Threads)
 endif()
 
 if(GUI_FORMS_BUILD_TEXT_RASTER_PROFILE_PROBE)
@@ -2282,7 +2232,7 @@ if(GUI_FORMS_BUILD_TEXT_RASTER_PROFILE_PROBE)
         message(FATAL_ERROR "The text raster profile probe requires GUI_FORMS_ENABLE_HARFBUZZ_TEXT")
     endif()
     add_executable(gui_forms_text_raster_profile_probe benchmarks/text_raster_profile_probe.cpp)
-    target_link_libraries(gui_forms_text_raster_profile_probe PRIVATE gui_forms_text_engine freetype harfbuzz)
+    target_link_libraries(gui_forms_text_raster_profile_probe PRIVATE gui_forms_text_engine stx_text::freetype stx_text::harfbuzz)
     if(TARGET gui_forms_skia)
         target_link_libraries(gui_forms_text_raster_profile_probe PRIVATE gui_forms_controls gui_forms_skia)
         target_compile_definitions(gui_forms_text_raster_profile_probe PRIVATE GUI_FORMS_PROFILE_PROBE_SKIA_REFERENCE)
@@ -2360,7 +2310,7 @@ if(GUI_FORMS_BUILD_BENCHMARKS)
             -DSKIA_ADAPTER=$<TARGET_FILE:gui_forms_skia>
             -DBENCHMARK_BINARY=$<TARGET_FILE:gui_forms_renderer_benchmark>
             -DPUBLIC_INCLUDE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/include
-            -DSKIA_ARCHIVE=$<TARGET_FILE:stx_skia>
+            -DSKIA_ARCHIVE=$<TARGET_FILE:stx_skia::stx_skia>
             -DOUTPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/renderer-boundary-audit.txt
             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_renderer_boundaries.cmake
         DEPENDS gui_forms_renderer_benchmark
@@ -2375,7 +2325,7 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_text_mask_cost_probe PRIVATE gui_forms_text_masks_impl)
         add_executable(gui_forms_text_mask_native_tests tests/text_mask_native_tests.cpp)
         target_link_libraries(gui_forms_text_mask_native_tests PRIVATE
-            gui_forms_text_masks_impl freetype harfbuzz gui_forms_bidi)
+            gui_forms_text_masks_impl stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi)
         add_test(NAME gui_forms_text_mask_native_tests
             COMMAND gui_forms_text_mask_native_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tests/fonts/amiri/Amiri-Regular.ttf")
@@ -2400,7 +2350,7 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_prepared_window_batch_tests PRIVATE gui_forms_core)
         add_test(NAME gui_forms_prepared_window_batch_tests COMMAND gui_forms_prepared_window_batch_tests)
         add_executable(gui_forms_prepared_window_shape_tests tests/prepared_window_shape_tests.cpp)
-        target_link_libraries(gui_forms_prepared_window_shape_tests PRIVATE gui_forms_prepared_text_impl gui_forms_text_engine freetype)
+        target_link_libraries(gui_forms_prepared_window_shape_tests PRIVATE gui_forms_prepared_text_impl gui_forms_text_engine stx_text::freetype)
         add_test(NAME gui_forms_prepared_window_shape_tests
             COMMAND gui_forms_prepared_window_shape_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
         add_executable(gui_forms_prepared_window_session_tests tests/prepared_window_session_tests.cpp)
@@ -2900,10 +2850,10 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_png_malformed_sweep_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_png_malformed_sweep_tests COMMAND gui_forms_png_malformed_sweep_tests)
 
-    if(TARGET freetype)
+    if(TARGET stx_text::freetype)
         # Decision 3A: FreeType refuses compressed data; plain fonts still load.
         add_executable(gui_forms_freetype_zlib_tests tests/freetype_zlib_tests.cpp)
-        target_link_libraries(gui_forms_freetype_zlib_tests PRIVATE freetype)
+        target_link_libraries(gui_forms_freetype_zlib_tests PRIVATE stx_text::freetype)
         target_compile_definitions(gui_forms_freetype_zlib_tests PRIVATE
             GUI_FORMS_TEST_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids.ttf")
         add_test(NAME gui_forms_freetype_zlib_tests COMMAND gui_forms_freetype_zlib_tests)
@@ -3224,11 +3174,9 @@ if(GUI_FORMS_BUILD_TESTS)
     # stx_rtf2md's normative reader over its dialect corpus, and RTF round trips.
     add_executable(gui_forms_markdown_tests tests/markdown_tests.cpp)
     target_link_libraries(gui_forms_markdown_tests PRIVATE gui_forms_core stx_rtf2md::stx_rtf2md)
-    # The corpus is stx's; a build from an installed stx prefix alone has none.
-    if(NOT GUI_FORMS_STX_SOURCE_DIR STREQUAL "")
-        add_test(NAME gui_forms_markdown_tests
-            COMMAND gui_forms_markdown_tests ${GUI_FORMS_STX_SOURCE_DIR}/stx_rtf2md/tests/corpus)
-    endif()
+    # The corpus is stx's (stx_rtf2md/tests/corpus), installed with the stx package.
+    add_test(NAME gui_forms_markdown_tests
+        COMMAND gui_forms_markdown_tests ${GUI_FORMS_STX_BUILD_PREFIX_DIR}/share/stx_text/rtf2md_corpus)
     add_executable(gui_forms_markdown_fuzz_tests fuzz/markdown_fuzz.cpp)
     target_link_libraries(gui_forms_markdown_fuzz_tests PRIVATE gui_forms_core)
     target_compile_definitions(gui_forms_markdown_fuzz_tests PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
@@ -3474,7 +3422,7 @@ if(GUI_FORMS_BUILD_TESTS)
 
         # The bundled fallback faces' compiled coverage tables against FreeType (item 4, step 5).
         add_executable(gui_forms_bundled_font_coverage_tests tests/bundled_font_coverage_tests.cpp)
-        target_link_libraries(gui_forms_bundled_font_coverage_tests PRIVATE gui_forms_core freetype)
+        target_link_libraries(gui_forms_bundled_font_coverage_tests PRIVATE gui_forms_core stx_text::freetype)
         target_compile_definitions(gui_forms_bundled_font_coverage_tests PRIVATE
             GUI_FORMS_TEST_FONT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
         add_test(NAME gui_forms_bundled_font_coverage_tests COMMAND gui_forms_bundled_font_coverage_tests)
@@ -4878,7 +4826,7 @@ if(GUI_FORMS_BUILD_TESTS)
         add_test(
             NAME gui_forms_skia_archive_policy
             COMMAND ${CMAKE_COMMAND}
-                -DSKIA_ARCHIVE=$<TARGET_FILE:stx_skia>
+                -DSKIA_ARCHIVE=$<TARGET_FILE:stx_skia::stx_skia>
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_skia_archive.cmake
         )
     endif()
@@ -4913,7 +4861,7 @@ if(GUI_FORMS_BUILD_TESTS)
                 -DSKIA_ADAPTER=$<TARGET_FILE:gui_forms_skia>
                 -DBENCHMARK_BINARY=$<TARGET_FILE:gui_forms_renderer_benchmark>
                 -DPUBLIC_INCLUDE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/include
-                -DSKIA_ARCHIVE=$<TARGET_FILE:stx_skia>
+                -DSKIA_ARCHIVE=$<TARGET_FILE:stx_skia::stx_skia>
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_renderer_boundaries.cmake
         )
     endif()
@@ -4922,7 +4870,7 @@ endif()
 if(GUI_FORMS_BUILD_FUZZERS)
     # The codec fuzzers compile stx sources, so they need the stx checkout.
     if(GUI_FORMS_STX_SOURCE_DIR STREQUAL "")
-        message(FATAL_ERROR "GUI_FORMS_BUILD_FUZZERS needs the stx source; GUI_FORMS_STX_PREFIX has none")
+        message(FATAL_ERROR "GUI_FORMS_BUILD_FUZZERS needs the stx source (cmake/Stx.cmake fetches it)")
     endif()
     if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         message(FATAL_ERROR "GUI_FORMS_BUILD_FUZZERS currently requires Clang libFuzzer")
@@ -5195,18 +5143,20 @@ install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms)
 # Every third-party component the SDK and the programs ship, with its licence
 # and the FreeType credit (THIRD_PARTY_NOTICES.md).
 install(FILES THIRD_PARTY_NOTICES.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms)
-install(FILES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/unicode/LICENSE.txt" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Unicode-LICENSE.txt)
+# The stx package keeps the stx source's licence files at their source paths.
+set(gui_forms_stx_notices "${GUI_FORMS_STX_BUILD_PREFIX_DIR}/share/stx_text/notices")
+install(FILES "${gui_forms_stx_notices}/third_party/unicode/LICENSE.txt" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Unicode-LICENSE.txt)
 if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
-    install(FILES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/harfbuzz/COPYING" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME HarfBuzz-COPYING.txt)
-    install(FILES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/freetype/docs/FTL.TXT" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME FreeType-FTL.txt)
+    install(FILES "${gui_forms_stx_notices}/third_party/harfbuzz/COPYING" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME HarfBuzz-COPYING.txt)
+    install(FILES "${gui_forms_stx_notices}/third_party/freetype/docs/FTL.TXT" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME FreeType-FTL.txt)
 endif()
 if(GUI_FORMS_ENABLE_SKIA)
-    install(FILES "${GUI_FORMS_STX_SOURCE_DIR}/stx_skia/LICENSE-Skia" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Skia-LICENSE.txt)
-    install(FILES "${GUI_FORMS_STX_SOURCE_DIR}/stx_skia/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_skia-LICENSE.txt)
+    install(FILES "${gui_forms_stx_notices}/stx_skia/LICENSE-Skia" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Skia-LICENSE.txt)
+    install(FILES "${gui_forms_stx_notices}/stx_skia/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_skia-LICENSE.txt)
 endif()
 
-install(FILES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/sheenbidi/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME SheenBidi-LICENSE.txt)
-install(FILES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/md4c/LICENSE.md" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME MD4C-LICENSE.txt)
+install(FILES "${gui_forms_stx_notices}/third_party/sheenbidi/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME SheenBidi-LICENSE.txt)
+install(FILES "${gui_forms_stx_notices}/third_party/md4c/LICENSE.md" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME MD4C-LICENSE.txt)
 
 # Windows: the installed DLLs embed the LLVM runtimes, winpthreads and the
 # MinGW-w64 CRT (add_link_options(-static) above). Their licences come from
@@ -5465,16 +5415,13 @@ endif()
 # bits on the two. Every target this directory defines gets -ffp-contract=off; the
 # stx libraries (stx_zlib, stx_png, stx_conv, stx_rtf2md, stx_vorbis) set it on their own
 # targets in their own build. A kernel that wants fusion spells it std::fma, so the choice is
-# visible and gives the same bits everywhere. Third-party code (FreeType, HarfBuzz) keeps
-# its own flags, as do the targets here that compile only third-party sources (md4c,
-# SheenBidi, libunibreak and its conformance driver); miniaudio is compiled inside
-# src/audio/audio.cpp and so takes the flag with it. stx_skia sets -ffp-contract=off on its
+# visible and gives the same bits everywhere. Third-party code (FreeType, HarfBuzz, MD4C,
+# SheenBidi, libunibreak) keeps its own flags in the stx package (cmake/stx_package/);
+# miniaudio is compiled inside src/audio/audio.cpp and so takes the flag with it. stx_skia sets -ffp-contract=off on its
 # library itself; its raster pipeline's explicit fused stages (the FMA entries in the FMA
 # log) are a separate matter.
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     get_property(gui_forms_first_party_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
-    list(REMOVE_ITEM gui_forms_first_party_targets gui_forms_md4c gui_forms_bidi
-        gui_forms_linebreak gui_forms_linebreak_conformance_tests)
     foreach(gui_forms_first_party_target IN LISTS gui_forms_first_party_targets)
         get_target_property(gui_forms_target_type ${gui_forms_first_party_target} TYPE)
         if(gui_forms_target_type MATCHES "^(STATIC_LIBRARY|SHARED_LIBRARY|MODULE_LIBRARY|OBJECT_LIBRARY|EXECUTABLE)$")
@@ -5496,6 +5443,13 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
             endif()
         endif()
     endforeach()
+endif()
+
+# One precompiled header per group of test programs, after every option is set
+# (cmake/TestPrecompiledHeader.cmake).
+if(GUI_FORMS_BUILD_TESTS)
+    include(cmake/TestPrecompiledHeader.cmake)
+    gui_forms_share_test_precompiled_header()
 endif()
 
 # The foreground and input-desktop tests (gui_forms_foreground_test and

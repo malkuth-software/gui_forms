@@ -123,14 +123,22 @@ fi
 echo "CCACHE_DIR=$cache_dir" >> "$GITHUB_ENV"
 echo "CCACHE_BASEDIR=$cache_base" >> "$GITHUB_ENV"
 echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
+echo "CCACHE_SLOPPINESS=pch_defines,time_macros" >> "$GITHUB_ENV"
 echo "CCACHE_MAXSIZE=500M" >> "$GITHUB_ENV"
 ```
 
 `CCACHE_COMPILERCHECK=content` hashes the compiler binary itself, not its
-path or timestamp. No sloppiness options are set. The Objective-C++ launcher
-matters on macOS, where the AppKit host is Objective-C++. The CPU renderer,
-`stx_skia/` from the stx checkout, builds as part of the tree, so its objects land in the same
-cache. A build then runs as:
+path or timestamp. The only sloppiness options are the two a precompiled header
+needs: the test programs share one per group of programs with equal options
+(`cmake/TestPrecompiledHeader.cmake`), which takes most of the test sources' parse
+time away; the daily build compiles the tests without it
+(`GUI_FORMS_TEST_PRECOMPILED_HEADER=OFF`), so each test still includes what it
+uses. The Objective-C++ launcher
+matters on macOS, where the AppKit host is Objective-C++. The CPU renderer and the
+text stack come from the stx package (`cmake/Stx.cmake`), which CI restores from an
+Actions cache keyed by `stx.lock`, the package recipe, the platform and the compiler;
+the build compiles none of it, and builds the package at configure time only when
+the key changes. A build then runs as:
 
 ```sh
 ccache --zero-stats

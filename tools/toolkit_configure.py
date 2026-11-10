@@ -29,9 +29,10 @@ def prepare_host(source: Path, fetch_text: bool) -> None:
 
     Nothing is fetched here any more: the renderer (stx_skia) and the text
     sources (HarfBuzz, FreeType, libunibreak, MD4C, SheenBidi) are in the stx
-    repository, which cmake/Stx.cmake fetches at stx.lock's commit during the
-    configure (a source SDK carries it, tools/build_sdk.py). fetch_text is
-    kept for the callers and has no effect.
+    repository, which cmake/Stx.cmake builds into the stx package at
+    stx.lock's commit during the configure, or links already built (a source
+    SDK carries the source, tools/build_sdk.py). fetch_text is kept for the
+    callers and has no effect.
     """
     del source, fetch_text
 
@@ -39,7 +40,7 @@ def prepare_host(source: Path, fetch_text: bool) -> None:
 def host_options(host: str) -> list[str]:
     """The configure options that select host's native host and renderer.
 
-    Every host builds the Skia adapters on stx_skia (from the stx source) and uses the
+    Every host builds the Skia adapters on stx_skia (from the stx package) and uses the
     HarfBuzz/FreeType text engine.
     """
     options: list[str] = []
@@ -50,6 +51,23 @@ def host_options(host: str) -> list[str]:
             enabled = 'ON'
         options.append(f'-DGUI_FORMS_ENABLE_{name}_HOST={enabled}')
     options.extend(['-DGUI_FORMS_ENABLE_SKIA=ON', '-DGUI_FORMS_ENABLE_HARFBUZZ_TEXT=ON'])
+    return options
+
+
+def stx_options(stx_prefix: str, stx_package_dir: str) -> list[str]:
+    """The configure options that choose the stx package a build links (cmake/Stx.cmake).
+
+    stx_prefix names a package built elsewhere, linked as is with nothing
+    fetched or compiled; otherwise stx_package_dir names where the package is
+    built and reused while its stamp matches (CI restores it there from a
+    cache). Both empty: the package is built in the build tree. Paths are
+    passed with forward slashes, which CMake reads on every host.
+    """
+    options: list[str] = []
+    if stx_prefix:
+        options.append('-DGUI_FORMS_STX_PREFIX=' + Path(stx_prefix).resolve().as_posix())
+    elif stx_package_dir:
+        options.append('-DGUI_FORMS_STX_PACKAGE_DIR=' + Path(stx_package_dir).resolve().as_posix())
     return options
 
 

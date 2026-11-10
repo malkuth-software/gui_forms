@@ -6,6 +6,13 @@ find_dependency(stx_zlib CONFIG)
 find_dependency(stx_png CONFIG)
 find_dependency(stx_conv CONFIG)
 find_dependency(stx_rtf2md CONFIG)
+# The stx package's red/blue swap kernel, installed beside the static Core and
+# Controls that link it (CMakeLists.txt), under the name GUIFormsTargets uses.
+if(NOT TARGET stx_skia::swizzle)
+    add_library(stx_skia::swizzle STATIC IMPORTED)
+    set_target_properties(stx_skia::swizzle PROPERTIES
+        IMPORTED_LOCATION "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_LIBDIR@/@GUI_FORMS_SWIZZLE_ARCHIVE_NAME@")
+endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsTargets.cmake")
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsApplicationTargets.cmake")

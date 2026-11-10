@@ -104,12 +104,18 @@ def vendored_sources_present(source: Path) -> bool:
 
 
 def configure_command(target: str, source: Path, toolkit: Path, prefix: Path,
-                      features: str = "default") -> list[str]:
-    """The configure of target's SDK: ci_build.py's options with tests and programs off, plus features' options."""
+                      features: str = "default", stx_prefix: str = "", stx_package_dir: str = "") -> list[str]:
+    """The configure of target's SDK: ci_build.py's options with tests and programs off, plus features' options.
+
+    stx_prefix links an stx package built elsewhere and compiles nothing of
+    stx; stx_package_dir is where the package is built and reused
+    (toolkit_configure.stx_options).
+    """
     host: str = TARGET_HOSTS[target]
     command: list[str] = ["cmake", "-S", str(source), "-B", str(toolkit), "-G", "Ninja",
                           *toolkit_configure.toolkit_options(source, prefix, False, False),
-                          *toolkit_configure.host_options(host), *FEATURE_SETS[features]]
+                          *toolkit_configure.host_options(host), *FEATURE_SETS[features],
+                          *toolkit_configure.stx_options(stx_prefix, stx_package_dir)]
     # A source SDK carries stx at stx.lock's commit (package_sdk.py), so the
     # configure builds from it instead of fetching it.
     vendored_stx: Path = source / "stx"
@@ -118,12 +124,13 @@ def configure_command(target: str, source: Path, toolkit: Path, prefix: Path,
     return command
 
 
-def build(target: str, prefix: Path, jobs: int, work: Path, features: str = "default") -> None:
+def build(target: str, prefix: Path, jobs: int, work: Path, features: str = "default",
+          stx_prefix: str = "", stx_package_dir: str = "") -> None:
     """Prepare, configure, build and install target's SDK with features into prefix, using work for the build trees."""
     work.mkdir(parents=True, exist_ok=True)
     toolkit: Path = work / "gui-forms"
     toolkit_configure.prepare_host(ROOT, not vendored_sources_present(ROOT))
-    toolkit_configure.run(*configure_command(target, ROOT, toolkit, prefix, features))
+    toolkit_configure.run(*configure_command(target, ROOT, toolkit, prefix, features, stx_prefix, stx_package_dir))
     toolkit_configure.run("cmake", "--build", toolkit, "--parallel", jobs)
     toolkit_configure.run("cmake", "--install", toolkit)
     print(f"GUI.Forms SDK for {target} installed in {prefix}", flush=True)
@@ -137,6 +144,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--features", choices=tuple(FEATURE_SETS), default="default",
                         help="default: CI's components; all: also every optional component a product may "
                              "link (the text masks and the audio loop transport)")
+    parser.add_argument("--stx-prefix", default=os.environ.get("GUI_FORMS_STX_PREFIX", ""),
+                        help="an stx package built earlier (a configure's GUI_FORMS_STX_PACKAGE_DIR) to link "
+                             "as is, compiling nothing of stx (default: $GUI_FORMS_STX_PREFIX)")
+    parser.add_argument("--stx-package-dir", default=os.environ.get("GUI_FORMS_STX_PACKAGE_DIR", ""),
+                        help="where the stx package is built and reused while its inputs are unchanged "
+                             "(default: $GUI_FORMS_STX_PACKAGE_DIR, else the build tree)")
     parser.add_argument("--jobs", type=int, default=os.cpu_count() or 4)
     parser.add_argument("--work", type=Path, default=None,
                         help="the build directory (default: .build/sdk-<target> in this tree)")
@@ -149,7 +162,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(str(error))
     work: Path = args.work if args.work is not None else ROOT / ".build" / ("sdk-" + args.target)
     try:
-        build(args.target, args.prefix.resolve(), args.jobs, work.resolve(), args.features)
+        build(args.target, args.prefix.resolve(), args.jobs, work.resolve(), args.features,
+              args.stx_prefix, args.stx_package_dir)
     except subprocess.CalledProcessError as error:
         print(f"build_sdk.py: a step failed: {error}", file=sys.stderr)
         return 1

@@ -1,0 +1,52 @@
+name: Cancel a closed pull request's runs
+# A merged or closed pull request's runs only hold runners. Each job here
+# joins the concurrency group of one workflow's pull request runs, with
+# cancel-in-progress, so the run still going for that pull request is
+# cancelled; the job itself does nothing. The groups must match those
+# workflows' own concurrency groups for a pull_request event (head_ref).
+# The programs and release runs native.yml calls are cancelled with it.
+on:
+  pull_request:
+    types: [closed]
+permissions: {}
+jobs:
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    concurrency:
+      group: gui-forms-${{ github.head_ref }}
+      cancel-in-progress: true
+    steps:
+      - run: echo "Cancelled the native run of ${{ github.head_ref }}, if one was going."
+  state-machines:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    concurrency:
+      group: state-machines-${{ github.head_ref }}
+      cancel-in-progress: true
+    steps:
+      - run: echo "Cancelled the state-machines run of ${{ github.head_ref }}, if one was going."
+  code-integrity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    concurrency:
+      group: code-integrity-${{ github.head_ref }}
+      cancel-in-progress: true
+    steps:
+      - run: echo "Cancelled the code-integrity run of ${{ github.head_ref }}, if one was going."
+  effect-pass:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    concurrency:
+      group: effect-pass-${{ github.head_ref }}
+      cancel-in-progress: true
+    steps:
+      - run: echo "Cancelled the effect-pass run of ${{ github.head_ref }}, if one was going."
+  layout-oracle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    concurrency:
+      group: layout-oracle-${{ github.head_ref }}
+      cancel-in-progress: true
+    steps:
+      - run: echo "Cancelled the layout-oracle run of ${{ github.head_ref }}, if one was going."
