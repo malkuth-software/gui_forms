@@ -171,6 +171,16 @@ public:
     void draw_image(ImageId image, Rect destination, double opacity) override;
     void draw_live_surface(const std::shared_ptr<LiveSurface> surface,
                            const Rect destination, const double opacity) override;
+    // The device pixels whose centres lie inside `destination`, when the
+    // newest frame is opaque premultiplied BGRA, the opacity is one, the
+    // transform is a scale and translation and no soft (rounded) clip is in
+    // force: draw_live_surface_frame then writes each of them from the frame
+    // (a copy, or a source-mode draw without antialiasing). A frame
+    // published between this answer and the draw is drawn the same way
+    // unless the producer reconfigured the surface as not opaque meanwhile;
+    // its publication repaints the surface's area.
+    [[nodiscard]] Rect opaque_live_surface_cover(const std::shared_ptr<LiveSurface>& surface,
+                                                 Rect destination, double opacity) override;
     // Composites the raster into the canvas pixels with the shared blend
     // (detail::composite_part_raster) under the recorded clips, as text is
     // composited. Draws nothing when the canvas is not a plain scale and

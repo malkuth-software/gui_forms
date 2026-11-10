@@ -14,8 +14,11 @@ namespace gui_forms::detail {
 namespace {
 
 // Whether a new command may take the renderer cache of `previous`: the same
-// horizontal text in the same font, or a box shadow with every parameter
-// equal. The memo a renderer keeps in the cache validates its own inputs
+// horizontal text in the same font, or a box shadow of the same size with
+// every other parameter equal. A shadow's coverage does not depend on where
+// it lies (the renderer's memo checks the device scale and subpixel phase),
+// so a shadow that moved, as a panned canvas's sheet does every step, keeps
+// its cache. The memo a renderer keeps in the cache validates its own inputs
 // as well; this keeps a cache from following a different drawing.
 bool same_cached_drawing(const DisplayCommand& previous, const DisplayCommand& recorded) noexcept {
     if (previous.operation != recorded.operation || !previous.retained_cache) return false;
@@ -26,7 +29,8 @@ bool same_cached_drawing(const DisplayCommand& previous, const DisplayCommand& r
         return same;
     }
     if (recorded.operation == DisplayOperation::draw_box_shadow) {
-        const bool same = previous.rect == recorded.rect && previous.first == recorded.first &&
+        const bool same = previous.rect.width == recorded.rect.width &&
+                          previous.rect.height == recorded.rect.height && previous.first == recorded.first &&
                           previous.color == recorded.color && previous.scalar == recorded.scalar &&
                           previous.secondary_scalar == recorded.secondary_scalar &&
                           previous.tertiary_scalar == recorded.tertiary_scalar;

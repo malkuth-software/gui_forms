@@ -1,6 +1,11 @@
 #include "replay_display_chunk.hpp"
 #include "../../text/prepared/prepared_storage.hpp"
 
+#include <array>
+#include <cstddef>
+#include <optional>
+#include <vector>
+
 namespace gui_forms::detail {
 
 namespace {
@@ -221,6 +226,40 @@ std::uint64_t replay_display_chunk(const DisplayChunk& chunk, Painter& painter) 
         replay_command(command, painter);
     }
     return chunk.commands().size();
+}
+
+std::uint64_t replay_display_chunk_occluded(const DisplayChunk& chunk, Painter& painter, const Rect clip) {
+    const std::optional<DisplayOccluder>& occluder = chunk.occluder();
+    const std::vector<DisplayCommand>& commands = chunk.commands();
+    if (!occluder || (*occluder).group_start == 0U || clip.empty()) {
+        return replay_display_chunk(chunk, painter);
+    }
+    const DisplayCommand& surface = commands[(*occluder).command];
+    Rect cover = painter.opaque_live_surface_cover(surface.live_surface, surface.rect, surface.scalar);
+    if ((*occluder).clipped) cover = Rect::intersection(cover, (*occluder).clip);
+    const Rect hidden = Rect::intersection(cover, clip);
+    if (hidden.empty()) return replay_display_chunk(chunk, painter);
+    // The clip less the hidden rectangle: full-width bands above and below
+    // it, and the parts beside it between them.
+    const std::array<Rect, 4> bands{{
+        {clip.x, clip.y, clip.width, hidden.y - clip.y},
+        {clip.x, hidden.bottom(), clip.width, clip.bottom() - hidden.bottom()},
+        {clip.x, hidden.y, hidden.x - clip.x, hidden.height},
+        {hidden.right(), hidden.y, clip.right() - hidden.right(), hidden.height},
+    }};
+    const std::size_t beneath = (*occluder).group_start;
+    std::uint64_t replayed = 0U;
+    for (const Rect band : bands) {
+        if (band.empty()) continue;
+        painter.save();
+        painter.clip_rect(band);
+        for (std::size_t index = 0U; index < beneath; ++index) replay_command(commands[index], painter);
+        painter.restore();
+        replayed += beneath;
+    }
+    for (std::size_t index = beneath; index < commands.size(); ++index) replay_command(commands[index], painter);
+    replayed += commands.size() - beneath;
+    return replayed;
 }
 
 } // namespace gui_forms::detail

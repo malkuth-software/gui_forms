@@ -262,6 +262,15 @@ public:
     virtual void draw_live_surface(std::shared_ptr<LiveSurface> surface,
                                    Rect destination,
                                    double opacity = 1.0);
+    // The part of `destination`, in the current coordinates, that
+    // draw_live_surface(surface, destination, opacity) would overwrite with
+    // opaque pixels if drawn now, whatever lay beneath: replay then need not
+    // paint what an opaque live surface hides (a panned canvas's sheet).
+    // Empty when the painter cannot promise it (the default): the newest
+    // frame is not opaque, the opacity is below one, the transform is not a
+    // scale and translation, or a clip has soft edges. Reads only.
+    [[nodiscard]] virtual Rect opaque_live_surface_cover(const std::shared_ptr<LiveSurface>& surface,
+                                                         Rect destination, double opacity);
     // Composites one of the theme engine's part rasters (T2 plan, E2;
     // GIVEN A2-2 and C1-1). `origin` is the raster's top-left corner in
     // logical units; the painter places the raster's first pixel on the

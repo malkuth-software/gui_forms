@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <vector>
 
 #if defined(_WIN32)
 #ifndef NOMINMAX
@@ -301,6 +302,60 @@ void check_character_normalization() {
         for (const unsigned char byte : (*editor).text.read()) std::cerr << ' ' << static_cast<unsigned>(byte);
         std::cerr << '\n';
         throw std::runtime_error("native text normalization changed text or inserted command bytes");
+    }
+}
+// WM_MOUSEWHEEL and WM_MOUSEHWHEEL both arrive as wheel events in lines: a
+// notch up scrolls up (positive y) and a tilt right scrolls right, which the
+// portable delta reports as negative x.
+class WheelRecorder final : public Control {
+public:
+    explicit WheelRecorder(StableId id) : Control(std::move(id)) {}
+    std::vector<Point> deltas;
+    std::vector<WheelDeltaUnit> units;
+    void on_pointer(PointerEvent& event) override {
+        if (event.action != PointerAction::wheel) return;
+        deltas.push_back(event.wheel_delta);
+        units.push_back(event.wheel_unit);
+        event.handled = true;
+    }
+};
+struct WheelReady final {
+    void operator()(Window&, ApplicationWindowHandle handle) const {
+        const HWND native = test_support::own_gui_forms_window(L"GUI.Forms wheel fixture");
+        require(native != nullptr, "wheel fixture window missing");
+        DWORD process_id = 0;
+        GetWindowThreadProcessId(native, &process_id);
+        require(process_id == GetCurrentProcessId(), "wheel fixture belongs to another process");
+        RECT client{};
+        require(GetClientRect(native, &client) != 0, "wheel fixture client rectangle missing");
+        POINT centre{(client.left + client.right) / 2, (client.top + client.bottom) / 2};
+        require(ClientToScreen(native, &centre) != 0, "wheel fixture centre missing");
+        // Wheel messages carry screen coordinates.
+        const LPARAM at = MAKELPARAM(static_cast<WORD>(centre.x), static_cast<WORD>(centre.y));
+        PostMessageW(native, WM_MOUSEWHEEL, MAKEWPARAM(0, WHEEL_DELTA), at);
+        PostMessageW(native, WM_MOUSEHWHEEL, MAKEWPARAM(0, WHEEL_DELTA), at);
+        PostMessageW(native, WM_MOUSEHWHEEL, MAKEWPARAM(0, static_cast<WORD>(-WHEEL_DELTA / 2)), at);
+        const HostServiceStatus closed = handle.request_close();
+        require(closed.accepted(), "wheel fixture close failed");
+    }
+};
+void check_wheel_messages() {
+    const std::shared_ptr<WheelRecorder> recorder = make_control<WheelRecorder>(StableId("native.wheel.recorder"));
+    ApplicationWindowOptions options{};
+    options.title = "GUI.Forms wheel fixture";
+    options.initial_size = {360, 240};
+    options.ready = WheelReady{};
+    std::unique_ptr<Window> window = std::make_unique<Window>(recorder, Size{360.0, 240.0});
+    const ApplicationResult result = test_application().run(std::move(window), std::move(options));
+    if (result.callback_exception) std::rethrow_exception(result.callback_exception);
+    require(result.accepted(), "native wheel fixture failed");
+    const std::vector<Point>& deltas = (*recorder).deltas;
+    require(deltas.size() == 3U, "wheel fixture did not deliver three wheel events");
+    require(deltas[0] == Point{0.0, 1.0}, "WM_MOUSEWHEEL notch is not one line up");
+    require(deltas[1] == Point{-1.0, 0.0}, "WM_MOUSEHWHEEL tilt right is not one line right");
+    require(deltas[2] == Point{0.5, 0.0}, "WM_MOUSEHWHEEL half notch left is not half a line left");
+    for (const WheelDeltaUnit unit : (*recorder).units) {
+        require(unit == WheelDeltaUnit::lines, "Win32 wheel deltas are not reported in lines");
     }
 }
 #endif
@@ -661,6 +716,7 @@ void run_checks() {
 #if defined(_WIN32)
     check_direct_title_lifetime();
     check_character_normalization();
+    check_wheel_messages();
     check_chrome_before_run();
     Probe system_close{};
     system_close.system_close = true;

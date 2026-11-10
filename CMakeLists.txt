@@ -4940,6 +4940,10 @@ if(GUI_FORMS_BUILD_TESTS)
     if(TARGET gui_forms_skia)
         add_executable(gui_forms_live_surface_benchmark EXCLUDE_FROM_ALL benchmarks/live_surface_benchmark.cpp)
         target_link_libraries(gui_forms_live_surface_benchmark PRIVATE gui_forms_skia)
+        # The canvas pan workload (felt pattern, gradient, sheet shadow and live
+        # surface, panned in 8-unit steps at scales 1 and 2); run by hand.
+        add_executable(gui_forms_canvas_pan_benchmark EXCLUDE_FROM_ALL benchmarks/canvas_pan_benchmark.cpp)
+        target_link_libraries(gui_forms_canvas_pan_benchmark PRIVATE gui_forms_skia)
         # Threaded sub-surfaces measurements M1, M2, M4-M9 for the grid's cell
         # region (stage S7); run by hand, not by ctest.
         add_executable(gui_forms_sub_surface_cells_benchmark EXCLUDE_FROM_ALL benchmarks/sub_surface_cells_benchmark.cpp)

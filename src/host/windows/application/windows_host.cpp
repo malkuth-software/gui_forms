@@ -1790,7 +1790,8 @@ public:
             return DefWindowProcW(hwnd_, message, wparam, lparam);
         case WM_CONTEXTMENU: context_request(lparam); return 0;
         case WM_MOUSEHOVER: hover(lparam); return 0;
-        case WM_MOUSEWHEEL: wheel(wparam, lparam); return 0;
+        case WM_MOUSEWHEEL: wheel(wparam, lparam, false); return 0;
+        case WM_MOUSEHWHEEL: wheel(wparam, lparam, true); return 0;
         case WM_SYSKEYDOWN:
             // Preserve the native close gesture. Swallowing all system keys
             // prevents DefWindowProc from producing the ordinary WM_CLOSE,
@@ -2716,13 +2717,20 @@ private:
         collect_damage();
     }
 
-    void wheel(WPARAM wparam, LPARAM lparam) {
+    // WM_MOUSEWHEEL (vertical) or WM_MOUSEHWHEEL (horizontal: a tilt wheel,
+    // a precision touchpad's sideways pan). Both carry WHEEL_DELTA per
+    // notch, or a fraction of one from a smooth device, as lines. A
+    // positive vertical delta scrolls up and a positive horizontal one
+    // right; the portable horizontal delta is positive to scroll left (as
+    // the other hosts report it), so the horizontal sign is flipped.
+    void wheel(WPARAM wparam, LPARAM lparam, bool horizontal) {
         POINT point{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
         ScreenToClient(hwnd_, &point);
         PointerEvent event;
         event.action = PointerAction::wheel;
         event.position = {point.x / scale_, point.y / scale_};
-        event.wheel_delta = {0.0, GET_WHEEL_DELTA_WPARAM(wparam) / static_cast<double>(WHEEL_DELTA)};
+        const double lines = GET_WHEEL_DELTA_WPARAM(wparam) / static_cast<double>(WHEEL_DELTA);
+        event.wheel_delta = horizontal ? Point{-lines, 0.0} : Point{0.0, lines};
         event.modifiers = modifiers();
         event.pointer_id = 1;
         dispatch(std::move(event));

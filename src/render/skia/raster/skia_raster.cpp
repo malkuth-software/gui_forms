@@ -1962,6 +1962,44 @@ void SkiaRaster::draw_live_surface(const std::shared_ptr<LiveSurface> surface,
     static_cast<void>(draw_live_surface_frame(frame, destination, opacity));
 }
 
+Rect SkiaRaster::opaque_live_surface_cover(const std::shared_ptr<LiveSurface>& surface,
+                                           const Rect destination, const double opacity) {
+    const Rect nothing{};
+    SkCanvas* const canvas = (*impl_).canvas();
+    if (!surface || canvas == nullptr || destination.empty() || !destination.finite() ||
+        !(opacity >= 1.0) || fail_next_live_image_) {
+        return nothing;
+    }
+    const LiveSurfaceFrame frame = (*surface).acquire_latest();
+    if (!frame || !frame.opaque() || frame.width() == 0U || frame.height() == 0U ||
+        frame.pixel_format() != LiveSurfacePixelFormat::bgra32_premultiplied_srgb ||
+        frame.row_bytes() < static_cast<std::uint64_t>(frame.width()) * 4U || frame.pixels().empty()) {
+        return nothing;
+    }
+    // Rectangle clips are hard-edged (clip_rect); a rounded clip blends its
+    // edge pixels with what lies beneath. Untracked clips are refused too.
+    const Impl::TextClipState* const clip = (*impl_).current_text_clip(*canvas);
+    if (clip == nullptr || (*clip).rounded) return nothing;
+    const SkMatrix matrix = (*canvas).getTotalMatrix();
+    if (!matrix.isScaleTranslate() || !(matrix.getScaleX() > 0.0F) || !(matrix.getScaleY() > 0.0F)) {
+        return nothing;
+    }
+    const double scale_x = matrix.getScaleX();
+    const double scale_y = matrix.getScaleY();
+    const double translate_x = matrix.getTranslateX();
+    const double translate_y = matrix.getTranslateY();
+    // Whole device pixels inside the destination: a hard-edged draw writes
+    // every pixel whose centre lies inside, so at least these.
+    const double left = std::ceil(destination.x * scale_x + translate_x);
+    const double top = std::ceil(destination.y * scale_y + translate_y);
+    const double right = std::floor((destination.x + destination.width) * scale_x + translate_x);
+    const double bottom = std::floor((destination.y + destination.height) * scale_y + translate_y);
+    if (!(right > left) || !(bottom > top)) return nothing;
+    const Rect cover{(left - translate_x) / scale_x, (top - translate_y) / scale_y, (right - left) / scale_x,
+                     (bottom - top) / scale_y};
+    return cover;
+}
+
 bool SkiaRaster::draw_live_surface_frame(const LiveSurfaceFrame& frame,
                                          const Rect destination, const double opacity) {
     SkCanvas* const canvas = (*impl_).canvas();
