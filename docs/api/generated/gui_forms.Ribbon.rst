@@ -750,6 +750,10 @@ gui_forms::Ribbon
 
    .. cpp:function:: void on_focus_changed(bool focused) override
 
+   .. cpp:function:: Dirty focus_invalidation() const noexcept override
+
+      Semantics and accessibility only: on_focus_changed repaints the key stop alone (repaint_stop), not the whole ribbon.
+
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: std::vector<SemanticNode> semantic_virtual_children() const override
