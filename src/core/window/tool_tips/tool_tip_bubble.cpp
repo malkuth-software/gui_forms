@@ -1,6 +1,7 @@
 #include "tool_tip_bubble.hpp"
 
 #include "gui_forms/text/text_store/text_store.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
@@ -126,41 +127,77 @@ ToolTipBubble::ToolTipBubble(StableId stable_id, std::string text, ToolTipLines 
 void ToolTipBubble::set_content(const std::string_view text, ToolTipLines& lines) {
     text_.assign(text);
     std::swap(lines_, lines);
+    baked_.reset();
     invalidate(Dirty::layout | Dirty::paint | Dirty::semantics);
 }
 
 Size ToolTipBubble::face_size() const noexcept {
-    const double text_height = static_cast<double>(lines_.lines.size()) * lines_.line_height;
-    const Size size{lines_.text_width + 2.0 * horizontal_margin, text_height + 2.0 * vertical_margin};
+    const Size size = tool_tip_face_size(lines_);
     return size;
+}
+
+Size tool_tip_face_size(const ToolTipLines& lines) noexcept {
+    const double text_height = static_cast<double>(lines.lines.size()) * lines.line_height;
+    const Size size{lines.text_width + 2.0 * ToolTipBubble::horizontal_margin,
+                    text_height + 2.0 * ToolTipBubble::vertical_margin};
+    return size;
+}
+
+void paint_tool_tip_bubble(Painter& painter, const Control& theme_source, const Size face_size,
+                           const ToolTipLines& lines, const bool shadow) {
+    const Rect face{0.0, 0.0, face_size.width, face_size.height};
+    PartPaint part;
+    part.family = ControlVisualRole::tool_tip;
+    part.bounds = face;
+    if (shadow) {
+        part.role = PartRole::shadow;
+        paint_part(painter, theme_source, part);
+    }
+    part.role = PartRole::face;
+    paint_part(painter, theme_source, part);
+    // Each line is a label part as wide as the text block; the block may be
+    // cut off by a face narrower than it (a window narrower than the text).
+    const double line_width = std::max(0.0, face_size.width - 2.0 * ToolTipBubble::horizontal_margin);
+    for (std::size_t index = 0U; index < lines.lines.size(); ++index) {
+        PartPaint label;
+        label.family = ControlVisualRole::tool_tip;
+        label.role = PartRole::label;
+        label.bounds = {ToolTipBubble::horizontal_margin,
+                        ToolTipBubble::vertical_margin + static_cast<double>(index) * lines.line_height,
+                        line_width, lines.line_height};
+        label.text = lines.lines[index];
+        label.font = lines.font;
+        paint_part(painter, theme_source, label);
+    }
 }
 
 void ToolTipBubble::on_paint(Painter& painter, Rect) {
     const Rect arranged = committed_arranged_bounds();
-    const Rect face{0.0, 0.0, arranged.width, arranged.height};
-    PartPaint part;
-    part.family = ControlVisualRole::tool_tip;
-    part.bounds = face;
-    if (shadow_) {
-        part.role = PartRole::shadow;
-        paint_part(painter, *this, part);
+    const Size face{arranged.width, arranged.height};
+    // The offer is used once (set_baked), whichever way this paint goes.
+    const std::shared_ptr<const PartRaster> baked = std::move(baked_);
+    baked_.reset();
+    const SurfaceRoot* const root = attached_surface_root();
+    if (baked && root != nullptr) {
+        ToolTipBakeKey current{};
+        current.text = text_;
+        current.face = face;
+        current.font = lines_.font;
+        current.shadow = shadow_;
+        current.scale = (*root).scale();
+        if (current == baked_key_) {
+            const Insets outsets = visual_outsets();
+            painter.draw_part_raster(baked, Point{-outsets.left, -outsets.top}, 1.0);
+            return;
+        }
     }
-    part.role = PartRole::face;
-    paint_part(painter, *this, part);
-    // Each line is a label part as wide as the text block; the block may be
-    // cut off by a face narrower than it (a window narrower than the text).
-    const double line_width = std::max(0.0, arranged.width - 2.0 * horizontal_margin);
-    for (std::size_t index = 0U; index < lines_.lines.size(); ++index) {
-        PartPaint label;
-        label.family = ControlVisualRole::tool_tip;
-        label.role = PartRole::label;
-        label.bounds = {horizontal_margin,
-                        vertical_margin + static_cast<double>(index) * lines_.line_height,
-                        line_width, lines_.line_height};
-        label.text = lines_.lines[index];
-        label.font = lines_.font;
-        paint_part(painter, *this, label);
-    }
+    paint_tool_tip_bubble(painter, *this, face, lines_, shadow_);
+}
+
+void ToolTipBubble::set_baked(std::shared_ptr<const PartRaster> raster, ToolTipBakeKey key) {
+    baked_ = std::move(raster);
+    baked_key_ = std::move(key);
+    invalidate(Dirty::paint);
 }
 
 void ToolTipBubble::set_shadow(const bool cast) noexcept {

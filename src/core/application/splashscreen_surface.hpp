@@ -40,6 +40,12 @@ public:
 // control face, 13 units, white over a one-unit dark offset copy so it
 // reads on any artwork) and, with a progress, a 3-unit white bar on a
 // translucent white track below it. Measures no text.
+//
+// It stays on this live path, not the Splash baker (Part S, phase 2): it
+// presents before any run, so no baker is installed yet, and its artwork is
+// an image in its own registry, which a display snapshot refuses
+// (DisplaySnapshotRefusal::image). Baking it needs pixel-owning image
+// commands in the snapshot, a later phase.
 void paint_splashscreen(Painter& painter, const SplashscreenFrame& frame);
 
 // The window size `options` asks for: its artwork's pixel size in logical

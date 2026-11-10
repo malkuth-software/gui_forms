@@ -19,6 +19,7 @@
 #endif
 // The window's painter (stage SK3): the private Skia CPU raster.
 #include "skia_raster.hpp"
+#include "skia_splash_bake.hpp"
 #include "../../../core/application/splashscreen_surface.hpp"
 
 #include "gui_forms/engine/part_raster/part_raster.hpp"
@@ -3395,6 +3396,9 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
     std::shared_ptr<gui_forms::detail::BundledFontSet> run_fonts;
     if (!font_directory.empty())
         run_fonts = gui_forms::detail::shared_bundled_font_set(font_directory, windows_sealed_pages());
+    // The run's Splash baker (Part S, phase 2), after the fonts it paints with and
+    // before every window, so it outlives each tooltip that reads it.
+    const gui_forms::render::SkiaSplashBakeRun splash_baking(run_fonts);
     std::unordered_set<std::string> identities;
     std::size_t primary_count{};
     for (const WindowsApplicationWindow& entry : windows) {

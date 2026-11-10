@@ -406,6 +406,8 @@ add_library(gui_forms_core STATIC
     src/core/display/chunk/display_chunk.cpp
     src/core/display/recording_painter/recording_painter.cpp
     src/core/display/replay/replay_display_chunk.cpp
+    src/core/display/snapshot/display_snapshot.cpp
+    src/core/display/snapshot/splash_baker.cpp
     src/core/dispatcher/operation/dispatch_operation.cpp
     src/core/dispatcher/state/post_dispatch.cpp
     src/core/dispatcher/window_dispatcher/dispatcher_handle.cpp
@@ -1120,6 +1122,7 @@ endif()
 if(GUI_FORMS_ENABLE_SKIA)
     add_library(gui_forms_skia STATIC
         src/render/skia/raster/skia_raster.cpp
+        src/render/skia/raster/skia_splash_bake.cpp
     )
     target_include_directories(gui_forms_skia
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/render/skia/raster
@@ -4064,6 +4067,17 @@ if(GUI_FORMS_BUILD_TESTS)
     )
     target_link_libraries(gui_forms_display_chunk_tests PRIVATE gui_forms_controls gui_forms_core)
     add_test(NAME gui_forms_display_chunk_tests COMMAND gui_forms_display_chunk_tests)
+
+    add_executable(gui_forms_splash_baker_tests tests/splash_baker_tests.cpp)
+    target_link_libraries(gui_forms_splash_baker_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_splash_baker_tests COMMAND gui_forms_splash_baker_tests)
+    set_tests_properties(gui_forms_splash_baker_tests PROPERTIES TIMEOUT 30)
+    if(TARGET gui_forms_skia)
+        add_executable(gui_forms_skia_splash_bake_tests tests/skia_splash_bake_tests.cpp)
+        target_link_libraries(gui_forms_skia_splash_bake_tests PRIVATE gui_forms_skia gui_forms_core)
+        add_test(NAME gui_forms_skia_splash_bake_tests COMMAND gui_forms_skia_splash_bake_tests)
+        set_tests_properties(gui_forms_skia_splash_bake_tests PROPERTIES TIMEOUT 30)
+    endif()
 
     add_executable(gui_forms_frame_scheduler_tests
         tests/frame_scheduler_tests.cpp

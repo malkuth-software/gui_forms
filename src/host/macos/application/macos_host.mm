@@ -13,6 +13,7 @@
 #include "gui_forms/text/types/text_types.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
 #include "../../../render/skia/raster/skia_raster.hpp"
+#include "../../../render/skia/raster/skia_splash_bake.hpp"
 #include "../../../core/host/frame_capture/frame_capture.hpp"
 #include "../../../core/application/splashscreen_surface.hpp"
 #include "../compositor/macos_compositor.hpp"
