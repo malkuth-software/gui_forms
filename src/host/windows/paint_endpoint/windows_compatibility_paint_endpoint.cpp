@@ -108,14 +108,41 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         return 0U;
     }
 
+    // The endpoint is an opaque WinForms Control surface: every published
+    // pixel has alpha 255 (copy_opaque forces it), so the presenter copies
+    // the frame instead of blending it over what lies beneath.
+    static LiveSurfaceDescription opaque_description(std::uint32_t surface_width,
+                                                     std::uint32_t surface_height) noexcept {
+        LiveSurfaceDescription description{};
+        description.width = surface_width;
+        description.height = surface_height;
+        description.opaque = true;
+        return description;
+    }
+
+    // Copies the DIB into a write lease of the same size, forcing alpha to
+    // 255 in the same pass: conventional GDI drawing does not preserve the
+    // alpha byte. Caller holds state_mutex (the DIB is coherent) and
+    // surface_publish_mutex (the lease is the only writer). False when the
+    // lease's size is not the DIB's.
+    bool copy_opaque(LiveSurfaceWriteLease& lease) const noexcept {
+        std::span<std::byte> destination = lease.pixels();
+        const std::size_t pixel_count = static_cast<std::size_t>(width) * height;
+        if (destination.size() != pixel_count * 4U) return false;
+        std::uint32_t* target = reinterpret_cast<std::uint32_t*>(destination.data());
+        const std::uint32_t* source = pixels;
+        for (std::size_t index = 0; index < pixel_count; ++index) {
+            target[index] = source[index] | 0xff000000U;
+        }
+        return true;
+    }
+
     bool create(std::uint32_t requested_width,
                 std::uint32_t requested_height) noexcept {
         owner_thread = GetCurrentThreadId();
         width = std::max<std::uint32_t>(1U, requested_width);
         height = std::max<std::uint32_t>(1U, requested_height);
-        LiveSurfaceDescription description{};
-        description.width = width;
-        description.height = height;
+        LiveSurfaceDescription description = opaque_description(width, height);
         description.origin = LiveSurfaceOrigin::compatibility_paint;
         surface = LiveSurface::create(description);
         if (!surface || !create_backing(width, height)) return false;
@@ -172,7 +199,7 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         if (released || compatibility_handle == 0U) return false;
         if (width == next_width && height == next_height) return true;
         std::scoped_lock publish_lock(surface_publish_mutex);
-        if (!(*surface).reconfigure({next_width, next_height}) ||
+        if (!(*surface).reconfigure(opaque_description(next_width, next_height)) ||
             !create_backing(next_width, next_height)) {
             return false;
         }
@@ -189,71 +216,13 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         std::scoped_lock publish_lock(surface_publish_mutex);
         LiveSurfaceWriteLease lease = (*surface).try_acquire_write(false);
         if (!lease) return false;
-        std::span<std::byte> destination = lease.pixels();
-        if (destination.size() !=
-            static_cast<std::size_t>(width) * height * 4U) return false;
-        const std::byte* source = reinterpret_cast<const std::byte*>(pixels);
-        std::memcpy(destination.data(), source, destination.size());
-        // Conventional GDI drawing does not preserve the alpha byte. The
-        // endpoint is an opaque WinForms Control surface, so publish opaque
-        // premultiplied pixels into the retained compositor contract.
-        for (std::size_t index = 3; index < destination.size(); index += 4U) {
-            destination[index] = std::byte{0xff};
-        }
+        if (!copy_opaque(lease)) return false;
         const bool result = lease.publish() != 0U;
         record_compatibility_copy_duration(
             static_cast<std::uint64_t>(
                 std::chrono::duration_cast<std::chrono::nanoseconds>(
                     std::chrono::steady_clock::now() - started).count()));
         return result;
-    }
-
-    struct PendingFrame final {
-        std::shared_ptr<LiveSurface> target;
-        std::vector<std::byte> pixels;
-        std::uint32_t width{};
-        std::uint32_t height{};
-        std::uint64_t epoch{};
-        std::uint64_t revision{};
-    };
-
-    bool capture_pending_locked(PendingFrame& pending) noexcept {
-        if (released || pixels == nullptr || !surface) return false;
-        const std::size_t byte_count =
-            static_cast<std::size_t>(width) * height * 4U;
-        pending.target = surface;
-        try {
-            pending.pixels.resize(byte_count);
-        } catch (...) {
-            return false;
-        }
-        std::memcpy(pending.pixels.data(), pixels, byte_count);
-        pending.width = width;
-        pending.height = height;
-        pending.epoch = epoch;
-        pending.revision = content_revision;
-        return true;
-    }
-
-    bool publish_pending(PendingFrame& pending) noexcept {
-        if (!pending.target || pending.pixels.empty()) return false;
-        // GDI owns an opaque RGB surface and is permitted to leave alpha
-        // undefined. Normalize the private snapshot, not the GDI backing and
-        // not while holding the producer's state mutex.
-        for (std::size_t index = 3; index < pending.pixels.size(); index += 4U) {
-            pending.pixels[index] = std::byte{0xff};
-        }
-        std::scoped_lock publish_lock(surface_publish_mutex);
-        LiveSurfaceWriteLease lease =
-            (*pending.target).try_acquire_write(false);
-        if (!lease || lease.width() != pending.width ||
-            lease.height() != pending.height ||
-            lease.pixels().size() != pending.pixels.size()) {
-            return false;
-        }
-        std::memcpy(lease.pixels().data(), pending.pixels.data(),
-                    pending.pixels.size());
-        return lease.publish() != 0U;
     }
 
     bool request_publish_locked(bool explicit_boundary = false) noexcept {
@@ -275,7 +244,6 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
 
     void publisher_loop() noexcept {
         std::unique_lock lock(state_mutex);
-        PendingFrame pending;
         for (;;) {
             while (!publisher_stop && !publish_requested) {
                 publish_wake.wait(lock);
@@ -285,23 +253,31 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
             publish_requested = false;
             const std::chrono::steady_clock::time_point started =
                 std::chrono::steady_clock::now();
-            const bool captured = capture_pending_locked(pending);
-
-            // The endpoint DIB is the producer-owned mutable object. Only its
-            // coherent snapshot needs state_mutex. Alpha conversion, copying
-            // into the triple-buffered live surface, and publication are
-            // consumer work and must not serialize subsequent GDI calls.
-            lock.unlock();
-            const bool published = captured && publish_pending(pending);
+            // One copy: the DIB straight into the live surface's write lease
+            // (alpha forced in the same pass), under state_mutex so the DIB
+            // is coherent, then publication after GDI writes may resume. The
+            // epoch and revision are read with the copy.
+            const std::uint64_t copied_epoch = epoch;
+            const std::uint64_t copied_revision = content_revision;
+            bool published = false;
+            if (!released && pixels != nullptr && surface) {
+                std::unique_lock publish_lock(surface_publish_mutex);
+                LiveSurfaceWriteLease lease = (*surface).try_acquire_write(false);
+                const bool copied = lease && copy_opaque(lease);
+                lock.unlock();
+                published = copied && lease.publish() != 0U;
+            } else {
+                lock.unlock();
+            }
             const std::uint64_t duration = static_cast<std::uint64_t>(
                 std::chrono::duration_cast<std::chrono::nanoseconds>(
                     std::chrono::steady_clock::now() - started).count());
             record_compatibility_copy_duration(duration);
             lock.lock();
 
-            if (published && !released && pending.epoch == epoch) {
+            if (published && !released && copied_epoch == epoch) {
                 published_revision = (std::max)(
-                    published_revision, pending.revision);
+                    published_revision, copied_revision);
                 ++publish_commits;
                 compatibility_paint_metrics.commits.fetch_add(
                     1U, std::memory_order_relaxed);
