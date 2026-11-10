@@ -160,6 +160,14 @@ void layout_and_columns() {
     require(validate_control_anatomy(anatomy).defect == AnatomyDefect::none &&
                 anatomy.control_id == "ribbon_gallery" && anatomy.item_systems.size() == 2U,
             "RibbonGallery publishes a valid anatomy with gallery_item and gallery_category");
+    {
+        // Given more height than two rows fill (the Ribbon's three-row
+        // plane), the gallery shows its two whole rows and no cut third.
+        std::shared_ptr<RibbonGallery> tall = in_ribbon_gallery("gallery.tall", 30U);
+        Window tall_window(tall, {6.0 * 40.0 + 20.0, 2.5 * 40.0 + 4.0});
+        tall_window.perform_layout();
+        require((*tall).realized_items().size() == 12U, "an in-ribbon gallery shows whole rows only");
+    }
     const Size wanted = (*gallery).measure({1000.0, 1000.0});
     require(wanted.width == 6.0 * 40.0 + 16.0 + 4.0 && wanted.height == 2.0 * 40.0 + 4.0,
             "an in-ribbon gallery asks for its columns and rows plus the scroll column");
