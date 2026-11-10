@@ -23,11 +23,12 @@ namespace gui_forms {
 // RangeAction as TrackBar does. To assistive technology it is a slider with
 // increment, decrement and set-value actions.
 //
-// The design language has no arc or needle vocabulary yet (an owner
-// decision), so the scale is dots, as ProgressRing's: lit dots `fill`
-// (selected), unlit dots `track` (progress family); scale marks
-// `graticule`; the knob `thumb` (button family, round) with its pointer dot
-// `indicator`; and the focus cue on the knob.
+// Parts (design language: the dial roles, row 2.5, owner option (a)): the
+// scale `track`, an `arc` of the progress family; with show_arc the lit
+// scale `value_arc`, an arc in the selected state; scale marks
+// `graticule`; the knob `thumb` (button family, round) with its `needle`
+// facing the value; and the focus cue on the knob. The theme sets the arcs'
+// thickness and the needle's width and shape (stroke-width, needle-shape).
 class Dial : public RangeControl, public DialCapabilities<Dial> {
 public:
     explicit Dial(StableId stable_id);
@@ -38,14 +39,17 @@ public:
     [[nodiscard]] double pointer_angle() const noexcept;
 
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
-    // Stage T1 anatomy, as dot members (see Control::Parts).
+    // Stage T1 anatomy, as dot members (see Control::Parts). The arcs
+    // publish the square their circle is inscribed in, the needle the
+    // square inside the knob it turns in; `value_arc` is absent without
+    // show_arc or at the minimum.
     struct Parts final {
         PartGeometry region;
         PartGeometry track;
-        PartGeometry fill;
+        PartGeometry value_arc;
         PartGeometry graticule;
         PartGeometry thumb;
-        PartGeometry indicator;
+        PartGeometry needle;
         PartGeometry focus;
     };
     [[nodiscard]] Parts parts() const;
@@ -63,17 +67,20 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
-    // The circles the scale and the marks lie on, in local coordinates.
+    // The scale and the knob in local coordinates: `arc` the square the
+    // scale arc is inscribed in, `mark_radius` the circle the marks, `mark`
+    // units across, are centred on, and `knob` the knob's side.
     struct Face final {
         Point centre{};
-        double radius{0.0};
+        Rect arc{};
         double mark_radius{0.0};
-        double dot{0.0};
         double mark{0.0};
         double knob{0.0};
     };
     [[nodiscard]] Face face() const noexcept;
-    [[nodiscard]] static Rect dot_at(Point centre, double radius, double ratio, double side) noexcept;
+    [[nodiscard]] static Rect mark_at(Point centre, double radius, double ratio, double side) noexcept;
+    // The square inside the knob the needle turns in.
+    [[nodiscard]] Rect needle_bounds() const noexcept;
     // The value whose angle faces a window point; `previous` decides which
     // end a point in the gap at the bottom of the scale belongs to.
     [[nodiscard]] double value_from_window_point(Point point, double previous) const noexcept;

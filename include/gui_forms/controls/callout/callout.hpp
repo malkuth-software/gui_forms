@@ -45,11 +45,13 @@ enum class CalloutCloseReason : std::uint8_t {
 // button, else the callout) without being held there, and returns to where
 // it was when it closes. Escape closes it while focus is inside it.
 //
-// The design language has no beak vocabulary yet (an owner decision), so
-// the callout is a card without a pointer to its target. Theme: `face` is
-// the card (tool_tip family), with the overlay `shadow` beneath; `glyph`
-// the close mark; the title and text are Label children and the action a
-// Button. To assistive technology it is a non-modal dialog named by its
+// Theme (design language: the beak role, row 2.5, owner option (a)):
+// `face` is the card (tool_tip family), with the overlay `shadow` beneath
+// and the `beak` on the side towards the target, pointing at the target's
+// centre (kept clear of the card's rounded corners); `glyph` the close
+// mark; the title and text are Label children and the action a Button.
+// The callout's bounds hold the card and the beak; presses beside the beak
+// pass through. To assistive technology it is a non-modal dialog named by its
 // title, described by its text, with the close action.
 class Callout final : public Control, public CalloutCapabilities<Callout> {
 public:
@@ -88,10 +90,12 @@ public:
     struct Parts final {
         PartGeometry region;
         PartGeometry face;
+        PartGeometry beak;
         PartGeometry close;
         PartGeometry actuator;
     };
     [[nodiscard]] Parts parts() const;
+    [[nodiscard]] bool hit_test_local(Point local) const override;
 
     // The overlay layer a shown callout sits in (private to the callout's
     // source; named here so the callout can own it).
@@ -102,9 +106,11 @@ protected:
     void on_dispose() noexcept override;
 
 private:
-    // Where the parts lie in a card of `size`.
+    // Where the parts lie in a callout of `size`: the card, and the beak in
+    // the strip above or below it.
     struct Placement final {
         Rect face{};
+        Rect beak{};
         Rect close{};
         Rect title{};
         Rect text{};
@@ -126,6 +132,10 @@ private:
     void on_overlay_revoked();
     // Called by the layer for a press outside the card.
     void on_press_outside();
+    // Called by the layer as it places the callout: whether the callout
+    // lies above its target (so the beak points down), and the target's
+    // centre across the callout, in its coordinates.
+    void place_beak(bool pointing_down, double target_centre);
     friend class Layer;
 
     std::shared_ptr<Label> title_label_{};
@@ -141,6 +151,9 @@ private:
     bool shown_{false};
     bool hot_close_{false};
     bool pressed_close_{false};
+    // The beak's side and its centre across the callout (place_beak).
+    bool beak_down_{false};
+    double beak_centre_{0.0};
     Event<CalloutCloseReason> closed_;
     Event<> action_clicked_;
     // property_codemod begin Callout (tools/property_families/callout.json; generated, do not edit)

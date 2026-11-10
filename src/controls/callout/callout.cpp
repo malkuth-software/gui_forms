@@ -29,23 +29,29 @@ constexpr double close_side = 16.0;
 constexpr double close_gap = 8.0;
 constexpr double row_gap = 6.0;
 constexpr double action_gap = 10.0;
-constexpr double target_gap = 6.0;
+// The beak's depth and the width of its base; the gap between its tip and
+// the target.
+constexpr double beak_depth = 8.0;
+constexpr double beak_width = 16.0;
+constexpr double target_gap = 2.0;
 constexpr double title_size_increase = 1.0;
 
 constexpr std::array<AnatomyState, 2> close_part_states{{AnatomyState::hot, AnatomyState::pressed}};
 
-constexpr std::array<PartField<Callout::Parts>, 4> callout_part_fields{{
+constexpr std::array<PartField<Callout::Parts>, 5> callout_part_fields{{
     {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
      .member = &Callout::Parts::region},
     {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
      .member = &Callout::Parts::face},
+    {.declaration = {.name = "beak", .role = PartRole::beak, .composed_from = {}},
+     .member = &Callout::Parts::beak},
     {.declaration = {.name = "close", .role = PartRole::glyph, .composed_from = {}, .states = close_part_states},
      .member = &Callout::Parts::close},
     {.declaration = {.name = "actuator", .role = PartRole::actuator, .composed_from = "button"},
      .member = &Callout::Parts::actuator},
 }};
 
-constexpr std::array<PartDeclaration, 4> callout_parts = part_declarations(callout_part_fields);
+constexpr std::array<PartDeclaration, 5> callout_parts = part_declarations(callout_part_fields);
 
 constexpr std::array<AnatomyState, 3> callout_states{
     AnatomyState::normal, AnatomyState::enabled, AnatomyState::disabled,
@@ -94,6 +100,10 @@ public:
                 callout_.prefers_above.read() ? OverlayVerticalPreference::above : OverlayVerticalPreference::below;
             placement.gap = target_gap;
             const AnchoredOverlayPlacementResult resolved = resolve_anchored_overlay(anchor, client, placement);
+            // The beak points at the target's centre, from the side the
+            // callout was placed on (after any flip for room).
+            const double target_centre = anchor.x + anchor.width * 0.5 - resolved.bounds.x;
+            callout_.place_beak(resolved.placed_above, target_centre);
             set_child_layout(child, resolved.bounds);
         }
     }
@@ -170,13 +180,24 @@ void Callout::measure_rows(double width) {
 
 Callout::Placement Callout::placement(Size size) const {
     Placement placed;
-    placed.face = Rect{0.0, 0.0, size.width, size.height};
-    placed.close = Rect{size.width - card_padding - close_side, card_padding, close_side, close_side};
+    // The card fills the callout but the beak's strip, above it when the
+    // beak points up, else below.
+    const double top = beak_down_ ? 0.0 : beak_depth;
+    const double card_height = std::max(0.0, size.height - beak_depth);
+    placed.face = Rect{0.0, top, size.width, card_height};
+    // The beak keeps clear of the card's corners; it overlaps the card by a
+    // unit so that it covers the card's edge across its base.
+    const double lowest = card_padding + beak_width * 0.5;
+    const double highest = std::max(lowest, size.width - card_padding - beak_width * 0.5);
+    const double centre = std::clamp(beak_centre_, lowest, highest);
+    const double beak_y = beak_down_ ? top + card_height - 1.0 : 0.0;
+    placed.beak = Rect{centre - beak_width * 0.5, beak_y, beak_width, beak_depth + 1.0};
+    placed.close = Rect{size.width - card_padding - close_side, top + card_padding, close_side, close_side};
     const double inner_width = std::max(0.0, size.width - card_padding * 2.0);
     // The title leaves room for the close mark; the text below a title
     // need not.
     const double title_width = std::max(0.0, inner_width - close_side - close_gap);
-    double y = card_padding;
+    double y = top + card_padding;
     if (!title.read().empty()) {
         placed.title = Rect{card_padding, y, title_width, rows_.title};
         y += placed.title.height + row_gap;
@@ -186,7 +207,7 @@ Callout::Placement Callout::placement(Size size) const {
         placed.text = Rect{card_padding, y, text_width, rows_.text};
         y += placed.text.height + row_gap;
     }
-    y = std::max(y, card_padding + close_side + row_gap);
+    y = std::max(y, top + card_padding + close_side + row_gap);
     if (action_) {
         placed.action =
             Rect{size.width - card_padding - rows_.action.width, y - row_gap + action_gap, rows_.action.width,
@@ -199,11 +220,15 @@ Size Callout::measure(Size available) {
     const double width = card_width(available);
     measure_rows(width);
     const Placement placed = placement(Size{width, 0.0});
-    double bottom = card_padding + close_side;
+    // The rows' bottoms are measured from the card's top, which lies below
+    // the beak's strip when the beak points up.
+    const double top = placed.face.y;
+    double bottom = top + card_padding + close_side;
     if (!placed.title.empty()) bottom = std::max(bottom, placed.title.y + placed.title.height);
     if (!placed.text.empty()) bottom = std::max(bottom, placed.text.y + placed.text.height);
     if (!placed.action.empty()) bottom = std::max(bottom, placed.action.y + placed.action.height);
-    const Size measured{width, std::min(available.height, bottom + card_padding)};
+    const double height = bottom - top + card_padding + beak_depth;
+    const Size measured{width, std::min(available.height, height)};
     return measured;
 }
 
@@ -226,6 +251,12 @@ void Callout::on_paint(Painter& painter, Rect) {
     PartPaint face{.role = PartRole::face, .bounds = placed.face, .states = states,
                    .family = ControlVisualRole::tool_tip};
     paint_part(painter, *this, face);
+    // The beak over the card's edge, towards the target.
+    PartPaint beak{.role = PartRole::beak, .bounds = placed.beak, .states = states,
+                   .family = ControlVisualRole::tool_tip};
+    beak.mark = beak_down_ ? PartMark::arrow_down : PartMark::arrow_up;
+    beak.key = PartKey{"beak", {}, {}};
+    paint_part(painter, *this, beak);
     AnatomyStateSet close_states = states;
     if (hot_close_) close_states.insert(AnatomyState::hot);
     if (pressed_close_) close_states.insert(AnatomyState::pressed);
@@ -234,6 +265,23 @@ void Callout::on_paint(Painter& painter, Rect) {
     close_mark.mark = PartMark::close;
     close_mark.key = PartKey{"close", {}, {}};
     paint_part(painter, *this, close_mark);
+}
+
+bool Callout::hit_test_local(Point local) const {
+    const Rect client = client_rectangle();
+    const Placement placed = placement(Size{client.width, client.height});
+    const bool inside = placed.face.contains(local) || placed.beak.contains(local);
+    return inside;
+}
+
+void Callout::place_beak(bool pointing_down, double target_centre) {
+    const bool moved = pointing_down != beak_down_ || target_centre != beak_centre_;
+    if (!moved) return;
+    const bool side_changed = pointing_down != beak_down_;
+    beak_down_ = pointing_down;
+    beak_centre_ = target_centre;
+    // A new side moves the rows; a new centre only the beak.
+    invalidate(side_changed ? Dirty::layout | Dirty::paint : Dirty::paint);
 }
 
 Insets Callout::visual_outsets() const noexcept {
@@ -321,6 +369,7 @@ void Callout::publish_part_geometry(std::span<PartGeometry> geometry) const {
     Parts record;
     record.region = PartGeometry::from_bounds(client);
     record.face = PartGeometry::from_bounds(placed.face);
+    record.beak = PartGeometry::from_bounds(placed.beak);
     record.close = PartGeometry::from_bounds(placed.close);
     if (hot_close_) record.close.states.insert(AnatomyState::hot);
     if (pressed_close_) record.close.states.insert(AnatomyState::pressed);

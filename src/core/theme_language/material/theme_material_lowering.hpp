@@ -93,6 +93,10 @@ enum class MaterialProperty : std::uint8_t {
     muted_color,
     glyph_color,
     default_outline,
+    // The dial parts' geometry and the scrim (row 2.5; owner option (a)).
+    needle_shape,
+    scrim_color,
+    stroke_width,
 };
 
 // An image resource the theme's manifest lists, bound to the engine's image

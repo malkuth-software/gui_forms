@@ -36,10 +36,12 @@ struct ModalLayerClosingEvent final {
 // This is what TaskDialog's overlay surface does, for arbitrary content;
 // Form::show_dialog remains the native modal path.
 //
-// The design language has no scrim yet (an owner decision), so the window
-// behind is not dimmed; the content casts the overlay `shadow` (tool_tip
-// family). To assistive technology the layer is a modal dialog, named by
-// accessible_name.
+// Theme (design language: the scrim role, row 2.5, owner option (a)): a
+// `scrim` over the whole client dims the window behind (window family; the
+// theme sets its colour and opacity, scrim-color, and high contrast covers
+// it opaque), and the content casts the overlay `shadow` (tool_tip family)
+// over the scrim. To assistive technology the layer is a modal dialog,
+// named by accessible_name.
 class ModalLayer final : public Control, public ModalLayerCapabilities<ModalLayer> {
 public:
     explicit ModalLayer(StableId stable_id);
@@ -70,10 +72,11 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action, std::string_view value) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
-    // Stage T1 anatomy, as dot members (see Control::Parts). `shadow` lies
-    // under the content.
+    // Stage T1 anatomy, as dot members (see Control::Parts). `scrim` covers
+    // the client while content is shown; `shadow` lies under the content.
     struct Parts final {
         PartGeometry region;
+        PartGeometry scrim;
         PartGeometry shadow;
     };
     [[nodiscard]] Parts parts() const;

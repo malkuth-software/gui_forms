@@ -1073,7 +1073,9 @@ void walk_material_lengths(MaterialDeclaration& declaration, LengthWalk& walk) {
 void walk_recipe_lengths(RecipeDeclaration& declaration, LengthWalk& walk) {
     const RecipeField field = declaration.field;
     if (field == RecipeField::outline_width || field == RecipeField::outline_offset) walk.visit(declaration.number);
-    if (field == RecipeField::default_outline_width) walk.visit(declaration.number);
+    if (field == RecipeField::default_outline_width || field == RecipeField::stroke_width) {
+        walk.visit(declaration.number);
+    }
     if (field == RecipeField::font_size || field == RecipeField::letter_spacing) walk.visit(declaration.number);
     if (field != RecipeField::text_shadow) return;
     walk.visit(declaration.shadow_offset.x);
@@ -1795,7 +1797,8 @@ bool in_range(double value, double minimum, double maximum) noexcept {
 constexpr std::array<std::string_view, recipe_field_count> recipe_field_names{
     "text",        "outline_style", "outline_colour", "outline_width",  "outline_offset", "text_shadow",
     "font_family", "font_size",     "font_weight",    "font_style",     "letter_spacing", "muted_text",
-    "glyph",       "default_outline_width", "default_outline_colour",
+    "glyph",       "default_outline_width", "default_outline_colour", "stroke_width", "needle_shape",
+    "scrim_colour",
 };
 
 } // namespace
@@ -1805,6 +1808,8 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     case RecipeField::text:
     case RecipeField::muted_text:
     case RecipeField::glyph: return ColourPosition::text;
+    // A scrim is a fill over what lies behind.
+    case RecipeField::scrim_colour: return ColourPosition::fill;
     case RecipeField::outline_colour:
     case RecipeField::default_outline_colour: return ColourPosition::edge;
     case RecipeField::outline_style:
@@ -1817,6 +1822,8 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     case RecipeField::font_style:
     case RecipeField::letter_spacing:
     case RecipeField::default_outline_width:
+    case RecipeField::stroke_width:
+    case RecipeField::needle_shape:
     case RecipeField::count:
     default: return ColourPosition::none;
     }
@@ -1834,7 +1841,12 @@ bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept 
     case RecipeField::outline_colour:
     case RecipeField::muted_text:
     case RecipeField::glyph:
-    case RecipeField::default_outline_colour: return true;
+    case RecipeField::default_outline_colour:
+    case RecipeField::scrim_colour: return true;
+    case RecipeField::stroke_width: return in_range(declaration.number, 0.0, maximum_recipe_stroke_width);
+    case RecipeField::needle_shape:
+        return declaration.needle_shape == NeedleShape::line || declaration.needle_shape == NeedleShape::tapered ||
+               declaration.needle_shape == NeedleShape::dot;
     case RecipeField::outline_style:
         return declaration.outline_style == RecipeOutlineStyle::ring ||
                declaration.outline_style == RecipeOutlineStyle::solid ||
@@ -1929,7 +1941,8 @@ void CompiledThemeRules::add_recipe_fields(std::vector<RuleDiagnostic>& diagnost
                                            const ThemeRule& rule, CompiledRule& compiled) {
     // The recipe's fields are the control's: a selector naming a part or a
     // role sets none, except the text colours on a named part (its text,
-    // muted text and glyphs: Theme::resolve with the part's name).
+    // muted text and glyphs: Theme::resolve with the part's name) and the
+    // dial and scrim fields, which are a named part's own geometry.
     const bool on_role = rule.selector.role.has_value();
     const bool on_named_part = !rule.selector.part.empty() && !on_role;
     std::array<bool, recipe_field_count> declared{};
@@ -1942,7 +1955,10 @@ void CompiledThemeRules::add_recipe_fields(std::vector<RuleDiagnostic>& diagnost
         }
         const bool text_colour = declaration.field == RecipeField::text ||
                                  declaration.field == RecipeField::muted_text || declaration.field == RecipeField::glyph;
-        if (on_role || (on_named_part && !text_colour)) {
+        const bool part_geometry = declaration.field == RecipeField::stroke_width ||
+                                   declaration.field == RecipeField::needle_shape ||
+                                   declaration.field == RecipeField::scrim_colour;
+        if (on_role || (on_named_part && !text_colour && !part_geometry)) {
             diagnostics.push_back(diagnostic(RuleDiagnosticKind::recipe_field_on_part, index, rule, name));
             continue;
         }

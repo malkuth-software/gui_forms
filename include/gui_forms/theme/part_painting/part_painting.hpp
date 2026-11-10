@@ -86,11 +86,22 @@ inline constexpr std::size_t part_mark_count = static_cast<std::size_t>(PartMark
 // The values admitted to the vocabulary beside states and marks (design
 // language 12.7), as the schema lists them: they have no enum, so this is
 // the order they were admitted in.
-inline constexpr std::array<std::string_view, 7> part_value_names{
+inline constexpr std::array<std::string_view, 8> part_value_names{
     {"accent_index", "text_orientation", "dock_region", "content_color", "authored_color",
-     "text_tone", "pointed_face"}};
+     "text_tone", "pointed_face", "arc_angles"}};
 
 enum class PartTextAlignment : std::uint8_t { start, center, end };
+
+// An arc's or a needle's angles (design language 8.5; row 2.5, owner option
+// (a)), in radians clockwise from twelve o'clock, on the circle inscribed in
+// the part's bounds (centred in them, its diameter their shorter side). An
+// arc runs from `start` through `sweep` (negative sweeps anticlockwise; at
+// most one turn either way is drawn); a needle points at `start` and reads
+// no sweep.
+struct PartArc final {
+    double start{};
+    double sweep{};
+};
 
 // A text part's tone (design language §8.5; owner decision 2026-11-02): an
 // ordinary text is drawn in the recipe's text colour, a secondary one (an
@@ -219,6 +230,9 @@ struct PartPaint final {
     // otherwise. A cache, not vocabulary: it changes nothing drawn, and a
     // caller that sets it must have measured exactly `text` in `font`.
     std::optional<Size> measured_text{};
+    // The arc and needle roles' angles (PartArc), or none, when neither
+    // draws. Every other role ignores them.
+    std::optional<PartArc> arc{};
 };
 
 // The theme context a part's states select: hot, pressed or captured,

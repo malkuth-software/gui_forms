@@ -21,7 +21,6 @@ constexpr double bar_thickness = 12.0;
 constexpr double tick_depth = 4.0;
 constexpr double tick_gap = 2.0;
 constexpr double mark_width = 1.0;
-constexpr double alarm_width = 2.0;
 constexpr double caption_gap = 6.0;
 constexpr double caption_font_size = 11.0;
 
@@ -30,12 +29,12 @@ constexpr std::array<PartField<LinearGauge::Parts>, 6> linear_gauge_part_fields{
      .member = &LinearGauge::Parts::region},
     {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}},
      .member = &LinearGauge::Parts::plot},
+    {.declaration = {.name = "alarm_zone", .role = PartRole::track, .composed_from = {}},
+     .member = &LinearGauge::Parts::alarm_zone},
     {.declaration = {.name = "trace", .role = PartRole::trace, .composed_from = {}},
      .member = &LinearGauge::Parts::trace},
     {.declaration = {.name = "graticule", .role = PartRole::graticule, .composed_from = {}},
      .member = &LinearGauge::Parts::graticule},
-    {.declaration = {.name = "indicator", .role = PartRole::indicator, .composed_from = {}},
-     .member = &LinearGauge::Parts::indicator},
     {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}},
      .member = &LinearGauge::Parts::caption},
 }};
@@ -114,21 +113,34 @@ LinearGauge::Placement LinearGauge::placement(Size size) const {
     return placed;
 }
 
-Rect LinearGauge::mark_at(const Placement& placed, double ratio, bool across_band) const noexcept {
-    const Rect along = across_band ? placed.ticks : placed.plot;
-    const double width = across_band ? mark_width : alarm_width;
-    // An alarm mark reaches a unit past the field on both sides.
-    const double reach = across_band ? 0.0 : 1.0;
+Rect LinearGauge::mark_at(const Placement& placed, double ratio) const noexcept {
+    const Rect along = placed.ticks;
+    const double width = mark_width;
     if (placed.horizontal) {
         const double x = std::clamp(along.x + along.width * ratio - width * 0.5, along.x,
                                     along.x + std::max(0.0, along.width - width));
-        const Rect mark{x, along.y - reach, width, along.height + reach * 2.0};
+        const Rect mark{x, along.y, width, along.height};
         return mark;
     }
     const double y = std::clamp(along.y + along.height * (1.0 - ratio) - width * 0.5, along.y,
                                 along.y + std::max(0.0, along.height - width));
-    const Rect mark{along.x - reach, y, along.width + reach * 2.0, width};
+    const Rect mark{along.x, y, along.width, width};
     return mark;
+}
+
+Rect LinearGauge::zone_between(const Placement& placed, double first, double last) noexcept {
+    const Rect field = placed.plot;
+    if (placed.horizontal) {
+        const double left = std::round(field.x + field.width * first);
+        const double right = std::round(field.x + field.width * last);
+        const Rect zone{left, field.y, std::max(0.0, right - left), field.height};
+        return zone;
+    }
+    // A vertical bar reads from the bottom.
+    const double top = std::round(field.y + field.height * (1.0 - last));
+    const double bottom = std::round(field.y + field.height * (1.0 - first));
+    const Rect zone{field.x, top, field.width, std::max(0.0, bottom - top)};
+    return zone;
 }
 
 Size LinearGauge::measure(Size available) {
@@ -149,26 +161,34 @@ void LinearGauge::on_paint(Painter& painter, Rect) {
                    .family = ControlVisualRole::progress};
     plot.key = PartKey{"plot", {}, {}};
     paint_part(painter, *this, plot);
+
+    // The alarm ranges, over the field and under the reading.
+    AnatomyStateSet alarm_states = states;
+    alarm_states.insert(AnatomyState::invalid);
+    PartPaint alarm{.role = PartRole::track, .states = alarm_states, .family = ControlVisualRole::progress};
+    alarm.key = PartKey{"alarm_zone", {}, {}};
+    const std::optional<double> low = low_alarm.read();
+    const std::optional<double> high = high_alarm.read();
+    if (low && ratio_of(*low) > 0.0) {
+        alarm.bounds = zone_between(placed, 0.0, ratio_of(*low));
+        paint_part(painter, *this, alarm);
+    }
+    if (high && ratio_of(*high) < 1.0) {
+        alarm.bounds = zone_between(placed, ratio_of(*high), 1.0);
+        paint_part(painter, *this, alarm);
+    }
+
     PartPaint trace{.role = PartRole::trace, .bounds = placed.trace, .states = reading_states(),
                     .family = ControlVisualRole::progress};
     trace.key = PartKey{"trace", {}, {}};
     paint_part(painter, *this, trace);
 
     PartPaint tick{.role = PartRole::graticule, .states = states, .family = ControlVisualRole::progress};
+    tick.key = PartKey{"graticule", {}, {}};
     const std::vector<double> ratios = tick_ratios();
     for (const double ratio : ratios) {
-        tick.bounds = mark_at(placed, ratio, true);
+        tick.bounds = mark_at(placed, ratio);
         paint_part(painter, *this, tick);
-    }
-
-    AnatomyStateSet alarm_states = states;
-    alarm_states.insert(AnatomyState::invalid);
-    PartPaint alarm{.role = PartRole::indicator, .states = alarm_states, .family = ControlVisualRole::progress};
-    const std::array<std::optional<double>, 2> limits{low_alarm.read(), high_alarm.read()};
-    for (const std::optional<double>& limit : limits) {
-        if (!limit) continue;
-        alarm.bounds = mark_at(placed, ratio_of(*limit), false);
-        paint_part(painter, *this, alarm);
     }
 
     if (!placed.caption.empty()) {
@@ -195,11 +215,11 @@ void LinearGauge::publish_part_geometry(std::span<PartGeometry> geometry) const 
     record.trace = PartGeometry::from_bounds(placed.trace);
     record.graticule = PartGeometry::from_bounds(placed.ticks);
     Rect alarms{};
-    const std::array<std::optional<double>, 2> limits{low_alarm.read(), high_alarm.read()};
-    for (const std::optional<double>& limit : limits) {
-        if (limit) alarms = joined(alarms, mark_at(placed, ratio_of(*limit), false));
-    }
-    record.indicator = PartGeometry::from_bounds(alarms);
+    const std::optional<double> low = low_alarm.read();
+    const std::optional<double> high = high_alarm.read();
+    if (low && ratio_of(*low) > 0.0) alarms = joined(alarms, zone_between(placed, 0.0, ratio_of(*low)));
+    if (high && ratio_of(*high) < 1.0) alarms = joined(alarms, zone_between(placed, ratio_of(*high), 1.0));
+    record.alarm_zone = PartGeometry::from_bounds(alarms);
     record.caption = PartGeometry::from_bounds(placed.caption);
     write_parts(anatomy(), linear_gauge_part_fields, record, geometry);
 }

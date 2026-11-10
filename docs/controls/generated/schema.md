@@ -20,7 +20,7 @@ Every control also raises these interactions: `name_changed`, `visible_changed`,
 
 The atoms controls declare and themes address (design language §8.5 and §12.7).
 
-Part roles: `region`, `shadow`, `face`, `edge`, `keyline`, `perimeter`, `sheen`, `seam`, `divider`, `caption`, `cap`, `well`, `track`, `fill`, `thumb`, `actuator`, `indicator`, `activity`, `glyph`, `icon`, `label`, `content`, `caret`, `disclosure`, `grip`, `chip`, `focus`, `preselect`, `selection`, `validation`, `drop`, `image`, `plot`, `graticule`, `trace`.
+Part roles: `region`, `shadow`, `face`, `edge`, `keyline`, `perimeter`, `sheen`, `seam`, `divider`, `caption`, `cap`, `well`, `track`, `fill`, `thumb`, `actuator`, `indicator`, `activity`, `glyph`, `icon`, `label`, `content`, `caret`, `disclosure`, `grip`, `chip`, `focus`, `preselect`, `selection`, `validation`, `drop`, `image`, `plot`, `graticule`, `trace`, `arc`, `needle`, `beak`, `scrim`.
 
 States: `normal`, `hot`, `pressed`, `captured`, `focused`, `focus_visible`, `preselect`, `selected`, `checked`, `indeterminate`, `current`, `active_tool`, `enabled`, `disabled`, `unavailable`, `read_only`, `invalid`, `pending`, `open`, `closed`, `expanding`, `collapsing`, `interrupted`, `drop_accepted`, `drop_rejected`, `key`, `secondary_participating`, `drag_proximate`, `deactivated`, `high_contrast`, `reduced_motion`.
 
@@ -30,7 +30,7 @@ Marks: `check`, `indeterminate`, `radio_dot`, `toggle_knob`, `arrow_up`, `arrow_
 
 Engine inputs: `pointer_x`, `pointer_y`, `time_in_state`, `display_scale`, `text_scale`.
 
-Values: `accent_index`, `text_orientation`, `dock_region`, `content_color`, `authored_color`, `text_tone`, `pointed_face`.
+Values: `accent_index`, `text_orientation`, `dock_region`, `content_color`, `authored_color`, `text_tone`, `pointed_face`, `arc_angles`.
 
 Recipe families: `window`, `panel`, `card`, `button`, `accent_button`, `command_button`, `choice`, `editor`, `menu_item`, `selection`, `progress`, `tool_tip`, `link`, `visited_link`, `notice`, `badge`.
 

@@ -36,7 +36,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 56> material_properties{{
+constexpr std::array<NamedMaterialProperty, 59> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -85,12 +85,15 @@ constexpr std::array<NamedMaterialProperty, 56> material_properties{{
     {.name = "letter-spacing", .property = MaterialProperty::letter_spacing},
     {.name = "mask-image", .property = MaterialProperty::mask_image},
     {.name = "muted-color", .property = MaterialProperty::muted_color},
+    {.name = "needle-shape", .property = MaterialProperty::needle_shape},
     {.name = "outline", .property = MaterialProperty::outline},
     {.name = "outline-color", .property = MaterialProperty::outline_color},
     {.name = "outline-offset", .property = MaterialProperty::outline_offset},
     {.name = "outline-style", .property = MaterialProperty::outline_style},
     {.name = "outline-width", .property = MaterialProperty::outline_width},
     {.name = "reflection", .property = MaterialProperty::reflection},
+    {.name = "scrim-color", .property = MaterialProperty::scrim_color},
+    {.name = "stroke-width", .property = MaterialProperty::stroke_width},
     {.name = "surface-finish", .property = MaterialProperty::surface_finish},
     {.name = "text-shadow", .property = MaterialProperty::text_shadow},
 }};
@@ -101,7 +104,7 @@ struct RecipeLonghand final {
     RecipeField field{RecipeField::text};
 };
 
-constexpr std::array<RecipeLonghand, 13> recipe_longhands{{
+constexpr std::array<RecipeLonghand, 16> recipe_longhands{{
     {.property = MaterialProperty::color, .field = RecipeField::text},
     {.property = MaterialProperty::outline_color, .field = RecipeField::outline_colour},
     {.property = MaterialProperty::outline_offset, .field = RecipeField::outline_offset},
@@ -115,6 +118,9 @@ constexpr std::array<RecipeLonghand, 13> recipe_longhands{{
     {.property = MaterialProperty::letter_spacing, .field = RecipeField::letter_spacing},
     {.property = MaterialProperty::muted_color, .field = RecipeField::muted_text},
     {.property = MaterialProperty::glyph_color, .field = RecipeField::glyph},
+    {.property = MaterialProperty::needle_shape, .field = RecipeField::needle_shape},
+    {.property = MaterialProperty::scrim_color, .field = RecipeField::scrim_colour},
+    {.property = MaterialProperty::stroke_width, .field = RecipeField::stroke_width},
 }};
 
 // CSS blend modes the engine does not composite (CSS_COVERAGE section 7).
@@ -408,6 +414,8 @@ private:
     bool lower_text_colour();
     bool lower_recipe_colour(RecipeField field);
     bool lower_default_outline();
+    bool lower_stroke_width();
+    bool lower_needle_shape();
     bool lower_outline();
     bool lower_outline_style();
     bool lower_outline_colour();
@@ -2266,6 +2274,45 @@ bool MaterialReader::lower_recipe_colour(RecipeField field) {
     return true;
 }
 
+// `stroke-width`: one length, an arc's thickness and a needle's width at
+// its hub, at most maximum_recipe_stroke_width.
+bool MaterialReader::lower_stroke_width() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one width");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::stroke_width);
+    if (!read_width(0U, declaration.number)) return false;
+    if (declaration.number > maximum_recipe_stroke_width) {
+        const ValueComponent& component = value_.components[0U];
+        return fail(DiagnosticCode::value_out_of_range, component.token, clipped_theme_detail(component.text));
+    }
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `needle-shape`: `line`, `tapered` or `dot` (NeedleShape).
+bool MaterialReader::lower_needle_shape() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one needle shape");
+    }
+    const ValueComponent& component = value_.components[0U];
+    if (component.kind != ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_wrong_kind, component.token, "a needle shape");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::needle_shape);
+    if (keyword(0U, "line")) {
+        declaration.needle_shape = NeedleShape::line;
+    } else if (keyword(0U, "tapered")) {
+        declaration.needle_shape = NeedleShape::tapered;
+    } else if (keyword(0U, "dot")) {
+        declaration.needle_shape = NeedleShape::dot;
+    } else {
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    }
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
 // `default-outline`: a width and a colour, each at most once and in any
 // order, the default button's second perimeter; one it omits takes its
 // `initial` (the floor's value).
@@ -2611,6 +2658,9 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::muted_color: static_cast<void>(lower_recipe_colour(RecipeField::muted_text)); return;
     case MaterialProperty::glyph_color: static_cast<void>(lower_recipe_colour(RecipeField::glyph)); return;
     case MaterialProperty::default_outline: static_cast<void>(lower_default_outline()); return;
+    case MaterialProperty::stroke_width: static_cast<void>(lower_stroke_width()); return;
+    case MaterialProperty::needle_shape: static_cast<void>(lower_needle_shape()); return;
+    case MaterialProperty::scrim_color: static_cast<void>(lower_recipe_colour(RecipeField::scrim_colour)); return;
     case MaterialProperty::color: static_cast<void>(lower_text_colour()); return;
     case MaterialProperty::outline: static_cast<void>(lower_outline()); return;
     case MaterialProperty::outline_color: static_cast<void>(lower_outline_colour()); return;
@@ -2724,6 +2774,9 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::muted_color:
     case MaterialProperty::glyph_color:
     case MaterialProperty::default_outline:
+    case MaterialProperty::stroke_width:
+    case MaterialProperty::needle_shape:
+    case MaterialProperty::scrim_color:
     case MaterialProperty::color:
     case MaterialProperty::outline:
     case MaterialProperty::outline_color:

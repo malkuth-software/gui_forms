@@ -2749,14 +2749,19 @@ bool CompilePass::read_backdrop_step(std::size_t function, BackdropStepKind kind
 // material lowering. A recipe property in a rule naming a part or a role
 // is dropped with a warning, since the recipe's fields are the control's;
 // the text colours (`color`, `muted-color`, `glyph-color`) are admitted on
-// a named part, whose text and marks they colour.
+// a named part, whose text and marks they colour, and so are the dial and
+// scrim properties (`stroke-width`, `needle-shape`, `scrim-color`), the
+// named part's own geometry.
 bool CompilePass::lower_material(const SyntaxNode& node) {
     // folded_ holds the property's name, which classify() found listed.
     const MaterialProperty property = *material_property(folded_);
     const bool recipe = recipe_property(property);
     const bool text_colour = property == MaterialProperty::color || property == MaterialProperty::muted_color ||
                              property == MaterialProperty::glyph_color;
-    const bool on_named_part = text_colour && rule_names_parts_only();
+    const bool part_geometry = property == MaterialProperty::stroke_width ||
+                               property == MaterialProperty::needle_shape ||
+                               property == MaterialProperty::scrim_color;
+    const bool on_named_part = (text_colour || part_geometry) && rule_names_parts_only();
     if (recipe && rule_selects_part() && !on_named_part) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_ + " on a part or a role");
         return true;

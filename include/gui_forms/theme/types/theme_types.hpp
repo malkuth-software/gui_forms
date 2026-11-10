@@ -117,6 +117,13 @@ struct ControlVisualRecipe final {
     Point pressed_content_offset{1.0, 1.0};
     // The shadow under the recipe's text, if any (E9.6, data only).
     std::optional<ControlTextShadow> text_shadow{};
+    // The dial parts and the scrim (row 2.5; owner option (a)): an arc's
+    // thickness and a needle's width at its hub, in logical units (0 to
+    // maximum_recipe_stroke_width); the needle's outline; and the colour,
+    // its alpha the opacity, a scrim covers what lies behind with.
+    double stroke_width{4.0};
+    NeedleShape needle_shape{NeedleShape::tapered};
+    Color scrim{Color::rgba(16, 24, 32, 96)};
     friend bool operator==(const ControlVisualRecipe& left,
                            const ControlVisualRecipe& right) noexcept(noexcept(
         left.material == right.material && left.text == right.text &&
@@ -130,7 +137,8 @@ struct ControlVisualRecipe final {
         left.default_width == right.default_width &&
         left.visual_offset == right.visual_offset &&
         left.pressed_content_offset == right.pressed_content_offset &&
-        left.text_shadow == right.text_shadow)) {
+        left.text_shadow == right.text_shadow && left.stroke_width == right.stroke_width &&
+        left.needle_shape == right.needle_shape && left.scrim == right.scrim)) {
         return left.material == right.material && left.text == right.text &&
                left.muted_text == right.muted_text &&
                left.glyph == right.glyph &&
@@ -143,7 +151,8 @@ struct ControlVisualRecipe final {
                left.default_width == right.default_width &&
                left.visual_offset == right.visual_offset &&
                left.pressed_content_offset == right.pressed_content_offset &&
-               left.text_shadow == right.text_shadow;
+               left.text_shadow == right.text_shadow && left.stroke_width == right.stroke_width &&
+               left.needle_shape == right.needle_shape && left.scrim == right.scrim;
     }
 };
 

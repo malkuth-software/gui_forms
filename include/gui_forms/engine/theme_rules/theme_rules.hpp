@@ -1001,7 +1001,8 @@ void assemble_material(const SurfaceMaterial& floor,
 // The fields of a control's own recipe (ControlVisualRecipe) beside its
 // material that a rule may set (T3 P6f; design language §2, §3 and §14).
 // They are the control's, not a part's: a rule naming a role sets none,
-// and a rule naming a part only the text colours (text, muted_text, glyph),
+// and a rule naming a part only the text colours (text, muted_text, glyph)
+// and the dial and scrim fields (stroke_width, needle_shape, scrim_colour),
 // which the part's own resolution reads (Theme::resolve with its name);
 // any other is dropped (RuleDiagnosticKind::recipe_field_on_part). They
 // cascade as
@@ -1040,6 +1041,15 @@ enum class RecipeField : std::uint8_t {
     // perimeter (ControlVisualRecipe::default_width and default_ring).
     default_outline_width,
     default_outline_colour,
+    // The dial parts' geometry and the scrim (row 2.5; owner option (a),
+    // 2026-11-09), admitted on a named part as on the control:
+    // `stroke-width`, the arc's thickness and the needle's width at its
+    // hub (ControlVisualRecipe::stroke_width); `needle-shape`, the
+    // needle's outline (NeedleShape); and `scrim-color`, the colour, with
+    // its opacity, a scrim dims what lies behind with.
+    stroke_width,
+    needle_shape,
+    scrim_colour,
     count,
 };
 
@@ -1058,11 +1068,20 @@ inline constexpr std::size_t recipe_field_count = static_cast<std::size_t>(Recip
 // (CSS's `dotted`), or none (a width of 0).
 enum class RecipeOutlineStyle : std::uint8_t { ring, solid, none, dotted };
 
+// A needle's outline (CSS-like `needle-shape`): a line of the stroke width
+// from hub to tip (`line`), a blade narrowing from the stroke width at the
+// hub to a point at the tip (`tapered`), or a round dot of the stroke width
+// at the tip alone, with no hub (`dot`). A line and a blade have a round
+// hub one and a half stroke widths across.
+enum class NeedleShape : std::uint8_t { line, tapered, dot };
+
 // What a recipe admits (valid_recipe): an outline at most 16 logical units
 // wide, offset at most 64 either way; a text shadow offset at most 16 on
 // each axis and blurred by at most 8.
 inline constexpr double maximum_recipe_outline_width = 16.0;
 inline constexpr double maximum_recipe_outline_offset = 64.0;
+// An arc or needle at most 32 logical units thick (stroke-width).
+inline constexpr double maximum_recipe_stroke_width = 32.0;
 inline constexpr double maximum_text_shadow_blur = 8.0;
 inline constexpr double maximum_text_shadow_offset = 16.0;
 // What a font field admits (T4 fonts): a size of 4 to 96 logical units
@@ -1094,6 +1113,7 @@ struct RecipeDeclaration final {
     Color colour{};
     double number{};
     RecipeOutlineStyle outline_style{RecipeOutlineStyle::ring};
+    NeedleShape needle_shape{NeedleShape::tapered};
     bool shadowed{};
     Point shadow_offset{};
     double shadow_blur{};
@@ -1114,6 +1134,7 @@ struct RecipeDeclaration final {
         return left.field == right.field && left.initial == right.initial && left.colour == right.colour &&
                left.font_role == right.font_role && left.italic == right.italic &&
                left.number == right.number && left.outline_style == right.outline_style &&
+               left.needle_shape == right.needle_shape &&
                left.shadowed == right.shadowed && left.shadow_offset == right.shadow_offset &&
                left.shadow_blur == right.shadow_blur && left.origin == right.origin &&
                left.em_lengths == right.em_lengths && left.inherit == right.inherit &&

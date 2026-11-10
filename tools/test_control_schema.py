@@ -100,7 +100,12 @@ public:
     def test_the_vocabulary_lists_the_instrument_atoms(self) -> None:
         # W-5: the instrument part roles and the meter semantic role, appended.
         vocabulary = cs.load_schema()["vocabulary"]
-        self.assertEqual(vocabulary["part_roles"][-3:], ["plot", "graticule", "trace"])
+        self.assertEqual(vocabulary["part_roles"][-7:-4], ["plot", "graticule", "trace"])
+
+    def test_the_vocabulary_lists_the_dial_roles(self) -> None:
+        # Row 2.5 (owner option (a)): the dial and overlay part roles, appended.
+        vocabulary = cs.load_schema()["vocabulary"]
+        self.assertEqual(vocabulary["part_roles"][-4:], ["arc", "needle", "beak", "scrim"])
         self.assertIn("meter", vocabulary["semantic_roles"])
 
     def test_the_vocabulary_lists_the_specialised_roles(self) -> None:

@@ -43,6 +43,10 @@ constexpr std::array<std::string_view, part_role_count> part_role_names{
     "plot",
     "graticule",
     "trace",
+    "arc",
+    "needle",
+    "beak",
+    "scrim",
 };
 static_assert(part_role_names.size() == part_role_count);
 

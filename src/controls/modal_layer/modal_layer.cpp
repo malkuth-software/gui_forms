@@ -16,14 +16,16 @@ namespace {
 // The margin the content keeps from the client edges, in logical units.
 constexpr double window_margin = 16.0;
 
-constexpr std::array<PartField<ModalLayer::Parts>, 2> modal_layer_part_fields{{
+constexpr std::array<PartField<ModalLayer::Parts>, 3> modal_layer_part_fields{{
     {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
      .member = &ModalLayer::Parts::region},
+    {.declaration = {.name = "scrim", .role = PartRole::scrim, .composed_from = {}},
+     .member = &ModalLayer::Parts::scrim},
     {.declaration = {.name = "shadow", .role = PartRole::shadow, .composed_from = {}},
      .member = &ModalLayer::Parts::shadow},
 }};
 
-constexpr std::array<PartDeclaration, 2> modal_layer_parts = part_declarations(modal_layer_part_fields);
+constexpr std::array<PartDeclaration, 3> modal_layer_parts = part_declarations(modal_layer_part_fields);
 
 constexpr std::array<AnatomyState, 3> modal_layer_states{
     AnatomyState::normal, AnatomyState::enabled, AnatomyState::disabled,
@@ -75,7 +77,12 @@ Rect ModalLayer::content_slot() const noexcept {
 void ModalLayer::on_paint(Painter& painter, Rect) {
     const Rect slot = content_slot();
     if (slot.empty()) return;
-    PartPaint shadow{.role = PartRole::shadow, .bounds = slot, .states = anatomy_states(),
+    const AnatomyStateSet states = anatomy_states();
+    PartPaint scrim{.role = PartRole::scrim, .bounds = client_rectangle(), .states = states,
+                    .family = ControlVisualRole::window};
+    scrim.key = PartKey{"scrim", {}, {}};
+    paint_part(painter, *this, scrim);
+    PartPaint shadow{.role = PartRole::shadow, .bounds = slot, .states = states,
                      .family = ControlVisualRole::tool_tip};
     paint_part(painter, *this, shadow);
 }
@@ -125,7 +132,9 @@ const ControlAnatomy& ModalLayer::anatomy() const noexcept {
 void ModalLayer::publish_part_geometry(std::span<PartGeometry> geometry) const {
     Parts record;
     record.region = PartGeometry::from_bounds(client_rectangle());
-    record.shadow = PartGeometry::from_bounds(content_slot());
+    const Rect slot = content_slot();
+    if (!slot.empty()) record.scrim = PartGeometry::from_bounds(client_rectangle());
+    record.shadow = PartGeometry::from_bounds(slot);
     write_parts(anatomy(), modal_layer_part_fields, record, geometry);
 }
 
