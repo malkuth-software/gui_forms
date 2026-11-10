@@ -120,17 +120,33 @@ std::shared_ptr<Endpoint> indexed_endpoint_locked(const std::unordered_map<std::
     return (*found).second.endpoint;
 }
 
+// The index's candidate is confirmed against the endpoint's current value
+// outside the lock (no endpoint function runs under it): an endpoint the
+// host released on its own (its control disposed) reports zero, and GDI
+// recycles device-context values, so a stale entry never claims a handle.
 std::shared_ptr<Endpoint> endpoint_for_handle(std::uint64_t handle) {
-    EndpointRegistry& endpoints = endpoint_registry();
-    const std::scoped_lock lock(endpoints.mutex);
-    std::shared_ptr<Endpoint> endpoint = indexed_endpoint_locked(endpoints.tokens_by_handle, handle);
+    std::shared_ptr<Endpoint> endpoint;
+    {
+        EndpointRegistry& endpoints = endpoint_registry();
+        const std::scoped_lock lock(endpoints.mutex);
+        endpoint = indexed_endpoint_locked(endpoints.tokens_by_handle, handle);
+    }
+    if (endpoint == nullptr || static_cast<std::uint64_t>((*endpoint).compatibility_handle()) != handle) {
+        return nullptr;
+    }
     return endpoint;
 }
 
 std::shared_ptr<Endpoint> endpoint_for_dc(std::uint64_t device_context) {
-    EndpointRegistry& endpoints = endpoint_registry();
-    const std::scoped_lock lock(endpoints.mutex);
-    std::shared_ptr<Endpoint> endpoint = indexed_endpoint_locked(endpoints.tokens_by_device_context, device_context);
+    std::shared_ptr<Endpoint> endpoint;
+    {
+        EndpointRegistry& endpoints = endpoint_registry();
+        const std::scoped_lock lock(endpoints.mutex);
+        endpoint = indexed_endpoint_locked(endpoints.tokens_by_device_context, device_context);
+    }
+    if (endpoint == nullptr || static_cast<std::uint64_t>((*endpoint).device_context()) != device_context) {
+        return nullptr;
+    }
     return endpoint;
 }
 
@@ -305,8 +321,17 @@ gf_status GF_CALL endpoint_release(gf_paint_endpoint token) noexcept {
             }
             binding = std::move((*found).second);
             endpoints.endpoints.erase(found);
-            const std::uint64_t handle = static_cast<std::uint64_t>((*binding.endpoint).compatibility_handle());
-            const std::uint64_t device_context = static_cast<std::uint64_t>((*binding.endpoint).device_context());
+        }
+        // The endpoint's handle and device context are read outside the
+        // registry's lock (no endpoint function runs under it, so release
+        // never holds it while waiting on the endpoint's own lock, which a
+        // write in flight holds), then their index entries go if they still
+        // name this token.
+        const std::uint64_t handle = static_cast<std::uint64_t>((*binding.endpoint).compatibility_handle());
+        const std::uint64_t device_context = static_cast<std::uint64_t>((*binding.endpoint).device_context());
+        {
+            EndpointRegistry& endpoints = endpoint_registry();
+            const std::scoped_lock lock(endpoints.mutex);
             const std::unordered_map<std::uint64_t, std::uint64_t>::const_iterator by_handle =
                 endpoints.tokens_by_handle.find(handle);
             if (by_handle != endpoints.tokens_by_handle.end() && (*by_handle).second == token) {
@@ -322,10 +347,12 @@ gf_status GF_CALL endpoint_release(gf_paint_endpoint token) noexcept {
         // On the UI thread the control lets the surface go now; from another
         // thread (a finalizer) it keeps the last frame until it is disposed,
         // since retained state changes only on the UI thread. The thread is
-        // tested without recording a failure: release succeeds from any
-        // thread, so it leaves no WRONG_THREAD behind for error_detail (N23).
+        // tested first, without recording a failure: release succeeds from
+        // any thread, so it leaves no WRONG_THREAD behind for error_detail
+        // (N23); on the UI thread enter_ui then completes deferred releases.
         const Control::Ptr control = binding.control.lock();
-        if (control && registry().calling_ui_thread() && (*control).is_alive()) {
+        if (control && registry().calling_ui_thread() && registry().enter_ui(release_slot, false) == GF_STATUS_OK &&
+            (*control).is_alive()) {
             static_cast<void>(unbind_custom_surface(*control, binding.surface));
         }
         (*binding.endpoint).release();
