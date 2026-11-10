@@ -197,7 +197,9 @@ void thread_produces_tagged_frames() {
         require((*probe).saw_surface_root, "a control in a sub-surface sees its surface root");
     }
 
-    // Idle: with nothing posted, dirty or due, the loop does not turn.
+    // Idle: with nothing posted, dirty or due, the loop does not turn. The
+    // wait is a window for a stray turn to show in (N104); no turn is due in
+    // it, so a slow runner cannot fail the check.
     const std::uint64_t turns = thread.statistics().loop_turns;
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     require(thread.statistics().loop_turns == turns, "an idle sub-surface does not turn its loop");
