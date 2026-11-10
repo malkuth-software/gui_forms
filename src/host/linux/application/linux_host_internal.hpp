@@ -292,6 +292,14 @@ public:
   std::unique_ptr<HostSession> session;
   render::SkiaRaster raster;
   DamageRegion damage;
+  // Scroll copies taken from the model and not yet applied to the raster, in
+  // order (SurfaceRoot::take_scroll_copies); scratch for the take; the clips
+  // the current tick applied, damaged again if it presents nothing; and the
+  // count applied.
+  std::vector<ScrollCopy> pending_copies;
+  std::vector<ScrollCopy> taken_copies;
+  std::vector<Rect> applied_copy_clips;
+  std::uint64_t scroll_copies_applied{};
   SubscriptionToken closing_token;
   std::uint64_t sequence{};
   // The last press, for the computed click count (linux_input_rules.hpp).
