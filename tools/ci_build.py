@@ -19,6 +19,7 @@ import platform
 import re
 import shutil
 import subprocess
+import sys
 
 import harness_link  # noqa: F401  (puts the harness's tools on sys.path)
 import change_selection
@@ -207,6 +208,33 @@ def report_stx_package(toolkit: Path, restored: bool) -> None:
               '(cmake/Stx.cmake)', flush=True)
 
 
+def build_logged(toolkit: Path, sanitize: bool, *arguments: str) -> None:
+    """Runs `cmake --build toolkit` with `arguments`, echoing its output and
+    keeping it in toolkit/build-output.log, then checks the warnings it
+    reports against tools/warning_baseline.json (cmake/Hardening.cmake,
+    owner decision D11). The sanitized build's warnings are not counted: its
+    flags differ from the baseline's. A build failure raises before the check."""
+    log_path: Path = toolkit / 'build-output.log'
+    command: list[str] = ['cmake', '--build', str(toolkit), *arguments]
+    print(' '.join(command), flush=True)
+    line: str
+    with log_path.open('w', encoding='utf-8', errors='replace') as log:
+        process: subprocess.Popen[str] = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                                          text=True, encoding='utf-8', errors='replace')
+        assert process.stdout is not None
+        for line in process.stdout:
+            sys.stdout.write(line)
+            log.write(line)
+        status: int = process.wait()
+    sys.stdout.flush()
+    if status != 0:
+        raise subprocess.CalledProcessError(status, command)
+    if sanitize:
+        return
+    run(sys.executable, '-B', ROOT / 'gui_forms/tools/warning_baseline.py', 'check', '--log', log_path,
+        '--build-dir', toolkit)
+
+
 def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = False,
                   sanitize: bool = False, tests: str = '', test_jobs: int = 1,
                   debug_info: str = 'lines', skip_labels: str = '', changed_from: str = '',
@@ -331,11 +359,11 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
                 selection = ctest_selection(change_selection.name_pattern(names), skip_labels)
         targets = selected_test_targets(toolkit, listing)
     if targets is None:
-        run('cmake', '--build', toolkit, '--parallel', jobs)
+        build_logged(toolkit, sanitize, '--parallel', str(jobs))
         write_build_record(toolkit, BUILT_EVERYTHING, 'the whole tree')
     elif targets:
         print(f'{len(targets)} build outputs serve the selected tests', flush=True)
-        run('cmake', '--build', toolkit, '--parallel', jobs, '--target', *targets)
+        build_logged(toolkit, sanitize, '--parallel', str(jobs), '--target', *targets)
         write_build_record(toolkit, BUILT_SELECTED, f'{len(targets)} build outputs of the selected tests')
     else:
         print('the selected tests read no build output; nothing to build', flush=True)

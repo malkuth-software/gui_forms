@@ -5,6 +5,7 @@
 #include "../src/core/theme_language/syntax_tree/theme_syntax_tree.hpp"
 #include "../src/core/theme_language/tokenizer/theme_tokenizer.hpp"
 #include "../src/core/theme_language/value/theme_value.hpp"
+#include "fuzz_standalone.hpp"
 
 #include <array>
 #include <cstddef>
@@ -320,20 +321,10 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 }
 
 #if defined(GUI_FORMS_FUZZ_STANDALONE)
-namespace {
-
-// One xorshift64 step: advances `state` and returns it.
-std::uint64_t next_random(std::uint64_t& state) noexcept {
-    state ^= state << 13U;
-    state ^= state >> 7U;
-    state ^= state << 17U;
-    return state;
-}
-
-} // namespace
-
-int main() {
-    // Each seed parses completely; the mutations explore around them.
+// The corpus directories on the command line (fuzz/corpus/theme_sheet in
+// the suite), then the seeds below; each seed parses completely, and the
+// mutations explore around them all.
+int main(int argument_count, char** argument_values) {
     const std::array<std::string_view, 6> seeds{
         "@import \"palette.theme.css\";\n"
         "@gf-theme \"aurora\" { version: 1; }\n"
@@ -354,28 +345,13 @@ int main() {
         "  z: f(var(--progress), choose(less(1s, var(--time-in-state)), 2deg, 0.5turn)), 'q' / 2; }",
         "@media screen and (prefers-color-scheme: dark), (min-resolution: 2x) and (max-resolution: 3dppx),\n"
         "  (hover: hover) and (prefers-reduced-motion: reduce) { a { b: c } }"};
-    std::uint64_t state = 0xbb67ae8584caa73bULL;
-    for (std::size_t run = 0; run < 100'000; ++run) {
-        const std::uint64_t run_draw = next_random(state);
-        std::string input(seeds[run % seeds.size()]);
-        const std::size_t mutations = 1U + static_cast<std::size_t>(run_draw % 8U);
-        // Each mutation flips one bit of one byte.
-        for (std::size_t mutation = 0; mutation < mutations; ++mutation) {
-            const std::uint64_t draw = next_random(state);
-            if (input.empty()) continue;
-            const std::size_t offset = static_cast<std::size_t>(draw % input.size());
-            const char flipped_bit = static_cast<char>(1U << (draw % 8U));
-            input[offset] = static_cast<char>(input[offset] ^ flipped_bit);
-        }
-        if (run % 5U == 0 && !input.empty()) {
-            input.resize(static_cast<std::size_t>(state % input.size()));
-        } else if (run % 7U == 0) {
-            input.insert(input.size() / 2U, static_cast<std::size_t>(state % 512U), '9');
-        } else if (run % 11U == 0) {
-            input.insert(input.size() / 2U, static_cast<std::size_t>(state % 512U), '"');
-        }
-        LLVMFuzzerTestOneInput(reinterpret_cast<const std::uint8_t*>(input.data()), input.size());
-    }
-    return 0;
+    gui_forms::fuzz::StandaloneRun run{};
+    run.name = "theme sheet";
+    run.seeds = seeds;
+    run.mutated_runs = 100'000U;
+    run.random_state = 0xbb67ae8584caa73bULL;
+    gui_forms::fuzz::StandaloneCounts counts{};
+    const int status = gui_forms::fuzz::run_standalone(argument_count, argument_values, run, counts);
+    return status;
 }
 #endif
