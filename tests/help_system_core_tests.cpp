@@ -48,7 +48,7 @@ constexpr std::string_view french_locale =
     "</locale>\n";
 
 // Declared topics join the contents wherever they say.
-const HelpTopic guide_topic(StableIdLiteral("guide.start"), "Getting started",
+const HelpTopic guide_topic(StableId(StableIdLiteral("guide.start")), "Getting started",
                             "Start here.\n\n{callout=tip}\nPress F1 anywhere.\n", HelpPlace::top(), "",
                             "start; guide");
 
@@ -144,15 +144,16 @@ void contents_and_compile() {
     require(section.contents.nodes.size() == 3U, "three pages: the guide, main, main.copy");
     require(section.contents.nodes[0].stable_id == "guide.start" && section.contents.nodes[0].topic,
             "a top topic comes first");
-    const std::optional<std::size_t> main_node = section.contents.find("main");
-    const std::optional<std::size_t> copy_node = section.contents.find("main.copy");
-    require(main_node.has_value() && copy_node.has_value() &&
-                section.contents.nodes[*copy_node].parent == *main_node,
+    // HelpContentsTree::find answers help_no_parent for an absent node.
+    const std::uint32_t main_node = section.contents.find("main");
+    const std::uint32_t copy_node = section.contents.find("main.copy");
+    require(main_node != help_no_parent && copy_node != help_no_parent &&
+                section.contents.nodes[copy_node].parent == main_node,
             "copy is under main");
-    require(!section.contents.find("main.paste").has_value(), "a control without a body has no page");
+    require(section.contents.find("main.paste") == help_no_parent, "a control without a body has no page");
     bool paste_line = false;
     for (const HelpContentsLine& line : section.contents.lines) {
-        if (line.stable_id == "main.paste" && line.page == *main_node && line.help_line == "Pastes the clipboard.")
+        if (line.stable_id == "main.paste" && line.page == main_node && line.help_line == "Pastes the clipboard.")
             paste_line = true;
     }
     require(paste_line, "its help line is listed on the parent's page");

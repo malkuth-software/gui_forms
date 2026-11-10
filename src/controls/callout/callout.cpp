@@ -133,10 +133,14 @@ Callout::Callout(StableId stable_id) : Control(std::move(stable_id)) {
     title_label_ = make_control<Label>(StableId(prefix + ".title"));
     (*title_label_).text_wrapping = TextWrapping::word;
     (*title_label_).vertical_alignment = VerticalAlignment::near;
-    add_child(title_label_);
     text_label_ = make_control<Label>(StableId(prefix + ".text"));
     (*text_label_).text_wrapping = TextWrapping::word;
     (*text_label_).vertical_alignment = VerticalAlignment::near;
+}
+
+// add_child needs the shared owner, which make_control has made by now.
+void Callout::initialize_control_tree() {
+    add_child(title_label_);
     add_child(text_label_);
     sync_children();
 }

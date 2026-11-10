@@ -3334,7 +3334,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_document_view_tests COMMAND gui_forms_document_view_tests)
 
     add_executable(gui_forms_help_system_core_tests tests/help_system_core_tests.cpp)
-    target_link_libraries(gui_forms_help_system_core_tests PRIVATE gui_forms_core)
+    target_link_libraries(gui_forms_help_system_core_tests PRIVATE gui_forms_controls gui_forms_core)
     add_test(NAME gui_forms_help_system_core_tests COMMAND gui_forms_help_system_core_tests)
     add_executable(gui_forms_helpbook_section_fuzz_tests fuzz/helpbook_section_fuzz.cpp)
     target_link_libraries(gui_forms_helpbook_section_fuzz_tests PRIVATE gui_forms_core)

@@ -290,11 +290,12 @@ void HelpBookViewer::navigate_to(std::string_view stable_id, std::string_view an
 void HelpBookViewer::locate() {
     const std::string page = current_page();
     if (!section_ || page.empty()) return;
-    const std::optional<std::size_t> node = (*section_).contents.find(page);
-    if (!node.has_value()) return;
+    // find answers help_no_parent for a page with no node: nothing to locate.
+    const std::uint32_t node = (*section_).contents.find(page);
+    if (node == help_no_parent || node >= (*section_).contents.nodes.size()) return;
     // Open the books above the page, then select it, without navigating.
     syncing_contents_ = true;
-    std::uint32_t parent = (*section_).contents.nodes[*node].parent;
+    std::uint32_t parent = (*section_).contents.nodes[node].parent;
     std::size_t steps = 0U;
     while (parent != help_no_parent && steps < (*section_).contents.nodes.size()) {
         (*contents_tree_).set_expanded((*section_).contents.nodes[parent].stable_id, true);

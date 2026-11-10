@@ -110,8 +110,7 @@ void TextEditingEngine::record_edit(HistoryEdit entry) {
         // A line break is a step of its own: typing does not join it, nor it
         // the typing before.
         const bool line_break = !entry.inserted.empty() &&
-            (entry.inserted.front() == '
-' || entry.inserted.front() == '');
+            (entry.inserted.front() == '\n' || entry.inserted.front() == '\r');
         const bool appends = entry.removed.empty() && entry.start.value() == previous_end && !word_ended &&
             !line_break;
         // Replacing part of the previous step's unfinished composition.

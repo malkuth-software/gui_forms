@@ -36,6 +36,8 @@ bool near(double left, double right) {
 // Records the events the controls raise, as text.
 struct Recorder final {
     std::vector<std::string> seen{};
+    // The subscriptions, disconnected when the recorder goes.
+    std::vector<SubscriptionToken> tokens{};
     void value(double reading) { seen.push_back("value:" + std::to_string(static_cast<int>(std::lround(reading)))); }
     void step(std::size_t index) { seen.push_back("step:" + std::to_string(index)); }
     void page(std::uint32_t index) { seen.push_back("page:" + std::to_string(index)); }
@@ -237,7 +239,7 @@ void test_dial() {
     Window window(root, Size{200.0, 200.0});
     window.perform_layout();
     Recorder recorder;
-    static_cast<void>((*dial).value_changed().subscribe(recorder, Delegate<double>::bind<Recorder, &Recorder::value>(recorder)));
+    recorder.tokens.push_back((*dial).value_changed().subscribe(Delegate<double>::bind<Recorder, &Recorder::value>(recorder)));
 
     require(near((*dial).pointer_angle(), -0.75 * 3.14159265358979323846), "the minimum faces the lower left");
     // Straight up from the centre is the middle of the sweep.
@@ -293,8 +295,8 @@ void test_step_indicator() {
     Window window(root, Size{400.0, 100.0});
     window.perform_layout();
     Recorder recorder;
-    static_cast<void>(
-        (*steps).step_clicked().subscribe(recorder, Delegate<std::size_t>::bind<Recorder, &Recorder::step>(recorder)));
+    recorder.tokens.push_back(
+        (*steps).step_clicked().subscribe(Delegate<std::size_t>::bind<Recorder, &Recorder::step>(recorder)));
 
     require((*steps).semantic_descriptor().value == "Step 1 of 4: Account", "the first step is under way");
     (*steps).current_step = std::uint32_t{2U};
@@ -329,7 +331,7 @@ void test_step_indicator() {
 }
 
 std::shared_ptr<WizardPage> make_page(const char* identity, const char* title) {
-    std::shared_ptr<WizardPage> page = make_control<WizardPage>(StableId(identity));
+    std::shared_ptr<WizardPage> page = make_control<WizardPage>(StableId(std::string(identity)));
     (*page).title = std::string{title};
     return page;
 }
@@ -349,10 +351,10 @@ void test_wizard() {
     Window window(root, Size{600.0, 400.0});
     window.perform_layout();
     Recorder recorder;
-    static_cast<void>(
-        (*wizard).page_changed().subscribe(recorder, Delegate<std::uint32_t>::bind<Recorder, &Recorder::page>(recorder)));
-    static_cast<void>((*wizard).finished().subscribe(recorder, Delegate<>::bind<Recorder, &Recorder::finished>(recorder)));
-    static_cast<void>((*wizard).cancelled().subscribe(recorder, Delegate<>::bind<Recorder, &Recorder::cancelled>(recorder)));
+    recorder.tokens.push_back(
+        (*wizard).page_changed().subscribe(Delegate<std::uint32_t>::bind<Recorder, &Recorder::page>(recorder)));
+    recorder.tokens.push_back((*wizard).finished().subscribe(Delegate<>::bind<Recorder, &Recorder::finished>(recorder)));
+    recorder.tokens.push_back((*wizard).cancelled().subscribe(Delegate<>::bind<Recorder, &Recorder::cancelled>(recorder)));
 
     require((*wizard).page_count() == 3U, "the WizardPage children are the pages");
     require((*(*wizard).step_indicator()).steps().size() == 3U &&
@@ -375,7 +377,7 @@ void test_wizard() {
 
     Refuser refuser;
     SubscriptionToken refusing =
-        (*wizard).page_changing().subscribe(refuser, Delegate<WizardPageChangingEvent&>::bind<Refuser, &Refuser::changing>(refuser));
+        (*wizard).page_changing().subscribe(Delegate<WizardPageChangingEvent&>::bind<Refuser, &Refuser::changing>(refuser));
     require(!(*wizard).go_back() && (*wizard).current_page.read() == 1U, "page_changing may refuse");
     refusing.disconnect();
     require((*wizard).go_next() && (*wizard).current_page.read() == 2U, "the move continues once nobody refuses");
@@ -414,9 +416,8 @@ void test_callout() {
     (*callout).title = std::string{"Try the new view"};
     (*callout).text = std::string{"Switch layouts from here at any time."};
     Recorder recorder;
-    static_cast<void>((*callout).closed().subscribe(
-        recorder, Delegate<CalloutCloseReason>::bind<Recorder, &Recorder::callout_closed>(recorder)));
-    static_cast<void>((*callout).action_clicked().subscribe(recorder, Delegate<>::bind<Recorder, &Recorder::action>(recorder)));
+    recorder.tokens.push_back((*callout).closed().subscribe(Delegate<CalloutCloseReason>::bind<Recorder, &Recorder::callout_closed>(recorder)));
+    recorder.tokens.push_back((*callout).action_clicked().subscribe(Delegate<>::bind<Recorder, &Recorder::action>(recorder)));
 
     require(!(*callout).show(nullptr), "a callout needs a target in a window");
     require((*callout).show(target) && (*callout).is_shown(), "the callout opens at its target");
@@ -477,8 +478,8 @@ void test_modal_layer() {
     (*inside).set_requested_bounds(Rect{60.0, 80.0, 80.0, 28.0});
     (*content).add_child(inside);
     Recorder recorder;
-    static_cast<void>(
-        (*layer).closed().subscribe(recorder, Delegate<DialogResult>::bind<Recorder, &Recorder::modal_closed>(recorder)));
+    recorder.tokens.push_back(
+        (*layer).closed().subscribe(Delegate<DialogResult>::bind<Recorder, &Recorder::modal_closed>(recorder)));
 
     require(!(*layer).show(behind, nullptr), "a layer needs content");
     require((*layer).show(behind, content) && (*layer).is_shown(), "the layer shows its content");
@@ -494,9 +495,10 @@ void test_modal_layer() {
     int clicks = 0;
     struct Counter final {
         int* count{};
+        std::vector<SubscriptionToken> tokens{};
         void clicked(ButtonBase&) { ++*count; }
-    } counter{&clicks};
-    static_cast<void>((*behind).clicked().subscribe(counter, Delegate<ButtonBase&>::bind<Counter, &Counter::clicked>(counter)));
+    } counter{&clicks, {}};
+    counter.tokens.push_back((*behind).clicked().subscribe(Delegate<ButtonBase&>::bind<Counter, &Counter::clicked>(counter)));
     static_cast<void>(window.dispatch_pointer(press(centre_of(*behind))));
     static_cast<void>(window.dispatch_pointer(release(centre_of(*behind))));
     require(clicks == 0, "presses behind the layer do nothing");
@@ -505,7 +507,7 @@ void test_modal_layer() {
 
     Refuser refuser;
     SubscriptionToken refusing =
-        (*layer).closing().subscribe(refuser, Delegate<ModalLayerClosingEvent&>::bind<Refuser, &Refuser::closing>(refuser));
+        (*layer).closing().subscribe(Delegate<ModalLayerClosingEvent&>::bind<Refuser, &Refuser::closing>(refuser));
     require(!(*layer).close(DialogResult::ok) && (*layer).is_shown(), "closing may refuse");
     refusing.disconnect();
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) && !(*layer).is_shown() &&
@@ -527,9 +529,8 @@ void test_lookup_combo_box() {
     (*lookup).set_rows({{"de", {"DE", "Germany"}}, {"fr", {"FR", "France"}}, {"gb", {"GB", "United Kingdom"}}});
     (*lookup).display_column = std::uint32_t{1U};
     Recorder recorder;
-    static_cast<void>((*lookup).selected_key_changed().subscribe(
-        recorder, Delegate<const std::string&>::bind<Recorder, &Recorder::key>(recorder)));
-    static_cast<void>((*lookup).drop_down_changed().subscribe(recorder, Delegate<bool>::bind<Recorder, &Recorder::dropped>(recorder)));
+    recorder.tokens.push_back((*lookup).selected_key_changed().subscribe(Delegate<const std::string&>::bind<Recorder, &Recorder::key>(recorder)));
+    recorder.tokens.push_back((*lookup).drop_down_changed().subscribe(Delegate<bool>::bind<Recorder, &Recorder::dropped>(recorder)));
 
     bool refused = false;
     try {
@@ -593,7 +594,7 @@ void test_about_dialog() {
                                                          .copyright = "Copyright the authors.",
                                                          .credits = "Portsmouth Rapids, MIT."});
     Recorder recorder;
-    static_cast<void>(about.closed().subscribe(recorder, Delegate<DialogResult>::bind<Recorder, &Recorder::modal_closed>(recorder)));
+    recorder.tokens.push_back(about.closed().subscribe(Delegate<DialogResult>::bind<Recorder, &Recorder::modal_closed>(recorder)));
     const TaskDialogPage& page = (*about.task_dialog()).page();
     require(page.caption == "About Gallery" && page.heading == "Gallery 2.5", "the heading names product and version");
     require(page.text == "The GUI.Forms control gallery.\n\nCopyright the authors.", "description, then copyright");

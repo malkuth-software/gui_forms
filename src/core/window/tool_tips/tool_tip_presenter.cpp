@@ -321,7 +321,7 @@ void ToolTipPresenter::prebake(const ToolTipSubject& subject) {
     bake_lines_.font = (*control).effective_font(tool_tip_font);
     break_tool_tip_lines(*control, subject.text, window_.tool_tip_settings().maximum_width, bake_lines_);
     const Size face = tool_tip_face_size(bake_lines_);
-    const bool shadow = native_popup_translucent(window_.application_window_);
+    const bool shadow = native_popup_translucent(window_.application_window_, window_);
     const Insets outsets = shadow ? overlay_shadow_outsets(*transient_bubble_) : Insets{};
     const double scale = (*root).scale();
     const Size whole{face.width + outsets.left + outsets.right, face.height + outsets.top + outsets.bottom};

@@ -61,14 +61,10 @@ Wizard::Wizard(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = false;
     const std::string prefix((*this).stable_id().value());
     indicator_ = make_control<StepIndicator>(StableId(prefix + ".steps"));
-    add_child(indicator_);
     back_ = make_control<Button>(StableId(prefix + ".back"), back_text.read());
-    add_child(back_);
     next_ = make_control<Button>(StableId(prefix + ".next"), next_text.read());
     (*next_).visual_style = ButtonVisualStyle::accent;
-    add_child(next_);
     cancel_ = make_control<Button>(StableId(prefix + ".cancel"), cancel_text.read());
-    add_child(cancel_);
     tokens_.push_back(
         (*back_).clicked().subscribe(*this, Delegate<ButtonBase&>::bind<Wizard, &Wizard::on_back>(*this)));
     tokens_.push_back(
@@ -77,6 +73,14 @@ Wizard::Wizard(StableId stable_id) : Control(std::move(stable_id)) {
         (*cancel_).clicked().subscribe(*this, Delegate<ButtonBase&>::bind<Wizard, &Wizard::on_cancel>(*this)));
     tokens_.push_back((*indicator_).step_clicked().subscribe(
         *this, Delegate<std::size_t>::bind<Wizard, &Wizard::on_step_clicked>(*this)));
+}
+
+// add_child needs the shared owner, which make_control has made by now.
+void Wizard::initialize_control_tree() {
+    add_child(indicator_);
+    add_child(back_);
+    add_child(next_);
+    add_child(cancel_);
     sync();
 }
 

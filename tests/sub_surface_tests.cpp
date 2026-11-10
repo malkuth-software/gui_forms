@@ -881,14 +881,6 @@ struct CountWakes final {
     void operator()() const { ++(*wakes); }
 };
 
-[[nodiscard]] bool wait_for_flag(const std::atomic<bool>& flag) {
-    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
-    while (!flag.load() && std::chrono::steady_clock::now() < limit) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-    return flag.load();
-}
-
 // N42: stopping a sub-surface whose code waits in a synchronous invoke onto
 // the parent must not hang. Before the fix the parent joined while the
 // sub-surface waited for the parent's turn, for ever.

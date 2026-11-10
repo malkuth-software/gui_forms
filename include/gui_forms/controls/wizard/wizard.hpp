@@ -48,7 +48,10 @@ struct WizardPageChangingEvent final {
 // page's title.
 class Wizard final : public Control, public WizardCapabilities<Wizard> {
 public:
+    // Its step indicator and buttons are added once a shared owner exists.
+    static constexpr bool initialize_tree_after_construction = true;
     explicit Wizard(StableId stable_id);
+    void initialize_control_tree();
     ~Wizard() override;
 
     // The WizardPage children, in order.

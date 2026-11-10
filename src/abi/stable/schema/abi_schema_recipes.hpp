@@ -18,6 +18,8 @@
 #include "gui_forms/schema.hpp"
 
 #include "gui_forms/background_worker/background_worker.hpp"
+#include "gui_forms/components/about_dialog/about_dialog.hpp"
+#include "gui_forms/controls/instruments/gauge_base/gauge_base.hpp"
 #include "gui_forms/binding/binding/binding.hpp"
 #include "gui_forms/binding/binding_context/binding_context.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
@@ -110,6 +112,9 @@ Component::Ptr create_type(StableId stable_id) {
 // A thread exception dialog made with an empty report.
 template <>
 Component::Ptr create_type<ThreadExceptionDialog>(StableId stable_id);
+// An About dialog made with empty information.
+template <>
+Component::Ptr create_type<AboutDialog>(StableId stable_id);
 
 // Whether object is exactly a Type (not a subclass).
 template <typename Type>
@@ -128,12 +133,14 @@ void describe_type(SchemaSample& sample) {
 }
 
 // Controls that need another object.
+template <> void describe_type<GaugeBase>(SchemaSample& sample);
 template <> void describe_type<AnchoredOverlayLayer>(SchemaSample& sample);
 template <> void describe_type<DockSite>(SchemaSample& sample);
 template <> void describe_type<PageStrip>(SchemaSample& sample);
 template <> void describe_type<Toast>(SchemaSample& sample);
 
 // Components.
+template <> void describe_type<AboutDialog>(SchemaSample& sample);
 template <> void describe_type<BackgroundWorker>(SchemaSample& sample);
 template <> void describe_type<Binding>(SchemaSample& sample);
 template <> void describe_type<BindingContext>(SchemaSample& sample);

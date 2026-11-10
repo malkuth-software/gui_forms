@@ -55,7 +55,10 @@ enum class CalloutCloseReason : std::uint8_t {
 // title, described by its text, with the close action.
 class Callout final : public Control, public CalloutCapabilities<Callout> {
 public:
+    // Its title and text labels are added once a shared owner exists.
+    static constexpr bool initialize_tree_after_construction = true;
     explicit Callout(StableId stable_id);
+    void initialize_control_tree();
     ~Callout() override;
 
     // Opens the callout at `target`, which must be attached to a window;

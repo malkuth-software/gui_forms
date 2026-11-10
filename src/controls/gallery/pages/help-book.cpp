@@ -9,7 +9,7 @@ namespace {
 // (help system study, section 1). They join every helpbook compiled in
 // the Gallery.
 const HelpTopic welcome_topic(
-    StableIdLiteral("gallery.help.welcome"), "Welcome to help",
+    StableId(StableIdLiteral("gallery.help.welcome")), "Welcome to help",
     "Help in GUI.Forms is written on the program's own records: every control's stable ID can carry a "
     "**help line** and a help body, and stand-alone topics like this one fill in the rest.\n\n"
     "{callout=tip}\n"
@@ -20,7 +20,7 @@ const HelpTopic welcome_topic(
     HelpPlace::top(), "Where help starts.", "help; start; welcome");
 
 const HelpTopic viewer_topic(
-    StableIdLiteral("gallery.help.viewer"), "The help viewer",
+    StableId(StableIdLiteral("gallery.help.viewer")), "The help viewer",
     "The viewer has three panes: the toolbar, the navigation tabs and the paper.\n\n"
     "## Keys\n\n"
     "Alt+C, Alt+N, Alt+S and Alt+I choose a tab; F6 moves between the tabs and the paper; "
@@ -34,7 +34,7 @@ const HelpTopic viewer_topic(
     "viewer; keys, keyboard; bookmarks; printing");
 
 const HelpTopic search_topic(
-    StableIdLiteral("gallery.help.search"), "Searching help",
+    StableId(StableIdLiteral("gallery.help.search")), "Searching help",
     "Type words: a page must hold all of them, and the last word may be the start of a word. "
     "Put words in quotes to find them together.\n\n"
     "```\nclipboard \"paste special\"\n```\n\n"
@@ -45,7 +45,7 @@ const HelpTopic search_topic(
     "search; words; phrases");
 
 const HelpTopic popups_topic(
-    StableIdLiteral("gallery.help.popups"), "Paper popups",
+    StableId(StableIdLiteral("gallery.help.popups")), "Paper popups",
     "A popup shows one page on paper beside the control it explains. Escape or a click elsewhere "
     "closes it; a topic link in it opens the page in the viewer.\n\n"
     "Shift+F1 enters **What's This** mode: the next click shows the clicked control's help line, "
