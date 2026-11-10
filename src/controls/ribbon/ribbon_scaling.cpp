@@ -420,8 +420,8 @@ void Ribbon::measure_tab(std::size_t tab, TabScaling& scaling) const {
         const std::vector<CommandRecord>& records = records_[tab][group];
         for (std::size_t index = 0; index < spec.commands.size(); ++index) {
             const bool box = spec.commands[index].kind == RibbonCommandKind::check_box && index < records.size();
-            const CheckBox* const hosted = box ? static_cast<const CheckBox*>(records[index].hosted.get()) : nullptr;
-            commands.push_back(measure_command(spec.commands[index], hosted));
+            const CheckBox* const box_control = box ? static_cast<const CheckBox*>(records[index].hosted.get()) : nullptr;
+            commands.push_back(measure_command(spec.commands[index], box_control));
         }
         const double caption = text_width(spec.caption);
         double row = caption + caption_padding * scale;

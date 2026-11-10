@@ -1101,6 +1101,10 @@ Related types
 
    .. cpp:member:: PartGeometry tab
 
+   .. cpp:member:: PartGeometry tab_hover
+
+      The hover layer over the tab's face: the engine's dithered rise (flat at rest), drawn within the tab's body.
+
    .. cpp:member:: PartGeometry tab_label
 
    .. cpp:member:: PartGeometry tab_focus
@@ -1395,7 +1399,7 @@ Related types
 
    ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
 
-   One command record. ``stable_id`` is unique within the ribbon (across tabs, groups and commands) and names the command in events, semantics and the published anatomy. A button, toggle or split takes its text (when ``text`` is empty), enabled, visible and checked state from its required ``command``, and runs it on a click; a drop-down's command is optional. ``text`` may carry a mnemonic ("&Paste"). Labels are always shown (owner decision 6); a small command with an image may leave its label out (``show_label`` false: an authored icon-only command, decision 30). ``drop_down`` is the menu of a split or drop-down command. A hosted command's ``text`` is its control's accessible name (and a check box's caption); ``choices`` are a combo box's items and ``width`` its field's width in logical units (zero for the default). A text box or numeric up-down also shows its ``text`` as a label part (Office's field label): at the field's left when its group stacks rows, above the field when the group's layout has one row; ``show_label`` false leaves an unlabelled field. A gallery command's ``gallery`` is an in-ribbon RibbonGallery the application made and configured; the ribbon adds it as its child and sets its column count. A font control's ``font_control`` and a colour picker's ``color_picker`` are, likewise, the application's controls, which the ribbon adds and places on one row.
+   One command record. ``stable_id`` is unique within the ribbon (across tabs, groups and commands) and names the command in events, semantics and the published anatomy. A button, toggle or split takes its text (when ``text`` is empty), enabled, visible and checked state from its required ``command``, and runs it on a click; a drop-down's command is optional. ``text`` may carry a mnemonic ("&Paste"). Labels are always shown (owner decision 6); a small command with an image may leave its label out (``show_label`` false: an authored icon-only command, decision 30). ``drop_down`` is the menu of a split or drop-down command. A hosted command's ``text`` is its control's accessible name (and a check box's caption); ``choices`` are a combo box's items and ``width`` its field's width in logical units (zero for the default). A text box or numeric up-down also shows its ``text`` as a label part (Office's field label): at the field's left when its group stacks rows, above the field when the group's layout has one row; ``show_label`` false leaves an unlabelled field. A gallery command's ``gallery`` is an in-ribbon RibbonGallery the application made and configured; the ribbon adds it as its child and sets its column count. A font control's ``font_control`` and a colour picker's ``color_picker`` are, likewise, the application's controls, which the ribbon adds and places on one row. ``beside_previous`` places a small or hosted command in the previous command's row, to its right, instead of in a row of its own (the Windows Ribbon Framework's control groups, which stay together in a row): Save over Undo and Redo is Save, then Undo, then Redo beside Undo. A row of commands side by side counts as one of the layout's rows, and the column is as wide as its widest row. It is ignored where the command, or the one before it, is large or a gallery in the layout in force; the group's first command may not set it.
 
    .. cpp:member:: std::string stable_id
 
@@ -1428,6 +1432,8 @@ Related types
    .. cpp:member:: std::shared_ptr<RibbonFontControl> font_control
 
    .. cpp:member:: std::shared_ptr<RibbonColorPicker> color_picker
+
+   .. cpp:member:: bool beside_previous
 
 .. cpp:namespace:: gui_forms
 
@@ -1827,7 +1833,7 @@ Related types
 
    ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
 
-   One layout of a group (the WPF/MFC model, owner decision 5): the image size of each command and how many small commands stack in a column. Labels never drop (decision 6), so a layout only changes image sizes and rows. ``command_sizes`` holds one size per command of the group, in command order, or is empty for the commands' own sizes (``RibbonCommandSpec::size``); entries for hosted and gallery commands are ignored. A collapsed layout has no sizes. ``rows`` (1 to 3) is the number of small and hosted commands per column.
+   One layout of a group (the WPF/MFC model, owner decision 5): the image size of each command and how many small commands stack in a column. Labels never drop (decision 6), so a layout only changes image sizes and rows. ``command_sizes`` holds one size per command of the group, in command order, or is empty for the commands' own sizes (``RibbonCommandSpec::size``); entries for hosted and gallery commands are ignored. A collapsed layout has no sizes. ``rows`` (1 to 3) is the number of small and hosted command rows per column. The rows stand from the top of the plane at the three-row pitch, so a column of one or two rows aligns with the tops of the large commands beside it rather than centring in the plane.
 
    .. cpp:member:: RibbonGroupSize size
 
@@ -2093,8 +2099,7 @@ Related types
 
    ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
 
-   A tab. ``text`` may carry a mnemonic ("&Home"). ``reduction_order`` is the order in which its groups shrink as the ribbon narrows; after it (or without it) every group that can still shrink does so one step at a time, right to left, repeating (WPF's cycle, decision 32). ``tab_set`` names the contextual tab set the tab belongs to (empty: a core tab); ``modes`` are the application modes it shows in. A panel tab: ``panel`` is a control the application made, which the ribbon adds as its child and sizes to the whole command plane while the tab is selected, in place of groups (the application's own command area, such as a palette or an atlas). It has no groups and no reduction order, and is unowned or already this ribbon's; the ribbon removes it when a new definition no longer names it. Its keyboard stops and semantics are its own, as a hosted control's are.
-   A tab. ``text`` may carry a mnemonic ("&Home"). ``reduction_order`` is the order in which its groups shrink as the ribbon narrows; after it (or without it) every group that can still shrink does so one step at a time, right to left, repeating (WPF's cycle, decision 32). ``tab_set`` names the contextual tab set the tab belongs to (empty: a core tab); ``modes`` are the application modes it shows in. ``width`` is an authored width in logical units, scaled with the text as the tab row is (none: the label's width, at its widest state font, plus the theme's padding; Plan Paint's tabs carry their own widths); above zero and at most Ribbon::maximum_tab_width. A tab that is not ``enabled`` shows in the disabled state and cannot be selected: the pointer, the keyboard, mnemonics and accessibility pass it by, and a selection that would fall on it falls back to another tab.
+   A tab. ``text`` may carry a mnemonic ("&Home"). ``reduction_order`` is the order in which its groups shrink as the ribbon narrows; after it (or without it) every group that can still shrink does so one step at a time, right to left, repeating (WPF's cycle, decision 32). ``tab_set`` names the contextual tab set the tab belongs to (empty: a core tab); ``modes`` are the application modes it shows in. ``width`` is an authored width in logical units, scaled with the text as the tab row is (none: the label's width, at its widest state font, plus the theme's padding; Plan Paint's tabs carry their own widths); above zero and at most Ribbon::maximum_tab_width. A tab that is not ``enabled`` shows in the disabled state and cannot be selected: the pointer, the keyboard, mnemonics and accessibility pass it by, and a selection that would fall on it falls back to another tab. A panel tab: ``panel`` is a control the application made, which the ribbon adds as its child and sizes to the whole command plane while the tab is selected, in place of groups (the application's own command area, such as a palette or an atlas). It has no groups and no reduction order, and is unowned or already this ribbon's; the ribbon removes it when a new definition no longer names it. Its keyboard stops and semantics are its own, as a hosted control's are.
 
    .. cpp:member:: std::string stable_id
 
@@ -2111,6 +2116,7 @@ Related types
       Default: ``{ribbon_all_modes}``.
 
    .. cpp:member:: std::shared_ptr<Control> panel
+
    .. cpp:member:: std::optional<double> width
 
    .. cpp:member:: bool enabled
@@ -2800,6 +2806,8 @@ Enumerations
    .. cpp:enumerator:: font_control
 
    .. cpp:enumerator:: color_picker
+
+   .. cpp:enumerator:: label
 
 .. cpp:namespace:: gui_forms
 

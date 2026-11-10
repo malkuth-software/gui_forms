@@ -7853,7 +7853,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr double maximum_part_metric
 
-   What a part metric admits (RecipeField::block_size to edge_shadow_width): a size at most 512 logical units, a margin within +-64, a taper, flare or edge shadow at most 64. Value: ``512.0``.
+   What a part metric admits (RecipeField::block_size to edge_shadow_width): a size at most 512 logical units, a margin within +-64, a gap from -64 to 512, a taper, flare or edge shadow at most 64. Value: ``512.0``.
 
 .. cpp:var:: constexpr double maximum_part_margin
 
