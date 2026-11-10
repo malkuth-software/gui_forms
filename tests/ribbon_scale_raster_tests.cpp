@@ -10,6 +10,12 @@
 #include "gui_forms/gui_forms.hpp"
 #include "demo/gallery.hpp"
 #include "skia_raster.hpp"
+#include "../src/core/resources/fonts/bundled_font_set.hpp"
+#if defined(_WIN32)
+#include "../src/host/windows/fonts/sealed_pages_windows.hpp"
+#else
+#include "../src/host/posix/fonts/sealed_pages_posix.hpp"
+#endif
 
 #include <algorithm>
 #include <cmath>
@@ -18,6 +24,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -230,6 +237,182 @@ void gallery_ribbon_at(double scale, double window_scale) {
             "the Gallery's Ribbon plane has its blue gradient");
 }
 
+// The bundled faces, registered once with every raster that measures or
+// paints text here; without them the raster measures nothing and a fit
+// check would prove nothing.
+std::shared_ptr<detail::BundledFontSet> bundled_fonts() {
+#if defined(_WIN32)
+    const detail::SealedPageFunctions pages = host::windows_sealed_pages();
+#else
+    const detail::SealedPageFunctions pages = host::posix_sealed_pages();
+#endif
+    std::shared_ptr<detail::BundledFontSet> set = detail::shared_bundled_font_set(GUI_FORMS_TEST_FONT_DIRECTORY, pages);
+    return set;
+}
+
+void paint_whole(Window& window, render::SkiaRaster& raster, Size size) {
+    DamageRegion damage = window.take_damage();
+    damage.add(Rect{0.0, 0.0, size.width, size.height});
+    raster.begin_frame(damage);
+    raster.save();
+    raster.clip_damage(damage);
+    const std::optional<PaintReceipt> receipt = window.paint(raster, damage.rectangles());
+    raster.restore();
+    raster.end_frame();
+    if (receipt) static_cast<void>(window.notify_presented(*receipt));
+}
+
+// Every label of the selected tab's commands fits its part, measured by
+// the raster that paints it: a command's label in the Ribbon's label font,
+// a check box's in the CheckBox's own font, its label part inside the
+// command's cell. `where` names the case in a failure.
+void labels_fit(const Ribbon& ribbon, render::SkiaRaster& raster, const std::string& where) {
+    const std::optional<std::size_t> selected = ribbon.selected_tab.read();
+    require(selected.has_value(), "a tab is selected");
+    if (!selected) return;
+    const std::span<const RibbonTabSpec> tabs = ribbon.tabs();
+    const FontSpec label_font = ribbon.text_font(ribbon.font.read());
+    std::size_t checked = 0U;
+    for (const Ribbon::CommandItem& item : ribbon.realized_commands()) {
+        const RibbonCommandSpec& spec = tabs[*selected].groups[item.group].commands[item.index];
+        std::string authored = spec.text;
+        if (authored.empty() && spec.command) authored = (*spec.command).state().text;
+        const std::string shown = parse_mnemonic_text(authored).display_text;
+        if (shown.empty()) continue;
+        if (item.parts.command_label.present) {
+            const Rect bounds = item.parts.command_label.bounds;
+            const Size measured = raster.measure_text_utf8(shown, label_font);
+            const bool fits = measured.width > 0.0 && measured.width <= bounds.width + 0.5 &&
+                              measured.height <= bounds.height + 0.5;
+            if (!fits) {
+                std::cerr << where << ": label '" << shown << "' " << measured.width << "x" << measured.height
+                          << " in " << bounds.width << "x" << bounds.height << '\n';
+            }
+            require(fits, "a command's label fits its part");
+            ++checked;
+        }
+        if (spec.kind == RibbonCommandKind::check_box && item.parts.command_check_box.present) {
+            const std::shared_ptr<CheckBox> box = ribbon.check_box(spec.stable_id);
+            const FontSpec box_font = (*box).text_font((*box).font.read());
+            const Size measured = raster.measure_text_utf8(shown, box_font);
+            const Rect label = (*box).parts().label.bounds;
+            const Rect cell = item.parts.command_check_box.bounds;
+            const Rect placed = (*box).committed_arranged_bounds();
+            const bool fits = measured.width > 0.0 && measured.width <= label.width + 0.5 &&
+                              measured.height <= label.height + 0.5 && placed.width <= cell.width + 0.5;
+            if (!fits) {
+                std::cerr << where << ": check box '" << shown << "' " << measured.width << "x" << measured.height
+                          << " in " << label.width << "x" << label.height << '\n';
+            }
+            require(fits, "a check box's label fits in its own font");
+            ++checked;
+        }
+    }
+    require(checked > 0U, "some labels were checked");
+}
+
+// A Plan Paint-like View tab (the owner's report: Show/Hide cut off) and
+// paper fields (spin buttons clickable but unpainted), through the CPU
+// raster with the bundled faces as the window's text metrics.
+void hosted_commands_at(double scale, const std::shared_ptr<const Theme>& theme, const std::string& where) {
+    std::shared_ptr<Command> zoom_in = std::make_shared<Command>("zoom-in", "Zoom in");
+    std::shared_ptr<Command> zoom_out = std::make_shared<Command>("zoom-out", "Zoom out");
+    std::shared_ptr<Command> actual = std::make_shared<Command>("actual-size", "100%");
+    std::shared_ptr<Command> full = std::make_shared<Command>("full-screen", "Full screen");
+    RibbonTabSpec view{.stable_id = "view", .text = "View"};
+    RibbonGroupSpec zoom{.stable_id = "zoom", .caption = "Zoom"};
+    zoom.commands.push_back({.stable_id = "zoom-in", .command = zoom_in});
+    zoom.commands.push_back({.stable_id = "zoom-out", .size = RibbonCommandSize::small, .command = zoom_out});
+    zoom.commands.push_back({.stable_id = "actual-size", .size = RibbonCommandSize::small, .command = actual});
+    zoom.commands.push_back({.stable_id = "full-screen", .size = RibbonCommandSize::small, .command = full});
+    RibbonGroupSpec show{.stable_id = "show-hide", .caption = "Show/Hide"};
+    show.commands.push_back({.stable_id = "rulers", .kind = RibbonCommandKind::check_box, .text = "Rulers"});
+    show.commands.push_back({.stable_id = "gridlines", .kind = RibbonCommandKind::check_box, .text = "Gridlines"});
+    show.commands.push_back({.stable_id = "status-bar", .kind = RibbonCommandKind::check_box, .text = "Status bar"});
+    show.commands.push_back({.stable_id = "fill", .kind = RibbonCommandKind::check_box, .text = "Fill"});
+    show.commands.push_back(
+        {.stable_id = "edge", .kind = RibbonCommandKind::check_box, .text = "Edge", .beside_previous = true});
+    RibbonGroupSpec paper{.stable_id = "paper", .caption = "Paper"};
+    paper.commands.push_back({.stable_id = "grain-label", .kind = RibbonCommandKind::label, .text = "Grain scale"});
+    paper.commands.push_back({.stable_id = "grain", .kind = RibbonCommandKind::numeric_up_down, .text = "Grain scale"});
+    paper.commands.push_back({.stable_id = "load-label", .kind = RibbonCommandKind::label, .text = "Paint load"});
+    paper.commands.push_back({.stable_id = "load", .kind = RibbonCommandKind::numeric_up_down, .text = "Paint load"});
+    view.groups.push_back(std::move(zoom));
+    view.groups.push_back(std::move(show));
+    view.groups.push_back(std::move(paper));
+    std::vector<RibbonTabSpec> tabs;
+    tabs.push_back(std::move(view));
+    std::shared_ptr<Ribbon> ribbon = make_control<Ribbon>(StableId("ribbon"));
+    (*ribbon).set_tabs(std::move(tabs));
+    (*ribbon).set_theme_override(theme);
+    const Size size{900.0, 200.0};
+    render::SkiaRaster raster{};
+    require(raster.resize(size, scale), "the raster is allocated");
+    require(raster.register_bundled_fonts(bundled_fonts()), "the bundled faces are registered");
+    Window window(ribbon, size);
+    window.set_scale(scale);
+    window.set_text_metrics_provider(&raster);
+    window.perform_layout();
+    paint_whole(window, raster, size);
+    labels_fit(*ribbon, raster, where);
+    // Each hosted number field paints its whole bounds: its spin column
+    // shows its arrow glyphs (darker than the field and the plane), so
+    // what the pointer can press is what is drawn.
+    for (const std::string_view id : {std::string_view("grain"), std::string_view("load")}) {
+        const std::shared_ptr<NumericUpDown> field = (*ribbon).numeric_up_down(id);
+        const Rect placed = (*field).absolute_bounds();
+        const NumericUpDown::Parts parts = (*field).parts();
+        require(parts.increment_glyph.present && parts.decrement_glyph.present, "the field has its spin glyphs");
+        const Rect glyph = parts.increment_glyph.bounds;
+        int darkest = 255;
+        for (double y = glyph.y; y < glyph.y + glyph.height; y += 0.5) {
+            for (double x = glyph.x; x < glyph.x + glyph.width; x += 0.5) {
+                const Sample seen = sample(raster, scale, {placed.x + x, placed.y + y});
+                darkest = std::min(darkest, seen.red);
+            }
+        }
+        if (darkest >= 140) std::cerr << where << ": spin glyph darkest red " << darkest << '\n';
+        require(darkest < 140, "a hosted number field paints its spin arrows");
+        // The column sits inside the field's drawn bounds, at its right end.
+        const Rect arrow = parts.increment_arrow.bounds;
+        require(arrow.x + arrow.width <= placed.width + 0.5 && arrow.x > placed.width * 0.5,
+                "the spin column is the field's right end");
+        const Point press{placed.x + arrow.x + arrow.width * 0.5, placed.y + arrow.y + arrow.height * 0.5};
+        Control::Ptr hit = window.hit_test(press);
+        bool inside = false;
+        for (Control::Ptr current = hit; current; current = (*current).parent()) {
+            if (current.get() == field.get()) inside = true;
+        }
+        require(inside, "a press on the painted spin arrow reaches the field");
+    }
+    window.set_text_metrics_provider(nullptr);
+}
+
+// The Gallery's commands page Ribbon: every label fits, at `scale`.
+void gallery_labels_at(double scale) {
+    std::unique_ptr<Window> owned = gallery::make_gallery();
+    Window& window = *owned;
+    const Size size = window.client_size();
+    render::SkiaRaster raster{};
+    require(raster.resize(size, scale), "the Gallery raster is allocated");
+    require(raster.register_bundled_fonts(bundled_fonts()), "the bundled faces are registered");
+    window.set_scale(scale);
+    window.set_text_metrics_provider(&raster);
+    window.perform_layout();
+    const std::shared_ptr<Button> navigation =
+        std::dynamic_pointer_cast<Button>(window.find("gallery.page.commands-and-menus"));
+    if (navigation) static_cast<void>((*navigation).perform_click());
+    window.perform_layout();
+    const std::shared_ptr<Ribbon> ribbon =
+        std::dynamic_pointer_cast<Ribbon>(window.find("gallery.commands.ribbon.bar"));
+    require(ribbon != nullptr, "the commands page holds its Ribbon");
+    if (ribbon) {
+        paint_whole(window, raster, size);
+        labels_fit(*ribbon, raster, "gallery at " + std::to_string(scale));
+    }
+    window.set_text_metrics_provider(nullptr);
+}
+
 } // namespace
 
 
@@ -245,6 +428,9 @@ int main() {
         if (plan_paint) ribbon_faces_at(scale, other, plan_paint, Sample{0x9b, 0xb5, 0xd8}, 4.0);
         gallery_ribbon_at(scale, scale);
         gallery_ribbon_at(scale, other);
+        hosted_commands_at(scale, stock, "stock at " + std::to_string(scale));
+        if (plan_paint) hosted_commands_at(scale, plan_paint, "Plan Paint at " + std::to_string(scale));
+        gallery_labels_at(scale);
     }
     if (failures != 0) {
         std::cerr << failures << " ribbon scale raster check(s) failed\n";
