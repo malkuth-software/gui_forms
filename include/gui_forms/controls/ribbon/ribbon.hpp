@@ -881,7 +881,9 @@ private:
     void build_ladder(std::size_t tab, TabScaling& scaling) const;
     [[nodiscard]] double state_width(const TabScaling& scaling, std::size_t tab,
                                      const std::vector<RibbonLadderGroupState>& state) const;
-    [[nodiscard]] CommandMetrics measure_command(const RibbonCommandSpec& command) const;
+    // `box` is a check box command's hosted CheckBox, or null; its label
+    // is measured in the CheckBox's own text font, not the ribbon's.
+    [[nodiscard]] CommandMetrics measure_command(const RibbonCommandSpec& command, const CheckBox* box) const;
     [[nodiscard]] bool field_labelled(const RibbonCommandSpec& command) const;
     [[nodiscard]] double hosted_field_width(const RibbonCommandSpec& command) const;
     [[nodiscard]] FieldSplit split_field(const RibbonCommandSpec& command, Rect bounds) const;
