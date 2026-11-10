@@ -3,13 +3,18 @@
 // once the window is painted (C5), and still repaints when scrolled back in;
 // a paint requested from inside a paint keeps its rectangles rather than the
 // whole window (C6); an abandoned paint marks only the controls it rebuilt
-// and carries their flags up to the root (C1); and a docked child is
-// measured through its cache (N89).
+// and carries their flags up to the root (C1); a docked child is measured
+// through its cache (N89); a live surface under an open overlay keeps
+// presenting every pixel the overlay does not cover, and only those (C7,
+// owner ruling D6a); and a hit test whose callbacks never let it converge
+// answers the last pass's target and counts the exhausted bound (B11).
 
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/container_controls.hpp"
 #include "gui_forms/window.hpp"
 
+#include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
@@ -193,6 +198,113 @@ void test_docked_children_use_the_measure_cache() {
             "the fill child takes what the top child leaves");
 }
 
+// C7: a live control under an open overlay whose child reaches outside the
+// overlay root. The presented clips avoid both covers and add up to the
+// uncovered area; a new frame under the cover damages it for retained
+// painting rather than presenting it.
+void fill_frame(LiveSurfaceWriteLease& lease, std::byte value) {
+    for (std::byte& pixel : lease.pixels()) pixel = value;
+}
+
+void test_live_surface_under_overlay() {
+    std::shared_ptr<Control> root = make_control<Control>(StableId("live-cover.root"));
+    (*root).set_requested_bounds({0.0, 0.0, 100.0, 80.0});
+    std::shared_ptr<Control> live = make_control<Control>(StableId("live-cover.content"));
+    (*live).set_requested_bounds({10.0, 10.0, 70.0, 50.0});
+    (*root).add_child(live);
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{100.0, 80.0});
+    Window& window = *held_window;
+    window.perform_layout();
+
+    std::shared_ptr<Control> overlay = make_control<Control>(StableId("live-cover.overlay"));
+    (*overlay).set_requested_bounds({20.0, 20.0, 30.0, 20.0});
+    // The child leaves its root on the right: window {45, 20, 20, 10}.
+    std::shared_ptr<Control> leaving = make_control<Control>(StableId("live-cover.leaving"));
+    (*leaving).set_requested_bounds({25.0, 0.0, 20.0, 10.0});
+    (*overlay).add_child(leaving);
+    OverlayToken token = window.open_overlay(root, overlay);
+    window.perform_layout();
+    require(token.connected(), "the overlay opens");
+
+    std::shared_ptr<LiveSurface> surface = LiveSurface::create({70U, 50U});
+    require(static_cast<bool>(surface), "the live surface is made");
+    LiveSurfaceWriteLease first = (*surface).try_acquire_write();
+    require(static_cast<bool>(first), "the first frame is written");
+    fill_frame(first, std::byte{0x31});
+    require(first.publish() == 1U, "the first frame is published");
+    require(window.queue_live_surface_presentation(live, surface), "the live control presents the surface");
+
+    const Rect overlay_root_cover{20.0, 20.0, 30.0, 20.0};
+    const Rect leaving_cover{45.0, 20.0, 20.0, 10.0};
+    const std::vector<LiveSurfacePresentation> presented = window.take_live_surface_presentations();
+    require(!presented.empty(), "an open overlay does not suspend the whole live surface");
+    double presented_area = 0.0;
+    for (const LiveSurfacePresentation& presentation : presented) {
+        require(Rect::intersection(presentation.clip, overlay_root_cover).empty(),
+                "no presented pixel lies under the overlay root");
+        require(Rect::intersection(presentation.clip, leaving_cover).empty(),
+                "no presented pixel lies under the child that leaves it");
+        presented_area += presentation.clip.area();
+    }
+    // 70 x 50 less the two covers' union (600 + 200 - 50 overlap).
+    require(std::abs(presented_area - (3500.0 - 750.0)) < 1.0e-6, "every uncovered pixel is presented");
+
+    static_cast<void>(window.take_damage());
+    LiveSurfaceWriteLease second = (*surface).try_acquire_write();
+    require(static_cast<bool>(second), "the second frame is written");
+    fill_frame(second, std::byte{0x32});
+    require(second.publish() == 2U, "the second frame is published");
+    const std::vector<LiveSurfacePresentation> advanced = window.take_live_surface_presentations();
+    require(!advanced.empty(), "uncovered pixels advance with the new frame");
+    const DamageRegion beneath = window.take_damage();
+    const bool under_cover = !Rect::intersection(beneath.bounds(), overlay_root_cover).empty() ||
+                             !Rect::intersection(beneath.bounds(), leaving_cover).empty();
+    require(!beneath.empty() && under_cover, "the covered share reaches retained painting as damage");
+    token.disconnect();
+}
+
+// B11: a control whose hit test changes the semantic generation each time
+// it is asked, so no pass converges.
+class RestlessHitControl final : public Control {
+public:
+    explicit RestlessHitControl(StableId id) : Control(std::move(id)) {}
+    bool hit_test_local(Point local_point) const override {
+        ++asked;
+        if (other) (*other).invalidate(Dirty::semantics);
+        const bool inside = Control::hit_test_local(local_point);
+        return inside;
+    }
+
+    std::shared_ptr<Control> other;
+    mutable std::uint64_t asked{};
+};
+
+void test_non_converging_hit_test() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("restless.root"));
+    (*root).set_requested_bounds({0.0, 0.0, 100.0, 100.0});
+    std::shared_ptr<Panel> other = make_control<Panel>(StableId("restless.other"));
+    (*other).set_requested_bounds({80.0, 80.0, 10.0, 10.0});
+    std::shared_ptr<RestlessHitControl> restless = make_control<RestlessHitControl>(StableId("restless.target"));
+    (*restless).set_requested_bounds({10.0, 10.0, 40.0, 40.0});
+    (*root).add_child(other);
+    (*root).add_child(restless);
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{100.0, 100.0});
+    Window& window = *held_window;
+    window.perform_layout();
+    const MetricsSnapshot before = window.metrics_snapshot();
+    (*restless).other = other;
+    (*restless).asked = 0U;
+    const Control::Ptr hit = window.hit_test({20.0, 20.0});
+    (*restless).other.reset();
+    const MetricsSnapshot after = window.metrics_snapshot();
+    require(hit == restless, "a non-converging hit test answers the last pass's target");
+    require((*restless).asked >= 4U, "every bounded pass asked the control");
+    require(after.callback_arbitration_retries == before.callback_arbitration_retries + 4U,
+            "each of the four passes is counted as a retry");
+    require(after.callback_arbitration_limit_hits == before.callback_arbitration_limit_hits + 1U,
+            "the exhausted bound is counted once");
+}
+
 } // namespace
 
 int main() {
@@ -200,6 +312,8 @@ int main() {
     test_reentrant_request_keeps_its_rectangles();
     test_abandoned_paint_marks_rebuilt_controls();
     test_docked_children_use_the_measure_cache();
+    test_live_surface_under_overlay();
+    test_non_converging_hit_test();
     std::cout << "window correctness tests passed\n";
     return EXIT_SUCCESS;
 }
