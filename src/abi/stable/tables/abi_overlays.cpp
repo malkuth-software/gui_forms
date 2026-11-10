@@ -35,14 +35,40 @@ constexpr SlotIdentity close_anchored_slot{GF_TABLE_OVERLAYS, 6U};
 constexpr SlotIdentity set_tool_tips_shown_slot{GF_TABLE_OVERLAYS, 7U};
 constexpr SlotIdentity tool_tips_shown_slot{GF_TABLE_OVERLAYS, 8U};
 
+// One open overlay: its token and the subscription to the token's closed
+// event, which drops the entry when the window closes the overlay (its
+// owner left the window, the window closed), so the map holds open
+// overlays only (N26).
+struct OpenOverlay final {
+    OverlayToken token;
+    SubscriptionToken closed;
+};
+
 // The open overlays, by the overlay's identity. Owned here and used on the UI
-// thread only. A token the window has closed (its owner left the window,
-// the window closed) is disconnected and is replaced or dropped on the next
-// open or close of that overlay; the rest close when the process ends.
-std::unordered_map<gf_object, OverlayToken>& open_overlays() {
-    static std::unordered_map<gf_object, OverlayToken> overlays;
+// thread only; the rest close when the process ends.
+std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>& open_overlays() {
+    static std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>> overlays;
     return overlays;
 }
+
+// The token's closed event: the window closed the overlay. Drops the entry
+// if it is still this one; the handler holds the entry until it returns,
+// so the subscription being emitted is not destroyed under it.
+struct OverlayClosedByWindow final {
+    gf_object overlay = 0U;
+    std::weak_ptr<OpenOverlay> entry;
+    void operator()() const {
+        const std::shared_ptr<OpenOverlay> held = entry.lock();
+        if (!held) {
+            return;
+        }
+        std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>& overlays = open_overlays();
+        const std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>::iterator found = overlays.find(overlay);
+        if (found != overlays.end() && (*found).second == held) {
+            overlays.erase(found);
+        }
+    }
+};
 
 gf_status enter_tool_tip(gf_object object, SlotIdentity slot, std::shared_ptr<ToolTip>& tool_tip) {
     const gf_status entered = registry().enter_ui(slot, false);
@@ -75,9 +101,9 @@ gf_status GF_CALL overlays_open_overlay(gf_object owner, gf_object overlay) noex
         if (found != GF_STATUS_OK) {
             return found;
         }
-        std::unordered_map<gf_object, OverlayToken>& overlays = open_overlays();
-        const std::unordered_map<gf_object, OverlayToken>::iterator existing = overlays.find(overlay);
-        if (existing != overlays.end() && (*existing).second.connected()) {
+        std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>& overlays = open_overlays();
+        const std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>::iterator existing = overlays.find(overlay);
+        if (existing != overlays.end() && (*(*existing).second).token.connected()) {
             return fail(GF_STATUS_INVALID_STATE, open_overlay_slot, "the overlay is already open");
         }
         Window* const window = (*owner_control).attached_window();
@@ -86,8 +112,12 @@ gf_status GF_CALL overlays_open_overlay(gf_object owner, gf_object overlay) noex
         }
         // Window::open_overlay refuses an overlay with a parent and an owner that
         // cannot own one (std::logic_error: GF_STATUS_INVALID_STATE).
-        OverlayToken token = (*window).open_overlay(owner_control, overlay_control);
-        overlays.insert_or_assign(overlay, std::move(token));
+        const std::shared_ptr<OpenOverlay> entry = std::make_shared<OpenOverlay>();
+        (*entry).token = (*window).open_overlay(owner_control, overlay_control);
+        if (Event<>* closed = (*entry).token.closed_event()) {
+            (*entry).closed = (*closed).subscribe(OverlayClosedByWindow{overlay, entry});
+        }
+        overlays.insert_or_assign(overlay, entry);
         return GF_STATUS_OK;
     } catch (...) {
         return fail_with_current_exception(open_overlay_slot);
@@ -101,14 +131,18 @@ gf_status GF_CALL overlays_close_overlay(gf_object overlay) noexcept {
         if (entered != GF_STATUS_OK) {
             return entered;
         }
-        std::unordered_map<gf_object, OverlayToken>& overlays = open_overlays();
-        const std::unordered_map<gf_object, OverlayToken>::iterator existing = overlays.find(overlay);
+        std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>& overlays = open_overlays();
+        const std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>::iterator existing = overlays.find(overlay);
         if (existing == overlays.end()) {
             return fail(GF_STATUS_NOT_FOUND, close_overlay_slot, "the overlay is not open");
         }
-        const bool was_open = (*existing).second.connected();
-        // Erasing the token disconnects it, closing the overlay.
+        std::shared_ptr<OpenOverlay> held = std::move((*existing).second);
         overlays.erase(existing);
+        const bool was_open = (*held).token.connected();
+        // Not told of its own close; then dropping the token disconnects it,
+        // closing the overlay.
+        (*held).closed.disconnect();
+        held.reset();
         if (!was_open) {
             return fail(GF_STATUS_NOT_FOUND, close_overlay_slot, "the overlay was already closed by its window");
         }
@@ -212,6 +246,10 @@ struct AnchoredSession final {
     SubscriptionToken dismiss;
     SubscriptionToken revoked;
     bool closed = false;
+    // Invokes of events on the stack (N24): a close from inside one (a
+    // menu's callback closing its own content) defers the release until
+    // the outermost invoke returns, as the header promises.
+    std::uint32_t invoking = 0U;
 };
 
 // The open anchored overlays, by their content's identity.
@@ -221,8 +259,9 @@ std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>& anchored_overla
 }
 
 // Sends one event to the session's callback with the content as sender.
-// Returns the event's cancel field.
-std::uint32_t emit_anchored(const AnchoredSession& session, std::string_view name) noexcept {
+// Returns the event's cancel field. A session closed during the invoke
+// releases its callback here, once no invoke of it is on the stack.
+std::uint32_t emit_anchored(AnchoredSession& session, std::string_view name) noexcept {
     if (!session.events) {
         return 0U;
     }
@@ -231,7 +270,12 @@ std::uint32_t emit_anchored(const AnchoredSession& session, std::string_view nam
     event.sender = session.content;
     event.name.data = name.data();
     event.name.size = name.size();
+    ++session.invoking;
     (*session.events).invoke(event);
+    --session.invoking;
+    if (session.closed && session.invoking == 0U) {
+        session.events.reset();
+    }
     return event.cancel;
 }
 
@@ -264,7 +308,9 @@ void close_anchored_session(const std::shared_ptr<AnchoredSession>& session) noe
         }
     }
     static_cast<void>(emit_anchored(held, "closed"));
-    held.events.reset();
+    // Released now unless an invoke of it is still running (N24); the
+    // outermost one releases it as it returns.
+    if (held.invoking == 0U) held.events.reset();
     std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>& sessions = anchored_overlays();
     const std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>::iterator entry =
         sessions.find(held.content);
@@ -343,13 +389,12 @@ gf_status open_anchored_overlay(gf_object anchor, gf_object content, const gf_an
     }
     const gf_anchored_overlay_flags flags = (*options).flags;
     const Size client = (*window).client_size();
-    // A zero extent takes the content's own measure within the window.
-    Size preferred{(*options).width, (*options).height};
-    if (preferred.width == 0.0 || preferred.height == 0.0) {
-        const Size measured = (*content_control).measure(client);
-        if (preferred.width == 0.0) preferred.width = measured.width;
-        if (preferred.height == 0.0) preferred.height = measured.height;
-    }
+    // A zero extent takes the content's own measure within the window, made
+    // once the content is in the window (N25): detached, a control measures
+    // text by estimate, not with the window's text engine.
+    const Size requested{(*options).width, (*options).height};
+    const bool measures = requested.width == 0.0 || requested.height == 0.0;
+    Size preferred = requested;
     AnchoredOverlayPlacement placement;
     placement.preferred_size = preferred;
     placement.horizontal_alignment = (flags & GF_ANCHORED_OVERLAY_ALIGN_FAR) != 0U
@@ -375,6 +420,13 @@ gf_status open_anchored_overlay(gf_object anchor, gf_object content, const gf_an
         // (std::logic_error: GF_STATUS_INVALID_STATE).
         held.token = (*window).open_overlay(anchor_control, held.layer);
         held.window = window;
+        if (measures) {
+            const Size measured = (*content_control).measure(client);
+            AnchoredOverlayPlacement attached = placement;
+            attached.preferred_size = {requested.width == 0.0 ? measured.width : requested.width,
+                                       requested.height == 0.0 ? measured.height : requested.height};
+            (*held.layer).placement = attached;
+        }
         if ((flags & GF_ANCHORED_OVERLAY_TAKE_FOCUS) != 0U) {
             held.scope = (*window).begin_focus_scope(held.layer, content_control);
         }

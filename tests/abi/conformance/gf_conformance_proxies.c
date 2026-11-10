@@ -128,6 +128,35 @@ static void collections(gf_kit* kit) {
                   GF_STATUS_BUFFER_TOO_SMALL, "a small text buffer reports the size");
     gf_kit_check(kit, required == 5u, "the element's text size is reported");
 
+    /* Elements of a later minor's larger size are stepped by the first
+     * element's struct_size (N14). */
+    typedef struct wide_value {
+        gf_value value;
+        uint64_t tail;
+    } wide_value;
+    wide_value wide[2];
+    memset(wide, 0, sizeof(wide));
+    wide[0].value = text_value("alpha");
+    wide[0].value.struct_size = (uint32_t)sizeof(wide_value);
+    wide[0].tail = 0xFFFFFFFFFFFFFFFFull;
+    wide[1] = wide[0];
+    wide[1].value.text = gf_kit_text("beta");
+    gf_value wide_items = blank_value();
+    wide_items.kind = GF_VALUE_KIND_COLLECTION;
+    wide_items.elements = &wide[0].value;
+    wide_items.element_count = 2u;
+    gf_kit_status(kit, (*kit).properties.set(combo, gf_kit_text("items"), &wide_items), GF_STATUS_OK,
+                  "set items larger than this library's gf_value");
+    read = blank_value();
+    gf_kit_status(kit, (*kit).properties.element_at(combo, gf_kit_text("items"), 1u, &read, text, sizeof(text),
+                                                    &required),
+                  GF_STATUS_OK, "read the second wide element");
+    gf_kit_check(kit, read.kind == GF_VALUE_KIND_TEXT && required == 4u && memcmp(text, "beta", 4u) == 0,
+                 "a wide element is read at the caller's stride");
+    wide[1].value.struct_size = (uint32_t)sizeof(gf_value);
+    gf_kit_status(kit, (*kit).properties.set(combo, gf_kit_text("items"), &wide_items), GF_STATUS_INVALID_ARGUMENT,
+                  "every element repeats the first element's struct_size");
+
     gf_value nested[1];
     nested[0] = value;
     gf_value outer = blank_value();

@@ -2,6 +2,7 @@
 
 #include "gf_conformance_internal.h"
 
+#include <stdio.h>
 #include <string.h>
 
 /* A callback that, on its first call, subscribes a late recorder to the same
@@ -226,6 +227,54 @@ static void refusals(gf_kit* kit) {
     gf_kit_check(kit, recorder.released == 0u, "a refused callback is never released");
 }
 
+/* One rule for every slot that takes a callback (N20, N34, N71): a call that
+ * fails has not taken it, never calls it and never calls its release, also
+ * after the posted work has run. Counted per failing slot, so a binding
+ * that frees its handle on failure never sees a second free. */
+static void expect_untaken(gf_kit* kit, const gf_kit_recorder* recorder, gf_status status, const char* slot) {
+    char name[160];
+    uint64_t invoked = 0u;
+    (void)(*kit).dispatch.run_pending(&invoked);
+    snprintf(name, sizeof(name), "%s fails", slot);
+    gf_kit_check(kit, status != GF_STATUS_OK, name);
+    snprintf(name, sizeof(name), "a failing %s neither calls nor releases its callback", slot);
+    gf_kit_check(kit, (*recorder).invoked == 0u && (*recorder).released == 0u, name);
+}
+
+static void failing_slot_releases(gf_kit* kit) {
+    const gf_object label = gf_kit_create(kit, "Label", "kit.callbacks.untaken");
+
+    gf_kit_recorder posted = new_recorder(kit);
+    const gf_callback posted_callback = gf_kit_recording_callback(&posted);
+    expect_untaken(kit, &posted, (*kit).dispatch.begin_invoke(0u, &posted_callback), "dispatch.begin_invoke(0)");
+    const gf_object ended = gf_kit_create(kit, "Label", "kit.callbacks.untaken.ended");
+    gf_kit_status(kit, (*kit).objects.release(ended), GF_STATUS_OK, "end the stale target");
+    expect_untaken(kit, &posted, (*kit).dispatch.begin_invoke(ended, &posted_callback),
+                   "dispatch.begin_invoke(stale)");
+
+    gf_kit_recorder content = new_recorder(kit);
+    gf_subsurface_content made;
+    memset(&made, 0, sizeof(made));
+    made.struct_size = (uint32_t)sizeof(made);
+    made.build = gf_kit_recording_callback(&content);
+    expect_untaken(kit, &content, (*kit).subsurfaces.set_content(label, &made),
+                   "subsurfaces.set_content(not a host)");
+    expect_untaken(kit, &content, (*kit).subsurfaces.set_content(0u, &made), "subsurfaces.set_content(0)");
+
+    gf_kit_recorder subscribed = new_recorder(kit);
+    const gf_callback subscribed_callback = gf_kit_recording_callback(&subscribed);
+    gf_subscription subscription = 0u;
+    expect_untaken(kit, &subscribed,
+                   (*kit).events.subscribe(label, gf_kit_text("clicked"), &subscribed_callback, &subscription),
+                   "events.subscribe(unknown interaction)");
+
+    gf_kit_status(kit, (*kit).objects.release(label), GF_STATUS_OK, "release the untaken label");
+    uint64_t invoked = 0u;
+    (void)(*kit).dispatch.run_pending(&invoked);
+    gf_kit_check(kit, posted.released == 0u && content.released == 0u && subscribed.released == 0u,
+                 "no failing slot releases its callback later");
+}
+
 void gf_kit_callbacks(gf_kit* kit) {
     const gf_object button = gf_kit_create(kit, "Button", "kit.callbacks");
     payloads(kit, button);
@@ -233,4 +282,5 @@ void gf_kit_callbacks(gf_kit* kit) {
     gf_kit_status(kit, (*kit).objects.release(button), GF_STATUS_OK, "release the button");
     endings(kit);
     refusals(kit);
+    failing_slot_releases(kit);
 }

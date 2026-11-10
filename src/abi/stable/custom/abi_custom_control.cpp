@@ -86,6 +86,25 @@ private:
     std::weak_ptr<BoundSurfaceWake> wake_;
 };
 
+// Posted when a paint found no free write lease (N17): the paint consumed
+// the control's paint dirt and showed the last frame, so the control asks
+// again on the next turn, until a reader gives a buffer back.
+class RefusedLeaseRepaint final {
+public:
+    explicit RefusedLeaseRepaint(std::weak_ptr<Control> target) noexcept : target_(std::move(target)) {}
+
+    void operator()() const {
+        const std::shared_ptr<Control> target = target_.lock();
+        if (!target || !(*target).is_alive()) {
+            return;
+        }
+        (*target).invalidate(invalidation::paint_only);
+    }
+
+private:
+    std::weak_ptr<Control> target_;
+};
+
 // A bound surface's wake, called on the producer's thread when it
 // publishes: posts one repaint unless one is pending.
 class BoundSurfaceWakeCallback final {
@@ -270,8 +289,14 @@ void CustomControlState::paint(Control& control, Painter& painter, Rect local_da
     }
     LiveSurfaceWriteLease lease = (*surface_).try_acquire_write(!stale_surface_);
     if (!lease) {
-        // Every buffer is held by a reader: this paint shows the last frame.
+        // Every buffer is held by a reader: this paint shows the last frame,
+        // and asks for another (N17). The surface is repainted whole then.
         painter.draw_live_surface(surface_, destination);
+        stale_surface_ = true;
+        try {
+            static_cast<void>(control.begin_invoke(RefusedLeaseRepaint(control.weak_from_this())));
+        } catch (...) {
+        }
         return;
     }
     const Rect damage = stale_surface_ ? client : Rect::intersection(local_damage, client);

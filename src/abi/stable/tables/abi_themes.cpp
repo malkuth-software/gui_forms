@@ -45,7 +45,6 @@ constexpr SlotIdentity remove_image_slot{GF_TABLE_THEMES, 11U};
 constexpr SlotIdentity load_pixels_slot{GF_TABLE_THEMES, 12U};
 
 // The 1.0 size of gf_theme_package: a caller passes at least this much.
-constexpr std::uint32_t theme_package_size_1_0 = 40U;
 static_assert(sizeof(gf_theme_package) == theme_package_size_1_0);
 static_assert(sizeof(gf_theme_file) == 32U);
 static_assert(sizeof(gf_theme_report) == 16U);

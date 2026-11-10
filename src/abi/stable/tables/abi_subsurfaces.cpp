@@ -86,6 +86,12 @@ public:
 
     void hand_over(Control::Ptr root) noexcept { root_ = std::move(root); }
 
+    // set_content failed before the host took this content: the caller
+    // keeps the build callback, so its destruction releases nothing.
+    void disarm() noexcept {
+        if (build_) (*build_).disarm();
+    }
+
 private:
     // Marks the content as building on this thread for the callback's
     // duration, so a set_root inside finds it, whatever the callback does.
@@ -167,12 +173,28 @@ gf_status GF_CALL subsurfaces_set_content(gf_object host, const gf_subsurface_co
             return entered;
         }
         std::unique_ptr<SubSurfaceContent> made;
+        AbiSubSurfaceContent* view = nullptr;
         if (content != nullptr) {
-            made = std::make_unique<AbiSubSurfaceContent>(build);
+            std::unique_ptr<AbiSubSurfaceContent> typed = std::make_unique<AbiSubSurfaceContent>(build);
+            view = typed.get();
+            made = std::move(typed);
         }
-        // From here the content (and its callback) is the host's; a throw
-        // below destroys it, releasing the callback, as a taken callback.
-        (*found).set_content(std::move(made), opaque);
+        // One rule for every table (N20): the callback is the library's only
+        // when this returns OK. adopt_content moves from `made` at its take;
+        // a throw before it leaves the content here, disarmed, so the caller
+        // keeps the callback and no release follows. Once taken, the host
+        // holds the content and the call succeeds: a failure after the take
+        // (configuring the region, invalidating) is redone by the host's
+        // next layout.
+        try {
+            (*found).adopt_content(made, opaque);
+        } catch (...) {
+            // No content (a stop) or content not taken: the failure stands.
+            if (view == nullptr || made) {
+                if (view != nullptr) (*view).disarm();
+                throw;
+            }
+        }
         return GF_STATUS_OK;
     } catch (...) {
         return fail_with_current_exception(set_content_slot);

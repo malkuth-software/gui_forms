@@ -263,6 +263,10 @@ void SubSurfaceHost::notice_pairing_missed(std::uint64_t epoch) {
 }
 
 void SubSurfaceHost::set_content(std::unique_ptr<SubSurfaceContent> content, bool opaque) {
+    adopt_content(content, opaque);
+}
+
+void SubSurfaceHost::adopt_content(std::unique_ptr<SubSurfaceContent>& content, bool opaque) {
     require_mutable();
     const bool had_requests = !requests_.empty();
     const bool had_semantics = static_cast<bool>(semantics_);

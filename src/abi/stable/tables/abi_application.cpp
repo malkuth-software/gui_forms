@@ -88,10 +88,17 @@ gf_status read_config(const gf_application_config* config, ReadConfig& made) {
     const std::uint64_t kept = count < GF_APPLICATION_MAXIMUM_THEME_PACKAGES + 1U
                                    ? count
                                    : GF_APPLICATION_MAXIMUM_THEME_PACKAGES + 1U;
+    // Stepped by the first package's struct_size (N14).
+    std::uint32_t stride = 0U;
+    const gf_status checked = check_array((*config).packages, kept, theme_package_size_1_0, create_slot, stride);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
     read.packages.reserve(static_cast<std::size_t>(kept));
     for (std::uint64_t index = 0U; index < kept; ++index) {
         ThemePackage package;
-        const gf_status package_read = read_theme_package(&(*config).packages[index], create_slot, package);
+        const gf_status package_read =
+            read_theme_package(&element_at((*config).packages, stride, index), create_slot, package);
         if (package_read != GF_STATUS_OK) {
             return package_read;
         }

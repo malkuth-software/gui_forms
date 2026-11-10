@@ -4,6 +4,7 @@
 #include "abi_values.hpp"
 
 #include "../registry/abi_registry.hpp"
+#include "../tables/abi_records.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -136,10 +137,18 @@ gf_status read_collection(const gf_value& value, SlotIdentity slot, BindingValue
     if (value.elements == nullptr && value.element_count != 0U) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a collection with elements needs its elements array");
     }
+    // The elements are stepped by the first one's struct_size, not this
+    // library's sizeof (N14): a caller built against another minor passes
+    // its own size.
+    std::uint32_t stride = 0U;
+    const gf_status checked = check_array(value.elements, value.element_count, value_size_1_0, slot, stride);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
     std::vector<BindingValue> items;
     items.reserve(static_cast<std::size_t>(value.element_count));
     for (std::uint64_t index = 0U; index < value.element_count; ++index) {
-        const gf_value& element = value.elements[index];
+        const gf_value& element = element_at(value.elements, stride, index);
         if (element.struct_size >= value_size_1_0 && element.kind == GF_VALUE_KIND_COLLECTION) {
             return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a collection's element is not a collection");
         }

@@ -18,10 +18,12 @@ constexpr SlotIdentity lend_slot{GF_TABLE_EVENTS, 0U};
 
 constexpr std::string_view single_name = "value";
 
-// The frames whose callback is running, innermost last. UI thread only:
-// every forwarder and every events slot runs there.
+// The frames whose callback is running on this thread, innermost last. One
+// stack per thread (N9): since 1.1 a sub-surface's thread raises its own
+// controls' events and calls the events slots for them, beside the UI
+// thread.
 std::vector<EventFields*>& active_frames() {
-    static std::vector<EventFields*> frames;
+    thread_local std::vector<EventFields*> frames;
     return frames;
 }
 
