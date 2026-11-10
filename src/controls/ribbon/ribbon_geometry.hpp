@@ -42,6 +42,10 @@ inline constexpr double default_combo_box_width = 110.0;
 inline constexpr double default_numeric_width = 64.0;
 inline constexpr double default_text_box_width = 100.0;
 inline constexpr double check_box_mark_width = 24.0;
+// Where a hosted CheckBox's content starts: after its 15-unit well (30 for
+// the toggle) and a unit either side (check_box.cpp, check_box_well).
+inline constexpr double check_box_text_start = 17.0;
+inline constexpr double check_box_toggle_text_start = 32.0;
 inline constexpr double maximum_hosted_width = 1024.0;
 // The gap between a labelled field's label and its field, when the label
 // sits at the field's left.

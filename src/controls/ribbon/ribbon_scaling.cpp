@@ -306,7 +306,7 @@ const Ribbon::TabScaling& Ribbon::tab_scaling(std::size_t tab) const {
     return scaling;
 }
 
-Ribbon::CommandMetrics Ribbon::measure_command(const RibbonCommandSpec& command) const {
+Ribbon::CommandMetrics Ribbon::measure_command(const RibbonCommandSpec& command, const CheckBox* box) const {
     const double scale = effective_text_scale();
     CommandMetrics metrics;
     if (command.kind == RibbonCommandKind::gallery) return metrics;
@@ -321,7 +321,25 @@ Ribbon::CommandMetrics Ribbon::measure_command(const RibbonCommandSpec& command)
         return metrics;
     }
     if (hosted(command.kind)) {
-        const double field = hosted_field_width(command);
+        double field = hosted_field_width(command);
+        if (command.width <= 0.0 && box != nullptr) {
+            // As the CheckBox lays itself out: its well (1 + 15 + 1 units, or
+            // 1 + 30 + 1 for the toggle, unscaled), then its content padding
+            // around the label, which it draws in its own text font (a theme
+            // may size that apart from the ribbon's labels).
+            const std::string shown = command_text(command);
+            double box_label = 0.0;
+            if (!shown.empty()) {
+                ++counters_.text_measurements;
+                const FontSpec box_font = (*box).text_font((*box).font.read());
+                const ResolvedTextLayout metrics_of_label = resolve_text_layout_utf8(shown, box_font);
+                box_label = std::ceil(metrics_of_label.logical_size.width);
+            }
+            const bool toggle = (*box).indicator_style.read() == ChoiceIndicatorStyle::toggle;
+            const double well = toggle ? check_box_toggle_text_start : check_box_text_start;
+            const Insets padding = (*box).content_padding.read();
+            field = well + padding.left + padding.right + box_label;
+        }
         metrics.large_width = field;
         metrics.small_width = field;
         // A labelled field: its label at its left (small) or above it (large).
@@ -399,7 +417,12 @@ void Ribbon::measure_tab(std::size_t tab, TabScaling& scaling) const {
         std::vector<CommandMetrics>& commands = scaling.commands[group];
         commands.clear();
         commands.reserve(spec.commands.size());
-        for (const RibbonCommandSpec& command : spec.commands) commands.push_back(measure_command(command));
+        const std::vector<CommandRecord>& records = records_[tab][group];
+        for (std::size_t index = 0; index < spec.commands.size(); ++index) {
+            const bool box = spec.commands[index].kind == RibbonCommandKind::check_box && index < records.size();
+            const CheckBox* const hosted = box ? static_cast<const CheckBox*>(records[index].hosted.get()) : nullptr;
+            commands.push_back(measure_command(spec.commands[index], hosted));
+        }
         const double caption = text_width(spec.caption);
         double row = caption + caption_padding * scale;
         if (spec.dialog_launcher) row += (launcher_size + launcher_gap) * scale;
