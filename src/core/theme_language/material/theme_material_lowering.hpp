@@ -106,6 +106,10 @@ enum class MaterialProperty : std::uint8_t {
     taper,
     flare,
     edge_shadow,
+    // The dial parts' geometry and the scrim (row 2.5; owner option (a)).
+    needle_shape,
+    scrim_color,
+    stroke_width,
 };
 
 // An image resource the theme's manifest lists, bound to the engine's image

@@ -90,6 +90,20 @@ enum class PartRole : std::uint8_t {
     annotation,
     color_scale,
     series,
+    // The dial roles (row 2.5; owner option (a), 2026-11-09), appended.
+    // `arc` is a stroked arc of the circle inscribed in the part's bounds,
+    // from PartPaint::arc's start through its sweep: a gauge's track, its
+    // value and its alarm segments. `needle` is a pointer from the centre
+    // of the part's bounds out to the inscribed circle at
+    // PartPaint::arc's start: a gauge's or a dial's pointer. `beak` is a
+    // callout's pointer, a triangle in the part's bounds whose tip lies at
+    // the middle of the edge its arrow mark names (towards the target),
+    // drawn in the face's colours. `scrim` dims what lies behind an
+    // in-window modal layer, over the part's bounds.
+    arc,
+    needle,
+    beak,
+    scrim,
     count,
 };
 

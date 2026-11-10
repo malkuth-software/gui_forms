@@ -200,19 +200,29 @@ void test_gauges_in_window() {
     window.perform_layout();
 
     const LinearGauge::Parts bar = (*linear).parts();
-    require(bar.plot.present && bar.trace.present && bar.indicator.present && bar.caption.present,
-            "a bar gauge publishes its field, reading, alarm mark and value");
+    require(bar.plot.present && bar.trace.present && bar.alarm_zone.present && bar.caption.present,
+            "a bar gauge publishes its field, reading, alarm segment and value");
+    require(near(bar.alarm_zone.bounds.x, bar.plot.bounds.x + std::round(bar.plot.bounds.width * 0.8)) &&
+                near(bar.alarm_zone.bounds.x + bar.alarm_zone.bounds.width, bar.plot.bounds.x + bar.plot.bounds.width),
+            "the high alarm segment runs from the limit to the maximum");
     require(near(bar.trace.bounds.width, std::round(bar.plot.bounds.width * 0.5)),
             "the reading fills half the field at half the range");
     const LinearGauge::Parts column = (*vertical).parts();
     require(column.trace.present && near(column.trace.bounds.y + column.trace.bounds.height,
                                          column.plot.bounds.y + column.plot.bounds.height),
             "a vertical gauge fills from the bottom");
-    require(!column.indicator.present, "without limits no alarm mark is published");
+    require(!column.alarm_zone.present, "without limits no alarm segment is published");
     const RadialGauge::Parts dial = (*radial).parts();
-    require(dial.plot.present && dial.trace.present && dial.track.present && dial.indicator.present &&
+    require(dial.plot.present && dial.value_arc.present && dial.track.present && dial.needle.present &&
                 dial.caption.present,
-            "a radial gauge publishes its face, lit and unlit scale, value dot and value");
+            "a radial gauge publishes its face, scale arc, value arc, needle and value");
+    require(!dial.alarm_arc.present, "without limits no alarm segment is published");
+    (*radial).high_alarm = std::optional<double>{90.0};
+    window.perform_layout();
+    require((*radial).parts().alarm_arc.present, "a high limit draws an alarm segment");
+    (*radial).value = 0.0;
+    window.perform_layout();
+    require(!(*radial).parts().value_arc.present, "at the minimum no value arc is lit");
     (*radial).show_value = false;
     window.perform_layout();
     require(!(*radial).parts().caption.present, "show_value clear hides the value");
@@ -260,11 +270,15 @@ void test_dial() {
     require(!(*dial).on_semantic_action(SemanticAction::set_value, "x"), "a set value that is no number is refused");
     window.perform_layout();
     const Dial::Parts parts = (*dial).parts();
-    require(parts.track.present && parts.fill.present && parts.thumb.present && parts.indicator.present,
-            "the dial publishes its scale, lit arc, knob and pointer");
+    require(parts.track.present && parts.value_arc.present && parts.thumb.present && parts.needle.present,
+            "the dial publishes its scale arc, lit arc, knob and needle");
+    require(near(parts.track.bounds.width, parts.track.bounds.height) &&
+                near(parts.track.bounds.x + parts.track.bounds.width * 0.5,
+                     parts.thumb.bounds.x + parts.thumb.bounds.width * 0.5),
+            "the scale arc is inscribed in a square about the knob");
     (*dial).show_arc = false;
     window.perform_layout();
-    require(!(*dial).parts().fill.present, "without show_arc nothing is lit");
+    require(!(*dial).parts().value_arc.present, "without show_arc nothing is lit");
     require(!recorder.seen.empty(), "changes raise value_changed");
 }
 
@@ -410,6 +424,15 @@ void test_callout() {
     const Rect card = (*callout).absolute_bounds();
     require(card.y >= 20.0 + 28.0 && card.x >= 0.0 && card.width > 0.0 && card.height > 0.0,
             "the callout opens below its target");
+    const Callout::Parts pointed = (*callout).parts();
+    require(pointed.beak.present && pointed.face.present && near(pointed.beak.bounds.y, 0.0) &&
+                pointed.face.bounds.y > 0.0,
+            "below its target, the beak lies above the card");
+    const Rect aimed = (*target).absolute_bounds();
+    const double beak_centre = card.x + pointed.beak.bounds.x + pointed.beak.bounds.width * 0.5;
+    require(std::abs(beak_centre - (aimed.x + aimed.width * 0.5)) <= 0.5 ||
+                pointed.beak.bounds.x <= 12.0 + 0.5,
+            "the beak points at the target's centre, clear of the card's corner");
     const SemanticDescriptor semantics = (*callout).semantic_descriptor();
     require(semantics.role == SemanticRole::dialog && !semantics.modal && semantics.name == "Try the new view",
             "a callout is a non-modal dialog named by its title");
@@ -463,6 +486,9 @@ void test_modal_layer() {
     const Rect placed = (*content).absolute_bounds();
     require(near(placed.x, 150.0) && near(placed.y, 140.0), "the content is centred");
     require((*layer).parts().shadow.present, "the content casts the shadow");
+    require((*layer).parts().scrim.present && near((*layer).parts().scrim.bounds.width, 500.0) &&
+                near((*layer).parts().scrim.bounds.height, 400.0),
+            "the scrim covers the window behind");
     require(window.focused_control() == inside, "focus moves into the content");
     require(!window.request_focus(behind), "focus cannot leave the layer");
     int clicks = 0;
@@ -586,6 +612,35 @@ void test_about_dialog() {
 
 } // namespace
 
+// -- the dial and overlay parts in the stock themes ------------------------------
+
+void test_dial_parts_in_the_stock_themes() {
+    require(part_role_name(PartRole::arc) == "arc" && part_role_name(PartRole::needle) == "needle" &&
+                part_role_name(PartRole::beak) == "beak" && part_role_name(PartRole::scrim) == "scrim",
+            "the dial and overlay roles are registered");
+    const std::shared_ptr<const Theme> house = gui_forms_theme();
+    ControlVisualContext resting{};
+    const ControlVisualRecipe& gauge = (*house).resolve(ControlVisualRole::progress, resting);
+    require(near(gauge.stroke_width, 6.0) && gauge.needle_shape == NeedleShape::tapered,
+            "gui-forms draws 6-unit arcs and a tapered needle");
+    const ControlVisualRecipe& window_recipe = (*house).resolve(ControlVisualRole::window, resting);
+    require(window_recipe.scrim.alpha == 102U, "gui-forms dims behind a modal layer at 40 %");
+    ControlVisualContext dark{};
+    dark.dark = true;
+    const ControlVisualRecipe& dark_window = (*house).resolve(ControlVisualRole::window, dark);
+    require(dark_window.scrim.red == 0U && dark_window.scrim.alpha > window_recipe.scrim.alpha,
+            "the dark variant dims deeper, in black");
+    ControlVisualContext contrast{};
+    contrast.high_contrast = true;
+    const ControlVisualRecipe& forced = (*house).resolve(ControlVisualRole::progress, contrast);
+    require(forced.needle_shape == NeedleShape::line && forced.stroke_width >= 2.0 && forced.scrim.alpha == 255U,
+            "high contrast draws a line needle, a thick arc and an opaque scrim");
+    const std::shared_ptr<const Theme> professional = Theme::create(windows_professional_theme_definition());
+    const ControlVisualRecipe& thin = (*professional).resolve(ControlVisualRole::progress, resting);
+    require(near(thin.stroke_width, 3.0) && thin.needle_shape == NeedleShape::line && thin.scrim.alpha == 77U,
+            "windows-professional draws thin arcs, a line needle and a light scrim");
+}
+
 int main() {
     test_seven_segment_patterns();
     test_seven_segment_in_window();
@@ -598,6 +653,7 @@ int main() {
     test_modal_layer();
     test_lookup_combo_box();
     test_about_dialog();
+    test_dial_parts_in_the_stock_themes();
     std::cout << "final control tests passed\n";
     return EXIT_SUCCESS;
 }

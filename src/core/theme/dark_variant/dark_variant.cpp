@@ -434,6 +434,11 @@ ControlVisualRecipe dark_recipe(const ControlVisualRecipe& light, ControlVisualR
     }
     result.focus_ring = detail::dark_colour(light.focus_ring, DarkColourClass::cue);
     result.default_ring = detail::dark_colour(light.default_ring, DarkColourClass::cue);
+    // A scrim dims a dark ground: black, deeper than the light theme's, so
+    // that the content above it still stands apart (row 2.5; owner option
+    // (a)). The dial geometry is the light theme's.
+    const std::uint8_t deeper = static_cast<std::uint8_t>(std::min(255, static_cast<int>(light.scrim.alpha) + 64));
+    result.scrim = Color::rgba(0, 0, 0, deeper);
     if (result.text_shadow) {
         ControlTextShadow& shadow = *result.text_shadow;
         shadow.color = detail::dark_colour(shadow.color, relief_class(shadow.color, plan));

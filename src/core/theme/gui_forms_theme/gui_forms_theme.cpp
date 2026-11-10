@@ -45,6 +45,16 @@ constexpr std::string_view floor_sheet = R"css(/* gui-forms: the default theme's
   muted-color: #4a545f;
   outline-color: #1b2733;
   default-outline: 1px #214b81;
+  scrim-color: rgb(27 39 51 / 40%);
+}
+
+/* The dial parts (row 2.5; owner option (a)): a gauge's or dial's arcs are
+   6 units thick, its needle a blade 4 units wide at the hub. The track arc
+   is the progress border's colour, the value arc the selected fill's, an
+   alarm segment the invalid or pending border's. */
+:family(progress) {
+  stroke-width: 6px;
+  needle-shape: tapered;
 }
 
 /* Flat stock (windows, panels, cards and tooltips): one solid face with a
@@ -600,6 +610,13 @@ status-strip::part(face) {
   background: #eef3fa;
   border: none;
   box-shadow: inset 0 1px 0 #c3d3e8;
+}
+
+/* A knob's pointer is a plain line across its face, thinner than a
+   gauge's needle (row 2.5; owner option (a)). */
+dial::part(needle) {
+  needle-shape: line;
+  stroke-width: 3px;
 }
 )css";
 

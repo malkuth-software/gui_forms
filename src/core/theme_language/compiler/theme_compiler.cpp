@@ -2919,7 +2919,8 @@ bool CompilePass::read_backdrop_step(std::size_t function, BackdropStepKind kind
 // is dropped with a warning, since the recipe's fields are the control's;
 // the text colours (`color`, `muted-color`, `glyph-color`,
 // `fill-text-color`) are admitted on a named part, whose text and marks
-// they colour.
+// they colour, and so are the dial and scrim properties (`stroke-width`,
+// `needle-shape`, `scrim-color`), the named part's own geometry.
 bool CompilePass::lower_material(const SyntaxNode& node) {
     // folded_ holds the property's name, which classify() found listed.
     const MaterialProperty property = *material_property(folded_);
@@ -2942,7 +2943,12 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
         return true;
     }
     // A named part's font is its own too (Theme::resolve_font with the part).
-    const bool on_named_part = (text_colour || part_field || font_property_of(property)) && named_part;
+    const bool part_geometry = property == MaterialProperty::stroke_width ||
+                               property == MaterialProperty::needle_shape ||
+                               property == MaterialProperty::scrim_color;
+    // A named part's font is its own too (Theme::resolve_font with the part).
+    const bool on_named_part =
+        (text_colour || part_field || part_geometry || font_property_of(property)) && named_part;
     if (recipe && rule_selects_part() && !on_named_part) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_ + " on a part or a role");
         return true;

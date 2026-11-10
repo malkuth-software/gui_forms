@@ -20,28 +20,27 @@ namespace {
 // The scale: from -135 to +135 degrees about twelve o'clock.
 constexpr double sweep_start = -0.75 * std::numbers::pi;
 constexpr double sweep = 1.5 * std::numbers::pi;
-// The scale dots drawn without scale marks to space them; with marks, one
-// dot per mark, at most this many.
-constexpr std::size_t plain_dots = 33U;
-constexpr std::size_t most_dots = 101U;
-// A scale dot is this share of the face's side; the knob this share.
-constexpr double dot_share = 0.07;
+// At most this many scale marks, one per tick_frequency.
+constexpr std::size_t most_marks = 101U;
+// A scale mark is this share of the face's side; the knob this share; the
+// needle stops this share of the knob's side short of its edge.
+constexpr double mark_share = 0.035;
 constexpr double knob_share = 0.56;
-constexpr double pointer_share = 0.16;
+constexpr double needle_inset_share = 0.1;
 
 constexpr std::array<PartField<Dial::Parts>, 7> dial_part_fields{{
     {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
      .member = &Dial::Parts::region},
-    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}},
+    {.declaration = {.name = "track", .role = PartRole::arc, .composed_from = {}},
      .member = &Dial::Parts::track},
-    {.declaration = {.name = "fill", .role = PartRole::fill, .composed_from = {}},
-     .member = &Dial::Parts::fill},
+    {.declaration = {.name = "value_arc", .role = PartRole::arc, .composed_from = {}},
+     .member = &Dial::Parts::value_arc},
     {.declaration = {.name = "graticule", .role = PartRole::graticule, .composed_from = {}},
      .member = &Dial::Parts::graticule},
     {.declaration = {.name = "thumb", .role = PartRole::thumb, .composed_from = {}},
      .member = &Dial::Parts::thumb},
-    {.declaration = {.name = "indicator", .role = PartRole::indicator, .composed_from = {}},
-     .member = &Dial::Parts::indicator},
+    {.declaration = {.name = "needle", .role = PartRole::needle, .composed_from = {}},
+     .member = &Dial::Parts::needle},
     {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
      .member = &Dial::Parts::focus},
 }};
@@ -72,6 +71,12 @@ Rect joined(Rect left, Rect right) noexcept {
     return result;
 }
 
+// The square of side twice `half` centred on `centre`.
+Rect centred_square(Point centre, double half) noexcept {
+    const Rect square{centre.x - half, centre.y - half, half * 2.0, half * 2.0};
+    return square;
+}
+
 } // namespace
 
 Dial::Dial(StableId stable_id) : RangeControl(std::move(stable_id)) {
@@ -97,15 +102,16 @@ Dial::Face Dial::face() const noexcept {
     const double side = std::floor(std::min(bounds.width, bounds.height));
     if (!(side > 0.0)) return placed;
     placed.centre = Point{bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.5};
-    placed.dot = std::max(2.0, std::round(side * dot_share));
-    placed.mark = std::max(1.0, std::round(placed.dot * 0.5));
+    placed.mark = std::max(2.0, std::round(side * mark_share));
+    // The marks ring the outside, a mark in from the edge; the arc lies
+    // inside them, a mark and a half further in, around the knob.
     placed.mark_radius = std::max(0.0, side * 0.5 - placed.mark);
-    placed.radius = std::max(0.0, placed.mark_radius - placed.mark - placed.dot * 0.75);
+    placed.arc = centred_square(placed.centre, std::max(0.0, placed.mark_radius - placed.mark * 1.5));
     placed.knob = std::floor(side * knob_share);
     return placed;
 }
 
-Rect Dial::dot_at(Point centre, double radius, double at, double side) noexcept {
+Rect Dial::mark_at(Point centre, double radius, double at, double side) noexcept {
     // Clockwise from twelve o'clock, in y-down coordinates.
     const double angle = sweep_start + sweep * at;
     const double x = centre.x + radius * std::sin(angle);
@@ -119,6 +125,13 @@ Rect Dial::knob_bounds() const noexcept {
     const Rect knob{placed.centre.x - placed.knob * 0.5, placed.centre.y - placed.knob * 0.5, placed.knob,
                     placed.knob};
     return knob;
+}
+
+Rect Dial::needle_bounds() const noexcept {
+    const Face placed = face();
+    const double half = std::max(0.0, placed.knob * (0.5 - needle_inset_share));
+    const Rect needle = centred_square(placed.centre, half);
+    return needle;
 }
 
 double Dial::value_from_window_point(Point point, double previous) const noexcept {
@@ -162,38 +175,37 @@ Size Dial::measure(Size available) {
 
 void Dial::on_paint(Painter& painter, Rect) {
     const Face placed = face();
-    if (!(placed.radius > 0.0)) return;
+    if (placed.arc.empty()) return;
     const AnatomyStateSet states = anatomy_states();
     AnatomyStateSet lit_states = states;
     lit_states.insert(AnatomyState::selected);
+    const double reading = ratio();
 
-    // One dot per scale mark when marks are drawn, else a plain run.
+    PartPaint track{.role = PartRole::arc, .bounds = placed.arc, .states = states,
+                    .family = ControlVisualRole::progress};
+    track.arc = PartArc{.start = sweep_start, .sweep = sweep};
+    track.key = PartKey{"track", {}, {}};
+    paint_part(painter, *this, track);
+    if (show_arc.read() && reading > 0.0) {
+        PartPaint lit{.role = PartRole::arc, .bounds = placed.arc, .states = lit_states,
+                      .family = ControlVisualRole::progress};
+        lit.arc = PartArc{.start = sweep_start, .sweep = sweep * reading};
+        lit.key = PartKey{"value_arc", {}, {}};
+        paint_part(painter, *this, lit);
+    }
+
+    // One mark per tick_frequency, at most most_marks.
     const double frequency = tick_frequency.read();
     const double span = maximum.read() - minimum.read();
-    std::size_t dots = plain_dots;
     if (frequency > 0.0 && span > 0.0) {
         const double requested = std::floor(span / frequency) + 1.0;
-        dots = static_cast<std::size_t>(std::clamp(requested, 2.0, static_cast<double>(most_dots)));
-    }
-    const double reading = ratio();
-    PartPaint dot{.states = states, .family = ControlVisualRole::progress};
-    dot.corner_radius = placed.dot * 0.5;
-    for (std::size_t index = 0U; index < dots; ++index) {
-        const double at = static_cast<double>(index) / static_cast<double>(dots - 1U);
-        const bool is_lit = show_arc.read() && at <= reading + 1e-9;
-        dot.role = is_lit ? PartRole::fill : PartRole::track;
-        dot.key = PartKey{is_lit ? std::string_view{"fill"} : std::string_view{"track"}, {}, {}};
-        dot.states = is_lit ? lit_states : states;
-        dot.bounds = dot_at(placed.centre, placed.radius, at, placed.dot);
-        paint_part(painter, *this, dot);
-    }
-
-    if (frequency > 0.0) {
+        const std::size_t marks = static_cast<std::size_t>(std::clamp(requested, 2.0, static_cast<double>(most_marks)));
         PartPaint mark{.role = PartRole::graticule, .states = states, .family = ControlVisualRole::progress};
         mark.corner_radius = placed.mark * 0.5;
-        for (std::size_t index = 0U; index < dots; ++index) {
-            const double at = static_cast<double>(index) / static_cast<double>(dots - 1U);
-            mark.bounds = dot_at(placed.centre, placed.mark_radius, at, placed.mark);
+        mark.key = PartKey{"graticule", {}, {}};
+        for (std::size_t index = 0U; index < marks; ++index) {
+            const double at = static_cast<double>(index) / static_cast<double>(marks - 1U);
+            mark.bounds = mark_at(placed.centre, placed.mark_radius, at, placed.mark);
             paint_part(painter, *this, mark);
         }
     }
@@ -204,15 +216,11 @@ void Dial::on_paint(Painter& painter, Rect) {
     thumb.key = PartKey{"thumb", {}, {}};
     paint_part(painter, *this, thumb);
 
-    const double pointer_side = std::max(2.0, std::round(knob.width * pointer_share));
-    const double pointer_radius = std::max(0.0, knob.width * 0.5 - pointer_side);
-    PartPaint pointer{.role = PartRole::indicator,
-                      .bounds = dot_at(placed.centre, pointer_radius, reading, pointer_side),
-                      .states = lit_states,
-                      .family = ControlVisualRole::progress};
-    pointer.corner_radius = pointer_side * 0.5;
-    pointer.key = PartKey{"indicator", {}, {}};
-    paint_part(painter, *this, pointer);
+    PartPaint needle{.role = PartRole::needle, .bounds = needle_bounds(), .states = lit_states,
+                     .family = ControlVisualRole::progress};
+    needle.arc = PartArc{.start = pointer_angle(), .sweep = 0.0};
+    needle.key = PartKey{"needle", {}, {}};
+    paint_part(painter, *this, needle);
 
     if (focused_) {
         PartPaint focus = thumb;
@@ -346,32 +354,22 @@ void Dial::publish_part_geometry(std::span<PartGeometry> geometry) const {
     const Face placed = face();
     Parts record;
     record.region = PartGeometry::from_bounds(local_bounds());
-    if (placed.radius > 0.0) {
-        Rect track{};
-        Rect fill{};
-        const double reading = ratio();
-        for (std::size_t index = 0U; index < plain_dots; ++index) {
-            const double at = static_cast<double>(index) / static_cast<double>(plain_dots - 1U);
-            const Rect square = dot_at(placed.centre, placed.radius, at, placed.dot);
-            track = joined(track, square);
-            if (show_arc.read() && at <= reading + 1e-9) fill = joined(fill, square);
-        }
-        record.track = PartGeometry::from_bounds(track);
-        record.fill = PartGeometry::from_bounds(fill);
+    if (!placed.arc.empty()) {
+        record.track = PartGeometry::from_bounds(placed.arc);
+        if (show_arc.read() && ratio() > 0.0) record.value_arc = PartGeometry::from_bounds(placed.arc);
         if (tick_frequency.read() > 0.0) {
-            const Rect low = dot_at(placed.centre, placed.mark_radius, 0.0, placed.mark);
-            const Rect top = dot_at(placed.centre, placed.mark_radius, 0.5, placed.mark);
-            const Rect high = dot_at(placed.centre, placed.mark_radius, 1.0, placed.mark);
-            const Rect left_side = dot_at(placed.centre, placed.mark_radius, 1.0 / 6.0, placed.mark);
-            const Rect right_side = dot_at(placed.centre, placed.mark_radius, 5.0 / 6.0, placed.mark);
+            // The marks' extent: the ends, twelve o'clock and the sides.
+            const Rect low = mark_at(placed.centre, placed.mark_radius, 0.0, placed.mark);
+            const Rect top = mark_at(placed.centre, placed.mark_radius, 0.5, placed.mark);
+            const Rect high = mark_at(placed.centre, placed.mark_radius, 1.0, placed.mark);
+            const Rect left_side = mark_at(placed.centre, placed.mark_radius, 1.0 / 6.0, placed.mark);
+            const Rect right_side = mark_at(placed.centre, placed.mark_radius, 5.0 / 6.0, placed.mark);
             record.graticule = PartGeometry::from_bounds(joined(joined(joined(low, top), joined(high, left_side)),
                                                                 right_side));
         }
         const Rect knob = knob_bounds();
         record.thumb = PartGeometry::from_bounds(knob);
-        const double pointer_side = std::max(2.0, std::round(knob.width * pointer_share));
-        const double pointer_radius = std::max(0.0, knob.width * 0.5 - pointer_side);
-        record.indicator = PartGeometry::from_bounds(dot_at(placed.centre, pointer_radius, reading, pointer_side));
+        record.needle = PartGeometry::from_bounds(needle_bounds());
         record.focus = PartGeometry::from_bounds(knob);
     }
     write_parts(anatomy(), dial_part_fields, record, geometry);
