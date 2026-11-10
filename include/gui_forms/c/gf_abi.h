@@ -765,10 +765,16 @@ typedef struct gf_dispatch_table {
 typedef uint32_t gf_run_flags;
 #define GF_RUN_FLAGS_NONE 0u
 
-/* An interaction: payload spells the handler's argument types ("ButtonBase",
- * "std::size_t, CheckState"; empty for none); mutable_payload is 1 when a
- * handler may change an argument, as a cancellable validation's. The
- * schema table lists a type's in it, and the windows table a window's. */
+/* An interaction: payload lists the event fields its callback receives
+ * (Event fields above), each as "name: kind" with the schema's kind words,
+ * separated by ", " ("value: boolean"; "value_1: unsigned_integer, value_2:
+ * enumeration"; "cancel: boolean, row_id: text"), " optional" after an
+ * OPTIONAL field's kind; empty for none (a notification, or a reference to
+ * the sender). Since 1.2 it is in this vocabulary; 1.1 spelled the C++
+ * argument types. manifests/abi/interaction_fields.json maps the C++
+ * spellings to it. mutable_payload is 1 when a handler may change an
+ * argument, as a cancellable validation's. The schema table lists a type's
+ * in it, and the windows table a window's. */
 typedef struct gf_schema_interaction {
     uint32_t struct_size;
     uint32_t mutable_payload;

@@ -291,6 +291,7 @@ if(GUI_FORMS_BUILD_TESTS)
     target_compile_features(gui_forms_abi_schema_export PRIVATE cxx_std_20)
     add_test(NAME gui_forms_abi_schema_export
         COMMAND gui_forms_abi_schema_export ${CMAKE_CURRENT_SOURCE_DIR}/manifests/control-schema.json
+            ${CMAKE_CURRENT_SOURCE_DIR}/manifests/abi/interaction_fields.json
             ${CMAKE_CURRENT_BINARY_DIR}/gf_abi/control-schema.abi.json)
     # The stage C4 gate: a theme loaded through the ABI paints a fixture as
     # the C++ path does.
