@@ -431,6 +431,51 @@ void test_form_root() {
             "form root: no object for the form, the command kept");
 }
 
+// The button properties written bare, as the object writes its stable ID
+// and as the guides write them; a bare name naming no object is still
+// refused, and spaced names are not one identity.
+void test_form_root_bare_buttons() {
+    const FormSchema schema = sample_schema();
+    const std::string_view document = "form settings.dialog {\n"
+                                      "  accept-button: settings.ok;\n"
+                                      "  cancel-button: settings.cancel-2;\n"
+                                      "  user-control settings.body {\n"
+                                      "    button settings.ok { text: \"OK\"; }\n"
+                                      "    button settings.cancel-2 { text: \"Cancel\"; }\n"
+                                      "  }\n"
+                                      "}\n";
+    Workspace workspace{};
+    LoadedForm loaded{};
+    const FormLoadOutcome outcome = load(workspace, document, schema, loaded);
+    print_diagnostics(workspace);
+    require(outcome == FormLoadOutcome::loaded, "bare buttons: loaded");
+    require(loaded.window.has_value() && (*loaded.window).accept_button == "settings.ok" &&
+                (*loaded.window).cancel_button == "settings.cancel-2",
+            "bare buttons: the window's buttons");
+
+    const std::string_view refused_document = "form app.window {\n"
+                                              "  accept-button: app.missing;\n"
+                                              "  cancel-button: app . b;\n"
+                                              "  user-control app.b { }\n"
+                                              "}\n";
+    Workspace refused{};
+    refused.text = std::string(refused_document);
+    refused.source.file = "test.form";
+    refused.source.text = refused.text;
+    static_cast<void>(tokenize_theme_sheet(refused.source, refused.tokens, refused.lines, refused.diagnostics));
+    static_cast<void>(parse_theme_sheet(refused.source, refused.tokens, refused.lines, refused.tree,
+                                        refused.diagnostics, ThemeSheetForm::form_document));
+    const FormModelOutcome built = build_form_model(refused.source, refused.tokens, refused.lines, refused.tree,
+                                                    schema, refused.model, refused.diagnostics);
+    std::size_t invalid = 0U;
+    for (const ThemeDiagnostic& record : refused.diagnostics.records()) {
+        if (record.code == DiagnosticCode::form_value_invalid) ++invalid;
+    }
+    if (invalid != 2U) print_diagnostics(refused);
+    require(built == FormModelOutcome::refused && invalid == 2U,
+            "bare buttons: a missing and a spaced name refused");
+}
+
 // What the model refuses of a form root: a second control, a form below
 // the root, and a button property naming no object.
 void test_form_root_defects() {
@@ -633,6 +678,7 @@ int main() {
     test_refusals();
     test_form_root();
     test_form_root_defects();
+    test_form_root_bare_buttons();
     test_spans();
     test_table_placement();
     test_value_bar();
