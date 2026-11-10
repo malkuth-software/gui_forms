@@ -11,6 +11,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace gui_forms {
 
@@ -139,6 +140,7 @@ public:
     [[nodiscard]] Rect overrange_bounds() const noexcept;
 
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
+    void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     // The anatomy, as dot members (see Control::Parts).
     struct Parts final {
         PartGeometry region;

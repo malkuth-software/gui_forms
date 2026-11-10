@@ -227,6 +227,10 @@ gui_forms::Panel
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
+   .. cpp:function:: void on_attached_to_window() override
+
+      A panel paints on the backplane (under the window's controls) while every ancestor below the root does too; under a control that paints on the control plane (a custom control hosting it, as a docking pane hosts its content) it paints on the control plane, so it shows over that ancestor as a WinForms child does. Decided at attach.
+
    .. cpp:function:: Insets visual_outsets() const noexcept override
 
    .. cpp:function:: bool paint_depends_on_size() const noexcept override

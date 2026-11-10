@@ -2131,6 +2131,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         # windows (tools/menu_probe.py drives it).
         add_executable(gui_forms_menu_probe_windows
             src/host/windows/menu_probe_main.cpp
+            src/runtime/application/application.cpp
         )
         target_link_libraries(gui_forms_menu_probe_windows PRIVATE
             gui_forms_gallery_model

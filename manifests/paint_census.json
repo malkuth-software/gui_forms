@@ -33,6 +33,7 @@
     "fill_rects_each",
     "fill_rounded_rect",
     "fill_rounded_rect_corners",
+    "opaque_live_surface_cover",
     "stroke_polyline",
     "stroke_rect",
     "stroke_rounded_rect",
@@ -41,6 +42,7 @@
   ],
   "exempt": {
     "basic/basic_control_rendering.cpp": "the authored-recipe path: paint_theme_cues paints the focus and default cues of a control's own override recipes (visual_recipes_override), which the theme engine does not draw (owner decision, 2026-11-03)",
+    "button_base/button_base.cpp": "the authored-colour path: paint_flat_button paints FlatStyle.Flat from the control's own back and fore colours or its style override, which the theme engine does not draw (as basic_control_rendering's authored recipes; ruling to confirm)",
     "connected_controls/connected_controls.cpp": "the authored-recipe path: the public paint_connected_surface_material paints an application's own recipe, which the theme engine does not draw (owner decision, 2026-11-03)",
     "drawing_surface/drawing_surface.cpp": "draws the application's own drawing (DrawingSurface), not chrome",
     "easing_preview/easing_preview.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
@@ -56,8 +58,8 @@
   },
   "totals": {
     "exempt": {
-      "files": 13,
-      "calls": 51
+      "files": 14,
+      "calls": 55
     },
     "demo": {
       "files": 2,
@@ -72,6 +74,10 @@
     "basic/basic_control_rendering.cpp": {
       "category": "exempt",
       "calls": 2
+    },
+    "button_base/button_base.cpp": {
+      "category": "exempt",
+      "calls": 4
     },
     "connected_controls/connected_controls.cpp": {
       "category": "exempt",

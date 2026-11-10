@@ -32,6 +32,8 @@ Types
      - gf_diagnostics_table, negotiated as GF_TABLE_DIAGNOSTICS.
    * - :cpp:class:`DispatchTable <gui_forms::abi::DispatchTable>`
      - gf_dispatch_table, negotiated as GF_TABLE_DISPATCH.
+   * - :cpp:class:`DockingTable <gui_forms::abi::DockingTable>`
+     - gf_docking_table, negotiated as GF_TABLE_DOCKING.
    * - :cpp:class:`Error <gui_forms::abi0::Error>`
      - Error carries the exact C ABI result code alongside a conventional C++ runtime-error message.
    * - :cpp:class:`EventsTable <gui_forms::abi::EventsTable>`
@@ -125,6 +127,16 @@ Types
    * - :cpp:class:`gf_dialog_result <gf_dialog_result>`
      -  
    * - :cpp:class:`gf_dispatch_table <gf_dispatch_table>`
+     -  
+   * - :cpp:class:`gf_dock_edit <gf_dock_edit>`
+     -  
+   * - :cpp:class:`gf_dock_location <gf_dock_location>`
+     -  
+   * - :cpp:class:`gf_dock_options <gf_dock_options>`
+     -  
+   * - :cpp:class:`gf_dock_panel <gf_dock_panel>`
+     -  
+   * - :cpp:class:`gf_docking_table <gf_docking_table>`
      -  
    * - :cpp:class:`gf_error_detail <gf_error_detail>`
      - gf_error_detail is the size-prefixed copy of the calling thread's last failure: status, table, slot and message size.
@@ -711,6 +723,67 @@ Types
    .. cpp:function:: gf_status begin_invoke(gf_object target, const gf_callback* callback) const noexcept
 
    .. cpp:function:: gf_status run_pending(uint64_t* invoked) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: DockingTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_docking_table, negotiated as GF_TABLE_DOCKING.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: DockingTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_docking_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(DockingTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static DockingTable adopt(const gf_docking_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status register_panel(gf_object workspace, const gf_dock_panel* panel) const noexcept
+
+   .. cpp:function:: gf_status apply_edit(gf_object workspace, const gf_dock_edit* edit, gf_dock_refusal* refusal) const noexcept
+
+   .. cpp:function:: gf_status locate(gf_object workspace, gf_utf8_view panel, gf_dock_location* location) const noexcept
+
+   .. cpp:function:: gf_status save_layout(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status load_layout(gf_object workspace, gf_utf8_view xml, uint64_t* diagnostic_count) const noexcept
+
+   .. cpp:function:: gf_status activate_panel(gf_object workspace, gf_utf8_view panel) const noexcept
+
+   .. cpp:function:: gf_status attach_windows(gf_object workspace) const noexcept
+
+   .. cpp:function:: gf_status document_area(gf_object workspace, uint32_t* node) const noexcept
+
+   .. cpp:function:: gf_status panel_at(gf_object workspace, uint32_t stack, uint64_t index, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status floating_sites(gf_object workspace, uint32_t* sites, uint64_t capacity, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status floating_site(gf_object workspace, uint32_t site, gf_logical_rect* frame, uint32_t* first_stack) const noexcept
+
+   .. cpp:function:: gf_status update_panel(gf_object workspace, const gf_dock_panel* panel) const noexcept
+
+   .. cpp:function:: gf_status set_panel_content(gf_object workspace, gf_utf8_view panel, gf_object content) const noexcept
+
+   .. cpp:function:: gf_status set_panel_title(gf_object workspace, gf_utf8_view panel, gf_utf8_view title) const noexcept
+
+   .. cpp:function:: gf_status set_options(gf_object workspace, const gf_dock_options* options) const noexcept
+
+   .. cpp:function:: gf_status set_floating_window_visibility(gf_object workspace, uint32_t site, gf_dock_window_visibility visibility) const noexcept
 
 .. cpp:namespace:: gui_forms::abi0
 
@@ -2061,6 +2134,157 @@ Types
    .. cpp:member:: gf_status (*begin_invoke)(gf_object target, const gf_callback* callback)
 
    .. cpp:member:: gf_status (*run_pending)(uint64_t* invoked)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_dock_edit
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_dock_edit_kind kind
+
+   .. cpp:member:: uint32_t subject_is_stack
+
+   .. cpp:member:: uint32_t subject_stack
+
+   .. cpp:member:: uint32_t target_node
+
+   .. cpp:member:: uint32_t site
+
+   .. cpp:member:: gf_dock_side side
+
+   .. cpp:member:: uint32_t index
+
+   .. cpp:member:: double ratio
+
+   .. cpp:member:: double extent
+
+   .. cpp:member:: gf_logical_rect frame
+
+   .. cpp:member:: gf_utf8_view panel
+
+   .. cpp:member:: uint64_t reserved
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_dock_location
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_dock_placement placement
+
+   .. cpp:member:: uint32_t stack
+
+   .. cpp:member:: uint32_t index
+
+   .. cpp:member:: uint32_t site
+
+   .. cpp:member:: gf_dock_node_kind stack_kind
+
+   .. cpp:member:: gf_dock_side side
+
+   .. cpp:member:: uint32_t selected
+
+   .. cpp:member:: uint32_t stack_panel_count
+
+   .. cpp:member:: uint32_t reserved
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_dock_options
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_dock_option_flags flags
+
+   .. cpp:member:: uint32_t area_background
+
+   .. cpp:member:: uint32_t reserved
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_dock_panel
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_dock_panel_kind kind
+
+   .. cpp:member:: gf_dock_allowed allowed
+
+   .. cpp:member:: uint32_t dock_as_document
+
+   .. cpp:member:: gf_dock_placement default_placement
+
+   .. cpp:member:: gf_dock_side default_side
+
+   .. cpp:member:: double default_ratio
+
+   .. cpp:member:: double default_extent
+
+   .. cpp:member:: gf_logical_rect default_frame
+
+   .. cpp:member:: gf_logical_size minimum_size
+
+   .. cpp:member:: gf_utf8_view id
+
+   .. cpp:member:: gf_utf8_view title
+
+   .. cpp:member:: gf_object content
+
+   .. cpp:member:: uint64_t reserved
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_docking_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*register_panel)(gf_object workspace, const gf_dock_panel* panel)
+
+   .. cpp:member:: gf_status (*set_panel_content)(gf_object workspace, gf_utf8_view panel, gf_object content)
+
+   .. cpp:member:: gf_status (*set_panel_title)(gf_object workspace, gf_utf8_view panel, gf_utf8_view title)
+
+   .. cpp:member:: gf_status (*apply_edit)(gf_object workspace, const gf_dock_edit* edit, gf_dock_refusal* refusal)
+
+   .. cpp:member:: gf_status (*locate)(gf_object workspace, gf_utf8_view panel, gf_dock_location* location)
+
+   .. cpp:member:: gf_status (*save_layout)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*load_layout)(gf_object workspace, gf_utf8_view xml, uint64_t* diagnostic_count)
+
+   .. cpp:member:: gf_status (*activate_panel)(gf_object workspace, gf_utf8_view panel)
+
+   .. cpp:member:: gf_status (*attach_windows)(gf_object workspace)
+
+   .. cpp:member:: gf_status (*document_area)(gf_object workspace, uint32_t* node)
+
+   .. cpp:member:: gf_status (*panel_at)(gf_object workspace, uint32_t stack, uint64_t index, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*floating_sites)(gf_object workspace, uint32_t* sites, uint64_t capacity, uint64_t* count)
+
+   .. cpp:member:: gf_status (*floating_site)(gf_object workspace, uint32_t site, gf_logical_rect* frame, uint32_t* first_stack)
+
+   .. cpp:member:: gf_status (*update_panel)(gf_object workspace, const gf_dock_panel* panel)
+
+   .. cpp:member:: gf_status (*set_options)(gf_object workspace, const gf_dock_options* options)
+
+   .. cpp:member:: gf_status (*set_floating_window_visibility)(gf_object workspace, uint32_t site, gf_dock_window_visibility visibility)
 
    .. cpp:member:: uint32_t struct_size
 

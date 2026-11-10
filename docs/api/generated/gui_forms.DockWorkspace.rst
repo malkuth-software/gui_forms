@@ -48,6 +48,14 @@ gui_forms::DockWorkspace
          restoring go through it directly; register panels through
          :cpp:func:`register_panel <gui_forms::DockWorkspace::register_panel>` so that their titles and factories are known.
 
+      **floats_shown_while_inactive** : ``bool``
+
+      **document_tabs_shown** : ``bool``
+
+      **auto_hide_opens_on_hover** : ``bool``
+
+      **area_background** : ``std::optional<Color>``
+
       **closable_documents** : ``std::vector<DockPanelId>``, read-only
          The placed documents that may close, the main site's in tree and tab
          order, then each floating site's: the documents Close All Documents
@@ -118,6 +126,9 @@ gui_forms::DockWorkspace
          the cause; when one activation changes both, the panel track is raised
          first.
 
+      **layout_changed** : ``Event<const DockLayoutChange&>``
+         The layout's change, once per applied transaction or restore, after the model is committed (DockLayout::changed, offered as the workspace's layout_changed interaction for C ABI programs, which reach the workspace but not its layout).
+
    :Inherited:
 
       It also has every member of :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
@@ -134,6 +145,8 @@ gui_forms::DockWorkspace
         - Registers a panel's descriptor with the layout and keeps its title and factory; registering places nothing.
       * - :cpp:func:`find_registration <gui_forms::DockWorkspace::find_registration>`
         - The registration of a panel, or null.
+      * - :cpp:func:`update_panel <gui_forms::DockWorkspace::update_panel>`
+        - Replaces a registered panel's descriptor (DockLayout::update_panel): its restrictions, defaults and close button.
       * - :cpp:func:`panel_title <gui_forms::DockWorkspace::panel_title>`
         - The registered title, or the identity when there is none.
       * - :cpp:func:`apply <gui_forms::DockWorkspace::apply>`
@@ -186,6 +199,8 @@ gui_forms::DockWorkspace
         - Applies :cpp:func:`dock_back_edit <gui_forms::DockWorkspace::dock_back_edit>` and activates the panel.
       * - :cpp:func:`set_panel_title <gui_forms::DockWorkspace::set_panel_title>`
         - Retitles a panel's caption, tab and navigator row; false for an unregistered panel.
+      * - :cpp:func:`set_floating_window_shown_while_inactive <gui_forms::DockWorkspace::set_floating_window_shown_while_inactive>`
+        - One floating site's override of the option above (none: the workspace's).
 
    .. seealso::
 
@@ -320,6 +335,30 @@ gui_forms::DockWorkspace
       restoring go through it directly; register panels through
       :cpp:func:`register_panel <gui_forms::DockWorkspace::register_panel>` so that their titles and factories are known.
 
+   .. cpp:function:: bool floats_shown_while_inactive() const noexcept
+
+   .. cpp:function:: void set_floats_shown_while_inactive(bool shown)
+
+      Options a program sets for the whole workspace (a DockPanel Suite DockPanel's). Each takes effect at once. Whether floating tool windows stay shown while the application is inactive, as owned forms do; off, the host's floating policy hides them (HostWindowing). A per-window override stands over it.
+
+   .. cpp:function:: bool document_tabs_shown() const noexcept
+
+   .. cpp:function:: void set_document_tabs_shown(bool shown)
+
+      Whether document stacks show their tab strip; off is a single document interface (DockPanel Suite's DocumentStyle.DockingSdi).
+
+   .. cpp:function:: bool auto_hide_opens_on_hover() const noexcept
+
+   .. cpp:function:: void set_auto_hide_opens_on_hover(bool opens)
+
+      Whether resting the pointer on an auto-hidden panel's side tab opens its flyout; off, a press opens it.
+
+   .. cpp:function:: std::optional<Color> area_background() const noexcept
+
+   .. cpp:function:: void set_area_background(std::optional<Color> colour)
+
+      The colour the sites paint their document area with in place of the theme's well (DockPanel Suite's DockBackColor); none: the theme's.
+
    .. cpp:function:: std::vector<DockPanelId> closable_documents() const
 
       The placed documents that may close, the main site's in tree and tab
@@ -412,6 +451,10 @@ gui_forms::DockWorkspace
       the cause; when one activation changes both, the panel track is raised
       first.
 
+   .. cpp:function:: Event<const DockLayoutChange&>& layout_changed() noexcept
+
+      The layout's change, once per applied transaction or restore, after the model is committed (DockLayout::changed, offered as the workspace's layout_changed interaction for C ABI programs, which reach the workspace but not its layout).
+
 
    .. rubric:: Methods
 
@@ -430,6 +473,10 @@ gui_forms::DockWorkspace
    .. cpp:function:: const DockPanelRegistration* find_registration(const DockPanelId& panel) const noexcept
 
       The registration of a panel, or null.
+
+   .. cpp:function:: bool update_panel(const DockPanelDescriptor& descriptor)
+
+      Replaces a registered panel's descriptor (DockLayout::update_panel): its restrictions, defaults and close button. The sites show the new close button at once; where the panel stands is unchanged. False for an unregistered panel.
 
    .. cpp:function:: std::string panel_title(const DockPanelId& panel) const
 
@@ -573,6 +620,10 @@ gui_forms::DockWorkspace
 
       Retitles a panel's caption, tab and navigator row; false for an
       unregistered panel.
+
+   .. cpp:function:: void set_floating_window_shown_while_inactive(DockSiteId site, std::optional<bool> shown)
+
+      One floating site's override of the option above (none: the workspace's). Kept for the site while it exists, through a window opened again for it.
 
 
    .. rubric:: Extension points

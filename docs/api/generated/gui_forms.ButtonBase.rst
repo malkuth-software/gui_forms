@@ -559,6 +559,12 @@ gui_forms::ButtonBase
 
       The face, cues and content of a themed push-style button. With a style override, ``authored`` (by default the override's face and text) colours the face and the enabled text.
 
+   .. cpp:function:: void paint_flat_button(Painter& painter, Rect bounds, double border_width) const
+
+      *Protected.*
+
+      A flat button (WinForms FlatStyle.Flat): the style override's face (else none: the parent shows), a light veil while hot or pressed, a border ``border_width`` logical pixels wide in the override's text colour (else the theme's border; none at 0), the focus cue and the content. No raised face and no default ring.
+
    .. cpp:function:: const ControlVisualRecipe& resolve_visual_recipe(ControlVisualRole role, ControlVisualContext context) const noexcept
 
       *Protected.*

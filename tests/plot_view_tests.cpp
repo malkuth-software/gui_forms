@@ -593,7 +593,7 @@ RepaintAllocations count_repaint(PlotView& plot) {
 // bytes in proportion to the series. A change of the points makes exactly
 // one copy, and the repaints after it none again.
 void test_live_repaint_copies_only_changed_columns() {
-    Fixture fixture = make_plot("plot.live_copies", false);
+    Fixture fixture = make_plot("plot.live-copies", false);
     constexpr std::size_t point_count = 100000U;
     std::vector<double> xs(point_count);
     std::vector<double> ys(point_count);

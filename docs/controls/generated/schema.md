@@ -3067,6 +3067,7 @@ Item system `tab`:
 | Part | Role | Reuses | Own states |
 |---|---|---|---|
 | `tab` | face |  |  |
+| `tab_hover` | face |  |  |
 | `tab_label` | label |  |  |
 | `tab_focus` | focus |  |  |
 

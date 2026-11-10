@@ -111,14 +111,20 @@ On `main` (checkpoints 24 and 25; see
 - macOS readback probes.
 - Allocation-free unkept parts.
 
-Folding in checkpoint 26 (pull request #476, not yet merged):
-- the data grid in the C ABI;
-- the ribbon gaps;
+Checkpoint 26 (pull request #476) added the data grid in the C ABI and
+the ribbon gaps.
+
+Folding in checkpoint 27 (not yet merged):
 - the look integration's first rows;
 - the declarative drag engine;
 - the Blender-style value bar;
 - new drawing primitives;
-- the plots package.
+- the plots package;
+- application colour roles in themes;
+- the FlexPanel gaps;
+- docking options and the C ABI docking table;
+- menus in Popup windows;
+- Windows canvas panning and whole-height band presents.
 
 ### In progress
 

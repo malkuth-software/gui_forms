@@ -447,10 +447,20 @@ constexpr ControlAnatomy value_bar_anatomy{
     .custom_states = {},
 };
 
+// The events ValueBar adds to those of RangeControl, in declaration order.
+constexpr std::array<InteractionDeclaration, 1> value_bar_interactions{{
+    {.name = "value_committed", .payload = "double", .mutable_payload = false},
+}};
+
 } // namespace
 
 const ControlAnatomy& ValueBar::anatomy() const noexcept {
     return value_bar_anatomy;
+}
+
+void ValueBar::append_interactions(std::vector<InteractionDeclaration>& interactions) const {
+    RangeControl::append_interactions(interactions);
+    interactions.insert(interactions.end(), value_bar_interactions.begin(), value_bar_interactions.end());
 }
 
 void ValueBar::publish_part_geometry(std::span<PartGeometry> geometry) const {

@@ -1326,13 +1326,11 @@ void DockSite::on_paint(Painter& painter, Rect) {
     part.family = ControlVisualRole::panel;
     part.role = PartRole::well;
     part.bounds = document_area_;
-    // The workspace's area colour (DockBackColor) stands in for the well.
-    const std::optional<Color> area = workspace_ != nullptr ? (*workspace_).area_background() : std::nullopt;
-    if (area) {
-        painter.fill_rect(document_area_, *area);
-    } else {
-        paint_part(painter, *this, part);
-    }
+    // The workspace's area colour (DockBackColor) is the well's authored
+    // background; the theme engine paints it (and withdraws it under high
+    // contrast).
+    if (workspace_ != nullptr) part.authored_background = (*workspace_).area_background();
+    paint_part(painter, *this, part);
     for (std::size_t seam = 0; seam < seams_.size(); ++seam) {
         const SeamParts parts = seam_parts(seam);
         part.family = ControlVisualRole::panel;

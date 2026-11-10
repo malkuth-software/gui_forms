@@ -169,6 +169,18 @@ std::shared_ptr<Control> panel_of(Window& owner, const std::size_t depth) {
 // 28-unit rows, a 9-unit separator and the panel's two 2-unit borders.
 constexpr double file_panel_height = 4.0 * 28.0 + 9.0 + 4.0;
 
+// The first top-level item's bounds, read through the public item-geometry
+// seam: its focus part is the item's whole rectangle.
+Rect first_item_bounds(const MenuStrip& strip) {
+    const ItemSystemDeclaration& system = strip.anatomy().item_systems.front();
+    std::vector<PartGeometry> geometry(system.parts.size());
+    strip.fill_realized_item_geometry(0U, geometry);
+    for (std::size_t index = 0U; index < system.parts.size(); ++index) {
+        if (system.parts[index].name == "menu_focus") return geometry[index].bounds;
+    }
+    return {};
+}
+
 void a_translucent_popup_is_the_face_plus_its_shadow() {
     Desk desk(true);
     Commands commands;
@@ -190,7 +202,7 @@ void a_translucent_popup_is_the_face_plus_its_shadow() {
     require(near((*panel).requested_bounds().x, outsets.left), "the face sits inside the shadow's outsets");
     // Hung from the File item's lower left corner (its bounds' bottom less
     // one unit, as MenuStrip opens it), through the owner's client origin.
-    const std::vector<Rect> items = (*desk.strip).item_bounds();
+    const std::vector<Rect> items{first_item_bounds(*desk.strip)};
     const Rect client = desk.client();
     require(near((*window).x + outsets.left, client.x + items[0].x), "the face's left edge is the item's");
     require(near((*window).y + outsets.top, client.y + items[0].y + items[0].height - 1.0),
@@ -217,7 +229,7 @@ void an_opaque_popup_is_the_face_alone() {
         require(near((*window).width, (*panel).requested_bounds().width) && near((*window).height, file_panel_height),
                 "an opaque Popup window holds the face alone, with no room for a shadow");
         const Rect client = desk.client();
-        const std::vector<Rect> items = (*desk.strip).item_bounds();
+        const std::vector<Rect> items{first_item_bounds(*desk.strip)};
         require(near((*window).x, client.x + items[0].x), "the face's left edge is still the item's");
         (*desk.strip).close();
     }

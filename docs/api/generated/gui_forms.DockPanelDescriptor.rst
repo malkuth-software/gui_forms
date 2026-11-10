@@ -84,3 +84,7 @@ gui_forms::DockPanelDescriptor
       The panel's smallest content size, in logical units; the split solver keeps each side of a split at least this large where it can.
 
    .. cpp:member:: DockDefaultPlacement default_placement
+
+   .. cpp:member:: bool close_button_visible
+
+      Whether its caption and tab show a close button. Hidden, the panel still closes or hides through its position menu and the program. Default: ``{true}``.
