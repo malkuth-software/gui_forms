@@ -4538,7 +4538,7 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                                 paint_intersection.height};
         painter.clip_rect(local_damage);
         commands_replayed +=
-            detail::replay_display_chunk_occluded(*(*control).display_chunk_, painter, local_damage);
+        detail::replay_display_chunk(*(*control).display_chunk_, painter);
         painter.restore();
         (*control).last_painted_visual_outsets_ = current_outsets;
         ++painted_controls;

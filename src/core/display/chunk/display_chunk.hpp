@@ -10,20 +10,26 @@
 namespace gui_forms::detail {
 
 // The last live surface a chunk draws where it may hide everything recorded
-// before it (replay_display_chunk_occluded): at the chunk's top level, or
-// inside one save at that level with no translation, rounded clip or paint
-// group around it, and before any top-level translation or clip (state a
-// replay of the commands beneath it, inside a band's save, would drop).
-// Whether it is opaque is the painter's answer at replay
+// before it (replay_display_chunk_occluded). It may lie inside saves (a
+// window's frame records each control inside a save, a translation to its
+// corner and a clip), provided nothing open around it is a rounded clip or a
+// paint group, and it precedes any translation or clip at the chunk's top
+// level (state a replay of the commands beneath it, inside a band's save,
+// would drop). Whether it is opaque is the painter's answer at replay
 // (Painter::opaque_live_surface_cover).
 struct DisplayOccluder final {
-    // The first command of what draws the surface: the save that opens its
-    // group, or the draw itself at the top level. Commands before it lie
-    // beneath the surface.
-    std::size_t group_start{};
-    // The draw_live_surface command.
+    // The draw_live_surface command. Every command before it lies beneath
+    // it.
     std::size_t command{};
-    // The rectangle clips of its group, intersected, when `clipped`.
+    // The first command of the outermost save open at the draw, or the
+    // draw itself at the top level, and how many saves are open there.
+    std::size_t group_start{};
+    std::size_t open_saves{};
+    // The translations in force at the draw, summed: the surface's
+    // coordinates are the chunk's moved by this.
+    Point offset{};
+    // The rectangle clips in force at the draw, intersected, in the
+    // chunk's coordinates, when `clipped`.
     bool clipped{};
     Rect clip{};
 };

@@ -3550,6 +3550,10 @@ Types
 
       A live raster is a retained renderer-neutral resource whose producer may publish independently of the UI dispatcher. Display lists retain the resource and terminal renderers sample only its newest complete frame.
 
+   .. cpp:function:: virtual Rect opaque_live_surface_cover(const std::shared_ptr<LiveSurface>& surface, Rect destination, double opacity)
+
+      The part of ``destination``, in the current coordinates, that draw_live_surface(surface, destination, opacity) would overwrite with opaque pixels if drawn now, whatever lay beneath: replay then need not paint what an opaque live surface hides (a panned canvas's sheet). Empty when the painter cannot promise it (the default): the newest frame is not opaque, the opacity is below one, the transform is not a scale and translation, or a clip has soft edges. Reads only.
+
    .. cpp:function:: virtual void draw_part_raster(const std::shared_ptr<const PartRaster>& raster, Point origin, double opacity = 1.0)
 
       Composites one of the theme engine's part rasters (T2 plan, E2; GIVEN A2-2 and C1-1). ``origin`` is the raster's top-left corner in logical units; the painter places the raster's first pixel on the device pixel nearest to it, one raster pixel per device pixel, so the part is device-aligned and never resampled. ``opacity`` in [0, 1] is the part's opacity, one multiplier on its whole composite. The blend is the shared premultiplied source-over (detail::composite_part_raster) under the current clip, so every host writes the same bytes. A raster made for another display scale than the painter's is not drawn: the engine rasterizes a part for the scale it is shown at. The base implementation draws nothing; the recording and Skia painters override it. A null raster draws nothing.

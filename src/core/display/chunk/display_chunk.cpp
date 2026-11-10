@@ -6,69 +6,87 @@ namespace gui_forms::detail {
 
 namespace {
 
-// One pass over the commands (DisplayOccluder states the rules). Depth
-// counts open saves and paint groups; a group opened at the top level
-// remembers where it began, its rectangle clips and whether anything in it
-// (a translation, a rounded clip, a paint group's blending) disqualifies a
-// surface drawn inside it. An unbalanced recording has no occluder.
+// One open save while searching (find_occluder): where it began, the
+// translation recorded in it, the clip it adds (in the chunk's
+// coordinates) and whether it holds a rounded clip or is a paint group.
+struct OpenSave final {
+    std::size_t start{};
+    Point offset{};
+    bool clipped{};
+    Rect clip{};
+    bool disqualified{};
+};
+
+// One pass over the commands (DisplayOccluder states the rules), keeping
+// the open saves on a stack that is reserved once. An unbalanced recording
+// has no occluder.
 std::optional<DisplayOccluder> find_occluder(const std::vector<DisplayCommand>& commands) {
     std::optional<DisplayOccluder> found;
-    std::size_t depth = 0U;
-    std::size_t group_start = 0U;
-    bool group_disqualified = false;
-    bool group_clipped = false;
-    Rect group_clip{};
+    std::vector<OpenSave> open;
+    open.reserve(8U);
     bool searching = true;
     for (std::size_t index = 0U; index < commands.size(); ++index) {
         const DisplayCommand& command = commands[index];
         const DisplayOperation operation = command.operation;
         if (operation == DisplayOperation::save || operation == DisplayOperation::begin_group) {
-            if (depth == 0U) {
-                group_start = index;
-                group_disqualified = operation == DisplayOperation::begin_group;
-                group_clipped = false;
-                group_clip = Rect{};
-            } else if (depth == 1U && operation == DisplayOperation::begin_group) {
-                group_disqualified = true;
-            }
-            ++depth;
+            OpenSave level{};
+            level.start = index;
+            level.disqualified = operation == DisplayOperation::begin_group;
+            open.push_back(level);
             continue;
         }
         if (operation == DisplayOperation::restore || operation == DisplayOperation::end_group) {
-            if (depth == 0U) return std::nullopt;
-            --depth;
+            if (open.empty()) return std::nullopt;
+            open.pop_back();
             continue;
+        }
+        // The translation in force here, from the chunk's coordinates.
+        Point offset{};
+        for (const OpenSave& level : open) {
+            offset.x += level.offset.x;
+            offset.y += level.offset.y;
         }
         const bool rounded_clip = operation == DisplayOperation::clip_rounded_rect ||
                                   operation == DisplayOperation::clip_rounded_rect_corners;
-        if (operation == DisplayOperation::translate || rounded_clip ||
-            (operation == DisplayOperation::clip_rect && depth == 0U)) {
-            // At the top level it changes the state of everything after it,
-            // which a replay of the commands beneath a surface inside a
-            // band's save would lose; a surface found before it still hides
-            // what came before that.
-            if (depth == 0U) searching = false;
-            if (depth == 1U) group_disqualified = true;
+        if (open.empty() && (operation == DisplayOperation::translate || operation == DisplayOperation::clip_rect ||
+                             rounded_clip)) {
+            // A surface found before it still hides what came before that.
+            searching = false;
+            continue;
+        }
+        if (operation == DisplayOperation::translate) {
+            open.back().offset.x += command.first.x;
+            open.back().offset.y += command.first.y;
+            continue;
+        }
+        if (rounded_clip) {
+            open.back().disqualified = true;
             continue;
         }
         if (operation == DisplayOperation::clip_rect) {
-            if (depth == 1U) {
-                group_clip = group_clipped ? Rect::intersection(group_clip, command.rect) : command.rect;
-                group_clipped = true;
-            }
+            const Rect moved{command.rect.x + offset.x, command.rect.y + offset.y, command.rect.width,
+                             command.rect.height};
+            OpenSave& level = open.back();
+            level.clip = level.clipped ? Rect::intersection(level.clip, moved) : moved;
+            level.clipped = true;
             continue;
         }
         if (!searching || operation != DisplayOperation::draw_live_surface || !command.live_surface) continue;
-        if (depth >= 2U || (depth == 1U && group_disqualified)) continue;
-        const bool in_group = depth == 1U;
+        bool disqualified = false;
         DisplayOccluder occluder{};
         occluder.command = index;
-        occluder.group_start = in_group ? group_start : index;
-        occluder.clipped = in_group && group_clipped;
-        if (occluder.clipped) occluder.clip = group_clip;
-        found = occluder;
+        occluder.group_start = open.empty() ? index : open.front().start;
+        occluder.open_saves = open.size();
+        occluder.offset = offset;
+        for (const OpenSave& level : open) {
+            disqualified = disqualified || level.disqualified;
+            if (!level.clipped) continue;
+            occluder.clip = occluder.clipped ? Rect::intersection(occluder.clip, level.clip) : level.clip;
+            occluder.clipped = true;
+        }
+        if (!disqualified) found = occluder;
     }
-    if (depth != 0U) return std::nullopt;
+    if (!open.empty()) return std::nullopt;
     return found;
 }
 

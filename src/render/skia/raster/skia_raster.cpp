@@ -339,6 +339,12 @@ public:
     struct DecodedImage final {
         std::uint64_t content_hash{};
         sk_sp<SkImage> image;
+        // fill_image_pattern's tile, resampled once to the device tile size
+        // it was last drawn at; null until a pattern needs it. Replacing the
+        // image replaces the record, and the tile with it.
+        sk_sp<SkImage> device_tile;
+        // Every pixel of device_tile has alpha 255.
+        bool device_tile_opaque{};
     };
 
     using ImageMap = std::unordered_map<std::uint64_t, DecodedImage>;
@@ -1334,8 +1340,14 @@ void SkiaRaster::draw_retained_box_shadow(const Rect rect, const double corner_r
     if (canvas == nullptr || rect.empty() || color.alpha == 0U ||
         std::isnan(blur_radius) || blur_radius < 0.0) return;
     const SkMatrix matrix = (*canvas).getTotalMatrix();
-    // Unblurred shadows, rotations and reflections draw directly.
-    if (!cache || blur_radius == 0.0 || !matrix.isScaleTranslate() ||
+    // Unblurred shadows, rotations and reflections draw directly. So do
+    // square-cornered ones: Skia blurs a rectangle as nine patches it keeps
+    // itself, whatever the rectangle's size, while a kept coverage mask is
+    // as large as the shadow and is applied through a shader at every
+    // pixel (a panned canvas's sheet shadow, benchmarks/
+    // canvas_pan_benchmark.cpp).
+    const bool square = !(corner_radius + spread > 0.0);
+    if (!cache || blur_radius == 0.0 || square || !matrix.isScaleTranslate() ||
         matrix.getScaleX() <= 0.0F || matrix.getScaleY() <= 0.0F) {
         draw_box_shadow(rect, corner_radius, offset, blur_radius, spread, color);
         return;
@@ -1989,6 +2001,7 @@ Rect SkiaRaster::opaque_live_surface_cover(const std::shared_ptr<LiveSurface>& s
     if (!(right > left) || !(bottom > top)) return nothing;
     const Rect cover{(left - translate_x) / scale_x, (top - translate_y) / scale_y, (right - left) / scale_x,
                      (bottom - top) / scale_y};
+    ++covers_promised_;
     return cover;
 }
 
@@ -2092,10 +2105,133 @@ void SkiaRaster::draw_image_region_sampled(
                           SkCanvas::kStrict_SrcRectConstraint);
 }
 
+// fill_image_pattern where a tile spans whole device pixels and starts on
+// one, under a scale and translation: the tile is resampled once to device
+// resolution (linear, wrapping, as the direct draw samples it) and repeated
+// without further sampling. Each device pixel then takes the value the
+// direct draw would compute there, rounded to a byte before blending rather
+// than after (at most one level apart where the pattern is translucent;
+// equal where it is opaque, up to the float rounding of sample positions).
+// An opaque tile at full opacity under a hard rectangular clip is then
+// copied row by row (copy_opaque_tile) rather than shaded. Resampling a
+// 128-pixel felt at device scale 2 for every pixel of a 2560 x 1294 canvas
+// cost some 230 ms a frame on the Windows test machine (benchmarks/
+// canvas_pan_benchmark.cpp); the kept tile costs one 256 x 256 resample.
+// False when the conditions do not hold; the caller draws directly.
+namespace {
+
+// Whether every pixel of a premultiplied BGRA pixmap has alpha 255.
+bool every_pixel_opaque(const SkPixmap& pixels) {
+    for (int y = 0; y < pixels.height(); ++y) {
+        const std::uint8_t* row = static_cast<const std::uint8_t*>(pixels.addr(0, y));
+        for (int x = 0; x < pixels.width(); ++x) {
+            if (row[static_cast<std::size_t>(x) * 4U + 3U] != 255U) return false;
+        }
+    }
+    return true;
+}
+
+// Repeats an opaque device tile, whose pixel (0, 0) lies at device
+// (origin_x, origin_y), over `target` (device pixels, inside `pixels`) by
+// copying rows: what a source-over draw of an opaque tile without sampling
+// writes, byte for byte, without a shader per pixel.
+void copy_opaque_tile(const SkPixmap& pixels, const SkPixmap& tile, const long long origin_x,
+                      const long long origin_y, const SkIRect target) {
+    const long long tile_width = tile.width();
+    const long long tile_height = tile.height();
+    const long long first_column = ((target.left() - origin_x) % tile_width + tile_width) % tile_width;
+    for (int y = target.top(); y < target.bottom(); ++y) {
+        const long long tile_row = ((y - origin_y) % tile_height + tile_height) % tile_height;
+        const std::byte* source = static_cast<const std::byte*>(tile.addr(0, static_cast<int>(tile_row)));
+        std::byte* written = static_cast<std::byte*>(pixels.writable_addr(target.left(), y));
+        long long remaining = target.width();
+        long long column = first_column;
+        while (remaining > 0) {
+            const long long run = std::min(remaining, tile_width - column);
+            std::memcpy(written, source + column * 4, static_cast<std::size_t>(run) * 4U);
+            written += run * 4;
+            remaining -= run;
+            column = 0;
+        }
+    }
+}
+
+bool fill_device_pattern(SkCanvas& canvas, const SkImage& image, sk_sp<SkImage>& device_tile,
+                         bool& device_tile_opaque, const Rect destination, const Size logical_tile_size,
+                         const double opacity) {
+    const SkMatrix matrix = canvas.getTotalMatrix();
+    if (!matrix.isScaleTranslate() || !(matrix.getScaleX() > 0.0F) || !(matrix.getScaleY() > 0.0F)) return false;
+    const double tile_width = logical_tile_size.width * matrix.getScaleX();
+    const double tile_height = logical_tile_size.height * matrix.getScaleY();
+    const double origin_x = destination.x * matrix.getScaleX() + matrix.getTranslateX();
+    const double origin_y = destination.y * matrix.getScaleY() + matrix.getTranslateY();
+    // A kept tile larger than this (4 MB) is not worth its memory.
+    constexpr double largest_device_tile = 1024.0;
+    if (tile_width != std::round(tile_width) || tile_height != std::round(tile_height) ||
+        origin_x != std::round(origin_x) || origin_y != std::round(origin_y) || !(tile_width >= 1.0) ||
+        !(tile_height >= 1.0) || !(tile_width <= largest_device_tile) || !(tile_height <= largest_device_tile) ||
+        !(std::abs(origin_x) <= 1.0e9) || !(std::abs(origin_y) <= 1.0e9)) {
+        return false;
+    }
+    const int width = static_cast<int>(tile_width);
+    const int height = static_cast<int>(tile_height);
+    const bool current = device_tile && (*device_tile).width() == width && (*device_tile).height() == height;
+    if (!current) {
+        const SkImageInfo info = SkImageInfo::Make(width, height, kBGRA_8888_SkColorType, kPremul_SkAlphaType,
+                                                   SkColorSpace::MakeSRGB());
+        sk_sp<SkSurface> tile = SkSurfaces::Raster(info);
+        if (!tile) return false;
+        const SkMatrix resample = SkMatrix::Scale(
+            static_cast<SkScalar>(tile_width / image.width()),
+            static_cast<SkScalar>(tile_height / image.height()));
+        SkPaint fill;
+        fill.setAntiAlias(false);
+        fill.setBlendMode(SkBlendMode::kSrc);
+        fill.setShader(image.makeShader(SkTileMode::kRepeat, SkTileMode::kRepeat,
+                                        SkSamplingOptions(SkFilterMode::kLinear), resample));
+        (*(*tile).getCanvas()).drawRect(SkRect::MakeIWH(width, height), fill);
+        device_tile = (*tile).makeImageSnapshot();
+        if (!device_tile) return false;
+        const std::optional<SkPixmap> kept = (*device_tile).peekPixels();
+        device_tile_opaque = kept && every_pixel_opaque(*kept);
+    }
+    const SkRect device = matrix.mapRect(to_sk_rect(destination));
+    // An opaque tile at full opacity under a hard rectangular clip is copied
+    // (the non-antialiased rectangle covers the pixels its rounded edges
+    // enclose, as Skia rounds them).
+    if (device_tile_opaque && opacity >= 1.0 && canvas.isClipRect()) {
+        const std::optional<SkPixmap> peeked = canvas.peekPixels();
+        const std::optional<SkPixmap> tile_pixels = (*device_tile).peekPixels();
+        if (peeked && tile_pixels && (*peeked).colorType() == kBGRA_8888_SkColorType) {
+            SkIRect target = device.round();
+            const bool inside = target.intersect(canvas.getDeviceClipBounds()) &&
+                                target.intersect(SkIRect::MakeWH((*peeked).width(), (*peeked).height()));
+            if (inside) {
+                copy_opaque_tile(*peeked, *tile_pixels, static_cast<long long>(origin_x),
+                                 static_cast<long long>(origin_y), target);
+            }
+            return true;
+        }
+    }
+    const SkMatrix placement = SkMatrix::Translate(static_cast<SkScalar>(origin_x), static_cast<SkScalar>(origin_y));
+    SkPaint paint;
+    paint.setAlphaf(static_cast<float>(std::clamp(opacity, 0.0, 1.0)));
+    paint.setAntiAlias(false);
+    paint.setShader((*device_tile).makeShader(SkTileMode::kRepeat, SkTileMode::kRepeat,
+                                              SkSamplingOptions(SkFilterMode::kNearest), placement));
+    canvas.save();
+    canvas.resetMatrix();
+    canvas.drawRect(device, paint);
+    canvas.restore();
+    return true;
+}
+
+} // namespace
+
 void SkiaRaster::fill_image_pattern(
     ImageId image, Size source_pixel_size, Rect destination,
     Size logical_tile_size, ImagePatternWrap wrap, double opacity) {
-    const Impl::ImageMap::const_iterator found = (*impl_).images.find(image.value);
+    const Impl::ImageMap::iterator found = (*impl_).images.find(image.value);
     SkCanvas* canvas = (*impl_).canvas();
     if (canvas == nullptr || found == (*impl_).images.end() ||
         wrap != ImagePatternWrap::tile || destination.empty() ||
@@ -2107,6 +2243,11 @@ void SkiaRaster::fill_image_pattern(
         source_pixel_size.height != (*(*found).second.image).height() ||
         logical_tile_size.width <= 0.0 || logical_tile_size.height <= 0.0 ||
         !std::isfinite(opacity) || opacity <= 0.0) {
+        return;
+    }
+    if (!direct_patterns_ && fill_device_pattern(*canvas, *(*found).second.image, (*found).second.device_tile,
+                                                 (*found).second.device_tile_opaque, destination, logical_tile_size,
+                                                 opacity)) {
         return;
     }
     SkMatrix local;

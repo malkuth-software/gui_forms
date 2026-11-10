@@ -206,9 +206,15 @@ public:
 
 private:
     friend struct SkiaLiveSurfaceTestAccess;
+    friend struct SkiaCanvasTestAccess;
     class Impl;
     std::unique_ptr<Impl> impl_;
     bool fail_next_live_image_{};
+    // Tests only: fill_image_pattern always samples directly, so the kept
+    // device tile can be compared with it; and the covers
+    // opaque_live_surface_cover has promised.
+    bool direct_patterns_{};
+    std::uint64_t covers_promised_{};
 };
 
 } // namespace gui_forms::render

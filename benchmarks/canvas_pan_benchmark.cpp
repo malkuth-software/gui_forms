@@ -39,9 +39,18 @@
 #include <cstring>
 #include <exception>
 #include <memory>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <vector>
+
+namespace gui_forms::render {
+// The covers the raster promised (SkiaRaster::opaque_live_surface_cover),
+// to show whether occluded replay hid the surround.
+struct SkiaCanvasTestAccess final {
+    static std::uint64_t covers_promised(const SkiaRaster& raster) { return raster.covers_promised_; }
+};
+} // namespace gui_forms::render
 
 namespace {
 
@@ -57,6 +66,8 @@ constexpr double felt_tile = 128.0;
 constexpr std::size_t warmup_steps = 4U;
 
 // The sheet's colour, one opaque BGRA value.
+enum class CanvasOperation : std::uint8_t { felt, gradient, shadow, stroke, surface };
+
 constexpr std::array<std::byte, 4> sheet_pixel{std::byte{200}, std::byte{170}, std::byte{120}, std::byte{255}};
 
 class PanCanvas final : public Control {
@@ -77,17 +88,31 @@ public:
         return result;
     }
 
+    // One operation the attribution runs leave out (time_omissions), or
+    // none.
+    std::optional<CanvasOperation> omitted;
+
     void on_paint(Painter& painter, Rect) override {
         const Rect bounds = client_rectangle();
-        painter.fill_image_pattern(felt, {static_cast<double>(felt_pixels), static_cast<double>(felt_pixels)},
-                                   bounds, {felt_tile, felt_tile});
+        if (omitted != CanvasOperation::felt) {
+            painter.fill_image_pattern(felt, {static_cast<double>(felt_pixels), static_cast<double>(felt_pixels)},
+                                       bounds, {felt_tile, felt_tile});
+        }
         const GradientStop light[] = {{0.0, Color::rgba(255, 255, 255, 22)}, {1.0, Color::rgba(60, 77, 95, 15)}};
-        painter.fill_linear_gradient(bounds, {0.0, 0.0}, {0.0, bounds.height}, light);
+        if (omitted != CanvasOperation::gradient) {
+            painter.fill_linear_gradient(bounds, {0.0, 0.0}, {0.0, bounds.height}, light);
+        }
         const Rect page = sheet();
-        painter.draw_box_shadow(page, 0.0, {1.5, 2.5}, 6.0, 0.0, Color::rgba(42, 53, 67, 75));
-        painter.stroke_rect({page.x - 0.5, page.y - 0.5, page.width + 1.0, page.height + 1.0},
-                            Color::rgba(93, 111, 130, 155), 1.0);
-        if (viewport) painter.draw_live_surface(viewport, viewport_destination);
+        if (omitted != CanvasOperation::shadow) {
+            painter.draw_box_shadow(page, 0.0, {1.5, 2.5}, 6.0, 0.0, Color::rgba(42, 53, 67, 75));
+        }
+        if (omitted != CanvasOperation::stroke) {
+            painter.stroke_rect({page.x - 0.5, page.y - 0.5, page.width + 1.0, page.height + 1.0},
+                                Color::rgba(93, 111, 130, 155), 1.0);
+        }
+        if (viewport && omitted != CanvasOperation::surface) {
+            painter.draw_live_surface(viewport, viewport_destination);
+        }
     }
 };
 
@@ -136,6 +161,7 @@ struct CaseResult final {
     double controls_painted{};
     double commands_replayed{};
     double chunks_rebuilt{};
+    double covers{};
 };
 
 double milliseconds_since(Clock::time_point start) {
@@ -154,7 +180,9 @@ CaseResult run_case(SkiaRaster& raster, Window& window, PanCanvas& canvas, doubl
                     std::size_t steps) {
     window.set_scale(scale);
     window.perform_layout();
-    if (!raster.resize(window_size, scale)) throw std::runtime_error("raster resize failed");
+    // False when the size and scale are unchanged; the surface is then kept.
+    static_cast<void>(raster.resize(window_size, scale));
+    if (raster.byte_size() == 0U) throw std::runtime_error("raster resize failed");
     canvas.sheet_size = sheet;
     const bool fits = sheet.width <= canvas_bounds.width && sheet.height <= canvas_bounds.height;
     canvas.sheet_origin = fits ? Point{(canvas_bounds.width - sheet.width) * 0.5,
@@ -172,9 +200,13 @@ CaseResult run_case(SkiaRaster& raster, Window& window, PanCanvas& canvas, doubl
     samples.reserve(steps);
     CaseResult result{};
     MetricsSnapshot before{};
+    std::uint64_t covers_before = 0U;
     // Pans right then left, so a fitted sheet stays inside the canvas.
     for (std::size_t step = 0U; step < warmup_steps + steps; ++step) {
-        if (step == warmup_steps) before = window.metrics_snapshot();
+        if (step == warmup_steps) {
+            before = window.metrics_snapshot();
+            covers_before = render::SkiaCanvasTestAccess::covers_promised(raster);
+        }
         const double direction = ((step / 16U) % 2U) == 0U ? 1.0 : -1.0;
         canvas.sheet_origin.x += direction * pan_step;
         publish_viewport(canvas, scale);
@@ -202,45 +234,94 @@ CaseResult run_case(SkiaRaster& raster, Window& window, PanCanvas& canvas, doubl
     result.commands_replayed =
         static_cast<double>(after.display_commands_replayed - before.display_commands_replayed) / count;
     result.chunks_rebuilt = static_cast<double>(after.display_chunks_rebuilt - before.display_chunks_rebuilt) / count;
+    result.covers =
+        static_cast<double>(render::SkiaCanvasTestAccess::covers_promised(raster) - covers_before) / count;
     return result;
 }
 
-// Each canvas operation alone over the canvas, through the raster directly.
-void time_operations(SkiaRaster& raster, Window& window, PanCanvas& canvas) {
+// One canvas operation, drawn once under each of `clips` (canvas
+// coordinates), `repeats` times; milliseconds per repeat.
+double time_operation(SkiaRaster& raster, const PanCanvas& canvas, CanvasOperation operation,
+                      std::span<const Rect> clips) {
     constexpr int repeats = 10;
+    const Rect bounds{0.0, 0.0, canvas_bounds.width, canvas_bounds.height};
+    const GradientStop light[] = {{0.0, Color::rgba(255, 255, 255, 22)}, {1.0, Color::rgba(60, 77, 95, 15)}};
+    const Clock::time_point mark = Clock::now();
+    for (int repeat = 0; repeat < repeats; ++repeat) {
+        for (const Rect clip : clips) {
+            raster.save();
+            raster.clip_rect(clip);
+            switch (operation) {
+            case CanvasOperation::felt:
+                raster.fill_image_pattern(canvas.felt,
+                                          {static_cast<double>(felt_pixels), static_cast<double>(felt_pixels)},
+                                          bounds, {felt_tile, felt_tile}, ImagePatternWrap::tile, 1.0);
+                break;
+            case CanvasOperation::gradient:
+                raster.fill_linear_gradient(bounds, {0.0, 0.0}, {0.0, bounds.height}, light);
+                break;
+            case CanvasOperation::shadow:
+                raster.draw_box_shadow(canvas.sheet(), 0.0, {1.5, 2.5}, 6.0, 0.0, Color::rgba(42, 53, 67, 75));
+                break;
+            case CanvasOperation::stroke:
+                break;
+            case CanvasOperation::surface:
+                if (canvas.viewport) raster.draw_live_surface(canvas.viewport, canvas.viewport_destination, 1.0);
+                break;
+            }
+            raster.restore();
+        }
+    }
+    return milliseconds_since(mark) / repeats;
+}
+
+// Each canvas operation timed over the whole canvas, then over the four
+// bands around the sheet that occluded replay leaves showing.
+void time_operations(SkiaRaster& raster, const PanCanvas& canvas) {
     DamageRegion full;
     full.add({0.0, 0.0, window_size.width, window_size.height});
     raster.begin_frame(full);
     raster.save();
     raster.translate({canvas_bounds.x, canvas_bounds.y});
     const Rect bounds{0.0, 0.0, canvas_bounds.width, canvas_bounds.height};
-    Clock::time_point mark = Clock::now();
-    for (int repeat = 0; repeat < repeats; ++repeat) {
-        raster.fill_image_pattern(canvas.felt, {static_cast<double>(felt_pixels), static_cast<double>(felt_pixels)},
-                                  bounds, {felt_tile, felt_tile}, ImagePatternWrap::tile, 1.0);
+    const Rect hidden = Rect::intersection(canvas.viewport_destination, bounds);
+    const std::array<Rect, 1> whole{bounds};
+    const std::array<Rect, 4> bands{{
+        {bounds.x, bounds.y, bounds.width, hidden.y - bounds.y},
+        {bounds.x, hidden.bottom(), bounds.width, bounds.bottom() - hidden.bottom()},
+        {bounds.x, hidden.y, hidden.x - bounds.x, hidden.height},
+        {hidden.right(), hidden.y, bounds.right() - hidden.right(), hidden.height},
+    }};
+    constexpr std::array<CanvasOperation, 4> operations{CanvasOperation::felt, CanvasOperation::gradient,
+                                                        CanvasOperation::shadow, CanvasOperation::surface};
+    std::array<double, 4> alone{};
+    std::array<double, 4> banded{};
+    for (std::size_t index = 0U; index < operations.size(); ++index) {
+        alone[index] = time_operation(raster, canvas, operations[index], whole);
+        if (!hidden.empty()) banded[index] = time_operation(raster, canvas, operations[index], bands);
     }
-    const double felt_ms = milliseconds_since(mark) / repeats;
-    const GradientStop light[] = {{0.0, Color::rgba(255, 255, 255, 22)}, {1.0, Color::rgba(60, 77, 95, 15)}};
-    mark = Clock::now();
-    for (int repeat = 0; repeat < repeats; ++repeat) {
-        raster.fill_linear_gradient(bounds, {0.0, 0.0}, {0.0, bounds.height}, light);
-    }
-    const double gradient_ms = milliseconds_since(mark) / repeats;
-    mark = Clock::now();
-    for (int repeat = 0; repeat < repeats; ++repeat) {
-        raster.draw_box_shadow(canvas.sheet(), 0.0, {1.5, 2.5}, 6.0, 0.0, Color::rgba(42, 53, 67, 75));
-    }
-    const double shadow_ms = milliseconds_since(mark) / repeats;
-    mark = Clock::now();
-    for (int repeat = 0; repeat < repeats; ++repeat) {
-        if (canvas.viewport) raster.draw_live_surface(canvas.viewport, canvas.viewport_destination, 1.0);
-    }
-    const double surface_ms = milliseconds_since(mark) / repeats;
     raster.restore();
     raster.end_frame();
-    static_cast<void>(window);
-    std::printf("    alone: felt %.3f ms, gradient %.3f ms, shadow %.3f ms, live surface %.3f ms\n", felt_ms,
-                gradient_ms, shadow_ms, surface_ms);
+    std::printf("    alone: felt %.3f ms, gradient %.3f ms, shadow %.3f ms, live surface %.3f ms\n", alone[0],
+                alone[1], alone[2], alone[3]);
+    std::printf("    in the bands around the sheet: felt %.3f ms, gradient %.3f ms, shadow %.3f ms\n", banded[0],
+                banded[1], banded[2]);
+}
+
+// The fitted sheet's pan at scale 2 with each canvas operation left out in
+// turn: what each one costs within a whole frame.
+void time_omissions(SkiaRaster& raster, Window& window, PanCanvas& canvas, Size sheet, std::size_t steps) {
+    constexpr std::array<CanvasOperation, 5> operations{CanvasOperation::felt, CanvasOperation::gradient,
+                                                        CanvasOperation::shadow, CanvasOperation::stroke,
+                                                        CanvasOperation::surface};
+    constexpr std::array<const char*, 5> names{"felt", "gradient", "shadow", "outline", "live surface"};
+    std::printf("  fit sheet at scale 2, median paint without one operation:");
+    for (std::size_t index = 0U; index < operations.size(); ++index) {
+        canvas.omitted = operations[index];
+        const CaseResult result = run_case(raster, window, canvas, 2.0, sheet, steps);
+        std::printf(" %s %.3f ms%s", names[index], result.median_ms, index + 1U < operations.size() ? "," : "\n");
+    }
+    canvas.omitted.reset();
 }
 
 } // namespace
@@ -281,13 +362,14 @@ int main(int argc, char** argv) {
             for (const double scale : scales) {
                 const CaseResult result = run_case(raster, window, *canvas, scale, sheets[sheet], steps);
                 std::printf("  %s sheet %.0f x %.0f, scale %.0f: paint %.3f ms mean, %.3f median, %.3f worst; "
-                            "damage %.0f; controls %.1f, commands %.1f, chunks rebuilt %.1f per step\n",
+                            "damage %.0f; controls %.1f, commands %.1f, chunks rebuilt %.1f, covers %.1f per step\n",
                             sheet_names[sheet], sheets[sheet].width, sheets[sheet].height, scale, result.mean_ms,
                             result.median_ms, result.worst_ms, result.damage_area, result.controls_painted,
-                            result.commands_replayed, result.chunks_rebuilt);
-                time_operations(raster, window, *canvas);
+                            result.commands_replayed, result.chunks_rebuilt, result.covers);
+                time_operations(raster, *canvas);
             }
         }
+        time_omissions(raster, window, *canvas, sheets[0], steps);
         return 0;
     } catch (const std::exception& error) {
         std::fprintf(stderr, "canvas pan benchmark failed: %s\n", error.what());
