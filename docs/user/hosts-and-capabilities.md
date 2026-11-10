@@ -269,7 +269,12 @@ Windows (Win32)
   automation channel, off unless the host options set `automation_enabled`
   (the gallery sets it from `--automation`), addresses controls by stable
   ID; it accepts commands of at most 4096 bytes with the prefix
-  `GUI.Forms.Automation/1`.
+  `GUI.Forms.Automation/1`. A C ABI window turns it on only for the run flag
+  `GF_WINDOW_RUN_AUTOMATION` or `GUI_FORMS_AUTOMATION=1` in the process
+  environment, which the test harnesses set. Security note: while it is on,
+  any process on the same desktop can drive the window and ask for a capture
+  written to a path it names, so ship with it off. It is a test channel;
+  automation is to move to an MCP integration rather than grow here.
   MSAA publication is implemented through `IAccessible`, and UI Automation
   through providers for `UiaRootObjectId` (AutomationId is the stable ID;
   Invoke, Toggle, Value, RangeValue, ExpandCollapse, SelectionItem and
