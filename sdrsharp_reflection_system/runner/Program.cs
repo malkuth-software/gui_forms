@@ -186,7 +186,10 @@ internal sealed class FacadeLoadContext : AssemblyLoadContext
             "System.Drawing.Common" => drawingPath,
             _ => null,
         };
-        var path = facadePath ?? Candidate(extractDirectory, name);
+        // The facade's own assemblies (GuiForms.Interop among them) sit
+        // beside its System.Windows.Forms.dll.
+        var path = facadePath ?? Candidate(Path.GetDirectoryName(formsPath) ?? extractDirectory, name) ??
+            Candidate(extractDirectory, name);
         if (path is null && Candidate(coreRuntimeDirectory, name) is not null)
             return null;
         path ??= Candidate(desktopRuntimeDirectory, name);

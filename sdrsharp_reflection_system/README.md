@@ -1,8 +1,13 @@
 # SDRSharp reflection system
 
 This directory contains the reproducible compatibility harness for running a
-separately obtained SDRSharp distribution through the generated GUI.Forms and
-GUI.Drawing facades under Wine.
+separately obtained SDRSharp distribution through a Windows Forms facade over
+the sealed GUI.Forms C ABI (`gui_forms_abi1.dll`, through
+`bindings/csharp/GuiForms.Interop`) and the GUI.Drawing facade under Wine. The
+facade itself is not in this repository: the swap-in launcher's facade is the
+current one, and any facade over `GuiForms.Interop` with the same assembly
+names will do. (The generated 0.x facade over `gui_forms_abi0.dll` was retired
+with that library before 1.0.)
 
 The repository does not contain SDRSharp binaries, extracted bundle entries,
 configuration, layouts, runtime logs, decompiled or disassembled output, or
@@ -14,7 +19,7 @@ The reflection runner performs four bounded operations:
 
 1. verify and extract the user-supplied .NET single-file bundle into a private
    runtime directory;
-2. substitute the generated GUI.Forms and GUI.Drawing compatibility assemblies;
+2. substitute the facade's GUI.Forms and GUI.Drawing compatibility assemblies;
 3. resolve the required Windows .NET and native GUI.Forms libraries; and
 4. invoke the application's ordinary managed entry point.
 
@@ -28,7 +33,7 @@ model is required.
 
 The recorded workflow uses a Unix-like host capable of:
 
-- building the GUI.Forms Windows x64 target and its generated managed facades;
+- building the GUI.Forms Windows x64 target and a managed facade over it;
 - running Windows x64 .NET applications through Wine;
 - supplying a native .NET 10 SDK for the build;
 - supplying the Windows x64 .NET 10.0.5 runtime and Windows Desktop reference
@@ -47,11 +52,12 @@ Prepare these inputs before launching:
 - a legitimately obtained SDRSharp directory containing `SDRSharp.exe` and its
   adjacent native/plugin files;
 - a completed GUI.Forms Windows x64 build containing:
-  - `gui_forms_abi0.dll`
+  - `gui_forms_abi1.dll`
   - `gui_drawing_abi0.dll`
   - `gui_drawing_raster0.dll`
   - `fonts/PortsmouthRapids.ttf`
-- generated Release builds of:
+- Release builds of the facade (with its `GuiForms.Interop.dll` beside them)
+  and the runner:
   - `System.Windows.Forms.dll`
   - `System.Windows.Forms.Primitives.dll`
   - `System.Drawing.Common.dll`
@@ -96,8 +102,10 @@ build instructions for the host toolchain. Stage the four native artifacts
 listed above into one directory and point
 `GUI_FORMS_SDRSHARP_NATIVE_DIR` at it.
 
-Build the managed facades and reflection runner with a native .NET SDK while
-using the Windows Desktop reference pack:
+Build the facade and the reflection runner with a native .NET SDK while using
+the Windows Desktop reference pack. `GUI_FORMS_FACADE_PROJECT` names the
+facade's `System.Windows.Forms.csproj`, which must reference
+`GuiForms.Interop` (the sealed ABI's binding):
 
 ```sh
 export NATIVE_DOTNET=/absolute/path/to/native-dotnet-sdk/dotnet
@@ -111,7 +119,7 @@ mkdir -p \
 
 GUI_FORMS_WINDOWS_DESKTOP_REF="$GUI_FORMS_WINDOWS_DESKTOP_REF" \
   "$NATIVE_DOTNET" build \
-  "$GUI_FORMS_ROOT/generated/facade-v1/System.Windows.Forms/System.Windows.Forms.csproj" \
+  "$GUI_FORMS_FACADE_PROJECT" \
   -c Release -o "$GUI_FORMS_MANAGED_OUTPUT/facade"
 
 GUI_FORMS_WINDOWS_DESKTOP_REF="$GUI_FORMS_WINDOWS_DESKTOP_REF" \
@@ -120,8 +128,9 @@ GUI_FORMS_WINDOWS_DESKTOP_REF="$GUI_FORMS_WINDOWS_DESKTOP_REF" \
   -c Release -o "$GUI_FORMS_MANAGED_OUTPUT/reflection-runner"
 ```
 
-The first project builds its referenced primitives and drawing facade projects
-into the same output directory.
+The first project builds its referenced primitives, drawing and
+`GuiForms.Interop` projects into the same output directory; the runner
+resolves the facade's own assemblies from that directory.
 
 ## Configure Wine and the Windows runtime
 
