@@ -357,6 +357,107 @@ void test_style_properties() {
             "flex item style: a margin length is refused and changes nothing");
 }
 
+// The auto_scroll extent is every item's margin box: lines wrapped below
+// (or beside) the viewport, a nowrap line running past it, and content a
+// reversed axis pushes past the content box's start, which moves inside.
+struct ScrollCase final {
+    std::shared_ptr<FlexPanel> panel;
+    std::vector<std::shared_ptr<Panel>> boxes;
+    std::unique_ptr<Window> window;
+};
+
+ScrollCase scroll_case(const std::string& id, Size panel_size, Size box_size, int count, FlexDirection direction,
+                       FlexWrap wrap) {
+    ScrollCase made{};
+    made.panel = make_control<FlexPanel>(StableId(id));
+    (*made.panel).padding = {0.0, 0.0, 0.0, 0.0};
+    (*made.panel).flex_direction = direction;
+    (*made.panel).flex_wrap = wrap;
+    (*made.panel).auto_scroll = true;
+    FlexItemLayout rigid{};
+    rigid.flex.shrink = FlexFactor{0.0};
+    for (int index = 0; index < count; ++index) {
+        made.boxes.push_back(box(id + "." + std::to_string(index), box_size.width, box_size.height));
+        (*made.panel).add_child(made.boxes.back());
+        (*made.panel).set_item_layout(*made.boxes.back(), rigid);
+    }
+    made.window = std::make_unique<Window>(made.panel, panel_size);
+    (*made.window).perform_layout();
+    return made;
+}
+
+void require_extent(const FlexPanel& panel, double width, double height, const std::string& what) {
+    const Rect display = panel.scroll_snapshot().display_rectangle;
+    require(near(display.width, width) && near(display.height, height),
+            what + ": scroll extent " + describe(display));
+}
+
+void test_auto_scroll_extent_covers_all_content() {
+    // Row, wrap: two per line (the vertical bar leaves 84), five lines.
+    const ScrollCase rows =
+        scroll_case("flex.scroll.rows", {100.0, 60.0}, {40.0, 20.0}, 10, FlexDirection::row, FlexWrap::wrap);
+    require_extent(*rows.panel, 84.0, 100.0, "wrapped rows reach below the viewport");
+    require((*rows.panel).scroll_snapshot().vertical.visible && !(*rows.panel).scroll_snapshot().horizontal.visible,
+            "wrapped rows: only the vertical bar");
+    require_bounds(*rows.boxes[9], 40.0, 80.0, 40.0, 20.0, "wrapped rows: the last item on the fifth line");
+
+    // Column, wrap: two per column (the horizontal bar leaves 84), five
+    // columns.
+    const ScrollCase columns =
+        scroll_case("flex.scroll.columns", {60.0, 100.0}, {20.0, 40.0}, 10, FlexDirection::column, FlexWrap::wrap);
+    require_extent(*columns.panel, 100.0, 84.0, "wrapped columns reach right of the viewport");
+    require_bounds(*columns.boxes[9], 80.0, 40.0, 20.0, 40.0, "wrapped columns: the last item in the fifth column");
+
+    // Row-reverse, nowrap: the line runs left past the content box's start.
+    const ScrollCase reversed =
+        scroll_case("flex.scroll.row_reverse", {100.0, 60.0}, {40.0, 20.0}, 4, FlexDirection::row_reverse,
+                    FlexWrap::nowrap);
+    require_extent(*reversed.panel, 160.0, 44.0, "a reversed row's overflow is scrollable");
+    // It opens on the main-axis start (CSS's scroll origin): scrolled by the
+    // 60 units moved inside, so the first item stands at the right edge.
+    require(near((*reversed.panel).scroll_position().x, 60.0), "a reversed row opens on its main-axis start");
+    require(near((*reversed.boxes[0]).arranged_bounds().x, 60.0) && near((*reversed.boxes[3]).arranged_bounds().x, -60.0),
+            "a reversed row: the first item at the viewport's right edge, the overflow left of it");
+    // A scroll the user makes survives the next layout (the shift is
+    // unchanged, so the position is not moved again).
+    static_cast<void>((*reversed.panel).scroll_to(Point{0.0, 0.0}));
+    (*reversed.window).perform_layout();
+    require(near((*reversed.panel).scroll_position().x, 0.0) && near((*reversed.boxes[3]).arranged_bounds().x, 0.0),
+            "a reversed row keeps the user's scroll across a layout");
+
+    // Column-reverse, nowrap: the line runs up past the start.
+    const ScrollCase upward =
+        scroll_case("flex.scroll.column_reverse", {60.0, 100.0}, {20.0, 40.0}, 4, FlexDirection::column_reverse,
+                    FlexWrap::nowrap);
+    require_extent(*upward.panel, 44.0, 160.0, "a reversed column's overflow is scrollable");
+    require(near((*upward.panel).scroll_position().y, 60.0) && near((*upward.boxes[0]).arranged_bounds().y, 60.0) &&
+                near((*upward.boxes[3]).arranged_bounds().y, -60.0),
+            "a reversed column opens on its main-axis start, the first item at the bottom edge");
+
+    // Row, wrap-reverse: lines stack upward past the start.
+    const ScrollCase stacked =
+        scroll_case("flex.scroll.wrap_reverse", {100.0, 60.0}, {40.0, 20.0}, 10, FlexDirection::row,
+                    FlexWrap::wrap_reverse);
+    require_extent(*stacked.panel, 84.0, 100.0, "wrap-reverse lines are all scrollable");
+    require(near((*stacked.panel).scroll_position().y, 40.0) && near((*stacked.boxes[0]).arranged_bounds().y, 40.0) &&
+                near((*stacked.boxes[9]).arranged_bounds().y, -40.0),
+            "wrap-reverse opens on the cross-start: the first line at the viewport's bottom, the last above it");
+
+    // Without auto_scroll nothing moves and the extent is the client.
+    std::shared_ptr<FlexPanel> plain = make_control<FlexPanel>(StableId("flex.scroll.off"));
+    (*plain).padding = {0.0, 0.0, 0.0, 0.0};
+    (*plain).flex_wrap = FlexWrap::wrap;
+    std::vector<std::shared_ptr<Panel>> items;
+    for (int index = 0; index < 10; ++index) {
+        items.push_back(box("flex.scroll.off." + std::to_string(index), 40.0, 20.0));
+        (*plain).add_child(items.back());
+    }
+    Window plain_window(plain, Size{100.0, 60.0});
+    plain_window.perform_layout();
+    require_extent(*plain, 100.0, 60.0, "without auto_scroll the extent is the client");
+    require_bounds(*items[9], 40.0, 80.0, 40.0, 20.0, "without auto_scroll the items still wrap below");
+}
+
 int main() {
     try {
         test_row_grows_and_stretches();
@@ -365,6 +466,7 @@ int main() {
         test_nested_columns_size_from_content();
         test_documented_examples();
         test_ten_thousand_children_counts();
+        test_auto_scroll_extent_covers_all_content();
         std::cout << "flex-panel-tests: pass\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

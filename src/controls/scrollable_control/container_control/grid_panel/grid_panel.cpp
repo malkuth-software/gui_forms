@@ -1378,7 +1378,7 @@ const std::array<PropertyEntry, GridPanel::grid_panel_property_count>& GridPanel
     }};
     static_assert(property_names_distinct(own), "GridPanel's property table names a property twice");
     static const std::array<PropertyEntry, grid_panel_property_count> entries =
-        join_property_tables(Control::control_property_entries(), own);
+        join_property_tables(ScrollableControl::scrollable_control_property_entries(), own);
     return entries;
 }
 

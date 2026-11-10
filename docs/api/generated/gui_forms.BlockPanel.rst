@@ -332,4 +332,4 @@ gui_forms::BlockPanel
 
    .. cpp:member:: constexpr std::size_t block_panel_property_count
 
-      BlockPanel's property table: Control's entries, then its own. Default: ``Control::control_property_count + 1U``.
+      BlockPanel's property table: ScrollableControl's entries, then its own. Default: ``ScrollableControl::scrollable_control_property_count + 1U``.

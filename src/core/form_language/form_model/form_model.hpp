@@ -97,6 +97,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -151,6 +152,12 @@ struct FormSchemaType final {
     // a type the generator cannot spell.
     std::string cpp_type{};
     std::string header{};
+    // Whether the C++ class is final, so the generator cannot derive from
+    // it: a derived class of a control root of this type is composed (it
+    // holds the root as a member) instead. The layout panels are final
+    // because their measure, arrange and the solver state those keep for
+    // inspection are one contract a subclass override would break.
+    bool final_type{};
 };
 
 // The types a document may name. Built by the caller, borrowed by
@@ -211,6 +218,7 @@ template <typename ControlType>
     const std::shared_ptr<ControlType> prototype = make_control<ControlType>(StableId("prototype"));
     FormSchemaType type = describe_form_type(std::move(name), *prototype);
     type.create = &create_form_control<ControlType>;
+    type.final_type = std::is_final_v<ControlType>;
     if constexpr (HoldsGridSpans<ControlType>::value) {
         type.holds_spans = true;
         type.define_span = &define_form_span<ControlType>;

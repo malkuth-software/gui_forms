@@ -125,8 +125,12 @@ private:
     void resolve_item_inputs(const SolveRequest& request);
     void measure_item_crosses(const SolveRequest& request, const FlexLayoutWorkspace& workspace);
     // Assigns the in-flow children's slots, with relative offsets against
-    // the content box.
+    // the content box, moved by overflow_shift_.
     void publish_slots(const FlexLayoutWorkspace& workspace, Size content_box);
+    // The smallest rectangle holding every laid-out item's margin box, in
+    // the content box's coordinates (it may start left of or above the
+    // box, where a reversed axis overflows); empty with no items.
+    [[nodiscard]] Rect content_margin_bounds(const FlexLayoutWorkspace& workspace) const noexcept;
     // Places the absolutely positioned children gathered for the pass in
     // their containing block (out_of_flow.hpp), registers the controls it
     // depends on with the window, and reports each child's resolution.
@@ -155,10 +159,19 @@ private:
     std::vector<Control::Ptr> absolute_children_{};
     std::vector<RuntimeId> dependency_path_{};
     bool registered_dependencies_{};
+    // With auto_scroll, how far the items move right and down so content
+    // that overflows the content box's start (a reversed direction or
+    // wrap-reverse) lies inside the scroll extent; zero otherwise.
+    Point overflow_shift_{};
+    // The shift the scroll position last moved with. A change of shift
+    // moves the position by the same amount, so the content in view stays
+    // in view, and a first layout with a reversed axis opens on the
+    // main-axis start, as CSS's scroll origin does.
+    Point scrolled_shift_{};
     // property_codemod begin FlexPanel (tools/property_families/flex_panel.json; generated, do not edit)
 public:
-    // FlexPanel's property table: Control's entries, then its own.
-    static constexpr std::size_t flex_panel_property_count = Control::control_property_count + 1U;
+    // FlexPanel's property table: ScrollableControl's entries, then its own.
+    static constexpr std::size_t flex_panel_property_count = ScrollableControl::scrollable_control_property_count + 1U;
     [[nodiscard]] static const std::array<PropertyEntry, flex_panel_property_count>& flex_panel_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 

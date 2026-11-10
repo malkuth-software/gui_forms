@@ -1,7 +1,8 @@
 // Form documents generated as derived classes (stage B,
 // APP_WINDOW_RULES_DESIGN Part B step 2). Gate: gui_forms_add_form MODEL
 // generates, at build time, a Window subclass from a form root and a
-// subclass of the root's type from a control root; each makes the
+// subclass of the root's type from a control root (a class composing the
+// root, when its type is final); each makes the
 // document's objects as its members, sets its values, binds the model's
 // sources and, for a window, names its accept and cancel buttons; the
 // window joins the current application or the one it is given; a
@@ -9,6 +10,7 @@
 // model.
 
 #include "derived_panel_form.hpp"
+#include "flex_root_panel_form.hpp"
 #include "plain_panel_form.hpp"
 #include "sample_dialog_window.hpp"
 
@@ -112,12 +114,36 @@ void test_control() {
             "control: binding nothing, it takes no model");
 }
 
+// A control root whose type is final (a layout panel): the class holds the
+// panel as its first member, made with the document's stable ID, and shows
+// it through root_control(); the rest is the derived control's.
+void test_composed_control() {
+    form_generated::SampleModel model{};
+    const form_generated::FlexRootPanel form = form_generated::FlexRootPanel::make(model);
+    require(form.flex_root != nullptr && (*form.flex_root).stable_id().value() == "flex.root",
+            "composed: the root, a member, with the document's stable ID");
+    if (form.flex_root == nullptr) return;
+    require(form.root_control() == form.flex_root, "composed: the root control is the panel");
+    require((*form.flex_root).auto_scroll.read(), "composed: the root's own value set");
+    const std::span<const gui_forms::Control::Ptr> children = (*form.flex_root).children();
+    require(children.size() == 2U && children[0] == form.flex_flag && children[1] == form.flex_go,
+            "composed: the root's children, members, in document order");
+    if (children.size() != 2U) return;
+    require((*form.flex_flag).checked.read(), "composed: the check box takes the model's state");
+    model.auto_save_.set(false);
+    require(!(*form.flex_flag).checked.read(), "composed: the model's change reaches the check box");
+    gui_forms::Window window(form.root_control(), gui_forms::Size{200.0, 100.0});
+    static_cast<void>((*form.flex_go).perform_click());
+    require(model.accept_calls == 1, "composed: the button runs the model's command");
+}
+
 } // namespace
 
 int main() {
     test_window();
     test_window_application();
     test_control();
+    test_composed_control();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

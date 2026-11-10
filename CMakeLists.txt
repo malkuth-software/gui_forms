@@ -3403,6 +3403,10 @@ if(GUI_FORMS_BUILD_TESTS)
                 MODEL form_generated::SampleModel MODEL_HEADER generated/sample_model.hpp)
             gui_forms_add_form(gui_forms_form_derived_class_tests tests/form_language/generated/plain_panel.form
                 CLASS PlainPanel NAMESPACE form_generated DERIVED)
+            # A final root type (a layout panel), composed instead of derived.
+            gui_forms_add_form(gui_forms_form_derived_class_tests tests/form_language/generated/flex_root_panel.form
+                CLASS FlexRootPanel NAMESPACE form_generated
+                MODEL form_generated::SampleModel MODEL_HEADER generated/sample_model.hpp)
             add_test(NAME gui_forms_form_derived_class_tests COMMAND gui_forms_form_derived_class_tests)
         endif()
     endif()

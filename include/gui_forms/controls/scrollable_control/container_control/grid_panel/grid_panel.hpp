@@ -325,8 +325,8 @@ private:
     GridSolveOutcome arranged_outcome_{GridSolveOutcome::solved};
     // property_codemod begin GridPanel (tools/property_families/grid_panel.json; generated, do not edit)
 public:
-    // GridPanel's property table: Control's entries, then its own.
-    static constexpr std::size_t grid_panel_property_count = Control::control_property_count + 1U;
+    // GridPanel's property table: ScrollableControl's entries, then its own.
+    static constexpr std::size_t grid_panel_property_count = ScrollableControl::scrollable_control_property_count + 1U;
     [[nodiscard]] static const std::array<PropertyEntry, grid_panel_property_count>& grid_panel_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 

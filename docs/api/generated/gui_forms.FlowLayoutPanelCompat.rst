@@ -285,4 +285,4 @@ gui_forms::FlowLayoutPanelCompat
 
    .. cpp:member:: constexpr std::size_t flow_layout_panel_compat_property_count
 
-      FlowLayoutPanelCompat's property table: Control's entries, then its own. Default: ``Control::control_property_count + 5U``.
+      FlowLayoutPanelCompat's property table: ScrollableControl's entries, then its own. Default: ``ScrollableControl::scrollable_control_property_count + 5U``.

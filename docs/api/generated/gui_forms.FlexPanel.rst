@@ -329,4 +329,4 @@ gui_forms::FlexPanel
 
    .. cpp:member:: constexpr std::size_t flex_panel_property_count
 
-      FlexPanel's property table: Control's entries, then its own. Default: ``Control::control_property_count + 1U``.
+      FlexPanel's property table: ScrollableControl's entries, then its own. Default: ``ScrollableControl::scrollable_control_property_count + 1U``.
