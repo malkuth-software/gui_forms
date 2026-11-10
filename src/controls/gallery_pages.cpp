@@ -300,6 +300,72 @@ bool select_gallery_page(Window& window, std::string_view page_id) {
     return false;
 }
 
+namespace {
+
+// The control under `control` (itself included) whose stable id is
+// `stable_id`, depth first, or null.
+Control::Ptr find_gallery_control(const Control::Ptr& control, std::string_view stable_id) {
+    if ((*control).stable_id().value() == stable_id) return control;
+    for (const Control::Ptr& child : (*control).children()) {
+        Control::Ptr found = find_gallery_control(child, stable_id);
+        if (found) return found;
+    }
+    return nullptr;
+}
+
+} // namespace
+
+bool reveal_gallery_control(Window& window, std::string_view stable_id) {
+    const std::shared_ptr<PageContext> context = retained_page_context(window);
+    if (!context || (*context).selected_page >= (*context).pages.size()) return false;
+    const std::shared_ptr<ScrollableControl> viewport =
+        std::dynamic_pointer_cast<ScrollableControl>((*context).pages[(*context).selected_page]);
+    if (!viewport) return false;
+    const Control::Ptr target = find_gallery_control(viewport, stable_id);
+    if (!target || target == viewport) return false;
+    // The pages are drawn at their design size, unscaled, so the target's
+    // offset in the viewport's content is the sum of its requested origins
+    // up to the viewport.
+    double offset = 0.0;
+    Control::Ptr step = target;
+    while (step && step != viewport) {
+        offset += (*step).requested_bounds().y;
+        step = (*step).parent();
+    }
+    const double target_y = std::max(0.0, offset - 8.0);
+    static_cast<void>((*viewport).scroll_to({0.0, target_y}));
+    const bool reached = (*viewport).scroll_position().y == target_y;
+    return reached;
+}
+
+bool open_gallery_menu(Window& window, std::string_view stable_id, std::string_view item) {
+    const Control::Ptr root = window.root();
+    if (!root) return false;
+    const Control::Ptr target = find_gallery_control(root, stable_id);
+    if (!target) return false;
+    const std::shared_ptr<MenuStrip> menu = std::dynamic_pointer_cast<MenuStrip>(target);
+    if (menu) {
+        std::size_t index = 0U;
+        for (const char digit : item) {
+            if (digit < '0' || digit > '9') return false;
+            index = index * 10U + static_cast<std::size_t>(digit - '0');
+        }
+        const bool opened = (*menu).open(index);
+        return opened;
+    }
+    const std::shared_ptr<ToolStrip> strip = std::dynamic_pointer_cast<ToolStrip>(target);
+    if (strip) {
+        const bool opened = (*strip).show_drop_down(item);
+        return opened;
+    }
+    const std::shared_ptr<Ribbon> ribbon = std::dynamic_pointer_cast<Ribbon>(target);
+    if (ribbon) {
+        const bool opened = (*ribbon).show_drop_down(item);
+        return opened;
+    }
+    return false;
+}
+
 std::string_view selected_gallery_page(const Window& window) {
     const std::shared_ptr<PageContext> context = retained_page_context(window);
     if (!context || (*context).selected_page >= (*context).page_ids.size()) return {};

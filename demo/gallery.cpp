@@ -6,11 +6,13 @@
 #include "gallery_theme_package.hpp"
 
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/integrity/sha256/sha256.hpp"
 
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <cmath>
+#include <cstdio>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -317,15 +319,63 @@ std::optional<ThemeBase> gallery_theme_base(std::string_view id) noexcept
 
 std::unique_ptr<Application> create_gallery_application(ThemeBase base)
 {
+    std::unique_ptr<Application> application = create_gallery_application(base, {}, {});
+    return application;
+}
+
+namespace {
+
+// The package around one runtime sheet: a manifest naming it with its
+// sha256, as gui_forms_add_theme writes for an embedded package.
+ThemePackage runtime_sheet_package(std::string_view sheet) {
+    std::array<char, sha256_hex_digits> digest{};
+    format_sha256_hex(sha256_of_text(sheet), digest);
+    ThemePackage package{};
+    package.manifest = std::string("{\"format\": \"gui-forms-theme/1\", \"name\": \"theme-sheet\", "
+                                   "\"version\": \"1.0.0\", \"engine\": \">=0.3\", "
+                                   "\"sheet\": {\"path\": \"sheet.theme.css\", \"sha256\": \"") +
+                       std::string(digest.data(), digest.size()) + "\"}}";
+    package.files.push_back(ThemePackageFile{.path = "sheet.theme.css", .bytes = std::string(sheet)});
+    return package;
+}
+
+// Whether `finding` is about the runtime sheet's package.
+bool runtime_sheet_finding(const ThemeCompileDiagnostic& finding) {
+    const bool sheet = finding.file.find("theme-sheet") != std::string::npos ||
+                       finding.file.find("sheet.theme.css") != std::string::npos;
+    return sheet;
+}
+
+} // namespace
+
+std::unique_ptr<Application> create_gallery_application(ThemeBase base, std::string_view sheet,
+                                                        std::string_view sheet_name)
+{
     ApplicationConfig config{};
     config.theme.packages.push_back(gallery_theme_package());
+    if (!sheet.empty()) config.theme.packages.push_back(runtime_sheet_package(sheet));
     config.theme.base = base;
     config.theme.effects = &built_in_effect_registry();
     ApplicationCreateResult created = Application::create(std::move(config));
     if (created.error == ApplicationCreateError::already_exists) {
         throw std::logic_error("the Gallery application: another application is current");
     }
-    require_clean_gallery_theme(static_cast<bool>(created), created.findings);
+    // The runtime sheet's findings first: an error is the caller's, named by
+    // line; a warning is printed (its declaration still applies). The rest
+    // stay the build's.
+    std::vector<ThemeCompileDiagnostic> own;
+    for (const ThemeCompileDiagnostic& finding : created.findings) {
+        if (!runtime_sheet_finding(finding)) {
+            own.push_back(finding);
+            continue;
+        }
+        const std::string place = std::string(sheet_name) + ":" + std::to_string(finding.line) + ":" +
+                                  std::to_string(finding.column) + ": " + finding.code + " " + finding.name +
+                                  (finding.detail.empty() ? std::string() : " (" + finding.detail + ")");
+        if (finding.severity == ThemeDiagnosticSeverity::error) throw std::runtime_error(place);
+        std::fprintf(stderr, "theme sheet warning: %s\n", place.c_str());
+    }
+    require_clean_gallery_theme(static_cast<bool>(created) || !own.empty(), own);
     std::unique_ptr<Application> application = std::move(created.application);
     return application;
 }

@@ -31,6 +31,21 @@
 //                       base: gui-forms (the default) or
 //                       windows-professional, as its Theme settings page
 //                       does. Other programs ignore it.
+//   --scheme light|dark The window's colour-scheme override.
+//   --theme-sheet <path>
+//                       The Gallery compiles this CSS theme sheet at start
+//                       up as one more package above its own, onto the
+//                       --theme base (theme work without a rebuild). An
+//                       error in it stops the program with its line.
+//   --reveal <id>       The Gallery scrolls its page so the control with
+//                       this stable id is at the top (capture staging).
+//                       Other programs ignore it.
+//   --open-menu <id>[/<item>]
+//                       The Gallery opens a menu of the control with this
+//                       stable id before showing the window: a MenuStrip's
+//                       menu at index <item> (0 by default), or a
+//                       ToolStrip's or a Ribbon's drop-down <item>. Other
+//                       programs ignore it.
 //
 // Header-only so every demo executable can include it without a new library.
 // It is demo-facing code: no host, renderer or platform type appears here.
@@ -65,12 +80,18 @@ struct ProgramOptions final {
     // --scheme light|dark: the window's colour-scheme override; empty
     // follows the host's setting.
     std::string scheme;
+    // --reveal and --open-menu (capture staging); empty when not given.
+    std::string reveal;
+    std::string open_menu;
+    // --theme-sheet: the CSS file's path; empty when not given.
+    std::string theme_sheet;
 };
 
 inline void print_program_usage(const char* program) {
     std::fprintf(stderr,
                  "usage: %s [--automation] [--smoke-test] [--capture <path.png>] "
-                 "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>] [--theme <id>]\n",
+                 "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>] [--theme <id>] "
+                 "[--scheme light|dark] [--theme-sheet <path>] [--reveal <id>] [--open-menu <id>[/<item>]]\n",
                  program != nullptr && *program != '\0' ? program : "gui-forms-demo");
 }
 
@@ -127,7 +148,8 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
         const bool wants_value = argument == "--capture" || argument == "--size" ||
                                  argument == "--scale" || argument == "--page" ||
                                  argument == "--backdrop" || argument == "--theme" ||
-                                 argument == "--scheme";
+                                 argument == "--scheme" || argument == "--reveal" ||
+                                 argument == "--open-menu" || argument == "--theme-sheet";
         if (!wants_value) {
             print_program_usage(program);
             return std::nullopt;
@@ -167,6 +189,22 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
                 return std::nullopt;
             }
             options.scheme = std::string(value);
+        } else if (argument == "--theme-sheet") {
+            if (value.empty()) {
+                print_program_usage(program);
+                return std::nullopt;
+            }
+            options.theme_sheet = std::string(value);
+        } else if (argument == "--reveal" || argument == "--open-menu") {
+            if (value.empty()) {
+                print_program_usage(program);
+                return std::nullopt;
+            }
+            if (argument == "--reveal") {
+                options.reveal = std::string(value);
+            } else {
+                options.open_menu = std::string(value);
+            }
         } else if (argument == "--size") {
             Size size{};
             if (!detail::parse_size(value, size)) {
