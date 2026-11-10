@@ -770,7 +770,10 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
             abandon_paint(generation_before);
             return std::nullopt;
         }
-        static_cast<void>(detail::replay_display_chunk(*transaction, painter));
+        // The frame's recording is replayed into the terminal painter, which
+        // alone can say whether an opaque live surface hides what lies
+        // beneath it (a panned canvas's sheet over its surround).
+        static_cast<void>(detail::replay_display_chunk_occluded(*transaction, painter, window_bounds));
         // A backend painter may enter a native callback while replaying. A
         // resize, scale transition, or owner retirement at that boundary
         // invalidates the candidate even though every draw command returned.
