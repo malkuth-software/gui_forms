@@ -819,6 +819,7 @@ std::uint64_t HandleRegistry::run_posted(std::size_t maximum) {
     for (turn = 0U; turn < waiting; ++turn) {
         PostedCall call{};
         Component::Ptr target;
+        bool reference_live = false;
         {
             const std::scoped_lock lock(mutex_);
             std::deque<PostedCall>& posted = posted_locked(domain);
@@ -831,8 +832,12 @@ std::uint64_t HandleRegistry::run_posted(std::size_t maximum) {
             call = std::move(posted.front());
             posted.pop_front();
             const ObjectSlot* found = object_slot_locked(call.target);
-            // The posted reference keeps the target's identity live.
-            target = (*found).object;
+            // The posted reference keeps the target's identity live. A
+            // caller that released once too often took that reference: the
+            // call is dropped (its callback still released) and the stale
+            // identity never dereferenced (N5).
+            reference_live = found != nullptr;
+            if (reference_live) target = (*found).object;
         }
         if (target && (*target).is_alive()) {
             const ShadowFrameScope shadow_frame(ShadowFrameKind::posted_callback, frame_subject(target.get()),
@@ -847,8 +852,8 @@ std::uint64_t HandleRegistry::run_posted(std::size_t maximum) {
         }
         call.callback.reset();
         target.reset();
-        // Gives back the posted reference.
-        static_cast<void>(release(call.target, SlotIdentity{GF_TABLE_DISPATCH, 1U}));
+        // Gives back the posted reference, when it still exists.
+        if (reference_live) static_cast<void>(release(call.target, SlotIdentity{GF_TABLE_DISPATCH, 1U}));
     }
     WindowDispatcher wake;
     {

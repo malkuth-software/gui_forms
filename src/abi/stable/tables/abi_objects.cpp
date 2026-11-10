@@ -127,7 +127,14 @@ gf_status GF_CALL objects_create(gf_utf8_view type_name, gf_utf8_view stable_id,
         *object = registry().add_reference(made);
         return GF_STATUS_OK;
     } catch (...) {
-        return fail_with_current_exception(create_slot);
+        const gf_status failed = fail_with_current_exception(create_slot);
+        // A throw after enter_ui bound the thread for this call must not
+        // leave the library bound to it (N10). Nothing to undo otherwise.
+        try {
+            registry().unbind_if_idle();
+        } catch (...) {
+        }
+        return failed;
     }
 }
 

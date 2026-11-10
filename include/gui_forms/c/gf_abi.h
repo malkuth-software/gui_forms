@@ -359,6 +359,30 @@ typedef struct gf_font {
 } gf_font;
 
 /*
+ * Colour layouts (K5). Three layouts appear in this header, each where it
+ * is named: a gf_value colour (and every rgba field) is one 32-bit word
+ * 0xRRGGBBAA, red in the high byte, alpha in the low byte, not
+ * premultiplied; pixel buffers (paint targets, surfaces, endpoints) are
+ * premultiplied BGRA bytes, blue first in memory; and Windows Forms'
+ * Color.ToArgb, which a binding converts from, is 0xAARRGGBB. A binding
+ * converts at its boundary; the library never guesses. One layout is a
+ * candidate for 2.0.
+ */
+
+/*
+ * Arrays of records the caller passes (N14): every array of size-prefixed
+ * records in this header (gf_value.elements, gf_rule.conditions,
+ * gf_rule.actions, gf_application_config.packages, and the data grid's
+ * rows, cells and values) has the stride of its first element's
+ * struct_size, the caller's sizeof, which every element repeats; it is at
+ * least the record's first size and a multiple of 8. The library steps by
+ * that stride, so a record that grows in a later minor is still read
+ * correctly from a caller built against an earlier one. A record embedded
+ * by value (gf_custom_control_spec.callbacks) is read up to its own
+ * struct_size.
+ */
+
+/*
  * A property or event value. kind selects the field that holds it: boolean
  * (0 or 1), signed_integer, unsigned_integer, number, text, point, size,
  * rectangle, insets, or color (0xRRGGBBAA). An ENUMERATION holds its value
@@ -371,7 +395,11 @@ typedef struct gf_font {
  * (properties.element_at, events.field_element); a COLLECTION the caller
  * passes lists its elements in elements and element_count, each a gf_value
  * of the collection's item kind (not itself a COLLECTION), read during the
- * call only. An OBJECT is an object's identity in unsigned_integer (event
+ * call only, stepped by the first element's struct_size (the array rule
+ * above). A COLLECTION the caller passes holds at most 4096 elements (N16;
+ * GF_STATUS_LIMIT_EXCEEDED beyond): a larger list belongs in a data
+ * grid's rows (GF_TABLE_DATA_GRID) or a bound source (GF_TABLE_BINDINGS),
+ * which add rows in calls of their own. An OBJECT is an object's identity in unsigned_integer (event
  * fields); a property of an object value has no gf_value form yet
  * (GF_STATUS_UNSUPPORTED_CAPABILITY), and the schema lists none.
  * Other fields are ignored on input and zero on output. The caller sets
@@ -576,7 +604,10 @@ typedef struct gf_objects_table {
                                    uint64_t* required);
     /* Puts child, which has no parent, under parent at index (at most the
      * child count; the count appends). Children are ordered back to front:
-     * the last one paints on top. A child cannot be its own ancestor. */
+     * the last one paints on top. A child cannot be its own ancestor. This
+     * is the ABI's one child order (K4), painter order: index 0 is the
+     * bottom-most child. A Windows Forms binding, whose Controls collection
+     * puts index 0 on top (z-order), reverses the index at its boundary. */
     gf_status (GF_CALL* insert_child)(gf_object parent, gf_object child, uint64_t index);
     /* Takes child from parent; it then ends at its last release. */
     gf_status (GF_CALL* remove_child)(gf_object parent, gf_object child);
@@ -1583,7 +1614,11 @@ typedef struct gf_host_table {
     gf_status (GF_CALL* write_clipboard_text)(gf_utf8_view text);
     /* Shows a modal dialog over the running window and returns when it
      * closes; posted callbacks and the window's events run meanwhile. The
-     * paths it chose replace the held ones. */
+     * paths it chose replace the held ones when it returns (K8): read them
+     * with dialog_path_at before showing another dialog. A dialog shown
+     * from a callback while this one is open stores its own paths when it
+     * returns, before this one's, so each caller that reads straight after
+     * its own call reads its own paths. */
     gf_status (GF_CALL* show_dialog)(const gf_dialog_request* request, gf_dialog_result* result);
     /* A path the last dialog chose, in the host's order. */
     gf_status (GF_CALL* dialog_path_at)(uint64_t index, char* buffer, uint64_t capacity, uint64_t* required);
@@ -2118,7 +2153,8 @@ typedef struct gf_custom_control_callbacks {
  * A custom control's definition. property_size is the size of one
  * gf_custom_property as the caller declares it (at least the 1.0 size); the
  * library steps through properties by it. properties may be null when
- * property_count is 0; at most GF_CUSTOM_MAXIMUM_PROPERTIES.
+ * property_count is 0; at most GF_CUSTOM_MAXIMUM_PROPERTIES. callbacks is
+ * read up to its own struct_size; fields past it are taken as zero.
  */
 typedef struct gf_custom_control_spec {
     uint32_t struct_size;
@@ -2379,7 +2415,8 @@ typedef uint32_t gf_presentation_source;
 /*
  * What an application is made with. An input record: struct_size at least
  * the 1.1 size, reserved zero. packages lists package_count packages
- * (packages may be null when the count is zero), compiled after the base
+ * (packages may be null when the count is zero; the stride is the first
+ * package's struct_size), compiled after the base
  * in that order, each with its
  * @import closure among the installed packages (themes.install). The
  * packages and their bytes are read during create only. With the default
@@ -2582,8 +2619,10 @@ typedef struct gf_rule_action {
  * control trigger or an interaction trigger (any object, for INTERACTION)
  * or the command of COMMAND_EXECUTED, and interaction INTERACTION's schema
  * name. conditions holds condition_count conditions (at most 8) and actions
- * action_count actions (1 to 8); add copies them. Fields a kind does not
- * read are zero.
+ * action_count actions (1 to 8), each array stepped by its first element's
+ * struct_size; add copies them. A SET action's value is converted to its
+ * property's type by add, which refuses one that does not convert
+ * (GF_STATUS_INVALID_ARGUMENT). Fields a kind does not read are zero.
  */
 typedef struct gf_rule {
     uint32_t struct_size;

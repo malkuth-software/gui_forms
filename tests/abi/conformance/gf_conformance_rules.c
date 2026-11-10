@@ -119,9 +119,76 @@ static void refusals(gf_kit* kit, gf_object window, gf_object first, gf_object s
     gf_kit_status(kit, (*kit).rules.add(window, &rule, &token), GF_STATUS_NOT_FOUND,
                   "a property the target lacks is refused");
 
+    /* A callback action built before a refused action is not taken (N34). */
+    gf_rule_action pair[2];
+    pair[0] = call;
+    pair[1] = blank_action(GF_RULE_ACTION_SET);
+    pair[1].target = second;
+    pair[1].property = gf_kit_text("no_such_property");
+    gf_value flag = boolean_value(1u);
+    pair[1].value = &flag;
+    rule = interaction_rule(first, "checked_changed", pair, 2u);
+    gf_kit_status(kit, (*kit).rules.add(window, &rule, &token), GF_STATUS_NOT_FOUND,
+                  "a callback action before a refused action is refused with it");
+    /* A SET action's value is converted by add (N29). */
+    gf_value point;
+    memset(&point, 0, sizeof(point));
+    point.struct_size = (uint32_t)sizeof(point);
+    point.kind = GF_VALUE_KIND_POINT;
+    pair[1].property = gf_kit_text("checked");
+    pair[1].value = &point;
+    gf_kit_status(kit, (*kit).rules.add(window, &rule, &token), GF_STATUS_INVALID_ARGUMENT,
+                  "a set action whose value does not convert to its property is refused by add");
+    /* Arrays repeat their first element's struct_size (N27). */
+    gf_rule_action mixed[2];
+    mixed[0] = call;
+    mixed[1] = call;
+    mixed[1].struct_size = (uint32_t)sizeof(gf_rule_action) + 8u;
+    rule = interaction_rule(first, "checked_changed", mixed, 2u);
+    gf_kit_status(kit, (*kit).rules.add(window, &rule, &token), GF_STATUS_INVALID_ARGUMENT,
+                  "every action repeats the first action's struct_size");
+
     gf_kit_check(kit, token == 7u, "a refused add leaves its output");
     gf_kit_check(kit, recorder.invoked == 0u && recorder.released == 0u,
                  "a refused add neither calls nor releases its callback");
+}
+
+/* Actions of a later minor's larger size: the library steps by the first
+ * action's struct_size, not its own sizeof (N27). */
+typedef struct wide_action {
+    gf_rule_action action;
+    uint64_t tail;
+} wide_action;
+
+static void wide_actions(gf_kit* kit, gf_object window, gf_object first, gf_object second) {
+    const gf_value yes = boolean_value(1u);
+    const gf_value no = boolean_value(0u);
+    wide_action actions[2];
+    memset(actions, 0, sizeof(actions));
+    actions[0].action = blank_action(GF_RULE_ACTION_SET);
+    actions[0].action.struct_size = (uint32_t)sizeof(wide_action);
+    actions[0].action.target = second;
+    actions[0].action.property = gf_kit_text("checked");
+    actions[0].action.value = &no;
+    actions[0].tail = 0xFFFFFFFFFFFFFFFFull;
+    actions[1] = actions[0];
+    actions[1].action.value = &yes;
+    /* A condition no other rule here has, so the trigger is not a duplicate. */
+    gf_rule_condition second_enabled;
+    memset(&second_enabled, 0, sizeof(second_enabled));
+    second_enabled.struct_size = (uint32_t)sizeof(second_enabled);
+    second_enabled.kind = GF_RULE_CONDITION_ENABLED;
+    second_enabled.object = second;
+    gf_rule rule = interaction_rule(first, "checked_changed", &actions[0].action, 2u);
+    rule.conditions = &second_enabled;
+    rule.condition_count = 1u;
+    gf_rule_token token = 0u;
+    gf_kit_status(kit, (*kit).rules.add(window, &rule, &token), GF_STATUS_OK,
+                  "actions larger than this library's record are admitted");
+    gf_kit_check(kit, token != 0u, "the wide rule has a token");
+    if (token != 0u) {
+        gf_kit_status(kit, (*kit).rules.remove(token), GF_STATUS_OK, "remove the wide rule");
+    }
 }
 
 void gf_kit_rules(gf_kit* kit) {
@@ -229,6 +296,7 @@ void gf_kit_rules(gf_kit* kit) {
     gf_kit_check(kit, later.invoked == 1u, "with the consuming rule gone the later rule fires");
 
     refusals(kit, window, first, second);
+    wide_actions(kit, window, first, second);
 
     /* Disposing an object a rule names leaves the rule stale. */
     gf_kit_status(kit, (*kit).objects.dispose(third), GF_STATUS_OK, "dispose the third box");

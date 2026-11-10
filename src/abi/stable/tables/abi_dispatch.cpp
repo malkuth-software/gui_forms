@@ -24,8 +24,16 @@ gf_status GF_CALL dispatch_begin_invoke(gf_object target, const gf_callback* cal
             return read;
         }
         std::unique_ptr<CallbackBinding> binding = std::make_unique<CallbackBinding>(copy);
-        const gf_status posted = registry().post(target, binding, begin_invoke_slot);
-        if (posted != GF_STATUS_OK) {
+        gf_status posted = GF_STATUS_INVALID_STATE;
+        try {
+            posted = registry().post(target, binding, begin_invoke_slot);
+        } catch (...) {
+            // Not queued (post moves the binding only once it is): the
+            // caller keeps the callback, and no release follows (N34).
+            if (binding) (*binding).disarm();
+            throw;
+        }
+        if (posted != GF_STATUS_OK && binding) {
             // Not taken: the caller keeps the callback.
             (*binding).disarm();
         }

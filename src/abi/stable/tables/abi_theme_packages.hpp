@@ -10,8 +10,12 @@
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
 #include <cstddef>
+#include <cstdint>
 
 namespace gui_forms::abi1 {
+
+// The 1.0 size of gf_theme_package: the least stride of a package array.
+inline constexpr std::uint32_t theme_package_size_1_0 = 40U;
 
 // Copies a caller's package into `made` after checking the whole of it: its
 // record, its counts, every view, and the bounds on files and bytes. On a

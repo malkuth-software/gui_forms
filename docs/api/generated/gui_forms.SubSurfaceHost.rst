@@ -70,6 +70,8 @@ gui_forms::SubSurfaceHost
       :class: autosummary longtable
       :widths: 35 65
 
+      * - :cpp:func:`adopt_content <gui_forms::SubSurfaceHost::adopt_content>`
+        - As set_content, moving from ``content`` only once nothing before the take can fail: a throw before it leaves ``content`` holding the content, so a caller that promised not to take it on failure (the C ABI) can give it back.
       * - :cpp:func:`redraw_all <gui_forms::SubSurfaceHost::redraw_all>`
         - The parent's redraw-all (design note section 2): sends a configuration under a new content epoch carrying ``update`` (null for none), so that the sub-surface's first frame at that epoch shows it and the window composes no older frame once it pairs (section 6).
       * - :cpp:func:`request_statistics <gui_forms::SubSurfaceHost::request_statistics>`
@@ -140,6 +142,10 @@ gui_forms::SubSurfaceHost
 
 
    .. rubric:: Methods
+
+   .. cpp:function:: void adopt_content(std::unique_ptr<SubSurfaceContent>& content, bool opaque)
+
+      As set_content, moving from ``content`` only once nothing before the take can fail: a throw before it leaves ``content`` holding the content, so a caller that promised not to take it on failure (the C ABI) can give it back. After the take the host holds it.
 
    .. cpp:function:: std::uint64_t redraw_all(std::unique_ptr<SubSurfaceContentUpdate> update)
 

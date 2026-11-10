@@ -10,6 +10,7 @@
 // disarming). Tokens are identities in a table of this file, used on the
 // UI thread only (every slot enters the UI first).
 
+#include "abi_records.hpp"
 #include "abi_tables.hpp"
 
 #include "../events/abi_interactions.hpp"
@@ -218,10 +219,20 @@ void run_property(PropertyAction& property_action, const RuleFiring&) {
     }
 }
 
-// What add built besides the rule: the callback bindings, which a refused
-// add disarms (the library never took those callbacks).
+// What add built besides the rule: the callback bindings. Every way out of
+// add but success disarms them, a throw included (N34): the library took
+// none of those callbacks, so it never calls them or their release. add
+// marks the rule taken once the rule set holds it.
 struct Building final {
     std::vector<CallbackBinding*> callbacks{};
+    bool taken{};
+
+    Building() = default;
+    Building(const Building&) = delete;
+    Building& operator=(const Building&) = delete;
+    ~Building() {
+        if (!taken) disarm();
+    }
 
     void disarm() noexcept {
         for (CallbackBinding* binding : callbacks) {
@@ -420,6 +431,9 @@ gf_status build_action(const gf_rule_action* record, const Component* sender, Ru
         if (read != GF_STATUS_OK) {
             return read;
         }
+        // Room first, so that the binding is listed the moment it exists
+        // and a later throw disarms it with the rest.
+        building.callbacks.reserve(building.callbacks.size() + 1U);
         const std::shared_ptr<CallbackAction> context = std::make_shared<CallbackAction>();
         (*context).callback = std::make_unique<CallbackBinding>(copy);
         building.callbacks.push_back((*context).callback.get());
@@ -471,10 +485,19 @@ gf_status build_action(const gf_rule_action* record, const Component* sender, Ru
             if (value == nullptr || (*value).kind == GF_VALUE_KIND_COLLECTION) {
                 return fail(GF_STATUS_INVALID_ARGUMENT, add_slot, "a set action has a value that is not a collection");
             }
-            const gf_status converted = read_value(value, add_slot, (*context).value);
+            BindingValue read{};
+            const gf_status converted = read_value(value, add_slot, read);
             if (converted != GF_STATUS_OK) {
                 return converted;
             }
+            // Converted to the property's type here, so a value of the wrong
+            // kind is refused by add and not on every firing (N29).
+            std::optional<BindingValue> typed = convert_property_value(read, *descriptor);
+            if (!typed) {
+                return fail(GF_STATUS_INVALID_ARGUMENT, add_slot,
+                            "a set action's value does not convert to its property's type");
+            }
+            (*context).value = std::move(*typed);
         }
         made = gui_forms::action(*context, &run_property);
         made.retained = context;
@@ -551,33 +574,42 @@ gf_status add_rule(gf_object window, const gf_rule* record, gf_rule_token* token
     }
     const std::size_t condition_count = static_cast<std::size_t>((*record).condition_count);
     const std::size_t action_count = static_cast<std::size_t>((*record).action_count);
+    // Both arrays are stepped by their first element's struct_size (N27).
+    std::uint32_t condition_stride = 0U;
+    const gf_status conditions_checked =
+        check_array((*record).conditions, condition_count, condition_size_1_1, add_slot, condition_stride);
+    if (conditions_checked != GF_STATUS_OK) {
+        return conditions_checked;
+    }
+    std::uint32_t action_stride = 0U;
+    const gf_status actions_checked =
+        check_array((*record).actions, action_count, action_size_1_1, add_slot, action_stride);
+    if (actions_checked != GF_STATUS_OK) {
+        return actions_checked;
+    }
     rule.conditions.resize(condition_count);
     for (std::size_t index = 0U; index < condition_count; ++index) {
-        const gf_status built = build_condition(&(*record).conditions[index], rule.conditions[index]);
+        const gf_status built =
+            build_condition(&element_at((*record).conditions, condition_stride, index), rule.conditions[index]);
         if (built != GF_STATUS_OK) {
             return built;
         }
     }
+    // Disarms the built callbacks on every way out but success.
     Building building{};
     rule.actions.resize(action_count);
     for (std::size_t index = 0U; index < action_count; ++index) {
-        const gf_status built = build_action(&(*record).actions[index], sender, rule.actions[index], building);
+        const gf_status built = build_action(&element_at((*record).actions, action_stride, index), sender,
+                                             rule.actions[index], building);
         if (built != GF_STATUS_OK) {
-            building.disarm();
             return built;
         }
     }
-    RuleAddResult added{};
-    try {
-        added = (*held).rules().add(rule);
-    } catch (...) {
-        building.disarm();
-        throw;
-    }
+    const RuleAddResult added = (*held).rules().add(rule);
     if (added.refusal != RuleRefusal::none) {
-        building.disarm();
         return refusal_status(added.refusal);
     }
+    building.taken = true;
     *token = issue_token(added.token);
     return GF_STATUS_OK;
 }

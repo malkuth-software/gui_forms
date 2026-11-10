@@ -260,6 +260,13 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
     Size client_size = window_options.initial_size;
     if ((*options).width > 0.0) client_size.width = (*options).width;
     if ((*options).height > 0.0) client_size.height = (*options).height;
+    // Admitted first (N21): a refused run leaves a created window as it was
+    // and builds no window around a bare root.
+    const gf_status began = registry().begin_run(root, run_slot);
+    if (began != GF_STATUS_OK) {
+        disarm_all(callbacks);
+        return began;
+    }
     std::unique_ptr<Window> window;
     try {
         if (!title.empty()) window_options.title = std::string(title);
@@ -281,12 +288,8 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
         }
     } catch (...) {
         disarm_all(callbacks);
+        registry().end_run();
         throw;
-    }
-    const gf_status began = registry().begin_run(root, run_slot);
-    if (began != GF_STATUS_OK) {
-        disarm_all(callbacks);
-        return began;
     }
     // From here the callbacks are taken: they are released when this
     // function returns, whatever the run's result.
