@@ -230,7 +230,6 @@ bool SurfaceRoot::resize_surface(Size client_size) {
     const bool width_changed = old_slot.width != new_slot.width;
     const bool height_changed = old_slot.height != new_slot.height;
     ++surface_epoch_;
-    if (surface_epoch_ == 0U) ++surface_epoch_;
     apply_client_resize(old_bounds, new_bounds, width_changed, height_changed);
     for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
         if (const Control::Ptr overlay_root = (*overlay).overlay()) {
@@ -352,7 +351,6 @@ bool SurfaceRoot::set_surface_scale(double scale) {
     // The band is snapped to whole device pixels of the new scale.
     refresh_band();
     ++surface_epoch_;
-    if (surface_epoch_ == 0U) ++surface_epoch_;
     mark_subtree_dirty(*root_, invalidation::conservative_subtree);
     for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
         if (const Control::Ptr overlay_root = (*overlay).overlay()) {
@@ -597,7 +595,7 @@ void SurfaceRoot::show_theme(const std::shared_ptr<const Theme>& shown) {
     for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
         if (const Control::Ptr overlay_root = (*overlay).overlay()) {
             mark_subtree_dirty(*overlay_root,
-                               Dirty::style | Dirty::paint | Dirty::semantics);
+                               Dirty::paint | Dirty::semantics);
         }
     }
     // Held here: a handler that sets another theme replaces theme_, which
@@ -625,11 +623,11 @@ void SurfaceRoot::set_active(bool active) {
     if (!active && drag_engine_) (*drag_engine_).cancel(DragEnd::deactivated);
     // The window's backplane material follows activation (E9-B).
     damage_backplane_readers(nullptr);
-    mark_subtree_dirty(*root_, Dirty::style | Dirty::paint | Dirty::semantics);
+    mark_subtree_dirty(*root_, Dirty::paint | Dirty::semantics);
     for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
         if (const Control::Ptr overlay_root = (*overlay).overlay()) {
             mark_subtree_dirty(*overlay_root,
-                               Dirty::style | Dirty::paint | Dirty::semantics);
+                               Dirty::paint | Dirty::semantics);
         }
     }
     active_changed_.emit(active_);

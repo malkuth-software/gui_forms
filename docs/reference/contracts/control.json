@@ -91,11 +91,11 @@
       "reviewed": false,
       "summary": "Removes the direct child with the given runtime identity and returns it."
     },
-    "gui_forms::Control::set_child_index|bool (RuntimeId, std::size_t)": {
+    "gui_forms::Control::set_child_index_from_top|bool (RuntimeId, std::size_t)": {
       "reviewed": false,
       "summary": "Moves a direct child to a new z-order index and reports whether the move applied."
     },
-    "gui_forms::Control::child_index|std::optional<std::size_t> (RuntimeId) const noexcept": {
+    "gui_forms::Control::child_index_from_top|std::optional<std::size_t> (RuntimeId) const noexcept": {
       "reviewed": false,
       "summary": "Returns the z-order index of a direct child (index zero is topmost)."
     },

@@ -1836,6 +1836,7 @@ private:
     void on_hit_test_transparency_changed(const Control::Ptr& control);
     void publish_control_availability(Control& control);
     void register_subtree(const Control::Ptr& control);
+    void validate_subtree_registration(const Control& control) const;
     void collect_subtree_registration(
         const Control::Ptr& control, ControlList& controls,
         std::unordered_set<std::string>& local_ids);
@@ -2393,8 +2394,6 @@ private:
     };
     using PaintControlCheckpointList =
         std::vector<PaintControlCheckpoint>;
-    void collect_paint_checkpoints(
-        const Control::Ptr& control, PaintControlCheckpointList& checkpoints);
     // Restores the paint pass's checkpoints, re-damages its rectangles and
     // releases the checkpoints (paint_checkpoints_ is left empty).
     void abandon_paint(std::uint64_t generation_before);
@@ -2485,6 +2484,13 @@ private:
     using FrameRequestList =
         std::vector<std::shared_ptr<detail::ScheduledFrameRequest>>;
     FrameRequestList frame_requests_;
+    // poll_frame's scratch (audit C10): the requests it walks, copied so a
+    // callback may add or end requests, and the controls it invalidated.
+    // Owned here so a poll allocates nothing once warm; both are emptied
+    // when the poll ends (the copy's shared pointers are released), and
+    // in_frame_poll_ keeps a nested poll from reusing them.
+    FrameRequestList frame_poll_requests_;
+    std::unordered_set<std::uint64_t> frame_poll_invalidated_;
     // Counts cancel_frame_requests calls, so that work which holds no
     // request while it waits (AnimationTimer) can tell it was cancelled.
     std::uint64_t frame_request_cancellations_{};
@@ -2526,11 +2532,14 @@ private:
     bool in_paint_{};
     // Paint-pass scratch, reused by every pass so that a frame allocates
     // nothing once they have grown to the window's size (paint_rectangles
-    // is not reentrant: in_paint_ guards both). paint_checkpoints_ holds
-    // each control and its chunk only during a pass and is cleared, keeping
-    // its capacity, when the pass completes or is abandoned;
-    // painted_rectangles_ is the pass's merged window-space rectangles.
+    // is not reentrant: in_paint_ guards both). paint_checkpoints_ holds,
+    // only during a pass, each control whose chunk the pass replaced and its
+    // chunk from before (audit C1; paint_checkpointing_ is true while the
+    // pass records them), and is cleared, keeping its capacity, when the
+    // pass completes or is abandoned; painted_rectangles_ is the pass's
+    // merged window-space rectangles.
     PaintControlCheckpointList paint_checkpoints_{};
+    bool paint_checkpointing_{};
     std::vector<Rect> painted_rectangles_{};
     bool inline_with_theme_reported_{};
     std::uint64_t content_revision_{1U};

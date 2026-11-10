@@ -312,7 +312,9 @@ FlexSolveOutcome resolve_flex_main_sizes(const FlexContainerInput& container, st
     for (std::size_t index = 0U; index < count; ++index) {
         const FlexItemInput& item = items[index];
         FlexItemResult& result = workspace.items_[index];
-        result.flex_base_size = std::max(0.0, item.flex_base_size);
+        // A non-finite base (a child's own measure) counts as zero (audit
+        // N41): the freeze loop below compares against it.
+        result.flex_base_size = std::isfinite(item.flex_base_size) ? std::max(0.0, item.flex_base_size) : 0.0;
         result.hypothetical_main = clamp_size(result.flex_base_size, item.minimum_main, item.maximum_main);
         result.main_size = result.hypothetical_main;
     }
@@ -420,6 +422,7 @@ FlexSolveOutcome resolve_flex_main_sizes(const FlexContainerInput& container, st
             }
             // Freeze all when there is no violation, else the items that
             // violated in the total's direction.
+            const std::size_t unfrozen_before = unfrozen;
             for (std::size_t position = first; position < last; ++position) {
                 const std::uint32_t index = workspace.order_[position];
                 if (workspace.frozen_[index] != 0U) continue;
@@ -435,6 +438,17 @@ FlexSolveOutcome resolve_flex_main_sizes(const FlexContainerInput& container, st
                 --unfrozen;
                 if (minimum) result.freeze_reason = FlexFreezeReason::minimum_violation;
                 if (maximum) result.freeze_reason = FlexFreezeReason::maximum_violation;
+            }
+            // Audit N41: a round that froze nothing (a NaN violation, from a
+            // non-finite extent, gap, margin or factor) freezes the rest at
+            // their clamped sizes, so the loop always ends.
+            if (unfrozen == unfrozen_before) {
+                for (std::size_t position = first; position < last; ++position) {
+                    const std::uint32_t index = workspace.order_[position];
+                    if (workspace.frozen_[index] != 0U) continue;
+                    workspace.frozen_[index] = 1U;
+                    --unfrozen;
+                }
             }
         }
         double extent = fixed_extent;

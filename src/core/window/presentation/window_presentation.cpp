@@ -291,28 +291,33 @@ std::unique_ptr<PaintFramebuffer> SurfaceRoot::create_framebuffer(const Size log
     return result;
 }
 
-void SurfaceRoot::collect_paint_checkpoints(
-    const Control::Ptr& control, PaintControlCheckpointList& checkpoints) {
-    if (!control) return;
-    checkpoints.push_back({control, (*control).display_chunk_});
-    for (const Control::Ptr& child : (*control).children_) {
-        collect_paint_checkpoints(child, checkpoints);
-    }
-}
-
+// Audit C1: a paint records a checkpoint only where it replaces a chunk
+// (paint_recursive), not for every control of the tree. Restored newest
+// first, so a control rebuilt twice in one pass gets its chunk from before
+// the pass; only those controls are paint-dirty again, and only their
+// ancestor chains are summarised.
 void SurfaceRoot::abandon_paint(std::uint64_t generation_before) {
+    paint_checkpointing_ = false;
+    for (PaintControlCheckpointList::reverse_iterator checkpoint = paint_checkpoints_.rbegin();
+         checkpoint != paint_checkpoints_.rend(); ++checkpoint) {
+        const Control::Ptr& control = (*checkpoint).control;
+        if (!control || !(*control).is_alive()) continue;
+        (*control).display_chunk_ = (*checkpoint).chunk;
+        // Only the control's own flag: refresh_ancestor_summaries below
+        // carries it up, and stops early where a summary already holds it.
+        (*control).dirty_ |= Dirty::paint;
+    }
     for (const PaintControlCheckpoint& checkpoint : paint_checkpoints_) {
-        if (!checkpoint.control || !(*checkpoint.control).is_alive()) continue;
-        (*checkpoint.control).display_chunk_ = checkpoint.chunk;
-        (*checkpoint.control).dirty_ |= Dirty::paint;
+        if (!checkpoint.control || !(*checkpoint.control).is_alive() ||
+            (*checkpoint.control).surface_root_ != this) {
+            continue;
+        }
+        refresh_ancestor_summaries(*checkpoint.control);
     }
     paint_checkpoints_.clear();
     // The chunks came back wholesale; count them again once.
     recount_display_cache();
     const std::span<const Rect> painted_rectangles = painted_rectangles_;
-    if (root_ && (*root_).is_alive()) {
-        static_cast<void>(recompute_subtree_dirty(root_));
-    }
     display_generation_ = generation_before;
     for (std::size_t index = 0; index < painted_rectangles.size(); ++index) {
         add_damage_all_planes(painted_rectangles[index]);
@@ -622,7 +627,16 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
         // never re-enter application painting while the exclusive lease is held.
         ++reentrant_paint_requests_deferred_;
         dirty_after_render_ = true;
-        add_damage_all_planes({0.0, 0.0, client_size_.width, client_size_.height});
+        // Audit C6: the later pass paints what was asked, not the whole
+        // window. A request for the pending damage leaves that damage
+        // pending as it is; an explicit request adds its rectangles.
+        if (explicit_request) {
+            const Rect window_bounds{0.0, 0.0, client_size_.width, client_size_.height};
+            for (const Rect requested : rectangles) {
+                const Rect clipped = Rect::intersection(requested, window_bounds);
+                if (!clipped.empty()) add_damage_all_planes(clipped);
+            }
+        }
         request_paint_wake();
         return std::nullopt;
     }
@@ -650,10 +664,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
     }
 
     paint_checkpoints_.clear();
-    collect_paint_checkpoints(root_, paint_checkpoints_);
-    for (const std::shared_ptr<detail::OverlayAttachment>& overlay : overlays_) {
-        collect_paint_checkpoints((*overlay).overlay(), paint_checkpoints_);
-    }
+    paint_checkpointing_ = true;
 
     const std::uint64_t lease_revision = content_revision_;
     const std::uint64_t lease_epoch = surface_epoch_;
@@ -791,6 +802,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
 
     // The pass is complete: the checkpoints release their controls.
     paint_checkpoints_.clear();
+    paint_checkpointing_ = false;
     in_paint_ = false;
     if (invalidation_overlay_ != nullptr) attribute_painted_damage(painted);
     ++paint_leases_completed_;
@@ -1043,6 +1055,17 @@ void Window::collect_visible_overlay_rectangles(
     }
 }
 
+void Window::collect_overlay_attachment_cover(const Control& control, const Rect root_cover,
+                                              std::vector<Rect>& rectangles) const {
+    for (const Control::Ptr& child : control.children_) {
+        if (!child || !(*child).is_alive() || (*child).surface_root_ != this || !(*child).visible.read()) continue;
+        const Rect cover = Rect::intersection(paint_damage_bounds_of(*child),
+                                              {0.0, 0.0, client_size_.width, client_size_.height});
+        if (!cover.empty() && !root_cover.contains(cover)) rectangles.push_back(cover);
+        collect_overlay_attachment_cover(*child, root_cover, rectangles);
+    }
+}
+
 std::vector<Rect> Window::subtract_rectangle(Rect source, Rect cover) {
     std::vector<Rect> fragments;
     const Rect overlap = Rect::intersection(source, cover);
@@ -1079,16 +1102,36 @@ Window::take_live_surface_presentations(const bool include_unchanged,
     // Direct live presentation is a fast path through retained composition,
     // not an always-on-top plane. Gather overlay ownership once, then subtract
     // those pixels from each live presentation. Uncovered spectrum/video pixels
-    // therefore keep advancing while a menu is open without allowing the live
-    // lane to paint over the menu.
-    std::vector<Rect> overlay_rectangles;
-    collect_visible_overlay_rectangles(root_, overlay_rectangles);
-    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
-        if (overlay) {
-            collect_visible_overlay_rectangles(
-                (*overlay).overlay(), overlay_rectangles);
+    // therefore keep advancing while a menu or a tooltip is open without
+    // allowing the live lane to paint over it (owner ruling D6: only the
+    // covered pixels are suspended). The rectangles are kept while nothing
+    // they depend on changed (audit C8).
+    OverlayCoverKey cover_key{};
+    cover_key.layout_pass = layout_pass_sequence_;
+    cover_key.semantic_generation = semantic_generation_;
+    cover_key.mutation_sequence = mutation_sequence_;
+    cover_key.overlay_count = overlays_.size();
+    cover_key.client_size = client_size_;
+    cover_key.valid = true;
+    if (!(cover_key == overlay_cover_key_)) {
+        overlay_cover_rectangles_.clear();
+        collect_visible_overlay_rectangles(root_, overlay_cover_rectangles_);
+        for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+            if (!overlay) continue;
+            const Control::Ptr overlay_root = (*overlay).overlay();
+            if (!overlay_root || !(*overlay_root).is_alive() || (*overlay_root).surface_root_ != this ||
+                !(*overlay_root).visible.read()) {
+                continue;
+            }
+            const Rect root_cover = Rect::intersection(paint_damage_bounds_of(*overlay_root),
+                                                       {0.0, 0.0, client_size_.width, client_size_.height});
+            if (!root_cover.empty()) overlay_cover_rectangles_.push_back(root_cover);
+            collect_overlay_attachment_cover(*overlay_root, root_cover, overlay_cover_rectangles_);
+            collect_visible_overlay_rectangles(overlay_root, overlay_cover_rectangles_);
         }
+        overlay_cover_key_ = cover_key;
     }
+    const std::vector<Rect>& overlay_rectangles = overlay_cover_rectangles_;
     for (LiveSurfaceRegistrationMap::iterator iterator =
              live_surface_registrations_.begin();
          iterator != live_surface_registrations_.end();) {
@@ -1109,8 +1152,7 @@ Window::take_live_surface_presentations(const bool include_unchanged,
         // Hidden/covered generations must not cause an endless idle rearm.
         registration.observed_epoch = snapshot.epoch;
         registration.observed_generation = snapshot.published_generation;
-        if (occluded_ || !overlays_.empty() || !(*control).visible.read() ||
-            !(*control).effectively_visible()) {
+        if (occluded_ || !(*control).visible.read() || !(*control).effectively_visible()) {
             // Retained painting owns these pixels until the next presentation.
             registration.placed = false;
             ++iterator;

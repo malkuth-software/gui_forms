@@ -299,7 +299,7 @@ gf_status GF_CALL objects_insert_child(gf_object parent, gf_object child, std::u
             // from the top, as WinForms does: position index among count + 1
             // children is top index count - index.
             const std::size_t from_top = static_cast<std::size_t>(count - index);
-            static_cast<void>((*parent_control).set_child_index((*child_control).runtime_id(), from_top));
+            static_cast<void>((*parent_control).set_child_index_from_top((*child_control).runtime_id(), from_top));
         }
         return GF_STATUS_OK;
     } catch (...) {

@@ -35,8 +35,7 @@ bool dirty_reaches(Dirty dirty, DirtyKind kind) noexcept {
     case DirtyKind::layout: return has_dirty(dirty, Dirty::measure) || has_dirty(dirty, Dirty::arrange);
     case DirtyKind::paint: return has_dirty(dirty, Dirty::paint);
     case DirtyKind::other: {
-        const Dirty rest = dirty & (Dirty::hit_test | Dirty::text | Dirty::style | Dirty::resource |
-                                    Dirty::semantics | Dirty::accessibility);
+        const Dirty rest = dirty & (Dirty::hit_test | Dirty::semantics | Dirty::accessibility);
         return rest != Dirty::none;
     }
     case DirtyKind::subtree: return false;

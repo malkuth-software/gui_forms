@@ -51,7 +51,7 @@ void RackModulePanel::set_severity(std::optional<NoticeSeverity> severity) {
     require_mutable();
     if (severity_ == severity) return;
     severity_ = severity;
-    invalidate(Dirty::style | Dirty::paint);
+    invalidate(Dirty::paint);
 }
 
 const ControlAnatomy& RackModulePanel::anatomy() const noexcept {

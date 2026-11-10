@@ -952,14 +952,15 @@ bool authored_background_applies(const PartPaint& part) noexcept {
 }
 
 ControlVisualContext part_visual_context(const Control& control, AnatomyStateSet states) noexcept {
-    const bool hovered = states.contains(AnatomyState::hot);
-    const bool pressed = any_state(states, AnatomyState::pressed, AnatomyState::captured);
-    const bool selected = any_state(states, AnatomyState::selected, AnatomyState::checked) ||
-                          any_state(states, AnatomyState::current, AnatomyState::open) ||
-                          states.contains(AnatomyState::active_tool);
-    const bool focused = states.contains(AnatomyState::focus_visible);
-    const bool defaulted = states.contains(AnatomyState::preselect);
-    ControlVisualContext context = control.visual_context(hovered, pressed, selected, focused, defaulted);
+    VisualInteraction interaction{};
+    interaction.hovered = states.contains(AnatomyState::hot);
+    interaction.pressed = any_state(states, AnatomyState::pressed, AnatomyState::captured);
+    interaction.selected = any_state(states, AnatomyState::selected, AnatomyState::checked) ||
+                           any_state(states, AnatomyState::current, AnatomyState::open) ||
+                           states.contains(AnatomyState::active_tool);
+    interaction.focused = states.contains(AnatomyState::focus_visible);
+    interaction.defaulted = states.contains(AnatomyState::preselect);
+    ControlVisualContext context = control.visual_context(interaction);
     if (any_state(states, AnatomyState::disabled, AnatomyState::unavailable)) {
         context.surface = ControlSurfaceState::disabled;
     }

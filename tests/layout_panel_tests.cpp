@@ -755,7 +755,7 @@ void test_default_dock_layout_all_directions_and_z_order() {
     require((*first).arranged_bounds().y == 0.0 &&
                 (*second).arranged_bounds().y == 20.0,
             "backmost docked sibling must consume its edge first");
-    require((*order_root).set_child_index((*first).runtime_id(), 0U),
+    require((*order_root).set_child_index_from_top((*first).runtime_id(), 0U),
             "dock z-order specimen must accept child-index mutation");
     order_window.perform_layout();
     require((*second).arranged_bounds().y == 0.0 &&

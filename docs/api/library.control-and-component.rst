@@ -2996,39 +2996,17 @@ Enumerations
 
    .. cpp:enumerator:: none
 
-   .. cpp:enumerator:: container_control
-
-   .. cpp:enumerator:: user_paint
-
-   .. cpp:enumerator:: opaque
-
    .. cpp:enumerator:: resize_redraw
-
-   .. cpp:enumerator:: fixed_width
-
-   .. cpp:enumerator:: fixed_height
 
    .. cpp:enumerator:: standard_click
 
    .. cpp:enumerator:: selectable
 
-   .. cpp:enumerator:: user_mouse
-
-   .. cpp:enumerator:: supports_transparent_back_color
-
    .. cpp:enumerator:: standard_double_click
-
-   .. cpp:enumerator:: all_painting_in_one_pass
-
-   .. cpp:enumerator:: cache_text
-
-   .. cpp:enumerator:: enable_notify_message
 
    .. cpp:enumerator:: double_buffer
 
    .. cpp:enumerator:: optimized_double_buffer
-
-   .. cpp:enumerator:: use_text_for_accessibility
 
 .. cpp:namespace:: gui_forms
 

@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -238,6 +239,21 @@ void test_refusals() {
             "a cross record per item");
 }
 
+// Audit N41: a non-finite base counts as zero, and a non-finite free space
+// (from the container's extent) still ends the freeze loop.
+void test_non_finite_inputs_terminate() {
+    FlexLayoutWorkspace workspace;
+    const double not_a_number = std::numeric_limits<double>::quiet_NaN();
+    const std::vector<FlexItemInput> items{item(not_a_number, 1.0), item(50.0, 1.0)};
+    solve(row(100.0, 10.0), items, 10.0, workspace);
+    require(workspace.items()[0].flex_base_size == 0.0, "a NaN base counts as zero");
+    require(std::isfinite(workspace.items()[0].main_size) && std::isfinite(workspace.items()[1].main_size),
+            "both items get finite sizes");
+    const std::vector<FlexItemInput> plain{item(50.0, 1.0), item(50.0, 1.0)};
+    require(resolve_flex_main_sizes(row(not_a_number, 10.0), plain, workspace) == FlexSolveOutcome::solved,
+            "a NaN container extent ends the freeze loop");
+}
+
 } // namespace
 
 int main() {
@@ -252,6 +268,7 @@ int main() {
         test_reversal_and_right_to_left();
         test_column_with_indefinite_height_and_order();
         test_refusals();
+        test_non_finite_inputs_terminate();
         std::cout << "flex-solver-tests: pass\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

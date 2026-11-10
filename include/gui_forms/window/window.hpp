@@ -380,6 +380,32 @@ private:
         std::unordered_map<std::uint64_t, LiveSurfaceRegistration>;
     void collect_visible_overlay_rectangles(
         const Control::Ptr& control, std::vector<Rect>& rectangles) const;
+    // The window pixels an overlay attachment (a menu, a tooltip, a drop-
+    // down) covers: its root's paint bounds, shadow included, and any
+    // descendant's that leave them (owner ruling D6: the live lane is
+    // suspended only there).
+    void collect_overlay_attachment_cover(const Control& control, Rect root_cover,
+                                          std::vector<Rect>& rectangles) const;
+    // The overlay rectangles of the last live drain, kept while nothing
+    // they depend on changed (audit C8): the layout pass, the semantic
+    // generation (visibility), the non-paint mutation sequence (a paint
+    // plane change counts), the overlay attachments and the client size.
+    struct OverlayCoverKey final {
+        std::uint64_t layout_pass{};
+        std::uint64_t semantic_generation{};
+        std::uint64_t mutation_sequence{};
+        std::size_t overlay_count{};
+        Size client_size{};
+        bool valid{};
+        friend bool operator==(const OverlayCoverKey& left, const OverlayCoverKey& right) noexcept {
+            return left.layout_pass == right.layout_pass && left.semantic_generation == right.semantic_generation &&
+                   left.mutation_sequence == right.mutation_sequence &&
+                   left.overlay_count == right.overlay_count && left.client_size == right.client_size &&
+                   left.valid == right.valid;
+        }
+    };
+    OverlayCoverKey overlay_cover_key_{};
+    std::vector<Rect> overlay_cover_rectangles_{};
     [[nodiscard]] static std::vector<Rect> subtract_rectangle(
         Rect source, Rect cover);
     LiveSurfaceRegistrationMap live_surface_registrations_;

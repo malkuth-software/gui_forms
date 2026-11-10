@@ -335,8 +335,7 @@ void CheckBox::on_paint(Painter& painter, Rect) {
 }
 
 Insets CheckBox::visual_outsets() const noexcept {
-    const ControlVisualContext context = visual_context(
-        hovered_visual(), pressed_visual(), checked.read(), focus_cue_visible());
+    const ControlVisualContext context = visual_context({.hovered = hovered_visual(), .pressed = pressed_visual(), .selected = checked.read(), .focused = focus_cue_visible()});
     if (appearance.read() == CheckBoxAppearance::button) {
         return resolved_visual_outsets(ControlVisualRole::button, context);
     }

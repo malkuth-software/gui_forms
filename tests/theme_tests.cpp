@@ -296,11 +296,11 @@ void test_button_routes_hover_and_status_through_theme_recipes() {
 
     (*button).set_visual_status(ControlVisualStatus::invalid);
     const ControlVisualContext invalid = (*button).visual_context(
-        true, false, false, false, true);
+        {.hovered = true, .defaulted = true});
     require(invalid.surface == ControlSurfaceState::invalid,
             "invalid state must take precedence over hover");
     (*button).enabled = false;
-    require((*button).visual_context(true).surface == ControlSurfaceState::disabled,
+    require((*button).visual_context({.hovered = true}).surface == ControlSurfaceState::disabled,
             "disabled state must take precedence over validation state");
     (*button).enabled = true;
     (*button).set_visual_status(ControlVisualStatus::normal);

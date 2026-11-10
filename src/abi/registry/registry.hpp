@@ -1008,7 +1008,7 @@ public:
             result != GF_OK) {
             return result;
         }
-        if (!(*(*parent).control).set_child_index(
+        if (!(*(*parent).control).set_child_index_from_top(
                 (*(*child).control).runtime_id(), static_cast<std::size_t>(index))) {
             return fail(GF_ERROR_INVALID_ARGUMENT,
                         "set_child_index child is not owned by parent");
