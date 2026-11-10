@@ -82,6 +82,36 @@ public:
         part_rasters.push_back(raster);
         part_origins.push_back(origin);
     }
+    void stroke_polyline(std::span<const Point> points, const StrokeStyle& style) override {
+        polylines = polylines + 1;
+        last_batch = points.size();
+        last_dash_phase = style.dash_phase;
+    }
+    void fill_polygon(std::span<const Point> points, Color, PolygonFillRule) override {
+        polygons = polygons + 1;
+        last_batch = points.size();
+    }
+    void fill_band(std::span<const Point> upper, std::span<const Point>, Color) override {
+        bands = bands + 1;
+        last_batch = upper.size();
+    }
+    void fill_rects(std::span<const Rect> batch, Color) override {
+        rect_batches = rect_batches + 1;
+        last_batch = batch.size();
+    }
+    void stroke_segments(std::span<const PaintSegment> segments, const StrokeStyle&) override {
+        segment_batches = segment_batches + 1;
+        last_batch = segments.size();
+    }
+    void draw_markers(std::span<const Point> centers, const MarkerStyle&) override {
+        marker_batches = marker_batches + 1;
+        last_batch = centers.size();
+    }
+    void fill_conic_gradient(Rect, Point, double, std::span<const GradientStop> stops) override {
+        conics = conics + 1;
+        last_stops = stops.size();
+    }
+    void fill_checker(Rect, const CheckerPattern&) override { checkers = checkers + 1; }
 
     int saves{};
     int restores{};
@@ -93,6 +123,16 @@ public:
     int repeated{};
     int radial{};
     int lines{};
+    int polylines{};
+    int polygons{};
+    int bands{};
+    int rect_batches{};
+    int segment_batches{};
+    int marker_batches{};
+    int conics{};
+    int checkers{};
+    std::size_t last_batch{};
+    double last_dash_phase{};
     std::size_t last_stops{};
     std::vector<Point> translations{};
     std::vector<Rect> clips{};
@@ -1082,6 +1122,176 @@ const EffectEntry& backdrop_probe_entry() {
     return entry;
 }
 
+// Vocabulary version 2: marching ants, a dashed outline whose phase
+// follows the ticks.
+class MarchingAnts final {
+public:
+    using parent_type = ProgressBar;
+    static constexpr EffectDeclaration declaration{
+        .name = "test_marching_ants",
+        .engine_version = 2U,
+        .cost = {.fixed = 200U, .per_device_pixel = 4U},
+        .state_budget = 16U,
+    };
+    void run(const EffectView<ProgressBar>&, const EffectFrame& frame, EffectCanvas& canvas) {
+        phase_ = phase_ + static_cast<double>(frame.ticks) * 0.5;
+        EffectPoints outline{};
+        outline.items[0] = Point{1.0, 1.0};
+        outline.items[1] = Point{frame.part.width - 1.0, 1.0};
+        outline.items[2] = Point{frame.part.width - 1.0, frame.part.height - 1.0};
+        outline.items[3] = Point{1.0, frame.part.height - 1.0};
+        outline.items[4] = Point{1.0, 1.0};
+        outline.count = 5U;
+        StrokeStyle style{};
+        style.color = Color::rgba(0, 0, 0, 255);
+        style.width = 1.0;
+        style.dashes[0] = 3.0;
+        style.dashes[1] = 3.0;
+        style.dash_count = 2U;
+        style.dash_phase = phase_;
+        canvas.stroke_polyline(outline, style);
+    }
+    double phase_{};
+};
+
+class FutureVocabulary final {
+public:
+    using parent_type = ProgressBar;
+    static constexpr EffectDeclaration declaration{
+        .name = "test_future_vocabulary",
+        .engine_version = 3U,
+        .cost = {.fixed = 100U, .per_device_pixel = 1U},
+        .state_budget = 8U,
+    };
+    void run(const EffectView<ProgressBar>&, const EffectFrame&, EffectCanvas&) {}
+};
+
+const EffectEntry& marching_ants_entry() {
+    static const EffectEntry entry = make_effect_entry<MarchingAnts>();
+    return entry;
+}
+
+EffectPoints effect_points(std::span<const Point> points) {
+    EffectPoints result{};
+    for (std::size_t index = 0U; index < points.size(); ++index) result.items[index] = points[index];
+    result.count = static_cast<std::uint32_t>(points.size());
+    return result;
+}
+
+// Vocabulary version 2: each batched call draws once through the painter,
+// is metered on its bounds, and refuses (and counts) arrays outside their
+// bounds, points that are not finite and invalid styles; a registry admits
+// version 2 and refuses a later one.
+void vocabulary_version_two() {
+    EffectRegistry local;
+    require(local.add(marching_ants_entry()) == EffectRegistrationOutcome::registered,
+            "a version 2 effect registers");
+    require(local.add(make_effect_entry<FutureVocabulary>()) == EffectRegistrationOutcome::vocabulary_version_unknown,
+            "an effect naming a later vocabulary is refused");
+    EffectDeclaration unversioned = FillPart::declaration;
+    unversioned.engine_version = 0U;
+    EffectEntry zero = make_effect_entry<FillPart>();
+    zero.declaration = &unversioned;
+    require(local.add(zero) == EffectRegistrationOutcome::vocabulary_version_unknown, "version 0 is refused");
+
+    RecordingPainter painter;
+    StrokeStyle stroke{};
+    stroke.color = Color::rgba(0, 0, 0, 255);
+    stroke.width = 2.0;
+    MarkerStyle marker{};
+    marker.shape = MarkerShape::diamond;
+    marker.size = 4.0;
+    marker.fill = Color::rgba(255, 0, 0, 255);
+    EffectGradient hue{};
+    hue.stops[0] = GradientStop{0.0, Color::rgba(255, 0, 0, 255)};
+    hue.stops[1] = GradientStop{1.0, Color::rgba(0, 0, 255, 255)};
+    hue.count = 2U;
+    CheckerPattern checker{};
+    checker.cell = 4.0;
+    checker.first = Color::rgba(255, 255, 255, 255);
+    checker.second = Color::rgba(200, 200, 200, 255);
+    const std::array<Point, 3> triangle{Point{0.0, 0.0}, Point{10.0, 0.0}, Point{5.0, 8.0}};
+    const std::array<Point, 3> lower{Point{0.0, 10.0}, Point{10.0, 12.0}, Point{20.0, 10.0}};
+    {
+        EffectCanvas canvas(painter, Size{100.0, 20.0}, Insets{}, 1.0, 20U);
+        canvas.stroke_polyline(effect_points(triangle), stroke);
+        canvas.fill_polygon(effect_points(triangle), Color::rgba(0, 0, 0, 255), PolygonFillRule::nonzero);
+        canvas.fill_band(effect_points(triangle), effect_points(lower), Color::rgba(0, 0, 0, 128));
+        EffectRects bars{};
+        bars.items[0] = Rect{0.0, 0.0, 4.0, 10.0};
+        bars.items[1] = Rect{6.0, 2.0, 4.0, 8.0};
+        bars.count = 2U;
+        canvas.fill_rects(bars, Color::rgba(0, 0, 0, 255));
+        EffectSegments ticks{};
+        ticks.items[0] = PaintSegment{Point{0.0, 0.0}, Point{0.0, 5.0}};
+        ticks.count = 1U;
+        canvas.stroke_segments(ticks, stroke);
+        canvas.draw_markers(effect_points(triangle), marker);
+        canvas.fill_conic_gradient(Rect{0.0, 0.0, 20.0, 20.0}, Point{10.0, 10.0}, -90.0, hue);
+        canvas.fill_checker(Rect{20.0, 0.0, 20.0, 20.0}, checker);
+        require(canvas.meter().refused == 0U && canvas.meter().calls == 8U, "every version 2 call is admitted");
+        require(canvas.meter().charged > 0.0, "the batched calls are metered");
+    }
+    require(painter.polylines == 1 && painter.polygons == 1 && painter.bands == 1 && painter.rect_batches == 1 &&
+                painter.segment_batches == 1 && painter.marker_batches == 1 && painter.conics == 1 &&
+                painter.checkers == 1,
+            "each version 2 call draws once through the painter");
+    require(painter.last_stops == 2U, "the conic passes its live stops");
+
+    RecordingPainter refused;
+    {
+        EffectCanvas canvas(refused, Size{100.0, 20.0}, Insets{}, 1.0, 20U);
+        EffectPoints single = effect_points(std::span<const Point>(triangle.data(), 1U));
+        canvas.stroke_polyline(single, stroke);
+        EffectPoints overfull = effect_points(triangle);
+        overfull.count = static_cast<std::uint32_t>(maximum_effect_batch + 1U);
+        canvas.fill_polygon(overfull, Color::rgba(0, 0, 0, 255), PolygonFillRule::nonzero);
+        EffectPoints lost = effect_points(triangle);
+        lost.items[1] = Point{std::numeric_limits<double>::quiet_NaN(), 0.0};
+        canvas.fill_polygon(lost, Color::rgba(0, 0, 0, 255), PolygonFillRule::nonzero);
+        StrokeStyle hairless = stroke;
+        hairless.width = 0.0;
+        canvas.stroke_polyline(effect_points(triangle), hairless);
+        canvas.fill_band(effect_points(triangle), effect_points(std::span<const Point>(lower.data(), 2U)),
+                         Color::rgba(0, 0, 0, 255));
+        MarkerStyle dot = marker;
+        dot.size = 0.0;
+        canvas.draw_markers(effect_points(triangle), dot);
+        EffectGradient one = hue;
+        one.count = 1U;
+        canvas.fill_conic_gradient(Rect{0.0, 0.0, 20.0, 20.0}, Point{10.0, 10.0}, 0.0, one);
+        CheckerPattern flat = checker;
+        flat.cell = 0.0;
+        canvas.fill_checker(Rect{0.0, 0.0, 20.0, 20.0}, flat);
+        canvas.fill_rects(EffectRects{}, Color::rgba(0, 0, 0, 255));
+        require(canvas.meter().refused == 9U && canvas.meter().calls == 9U, "each refusal is counted");
+    }
+    require(refused.polylines == 0 && refused.polygons == 0 && refused.bands == 0 && refused.marker_batches == 0 &&
+                refused.conics == 0 && refused.checkers == 0 && refused.rect_batches == 0,
+            "a refused call draws nothing");
+
+    RecordingPainter metered;
+    {
+        EffectCanvas canvas(metered, Size{10.0, 10.0}, Insets{}, 1.0, 1U);
+        EffectRects whole{};
+        whole.items[0] = Rect{0.0, 0.0, 10.0, 10.0};
+        whole.count = 1U;
+        canvas.fill_rects(whole, Color::rgba(0, 0, 0, 255));
+        canvas.fill_rects(whole, Color::rgba(0, 0, 0, 255));
+        require(canvas.meter().charged == 100.0 && canvas.meter().refused == 1U, "a batch past the budget is refused");
+    }
+    require(metered.rect_batches == 1, "only the batch within the budget is drawn");
+
+    // Hosted: the ants' phase follows the ticks.
+    const EffectView<ProgressBar> view = bar_view(0.5);
+    EffectInstance ants;
+    ants.attach(marching_ants_entry(), 1U, start);
+    RecordingPainter first;
+    ants.paint(first, Rect{0.0, 0.0, 40.0, 10.0}, 1.0, true, view);
+    require(first.polylines == 1 && first.last_batch == 5U && ants.last_meter().refused == 0U,
+            "a version 2 effect draws its outline as one polyline");
+}
+
 // Backdrop sampling (EP-7): an effect declaring a backdrop draws the
 // window's backplane under its part, blurred, through one metered canvas
 // call; the blurred raster is kept while the backplane stands; a posed
@@ -1162,9 +1372,10 @@ int main() {
     pointer_record();
     part_shape_clip();
     backdrop_sampling();
+    vocabulary_version_two();
     std::cout << "effect programs: generator, bounded ranges, registry, verification, ticks and skips, meter, "
                  "stripes, pulse, laser, woven stripes, bubbles and steam, progress bar hosting, motion clock, "
                  "properties and input, themes selecting effects, colour roles, pointer record, part shape clip, "
-                 "backdrop\n";
+                 "backdrop, vocabulary version 2\n";
     return 0;
 }

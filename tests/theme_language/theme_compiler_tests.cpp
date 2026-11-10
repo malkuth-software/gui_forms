@@ -655,6 +655,28 @@ void test_warnings() {
                 warned(unknown, DiagnosticCode::property_not_admitted, "margin-top") &&
                 unknown.sheet.rules.size() == 1U && holds_still(unknown.sheet.rules[0], 0U, opacity_property, 0.5),
             "unknown and left-out properties are dropped and the rest applies");
+    // A part's metrics, shape and per-state font are admitted on a named
+    // part only (look integration): on a control they are not.
+    const Compilation part_fields =
+        compile("#a::part(face) { height: 27px; gap: 0; margin-top: 3px; taper: 4px #496c9f }\n"
+                "#a::part(face):hover { margin-bottom: -2px; flare: 3px #e8f2ff;"
+                " edge-shadow: 5px rgba(24, 56, 97, 0.3) }\n"
+                "#a::part(label):hover { font-weight: bold; font-size: 1.1em }");
+    // (Its literal colours warn as unremappable, as any literal does.)
+    bool part_fields_admitted = true;
+    for (const ThemeDiagnostic& diagnostic : part_fields.diagnostics) {
+        if (diagnostic.code != DiagnosticCode::literal_colour_unremappable) part_fields_admitted = false;
+    }
+    require(part_fields.outcome == CompileOutcome::compiled && part_fields_admitted &&
+                part_fields.sheet.rules.size() == 3U,
+            "part metrics, shapes and state fonts compile on a named part");
+    const Compilation control_fields = compile("#a { height: 27px; taper: 4px }\n"
+                                               "#a:hover { font-weight: bold }");
+    require(control_fields.outcome == CompileOutcome::compiled && control_fields.diagnostics.size() == 3U &&
+                warned(control_fields, DiagnosticCode::property_not_admitted, "height") &&
+                warned(control_fields, DiagnosticCode::property_not_admitted, "taper") &&
+                warned(control_fields, DiagnosticCode::property_not_admitted, "font-weight in a state rule"),
+            "part metrics and state fonts are refused on a control");
     const Compilation not_read = compile("#a { width: var(--missing); glimmer: 1 2 3 }");
     require(not_read.outcome == CompileOutcome::compiled && not_read.diagnostics.size() == 2U,
             "a dropped property's value is not read");

@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -75,6 +76,7 @@ FormSchema sample_schema() {
     schema.types.push_back(form_control_type<gui_forms::Button>("button"));
     schema.types.push_back(form_control_type<gui_forms::NumericUpDown>("numeric_up_down"));
     schema.types.push_back(form_control_type<gui_forms::TextBox>("text_box"));
+    schema.types.push_back(form_control_type<gui_forms::ValueBar>("value_bar"));
     schema.types.push_back(form_component_type<gui_forms::Command>("command"));
     // A type a document may describe but the loader cannot make.
     const std::shared_ptr<gui_forms::Panel> panel = gui_forms::make_control<gui_forms::Panel>(gui_forms::StableId("prototype"));
@@ -173,6 +175,50 @@ void test_load() {
                 (*check).tab_index.read() == 2U,
             "load: the check box's properties");
     require(std::dynamic_pointer_cast<gui_forms::Command>(loaded.objects[4]) != nullptr, "load: the command");
+}
+
+// A ValueBar from a document (the value bar study, section 3.8): the range
+// family's bounds, then its own properties, enumerations by their kebab
+// names and a nullable soft limit as a number.
+void test_value_bar() {
+    const FormSchema schema = sample_schema();
+    const std::string_view document = "user-control render.root {\n"
+                                      "  value-bar render.samples {\n"
+                                      "    minimum: 1;\n"
+                                      "    maximum: 4096;\n"
+                                      "    soft-maximum: 256;\n"
+                                      "    value: 64;\n"
+                                      "    precision: 0;\n"
+                                      "    presentation: field;\n"
+                                      "    label: \"Samples\";\n"
+                                      "  }\n"
+                                      "  value-bar render.opacity { unit: percent; maximum: 1; value: 0.5; }\n"
+                                      "}\n";
+    Workspace workspace{};
+    LoadedForm loaded{};
+    const FormLoadOutcome outcome = load(workspace, document, schema, loaded);
+    print_diagnostics(workspace);
+    require(outcome == FormLoadOutcome::loaded, "value bar: loaded");
+    require(loaded.objects.size() == 3U, "value bar: every object");
+    if (loaded.objects.size() != 3U) return;
+    const std::shared_ptr<gui_forms::ValueBar> samples =
+        std::dynamic_pointer_cast<gui_forms::ValueBar>(loaded.objects[1]);
+    require(samples != nullptr, "value bar: the type");
+    if (samples == nullptr) return;
+    require((*samples).minimum.read() == 1.0 && (*samples).maximum.read() == 4096.0 &&
+                (*samples).value.read() == 64.0,
+            "value bar: the range family's values");
+    require((*samples).soft_maximum.read() == std::optional<double>{256.0} && !(*samples).soft_minimum.read(),
+            "value bar: the soft limits");
+    require((*samples).presentation.read() == gui_forms::ValueBarStyle::field &&
+                (*samples).precision.read() == 0 && (*samples).label.read() == "Samples",
+            "value bar: its own properties");
+    require((*samples).formatted_value() == "64", "value bar: shown at its precision");
+    const std::shared_ptr<gui_forms::ValueBar> opacity =
+        std::dynamic_pointer_cast<gui_forms::ValueBar>(loaded.objects[2]);
+    require(opacity != nullptr && (*opacity).unit.read() == gui_forms::ValueUnit::percent &&
+                (*opacity).formatted_value() == "50.000%",
+            "value bar: a unit by name");
 }
 
 // Counts a command's invocations.
@@ -589,6 +635,7 @@ int main() {
     test_form_root_defects();
     test_spans();
     test_table_placement();
+    test_value_bar();
     test_load_window();
     test_load_window_application();
     if (failures != 0) {

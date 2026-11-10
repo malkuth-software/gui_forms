@@ -10,6 +10,7 @@
 #include "../input/windows_message_queue.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
 #include "../fonts/sealed_pages_windows.hpp"
+#include "../../../core/resources/fonts/bundled_font_set.hpp"
 #if defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
 #include "../raster/dib_frame_store.hpp"
 #endif
@@ -646,17 +647,57 @@ void enable_best_dpi_awareness() noexcept {
     }
 }
 
-// The bundled font directory: GUI_FORMS_FONT_DIR when it is set, as on Linux, else "fonts"
-// beside the executable; empty when neither is known.
-std::filesystem::path bundled_font_directory() {
-    const wchar_t* override_directory = _wgetenv(L"GUI_FORMS_FONT_DIR");
-    if (override_directory != nullptr) return std::filesystem::path(override_directory);
-    wchar_t executable[MAX_PATH]{};
-    const DWORD count = GetModuleFileNameW(nullptr, executable, MAX_PATH);
-    if (count == 0 || count >= MAX_PATH) return {};
+// A byte in the module that holds GUI.Forms, whose address names that module to
+// GetModuleHandleExW.
+const char gui_forms_module_anchor{};
+
+// The longest path GetModuleFileNameW can return with long paths enabled, in UTF-16 units.
+constexpr DWORD maximum_module_path_units = 32768U;
+
+// The directory of `module`'s file (null for the executable); empty when Windows cannot say.
+std::filesystem::path module_directory(HMODULE module) {
+    std::vector<wchar_t> path(maximum_module_path_units, L'\0');
+    const DWORD count = GetModuleFileNameW(module, path.data(), maximum_module_path_units);
+    if (count == 0U || count >= maximum_module_path_units) return {};
     const std::filesystem::path directory =
-        std::filesystem::path(std::wstring(executable, count)).parent_path() / L"fonts";
+        std::filesystem::path(std::wstring(path.data(), count)).parent_path();
     return directory;
+}
+
+// The directory of the module holding this code: the GUI.Forms DLL when another process (a
+// .NET runtime, a plug-in host) loaded it, else the executable it is linked into; empty when
+// Windows cannot say. The handle is borrowed without a reference.
+std::filesystem::path gui_forms_module_directory() {
+    HMODULE module = nullptr;
+    const DWORD flags =
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
+    const BOOL found =
+        GetModuleHandleExW(flags, reinterpret_cast<LPCWSTR>(&gui_forms_module_anchor), &module);
+    if (found == FALSE || module == nullptr) return {};
+    const std::filesystem::path directory = module_directory(module);
+    return directory;
+}
+
+// The bundled font directory: the first of GUI_FORMS_FONT_DIR, "fonts" beside the executable
+// and "fonts" beside the GUI.Forms module that holds the required faces; empty when none does,
+// which locate_bundled_fonts counts and reports (bundled_font_diagnostics,
+// bundled_font_refusal).
+std::filesystem::path bundled_font_directory() {
+    std::array<gui_forms::detail::BundledFontCandidate, 3> candidates{};
+    const wchar_t* override_directory = _wgetenv(L"GUI_FORMS_FONT_DIR");
+    candidates[0].source = gui_forms::BundledFontSource::environment;
+    if (override_directory != nullptr) candidates[0].directory = std::filesystem::path(override_directory);
+    const std::filesystem::path executable_directory = module_directory(nullptr);
+    candidates[1].source = gui_forms::BundledFontSource::executable;
+    if (!executable_directory.empty()) candidates[1].directory = executable_directory / L"fonts";
+    const std::filesystem::path library_directory = gui_forms_module_directory();
+    candidates[2].source = gui_forms::BundledFontSource::library_module;
+    // A GUI.Forms linked into the executable is the executable; it is not offered twice.
+    if (!library_directory.empty() && library_directory != executable_directory)
+        candidates[2].directory = library_directory / L"fonts";
+    const gui_forms::detail::BundledFontLocation location =
+        gui_forms::detail::locate_bundled_fonts(candidates);
+    return location.directory;
 }
 
 // The bundled font set in gui_forms::detail::bundled_face_uses() order, as every host
@@ -1722,6 +1763,8 @@ public:
         case WM_GETMINMAXINFO: minimum_size(reinterpret_cast<MINMAXINFO*>(lparam)); return 0;
         case WM_COPYDATA: return automation(reinterpret_cast<const COPYDATASTRUCT*>(lparam));
         case WM_CLOSE: return close();
+        case WM_QUERYENDSESSION: return query_end_session();
+        case WM_ENDSESSION: return end_session(wparam != FALSE);
         case WM_DESTROY:
             (*title_state_).window = nullptr;
             (*size_state_).host = nullptr;
@@ -2775,6 +2818,35 @@ private:
         return 0;
     }
 
+    // WM_QUERYENDSESSION: the user is logging off or the system is shutting
+    // down or restarting. Ask the window's closing handler with
+    // HostCloseReason::session_end; TRUE lets the session end, FALSE asks
+    // Windows to hold it (Windows may still end it). An allowed request
+    // leaves the window attached and visible, since WM_ENDSESSION may yet
+    // report that the session's end was called off.
+    LRESULT query_end_session() {
+        if (closed_ || native_phase_ == NativePhase::closing) return TRUE;
+        HostCloseRequest request{HostCloseReason::session_end, false, false};
+        if (options_.close_request) options_.close_request(request);
+        request.hide_on_accept = false;
+        const HostDispatchResult result = dispatch(request);
+        if (result.accepted() && !result.close_allowed) return FALSE;
+        return TRUE;
+    }
+
+    // WM_ENDSESSION: ending is TRUE when the session ends after this message
+    // returns (the process may be terminated without further messages), so
+    // the window closes now and WM_DESTROY reports HostCloseReason::
+    // session_end. FALSE means the session's end was called off; the window
+    // stays as it was.
+    LRESULT end_session(bool ending) {
+        if (!ending || closed_ || native_phase_ == NativePhase::closing) return 0;
+        destroy_reason_ = HostCloseReason::session_end;
+        native_phase_ = NativePhase::closing;
+        DestroyWindow(hwnd_);
+        return 0;
+    }
+
     LRESULT automation(const COPYDATASTRUCT* data) {
         if (!options_.automation_enabled || data == nullptr || (*data).lpData == nullptr ||
             (*data).cbData == 0 || (*data).cbData > maximum_automation_command) return FALSE;
@@ -3168,7 +3240,8 @@ private:
     // mark_splash: transparent to the pointer.
     bool splash_{};
     // The reason WM_DESTROY reports: user for every native close, application
-    // when the run destroys the window (HostWindowing::destroy_window).
+    // when the run destroys the window (HostWindowing::destroy_window),
+    // session_end when WM_ENDSESSION closes it.
     HostCloseReason destroy_reason_{HostCloseReason::user};
 };
 

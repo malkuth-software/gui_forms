@@ -1,6 +1,5 @@
 compiled
 W107 property_not_admitted 5:16 rule=button:hover property=font-size detail=font-size in a state rule
-W107 property_not_admitted 6:23 rule=button::part(label) property=font-weight detail=font-weight on a part or a role
 rule 0 theme_sheet type=button
   label button
   recipe font_family colour=#000000ff number=0 outline=0 role=1
@@ -20,3 +19,6 @@ rule 2 theme_sheet type=button
   media dark
   recipe font_weight colour=#000000ff number=300 outline=0
   recipe letter_spacing colour=#000000ff number=1 outline=0
+rule 3 theme_sheet type=button part=label
+  label button::part(label)
+  recipe font_weight colour=#000000ff number=700 outline=0

@@ -225,6 +225,36 @@
         "}"
       ],
       "sample": "24.0"
+    },
+    {
+      "name": "scrub",
+      "capability": "NumericUpDownScrub",
+      "value": "bool",
+      "initial": "false",
+      "comment": "Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected. Off by default: the field then edits as a TextBox does.",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Drag sideways on the unfocused field to scrub the value.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "sample": "true"
     }
   ],
   "not_properties": [

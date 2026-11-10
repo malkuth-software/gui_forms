@@ -3,6 +3,7 @@
 #include "../../../core/damage/device_damage/device_damage.hpp"
 #include "../../../core/application/splashscreen_surface.hpp"
 #include "../../posix/fonts/sealed_pages_posix.hpp"
+#include "../../../core/resources/fonts/bundled_font_set.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 #include <thread>
@@ -13,11 +14,14 @@
 #include <X11/extensions/Xfixes.h>
 #include <X11/extensions/shapeconst.h>
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <chrono>
 #include <clocale>
 #include <cmath>
+#include <csignal>
 #include <cstring>
+#include <dlfcn.h>
 #include <fcntl.h>
 #include <filesystem>
 #include <fstream>
@@ -588,22 +592,69 @@ std::uint32_t key_usage(KeySym key) {
     return 0U;
   }
 }
+// A byte in the module that holds GUI.Forms, whose address names that module to dladdr.
+const char gui_forms_module_anchor{};
+
+// The directory of the shared object holding this code: libgui_forms when another process
+// (a .NET runtime, a plug-in host) loaded it, else the executable it is linked into; empty
+// when dladdr cannot say.
+std::filesystem::path gui_forms_module_directory() {
+  Dl_info information{};
+  const int found = dladdr(&gui_forms_module_anchor, &information);
+  if (found == 0 || information.dli_fname == nullptr ||
+      information.dli_fname[0] == '\0')
+    return {};
+  std::error_code error;
+  const std::filesystem::path module =
+      std::filesystem::canonical(information.dli_fname, error);
+  if (error)
+    return {};
+  return module.parent_path();
+}
+
+// The bundled font directory: the first of GUI_FORMS_FONT_DIR, "fonts" beside the
+// executable, "fonts" beside the GUI.Forms module, and the installed share/GUIForms/fonts
+// next to the executable's and then the module's directory that holds the required faces;
+// empty when none does, which locate_bundled_fonts counts and reports
+// (bundled_font_diagnostics, bundled_font_refusal).
 std::filesystem::path fonts_directory() {
+  std::array<gui_forms::detail::BundledFontCandidate, 5> candidates{};
   const char *override_path = std::getenv("GUI_FORMS_FONT_DIR");
+  candidates[0].source = gui_forms::BundledFontSource::environment;
   if (override_path != nullptr)
-    return override_path;
+    candidates[0].directory = override_path;
   std::error_code error;
   const std::filesystem::path executable =
       std::filesystem::read_symlink("/proc/self/exe", error);
-  const std::filesystem::path local = executable.parent_path() / "fonts";
-  if (std::filesystem::is_directory(local))
-    return local;
-  return executable.parent_path() / "../share/GUIForms/fonts";
+  const std::filesystem::path executable_directory =
+      error ? std::filesystem::path{} : executable.parent_path();
+  const std::filesystem::path library_directory = gui_forms_module_directory();
+  // A GUI.Forms linked into the executable is the executable; it is not offered twice.
+  const bool separate_library =
+      !library_directory.empty() && library_directory != executable_directory;
+  candidates[1].source = gui_forms::BundledFontSource::executable;
+  candidates[2].source = gui_forms::BundledFontSource::library_module;
+  candidates[3].source = gui_forms::BundledFontSource::install_share;
+  candidates[4].source = gui_forms::BundledFontSource::install_share;
+  if (!executable_directory.empty()) {
+    candidates[1].directory = executable_directory / "fonts";
+    candidates[3].directory = executable_directory / "../share/GUIForms/fonts";
+  }
+  if (separate_library) {
+    candidates[2].directory = library_directory / "fonts";
+    candidates[4].directory = library_directory / "../share/GUIForms/fonts";
+  }
+  const gui_forms::detail::BundledFontLocation location =
+      gui_forms::detail::locate_bundled_fonts(candidates);
+  return location.directory;
 }
 // Every window borrows the process's one bundled font set: each face is read once, checked
 // against the manifest and sealed read-only (gui_forms::detail::BundledFontSet), then shared.
+// Throws with the lookup's refusal (bundled_font_refusal) when no directory holds the faces.
 void register_fonts(render::SkiaRaster &raster) {
   const std::filesystem::path directory = fonts_directory();
+  if (directory.empty())
+    throw std::runtime_error(gui_forms::bundled_font_refusal());
   const std::shared_ptr<gui_forms::detail::BundledFontSet> set =
       gui_forms::detail::shared_bundled_font_set(directory, gui_forms::host::posix_sealed_pages());
   if (!raster.register_bundled_fonts(set))
@@ -635,6 +686,32 @@ struct WriteText final {
     return (*(*window).services).write_clipboard_text(text);
   }
 };
+// The session-ending signal handler's state (Runtime::terminate_installed):
+// the flag it sets and the wake pipe it writes, both written only while a
+// handler is installed. Async-signal-safe: a sig_atomic_t store and write.
+volatile std::sig_atomic_t session_end_signalled = 0;
+volatile int session_end_wake = -1;
+void session_end_signal(int) {
+  session_end_signalled = 1;
+  const int descriptor = session_end_wake;
+  const char byte = 1;
+  if (descriptor >= 0)
+    static_cast<void>(::write(descriptor, &byte, 1));
+}
+// Installs session_end_signal for signal_number when its disposition is the
+// default; previous receives the action to restore. Returns whether it
+// installed.
+bool install_session_end_signal(int signal_number, struct sigaction &previous) {
+  if (sigaction(signal_number, nullptr, &previous) != 0)
+    return false;
+  if ((previous.sa_flags & SA_SIGINFO) != 0 || previous.sa_handler != SIG_DFL)
+    return false;
+  struct sigaction action{};
+  action.sa_handler = session_end_signal;
+  sigemptyset(&action.sa_mask);
+  action.sa_flags = SA_RESTART;
+  return sigaction(signal_number, &action, nullptr) == 0;
+}
 } // namespace
 void Wake::operator()() const noexcept {
   const char byte = 1;
@@ -703,8 +780,24 @@ Runtime::Runtime() {
     XkbFreeKeyboard(keyboard, XkbAllComponentsMask, True);
   compositor = std::make_unique<X11CompositorWatch>(display, DefaultScreen(display));
   input_settings = std::make_unique<XSettingsWatch>(display, DefaultScreen(display));
+  if (session_end_wake < 0) {
+    session_end_signalled = 0;
+    session_end_wake = wake_pipe[1];
+    terminate_installed = install_session_end_signal(SIGTERM, previous_terminate);
+    hangup_installed = install_session_end_signal(SIGHUP, previous_hangup);
+    if (!terminate_installed && !hangup_installed)
+      session_end_wake = -1;
+  }
 }
 Runtime::~Runtime() {
+  // Restored before the wake pipe closes, so the handler never writes to a
+  // closed (or reused) descriptor.
+  if (terminate_installed)
+    sigaction(SIGTERM, &previous_terminate, nullptr);
+  if (hangup_installed)
+    sigaction(SIGHUP, &previous_hangup, nullptr);
+  if (terminate_installed || hangup_installed)
+    session_end_wake = -1;
   for (std::size_t i = 0; i < windows.size(); ++i)
     (*windows[i]).close(HostCloseReason::application, true);
   windows.clear();
@@ -1117,6 +1210,10 @@ Size NativeWindow::minimum_size() const noexcept {
 void NativeWindow::close(HostCloseReason reason, bool force) {
   if (closed)
     return;
+  // A session end is told to the closing handler, which cannot refuse it
+  // here: the signal has already ended the session.
+  if (force && reason == HostCloseReason::session_end)
+    static_cast<void>(dispatch(HostCloseRequest{reason, false, false}));
   if (!force) {
     const HostDispatchResult result =
         dispatch(HostCloseRequest{reason, false, entry.options.hide_on_close});
@@ -1604,9 +1701,20 @@ void Runtime::dispatch(XEvent &event) {
       break;
     }
 }
+void Runtime::end_session() {
+  // A copy: a closed callback may open a replacement window.
+  const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
+  for (std::size_t i = snapshot.size(); i > 0; --i)
+    (*snapshot[i - 1]).close(HostCloseReason::session_end, true);
+}
 void Runtime::step(int maximum_wait) {
   char bytes[128];
   while (::read(wake_pipe[0], bytes, sizeof(bytes)) > 0) {
+  }
+  if ((terminate_installed || hangup_installed) && session_end_signalled != 0) {
+    session_end_signalled = 0;
+    end_session();
+    return;
   }
   std::deque<Action> queued;
   {

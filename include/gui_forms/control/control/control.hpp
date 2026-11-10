@@ -921,6 +921,12 @@ public:
     // particular base implementation.
     void apply_provider_semantics(SemanticDescriptor& descriptor) const;
     [[nodiscard]] virtual std::vector<SemanticNode> semantic_virtual_children() const;
+    // Enters the control's keyboard drag mode (the window's drag engine,
+    // roadmap 2.1) on its subject: the begin_keyboard_drag rule action and
+    // the move command reach it. True when a keyboard drag started; false
+    // for a control that declares no drag (the default) or has nothing to
+    // drag now.
+    virtual bool begin_keyboard_drag();
     // The parts whose tooltips the root's tooltip route looks for, in root
     // coordinates, read only when publishes_item_tool_tips is set: the
     // semantic virtual children by default. A control whose tooltip parts

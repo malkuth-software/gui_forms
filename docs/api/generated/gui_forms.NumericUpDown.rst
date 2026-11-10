@@ -69,9 +69,15 @@ gui_forms::NumericUpDown
          The width of the spin buttons, from 12 to 64; a width outside that range,
          or one that is not finite, throws ``std::out_of_range``.
 
+      **scrub** : ``bool``
+         Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected. Off by default: the field then edits as a TextBox does.
+
       **editor** : ``std::shared_ptr<TextBox>``, read-only
          The :cpp:class:`TextBox <gui_forms::TextBox>` that shows and edits the number. Use it to set the font or
          to move focus to the field.
+
+      **scrubbing** : ``bool``, read-only
+         Whether a scrub (scrub mode) is past its threshold or in the keyboard mode.
 
       **parts** : ``Parts``, read-only
 
@@ -246,10 +252,18 @@ gui_forms::NumericUpDown
       The width of the spin buttons, from 12 to 64; a width outside that range,
       or one that is not finite, throws ``std::out_of_range``.
 
+   .. cpp:member:: bool scrub
+
+      Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected. Off by default: the field then edits as a TextBox does.
+
    .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
 
       The :cpp:class:`TextBox <gui_forms::TextBox>` that shows and edits the number. Use it to set the font or
       to move focus to the field.
+
+   .. cpp:function:: bool scrubbing() const noexcept
+
+      Whether a scrub (scrub mode) is past its threshold or in the keyboard mode.
 
    .. cpp:function:: Parts parts() const
 
@@ -298,6 +312,8 @@ gui_forms::NumericUpDown
 
    .. cpp:function:: void on_pointer_preview(PointerEvent& event) override
 
+   .. cpp:function:: bool begin_keyboard_drag() override
+
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value_text) override
@@ -328,4 +344,4 @@ gui_forms::NumericUpDown
 
    .. cpp:member:: constexpr std::size_t numeric_up_down_property_count
 
-      NumericUpDown's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 5U``.
+      NumericUpDown's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 6U``.

@@ -126,6 +126,24 @@
       "reason": "The table's spans follow the GridSpan conflict rules (study 10.9 section 1, rules a and d), so a fused region never holds a second placed child.",
       "source": "owner",
       "date": "2026-11-05"
+    },
+    {
+      "control": "Splitter",
+      "member": "drag (live resize, cancel, keyboard)",
+      "winforms": "Dragging draws a split line and resizes the target on release; Escape during the drag cancels and the target keeps its size. The splitter has no keyboard input.",
+      "gui_forms": "Dragging resizes the target live (splitter_moving before each step). Escape, losing the pointer capture and the window's deactivation cancel and put the target back at its size before the drag. The begin_keyboard_drag rule action moves the bar from the keyboard (arrows by 10, Ctrl 100, Shift 1; Enter keeps, Escape restores).",
+      "reason": "The drag runs on the drag engine, whose cancels never leave a model changed; the observable end of Escape is Windows Forms'. Live resizing was already GUI.Forms' behaviour, and the keyboard path is the engine's accessibility rule (every drag has a keyboard equivalent).",
+      "source": "coordinator",
+      "date": "2026-11-08"
+    },
+    {
+      "control": "SplitContainer",
+      "member": "seam drag (cancel, keyboard)",
+      "winforms": "Escape during a splitter drag cancels it and the distance stays where it was before the drag; losing the capture ends the drag. The focused splitter moves by SplitterIncrement with the arrow keys.",
+      "gui_forms": "Escape, losing the pointer capture and the window's deactivation cancel the drag and put back the distance from before it (SplitChangeReason::cancel). Besides the focused arrows, the begin_keyboard_drag rule action on splitter_control runs a keyboard drag (arrows by keyboard_increment, Ctrl ten steps, Shift a tenth; Enter keeps, Escape restores).",
+      "reason": "The seam drag runs on the drag engine, as the Splitter's does, and the engine's cancels never leave a model changed (before the engine a lost capture kept the dragged distance). The keyboard drag is the engine's accessibility rule.",
+      "source": "coordinator",
+      "date": "2026-11-08"
     }
   ]
 }

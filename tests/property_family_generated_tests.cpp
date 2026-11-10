@@ -21,6 +21,7 @@
 #include "gui_forms/controls/easing_preview/easing_preview.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
+#include "gui_forms/controls/instruments/sparkline/sparkline.hpp"
 #include "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp"
 #include "gui_forms/controls/label/label.hpp"
 #include "gui_forms/controls/menu_strip/menu_strip.hpp"
@@ -60,11 +61,16 @@
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
+#include "gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp"
+#include "gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp"
+#include "gui_forms/controls/plots/plot_series_item/plot_series_item.hpp"
+#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
 #include "gui_forms/controls/progress_ring/progress_ring.hpp"
 #include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
 #include "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
 #include "gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp"
 #include "gui_forms/controls/range_control/track_bar/track_bar.hpp"
+#include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
 #include "gui_forms/controls/raster_canvas/raster_canvas.hpp"
 #include "gui_forms/controls/ribbon/ribbon.hpp"
 #include "gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp"
@@ -1513,6 +1519,14 @@ void test_numeric_up_down_properties() {
         (*control).button_width = sample;
         expect((*control).button_width.read() == sample, "NumericUpDown.button_width: a write stores");
     }
+    {
+        const bool sample = true;
+        (*control).scrub = sample;
+        expect((*control).scrub.read() == sample, "NumericUpDown.scrub: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("scrub");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "NumericUpDown.scrub: the table reads the cell");
+    }
 }
 
 void test_object_view_properties() {
@@ -1668,6 +1682,190 @@ void test_picture_box_properties() {
         const std::optional<BindingValue> by_name = (*control).property_value("image_opacity");
         expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
                "PictureBox.image_opacity: the table reads the cell");
+    }
+}
+
+void test_plot_annotation_item_properties() {
+    std::shared_ptr<PlotAnnotationItem> control = make_control<PlotAnnotationItem>(StableId("generated.plotannotationitem"));
+    {
+        const std::string sample = std::string("peak");
+        (*control).text = sample;
+        expect((*control).text.read() == sample, "PlotAnnotationItem.text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "PlotAnnotationItem.text: the table reads the cell");
+    }
+    {
+        const double sample = 2.5;
+        (*control).x = sample;
+        expect((*control).x.read() == sample, "PlotAnnotationItem.x: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("x");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "PlotAnnotationItem.x: the table reads the cell");
+    }
+    {
+        const double sample = 0.75;
+        (*control).y = sample;
+        expect((*control).y.read() == sample, "PlotAnnotationItem.y: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("y");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "PlotAnnotationItem.y: the table reads the cell");
+    }
+}
+
+void test_plot_axis_item_properties() {
+    std::shared_ptr<PlotAxisItem> control = make_control<PlotAxisItem>(StableId("generated.plotaxisitem"));
+    {
+        const PlotAxisDirection sample = PlotAxisDirection::vertical;
+        (*control).direction = sample;
+        expect((*control).direction.read() == sample, "PlotAxisItem.direction: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("direction");
+        expect(by_name && *by_name == PropertyValueTraits<PlotAxisDirection>::to_binding(sample),
+               "PlotAxisItem.direction: the table reads the cell");
+    }
+    {
+        const PlotAxisScale sample = PlotAxisScale::log10;
+        (*control).scale = sample;
+        expect((*control).scale.read() == sample, "PlotAxisItem.scale: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("scale");
+        expect(by_name && *by_name == PropertyValueTraits<PlotAxisScale>::to_binding(sample),
+               "PlotAxisItem.scale: the table reads the cell");
+    }
+    {
+        const double sample = -1.0;
+        (*control).minimum = sample;
+        expect((*control).minimum.read() == sample, "PlotAxisItem.minimum: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("minimum");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "PlotAxisItem.minimum: the table reads the cell");
+    }
+    {
+        const double sample = 10.0;
+        (*control).maximum = sample;
+        expect((*control).maximum.read() == sample, "PlotAxisItem.maximum: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("maximum");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "PlotAxisItem.maximum: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string("Time");
+        (*control).label = sample;
+        expect((*control).label.read() == sample, "PlotAxisItem.label: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("label");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "PlotAxisItem.label: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).auto_fit = sample;
+        expect((*control).auto_fit.read() == sample, "PlotAxisItem.auto_fit: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("auto_fit");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "PlotAxisItem.auto_fit: the table reads the cell");
+    }
+    {
+        const double sample = 10.0;
+        (*control).follow_span = sample;
+        expect((*control).follow_span.read() == sample, "PlotAxisItem.follow_span: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("follow_span");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "PlotAxisItem.follow_span: the table reads the cell");
+    }
+}
+
+void test_plot_series_item_properties() {
+    std::shared_ptr<PlotSeriesItem> control = make_control<PlotSeriesItem>(StableId("generated.plotseriesitem"));
+    {
+        const PlotSeriesKind sample = PlotSeriesKind::scatter;
+        (*control).kind = sample;
+        expect((*control).kind.read() == sample, "PlotSeriesItem.kind: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("kind");
+        expect(by_name && *by_name == PropertyValueTraits<PlotSeriesKind>::to_binding(sample),
+               "PlotSeriesItem.kind: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string("Load");
+        (*control).label = sample;
+        expect((*control).label.read() == sample, "PlotSeriesItem.label: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("label");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "PlotSeriesItem.label: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string("signal(sine, frequency 2Hz)");
+        (*control).source = sample;
+        expect((*control).source.read() == sample, "PlotSeriesItem.source: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("source");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "PlotSeriesItem.source: the table reads the cell");
+    }
+    {
+        const bool sample = true;
+        (*control).hidden = sample;
+        expect((*control).hidden.read() == sample, "PlotSeriesItem.hidden: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("hidden");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "PlotSeriesItem.hidden: the table reads the cell");
+    }
+    {
+        const std::uint32_t sample = std::uint32_t{1U};
+        (*control).x_axis = sample;
+        expect((*control).x_axis.read() == sample, "PlotSeriesItem.x_axis: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("x_axis");
+        expect(by_name && *by_name == PropertyValueTraits<std::uint32_t>::to_binding(sample),
+               "PlotSeriesItem.x_axis: the table reads the cell");
+    }
+    {
+        const std::uint32_t sample = std::uint32_t{1U};
+        (*control).y_axis = sample;
+        expect((*control).y_axis.read() == sample, "PlotSeriesItem.y_axis: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("y_axis");
+        expect(by_name && *by_name == PropertyValueTraits<std::uint32_t>::to_binding(sample),
+               "PlotSeriesItem.y_axis: the table reads the cell");
+    }
+}
+
+void test_plot_view_properties() {
+    std::shared_ptr<PlotView> control = make_control<PlotView>(StableId("generated.plotview"));
+    {
+        const std::string sample = std::string("Load");
+        (*control).title = sample;
+        expect((*control).title.read() == sample, "PlotView.title: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("title");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "PlotView.title: the table reads the cell");
+    }
+    {
+        const bool sample = true;
+        (*control).live = sample;
+        expect((*control).live.read() == sample, "PlotView.live: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("live");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "PlotView.live: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).show_legend = sample;
+        expect((*control).show_legend.read() == sample, "PlotView.show_legend: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("show_legend");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "PlotView.show_legend: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).show_grid = sample;
+        expect((*control).show_grid.read() == sample, "PlotView.show_grid: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("show_grid");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "PlotView.show_grid: the table reads the cell");
+    }
+    {
+        const bool sample = true;
+        (*control).crosshair = sample;
+        expect((*control).crosshair.read() == sample, "PlotView.crosshair: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("crosshair");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "PlotView.crosshair: the table reads the cell");
     }
 }
 
@@ -1907,6 +2105,11 @@ void test_ribbon_properties() {
         (*control).font = sample;
         expect((*control).font.read() == sample, "Ribbon.font: a write stores");
     }
+    {
+        const bool sample = true;
+        (*control).tabs_activate_on_release = sample;
+        expect((*control).tabs_activate_on_release.read() == sample, "Ribbon.tabs_activate_on_release: a write stores");
+    }
 }
 
 void test_ribbon_color_picker_properties() {
@@ -2064,6 +2267,26 @@ void test_search_field_properties() {
         const std::optional<BindingValue> by_name = (*control).property_value("busy");
         expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
                "SearchField.busy: the table reads the cell");
+    }
+}
+
+void test_sparkline_properties() {
+    std::shared_ptr<Sparkline> control = make_control<Sparkline>(StableId("generated.sparkline"));
+    {
+        const std::uint32_t sample = std::uint32_t{60U};
+        (*control).capacity = sample;
+        expect((*control).capacity.read() == sample, "Sparkline.capacity: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("capacity");
+        expect(by_name && *by_name == PropertyValueTraits<std::uint32_t>::to_binding(sample),
+               "Sparkline.capacity: the table reads the cell");
+    }
+    {
+        const bool sample = true;
+        (*control).fill = sample;
+        expect((*control).fill.read() == sample, "Sparkline.fill: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("fill");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Sparkline.fill: the table reads the cell");
     }
 }
 
@@ -2585,6 +2808,82 @@ void test_typography_specimen_properties() {
     }
 }
 
+void test_value_bar_properties() {
+    std::shared_ptr<ValueBar> control = make_control<ValueBar>(StableId("generated.valuebar"));
+    {
+        const std::optional<double> sample = std::optional<double>{10.0};
+        (*control).soft_minimum = sample;
+        expect((*control).soft_minimum.read() == sample, "ValueBar.soft_minimum: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("soft_minimum");
+        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+               "ValueBar.soft_minimum: the table reads the cell");
+    }
+    {
+        const std::optional<double> sample = std::optional<double>{90.0};
+        (*control).soft_maximum = sample;
+        expect((*control).soft_maximum.read() == sample, "ValueBar.soft_maximum: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("soft_maximum");
+        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+               "ValueBar.soft_maximum: the table reads the cell");
+    }
+    {
+        const std::optional<double> sample = std::optional<double>{5.0};
+        (*control).snap_step = sample;
+        expect((*control).snap_step.read() == sample, "ValueBar.snap_step: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("snap_step");
+        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+               "ValueBar.snap_step: the table reads the cell");
+    }
+    {
+        const std::int32_t sample = 0;
+        (*control).precision = sample;
+        expect((*control).precision.read() == sample, "ValueBar.precision: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("precision");
+        expect(by_name && *by_name == PropertyValueTraits<std::int32_t>::to_binding(sample),
+               "ValueBar.precision: the table reads the cell");
+    }
+    {
+        const ValueUnit sample = ValueUnit::percent;
+        (*control).unit = sample;
+        expect((*control).unit.read() == sample, "ValueBar.unit: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("unit");
+        expect(by_name && *by_name == PropertyValueTraits<ValueUnit>::to_binding(sample),
+               "ValueBar.unit: the table reads the cell");
+    }
+    {
+        const double sample = 1.0;
+        (*control).default_value = sample;
+        expect((*control).default_value.read() == sample, "ValueBar.default_value: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("default_value");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "ValueBar.default_value: the table reads the cell");
+    }
+    {
+        const ValueBarStyle sample = ValueBarStyle::field;
+        (*control).presentation = sample;
+        expect((*control).presentation.read() == sample, "ValueBar.presentation: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("presentation");
+        expect(by_name && *by_name == PropertyValueTraits<ValueBarStyle>::to_binding(sample),
+               "ValueBar.presentation: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string("Samples");
+        (*control).label = sample;
+        expect((*control).label.read() == sample, "ValueBar.label: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("label");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "ValueBar.label: the table reads the cell");
+    }
+    {
+        const std::optional<double> sample = std::optional<double>{0.5};
+        (*control).scrub_rate = sample;
+        expect((*control).scrub_rate.read() == sample, "ValueBar.scrub_rate: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("scrub_rate");
+        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+               "ValueBar.scrub_rate: the table reads the cell");
+    }
+}
+
 void test_visual_inspector_overlay_properties() {
     std::shared_ptr<VisualInspectorOverlay> control = make_control<VisualInspectorOverlay>(StableId("generated.visualinspectoroverlay"));
     {
@@ -2663,6 +2962,10 @@ int main() {
     test_page_view_properties();
     test_panel_properties();
     test_picture_box_properties();
+    test_plot_annotation_item_properties();
+    test_plot_axis_item_properties();
+    test_plot_series_item_properties();
+    test_plot_view_properties();
     test_progress_bar_properties();
     test_progress_ring_properties();
     test_property_grid_properties();
@@ -2683,6 +2986,7 @@ int main() {
     test_scroll_bar_properties();
     test_scrollable_control_properties();
     test_search_field_properties();
+    test_sparkline_properties();
     test_spinner_properties();
     test_split_container_properties();
     test_splitter_properties();
@@ -2702,6 +3006,7 @@ int main() {
     test_tree_list_view_properties();
     test_tree_view_properties();
     test_typography_specimen_properties();
+    test_value_bar_properties();
     test_visual_inspector_overlay_properties();
     test_visual_inspector_view_properties();
     std::cout << "generated property tests passed\n";

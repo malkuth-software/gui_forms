@@ -134,6 +134,19 @@ struct RibbonSelectedTabCapability {
     }
 };
 
+// Whether a tab is selected when the pointer is released over the tab it was pressed on (a click), instead of on the press (false, the default, as Office's ribbon does; the ribbon study does not decide it). The keyboard, mnemonics and accessibility select at once either way.
+template <typename Declaring>
+struct RibbonTabsActivateOnReleaseCapability {
+    PropertyCell<bool, RibbonTabsActivateOnReleaseCapability<Declaring>> tabs_activate_on_release{false};
+
+    static void assign(RibbonTabsActivateOnReleaseCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.tabs_activate_on_release), incoming);
+        if (!capability.tabs_activate_on_release.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.tabs_activate_on_release));
+    }
+};
+
 // Every Ribbon capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>,
@@ -144,7 +157,8 @@ struct RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>,
                             public RibbonBackstageCapability<Declaring>,
                             public RibbonFocusRegionCapability<Declaring>,
                             public FontCapability<Declaring>,
-                            public RibbonSelectedTabCapability<Declaring> {
+                            public RibbonSelectedTabCapability<Declaring>,
+                            public RibbonTabsActivateOnReleaseCapability<Declaring> {
     RibbonCapabilities() : FontCapability<Declaring>(FontSpec{FontRole::control, 10.5, 400, false, 0.12}) {}
 };
 

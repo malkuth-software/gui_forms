@@ -266,6 +266,8 @@ Related types
      - A parse never fails as a whole: a malformed known entry is reported and its built-in default kept, as the configuration contract (§7) asks.
    * - :cpp:class:`RibbonTabChange <gui_forms::RibbonTabChange>`
      - The selected tab after it changed.
+   * - :cpp:class:`RibbonTabsActivateOnReleaseCapability <gui_forms::RibbonTabsActivateOnReleaseCapability>`
+     - Whether a tab is selected when the pointer is released over the tab it was pressed on (a click), instead of on the press (false, the default, as Office's ribbon does; the ribbon study does not decide it).
    * - :cpp:class:`RibbonTabSetSpec <gui_forms::RibbonTabSetSpec>`
      - A contextual tab set (stage RB, phase 5): tabs that show while the application makes the set available, such as while a picture is selected.
    * - :cpp:class:`RibbonTabSpec <gui_forms::RibbonTabSpec>`
@@ -1069,6 +1071,10 @@ Related types
 
    .. cpp:member:: PartGeometry scroll_right_glyph
 
+   .. cpp:member:: PartGeometry help_button
+
+      Reserved for the help button (owner, N4); never present yet.
+
    .. cpp:member:: PartGeometry focus
 
 .. cpp:namespace:: gui_forms
@@ -1110,6 +1116,8 @@ Related types
    .. cpp:member:: bool selected
 
    .. cpp:member:: bool focus_visible
+
+   .. cpp:member:: bool disabled
 
 .. cpp:namespace:: gui_forms
 
@@ -1162,7 +1170,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>, public RibbonDocumentMinimumHeightCapability<Declaring>, public RibbonMinimizedCapability<Declaring>, public RibbonApplicationTextCapability<Declaring>, public RibbonRecentCaptionCapability<Declaring>, public RibbonBackstageCapability<Declaring>, public RibbonFocusRegionCapability<Declaring>, public FontCapability<Declaring>, public RibbonSelectedTabCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>, public RibbonDocumentMinimumHeightCapability<Declaring>, public RibbonMinimizedCapability<Declaring>, public RibbonApplicationTextCapability<Declaring>, public RibbonRecentCaptionCapability<Declaring>, public RibbonBackstageCapability<Declaring>, public RibbonFocusRegionCapability<Declaring>, public FontCapability<Declaring>, public RibbonSelectedTabCapability<Declaring>, public RibbonTabsActivateOnReleaseCapability<Declaring>
 
    ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
 
@@ -1211,6 +1219,10 @@ Related types
    .. cpp:member:: std::optional<std::size_t> selected_tab
 
       The selected tab, or none while no tab shows. A write past the end throws std::out_of_range; a tab not shown, or none, throws std::invalid_argument. The selection rules remember it as the user's choice. A view onto the ribbon's selection.
+
+   .. cpp:member:: bool tabs_activate_on_release
+
+      Whether a tab is selected when the pointer is released over the tab it was pressed on (a click), instead of on the press (false, the default, as Office's ribbon does; the ribbon study does not decide it). The keyboard, mnemonics and accessibility select at once either way.
 
 .. cpp:namespace:: gui_forms
 
@@ -1833,7 +1845,7 @@ Related types
 
    ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
 
-   A group of commands on a tab, with a caption beneath and, when ``dialog_launcher`` is set, a launcher button in the caption's corner. ``image`` is the icon of the group's collapsed button (none: the first command image). ``layouts`` are its size definitions, largest first; empty layouts are generated (Ribbon::group_layouts). ``modes`` are the application modes it shows in.
+   A group of commands on a tab, with a caption beneath and, when ``dialog_launcher`` is set, a launcher button in the caption's corner. ``image`` is the icon of the group's collapsed button (none: the first command image). ``layouts`` are its size definitions, largest first; empty layouts are generated (Ribbon::group_layouts). Authored layouts that do not end in the collapsed button gain it as their last step, so that a group never vanishes from a narrow plane (a group of one command never collapses). ``modes`` are the application modes it shows in.
 
    .. cpp:member:: std::string stable_id
 
@@ -2048,6 +2060,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RibbonTabsActivateOnReleaseCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   Whether a tab is selected when the pointer is released over the tab it was pressed on (a click), instead of on the press (false, the default, as Office's ribbon does; the ribbon study does not decide it). The keyboard, mnemonics and accessibility select at once either way.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonTabsActivateOnReleaseCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RibbonTabsActivateOnReleaseCapability<Declaring>> tabs_activate_on_release
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RibbonTabSetSpec final
 
    ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
@@ -2064,7 +2093,7 @@ Related types
 
    ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
 
-   A tab. ``text`` may carry a mnemonic ("&Home"). ``reduction_order`` is the order in which its groups shrink as the ribbon narrows; after it (or without it) every group that can still shrink does so one step at a time, right to left, repeating (WPF's cycle, decision 32). ``tab_set`` names the contextual tab set the tab belongs to (empty: a core tab); ``modes`` are the application modes it shows in. A panel tab: ``panel`` is a control the application made, which the ribbon adds as its child and sizes to the whole command plane while the tab is selected, in place of groups (the application's own command area, such as a palette or an atlas). It has no groups and no reduction order, and is unowned or already this ribbon's; the ribbon removes it when a new definition no longer names it. Its keyboard stops and semantics are its own, as a hosted control's are.
+   A tab. ``text`` may carry a mnemonic ("&Home"). ``reduction_order`` is the order in which its groups shrink as the ribbon narrows; after it (or without it) every group that can still shrink does so one step at a time, right to left, repeating (WPF's cycle, decision 32). ``tab_set`` names the contextual tab set the tab belongs to (empty: a core tab); ``modes`` are the application modes it shows in. ``width`` is an authored width in logical units, scaled with the text as the tab row is (none: the label's width, at its widest state font, plus the theme's padding; Plan Paint's tabs carry their own widths); above zero and at most Ribbon::maximum_tab_width. A tab that is not ``enabled`` shows in the disabled state and cannot be selected: the pointer, the keyboard, mnemonics and accessibility pass it by, and a selection that would fall on it falls back to another tab. A panel tab: ``panel`` is a control the application made, which the ribbon adds as its child and sizes to the whole command plane while the tab is selected, in place of groups (the application's own command area, such as a palette or an atlas). It has no groups and no reduction order, and is unowned or already this ribbon's; the ribbon removes it when a new definition no longer names it. Its keyboard stops and semantics are its own, as a hosted control's are.
 
    .. cpp:member:: std::string stable_id
 
@@ -2081,6 +2110,12 @@ Related types
       Default: ``{ribbon_all_modes}``.
 
    .. cpp:member:: std::shared_ptr<Control> panel
+
+   .. cpp:member:: std::optional<double> width
+
+   .. cpp:member:: bool enabled
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 

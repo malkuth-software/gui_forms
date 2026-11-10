@@ -4,6 +4,7 @@
 #include "gui_forms/window.hpp"
 
 #include <memory>
+#include <optional>
 #include <string_view>
 
 namespace gui_forms::gallery {
@@ -20,7 +21,13 @@ inline constexpr std::string_view gallery_program_name = "GUI.Forms Gallery";
 // package is embedded and checked at build time, so a refusal or any finding
 // is a defect of the build: std::logic_error, naming the first. Each
 // gallery_main makes it before anything else.
-[[nodiscard]] std::unique_ptr<Application> create_gallery_application();
+// `base` is the theme the project sheet is compiled onto (the --theme
+// option; gallery_theme_base).
+[[nodiscard]] std::unique_ptr<Application> create_gallery_application(ThemeBase base = default_theme_base);
+
+// The base a --theme id names: "gui-forms" or "windows-professional"; empty
+// is the default base. Empty optional for any other id.
+[[nodiscard]] std::optional<ThemeBase> gallery_theme_base(std::string_view id) noexcept;
 
 // Builds the control gallery: the window generated from demo/gallery.form
 // (GalleryWindow, bound to its GalleryModel), its shell completed from the

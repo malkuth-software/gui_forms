@@ -1,0 +1,84 @@
+{
+  "family": "Sparkline",
+  "step": "PL-1",
+  "declaring": "Sparkline",
+  "header": "include/gui_forms/controls/instruments/sparkline/sparkline.hpp",
+  "source": "src/controls/instruments/sparkline/sparkline.cpp",
+  "capabilities_header": "include/gui_forms/controls/instruments/sparkline/sparkline_capabilities/sparkline_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [],
+  "properties": [
+    {
+      "name": "capacity",
+      "capability": "SparklineCapacity",
+      "value": "std::uint32_t",
+      "initial": "120U",
+      "comment": "How many of the newest values the line keeps, 2 to 100000 (std::invalid_argument outside them); a smaller capacity drops the oldest.",
+      "getter": "capacity",
+      "setter": "set_capacity",
+      "clear": null,
+      "field": "capacity_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "unsigned_integer",
+        "category": "Behavior",
+        "description": "How many values the line keeps.",
+        "default": "BindingValue{std::uint64_t{120U}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "prepare checks the range; written resizes the ring keeping the newest"
+      ],
+      "sample": "std::uint32_t{60U}"
+    },
+    {
+      "name": "fill",
+      "capability": "SparklineFill",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the band under the line is shaded.",
+      "getter": "fill",
+      "setter": "set_fill",
+      "clear": null,
+      "field": "fill_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether the band under the line is shaded.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written repaints"
+      ],
+      "sample": "true"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "Sparkline",
+    "include": "gui_forms/controls/instruments/sparkline/sparkline.hpp"
+  }
+}

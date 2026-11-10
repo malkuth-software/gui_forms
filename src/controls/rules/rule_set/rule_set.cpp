@@ -15,6 +15,7 @@
 #include "gui_forms/rules/rule_set/rule_set.hpp"
 
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "../../../core/drag_engine/drag_engine.hpp"
 
 #include <array>
 #include <utility>
@@ -317,6 +318,8 @@ namespace {
     case RuleConditionKind::focus_within:
     case RuleConditionKind::enabled:
     case RuleConditionKind::visible:
+    case RuleConditionKind::dragging:
+    case RuleConditionKind::drop_candidate:
         return live_control(condition.control) ? RuleRefusal::none : RuleRefusal::disposed_reference;
     case RuleConditionKind::is_true:
         if (condition.flag == nullptr || condition.anchor == nullptr) return RuleRefusal::malformed_condition;
@@ -349,6 +352,7 @@ namespace {
         }
         return live_component(action.anchor) ? RuleRefusal::none : RuleRefusal::disposed_reference;
     case RuleActionKind::focus:
+    case RuleActionKind::begin_keyboard_drag:
         return live_control(action.control) ? RuleRefusal::none : RuleRefusal::disposed_reference;
     case RuleActionKind::none:
     default:
@@ -664,6 +668,16 @@ bool RuleSet::holds(const RuleCondition& condition, OccurrenceState& state) {
     case RuleConditionKind::window_active:
         level = (*window_).active();
         break;
+    case RuleConditionKind::dragging: {
+        const DragEngine* const engine = (*window_).drag_engine_if_made();
+        level = control && engine != nullptr && (*engine).drags(*control);
+        break;
+    }
+    case RuleConditionKind::drop_candidate: {
+        const DragEngine* const engine = (*window_).drag_engine_if_made();
+        level = control && engine != nullptr && (*engine).drop_candidate(*control);
+        break;
+    }
     case RuleConditionKind::is_true:
         level = condition.flag != nullptr && (*condition.flag).get();
         break;
@@ -694,6 +708,11 @@ void RuleSet::run(const RuleAction& action, const RuleFiring& firing) {
     case RuleActionKind::focus: {
         const Control::Ptr control = action.control.lock();
         if (control) static_cast<void>((*window_).request_focus(control));
+        return;
+    }
+    case RuleActionKind::begin_keyboard_drag: {
+        const Control::Ptr control = action.control.lock();
+        if (control) static_cast<void>((*control).begin_keyboard_drag());
         return;
     }
     case RuleActionKind::none:

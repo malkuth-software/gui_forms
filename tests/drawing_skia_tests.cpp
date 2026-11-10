@@ -325,6 +325,122 @@ void refused_dash_fails_without_drawing() {
     CHECK(checksum(target.snapshot()) == before_checksum);
 }
 
+// The drawing-primitives commands as native raster work: each mark lands in
+// its own region of one target, sampled at interior pixels.
+void batched_marks_brushes_grid_and_proportion_rasterize() {
+    SkiaExecutor executor;
+    Bitmap target(64, 64);
+    Pen green(Color::from_name("lime"), 4.0);
+    green.set_line_join(LineJoin::round, 4.0);
+    SolidBrush red(Color::from_name("red"));
+    SolidBrush blue(Color::from_name("blue"));
+    Pen thin_blue(Color::from_name("blue"), 2.0);
+    Pen square_cap(Color::from_name("blue"), 4.0);
+    square_cap.set_line_cap(LineCap::square);
+    Pen flat_cap(Color::from_name("blue"), 4.0);
+
+    GraphicsRecorder recorder;
+    const PointF polyline[] = {{2, 4}, {16, 4}, {30, 4}};
+    recorder.draw_lines(green, polyline);
+    const RectF rects[] = {{0, 8, 4, 4}, {8, 8, 4, 4}};
+    recorder.fill_rectangles(red, rects);
+    const PointF segments[] = {{0, 20}, {10, 20}, {20, 20}, {30, 20}};
+    recorder.draw_line_segments(thin_blue, segments);
+    MarkerStyle marker;
+    marker.shape = MarkerShape::square;
+    marker.size = 6.0;
+    marker.fill = Color::from_name("red");
+    marker.edge = Color::empty();
+    marker.edge_width = 0.0;
+    const PointF centers[] = {{40, 5}, {52, 5}};
+    recorder.draw_markers(centers, marker);
+    ConicGradientBrush conic({40, 24}, 0.0, Color::from_name("red"), Color::from_name("blue"));
+    recorder.fill_rectangle(conic, {32, 16, 16, 16});
+    CheckerBrush checker(4.0, Color::from_name("white"), Color::from_name("black"));
+    recorder.fill_rectangle(checker, {0, 32, 16, 16});
+    GridPatternStyle grid;
+    grid.origin = PointF{16, 32};
+    grid.spacing = 8.0;
+    grid.major_every = 2U;
+    grid.minor = Color::from_name("lime");
+    grid.major = Color::from_name("red");
+    grid.line_width = 2.0;
+    recorder.fill_grid_pattern({16, 32, 32, 16}, grid);
+    recorder.fill_proportion(blue, {0, 52, 40, 10}, CornerRadii{5, 5, 5, 5}, 0.5, FillDirection::left_to_right);
+    const PointF capped[] = {{50, 40}, {56, 40}};
+    recorder.draw_line_segments(square_cap, capped);
+    const PointF flat[] = {{50, 46}, {56, 46}};
+    recorder.draw_line_segments(flat_cap, flat);
+    const RasterResult result = executor.execute(recorder, target);
+    CHECK(result);
+    CHECK(result.commands_executed == 10U);
+
+    CHECK(target.get_pixel(16, 4).green() > 200U);
+    CHECK(target.get_pixel(16, 10).alpha() == 0U);
+    CHECK(target.get_pixel(2, 10).red() > 200U);
+    CHECK(target.get_pixel(6, 10).alpha() == 0U);
+    CHECK(target.get_pixel(10, 10).red() > 200U);
+    CHECK(target.get_pixel(5, 20).blue() > 200U);
+    CHECK(target.get_pixel(15, 20).alpha() == 0U);
+    CHECK(target.get_pixel(25, 20).blue() > 200U);
+    CHECK(target.get_pixel(40, 5).red() > 200U);
+    CHECK(target.get_pixel(46, 5).alpha() == 0U);
+    CHECK(target.get_pixel(52, 5).red() > 200U);
+    // Just clockwise of the start angle the sweep is still red; just
+    // anticlockwise of it, one turn later, it has reached blue.
+    CHECK(target.get_pixel(46, 25).red() > target.get_pixel(46, 25).blue());
+    CHECK(target.get_pixel(46, 22).blue() > target.get_pixel(46, 22).red());
+    // A first (white) cell's corner sits at the origin: cells alternate
+    // every 4 units in both directions.
+    CHECK(target.get_pixel(1, 33).red() == 255U);
+    CHECK(target.get_pixel(5, 33).red() == 0U);
+    CHECK(target.get_pixel(5, 33).alpha() == 255U);
+    CHECK(target.get_pixel(5, 37).red() == 255U);
+    // Minor line through x = 24, major through x = 32, nothing between.
+    CHECK(target.get_pixel(24, 36).green() > 200U);
+    CHECK(target.get_pixel(24, 36).red() < 50U);
+    CHECK(target.get_pixel(32, 36).red() > 200U);
+    CHECK(target.get_pixel(28, 36).alpha() == 0U);
+    // Half the track filled from the left, the rounded corner left clear.
+    CHECK(target.get_pixel(10, 57).blue() > 200U);
+    CHECK(target.get_pixel(30, 57).alpha() == 0U);
+    CHECK(target.get_pixel(0, 52).alpha() < 128U);
+    // A square cap reaches half the width beyond the end; a flat one stops.
+    CHECK(target.get_pixel(57, 40).blue() > 200U);
+    CHECK(target.get_pixel(57, 46).alpha() == 0U);
+}
+
+// Text over a fill draws in the on-fill colour inside the fill and the
+// plain colour outside, with the two parts meeting at the fill's edge.
+void text_over_fill_splits_at_the_fill_edge() {
+    SkiaExecutor executor;
+    const std::vector<std::byte> font_bytes = read_file(GUI_DRAWING_TEST_FONT);
+    CHECK(executor.register_typeface("Portsmouth Rapids", font_bytes));
+    const Font font("Portsmouth Rapids", 24.0, FontStyle::regular, GraphicsUnit::pixel);
+    Bitmap target(120, 40);
+    SolidBrush black(Color::from_name("black"));
+    SolidBrush white(Color::from_name("white"));
+    GraphicsRecorder recorder;
+    recorder.clear(Color::from_name("gray"));
+    recorder.draw_string_over_fill("HHHHHHHH", font, black, white, {2, 4}, StringFormat(), {0, 0, 60, 40});
+    CHECK(executor.execute(recorder, target));
+    std::uint32_t light_left = 0U;
+    std::uint32_t dark_right = 0U;
+    std::uint32_t light_right = 0U;
+    for (std::uint32_t y = 0; y < target.height(); ++y) {
+        for (std::uint32_t x = 0; x < target.width(); ++x) {
+            const std::uint8_t red_channel = target.get_pixel(x, y).red();
+            const bool left = x < 60U;
+            light_left += left && red_channel > 200U ? 1U : 0U;
+            light_right += !left && red_channel > 200U ? 1U : 0U;
+            dark_right += !left && red_channel < 60U ? 1U : 0U;
+        }
+    }
+    CHECK(light_left > 0U);
+    CHECK(dark_right > 0U);
+    CHECK(light_right == 0U);
+}
+
 void connected_line_figures_fill_as_one_contour() {
     SkiaExecutor executor;
     Bitmap target(20, 20);
@@ -534,6 +650,8 @@ int main() {
     gradients_and_hatches_are_native_raster_commands();
     refused_gradient_fails_without_drawing();
     refused_dash_fails_without_drawing();
+    batched_marks_brushes_grid_and_proportion_rasterize();
+    text_over_fill_splits_at_the_fill_edge();
     connected_line_figures_fill_as_one_contour();
     quadratic_bezier_polygon_and_pie_paths_rasterize();
     text_uses_the_shared_engine();

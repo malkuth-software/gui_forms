@@ -161,12 +161,12 @@ ROLE_NAMES: dict[str, str] = {
     'pane': 'PANEL', 'tab_panel': 'SCROLL_PANE', 'tree': 'TREE', 'tree_item': 'TREE_ITEM', 'table': 'TABLE',
     'row': 'TABLE_ROW', 'cell': 'TABLE_CELL', 'column_header': 'COLUMN_HEADER', 'row_header': 'ROW_HEADER',
     'tree_grid': 'TREE_TABLE', 'dialog': 'DIALOG', 'status_bar': 'STATUS_BAR', 'live_region': 'PANEL',
-    'toggle_switch': 'TOGGLE_BUTTON', 'search_box': 'ENTRY',
+    'toggle_switch': 'TOGGLE_BUTTON', 'search_box': 'ENTRY', 'figure': 'CHART',
 }
 
 # The role whose states and interfaces a newer role shares
 # (semantic_role_fallback in semantic_types.hpp); every other role is its own.
-ROLE_FALLBACKS: dict[str, str] = {'toggle_switch': 'check_box', 'search_box': 'text_box'}
+ROLE_FALLBACKS: dict[str, str] = {'toggle_switch': 'check_box', 'search_box': 'text_box', 'figure': 'image'}
 
 
 def acting_role(node: dict[str, Any]) -> str:

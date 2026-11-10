@@ -1276,6 +1276,39 @@ void test_close_cancellation_and_closed_cleanup() {
             "closed lifecycle must account cancellation and revoke scheduled work");
 }
 
+// A session end (HostCloseReason::session_end) asks the closing handler
+// with its reason; an allowed request leaves the window attached, since the
+// platform may still call the session's end off, and live input still
+// reaches it; the closed event then records the reason on the window.
+void test_session_end_close_stays_attached_until_closed() {
+    const std::unique_ptr<Fixture> held_fixture = std::make_unique<Fixture>();
+    Fixture& fixture = *held_fixture;
+    static_cast<void>(fixture.host.dispatch(HostAttachEvent{{320.0, 180.0}, 1.0}, 1));
+    require(!fixture.window.host_close_reason().has_value(),
+            "an open window must report no close reason");
+    SubscriptionToken cancellation =
+        fixture.host.session().closing().subscribe(cancel_close);
+    require(!fixture.host.dispatch(
+                 HostCloseRequest{HostCloseReason::session_end, false}, 2).close_allowed &&
+                fixture.host.session().snapshot().phase == HostLifecyclePhase::attached,
+            "a cancelled session end must keep the window attached");
+    cancellation.disconnect();
+    require(fixture.host.dispatch(
+                HostCloseRequest{HostCloseReason::session_end, false}, 3).close_allowed &&
+                fixture.host.session().snapshot().phase == HostLifecyclePhase::attached,
+            "an allowed session end must stay attached until the host closes the window");
+    PointerEvent input;
+    input.action = PointerAction::move;
+    input.position = {10.0, 10.0};
+    require(fixture.host.dispatch(input, 4).accepted(),
+            "input must still reach a window whose session end was allowed but not yet final");
+    require(fixture.host.dispatch(HostClosedEvent{HostCloseReason::session_end}, 5).accepted() &&
+                fixture.host.session().snapshot().phase == HostLifecyclePhase::closed,
+            "the host's closed event must close a session-ending window");
+    require(fixture.window.host_close_reason() == HostCloseReason::session_end,
+            "the window must record the closed event's reason");
+}
+
 void test_headless_trace_is_byte_deterministic() {
     const std::string first = canonical_host_trace();
     const std::string second = canonical_host_trace();
@@ -1395,6 +1428,7 @@ int main() {
         test_input_settings_report_and_validation();
         test_lifecycle_transition_guards();
         test_close_cancellation_and_closed_cleanup();
+        test_session_end_close_stays_attached_until_closed();
         test_headless_trace_is_byte_deterministic();
         test_headless_host_observes_model_originated_paint_wakes();
         test_normalized_host_input_reports_paint_lease_deferral();

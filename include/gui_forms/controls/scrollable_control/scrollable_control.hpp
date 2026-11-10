@@ -156,6 +156,13 @@ protected:
     // visible axis's range, for input a derived control turns into a scroll
     // (a text box's PageDown reveal). Raises no Scroll event.
     void glide_to(Point target);
+    // Paints the ground, the `face` part a ScrollableControl,
+    // ContainerControl, UserControl or SplitContainer declares, over the
+    // whole box, and only when a theme rule names that part (a rule on the
+    // panel family or the face role alone does not): nothing otherwise, as
+    // before the part was declared. A subclass declaring the ground that
+    // paints content of its own calls this first.
+    void on_paint(Painter& painter, Rect local_damage) override;
     void on_paint_overlay(Painter& painter, Rect local_damage) override;
     void on_detached_from_window() noexcept override;
     // Windows Forms' ScrollControlIntoView on activation: with auto scroll,

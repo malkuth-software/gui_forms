@@ -5,6 +5,49 @@ namespace gui_forms::detail {
 
 namespace {
 
+// The per-corner radii a command keeps in `first` and `second`.
+PaintCornerRadii recorded_radii(const DisplayCommand& command) noexcept {
+    PaintCornerRadii radii{};
+    radii.top_left = command.first.x;
+    radii.top_right = command.first.y;
+    radii.bottom_right = command.second.x;
+    radii.bottom_left = command.second.y;
+    return radii;
+}
+
+// Replays one batched mark or pattern; one without its payload draws
+// nothing.
+void replay_marks(const DisplayCommand& command, Painter& painter) {
+    if (command.operation == DisplayOperation::fill_conic_gradient) {
+        painter.fill_conic_gradient(command.rect, command.first, command.scalar, command.gradient_stops);
+        return;
+    }
+    if (command.operation == DisplayOperation::fill_rounded_rect_corners) {
+        painter.fill_rounded_rect_corners(command.rect, recorded_radii(command), command.color);
+        return;
+    }
+    if (command.operation == DisplayOperation::stroke_rounded_rect_corners) {
+        painter.stroke_rounded_rect_corners(command.rect, recorded_radii(command), command.color, command.scalar);
+        return;
+    }
+    if (!command.marks) return;
+    const DisplayMarks& marks = *command.marks;
+    switch (command.operation) {
+    case DisplayOperation::stroke_polyline: painter.stroke_polyline(marks.points, marks.stroke); return;
+    case DisplayOperation::fill_polygon: painter.fill_polygon(marks.points, command.color, marks.fill_rule); return;
+    case DisplayOperation::fill_band: painter.fill_band(marks.points, marks.lower_points, command.color); return;
+    case DisplayOperation::fill_rects: painter.fill_rects(marks.rects, command.color); return;
+    case DisplayOperation::fill_rects_each: painter.fill_rects_each(marks.rects, marks.colors); return;
+    case DisplayOperation::stroke_segments: painter.stroke_segments(marks.segments, marks.stroke); return;
+    case DisplayOperation::draw_markers: painter.draw_markers(marks.points, marks.marker); return;
+    case DisplayOperation::fill_checker: painter.fill_checker(command.rect, marks.checker); return;
+    case DisplayOperation::fill_grid_pattern: painter.fill_grid_pattern(command.rect, marks.grid); return;
+    default:
+        // Not a batched operation: replay_command handles it.
+        return;
+    }
+}
+
 // Replays one recorded command onto `painter`.
 void replay_command(const DisplayCommand& command, Painter& painter) {
     switch (command.operation) {
@@ -27,15 +70,23 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
     case DisplayOperation::clip_rounded_rect:
         painter.clip_rounded_rect(command.rect, command.scalar);
         return;
-    case DisplayOperation::clip_rounded_rect_corners: {
-        PaintCornerRadii radii{};
-        radii.top_left = command.first.x;
-        radii.top_right = command.first.y;
-        radii.bottom_right = command.second.x;
-        radii.bottom_left = command.second.y;
-        painter.clip_rounded_rect_corners(command.rect, radii);
+    case DisplayOperation::clip_rounded_rect_corners:
+        painter.clip_rounded_rect_corners(command.rect, recorded_radii(command));
         return;
-    }
+    case DisplayOperation::stroke_polyline:
+    case DisplayOperation::fill_polygon:
+    case DisplayOperation::fill_band:
+    case DisplayOperation::fill_rects:
+    case DisplayOperation::fill_rects_each:
+    case DisplayOperation::stroke_segments:
+    case DisplayOperation::draw_markers:
+    case DisplayOperation::fill_conic_gradient:
+    case DisplayOperation::fill_checker:
+    case DisplayOperation::fill_grid_pattern:
+    case DisplayOperation::fill_rounded_rect_corners:
+    case DisplayOperation::stroke_rounded_rect_corners:
+        replay_marks(command, painter);
+        return;
     case DisplayOperation::fill_rect:
         painter.fill_rect(command.rect, command.color);
         return;

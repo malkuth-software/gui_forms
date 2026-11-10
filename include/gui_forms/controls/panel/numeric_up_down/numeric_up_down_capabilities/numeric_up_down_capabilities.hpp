@@ -114,6 +114,19 @@ struct NumericUpDownButtonWidthCapability {
     }
 };
 
+// Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected. Off by default: the field then edits as a TextBox does.
+template <typename Declaring>
+struct NumericUpDownScrubCapability {
+    PropertyCell<bool, NumericUpDownScrubCapability<Declaring>> scrub{false};
+
+    static void assign(NumericUpDownScrubCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.scrub), incoming);
+        if (!capability.scrub.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.scrub));
+    }
+};
+
 // Every NumericUpDown capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct NumericUpDownCapabilities : public NumericUpDownValueCapability<Declaring>,
@@ -122,6 +135,7 @@ struct NumericUpDownCapabilities : public NumericUpDownValueCapability<Declaring
                                    public NumericUpDownIncrementCapability<Declaring>,
                                    public NumericUpDownDecimalPlacesCapability<Declaring>,
                                    public NumericUpDownHexadecimalCapability<Declaring>,
-                                   public NumericUpDownButtonWidthCapability<Declaring> {};
+                                   public NumericUpDownButtonWidthCapability<Declaring>,
+                                   public NumericUpDownScrubCapability<Declaring> {};
 
 } // namespace gui_forms

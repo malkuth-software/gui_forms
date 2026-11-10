@@ -42,7 +42,67 @@ enum class BrushKind : std::uint8_t {
     linear_gradient,
     path_gradient,
     texture,
+    conic_gradient,
+    checker,
 };
+
+// How a pen's segments meet (in the compatibility order: miter, bevel,
+// round) and how its open ends are capped (flat at the end point, square
+// half the width beyond it, round with a half disc).
+enum class LineJoin : std::uint8_t { miter, bevel, round };
+enum class LineCap : std::uint8_t { flat, square, round };
+
+// Marker glyphs for GraphicsRecorder::draw_markers (the GUI.Forms Painter's
+// MarkerShape, in its order). circle through triangle_right are filled;
+// cross, plus and asterisk are strokes in the edge colour.
+enum class MarkerShape : std::uint8_t {
+    circle,
+    square,
+    diamond,
+    triangle_up,
+    triangle_down,
+    triangle_left,
+    triangle_right,
+    cross,
+    plus,
+    asterisk,
+};
+
+// A marker centred on each point: `size` its full width, `fill` its inside,
+// `edge` its outline (or lines) `edge_width` wide. An empty or transparent
+// colour, or a zero edge width, draws nothing of that part.
+struct MarkerStyle final {
+    MarkerShape shape{MarkerShape::circle};
+    double size{6.0};
+    Color fill;
+    Color edge;
+    double edge_width{1.0};
+};
+
+// A world-aligned grid for GraphicsRecorder::fill_grid_pattern: lines
+// `spacing` apart through `origin` (the recorder's coordinates), every
+// `major_every`-th line from the origin in `major`, the rest in `minor`,
+// each `line_width` wide.
+struct GridPatternStyle final {
+    PointF origin;
+    double spacing{16.0};
+    std::uint32_t major_every{4U};
+    Color minor;
+    Color major;
+    double line_width{1.0};
+};
+
+// A rounded rectangle's corner radii: top-left, top-right, bottom-right,
+// bottom-left. Each is held to half the rectangle's shorter side.
+struct CornerRadii final {
+    double top_left{};
+    double top_right{};
+    double bottom_right{};
+    double bottom_left{};
+};
+
+// The edge a proportional fill grows from.
+enum class FillDirection : std::uint8_t { left_to_right, right_to_left, bottom_to_top, top_to_bottom };
 
 struct ColorBlend final {
     std::vector<Color> colors;
@@ -63,6 +123,8 @@ struct BrushSnapshot final {
     std::vector<double> positions;
     ImageSnapshot image;
     Matrix transform;
+    // A checker brush's cell width; 0 for every other kind.
+    double cell_size{};
 };
 
 } // namespace gui_drawing

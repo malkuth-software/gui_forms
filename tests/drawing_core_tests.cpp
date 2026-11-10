@@ -357,6 +357,170 @@ void extended_vocabulary_snapshots_resources() {
                                 {0.1, 1.0}}));
 }
 
+bool trace_has(const std::string& trace, std::string_view entry) {
+    return trace.find(entry) != std::string::npos;
+}
+
+// The batched commands: one command per call, its span copied, and a
+// display-trace entry naming every field.
+void batched_marks_record_one_command_each() {
+    Pen pen(Color::from_name("red"), 2.0);
+    pen.set_line_join(LineJoin::round, 4.0);
+    pen.set_line_cap(LineCap::square);
+    CHECK(pen.snapshot().join == LineJoin::round);
+    CHECK(pen.snapshot().cap == LineCap::square);
+    SolidBrush brush(Color::from_name("blue"));
+    GraphicsRecorder recorder;
+    std::array<PointF, 3> polyline{PointF{0, 0}, PointF{10, 5}, PointF{20, 0}};
+    recorder.draw_lines(pen, polyline);
+    // The recorder keeps its own copy.
+    polyline[1] = PointF{99, 99};
+    const RectF rects[] = {{0, 0, 2, 2}, {4, 4, 2, 2}};
+    recorder.fill_rectangles(brush, rects);
+    const PointF segments[] = {{0, 0}, {1, 1}, {2, 2}, {3, 3}};
+    recorder.draw_line_segments(pen, segments);
+    MarkerStyle marker;
+    marker.shape = MarkerShape::diamond;
+    marker.size = 8.0;
+    marker.fill = Color::from_name("white");
+    marker.edge = Color::from_name("black");
+    const PointF centers[] = {{5, 5}, {15, 5}};
+    recorder.draw_markers(centers, marker);
+    GridPatternStyle grid;
+    grid.origin = PointF{0.5, 0.5};
+    grid.spacing = 8.0;
+    grid.major_every = 4U;
+    grid.minor = Color::from_argb(0x40ffffffU);
+    grid.major = Color::from_argb(0x80ffffffU);
+    recorder.fill_grid_pattern({0, 0, 64, 32}, grid);
+    recorder.fill_proportion(brush, {0, 0, 100, 10}, CornerRadii{5, 5, 5, 5}, 1.5, FillDirection::right_to_left);
+    CHECK(recorder.commands().size() == 6U);
+    CHECK(recorder.commands()[0].points[1] == (PointF{10, 5}));
+    CHECK(recorder.commands()[5].scalar == 1.0);
+    recorder.close();
+    const std::string trace = recorder.deterministic_trace();
+    CHECK(trace_has(trace, "0|draw_lines|points=0,0;10,5;20,0|pen=ffff0000,2,0,join=2/4,cap=1|"));
+    CHECK(trace_has(trace, "1|fill_rectangles|rects=0,0,2,2;4,4,2,2|brush=ff0000ff|"));
+    CHECK(trace_has(trace, "2|draw_line_segments|points=0,0;1,1;2,2;3,3|pen=ffff0000,2,0,join=2/4,cap=1|"));
+    CHECK(trace_has(trace, "3|draw_markers|centers=5,5;15,5|marker=2,8,ffffffff,ff000000,1|"));
+    CHECK(trace_has(trace, "4|fill_grid_pattern|rect=0,0,64,32|grid=0.5,0.5,8,4,40ffffff,80ffffff,1|"));
+    CHECK(trace_has(trace,
+                    "5|fill_proportion|track=0,0,100,10|radii=5,5,5,5|proportion=1|direction=1|brush=ff0000ff|"));
+    CHECK(trace_has(trace, "end|commands=6|closed=1"));
+
+    // A default pen traces as it did before joins and caps existed.
+    GraphicsRecorder plain;
+    Pen default_pen(Color::from_name("red"), 1.0);
+    plain.draw_line(default_pen, {0, 0}, {1, 1});
+    CHECK(trace_has(plain.deterministic_trace(), "|pen=ffff0000,1,0|"));
+
+    // Validation leaves the recorder unchanged.
+    GraphicsRecorder refusing;
+    const PointF lonely[] = {{0, 0}};
+    CHECK_THROWS(std::invalid_argument, refusing.draw_lines(pen, lonely));
+    const PointF odd[] = {{0, 0}, {1, 1}, {2, 2}};
+    CHECK_THROWS(std::invalid_argument, refusing.draw_line_segments(pen, odd));
+    const PointF not_finite[] = {{0, 0}, {std::numeric_limits<double>::quiet_NaN(), 1}};
+    CHECK_THROWS(std::invalid_argument, refusing.draw_lines(pen, not_finite));
+    CHECK_THROWS(std::invalid_argument, refusing.fill_rectangles(brush, std::span<const RectF>{}));
+    MarkerStyle empty_marker = marker;
+    empty_marker.size = 0.0;
+    CHECK_THROWS(std::invalid_argument, refusing.draw_markers(centers, empty_marker));
+    MarkerStyle unknown_marker = marker;
+    unknown_marker.shape = static_cast<MarkerShape>(10);
+    CHECK_THROWS(std::invalid_argument, refusing.draw_markers(centers, unknown_marker));
+    GridPatternStyle dense = grid;
+    dense.spacing = 1.0;
+    CHECK_THROWS(std::invalid_argument, refusing.fill_grid_pattern({0, 0, 64, 32}, dense));
+    GridPatternStyle never_major = grid;
+    never_major.major_every = 0U;
+    CHECK_THROWS(std::invalid_argument, refusing.fill_grid_pattern({0, 0, 64, 32}, never_major));
+    CHECK_THROWS(std::invalid_argument, refusing.fill_grid_pattern({0, 0, 1e9, 32}, grid));
+    CHECK_THROWS(std::invalid_argument,
+                 refusing.fill_proportion(brush, {0, 0, 10, 10}, CornerRadii{-1, 0, 0, 0}, 0.5,
+                                          FillDirection::left_to_right));
+    CHECK_THROWS(std::invalid_argument,
+                 refusing.fill_proportion(brush, {0, 0, 10, 10}, CornerRadii{}, 0.5,
+                                          static_cast<FillDirection>(4)));
+    CHECK_THROWS(std::invalid_argument, pen.set_line_join(LineJoin::miter, 0.5));
+    CHECK(refusing.commands().empty());
+}
+
+// The conic and checker brushes, the contrast rule, rounded path
+// rectangles and text over a fill.
+void primitive_brushes_contrast_and_text_over_fill() {
+    ConicGradientBrush conic({8, 8}, 30.0, Color::from_name("red"), Color::from_name("blue"));
+    CHECK(conic.snapshot().kind == BrushKind::conic_gradient);
+    CHECK(conic.snapshot().colors.size() == 2U);
+    conic.set_interpolation_colors(ColorBlend{{Color::from_name("red"), Color::from_name("white"),
+                                               Color::from_name("blue")},
+                                              {0.0, 0.5, 1.0}});
+    CHECK(conic.snapshot().positions[1] == 0.5);
+    CHECK_THROWS(std::invalid_argument, ConicGradientBrush({std::numeric_limits<double>::infinity(), 0}, 0.0,
+                                                           Color::from_name("red"), Color::from_name("blue")));
+    CheckerBrush checker(4.0, Color::from_name("white"), Color::from_name("silver"));
+    CHECK(checker.snapshot().kind == BrushKind::checker);
+    CHECK(checker.snapshot().cell_size == 4.0);
+    CHECK_THROWS(std::invalid_argument, CheckerBrush(0.0, Color::from_name("white"), Color::from_name("silver")));
+    GraphicsRecorder brushes;
+    brushes.fill_rectangle(conic, {0, 0, 16, 16});
+    brushes.fill_rectangle(checker, {0, 0, 16, 16});
+    const std::string brush_trace = brushes.deterministic_trace();
+    CHECK(trace_has(brush_trace, "0|fill_rectangle|rect=0,0,16,16|brush=5,"));
+    CHECK(trace_has(brush_trace, "1|fill_rectangle|rect=0,0,16,16|brush=6,ffffffff,ffc0c0c0,"));
+    CHECK(trace_has(brush_trace, ",checker=4|"));
+
+    CHECK(std::abs(contrast_ratio(Color::from_name("white"), Color::from_name("black")) - 21.0) < 1e-9);
+    CHECK(contrast_ratio(Color::from_name("red"), Color::from_name("red")) == 1.0);
+    CHECK(contrasting_text_color(Color::from_name("yellow"), Color::from_name("white"), Color::from_name("black")) ==
+          Color::from_name("black"));
+    CHECK(contrasting_text_color(Color::from_name("navy"), Color::from_name("white"), Color::from_name("black")) ==
+          Color::from_name("white"));
+
+    GraphicsPath rounded;
+    rounded.add_rounded_rectangle({0, 0, 20, 10}, CornerRadii{4, 100, 0, 2});
+    CHECK(rounded.bounds() == (RectF{0, 0, 20, 10}));
+    CHECK(rounded.is_visible({10, 5}));
+    // The top-right radius is held to 5; its corner point lies outside.
+    CHECK(!rounded.is_visible({19.9, 0.1}));
+    CHECK(rounded.is_visible({19.9, 9.9}));
+    CHECK_THROWS(std::invalid_argument, rounded.add_rounded_rectangle({0, 0, 20, 10}, CornerRadii{-1, 0, 0, 0}));
+
+    Font font("Lucida Grande", 12.0, FontStyle::regular);
+    StringFormat format(0);
+    SolidBrush text_brush(Color::from_name("black"));
+    SolidBrush on_fill(Color::from_name("white"));
+    GraphicsRecorder text;
+    text.draw_string_over_fill("50%", font, text_brush, on_fill, {0, 0}, format, {10, 0, 20, 10});
+    CHECK(text.commands().size() == 5U);
+    CHECK(text.commands()[0].kind == CommandKind::draw_string);
+    CHECK(*text.commands()[0].state.clip == (RectF{10, 0, 20, 10}));
+    CHECK(text.commands()[0].color == Color::from_name("white"));
+    CHECK(text.commands()[1].color == Color::from_name("black"));
+    // The left band ends exactly where the fill starts, the right band
+    // starts exactly where it ends.
+    CHECK((*text.commands()[3].state.clip).right() == 10.0);
+    CHECK((*text.commands()[4].state.clip).x == 30.0);
+    // A fill outside the clip leaves one draw in the plain colour.
+    GraphicsRecorder clipped;
+    clipped.set_clip({0, 0, 5, 5});
+    clipped.draw_string_over_fill("50%", font, text_brush, on_fill, {0, 0}, format, {10, 10, 5, 5});
+    CHECK(clipped.commands().size() == 2U);
+    CHECK(clipped.commands()[1].color == Color::from_name("black"));
+    CHECK(*clipped.commands()[1].state.clip == (RectF{0, 0, 5, 5}));
+    // A fill covering the whole clip leaves one draw in the fill colour.
+    GraphicsRecorder covered;
+    covered.set_clip({0, 0, 5, 5});
+    covered.draw_string_over_fill("50%", font, text_brush, on_fill, {0, 0}, format, {-10, -10, 50, 50});
+    CHECK(covered.commands().size() == 2U);
+    CHECK(covered.commands()[1].color == Color::from_name("white"));
+    GraphicsRecorder rotated;
+    rotated.set_transform(Matrix::rotation_at(30.0, {0, 0}));
+    CHECK_THROWS(std::invalid_argument,
+                 rotated.draw_string_over_fill("50%", font, text_brush, on_fill, {0, 0}, format, {0, 0, 5, 5}));
+    CHECK(rotated.commands().size() == 1U);
+}
+
 void curve_polygon_and_pie_paths_are_retained_and_bounded() {
     GraphicsPath path;
     path.set_fill_mode(FillMode::winding);
@@ -562,6 +726,8 @@ int main() {
     transforms_resources_and_metrics_obey_contracts();
     extended_vocabulary_snapshots_resources();
     curve_polygon_and_pie_paths_are_retained_and_bounded();
+    batched_marks_record_one_command_each();
+    primitive_brushes_contrast_and_text_over_fill();
     bitmap_storage_and_leases_are_generation_safe();
     bounded_bitmap_edits_publish_local_damage_and_cancel_atomically();
     const std::string trace = record_reference_trace();

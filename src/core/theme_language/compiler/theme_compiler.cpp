@@ -534,6 +534,11 @@ private:
     // fields are the control's (P6f).
     [[nodiscard]] bool rule_selects_part() const noexcept;
     [[nodiscard]] bool rule_names_parts_only() const noexcept;
+    // The advice for the first part the rule names that a themed control
+    // does not paint, or does not let a rule reach, for a declaration of a
+    // text colour (`text_colour`) or of anything else (part_not_themed);
+    // empty when there is none.
+    [[nodiscard]] std::string_view rule_unthemed_part(bool text_colour) const noexcept;
     [[nodiscard]] bool rule_has_states() const noexcept;
     // Whether a selector of the rule names a family, its own or a `:not()`
     // argument's (a control's fonts are resolved for no family).
@@ -2748,22 +2753,42 @@ bool CompilePass::read_backdrop_step(std::size_t function, BackdropStepKind kind
 // `initial` resets each field it sets; any other value is lowered by the
 // material lowering. A recipe property in a rule naming a part or a role
 // is dropped with a warning, since the recipe's fields are the control's;
-// the text colours (`color`, `muted-color`, `glyph-color`) are admitted on
-// a named part, whose text and marks they colour.
+// the text colours (`color`, `muted-color`, `glyph-color`,
+// `fill-text-color`) are admitted on a named part, whose text and marks
+// they colour.
 bool CompilePass::lower_material(const SyntaxNode& node) {
     // folded_ holds the property's name, which classify() found listed.
     const MaterialProperty property = *material_property(folded_);
     const bool recipe = recipe_property(property);
     const bool text_colour = property == MaterialProperty::color || property == MaterialProperty::muted_color ||
-                             property == MaterialProperty::glyph_color;
-    const bool on_named_part = text_colour && rule_names_parts_only();
+                             property == MaterialProperty::glyph_color ||
+                             property == MaterialProperty::fill_text_color;
+    // A part's metrics and shape (`height`, `gap`, `taper` and the rest) are
+    // a named part's own, read by the control that lays the part out and
+    // paints it, in any of its states (look integration); on a control or a
+    // role they are not admitted, as CSS layout properties are not.
+    const bool part_field = property == MaterialProperty::height || property == MaterialProperty::min_width ||
+                            property == MaterialProperty::padding_inline || property == MaterialProperty::gap ||
+                            property == MaterialProperty::margin_top || property == MaterialProperty::margin_bottom ||
+                            property == MaterialProperty::taper || property == MaterialProperty::flare ||
+                            property == MaterialProperty::edge_shadow;
+    const bool named_part = rule_names_parts_only();
+    if (part_field && !named_part) {
+        report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_);
+        return true;
+    }
+    // A named part's font is its own too (Theme::resolve_font with the part).
+    const bool on_named_part = (text_colour || part_field || font_property_of(property)) && named_part;
     if (recipe && rule_selects_part() && !on_named_part) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_ + " on a part or a role");
         return true;
     }
     // A font is a layout input, and a control's states change without a
-    // layout: the font longhands are the control's at rest (T4 fonts).
-    if (font_property_of(property) && rule_has_states()) {
+    // layout: the font longhands are the control's at rest (T4 fonts). A
+    // named part's font may follow its states (a selected tab's label): the
+    // control resolves it per part and state (Theme::resolve_font) and lays
+    // the part out for the widest of them.
+    if (font_property_of(property) && rule_has_states() && !named_part) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_ + " in a state rule");
         return true;
     }
@@ -2771,6 +2796,12 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
     if (font_property_of(property) && rule_has_family()) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_ + " in a :family() rule");
         return true;
+    }
+    // A surface property on a part no themed control paints is kept, with
+    // W112 naming the part that is painted.
+    const std::string_view unthemed = rule_unthemed_part(text_colour);
+    if (!unthemed.empty()) {
+        report(DiagnosticCode::part_not_themed, node.tokens.first.value, std::string(unthemed));
     }
     parameter_names_.clear();
     // role(<pair>) gives its foreground in `color`, its background in
@@ -3456,6 +3487,45 @@ bool CompilePass::rule_names_parts_only() const noexcept {
         if (lowered.selector.part.empty()) return false;
     }
     return true;
+}
+
+namespace {
+
+// A part a stock control declares that its themed look does not let a
+// rule reach, and the advice W112 gives. A themed TextBox draws its field as
+// the editor's well alone (TextBox::on_paint): the face and edge it inherits
+// from Panel are painted only for a field whose look the application
+// overrides, so only their text colours (none drawn) are left alone. Its
+// text runs, any number to a paint, share no part identity, so a rule
+// naming `content` reaches none of them; the control's own `color` is the
+// text's.
+struct UnthemedPart final {
+    std::string_view control_type{};
+    std::string_view part{};
+    // Whether a text colour on the part is reported too.
+    bool text_colours{};
+    std::string_view advice{};
+};
+constexpr std::array<UnthemedPart, 3> unthemed_parts{{
+    {.control_type = "text_box", .part = "face", .text_colours = false,
+     .advice = "a themed text-box paints no face; style text-box::part(well)"},
+    {.control_type = "text_box", .part = "edge", .text_colours = false,
+     .advice = "a themed text-box paints no edge; style text-box::part(well)"},
+    {.control_type = "text_box", .part = "content", .text_colours = true,
+     .advice = "a rule cannot reach a text-box's text runs; style text-box { color } and text-box::part(well)"},
+}};
+
+} // namespace
+
+std::string_view CompilePass::rule_unthemed_part(bool text_colour) const noexcept {
+    for (const LoweredSelector& lowered : lowered_selectors_) {
+        for (const UnthemedPart& unthemed : unthemed_parts) {
+            const bool named =
+                lowered.selector.control_type == unthemed.control_type && lowered.selector.part == unthemed.part;
+            if (named && (!text_colour || unthemed.text_colours)) return unthemed.advice;
+        }
+    }
+    return {};
 }
 
 void CompilePass::add_material(MaterialDeclaration declaration) {

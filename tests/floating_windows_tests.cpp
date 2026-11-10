@@ -303,6 +303,66 @@ void test_runtime_floating_window_is_created_hidden() {
 }
 } // namespace
 
+// The closing handler's view of each request: the reasons it was asked
+// with, and whether it refuses.
+struct RecordClosing final {
+    std::vector<HostCloseReason>* reasons{};
+    const bool* refuse{};
+    void operator()(HostCloseRequest& request) const {
+        (*reasons).push_back(request.reason);
+        if (*refuse) request.cancel = true;
+    }
+};
+
+struct CountClosed final {
+    int* count{};
+    void operator()() const { ++(*count); }
+};
+
+// A session end (log out, restart, shut down) reaches the closing handler as
+// HostCloseReason::session_end, not as the user's close; a refusal keeps
+// every window open, and an accepted one closes every window with that
+// reason, newest first, including a hide-on-close tool.
+void test_session_end_is_its_own_close_reason() {
+    std::vector<HostCloseReason> reasons;
+    bool refuse = true;
+    int closed = 0;
+    ApplicationWindowHandle main{};
+    ApplicationWindowHandle tool{};
+    std::vector<ApplicationWindow> windows;
+    ApplicationWindow primary = make_entry("main", "", HostWindowFloating::none, {800.0, 600.0});
+    primary.options.ready = KeepHandle{&main};
+    primary.options.closing = RecordClosing{&reasons, &refuse};
+    primary.options.closed = CountClosed{&closed};
+    // Observing: the application owns the model, which outlives its close
+    // until the application reclaims it.
+    const Window* main_model = primary.model.get();
+    windows.push_back(std::move(primary));
+    ApplicationWindow panel = make_entry("tool", "main", HostWindowFloating::tool, {200.0, 300.0});
+    panel.options.ready = KeepHandle{&tool};
+    panel.options.hide_on_close = true;
+    const Window* tool_model = panel.model.get();
+    windows.push_back(std::move(panel));
+    host::HeadlessApplication application(std::move(windows));
+
+    require(!application.simulate_session_end(), "a refused session end reported as accepted");
+    require(reasons.size() == 1U && reasons[0] == HostCloseReason::session_end,
+            "the closing handler was not asked with the session-end reason");
+    require(main.active() && tool.active() && closed == 0, "a refused session end closed a window");
+    require(!(*main_model).host_close_reason().has_value(), "an open window reports a close reason");
+
+    application.simulate_user_close(main.id());
+    require(reasons.size() == 2U && reasons[1] == HostCloseReason::user,
+            "the close button must still report the user's close");
+
+    refuse = false;
+    require(application.simulate_session_end(), "an accepted session end reported as refused");
+    require(!main.active() && !tool.active() && closed == 1, "an accepted session end left a window open");
+    require((*main_model).host_close_reason() == HostCloseReason::session_end &&
+                (*tool_model).host_close_reason() == HostCloseReason::session_end,
+            "the closed windows do not report the session-end reason");
+}
+
 int main() {
     try {
         test_kinds_traits_and_clamp();
@@ -317,6 +377,7 @@ int main() {
         test_follow_onto_another_screen();
         test_late_reports_keep_the_offset();
         test_runtime_floating_window_is_created_hidden();
+        test_session_end_is_its_own_close_reason();
         std::cout << "gui_forms_floating_windows_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

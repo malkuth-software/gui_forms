@@ -132,6 +132,24 @@ public:
                                double blur_radius, double spread,
                                Color color) override;
     void draw_line(Point from, Point to, Color color, double width) override;
+    // The batched marks draw as one Skia path per call (markers: one path,
+    // built once, placed at each centre), antialiased; strokes take the
+    // style's joins, caps and dashes. fill_rects, fill_rects_each,
+    // fill_checker and fill_grid_pattern keep the base implementations,
+    // which draw through fill_rect and so snap every edge to device pixels.
+    void stroke_polyline(std::span<const Point> points, const StrokeStyle& style) override;
+    void fill_polygon(std::span<const Point> points, Color color, PolygonFillRule rule) override;
+    void fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color) override;
+    void stroke_segments(std::span<const PaintSegment> segments, const StrokeStyle& style) override;
+    void draw_markers(std::span<const Point> centers, const MarkerStyle& style) override;
+    // A sweep shader from the start angle through one full turn, over the
+    // snapped rectangle.
+    void fill_conic_gradient(Rect rect, Point center, double start_degrees,
+                             std::span<const GradientStop> stops) override;
+    // As fill_rounded_rect and stroke_rounded_rect, with each corner's
+    // radius; a corner of radius 0 stays square on both sides of a stroke.
+    void fill_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color) override;
+    void stroke_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color, double width) override;
     void draw_text_utf8(Point origin,
                         std::string_view text,
                         FontSpec font,

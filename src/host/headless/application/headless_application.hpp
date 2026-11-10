@@ -198,6 +198,14 @@ public:
     // a hide_on_close window and closes any other. Closing the primary
     // window ends the run's windows, as on a native host.
     void simulate_user_close(HostWindowId window);
+    // The user's session ends (log out, restart, shut down), as Windows'
+    // WM_QUERYENDSESSION then WM_ENDSESSION: every open window's closing
+    // handler is asked with HostCloseReason::session_end, newest first.
+    // When one cancels, nothing closes and the result is false (the session
+    // end is called off). Otherwise every window closes, newest first, with
+    // the closed event's reason session_end, and the result is true. A
+    // hide_on_close window closes rather than hides.
+    bool simulate_session_end();
     // The application gains or loses activation (the user switched to or
     // from another application).
     void simulate_application_active(bool active);

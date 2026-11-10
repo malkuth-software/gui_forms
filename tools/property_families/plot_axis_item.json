@@ -1,0 +1,251 @@
+{
+  "family": "PlotAxisItem",
+  "step": "PL-1",
+  "declaring": "PlotAxisItem",
+  "header": "include/gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp",
+  "source": "src/controls/plots/plot_axis_item/plot_axis_item.cpp",
+  "capabilities_header": "include/gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp"
+  ],
+  "properties": [
+    {
+      "name": "direction",
+      "capability": "PlotAxisItemDirection",
+      "value": "PlotAxisDirection",
+      "initial": "PlotAxisDirection::horizontal",
+      "comment": "Which way the axis runs: horizontal (an x axis) or vertical (a y axis).",
+      "getter": "direction",
+      "setter": "set_direction",
+      "clear": null,
+      "field": "direction_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Layout",
+        "description": "Which way the axis runs.",
+        "default": "BindingValue{PropertyEnumValue{\"plot_axis_direction\", \"horizontal\", 0}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "plot_axis_direction_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written tells the owning PlotView, which lays out and repaints"
+      ],
+      "sample": "PlotAxisDirection::vertical"
+    },
+    {
+      "name": "scale",
+      "capability": "PlotAxisItemScale",
+      "value": "PlotAxisScale",
+      "initial": "PlotAxisScale::linear",
+      "comment": "How the axis maps values: linear, log10, symlog, time (UTC seconds) or category.",
+      "getter": "scale",
+      "setter": "set_scale",
+      "clear": null,
+      "field": "scale_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "How the axis maps values.",
+        "default": "BindingValue{PropertyEnumValue{\"plot_axis_scale\", \"linear\", 0}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "plot_axis_scale_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written tells the owning PlotView, which lays out and repaints"
+      ],
+      "sample": "PlotAxisScale::log10"
+    },
+    {
+      "name": "minimum",
+      "capability": "PlotAxisItemMinimum",
+      "value": "double",
+      "initial": "0.0",
+      "comment": "The smallest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).",
+      "getter": "minimum",
+      "setter": "set_minimum",
+      "clear": null,
+      "field": "minimum_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Behavior",
+        "description": "The smallest value shown.",
+        "default": "BindingValue{0.0}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written tells the owning PlotView, which lays out and repaints"
+      ],
+      "sample": "-1.0"
+    },
+    {
+      "name": "maximum",
+      "capability": "PlotAxisItemMaximum",
+      "value": "double",
+      "initial": "1.0",
+      "comment": "The largest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).",
+      "getter": "maximum",
+      "setter": "set_maximum",
+      "clear": null,
+      "field": "maximum_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Behavior",
+        "description": "The largest value shown.",
+        "default": "BindingValue{1.0}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written tells the owning PlotView, which lays out and repaints"
+      ],
+      "sample": "10.0"
+    },
+    {
+      "name": "label",
+      "capability": "PlotAxisItemLabel",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The axis title drawn beside its tick labels.",
+      "getter": "label",
+      "setter": "set_label",
+      "clear": null,
+      "field": "label_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The axis title.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written tells the owning PlotView, which lays out and repaints"
+      ],
+      "sample": "std::string(\"Time\")"
+    },
+    {
+      "name": "auto_fit",
+      "capability": "PlotAxisItemAutoFit",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the axis fits the data when the series change, until a gesture moves the view.",
+      "getter": "auto_fit",
+      "setter": "set_auto_fit",
+      "clear": null,
+      "field": "auto_fit_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether the axis fits the data.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written tells the owning PlotView, which lays out and repaints"
+      ],
+      "sample": "false"
+    },
+    {
+      "name": "follow_span",
+      "capability": "PlotAxisItemFollowSpan",
+      "value": "double",
+      "initial": "0.0",
+      "comment": "A horizontal axis's following window: above zero the axis shows the newest x and this span before it (a live plot's tail); zero turns following off. Negative or not finite throws std::invalid_argument.",
+      "getter": "follow_span",
+      "setter": "set_follow_span",
+      "clear": null,
+      "field": "follow_span_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Behavior",
+        "description": "The span a following axis shows before the newest x; 0 for none.",
+        "default": "BindingValue{0.0}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written tells the owning PlotView, which lays out and repaints"
+      ],
+      "sample": "10.0"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "PlotAxisItem",
+    "include": "gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp"
+  }
+}

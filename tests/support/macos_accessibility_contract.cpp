@@ -39,6 +39,7 @@ const char* expected_ax_role(SemanticRole role) {
     case SemanticRole::progress_bar: return "AXProgressIndicator";
     case SemanticRole::meter: return "AXLevelIndicator";
     case SemanticRole::image: return "AXImage";
+    case SemanticRole::figure: return "AXImage";
     case SemanticRole::tab_group: return "AXTabGroup";
     case SemanticRole::tab: return "AXRadioButton";
     case SemanticRole::split_pane: return "AXSplitGroup";

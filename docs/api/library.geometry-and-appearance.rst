@@ -44,6 +44,8 @@ Types
      - A length along one axis of the part's box: ``fraction`` of the box's extent on that axis plus ``units`` logical units, as CSS's <length-percentage> (a percentage, a length, or the calc() of both).
    * - :cpp:class:`CachedPartRaster <gui_forms::CachedPartRaster>`
      - A part's cached raster and what drew it: the primitive, every parameter (animated ones included, since they change the pixels), the target with its states restricted to those the primitive reads, and the extent.
+   * - :cpp:class:`CheckerPattern <gui_forms::CheckerPattern>`
+     - An alpha checkerboard (piece C7): square cells ``cell`` units wide, alternating ``first`` and ``second``, with the corner of a ``first`` cell at ``anchor``, so the pattern stays put while the filled rectangle moves.
    * - :cpp:class:`Color <gui_forms::Color>`
      - gui_forms::Color is an explicit unpremultiplied RGBA value with opaque alpha default.
    * - :cpp:class:`ColourOrigin <gui_forms::ColourOrigin>`
@@ -70,6 +72,8 @@ Types
      -  
    * - :cpp:class:`ConnectedControlVisualGeometry <gui_forms::ConnectedControlVisualGeometry>`
      - The resolved recipe owns no renderer object.
+   * - :cpp:class:`ControlPartMetrics <gui_forms::ControlPartMetrics>`
+     - A part's metrics and shape as a theme sets them (RecipeField::block_size to edge_shadow_colour), each unset where no rule sets it: the control then keeps its own metric and the part its rectangle.
    * - :cpp:class:`ControlRoleRecipes <gui_forms::ControlRoleRecipes>`
      - ControlRoleRecipes stores complete ordinary, selected, high-contrast, and high-contrast-selected recipes across the closed surface-state axis.
    * - :cpp:class:`ControlRoleTable <gui_forms::ControlRoleTable>`
@@ -170,6 +174,12 @@ Types
      - The colours of a gloss material, top to bottom.
    * - :cpp:class:`GradientStop <gui_forms::GradientStop>`
      - GradientStop pairs a normalized monotonic offset with a copied color for retained display-list safety.
+   * - :cpp:class:`GridLevel <gui_forms::GridLevel>`
+     - The level chosen for one zoom: ``level`` is k, ``minor_spacing`` the level's spacing in view units, and ``fade`` the spacing's position across the band, 0 at its minimum and 1 at its maximum (linear in the spacing).
+   * - :cpp:class:`GridLevelBand <gui_forms::GridLevelBand>`
+     - Seamless deep zoom for the grid (NODE_ENGINE_AND_VALUE_BAR_STUDY 2.10): the grid has levels of world spacing ``world_spacing * 4^k``; the level shown is the one whose spacing in view units (times ``zoom``) lies in [minimum_spacing, maximum_spacing), which must span exactly the factor 4.
+   * - :cpp:class:`GridPattern <gui_forms::GridPattern>`
+     - A world-aligned grid (piece C17; the node canvas's blueprint background): lines ``spacing`` units apart through ``origin``, the point where world (0, 0) lies in the painter's current coordinates, so the lines move with a pan; every ``major_every``-th line counted from the origin (1: every line) is a major line in ``major``, the others are minor lines in ``minor``.
    * - :cpp:class:`GuiFormsThemeBuild <gui_forms::GuiFormsThemeBuild>`
      - The built theme and what building it measured.
    * - :cpp:class:`ImageId <gui_forms::ImageId>`
@@ -182,8 +192,12 @@ Types
      - Insets stores independent logical left, top, right, and bottom extents for margin, padding, damage, and visual outsets.
    * - :cpp:class:`ItemContentPaint <gui_forms::ItemContentPaint>`
      - One item's content to paint (owner decision W-Q6), raised while the control paints, after the item's plate and selection and before its focus cue.
+   * - :cpp:class:`JoinedSegmentsStyle <gui_forms::JoinedSegmentsStyle>`
+     - How a joined row or column is outlined: one outer edge round the whole group with ``radius`` corners, and one shared seam between neighbours, both ``edge_width`` wide.
    * - :cpp:class:`LentImageVariants <gui_forms::LentImageVariants>`
      - The variants lent for one bake, by fill layer; null where none is lent.
+   * - :cpp:class:`MarkerStyle <gui_forms::MarkerStyle>`
+     - A marker drawn centred on each point: ``size`` its full width, ``fill`` its inside (ignored by the stroked shapes), ``edge`` its outline (or its lines, for the stroked shapes) ``edge_width`` wide.
    * - :cpp:class:`MaterialAssemblyContext <gui_forms::MaterialAssemblyContext>`
      - Replaces ``material`` with ``floor`` and the declarations of ``fields`` (the winning declaration of each field, by the field's position, null where none) in place: a part's assembled material (EC1); an ``initial`` declaration keeps the floor's value.
    * - :cpp:class:`MaterialBorder <gui_forms::MaterialBorder>`
@@ -238,6 +252,8 @@ Types
      - Painter is the renderer-neutral command vocabulary for transforms, clips, solids, rounded geometry, gradients, shadows, text, registered images, live surfaces, sampled regions, and bounded patterns; rich operations provide coherent minimal-host fallbacks.
    * - :cpp:class:`PaintGroup <gui_forms::PaintGroup>`
      - A paint group (T2 plan, E7; owner, 2026-10-21: "there are other things that group layer may be needed for"): commands drawn as one image, then composited once.
+   * - :cpp:class:`PaintSegment <gui_forms::PaintSegment>`
+     - One independent segment of stroke_segments (no joins between segments).
    * - :cpp:class:`ParameterValidation <gui_forms::ParameterValidation>`
      - The first defect found and the index of the parameter it concerns.
    * - :cpp:class:`PartCornerRadii <gui_forms::PartCornerRadii>`
@@ -250,6 +266,8 @@ Types
      - A part's running transitions (E7; T2 plan, "How motion is driven").
    * - :cpp:class:`PartPaint <gui_forms::PartPaint>`
      - One part to paint, in the control's local coordinates.
+   * - :cpp:class:`PartProfile <gui_forms::PartProfile>`
+     - A part's profile beside its rectangle (look integration; the T4 rendering reference's tab stack and the owner's Plan Paint tab look), as a theme sets it on the part (ControlPartMetrics) and the control passes it on: - ``taper``: the trailing (right) edge leans in by this many units at the part's top, a file-folder tab's edge, drawn as a line in ``taper_colour`` when it has one; - ``flare``: the bottom corners flare outward by this many units in a concave lip of ``flare_colour``, where a selected tab meets the plane; - ``edge_shadow``: a soft shadow beyond the trailing edge, following its taper, falling off from ``edge_shadow_colour`` to clear over this many units.
    * - :cpp:class:`PartRaster <gui_forms::PartRaster>`
      - One part's pixels as the engine keeps them (T2 plan, PartRaster): premultiplied BGRA8 in device pixels, in PartRasterView's layout, made for one display scale.
    * - :cpp:class:`PartRasterRequest <gui_forms::PartRasterRequest>`
@@ -330,6 +348,8 @@ Types
      - Size is a renderer-neutral logical width and height.
    * - :cpp:class:`SliceAxis <gui_forms::SliceAxis>`
      - One axis of a slice plan.
+   * - :cpp:class:`StrokeStyle <gui_forms::StrokeStyle>`
+     - A stroke's colour, width, joins, caps and dashes, in the painter's current coordinates.
    * - :cpp:class:`SurfaceMaterial <gui_forms::SurfaceMaterial>`
      - SurfaceMaterial is a bounded ordered fill stack plus optional border, bounded shadow stack, and shared corner radius.
    * - :cpp:class:`Theme <gui_forms::Theme>`
@@ -715,6 +735,24 @@ Types
       The record's and the table's raster generations when ``raster`` was drawn; invalidation advances the current ones.
 
    .. cpp:member:: std::uint64_t raster_table_generation
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CheckerPattern final
+
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+
+   An alpha checkerboard (piece C7): square cells ``cell`` units wide, alternating ``first`` and ``second``, with the corner of a ``first`` cell at ``anchor``, so the pattern stays put while the filled rectangle moves.
+
+   .. cpp:member:: double cell
+
+      Default: ``{8.0}``.
+
+   .. cpp:member:: Color first
+
+   .. cpp:member:: Color second
+
+   .. cpp:member:: Point anchor
 
 .. cpp:namespace:: gui_forms
 
@@ -1150,6 +1188,38 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ControlPartMetrics final
+
+   ``#include <gui_forms/theme/types/theme_types.hpp>``
+
+   A part's metrics and shape as a theme sets them (RecipeField::block_size to edge_shadow_colour), each unset where no rule sets it: the control then keeps its own metric and the part its rectangle. Lengths are logical units; a taper, flare or edge shadow of zero draws nothing.
+
+   .. cpp:member:: std::optional<double> block_size
+
+   .. cpp:member:: std::optional<double> minimum_inline_size
+
+   .. cpp:member:: std::optional<double> padding_inline
+
+   .. cpp:member:: std::optional<double> gap
+
+   .. cpp:member:: std::optional<double> margin_block_start
+
+   .. cpp:member:: std::optional<double> margin_block_end
+
+   .. cpp:member:: double taper
+
+   .. cpp:member:: std::optional<Color> taper_colour
+
+   .. cpp:member:: double flare
+
+   .. cpp:member:: std::optional<Color> flare_colour
+
+   .. cpp:member:: double edge_shadow_width
+
+   .. cpp:member:: Color edge_shadow_colour
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ControlRoleRecipes final
 
    ``#include <gui_forms/theme/types/theme_types.hpp>``
@@ -1315,6 +1385,14 @@ Types
    .. cpp:member:: std::optional<ControlTextShadow> text_shadow
 
       The shadow under the recipe's text, if any (E9.6, data only).
+
+   .. cpp:member:: ControlPartMetrics part_metrics
+
+      The part's metrics and shape, where a rule naming the part sets them.
+
+   .. cpp:member:: std::optional<Color> fill_text
+
+      The text's colour where it lies over a fill (``fill-text-color``, the value bar study's section 3.6), if the theme sets one; none, the built-in recipes' value, draws such text in the fill's own selected text colour.
 
 .. cpp:namespace:: gui_forms
 
@@ -1505,6 +1583,38 @@ Types
 
       A streak: a line of ``width`` from ``tail`` to ``head`` with a soft dot at the head (PlaySuite's particle streaks, simplified).
 
+   .. cpp:function:: void stroke_polyline(const EffectPoints& points, const StrokeStyle& style) noexcept
+
+      Version 2. Each batched call's fixed cost covers maximum_effect_batch elements; its pixels are charged on the batch's bounds, held to the area its marks can cover. An open polyline through 2 or more points with ``style``'s joins, caps and dashes (valid_stroke_style).
+
+   .. cpp:function:: void fill_polygon(const EffectPoints& points, Color color, PolygonFillRule rule) noexcept
+
+      A closed polygon through 3 or more points.
+
+   .. cpp:function:: void fill_band(const EffectPoints& upper, const EffectPoints& lower, Color color) noexcept
+
+      The area between two polylines of the same count, 2 or more.
+
+   .. cpp:function:: void fill_rects(const EffectRects& rects, Color color) noexcept
+
+      Each of 1 or more rectangles in one colour.
+
+   .. cpp:function:: void stroke_segments(const EffectSegments& segments, const StrokeStyle& style) noexcept
+
+      Each of 1 or more segments with ``style``'s caps and dashes, no joins.
+
+   .. cpp:function:: void draw_markers(const EffectPoints& centers, const MarkerStyle& style) noexcept
+
+      A marker centred on each of 1 or more points (valid_marker_style).
+
+   .. cpp:function:: void fill_conic_gradient(Rect rect, Point center, double start_degrees, const EffectGradient& gradient) noexcept
+
+      A conic (sweep) gradient over ``rect``: one turn clockwise from ``start_degrees`` about ``center`` (piece C9).
+
+   .. cpp:function:: void fill_checker(Rect rect, const CheckerPattern& pattern) noexcept
+
+      ``rect`` filled with a checkerboard (piece C7).
+
    .. cpp:function:: void save() noexcept
 
       Saves the clip and the offset; refused past maximum_effect_save_depth.
@@ -1593,7 +1703,7 @@ Types
 
    .. cpp:member:: std::uint32_t engine_version
 
-      The engine version that introduced the effect. Default: ``{1U}``.
+      The vocabulary version the effect draws with, 1 to current_effect_vocabulary_version. Default: ``{1U}``.
 
    .. cpp:member:: EffectTimeModel time_model
 
@@ -2496,6 +2606,62 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: GridLevel final
+
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+
+   The level chosen for one zoom: ``level`` is k, ``minor_spacing`` the level's spacing in view units, and ``fade`` the spacing's position across the band, 0 at its minimum and 1 at its maximum (linear in the spacing).
+
+   .. cpp:member:: std::int32_t level
+
+   .. cpp:member:: double minor_spacing
+
+   .. cpp:member:: double fade
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GridLevelBand final
+
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+
+   Seamless deep zoom for the grid (NODE_ENGINE_AND_VALUE_BAR_STUDY 2.10): the grid has levels of world spacing ``world_spacing * 4^k``; the level shown is the one whose spacing in view units (times ``zoom``) lies in [minimum_spacing, maximum_spacing), which must span exactly the factor 4.
+
+   .. cpp:member:: double minimum_spacing
+
+      Default: ``{12.0}``.
+
+   .. cpp:member:: double maximum_spacing
+
+      Default: ``{48.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GridPattern final
+
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+
+   A world-aligned grid (piece C17; the node canvas's blueprint background): lines ``spacing`` units apart through ``origin``, the point where world (0, 0) lies in the painter's current coordinates, so the lines move with a pan; every ``major_every``-th line counted from the origin (1: every line) is a major line in ``major``, the others are minor lines in ``minor``. Lines are ``line_width`` wide, centred on their positions.
+
+   .. cpp:member:: Point origin
+
+   .. cpp:member:: double spacing
+
+      Default: ``{16.0}``.
+
+   .. cpp:member:: std::uint32_t major_every
+
+      Default: ``{4U}``.
+
+   .. cpp:member:: Color minor
+
+   .. cpp:member:: Color major
+
+   .. cpp:member:: double line_width
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: GuiFormsThemeBuild final
 
    ``#include <gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp>``
@@ -2622,6 +2788,26 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: JoinedSegmentsStyle final
+
+   ``#include <gui_forms/types/paint_recipes/paint_recipes.hpp>``
+
+   How a joined row or column is outlined: one outer edge round the whole group with ``radius`` corners, and one shared seam between neighbours, both ``edge_width`` wide.
+
+   .. cpp:member:: double radius
+
+      Default: ``{4.0}``.
+
+   .. cpp:member:: Color edge
+
+   .. cpp:member:: Color seam
+
+   .. cpp:member:: double edge_width
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: LentImageVariants final
 
    ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
@@ -2629,6 +2815,30 @@ Types
    The variants lent for one bake, by fill layer; null where none is lent.
 
    .. cpp:member:: std::array<std::shared_ptr<const PartRaster>, maximum_image_variants> layers
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MarkerStyle final
+
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+
+   A marker drawn centred on each point: ``size`` its full width, ``fill`` its inside (ignored by the stroked shapes), ``edge`` its outline (or its lines, for the stroked shapes) ``edge_width`` wide. A transparent colour or a zero edge width draws nothing of that part.
+
+   .. cpp:member:: MarkerShape shape
+
+      Default: ``{MarkerShape::circle}``.
+
+   .. cpp:member:: double size
+
+      Default: ``{6.0}``.
+
+   .. cpp:member:: Color fill
+
+   .. cpp:member:: Color edge
+
+   .. cpp:member:: double edge_width
+
+      Default: ``{1.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3528,6 +3738,52 @@ Types
 
    .. cpp:function:: virtual void draw_line(Point from, Point to, Color color, double width) = 0
 
+   .. cpp:function:: virtual void stroke_polyline(std::span<const Point> points, const StrokeStyle& style)
+
+      Batched marks (IMGUI_IMPLOT_STUDY P7). Each draws a whole caller-owned span as one command: the painter reads the span during the call only and allocates nothing per element; a recording copies the span once. Invalid styles, and points or rectangles that are not finite where a call says so, draw nothing. The base implementations are a minimal painter's fallbacks built from draw_line, fill_rect and the other primitives (solid strokes, square joins, no anti-aliasing of their own); the recording and Skia painters draw them exactly. An open polyline through ``points``, joined and capped by ``style``. A point whose coordinate is NaN breaks the line (a gap): each run of finite points between breaks is stroked on its own, and a run of one point draws nothing. An infinite coordinate is refused (the call draws nothing).
+
+   .. cpp:function:: virtual void fill_polygon(std::span<const Point> points, Color color, PolygonFillRule rule)
+
+      A closed polygon through ``points`` (at least 3, all finite), filled by ``rule``.
+
+   .. cpp:function:: virtual void fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color)
+
+      The area between two polylines sampled at the same positions (a plot's shaded band, area or stacked area): ``upper`` and ``lower`` hold the same count, at least 2, all finite; the band's outline runs along ``upper`` and back along ``lower``, filled nonzero. A constant baseline is a ``lower`` of equal points.
+
+   .. cpp:function:: virtual void fill_rects(std::span<const Rect> rects, Color color)
+
+      Each rectangle filled in one colour (bars, histogram bins). Empty or non-finite rectangles are skipped.
+
+   .. cpp:function:: virtual void fill_rects_each(std::span<const Rect> rects, std::span<const Color> colors)
+
+      Each rectangle filled in its own colour: ``colors`` holds one per rectangle (heatmap cells drawn as rectangles). Mismatched counts draw nothing.
+
+   .. cpp:function:: virtual void stroke_segments(std::span<const PaintSegment> segments, const StrokeStyle& style)
+
+      Independent segments with ``style``'s caps and dashes and no joins (error bars, stems, ticks, grid lines). Segments with a non-finite end are skipped.
+
+   .. cpp:function:: virtual void draw_markers(std::span<const Point> centers, const MarkerStyle& style)
+
+      A marker centred on each point (scatter, line markers, decorators). Points with a non-finite coordinate are skipped.
+
+   .. cpp:function:: virtual void fill_conic_gradient(Rect rect, Point center, double start_degrees, std::span<const GradientStop> stops)
+
+      A conic (sweep) gradient over ``rect`` (piece C9: a hue wheel): the colour at a point is the stops' colour at the angle about ``center``, measured clockwise (y down) from ``start_degrees`` (0 along +x), one full turn from offset 0 to offset 1. Stops as valid_gradient_stops says; the base implementation fills 90 wedges in the stops' colours.
+
+   .. cpp:function:: virtual void fill_checker(Rect rect, const CheckerPattern& pattern)
+
+      ``rect`` filled with a checkerboard (piece C7). A cell narrower than one unit, or a rectangle holding more than maximum_checker_cells cells, fills the rectangle with the average of the two colours instead.
+
+   .. cpp:function:: virtual void fill_grid_pattern(Rect rect, const GridPattern& pattern)
+
+      The grid lines of ``pattern`` that cross ``rect``, clipped to it (piece C17). Refused patterns (valid_grid_pattern) draw nothing.
+
+   .. cpp:function:: virtual void fill_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color)
+
+      A rounded rectangle with each corner rounded by its own radius (piece C1; joined segments round only a row's outer ends). The base implementation fills under clip_rounded_rect_corners; the stroke's draws stroke_rounded_rect with the largest radius.
+
+   .. cpp:function:: virtual void stroke_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color, double width)
+
    .. cpp:function:: virtual void draw_text_utf8(Point origin, std::string_view text, FontSpec font, Color color) = 0
 
    .. cpp:function:: virtual void draw_retained_text_utf8(Point origin, std::string_view text, FontSpec font, Color color, const std::shared_ptr<RetainedDrawCache>& cache)
@@ -3597,6 +3853,18 @@ Types
    .. cpp:member:: bool isolated
 
       Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PaintSegment final
+
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+
+   One independent segment of stroke_segments (no joins between segments).
+
+   .. cpp:member:: Point from
+
+   .. cpp:member:: Point to
 
 .. cpp:namespace:: gui_forms
 
@@ -3744,6 +4012,10 @@ Types
 
       A pointed face (design language §8.5; owner decision 2026-11-02): the surface's trailing end is a nose this many units long, its tip at the middle of the right edge, as a raised breadcrumb segment's. Only surface roles read it; none is a rectangle. Hit testing uses the same shape (pointed_face_contains).
 
+   .. cpp:member:: std::optional<PartProfile> profile
+
+      The part's profile beside its rectangle (PartProfile), or none. Only surface roles read it; a pointed face ignores it.
+
    .. cpp:member:: PartFrame frame
 
       Whether the part draws its frame. A surface part with frame none is its material's ground: the material's border and per-edge borders are left out, and its fills, keylines, shadows and shape are kept. It is the field of a borderless TextBox (Windows Forms BorderStyle.None), whose composite (a ComboBox, an up-down, the grid's cell editor) draws the frame itself. A primitive that draws no theme material has no ground apart from its frame, so a frameless part it would draw is drawn by the built-in recipe instead. A pointed face with frame none draws no nose edges. Roles that are not surfaces ignore it. Default: ``{PartFrame::drawn}``.
@@ -3777,6 +4049,26 @@ Types
    .. cpp:member:: std::optional<Size> measured_text
 
       The text's measurement in ``font``, when the caller has already made it (paint_text_part_at does), so the text is not measured again; none otherwise. A cache, not vocabulary: it changes nothing drawn, and a caller that sets it must have measured exactly ``text`` in ``font``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PartProfile final
+
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+
+   A part's profile beside its rectangle (look integration; the T4 rendering reference's tab stack and the owner's Plan Paint tab look), as a theme sets it on the part (ControlPartMetrics) and the control passes it on: - ``taper``: the trailing (right) edge leans in by this many units at the part's top, a file-folder tab's edge, drawn as a line in ``taper_colour`` when it has one; - ``flare``: the bottom corners flare outward by this many units in a concave lip of ``flare_colour``, where a selected tab meets the plane; - ``edge_shadow``: a soft shadow beyond the trailing edge, following its taper, falling off from ``edge_shadow_colour`` to clear over this many units. A tapered part is cut to its shape, its outer shadows with it; the edge shadow then draws its cast. Each is bounded: the taper by the part's width, the flare by its height, all by maximum_part_shape.
+
+   .. cpp:member:: double taper
+
+   .. cpp:member:: std::optional<Color> taper_colour
+
+   .. cpp:member:: double flare
+
+   .. cpp:member:: Color flare_colour
+
+   .. cpp:member:: double edge_shadow
+
+   .. cpp:member:: Color edge_shadow_colour
 
 .. cpp:namespace:: gui_forms
 
@@ -4340,7 +4632,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph and default_outline_colour: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``; font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``.
+   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph, default_outline_colour and fill_text: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``; font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``.
 
    .. cpp:member:: RecipeField field
 
@@ -4719,6 +5011,38 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: StrokeStyle final
+
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+
+   A stroke's colour, width, joins, caps and dashes, in the painter's current coordinates. ``dash_count`` of the ``dashes`` are live, alternately on and off lengths; 0 (or an odd count, which is refused as solid) draws solid. ``dash_phase`` shifts the pattern's start along the stroke (an effect moving it on the motion clock animates the dashes, piece C13).
+
+   .. cpp:member:: Color color
+
+   .. cpp:member:: double width
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: StrokeJoin join
+
+      Default: ``{StrokeJoin::miter}``.
+
+   .. cpp:member:: double miter_limit
+
+      Default: ``{4.0}``.
+
+   .. cpp:member:: StrokeCap cap
+
+      Default: ``{StrokeCap::butt}``.
+
+   .. cpp:member:: std::array<double, maximum_dash_intervals> dashes
+
+   .. cpp:member:: std::size_t dash_count
+
+   .. cpp:member:: double dash_phase
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: SurfaceMaterial final
 
    ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
@@ -4867,6 +5191,10 @@ Types
    .. cpp:function:: ResolvedFont resolve_font(const Control& control, FontSpec own) const noexcept
 
       ``control``'s primary text font (T4 fonts): ``own``, the font it holds, with the font fields (RecipeField::font_family to letter_spacing) of the theme's rules matching it at rest in place: no part, the region role, and the states of a default ControlVisualContext. Forced high contrast keeps them: they are not colours. An em size is of ``own``'s size, an em spacing of the resolved size. Where the fields make no font valid_font_spec admits, or a size outside minimum_rule_font_size to maximum_rule_font_size, it is ``own`` with no field themed.
+
+   .. cpp:function:: ResolvedFont resolve_font(const Control& control, FontSpec own, std::string_view part, AnatomyStateSet states) const noexcept
+
+      A named part's font in ``states`` (a tab label's, larger while selected): the control's own font with the font fields of the rules naming the part (and the control's own) in place.
 
    .. cpp:function:: bool declares_clarity(const Control& control) const noexcept
 
@@ -5868,6 +6196,8 @@ Enumerations
 
    .. cpp:enumerator:: backdrop_out_of_range
 
+   .. cpp:enumerator:: vocabulary_version_unknown
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: EffectSelectionOutcome
@@ -6028,6 +6358,20 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: FillDirection
+
+   ``#include <gui_forms/types/paint_recipes/paint_recipes.hpp>``
+
+   .. cpp:enumerator:: left_to_right
+
+   .. cpp:enumerator:: right_to_left
+
+   .. cpp:enumerator:: bottom_to_top
+
+   .. cpp:enumerator:: top_to_bottom
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: FontField
 
    ``#include <gui_forms/theme/theme/theme.hpp>``
@@ -6111,6 +6455,56 @@ Enumerations
    .. cpp:enumerator:: normal
 
    .. cpp:enumerator:: owner_draw
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: JoinAxis
+
+   ``#include <gui_forms/types/paint_recipes/paint_recipes.hpp>``
+
+   .. cpp:enumerator:: row
+
+   .. cpp:enumerator:: column
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: JoinedSegmentPosition
+
+   ``#include <gui_forms/types/paint_recipes/paint_recipes.hpp>``
+
+   .. cpp:enumerator:: only
+
+   .. cpp:enumerator:: first
+
+   .. cpp:enumerator:: middle
+
+   .. cpp:enumerator:: last
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MarkerShape
+
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+
+   .. cpp:enumerator:: circle
+
+   .. cpp:enumerator:: square
+
+   .. cpp:enumerator:: diamond
+
+   .. cpp:enumerator:: triangle_up
+
+   .. cpp:enumerator:: triangle_down
+
+   .. cpp:enumerator:: triangle_left
+
+   .. cpp:enumerator:: triangle_right
+
+   .. cpp:enumerator:: cross
+
+   .. cpp:enumerator:: plus
+
+   .. cpp:enumerator:: asterisk
 
 .. cpp:namespace:: gui_forms
 
@@ -6616,6 +7010,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: PolygonFillRule
+
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+
+   .. cpp:enumerator:: nonzero
+
+   .. cpp:enumerator:: even_odd
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: PreparationOutcome
 
    ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
@@ -6761,6 +7165,32 @@ Enumerations
    .. cpp:enumerator:: default_outline_width
 
    .. cpp:enumerator:: default_outline_colour
+
+   .. cpp:enumerator:: fill_text
+
+   .. cpp:enumerator:: block_size
+
+   .. cpp:enumerator:: minimum_inline_size
+
+   .. cpp:enumerator:: padding_inline
+
+   .. cpp:enumerator:: gap
+
+   .. cpp:enumerator:: margin_block_start
+
+   .. cpp:enumerator:: margin_block_end
+
+   .. cpp:enumerator:: taper
+
+   .. cpp:enumerator:: taper_colour
+
+   .. cpp:enumerator:: flare
+
+   .. cpp:enumerator:: flare_colour
+
+   .. cpp:enumerator:: edge_shadow_width
+
+   .. cpp:enumerator:: edge_shadow_colour
 
    .. cpp:enumerator:: count
 
@@ -6921,6 +7351,30 @@ Enumerations
    .. cpp:enumerator:: fractional
 
    .. cpp:enumerator:: too_small
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: StrokeCap
+
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+
+   .. cpp:enumerator:: butt
+
+   .. cpp:enumerator:: round
+
+   .. cpp:enumerator:: square
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: StrokeJoin
+
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+
+   .. cpp:enumerator:: miter
+
+   .. cpp:enumerator:: round
+
+   .. cpp:enumerator:: bevel
 
 .. cpp:namespace:: gui_forms
 
@@ -7153,6 +7607,14 @@ Functions, constants and aliases
 
    The largest state any effect may declare, in bytes. Value: ``16384U``.
 
+.. cpp:var:: constexpr std::uint32_t current_effect_vocabulary_version
+
+   The drawing vocabulary's version, which an effect names in EffectDeclaration::engine_version: 1 is the design note's first list (fills, strokes, gradients, soft dots and streaks); 2 adds the batched marks (polylines with joins, caps and dashes on a phase, polygons, bands, rectangle batches, segments, markers), the conic gradient and the checkerboard. A registry refuses an effect that names a later version. Value: ``2U``.
+
+.. cpp:var:: constexpr std::size_t maximum_effect_batch
+
+   The most elements one batched vocabulary call draws (EffectPoints, EffectRects, EffectSegments); each call's declared fixed cost covers this many. Value: ``32U``.
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/engine/effect_canvas/effect_canvas.hpp>``
@@ -7160,6 +7622,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_effect_save_depth
 
    The deepest the canvas's save stack goes; a deeper save is refused. Value: ``4U``.
+
+.. cpp:type:: EffectPoints = EffectArray<Point, maximum_effect_batch>
+
+   The arrays a batched call draws: effect state, so fixed capacity.
+
+.. cpp:type:: EffectRects = EffectArray<Rect, maximum_effect_batch>
+
+.. cpp:type:: EffectSegments = EffectArray<PaintSegment, maximum_effect_batch>
 
 .. cpp:namespace:: gui_forms
 
@@ -7759,6 +8229,18 @@ Functions, constants and aliases
 
    Value: ``16.0``.
 
+.. cpp:var:: constexpr double maximum_part_metric
+
+   What a part metric admits (RecipeField::block_size to edge_shadow_width): a size at most 512 logical units, a margin within +-64, a taper, flare or edge shadow at most 64. Value: ``512.0``.
+
+.. cpp:var:: constexpr double maximum_part_margin
+
+   Value: ``64.0``.
+
+.. cpp:var:: constexpr double maximum_part_shape
+
+   Value: ``64.0``.
+
 .. cpp:var:: constexpr double minimum_rule_font_size
 
    What a font field admits (T4 fonts): a size of 4 to 96 logical units once its em part is resolved, a weight of 100 to 900, and a letter spacing valid_font_spec admits at the size. Value: ``4.0``.
@@ -8025,7 +8507,7 @@ Functions, constants and aliases
 
    Value: ``static_cast<std::size_t>(PartMark::count)``.
 
-.. cpp:var:: constexpr std::array<std::string_view, 7> part_value_names
+.. cpp:var:: constexpr std::array<std::string_view, 8> part_value_names
 
    The values admitted to the vocabulary beside states and marks (design language 12.7), as the schema lists them: they have no enum, so this is the order they were admitted in.
 
@@ -8153,6 +8635,90 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+
+.. cpp:function:: bool valid_stroke_style(const StrokeStyle& style) noexcept
+
+   Whether ``style`` can be drawn: a finite positive width, a finite miter limit of at least 1, at most maximum_dash_intervals dashes, an even dash count whose entries are finite, non-negative and not all zero, and a finite phase.
+
+.. cpp:function:: bool valid_marker_style(const MarkerStyle& style) noexcept
+
+.. cpp:function:: std::size_t marker_outline(MarkerShape shape, Point center, double size, std::array<Point, maximum_marker_vertices>& vertices) noexcept
+
+   Fills ``vertices`` with the outline of a filled, non-circular marker of ``size`` centred on ``center``, clockwise in y-down coordinates, and returns how many it wrote; 0 for the circle and the stroked shapes, or when ``size`` is not finite and positive.
+
+.. cpp:function:: std::size_t marker_lines(MarkerShape shape, Point center, double size, std::array<PaintSegment, maximum_marker_lines>& lines) noexcept
+
+   Fills ``lines`` with the strokes of a stroked marker (cross, plus, asterisk) and returns how many it wrote; 0 for the filled shapes.
+
+.. cpp:function:: bool valid_grid_pattern(const GridPattern& pattern) noexcept
+
+.. cpp:function:: GridLevel select_grid_level(double world_spacing, double zoom, GridLevelBand band) noexcept
+
+   Chooses the level for ``zoom`` (view units per world unit). ``world_spacing`` and ``zoom`` must be finite and positive and the band's maximum exactly 4 times its minimum; otherwise, or where no level within 64 steps of 0 fits, the result is level 0 at ``world_spacing * zoom`` with fade 1. Exact: a level's spacing is ``world_spacing * zoom`` times a power of 4.
+
+.. cpp:function:: GridPattern grid_pattern_at_level(const GridLevel& level, Point origin, Color minor, Color major, double line_width) noexcept
+
+   The pattern for a chosen level, majors every 4 minor lines, so a level's major lines are the next coarser level's minor lines. Minor lines fade in over the first half of the band (alpha scaled by 2 × fade) and turn toward ``major`` over the second (colour interpolated by 2 × fade − 1), so at fade 1 they look as the majors they become at the next level: nothing pops as the zoom crosses a level.
+
+.. cpp:var:: constexpr std::size_t maximum_dash_intervals
+
+   The most on/off intervals a stroke's dash pattern holds. Value: ``8U``.
+
+.. cpp:var:: constexpr std::size_t maximum_marker_vertices
+
+   The most vertices a filled marker's outline has (the diamond's and the square's four, the triangles' three). Value: ``4U``.
+
+.. cpp:var:: constexpr std::size_t maximum_marker_lines
+
+   The most lines a stroked marker draws (the asterisk's three). Value: ``3U``.
+
+.. cpp:var:: constexpr double minimum_grid_spacing
+
+   The fewest units between two grid lines a painter draws: a finer grid is refused (draws nothing), which bounds a fill to its area divided by this squared. Value: ``2.0``.
+
+.. cpp:var:: constexpr double grid_level_ratio
+
+   Value: ``4.0``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/types/paint_recipes/paint_recipes.hpp>``
+
+.. cpp:function:: Rect proportion_rect(Rect track, double proportion, FillDirection direction) noexcept
+
+   The part of ``track`` a fill of ``proportion`` covers, growing from the edge ``direction`` names. The proportion is clamped to [0, 1]; NaN covers nothing (an empty rectangle at that edge).
+
+.. cpp:function:: void paint_masked_fill(Painter& painter, Rect track, PaintCornerRadii track_radii, double proportion, FillDirection direction, Color fill)
+
+   Piece C3: fills proportion_rect(track, proportion, direction) with ``fill``, clipped to the track's rounded shape (``track_radii``), so a short fill keeps the track's rounded end instead of poking out of it. Drawn as save, clip_rounded_rect_corners, fill_rect and restore; an empty portion draws nothing.
+
+.. cpp:function:: double wcag_contrast_ratio(Color first, Color second) noexcept
+
+   The WCAG 2 contrast ratio of two colours' sRGB channels, from 1 (equal) to 21 (black on white). Alpha is ignored: composite a translucent colour first.
+
+.. cpp:function:: Color contrasting_text_color(Color background, Color light, Color dark) noexcept
+
+   The contrast rule for text over a fill: of ``light`` and ``dark``, the one with the greater contrast ratio against ``background`` (dark on a tie).
+
+.. cpp:function:: void paint_text_over_fill(Painter& painter, Rect track, Rect fill, Point origin, std::string_view text, FontSpec font, Color text_color, Color on_fill_color)
+
+   Piece C4: one run of text drawn twice under complementary clips, in ``on_fill_color`` where it lies over ``fill`` and in ``text_color`` over the rest of ``track`` (a value bar's or progress bar's centred label). The fill part is ``fill`` within ``track``; the rest is at most four bands of ``track`` around it, which share the fill part's edges exactly, so every pixel of the run is drawn once. ``origin`` is the baseline start, as draw_text_utf8 takes it; text outside ``track`` is clipped. Usually ``on_fill_color = contrasting_text_color(fill colour, light, dark)``.
+
+.. cpp:function:: JoinedSegmentPosition joined_segment_position(std::size_t index, std::size_t count) noexcept
+
+   The position of segment ``index`` of ``count`` (an index past the end is ``last``; a count of 0 or 1 is ``only``).
+
+.. cpp:function:: PaintCornerRadii joined_segment_radii(JoinedSegmentPosition position, JoinAxis axis, double radius) noexcept
+
+   The corner radii a segment at ``position`` takes: ``radius`` on its outer corners and 0 on the corners it shares with a neighbour.
+
+.. cpp:function:: void paint_joined_segments(Painter& painter, std::span<const Rect> segments, std::span<const Color> faces, JoinAxis axis, const JoinedSegmentsStyle& style)
+
+   Draws a joined row or column: each segment's face in its colour (``faces`` holds one per segment) with joined_segment_radii, then one seam centred in the gap between each pair of neighbours, then the outer edge round the segments' union. ``segments`` lie in order along ``axis``; a count mismatch, no segments, or a non-finite or negative radius or width draws nothing.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/types/paint_types/paint_types.hpp>``
 
 .. cpp:function:: bool valid_gradient_stops(std::span<const GradientStop> stops) noexcept
@@ -8176,3 +8742,7 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_paint_group_depth
 
    The deepest groups nest (T2, coordinator decision Q2/Q3). A group begun deeper is refused by name: it draws without isolation (as clip_rect(bounds) under a save), and the refusal is counted. Value: ``4``.
+
+.. cpp:var:: constexpr std::size_t maximum_checker_cells
+
+   The most cells Painter::fill_checker draws one by one. Value: ``65536U``.

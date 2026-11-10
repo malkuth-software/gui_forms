@@ -70,6 +70,26 @@ enum class PartRole : std::uint8_t {
     plot,
     graticule,
     trace,
+    // The plot roles (IMGUI_IMPLOT_STUDY B.4): an axis line, its tick marks
+    // and tick labels, the major and minor grid, the legend frame and its
+    // entries, a series marker, the crosshair, an annotation label, the
+    // colour scale bar and a series' line or swatch. Before a theme binds
+    // them the built-in recipe draws the lines (axis, tick, grid_major,
+    // grid_minor, crosshair) as a divider, the texts (tick_label,
+    // legend_entry, annotation) as a label, the legend as a face, the colour
+    // scale as a well, and marker and series as an indicator.
+    axis,
+    tick,
+    tick_label,
+    grid_major,
+    grid_minor,
+    legend,
+    legend_entry,
+    marker,
+    crosshair,
+    annotation,
+    color_scale,
+    series,
     count,
 };
 

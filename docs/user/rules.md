@@ -78,6 +78,7 @@ fires, and its actions run in the order listed.
 | `context_request` | `context_menu_requested`; an action may set its `handled` |
 | `invocation` | `command_executed` |
 | `value` | `value_changed`; the new value |
+| `drag` | `interaction` on a typed drag interaction (`drag_started`, `drag_target_changed`, `drag_dropped`, `drag_ended`): the `DragInteraction` record, with the end kind |
 
 The firing also carries `control` (the control the trigger names), `state`
 (the window's input state when the trigger occurred) and `window`.
@@ -120,6 +121,8 @@ follow WinForms' order and use the host's click count (see
 | `window_active()` | the window is the active window |
 | `is_true(flag)` | a `Value<bool>` holds true |
 | `equals(number, n)` | a `Value<int>` holds `n` |
+| `dragging(c)` | a drag is running on the control or one of its descendants |
+| `drop_candidate(c)` | the control holds the running drag's selected drop candidate |
 
 Every condition has a `not_` form, such as `not_focused(c)` or
 `not_window_active()`. Negation is spelled only through these forms. To say
@@ -134,6 +137,21 @@ Every condition has a `not_` form, such as `not_focused(c)` or
 - `builtin::set(value, x)` writes a `Value<T>`.
 - `builtin::toggle(flag)` writes the opposite of a `Value<bool>`.
 - `builtin::focus(c)` gives a control the keyboard focus.
+- `builtin::begin_keyboard_drag(c)` starts the control's keyboard move mode,
+  for a control that can be dragged, so an application can bind its own
+  move key.
+
+`dragging`, `drop_candidate` and `begin_keyboard_drag` are C++ only for
+now; the C ABI does not offer them yet (their numbers are reserved).
+
+A control the drag engine drives (Splitter, SplitContainer) raises typed
+drag interactions: `drag_started` when the drag is planned,
+`drag_target_changed` when the selected drop candidate changes,
+`drag_dropped` after a committing end and `drag_ended` after every end,
+each with a `DragInteraction` (input mode, candidate or value, pointer and
+end kind). A rule reaches them as `interaction(c, (*c).drag_ended())`, and
+its program action reads the record through `firing.drag`. The C ABI sees
+them by their schema names.
 
 The built-in actions let simple rules work without any program code.
 

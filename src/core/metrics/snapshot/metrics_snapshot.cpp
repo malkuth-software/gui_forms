@@ -131,6 +131,7 @@ std::string MetricsSnapshot::to_json() const {
            << "\"engine_primitive_refusals\":" << engine_primitive_refusals << ','
            << "\"engine_material_assemblies\":" << engine_material_assemblies << ','
            << "\"paint_group_refusals\":" << paint_group_refusals << ','
+           << "\"bundled_font_lookups_without_source\":" << bundled_font_lookups_without_source << ','
            << "\"renderer_name\":\"" << escaped_json(renderer_name) << "\","
            << "\"cpu_only\":" << (cpu_only ? "true" : "false") << ','
            << "\"backplane_replay\":" << (backplane_replay ? "true" : "false")

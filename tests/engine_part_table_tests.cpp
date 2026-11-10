@@ -421,6 +421,48 @@ void test_instrument_roles_draw_as_their_stand_ins() {
             "a theme may rule a graticule as a divider");
 }
 
+void test_plot_roles_draw_as_their_stand_ins() {
+    const std::array<InstrumentStandIn, 12> pairs{
+        InstrumentStandIn{PartRole::axis, PartRole::divider},
+        InstrumentStandIn{PartRole::tick, PartRole::divider},
+        InstrumentStandIn{PartRole::tick_label, PartRole::label},
+        InstrumentStandIn{PartRole::grid_major, PartRole::divider},
+        InstrumentStandIn{PartRole::grid_minor, PartRole::divider},
+        InstrumentStandIn{PartRole::legend, PartRole::face},
+        InstrumentStandIn{PartRole::legend_entry, PartRole::label},
+        InstrumentStandIn{PartRole::marker, PartRole::indicator},
+        InstrumentStandIn{PartRole::crosshair, PartRole::divider},
+        InstrumentStandIn{PartRole::annotation, PartRole::label},
+        InstrumentStandIn{PartRole::color_scale, PartRole::well},
+        InstrumentStandIn{PartRole::series, PartRole::indicator},
+    };
+    require(part_role_from_name("grid_major") == std::optional<PartRole>{PartRole::grid_major} &&
+                part_role_name(PartRole::color_scale) == "color_scale",
+            "the plot roles are registered");
+    const std::shared_ptr<Control> root = make_control<Control>(StableId("plot"));
+    Window window(root, Size{200.0, 120.0});
+    for (const InstrumentStandIn& pair : pairs) {
+        PartPaint part{};
+        part.family = ControlVisualRole::editor;
+        part.bounds = {4.0, 6.0, 120.0, 40.0};
+        part.text = "1.5";
+        const std::string drawn = inked(*root, part, pair.role);
+        require(!drawn.empty(), "a plot role draws with the built-in recipe");
+        require(drawn == inked(*root, part, pair.stand_in), "a plot role draws as its stand-in");
+        part.states.insert(AnatomyState::disabled);
+        require(inked(*root, part, pair.role) == inked(*root, part, pair.stand_in), "and so when disabled");
+        part.states = {};
+        part.authored_foreground = Color{200, 30, 40, 255};
+        part.authored_background = Color{10, 20, 30, 255};
+        require(inked(*root, part, pair.role) == inked(*root, part, pair.stand_in), "and with authored colours");
+    }
+    const ThemeEngine& engine = window.theme().engine();
+    require(primitive_paints(engine, "etched_divider", PartRole::axis) &&
+                primitive_paints(engine, "etched_divider", PartRole::grid_minor) &&
+                primitive_paints(engine, "etched_divider", PartRole::crosshair),
+            "a theme may rule a plot's lines as a divider");
+}
+
 // -- bounded item records -------------------------------------------------------
 
 void test_item_records_are_evicted_least_recently_painted_first() {
@@ -538,6 +580,7 @@ int main() {
     test_windows_share_the_application_engine();
     test_image_role_draws_as_given();
     test_instrument_roles_draw_as_their_stand_ins();
+    test_plot_roles_draw_as_their_stand_ins();
     test_item_records_are_evicted_least_recently_painted_first();
     test_scrolling_a_virtualized_control_stays_within_the_cap();
     std::cout << "engine part table tests passed\n";

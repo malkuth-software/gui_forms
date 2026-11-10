@@ -1,8 +1,11 @@
 #include "bundled_font_set.hpp"
 
 #include <array>
+#include <atomic>
+#include <cstdio>
 #include <fstream>
 #include <ios>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <system_error>
@@ -44,6 +47,39 @@ struct SharedFontSet final {
     std::weak_ptr<BundledFontSet> set{};
 };
 SharedFontSet shared_font_set{};
+
+// The process's font lookups (bundled_font_diagnostics). The refusal text is guarded by
+// font_refusal_mutex, as a host may read it from another thread.
+std::atomic<std::uint64_t> font_lookups{0U};
+std::atomic<std::uint64_t> font_lookups_without_source{0U};
+std::atomic<std::uint8_t> last_font_source{static_cast<std::uint8_t>(BundledFontSource::none)};
+std::mutex font_refusal_mutex;
+std::string font_refusal{};
+
+// Appends `directory` to `text` as UTF-8.
+void append_directory(std::string& text, const std::filesystem::path& directory) {
+    const std::u8string spelled = directory.u8string();
+    text.append(reinterpret_cast<const char*>(spelled.data()), spelled.size());
+}
+
+// The refusal for a lookup over `candidates` that found nothing.
+std::string refusal_text(std::span<const BundledFontCandidate> candidates) {
+    std::string text =
+        "GUI.Forms: no bundled font directory holds the required faces, so windows draw no text; tried";
+    std::size_t tried{};
+    for (const BundledFontCandidate& candidate : candidates) {
+        if (candidate.directory.empty()) continue;
+        text.append(tried == 0U ? " " : ", ");
+        text.append(bundled_font_source_name(candidate.source));
+        text.append(" (");
+        append_directory(text, candidate.directory);
+        text.append(")");
+        ++tried;
+    }
+    if (tried == 0U) text.append(" no directory (the host could not find its own location)");
+    text.append(". Set GUI_FORMS_FONT_DIR, or place the fonts folder beside the GUI.Forms library.");
+    return text;
+}
 
 // Pages from `reserve` that have not been handed to a SealedFontFace yet; released on every
 // exit that does not hand them over.
@@ -105,6 +141,40 @@ std::shared_ptr<BundledFontSet> shared_bundled_font_set(const std::filesystem::p
     shared_font_set.directory = directory;
     shared_font_set.set = set;
     return set;
+}
+
+bool directory_holds_required_faces(const std::filesystem::path& directory) {
+    if (directory.empty()) return false;
+    for (const BundledFaceUse& use : face_uses) {
+        if (!use.required) continue;
+        std::error_code error;
+        const bool present = std::filesystem::is_regular_file(directory / use.file_name, error);
+        if (!present || error) return false;
+    }
+    return true;
+}
+
+BundledFontLocation locate_bundled_fonts(std::span<const BundledFontCandidate> candidates) {
+    BundledFontLocation location{};
+    for (const BundledFontCandidate& candidate : candidates) {
+        if (!directory_holds_required_faces(candidate.directory)) continue;
+        location.source = candidate.source;
+        location.directory = candidate.directory;
+        break;
+    }
+    font_lookups.fetch_add(1U, std::memory_order_relaxed);
+    last_font_source.store(static_cast<std::uint8_t>(location.source), std::memory_order_relaxed);
+    if (location.source != BundledFontSource::none) {
+        const std::lock_guard<std::mutex> lock(font_refusal_mutex);
+        font_refusal.clear();
+        return location;
+    }
+    const std::string refusal = refusal_text(candidates);
+    const std::uint64_t before = font_lookups_without_source.fetch_add(1U, std::memory_order_relaxed);
+    if (before == 0U) std::fprintf(stderr, "%s\n", refusal.c_str());
+    const std::lock_guard<std::mutex> lock(font_refusal_mutex);
+    font_refusal = refusal;
+    return location;
 }
 
 SealedFontFace::SealedFontFace(const SealedPageFunctions& pages, std::byte* storage,
@@ -243,3 +313,33 @@ FontFaceLoad BundledFontSet::load(std::size_t index) const {
 }
 
 } // namespace gui_forms::detail
+
+namespace gui_forms {
+
+std::string_view bundled_font_source_name(BundledFontSource source) noexcept {
+    switch (source) {
+    case BundledFontSource::none: return "none";
+    case BundledFontSource::environment: return "environment";
+    case BundledFontSource::executable: return "executable";
+    case BundledFontSource::library_module: return "library_module";
+    case BundledFontSource::install_share: return "install_share";
+    case BundledFontSource::application_bundle: return "application_bundle";
+    }
+    return "none";
+}
+
+BundledFontDiagnostics bundled_font_diagnostics() noexcept {
+    BundledFontDiagnostics result{};
+    result.lookups = detail::font_lookups.load(std::memory_order_relaxed);
+    result.lookups_without_source = detail::font_lookups_without_source.load(std::memory_order_relaxed);
+    result.last_source = static_cast<BundledFontSource>(detail::last_font_source.load(std::memory_order_relaxed));
+    return result;
+}
+
+std::string bundled_font_refusal() {
+    const std::lock_guard<std::mutex> lock(detail::font_refusal_mutex);
+    std::string copy = detail::font_refusal;
+    return copy;
+}
+
+} // namespace gui_forms

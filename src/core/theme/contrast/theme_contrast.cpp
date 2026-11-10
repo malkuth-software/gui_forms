@@ -432,6 +432,30 @@ void measure_theme_contrast(const Theme& theme, std::vector<ContrastRow>& rows) 
     }
 }
 
+FillTextContrast measure_fill_text_contrast(const Theme& theme, ControlVisualContext presentation,
+                                            ControlVisualRole family, Color text, const SurfaceMaterial& track,
+                                            Color over_fill, const SurfaceMaterial& fill) {
+    ContrastRow key{};
+    key.family = family;
+    key.state = presentation.surface;
+    key.selected = presentation.selected;
+    key.high_contrast = presentation.high_contrast;
+    key.dark = presentation.dark;
+    const double floor = presentation.high_contrast ? high_contrast_text_minimum : text_minimum;
+    FillTextContrast result{};
+    result.over_track = unmeasured_row(key, ContrastPair::text, floor);
+    result.over_fill = unmeasured_row(key, ContrastPair::fill_text, floor);
+    FaceSamples surround{};
+    if (!sample_surround(theme, presentation.high_contrast, presentation.dark, surround)) return result;
+    FaceSamples track_face{};
+    if (!sample_material(track, surround, track_face)) return result;
+    result.over_track = measured_row(key, ContrastPair::text, worst_over(text, track_face), floor);
+    FaceSamples fill_face{};
+    if (!sample_material(fill, track_face, fill_face)) return result;
+    result.over_fill = measured_row(key, ContrastPair::fill_text, worst_over(over_fill, fill_face), floor);
+    return result;
+}
+
 ContrastCounts count_contrast_verdicts(std::span<const ContrastRow> rows) noexcept {
     ContrastCounts counts{};
     for (const ContrastRow& row : rows) {
@@ -456,6 +480,7 @@ std::string_view contrast_pair_name(ContrastPair pair) noexcept {
     case ContrastPair::boundary: return "boundary";
     case ContrastPair::focus_inner: return "focus_inner";
     case ContrastPair::focus_outer: return "focus_outer";
+    case ContrastPair::fill_text: return "fill_text";
     }
     return "unknown";
 }

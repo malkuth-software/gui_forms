@@ -9,12 +9,18 @@
 #include "gui_forms/host/compositor/window_backdrop.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 
+#include <cstdint>
+#include <optional>
+
 namespace gui_forms::host::detail {
 
 // The window server always composites. `transparent` and both materials
 // are supported at the macOS 14 deployment target; reduced transparency is
 // the accessibility display option. Owner decision T5-Q7: "increase
 // contrast" never sets `high_contrast`, so it stays false here.
+// `dark_scheme` is the application's effective appearance matched against
+// Dark Aqua, and `system_colours` the control accent and selected-text
+// background colours in sRGB. Main thread only (NSApp, dynamic colours).
 [[nodiscard]] CompositorState read_macos_compositor_state(CompositorGeneration generation);
 
 // The view a window's raster view is shown in. Not declared non-opaque:

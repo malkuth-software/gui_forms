@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/window/toasts/toasts.hpp"
 #include "gui_forms/window/chrome/window_capabilities.hpp"
@@ -190,6 +191,11 @@ public:
     void hide_popup_window(std::size_t slot) noexcept;
     [[nodiscard]] Window* popup_window_model(std::size_t slot) const noexcept;
     [[nodiscard]] Event<std::size_t>& popup_window_closed();
+    // Why the host closed this window (the accepted HostClosedEvent's
+    // reason: the user, the program, the session ending, a quit), once it
+    // has; empty until then. Readable from the window's closed callback
+    // (ApplicationWindowOptions::closed). Set only by HostSession.
+    [[nodiscard]] std::optional<HostCloseReason> host_close_reason() const noexcept;
     // The slot drop-downs and pickers lift their lists and panels into
     // (PopupLift; owner, 2026-11-08: Part S scope for 0.5). Menus use the
     // slots below it, one per depth.
@@ -326,6 +332,9 @@ private:
     // The warm Popup windows, made on first use (popup_standby()). Shared
     // so that its deleter is bound where it is made.
     std::shared_ptr<detail::PopupStandby> popup_standby_{};
+    // host_close_reason(): written by HostSession when it accepts the
+    // closed event.
+    std::optional<HostCloseReason> host_close_reason_{};
     [[nodiscard]] detail::PopupStandby& popup_standby();
     // Sends the corner preference to the attached host, if any, and takes
     // its report; changed corners repaint the band's strips. Called by

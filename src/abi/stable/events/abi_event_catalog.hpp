@@ -90,6 +90,8 @@
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
+#include "gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp"
+#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
 #include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
 #include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar_values/quick_access_toolbar_values.hpp"
 #include "gui_forms/controls/range_control/range_control.hpp"
@@ -115,6 +117,7 @@
 #include "gui_forms/controls/tool_strip_panel/tool_strip_panel_values/tool_strip_panel_values.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
+#include "gui_forms/events/drag_events/drag_events.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/events/key_events/key_events.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
@@ -389,6 +392,31 @@ struct EnumerationChoices<DockNavigatorList> {
     static constexpr std::array<EnumerationChoice, 2> choices{{
         {"tools", static_cast<std::int64_t>(DockNavigatorList::tools)},
         {"documents", static_cast<std::int64_t>(DockNavigatorList::documents)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<DragEnd> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 9> choices{{
+        {"none", static_cast<std::int64_t>(DragEnd::none)},
+        {"dropped", static_cast<std::int64_t>(DragEnd::dropped)},
+        {"free", static_cast<std::int64_t>(DragEnd::free)},
+        {"rejected", static_cast<std::int64_t>(DragEnd::rejected)},
+        {"escaped", static_cast<std::int64_t>(DragEnd::escaped)},
+        {"capture_lost", static_cast<std::int64_t>(DragEnd::capture_lost)},
+        {"deactivated", static_cast<std::int64_t>(DragEnd::deactivated)},
+        {"model_changed", static_cast<std::int64_t>(DragEnd::model_changed)},
+        {"subject_gone", static_cast<std::int64_t>(DragEnd::subject_gone)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<DragInputMode> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"pointer", static_cast<std::int64_t>(DragInputMode::pointer)},
+        {"keyboard", static_cast<std::int64_t>(DragInputMode::keyboard)},
     }};
 };
 
@@ -946,6 +974,7 @@ void read_field(EventFields& fields, std::string_view name, DockDocumentClosing&
 void append_field(EventFields& fields, std::string_view name, const DockFlyoutChange& value);
 void append_field(EventFields& fields, std::string_view name, const DockNavigatorChoice& value);
 void append_field(EventFields& fields, std::string_view name, const DockPanelId& value);
+void append_field(EventFields& fields, std::string_view name, const DragInteraction& value);
 void append_field(EventFields& fields, std::string_view name, const ErrorProviderChange& value);
 void append_field(EventFields& fields, std::string_view name, const FileDialogOk& value);
 void read_field(EventFields& fields, std::string_view name, FileDialogOk& value);
@@ -1018,6 +1047,9 @@ void read_field(EventFields& fields, std::string_view name, PageId& value);
 void append_field(EventFields& fields, std::string_view name, const PageInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const PagePinRequest& value);
 void read_field(EventFields& fields, std::string_view name, PagePinRequest& value);
+void append_field(EventFields& fields, std::string_view name, const PlotPointPick& value);
+void append_field(EventFields& fields, std::string_view name, const PlotQuery& value);
+void append_field(EventFields& fields, std::string_view name, const PlotViewRanges& value);
 void append_field(EventFields& fields, std::string_view name, const PointerEvent& value);
 void append_field(EventFields& fields, std::string_view name, const PointerSettings& value);
 void append_field(EventFields& fields, std::string_view name, const PresentationSettings& value);
@@ -1623,6 +1655,18 @@ inline void append_field(EventFields& fields, std::string_view name, const DockN
 inline void append_field(EventFields& fields, std::string_view name, const DockPanelId& value) {
     // An identity: the field is its one value.
     append_field(fields, name, value.value);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const DragInteraction& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "mode", value.mode);
+    append_field(fields, "has_candidate", value.has_candidate);
+    append_field(fields, "candidate", value.candidate);
+    append_field(fields, "has_value", value.has_value);
+    append_field(fields, "value", value.value);
+    append_field(fields, "pointer", value.pointer);
+    append_field(fields, "end", value.end);
+    fields.leave(prefix);
 }
 
 inline void append_field(EventFields& fields, std::string_view name, const ErrorProviderChange& value) {
@@ -2253,6 +2297,34 @@ inline void read_field(EventFields& fields, std::string_view name, PagePinReques
     read_field(fields, "page", value.page);
     read_field(fields, "pinned", value.pinned);
     read_field(fields, "handled", value.handled);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const PlotPointPick& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "series", value.series);
+    append_field(fields, "element", value.element);
+    append_field(fields, "x", value.x);
+    append_field(fields, "y", value.y);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const PlotQuery& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "present", value.present);
+    append_field(fields, "x_minimum", value.x_minimum);
+    append_field(fields, "x_maximum", value.x_maximum);
+    append_field(fields, "y_minimum", value.y_minimum);
+    append_field(fields, "y_maximum", value.y_maximum);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const PlotViewRanges& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "x_minimum", value.x_minimum);
+    append_field(fields, "x_maximum", value.x_maximum);
+    append_field(fields, "y_minimum", value.y_minimum);
+    append_field(fields, "y_maximum", value.y_maximum);
     fields.leave(prefix);
 }
 
@@ -3606,12 +3678,84 @@ inline SubscriptionToken connect_control_double_click(Component& source, const E
     return token;
 }
 
+inline SubscriptionToken connect_split_container_drag_dropped(Component& source, const EventSink& sink) {
+    SplitContainer* typed = dynamic_cast<SplitContainer*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drag_dropped(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_splitter_drag_dropped(Component& source, const EventSink& sink) {
+    Splitter* typed = dynamic_cast<Splitter*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drag_dropped(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_split_container_drag_ended(Component& source, const EventSink& sink) {
+    SplitContainer* typed = dynamic_cast<SplitContainer*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drag_ended(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_dock_site_drag_ended(Component& source, const EventSink& sink) {
     DockSite* typed = dynamic_cast<DockSite*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).drag_ended(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_splitter_drag_ended(Component& source, const EventSink& sink) {
+    Splitter* typed = dynamic_cast<Splitter*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drag_ended(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_split_container_drag_started(Component& source, const EventSink& sink) {
+    SplitContainer* typed = dynamic_cast<SplitContainer*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drag_started(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_splitter_drag_started(Component& source, const EventSink& sink) {
+    Splitter* typed = dynamic_cast<Splitter*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drag_started(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_split_container_drag_target_changed(Component& source, const EventSink& sink) {
+    SplitContainer* typed = dynamic_cast<SplitContainer*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drag_target_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_splitter_drag_target_changed(Component& source, const EventSink& sink) {
+    Splitter* typed = dynamic_cast<Splitter*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drag_target_changed(), sink);
     return token;
 }
 
@@ -4215,6 +4359,15 @@ inline SubscriptionToken connect_control_key_up(Component& source, const EventSi
     return token;
 }
 
+inline SubscriptionToken connect_plot_view_legend_toggled(Component& source, const EventSink& sink) {
+    PlotView* typed = dynamic_cast<PlotView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).legend_toggled(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_rich_text_box_link_clicked(Component& source, const EventSink& sink) {
     RichTextBox* typed = dynamic_cast<RichTextBox*>(&source);
     if (typed == nullptr) {
@@ -4572,6 +4725,15 @@ inline SubscriptionToken connect_quick_access_toolbar_placement_changed(Componen
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).placement_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_plot_view_point_picked(Component& source, const EventSink& sink) {
+    PlotView* typed = dynamic_cast<PlotView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).point_picked(), sink);
     return token;
 }
 
@@ -5029,6 +5191,15 @@ inline SubscriptionToken connect_list_view_selection_changed(Component& source, 
     return token;
 }
 
+inline SubscriptionToken connect_plot_view_selection_changed(Component& source, const EventSink& sink) {
+    PlotView* typed = dynamic_cast<PlotView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_ribbon_gallery_selection_changed(Component& source, const EventSink& sink) {
     RibbonGallery* typed = dynamic_cast<RibbonGallery*>(&source);
     if (typed == nullptr) {
@@ -5465,6 +5636,15 @@ inline SubscriptionToken connect_task_dialog_verification_changed(Component& sou
     return token;
 }
 
+inline SubscriptionToken connect_plot_view_view_changed(Component& source, const EventSink& sink) {
+    PlotView* typed = dynamic_cast<PlotView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).view_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_ribbon_tool_tip_visibility_changed(Component& source, const EventSink& sink) {
     RibbonToolTip* typed = dynamic_cast<RibbonToolTip*>(&source);
     if (typed == nullptr) {
@@ -5493,7 +5673,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 299> event_connectors{{
+inline constexpr std::array<EventConnector, 311> event_connectors{{
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
     {"activated", "ChoiceGroup", &connect_choice_group_activated},
@@ -5587,7 +5767,15 @@ inline constexpr std::array<EventConnector, 299> event_connectors{{
     {"document_closing", "DockWorkspace", &connect_dock_workspace_document_closing},
     {"double_click", "NotifyIcon", &connect_notify_icon_double_click},
     {"double_click", "Control", &connect_control_double_click},
+    {"drag_dropped", "SplitContainer", &connect_split_container_drag_dropped},
+    {"drag_dropped", "Splitter", &connect_splitter_drag_dropped},
+    {"drag_ended", "SplitContainer", &connect_split_container_drag_ended},
     {"drag_ended", "DockSite", &connect_dock_site_drag_ended},
+    {"drag_ended", "Splitter", &connect_splitter_drag_ended},
+    {"drag_started", "SplitContainer", &connect_split_container_drag_started},
+    {"drag_started", "Splitter", &connect_splitter_drag_started},
+    {"drag_target_changed", "SplitContainer", &connect_split_container_drag_target_changed},
+    {"drag_target_changed", "Splitter", &connect_splitter_drag_target_changed},
     {"draw_item_content", "TabControl", &connect_tab_control_draw_item_content},
     {"draw_item_content", "DataGridView", &connect_data_grid_view_draw_item_content},
     {"draw_item_content", "ListView", &connect_list_view_draw_item_content},
@@ -5652,6 +5840,7 @@ inline constexpr std::array<EventConnector, 299> event_connectors{{
     {"key_state_changed", "Window", &connect_window_key_state_changed},
     {"key_up", "Window", &connect_window_key_up},
     {"key_up", "Control", &connect_control_key_up},
+    {"legend_toggled", "PlotView", &connect_plot_view_legend_toggled},
     {"link_clicked", "RichTextBox", &connect_rich_text_box_link_clicked},
     {"list_changed", "BindingSource", &connect_binding_source_list_changed},
     {"loaded", "UserControl", &connect_user_control_loaded},
@@ -5692,6 +5881,7 @@ inline constexpr std::array<EventConnector, 299> event_connectors{{
     {"parse", "Binding", &connect_binding_parse},
     {"pin_changed", "CorrespondenceView", &connect_correspondence_view_pin_changed},
     {"placement_changed", "QuickAccessToolbar", &connect_quick_access_toolbar_placement_changed},
+    {"point_picked", "PlotView", &connect_plot_view_point_picked},
     {"pointer_observed", "Control", &connect_control_pointer_observed},
     {"pointer_preview_observed", "Control", &connect_control_pointer_preview_observed},
     {"position_changed", "BindingSource", &connect_binding_source_position_changed},
@@ -5742,6 +5932,7 @@ inline constexpr std::array<EventConnector, 299> event_connectors{{
     {"selection_changed", "TreeView", &connect_tree_view_selection_changed},
     {"selection_changed", "DataGridView", &connect_data_grid_view_selection_changed},
     {"selection_changed", "ListView", &connect_list_view_selection_changed},
+    {"selection_changed", "PlotView", &connect_plot_view_selection_changed},
     {"selection_changed", "RibbonGallery", &connect_ribbon_gallery_selection_changed},
     {"selection_changed", "TreeListView", &connect_tree_list_view_selection_changed},
     {"sort_changed", "TreeListView", &connect_tree_list_view_sort_changed},
@@ -5790,6 +5981,7 @@ inline constexpr std::array<EventConnector, 299> event_connectors{{
     {"value_changed", "RibbonFontControl", &connect_ribbon_font_control_value_changed},
     {"value_committed", "PropertyList", &connect_property_list_value_committed},
     {"verification_changed", "TaskDialog", &connect_task_dialog_verification_changed},
+    {"view_changed", "PlotView", &connect_plot_view_view_changed},
     {"visibility_changed", "RibbonToolTip", &connect_ribbon_tool_tip_visibility_changed},
     {"visibility_changed", "ToolTip", &connect_tool_tip_visibility_changed},
     {"visible_changed", "Control", &connect_control_visible_changed},

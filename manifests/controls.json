@@ -239,6 +239,61 @@
       "doc": "api/generated/gui_forms.SweepScope.rst"
     },
     {
+      "id": "sparkline",
+      "type": "Sparkline",
+      "header": "gui_forms/controls/instruments/sparkline/sparkline.hpp",
+      "category": "Information display",
+      "purpose": "Read-only word-sized trend line from the instruments package: the newest values of a ring drawn through the plot primitives, with an optional shaded band and a dot on the newest value.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.Sparkline.rst"
+    },
+    {
+      "id": "plot_view",
+      "type": "PlotView",
+      "header": "gui_forms/controls/plots/plot_view/plot_view.hpp",
+      "category": "Information display",
+      "purpose": "Retained declarative plot from the plots package: axes, series and annotations declared as item children, with pan, zoom, box zoom, query and point picking, a keyboard point cursor, a figure node with a summary and a table view, and an optional live sub-surface.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.PlotView.rst"
+    },
+    {
+      "id": "plot_axis_item",
+      "type": "PlotAxisItem",
+      "header": "gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp",
+      "category": "Information display",
+      "purpose": "Item child of a PlotView declaring one axis: direction, scale, initial range, title, fitting and following.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.PlotAxisItem.rst"
+    },
+    {
+      "id": "plot_series_item",
+      "type": "PlotSeriesItem",
+      "header": "gui_forms/controls/plots/plot_series_item/plot_series_item.hpp",
+      "category": "Information display",
+      "purpose": "Item child of a PlotView declaring one series: its kind, legend label, axes and data (copied, a ring, borrowed views, a signal program or a producer's ring channel).",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.PlotSeriesItem.rst"
+    },
+    {
+      "id": "plot_annotation_item",
+      "type": "PlotAnnotationItem",
+      "header": "gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp",
+      "category": "Information display",
+      "purpose": "Item child of a PlotView declaring a text label anchored at a data point.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.PlotAnnotationItem.rst"
+    },
+    {
       "id": "review_card",
       "type": "ReviewCard",
       "header": "gui_forms/controls/panel/card/review_card/review_card.hpp",
@@ -424,6 +479,17 @@
       "status": "stable",
       "gallery_page": "ranges-and-progress",
       "doc": "api/generated/gui_forms.TrackBar.rst"
+    },
+    {
+      "id": "value_bar",
+      "type": "ValueBar",
+      "header": "gui_forms/controls/range_control/value_bar/value_bar.hpp",
+      "category": "Value setting",
+      "purpose": "Blender-style value bar over RangeControl: a fill or field style, drag-to-scrub within a soft range, click-to-type bounded arithmetic with units within the hard range, snapping and step arrows.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.ValueBar.rst"
     },
     {
       "id": "numeric_up_down",

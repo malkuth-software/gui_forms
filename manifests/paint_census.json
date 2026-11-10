@@ -10,6 +10,7 @@
     "draw_inset_box_shadow",
     "draw_line",
     "draw_live_surface",
+    "draw_markers",
     "draw_part_raster",
     "draw_part_raster_scaled",
     "draw_prepared_text",
@@ -18,32 +19,45 @@
     "draw_surface_material",
     "draw_text_utf8",
     "draw_turned_text_utf8",
+    "fill_band",
+    "fill_checker",
+    "fill_conic_gradient",
+    "fill_grid_pattern",
     "fill_image_pattern",
     "fill_linear_gradient",
     "fill_linear_gradient_spread",
+    "fill_polygon",
     "fill_radial_gradient",
     "fill_rect",
+    "fill_rects",
+    "fill_rects_each",
     "fill_rounded_rect",
+    "fill_rounded_rect_corners",
+    "stroke_polyline",
     "stroke_rect",
-    "stroke_rounded_rect"
+    "stroke_rounded_rect",
+    "stroke_rounded_rect_corners",
+    "stroke_segments"
   ],
   "exempt": {
     "basic/basic_control_rendering.cpp": "the authored-recipe path: paint_theme_cues paints the focus and default cues of a control's own override recipes (visual_recipes_override), which the theme engine does not draw (owner decision, 2026-11-03)",
     "connected_controls/connected_controls.cpp": "the authored-recipe path: the public paint_connected_surface_material paints an application's own recipe, which the theme engine does not draw (owner decision, 2026-11-03)",
     "drawing_surface/drawing_surface.cpp": "draws the application's own drawing (DrawingSurface), not chrome",
     "easing_preview/easing_preview.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
+    "instruments/sparkline/sparkline.cpp": "draws application content: the sparkline's data markers, in the series colours the application gives (as metrics_view, owner decision T4-4); its frame and background go through the theme",
     "metrics_view/metrics_view.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
     "panel/material_panel/material_panel.cpp": "authored material: MaterialPanel paints the material its application gives it, as content (owner decision, 2026-11-03)",
     "panel/picture_box/picture_box.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
     "panel/text_box/text_box_decorations.cpp": "content paint (owner ruling, 2026-11-09): the backgrounds and underlines of a TextBox's styled runs are application content authored by the producer (a syntax highlighter, a spell checker), like the text itself, not chrome; the inks a decoration takes from the theme still resolve through the theme",
+    "plots/plot_view/plot_engine.cpp": "draws application content: plotted markers and legend swatches in the series colours the application gives (as metrics_view, owner decision T4-4). Pending review: the zoom and selection boxes (four calls) are chrome in the recipe's focus colour and should move to a theme part",
     "raster_canvas/raster_canvas.cpp": "draws the application's raster (RasterCanvas), not chrome",
     "typography_specimen/typography_specimen.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme; its line boxes are diagnostic inspection content (as VisualInspectorView's, owner-agreed exemption)",
     "visual_inspector_view/visual_inspector_view.cpp": "a diagnostic instrument: the inspector's dark panel stays fixed under every theme so that it reads the same while inspecting any of them (owner decision, 2026-11-03)"
   },
   "totals": {
     "exempt": {
-      "files": 11,
-      "calls": 44
+      "files": 13,
+      "calls": 51
     },
     "demo": {
       "files": 2,
@@ -79,6 +93,10 @@
       "category": "demo",
       "calls": 10
     },
+    "instruments/sparkline/sparkline.cpp": {
+      "category": "exempt",
+      "calls": 1
+    },
     "instruments/sweep_scope/sweep_scope_effects.cpp": {
       "category": "stock",
       "calls": 0,
@@ -99,6 +117,10 @@
     "panel/text_box/text_box_decorations.cpp": {
       "category": "exempt",
       "calls": 3
+    },
+    "plots/plot_view/plot_engine.cpp": {
+      "category": "exempt",
+      "calls": 6
     },
     "range_control/progress_bar/progress_bar_effects.cpp": {
       "category": "stock",

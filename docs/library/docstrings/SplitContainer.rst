@@ -119,12 +119,25 @@ splitter_changed
     and the reason: `SplitChangeReason::programmatic` for
     a `splitter_distance` write, `pointer` for each step of a drag and its
     release, `keyboard` for arrow keys, `semantic` for accessibility actions,
-    `cancel` when Escape ends a drag and restores the starting distance, and
+    `cancel` when a drag ends other than by release (Escape, a lost pointer
+    capture or the window's deactivation) and restores the starting
+    distance, and
     `container_resize` when a layout pass moves the seam: to center it at
     first, to respect the panels' limits, or to keep a fixed second panel's
     extent. Collapsing or restoring a panel, by any means, always
     raises it with `SplitChangeReason::collapse` and the collapse origin, even
     when the distance stays the same.
+drag_started
+    The seam drag began (a press on the seam or the keyboard drag), with a
+    `DragInteraction` holding the starting distance.
+drag_target_changed
+    Never raised by the seam, whose drag has no candidates.
+drag_dropped
+    Raised after `splitter_changed` when a release or Enter commits the
+    drag, with the committed distance.
+drag_ended
+    Raised after every end, last, with its kind (`DragEnd`); an end that
+    restores carries no value.
 
 Methods
 -------
@@ -147,9 +160,16 @@ Anchor like a `Panel`.
 
 Input: pressing the primary button on the seam's hit area starts a drag,
 focuses the seam and captures the pointer, and the panels follow the pointer
-until release. While the seam has focus, Left and Right (for a vertical
+until release, stopping at the distance limits. Escape, losing the capture
+or the window's deactivation cancels the drag and puts back the distance it
+started from. The drag runs on the window's drag engine; the
+`begin_keyboard_drag` rule action on `splitter_control` starts the same drag
+from the keyboard, where the arrows along the axis step by
+`keyboard_increment` (Ctrl ten steps, Shift a tenth), Enter keeps the
+position and Escape restores it, each end announced to screen readers.
+While the seam has focus, Left and Right (for a vertical
 seam) or Up and Down (for a horizontal seam) move it by
-`keyboard_increment`, Escape during a drag cancels it, and, when
+`keyboard_increment`, and, when
 `collapse_panel` is set, Enter and Space toggle that panel, as does pressing
 and releasing the collapse tab. Dragging, the arrow keys and the
 accessibility value actions do nothing while `splitter_fixed` is true or a

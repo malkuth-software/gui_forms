@@ -1,5 +1,6 @@
 #include "gui_forms/metrics/metrics/metrics.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/metrics/font_sources/bundled_font_sources.hpp"
 
 #include <algorithm>
 
@@ -10,6 +11,7 @@ MetricsSnapshot Metrics::snapshot() const {
     result.rejected_wrong_thread_operations =
         wrong_thread_rejections_.load(std::memory_order_relaxed);
     result.effects_unverified = effect_load_diagnostics().unverified;
+    result.bundled_font_lookups_without_source = bundled_font_diagnostics().lookups_without_source;
     return result;
 }
 

@@ -35,6 +35,9 @@ public:
     [[nodiscard]] Rect actuator_bounds() const noexcept;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
     void on_pointer(PointerEvent& event) override;
+    // The grip holds focus, so the rule action reaches it; the container
+    // runs the drag.
+    bool begin_keyboard_drag() override;
     void on_focus_changed(bool focused) override;
     void on_focus_cue_changed(bool visible) override;
     void on_paint(Painter& painter, Rect local_damage) override;

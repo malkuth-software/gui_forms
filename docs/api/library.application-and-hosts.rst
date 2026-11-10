@@ -3445,6 +3445,8 @@ Enumerations
 
    .. cpp:enumerator:: test
 
+   .. cpp:enumerator:: quit
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HostDialogChoice

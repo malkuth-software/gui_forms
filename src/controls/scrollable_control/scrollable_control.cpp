@@ -6,6 +6,8 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/engine/theme_engine/theme_engine.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "../range_control/scroll_bar/scroll_bar_painting.hpp"
 
 #include <array>
@@ -1197,7 +1199,7 @@ namespace {
 
 constexpr ControlAnatomy scrollable_control_anatomy{
     .control_id = "scrollable_control",
-    .parts = scrollable_detail::parts,
+    .parts = scrollable_detail::grounded_parts,
     .states = scrollable_detail::states,
     .custom_states = {},
 };
@@ -1265,6 +1267,60 @@ ScrollableControl::Parts ScrollableControl::scrollable_parts() const {
 void ScrollableControl::publish_part_geometry(std::span<PartGeometry> geometry) const {
     const Parts record = scrollable_parts();
     write_parts(anatomy(), scrollable_detail::part_fields, record, geometry);
+    // The ground, where the anatomy declares it (write_parts skips it
+    // elsewhere): the whole box.
+    scrollable_detail::GroundParts ground{};
+    const Rect arranged = committed_arranged_bounds();
+    ground.face = PartGeometry::from_bounds(Rect{0.0, 0.0, arranged.width, arranged.height});
+    write_parts(anatomy(), scrollable_detail::ground_fields, ground, geometry);
+}
+
+namespace {
+
+// Whether `anatomy` declares the ground (scrollable_detail::GroundParts).
+bool declares_ground(const ControlAnatomy& anatomy) noexcept {
+    for (const PartDeclaration& part : anatomy.parts) {
+        if (part.name == "face") return true;
+    }
+    return false;
+}
+
+// Whether a theme rule names the ground (`user-control::part(face)`,
+// `::part(face)`): the part keyed "face" resolves otherwise than the same
+// part without a key, which only the rules naming no part match. A rule on
+// the panel family or the face role alone matches both, so it paints no
+// ground: containers kept no face before they declared one, and a theme
+// must ask for it.
+bool ground_named_by_rule(const Control& control, const PartPaint& keyed) noexcept {
+    const ThemeEngine& engine = control.effective_theme().engine();
+    const ThemeEngine::PartPlan named = engine.plan(control, keyed);
+    if (named.drawing != ThemeEngine::PartDrawing::primitive) return false;
+    PartPaint unkeyed = keyed;
+    unkeyed.key.reset();
+    const ThemeEngine::PartPlan broad = engine.plan(control, unkeyed);
+    if (broad.drawing != named.drawing || broad.resolution.primitive != named.resolution.primitive ||
+        broad.resolution.level != named.resolution.level) {
+        return true;
+    }
+    for (std::size_t field = 0; field < named.resolution.materials.size(); ++field) {
+        if (broad.resolution.materials[field] != named.resolution.materials[field]) return true;
+    }
+    return false;
+}
+
+} // namespace
+
+void ScrollableControl::on_paint(Painter& painter, Rect) {
+    if (!declares_ground(anatomy())) return;
+    const Rect arranged = committed_arranged_bounds();
+    PartPaint ground;
+    ground.family = ControlVisualRole::panel;
+    ground.role = PartRole::face;
+    ground.bounds = Rect{0.0, 0.0, arranged.width, arranged.height};
+    ground.states = anatomy_states();
+    ground.key = PartKey{"face", {}, {}};
+    if (!ground_named_by_rule(*this, ground)) return;
+    paint_part(painter, *this, ground);
 }
 
 AnatomyStateSet ScrollableControl::anatomy_states() const {
