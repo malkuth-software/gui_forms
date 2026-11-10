@@ -2,6 +2,8 @@
 
 #include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
 
+#include "../../dispatcher/state/dispatcher_state.hpp"
+
 #include <condition_variable>
 #include <memory>
 #include <mutex>
@@ -61,6 +63,10 @@ struct SubSurfaceChannel final {
     // The newest text input caret, in the sub-surface's coordinates.
     std::optional<Rect> text_input_caret{};
     bool stop_requested{};
+    // The sub-surface thread's synchronous invokes, revoked by stop() before
+    // it joins (detail::RevocableInvokes). Made with the channel, named by
+    // the thread at its start; guarded by its own leaf mutex, not `mutex`.
+    std::shared_ptr<RevocableInvokes> revocable_invokes{std::make_shared<RevocableInvokes>()};
     // A dispatch or paint wake arrived since the loop last looked.
     bool signalled{};
     SubSurfaceState state{SubSurfaceState::starting};

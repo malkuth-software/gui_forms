@@ -837,6 +837,137 @@ void input_reaches_sub_surface_in_order() {
     require(thread.post_input(key_input(PhysicalKey::a)) == 0U, "a stopped sub-surface takes no input");
 }
 
+// What the blocking work below shares with the test thread.
+struct Gate final {
+    std::atomic<bool> entered{false};
+    std::atomic<bool> release{false};
+    std::atomic<bool> parent_ran{false};
+    std::atomic<int> invoke_result{-1};
+};
+
+// Posted to the sub-surface: holds its thread until the test releases it,
+// so input queues in the channel meanwhile.
+struct HoldSubSurface final {
+    std::shared_ptr<Gate> gate;
+    void operator()() const {
+        (*gate).entered = true;
+        const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+        while (!(*gate).release.load() && std::chrono::steady_clock::now() < limit) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
+};
+
+// Runs on the parent's thread, if it ever runs.
+struct MarkParentRan final {
+    std::shared_ptr<Gate> gate;
+    void operator()() const { (*gate).parent_ran = true; }
+};
+
+// Posted to the sub-surface: a synchronous invoke onto the parent, which the
+// parent never drains because it is about to stop the sub-surface.
+struct InvokeParent final {
+    std::shared_ptr<Gate> gate;
+    WindowDispatcher parent;
+    void operator()() const {
+        (*gate).entered = true;
+        const DispatchInvokeResult result = parent.invoke(MarkParentRan{gate});
+        (*gate).invoke_result = result == DispatchInvokeResult::window_gone ? 0 : 1;
+    }
+};
+
+struct CountWakes final {
+    std::shared_ptr<std::atomic<int>> wakes;
+    void operator()() const { ++(*wakes); }
+};
+
+[[nodiscard]] bool wait_for_flag(const std::atomic<bool>& flag) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (!flag.load() && std::chrono::steady_clock::now() < limit) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return flag.load();
+}
+
+// N42: stopping a sub-surface whose code waits in a synchronous invoke onto
+// the parent must not hang. Before the fix the parent joined while the
+// sub-surface waited for the parent's turn, for ever.
+void stop_revokes_an_invoke_onto_the_parent() {
+    std::shared_ptr<Probe> probe = std::make_shared<Probe>();
+    std::shared_ptr<LiveSurface> surface = LiveSurface::create({16U, 16U});
+    SubSurfaceThread thread(std::make_unique<SolidContent>(probe, red), surface, default_theme(), nullptr);
+    std::shared_ptr<Panel> parent_root = std::make_shared<Panel>(StableId("sub.revoke.parent"));
+    Window parent(parent_root, Size{100.0, 100.0});
+    std::shared_ptr<std::atomic<int>> wakes = std::make_shared<std::atomic<int>>(0);
+    // A synchronous invoke needs a host wake on its target.
+    parent.set_dispatch_wake_handler(CountWakes{wakes});
+    require(wait_for_state(thread, SubSurfaceState::running), "thread reaches running");
+    thread.configure(configuration_of(1U, 16U, 16U));
+    require(wait_for_content_tag(*surface, 1U), "first frame published");
+
+    std::shared_ptr<Gate> gate = std::make_shared<Gate>();
+    const DispatchOperation posted = thread.dispatcher().begin_invoke(InvokeParent{gate, parent.dispatcher()});
+    static_cast<void>(posted);
+    require(wait_for_flag((*gate).entered), "the sub-surface starts its invoke");
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    thread.stop();
+    require((*gate).invoke_result.load() == 0, "the revoked invoke reports window_gone");
+    static_cast<void>(parent.drain_posted_work());
+    require(!(*gate).parent_ran.load(), "the revoked invoke never runs on the parent");
+    parent.set_dispatch_wake_handler({});
+}
+
+[[nodiscard]] SubSurfaceInput move_input(double x, std::uint32_t pointer) {
+    SubSurfaceInput input;
+    input.kind = SubSurfaceInputKind::pointer;
+    input.pointer.action = PointerAction::move;
+    input.pointer.pointer_id = pointer;
+    input.pointer.position = Point{x, 5.0};
+    return input;
+}
+
+// N43: queued pointer moves of one pointer coalesce, and the queue is
+// bounded as the window's deferred input is.
+void sub_surface_input_is_bounded_and_merged() {
+    std::shared_ptr<InputLog> log = std::make_shared<InputLog>();
+    std::shared_ptr<LiveSurface> surface = LiveSurface::create({100U, 30U});
+    SubSurfaceThread thread(std::make_unique<TwoStopsContent>(log), surface, default_theme(), nullptr);
+    require(wait_for_state(thread, SubSurfaceState::running), "thread reaches running");
+    thread.configure(configuration_of(1U, 100U, 30U));
+    require(wait_for_content_tag(*surface, 1U), "first frame published");
+
+    std::shared_ptr<Gate> gate = std::make_shared<Gate>();
+    const DispatchOperation posted = thread.dispatcher().begin_invoke(HoldSubSurface{gate});
+    static_cast<void>(posted);
+    require(wait_for_flag((*gate).entered), "the sub-surface is held");
+
+    require(thread.post_input(move_input(1.0, 1U)) == 1U, "the first move is queued");
+    require(thread.post_input(move_input(2.0, 1U)) == 2U, "a second move takes a new sequence");
+    require(thread.post_input(move_input(3.0, 1U)) == 3U, "and a third");
+    require(thread.post_input(move_input(4.0, 2U)) == 4U, "another pointer's move is its own event");
+    require(thread.post_input(key_input(PhysicalKey::a)) == 5U, "a key is queued");
+    require(thread.post_input(move_input(5.0, 2U)) == 6U, "a move after a key is not merged");
+    SubSurfaceStatistics statistics = thread.statistics();
+    require(statistics.inputs_received == 6U && statistics.inputs_coalesced == 2U,
+            "two moves were merged into the first");
+
+    // Four events are queued; fill to the bound with keys.
+    std::uint64_t accepted = 4U;
+    while (accepted < maximum_deferred_inputs) {
+        require(thread.post_input(key_input(PhysicalKey::a)) != 0U, "the queue takes events up to its bound");
+        ++accepted;
+    }
+    require(thread.post_input(key_input(PhysicalKey::a)) == 0U, "a full queue refuses an event");
+    statistics = thread.statistics();
+    require(statistics.inputs_rejected == 1U, "the refusal is counted");
+
+    (*gate).release = true;
+    const std::uint64_t dispatched = statistics.inputs_received - statistics.inputs_coalesced;
+    require(wait_for_inputs(thread, dispatched), "every queued event is dispatched");
+    require(thread.statistics().inputs_dispatched == dispatched, "merged moves are not dispatched");
+    thread.stop();
+}
+
 // The host in a window: Tab enters the sub-surface at its first stop and
 // leaves it past the last; Shift+Tab enters at the last stop; a press on
 // the host reaches the control under it in local coordinates; window
@@ -2133,6 +2264,8 @@ int run_all() {
     host_notices_stops_and_missed_pairings();
     caret_falls_back_to_left_edge();
     input_reaches_sub_surface_in_order();
+    stop_revokes_an_invoke_onto_the_parent();
+    sub_surface_input_is_bounded_and_merged();
     host_forwards_input_and_focus();
     tool_tips_are_asked_of_the_parent();
     tool_tips_without_a_parent_ask_nowhere();
