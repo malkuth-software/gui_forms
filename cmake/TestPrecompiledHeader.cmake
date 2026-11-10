@@ -25,8 +25,13 @@
 #
 # Clang stamps a precompiled header with its build time unless told not to,
 # which would make every reuse a compiler-cache miss; -fno-pch-timestamp goes
-# on every program of a group, so the group's options stay equal. ccache then
-# needs CCACHE_SLOPPINESS=pch_defines,time_macros (CI sets it).
+# on every program of a group, so the group's options stay equal. ccache also
+# refuses any unit that reads a precompiled header ("could not use precompiled
+# header") unless its sloppiness includes pch_defines and time_macros, so when
+# the compiler launcher is ccache these programs get it with that sloppiness
+# as a leading argument (ccache 4.8 and later read KEY=VALUE arguments before
+# the compiler). Every build tree then caches them, whatever its environment;
+# other programs keep ccache's strict defaults.
 option(GUI_FORMS_TEST_PRECOMPILED_HEADER "Share one precompiled header among the test programs" ON)
 
 # Whether a test source defines a macro before its last include (see above).
@@ -117,6 +122,17 @@ function(gui_forms_share_test_precompiled_header)
         endif()
         list(APPEND group_${digest} ${target})
     endforeach()
+    # The launcher of the programs that use the header (see above): ccache with
+    # the sloppiness it needs, or the configured launcher unchanged.
+    set(pch_launcher "${CMAKE_CXX_COMPILER_LAUNCHER}")
+    if(CMAKE_CXX_COMPILER_LAUNCHER)
+        list(GET CMAKE_CXX_COMPILER_LAUNCHER 0 launcher_program)
+        get_filename_component(launcher_name "${launcher_program}" NAME_WE)
+        string(TOLOWER "${launcher_name}" launcher_name)
+        if(launcher_name STREQUAL "ccache")
+            list(APPEND pch_launcher "sloppiness=pch_defines,time_macros")
+        endif()
+    endif()
     set(shared_programs 0)
     set(shared_groups 0)
     foreach(digest IN LISTS group_digests)
@@ -128,6 +144,9 @@ function(gui_forms_share_test_precompiled_header)
         foreach(target IN LISTS group_${digest})
             if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
                 target_compile_options(${target} PRIVATE "SHELL:-Xclang -fno-pch-timestamp")
+            endif()
+            if(pch_launcher)
+                set_property(TARGET ${target} PROPERTY CXX_COMPILER_LAUNCHER "${pch_launcher}")
             endif()
             if(target STREQUAL compiling_target)
                 target_precompile_headers(${target} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${header}>")

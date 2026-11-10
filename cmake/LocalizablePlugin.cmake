@@ -213,9 +213,22 @@ function(gui_forms_compile_with_localizable_plugin target)
         return()
     endif()
     set(_gf_prefix "${GUI_FORMS_CLANG_DRIVER_PREFIX}")
+    # Ninja runs every compile in the top build directory, where the plugin
+    # takes a relative root from (it resolves it against the compiler's
+    # working directory). ccache rewrites absolute paths below CCACHE_BASEDIR
+    # but not inside a plugin argument, so an absolute root would keep two
+    # worktrees from sharing any object compiled with the plugin. Other
+    # generators compile in each target's own directory and keep it absolute.
+    set(_gf_root "${CMAKE_SOURCE_DIR}")
+    if(CMAKE_GENERATOR MATCHES "Ninja")
+        file(RELATIVE_PATH _gf_root "${CMAKE_BINARY_DIR}" "${CMAKE_SOURCE_DIR}")
+        if(_gf_root STREQUAL "")
+            set(_gf_root ".")
+        endif()
+    endif()
     set(_gf_flags
         "${_gf_prefix}-fplugin=${GUI_FORMS_LOCALIZABLE_PLUGIN_PATH}"
-        "${_gf_prefix}-fplugin-arg-gui_forms_localizable-root=${CMAKE_SOURCE_DIR}")
+        "${_gf_prefix}-fplugin-arg-gui_forms_localizable-root=${_gf_root}")
     if(NOT GUI_FORMS_EFFECT_VERIFY)
         list(APPEND _gf_flags "${_gf_prefix}-fplugin-arg-gui_forms_localizable-effects=off")
     endif()

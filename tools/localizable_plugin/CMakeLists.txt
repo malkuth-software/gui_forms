@@ -84,5 +84,13 @@ elseif(WIN32)
                             "mingw-w64-clang-x86_64-clang and mingw-w64-clang-x86_64-llvm-tools)")
     endif()
     target_link_libraries(gui_forms_localizable PRIVATE ${GUI_FORMS_CLANG_CPP_LIBRARY} ${GUI_FORMS_LLVM_LIBRARY})
+    # The linker stamps a DLL with the time of its link unless told not to.
+    # A compiler cache hashes the plugin's bytes into every unit compiled with
+    # it, so a stamped plugin would make each build tree miss on all of them.
+    if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+        target_link_options(gui_forms_localizable PRIVATE /Brepro)
+    else()
+        target_link_options(gui_forms_localizable PRIVATE LINKER:--no-insert-timestamp)
+    endif()
 endif()
 install(TARGETS gui_forms_localizable LIBRARY DESTINATION lib)

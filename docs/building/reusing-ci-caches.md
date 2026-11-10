@@ -243,7 +243,7 @@ failures seen when the method was varied.
 |---|---|
 | LLVM 22.1.8 from the same package source; `CC=clang`, `CXX=clang++`, `OBJCXX=clang++`; `cmake/llvm22.cmake` on both sides | the content check hashes the binary; Windows `cc.exe` is another identity; a CMake cache keeps its old compiler, so use a fresh build tree |
 | `gui_forms/` and `.build/native-<platform>/gui-forms/` under one root | hits rely on equal paths relative to `CCACHE_BASEDIR` |
-| `CCACHE_BASEDIR`, `CCACHE_DIR`, `CCACHE_COMPILERCHECK=content`, no sloppiness | anything weaker reuses objects it should not |
+| `CCACHE_BASEDIR`, `CCACHE_DIR`, `CCACHE_COMPILERCHECK=content`, no sloppiness beyond the `pch_defines,time_macros` that the precompiled-header test programs carry themselves | anything weaker reuses objects it should not |
 | all three launchers as environment variables | Skia's build scripts read `CMAKE_CXX_COMPILER_LAUNCHER` from the environment |
 | the `ci_build.py` configure options | options are part of every hash |
 | reuse only older, successful runs of the same workflow and repository, matching tree, compiler and environment | anything looser can turn an untested or failed result green |
