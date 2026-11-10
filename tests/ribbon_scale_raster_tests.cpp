@@ -11,6 +11,8 @@
 #include "demo/gallery.hpp"
 #include "skia_raster.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
@@ -100,7 +102,7 @@ std::shared_ptr<const Theme> plan_paint_theme() {
 // `scale` is the framebuffer's; `window_scale` the window's, which differ
 // in an offscreen capture at another scale (Plan Paint's inspection frame).
 void ribbon_faces_at(double scale, double window_scale, const std::shared_ptr<const Theme>& theme,
-                     Sample rail_colour) {
+                     Sample rail_colour, double taper) {
     std::shared_ptr<Command> paste = std::make_shared<Command>("paste", "Paste");
     std::vector<RibbonTabSpec> tabs;
     RibbonTabSpec home{.stable_id = "home", .text = "Home"};
@@ -145,6 +147,34 @@ void ribbon_faces_at(double scale, double window_scale, const std::shared_ptr<co
     require(near(rail, rail_colour.red, rail_colour.green, rail_colour.blue, 6), "the rail has its colour");
     require(file_face.blue > 100 && file_face.red < 80, "File is the blue gradient");
     require(view_face.blue > 180 && view_face.red < 200, "an unselected tab has its blue face");
+    // The selected tab's pale face stops at its tapered edge's line: one
+    // unit outside the line, down the lower half, is no lighter than the
+    // shadow a unit further out, which only lightens as it falls off (the
+    // pale fringe the owner would notice was lighter there).
+    const Rect chosen = realized[0].parts.tab.bounds;
+    const double right = chosen.x + chosen.width;
+    bool fringe = false;
+    for (double y = chosen.y + chosen.height * 0.5; y < chosen.y + chosen.height - 2.0; y += 1.0) {
+        const double edge = right - taper * (1.0 - (y - chosen.y) / chosen.height);
+        const Sample outside = sample(raster, scale, {edge + 1.0, y});
+        const Sample beyond = sample(raster, scale, {edge + 2.0, y});
+        if (outside.red > beyond.red + 20) fringe = true;
+    }
+    require(!fringe, "the selected tab's face does not run past its tapered edge");
+    // At the top corner the shadow starts exactly where the last tab's face
+    // ends, on the same rounded, tapered outline (radius 4 in both themes):
+    // just outside the outline is shadow, never a gap of bare rail.
+    const Rect last = realized[1].parts.tab.bounds;
+    const double last_right = last.x + last.width;
+    bool gap = false;
+    for (double down = 0.5; down < 6.0; down += 1.0) {
+        const double rise = std::max(0.0, 4.0 - down);
+        const double inset = 4.0 - std::sqrt(std::max(0.0, 16.0 - rise * rise));
+        const double outline = last_right - taper * (1.0 - down / last.height) - inset;
+        const Sample outside = sample(raster, scale, {outline + 0.75, last.y + down});
+        if (outside.red + 15 > rail_colour.red) gap = true;
+    }
+    require(!gap, "the shadow follows the tab's rounded, tapered outline from its top corner");
     require(plane_face.blue > 200 && plane_face.red < 220, "the plane has its blue gradient");
 }
 
@@ -207,12 +237,12 @@ int main() {
     const std::shared_ptr<const Theme> stock = gui_forms_theme();
     const std::shared_ptr<const Theme> plan_paint = plan_paint_theme();
     for (const double scale : {1.0, 2.0}) {
-        ribbon_faces_at(scale, scale, stock, Sample{0x93, 0xad, 0xd0});
-        if (plan_paint) ribbon_faces_at(scale, scale, plan_paint, Sample{0x9b, 0xb5, 0xd8});
+        ribbon_faces_at(scale, scale, stock, Sample{0x93, 0xad, 0xd0}, 5.0);
+        if (plan_paint) ribbon_faces_at(scale, scale, plan_paint, Sample{0x9b, 0xb5, 0xd8}, 4.0);
         // The other scale's window into this scale's framebuffer.
         const double other = scale == 1.0 ? 2.0 : 1.0;
-        ribbon_faces_at(scale, other, stock, Sample{0x93, 0xad, 0xd0});
-        if (plan_paint) ribbon_faces_at(scale, other, plan_paint, Sample{0x9b, 0xb5, 0xd8});
+        ribbon_faces_at(scale, other, stock, Sample{0x93, 0xad, 0xd0}, 5.0);
+        if (plan_paint) ribbon_faces_at(scale, other, plan_paint, Sample{0x9b, 0xb5, 0xd8}, 4.0);
         gallery_ribbon_at(scale, scale);
         gallery_ribbon_at(scale, other);
     }
